@@ -1,0 +1,48 @@
+.thread-events {
+  flex: 1;
+  position: relative;
+}
+
+.events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--devui-swim-global-bg);
+}
+
+.ui-events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.dependency-events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.hover-events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.background-events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.line-events-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}

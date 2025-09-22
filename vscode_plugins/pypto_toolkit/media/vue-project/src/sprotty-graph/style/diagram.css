@@ -1,0 +1,510 @@
+/* -------无嵌套------- */
+.sprotty-node:not([fill]) {
+  fill: var(--vscode-button-background);
+}
+
+rect.sprotty-node.op {
+  /*fill: rgba(22, 56, 115, 1);*/
+  rx: 8px;
+}
+
+/* Main labels - larger font for node names */
+.sprotty-label[class*="-main-label"] {
+  fill: var(--vscode-button-background);
+}
+
+.sprotty-label[class*="-title-label"] {
+  height: 18px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  font-size: 9.91px;
+  font-weight: 600;
+  line-height: 15.67px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.sprotty-label[class*="icon-label"] {
+  width: 16px;
+  height: 16px;
+  fill: rgba(179, 179, 179, 1);
+}
+
+.magicId-text {
+  font-weight: 400;
+  letter-spacing: 0px;
+  text-align: center;
+}
+
+.sprotty-label[class*="-subgraphId-label"] {
+  width: 72px;
+  height: 18px;
+
+  font-size: 8.55px;
+  font-weight: 400;
+  line-height: 12.82px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.magicId-background-label {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  rx: 8px;
+}
+
+
+
+/* Metadata labels - smaller font with reduced opacity for secondary information */
+.sprotty-label[class*="-meta-label"] {
+  font-size: 8px;
+  font-weight: normal;
+
+  opacity: 0.8;
+}
+
+/* key labels  */
+.sprotty-label[class*="-key-label"] {
+
+  font-size: 8.55px;
+  font-weight: 400;
+  line-height: 12.82px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+/* value labels  */
+.sprotty-label[class*="-value-label"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  font-size: 8.55px;
+  font-weight: 400;
+  line-height: 12.82px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.tensor-in-wave-label1 {
+  fill: var(--devui-in-wave-fill1);
+}
+
+.tensor-in-wave-label2 {
+  fill: var(--devui-in-wave-fill2);
+}
+
+.tensor-out-wave-label1 {
+  fill: var(--devui-out-wave-fill1);
+}
+
+.tensor-out-wave-label2 {
+  fill: var(--devui-out-wave-fill2);
+}
+
+/* Specific colors for different node type main labels */
+.tensor-main-label {
+  fill: white;
+  /* color: rgba(179, 179, 179, 1); */
+}
+
+.sync-main-label {
+  fill: white;
+}
+
+.input-main-label {
+  fill: white;
+}
+
+.output-main-label {
+  fill: white;
+}
+
+.operation-main-label {
+  fill: white;
+}
+
+.sprotty svg text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+g[class*="-main-label"]:hover {
+  text {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}
+
+.sprotty-node.input {
+  fill: var(--vscode-editorGutter-modifiedSecondaryBackground);
+}
+
+.sprotty-node.output {
+  fill: var(--vscode-editor-selectionBackground);
+}
+
+.tensor-inout-background-label,
+.sprotty-node.tensor {
+  rx: 8px;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke: width 1px;
+  box-sizing: border-box;
+}
+
+.sprotty-node.sync {
+  fill: var(--vscode-editorWarning-background);
+  stroke: var(--vscode-editorWarning-border);
+  stroke-width: 1px;
+}
+
+.sprotty-node.sync.sync-src {
+  fill: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+
+.sprotty-node.sync.sync-dst {
+  fill: var(--vscode-gitDecoration-deletedResourceForeground);
+}
+
+.sprotty-node.sync.barrier {
+  fill: var(--vscode-editorError-background);
+  stroke: var(--vscode-editorError-border);
+}
+
+.sprotty-node.sync.phase {
+  fill: var(--vscode-editorInfo-background);
+  stroke: var(--vscode-editorInfo-border);
+  stroke-width: 1.5px;
+}
+
+.sprotty-button {
+  fill: var(--vscode-editorActiveLineNumber-foreground);
+}
+
+.sprotty-edge {
+  fill: none;
+  stroke: var(--devui-node-edge);
+  stroke-width: 1.5px;
+}
+
+
+
+.sprotty-edge-transparent {
+  stroke: transparent;
+  stroke-width: 10px;
+}
+
+
+.sprotty-edge-incoming {
+  stroke: var(--devui-node-edge-active);
+  stroke-width: 1.5;
+}
+
+.sprotty-edge-outgoing {
+  stroke: var(--devui-node-edge-active);
+  stroke-width: 1.5;
+}
+
+
+.sprotty-port {
+  fill: var(--devui-node-edge);
+}
+
+.sprotty-port.selected,
+.sprotty-port.mouseover {
+  fill: var(--devui-node-edge-active);
+}
+
+/* Add: General node highlighting for any traced nodes */
+.sprotty-node.traced-incoming {
+  stroke: var(--vscode-editorOverviewRuler-warningForeground);
+  stroke-width: 1.5;
+}
+
+.sprotty-node.traced-outgoing {
+  stroke: var(--vscode-listFilterWidget-noMatchesOutline);
+  stroke-width: 1.5;
+}
+
+.sprotty-edge-arrow {
+  fill: var(--vscode-editorActiveLineNumber-foreground);
+}
+
+.arrowhead {
+  fill: var(--vscode-editorActiveLineNumber-foreground);
+}
+
+
+
+.sprotty-edge.mouseover:not(.selected) {
+  stroke-width: 1.5px;
+}
+
+.sprotty-hidden {
+  width: 0px;
+  height: 0px;
+}
+
+
+rect.sprotty-node.call-operation {
+  fill: var(--vscode-editorInfo-background) !important;
+  stroke: var(--vscode-editorInfo-border) !important;
+  stroke-width: 1.5px !important;
+  cursor: pointer;
+
+}
+
+rect.sprotty-node.call-operation:hover {
+  fill: var(--vscode-editorHoverWidget-background) !important;
+  stroke: var(--vscode-focusBorder) !important;
+  stroke-width: 1.5px !important;
+}
+
+/* Control flow edges - dashed style for sync coordination */
+.sprotty-edge[id*="control-flow"] {
+  stroke-dasharray: 5, 5;
+  stroke: var(--vscode-editorWarning-foreground);
+}
+
+
+
+.control-flow {
+  stroke-dasharray: 5, 5;
+  stroke: var(--vscode-editorWarning-foreground);
+  stroke-width: 1.5px;
+}
+
+/* Phase coordination edges - distinct style for phase flow */
+.sprotty-edge[id*="phase-flow"],
+.sprotty-edge[id*="phase-coord"] {
+  stroke-dasharray: 3, 7;
+  stroke: var(--vscode-editorInfo-foreground);
+  stroke-width: 1.5px;
+}
+
+
+svg.sprotty-graph {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* -------有嵌套------- */
+
+/* CALL operation styling - make selectors more specific */
+g.call-operation rect.sprotty-node {
+  fill: var(--vscode-editorInfo-background) !important;
+  stroke: var(--vscode-editorInfo-border) !important;
+  stroke-width: 1.5px !important;
+  cursor: pointer;
+
+}
+
+g.call-operation:hover rect.sprotty-node {
+  fill: var(--vscode-editorHoverWidget-background) !important;
+  stroke: var(--vscode-focusBorder) !important;
+  stroke-width: 1.5px !important;
+}
+
+.control-flow-edge .sprotty-edge {
+  stroke-dasharray: 5, 5;
+  stroke: var(--vscode-editorWarning-foreground);
+  stroke-width: 1.5px;
+}
+
+/* 前向节点和后向节点的边框样式  目前没有设计 故注释掉 留作以后参考 */
+/* .op-incoming   rect {  
+  stroke: rgba(255, 255, 255, 1);
+  stroke-width: 1.5;
+}
+
+.op-outgoing   rect {
+  stroke: rgba(255, 255, 255, 1);
+  stroke-width: 1.5;
+} */
+
+/* Input/Output node highlighting */
+.io-incoming rect {
+  stroke: var(--vscode-editorOverviewRuler-warningForeground);
+  stroke-width: 1.5;
+}
+
+.io-outgoing rect {
+  stroke: var(--vscode-listFilterWidget-noMatchesOutline);
+  stroke-width: 1.5;
+}
+
+.sprotty-edge .sprotty-routing-handle {
+  fill: var(--vscode-editor-selectionBackground);
+  stroke: none;
+  z-index: 1000;
+}
+
+.sprotty-edge .sprotty-routing-handle[data-kind="line"] {
+  opacity: 0.35;
+}
+
+.sprotty-edge .sprotty-routing-handle.selected {
+  fill: var(--vscode-editor-selectionHighlightBackground);
+}
+
+.sprotty-edge .sprotty-routing-handle.mouseover {
+  stroke: var(--vscode-editor-symbolHighlightBackground);
+  stroke-width: 1;
+}
+
+.tensor.op-outgoing.selected path.tensor-inout-background-label,
+.tensor.op-incoming.selected path.tensor-inout-background-label,
+.sprotty-node.selected {
+  stroke-width: 1.5;
+  stroke: var(--devui-title-text);
+}
+
+.tensor.op-outgoing.selected path.tensor-in-wave-label {
+  stroke-width: 1.5;
+}
+
+.sprotty-graph.has-trace.in-selected-trace .op-incoming path.tensor-in-wave-label,
+.sprotty-graph.has-trace.in-selected-trace .op-outgoing path.tensor-in-wave-label {
+  stroke: rgba(9, 170, 113, 0.3);
+  fill: rgba(43, 75, 63, 1);
+}
+
+
+.sprotty-graph.has-trace.in-selected-trace .op-incoming path.tensor-out-wave-label,
+.sprotty-graph.has-trace.in-selected-trace .op-outgoing path.tensor-out-wave-label {
+  stroke: rgba(231, 98, 93, 0.3);
+  fill: rgba(87, 60, 59, 1);
+}
+
+
+/* Dim only non-traced elements when there is an active trace */
+.sprotty-graph.has-trace .op-not-traced,
+.sprotty-graph.has-trace .io-not-traced,
+.sprotty-graph.has-trace .edge-not-traced {
+  opacity: 0.4;
+}
+
+.edge-dash {
+  opacity: 1;
+  stroke-dasharray: 2 2;
+  stroke: #00c853;
+}
+
+circle {
+  stroke-dasharray: 0 !important;
+  fill: var(--devui-base-bg);
+}
+
+/* Restore full opacity for traced elements */
+.sprotty-graph.has-trace .op-incoming,
+.sprotty-graph.has-trace .op-outgoing,
+.sprotty-graph.has-trace .io-incoming,
+.sprotty-graph.has-trace .io-outgoing,
+.sprotty-graph.has-trace .port-incoming,
+.sprotty-graph.has-trace .port-outgoing {
+  opacity: 1;
+}
+
+.sprotty-graph.has-trace .sprotty-edge-incoming,
+.sprotty-graph.has-trace .sprotty-edge-outgoing {
+  opacity: 1;
+}
+
+
+/* 右键菜单样式 */
+/* 整个菜单 */
+.astgr-context-menu {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+
+  box-shadow:var(--devui-select-shadow);
+  background:var(--devui-node-bg);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+/* 每一行 */
+.astgr-context-menu-item {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.astgr-context-menu-item.disabled-action {
+  color: var(--devui-split-line);
+}
+
+.astgr-context-menu-item:empty {
+  padding: 0px;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  border: 1px solid var(--devui-button-group-bg);
+  user-select: none;
+}
+
+.astgr-context-menu-item:hover:not(.disabled-action) {
+  background-color: var(--devui-input-hover-bg);
+}
+
+
+.menu-text {
+  color: var(--devui-title-text);
+  font-size: 13px;
+  flex: 1 1 auto;
+  margin-right: 20px;
+  line-height: 20px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.shortcut-key {
+  color: var(--devui-placeholder-text);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+
+/* 锁定提示 */
+.lock-information {
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: var(--devui-warning-bg);
+  box-shadow: var(--devui-select-shadow);
+  border-radius: 8px;
+  width: 180px;
+  padding: 10px 12px;
+  height: 40px;
+}
+
+/* 锁定提示文本 */
+.lock-information-item {
+  display: flex;
+  justify-content: center;
+  border-radius: 4px;
+
+  color: var(--devui-status-warning-text);
+  font-size: 13px;
+  line-height: 20px;
+  height: 20px;
+}
