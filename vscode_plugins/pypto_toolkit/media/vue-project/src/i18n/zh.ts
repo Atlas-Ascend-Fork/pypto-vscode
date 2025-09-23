@@ -75,6 +75,8 @@ export default {
       'searchPlaceholder': '搜索关键词',
       group: '分组',
       flat: '平铺',
+      onlyPath: '仅通路',
+      notShowTensorReport:'当前仅显示OP, Tensor未显示',
       operationLog: '操作日志',
       layerControl: '图层控制',
       graphLayout: '图布局',

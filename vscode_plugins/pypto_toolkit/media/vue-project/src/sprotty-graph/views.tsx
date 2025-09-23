@@ -279,6 +279,21 @@ function isEdgeTraced(edgeId: string, trace: Trace): { incoming: boolean; outgoi
   };
 }
 
+function passNodeId(nodeId: string, tensorMagicSet: Set<number>, opMagicSet: Set<number>) {
+
+  const TensorNodeIdPrefix = 'tensor-';
+  const OperationNodeIdPrefix = 'operation-';
+  const MagicPrefix = 'magic-';
+  if (nodeId.includes(TensorNodeIdPrefix)) {
+    const tensorMagic = parseInt(nodeId.split(TensorNodeIdPrefix)[1]);
+    tensorMagicSet.add(tensorMagic);
+  }
+  if (nodeId.includes(OperationNodeIdPrefix)) {
+    let operationMagic = parseInt(nodeId.split(MagicPrefix)[1]);
+    opMagicSet.add(operationMagic);
+  }
+}
+
 @injectable()
 export class AstgrGraphView implements IView {
   render(model: Readonly<SGraphImpl>, context: RenderingContext): VNode {
@@ -310,6 +325,20 @@ export class AstgrGraphView implements IView {
         // 悬停时 显示追踪轨迹 失焦其他节点和连线
         hoverNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
       }
+    }
+
+    if (fixedNodes[0] != '' && (!comGraphStore.data.traceTensors || fixedNodes[0] != comGraphStore.data.traceTensors[0]) ) {
+      const tensorMagicSet = new Set<number>();
+      const opMagicSet = new Set<number>();
+      passNodeId(fixedNodes[0], tensorMagicSet, opMagicSet);
+      for (const nodeId of window['trace'].incomingNodes) {
+        passNodeId(nodeId, tensorMagicSet, opMagicSet);
+      }
+      for (const nodeId of window['trace'].outgoingNodes) {
+        passNodeId(nodeId, tensorMagicSet, opMagicSet);
+      }
+      comGraphStore.setData("traceTensors", [fixedNodes[0], tensorMagicSet]);
+      comGraphStore.setData("traceOperations", [fixedNodes[0], opMagicSet]);
     }
 
     // Check if there are any traced elements

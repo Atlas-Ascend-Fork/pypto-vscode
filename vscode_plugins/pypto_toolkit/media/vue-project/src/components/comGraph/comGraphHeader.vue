@@ -158,6 +158,12 @@ import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import LayerControlIcon from './layerControl/layerControlIcon.vue';
 
+const props = defineProps({
+  showType: {
+    type: String,
+    default: 'all'
+  }
+})
 
 let funcTree = {}
 
@@ -434,7 +440,6 @@ const onSearch = (e) => {
   if (!(e.category) || e.category === '') {
     res.value = searchFuzzy(tensorMap, opMap, rawTensorMap, funcMap.value, e.searchKey, '', e.isUpper, e.isReg);
     console.log("FuzzySearch res:", res.value);
-    resSize.value = res.value.length;
   } else {
     let isFuzz = false;
     if (!e.option) {
@@ -492,9 +497,40 @@ const onSearch = (e) => {
         }
         break;
     }
-    resSize.value = res.value.length;
+  }
+  filterSearchResult(res.value);
+  resSize.value = res.value.length;
+}
+
+function filterSearchResult(result: any) {
+  if (currentSelect.value != 'currentPath') {
+    return;
+  }
+  const traceTensor = comGraphStore.data.traceTensors[1];
+  const traceOperations = comGraphStore.data.traceOperations[1];
+  for (let i = result.length - 1; i >= 0; i--) {
+    const obj = result[i];
+    if (obj.node_type == 'operation' && !traceOperations.has(obj.opmagic)) {
+      result.splice(i, 1);
+    }
+    if (obj.node_type == 'tensor' && !traceTensor.has(obj.magic)) {
+      result.splice(i, 1);
+    }
   }
 }
+
+watch(() => comGraphStore.data.inFixedComGraphFlow, (val) => {
+  if (val) {
+    allOptions.value.push({name: t('comGraph.onlyPath'), value: 'currentPath'});
+    currentSelect.value = 'currentPath';
+  } else {
+    const idx = allOptions.value.findIndex(o => o.value === 'currentPath');
+    if (idx > -1) {
+      allOptions.value.splice(idx, 1);
+    }
+    currentSelect.value = 'current';
+  }
+});
 
 const displayNav = (it, index) => {
   if (curPath.value.length == 2) {
@@ -603,7 +639,10 @@ const onLocate = (it) => {
     jumpToGraph(it.funcHash);
     return;
   }
-  console.log("Locate:", it.node_id);
+  if (props.showType == 'op' && it.node_id.startsWith('tensor-')) {
+    (window as any).ascEventBus.emit('message_notice', t('comGraph.notShowTensorReport'));
+    return;
+  }
   emit('onLocate', it.node_id);
 }
 
