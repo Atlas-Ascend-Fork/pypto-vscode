@@ -1,0 +1,15 @@
+out
+node_modules
+.idea/
+package-lock.json
+.vscode-test/
+config/*
+media/json/menu/menu.json
+dist/**
+caches/**
+.vscode/*
+!.vscode/launch.json
+webview-dist
+icomoon
+codicon
+.DS_Store

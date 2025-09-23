@@ -1,0 +1,46 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.tooltip {
+  position: absolute;
+  background: var(--devui-tooltip-bg);
+  border: 1px solid var(--devui-swim-split-line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 300px;
+  word-wrap: break-word;
+  color: var(--devui-tooltip-text)
+}
+
+.tooltip-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tooltip-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.tooltip-key {
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--devui-detail-text);
+}
+
+.tooltip-value {
+  white-space: normal;
+  max-width: 200px;
+  word-wrap: break-word;
+  color: var(--devui-primary-text);
+}

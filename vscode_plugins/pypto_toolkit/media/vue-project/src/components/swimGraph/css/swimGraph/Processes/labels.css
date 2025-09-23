@@ -1,0 +1,115 @@
+.thread-labels {
+  width: 240px;
+  position: relative;
+  background: var(--devui-swim-global-bg);
+  border-right: 1px solid var(--devui-swim-split-line);
+}
+
+.thread-labels-loop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+.thread-labels-loop.active {
+  background-color: var(--devui-font-badge-bg);
+}
+.thread-labels-loop::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 250px;
+  z-index: 3;
+  border-bottom: 1px solid var(--devui-swim-split-line);
+}
+
+.has-threads-box{
+  width: 50px;
+  text-align: left;
+}
+
+.threads-box {
+  margin-right: 16px;
+  width: 120px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  color: var(--devui-thread-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-align: left;
+  padding-left: 8px;
+  position: relative;
+}
+
+.threads-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 1px,
+    rgba(255, 255, 255, 0.1) 4px
+  );
+  z-index: 0;
+}
+
+.threads-fill {
+  position: absolute;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 1;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.threads-fill--full {
+  width: 100%;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.threads-text {
+  position: relative;
+  z-index: 2;
+}
+
+.threads-fill:hover {
+  background: #762e27;
+}
+
+.threads-fill:hover + .thread-text {
+  color: #e6e6e6;
+}
+
+/* .thread-labels::after {
+  content: '';
+  position: absolute;
+  left: 188px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-left: 1px dashed rgba(255, 255, 255, 1);
+  opacity: 0.1;
+} */
+
+.thread-labels,
+.threads-text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}

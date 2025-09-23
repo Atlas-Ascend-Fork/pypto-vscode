@@ -1,0 +1,365 @@
+import 'reflect-metadata'; // Sprotty's DI relies on this
+import { LocalModelSource, TYPES } from 'sprotty';
+import { createDiContainer } from './di.config';
+import { AscppDagBuilder } from './jsonGraph';
+import {
+  FitToScreenAction,
+  SNode,
+  SelectAction,
+  CenterAction,
+  SetViewportAction,
+  UpdateModelAction
+} from 'sprotty-protocol';
+import { createMiniMapDiContainer } from './minimap-di.config';
+import { comGraphStore } from '../service/com-graph-store';
+import { ILayoutConfigurator } from 'sprotty-elk';
+
+declare const vscode: any;
+const MAINMAP_TYPE = 1;
+const MINIMAP_TYPE = 2;
+const MAINMAP_WHEEL = 3;
+const MAINMAP_FIT_SCREEN = 4;
+export function useSprottyLoad() {
+  const SPROTTY_CONTAINER_ID = 'sprotty';
+  const MINIMAP_ID = 'minimap';
+  let container = createDiContainer(SPROTTY_CONTAINER_ID);
+  const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
+  let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
+  const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
+  const dagBuilder = new AscppDagBuilder();
+  let originSprottyGraph;
+  // Store the current data to allow re-rendering when settings change
+  let currentLayoutConfig: any = {
+    direction: 'RIGHT',
+    showTensor: true
+  }
+  let currentData: unknown = null;
+
+  // Track subgraph coloring state
+  let colorBySubgraph = false;
+
+  // Initialize global flag for views
+  window.colorBySubgraph = colorBySubgraph;
+
+  // Function to fit graph to screen
+  const fitGraphToScreen = (animate: boolean = true) => {
+    const fitAction: FitToScreenAction = {
+      maxZoom: 1.0, // Increased from 0.01 to allow normal zoom levels
+      padding: 50, // Reduced padding
+      kind: 'fit',
+      elementIds: [],
+      animate: animate,
+    };
+    modelSource.actionDispatcher.dispatch(fitAction).then(() => {
+      getViewport(modelSource, MAINMAP_FIT_SCREEN);
+    }); // Use dispatch instead of dispatchAll
+  };
+
+  const renderMinimap = (model?) => {
+    miniMapModelSource.updateModel(model || modelSource.model).then(() => {
+      const fitAction: FitToScreenAction = {
+        maxZoom: 1.0, // Increased from 0.01 to allow normal zoom levels
+        padding: 50, // Reduced padding
+        kind: 'fit',
+        center: true,
+        elementIds: [],
+        animate: false,
+      };
+      miniMapModelSource.actionDispatcher.dispatch(fitAction).then(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            getViewport(modelSource, MAINMAP_TYPE);
+            getViewport(miniMapModelSource, MINIMAP_TYPE);
+          });
+        });
+      }); // Use dispatch instead of dispatchAll
+    });
+  };
+
+  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 1, y = 1) {
+    try {
+      const viewInfo = await currentModel.getViewport();
+      if (type == MINIMAP_TYPE) {
+        (window as any).ascEventBus.emit('render-over', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
+      }
+      if (type == MAINMAP_TYPE) {
+        (window as any).ascEventBus.emit('master_render_over', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
+      }
+      if (type == MAINMAP_WHEEL) {
+        setViewportAction(modelSource.model.id, viewInfo.scroll.x, viewInfo.scroll.y, zoom, false);
+        (window as any).ascEventBus.emit('view_zoom', [zoom, viewInfo.scroll.x, viewInfo.scroll.y, false]);
+      }
+      if (type == MAINMAP_FIT_SCREEN) {
+        (window as any).ascEventBus.emit('view_zoom', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
+      }
+    } catch (error) {
+      console.error('get model viewport error');
+    }
+  }
+
+  const resetModelSource = () => {
+    container = createDiContainer(SPROTTY_CONTAINER_ID);
+    modelSource = container.get<LocalModelSource>(TYPES.ModelSource)
+    const layoutConfigurator = container.get(
+      ILayoutConfigurator
+    ) as import("./di.config").AstgrLayoutConfigurator;
+    comGraphStore.setData('layoutDirection', currentLayoutConfig.direction);
+    layoutConfigurator.setLayoutDirection(currentLayoutConfig.direction);
+    layoutConfigurator.setShowTensor(currentLayoutConfig.showTensor);
+  }
+
+  // Function to update the graph with current settings
+  const updateGraph = (isDark, option?) => {
+    if (!currentData) return;
+
+    const showTensorNodes = option?.showTensorNodes ?? true;
+    const showSyncNodes = option?.showSyncNodes ?? false;
+    const selectedSubgraphId = option?.subgraphFilterSelect;
+    if (option?.showTensorNodes !== undefined) {
+      currentLayoutConfig.showTensor = showTensorNodes;
+      resetModelSource();
+    }
+    const sprottyGraph = dagBuilder.createSprottyGraph(
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+    );
+
+    originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
+
+    // Log performance metrics for large graphs
+    const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
+    const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
+    console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
+    // Set the model and wait for it to be fully rendered
+    modelSource
+      .setModel(sprottyGraph)
+      .then(() => {
+        // Now that the model is fully rendered, fit to screen without animation
+        //第一个incast节点，聚焦左上方展示
+        if (modelSource.model) {
+          renderMinimap(modelSource.model);
+        }
+        if (!sprottyGraph.children) return;
+        let node: SNode | undefined;
+        sprottyGraph.children.forEach((c: any) => {
+          if (c.type === 'node:tensor' && c.role === 'input') {
+            if (node && node.position?.x < c.position.x) {
+              return;
+            }
+            if (node && node.position?.x == c.position.x && node.position?.y <= c.position.y) {
+              return;
+            }
+            node = c;
+          }
+        });
+        if (!node) return;
+        if (!node.position) return;
+        const nodePos = { x: node.position.x - 50, y: node.position.y - 400 };
+        const rootId = sprottyGraph.id;
+        const newViewport = {
+          scroll: nodePos,
+          zoom: 0.7,
+        };
+        const options = {
+          animate: false,
+        };
+        modelSource.actionDispatcher.dispatch(SetViewportAction.create(rootId, newViewport, options));
+      })
+      .catch((error) => {
+        console.error('Error setting model:', error);
+      });
+  };
+
+  const minimapRectMoveListener = (args) => {
+    setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
+  };
+
+  const minimapCenterListener = (args) => {
+    setMinimapViewportAction(args[0], args[1], args[2], false);
+  };
+
+  const mainMapWheelListener = (args) => {
+    getViewport(modelSource, MAINMAP_WHEEL, args);
+  };
+
+  const mainMapFitscreenListener = (args) => {
+    fitToScreenAction();
+  };
+
+  (window as any).ascEventBus.on('minimap_rect_move', minimapRectMoveListener);
+
+  (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
+
+  (window as any).ascEventBus.on('mainmap_wheel', mainMapWheelListener);
+
+  (window as any).ascEventBus.on('mainmap_fitscreen', mainMapFitscreenListener);
+
+  // Function to populate subgraph filter combo box
+  const populateSubgraphFilter = () => {
+    if (!currentData) return;
+
+    const subgraphFilterSelect = document.getElementById('subgraph-filter') as HTMLSelectElement;
+    if (!subgraphFilterSelect) return;
+
+    // Get available subgraphs
+    const availableSubgraphs = dagBuilder.getAvailableSubgraphs(currentData);
+
+    // Clear existing options except "All Subgraphs"
+    subgraphFilterSelect.innerHTML = '<option value="">All Subgraphs</option>';
+
+    // Add options for each subgraph
+    for (const subgraphId of availableSubgraphs) {
+      const option = document.createElement('option');
+      option.value = String(subgraphId);
+      option.textContent = `Subgraph ${subgraphId}`;
+      subgraphFilterSelect.appendChild(option);
+    }
+
+    console.log('Populated subgraph filter with:', availableSubgraphs);
+  };
+
+  // Handle subgraph coloring
+  const colorBySubGraph = (colorBySubgraph) => {
+    console.log('Subgraph coloring checkbox changed:', colorBySubgraph);
+
+    // Store the global flag for views to access
+    window.colorBySubgraph = colorBySubgraph;
+
+    // Force a re-render by dispatching an empty update action
+    // This should trigger the views to re-render without changing the model structure
+    const updateAction = {
+      kind: 'updateModel',
+      newRoot: modelSource.model,
+      animate: false,
+    };
+
+    console.log('Triggering view refresh for subgraph coloring');
+    modelSource.actionDispatcher.dispatch(updateAction);
+  };
+
+  const fitToScreenAction = async () => {
+    // First clear any selections
+    const selectedElements = (await modelSource.getSelection()).map((e) => e.id) as string[];
+    if (selectedElements.length > 0) {
+      const selectAction: SelectAction = {
+        kind: 'elementSelected',
+        selectedElementsIDs: [],
+        deselectedElementsIDs: selectedElements,
+      };
+      modelSource.actionDispatcher.dispatch(selectAction);
+    }
+
+    // Then fit to screen
+    fitGraphToScreen(true);
+  };
+
+  // 获取到缩略图几何矩形后 把矩形映射到主图坐标系的路径范围 x y
+  const setViewportAction = async (rootId: string, x: number, y: number, zoomPara: number, animatePara?: boolean) => {
+    // 让主图把这块区域居中并调整缩放到对应比例
+    const newViewport = {
+      scroll: { x, y },
+      zoom: zoomPara,
+    };
+    const options = {
+      animate: animatePara,
+    };
+    modelSource.actionDispatcher.dispatch(SetViewportAction.create(rootId, newViewport, options));
+  };
+
+  const setMinimapViewportAction = async (x: number, y: number, zoomPara: number, animatePara?: boolean) => {
+    // 让主图把这块区域居中并调整缩放到对应比例
+    const newViewport = {
+      scroll: { x, y },
+      zoom: zoomPara,
+    };
+    const options = {
+      animate: animatePara,
+    };
+    miniMapModelSource.actionDispatcher.dispatch(SetViewportAction.create(miniMapModelSource.model.id, newViewport, options));
+  };
+
+  const centerNodeAction = async (elementIdsPara: string[], animatePara?: boolean, retainZoomPara?: boolean, zoomScalePara?: number) => {
+    const selectedElements = elementIdsPara.length ? elementIdsPara : ((await modelSource.getSelection()).map((e) => e.id) as string[]);
+    if (selectedElements.length > 0) {
+      const options = {
+        animate: animatePara,
+        retainZoom: retainZoomPara,
+        zoomScale: zoomScalePara,
+      };
+      modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options));
+    }
+  };
+
+  const selectAction = async (elementIdsPara: string[]) => {
+    if (elementIdsPara.length > 0) {
+      const selectAction: SelectAction = {
+        kind: 'elementSelected',
+        selectedElementsIDs: elementIdsPara,
+        deselectedElementsIDs: [],
+      };
+      modelSource.actionDispatcher.dispatch(selectAction);
+    }
+  };
+
+  const initComDocText = (jsonData: Object, isDark = true) => {
+    try {
+      currentData = jsonData; // Store the data
+      populateSubgraphFilter(); // Populate the subgraph filter
+      updateGraph(isDark); // Use the updateGraph function
+    } catch (e) {
+      console.error('Error parsing JSON or building graph:', e);
+      // Display error in webview?
+      const containerDiv = document.getElementById(SPROTTY_CONTAINER_ID);
+      if (containerDiv) containerDiv.innerHTML = `<p style="color:red;">Error rendering graph: ${e}</p>`;
+    }
+    return;
+  };
+
+  const updateModelAction = async (animate?: boolean, cause?: boolean) => {
+    const options = {
+      animate: animate,
+      cause: cause,
+    };
+    modelSource.actionDispatcher.dispatch(UpdateModelAction.create(modelSource.currentRoot, options));
+  };
+
+  const getSelectedNodeId = async () => {
+    const node = await modelSource.getSelection();
+    if (node.length > 0) {
+      return node[0].id;
+    }
+    return;
+  };
+  const setModelDirection = (direction: 'RIGHT' | 'DOWN') => {
+    if (currentLayoutConfig.direction !== direction) {
+      currentLayoutConfig.direction = direction;
+      resetModelSource();
+      modelSource.setModel(originSprottyGraph).then(() => {
+        renderMinimap(modelSource.model);
+      })
+    }
+  }
+  // Signal to VS Code that the webview is ready to receive data
+  vscode.postMessage({ type: 'webviewReady' });
+
+  comGraphStore.setData('centerNodeActionFunc', centerNodeAction);
+  comGraphStore.setData('renderMinimapFunc', renderMinimap);
+  comGraphStore.setData('updateModelActionFunc', updateModelAction);
+
+  return {
+    populateSubgraphFilter,
+    fitToScreenAction,
+    initComDocText,
+    colorBySubGraph,
+    centerNodeAction,
+    selectAction,
+    setViewportAction,
+    updateGraph,
+    getSelectedNodeId,
+    setModelDirection
+  };
+}

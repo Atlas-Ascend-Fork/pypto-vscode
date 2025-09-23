@@ -1,0 +1,194 @@
+<template>
+  <Teleport to="body">
+    <div v-if="modelValue" ref="rootEl" class="layer-control-container" :style="styles">
+      <div ref="dragEl" class="drag-area">
+        <em class="icon icon-drag"></em>
+        <em class="icon icon-drag"></em>
+      </div>
+      <div class="content-wrap">
+        <div class="header">
+          <span class="title">{{ t('comGraph.layerControl') }}</span>
+          <em class="icon icon-close" @click="() => emits('update:modelValue', false)"></em>
+        </div>
+        <div class="graph-layout mb-16">
+          <div class="title mb-8">{{ t('comGraph.graphLayout') }}</div>
+          <d-tabs
+            v-model="graphLayout"
+            type="slider"
+            :show-content="false"
+            class="layer-control-tabs"
+            @update:modelValue="(e) => emits('graphLayoutChange', e)"
+          >
+            <d-tab id="RIGHT" :disabled="tabDisable">
+              <template #title>
+                <em class="icon icon-b-tree left-right" />
+                <span class="ml-4">{{ t('comGraph.leftRight') }}</span>
+              </template>
+            </d-tab>
+            <d-tab id="DOWN" :disabled="tabDisable">
+              <template #title>
+                <em class="icon icon-b-tree" />
+                <span class="ml-4">{{ t('comGraph.topBottom') }}</span>
+              </template>
+            </d-tab>
+          </d-tabs>
+        </div>
+        <div class="node-display-mode">
+          <div class="title mb-8">{{ t('comGraph.nodeDisplayMode') }}</div>
+          <d-tabs
+            v-model="nodeDisplayMode"
+            type="slider"
+            :show-content="false"
+            class="layer-control-tabs"
+            @update:modelValue="(e) => emits('nodeDisplayChange', e)"
+          >
+            <d-tab id="all" title="Tensor + OP" :disabled="tabDisable"></d-tab>
+            <d-tab id="op" title="OP" :disabled="tabDisable"></d-tab>
+          </d-tabs>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useMoveable } from './use-moveable';
+import { comGraphStore } from '../../../service/com-graph-store';
+
+const tabDisable = computed(() => {
+  return comGraphStore.data.inFixedComGraphFlow;
+})
+
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
+});
+const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange']);
+
+const { t } = useI18n();
+const { dragEl, rootEl, styles } = useMoveable(props);
+const graphLayout = ref('RIGHT');
+const nodeDisplayMode = ref('all');
+</script>
+
+<style scoped lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+
+.layer-control-container {
+  position: fixed;
+  z-index: 1040;
+  width: 236px;
+  color: var(--devui-primary-text);
+  border-radius: 8px;
+  background-color: var(--devui-select-bg);
+  box-shadow: 0 0 16px 0 var(--devui-select-shadow);
+
+  .drag-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 16px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    background-color: var(--devui-nest-bg);
+    cursor: move;
+
+    .icon-drag {
+      transform: rotate(90deg);
+
+      &:nth-of-type(2) {
+        margin-left: -1px;
+      }
+    }
+  }
+
+  .content-wrap {
+    width: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .title {
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 24px;
+      }
+
+      .icon-close {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 24px;
+        height: 24px;
+        color: var(--devui-icon);
+        border-radius: 8px;
+        transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
+          color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
+        cursor: pointer;
+
+        &:hover {
+          color: var(--devui-title-text);
+          background-color: var(--devui-input-hover-bg);
+        }
+      }
+    }
+  }
+}
+
+.layer-control-tabs.devui-tabs {
+  :deep() {
+    .devui-tabs__nav--slider {
+      width: 100%;
+      background-color: var(--devui-tab-bg);
+
+      li {
+        flex: 1;
+
+        .devui-tabs__nav-content {
+          justify-content: center;
+        }
+
+        a {
+          color: var(--devui-secondary-text);
+          padding: 0 10px;
+        }
+
+        &:hover a {
+          color: var(--devui-secondary-text);
+        }
+      }
+
+      li.active a {
+        color: var(--devui-primary-text);
+      }
+    }
+    .devui-tabs__nav-slider-animation {
+      background-color: var(--devui-flow-water-bg);
+    }
+  }
+}
+
+.icon-b-tree.left-right {
+  transform: rotate(-90deg);
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+.mb-16 {
+  margin-bottom: 16px;
+}
+.ml-4 {
+  margin-left: 4px;
+}
+</style>

@@ -1,0 +1,116 @@
+.zoom-controls {
+  height: 60px;
+  background: var(--devui-swim-global-bg);
+  border-bottom: 1px solid var(--devui-swim-split-line);
+  display: flex;
+  align-items: center;
+  margin: 0 16px 0 0;
+  gap: 10px;
+  z-index: 10;
+}
+
+.left-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: var(--devui-search-container);
+}
+
+.case-sensitive {
+  position: absolute;
+  right: 22px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--devui-search-container-bg);
+  cursor:pointer;
+}
+
+.case-dark {
+  border: 1px solid rgba(49, 122, 247, 0.2);
+  border-radius: 4px;
+  background-color: rgba(49, 122, 247, 0.2);
+}
+
+.search-res {
+  display: flex;
+  gap: 8px;
+  height: 28px;
+  align-self: center;
+  cursor: pointer;
+}
+
+.search-res div {
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.right-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-left:auto;
+}
+.slider-container {
+  width: 184px;
+  height: 28px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  background: var(--devui-slider-container-bg);
+  border-radius: 6px;
+  justify-content: space-around;
+}
+.slider-container-border{
+  border: 1px solid rgba(0 , 0 , 0, 0.2)
+}
+
+.right-container-buttor {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden {
+  display: none !important;
+}
+#swim-header-decrease.devui-icon__container,#swim-header-increase.devui-icon__container{
+  color: #CED1DB;
+  cursor: pointer;
+}
+#measure-button .button-content{
+  display: flex;
+}
+
+#measure-button .devui-button .devui-button--outline{
+  background-color: #606061;
+}
+
+#measure-button .devui-button .devui-button--outline.dark-model{
+  background-color: rgba(49, 122, 247, 0.2);
+}
+
+.measure-picture {
+  width: 16px;
+  height: 16px;
+}

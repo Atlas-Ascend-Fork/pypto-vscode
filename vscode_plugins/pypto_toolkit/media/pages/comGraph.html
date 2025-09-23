@@ -1,0 +1,137 @@
+<html>
+<head>
+<script type="text/javascript" src="{{root}}/node_modules/d3/d3.min.js"></script>
+<script type="text/javascript" src="{{root}}/node_modules/jquery/dist/jquery.js"></script>
+<script type="text/javascript" src="{{root}}/node_modules/dagre/dist/dagre.js"></script>
+<script type="text/javascript" src="{{root}}/node_modules/jquery.json-viewer/json-viewer/jquery.json-viewer.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/Minimap.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/MinimapZoom.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/directedAcyclicGraph.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/List.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/Selectable.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/Graph.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/xtrace_utils.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/xtrace_graph.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/loopInfo.js"></script>
+<script type="text/javascript" src="{{root}}/media/js/comGraph/SearchNode.js"></script>
+<link href="{{root}}/media/css/comGraph/xtrace.css" rel="stylesheet" type="text/css">
+<script>
+
+const vscode = acquireVsCodeApi();
+
+const type2placeholder = {
+  tensor: '请输入tensor magic值查找tensor',
+  operation: '请输入opmagic值查找operation',
+  subgraph: '请输入subgraph id查找subgraph',
+  fields: '请输入任意字段来查找节点',
+}
+
+window.onload = function() {
+  vscode.postMessage({
+    command: 'getInitialData'
+  });
+}
+
+$(document).click(function(event) {
+  const targetDoms = '.minimap-attach, .node, .path, #node-detail';
+  if (!$(event.target).is(targetDoms) && !$(event.target).closest(targetDoms).length) {
+    $('#node-detail').hide();
+  }
+});
+
+$(function() {
+    $('#search-button').click(function() {
+        const type = $('input[name="type"]:checked').val();
+        const id = $('#search-input').val();
+        const nodes = window.xtrace.graph.nodes;
+        const resultDiv = $('#result');
+
+        if (id.trim() === '') {
+            resultDiv.html(`<p>${type2placeholder[type]}</p>`);
+            return;
+        }
+
+        // 清除上一次搜索的节点高亮
+        removeLastHighlightedNode();
+        
+        // 处理按照字段搜索
+        if(type === 'fields') {
+            fieldsSearch(id, nodes, resultDiv);
+            return;
+        }
+
+        // 处理类型为subgraph的查找功能
+        if(type === 'subgraph') {
+            subgraphSearch(id, nodes, resultDiv);
+            return;
+        }
+
+        const combinedId = `${type}-${id}`;
+        // 处理类型为tensor， operation的查找功能
+        nodeSearch(combinedId, nodes, resultDiv);
+    });
+});
+
+// 根据选择按钮切换提示语
+$(document).ready(function() {
+    function updataPlaceholder() {
+        const type = $('input[name="type"]:checked').val();
+        $('#search-input').attr('placeholder', type2placeholder[type]);
+    }
+
+    $('input[name="type"]').on('change', function() {
+        updataPlaceholder();
+    });
+
+    // 初始化加载默认设置
+    updataPlaceholder();
+});
+
+window.addEventListener('message', (event) => {
+  const message = event.data;
+  switch (message.command) {
+    case 'returnInitialData':
+      const data = JSON.parse(message.data);
+      window.data = data;
+      window.xtrace = new XTraceDAG(document.getElementById('main-svg'), data);
+      addloopDetail(data);
+      break;
+    default:
+      break;
+  }
+});
+</script>
+
+</head>
+<body>
+  <div class="textbox-container" style="display: none; gap: 10px;" id="loop-detail">
+    <span id="itername"></span>
+    <span id="begin"></span>
+    <span id="end"></span>
+    <span id="step"></span>
+    <span id="coretype"></span>
+    <span id="magicname"></span>
+  </div>
+  <div id="main-container">
+    <div id="main-svg"></div>
+    <div style="display: none;" id="node-detail">
+    <div>
+      <input type="radio" id="tensor" name="type" value="tensor" checked>
+      <label for="tensor">Tensor</label>
+      <input type="radio" id="operation" name="type" value="operation">
+      <label for="operation">Operation</label>
+      <input type="radio" id="subgraph" name="type" value="subgraph">
+      <label for="subgraph">Subgraph</label>
+      <input type="radio" id="fields" name="type" value="fields">
+      <label for="subgraph">Fields</label>
+    </div>
+    <div class="input-group">
+      <input type="text" id="search-input" placeholder="请输入tensor magic">
+      <button id="search-button">确定</button>
+    </div>
+    <label id="data-detal">节点详情数据：</label>
+    <div class="result" id="result"></div>
+    </div>
+  </div>
+</body>
+</html>
