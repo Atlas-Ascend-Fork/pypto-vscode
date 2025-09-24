@@ -108,7 +108,9 @@
   },
   "dependencies": {
     "@types/vscode": "^1.52.0",
+    "@material/material-color-utilities": "^0.3.0",
     "child_process": "^1.0.2",
+    "bignumber.js" : "9.3.1",
     "d3": "^3.5.16",
     "dagre": "0.8.5",
     "elkjs": "^0.8.2",
