@@ -1410,6 +1410,7 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 240px;
   }
 
   .control-flow-itername {
