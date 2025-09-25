@@ -1263,6 +1263,7 @@ addChildContext('threadEvent', {
   changeNodeColor,
   drawEventLine,
   eraseEventLine,
+  getOffset,
 });
   
 watch(isDarkTheme, () => {
