@@ -2,6 +2,7 @@ import { SEdge, SLabel, SModelRoot, SNode, SPort, SCompartment } from 'sprotty-p
 import { AttrReader, parseSymbolicOrIntList, parseExprList } from './parseSymbolicAttr';
 import { comGraphStore } from '../service/com-graph-store';
 import { generateColorList, getLighterColorByHex } from '../utils/color-list';
+
 /**
  * Extended SModelRoot with custom properties
  */
@@ -214,6 +215,8 @@ export class AscppDagBuilder {
     */
     baseColorList: string[];
     lightColorList: string[];
+    nodeSet = new Set<string> ();
+    isErrorReport = false;
     callInOutMap = new Map<string, CallInOutItems>();
     /**
      * Extracts available subgraph IDs from function data
@@ -704,7 +707,7 @@ export class AscppDagBuilder {
                         outputPort
                     ]
                 };
-                
+                this.nodeSet.add(nodeId);
                 nodes.push(tensorNode);
             }
 
@@ -864,6 +867,7 @@ export class AscppDagBuilder {
                 ]
             };
             node.children.push(inPort);
+            this.nodeSet.add(nodeId);
             if (actualData.inouttensors) {
                 nodes.push(node);
                 this.createParentIncastNodes(actualData, nodes, edges, incastIndex, portIdIn);
@@ -1210,8 +1214,20 @@ export class AscppDagBuilder {
             } catch (error) {
                 this.getTensorCommonAttr(metadataParts, tensor, rawTensor);
             }
-            const graphId = tensor?.subgraphid ?? -1;
-            const nodeId = `tensor-${tensorMagic}-${graphId}`;
+            let graphId = tensor?.subgraphid ?? -1;
+            let nodeId = `tensor-${tensorMagic}-${graphId}`;
+            // check duplicate Nodes
+            if (this.nodeSet.has(nodeId)) {
+                graphId = -2;
+                nodeId = `tensor-${tensorMagic}-${graphId}`;
+                this.nodeSet.add(nodeId);
+                if (!this.isErrorReport) {
+                    (window as any).ascEventBus.emit('message_notice',
+                        `${(window as any).ascLang === 'en' ? 'Duplicate Magic values in the node, the comgraph will continue rendering. Please check data' :
+                        '节点存在magic重复, 计算图会继续兼容渲染，请排查数据'}`);
+                    this.isErrorReport = true;
+                }
+            }
             const portId = `tensor-${tensorMagic}-${graphId}-in`;
             const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
             const outPort: AstgrPort = {type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8}};
