@@ -5,6 +5,7 @@ interface ComGraphData {
   jsonData: Object;
   comGraphNodeData: any;
   calleeMap: any;
+  CalleeOpAttrMap: any;
   curPath: any;
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
@@ -31,6 +32,7 @@ export const comGraphStore: DataStore = reactive({
     fixedNodeId: '',
     comGraphNodeData: {},
     calleeMap: {},
+    CalleeOpAttrMap: {},
     curPath: [],
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,

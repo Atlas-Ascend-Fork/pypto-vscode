@@ -1,4 +1,6 @@
 import { comGraphStore } from "../service/com-graph-store";
+import { MEMTYPE_MAP } from "./jsonGraph";
+import { parse } from "path";
 
 // 定义 symbol 类型
 type SymType = 0 | 1 | 2;
@@ -266,6 +268,10 @@ export class AttrReader {
         return this.index < this.attr.length;
     }
 
+    readIndex(): number {
+        return this.index as number;
+    }
+
     readNumber(): number {
         if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', 'Unexpected end of attributes.');
         return this.attr[this.index++] as number;
@@ -281,6 +287,88 @@ export class AttrReader {
     readOptionalNumber(): number | null {
         return this.hasNext() ? (this.attr[this.index++] as number) : null;
     }
+}
+
+export function parseOpRealAttr(opData: Record<string, any>): Record<string, any> {
+    let callOpAttr:string[] = [];
+
+    if (opData.opcode !== "COPY_IN") {
+        return opData;
+    }
+
+    const opAttrIncastTensors = new Set(comGraphStore.data.CalleeOpAttrMap["opAttrIncastTensors"]);
+    for (var node of opData.ioperands) {
+        if (opAttrIncastTensors.has(node)) {
+            let originCallOpAttr = comGraphStore.data.CalleeOpAttrMap["calleeOpAttr"];
+            callOpAttr = parseCallOpAttr(originCallOpAttr);
+            break;
+        }
+    }
+
+    if (callOpAttr.length === 0 || opData.attr.length === 0) {
+        return opData;
+    }
+
+    const reader = new AttrReader(opData.attr);
+    reader.readNumber();
+
+    const memType = reader.readNumber();
+    const memTypeStr = MEMTYPE_MAP[memType] || 'MEM_UNKNOWN';
+
+    const offsetSize = reader.readNumber();
+
+    const startIdx = reader.readIndex();
+    const indexOffset = parseSymbolicOrIntList(reader, offsetSize);
+    let realOffset = new Map<number, string>();
+    for (var perOffset of indexOffset) {
+        let offsetValue = parseInt(perOffset, 10);
+        realOffset.set(offsetValue, callOpAttr[offsetValue].toString());
+    }
+
+    const shape = parseSymbolicOrIntList(reader, offsetSize);
+    let realShape = new Map<number, string>();
+    for (var perShape of shape) {
+        let shapeValue = parseInt(perShape, 10);
+        let realShapeValue = callOpAttr[shapeValue].split(',').map(Number);
+        realShape.set(shapeValue, realShapeValue[1].toString());
+    }
+
+    const endIdx = reader.readIndex();
+
+    const realAttr = parseRealAttrList(startIdx, endIdx, realOffset, realShape, opData.attr);
+    opData.attr = realAttr;
+
+    return opData;
+}
+
+function parseCallOpAttr(opSharedAttrList: Array<string | number | (string | number)[]> | undefined): string[] {
+    const attrList = JSON.parse(opSharedAttrList);
+    const res: string[] = [];
+    const argListNum = attrList[1];
+    let subArgListPtr = 2;
+    for (let i = 0; i < argListNum; i++) {
+        const len = attrList[subArgListPtr];
+        subArgListPtr++;
+        for (let j = 0; j < len; j++, subArgListPtr++) {
+            res.push(String(attrList[subArgListPtr]));
+        }
+    }
+    return res;
+}
+
+function parseRealAttrList(startIdx: number, endIdx: number, 
+                            realOffset: Map<number , string>, realShape: Map<number , string>, 
+                           op_attr: Array<string | number | (string | number)[]>): string[] {
+    let label: any[] = [];
+
+    const startPart = op_attr.slice(0, startIdx);
+    label.push(...startPart);
+    label.push({offset: Object.fromEntries(realOffset.entries())});
+    label.push({shape: Object.fromEntries(realShape.entries())});
+    const endPart = op_attr.slice(endIdx, op_attr.length);
+    label.push(...endPart);
+    
+    return label;
 }
 
 export function parseSymbolicOrIntList(reader: AttrReader, size: number): string[] {

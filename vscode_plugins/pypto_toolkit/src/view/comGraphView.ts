@@ -30,8 +30,10 @@ class ComGraphData {
   callHashArrMap: any;
   calleeOpAttrMap: any;
   isUsedDB: boolean;
+  calleeOpMagic?: string;
+  calleeOpSubgraphId?: string;
 
-  constructor(fsPath: string, funcHash: string | undefined) {
+  constructor(fsPath: string, funcHash: string | undefined, calleeOpMagic?: string, calleeOpSubgraphId?: string) {
     this.fsPath = fsPath;
     this.funcHash = funcHash;
     this.funcHashMap = {};
@@ -39,6 +41,8 @@ class ComGraphData {
     this.callHashArrMap = {};
     this.calleeOpAttrMap = {};
     this.isUsedDB = false;
+    this.calleeOpMagic = calleeOpMagic;
+    this.calleeOpSubgraphId = calleeOpSubgraphId;
   }
 
   static async getEntryHash(fsPath: string): Promise<string | undefined> {
@@ -186,11 +190,11 @@ class ComGraphData {
             }
             op.functype = this.funcHashMap[op.calleehash]?.functype;
             op.func_magicname = this.funcHashMap[op.calleehash]?.func_magicname;
-            if (op.opmagic) {
+            if (op.opmagic.toString()) {
               if (this.isUsedDB) {
-                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.attr.toString());
+                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.subgraphid.toString(), JSON.stringify(op.attr));
               } else {
-                this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic] = op.attr.toString();
+                this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic + '_' + op.subgraphid] = op.attr.toString();
               }
             }
           }
@@ -290,6 +294,7 @@ class MsgHandler {
     setTimeout(async () => {
       // 延时一个宏任务规避获取ret失败
       let ret: any;
+      let calleeOpAttr: string | undefined;
       if (comGraphData.isUsedDB) {
         const comGraphFuncData = await SQLiteCache.getInstance().comGraphFuncDataGet(comGraphData.fsPath, comGraphData?.funcHash);
         if (comGraphFuncData) {
@@ -300,6 +305,11 @@ class MsgHandler {
             ret = await SQLiteCache.getInstance().readJsonFile(comGraphFuncData.big_data_file_path);
           } else {
             ret = comGraphFuncData.data;
+          }
+          if (comGraphData.calleeOpMagic?.toString() && comGraphData.calleeOpSubgraphId?.toString()) {
+            calleeOpAttr = await SQLiteCache.getInstance().comGraphFileCalleeOpAttrGet(comGraphData?.funcHash.toString(), 
+                                                                                       comGraphData.calleeOpMagic.toString(),
+                                                                                       comGraphData.calleeOpSubgraphId.toString());
           }
         }
       } else {
@@ -318,6 +328,8 @@ class MsgHandler {
       if (panel.title === 'swimGraphJump') {
         panel.title = ret.func_magicname;
       }
+
+      const calleeOpAttrMap = {"calleeOpAttr" : calleeOpAttr, "opAttrIncastTensors": ret.global_tensors};
       const calleeMap = fileHashMap[comGraphData.fsPath];
       const funcTree = {};
       funcTree[entryHash] = await generateFucTree(entryHash, comGraphData);
@@ -339,6 +351,14 @@ class MsgHandler {
         command: 'returnCalleeMap',
         data: calleeMap,
       });
+
+      if(calleeOpAttr) {
+        panel.webview.postMessage({
+          command: 'returnCalleeOpAttrMap',
+          data: calleeOpAttrMap,
+        });
+      }
+
       panel.webview.postMessage({
         command: 'returnFuncTree',
         entry: entryHash,
@@ -450,8 +470,8 @@ class MsgHandler {
     });
   }
 
-  static getSubgraph(panel: any, subInfo: { calleehash: string; subFuncmagicname: string; curPath: string }) {
-    const { calleehash, subFuncmagicname, curPath } = subInfo;
+  static getSubgraph(panel: any, subInfo: { calleehash: string; subFuncmagicname: string; curPath: string; calleeOpMagic?: string; calleeOpSubgraphId?: string }) {
+    const { calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId } = subInfo;
     const webviews: any = hismartliteEx.webviews;
     const comGraphData = panel.comGraphData;
     let existPanel;
@@ -466,7 +486,7 @@ class MsgHandler {
       existPanel.reveal(existPanel.ViewColumn);
       return;
     }
-    new ComGraphView(ViewColumn.One).createPanel(panel.comGraphData.fsPath, calleehash, subFuncmagicname, curPath);
+    new ComGraphView(ViewColumn.One).createPanel(panel.comGraphData.fsPath, calleehash, subFuncmagicname, curPath, undefined, calleeOpMagic, calleeOpSubgraphId);
   }
 
   static callInOutTensorMap(panel: any, data: any) {
@@ -631,6 +651,8 @@ export class ComGraphView {
     magicName: string | undefined,
     curPath: string | undefined,
     panel = undefined,
+    calleeOpMagic?: string, 
+    calleeOpSubgraphId?: string, 
   ) {
     if (panel) {
       this.panel = panel;
@@ -640,7 +662,7 @@ export class ComGraphView {
       this.panel = window.createWebviewPanel(this.createArg.type, this.title, this.createArg.column, this.createArg.options);
     }
     this.panel.msgHandler = this.msgHandler;
-    this.panel.comGraphData = new ComGraphData(fsPath, funcHash);
+    this.panel.comGraphData = new ComGraphData(fsPath, funcHash, calleeOpMagic, calleeOpSubgraphId);
     this.panel.curPath = curPath;
     const webviews: any = hismartliteEx.webviews;
     webviews[this.title] = this.panel;
