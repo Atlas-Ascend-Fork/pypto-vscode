@@ -10,12 +10,12 @@
   >
     <div v-if="isOpen" class="panel-container">
       <div class="collapse-panel-search-container">
-        <span>Op{{ t('comGraph.list') }}:</span>
+        <span>{{ type && TypeMap[type] }}{{ t('comGraph.list') }}:</span>
         <d-search
           is-keyup-search
           size="sm"
           :show-glow-style="false"
-          :placeholder="t('comGraph.searchSubgraph')"
+          :placeholder="`${t('comGraph.search')}${type && TypeMap[type]}`"
           class="search-box"
           @search="onSearch"
         ></d-search>
@@ -25,7 +25,7 @@
           <template v-for="col in row">
             <d-tooltip :content="t('comGraph.locateComGraph')" :disabled="col.expandAll || !type" position="top-end">
               <div :class="['list-col', col.expandAll && 'expand-all', type && 'can-locate']" :data-id="col.label" :data-type="type">
-                {{ col.label }}
+                <span>{{ col.label }}</span>
               </div>
             </d-tooltip>
           </template>
@@ -65,6 +65,11 @@ const props = defineProps({
 const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = useCollapsePanel();
 
 const renderList = ref<ItemData[][]>([]);
+const TypeMap = {
+  op: 'Op',
+  tensor: 'Tensor',
+  subgraph: 'Subgraph',
+};
 
 const generateRenderList = (val: number[]) => {
   if (val.length > props.columnCount * 2) {
@@ -93,13 +98,17 @@ const onSearch = (e: string) => {
   generateRenderList(res);
 };
 
-const onClick = (e) => {
-  if (e.target.classList.contains('expand-all')) {
-    renderList.value = arrChange([...props.dataList], props.columnCount);
-  } else {
-    const { id, type } = e.target.dataset;
-    if (id && type) {
-      locateNode(id, type);
+const onClick = (e: MouseEvent) => {
+  const composedPath = e.composedPath() as HTMLElement[];
+  const node = composedPath.find(item => item.classList?.contains('list-col'));
+  if (node) {
+    if (node.classList.contains('expand-all')) {
+      renderList.value = arrChange([...props.dataList], props.columnCount);
+    } else {
+      const { id, type } = node.dataset;
+      if (id && type) {
+        locateNode(id, type);
+      }
     }
   }
 };
@@ -156,19 +165,28 @@ const onClick = (e) => {
       font-weight: 500;
       border-bottom: 1px solid var(--devui-split-line);
       background-color: var(--devui-nest-bg);
-      
+
       .list-col {
         min-width: 54px;
         line-height: 20px;
-        
+
         &.can-locate {
           color: var(--devui-link-text);
           cursor: pointer;
         }
 
         &.expand-all {
+          position: relative;
           cursor: pointer;
           color: var(--devui-placeholder-text);
+
+          span {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 76px;
+            transform: translateY(-50%);
+          }
         }
       }
     }

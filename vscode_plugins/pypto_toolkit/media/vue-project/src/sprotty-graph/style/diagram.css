@@ -492,7 +492,6 @@ circle {
   background: var(--devui-warning-bg);
   box-shadow: var(--devui-select-shadow);
   border-radius: 8px;
-  width: 180px;
   padding: 10px 12px;
   height: 40px;
 }

@@ -81,7 +81,7 @@ const nodeDisplayMode = ref('all');
 .layer-control-container {
   position: fixed;
   z-index: 1040;
-  width: 236px;
+  min-width: 240px;
   color: var(--devui-primary-text);
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -161,6 +161,7 @@ const nodeDisplayMode = ref('all');
         a {
           color: var(--devui-secondary-text);
           padding: 0 10px;
+          white-space: nowrap;
         }
 
         &:hover a {

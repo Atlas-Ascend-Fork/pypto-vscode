@@ -9,14 +9,14 @@
       <div id="sprotty"></div>
     </div>
     <div class="lock-information" v-if="switchLockInformationFlag">
-      <div class="lock-information-item">{{lockText}}，按[ESC]退出</div>
+      <div class="lock-information-item">{{lockText}}，{{ t('comGraph.pressEscExit') }}</div>
     </div>
     
     <ComGraphMinimap
       v-if="!isLoading"
       :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'KernelGraph' ? 488 : 400) : 0"
     ></ComGraphMinimap>
-    <HealthReport v-model="showHealthReport" @onLocate="onLocate" @open="(e) => (healthReportGraphName = e)" />
+    <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
     <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" />
@@ -35,7 +35,7 @@ import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
-import { Message } from 'vue-devui';
+import { Message } from 'vue-devui/message';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -86,6 +86,10 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
 const onLocate = (id) => {
   centerNodeAction([id]);
   selectAction([id]);
+}
+
+const onLocateSubgraph = (ids) => {
+  selectAction(ids);
 }
 
 const colorSubgraph = (isColor: boolean) => {
@@ -161,9 +165,9 @@ onMounted(() => {
   (window as any).ascEventBus.on('switchLockInformation', (attr) => {
     switchLockInformationFlag.value = attr[0];
     if(attr[1]){
-      lockText='单通路模式';
+      lockText = t('comGraph.singlePathMode');
     }else{
-      lockText='通路锁定中';
+      lockText = t('comGraph.pathLocked');
     }
   });
   if (props.loadingStep === 'readJson') {
@@ -176,7 +180,6 @@ onMounted(() => {
 function releaseFixedFlow() {
   setFixedComGraphFlow(false,false);
   switchLockInformationFlag.value = false;
-  console.log('ESC → 解除固定计算流');
 }
 
 // 在 document 上只绑定一次
@@ -193,7 +196,7 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
     setFixedComGraphFlow(true, false,selectedNodeId);
     if(selectedNodeId && selectedNodeId !='' ){
       switchLockInformationFlag.value = true;
-      lockText='通路锁定中';
+      lockText = t('comGraph.pathLocked');
     }
     
     return;
@@ -207,7 +210,7 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
     setFixedComGraphFlow(true, true,selectedNodeId);
     if(selectedNodeId && selectedNodeId !='' ){
       switchLockInformationFlag.value = true;
-      lockText='单通路模式';
+      lockText = t('comGraph.singlePathMode');
     }
     return;
   }

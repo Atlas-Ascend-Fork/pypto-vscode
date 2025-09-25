@@ -33,7 +33,7 @@ const { t } = useI18n();
 const props = defineProps({
   modelValue: Boolean,
 });
-const emits = defineEmits(['update:modelValue', 'onLocate', 'open']);
+const emits = defineEmits(['update:modelValue', 'onLocate', 'open', 'locateSubgraph']);
 
 const { drawerEl } = useClickOutside(props, emits);
 const graphName = ref('');
@@ -121,9 +121,12 @@ const locateNode = (nodeId: number, type: 'op' | 'tensor' | 'subgraph') => {
     emits('onLocate', TensorMap[nodeId]);
   }
   if (type === 'subgraph') {
-    const nodes = getNodesBySubgraphId(nodeId);
+    const nodes = getNodesBySubgraphId(nodeId) as Record<string, any>;
     if (nodes.length) {
-      emits('onLocate', nodes[0].node_id);
+      emits(
+        'locateSubgraph',
+        nodes.map((item) => item.node_id),
+      );
     }
   }
 };

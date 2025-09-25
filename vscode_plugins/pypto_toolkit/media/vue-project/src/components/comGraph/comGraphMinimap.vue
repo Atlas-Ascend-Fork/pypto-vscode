@@ -1,11 +1,11 @@
 <template>
   <div class="zoom-control" :style="{right: `${offsetRight + 15}px`}">
-    <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);" title="缩小" @click="zoomOut"></button>
+    <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);" :title="t('zoomOut')" @click="zoomOut"></button>
     <input type="text" :value="inputValue" class="zoom-value" @blur="commitZoom" @keydown.enter="$event.target.blur()" @input="onInput "/>
     <span class="text-value">%</span>
-    <button class="icon-op-add" style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px;" title="放大" @click="zoomIn"></button>
+    <button class="icon-op-add" style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px;" :title="t('zoomIn')" @click="zoomIn"></button>
     <div class="empty-rect"> </div>
-    <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" title="适应屏幕" @click="fitScreen"></button>
+    <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="fitScreen"></button>
   </div>
   <div class="com-graph-minimap-container" id="minimap-container" :style="{right: `${offsetRight + 15}px`}" @click="minimapClick">
     <div class="com-graph-minimap" id="minimap">
@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineProps({
   offsetRight: {
@@ -29,6 +30,7 @@ defineProps({
   }
 });
 
+const { t } = useI18n();
 const rectLeft = ref(0);
 const rectTop = ref(0);
 const rectWidth = ref(260);
