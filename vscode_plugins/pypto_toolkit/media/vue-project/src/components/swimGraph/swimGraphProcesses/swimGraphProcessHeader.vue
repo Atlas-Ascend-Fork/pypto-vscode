@@ -4,6 +4,18 @@
       <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
       <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
       <span>{{ process.processName }}</span>
+      <span> {{ $t(selectedOption) }}</span>
+      <d-tooltip :content="$t('ddTooltip')">
+        <span class="expand-icon-mode" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
+      </d-tooltip>
+      <div v-if="isDropdownVisible" class="dropdownSelect">
+        <ul>
+          <li @click="selectOption('timeCir')">{{ $t("timeCir") }}</li>
+          <li @click="selectOption('throughput')">{{ $t("throughput") }}</li>
+          <li @click="selectOption('cacheHit')">{{ $t("cacheHit") }}</li>
+          <li @click="selectOption('task')">{{ $t("task") }}</li>
+        </ul>
+      </div>
     </div>
     <div class="process-header-line"></div>
     <canvas class="process-header-canvas" :data-process-header-key="process.key"></canvas>
@@ -13,6 +25,8 @@
 
 <script setup>
 import { ref, computed, inject, onMounted, watch} from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
 const {
   layout,
@@ -31,6 +45,10 @@ const { addChildContext } = inject('swimGraphContext');
 let dropDown = ref(`${window.staticPath}/static-assets/swim_dropDown.svg`);
 let collapse = ref(`${window.staticPath}/static-assets/swim_collapse.svg`);
 
+const isDropdownVisible = ref(false);
+const selectedOption = ref('timeCir');
+const isDisabled = ref(true);
+
 // 定义props
 const props = defineProps({
   processKey: {
@@ -42,6 +60,17 @@ const props = defineProps({
     required: true
   }
 });
+
+const toggleDropDown = () => {
+  if(!isDisabled.value) {
+    isDropdownVisible.value = !isDropdownVisible.value;
+  }
+};
+
+const selectOption = (option) => {
+  selectedOption.value = option;
+  isDropdownVisible.value = false;
+};
 
 const isExpanded = computed(() => {
   return processExpanded.get(props.processKey);
