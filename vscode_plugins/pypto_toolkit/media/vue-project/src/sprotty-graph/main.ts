@@ -339,6 +339,7 @@ export function useSprottyLoad() {
       currentLayoutConfig.direction = direction;
       resetModelSource();
       modelSource.setModel(originSprottyGraph).then(() => {
+        fitGraphToScreen();
         renderMinimap(modelSource.model);
       })
     }
