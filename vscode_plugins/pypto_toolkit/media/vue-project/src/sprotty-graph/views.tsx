@@ -859,9 +859,9 @@ export class AstgrTensorView extends RectangularNodeView {
       }
       if (parent.zoom < 0.3) {
         if (isInput) {
-          inoutBackgroundFillColor = 'var(--devui-in-wave-fill1)';
+          inoutBackgroundFillColor = isTraced ? 'var(--devui-in-tensor-mini-light)' : 'var(--devui-in-tensor-mini)';
         } else {
-          inoutBackgroundFillColor = 'var(--devui-out-wave-fill1)';
+          inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
         }
       }
       rectNode = (
@@ -928,7 +928,7 @@ export class AstgrTensorView extends RectangularNodeView {
 }
 
 @injectable()
-export class AstgrTensorMinimapView extends RectangularNodeView {
+export class  AstgrTensorMinimapView extends RectangularNodeView {
   override render(
     node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
     context: RenderingContext,
@@ -962,9 +962,9 @@ export class AstgrTensorMinimapView extends RectangularNodeView {
     if (node.baseColor) {
       titleBackgroundFillColor = node.baseColor;
     } else if (isInput) {
-      titleBackgroundFillColor = 'var(--devui-in-wave-fill1)';
+      titleBackgroundFillColor = isTraced ? 'var(--devui-in-tensor-mini-light)' : 'var(--devui-in-tensor-mini)';
     } else {
-      titleBackgroundFillColor = 'var(--devui-out-wave-fill1)';
+      titleBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
     }
 
     const rectNode = (
@@ -1115,8 +1115,9 @@ function createRoundedCorner(prev, corner, next, radius) {
   let sweepFlag = angle > 0 ? 1 : 0;
   const largeArcFlag = 0;
 
-  if (n2.x + n1.x < 0 && n2.y + n1.y > 0) {
-    sweepFlag = 0;
+  // 第四象限置反
+  if ((n2.x + n1.x< 0) && (n2.y + n1.y < 0)) {
+    sweepFlag = sweepFlag ? 0 : 1;
   }
   
   // 构建路径
@@ -1194,7 +1195,9 @@ export class AstgrEdge extends PolylineEdgeView {
       isParent = true;
     }
     if (isParent) {
-      const [start, end] = [segments[0], segments[segments.length - 1]];
+      // const [start, end] = [segments[0], segments[segments.length - 1]];
+      const start = segments[Math.ceil(segments.length / 2) - 1];
+      const end = segments[Math.ceil(segments.length / 2)];
       const cx = (start.x + end.x) / 2;
       const cy = (start.y + end.y) / 2;
 
