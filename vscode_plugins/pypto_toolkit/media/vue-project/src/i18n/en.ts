@@ -75,6 +75,8 @@ export default {
         'searchPlaceholder': 'Search Keyword',
         group: 'Group',
         flat: 'Lay Flat',
+        onlyPath: 'Only Path',
+        notShowTensorReport:'Only OP is Displayed, Tensor is not shown',
         operationLog: 'Operation Log',
         layerControl: 'Layer Control',
         graphLayout: 'Graph Layout',

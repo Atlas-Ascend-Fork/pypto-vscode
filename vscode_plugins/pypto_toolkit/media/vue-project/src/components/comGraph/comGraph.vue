@@ -1,6 +1,6 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate"></ComGraphHeader>
+    <ComGraphHeader @onLocate="onLocate" :showType="showType"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -58,6 +58,7 @@ const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
 const healthReportGraphName = ref('');
+const showType = ref('all');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 
 const switchLockInformationFlag = ref(false);
@@ -79,6 +80,7 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
   updateGraph(isDarkTheme, {
     showTensorNodes: type === 'op' ? false : true
   })
+  showType.value = type;
 }
 
 const onLocate = (id) => {
