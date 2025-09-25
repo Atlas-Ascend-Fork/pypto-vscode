@@ -1,6 +1,6 @@
 <template>
   <div class="timeline" 
-  @mousedown="timelineMouseDown($event)" @mousemove="timelineMouseMove($event)" @mouseup="timelineMouseUp()"
+  @mousedown="timelineMouseDown($event)" @mousemove="timelineMouseMove($event)" @mouseup="timelineMouseUp($event)"
   @mouseleave="timelineMouseOut($event)">
     <!-- 一段时间轴区域 -->
     <div class="fixed-timeline-area" v-if="!loading">
@@ -80,6 +80,7 @@ let timelineInitX = 0;
 let timelineInitStartX = 0;
 let timelineInitEndX = 0
 let lastPostion = 0;
+let dragTimeout = null;
 
 const fixedtimelineCanvas = ref(null);
 const fixedtimelineCtx = ref(null);
@@ -111,6 +112,8 @@ const editmodelStyle = reactive({
   left: '0px',
   top: '0px'
 })
+
+const dragStartTime = ref(null);
 const toggleEditModel = () => {
   isEditing.value = false;
   refLabel.value = '';
@@ -129,7 +132,7 @@ const fixedXToTime = (x) => {
 };
 
 const timelineMouseDown = (e) => {
-  hoverLineMove();
+  hoverLineErase();
   if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) return;
   const rect = fixedtimelineCanvas.value.getBoundingClientRect();
   
@@ -139,8 +142,14 @@ const timelineMouseDown = (e) => {
   timelineInitStartX = timelineState.startTimeX;
   timelineInitEndX = timelineState.endTimeX;
 
-  if (Math.abs(mouseX - timelineInitStartX) < 5){
+  dragStartTime.value = Date.now();
+  clearTimeout(dragTimeout);
+
+  dragTimeout = setTimeout(() => {
     isTimelineDragging = true;
+  }, 200);
+
+  if (Math.abs(mouseX - timelineInitStartX) < 5){
     fixedtimelineCanvas.value.style.cursor = 'ew-resize';
     timelineCanvas.value.style.cursor = 'ew-resize';
     timelineState.isInLeftTag = true;
@@ -148,7 +157,6 @@ const timelineMouseDown = (e) => {
   }
 
   if (Math.abs(mouseX - timelineInitEndX) < 5){
-    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'ew-resize';
     timelineCanvas.value.style.cursor = 'ew-resize';
     timelineState.isInRightTag = true;
@@ -156,7 +164,6 @@ const timelineMouseDown = (e) => {
   }
 
   if (mouseX > timelineInitStartX && mouseX < timelineInitEndX) {
-    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'move';
     timelineCanvas.value.style.cursor = 'move';
     timelineState.isOnTag = true;
@@ -164,7 +171,6 @@ const timelineMouseDown = (e) => {
   }
 
   if (mouseX < timelineInitStartX || mouseX > timelineInitEndX) {
-    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'crosshair';
     timelineCanvas.value.style.cursor = 'crosshair';
     timelineState.isOutTag = true;
@@ -229,7 +235,7 @@ const timelineMouseMove = (e) => {
   }
 
   if (timelineState.isOutTag === true) {
-    if (timelineOffsetX === 0) {
+    if (Math.abs(timelineOffsetX) < 10) {
       return;
     }
     viewState.scale = canvasWidth / Math.abs(timelineOffsetX);
@@ -247,7 +253,13 @@ const timelineMouseMove = (e) => {
   }
 }
 
-const timelineMouseUp = () => {
+const timelineMouseUp = (e) => {
+  const rect = fixedtimelineCanvas.value.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  if (Math.abs(mouseX - timelineInitX) < 10) {
+    isTimelineMove.value = false;
+  }
+  clearTimeout(dragTimeout);
   timelineMouseEventReset();
 }
 
@@ -318,7 +330,7 @@ const checkIfInInterval = (x) => {
     const flagX = flag.x;
     let start = flagX - 6;
     let end = flagX + 6;
-    if (x >= start && x <= end + flag.labelW) {
+    if (x >= start && x <= end) {
       return flag;
     }
   }
@@ -332,14 +344,14 @@ const flagMouseMove = (e) => {
   const color = "rgba(94, 124, 224, 1)";
   const mouseX = e.clientX - rect.left;  
 
-  hoverLineMove();
+  hoverLineErase();
   childContextMap.threadEvent.eraseEventLine("over");
   childContextMap.processHeaderEvent.eraseProcessHeadLine("over");
   const flag = drawFlag(ctx, mouseX, 1, color, '');
   hoverCurFlag.value = flag;
   childContextMap.threadEvent.drawEventLine(mouseX, color, "over");
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
-}
+};
 
 const flagMouseOver = (e) => {
   if (!hoverFlagsCanvas.value || isTimelineDragging) return;
@@ -351,21 +363,23 @@ const flagMouseOver = (e) => {
   childContextMap.threadEvent.drawEventLine(mouseX, color, 'over');
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
   hoverCurFlag.value = flag;
-}
+};
 
-const hoverLineMove = () => {
-  if (!hoverCurFlag || isTimelineDragging) return;
+const hoverLineErase = () => {
+  if (!hoverCurFlag || isTimelineDragging) {
+    return;
+  }
   childContextMap.threadEvent.eraseEventLine('over');
-  childContextMap.processHeaderEvent.eraseProcessHeadLine("over");
+  childContextMap.processHeaderEvent.eraseProcessHeadLine('over');
   const ctx = hoverFlagsCtx.value;
   const canvas = hoverFlagsCanvas.value;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   hoverCurFlag.value = null;
-}
+};
 
 const flagMouseOut = (e) => {
-  hoverLineMove();
-}
+  hoverLineErase();
+};
 
 const randomColor = () => Math.floor(Math.random() * 360);
 const formatTime = (str) => {
@@ -383,7 +397,7 @@ const flagMouseClick = (e) => {
     isTimelineMove.value = false;
     return;
   }
-  hoverLineMove();
+  hoverLineErase();
   const rect = flagsCanvas.value.getBoundingClientRect();
   const ctx = flagsCtx.value;
   const mouseX = e.clientX - rect.left;

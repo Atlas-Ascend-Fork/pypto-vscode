@@ -123,6 +123,8 @@ const measureDragEndX = ref(0);
 const measureDragStartY = ref(0);
 const measureDragEndY = ref(0);
 const measureDragHeight = ref(0);
+const measureDragCtrl = ref(false);
+const measureDragCtrlX = ref(0);
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -599,7 +601,7 @@ const renderTimeline = () => {
       ctx.fillText(`${timeValue}`, x + 2, 35);
     }
   }
-    if (isMeasureDragging.value) {
+    if (isMeasureDragging.value || measureDragCtrl.value) {
     const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
     const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
     drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
@@ -1038,6 +1040,15 @@ const measureMouseDown = (e) => {
     return;
   }
 
+  if(e.ctrlKey && e.buttons === 1) {
+    measureDragCtrl.value = true;
+    measureDragCtrlX.value = e.clientX;
+    if (measureDragCtrlX.value - layout.processLabelWidth < 0) {
+      measureDragCtrlX.value = layout.processLabelWidth;
+    }
+    return;
+  }
+
   measureDragStartX.value = e.clientX;
   measureDragStartY.value = e.clientY;
   measureDragEndX.value = e.clientX;
@@ -1095,6 +1106,24 @@ const drawMeasureArrow = (ctx, startx, endx, distance) => {
   ctx.stroke();
 }
 
+const drawMeasureTimeTip = (ctx, rect, value, unit) => {
+  ctx.fillStyle = 'rgba(49, 122, 247, 1)';
+  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '9px sans-serif';
+  let textStart = rect.x + 2;
+  let displayValue = value;
+  if (unit === 'μs') {
+    textStart += 2;
+    if (value < 1) {
+      displayValue = '<1';
+    }
+  }
+  ctx.fillText(`${displayValue}${unit}`, textStart, 25);
+};
+
 const drawMeasureTimeRange = (ctx, startx, endx) => {
   let startX = startx;
   let endX = endx;
@@ -1125,35 +1154,45 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
   ctx.stroke();
 
   const distance = (range - RectWidth) / 2;
-  if (range < RectHigh) {
-    return;
-  }
-  // 绘制长方形
-  ctx.fillStyle = 'rgba(49, 122, 247, 1)';
-  const rect = {
+  let rect = {
     x:startX + distance,
     y:15,
     width:RectWidth,
     height:RectHigh,
   };
-  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '9px sans-serif';
-  let textStart = rect.x + 2;
-  if (unit === 'μs') {
-    textStart += 2;
-    if (value < 1) {
-      value = '<1';
+  // 绘制长方形
+  if (range < RectWidth + 10) {
+    rect.x = startX - 40;
+    if (startX < 40) {
+      rect.x = endX + 5;
     }
+    drawMeasureTimeTip(ctx, rect, value, unit);
+    return;
   }
-  ctx.fillText(`${value}${unit}`, textStart, 25);
+  drawMeasureTimeTip(ctx, rect, value, unit);
   // 绘制箭头
   drawMeasureArrow(ctx, startX, endX, distance);
 }
 
 const measureMouseMove = (e) => {
+  if (e.ctrlKey && e.buttons === 1) {
+    if (viewState.scale === 1) {
+      return;
+    }
+    const timeLineEndX = Math.abs(timeLineX.value);
+    const deltaX = (e.clientX - measureDragCtrlX.value);
+    const cssWidth = viewState.canvasCssWidth;
+    if (deltaX < 0 && cssWidth > timeLineEndX) {
+      return;
+    }
+    viewState.offsetX += childContextMap.threadEvent.getOffset(deltaX, viewState.scale);
+    if (deltaX > 0 && viewState.offsetX > 0) {
+      viewState.offsetX = 0;
+    }
+    render();
+    return;
+  }
+
   if (!isMeasureDragging.value) {
     return;
   }
@@ -1167,6 +1206,11 @@ const measureMouseMove = (e) => {
 }
 
 const measureMouseUp = () => {
+  if (measureDragCtrl.value) {
+    measureDragCtrl.value = false;
+    return;
+  }
+
   if (!isMeasureDragging.value) {
     return;
   }
@@ -1178,6 +1222,7 @@ const measureMouseUp = () => {
   intelligentSearch();
 
   isMeasureDragging.value = false;
+  showDragAreaBorders.value = false;
   return;
 }
 
