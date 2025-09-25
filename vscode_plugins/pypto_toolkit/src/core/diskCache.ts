@@ -113,8 +113,8 @@ export class DiskCache {
       this.stmtFileHashGet = this.db.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
       this.stmtFileHashDel = this.db.prepare('DELETE FROM com_graph_file_hash_map WHERE file_path=?');
 
-      this.stmtFileCalleeOpAttrSet = this.db.prepare('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_attr) VALUES(?,?,?)');
-      this.stmtFileCalleeOpAttrGet = this.db.prepare('SELECT op_attr FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? ');
+      this.stmtFileCalleeOpAttrSet = this.db.prepare('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr) VALUES(?,?,?,?)');
+      this.stmtFileCalleeOpAttrGet = this.db.prepare('SELECT op_attr FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=? ');
     } catch (err) {
       this.handleDatabaseError('open', err as Error);
     }
@@ -260,18 +260,18 @@ export class DiskCache {
   }
 
   /****************** com_graph_file_callee_op_attr 表 ******************/
-  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opAttr: string): Promise<void> {
+  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opSubgraphid: string, opAttr: string): Promise<void> {
     try {
       if (this.db == undefined) return;
-      await this.stmtFileCalleeOpAttrSet.run(calleehash, opMagic, opAttr);
+      await this.stmtFileCalleeOpAttrSet.run(calleehash, opMagic, opAttr, opSubgraphid);
     } catch (err) {
       this.handleDatabaseError('comGraphFileCalleeOpAttrSet', err as Error);
     }
   }
-  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string): Promise<string> {
+  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string> {
     try {
       if (this.db == undefined) return '';
-      const row = await this.stmtFileCalleeOpAttrGet.get(calleehash, opMagic);
+      const row = await this.stmtFileCalleeOpAttrGet.get(calleehash, opMagic, opSubgraphid);
       return row?.op_attr ?? '';
     } catch (err) {
       this.handleDatabaseError('comGraphFileCalleeOpAttrGet', err as Error);

@@ -36,6 +36,7 @@ import * as monaco from 'monaco-editor';
 import { nodeDetailProps } from './node-detail-types';
 import { getTensorData, getOperationData, toClipboard } from './utils';
 import { useClickOutside } from '../hooks/use-click-outside';
+import { parseOpRealAttr } from '../../../sprotty-graph/parseSymbolicAttr';
 
 const { t } = useI18n();
 const props = defineProps(nodeDetailProps);
@@ -80,8 +81,10 @@ watch(
           magicId.value = id;
           const operationData = getOperationData(parsedJsonData.operations, index, id);
           if (operationData) {
-            nodeContent.value = JSON.stringify(operationData, null, 2);
-            nodeContentStr = JSON.stringify(operationData);
+            let realOpAttr = parseOpRealAttr(JSON.parse(JSON.stringify(operationData)));
+
+            nodeContent.value = JSON.stringify(realOpAttr, null, 2);
+            nodeContentStr = JSON.stringify(realOpAttr);
           }
         }
       }

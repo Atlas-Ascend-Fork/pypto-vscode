@@ -54,6 +54,10 @@ const returnTheme = (message) => {
   updateTheme(message.data);
 };
 
+const returnCalleeOpAttrMap = (message) => {
+  comGraphStore.setData('CalleeOpAttrMap', message.data);
+};
+
 const initComGraph = (message) => {
   graphType.value = 'returnCom';
   loadingStep.value = message.step;
@@ -64,6 +68,7 @@ const CommandCallbackMap = {
   returnCom,
   returnSwim,
   returnCalleeMap,
+  returnCalleeOpAttrMap,
   returnTheme,
   initComGraph,
   returnError,

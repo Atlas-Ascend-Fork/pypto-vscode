@@ -412,9 +412,14 @@ export class CustomMouseListener extends MouseListener {
               const newPath = [...comGraphStore.data.curPath];
               newPath.push(current.calleehash);
               const curPathList = JSON.stringify(newPath);
+
+              const first = (current.children?.[0] as unknown) as SCompartmentImpl;
+              const calleeOpSubgraphId = first.subgraphId;
+
               (window as any).vscode.postMessage({
                 command: 'getSubgraph',
-                paramObj: { calleehash: current.calleehash, subFuncmagicname: funcName.func_magicname, curPath: curPathList}
+                paramObj: { calleehash: current.calleehash, subFuncmagicname: funcName.func_magicname, curPath: curPathList,
+                            calleeOpMagic: current.magic, calleeOpSubgraphId: calleeOpSubgraphId}
               });
           }
           break;

@@ -174,7 +174,7 @@ const FORMAT_MAP: { [key: number]: string } = {
 /**
  * Global mapping of memory type enum values to string representations
  */
-const MEMTYPE_MAP: { [key: number]: string } = {
+export const MEMTYPE_MAP: { [key: number]: string } = {
     0: 'MEM_UB', 1: 'MEM_L1', 2: 'MEM_L0A', 3: 'MEM_L0B', 4: 'MEM_L0C', 5: 'MEM_FIX',
     6: 'MEM_FIX_QUANT_PRE', 7: 'MEM_FIX_RELU_PRE', 8: 'MEM_FIX_RELU_POST', 9: 'MEM_FIX_QUANT_POST',
     10: 'MEM_FIX_ELT_ANTIQ', 11: 'MEM_FIX_MTE2_ANTIQ', 12: 'MEM_BT', 13: 'MEM_L2', 14: 'MEM_L3',

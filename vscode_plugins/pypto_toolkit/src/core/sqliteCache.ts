@@ -98,8 +98,9 @@ export class SQLiteCache {
             CREATE TABLE IF NOT EXISTS com_graph_file_callee_op_attr (
               calleehash TEXT NOT NULL,
               op_magic TEXT NOT NULL,
+              op_subgraphid TEXT NOT NULL,
               op_attr      TEXT,
-              PRIMARY KEY (calleehash,op_magic)
+              PRIMARY KEY (calleehash,op_magic,op_subgraphid)
             );
         `);     
     // 需要添加表就继续 this.db.run();
@@ -203,16 +204,16 @@ export class SQLiteCache {
     console.log('OYXT 删除com_graph_file_hash_map缓存：' + filePath);
   }
   /****************** com_graph_file_callee_op_attr 表 ******************/
-  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opAttr: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_attr) VALUES(?,?,?)', [
-      calleehash, opMagic, opAttr
+  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opSubgraphid: string, opAttr: string): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr) VALUES(?,?,?,?)', [
+      calleehash, opMagic, opSubgraphid, opAttr
     ]);
   }
-  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string): Promise<string> {
+  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string> {
     const stmt = this.db!.prepare(
-      'SELECT op_attr FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? ',
+      'SELECT op_attr FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
     );
-    stmt.bind([calleehash, opMagic]);
+    stmt.bind([calleehash, opMagic, opSubgraphid]);
     let attrStr ;
     if (stmt.step()) {
       const row = stmt.getAsObject() as { op_attr: string};
