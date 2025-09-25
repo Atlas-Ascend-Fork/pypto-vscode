@@ -1,8 +1,21 @@
-import { Hct } from '@material/material-color-utilities';
+// 动态导入ES Module
+let Hct: any = null;
 
-function hctToHex(hue, chroma, tone) {
+async function loadMaterialColorUtilities() {
+  if (!Hct) {
+    const dynamicImport = (new Function('specifier', 'return import(specifier);')) as (s: string) => Promise<any>;
+    const materialColorUtilities = await dynamicImport('@material/material-color-utilities');
+    Hct = materialColorUtilities.Hct;
+  }
+  return Hct;
+}
+
+async function hctToHex(hue, chroma, tone) {
+  // 确保模块已加载
+  const HctClass = await loadMaterialColorUtilities();
+  
   // 创建Hct对象并设置参数（库会自动处理色域外值）
-  const hctColor = Hct.from(hue, chroma, tone);
+  const hctColor = HctClass.from(hue, chroma, tone);
 
   // 转换为ARGB整数（0xAARRGGBB格式）
   const argb = hctColor.toInt();
@@ -18,9 +31,10 @@ function hctToHex(hue, chroma, tone) {
 }
 
 
-function hexToHct(hex) {
+async function hexToHct(hex) {
+  const HctClass = await loadMaterialColorUtilities();
   const argb = hexToArgb(hex);
-  const hct = Hct.fromInt(argb);
+  const hct = HctClass.fromInt(argb);
   
   return {
     hue: hct.hue,
@@ -43,21 +57,23 @@ function hexToArgb(hex) {
   return parseInt(cleanHex, 16);
 }
 
-export function getLighterColorByHex(color: string) {
-  const hctColor = hexToHct(color);
-  return hctToHex(hctColor.hue, hctColor.chroma, hctColor.tone + 20 > 100 ? 100 : hctColor.tone + 20);
+export async function getLighterColorByHex(color: string) {
+  const hctColor = await hexToHct(color);
+  return await hctToHex(hctColor.hue, hctColor.chroma, hctColor.tone + 20 > 100 ? 100 : hctColor.tone + 20);
 }
 
-export function generateColorList(count: number, isDark = true) {
+export async function generateColorList(count: number, isDark = true) {
   const baseColor = isDark ? [268, 47, 43] : [268, 67, 85];
   const baseLightColor = isDark ? [268, 47, 80] : [268, 67, 43];
   const originBaseColorList: string[] = [];
   const originLightColorList: string[] = [];
   const interval = Math.floor(360 / count) + 40;
+  
   for (let index = 0; index < count; index ++) {
-    originBaseColorList.push(hctToHex((baseColor[0] + interval * index) % 360, baseColor[1], baseColor[2]));
-    originLightColorList.push(hctToHex((baseLightColor[0] + interval * index) % 360, baseLightColor[1], baseLightColor[2]));
+    originBaseColorList.push(await hctToHex((baseColor[0] + interval * index) % 360, baseColor[1], baseColor[2]));
+    originLightColorList.push(await hctToHex((baseLightColor[0] + interval * index) % 360, baseLightColor[1], baseLightColor[2]));
   }
+  
   return {
     baseColorList: originBaseColorList,
     lightColorList: originLightColorList

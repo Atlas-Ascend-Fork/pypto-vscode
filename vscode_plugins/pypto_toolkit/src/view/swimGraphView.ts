@@ -69,7 +69,7 @@ class MsgHandler {
   }
 
   // 获取json信息和绑定的计算图文件路径
-  static getSwimData(panel: any) {
+  static async getSwimData(panel: any) {
     const swimUri = panel.swimData.uri;
     const swimPath = panel.swimData.fsPath;
     MsgHandler.cachePath = Util.getCachePath();
@@ -100,7 +100,7 @@ class MsgHandler {
       console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
     }
     const swimDataObj = JSON.parse(swimStr);
-    const swimData: any = parseSwimLaneInfo(swimDataObj, pmuInfo);
+    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo);
     swimData.lane2line = Object.fromEntries(swimData.lane2line);
     swimData.processes = Object.fromEntries(swimData.processes);
     swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
