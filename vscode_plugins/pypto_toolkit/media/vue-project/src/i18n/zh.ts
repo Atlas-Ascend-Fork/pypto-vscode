@@ -64,6 +64,8 @@ export default {
    diffList: '差异列表',
    noCompareTips: '当前两个图无差异',
    compareLargerTips: '当前两个图的差异超过50%，不再显示差异对比',
+   'scaleMaxInfo': '已放大至极限，请缩小查看',
+   'scaleMinInfo': '已缩至最小尺寸，请放大查看',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

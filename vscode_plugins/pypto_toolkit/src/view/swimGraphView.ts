@@ -300,6 +300,11 @@ class MsgHandler {
       window.showInformationMessage(t('pypto.fileNotFound', { seqDir, rawmagic, exactFileName, taskNo, rawmagicStr }), t('pypto.confirm'));
     }
   }
+
+  // 提示信息
+  static async showMessage(panel: any, paramObj: { text: string }) {
+    window.showInformationMessage(paramObj.text);
+  }
 }
 
 export class SwimGraphView {

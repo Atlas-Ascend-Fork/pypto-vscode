@@ -65,6 +65,7 @@ import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
 import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
 import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import { getTextWidth } from '../../utils';
+import { Decimal } from 'decimal.js';
 import {
   calculateGridInterval,
   ctxs,
@@ -167,6 +168,8 @@ const timelineState = reactive({
   isInRightTag: false,
   isOnTag: false,
   isOutTag: false,
+  startTimeDecimal: new Decimal(0),
+  endTimeDecimal: new Decimal(0)
 });
 const formattedTime = computed(() => {
   let date = new Date();
@@ -529,13 +532,17 @@ const renderFixedTimeline = () => {
   const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
 
   timelineState.startTime = startTime;
+  timelineState.startTimeDecimal = startTime;
   timelineState.startTimeX = startTimex;
   timelineState.endTime = endTime;
+  timelineState.endTimeDecimal = endTime;
   timelineState.endTimeX = endTimex;
   timeLineX.value = endSecondTimex;
-
-  for (let time = viewState.minTime; time <= viewState.maxTime; time += gridInterval) {
-    const x = fixedTimeToX(time) - layout.processLabelWidth;
+  const gridIntervalDecimal = new Decimal(gridInterval);
+  const minTime = new Decimal(viewState.minTime);
+  const maxTime = new Decimal(viewState.maxTime);
+  for (let time = minTime; time.lte(maxTime); time = time.plus(gridIntervalDecimal)) {
+    const x = fixedTimeToX(time, true) - layout.processLabelWidth;
     if (x >= 0 && x <= canvasWidth) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -551,7 +558,7 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange, time.minus(minTime));
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
@@ -601,8 +608,12 @@ const renderTimeline = () => {
   const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = timelineTimeRange / canvasWidth;
   const gridInterval = calculateGridInterval(timePerPixel);
-  for (let time = timelineState.startTime; time <= timelineState.endTime; time += gridInterval) {
-    x = timeToX(time) - layout.processLabelWidth;
+  const gridIntervalDecimal = new Decimal(gridInterval);
+  const startTime = new Decimal(timelineState.startTime);
+  const endTime = new Decimal(timelineState.endTime);
+  const minTime = new Decimal(viewState.minTime);
+  for (let time = startTime; time.lte(endTime); time = time.plus(gridIntervalDecimal)) {
+    x = timeToX(time, true) - layout.processLabelWidth;
     if (x < 0) {
       x = 0;
     }
@@ -612,13 +623,13 @@ const renderTimeline = () => {
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange, time.minus(minTime));
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       ctx.fillText(`${value}${unit}`, x + 2, 15);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
-      const timeValue = xToTimeValue(time);
+      const timeValue = xToTimeValue(time, true);
       ctx.fillText(`${timeValue}`, x + 2, 35);
     }
   }
@@ -629,8 +640,9 @@ const renderTimeline = () => {
   }
 };
 
-const xToTimeValue = (time) => {
-  const currentTime = Math.round((time - viewState.minTime) * 1000);
+const xToTimeValue = (time, isDecimal = false) => {
+  const timeDelta = isDecimal ? time.minus(new Decimal(viewState.minTime)) : (time - viewState.minTime);
+  const currentTime = Math.round(timeDelta * 1000);
   let truncatedCurrentTime = currentTime;
   if (currentTime.toString().length > 10) {
     truncatedCurrentTime = parseInt(currentTime.toString().slice(-9));
@@ -648,11 +660,11 @@ const durationToWidth = (duration) => {
   return normalizedDuration * canvasWidth * viewState.scale;
 };
 
-const fixedTimeToX = (time) => {
+const fixedTimeToX = (time, isDecimal = false) => {
   if (!timelineComponent.value.fixedtimelineCanvas) return 0;
 
   const canvasWidth = viewState.canvasCssWidth;
-  const relativeTime = time - viewState.minTime;
+  const relativeTime = isDecimal ? time.minus(new Decimal(viewState.minTime)) : (time - viewState.minTime);
   const normalizedTime = relativeTime / viewState.timeRange;
   return layout.processLabelWidth + (normalizedTime * canvasWidth);
 };
@@ -668,11 +680,11 @@ const xToFixedTime = (x) => {
 };
 
 
-const timeToX = (time) => {
+const timeToX = (time, isDecimal = false) => {
   if (!timelineComponent.value?.timelineCanvas) return 0;
 
   const canvasWidth = viewState.canvasCssWidth;
-  const relativeTime = time - viewState.minTime;
+  const relativeTime = isDecimal ? time.minus(new Decimal(viewState.minTime)) : (time - viewState.minTime);
   const normalizedTime = relativeTime / viewState.timeRange;
   return layout.processLabelWidth + (normalizedTime * canvasWidth * viewState.scale) + viewState.offsetX;
 };

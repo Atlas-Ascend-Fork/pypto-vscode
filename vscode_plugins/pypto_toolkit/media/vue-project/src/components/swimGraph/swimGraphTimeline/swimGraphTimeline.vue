@@ -81,8 +81,7 @@ let timelineInitX = 0;
 let timelineInitStartX = 0;
 let timelineInitEndX = 0
 let lastPostion = 0;
-let dragTimeout = null;
-
+let wheelDebounceTimer;
 const fixedtimelineCanvas = ref(null);
 const fixedtimelineCtx = ref(null);
 const timelineCanvas = ref(null);
@@ -292,6 +291,7 @@ const throttledRender = throttle(() => {
 }, 16); // 约60fps
 
 const handleWheel = (e) => {
+  clearTimeout(wheelDebounceTimer);
   const isZooming = e.ctrlKey;
 
   if (!timelineCanvas.value) return;
@@ -302,7 +302,18 @@ const handleWheel = (e) => {
   if (!isZooming) {
     return;
   }
-  
+  if(viewState.scale * 10 >= sliderMax.value && e.deltaY < 0) {
+    wheelDebounceTimer = setTimeout(() => {
+      postMessage($t("scaleMaxInfo"));
+    }, 100);
+    return;
+  }
+  if(viewState.scale === 1 && e.deltaY > 0) {
+    wheelDebounceTimer = setTimeout(() => {
+      postMessage($t("scaleMinInfo"));
+    }, 100);
+    return;
+  }
   const zoomFactor = e.deltaY >  0 ? 0.8 : 1.25;
   const oldScale = viewState.scale;
   const oldOffsetX = viewState.offsetX;
@@ -336,7 +347,11 @@ const handleWheel = (e) => {
 
   throttledRender();
 };
-
+const postMessage = (message) => {
+  if (window.vscode) {
+    window.vscode.postMessage({ command: 'showMessage' , paramObj: { text: message}});
+  }
+};
 const checkIfInInterval = (x) => {
   if(flags.value.length === 0) {
     return null;
