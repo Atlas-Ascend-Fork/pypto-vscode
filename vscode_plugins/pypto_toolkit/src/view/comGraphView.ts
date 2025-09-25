@@ -6,6 +6,7 @@ import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { createReadStream, existsSync, promises as fs } from 'fs';
 import { Util } from '../util';
 import { getIDETheme } from '../theme';
+import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
 const { fork } = require('child_process');
@@ -681,17 +682,18 @@ export class ComGraphView {
       .getText()
       .replace(/{{root}}/g, webviewText)
       .replace(/{{staticPath}}/g, `${webviewText}/webview-dist`)
-      .replace(/{{ascTheme}}/g, getIDETheme());
+      .replace(/{{ascTheme}}/g, getIDETheme())
+      .replace(/{{ascLang}}/g, getIDELang());
     this.panel.webview.html = new Util().replaceHtmlFromData(replaceParams, html);
     /* 本地调试方案 */
-    // this.panel.webview.html = this.getDebugHtml(getIDETheme());
+    // this.panel.webview.html = this.getDebugHtml(getIDETheme(), getIDELang());
   }
 
   public static revive(panel, fsPath: string, funcHash: string | undefined, magicName: string | undefined, curPath: string | undefined) {
     new ComGraphView(ViewColumn.One).createPanel(fsPath, funcHash, magicName, curPath, panel);
   }
 
-  getDebugHtml(theme: string) {
+  getDebugHtml(theme: string, lang: string) {
     return `
         <!DOCTYPE html>
         <html lang="en">
@@ -701,6 +703,7 @@ export class ComGraphView {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <script>
               window.ascTheme = '${theme}';
+              window.ascLang = '${lang}';
             </script>
             <script type="module" src="http://localhost:5173/src/main.ts"></script>
             <title>Vite App</title>

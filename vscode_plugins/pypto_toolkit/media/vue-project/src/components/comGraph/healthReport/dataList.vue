@@ -12,7 +12,11 @@
             <span>{{ row[col.field] ?? '-' }}</span>
             <d-tooltip
               v-if="row.detail && colIndex === columns.length - 1"
-              :content="row.isOpen ? t('comGraph.collapseChildNode') : t('comGraph.expandChildNode')"
+              :content="
+                row.isOpen
+                  ? t('comGraph.collapse') + TypeMap[row.type] + t('comGraph.list')
+                  : t('comGraph.expand') + TypeMap[row.type] + t('comGraph.list')
+              "
               position="top-end"
             >
               <ExpandIcon @click="() => (row.isOpen = !row.isOpen)" />
@@ -35,6 +39,11 @@ import ExpandIcon from './expand-icon.vue';
 defineProps(dataListProps);
 
 const { t } = useI18n();
+const TypeMap = {
+  op: 'Op',
+  tensor: 'Tensor',
+  subgraph: 'Subgraph',
+};
 
 const generateStyle = (col: ColumnItem) => {
   const base: Record<string, any> = {};

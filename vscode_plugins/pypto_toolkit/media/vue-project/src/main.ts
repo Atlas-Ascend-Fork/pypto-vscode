@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 
-import Message from 'vue-devui';
+import Message from 'vue-devui/message';
 import 'vue-devui/message/style.css';
 import Tooltip from 'vue-devui/tooltip';
 import 'vue-devui/tooltip/style.css';

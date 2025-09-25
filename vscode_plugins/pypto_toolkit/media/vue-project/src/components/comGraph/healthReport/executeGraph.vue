@@ -46,7 +46,7 @@ const maxSubgraphColumns = ref([
 const peakMemoryColumns = ref([
   { field: 'key', header: 'PeakMemoryUsage' },
   { field: 'value', header: 'value', width: 80 },
-  { field: 'opMagic', header: 'OpMagic', width: 80, align: ColumnAlign.Right },
+  { field: 'subgraphId', header: 'subgraphID', width: 80, align: ColumnAlign.Right },
 ]);
 const opColumns = ref([
   { field: 'key', header: `OP${t('comGraph.typeDistribution')}` },
@@ -104,7 +104,7 @@ watch(
       {
         key: 'PeakUsage',
         value: finalJsonData.value.peakMemoryUsage,
-        opMagic: formatData(finalJsonData.value.peakMemoryUsageSubgraphs),
+        subgraphId: formatData(finalJsonData.value.peakMemoryUsageSubgraphs),
         detail: finalJsonData.value.peakMemoryUsageSubgraphs,
         type: 'subgraph',
       },
@@ -119,10 +119,30 @@ watch(
       { key: 'invalid', value: finalJsonData.value.invalidSubgraphCount },
     ];
     instanceData.value = [
-      { key: '0', value: formatData(finalJsonData.value.instanceMapping[0]), detail: finalJsonData.value.instanceMapping[0] },
-      { key: '1', value: formatData(finalJsonData.value.instanceMapping[1]), detail: finalJsonData.value.instanceMapping[1] },
-      { key: '2', value: formatData(finalJsonData.value.instanceMapping[2]), detail: finalJsonData.value.instanceMapping[2] },
-      { key: '3', value: formatData(finalJsonData.value.instanceMapping[3]), detail: finalJsonData.value.instanceMapping[3] },
+      {
+        key: '0',
+        value: formatData(finalJsonData.value.instanceMapping[0]),
+        detail: finalJsonData.value.instanceMapping[0],
+        type: 'subgraph',
+      },
+      {
+        key: '1',
+        value: formatData(finalJsonData.value.instanceMapping[1]),
+        detail: finalJsonData.value.instanceMapping[1],
+        type: 'subgraph',
+      },
+      {
+        key: '2',
+        value: formatData(finalJsonData.value.instanceMapping[2]),
+        detail: finalJsonData.value.instanceMapping[2],
+        type: 'subgraph',
+      },
+      {
+        key: '3',
+        value: formatData(finalJsonData.value.instanceMapping[3]),
+        detail: finalJsonData.value.instanceMapping[3],
+        type: 'subgraph',
+      },
     ];
   },
   { immediate: true },
