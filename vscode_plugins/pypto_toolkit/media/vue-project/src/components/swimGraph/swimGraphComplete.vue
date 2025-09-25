@@ -76,7 +76,6 @@ import {
   getCanvasCSSHeight,
   getCanvasCSSWidth,
   COLOR_CFG,
-  DEP_MODE,
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -142,6 +141,10 @@ const viewState = reactive({
   canvasWidth: 0,
   windowWidth: 0,
   depMode: 'all',
+  scaleChange: 1,
+  pixelOffsetX: 0,
+  offsetXChange: 0,
+  minWidth: 1,
 });
 
 const layout = reactive({
@@ -368,6 +371,28 @@ const processTraceData = (data) => {
   });
 };
 
+const transform = () => {
+  renderTwoTimeline();
+  for (const [processKey, ctxInfo] of Object.entries(ctxs)) {
+    for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
+      ctx.save();
+      ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
+    }
+  }
+  // 渲染进程事件
+  for (const [processKey, process] of processes.entries()) {
+    if (processExpanded.get(processKey)) {
+      if (window.debug) console.time(`transform process ${process.processName}`);
+      childContextMap.threadEvent.transformEvents(process, processKey);
+      const ctx = ctxs[processKey].eventCtx;
+      childContextMap.threadEvent.renderProcessText(process, ctx);
+      if (window.debug) console.timeEnd(`transform process ${process.processName}`);
+    }
+  }
+  renderDependencyLines();
+  timelineComponent.value.flagRender();
+};
+
 const parseTime = (processedEvents) => {
   let minTime = processedEvents.value[0].startTime;
   let maxTime = 0;
@@ -393,6 +418,8 @@ const renderEvent = () => {
     if (processExpanded.get(processKey)) {
       if (window.debug) console.time(`render process ${process.processName}`);
       childContextMap.threadEvent.renderProcessEvents(process, processKey);
+      const ctx = ctxs[processKey].eventCtx;
+      childContextMap.threadEvent.renderProcessText(process, ctx);
       if (window.debug) console.timeEnd(`render process ${process.processName}`);
     }
   }
@@ -683,8 +710,17 @@ const toggleProcess = (processKey) => {
   process.expanded = true;
 
   nextTick(() => {
-    resizeCanvases();
-    render(); // 确保重新渲染
+    resizeCanvases(processKey, false);
+    childContextMap.threadEvent.renderProcessEvents(process, processKey);
+    const ctxInfo = ctxs[processKey];
+    if (!ctxInfo) return;
+    for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
+      ctx.save();
+      ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
+    }
+    const ctx = ctxInfo.eventCtx;
+    childContextMap.threadEvent.transformEvents(process, processKey);
+    childContextMap.threadEvent.renderProcessText(process, ctx);
   });
 };
 
@@ -799,7 +835,8 @@ const findEventAtPosition = (x, y, processKey) => {
     }
     thread.events.forEach((event, index) => {
       if (event.renderInfo) {
-        const { x: eventX, y: eventY, width: eventWidth, height: eventHeight } = event.renderInfo;
+        const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
+        const eventWidth = event.drawData.eventWidth;
         if (x >= eventX && x <= eventX + eventWidth &&
           y >= eventY && y <= eventY + eventHeight) {
             processObj.event = event;
@@ -986,29 +1023,32 @@ const onResize = throttle((event) => {
   const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
   const offsetX = (timelineState.startTime - viewState.minTime) / timelinePerPixel;
   viewState.offsetX = -offsetX;
-  render();
+  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
   viewState.windowWidth = window.innerWidth;
+  transform();
 }, 32);
 
-const resizeCanvases = () => {
+const resizeCanvases = (processKey, needResizeTimeline=true) => {
   if (!swimlaneContainer.value) return;
 
   const containerRect = swimlaneContainer.value.getBoundingClientRect();
 
   // 调整时间轴画布大小
-  if (timelineComponent.value) {
+  if (needResizeTimeline && timelineComponent.value) {
     timelineComponent.value.resizeCanvases();
   }
 
-  // 计算总高度
-  let totalHeight = 0;
+  if (processKey) {
+    const process = processes.get(processKey);
+    if (!process) return;
+    updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState);
+    return;
+  }
+
   for (const [processKey, process] of processes.entries()) {
-    totalHeight += layout.processHeaderHeight;
     if (processExpanded.get(processKey)) {
       updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState);
-      totalHeight += ctxs[processKey].eventCtx.canvas.height;
     }
-    totalHeight += layout.processMargin;
   }
 };
 
@@ -1417,6 +1457,7 @@ provide('swimGraphMethods', {
   renderDependencyLines,
   resizeMeasure,
   renderEvent,
+  transform,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
@@ -1424,7 +1465,7 @@ provide('swimGraphMethods', {
 });
 watch(isDarkTheme, () => {
   updateTheme();
-  render();
+  transform();
 });
 
 const updateTheme = () => {

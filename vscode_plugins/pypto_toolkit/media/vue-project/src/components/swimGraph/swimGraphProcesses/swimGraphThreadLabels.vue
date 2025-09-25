@@ -7,7 +7,7 @@
       <div 
         class="thread-label-item"
         :class="[{ 'has-threads-box': thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') }, activeThreadName === (thread.threadName) && 'active']"
-        :style="{ height: layout.threadHeight * (lane2line.get(processKey + '@' + thread.tid) || 1) + 'px' }"
+        :style="{ height: getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter) + 'px' }"
       >
         {{ thread.threadName }}
       </div>
@@ -26,6 +26,7 @@
 <script setup>
 import { computed, inject, ref } from 'vue';
 import { BigNumber } from 'bignumber.js';
+import { getThreadHeight } from '../swimGraphUtils';
 
 // 注入父组件提供的状态
 const {
