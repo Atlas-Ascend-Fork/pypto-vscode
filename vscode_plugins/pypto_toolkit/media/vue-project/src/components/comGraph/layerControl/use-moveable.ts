@@ -7,7 +7,7 @@ export function useMoveable(props: Record<string, any>) {
     left: '0px',
     top: '56px',
   });
-  const ModalWidth = 232;
+  let ModalWidth = 240;
   const OffsetRight = 96;
   let dragging = false;
   let topStart = 0;
@@ -53,6 +53,13 @@ export function useMoveable(props: Record<string, any>) {
     document.addEventListener('mousemove', onMousemove);
   };
 
+  function updatePosition() {
+    const left = Math.max(window.innerWidth - ModalWidth - OffsetRight, 0);
+    if (left < parseInt(styles.left)) {
+      styles.left = `${left}px`;
+    }
+  }
+
   watch(
     dragEl,
     () => {
@@ -68,13 +75,26 @@ export function useMoveable(props: Record<string, any>) {
     (val) => {
       if (val) {
         styles.left = `${window.innerWidth - ModalWidth - OffsetRight}px`;
-        styles.top = '56px'
+        styles.top = '56px';
       }
     },
   );
 
+  watch(
+    rootEl,
+    () => {
+      if (rootEl.value) {
+        ModalWidth = rootEl.value.offsetWidth;
+      }
+    },
+    { immediate: true },
+  );
+
+  window.addEventListener('resize', updatePosition);
+
   onBeforeUnmount(() => {
     dragEl.value?.removeEventListener('mousedown', onMousedown);
+    window.removeEventListener('resize', updatePosition);
   });
 
   return { dragEl, rootEl, styles };
