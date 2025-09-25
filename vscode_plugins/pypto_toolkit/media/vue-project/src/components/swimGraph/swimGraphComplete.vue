@@ -208,14 +208,7 @@ const handleMessage = (event) => {
         bindFile.value = message.comGraphPath;
         bindButton.value = $t("unbindComGraph");
       }
-      fetch(newMessage.data)
-      .then(r => r.json())
-      .then(json => {
-        loadTraceData(json);
-      })
-      .catch(error => {
-        window.ascEventBus.emit('jsonParseError', error.message);
-      });
+      loadTraceData(newMessage.data);
       break;
     case 'bindResult':
       if (message.success) {
@@ -321,9 +314,7 @@ const validData = (data) => {
 
 const loadTraceData = (data) => {
   try {
-    traceData.value = typeof data === 'string' ? JSON.parse(data) : data;
-    validData(traceData.value);
-    processTraceData();
+    processTraceData(data);
     loading.value = false;
   } catch (error) {
     console.error($t("loadTraceDataError"), error);
@@ -331,8 +322,25 @@ const loadTraceData = (data) => {
   }
 };
 
-const processTraceData = () => {
-  mkTraceData(processedEvents, processes, processExpanded, traceData, counterEvents, lane2line, isDarkTheme);
+const processTraceData = (data) => {
+  processedEvents.value = data.processedEvents;
+  for (const key in data.processes) {
+    if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
+      data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
+      processes.set(key, data.processes[key]);
+    }
+  }
+  for (const key in data.processExpanded) {
+    if (Object.prototype.hasOwnProperty.call(data.processExpanded, key)) {
+      processExpanded.set(key, data.processExpanded[key]);
+    }
+  }
+  counterEvents.value = data.counterEvents;
+  for (const key in data.lane2line) {
+    if (Object.prototype.hasOwnProperty.call(data.lane2line, key)) {
+      lane2line.set(key, data.lane2line[key]);
+    }
+  }
   if (processedEvents.value.length > 0) {
     const ret = parseTime(processedEvents);
     viewState.minTime = ret.minTime;
@@ -1298,7 +1306,12 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 // 生命周期钩子
 onMounted(() => {
   initEventListeners();
-  postMessage({ command: 'getSwimData' });
+  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+  if (oldMessage && oldMessage.message.data) {
+    loadTraceData(oldMessage.message.data);
+  } else {
+    postMessage({ command: 'getSwimData' });
+  }
 });
 
 provide('swimGraphContext', { addChildContext });

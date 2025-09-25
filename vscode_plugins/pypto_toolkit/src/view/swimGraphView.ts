@@ -1,10 +1,15 @@
 import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vscode';
-import { dirname, join, extname } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { Util } from '../util';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { dirname, join, extname, resolve } from 'path';
+import { createReadStream, existsSync, readFileSync, readdirSync} from 'fs';
 import { t } from 'i18next';
 import { getIDETheme } from '../theme';
+import { parser } from 'stream-json';
+import Chain from 'stream-chain'
+import StreamArray from 'stream-json/streamers/StreamArray';
+import Filter from 'stream-json/filters/Filter';
+import { parsePmuInfo, parseSwimLaneInfo } from '../process';
 
 class SwimData {
 
@@ -32,6 +37,37 @@ class MsgHandler {
     });
   }
 
+  static getSwimLaneFile(fsPath: string): Promise<Object> {
+    console.log('swimLanePath', fsPath);
+    const streamArray = new StreamArray();
+
+    const streamChain = new Chain([
+      createReadStream(fsPath),
+      parser(),
+      new Filter({
+        filter: (token: any) => {
+          return token.path?.[0] == 'traceEvents';
+        }
+      }),
+      streamArray
+    ]);
+
+    const result: { traceEvents: any[] } = { traceEvents: []};
+    return new Promise( (resolve) => {
+      streamChain
+        .on('data', (ele: any) => {
+          result.traceEvents.push(ele.value);
+        })
+        .on('end', () => {
+          resolve(result);
+          console.log('readFileAndSetCache 文件读取&缓存完毕');
+        })
+        .on('error', (err: any) => {
+          console.error('Error parsing stream:', err);
+        });
+    });
+  }
+
   // 获取json信息和绑定的计算图文件路径
   static getSwimData(panel: any) {
     const swimUri = panel.swimData.uri;
@@ -40,13 +76,46 @@ class MsgHandler {
     const cache = Util.readSwim2ComGraphMap(MsgHandler.cachePath);
     const comGraphPath = cache[swimPath];
     const config = Util.getSwimGraphCustomCfg();
+
+    const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
+    let pmuData = '';
+    try {
+      pmuData = readFileSync(pmuPath, 'utf8');
+      console.log('读取pmu文件');
+
+    } catch (err) {
+      console.error('读取pmu文件时发生错误:', err);
+    }
+    let pmuInfo = {};
+    if (pmuData != '') {
+      pmuInfo = parsePmuInfo(pmuData);
+    }
+
+    let swimStr = '';
+    try {
+      swimStr = readFileSync(swimPath, 'utf8');
+      console.log('读取merged_swimlane.json文件');
+
+    } catch (err) {
+      console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+    }
+    const swimDataObj = JSON.parse(swimStr);
+    const swimData: any = parseSwimLaneInfo(swimDataObj, pmuInfo);
+    swimData.lane2line = Object.fromEntries(swimData.lane2line);
+    swimData.processes = Object.fromEntries(swimData.processes);
+    swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
+
+    for (const key in swimData.processes) {
+      swimData.processes[key].threads = Object.fromEntries(swimData.processes[key].threads);
+    }
     panel.webview.postMessage({
       command: 'returnSwimData',
-      data: swimUri,
+      data: swimData,
       configration: config,
       comGraphPath,
       swimPath,
     });
+    console.log('returnSwimData message send');
   }
 
   // 绑定计算图文件
