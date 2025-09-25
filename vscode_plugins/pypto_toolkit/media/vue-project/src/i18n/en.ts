@@ -56,6 +56,11 @@ export default {
     'editLabel': 'custom tags',
     'editInput': 'Enter 0 to 16 characters',
     'connectionLevel': 'configuration the max connection level on the swimlane(-1: disabled)',
+    'timeCir': 'clock cycle',
+    'throughout': 'throughout',
+    'cacheHit': 'cache hit ratio',
+    'task': 'task',
+    'ddTooltip': 'other measurement dimensions are being developed.',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

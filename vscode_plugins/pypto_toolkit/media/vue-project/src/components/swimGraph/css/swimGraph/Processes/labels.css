@@ -36,7 +36,7 @@
   align-items: center;
   backdrop-filter: blur(10px);
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--devui-nest-bg);
   border-radius: 4px;
   color: var(--devui-thread-text);
   font-size: 12px;
@@ -48,29 +48,12 @@
   position: relative;
 }
 
-.threads-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 50%;
-  height: 100%;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent,
-    transparent 1px,
-    rgba(255, 255, 255, 0.1) 4px
-  );
-  z-index: 0;
-}
-
 .threads-fill {
   position: absolute;
   left: 0;
-  width: 50%;
   height: 100%;
   backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--devui-timebar-bg);
   z-index: 1;
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
@@ -85,10 +68,6 @@
 .threads-text {
   position: relative;
   z-index: 2;
-}
-
-.threads-fill:hover {
-  background: #762e27;
 }
 
 .threads-fill:hover + .thread-text {

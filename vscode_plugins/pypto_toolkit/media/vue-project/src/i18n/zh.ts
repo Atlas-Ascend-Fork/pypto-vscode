@@ -56,6 +56,11 @@ export default {
    'editLabel': '自定义标签',
    'editInput': '请输入0-16位字符',
    'connectionLevel': '配置泳道图最大显示层级(-1: 表示不使能)',
+   'timeCir': '时钟周期',
+   'throughout': '吞吐量',
+   'cacheHit': '缓存命中率',
+   'task': '任务',
+   'ddTooltip': '其余度量维度开发中，敬请期待',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

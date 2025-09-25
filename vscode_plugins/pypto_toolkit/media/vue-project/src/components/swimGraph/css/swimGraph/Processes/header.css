@@ -28,6 +28,10 @@
   margin-left: 4px;
 }
 
+.process-header-label span:nth-child(3){
+  margin-left: 40px;
+}
+
 .process-header-line {
   flex: 1;
   background: var(--devui-header-label);
@@ -74,4 +78,18 @@
   height: 100%;
   pointer-events: none;
   background: transparent;
+}
+
+.expand-icon-mode {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.dropdownSelect {
+  position: absolute;
+  z-index: 1000;
+  top: 40px;
+  left: 180px;
 }
