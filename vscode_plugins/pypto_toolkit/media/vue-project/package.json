@@ -15,6 +15,7 @@
     "@material/material-color-utilities": "^0.3.0",
     "devui-theme": "^0.1.0",
     "elkjs": "^0.8.2",
+    "bignumber.js": "9.3.1",
     "monaco-editor": "^0.52.2",
     "sprotty": "^1.4.0",
     "sprotty-elk": "^1.4.0",
