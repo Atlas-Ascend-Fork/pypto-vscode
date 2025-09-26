@@ -26,3 +26,123 @@ export function getTextWidth(text: string, fontSize = 12) {
   }
   return width;
 }
+
+/* diff双图场景，返回当前操作的区域，after/before */
+export function getCurrentArea(e: MouseEvent) {
+  const composedPath = e.composedPath() as HTMLElement[];
+  let moveArea = '';
+  composedPath.forEach((item) => {
+    if (item.id === 'sprotty-after') {
+      moveArea = 'after';
+    }
+    if (item.id === 'sprotty-before') {
+      moveArea = 'before';
+    }
+  });
+  return moveArea;
+}
+
+// diff双图数据对比
+export function compareJsonData(beforeData: Object, currentData: Object) {
+  const BeforeOpMagicMap: Record<number, string> = {};
+  const BeforeTensorMagicMap: Record<number, string> = {};
+  const CurrentOpMagicMap: Record<number, string> = {};
+  const CurrentTensorMagicMap: Record<number, string> = {};
+  const originBefore = {
+    tensors:
+      beforeData.tensors?.map((t: any) => {
+        const subgraphId = t.subgraphid !== undefined ? t.subgraphid : -1;
+        BeforeTensorMagicMap[t.magic] = `tensor-${t.magic}-${subgraphId}`;
+        return { ...t };
+      }) ?? [],
+    operations:
+      beforeData.operations?.map((op: any, i: number) => {
+        const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
+        BeforeOpMagicMap[op.opmagic] = `operation-${i}-magic-${op.opmagic}-${subgraphId}`;
+        return { ...op };
+      }) ?? [],
+  };
+  const originCurrent = {
+    tensors:
+      currentData.tensors?.map((t: any) => {
+        const subgraphId = t.subgraphid !== undefined ? t.subgraphid : -1;
+        CurrentTensorMagicMap[t.magic] = `tensor-${t.magic}-${subgraphId}`;
+        return { ...t };
+      }) ?? [],
+    operations:
+      currentData.operations?.map((op: any, i: number) => {
+        const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
+        CurrentOpMagicMap[op.opmagic] = `operation-${i}-magic-${op.opmagic}-${subgraphId}`;
+        return { ...op };
+      }) ?? [],
+  };
+  let diffList: Record<string, any>[] = [];
+  const curTensorMap = new Map(currentData.tensors?.map((t) => [t.magic, t]) ?? []);
+  const curOpMap = new Map(currentData.operations?.map((op) => [op.opmagic, op]) ?? []);
+  const beforeTensorMap = new Map(beforeData.tensors?.map((t) => [t.magic, t]) ?? []);
+  const beforeOpMap = new Map(beforeData.operations?.map((op) => [op.opmagic, op]) ?? []);
+  for (const ct of curTensorMap.values()) {
+    const bt = beforeTensorMap.get(ct.magic);
+    if (!bt) {
+      ct.compareType = 'add';
+      diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
+    } else if (JSON.stringify(ct.offset) !== JSON.stringify(bt.offset) || JSON.stringify(ct.shape) !== JSON.stringify(bt.shape)) {
+      ct.compareType = 'change';
+      bt.compareType = 'change';
+      diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
+    } else {
+      ct.compareType = 'normal';
+      bt.compareType = 'normal';
+    }
+  }
+
+  for (const bt of beforeTensorMap.values()) {
+    const ct = curTensorMap.get(bt.magic);
+    if (!ct) {
+      bt.compareType = 'delete';
+      diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, nodeId: BeforeTensorMagicMap[bt.magic] });
+    }
+  }
+
+  for (const cop of curOpMap.values()) {
+    const bop = beforeOpMap.get(cop.opmagic);
+    if (!bop) {
+      cop.compareType = 'add';
+      diffList.push({ changeType: 'add', nodeType: 'op', magic: cop.opmagic, nodeId: CurrentOpMagicMap[cop.opmagic] });
+    } else if (cop.opcode != bop.opcode) {
+      cop.compareType = 'change';
+      bop.compareType = 'change';
+      diffList.push({ changeType: 'change', nodeType: 'op', magic: cop.opmagic, nodeId: CurrentOpMagicMap[cop.opmagic] });
+    } else {
+      cop.compareType = 'normal';
+      bop.compareType = 'normal';
+    }
+  }
+
+  for (const bop of beforeOpMap.values()) {
+    const cop = curOpMap.get(bop.opmagic);
+    if (!cop) {
+      bop.compareType = 'delete';
+      diffList.push({ changeType: 'delete', nodeType: 'op', magic: bop.opmagic, nodeId: BeforeOpMagicMap[bop.opmagic] });
+    }
+  }
+  let changeRate = diffList.length / (curOpMap.size + curTensorMap.size);
+  if (changeRate > 0.5) {
+    beforeData.tensors = originBefore.tensors;
+    beforeData.operations = originBefore.operations;
+    currentData.tensors = originCurrent.tensors;
+    currentData.operations = originCurrent.operations;
+    diffList = [];
+    (window as any).ascEventBus.emit('message_notice', 'compareLargerTips');
+    return { diffList, showDiffList: false };
+  }
+  if (diffList.length === 0) {
+    (window as any).ascEventBus.emit('message_notice', 'noCompareTips');
+  }
+  return { diffList, showDiffList: true };
+}
+
+// 判断是否是node节点
+export function isNode(element): boolean {
+  return element.type.includes('node');
+}

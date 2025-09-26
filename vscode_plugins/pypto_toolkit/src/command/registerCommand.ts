@@ -1,6 +1,7 @@
 import { ExtensionContext, Uri, ViewColumn, commands, window } from 'vscode';
 import { t as _ } from 'i18next';
 import { ComGraphView } from '../view/comGraphView';
+import { DiffComGraphView } from '../view/diffComGraphView';
 import { SwimGraphView } from '../view/swimGraphView';
 const fs = require('fs');
 const readline = require('readline');
@@ -67,6 +68,22 @@ export class RegisterCommand {
       commands.registerCommand('PyPTO.OpenComGraphByFunchash', (uri: Uri | undefined, funcHash: string) => {
         if (uri) {
           new ComGraphView(ViewColumn.One).createPanel(uri.fsPath, funcHash, 'swimGraphJump', undefined);
+        }
+      }),
+      commands.registerCommand('PyPTO.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
+        if (!uri && window.activeTextEditor) {
+          uri = window.activeTextEditor.document.uri;
+        }
+
+        if (uri) {
+          this.readFirstNLines(uri.fsPath, 10).then((content: any) => {
+            const allContent = content.join('');
+            if (allContent.includes('entryhash')) {
+              new DiffComGraphView(ViewColumn.One).createPanel(uri.fsPath, undefined);
+            } else {
+              window.showInformationMessage(_('pypto.cannotRender'));
+            }
+          })
         }
       }),
     ]

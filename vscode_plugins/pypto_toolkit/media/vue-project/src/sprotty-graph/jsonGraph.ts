@@ -630,6 +630,7 @@ export class AscppDagBuilder {
                 const tensorNode: AstgrTensorNode = {
                     type: 'node:tensor',
                     role: 'tensor',
+                    compareType: tensor.compareType,
                     id: nodeId,
                     magic: `${tensor.magic}`,
                     subgraphId: graphId,
@@ -789,6 +790,7 @@ export class AscppDagBuilder {
             const node: AstgrTensorNode = {
                 type: 'node:tensor',
                 id: nodeId,
+                compareType: tensor.compareType,
                 magic: `${tensorMagic}`,
                 role: 'input',
                 layout: 'vbox',
@@ -1236,6 +1238,7 @@ export class AscppDagBuilder {
             const node: AstgrTensorNode = {
                 type: 'node:tensor',
                 id: nodeId,
+                compareType: tensor.compareType,
                 magic: `${tensorMagic}`,
                 role: 'output',
                 layout: 'vbox',
@@ -1860,6 +1863,7 @@ export class AscppDagBuilder {
             id: opId,
             magic: opmagic,
             hasAttr: hasAttrValue,
+            compareType: op.compareType,
             baseColor: baseColor,
             lightColor: lightColor,
             codePath: codePath,

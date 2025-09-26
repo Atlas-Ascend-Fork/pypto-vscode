@@ -2,7 +2,8 @@
 import { onMounted, ref } from 'vue';
 import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
-import ErrorView from './components/comGraph/error.vue'
+import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
+import ErrorView from './components/comGraph/error.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 
@@ -10,12 +11,13 @@ const graphType = ref('');
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
+const diffInfo = ref({});
 const { updateTheme } = useTheme();
 
 const errorListener = (args) => {
   graphType.value = 'returnError';
   errorMessage.value = args;
-}
+};
 
 (window as any).ascEventBus.on('jsonParseError', errorListener);
 
@@ -28,13 +30,13 @@ const returnInitData = (message) => {
   vscode.setState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
-    magicName: message.magicName
-  })
+    magicName: message.magicName,
+  });
 };
 
 const readJsonWarning = (message) => {
   loadingStep.value = message.command;
-}
+};
 
 const returnSwim = (message) => {
   graphType.value = 'returnSwim';
@@ -62,7 +64,18 @@ const initComGraph = (message) => {
   graphType.value = 'returnCom';
   loadingStep.value = message.step;
   dealConfig(message.configration);
-}
+};
+
+const initDiffComGraph = (message) => {
+  comGraphStore.setData('isDiffGraph', true);
+  graphType.value = 'returnDiffCom';
+  loadingStep.value = message.step;
+};
+
+const returnDiffCom = (message) => {
+  diffInfo.value = message.diffInfo;
+  loadingStep.value = message.step;
+};
 
 const CommandCallbackMap = {
   returnCom,
@@ -73,28 +86,30 @@ const CommandCallbackMap = {
   initComGraph,
   returnError,
   returnInitData,
-  readJsonWarning
+  readJsonWarning,
+  initDiffComGraph,
+  returnDiffCom,
 };
 
-function dealConfig(config){
-  if(!config) {
+function dealConfig(config) {
+  if (!config) {
     return;
   }
 
   if (config.tensorAttr) {
-    comGraphStore.setData('tensorAttrFunc', eval(config.tensorAttr))
+    comGraphStore.setData('tensorAttrFunc', eval(config.tensorAttr));
   }
 
   if (config.tensorColor) {
-    comGraphStore.setData('tensorColorFunc', eval(config.tensorColor))
+    comGraphStore.setData('tensorColorFunc', eval(config.tensorColor));
   }
 
   if (config.operationAttr) {
-    comGraphStore.setData('operationAttrFunc', eval(config.operationAttr))
+    comGraphStore.setData('operationAttrFunc', eval(config.operationAttr));
   }
 
   if (config.operationColor) {
-    comGraphStore.setData('operationColorFunc', eval(config.operationColor))
+    comGraphStore.setData('operationColorFunc', eval(config.operationColor));
   }
 }
 
@@ -114,7 +129,15 @@ onMounted(() => {
   <header>
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
     <SwimGraph v-if="graphType === 'returnSwim'" />
-    <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage"  />
+    <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
+    <DiffComGraph
+      v-if="graphType === 'returnDiffCom'"
+      :afterJson="diffInfo.afterJson"
+      :afterFileName="diffInfo.afterFileName"
+      :beforeJson="diffInfo.beforeJson"
+      :beforeFileName="diffInfo.beforeFileName"
+      :loadingStep="loadingStep"
+    />
   </header>
 </template>
 

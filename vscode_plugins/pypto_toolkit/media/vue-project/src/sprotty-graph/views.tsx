@@ -653,6 +653,7 @@ export class AstgrOpView extends RectangularNodeView {
         class-op-not-traced={shouldDim}
         class-mouseover={node.hoverFeedback}
         class-call-operation={isCallOperation}
+        class-op-diff-normal={node.compareType === 'normal'}
         style={isCallOperation ? { cursor: 'pointer' } : undefined}
         on-dblclick={isCallOperation ? handleDoubleClick : undefined}
       >
@@ -665,6 +666,9 @@ export class AstgrOpView extends RectangularNodeView {
           height={rectHeight}
           fill={backgroundFillColor}
           filter={backgroundFilter}
+          class-op-diff-add={node.compareType === 'add'}
+          class-op-diff-delete={node.compareType === 'delete'}
+          class-op-diff-change={node.compareType === 'change'}
           // {...(fillColor && { fill: backgroundFillColor })} // Only set fill attribute when we have a color
         ></rect>
         {opSign}
@@ -836,6 +840,10 @@ export class AstgrTensorView extends RectangularNodeView {
             ry="8"
             fill={inoutBackgroundFillColor}
             filter={backgroundFilter}
+            data-type={node.compareType}
+            class-tensor-diff-add={node.compareType === 'add'}
+            class-tensor-diff-delete={node.compareType === 'delete'}
+            class-tensor-diff-change={node.compareType === 'change'}
           ></rect>
           <path
             d={`M ${blueBgRectPaddingLeft} ${blurBgRectHeight} L ${blueBgRectPaddingLeft} ${
@@ -875,6 +883,9 @@ export class AstgrTensorView extends RectangularNodeView {
             fill={inoutBackgroundFillColor}
             class-tensor-inout-background-label={true}
             filter={backgroundFilter}
+            class-tensor-diff-add={node.compareType === 'add'}
+            class-tensor-diff-delete={node.compareType === 'delete'}
+            class-tensor-diff-change={node.compareType === 'change'}
           ></path>
           <path
             d={`M ${selectedWaveMargin} ${height} L ${selectedWaveMargin} ${height + waveOffset1} Q ${width / 4} ${height + waveOffset1 * 4} ${width / 2} ${
@@ -901,7 +912,13 @@ export class AstgrTensorView extends RectangularNodeView {
     }
 
     return (
-      <g class-op-incoming={incoming} class-op-outgoing={outgoing} class-op-not-traced={shouldDim} class-mouseover={node.hoverFeedback}>
+      <g
+        class-op-incoming={incoming}
+        class-op-outgoing={outgoing}
+        class-op-not-traced={shouldDim}
+        class-mouseover={node.hoverFeedback}
+        class-tensor-diff-normal={node.compareType === 'normal'}
+      >
         {rectNode}
         {context.renderChildren(node, args)}
         <g transform={`translate(${node.size.width - badgeWidth}, 0)`}>
@@ -1050,11 +1067,11 @@ export class InputOutputNodeView extends ShapeView {
 
 function generateRoundedPathWithArc(points, radius = 10) {
   if (points.length < 2) return "";
-
-  const direction = comGraphStore.data.layoutDirection;
-  const xDelta = direction === 'RIGHT' ? 3 : 0;
-  const yDelta = direction === 'RIGHT' ? 0 : 3;
   
+  const direction = comGraphStore.data.layoutDirection;
+  const xDelta = direction === 'RIGHT' ? 3: 0;
+  const yDelta = direction === 'RIGHT' ? 0 : 3;
+
   let path = `M ${points[0].x - xDelta} ${points[0].y - yDelta}`;
   
   for (let i = 0; i < points.length - 1; i++) {
@@ -1063,8 +1080,8 @@ function generateRoundedPathWithArc(points, radius = 10) {
       
       // 如果是最后一个线段或者是直线段，直接连接
       if (i === points.length - 2) {
-          path += ` L ${next.x + xDelta} ${next.y + yDelta}`;
-      } else { 
+        path += ` L ${next.x + xDelta} ${next.y + yDelta}`;
+      } else {
           const afterNext = points[i + 2];
           
           // 计算圆角
@@ -1188,6 +1205,7 @@ export class AstgrEdge extends PolylineEdgeView {
     const traceResult = isEdgeTraced(edge.id, trace);
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
+
     let path = generateRoundedPathWithArc(segments, 30);
 
     let isParent = false;

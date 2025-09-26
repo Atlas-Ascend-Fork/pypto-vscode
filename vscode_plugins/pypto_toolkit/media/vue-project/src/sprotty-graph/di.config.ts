@@ -48,6 +48,7 @@ import {
 import { AstgrNode, AstgrPort } from "./jsonGraph";
 import { AstgrContextMenuItemProvider, AstgrContextMenuService } from "./menu";
 import { comGraphStore } from '../service/com-graph-store';
+import { getCurrentArea, isNode } from '../utils/index';
 @injectable()
 class CustomElkLayoutEngine extends ElkLayoutEngine {
   constructor(elkFactory: ElkFactory,
@@ -75,7 +76,7 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     });
     return new Promise((resolve, reject) => {
       window.addEventListener('message', (event) => {
-        if (event.data.type === 'postLayoutResult') {
+        if (event.data.type === 'postLayoutResult' && (!event.data.filePath || event.data.filePath === elkGraph.layoutOptions['devkit.filePath'])) {
           resolve(event.data.data)
         }
       });
@@ -214,6 +215,7 @@ export function createDiContainer(sprottyContainerId: string) {
 export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
   private layoutDirection: 'RIGHT' | 'DOWN' = 'RIGHT';
   private showTensor = 'true';
+  private filePath = '';
 
   setLayoutDirection(direction: 'RIGHT' | 'DOWN') {
     this.layoutDirection = direction;
@@ -227,27 +229,33 @@ export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
     this.showTensor = show ? 'true' : 'false';
   }
 
+  setFilePath(path: string) {
+    this.filePath = path;
+  }
+
   protected override graphOptions(
     sgraph: SGraph,
     _index: SModelIndex
   ): LayoutOptions {
     // Count nodes for performance optimization
     const nodeCount = sgraph.children?.filter(child => child.type.includes('node')).length || 0;    
-    return {
-      "org.eclipse.elk.algorithm": "org.eclipse.elk.layered",
-      //"org.eclipse.elk.layered.crossingMinimization.semiInteractive": "true",
+      return {
+        "org.eclipse.elk.algorithm": "org.eclipse.elk.layered",
+        //"org.eclipse.elk.layered.crossingMinimization.semiInteractive": "true",
       "org.eclipse.elk.layered.nodePlacement.strategy": nodeCount > 10000 ? "BRANDES_KOEPF" : "LINEAR_SEGMENTS",
-      "elk.direction": this.layoutDirection,
-      //"org.eclipse.elk.spacing.nodeNode": "30.0", // Reduced from 40.0 for tighter layout
-      //"org.eclipse.elk.spacing.nodeNodeBetweenLayers": "25.0", // Reduced layer spacing
-      "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "40.0", // Also set layered-specific spacing
-      "devkit.showTensor": this.showTensor
-      //"org.eclipse.elk.spacing.labelNode": "5.0",
-      //"org.eclipse.elk.spacing.labelLabel": "2.0",
-      //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",
-      //"elk.nodeSize.minimum": "(70,45)", // Reduced for more compact labels
-      //"elk.nodeSize.constraints": "NODE_LABELS MINIMUM_SIZE",
-    };
+        "elk.direction": this.layoutDirection,
+        //"org.eclipse.elk.spacing.nodeNode": "30.0", // Reduced from 40.0 for tighter layout
+        //"org.eclipse.elk.spacing.nodeNodeBetweenLayers": "25.0", // Reduced layer spacing
+        "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "40.0", // Also set layered-specific spacing
+        "devkit.showTensor": this.showTensor,
+        "devkit.filePath": this.filePath,
+        //"org.eclipse.elk.spacing.labelNode": "5.0",
+        //"org.eclipse.elk.spacing.labelLabel": "2.0",
+        //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",
+        //"elk.nodeSize.minimum": "(70,45)", // Reduced for more compact labels
+        //"elk.nodeSize.constraints": "NODE_LABELS MINIMUM_SIZE",
+      };
+    
   }
 
 protected override nodeOptions(
@@ -365,39 +373,63 @@ export class TrackSelectedUpdateModelCommand extends UpdateModelCommand {
   }
 }
 
+let mouseDownTimer: ReturnType<typeof setTimeout>;
+let mouseUpTimer: ReturnType<typeof setTimeout>;
 @injectable()
 export class CustomMouseListener extends MouseListener {
   mouseDown(target: SModelElement, event: MouseEvent): Action[] {
-    console.log('Mouse down on:', target.id, event.clientY);
+    const moveArea = getCurrentArea(event);
+    if (target.id !== 'root') {
+      mouseDownTimer = setTimeout(() => {
+        const node = findParentByFeature(target, e => e.selected === true);
+        (window as any).ascEventBus.emit('selected_node_change', [node, moveArea]);
+        clearTimeout(mouseDownTimer);
+      });
+    }
     (window as any).ascEventBus.emit('view_mousedown', "current not")
     return []; // 可返回要派发的操作
   }
 
   mouseOver(target: SModelElement, event: MouseEvent): Action[] {
-    console.log('hover')
+    (window as any).ascEventBus.emit('view_mouseover');
     return [];
   }
 
   mouseMove(target: SModelElement, event: MouseEvent): Action[] {
+    const moveArea = getCurrentArea(event);
     if (target.id == 'root') {
-      (window as any).ascEventBus.emit('view_mousemove', [target.scroll.x, target.scroll.y]);
+      (window as any).ascEventBus.emit('view_mousemove', [target.scroll.x, target.scroll.y, moveArea]);
     } else {
       const root = findParentByFeature(target, e => e.id === 'root');
       if (root) {
-        (window as any).ascEventBus.emit('view_mousemove', [root.scroll.x, root.scroll.y]);
+        (window as any).ascEventBus.emit('view_mousemove', [root.scroll.x, root.scroll.y, moveArea]);
       }
     }
     return [];
   }
 
   mouseUp(target: SModelElement, event: MouseEvent): Action[] {
-    console.log('mouse up');
+    const moveArea = getCurrentArea(event);
+    let root;
+    if (target.id === 'root') {
+      mouseUpTimer = setTimeout(() => {
+        const selectedNodes = target.children?.filter((e) => isNode(e as any) && (e as any).selected).map((e) => e.id);
+        if (!selectedNodes?.length) {
+          (window as any).ascEventBus.emit('selected_node_change', [null, moveArea]);
+        }
+        clearTimeout(mouseUpTimer);
+      });
+      root = target;
+    } else {
+      root = findParentByFeature(target, e => e.id === 'root');
+    }
     (window as any).ascEventBus.emit('view_mouseup', target);
     return [];
   }
 
   mouseLeave(target: SModelElement, event: MouseEvent): Action[] {
-    console.log('mouse levae')
+    const moveArea = getCurrentArea(event);
+    (window as any).ascEventBus.emit('view_mouseleave', [target.root.scroll.x, target.root.scroll.y, moveArea]);
     return [];
   }
 
@@ -433,8 +465,9 @@ export class CustomMouseListener extends MouseListener {
   }
 
   wheel(target: SModelElementImpl, event: WheelEvent): Action[] {
+    const moveArea = getCurrentArea(event);
     setTimeout(() => {
-      (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false]);
+      (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false, moveArea]);
     }, 0);
     return []
   }

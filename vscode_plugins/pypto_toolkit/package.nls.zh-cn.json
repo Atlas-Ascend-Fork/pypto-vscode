@@ -1,5 +1,6 @@
 {
   "pypto.OpenRenderGraphForCurrent": "使用PyPTO Toolkit打开",
+  "pypto.OpenDiffComGraphForCurrent": "使用PyPTO Toolkit打开计算图差异对比",
   "PyPTOToolkit.tensorAttr.description": "从 JSON 中获取 tensor 节点展示字段的 JS 代码。示例：(tensor) => [`magic: ${tensor.magic}`, `shape: ${JSON.stringify(tensor.shape)}`]",
   "PyPTOToolkit.operationAttr.description": "从 JSON 中获取 operation 节点展示字段的 JS 代码。示例：(operation) => [`opcode: ${operation.opcode}`]",
   "PyPTOToolkit.tensorColor.description": "从 JSON 中获取 tensor 节点颜色的 JS 代码。示例：(tensor) => { return '#f50' }",

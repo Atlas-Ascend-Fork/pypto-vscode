@@ -421,6 +421,26 @@ circle {
   opacity: 1;
 }
 
+.op-diff-add,
+.tensor-diff-add {
+  stroke: var(--devui-status-success-text) !important;
+  stroke-width: 2px;
+}
+.op-diff-delete,
+.tensor-diff-delete {
+  stroke: var(--devui-status-error-text) !important;
+  stroke-width: 2px;
+}
+.op-diff-change,
+.tensor-diff-change {
+  stroke: var(--devui-status-warning-text) !important;
+  stroke-width: 2px;
+}
+.op-diff-normal,
+.tensor-diff-normal {
+  opacity: 0.5;
+}
+
 
 /* 右键菜单样式 */
 /* 整个菜单 */

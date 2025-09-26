@@ -61,6 +61,9 @@ export default {
     'cacheHit': 'cache hit ratio',
     'task': 'task',
     'ddTooltip': 'other measurement dimensions are being developed.',
+    diffList: 'Differences List',
+    noCompareTips: 'There is no difference between the two graphs',
+    compareLargerTips: 'The current difference between the two graphs exceeds 50%, so the comparison of differences will no longer be displayed',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

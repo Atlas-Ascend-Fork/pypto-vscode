@@ -61,6 +61,9 @@ export default {
    'cacheHit': '缓存命中率',
    'task': '任务',
    'ddTooltip': '其余度量维度开发中，敬请期待',
+   diffList: '差异列表',
+   noCompareTips: '当前两个图无差异',
+   compareLargerTips: '当前两个图的差异超过50%，不再显示差异对比',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

@@ -26,12 +26,22 @@
         "command": "PyPTO.deletePersistFile",
         "title": "Delete Cache DB File",
         "category": "PyPTO.comGraph"
+      },
+      {
+        "category": "PyPTO.renderDiffComGraph",
+        "command": "PyPTO.OpenDiffComGraphForCurrent",
+        "title": "%pypto.OpenDiffComGraphForCurrent%"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "PyPTO.OpenRenderGraphForCurrent",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        },
+        {
+          "command": "PyPTO.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
           "group": "navigation"
         }

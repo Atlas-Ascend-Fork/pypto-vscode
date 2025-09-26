@@ -29,6 +29,8 @@ import Badge from 'vue-devui/badge';
 import 'vue-devui/badge/style.css';
 import Select from 'vue-devui/select';
 import 'vue-devui/select/style.css';
+import Checkbox from 'vue-devui/checkbox';
+import 'vue-devui/checkbox/style.css';
 import i18n from './i18n';
 import EventBus from './service/event-bus';
 import './style.scss';
@@ -73,5 +75,6 @@ createApp(App)
   .use(Button)
   .use(Badge)
   .use(Message)
+  .use(Checkbox)
   .use(i18n)
   .mount('#app');
