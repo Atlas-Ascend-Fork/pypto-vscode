@@ -5,8 +5,7 @@
 1. 安装外层依赖： `npm install vite -g && npm install`;
 2. 安装vue-project依赖： `cd media/vue-project && npm install`;
 3. 进入comGraphView.js和swimGraphView.js文件，解开本地调试方案的注释；
-4. 启动vue项目：在根目录执行 `npm run dev:webview`；
-5. 按F5启动调试；
+4. 按F5启动调试；
 
 ## 项目结构
 
