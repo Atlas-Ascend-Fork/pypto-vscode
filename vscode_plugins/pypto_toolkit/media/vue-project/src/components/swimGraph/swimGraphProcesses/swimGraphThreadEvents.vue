@@ -431,9 +431,8 @@ const handleMouseMove = throttle((e) => {
 
   if (!e.altKey) {
     onHoverEvent(hoveredEvent);
+    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
   }
-
-  maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
 
   let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
 
