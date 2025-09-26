@@ -209,7 +209,6 @@ const handleMessage = (event) => {
       vscode.setState({ message: message });
       userConfig.value = message.configration;
       detailComponent.value.refLabel = userConfig.value.connectionLevel;
-      loading.value = true;
       if (message.comGraphPath) {
         bindFile.value = message.comGraphPath;
         bindButton.value = $t("unbindComGraph");
@@ -1390,6 +1389,7 @@ onMounted(() => {
   if (oldMessage && oldMessage.message.data) {
     loadTraceData(oldMessage.message.data);
   } else {
+    loading.value = true;
     postMessage({ command: 'getSwimData' });
   }
 });

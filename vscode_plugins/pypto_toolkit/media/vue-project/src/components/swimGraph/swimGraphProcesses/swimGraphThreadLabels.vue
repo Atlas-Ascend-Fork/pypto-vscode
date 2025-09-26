@@ -70,10 +70,10 @@ const calculateThreadCycles = (allProcesses, proKey) => {
         }
         totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
       }
+      cycleDisplay.value = 'flex';
     }
     threadCyclesMap.set(thread.threadName, totleCycles.toString());
   }
-  cycleDisplay.value = 'flex';
   return threadCyclesMap;
 };
 

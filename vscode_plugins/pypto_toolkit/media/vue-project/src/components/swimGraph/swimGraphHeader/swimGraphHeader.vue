@@ -70,7 +70,7 @@ const {
   searchResult,
   currentResultIndex,
   isSearchActive,
-  isCaseSensitive
+  isCaseSensitive,
 } = inject('swimGraphSearch');
 
 const {
@@ -78,6 +78,7 @@ const {
   toggleDetailsCores,
   getTimelineCanvas,
   resizeMeasure,
+  selectEvent,
 } = inject('swimGraphMethods');
 
 const mPath = ref(`${window.staticPath}/static-assets/measure.svg`);
@@ -103,9 +104,7 @@ const onSearch = (term) => {
     isSearchActive.value = false;
     detailsPanelExpanded.value = false;
     selectedEvent.value = null;
-    highlightedPaths.clear();
-    childContextMap.threadEvent.resizeCanvas();
-    childContextMap.threadEvent.renderEvents();
+    clearSearchData();
     return;
   }
   for (const [processkey, process] of processes.entries()) {
@@ -126,6 +125,10 @@ const onSearch = (term) => {
       });
     }
   }
+  if (!searchResult.value.length) {
+    clearSearchData();
+    return;
+  }
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
   searchResultCount.value = searchResult.value.length;
   isSearchActive.value = true;
@@ -133,8 +136,17 @@ const onSearch = (term) => {
     currentResultIndex.value += 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
-  selectEvent(target.at(0));
+  selectEventChild(target.at(0));
   scrollToEvent(target.at(0));
+};
+const clearSearchData = () => {
+  highlightedPaths.clear();
+  for (const [processkey, process] of processes.entries()) {
+    if (!processExpanded.get(processkey)) {
+      continue;
+    }
+    selectEvent(null, processkey);
+  }
 };
 
 const toggleCaseSensitivity = () => {
@@ -154,15 +166,15 @@ const navigateResults = (direction) => {
     currentResultIndex.value = Math.min(searchResultCount.value, currentResultIndex.value + 1);
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
-  selectEvent(target.at(0));
+  selectEventChild(target.at(0));
   scrollToEvent(target.at(0));
 };
 
-const selectEvent = (event) => {
+const selectEventChild = (event) => {
   selectedEvent.value = event;
   highlightedPaths.clear();
   highlightedPaths.add(event.id);
-}
+};
 
 const scrollToEvent = (event) => {
   let needRender = true;
