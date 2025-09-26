@@ -1,8 +1,15 @@
 import { workspace, window, commands } from 'vscode';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { hismartliteEx } from './hismarliteEx';
 import { t } from 'i18next';
+
+export interface DiffInfo {
+  afterJson?: Record<string, any>;
+  afterFileName?: string;
+  beforeJson?: Record<string, any>;
+  beforeFileName?: string;
+}
 
 export class Util {
   replaceHtmlFromData(replaceParams: any[], html: string) {
@@ -37,13 +44,11 @@ export class Util {
       if (value !== undefined && value !== null) {
         const lowerCaseValue = value.toString().toLowerCase();
         if (seenShortCut.has(lowerCaseValue)) {
-          window.showWarningMessage(t('pypto.configWarning'), t('pypto.configImprove')).then(
-            selection => {
-              if (selection === t('pypto.configImprove')) {
-                commands.executeCommand('workbench.action.openSettings', '@ext:hismartliteopen.pypto-toolkit shortcut')
-              }
+          window.showWarningMessage(t('pypto.configWarning'), t('pypto.configImprove')).then((selection) => {
+            if (selection === t('pypto.configImprove')) {
+              commands.executeCommand('workbench.action.openSettings', '@ext:hismartliteopen.pypto-toolkit shortcut');
             }
-          );
+          });
         } else {
           seenShortCut.add(lowerCaseValue);
           result[key] = value;
@@ -83,5 +88,32 @@ export class Util {
     } catch (err) {
       console.error('Failed to write mapping cache:', err);
     }
+  }
+}
+
+export function getFileNameByPath(fsPath: string) {
+  return basename(fsPath).replace('.json', '');
+}
+
+export function getDiffInfo(fsPath: string, ret: Record<string, any>) {
+  const curFile = basename(fsPath);
+  const result: DiffInfo = {
+    beforeFileName: curFile.replace('.json', ''),
+    beforeJson: ret,
+  };
+  return result;
+}
+
+export function getOtherFilePath(fsPath: string) {
+  const curFile = basename(fsPath);
+  let res: string = '';
+  if (curFile.toLocaleLowerCase().startsWith('after')) {
+    res = fsPath.replace(curFile, `Before${curFile.slice(5)}`);
+  }
+  if (curFile.toLocaleLowerCase().startsWith('before')) {
+    res = fsPath.replace(curFile, `After${curFile.slice(6)}`);
+  }
+  if (res && existsSync(res)) {
+    return res;
   }
 }

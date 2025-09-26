@@ -7,13 +7,15 @@
     <div class="empty-rect"> </div>
     <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="fitScreen"></button>
   </div>
-  <div class="com-graph-minimap-container" id="minimap-container" :style="{right: `${offsetRight + 15}px`}" @click="minimapClick">
-    <div class="com-graph-minimap" id="minimap">
+  <div ref="minimapContainerEl" class="com-graph-minimap-container" :style="{right: `${offsetRight + 15}px`}" @click="minimapClick">
+    <div class="com-graph-minimap" :id="`${type}_minimap`">
     </div>
     <div
-      id="move-rect"
       v-if="isRectVisible"
+      ref="moveRectEl"
       :style="rectStyle"
+      class="move-rect"
+      @click.stop
       @mousemove="handleMouseMove" @mousedown="handleMouseDown" @mouseup="handleMouseUp">
     </div>
   </div>
@@ -22,13 +24,19 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { PropType } from 'vue';
 
-defineProps({
+const props = defineProps({
   offsetRight: {
     type: Number,
     default: 0
+  },
+  type: {
+    type: String as PropType<'after' | 'before' | ''>,
+    default: ''
   }
 });
+const emits = defineEmits(['mousedown', 'mousemove', 'mouseup']);
 
 const { t } = useI18n();
 const rectLeft = ref(0);
@@ -41,6 +49,8 @@ const rectScale = ref(1.0);
 const mainmapScale = ref(1.0);
 const inputValue = ref(10);
 const isActive = ref(false);
+const minimapContainerEl = ref<HTMLElement>();
+const moveRectEl = ref<HTMLElement>();
 
 let minimapWidth = 260;
 let minimapHeight = 160;
@@ -79,15 +89,15 @@ function commitZoom() {
   const num = inputValue.value;
   if (!isNaN(num) && num >= 1 && num <= 1000) {
     mainmapScale.value = inputValue.value / 100;
-    (window as any).ascEventBus.emit('mainmap_wheel', mainmapScale.value);
+    (window as any).ascEventBus.emit(`${props.type}_mainmap_wheel`, mainmapScale.value);
   } else {
     inputValue.value = mainmapScale.value * 100;
   }
 }
 
 function minimapClick(event) {
-  if (event.target.closest('#move-rect')) return;
-  const minimap = document.getElementById('minimap-container');
+  if (!minimapContainerEl.value) return;
+  const minimap = minimapContainerEl.value;
   const rect = minimap.getBoundingClientRect();
   let tempLeft = event.clientX - rect.left - rectWidth.value / 2;
   let tempTop = event.clientY - rect.top - rectHeight.value / 2;
@@ -97,31 +107,35 @@ function minimapClick(event) {
 
   let x = ((tempLeft - minimapLeft) / minimapSvgWidth) * originalWidth;
   let y = ((tempTop - minimapTop) / minimapSvgHeight) * originalHeight;
-  (window as any).ascEventBus.emit('minimap_rect_move', [x, y, mainmapScale.value]);
+  (window as any).ascEventBus.emit(`${props.type}_minimap_rect_move`, [x, y, mainmapScale.value]);
+  emits('mousedown');
+  emits('mousemove', [x, y, mainmapScale.value]);
+  emits('mouseup');
   rectLeft.value = tempLeft;
   rectTop.value = tempTop;
 }
 
 function zoomIn() {
   mainmapScale.value = Math.min(10, mainmapScale.value + 0.1);
-  (window as any).ascEventBus.emit('mainmap_wheel', mainmapScale.value);
+  (window as any).ascEventBus.emit(`${props.type}_mainmap_wheel`, mainmapScale.value);
 }
 
 function zoomOut() {
   mainmapScale.value = Math.max(0.02, mainmapScale.value - 0.1);
-  (window as any).ascEventBus.emit('mainmap_wheel', mainmapScale.value);
+  (window as any).ascEventBus.emit(`${props.type}_mainmap_wheel`, mainmapScale.value);
 }
 
 function fitScreen() {
   isActive.value = true;
-  (window as any).ascEventBus.emit('mainmap_fitscreen', "current not");
+  (window as any).ascEventBus.emit(`${props.type}_mainmap_fitscreen`, "current not");
 }
 
 function handleMouseDown(event) {
-  const rect = document.getElementById("move-rect");
+  const rect = moveRectEl.value;
   if (!rect) {
     return;
   }
+  emits('mousedown');
   document.addEventListener("mousemove", handleMouseMove, {capture: true});
   document.addEventListener("mouseup", handleMouseUp, {once: true, capture: true});
 
@@ -133,13 +147,13 @@ function handleMouseDown(event) {
 function handleMouseUp() {
   rectIsDragging.value = false;
   document.addEventListener("mousemove", handleMouseMove, {capture: true});
+  emits('mouseup');
 }
 
 function handleMouseMove(event) {
-  const rect = document.getElementById("move-rect");
-  const minimap = document.getElementById("minimap");
+  const minimap = document.getElementById(`${props.type}_minimap`);
+  if (!rectIsDragging.value || !minimap) return;
   const minimapRect = minimap.getBoundingClientRect();
-  if (!rectIsDragging.value || !rect || !minimap || !minimapRect) return;
   let mouseX = event.clientX - minimapRect.left;
   const newLeft = mouseX - rectWidth.value / 2;
   let mouseY = event.clientY - minimapRect.top;
@@ -150,7 +164,8 @@ function handleMouseMove(event) {
 
   let x = ((tempLeft - minimapLeft) / minimapSvgWidth) * originalWidth;
   let y = ((tempTop - minimapTop) / minimapSvgHeight) * originalHeight;
-  (window as any).ascEventBus.emit('minimap_rect_move', [x, y, mainmapScale.value]);
+  (window as any).ascEventBus.emit(`${props.type}_minimap_rect_move`, [x, y, mainmapScale.value]);
+  emits('mousemove', [x, y, mainmapScale.value]);
   rectLeft.value = tempLeft;
   rectTop.value = tempTop;
 }
@@ -181,7 +196,7 @@ function getElementScale(element:Element) {
 }
 
 function initRect() {
-  const minimap = document.getElementById("minimap_root");
+  const minimap = document.getElementById(`${props.type}_minimap_root`);
   const children = minimap?.firstElementChild;
   const rect = children?.getBoundingClientRect();
   const minimapRect = minimap.getBoundingClientRect();
@@ -201,7 +216,7 @@ function initRect() {
   originalHeight = rect.height / minimapScale;
 
   //calcurrent scale
-  const sprottyRoot = document.getElementById("sprotty_root");
+  const sprottyRoot = document.getElementById(`sprotty${props.type ? '-' + props.type : ''}_root`);
   if (!sprottyRoot) return;
   if (originalHeight > originalWidth) {
     scaleRation = (sprottyRoot.clientHeight / originalHeight);
@@ -269,6 +284,9 @@ function calcRectTop(minimapY) {
 }
 
 const zoomListener = (args) => {
+  if (args[4] !== undefined && args[4] !== props.type) {
+    return;
+  }
   mainmapScale.value= args[0];
   let currentScale = scaleRation / mainmapScale.value;
   rectScale.value = currentScale;
@@ -303,11 +321,7 @@ const mouseDownListener = (args) => {
 }
 
 const mouseMoveListener = (args) => {
-  
-  const minimap = document.getElementById("sprotty_root");
-  const children = minimap?.firstElementChild;
-  const rect = children?.getBoundingClientRect();
-  if (mainmapIsDragging) {
+  if (mainmapIsDragging && args[2] === props.type) {
     let x = args[0];
     let y = args[1];
     calcRectLeft(x);
@@ -316,12 +330,32 @@ const mouseMoveListener = (args) => {
   }
 }
 
+function updateRectPosition(args) {
+  calcRectLeft(args[0]);
+  calcRectTop(args[1]);
+}
+function syncZoomChange(args) {
+  mainmapScale.value= args[0];
+  let currentScale = scaleRation / mainmapScale.value;
+
+  rectWidth.value = Math.min(minimapWidth, Math.max(rectMinWidth, rectInitWidth * currentScale));
+  rectHeight.value = Math.min(minimapHeight, Math.max(rectMinHeight, rectInitHeight * currentScale));
+  let x = args[1];
+  let y = args[2];
+  calcRectLeft(x);
+  calcRectTop(y);
+  isActive.value = args[3];
+}
+
+defineExpose({ updateRectPosition, syncZoomChange });
+
 onMounted(() => {
-  (window as any).ascEventBus.on('render-over', renderListener);
+  (window as any).ascEventBus.on(`${props.type}_render-over`, renderListener);
   (window as any).ascEventBus.on('view_zoom', zoomListener);
+  (window as any).ascEventBus.on(`${props.type}_view_zoom`, zoomListener);
   (window as any).ascEventBus.on('view_mousedown', mouseDownListener);
   (window as any).ascEventBus.on('view_mousemove', mouseMoveListener);
-  (window as any).ascEventBus.on('master_render_over', masterRenderListener);
+  (window as any).ascEventBus.on(`${props.type}_master_render_over`, masterRenderListener);
 })
 </script>
 
@@ -412,7 +446,7 @@ onMounted(() => {
 
 
 
-#move-rect {
+.move-rect {
   position: absolute;
   overflow: hidden;
   left: 0;

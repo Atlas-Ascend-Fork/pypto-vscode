@@ -14,6 +14,7 @@ import {
 } from 'sprotty';
 import { Action, Point, SetPopupModelAction } from 'sprotty-protocol';
 import { setFixedComGraphFlow } from '../utils/operation';
+import { comGraphStore } from '../service/com-graph-store';
 
 @injectable()
 export class AstgrContextMenuService implements IContextMenuService {
@@ -31,12 +32,14 @@ export class AstgrContextMenuService implements IContextMenuService {
         onHide();
       }
     };
-    menuNode = this.createMenu(items, hideMenu);
-
-    container?.appendChild(menuNode);
-    fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
-
-    menuNode.onmouseleave = (e: MouseEvent) => hideMenu();
+    if (!comGraphStore.data.isDiffGraph) {
+      menuNode = this.createMenu(items, hideMenu);
+  
+      container?.appendChild(menuNode);
+      fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
+  
+      menuNode.onmouseleave = (e: MouseEvent) => hideMenu();
+    }
   }
 
   protected createMenu(items: MenuItem[], closeCallback: () => void): HTMLDivElement {

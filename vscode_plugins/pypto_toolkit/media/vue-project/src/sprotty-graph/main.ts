@@ -13,15 +13,18 @@ import {
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
 import { ILayoutConfigurator } from 'sprotty-elk';
+import { compareJsonData } from '../utils';
+import { after, before } from 'node:test';
 
 declare const vscode: any;
 const MAINMAP_TYPE = 1;
 const MINIMAP_TYPE = 2;
 const MAINMAP_WHEEL = 3;
 const MAINMAP_FIT_SCREEN = 4;
-export function useSprottyLoad() {
-  const SPROTTY_CONTAINER_ID = 'sprotty';
-  const MINIMAP_ID = 'minimap';
+export function useSprottyLoad(containerId?: string, filePath?: string) {
+  const SPROTTY_CONTAINER_ID = containerId ?? 'sprotty';
+  const renderType = filePath ?? '';
+  const MINIMAP_ID = `${renderType}_minimap`;
   let container = createDiContainer(SPROTTY_CONTAINER_ID);
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
@@ -31,7 +34,11 @@ export function useSprottyLoad() {
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
     direction: 'RIGHT',
-    showTensor: true
+    showTensor: true,
+    filePath: filePath ?? '',
+  }
+  if (filePath) {
+    resetModelSource();
   }
   let currentData: unknown = null;
 
@@ -80,32 +87,32 @@ export function useSprottyLoad() {
     try {
       const viewInfo = await currentModel.getViewport();
       if (type == MINIMAP_TYPE) {
-        (window as any).ascEventBus.emit('render-over', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
+        (window as any).ascEventBus.emit(`${renderType}_render-over`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
       }
       if (type == MAINMAP_TYPE) {
-        (window as any).ascEventBus.emit('master_render_over', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
+        (window as any).ascEventBus.emit(`${renderType}_master_render_over`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
       }
       if (type == MAINMAP_WHEEL) {
         setViewportAction(modelSource.model.id, viewInfo.scroll.x, viewInfo.scroll.y, zoom, false);
-        (window as any).ascEventBus.emit('view_zoom', [zoom, viewInfo.scroll.x, viewInfo.scroll.y, false]);
+        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, viewInfo.scroll.x, viewInfo.scroll.y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
-        (window as any).ascEventBus.emit('view_zoom', [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
+        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
       }
     } catch (error) {
       console.error('get model viewport error');
     }
   }
 
-  const resetModelSource = () => {
+  function resetModelSource() {
     container = createDiContainer(SPROTTY_CONTAINER_ID);
     modelSource = container.get<LocalModelSource>(TYPES.ModelSource)
     const layoutConfigurator = container.get(
       ILayoutConfigurator
     ) as import("./di.config").AstgrLayoutConfigurator;
-    comGraphStore.setData('layoutDirection', currentLayoutConfig.direction);
     layoutConfigurator.setLayoutDirection(currentLayoutConfig.direction);
     layoutConfigurator.setShowTensor(currentLayoutConfig.showTensor);
+    layoutConfigurator.setFilePath(currentLayoutConfig.filePath);
   }
 
   // Function to update the graph with current settings
@@ -145,29 +152,7 @@ export function useSprottyLoad() {
         }
         if (!sprottyGraph.children) return;
         let node: SNode | undefined;
-        sprottyGraph.children.forEach((c: any) => {
-          if (c.type === 'node:tensor' && c.role === 'input') {
-            if (node && node.position?.x < c.position.x) {
-              return;
-            }
-            if (node && node.position?.x == c.position.x && node.position?.y <= c.position.y) {
-              return;
-            }
-            node = c;
-          }
-        });
-        if (!node) return;
-        if (!node.position) return;
-        const nodePos = { x: node.position.x - 50, y: node.position.y - 400 };
-        const rootId = sprottyGraph.id;
-        const newViewport = {
-          scroll: nodePos,
-          zoom: 0.7,
-        };
-        const options = {
-          animate: false,
-        };
-        modelSource.actionDispatcher.dispatch(SetViewportAction.create(rootId, newViewport, options));
+        fitGraphToScreen();
       })
       .catch((error) => {
         console.error('Error setting model:', error);
@@ -190,13 +175,13 @@ export function useSprottyLoad() {
     fitToScreenAction();
   };
 
-  (window as any).ascEventBus.on('minimap_rect_move', minimapRectMoveListener);
+  (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
 
-  (window as any).ascEventBus.on('mainmap_wheel', mainMapWheelListener);
+  (window as any).ascEventBus.on(`${renderType}_mainmap_wheel`, mainMapWheelListener);
 
-  (window as any).ascEventBus.on('mainmap_fitscreen', mainMapFitscreenListener);
+  (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
 
   // Function to populate subgraph filter combo box
   const populateSubgraphFilter = () => {
@@ -351,6 +336,21 @@ export function useSprottyLoad() {
   comGraphStore.setData('renderMinimapFunc', renderMinimap);
   comGraphStore.setData('updateModelActionFunc', updateModelAction);
 
+  // 手动选中/取消选中节点
+  const selectNode = (elementIdsPara: string[], deselectIds: string[]) => {
+    const selectAction: SelectAction = {
+      kind: 'elementSelected',
+      selectedElementsIDs: elementIdsPara,
+      deselectedElementsIDs: deselectIds,
+    };
+    modelSource.actionDispatcher.dispatch(selectAction);
+  };
+
+  // 同步diff双图移动
+  const syncDiffView = (args) => {
+    setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
+  }
+
   return {
     populateSubgraphFilter,
     fitToScreenAction,
@@ -361,6 +361,8 @@ export function useSprottyLoad() {
     setViewportAction,
     updateGraph,
     getSelectedNodeId,
-    setModelDirection
+    setModelDirection,
+    syncDiffView,
+    selectNode
   };
 }

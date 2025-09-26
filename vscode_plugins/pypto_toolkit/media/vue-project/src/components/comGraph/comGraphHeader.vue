@@ -16,6 +16,11 @@
           <LayerControlIcon :active="showLayerControl" />
         </div>
       </d-tooltip>
+      <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100"  position="left" overlay-class="corner-tips">
+        <div class="corner-icon-container" @click="openDiffViewer">
+          <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
+        </div>
+      </d-tooltip>
     </div>
 
     <div class="module-row" ref="module_row">
@@ -658,6 +663,12 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
   (window as any).vscode.postMessage({
     command: 'getSubgraph',
     paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}
+    });
+}
+
+function openDiffViewer() {
+  (window as any).vscode.postMessage({
+    command: 'openDiffViewer'
     });
 }
 

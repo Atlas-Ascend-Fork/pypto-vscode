@@ -9,6 +9,7 @@ import { getIDETheme } from '../theme';
 import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
+import { DiffComGraphView } from './diffComGraphView';
 const { fork } = require('child_process');
 const path = require('path');
 const { parser } = require('stream-json');
@@ -622,6 +623,10 @@ class MsgHandler {
       command: 'returnHealthyReport',
       data: report,
     });
+  }
+
+  static async openDiffViewer(panel: any) {
+    new DiffComGraphView(ViewColumn.One).createDiffPanel(panel.comGraphData.fsPath, panel.comGraphData?.funcHash);
   }
 }
 
