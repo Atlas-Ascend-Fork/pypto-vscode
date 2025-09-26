@@ -304,13 +304,13 @@ const handleWheel = (e) => {
   }
   if(viewState.scale * 10 >= sliderMax.value && e.deltaY < 0) {
     wheelDebounceTimer = setTimeout(() => {
-      postMessage($t("scaleMaxInfo"));
+      postMessage($t('scaleMaxInfo'));
     }, 100);
     return;
   }
   if(viewState.scale === 1 && e.deltaY > 0) {
     wheelDebounceTimer = setTimeout(() => {
-      postMessage($t("scaleMinInfo"));
+      postMessage($t('scaleMinInfo'));
     }, 100);
     return;
   }

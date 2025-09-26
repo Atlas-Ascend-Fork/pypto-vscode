@@ -156,15 +156,6 @@ const toggleCaseSensitivity = () => {
     onSearch(searchQuery.value);
   }
 };
-const clearSearchData = () => {
-  highlightedPaths.clear();
-  for (const [processkey, process] of processes.entries()) {
-    if (!processExpanded.get(processkey)) {
-      continue;
-    }
-    selectEvent(null, processkey);
-  }
-}
 // 导航搜索结果
 const navigateResults = (direction) => {
   if (searchResultCount.value === 0) return;
