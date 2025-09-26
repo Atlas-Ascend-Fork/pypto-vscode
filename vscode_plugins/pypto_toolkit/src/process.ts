@@ -1,12 +1,25 @@
 import { generateColorList} from './color-list';
 import BigNumber from 'bignumber.js'
 
-const darkThemeColors = generateColorList(360);
-const lithtThemeColors = generateColorList(360, false);
-const darkThemeBaseColors = darkThemeColors.baseColorList;
-const darkThemeLightColors = darkThemeColors.lightColorList;
-const lightThemeBaseColors = lithtThemeColors.baseColorList;
-const lightThemeLightColors = lithtThemeColors.lightColorList;
+// 异步初始化颜色列表
+let darkThemeColors: any = null;
+let lithtThemeColors: any = null;
+let darkThemeBaseColors: string[] = [];
+let darkThemeLightColors: string[] = [];
+let lightThemeBaseColors: string[] = [];
+let lightThemeLightColors: string[] = [];
+
+// 初始化颜色列表的函数
+async function initializeColors() {
+  if (!darkThemeColors) {
+    darkThemeColors = await generateColorList(360);
+    lithtThemeColors = await generateColorList(360, false);
+    darkThemeBaseColors = darkThemeColors.baseColorList;
+    darkThemeLightColors = darkThemeColors.lightColorList;
+    lightThemeBaseColors = lithtThemeColors.baseColorList;
+    lightThemeLightColors = lithtThemeColors.lightColorList;
+  }
+}
 
 const getSubGraphId = (event) => {
   let subGraphId;
@@ -23,7 +36,10 @@ const getSubGraphId = (event) => {
 };
 
 
-function getEventColor(event) {
+async function getEventColor(event) {
+  // 确保颜色已初始化
+  await initializeColors();
+  
   const subGraphId = getSubGraphId(event);
   let dBaseColor = darkThemeBaseColors[subGraphId];
   let dLightColor = darkThemeLightColors[subGraphId];
@@ -251,7 +267,7 @@ const calculateDependencies = (events, connections) => {
       pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
   
-  export function parseSwimLaneInfo(traceData: any, pmuInfo: any) {
+  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any) {
     let counterEvents: any[] = [];
     let processedEvents: any[] = [];
     let processes = new Map();
@@ -266,7 +282,8 @@ const calculateDependencies = (events, connections) => {
     const eventTasks: any[] = [];
     const connections: any[] = [];
   
-    traceData.traceEvents.forEach((event, index) => {
+    for (let index = 0; index < traceData.traceEvents.length; index++) {
+      const event = traceData.traceEvents[index];
       if (event.name === 'process_name') {
         processNames.set(event.pid, event.args.name);
       } else if (event.name === 'thread_name') {
@@ -279,14 +296,14 @@ const calculateDependencies = (events, connections) => {
           }
           counterEvents.push({ ...event, isCounter: true });
         } else {
-          const color = getEventColor(event);
+          const color = await getEventColor(event);
           const threadName =  threadNames.get(`${event.pid}-${event.tid}`);
           eventTasks.push({ ...event, originalIndex: index, color, threadName});
         }
       } else if (event.cat === 'machine-view-last-dep') {
         connections.push(event);
       }
-    });
+    }
   
     let processThreadMap = new Map();
     counterEvents = counterEvents.sort((a, b) => a.ts - b.ts);
