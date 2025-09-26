@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
@@ -73,6 +73,7 @@ const {
   calculateGridInterval,
   timeToX,
   xToTime,
+  transform,
 } = inject('swimGraphMethods');
 
 let isTimelineDragging = false;
@@ -198,7 +199,8 @@ const timelineMouseMove = (e) => {
     // 同步范围滑块变化
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value =parseInt(sliderCount, 10); 
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 
@@ -212,8 +214,9 @@ const timelineMouseMove = (e) => {
     viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
     // 同步范围滑块变化
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
-    sliderValue.value = parseInt(sliderCount, 10); 
-    render();
+    sliderValue.value = parseInt(sliderCount, 10);
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 
@@ -224,13 +227,15 @@ const timelineMouseMove = (e) => {
     viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
     if (viewState.offsetX > 0) {
       viewState.offsetX = 0;
-      render();
+      viewState.pixelOffsetX = 0;
+      transform();
       return;
     }
     if (timelineInitEndX + onTagTimerange > canvasWidth) {
       return;
     }
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 
@@ -248,7 +253,8 @@ const timelineMouseMove = (e) => {
     // 同步范围滑块变化
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value = parseInt(sliderCount, 10); 
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 }
@@ -282,7 +288,7 @@ const timelineMouseEventReset = () => {
 
 // 防抖的渲染函数，避免频繁重绘
 const throttledRender = throttle(() => {
-  render();
+  transform();
 }, 16); // 约60fps
 
 const handleWheel = (e) => {
@@ -299,17 +305,23 @@ const handleWheel = (e) => {
   
   const zoomFactor = e.deltaY >  0 ? 0.8 : 1.25;
   const oldScale = viewState.scale;
+  const oldOffsetX = viewState.offsetX;
+
+  if (e.deltaY > 0 && oldScale === initialScale.value && oldOffsetX >= 0) {
+    return;
+  }
   
   if (e.deltaY > 0 && viewState.scale * zoomFactor < initialScale.value) {
     viewState.scale = initialScale.value;
   } else {
     viewState.scale = Math.max(initialScale.value, Math.min(sliderMax.value / 10, viewState.scale * zoomFactor));
   }
- 
+
   const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
   sliderValue.value = parseInt(sliderCount, 10); 
-  const scaleChange = viewState.scale / oldScale;
-  viewState.offsetX = mouseX - (mouseX - viewState.offsetX) * scaleChange;
+
+  viewState.scaleChange = viewState.scale / oldScale;
+  viewState.offsetX = mouseX - (mouseX - oldOffsetX) * viewState.scaleChange;
   const timeLineEndX = Math.abs(timeLineX.value);
   if(timelineCanvas.value && getCanvasCSSWidth(timelineCanvas.value) > timeLineEndX){
     const tempOffsetX = getCanvasCSSWidth(timelineCanvas.value) - timeLineEndX;
@@ -318,6 +330,9 @@ const handleWheel = (e) => {
   if (viewState.offsetX > 0) {
     viewState.offsetX = 0;
   }
+  viewState.pixelScale = viewState.scale * devicePixelRatio;
+  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+  viewState.minWidth = 1 / viewState.scale;
 
   throttledRender();
 };

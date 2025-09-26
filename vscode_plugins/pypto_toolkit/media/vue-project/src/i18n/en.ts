@@ -47,7 +47,7 @@ export default {
     'swimErroMsgNO_PROCESS_NAME': 'swimGraphJson: There must be at least one event with name process_name.',
     'tips1': 'Jump to compilation. please look forward to the design.',
     'tips2': 'Jump to the calculation diagram overview, under design, please look forward to.',
-    'swimGraph': 'swimlane map',
+    'swimGraph': 'Swimlane',
     'lessThan0': '<1us',
     'caseSensitive': 'case sensitive',
     'editTitle': 'marker point edit',

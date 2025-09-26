@@ -31,6 +31,7 @@ import { computed, inject, provide, ref, defineExpose, watch } from 'vue';
 import SwimGraphProcessHeader from './swimGraphProcessHeader.vue';
 import SwimGraphThreadLabels from './swimGraphThreadLabels.vue';
 import SwimGraphThreadEvents from './swimGraphThreadEvents.vue';
+import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 
 // 注入父组件提供的状态
 const {
@@ -90,6 +91,7 @@ const {
   getTimelineCanvas,
   render,
   renderEvent,
+  transform,
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -104,6 +106,7 @@ provide('swimGraphMethods', {
   getTimelineCanvas,
   render,
   renderEvent,
+  transform,
 });
 
 const processesContainer = ref(null);
@@ -165,9 +168,12 @@ watch( curThread, (newValue, oldValue) => {
 
   for (let index = 0; index < threads.length; index++) {
     let thread = threads[index];
-    curHeight = layout.threadHeight * (lane2line.get(`${processKey}@${thread.tid}`) || 1);
-    if (index >= threadIdx) break;
-    curY += thread.isCounter ? layout.counterHeight : curHeight;
+    if (index >= threadIdx) {
+      const key = thread.isCounter ? thread.threadName : thread.tid;
+      curY = getThreadStartY(curProcess, processKey, key, lane2line, layout);
+      curHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
+      break;
+    }
   }
   const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${processKey}"]`);
   if (!backgroundCanvasRef) return;

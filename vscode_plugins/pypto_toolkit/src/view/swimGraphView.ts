@@ -10,6 +10,7 @@ import Chain from 'stream-chain'
 import StreamArray from 'stream-json/streamers/StreamArray';
 import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo } from '../process';
+import { getIDELang } from '../lang';
 
 class SwimData {
 
@@ -388,10 +389,10 @@ export class SwimGraphView {
     let html = documentText.toString().replace(/{{root}}/g, webviewText).replace(/{{staticPath}}/g, `${webviewText}/webview-dist`).replace(/{{ascTheme}}/g, getIDETheme());
     this.panel.webview.html = new Util().replaceHtmlFromData(replaceParams, html);
     /* 本地调试方案 */
-    //this.panel.webview.html = this.getDebugHtml(getIDETheme());
+    // this.panel.webview.html = this.getDebugHtml(getIDETheme(), getIDELang());
   }
 
-  getDebugHtml(theme: string){
+  getDebugHtml(theme: string, lang: string){
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -401,6 +402,7 @@ export class SwimGraphView {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script>
           window.ascTheme = '${theme}';
+          window.ascLang = '${lang}';
         </script>
         <script type="module" src="http://localhost:5173/src/main.ts"></script>
         <title>Vite App</title>

@@ -74,7 +74,7 @@ const {
 } = inject('swimGraphSearch');
 
 const {
-  render,
+  transform,
   toggleDetailsCores,
   getTimelineCanvas,
   resizeMeasure,
@@ -166,14 +166,15 @@ const selectEvent = (event) => {
 
 const scrollToEvent = (event) => {
   let needRender = true;
-  if (event.renderInfo.x < 0) {
-    rightmove(0 - event.renderInfo.x);
+  const eventLeftX = (event.renderInfo.x * viewState.scale) + viewState.offsetX;
+  if (eventLeftX < 0) {
+    rightmove(0 - eventLeftX);
     needRender = false;
   }
+  const eventWidth = event.renderInfo.width * viewState.scale;
   const divElement = document.getElementsByClassName('swimlane-container');
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth; // 滚动条的宽度
-  const eventLeftX = event.renderInfo.x;
-  const eventRightX = event.renderInfo.x + event.renderInfo.width;
+  const eventRightX = eventLeftX + eventWidth;
   
   // 获取canvas的CSS宽度，兼容高DPI和标准DPI
   const canvasCSSWidth = viewState.canvasCssWidth;
@@ -186,11 +187,11 @@ const scrollToEvent = (event) => {
     needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 节点整个被隐藏在视口之外
-    leftmove((event.renderInfo.x - canvasCSSWidth + event.renderInfo.width) + scrollWidth);
+    leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
     needRender = false;
   }
   scrollToEventByDom(event);
-  if (needRender) {render();}
+  if (needRender) {transform();}
 };
 
 const updataScale = () => {
@@ -198,8 +199,8 @@ const updataScale = () => {
   if (scale * 10 > sliderMax.value) {
     scale = sliderMax.value / 10;
   }
-  const scaleChange = scale / viewState.scale;
-  viewState.offsetX = viewState.offsetX * scaleChange;
+  viewState.scaleChange = scale / viewState.scale;
+  viewState.offsetX = viewState.offsetX * viewState.scaleChange;
   const timeLineEndX = Math.abs(timeLineX.value);
   const timelineCanvas = getTimelineCanvas();
   const cssWidth = viewState.canvasCssWidth;
@@ -211,7 +212,10 @@ const updataScale = () => {
     viewState.offsetX = 0;
   }
   viewState.scale = scale;
-  render();
+  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+  viewState.pixelScale = viewState.scale * devicePixelRatio;
+  viewState.minWidth = 1 / scale;
+  transform();
 };
 const increase = () => {
   if (sliderValue.value < sliderMaxCount.value) {
@@ -224,7 +228,7 @@ const decrease = () => {
   if (sliderValue.value > 0) {
     sliderValue.value -= 1;
     updataScale();
-  }
+  } 
 };
 const leftmove = (step=30) => {
   if (viewState.scale === 1) {
@@ -236,7 +240,8 @@ const leftmove = (step=30) => {
       step = timeLineEndX - canvasWidth;
     }
     viewState.offsetX -= step;
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
   }
 };
 
@@ -248,7 +253,8 @@ const rightmove = (step=30) => {
     if (viewState.offsetX > 0) {
       viewState.offsetX = 0;
     }
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
   }
 };
 
@@ -269,7 +275,7 @@ const measureModel = () => {
   measureDragStartX.value = 0;
   measureDragEndX.value = 0;
   resizeMeasure();
-  render();
+  transform();
 }
 
 defineExpose({

@@ -21,14 +21,17 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight} from '../swimGraphUtils';
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
+  getThreadHeight, getThreadStartY,
+} from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
 
 const { isDarkTheme } = inject('root');
-const eventTextSize = 12;
+const eventTextSize = 12 * devicePixelRatio;
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
+let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
@@ -52,6 +55,7 @@ const {
   tooltipStyle,
   timelineState,
   processes,
+  processExpanded,
 } = inject('swimGraphState');
 
 const {
@@ -62,8 +66,7 @@ const {
   leftmove,
   rightmove,
   durationToWidth,
-  renderEvent,
-  render,
+  transform,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -106,7 +109,7 @@ const handleCanvasClick = (e) => {
   }
 
   const rect = canvasRef.getBoundingClientRect();
-  const x = e.clientX - rect.left;
+  const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
   const y = e.clientY - rect.top;
 
   // 检查是否点击了事件
@@ -133,7 +136,7 @@ const handleCanvasClick = (e) => {
 
 // 防抖的渲染函数，避免频繁重绘
 const throttledRender = throttle(() => {
-  render();
+  transform();
 }, 16); // 约60fps
 
 const scaleCanvas = (mouseX, scale) => {
@@ -147,8 +150,8 @@ const scaleCanvas = (mouseX, scale) => {
   
   const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
   sliderValue.value = parseInt(sliderCount, 10); 
-  const scaleChange = viewState.scale / oldScale;
-  viewState.offsetX = mouseX - (mouseX - viewState.offsetX) * scaleChange;
+  viewState.scaleChange = viewState.scale / oldScale;
+  viewState.offsetX = mouseX - (mouseX - viewState.offsetX) * viewState.scaleChange;
   const timeLineEndX = Math.abs(timeLineX.value);
   const cssWidth = viewState.canvasCssWidth;
   if (cssWidth > timeLineEndX){
@@ -158,6 +161,9 @@ const scaleCanvas = (mouseX, scale) => {
   if (viewState.offsetX > 0) {
     viewState.offsetX = 0;
   }
+  viewState.pixelScale = viewState.scale * devicePixelRatio;
+  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+  viewState.minWidth = 1 / viewState.scale;
 
   // 使用防抖渲染
   throttledRender();
@@ -262,94 +268,102 @@ const handlekeydown = (event) => {
   }
 }
 
-const handleMouseMove = throttle((e) => {
-  const canvasRef = getActiveEventCanvas(props.processKey);
-  if (!canvasRef) return;
-  const uiCanvasRef = document.querySelector(`[data-ui-process-key="${props.processKey}"]`);
-  if (!uiCanvasRef) return;
-  const uiCtx = uiCanvasRef.getContext('2d');
-  const hoverCanvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
-  if (!hoverCanvasRef) return;
-  const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${props.processKey}"]`);
-  if (!backgroundCanvasRef) return;
-  const lineCanvasRef = document.querySelector(`[data-line-process-key="${props.processKey}"]`);
-  if (!lineCanvasRef) return;
-  const backgroundCanvasCtx = backgroundCanvasRef.getContext('2d');
-  if(altClickData.preData && altClickData.lastData && !e.altKey && !isMeasureFixed.value){
-    clearDrawConnector(uiCtx, props.processKey);
-  }
-  mousePosition = {
-    x: e.clientX,
-    y: e.clientY
+function getCanvasRefs(processKey) {
+  const canvasRef = getActiveEventCanvas(processKey);
+  if (!canvasRef) { return null };
+  const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
+  if (!uiCanvasRef) { return null };
+  const hoverCanvasRef = document.querySelector(`[data-hover-process-key="${processKey}"]`);
+  if (!hoverCanvasRef) { return null };
+  const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${processKey}"]`);
+  if (!backgroundCanvasRef) { return null };
+  const lineCanvasRef = document.querySelector(`[data-line-process-key="${processKey}"]`);
+  if (!lineCanvasRef) { return null };
+  return {
+    canvasRef,
+    uiCanvasRef,
+    uiCtx: uiCanvasRef.getContext('2d'),
+    hoverCanvasRef,
+    backgroundCanvasRef,
+    backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
+    lineCanvasRef,
   };
+}
+
+function updateMousePos(e) {
+  mousePosition = { x: e.clientX, y: e.clientY };
+}
+
+function computeLocalXY(canvasRef) {
   const rect = canvasRef.getBoundingClientRect();
-  const x = mousePosition.x - rect.left;
+  const x = (mousePosition.x - rect.left - viewState.offsetX) / viewState.scale;
   const y = mousePosition.y - rect.top;
+  return { x, y };
+}
 
-  const info = findEventAtPosition(x, y, props.processKey);
-  const hoveredEvent = info?.event;
-  const altClickDataTemp = info?.altClickData;
+function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
+  if (!(y > 0 && y < backgroundCanvasRef.offsetHeight - 1)) { return };
+  let threadId = 0;
+  let curY = 0;
+  let curId = 0;
+  let curHeight = 0;
+  for (const [_, thread] of props.process.threads.entries()) {
+    const threadKey = thread.isCounter ? thread.threadName : thread.tid;
+    const threadY = getThreadStartY(props.process, props.processKey, threadKey, lane2line, layout);
+    const threadHeight = getThreadHeight(props.processKey, threadKey, lane2line, layout, thread.isCounter);
+    if (y <= threadY) {
+      break;
+    }
+    curY = threadY;
+    curId = threadId;
+    curHeight = threadHeight;
+    threadId++;
+  }
+  let hoverId = `${props.processKey}-${curId}`;
+  if (hoverId != curThread.value) {
+    curThread.value = hoverId;
+    backgroundCanvasCtx.clearRect(0, 0, viewState.canvasCssWidth, backgroundCanvasRef.offsetHeight);
+    backgroundCanvasCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+    backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
+  }
+}
+
+function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
+  const manual = altClickData.preData && isMeasureFirst.value && !isMeasureFixed.value;
+  if (!(hoveredEvent && e.altKey && manual)) {
+    return false;
+  }
+  if (isMeasureChange.value && altClickData.lastData) {
+    let temp = altClickData.preData;
+    altClickData.preData = altClickData.lastData;
+    altClickData.lastData = temp;
+    isMeasureChange.value = false;
+  }
+  if (isEqual(altClickData.preData, hoveredEvent)) {
+    return true; // consumed
+  }
+  altClickData.lastData = hoveredEvent;
+  clearDrawConnectorHover(uiCtx, props.processKey);
+  measureDistanceHover(hoveredEvent, props.processKey);
+  return false;
+}
+
+function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
+  if (!preData || !lastData || isMeasureFixed.value) { return };
   const divElement = document.getElementsByClassName('swimlane-container');
-  const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth; // 滚动条的宽度
-  const {preData , lastData, nodeSpacingX} = altClickDataTemp;
+  const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth;
+  const actSpacingX = nodeSpacingX * viewState.scale;
+  if (actSpacingX <= 3) { return };
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x);
+  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x) + (preData?.renderInfo?.width * viewState.scale);
+  if (noZoomLastX < (canvasCSSWidth - scrollWidth) && noZoomPreX > 0 ) {
+    altClickData = { preData, lastData, largeSpacing: actSpacingX > nodeSpaceMin };
+    drawConnector(uiCtx, altClickData.largeSpacing);
+  }
+}
 
-  //highlight thread when hovered
-  if (y > 0 && y < backgroundCanvasRef.offsetHeight - 1){
-    let threadY = 0;
-    let threadId = 0;
-    let curY = 0;
-    let curId = 0;
-    let curHeight = 0;
-    for (const [threadKey, thread] of props.process.threads.entries()) {
-      if (y <= threadY){
-        break;
-      }
-      curY = threadY;
-      curId = threadId;
-      curHeight = layout.threadHeight * (lane2line.get(`${props.processKey}@${thread.tid}`) || 1);
-      threadY += thread.isCounter ? layout.counterHeight : curHeight;
-      threadId++;
-    }
-    let hoverId = `${props.processKey}-${curId}`;
-    if (hoverId != curThread.value) {
-      curThread.value = hoverId;
-      backgroundCanvasCtx.clearRect(0, 0, viewState.canvasCssWidth, backgroundCanvasRef.offsetHeight);
-      backgroundCanvasCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-      backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
-    } 
-  }
-  if(!e.altKey){
-      isMeasureFirst.value = false;
-  }
-
-  if(hoveredEvent && e.altKey && altClickData.preData && isMeasureFirst.value && !isMeasureFixed.value){
-    if(isMeasureChange.value && altClickData.lastData){
-      let temp = altClickData.preData;
-      altClickData.preData = altClickData.lastData;
-      altClickData.lastData = temp;
-      isMeasureChange.value = false;
-    }
-    if(isEqual(altClickData.preData, hoveredEvent)){
-      return;
-    }
-    altClickData.lastData = hoveredEvent;
-    clearDrawConnectorHover(uiCtx, props.processKey);
-    measureDistanceHover(hoveredEvent, props.processKey);
-  }
-  if(!e.altKey){
-    onHoverEvent(hoveredEvent);
-  }
-  if (preData && lastData && !e.altKey && !e.ctrlKey && nodeSpacingX > 3 && !isMeasureFixed.value) {
-    const canvasCSSWidth = viewState.canvasCssWidth;
-    if(lastData?.renderInfo?.x < (canvasCSSWidth - scrollWidth) && preData?.renderInfo?.x + preData?.renderInfo?.width > 0 ){
-      altClickData = {
-      preData: preData,
-      lastData: lastData,
-      largeSpacing: nodeSpacingX > nodeSpaceMin
-      };
-      drawConnector(uiCtx, altClickData.largeSpacing);
-    }
-  }
+function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   let cursor = '';
   if (hoveredEvent && !e.altKey && !e.ctrlKey) {
     showTooltip(e, hoveredEvent, canvasRef);
@@ -357,23 +371,77 @@ const handleMouseMove = throttle((e) => {
   } else {
     hideTooltip();
   }
+  return cursor;
+}
 
+function handleCtrlDragPan(e, canvasRef) {
+  let cursor = null;
   if (e.ctrlKey && e.buttons === 1) {
     cursor = 'grab';
-    if (viewState.scale === 1) return;
+    if (viewState.scale === 1) { return cursor };
     const timeLineEndX = Math.abs(timeLineX.value);
     const deltaX = (e.clientX - lastX);
     const cssWidth = viewState.canvasCssWidth;
+    const minOffset = cssWidth - (cssWidth * viewState.scale);
+    const leftLimit = deltaX < 0 && viewState.offsetX === minOffset;
+    const rightLimit = deltaX > 0 && viewState.offsetX === 0;
+    if (leftLimit || rightLimit) {
+      canvasRef.style.cursor = cursor;
+      return cursor;
+    }
     if (deltaX < 0 && cssWidth > timeLineEndX) {
-      canvasRef.style.cursor = 'grab';
-      return;
+      viewState.offsetX = minOffset;
+    } else {
+      viewState.offsetX += getOffset(deltaX, viewState.scale);
+      if (deltaX > 0 && viewState.offsetX > 0) {
+        viewState.offsetX = 0;
+      }
     }
-    viewState.offsetX += getOffset(deltaX, viewState.scale);
-    if (deltaX > 0 && viewState.offsetX > 0) {
-      viewState.offsetX = 0;
-    }
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
   }
+  return cursor;
+}
+
+const handleMouseMove = throttle((e) => {
+  const refs = getCanvasRefs(props.processKey);
+  if (!refs) return;
+  const { canvasRef, uiCanvasRef, uiCtx, hoverCanvasRef, backgroundCanvasRef, backgroundCanvasCtx } = refs;
+
+  if (altClickData.preData && altClickData.lastData && !e.altKey && !isMeasureFixed.value) {
+    clearDrawConnector(uiCtx, props.processKey);
+  }
+
+  updateMousePos(e);
+  const { x, y } = computeLocalXY(canvasRef);
+
+  const info = findEventAtPosition(x, y, props.processKey);
+  const hoveredEvent = info?.event;
+  const { preData, lastData, nodeSpacingX } = info?.altClickData || {};
+
+  highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
+
+  if (!e.altKey) {
+    isMeasureFirst.value = false;
+  }
+
+  if (handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx)) {
+    return;
+  }
+
+  if (!e.altKey) {
+    onHoverEvent(hoveredEvent);
+  }
+
+  maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+
+  let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
+
+  const dragCursor = handleCtrlDragPan(e, canvasRef);
+  if (dragCursor) {
+    cursor = dragCursor;
+  }
+
   canvasRef.style.cursor = cursor;
 }, 16);
 
@@ -411,10 +479,9 @@ const handleMouseDown = (e) => {
 
 const getCanvasHeight = () => {
   let height = 0;
-  for (const [threadKey, thread] of props.process.threads.entries()) {
-    const label = `${props.processKey}@${thread.tid}`;
-    const lineCount = lane2line.get(label) || 1;
-    height += layout.threadHeight * lineCount;
+  for (const [_, thread] of props.process.threads.entries()) {
+    const threadKey = thread.isCounter ? thread.threadName : thread.tid;
+    height += getThreadHeight(props.processKey, threadKey, lane2line, layout, thread.isCounter);
   }
   return height;
 };
@@ -425,6 +492,54 @@ const resizeCanvas = () => {
 
   const containerRect = swimlaneContainer.value.getBoundingClientRect();
   updateProcessSize(props.process, props.processKey, containerRect, layout, lane2line, viewState);
+};
+
+const transformEvents = (process, processKey) => {
+  let { eventCtx, backgroundCtx } = ctxs[processKey];
+
+  const { height } = eventCtx.canvas;
+  for (const ctx of Object.values(ctxs[processKey])) {
+    ctx.clearRect(0, 0, viewState.canvasCssWidth * viewState.scale, height);
+  }
+  
+  for (const [threadKey, thread] of process.threads.entries()) {
+    if (thread.isCounter) {
+      eventCtx.beginPath();
+      eventCtx.strokeStyle = '#4aaad6ff';
+      eventCtx.lineWidth = 1 / viewState.scale;
+
+      const { drawData } = thread;
+      for (const element of drawData) {
+        const [x, y] = element;
+        eventCtx.lineTo(x, y);
+      }
+
+      eventCtx.stroke();
+      eventCtx.closePath();
+    } else if (!selectedEvent.value) {
+      let eventDatas = [];
+      for (const event of thread.events) {
+        const { drawData } = event;
+        if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) {
+          drawData.show = false;
+          continue;
+        }
+        if (event.isFakeCore) {
+          drawData.eventWidth = event.renderInfo.width / viewState.scale;
+        }
+        drawData.show = true;
+        eventDatas.push(drawData);
+      }
+      drawEvent(eventDatas, eventCtx, false);
+    }
+  }
+
+  if (selectedEvent.value) {
+    changeNodeColor(processKey, true, false);
+  }
+
+  highlightThread(process, processKey, backgroundCtx, height);
+  drawThreadSeparators(eventCtx, process, processKey);
 };
 
 const renderProcessEvents = (process, processKey) => {
@@ -450,11 +565,14 @@ const renderProcessEvents = (process, processKey) => {
   }
 
   drawThreads(process, processKey, eventCtx);
+  highlightThread(process, processKey, backgroundCtx, offsetHeight);
+  drawThreadSeparators(eventCtx, process, processKey);
+}
 
-  //绘制高亮
+const highlightThread = (process, processKey, backgroundCtx, height) => {
   if (curThread.value != '') {
-    const curProcess = curThread.value.split('-')[0];
-    const curLane = parseInt(curThread.value.split('-')[1]);
+    const [curProcess, lane] = curThread.value.split('-');
+    const curLane = parseInt(lane);
     if (curProcess == processKey) {
       let curY = 0;
       let curHeight = 0;
@@ -465,41 +583,54 @@ const renderProcessEvents = (process, processKey) => {
 
       for (let index = 0; index < threads.length; index++) {
         let thread = threads[index];
-        curHeight = layout.threadHeight * (lane2line.get(`${processKey}@${thread.tid}`) || 1);
-        if (index >= curLane) break;
-        curY += thread.isCounter ? layout.counterHeight : curHeight;
+        const threadKey = thread.isCounter ? thread.threadName : thread.tid;
+        curHeight = getThreadHeight(processKey, threadKey, lane2line, layout, thread.isCounter);
+        if (index >= curLane) { break };
+        curY += curHeight;
       }
-      backgroundCtx.clearRect(0, 0, viewState.canvasCssWidth, offsetHeight);
+      backgroundCtx.clearRect(0, 0, viewState.canvasCssWidth, height);
       backgroundCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
       backgroundCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
     }
   }
-  drawThreadSeparators(eventCtx, process, processKey);
-}
+};
 
 const drawThreads = (process, processKey, ctx) => {
-  let threadY = 0;
   for (const [threadKey, thread] of process.threads.entries()) {
+    const key = thread.isCounter ? thread.threadName : thread.tid;
+    const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
     if (thread.isCounter) {
       drawCounterThread(thread, ctx, threadY);
     } else {
-      drawEventThread(thread, ctx, threadY);
+      drawEventThread(thread, ctx, threadY, processKey);
     }
-    threadY += thread.isCounter ? layout.counterHeight : layout.threadHeight * (lane2line.get(`${processKey}@${thread.tid}`) || 1);
   }
 };
 
-const changeNodeColor = (processKey, isDimmed) => {
+const changeNodeColor = (processKey, isDimmed, needText=true) => {
   if (!processKey) return;
   const { eventCtx } = ctxs[processKey];
-  let threadY = 0;
   const drawDatas = [];
   const process = processes.get(processKey);
+  let maxThreadY = 0;
   for (const [threadKey, thread] of process.threads.entries()) {
     if (thread.isCounter) {
       break; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
     }
+    const threadY = getThreadStartY(process, processKey, thread.tid, lane2line, layout);
+    const threadHeight = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
+    maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
     for (const event of thread.events) {
+      if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime ) {
+        event.drawData.show = false;
+        event.drawData.text = '';
+        continue;
+      } else {
+        event.drawData.show = true;
+      }
+      if (event.isFakeCore) {
+        event.drawData.eventWidth = event.renderInfo.width / viewState.scale;
+      }
       if (event.drawData) {
         if (!isDimmed) {
           const { fillColor, fontColor, strokeColor } = getEventColor(event, false, false);
@@ -510,12 +641,11 @@ const changeNodeColor = (processKey, isDimmed) => {
         drawDatas.push(event.drawData);
       }
     }
-
-    threadY += thread.isCounter ? layout.counterHeight : layout.threadHeight * (lane2line.get(`${processKey}@${thread.tid}`) || 1);
   }
 
-  eventCtx.clearRect(0, 0, viewState.canvasCssWidth, threadY);
+  eventCtx.clearRect(0, 0, viewState.canvasCssWidth, maxThreadY);
   drawEvent(drawDatas, eventCtx, isDimmed);
+  if (needText) drawEventText(drawDatas, eventCtx, isDimmed);
 };
 
 const clearDependencyLines = (processKey) => {
@@ -523,7 +653,7 @@ const clearDependencyLines = (processKey) => {
   if (!dependencyCanvasRef) return false;
   
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
-  dependencyCtx.clearRect(0, 0, dependencyCanvasRef.width, dependencyCanvasRef.height);
+  dependencyCtx.clearRect(0, 0, dependencyCanvasRef.offsetWidth, dependencyCanvasRef.offsetHeight);
   return dependencyCtx;
 };
 
@@ -540,9 +670,11 @@ const drawDependencyLines = (process, processKey, mode) => {
   dependencyCtx.lineWidth = 1;
 
   const eventMap = new Map();
-  processedEvents.value.forEach(event => {
-    eventMap.set(event.id, event);
-  });
+  for (const [threadKey, thread] of process.threads.entries()) {
+    for (const event of thread.events) {
+      eventMap.set(event.id, event);
+    }
+  }
 
   // 获取所有在路径中的相关节点（祖先 + 自身 + 子孙）
   const allRelevantIds = new Set(Array.from(highlightedPaths));
@@ -576,10 +708,12 @@ const highlightEvent = (ctx, event, processKey, stroke=true) => {
   }
   const renderInfo = event.renderInfo;
   const { fillColor, fontColor, strokeColor } = getEventColor(event, true, stroke);
-  const width = renderInfo.width;
+  const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
     rectY: renderInfo.y,
+    rectPixelX: renderInfo.x * devicePixelRatio,
+    rectPixelY: renderInfo.y * devicePixelRatio,
     eventWidth: width,
     height: renderInfo.height,
     rectColor: fillColor,
@@ -588,13 +722,12 @@ const highlightEvent = (ctx, event, processKey, stroke=true) => {
     textX: 0,
     textY: 0,
     fontColor: fontColor,
+    show: true,
   };
-  const textX = event.renderInfo.x;
-  let actualWidth = textX >= 0 ? width : width + textX;
-  if (actualWidth > 15) {
-    fillTextInfo(event, ctx, actualWidth, drawData);
-  }
   drawEvent([drawData], ctx);
+  fillTextInfo(event, ctx, width, drawData);
+  if (!drawData.text) { return };
+  drawEventText([drawData], ctx);
 };
 
 const drawSuccessor = (event, eventMap, dependencyCtx) => {
@@ -608,14 +741,19 @@ const drawSuccessor = (event, eventMap, dependencyCtx) => {
       const toEventColor = isDarkTheme.value ? toEvent.color.dark : toEvent.color.light;
       const sourceColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
       const targetColor = selectedEvent.value.id === toEvent.id ? toEventColor.light : toEventColor.base;
+      let eventWidth = event.renderInfo.width;
+      if (event.isFakeCore) {
+        eventWidth = eventWidth / viewState.scale;
+      }
       const position = {
-        startX: event.renderInfo.x + event.renderInfo.width,
-        startY: event.renderInfo.y + event.renderInfo.height / 2,
-        endX: toEvent.renderInfo.x,
-        endY:toEvent.renderInfo.y + toEvent.renderInfo.height / 2,
+        startX: (event.renderInfo.x + eventWidth) * devicePixelRatio,
+        startY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
+        endX: toEvent.renderInfo.x * devicePixelRatio,
+        endY: (toEvent.renderInfo.y + toEvent.renderInfo.height / 2) * devicePixelRatio,
       };
-      drawArrow(dependencyCtx, position, sourceColor, targetColor);
+      drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
       drawEvent([event.drawData, toEvent.drawData], dependencyCtx);
+      drawEventText([event.drawData, toEvent.drawData], dependencyCtx);
     }
   }
 };
@@ -631,39 +769,38 @@ const drawPredecessor = (event, eventMap, dependencyCtx) => {
       const sourceEventColor = isDarkTheme.value ? sourceEvent.color.dark : sourceEvent.color.light;
       const targetColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
       const sourceColor = selectedEvent.value.id === sourceEventColor.id ? sourceEventColor.light : sourceEventColor.base;
+      let sourceWidth = sourceEvent.renderInfo.width;
+      if (sourceEvent.isFakeCore) {
+        sourceWidth = sourceWidth / viewState.scale;
+      }
       const position = {
-        endX: event.renderInfo.x,
-        endY: event.renderInfo.y + event.renderInfo.height / 2,
-        startX: sourceEvent.renderInfo.x + sourceEvent.renderInfo.width,
-        startY:sourceEvent.renderInfo.y + sourceEvent.renderInfo.height / 2,
+        endX: event.renderInfo.x * devicePixelRatio,
+        endY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
+        startX: (sourceEvent.renderInfo.x + sourceWidth) * devicePixelRatio,
+        startY: (sourceEvent.renderInfo.y + sourceEvent.renderInfo.height / 2) * devicePixelRatio,
       };
-      drawArrow(dependencyCtx, position, sourceColor, targetColor);
+      drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
       drawEvent([event.drawData, sourceEvent.drawData], dependencyCtx);
+      drawEventText([event.drawData, sourceEvent.drawData], dependencyCtx);
     }
   }
 };
 
 const drawThreadSeparators = (ctx, process, processKey) => {
-  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-  const devicePixelRatio = window.devicePixelRatio || 1;
-
-  let threadY = 0;
   const threadKeys = Array.from(process.threads.keys());
 
   for (let i = 0; i < threadKeys.length; i++) {
     const threadKey = threadKeys[i];
     const thread = process.threads.get(threadKey);
+    const key = thread.isCounter ? thread.threadName : thread.tid;
 
-    const threadHeight = thread.isCounter 
-      ? layout.counterHeight 
-      : layout.threadHeight * (lane2line.get(`${processKey}@${thread.tid}`) || 1);
+    const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+    const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
 
     const separatorY = threadY + threadHeight;
 
     // 对齐到像素边界, 需要保证逻辑坐标alignedY * devicePixelRatio为整数
     thread.bottomY = Math.floor(separatorY * devicePixelRatio) / devicePixelRatio;
-
-    threadY += threadHeight;
   }
 
   ctx.strokeStyle = colorCfg.splitLineColor;
@@ -680,11 +817,23 @@ const drawThreadSeparators = (ctx, process, processKey) => {
 };
 
 const drawCounterThread = (thread, ctx, threadY) => {
+  thread.drawData = [];
+  
+  // 预计算常量，避免重复计算
   const argKey = thread.argKey;
-  const maxHight = layout.counterHeight * 2 / 3;
+  const counterHeight = layout.counterHeight;
+  const maxHeight = counterHeight * 2 / 3;
   const maxCount = thread.maxCount;
   const segment = 10; // 分段
-  const countPerHeight = maxHight / segment;
+  const countPerHeight = maxHeight / segment;
+  const processLabelWidth = layout.processLabelWidth;
+  const offsetX = viewState.offsetX;
+  const canvasWidth = viewState.canvasWidth;
+  const canvasCssWidth = viewState.canvasCssWidth;
+  
+  // 预计算基础坐标
+  const baseY = threadY + counterHeight;
+  const segmentStep = maxCount ? maxCount / segment : 0;
   
   ctx.beginPath();
   ctx.strokeStyle = '#4aaad6ff';
@@ -692,53 +841,78 @@ const drawCounterThread = (thread, ctx, threadY) => {
 
   let lastSegment = undefined;
   let lastLineX = undefined;
-  let lastLineY = threadY + layout.counterHeight;
+  let lastLineY = baseY;
   let targetY = lastLineY;
 
   ctx.moveTo(0, lastLineY);
+  thread.drawData.push([0, lastLineY]);
 
   for (const event of thread.events) {
-    const x = timeToX(event.ts) - layout.processLabelWidth;
-    if (x < viewState.offsetX || x > viewState.canvasWidth) {
+    const x = timeToX(event.ts) - processLabelWidth;
+    
+    if (x < offsetX || x > canvasWidth) {
       break;
     }
+    
     const size = event.args[argKey];
-    const currentSegment = maxCount ? Math.floor(size / (maxCount / segment)) : 0;
-    targetY = threadY + layout.counterHeight - countPerHeight * currentSegment;
-    if (lastSegment === undefined || currentSegment !== lastSegment ) {
+    const currentSegment = maxCount ? Math.floor(size / segmentStep) : 0;
+    targetY = baseY - countPerHeight * currentSegment;
+    
+    if (lastSegment === undefined || currentSegment !== lastSegment) {
       ctx.lineTo(x, lastLineY);
+      thread.drawData.push([x, lastLineY]);
       ctx.lineTo(x, targetY);
+      thread.drawData.push([x, targetY]);
       lastSegment = currentSegment;
       lastLineX = x;
       lastLineY = targetY;
     }
   }
 
-  ctx.lineTo(viewState.canvasCssWidth, targetY);
+  ctx.lineTo(canvasCssWidth, targetY);
+  thread.drawData.push([canvasCssWidth, targetY]);
   ctx.stroke();
   ctx.closePath();
 };
 
-const drawEventThread = (thread, ctx, threadY) => {
+const drawEventThread = (thread, ctx, threadY, processKey) => {
   // 绘制线程事件
   let eventDatas = [];
   let previousEventData = null;
+  
+  // 预计算常量，避免在循环中重复计算
+  const { threadHeight, eventHeight } = layout;
+  const halfThreadHeight = threadHeight / 2;
+  const baseY = threadY - halfThreadHeight; // 基础Y坐标
+  const halfEventHeight = eventHeight / 2;
+  
+  // 预创建 drawData 模板，避免重复对象创建
+  const createDrawData = () => ({
+    rectX: 0, rectY: 0, eventWidth: 0, height: 0, 
+    rectColor: '', strokeColor: '', text: '', 
+    textX: 0, textY: 0, fontColor: '', show: true
+  });
+  
   for (const event of thread.events) {
     // 冲突处理：将渲染时间后移1个单位以避免重叠
-    const hasTimeConflict = thread.isFakeCore && previousEventData && previousEventData.renderStartTime >= event.renderStartTime;
-    if(hasTimeConflict){
+    const hasTimeConflict = thread.isFakeCore && previousEventData && previousEventData.renderEndTime > event.renderStartTime;
+    if (hasTimeConflict){
       // 冲突处理：将渲染时间后移1个单位
-      const newRenderStartTime = event.startTime + 1;
+      const newRenderStartTime = event.renderEndTime + 1;
       event.renderStartTime = newRenderStartTime;
       event.renderEndTime = newRenderStartTime + 1;
     }
-    const drawData = {rectX: 0, rectY: 0, eventWidth: 0, height: 0, rectColor: '', strokeColor: '', text: '', textX: 0, textY: 0, fontColor: ''};
-    const y = threadY + layout.threadHeight * ((event.line || 0) + 1) - layout.threadHeight / 2;
-    if (getDrawData(ctx, event, y, drawData)) {
+    
+    const lineOffset = (event.line || 0) + 1;
+    const y = baseY + threadHeight * lineOffset;
+    const eventY = y - halfEventHeight;
+    
+    const drawData = createDrawData();
+    if (getDrawData(ctx, event, eventY, drawData, processKey)) {
       event.drawData = drawData;
       eventDatas.push(drawData);
     } else {
-      event.drawData = null;
+      continue;
     }
     previousEventData = event;
   }
@@ -746,7 +920,6 @@ const drawEventThread = (thread, ctx, threadY) => {
 };
 
 const getEventColor = (event, highlight=false, stroke=true) => {
-  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
   let fontColor = colorCfg.eventFont;
@@ -771,111 +944,200 @@ const getEventColor = (event, highlight=false, stroke=true) => {
   return colors;
 };
 
-const getDrawData = (ctx, event, y, drawData) => {
+// 全部的节点数据包括坐标和初始颜色
+const getDrawData = (ctx, event, eventY, drawData, processKey) => {
+  const { processLabelWidth, eventHeight } = layout;
   if (!ctx || !ctx.canvas) {
     console.warn('Canvas context not available for drawing event');
     return false;
   }
-  const x = timeToX(event.renderStartTime) - layout.processLabelWidth;
-  let width;
-  let height;
-
-  width = Math.max(1, durationToWidth(event.duration));
-  height = layout.eventHeight;
-  const eventX = x;
-  const eventY = y - height / 2;
+  
+  const x = timeToX(event.renderStartTime) - processLabelWidth;
+  const width = durationToWidth(event.duration);
   const eventWidth = event.isFakeCore ? 1 : width;
+  
   // 存储事件的位置信息，用于点击检测
   event.renderInfo = {
-    x: eventX,
+    x: x,
     y: eventY,
     width: eventWidth,
-    height: height,
-    processKey: ctx.canvas.dataset.processKey || ctx.canvas.dataset.hoverProcessKey
+    height: eventHeight,
+    processKey: processKey,
   };
-
-  // 检查事件是否在可视区域内
-  if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
-    return false;
-  }
 
   const colors = getEventColor(event);
   const { fillColor, fontColor, strokeColor } = colors;
 
-  // 确保宽度和高度为正值
-  if (eventWidth <= 0 || height <= 0) {
-    return false;
-  }
-  drawData.rectX = eventX;
+  // 直接赋值，避免重复访问
+  drawData.rectX = x;
   drawData.rectY = eventY;
+  drawData.rectPixelX = x * devicePixelRatio;
+  drawData.rectPixelY = eventY * devicePixelRatio;
   drawData.eventWidth = eventWidth;
-  drawData.height = height;
+  drawData.height = eventHeight;
   drawData.rectColor = fillColor;
   drawData.strokeColor = strokeColor;
   drawData.fontColor = fontColor;
 
-  const textX = event.renderInfo.x;
-  let actualWidth = textX >= 0 ? width : width + textX;
-  if (actualWidth < 15) {
-    return true;
-  }
-  fillTextInfo(event, ctx, actualWidth, drawData);
   return true;
 };
 
-const fillTextInfo = (event, ctx, width, drawData) => {
-  if (event.isFakeCore) return;
-  const displayName = event.isCounter ? event.displayName || event.name : event.name;
-  ctx.font = getFontStyle(eventTextSize);
-  let textWidth = event.textWidth || ctx.measureText(displayName).width; // 这里测量一次，后续不用再测量了，用getTextWidth在苹果电脑上测量不准确
-  event.textWidth = textWidth;
-  const widthPerChar = textWidth / displayName.length;
+const updateProcessDrawData = (process, processKey) => {
+  if (!processExpanded.get(processKey)) {
+    return;
+  }
+  for (const [threadKey, thread] of process.threads.entries()) {
+    for (const event of thread.events) {
+      const { drawData } = event;
+      const colors = getEventColor(event);
+      const { fillColor, fontColor, strokeColor } = colors;
+      drawData.rectColor = fillColor;
+      drawData.strokeColor = strokeColor;
+      drawData.fontColor = fontColor;
+    }
+  }
+};
 
-  let maxCharsToFit = Math.floor(width / widthPerChar);
+// 调用之前需确认画布已还原成初始状态
+const fillTextInfo = (event, ctx, width, drawData) => {
+  if (event.isFakeCore) return false;
   
+  // 预计算常量，避免重复计算
+  const { scale, offsetX } = viewState;
+  const absOffsetX = Math.abs(offsetX);
+  
+  const actualRectX = drawData.rectX * scale;
+  const actualRectEndX = actualRectX + width * scale;
+  const isSplit = actualRectX < absOffsetX;
+  const actualWidth = isSplit ? actualRectEndX - absOffsetX : width * scale;
+  
+  if (actualWidth < 15) {
+    drawData.text = '';
+    return false;
+  }
+
+  const actualPixWidth = actualWidth * devicePixelRatio;
+  let { name: displayName, textWidth } = event;
+  if (textWidth === undefined) {
+    textWidth = ctx.measureText(displayName).width; // 这里测量一次，是像素宽度，后续不用再测量了，用getTextWidth在苹果电脑上测量不准确
+    event.textWidth = textWidth;
+  }
+
   let displayText = '';
-  if (textWidth >= width && maxCharsToFit > 3) {
-    maxCharsToFit -= 3;
-    displayText = displayName.substr(0, maxCharsToFit) + '...';
-    textWidth = ctx.measureText(displayText).width;
-  } else if (textWidth < width) {
+  if (textWidth > actualPixWidth) {
+    const widthPerChar = textWidth / displayName.length;
+    let maxCharsToFit = Math.floor(actualPixWidth / widthPerChar);
+    if (maxCharsToFit > 3) {
+      maxCharsToFit -= 3;
+      displayText = displayName.substr(0, maxCharsToFit) + '...';
+      textWidth = widthPerChar * displayText.length;
+    } else {
+      drawData.text = '';
+      return false;
+    }
+  } else {
     displayText = displayName;
   }
 
-  const textX = event.renderInfo.x;
-  let textStartX = textX + (width - textWidth) / 2;
-  if (textX < 0) {
-    textStartX = (width - textWidth) / 2;
+  // 优化文本位置计算
+  let textStartX = 0;
+  const textWidthDiff = actualPixWidth - textWidth;
+  
+  if (isSplit) {
+    textStartX = textWidthDiff / 2;
+  } else {
+    textStartX = (offsetX + actualRectX) * devicePixelRatio + textWidthDiff / 2;
   }
+
   drawData.text = displayText;
   drawData.textX = textStartX;
-  drawData.textY = drawData.rectY + eventTextSize;
+  drawData.textY = drawData.rectPixelY + eventTextSize;
+  return true;
 };
 
 const drawEvent = (eventDatas, ctx, isDimmed=false) => {
-  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
   for (const drawData of eventDatas) {
     if (!drawData) {
       continue;
     }
+    let width;
+    if (drawData.eventWidth < viewState.minWidth) {
+      width = viewState.minWidth;
+    } else {
+      width = drawData.eventWidth;
+    }
     ctx.fillStyle = isDimmed ? colorCfg.eventRectNoColor : drawData.rectColor;
     ctx.strokeStyle = drawData.strokeColor;
     ctx.beginPath();
-    if (drawData.eventWidth < 4) {
-      ctx.rect(drawData.rectX, drawData.rectY, drawData.eventWidth, drawData.height);
-    } else {
-      ctx.roundRect(drawData.rectX, drawData.rectY, drawData.eventWidth, drawData.height, 4);
-    }
+    ctx.rect(drawData.rectX, drawData.rectY, width, drawData.height);
     ctx.fill();
-    if (drawData.strokeColor) ctx.stroke();
+    if (drawData.strokeColor && width * viewState.scale > 10) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
 
-    if (drawData.text) {
-      ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : drawData.fontColor;
-      ctx.font = getFontStyle(eventTextSize);
-      ctx.textRenderingOptimization = 'optimizeLegibility';
+const drawEventText = (drawDatas, ctx, isDimmed=false) => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const { show, text, textX, textY, fontColor } of drawDatas) {
+    if (!show || !text) { continue };
+    ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : fontColor;
+    ctx.font = getFontStyle(eventTextSize);
+    ctx.textRenderingOptimization = 'optimizeLegibility';
+    ctx.fillText(text, textX, textY);
+  }
+
+  ctx.restore();
+};
+
+const renderProcessText = (process, ctx) => {
+  ctx.font = getFontStyle(eventTextSize);
+  ctx.textRenderingOptimization = 'optimizeLegibility';
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const selectedEventId = selectEvent.value ? selectEvent.value.id : null;
+  const selectedDep = selectEvent.value ? [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors] : [];
+  const isHighlighting = highlightedPaths.size > 0;
+
+  for (const [threadKey, thread] of process.threads.entries()) {
+    if (thread.isCounter) {
+      break;
+    }
+    // 批量处理事件，减少重复的样式设置
+    const visibleEvents = [];
+    for (const event of thread.events) {
+      const { drawData } = event;
+      if (!drawData || !drawData.show) {
+        continue;
+      }
+      
+      // 预计算文本信息，避免在循环中重复调用
+      fillTextInfo(event, ctx, drawData.eventWidth, drawData);
+      if (!drawData.text) { continue };
+      
+      visibleEvents.push({ event, drawData });
+    }
+    
+    // 批量渲染文本，减少样式切换
+    for (const { event, drawData } of visibleEvents) {
+      const isSelf = selectedEventId === event.id;
+      
+      // 优化颜色判断逻辑
+      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+      if (isHighlighting && !isSelf && !hasCurrent) {
+        ctx.fillStyle = colorCfg.eventFontNoColor;
+      } else {
+        ctx.fillStyle = drawData.fontColor;
+      }
+
       ctx.fillText(drawData.text, drawData.textX, drawData.textY);
     }
   }
+  ctx.restore();
 };
 
 const showTooltip = (e, event, canvasRef) => {
@@ -935,30 +1197,37 @@ const clearDrawConnector = (ctx, processKey) => {
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
     uiCtx.lineWidth = 1;
     const {x ,y , width, height} = altClickData.preData.renderInfo;
-    strokeRoundRect(uiCtx, x, y, width,height, 4);
+    strokeRoundRect(uiCtx, x, y, width,height);
   }
+
+  const getNoZoomX = (x) => { return viewState.offsetX + (x * viewState.scale) };
+
   const drawConnector = (ctx, largeSpacing) => {
     const rect = calculateRect(ctx , largeSpacing);
     // 填充矩形
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
     ctx.beginPath();
-    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+    const x = getNoZoomX(rect.x);
+    ctx.roundRect(x, rect.y, rect.width * viewState.scale, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.font = getFontStyle(9);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
+    const centerX = getNoZoomX(rect.x + rect.width / 2);
     const centerY = rect.y + rect.height / 2;
     ctx.fillText(rect.text, centerX, centerY);
     // 绘制双向箭头
-    if(largeSpacing){
+    if (largeSpacing){
       drawDoubleArrow(rect, ctx);
     } else {
       drawDistanceSelectionBox(ctx);
     }
+    ctx.restore();
   };
   const drawDiffConnector = (ctx, largeSpacing) => {
     const rect = calculateDiffRect(largeSpacing);
@@ -966,6 +1235,8 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
     ctx.beginPath();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
@@ -980,42 +1251,46 @@ const clearDrawConnector = (ctx, processKey) => {
       return;
     }
     // 绘制线水平实线部分
+    const {offsetX, scale} = viewState;
     ctx.beginPath();
     const {x: preX, y: preY, width: preWidth, height: preHeight}  = altClickData.preData.renderInfo;
     const {x: lastX, y: lastY}  = altClickData.lastData.renderInfo;
     const leftLineWidth = lastX;
     const leftLineHeight = preY + preHeight /2;
-    ctx.moveTo(preX + preWidth, leftLineHeight ); 
-    ctx.lineTo(leftLineWidth, leftLineHeight);
+    ctx.moveTo(offsetX + (preX + preWidth) * scale, leftLineHeight ); 
+    ctx.lineTo(offsetX + leftLineWidth * scale, leftLineHeight);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
     // 左侧箭头头部
     const arrowSize = 8;
     ctx.beginPath();
-    ctx.moveTo(preX + preWidth, preY + preHeight /2);
-    ctx.lineTo(preX + preWidth + arrowSize, leftLineHeight - arrowSize / 2);
-    ctx.lineTo(preX + preWidth + arrowSize, leftLineHeight + arrowSize / 2);
+    const arrowLeftStartX = offsetX + (preX + preWidth) * scale;
+    ctx.moveTo(arrowLeftStartX, preY + preHeight /2);
+    ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight - arrowSize / 2);
+    ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight + arrowSize / 2);
     ctx.closePath();
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
     // 垂直虚线部分（从水平线末端垂直延伸到第二个节点）
     ctx.beginPath();
     ctx.setLineDash([5, 3]);
-    ctx.moveTo(lastX, preY + preHeight /2);
-    ctx.lineTo(lastX, lastY + preHeight /2);
+    ctx.moveTo(offsetX + lastX * scale, preY + preHeight /2);
+    ctx.lineTo(offsetX + lastX * scale, lastY + preHeight /2);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.setLineDash([]);
     // 右侧箭头头部
     ctx.beginPath();
-    ctx.moveTo(lastX , preY + preHeight /2);
-    ctx.lineTo(lastX - arrowSize + 1, leftLineHeight - arrowSize / 2);
-    ctx.lineTo(lastX - arrowSize + 1, leftLineHeight + arrowSize / 2);
+    const arrowRightStartX = offsetX + lastX * scale;
+    ctx.moveTo(arrowRightStartX , preY + preHeight /2);
+    ctx.lineTo(arrowRightStartX-  arrowSize, leftLineHeight - arrowSize / 2);
+    ctx.lineTo(arrowRightStartX-  arrowSize, leftLineHeight + arrowSize / 2);
     ctx.closePath();
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
+    ctx.restore();
   };
   const drawDistanceSelectionBox = (ctx) =>{
     const {x: preX, y: preY, width: preWidth, height: preHeight } = altClickData.preData.renderInfo;
@@ -1025,7 +1300,7 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.beginPath();
     ctx.lineWidth = 1;
-    ctx.roundRect(preX + preWidth + 1, preY - 2, lastX - (preX + preWidth + 2) , preHeight + 4, 4);
+    ctx.roundRect(getNoZoomX(preX + preWidth) + 1, preY - 2, (lastX - (preX + preWidth)) * viewState.scale, preHeight + 4, 4);
     ctx.fill();
     ctx.stroke();
   };
@@ -1034,10 +1309,10 @@ const clearDrawConnector = (ctx, processKey) => {
     const arrowSize = 8;
   
     // 左侧箭头（指向左边）
-    const leftLineWidth = rect.x - rect.arrowWidth ;
-    const rightLineWidth = rect.x + rect.width + rect.arrowWidth ;
+    const actLeft = getNoZoomX(rect.leftX);
+    const leftLineWidth = actLeft + arrowSize - 2;
     ctx.beginPath();
-    ctx.moveTo(rect.x, rect.centerY); 
+    ctx.moveTo(getNoZoomX(rect.x), rect.centerY); 
     ctx.lineTo(leftLineWidth, rect.centerY);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
@@ -1053,8 +1328,9 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fill();
   
     // 右侧箭头（指向右边）
+    const rightLineWidth = getNoZoomX(rect.rightX) - arrowSize + 2;
     ctx.beginPath();
-    ctx.moveTo(rect.x + rect.width, rect.centerY);
+    ctx.moveTo(getNoZoomX(rect.x + rect.width), rect.centerY);
     ctx.lineTo(rightLineWidth , rect.centerY);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
@@ -1069,6 +1345,8 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
   };
+
+
   // 计算矩形位置
   const calculateRect = (ctx, largeSpacing) => {
     let { x: preX, width: preWidth, y: preY, height: preHeight } = altClickData.preData.renderInfo;
@@ -1076,21 +1354,25 @@ const clearDrawConnector = (ctx, processKey) => {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
       }
     const { x: lastX } = altClickData.lastData.renderInfo;
-    const width = 40;
+    const width = 40 / viewState.scale;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
+    const leftX = preX + preWidth;  // 连线左端点
+    const rectX = leftX + (lastX - leftX - width) / 2;
     return {
-      x: (preX + preWidth) + (lastX - (preX + preWidth) - width) / 2,
+      leftX: leftX,
+      rightX: lastX,
+      x: rectX,
       y: preY,
       width: width,
       height: height,
-      centerX: (preX + preWidth) + (lastX - (preX + preWidth) - width) / 2 + (width / 2 - text.length) / 2,
+      centerX: rectX + (width / 2 - text.length) / 2,
       centerY: centerY,
-      textX: (preX + preWidth) + (lastX - (preX + preWidth) - width) / 2 + (width / 2 - text.length) / 2,
+      textX: rectX + (width / 2 - text.length) / 2,
       textY: centerY + 3,
       text: text,
-      arrowWidth: (lastX - (preX + preWidth) - width - 6) / 2
+      arrowWidth: (lastX - leftX - width - 6) / 2
     };
   };
   
@@ -1141,7 +1423,7 @@ const clearDrawConnector = (ctx, processKey) => {
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
     uiCtx.lineWidth = 1;
     const {x ,y , width, height} = event.renderInfo;
-    strokeRoundRect(uiCtx, x, y, width,height, 4);
+    strokeRoundRect(uiCtx, x, y, width,height);
     if(altClickData.preData && altClickData.lastData){
       const { renderInfo: preRenderInfo } = altClickData.preData;
       const { renderInfo: lastRenderInfo } = altClickData.lastData;
@@ -1193,15 +1475,14 @@ const clearDrawConnector = (ctx, processKey) => {
       }
     }
   }
-  const strokeRoundRect = (ctx , x, y, width,height, radius) => {
+  const strokeRoundRect = (ctx , x, y, width,height) => {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + width, y ,x + width, y + height, radius);
-    ctx.arcTo(x + width, y + height ,x , y + height, radius);
-    ctx.arcTo(x , y + height ,x , y, radius);
-    ctx.arcTo(x , y ,x + width , y, radius);
+    ctx.rect(getNoZoomX(x), y, width * viewState.scale, height);
     ctx.closePath();
     ctx.stroke();
+    ctx.restore();
   }
 const renderEvents = () => {
   renderProcessEvents(props.process, props.processKey);
@@ -1228,12 +1509,15 @@ const drawEventLine = (x, color, flag) => {
         canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
       }
       let ctx = canvasRef.getContext('2d');
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvasRef.height);
       ctx.stroke();
+      ctx.restore();
     }
   }
 }
@@ -1254,6 +1538,7 @@ const eraseEventLine = (flag) => {
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
+  renderProcessText,
   resizeCanvas,
   renderEvents,
   realCoordinateY,
@@ -1264,10 +1549,25 @@ addChildContext('threadEvent', {
   drawEventLine,
   eraseEventLine,
   getOffset,
+  transformEvents,
 });
-  
+
+// 每个事件画布都会走一遍
 watch(isDarkTheme, () => {
-  renderEvent();
+  colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  updateProcessDrawData(props.process, props.processKey);
+  const ctxInfo = ctxs[props.processKey];
+  if (!ctxInfo) return;
+  for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
+    ctx.save();
+    ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
+  }
+  if (processExpanded.get(props.processKey)) {
+    transformEvents(props.process, props.processKey);
+    const ctx = ctxInfo.eventCtx;
+    renderProcessText(props.process, ctx);
+  }
+  drawDependencyLines(props.process, props.processKey, viewState.depMode);
 });
 
 onUnmounted(() => {

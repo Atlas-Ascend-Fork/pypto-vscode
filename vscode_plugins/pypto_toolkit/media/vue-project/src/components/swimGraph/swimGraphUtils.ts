@@ -31,7 +31,55 @@ export const DEP_MODE = {
 };
 
 export let ctxs: any = {};
+export let devicePixelRatio = window.devicePixelRatio || 1;
 export const FAKE_CORE_KEYWORD = 'Fake Core';
+export const threadCache = new Map<string, { height: number; startY: number }>();
+
+export const getThreadHeight = (processKey: string, threadKey: any, lane2line: Map<string, number>, layout: any, isCounter: boolean = false): number => {
+  const cacheKey = `${processKey}@${threadKey}@${isCounter}`;
+  
+  if (threadCache.has(cacheKey)) {
+    return threadCache.get(cacheKey)!.height;
+  }
+  
+  let height = 0;
+  if (isCounter) {
+    height = layout.counterHeight;
+  } else {
+    const lineCount = lane2line.get(`${processKey}@${threadKey}`) || 1;
+    height = layout.threadHeight * lineCount;
+  }
+  
+  if (!threadCache.has(cacheKey)) {
+    threadCache.set(cacheKey, { height, startY: 0 });
+  } else {
+    threadCache.get(cacheKey)!.height = height;
+  }
+  
+  return height;
+};
+
+// 普通event threadKey是tid, counter的是threadName
+export const getThreadStartY = (process: any, processKey: any, threadKey: string, lane2line: Map<string, number>, layout: any): number => {
+  const cacheKey = `${processKey}@${threadKey}@startY`;
+  
+  if (threadCache.has(cacheKey)) {
+    return threadCache.get(cacheKey)!.startY;
+  }
+  
+  let threadY = 0;
+  for (const [_, thread] of process.threads.entries()) {
+    const key = thread.isCounter ? 'threadName' : 'tid';
+    if (thread[key] === threadKey) {
+      break;
+    }
+    threadY += getThreadHeight(processKey, threadKey, lane2line, layout, thread.isCounter);
+  }
+  
+  threadCache.set(cacheKey, { height: 0, startY: threadY });
+  return threadY;
+};
+
 export const calculateLine = (event, lable2lines) => {
   const isFakeCore = event.threadName.includes(FAKE_CORE_KEYWORD);
   const label = `${event.pid}@${event.tid}`;
@@ -61,7 +109,9 @@ export const calculateDuration = (eventTasks, processedTasks) => {
   let taskIndex = 0;
   while (taskIndex <= eventTasks.length - 1) {
     const tStart = eventTasks[taskIndex];
+    const isFakeCore = tStart.threadName && tStart.threadName.includes(FAKE_CORE_KEYWORD);
     if (tStart.ph.toUpperCase() === 'X') {
+      const dur = isFakeCore ? 1 : tStart.dur;
       const event = {
         ...tStart,
         id: `event_${tStart.originalIndex}`,
@@ -69,7 +119,7 @@ export const calculateDuration = (eventTasks, processedTasks) => {
         endTime: tStart.ts + tStart.dur,
         renderStartTime: tStart.ts,
         renderEndTime: tStart.ts + tStart.dur,
-        duration: tStart.dur,
+        duration: dur,
         isCounter: false,
         dependencies: {
           predecessors: [],
@@ -83,14 +133,15 @@ export const calculateDuration = (eventTasks, processedTasks) => {
     const tEnd = eventTasks[taskIndex + 1];
 
     if (tEnd && tStart.id === tEnd.id && tStart.ph.toUpperCase() === 'B' && tEnd.ph.toUpperCase() === 'E') {
+      const dur = isFakeCore ? 1 : tEnd.ts - tStart.ts;
       const processedEvent = {
         ...tStart,
         id: `event_${tStart.originalIndex}`,
         startTime: tStart.ts,
         endTime: tEnd.ts,
-        duration: tEnd.ts - tStart.ts,
+        duration: dur,
         renderStartTime: tStart.ts,
-        renderEndTime: tEnd.ts,
+        renderEndTime: tStart.ts + dur,
         isCounter: false,
         dependencies: {
           predecessors: [],
@@ -212,8 +263,10 @@ export const findEvent = (eventsList, timestamp) => {
   return null;
 };
 
-export const drawArrow = (ctx: any, position: any, startColor: string, endColor: string) => {
+export const drawArrow = (ctx: any, position: any, startColor: string, endColor: string, scale=1, translate=0) => {
   let { startX, startY, endX, endY } = position;
+  startX *= scale;
+  endX *= scale;
   let cp1x = startX;
   let cp1y = startY;
   let cp2x = endX;
@@ -245,10 +298,11 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
   const gradient = ctx.createLinearGradient(startX, startY, endXLine, endY);
   gradient.addColorStop(0, startColor);
   gradient.addColorStop(1, endColor);
-
+  
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, translate * devicePixelRatio, 0);
   ctx.strokeStyle = gradient;
-  const scaleX = ctx.width / parseFloat(getComputedStyle(ctx.canvas).width);
-  ctx.lineWidth = 2 * scaleX;
+  ctx.lineWidth = 2 * devicePixelRatio;
   ctx.beginPath();
   ctx.moveTo(startX, startY);
   ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endXLine, endY);
@@ -277,6 +331,7 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
 
   ctx.fillStyle = endColor;
   ctx.fill();
+  ctx.restore();
 };
 
 export const mkTraceData = (processedEvents, processes, processExpanded, traceData, counterEvents, lane2line) => {
@@ -459,9 +514,7 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
   const canvasWidth = availableWidth - layout.processLabelWidth - layout.marginRight;
   let canvasHeight = 0;
   for (const [threadKey, thread] of process.threads.entries()) {
-    const label = `${processKey}@${thread.tid}`;
-    const lineCount = lane2line.get(label) || 1;
-    canvasHeight += layout.threadHeight * lineCount;
+    canvasHeight += getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
   }
   for (const key of Object.keys(processCtxs)) {
     if (processCtxs[key]) {
