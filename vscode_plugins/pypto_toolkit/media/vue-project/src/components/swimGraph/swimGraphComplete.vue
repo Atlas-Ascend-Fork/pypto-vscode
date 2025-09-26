@@ -382,11 +382,9 @@ const transform = () => {
   // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
-      if (window.debug) console.time(`transform process ${process.processName}`);
       childContextMap.threadEvent.transformEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
       childContextMap.threadEvent.renderProcessText(process, ctx);
-      if (window.debug) console.timeEnd(`transform process ${process.processName}`);
     }
   }
   renderDependencyLines();
@@ -405,10 +403,8 @@ const parseTime = (processedEvents) => {
 
 const renderTwoTimeline = () => {
   // 渲染两段时间轴
-  if (window.debug) console.time('renderTwoTimeline');
   renderFixedTimeline();
   renderTimeline();
-  if (window.debug) console.timeEnd('renderTwoTimeline');
 }
 
 const renderEvent = () => {
@@ -416,11 +412,9 @@ const renderEvent = () => {
   // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
-      if (window.debug) console.time(`render process ${process.processName}`);
       childContextMap.threadEvent.renderProcessEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
       childContextMap.threadEvent.renderProcessText(process, ctx);
-      if (window.debug) console.timeEnd(`render process ${process.processName}`);
     }
   }
 };
@@ -713,7 +707,7 @@ const toggleProcess = (processKey) => {
     resizeCanvases(processKey, false);
     childContextMap.threadEvent.renderProcessEvents(process, processKey);
     const ctxInfo = ctxs[processKey];
-    if (!ctxInfo) return;
+    if (!ctxInfo) { return };
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
       ctx.save();
       ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
@@ -1045,9 +1039,9 @@ const resizeCanvases = (processKey, needResizeTimeline=true) => {
     return;
   }
 
-  for (const [processKey, process] of processes.entries()) {
-    if (processExpanded.get(processKey)) {
-      updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState);
+  for (const [key, process] of processes.entries()) {
+    if (processExpanded.get(key)) {
+      updateProcessSize(process, key, containerRect, layout, lane2line, viewState);
     }
   }
 };

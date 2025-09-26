@@ -166,7 +166,7 @@ const selectEvent = (event) => {
 
 const scrollToEvent = (event) => {
   let needRender = true;
-  const eventLeftX = event.renderInfo.x * viewState.scale + viewState.offsetX;
+  const eventLeftX = (event.renderInfo.x * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
     needRender = false;

@@ -270,15 +270,15 @@ const handlekeydown = (event) => {
 
 function getCanvasRefs(processKey) {
   const canvasRef = getActiveEventCanvas(processKey);
-  if (!canvasRef) return null;
+  if (!canvasRef) { return null };
   const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
-  if (!uiCanvasRef) return null;
+  if (!uiCanvasRef) { return null };
   const hoverCanvasRef = document.querySelector(`[data-hover-process-key="${processKey}"]`);
-  if (!hoverCanvasRef) return null;
+  if (!hoverCanvasRef) { return null };
   const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${processKey}"]`);
-  if (!backgroundCanvasRef) return null;
+  if (!backgroundCanvasRef) { return null };
   const lineCanvasRef = document.querySelector(`[data-line-process-key="${processKey}"]`);
-  if (!lineCanvasRef) return null;
+  if (!lineCanvasRef) { return null };
   return {
     canvasRef,
     uiCanvasRef,
@@ -302,16 +302,16 @@ function computeLocalXY(canvasRef) {
 }
 
 function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
-  if (!(y > 0 && y < backgroundCanvasRef.offsetHeight - 1)) return;
+  if (!(y > 0 && y < backgroundCanvasRef.offsetHeight - 1)) { return };
   let threadId = 0;
   let curY = 0;
   let curId = 0;
   let curHeight = 0;
-  for (const [threadKey, thread] of props.process.threads.entries()) {
+  for (const [_, thread] of props.process.threads.entries()) {
     const threadKey = thread.isCounter ? thread.threadName : thread.tid;
     const threadY = getThreadStartY(props.process, props.processKey, threadKey, lane2line, layout);
     const threadHeight = getThreadHeight(props.processKey, threadKey, lane2line, layout, thread.isCounter);
-    if (y <= threadY){
+    if (y <= threadY) {
       break;
     }
     curY = threadY;
@@ -329,14 +329,17 @@ function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
 }
 
 function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
-  if (!(hoveredEvent && e.altKey && altClickData.preData && isMeasureFirst.value && !isMeasureFixed.value)) return false;
-  if (isMeasureChange.value && altClickData.lastData){
+  const manual = altClickData.preData && isMeasureFirst.value && !isMeasureFixed.value;
+  if (!(hoveredEvent && e.altKey && manual)) {
+    return false;
+  }
+  if (isMeasureChange.value && altClickData.lastData) {
     let temp = altClickData.preData;
     altClickData.preData = altClickData.lastData;
     altClickData.lastData = temp;
     isMeasureChange.value = false;
   }
-  if (isEqual(altClickData.preData, hoveredEvent)){
+  if (isEqual(altClickData.preData, hoveredEvent)) {
     return true; // consumed
   }
   altClickData.lastData = hoveredEvent;
@@ -346,13 +349,15 @@ function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
 }
 
 function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
-  if (!preData || !lastData || isMeasureFixed.value) return;
+  if (!preData || !lastData || isMeasureFixed.value) { return };
   const divElement = document.getElementsByClassName('swimlane-container');
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth;
   const actSpacingX = nodeSpacingX * viewState.scale;
-  if (actSpacingX <= 3) return;
+  if (actSpacingX <= 3) { return };
   const canvasCSSWidth = viewState.canvasCssWidth;
-  if(getNoZoomX(lastData?.renderInfo?.x) < (canvasCSSWidth - scrollWidth) && getNoZoomX(preData?.renderInfo?.x) + preData?.renderInfo?.width * viewState.scale > 0 ){
+  const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x);
+  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x) + (preData?.renderInfo?.width * viewState.scale);
+  if (noZoomLastX < (canvasCSSWidth - scrollWidth) && noZoomPreX > 0 ) {
     altClickData = { preData, lastData, largeSpacing: actSpacingX > nodeSpaceMin };
     drawConnector(uiCtx, altClickData.largeSpacing);
   }
@@ -373,12 +378,14 @@ function handleCtrlDragPan(e, canvasRef) {
   let cursor = null;
   if (e.ctrlKey && e.buttons === 1) {
     cursor = 'grab';
-    if (viewState.scale === 1) return cursor;
+    if (viewState.scale === 1) { return cursor };
     const timeLineEndX = Math.abs(timeLineX.value);
     const deltaX = (e.clientX - lastX);
     const cssWidth = viewState.canvasCssWidth;
-    const minOffset = cssWidth - cssWidth * viewState.scale;
-    if ((deltaX < 0 && viewState.offsetX === minOffset) || (deltaX > 0 && viewState.offsetX === 0)) {
+    const minOffset = cssWidth - (cssWidth * viewState.scale);
+    const leftLimit = deltaX < 0 && viewState.offsetX === minOffset;
+    const rightLimit = deltaX > 0 && viewState.offsetX === 0;
+    if (leftLimit || rightLimit) {
       canvasRef.style.cursor = cursor;
       return cursor;
     }
@@ -472,7 +479,7 @@ const handleMouseDown = (e) => {
 
 const getCanvasHeight = () => {
   let height = 0;
-  for (const [threadKey, thread] of props.process.threads.entries()) {
+  for (const [_, thread] of props.process.threads.entries()) {
     const threadKey = thread.isCounter ? thread.threadName : thread.tid;
     height += getThreadHeight(props.processKey, threadKey, lane2line, layout, thread.isCounter);
   }
@@ -490,7 +497,7 @@ const resizeCanvas = () => {
 const transformEvents = (process, processKey) => {
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
-  const height = eventCtx.canvas.height;
+  const { height } = eventCtx.canvas;
   for (const ctx of Object.values(ctxs[processKey])) {
     ctx.clearRect(0, 0, viewState.canvasCssWidth * viewState.scale, height);
   }
@@ -501,10 +508,9 @@ const transformEvents = (process, processKey) => {
       eventCtx.strokeStyle = '#4aaad6ff';
       eventCtx.lineWidth = 1 / viewState.scale;
 
-      const drawData = thread.drawData;
+      const { drawData } = thread;
       for (const element of drawData) {
-        const x = element[0];
-        const y = element[1];
+        const [x, y] = element;
         eventCtx.lineTo(x, y);
       }
 
@@ -513,7 +519,7 @@ const transformEvents = (process, processKey) => {
     } else if (!selectedEvent.value) {
       let eventDatas = [];
       for (const event of thread.events) {
-        const drawData = event.drawData;
+        const { drawData } = event;
         if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) {
           drawData.show = false;
           continue;
@@ -565,8 +571,8 @@ const renderProcessEvents = (process, processKey) => {
 
 const highlightThread = (process, processKey, backgroundCtx, height) => {
   if (curThread.value != '') {
-    const curProcess = curThread.value.split('-')[0];
-    const curLane = parseInt(curThread.value.split('-')[1]);
+    const [curProcess, lane] = curThread.value.split('-');
+    const curLane = parseInt(lane);
     if (curProcess == processKey) {
       let curY = 0;
       let curHeight = 0;
@@ -579,7 +585,7 @@ const highlightThread = (process, processKey, backgroundCtx, height) => {
         let thread = threads[index];
         const threadKey = thread.isCounter ? thread.threadName : thread.tid;
         curHeight = getThreadHeight(processKey, threadKey, lane2line, layout, thread.isCounter);
-        if (index >= curLane) break;
+        if (index >= curLane) { break };
         curY += curHeight;
       }
       backgroundCtx.clearRect(0, 0, viewState.canvasCssWidth, height);
@@ -664,9 +670,11 @@ const drawDependencyLines = (process, processKey, mode) => {
   dependencyCtx.lineWidth = 1;
 
   const eventMap = new Map();
-  processedEvents.value.forEach(event => {
-    eventMap.set(event.id, event);
-  });
+  for (const [threadKey, thread] of process.threads.entries()) {
+    for (const event of thread.events) {
+      eventMap.set(event.id, event);
+    }
+  }
 
   // 获取所有在路径中的相关节点（祖先 + 自身 + 子孙）
   const allRelevantIds = new Set(Array.from(highlightedPaths));
@@ -718,7 +726,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true) => {
   };
   drawEvent([drawData], ctx);
   fillTextInfo(event, ctx, width, drawData);
-  if (!drawData.text) return;
+  if (!drawData.text) { return };
   drawEventText([drawData], ctx);
 };
 
@@ -779,8 +787,6 @@ const drawPredecessor = (event, eventMap, dependencyCtx) => {
 };
 
 const drawThreadSeparators = (ctx, process, processKey) => {
-  const devicePixelRatio = window.devicePixelRatio || 1;
-
   const threadKeys = Array.from(process.threads.keys());
 
   for (let i = 0; i < threadKeys.length; i++) {
@@ -875,13 +881,10 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
   let previousEventData = null;
   
   // 预计算常量，避免在循环中重复计算
-  const threadHeight = layout.threadHeight;
+  const { threadHeight, eventHeight } = layout;
   const halfThreadHeight = threadHeight / 2;
   const baseY = threadY - halfThreadHeight; // 基础Y坐标
-  const processLabelWidth = layout.processLabelWidth;
-  const eventHeight = layout.eventHeight;
   const halfEventHeight = eventHeight / 2;
-  const devicePixelRatio = window.devicePixelRatio || 1;
   
   // 预创建 drawData 模板，避免重复对象创建
   const createDrawData = () => ({
@@ -905,7 +908,7 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     const eventY = y - halfEventHeight;
     
     const drawData = createDrawData();
-    if (getDrawData(ctx, event, eventY, drawData, processKey, processLabelWidth, eventHeight, devicePixelRatio)) {
+    if (getDrawData(ctx, event, eventY, drawData, processKey)) {
       event.drawData = drawData;
       eventDatas.push(drawData);
     } else {
@@ -942,8 +945,8 @@ const getEventColor = (event, highlight=false, stroke=true) => {
 };
 
 // 全部的节点数据包括坐标和初始颜色
-
-const getDrawData = (ctx, event, eventY, drawData, processKey, processLabelWidth, eventHeight, devicePixelRatio) => {
+const getDrawData = (ctx, event, eventY, drawData, processKey) => {
+  const { processLabelWidth, eventHeight } = layout;
   if (!ctx || !ctx.canvas) {
     console.warn('Canvas context not available for drawing event');
     return false;
@@ -985,7 +988,7 @@ const updateProcessDrawData = (process, processKey) => {
   }
   for (const [threadKey, thread] of process.threads.entries()) {
     for (const event of thread.events) {
-      const drawData = event.drawData;
+      const { drawData } = event;
       const colors = getEventColor(event);
       const { fillColor, fontColor, strokeColor } = colors;
       drawData.rectColor = fillColor;
@@ -1000,10 +1003,8 @@ const fillTextInfo = (event, ctx, width, drawData) => {
   if (event.isFakeCore) return false;
   
   // 预计算常量，避免重复计算
-  const scale = viewState.scale;
-  const offsetX = viewState.offsetX;
+  const { scale, offsetX } = viewState;
   const absOffsetX = Math.abs(offsetX);
-  const devicePixelRatio = window.devicePixelRatio || 1;
   
   const actualRectX = drawData.rectX * scale;
   const actualRectEndX = actualRectX + width * scale;
@@ -1016,8 +1017,7 @@ const fillTextInfo = (event, ctx, width, drawData) => {
   }
 
   const actualPixWidth = actualWidth * devicePixelRatio;
-  const displayName = event.name;
-  let textWidth = event.textWidth;
+  let { name: displayName, textWidth } = event;
   if (textWidth === undefined) {
     textWidth = ctx.measureText(displayName).width; // 这里测量一次，是像素宽度，后续不用再测量了，用getTextWidth在苹果电脑上测量不准确
     event.textWidth = textWidth;
@@ -1083,13 +1083,12 @@ const drawEvent = (eventDatas, ctx, isDimmed=false) => {
 const drawEventText = (drawDatas, ctx, isDimmed=false) => {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  for (const drawData of drawDatas) {
-    if (!drawData.show || !drawData.text) continue;
-    ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : drawData.fontColor;
+  for (const { show, text, textX, textY, fontColor } of drawDatas) {
+    if (!show || !text) { continue };
+    ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : fontColor;
     ctx.font = getFontStyle(eventTextSize);
     ctx.textRenderingOptimization = 'optimizeLegibility';
-    const textX = drawData.textX;
-    ctx.fillText(drawData.text, textX, drawData.textY);
+    ctx.fillText(text, textX, textY);
   }
 
   ctx.restore();
@@ -1111,14 +1110,14 @@ const renderProcessText = (process, ctx) => {
     // 批量处理事件，减少重复的样式设置
     const visibleEvents = [];
     for (const event of thread.events) {
-      const drawData = event.drawData;
+      const { drawData } = event;
       if (!drawData || !drawData.show) {
         continue;
       }
       
       // 预计算文本信息，避免在循环中重复调用
       fillTextInfo(event, ctx, drawData.eventWidth, drawData);
-      if (!drawData.text) continue;
+      if (!drawData.text) { continue };
       
       visibleEvents.push({ event, drawData });
     }
@@ -1128,7 +1127,8 @@ const renderProcessText = (process, ctx) => {
       const isSelf = selectedEventId === event.id;
       
       // 优化颜色判断逻辑
-      if (isHighlighting && !isSelf && !highlightedPaths.has(event.id) && !selectedDep.includes(event.id)) {
+      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+      if (isHighlighting && !isSelf && !hasCurrent) {
         ctx.fillStyle = colorCfg.eventFontNoColor;
       } else {
         ctx.fillStyle = drawData.fontColor;
@@ -1200,7 +1200,7 @@ const clearDrawConnector = (ctx, processKey) => {
     strokeRoundRect(uiCtx, x, y, width,height);
   }
 
-  const getNoZoomX = (x) => {return viewState.offsetX + x * viewState.scale};
+  const getNoZoomX = (x) => { return viewState.offsetX + (x * viewState.scale) };
 
   const drawConnector = (ctx, largeSpacing) => {
     const rect = calculateRect(ctx , largeSpacing);
