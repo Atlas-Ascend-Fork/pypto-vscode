@@ -99,6 +99,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "watch": "concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
+    "watch:vscode": "tsc -watch -p ./",
     "compile": "npm run build:webview && tsc -p ./",
     "compile:vscode": "tsc -p ./",
     "dev:webview": "cd media/vue-project && npm run dev",
@@ -129,6 +131,7 @@
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
     "@types/sql.js": "^1.4.4",
+    "concurrently": "^9.2.1",
     "eslint": "^8.34.0",
     "glob": "^7.1.6",
     "husky": "^4.3.0",
