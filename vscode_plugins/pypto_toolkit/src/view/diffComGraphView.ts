@@ -5,6 +5,7 @@ import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { createReadStream } from 'fs';
 import { Util, getDiffInfo, getOtherFilePath } from '../util';
 import { getIDETheme } from '../theme';
+import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
@@ -188,10 +189,8 @@ class MsgHandler {
 
     ({ result : result, isBigFile: originIsBigFile } = await MsgHandler.getJsonData(originComGraphData, result, panel, originIsBigFile));
 
-    // result = await originComgraphData.readFileAndSetCache(originComgraphData.fsPath,panel);
     if (diffComGraphData && diffComGraphData.fsPath) {
-      // otherResult = await diffComGraphData.readFileAndSetCache(diffComGraphData.fsPath,panel);
-      ({ result : otherResult, isBigFile: diffIsBigFile } = await MsgHandler.getJsonData(originComGraphData, otherResult, panel, diffIsBigFile));
+      ({ result : otherResult, isBigFile: diffIsBigFile } = await MsgHandler.getJsonData(diffComGraphData, otherResult, panel, diffIsBigFile));
     }
     
 
@@ -214,9 +213,10 @@ class MsgHandler {
       // 延时一个宏任务规避获取ret失败
       let ret: any;
       ({ isBigFile : originIsBigFile, ret:ret } = await MsgHandler.getFuncData(originComGraphData, originIsBigFile, ret));
-      // let ret = result.data;
       let otherRet: any;
-      ({ isBigFile : diffIsBigFile, ret:otherRet } = await MsgHandler.getFuncData(originComGraphData, diffIsBigFile, otherRet));
+      if (diffComGraphData) {
+        ({ isBigFile : diffIsBigFile, ret:otherRet } = await MsgHandler.getFuncData(diffComGraphData, diffIsBigFile, otherRet));
+      }
       
       if (panel.otherFsPath) {
         if (ret && otherRet) {
@@ -482,13 +482,14 @@ export class DiffComGraphView {
       .getText()
       .replace(/{{root}}/g, webviewText)
       .replace(/{{staticPath}}/g, `${webviewText}/webview-dist`)
-      .replace(/{{ascTheme}}/g, getIDETheme());
+      .replace(/{{ascTheme}}/g, getIDETheme())
+      .replace(/{{ascLang}}/g, getIDELang());
     this.panel.webview.html = new Util().replaceHtmlFromData(replaceParams, html);
     /* 本地调试方案 */
-    // this.panel.webview.html = this.getDebugHtml(getIDETheme());
+    // this.panel.webview.html = this.getDebugHtml(getIDETheme(), getIDELang());
   }
 
-  getDebugHtml(theme: string) {
+  getDebugHtml(theme: string, lang: string) {
     return `
         <!DOCTYPE html>
         <html lang="en">
@@ -498,6 +499,7 @@ export class DiffComGraphView {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <script>
               window.ascTheme = '${theme}';
+              window.ascLang = '${lang}';
             </script>
             <script type="module" src="http://localhost:5173/src/main.ts"></script>
             <title>Vite App</title>
