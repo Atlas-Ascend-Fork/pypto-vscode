@@ -114,6 +114,7 @@ const tooltipStyle = reactive({
 });
 const bindFile = ref(false);
 const bindButton = ref($t("bindComGraphJson"));
+const cycleDisplay = ref('none');
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -1358,6 +1359,7 @@ onMounted(() => {
     postMessage({ command: 'getSwimData' });
   }
 });
+provide('swimCycleDisplay', { cycleDisplay });
 
 provide('swimGraphContext', { addChildContext });
 // 提供搜索状态

@@ -13,7 +13,8 @@
       </div>
       <div class="threads-box" v-if="thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
         :style="{'--thread-fill-width': threadFillWidth(thread.threadName) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName)) + '%', 
-          'background': threadFillWidth(thread.threadName) === 100 ? 'var(--devui-timefull-bg)' : 'initial'}">
+          'background': threadFillWidth(thread.threadName) === 100 ? 'var(--devui-timefull-bg)' : 'initial',
+          'display':cycleDisplay}">
         <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName) + '%'}"></div>
         <div class="threads-text"> {{ threadTotaltime(thread.threadName) }}</div>
         <div class="average-line" :style="{ left: averageValue + '%'}"></div>
@@ -24,7 +25,7 @@
 
 <script setup>
 import { computed, inject, ref } from 'vue';
-
+import { BigNumber } from 'bignumber.js';
 
 // 注入父组件提供的状态
 const {
@@ -39,6 +40,7 @@ const {
 } = inject('swimGraphSearch');
 
 const curThread = inject('curThread');
+const { cycleDisplay } = inject('swimCycleDisplay');
 
 // 定义props
 const props = defineProps({
@@ -59,29 +61,47 @@ const calculateThreadCycles = (allProcesses, proKey) => {
   const threadCyclesMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
   for(const [threadKey, thread] of threads) {
-    let totleCycles = 0;
+    let totleCycles = new BigNumber(0);
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
-        totleCycles += Number(event['pmu_info']['total cycle']);
+        if (!event['pmu_info']) {
+          return null;
+        }
+        totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
       }
     }
-    threadCyclesMap.set(thread.threadName, totleCycles);
+    threadCyclesMap.set(thread.threadName, totleCycles.toString());
   }
+  cycleDisplay.value = 'flex';
   return threadCyclesMap;
 };
 
 const threadCyclesMap = calculateThreadCycles(processes, props.processKey);
-const values = Array.from(threadCyclesMap.values());
-const maxThreadTime = values.length > 0 ? Math.max(...values) : 0;
-averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxThreadTime) * 100;
+let maxThreadTime = new BigNumber(0);
+if (threadCyclesMap) {
+  const values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
+  let sum = new BigNumber(0);
+  if (values.length > 0) {
+    maxThreadTime = values.reduce((max, value) => max.gt(value) ? max : value);
+    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
+    const averageBN = sum.dividedBy(values.length);
+    averageValue.value = averageBN.dividedBy(maxThreadTime).times(100).toNumber();
+  }
+}
 
 const threadTotaltime = (threadId) => {
-  return threadCyclesMap.get(threadId);
+  if (threadCyclesMap) {
+    return threadCyclesMap.get(threadId);
+  }
+  return 0;
 };
 
 const threadFillWidth = (threadId) => {
-  const currenThreadTime = threadCyclesMap.get(threadId);
-  return (currenThreadTime / maxThreadTime) * 100;
+  if (threadCyclesMap) {
+    const currenThreadTime = new BigNumber(threadCyclesMap.get(threadId));
+    return currenThreadTime.dividedBy(maxThreadTime).times(100).toNumber();
+  }
+  return 0;
 };
 
 const handleLabelHover = (threadIndex) => {

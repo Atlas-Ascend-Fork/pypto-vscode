@@ -4,9 +4,9 @@
       <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
       <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
       <span>{{ process.processName }}</span>
-      <span> {{ $t(selectedOption) }}</span>
+      <span :style="{'display':cycleDisplay}"> {{ $t(selectedOption) }}</span>
       <d-tooltip :content="$t('ddTooltip')">
-        <span class="expand-icon-mode" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
+        <span class="expand-icon-mode" :style="{'display':cycleDisplay}" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
       </d-tooltip>
       <div v-if="isDropdownVisible" class="dropdownSelect">
         <ul>
@@ -41,6 +41,7 @@ const {
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
+const { cycleDisplay } = inject('swimCycleDisplay');
 
 let dropDown = ref(`${window.staticPath}/static-assets/swim_dropDown.svg`);
 let collapse = ref(`${window.staticPath}/static-assets/swim_collapse.svg`);
