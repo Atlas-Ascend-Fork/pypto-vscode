@@ -156,7 +156,6 @@ const toggleCaseSensitivity = () => {
     onSearch(searchQuery.value);
   }
 };
-
 // 导航搜索结果
 const navigateResults = (direction) => {
   if (searchResultCount.value === 0) return;
