@@ -42,6 +42,15 @@ export function getCurrentArea(e: MouseEvent) {
   return moveArea;
 }
 
+const syncNode = new Set<String> (['SYNC_SRC', 'SYNC_DST', 'BAR.V', 'PHASE1', 'PHASE2']);
+
+function addDiffElements(eleChangeType, eleNodeType, magic, eleNodeId, diffList: any, opCode = 'Default') {
+  if (syncNode.has(opCode)) {
+    return;
+  }
+  diffList.push({ changeType: eleChangeType, nodeType: eleNodeType, magic: magic, nodeId: eleNodeId });
+}
+
 // diff双图数据对比
 export function compareJsonData(beforeData: Object, currentData: Object) {
   const BeforeOpMagicMap: Record<number, string> = {};
@@ -108,11 +117,11 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     const bop = beforeOpMap.get(cop.opmagic);
     if (!bop) {
       cop.compareType = 'add';
-      diffList.push({ changeType: 'add', nodeType: 'op', magic: cop.opmagic, nodeId: CurrentOpMagicMap[cop.opmagic] });
+      addDiffElements('add', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
     } else if (cop.opcode != bop.opcode) {
       cop.compareType = 'change';
       bop.compareType = 'change';
-      diffList.push({ changeType: 'change', nodeType: 'op', magic: cop.opmagic, nodeId: CurrentOpMagicMap[cop.opmagic] });
+      addDiffElements('change', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
     } else {
       cop.compareType = 'normal';
       bop.compareType = 'normal';
@@ -123,7 +132,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     const cop = curOpMap.get(bop.opmagic);
     if (!cop) {
       bop.compareType = 'delete';
-      diffList.push({ changeType: 'delete', nodeType: 'op', magic: bop.opmagic, nodeId: BeforeOpMagicMap[bop.opmagic] });
+      addDiffElements('delete', 'op', bop.opmagic, BeforeOpMagicMap[bop.opmagic], diffList, bop.opcode);
     }
   }
   let changeRate = diffList.length / (curOpMap.size + curTensorMap.size);
