@@ -1,5 +1,5 @@
 <template>
-  <div class="diff-header">{{ fileName }}</div>
+  <div class="diff-header" :title='fileName'>{{ fileName }}</div>
 </template>
 
 <script setup lang="ts">
@@ -21,6 +21,9 @@ const props = defineProps({
   padding: 16px;
   box-sizing: border-box;
   background: var(--devui-header-gradient-bg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   user-select: none;
 }
 </style>
