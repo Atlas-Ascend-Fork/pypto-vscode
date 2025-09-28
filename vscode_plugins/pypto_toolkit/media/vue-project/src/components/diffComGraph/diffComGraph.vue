@@ -134,7 +134,6 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
   }
 });
 
-let currentScale = 0;
 let isDragging = false;
 function onSyncOperateChange(e) {
   if (e) {
@@ -159,7 +158,6 @@ function onMouseMove(args) {
 }
 
 function onZoomChange(args) {
-  currentScale = args[0];
   if (args[4] === 'after') {
     if (syncOperate.value) {
       beforeIns?.syncDiffView([args[1], args[2], args[0]]);
@@ -174,14 +172,12 @@ function onZoomChange(args) {
   }
 }
 function onAfterMinimapZoomChange(args) {
-  currentScale = args[0];
   if (syncOperate.value) {
     beforeIns?.syncDiffView([args[1], args[2], args[0]]);
     beforeMinimapEl.value?.syncZoomChange(args);
   }
 }
 function onBeforeMinimapZoomChange(args) {
-  currentScale = args[0];
   if (syncOperate.value) {
     afterIns?.syncDiffView([args[1], args[2], args[0]]);
     afterMinimapEl.value?.syncZoomChange(args);
