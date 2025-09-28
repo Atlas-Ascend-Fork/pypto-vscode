@@ -69,6 +69,9 @@ const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
 let beforeIns;
 let afterIns;
+let lastSelectNode;
+let beforeLastSelectNode;
+let afterLastSelectNode;
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
@@ -86,10 +89,12 @@ const onDiffItemClick = (data: DiffListItem) => {
   if (data.changeType === 'add' || data.changeType === 'change') {
     afterIns.centerNodeAction([data.nodeId]);
     afterIns.selectAction([data.nodeId]);
+    lastSelectNode = { id: data.nodeId };
   }
   if (data.changeType === 'delete' || data.changeType === 'change') {
     beforeIns.centerNodeAction([data.nodeId]);
     beforeIns.selectAction([data.nodeId]);
+    lastSelectNode = { id: data.nodeId };
   }
 };
 
@@ -128,9 +133,6 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
 
 let currentScale = 0;
 let isDragging = false;
-let lastSelectNode;
-let beforeLastSelectNode;
-let afterLastSelectNode;
 function onSyncOperateChange(e) {
   if (e) {
     const beforeDeselectIds = [];
