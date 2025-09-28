@@ -1,7 +1,7 @@
 <template>
   <div class="diff-com-graph">
     <div class="diff-com-graph-header">
-      <d-checkbox v-model="syncOperate" label="同步操作" :is-show-title="false" @change="onSyncOperateChange" />
+      <d-checkbox v-model="syncOperate" :label="t('syncOperate')" :is-show-title="false" @change="onSyncOperateChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
       <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" />
