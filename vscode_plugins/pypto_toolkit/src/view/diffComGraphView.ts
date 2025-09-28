@@ -15,6 +15,7 @@ const { streamValues } = require('stream-json/streamers/StreamValues');
 const NODE_COUNT_LIMIT = 50000;
 const DATA_LENGTH_LIMIT = 62000000;const { fork } = require('child_process');
 const path = require('path');
+const fileHashMap = {};
 
 interface readFileResult {
   isBigData: boolean;
@@ -228,10 +229,15 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法继续打开子图，function.hash:[${originComGraphData.funcHash}]不存在`,
+          data: `无法打开计算图，解析数据出现异常`,
         });
         return;
       }
+      returnCalleeMap(originComGraphData, panel);
+      if (diffComGraphData) {
+        returnCalleeMap(diffComGraphData, panel);
+      }
+
       setTimeout(() => {
         const diffInfo = getDiffInfo(originComGraphData.fsPath, ret);
         if (panel.otherFsPath) {
@@ -282,6 +288,12 @@ class MsgHandler {
       // 未命中FuncData缓存
       result = await comGraphData.readFileAndSetCache(comGraphData.fsPath, panel);
       isBigFile = result.isBigData;
+    }
+    if (!fileHashMap[comGraphData.fsPath] && comGraphData.funcHashMap) {
+      fileHashMap[comGraphData.fsPath] = comGraphData.funcHashMap;
+    } else {
+      // 命中FuncData缓存
+      fileHashMap[comGraphData.fsPath] = JSON.parse(await SQLiteCache.getInstance().comGraphFileHashMapGet(comGraphData.fsPath));
     }
     return { result, isBigFile };
   }
@@ -531,3 +543,11 @@ export class DiffComGraphView {
     }
   }
 }
+function returnCalleeMap(originComGraphData: any, panel: any) {
+  const calleeMap = fileHashMap[originComGraphData.fsPath];
+  panel.webview.postMessage({
+    command: 'returnCalleeMap',
+    data: calleeMap,
+  });
+}
+
