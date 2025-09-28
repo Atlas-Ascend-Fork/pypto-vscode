@@ -24,7 +24,7 @@
 }
 
 .has-threads-box{
-  width: 50px;
+  width: 50px !important;
   text-align: left;
 }
 

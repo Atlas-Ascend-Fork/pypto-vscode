@@ -66,13 +66,14 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
+          cycleDisplay.value = 'none';
           return null;
         }
         totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
       }
       cycleDisplay.value = 'flex';
+      threadCyclesMap.set(thread.threadName, totleCycles.toString());
     }
-    threadCyclesMap.set(thread.threadName, totleCycles.toString());
   }
   return threadCyclesMap;
 };
