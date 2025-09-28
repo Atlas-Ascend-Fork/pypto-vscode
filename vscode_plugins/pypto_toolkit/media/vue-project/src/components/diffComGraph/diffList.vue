@@ -13,7 +13,7 @@
         </div>
       </template>
     </VirtualScroll>
-    <div class="toggle-icon" @click="() => (isExpand = !isExpand)">
+    <div class="toggle-icon" @click="onExpandChange">
       <i :class="[isExpand ? 'icon-chevron-left-2' : 'icon-chevron-right-2']"></i>
     </div>
   </div>
@@ -32,7 +32,7 @@ defineProps({
     default: () => [],
   },
 });
-const emits = defineEmits(['click']);
+const emits = defineEmits(['click', 'expandChange']);
 
 const { t } = useI18n();
 const isExpand = ref(true);
@@ -44,6 +44,10 @@ const IconMap = {
 const onItemClick = (data: DiffListItem) => {
   emits('click', data);
 };
+const onExpandChange = () => {
+  isExpand.value= !isExpand.value;
+  emits('expandChange', isExpand.value);
+}
 </script>
 
 <style scoped lang="scss">

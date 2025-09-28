@@ -4,7 +4,7 @@
       <d-checkbox v-model="syncOperate" :label="t('syncOperate')" :is-show-title="false" @change="onSyncOperateChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
-      <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" />
+      <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
       <div class="diff-wrap">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="beforeFileName" />
@@ -69,6 +69,7 @@ const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
 let beforeIns;
 let afterIns;
+let expandTimer: ReturnType<typeof setTimeout>;
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
@@ -80,6 +81,13 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   beforeIns.initComDocText(jsonValue, isDarkTheme.value);
   afterIns = useSprottyLoad(`sprotty-after`, 'after');
   afterIns.initComDocText(e.fileContent, isDarkTheme.value);
+};
+
+const onExpandChange = () => {
+  expandTimer = setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+    clearTimeout(expandTimer);
+  }, 300);
 };
 
 const onDiffItemClick = (data: DiffListItem) => {
