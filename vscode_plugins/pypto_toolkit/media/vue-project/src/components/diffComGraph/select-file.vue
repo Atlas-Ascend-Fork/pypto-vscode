@@ -1,15 +1,18 @@
 <template>
   <div class="select-file">
-    <d-button @click="selectFiles">选择文件</d-button>
+    <d-button @click="selectFiles">{{ t('selectFile') }}</d-button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { SelectFileChangeEventParam } from './type';
 
 const emits = defineEmits<{
   (e: 'change', param: SelectFileChangeEventParam): void;
 }>();
+
+const { t } = useI18n();
 
 const selectFiles = () => {
   return new Promise((resolve) => {

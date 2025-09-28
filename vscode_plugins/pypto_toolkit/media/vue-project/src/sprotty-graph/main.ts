@@ -280,14 +280,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   };
 
   const selectAction = async (elementIdsPara: string[]) => {
-    if (elementIdsPara.length > 0) {
-      const selectAction: SelectAction = {
-        kind: 'elementSelected',
-        selectedElementsIDs: elementIdsPara,
-        deselectedElementsIDs: [],
-      };
-      modelSource.actionDispatcher.dispatch(selectAction);
-    }
+    const selectedIds = (await modelSource.getSelection()).map((e) => e.id) as string[];
+    const selectAction: SelectAction = {
+      kind: 'elementSelected',
+      selectedElementsIDs: elementIdsPara,
+      deselectedElementsIDs: selectedIds ?? [],
+    };
+    modelSource.actionDispatcher.dispatch(selectAction);
   };
 
   const initComDocText = (jsonData: Object, isDark = true) => {
@@ -336,16 +335,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   comGraphStore.setData('renderMinimapFunc', renderMinimap);
   comGraphStore.setData('updateModelActionFunc', updateModelAction);
 
-  // 手动选中/取消选中节点
-  const selectNode = (elementIdsPara: string[], deselectIds: string[]) => {
-    const selectAction: SelectAction = {
-      kind: 'elementSelected',
-      selectedElementsIDs: elementIdsPara,
-      deselectedElementsIDs: deselectIds,
-    };
-    modelSource.actionDispatcher.dispatch(selectAction);
-  };
-
   // 同步diff双图移动
   const syncDiffView = (args) => {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
@@ -363,6 +352,5 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     getSelectedNodeId,
     setModelDirection,
     syncDiffView,
-    selectNode
   };
 }

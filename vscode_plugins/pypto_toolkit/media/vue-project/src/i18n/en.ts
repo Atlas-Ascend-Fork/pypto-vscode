@@ -63,6 +63,7 @@ export default {
     'ddTooltip': 'other measurement dimensions are being developed.',
     diffList: 'Differences List',
     syncOperate: 'Sync Operate',
+    selectFile: 'Select File',
     noCompareTips: 'There is no difference between the two graphs',
     compareLargerTips: 'The current difference between the two graphs exceeds 50%, so the comparison of differences will no longer be displayed',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',

@@ -63,6 +63,7 @@ export default {
    'ddTooltip': '其余度量维度开发中，敬请期待',
    diffList: '差异列表',
    syncOperate: '同步操作',
+   selectFile: '选择文件',
    noCompareTips: '当前两个图无差异',
    compareLargerTips: '当前两个图的差异超过50%，不再显示差异对比',
    'scaleMaxInfo': '已放大至极限，请缩小查看',

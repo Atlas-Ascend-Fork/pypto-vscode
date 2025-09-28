@@ -69,9 +69,6 @@ const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
 let beforeIns;
 let afterIns;
-let lastSelectNode;
-let beforeLastSelectNode;
-let afterLastSelectNode;
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
@@ -89,12 +86,10 @@ const onDiffItemClick = (data: DiffListItem) => {
   if (data.changeType === 'add' || data.changeType === 'change') {
     afterIns.centerNodeAction([data.nodeId]);
     afterIns.selectAction([data.nodeId]);
-    lastSelectNode = { id: data.nodeId };
   }
   if (data.changeType === 'delete' || data.changeType === 'change') {
     beforeIns.centerNodeAction([data.nodeId]);
     beforeIns.selectAction([data.nodeId]);
-    lastSelectNode = { id: data.nodeId };
   }
 };
 
@@ -135,19 +130,6 @@ let currentScale = 0;
 let isDragging = false;
 function onSyncOperateChange(e) {
   if (e) {
-    const beforeDeselectIds = [];
-    const afterDeselectIds = [];
-    if (lastSelectNode) {
-      beforeDeselectIds.push(lastSelectNode.id);
-      afterDeselectIds.push(lastSelectNode.id);
-    }
-    beforeLastSelectNode && beforeDeselectIds.push(beforeLastSelectNode.id);
-    afterLastSelectNode && afterDeselectIds.push(afterLastSelectNode.id);
-    beforeIns?.selectNode([], beforeDeselectIds);
-    afterIns?.selectNode([], afterDeselectIds);
-    lastSelectNode = undefined;
-    beforeLastSelectNode = undefined;
-    afterLastSelectNode = undefined;
     afterIns?.fitToScreenAction();
     beforeIns?.fitToScreenAction();
   }
@@ -214,19 +196,10 @@ function onMouseover() {
 function onSelectedNodeChange(args) {
   if (syncOperate.value) {
     if (args[1] === 'after') {
-      beforeIns?.selectNode(args[0] ? [args[0].id] : [], lastSelectNode ? [lastSelectNode.id] : []);
-      lastSelectNode = args[0];
+      beforeIns?.selectAction(args[0] ? [args[0].id] : []);
     }
     if (args[1] === 'before') {
-      afterIns?.selectNode(args[0] ? [args[0].id] : [], lastSelectNode ? [lastSelectNode.id] : []);
-      lastSelectNode = args[0];
-    }
-  } else {
-    if (args[1] === 'after') {
-      afterLastSelectNode = args[0];
-    }
-    if (args[1] === 'before') {
-      beforeLastSelectNode = args[0];
+      afterIns?.selectAction(args[0] ? [args[0].id] : []);
     }
   }
 }
