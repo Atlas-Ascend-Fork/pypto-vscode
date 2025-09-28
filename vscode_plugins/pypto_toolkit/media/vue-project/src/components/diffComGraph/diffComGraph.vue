@@ -151,16 +151,16 @@ function onSyncOperateChange(e) {
   }
 }
 function onMinimapMove(args, type: 'before' | 'after') {
-  onMouseMove([args[0], args[1], type]);
+  onMouseMove([args[0], args[1], args[2], type]);
 }
 function onMouseMove(args) {
   if (syncOperate.value && isDragging) {
-    if (args[2] === 'after') {
-      beforeIns?.syncDiffView([args[0], args[1], currentScale]);
+    if (args[3] === 'after') {
+      beforeIns?.syncDiffView([args[0], args[1], args[2]]);
       beforeMinimapEl.value?.updateRectPosition([args[0], args[1]]);
     }
-    if (args[2] === 'before') {
-      afterIns?.syncDiffView([args[0], args[1], currentScale]);
+    if (args[3] === 'before') {
+      afterIns?.syncDiffView([args[0], args[1], args[2]]);
       afterMinimapEl.value?.updateRectPosition([args[0], args[1]]);
     }
   }
