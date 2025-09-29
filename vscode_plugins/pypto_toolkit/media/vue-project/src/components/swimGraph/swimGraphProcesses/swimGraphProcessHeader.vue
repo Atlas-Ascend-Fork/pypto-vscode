@@ -1,25 +1,30 @@
 <template>
   <div class="process-header" @click="handleToggleProcess" :class="{'process-header-width': resetWidth}">
     <div class="process-header-label" @mouseover.stop="handleMouseOver">
-      <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
-      <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
-      <span>{{ process.processName }}</span>
-      <span :style="{'display':cycleDisplay}"> {{ $t(selectedOption) }}</span>
-      <d-tooltip :content="$t('ddTooltip')">
-        <span class="expand-icon-mode" :style="{'display':cycleDisplay}" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
-      </d-tooltip>
-      <div v-if="isDropdownVisible" class="dropdownSelect">
-        <ul>
-          <li @click="selectOption('timeCir')">{{ $t("timeCir") }}</li>
-          <li @click="selectOption('throughput')">{{ $t("throughput") }}</li>
-          <li @click="selectOption('cacheHit')">{{ $t("cacheHit") }}</li>
-          <li @click="selectOption('task')">{{ $t("task") }}</li>
-        </ul>
+      <div class="label_one">
+        <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
+        <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
+        <span>{{ process.processName }}</span>
+      </div>
+      <div class="label_two">
+        <span :style="{'display':cycleDisplay}"> {{ $t(selectedOption) }}</span>
+        <d-tooltip :content="$t('ddTooltip')">
+          <span class="expand-icon-mode" :style="{'display':'none'}" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
+        </d-tooltip>
+        <div v-if="isDropdownVisible" class="dropdownSelect">
+          <ul>
+            <li @click="selectOption('timeCir')">{{ $t("timeCir") }}</li>
+            <li @click="selectOption('throughput')">{{ $t("throughput") }}</li>
+            <li @click="selectOption('cacheHit')">{{ $t("cacheHit") }}</li>
+            <li @click="selectOption('task')">{{ $t("task") }}</li>
+          </ul>
+        </div>
       </div>
     </div>
-    <div class="process-header-line"></div>
-    <canvas class="process-header-canvas" :data-process-header-key="process.key"></canvas>
-    <canvas class="process-hover-header-canvas" :data-process-hover-header-key="process.key"></canvas>
+    <div class="process-header-line">
+      <canvas class="process-header-canvas" :data-process-header-key="process.key"></canvas>
+      <canvas class="process-hover-header-canvas" :data-process-hover-header-key="process.key"></canvas>
+    </div>
   </div>
 </template>
 
@@ -91,7 +96,7 @@ const handleMouseOver = (e) => {
 };
 
 const processHeadCanvasResize = () => {
-  const containerRect = document.querySelector('.process-header')?.getBoundingClientRect();
+  const containerRect = document.querySelector('.process-header-line')?.getBoundingClientRect();
   if (!containerRect) return;
 
   const availableWidth = containerRect.width;
@@ -125,8 +130,8 @@ const drawProcessHeadLine = (x, color, flag) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x + layout.processLabelWidth, 0);
-    ctx.lineTo(x + layout.processLabelWidth, height);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
     ctx.stroke();
   });
 }
