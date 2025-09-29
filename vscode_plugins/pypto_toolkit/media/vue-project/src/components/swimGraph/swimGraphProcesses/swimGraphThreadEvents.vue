@@ -96,6 +96,7 @@ let isMeasureFirst = ref(false);
 let isMeasureFixed = ref(false);
 // 手动测距，是否交换
 let isMeasureChange = ref(false);
+let wheelDebounceTimer;
 const handleCanvasClick = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
@@ -234,6 +235,7 @@ const matchKey = (key, configKey) => {
 }
 
 const handlekeydown = (event) => {
+  clearTimeout(wheelDebounceTimer);
   const key = event.key.toLowerCase();
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) return;
@@ -246,14 +248,32 @@ const handlekeydown = (event) => {
   if (!mouseX || !mouseY || mouseX < 0 || mouseY < 0 || mouseX > canvasCSSWidth || mouseY > canvasCSSHeight) {
     return;
   }
+  if(viewState.scale * 10 >= sliderMax.value && matchKey(key, userConfig?.value.ZoomInShortcut)) {
+    wheelDebounceTimer = setTimeout(() => {
+      postMessage($t('scaleMaxInfo'));
+    }, 100);
+    return;
+  }
+  if(viewState.scale === 1 && matchKey(key, userConfig?.value.ZoomOutShortcut)) {
+    wheelDebounceTimer = setTimeout(() => {
+      postMessage($t('scaleMinInfo'));
+    }, 100);
+    return;
+  }
   switch(true) {
     case matchKey(key, userConfig?.value.ZoomInShortcut):
       scaleCanvas(mouseX, 1 + scaleStep);
       scaleStep += scaleStepIncrement;
+      if(isMeasureFixed.value){
+        measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
+      }
       break;
     case matchKey(key, userConfig?.value.ZoomOutShortcut):
       scaleCanvas(mouseX, 1 - scaleStep);
       scaleStep += scaleStepIncrement;
+      if(isMeasureFixed.value){
+        measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
+      }
       break;
     case matchKey(key, userConfig?.value.leftmoveShortcut):
       rightmove(moveStep);
@@ -267,7 +287,11 @@ const handlekeydown = (event) => {
       break;
   }
 }
-
+const postMessage = (message) => {
+  if (window.vscode) {
+    window.vscode.postMessage({ command: 'showMessage' , paramObj: { text: message}});
+  }
+};
 function getCanvasRefs(processKey) {
   const canvasRef = getActiveEventCanvas(processKey);
   if (!canvasRef) { return null };
@@ -698,7 +722,7 @@ const drawDependencyLines = (process, processKey, mode) => {
   highlightEvent(dependencyCtx, selectedEvent.value, processKey, true);
 };
 
-const highlightEvent = (ctx, event, processKey, stroke=true) => {
+const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true) => {
   if (!event || !event.renderInfo) {
     return;
   }
@@ -724,7 +748,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true) => {
     show: true,
   };
   drawEvent([drawData], ctx);
-  fillTextInfo(event, ctx, width, drawData);
+  fillTextInfo(event, ctx, width, drawData, isTextXChange);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
 };
@@ -998,7 +1022,7 @@ const updateProcessDrawData = (process, processKey) => {
 };
 
 // 调用之前需确认画布已还原成初始状态
-const fillTextInfo = (event, ctx, width, drawData) => {
+const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   if (event.isFakeCore) return false;
   
   // 预计算常量，避免重复计算
@@ -1049,7 +1073,7 @@ const fillTextInfo = (event, ctx, width, drawData) => {
   }
 
   drawData.text = displayText;
-  drawData.textX = textStartX;
+  drawData.textX = isTextXChange ? textStartX : event.drawData.textX;
   drawData.textY = drawData.rectPixelY + eventTextSize;
   return true;
 };
@@ -1194,9 +1218,9 @@ const clearDrawConnector = (ctx, processKey) => {
     const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
     const uiCtx = uiCanvasRef.getContext('2d');
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
-    uiCtx.lineWidth = 1;
+    uiCtx.lineWidth = 2;
     const {x ,y , width, height} = altClickData.preData.renderInfo;
-    strokeRoundRect(uiCtx, x, y, width,height);
+    strokeRoundRect(uiCtx, x, y, width,height, altClickData.preData, processKey);
   }
 
   const getNoZoomX = (x) => { return viewState.offsetX + (x * viewState.scale) };
@@ -1236,7 +1260,7 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.beginPath();
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+    ctx.roundRect(getNoZoomX(rect.x), rect.y, rect.width * viewState.scale, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
@@ -1245,7 +1269,7 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.textBaseline = 'middle';
     const centerX = rect.x + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, centerX, centerY);
+    ctx.fillText(rect.text, getNoZoomX(centerX), centerY);
     if(!largeSpacing){
       return;
     }
@@ -1404,48 +1428,66 @@ const clearDrawConnector = (ctx, processKey) => {
     return timeInfo.value + timeInfo.unit;
   };
   const measureDistance = (event, processKey) => {
-    const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
-    const uiCtx = uiCanvasRef.getContext('2d');
-    if((altClickData.preData && altClickData.lastData) && (isMeasureFixed.value || !isMeasureFirst.value)){
+    handleDistanceMeasurement(event, processKey);
+  }
+  const measureDistanceZoom = (event, processKey) => {
+    handleDistanceMeasurement(event, processKey, true);
+  }
+  const handleDistanceMeasurement = (event, processKey, isZoomMode = false) => {
+    const uiCtx = getUIContext(processKey);
+    if(!isZoomMode && (altClickData.preData && altClickData.lastData) && (isMeasureFixed.value || !isMeasureFirst.value)){
       clearDrawConnector(uiCtx, processKey);
     }
-    if(!altClickData.preData){
-      altClickData.preData = event;
-      isMeasureFirst.value = true;
-    } else {
-      if(isEqual(altClickData.preData, event) && !altClickData.lastData){ 
-        return;
-      }
-      isMeasureFixed.value = true;
-      altClickData.lastData = event;
-    }
-    uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
-    uiCtx.lineWidth = 1;
-    const {x ,y , width, height} = event.renderInfo;
-    strokeRoundRect(uiCtx, x, y, width,height);
-    if(altClickData.preData && altClickData.lastData){
-      const { renderInfo: preRenderInfo } = altClickData.preData;
-      const { renderInfo: lastRenderInfo } = altClickData.lastData;
-      const { x: preX, y: preY, width: perWidth} = preRenderInfo;
-      const { x: lastX, y: lastY} = lastRenderInfo;
-      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX ));
-      if(nodeSpacingX < 3) return;
-      let largeSpacing = nodeSpacingX > nodeSpaceMin;
-      if(lastX < preX){
-          let temp = altClickData.preData;
-          altClickData.preData = altClickData.lastData;
-          altClickData.lastData = temp;
-        }
-      // 同泳道
-      if(lastY === preY){
-        drawConnector(uiCtx, largeSpacing);
+    if(!isZoomMode){
+      if(!altClickData.preData){
+        altClickData.preData = event;
+        isMeasureFirst.value = true;
       } else {
-        largeSpacing = nodeSpacingX > 60;
-        drawDiffConnector(uiCtx, largeSpacing);
+        if(isEqual(altClickData.preData, event) && !altClickData.lastData){ 
+          return;
+        }
+        isMeasureFixed.value = true;
+        altClickData.lastData = event;
       }
     }
+    drawRoundedRect(uiCtx, event, processKey);
+    if(isZoomMode && altClickData.preData){
+      drawRoundedRect(uiCtx, altClickData.preData, processKey);
+    }
+    calculateAndDrawConnection(uiCtx);
   }
-  
+  const getUIContext = (processKey) => {
+    const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
+    return uiCanvasRef.getContext('2d');
+  };
+  const drawRoundedRect = (ctx, event, processKey) => {
+    const {x ,y , width, height} = event.renderInfo;
+    ctx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
+    ctx.lineWidth = 2;
+    strokeRoundRect(ctx, x, y, width,height, event, processKey);
+  };
+  const calculateAndDrawConnection = (uiCtx) => {
+    if(!altClickData.preData || !altClickData.lastData) return;
+    const { renderInfo: preRenderInfo } = altClickData.preData;
+    const { renderInfo: lastRenderInfo } = altClickData.lastData;
+    const { x: preX, y: preY, width: perWidth} = preRenderInfo;
+    const { x: lastX, y: lastY} = lastRenderInfo;
+    const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX ));
+    if(nodeSpacingX < 3) return;
+    let largeSpacing = nodeSpacingX > nodeSpaceMin;
+    if(lastX < preX){
+      let temp = altClickData.preData;
+      altClickData.preData = altClickData.lastData;
+      altClickData.lastData = temp;
+    }
+    // 同泳道
+    if(lastY === preY){
+      drawConnector(uiCtx, largeSpacing);
+    } else {
+      largeSpacing = nodeSpacingX > 60;
+      drawDiffConnector(uiCtx, largeSpacing);
+    }
+  };
   const measureDistanceHover = (event, processKey) => {
     const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
     const uiCtx = uiCanvasRef.getContext('2d');
@@ -1474,13 +1516,17 @@ const clearDrawConnector = (ctx, processKey) => {
       }
     }
   }
-  const strokeRoundRect = (ctx , x, y, width,height) => {
+  const strokeRoundRect = (ctx , x, y, width,height, event, processKey) => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
     ctx.rect(getNoZoomX(x), y, width * viewState.scale, height);
     ctx.closePath();
     ctx.stroke();
+    const eventTemp = JSON.parse(JSON.stringify(event));
+    eventTemp.renderInfo.x = getNoZoomX(eventTemp.renderInfo.x);
+    eventTemp.renderInfo.width = eventTemp.renderInfo.width * viewState.scale;
+    highlightEvent(ctx, eventTemp, processKey, false, false);
     ctx.restore();
   }
 const renderEvents = () => {
