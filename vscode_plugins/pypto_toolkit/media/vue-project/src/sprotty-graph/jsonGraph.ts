@@ -1521,7 +1521,7 @@ export class AscppDagBuilder {
                         ...(labelParts.slice(1).length > 0 ? labelParts.map((part, index) => {
                             const splitedStr = part.split(':');
                             let value = splitedStr[1];
-                            if (value.length > 32) {
+                            if (value && value.length > 32) {
                                 value = value.slice(0, 32) + '...';
                             }
                             return {
@@ -1663,7 +1663,6 @@ export class AscppDagBuilder {
             let funcName = undefined;
             if ('calleeMap' in comGraphStore.data && op.calleehash in comGraphStore.data.calleeMap) {
                 funcName = comGraphStore.data.calleeMap[op.calleehash].func_magicname;
-                
             }
             opName += funcName ?? "Not found function";
         }

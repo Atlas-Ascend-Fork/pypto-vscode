@@ -313,11 +313,17 @@ let showOperation = ref(false);
 
 const category = ref(categoryCurrent);
 
-const currentSelect = ref('current');
-const allOptions = ref([
+const searchOptions = [
   {name: t('comGraph.currentGraph'), value: 'current'},
   {name: t('comGraph.globalGraph'), value: 'global'},
-]);
+];
+
+const curSearchOptions = [
+  {name: t('comGraph.onlyPath'), value: 'currentPath'},
+];
+
+const currentSelect = ref('current');
+const allOptions = ref(searchOptions);
 const selectWidth = ref(getTextWidth(allOptions.value[0].name, 13) + 28);
 const textConfig = {
   keywordName: t('comGraph.keyword')
@@ -518,13 +524,10 @@ function filterSearchResult(result: any) {
 
 watch(() => comGraphStore.data.inFixedComGraphFlow, (val) => {
   if (val) {
-    allOptions.value.push({name: t('comGraph.onlyPath'), value: 'currentPath'});
+    allOptions.value = curSearchOptions;
     currentSelect.value = 'currentPath';
   } else {
-    const idx = allOptions.value.findIndex(o => o.value === 'currentPath');
-    if (idx > -1) {
-      allOptions.value.splice(idx, 1);
-    }
+    allOptions.value = searchOptions;
     currentSelect.value = 'current';
   }
 });

@@ -9,6 +9,7 @@
   background: var(--devui-header-label);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   border-right: 1px solid var(--devui-swim-split-line);
   box-shadow: inset 0px -1px 0px 0px rgba(255, 255, 255, 0.05);
   color: var(--devui-primary-text);
@@ -17,23 +18,29 @@
   line-height: 22px;
   letter-spacing: 0px;
   text-align: left; 
-  width: 100vw;
+  width: 250px;
 }
 
 .process-header-label:hover {
   background-color: var(--devui-highlight-overlay);
 }
 
-.process-header-label span:nth-child(2){
-  margin-left: 4px;
+.label_one {
+  display: flex;
+  align-items: center;
+  text-align: left;
 }
 
-.process-header-label span:nth-child(3){
-  margin-left: 40px;
+.label_two {
+  display: flex;
+  align-items: center;
+  text-align: right;
+  margin-right: 16px;
 }
 
 .process-header-line {
   flex: 1;
+  position: relative;
   background: var(--devui-header-label);
   border-bottom: 1px solid var(--devui-swim-split-line);
 }

@@ -459,7 +459,7 @@ const flagMouseClick = (e) => {
 
 const checkFlagHover = (x, y) => {
   for (const flag of flags.value) {
-    if (x >= flag.x - 6 && x <= flag.x + 6 + flag.labelW && y >= flag.y - 1 && y <= flag.y + 12) {
+    if (x >= flag.x - 6 && x <= flag.x + 6 && y >= flag.y - 1 && y <= flag.y + 12) {
       currentFlag.value = flag;
       showTooltip(flag.x + 10, flag.y);
       isShowTooltip.value = !isShowTooltip.value;

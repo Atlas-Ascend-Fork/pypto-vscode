@@ -49,7 +49,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   window.colorBySubgraph = colorBySubgraph;
 
   // Function to fit graph to screen
-  const fitGraphToScreen = (animate: boolean = true) => {
+  const fitGraphToScreen = (animate: boolean = false) => {
     const fitAction: FitToScreenAction = {
       maxZoom: 1.0, // Increased from 0.01 to allow normal zoom levels
       padding: 50, // Reduced padding

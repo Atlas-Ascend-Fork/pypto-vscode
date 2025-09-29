@@ -103,7 +103,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  width: 76px;
+  width: auto;
   height: 24px;
   box-sizing: border-box;
   border: 1px solid var(--devui-swim-text-title);
@@ -128,7 +128,9 @@
 }
 
 .title_name {
-  width: 36px;
+  display: inline-block;
+  white-space: nowrap;
+  padding-right: 9px;
   height: 18px;
   color: var(--devui-swim-text-title);
   font-size: 12px;

@@ -36,12 +36,17 @@ function onChange(file?: File) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      if (content) {
+      if (!content) {
+        (window as any).ascEventBus.emit('message_notice', 'compareWrongTips');
+      } else {
         const fileContent = processFileContent(JSON.parse(content));
-        if (fileContent) {
+        if (Object.keys(fileContent).length !== 0) {
           emits('change', { fileContent, fileName: file.name.replace('.json', '') });
+        } else {
+          (window as any).ascEventBus.emit('message_notice', 'compareWrongTips');
         }
       }
+
     };
     reader.readAsText(file);
   }
