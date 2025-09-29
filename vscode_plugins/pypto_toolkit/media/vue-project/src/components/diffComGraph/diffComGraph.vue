@@ -1,10 +1,10 @@
 <template>
   <div class="diff-com-graph">
     <div class="diff-com-graph-header">
-      <d-checkbox v-model="syncOperate" label="同步操作" :is-show-title="false" @change="onSyncOperateChange" />
+      <d-checkbox v-model="syncOperate" :label="t('syncOperate')" :is-show-title="false" @change="onSyncOperateChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
-      <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" />
+      <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
       <div class="diff-wrap">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="beforeFileName" />
@@ -69,6 +69,7 @@ const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
 let beforeIns;
 let afterIns;
+let expandTimer: ReturnType<typeof setTimeout>;
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
@@ -80,6 +81,13 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   beforeIns.initComDocText(jsonValue, isDarkTheme.value);
   afterIns = useSprottyLoad(`sprotty-after`, 'after');
   afterIns.initComDocText(e.fileContent, isDarkTheme.value);
+};
+
+const onExpandChange = () => {
+  expandTimer = setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+    clearTimeout(expandTimer);
+  }, 300);
 };
 
 const onDiffItemClick = (data: DiffListItem) => {
@@ -126,48 +134,30 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
   }
 });
 
-let currentScale = 0;
 let isDragging = false;
-let lastSelectNode;
-let beforeLastSelectNode;
-let afterLastSelectNode;
 function onSyncOperateChange(e) {
   if (e) {
-    const beforeDeselectIds = [];
-    const afterDeselectIds = [];
-    if (lastSelectNode) {
-      beforeDeselectIds.push(lastSelectNode.id);
-      afterDeselectIds.push(lastSelectNode.id);
-    }
-    beforeLastSelectNode && beforeDeselectIds.push(beforeLastSelectNode.id);
-    afterLastSelectNode && afterDeselectIds.push(afterLastSelectNode.id);
-    beforeIns?.selectNode([], beforeDeselectIds);
-    afterIns?.selectNode([], afterDeselectIds);
-    lastSelectNode = undefined;
-    beforeLastSelectNode = undefined;
-    afterLastSelectNode = undefined;
     afterIns?.fitToScreenAction();
     beforeIns?.fitToScreenAction();
   }
 }
 function onMinimapMove(args, type: 'before' | 'after') {
-  onMouseMove([args[0], args[1], type]);
+  onMouseMove([args[0], args[1], args[2], type]);
 }
 function onMouseMove(args) {
   if (syncOperate.value && isDragging) {
-    if (args[2] === 'after') {
-      beforeIns?.syncDiffView([args[0], args[1], currentScale]);
+    if (args[3] === 'after') {
+      beforeIns?.syncDiffView([args[0], args[1], args[2]]);
       beforeMinimapEl.value?.updateRectPosition([args[0], args[1]]);
     }
-    if (args[2] === 'before') {
-      afterIns?.syncDiffView([args[0], args[1], currentScale]);
+    if (args[3] === 'before') {
+      afterIns?.syncDiffView([args[0], args[1], args[2]]);
       afterMinimapEl.value?.updateRectPosition([args[0], args[1]]);
     }
   }
 }
 
 function onZoomChange(args) {
-  currentScale = args[0];
   if (args[4] === 'after') {
     if (syncOperate.value) {
       beforeIns?.syncDiffView([args[1], args[2], args[0]]);
@@ -182,14 +172,12 @@ function onZoomChange(args) {
   }
 }
 function onAfterMinimapZoomChange(args) {
-  currentScale = args[0];
   if (syncOperate.value) {
     beforeIns?.syncDiffView([args[1], args[2], args[0]]);
     beforeMinimapEl.value?.syncZoomChange(args);
   }
 }
 function onBeforeMinimapZoomChange(args) {
-  currentScale = args[0];
   if (syncOperate.value) {
     afterIns?.syncDiffView([args[1], args[2], args[0]]);
     afterMinimapEl.value?.syncZoomChange(args);
@@ -212,19 +200,10 @@ function onMouseover() {
 function onSelectedNodeChange(args) {
   if (syncOperate.value) {
     if (args[1] === 'after') {
-      beforeIns?.selectNode(args[0] ? [args[0].id] : [], lastSelectNode ? [lastSelectNode.id] : []);
-      lastSelectNode = args[0];
+      beforeIns?.selectAction(args[0] ? [args[0].id] : []);
     }
     if (args[1] === 'before') {
-      afterIns?.selectNode(args[0] ? [args[0].id] : [], lastSelectNode ? [lastSelectNode.id] : []);
-      lastSelectNode = args[0];
-    }
-  } else {
-    if (args[1] === 'after') {
-      afterLastSelectNode = args[0];
-    }
-    if (args[1] === 'before') {
-      beforeLastSelectNode = args[0];
+      afterIns?.selectAction(args[0] ? [args[0].id] : []);
     }
   }
 }

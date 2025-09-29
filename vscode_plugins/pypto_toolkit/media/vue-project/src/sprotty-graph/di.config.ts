@@ -398,11 +398,11 @@ export class CustomMouseListener extends MouseListener {
   mouseMove(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     if (target.id == 'root') {
-      (window as any).ascEventBus.emit('view_mousemove', [target.scroll.x, target.scroll.y, moveArea]);
+      (window as any).ascEventBus.emit('view_mousemove', [target.scroll.x, target.scroll.y, target.zoom, moveArea]);
     } else {
       const root = findParentByFeature(target, e => e.id === 'root');
       if (root) {
-        (window as any).ascEventBus.emit('view_mousemove', [root.scroll.x, root.scroll.y, moveArea]);
+        (window as any).ascEventBus.emit('view_mousemove', [root.scroll.x, root.scroll.y, root.zoom, moveArea]);
       }
     }
     return [];
