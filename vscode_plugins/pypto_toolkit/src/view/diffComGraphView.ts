@@ -155,7 +155,7 @@ class DiffComGraphData {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，读取文件数据出现异常`,
+          data: getIDELang() ==='zh' ? `无法打开计算图，读取文件数据出现异常` : 'Unable to open the computation graph; an exception occurred while reading file data.',
         });
       }
     }
@@ -197,14 +197,14 @@ class MsgHandler {
     if (originComGraphData && !originComGraphData.funcHash) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开原图，该文件未找到正确function hash`,
+        data: getIDELang() === 'zh' ? `无法打开原图，该文件未找到正确function hash` : 'Unable to open the original graph; the file does not contain the correct function hash.',
       });
       return;
     }
     if (diffComGraphData && !diffComGraphData.funcHash) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开对比图，该文件未找到正确function hash`,
+        data: getIDELang() === 'zh' ? `无法打开对比图，该文件未找到正确function hash` : 'Unable to open the comparison graph; the file does not contain the correct function hash.',
       });
       return;
     }
@@ -228,7 +228,7 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法继续打开子图，function.hash:[${originComGraphData.funcHash}]不存在`,
+          data: getIDELang() === 'zh' ? `无法继续打开子图，function.hash:[${originComGraphData.funcHash}]不存在` : `Unable to continue opening the subgraph; function.hash:[${originComGraphData.funcHash}]does not exist.`,
         });
         return;
       }
@@ -307,7 +307,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，function hash未定义`,
+        data: getIDELang() === 'zh' ? `无法打开子图，function hash未定义` : 'Unable to open the subgraph, function hash is undefined',
       });
       return;
     }

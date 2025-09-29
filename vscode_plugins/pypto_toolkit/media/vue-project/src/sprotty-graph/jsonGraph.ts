@@ -512,14 +512,14 @@ export class AscppDagBuilder {
             const shapeStr = `[${tensor.shape.join(',')}]`;
             labelAttr.push(`shape: ${shapeStr}`);
         } else {
-            (window as any).ascEventBus.emit('jsonParseError', `Can not get tensor (${tensor.magic}) shape information.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get tensor (${tensor.magic}) shape information.` : `无法获取tensor (${tensor.magic}) 的shape信息`);
         }
 
         if (rawTensor?.rawshape) {
             const rawShapeStr = `[${rawTensor.rawshape.join(',')}]`;
             labelAttr.push(`rawshape: ${rawShapeStr}`);
         } else {
-            (window as any).ascEventBus.emit('jsonParseError', `Can not get raw tensor (${rawTensor.rawmagic}) raw shape information.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) raw shape information.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的raw shape信息`);
         }
 
         // Add offset information if available
@@ -527,7 +527,7 @@ export class AscppDagBuilder {
             const offsetStr = `[${tensor.offset.join(',')}]`;
             labelAttr.push(`offset: ${offsetStr}`);
         } else {
-            (window as any).ascEventBus.emit('jsonParseError', `Can not get tensor(${tensor.magic}) offset.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get tensor (${tensor.magic}) offset.` : `无法获取tensor (${tensor.magic}) 的offset信息`);
         }
 
         if (tensor?.mem_type) {
@@ -545,7 +545,7 @@ export class AscppDagBuilder {
             const datatypeStr = DATATYPE_MAP[rawTensor.datatype] || `dt${rawTensor.datatype}`;
             labelAttr.push(`datatype: ${datatypeStr}`);
         } else {
-            (window as any).ascEventBus.emit('jsonParseError', `Can not get raw tensor(${rawTensor.rawmagic}) data type.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) data type.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的data type信息`);
         }
     }
 
@@ -566,13 +566,13 @@ export class AscppDagBuilder {
 
         for (const tensor of actualData.tensors) {
             if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
-                (window as any).ascEventBus.emit('jsonParseError', `Can not get tensor magic.`);
+                (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get tensor magic.` : `无法获取tensor magic`);
             }
 
             const tensorMagic = String(tensor.magic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
             if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
-                (window as any).ascEventBus.emit('jsonParseError', `Can not get raw tensor magic.`);
+                (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic');
             }
 
             let symbol = rawTensor?.symbol || "Tensor";
@@ -762,7 +762,7 @@ export class AscppDagBuilder {
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
             if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
-                (window as any).ascEventBus.emit('jsonParseError', `Can not get raw tensor magic.`);
+                (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get raw tensor magic.` : `无法获取raw tensor magic`);
             }
             let tensorName = rawTensor?.symbol || "In";
             
@@ -1197,7 +1197,7 @@ export class AscppDagBuilder {
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
             if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
-                (window as any).ascEventBus.emit('jsonParseError', `Can not get raw tensor magic.`);
+                (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ?  `Can not get raw tensor magic.` : '无法获取raw tensor magic');
             }
             let tensorName = rawTensor?.symbol || "Out";
 
@@ -1607,7 +1607,7 @@ export class AscppDagBuilder {
         const opcodeStr = op.opcode.toLowerCase();
     
         if (!Array.isArray(attr) || attr.length < 1) {
-            (window as any).ascEventBus.emit('jsonParseError', `The attribution of operation ${op.opcode} is invalid.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `The attribution of operation ${op.opcode} is invalid.` : `op节点${op.opcode}的attr信息无效`);
         }
     
         const reader = new AttrReader(attr);
@@ -1651,7 +1651,7 @@ export class AscppDagBuilder {
         // Extract additional information from the operation
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
         if (op.opmagic === undefined || typeof op.opmagic !== 'number') {
-            (window as any).ascEventBus.emit('jsonParseError', `Can not get operation ${op.opcode} magic.`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not get operation ${op.opcode} magic.` : `无法获取op节点${op.opcode}的magic`);
         }
 
         const opmagic = String(op.opmagic);

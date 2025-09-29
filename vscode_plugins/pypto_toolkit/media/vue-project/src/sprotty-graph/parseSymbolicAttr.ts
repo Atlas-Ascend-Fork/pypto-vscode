@@ -75,16 +75,16 @@ function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): O
     } else if (op === 16) {
         const argNumStr = symList.shift();
         if (argNumStr === undefined) {
-            (window as any).ascEventBus.emit('jsonParseError', 'Missing argument count for ssop_call');
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Missing argument count for ssop_call' : '缺少ssop_call的参数数量');
         }
         const argNum = parseInt(argNumStr, 10);
         if (isNaN(argNum)) {
-            (window as any).ascEventBus.emit('jsonParseError', `Invalid argument count: ${argNumStr}`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid argument count: ${argNumStr}` : `参数数量无效: ${argNumStr}`);
         }
         symListReadable.push(argNum);
         return { argNum, opName: symsOpNameDict[op] };
     } else {
-        (window as any).ascEventBus.emit('jsonParseError', `Invalid op value: ${op}`);
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid op value: ${op}` : `op值无效: ${op}`);
     }
 }
 
@@ -94,24 +94,24 @@ function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): O
 function symsGetExpr(symList: any[], symListReadable: any[]): string {
     const symStr = symList.shift();
     if (symStr === undefined) {
-        (window as any).ascEventBus.emit('jsonParseError', 'Unexpected end of symbol list');
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Unexpected end of symbol list' : '符号列表意外结束');
     }
     const sym = parseInt(symStr, 10) as SymType;
     if (!(sym in symsSymNameDict)) {
-        (window as any).ascEventBus.emit('jsonParseError', `Invalid sym value: ${sym}`);
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
     }
     symListReadable.push(symsSymNameDict[sym]);
 
     const argStr = symList.shift();
     if (argStr === undefined) {
-        (window as any).ascEventBus.emit('jsonParseError', 'Missing argument for symbol');
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Missing argument for symbol' : '符合列表缺少参数');
     }
 
     if (sym === 0) {
         // S_IMM: 立即数
         const val = parseInt(argStr, 10);
         if (isNaN(val)) {
-            (window as any).ascEventBus.emit('jsonParseError', `Invalid immediate value: ${argStr}`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid immediate value: ${argStr}` : `无效的立即数: ${argStr}`);
         }
         symListReadable.push(val);
         return val.toString();
@@ -123,7 +123,7 @@ function symsGetExpr(symList: any[], symListReadable: any[]): string {
         // S_EXPR: 表达式
         const op = parseInt(argStr, 10) as OpType;
         if (!(op in symsOpNameDict)) {
-            (window as any).ascEventBus.emit('jsonParseError', `Invalid op value: ${op}`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid op value: ${op}` : `无效的op值: ${op}`);
         }
         symListReadable.push(symsOpNameDict[op]);
 
@@ -134,7 +134,7 @@ function symsGetExpr(symList: any[], symListReadable: any[]): string {
         }
         return `${opName}(${args.join(',')})`;
     } else {
-        (window as any).ascEventBus.emit('jsonParseError', `Invalid sym value: ${sym}`);
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
     }
 }
 
@@ -256,7 +256,7 @@ function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string {
         const expr = symsGetExpr(symList, symListReadable);
         return parseExpr(expr);
     } catch (error) {
-        (window as any).ascEventBus.emit('jsonParseError', `Can not generating math expression. ${error}`);
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not generating math expression. ${error}` : `无法生成数学表达式，${error}`);
     }
 }
 
@@ -273,15 +273,15 @@ export class AttrReader {
     }
 
     readNumber(): number {
-        if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', 'Unexpected end of attributes.');
+        if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Unexpected end of attributes.' : '属性意外结束');
         return this.attr[this.index++] as number;
     }
 
     readStringOrNumberArray(): (string | number)[] {
-        if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', 'Unexpected end of attributes.');
+        if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Unexpected end of attributes.' : '属性意外结束');
         const val = this.attr[this.index++];
         if (Array.isArray(val)) return val;
-        (window as any).ascEventBus.emit('jsonParseError', 'Expected array for expression.');
+        (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Expected array for expression.' : '希望表达式是数组类型');
     }
 
     readOptionalNumber(): number | null {
@@ -384,7 +384,7 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number): string
             const value = reader.readNumber();
             result.push(value.toString());
         } else {
-            (window as any).ascEventBus.emit('jsonParseError', `Invalid kind type: ${kind}. Expected 1 (symbolic) or 2 (integer).`);
+            (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid kind type: ${kind}. Expected 1 (symbolic) or 2 (integer).` : `无效的kind类型: ${kind}，预期是1 (symbolic) 或者 2 (integer)`);
         }
     }
     return result;

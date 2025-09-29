@@ -240,7 +240,7 @@ class ComGraphData {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，读取文件数据出现异常`,
+          data: getIDELang() ==='zh' ? `无法打开计算图，读取文件数据出现异常` : 'Unable to open the computation graph; an exception occurred while reading file data.',
         });
       }
     }
@@ -287,7 +287,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，该文件未找到正确function hash`,
+        data: getIDELang() === 'zh' ? `无法打开子图，该文件未找到正确function hash` : 'Unable to open the subgraph; the file does not contain the correct function hash.',
       });
       return;
     }
@@ -322,7 +322,7 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，解析数据出现异常`,
+          data: getIDELang() === 'zh' ? `无法打开计算图，解析数据出现异常` : 'Unable to open the computation graph; an exception occurred during data parsing.',
         });
         return;
       }
@@ -399,7 +399,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，function hash未定义`,
+        data: getIDELang() === 'zh' ? `无法打开子图，function hash未定义` : 'Unable to open the subgraph, function hash is undefined',
       });
       return;
     }
