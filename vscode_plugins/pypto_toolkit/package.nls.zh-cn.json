@@ -27,5 +27,11 @@
   "pypto.confirm": "确定",
   "pypto.configWarning": "警告：在配置中发现冲突的快捷键，会导致该快捷键不生效，建议修改。",
   "pypto.configImprove": "去修改",
-  "pypto.cannotRender": "PyPTO Toolkit无法渲染此文件"
+  "pypto.cannotRender": "PyPTO Toolkit无法渲染此文件",
+  "pypto.readFileDataErrorOnOpenComGraph": "无法打开计算图，读取文件数据出现异常",
+  "pypto.canNotGetFuncHashOnOpenSubGraph": "无法打开子图，该文件未找到正确function hash",
+  "pypto.parseDataErrorOnOpenComGraph": "无法打开计算图，解析数据出现异常",
+  "pypto.funcHashUndefinedOnOpenSubGraph": "无法打开子图，function hash未定义",
+  "pypto.canNotGetFuncHashOnOpenOriginGraph": "无法打开原图，该文件未找到正确function hash",
+  "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图，该文件未找到正确function hash"
 }

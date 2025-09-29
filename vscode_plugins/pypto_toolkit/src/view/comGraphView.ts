@@ -10,6 +10,7 @@ import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
 import { DiffComGraphView } from './diffComGraphView';
+import { t } from 'i18next';
 const { fork } = require('child_process');
 const path = require('path');
 const { parser } = require('stream-json');
@@ -240,7 +241,7 @@ class ComGraphData {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: getIDELang() ==='zh' ? `无法打开计算图，读取文件数据出现异常` : 'Unable to open the computation graph; an exception occurred while reading file data.',
+          data: t('pypto.readFileDataErrorOnOpenComGraph'),
         });
       }
     }
@@ -287,7 +288,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: getIDELang() === 'zh' ? `无法打开子图，该文件未找到正确function hash` : 'Unable to open the subgraph; the file does not contain the correct function hash.',
+        data: t('pypto.canNotGetFuncHashOnOpenSubGraph'),
       });
       return;
     }
@@ -322,7 +323,7 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: getIDELang() === 'zh' ? `无法打开计算图，解析数据出现异常` : 'Unable to open the computation graph; an exception occurred during data parsing.',
+          data: t('pypto.parseDataErrorOnOpenComGraph'),
         });
         return;
       }
@@ -399,7 +400,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: getIDELang() === 'zh' ? `无法打开子图，function hash未定义` : 'Unable to open the subgraph, function hash is undefined',
+        data: t('pypto.funcHashUndefinedOnOpenSubGraph'),
       });
       return;
     }
