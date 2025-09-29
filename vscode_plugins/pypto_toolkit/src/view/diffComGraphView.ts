@@ -109,7 +109,8 @@ class DiffComGraphData {
             op.func_magicname = this.funcHashMap[op.calleehash]?.func_magicname;
             if (op.opmagic) {
               if (this.isUsedDB) {
-                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.subgraphid.toString(), JSON.stringify(op.attr));
+                const ioperands = [...new Set(op.ioperands)];
+                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.subgraphid.toString(), JSON.stringify(op.attr),JSON.stringify(ioperands));
               } else {
                 this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic] = op.attr.toString();
               }

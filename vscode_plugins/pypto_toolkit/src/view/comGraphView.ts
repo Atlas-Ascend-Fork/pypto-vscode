@@ -191,9 +191,10 @@ class ComGraphData {
             }
             op.functype = this.funcHashMap[op.calleehash]?.functype;
             op.func_magicname = this.funcHashMap[op.calleehash]?.func_magicname;
-            if (op.opmagic.toString()) {
+          if (op.opmagic.toString()) {
               if (this.isUsedDB) {
-                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.subgraphid.toString(), JSON.stringify(op.attr));
+                const ioperands = [...new Set(op.ioperands)];
+                await SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(op.calleehash, op.opmagic, op.subgraphid.toString(), JSON.stringify(op.attr),JSON.stringify(ioperands));
               } else {
                 this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic + '_' + op.subgraphid] = op.attr.toString();
               }
@@ -295,7 +296,9 @@ class MsgHandler {
     setTimeout(async () => {
       // 延时一个宏任务规避获取ret失败
       let ret: any;
+      let opAttrData;
       let calleeOpAttr: string | undefined;
+      let ioperands: string | undefined;
       if (comGraphData.isUsedDB) {
         const comGraphFuncData = await SQLiteCache.getInstance().comGraphFuncDataGet(comGraphData.fsPath, comGraphData?.funcHash);
         if (comGraphFuncData) {
@@ -308,9 +311,11 @@ class MsgHandler {
             ret = comGraphFuncData.data;
           }
           if (comGraphData.calleeOpMagic?.toString() && comGraphData.calleeOpSubgraphId?.toString()) {
-            calleeOpAttr = await SQLiteCache.getInstance().comGraphFileCalleeOpAttrGet(comGraphData?.funcHash.toString(), 
+            opAttrData = await SQLiteCache.getInstance().comGraphFileCalleeOpAttrGet(comGraphData?.funcHash.toString(), 
                                                                                        comGraphData.calleeOpMagic.toString(),
                                                                                        comGraphData.calleeOpSubgraphId.toString());
+            calleeOpAttr = opAttrData.op_attr;
+            ioperands = JSON.parse(opAttrData.ioperands);
           }
         }
       } else {
@@ -330,7 +335,7 @@ class MsgHandler {
         panel.title = ret.func_magicname;
       }
 
-      const calleeOpAttrMap = {"calleeOpAttr" : calleeOpAttr, "opAttrIncastTensors": ret.global_tensors};
+      const calleeOpAttrMap = {"calleeOpAttr" : calleeOpAttr, "opAttrIncastTensors": [...new Set(ioperands)]};
       const calleeMap = fileHashMap[comGraphData.fsPath];
       const funcTree = {};
       funcTree[entryHash] = await generateFucTree(entryHash, comGraphData);
