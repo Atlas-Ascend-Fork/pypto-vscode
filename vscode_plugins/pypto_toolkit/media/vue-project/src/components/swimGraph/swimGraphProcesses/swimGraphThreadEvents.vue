@@ -711,10 +711,10 @@ const drawDependencyLines = (process, processKey, mode) => {
       const needDrawSuccessor = event.startTime >= selectEndTime || event.id === selectedEvent.value.id;
       const needDrawPredecessor = event.endTime <= selectStartTime || event.id === selectedEvent.value.id;
       if (needDrawSuccessor && (mode === DEP_MODE.all || mode === DEP_MODE.next)) {
-        drawSuccessor(event, eventMap, dependencyCtx);
+        drawSuccessor(event, eventMap, dependencyCtx, allRelevantIds);
       }
       if (needDrawPredecessor && (mode === DEP_MODE.all || mode === DEP_MODE.pre)) {
-        drawPredecessor(event, eventMap, dependencyCtx);
+        drawPredecessor(event, eventMap, dependencyCtx, allRelevantIds);
       }
     }
   }
@@ -753,58 +753,62 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
   drawEventText([drawData], ctx);
 };
 
-const drawSuccessor = (event, eventMap, dependencyCtx) => {
+const drawSuccessor = (event, eventMap, dependencyCtx, allRelevantIds) => {
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   // 遍历所有后继
   for (const succId of event.dependencies.successors) {
-    const toEvent = eventMap.get(succId);
-    const isSameProcess = toEvent.renderInfo.processKey === event.renderInfo.processKey;
-    if (toEvent && toEvent.renderInfo && event.renderInfo && isSameProcess) {
-      // 获取源节点和目标节点的颜色
-      const toEventColor = isDarkTheme.value ? toEvent.color.dark : toEvent.color.light;
-      const sourceColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
-      const targetColor = selectedEvent.value.id === toEvent.id ? toEventColor.light : toEventColor.base;
-      let eventWidth = event.renderInfo.width;
-      if (event.isFakeCore) {
-        eventWidth = eventWidth / viewState.scale;
+    if (allRelevantIds.has(succId)) {
+      const toEvent = eventMap.get(succId);
+      const isSameProcess = toEvent.renderInfo.processKey === event.renderInfo.processKey;
+      if (toEvent && toEvent.renderInfo && event.renderInfo && isSameProcess) {
+        // 获取源节点和目标节点的颜色
+        const toEventColor = isDarkTheme.value ? toEvent.color.dark : toEvent.color.light;
+        const sourceColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
+        const targetColor = selectedEvent.value.id === toEvent.id ? toEventColor.light : toEventColor.base;
+        let eventWidth = event.renderInfo.width;
+        if (event.isFakeCore) {
+          eventWidth = eventWidth / viewState.scale;
+        }
+        const position = {
+          startX: (event.renderInfo.x + eventWidth) * devicePixelRatio,
+          startY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
+          endX: toEvent.renderInfo.x * devicePixelRatio,
+          endY: (toEvent.renderInfo.y + toEvent.renderInfo.height / 2) * devicePixelRatio,
+        };
+        drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+        drawEvent([event.drawData, toEvent.drawData], dependencyCtx);
+        drawEventText([event.drawData, toEvent.drawData], dependencyCtx);
       }
-      const position = {
-        startX: (event.renderInfo.x + eventWidth) * devicePixelRatio,
-        startY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
-        endX: toEvent.renderInfo.x * devicePixelRatio,
-        endY: (toEvent.renderInfo.y + toEvent.renderInfo.height / 2) * devicePixelRatio,
-      };
-      drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
-      drawEvent([event.drawData, toEvent.drawData], dependencyCtx);
-      drawEventText([event.drawData, toEvent.drawData], dependencyCtx);
     }
   }
 };
 
-const drawPredecessor = (event, eventMap, dependencyCtx) => {
+const drawPredecessor = (event, eventMap, dependencyCtx, allRelevantIds) => {
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   // 遍历所有祖先
   for (const preId of event.dependencies.predecessors) {
-    const sourceEvent = eventMap.get(preId);
-    const isSameProcess = sourceEvent.renderInfo.processKey === event.renderInfo.processKey;
-    if (sourceEvent && sourceEvent.renderInfo && event.renderInfo && isSameProcess) {
-      // 获取源节点和目标节点的颜色
-      const sourceEventColor = isDarkTheme.value ? sourceEvent.color.dark : sourceEvent.color.light;
-      const targetColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
-      const sourceColor = selectedEvent.value.id === sourceEventColor.id ? sourceEventColor.light : sourceEventColor.base;
-      let sourceWidth = sourceEvent.renderInfo.width;
-      if (sourceEvent.isFakeCore) {
-        sourceWidth = sourceWidth / viewState.scale;
+    if (allRelevantIds.has(preId)) {
+      const sourceEvent = eventMap.get(preId);
+      const isSameProcess = sourceEvent.renderInfo.processKey === event.renderInfo.processKey;
+      if (sourceEvent && sourceEvent.renderInfo && event.renderInfo && isSameProcess) {
+        // 获取源节点和目标节点的颜色
+        const sourceEventColor = isDarkTheme.value ? sourceEvent.color.dark : sourceEvent.color.light;
+        const targetColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
+        const sourceColor = selectedEvent.value.id === sourceEventColor.id ? sourceEventColor.light : sourceEventColor.base;
+        let sourceWidth = sourceEvent.renderInfo.width;
+        if (sourceEvent.isFakeCore) {
+          sourceWidth = sourceWidth / viewState.scale;
+        }
+        const position = {
+          endX: event.renderInfo.x * devicePixelRatio,
+          endY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
+          startX: (sourceEvent.renderInfo.x + sourceWidth) * devicePixelRatio,
+          startY: (sourceEvent.renderInfo.y + sourceEvent.renderInfo.height / 2) * devicePixelRatio,
+        };
+        drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+        drawEvent([event.drawData, sourceEvent.drawData], dependencyCtx);
+        drawEventText([event.drawData, sourceEvent.drawData], dependencyCtx);
       }
-      const position = {
-        endX: event.renderInfo.x * devicePixelRatio,
-        endY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
-        startX: (sourceEvent.renderInfo.x + sourceWidth) * devicePixelRatio,
-        startY: (sourceEvent.renderInfo.y + sourceEvent.renderInfo.height / 2) * devicePixelRatio,
-      };
-      drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
-      drawEvent([event.drawData, sourceEvent.drawData], dependencyCtx);
-      drawEventText([event.drawData, sourceEvent.drawData], dependencyCtx);
     }
   }
 };
