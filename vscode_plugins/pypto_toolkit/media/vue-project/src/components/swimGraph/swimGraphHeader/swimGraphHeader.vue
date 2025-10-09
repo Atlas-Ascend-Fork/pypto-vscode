@@ -127,7 +127,6 @@ const onSearch = (term) => {
   }
   if (!searchResult.value.length) {
     clearSearchData();
-    return;
   }
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
   searchResultCount.value = searchResult.value.length;
@@ -146,6 +145,9 @@ const clearSearchData = () => {
       continue;
     }
     selectEvent(null, processkey);
+    if (detailsPanelExpanded.value) {
+      detailsPanelExpanded.value = false;
+    }
   }
 };
 

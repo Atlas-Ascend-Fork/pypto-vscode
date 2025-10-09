@@ -126,6 +126,7 @@ export const ideLightTheme = new Theme({
     'devui-warning-bg':'rgba(253,226,189,1)',
     'devui-timebar-bg':'rgba(0,0,0,0.08)',
     'devui-timefull-bg':'rgba(231,67,74,1)',
+    'devui-search-active-bg':'rgba(10, 89, 247, 1)',
   },
   isDark: false,
 });
@@ -256,6 +257,7 @@ export const ideDarkTheme = new Theme({
     'devui-warning-bg':'rgba(246,158,57,0.2)',
     'devui-timebar-bg':'rgba(255,255,255,0.08)',
     'devui-timefull-bg':'rgba(118,46,39,1)',
+    'devui-search-active-bg':'rgba(49, 122, 247, 1)',
   },
   isDark: true,
 });
