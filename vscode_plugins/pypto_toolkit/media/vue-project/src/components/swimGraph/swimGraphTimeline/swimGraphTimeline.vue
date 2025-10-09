@@ -189,6 +189,7 @@ const timelineMouseMove = (e) => {
       return;
     }
     viewState.scale = canvasWidth / Math.abs(timelineInitEndX - mouseX);
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     startTime = fixedXToTime(mouseX + layout.processLabelWidth);
     const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
     viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
@@ -212,6 +213,7 @@ const timelineMouseMove = (e) => {
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value = parseInt(sliderCount, 10);
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     transform();
     return;
   }
@@ -250,6 +252,7 @@ const timelineMouseMove = (e) => {
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value = parseInt(sliderCount, 10); 
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     transform();
     return;
   }
