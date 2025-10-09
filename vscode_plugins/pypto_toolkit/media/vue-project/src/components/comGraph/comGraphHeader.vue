@@ -801,7 +801,7 @@ function extractOperationNodes(jsonData) {
        opMap[subgraphId] = {}
       }
 
-      operation['node_id'] = `operation-${index}-magic-${operation.opmagic}-${subgraphId}`;
+      operation['node_id'] = `operation-magic-${operation.opmagic}-${subgraphId}`;
       operation['subgraphid'] = subgraphId;
       operation['node_type'] = 'operation';
       opMap[operation.subgraphid][operation.opmagic] = operation;

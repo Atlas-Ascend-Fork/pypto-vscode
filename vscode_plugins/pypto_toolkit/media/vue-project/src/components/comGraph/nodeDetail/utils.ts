@@ -8,10 +8,8 @@ export function getTensorData(tensors: Array<Record<string, any>>, id: number) {
   }
 }
 
-export function getOperationData(operations: Array<Record<string, any>>, index: number, id: number) {
-  if (Array.isArray(operations) && operations[index].opmagic === id) {
-    return operations[index];
-  }
+export function getOperationData(operations: Array<Record<string, any>>, id: number) {
+  return operations.find(op => op.opmagic == id);
 }
 
 export function toClipboard(text: string) {
