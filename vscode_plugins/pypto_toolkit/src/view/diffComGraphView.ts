@@ -289,7 +289,7 @@ class MsgHandler {
       result = await comGraphData.readFileAndSetCache(comGraphData.fsPath, panel);
       isBigFile = result.isBigData;
     }
-    if (!fileHashMap[comGraphData.fsPath] && comGraphData.funcHashMap) {
+    if (!fileHashMap[comGraphData.fsPath] && comGraphData.funcHashMap && Object.keys(comGraphData.funcHashMap).length > 0) {
       fileHashMap[comGraphData.fsPath] = comGraphData.funcHashMap;
     } else {
       // 命中FuncData缓存
