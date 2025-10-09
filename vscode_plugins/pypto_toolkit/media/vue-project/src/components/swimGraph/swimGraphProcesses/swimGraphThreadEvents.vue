@@ -84,7 +84,7 @@ const props = defineProps({
     required: true
   }
 });
-let lastX;
+let lastMoveX;
 let altClickData = {
     preData: null,
     lastData: null,
@@ -404,7 +404,7 @@ function handleCtrlDragPan(e, canvasRef) {
     cursor = 'grab';
     if (viewState.scale === 1) { return cursor };
     const timeLineEndX = Math.abs(timeLineX.value);
-    const deltaX = (e.clientX - lastX);
+    const deltaX = e.clientX - lastMoveX;
     const cssWidth = viewState.canvasCssWidth;
     const minOffset = cssWidth - (cssWidth * viewState.scale);
     const leftLimit = deltaX < 0 && viewState.offsetX === minOffset;
@@ -424,6 +424,7 @@ function handleCtrlDragPan(e, canvasRef) {
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
     transform();
   }
+  lastMoveX = e.clientX;
   return cursor;
 }
 
@@ -497,7 +498,7 @@ function onHoverEvent(hoveredEvent) {
 const handleMouseDown = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!e.ctrlKey || !canvasRef) return;
-  lastX = e.clientX;
+  lastMoveX = e.clientX;
 };
 
 const getCanvasHeight = () => {
@@ -979,7 +980,10 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     return false;
   }
   
-  const x = timeToX(event.renderStartTime) - processLabelWidth;
+  let x = timeToX(event.renderStartTime) - processLabelWidth;
+  if (x > viewState.canvasCssWidth) {
+    x = viewState.canvasCssWidth - 1;
+  }
   const width = durationToWidth(event.duration);
   const eventWidth = event.isFakeCore ? 1 : width;
   
