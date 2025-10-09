@@ -189,6 +189,7 @@ const timelineMouseMove = (e) => {
       return;
     }
     viewState.scale = canvasWidth / Math.abs(timelineInitEndX - mouseX);
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     startTime = fixedXToTime(mouseX + layout.processLabelWidth);
     const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
     viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
@@ -212,6 +213,7 @@ const timelineMouseMove = (e) => {
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value = parseInt(sliderCount, 10);
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     transform();
     return;
   }
@@ -250,6 +252,7 @@ const timelineMouseMove = (e) => {
     const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
     sliderValue.value = parseInt(sliderCount, 10); 
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    viewState.pixelScale = viewState.scale * devicePixelRatio;
     transform();
     return;
   }
@@ -299,15 +302,9 @@ const handleWheel = (e) => {
   if (!isZooming) {
     return;
   }
-  if(viewState.scale * 10 >= sliderMax.value && e.deltaY < 0) {
+  if (viewState.scale * 10 >= sliderMax.value && e.deltaY < 0) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMaxInfo'));
-    }, 100);
-    return;
-  }
-  if(viewState.scale === 1 && e.deltaY > 0) {
-    wheelDebounceTimer = setTimeout(() => {
-      postMessage($t('scaleMinInfo'));
     }, 100);
     return;
   }
@@ -316,6 +313,9 @@ const handleWheel = (e) => {
   const oldOffsetX = viewState.offsetX;
 
   if (e.deltaY > 0 && oldScale === initialScale.value && oldOffsetX >= 0) {
+    wheelDebounceTimer = setTimeout(() => {
+      postMessage($t('scaleMinInfo'));
+    }, 100);
     return;
   }
   
@@ -330,8 +330,10 @@ const handleWheel = (e) => {
 
   viewState.scaleChange = viewState.scale / oldScale;
   viewState.offsetX = mouseX - (mouseX - oldOffsetX) * viewState.scaleChange;
+  const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
+  timeLineX.value = endSecondTimex;
   const timeLineEndX = Math.abs(timeLineX.value);
-  if(timelineCanvas.value && getCanvasCSSWidth(timelineCanvas.value) > timeLineEndX){
+  if (timelineCanvas.value && getCanvasCSSWidth(timelineCanvas.value) > timeLineEndX) {
     const tempOffsetX = getCanvasCSSWidth(timelineCanvas.value) - timeLineEndX;
     viewState.offsetX += tempOffsetX;
   }
