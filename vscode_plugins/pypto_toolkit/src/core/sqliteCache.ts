@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import initSqlJs, { Database } from 'sql.js';
 import { unlinkSync, existsSync, promises as fs } from 'fs';
+import { t } from 'i18next';
 
 interface ComGraphLayoutRow {
   file_path: string;
@@ -255,13 +256,13 @@ export class SQLiteCache {
   public async deleteForCommand() {
     const yes = 'Clear';
     const pick = await vscode.window.showWarningMessage(
-      '确定要清空全部缓存（内存+磁盘）吗？',
+      t('pypto.clearAllCache'),
       { modal: true },
       yes
     );
     if (pick !== yes) return;
     await this.clearCache();
-    vscode.window.showInformationMessage('缓存已完全清空');
+    vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   }
 
   public async createBigDataFile(hash: string,data: string): Promise<string> {

@@ -33,5 +33,8 @@
   "pypto.parseDataErrorOnOpenComGraph": "无法打开计算图，解析数据出现异常",
   "pypto.funcHashUndefinedOnOpenSubGraph": "无法打开子图，function hash未定义",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "无法打开原图，该文件未找到正确function hash",
-  "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图，该文件未找到正确function hash"
+  "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图，该文件未找到正确function hash",
+  "pypto.clearAllCache": "确定要清空全部缓存（内存+磁盘）吗？",
+  "pypto.cacheAlreadyCleared": "缓存已完全清空",
+  "pypto.failedClearCache": "清空缓存失败："
 }

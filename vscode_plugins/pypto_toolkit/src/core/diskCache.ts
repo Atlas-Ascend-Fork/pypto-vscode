@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { t } from 'i18next';
 // import Database, { Statement } from 'better-sqlite3';// 调试时 不想用数据库就注释改行
 // 调试时 不想用数据库就放开Database Statement的注释
 class Database{
@@ -342,16 +343,16 @@ export class DiskCache {
         return;                              // 静默返回
       }
       console.error('clearCache', err as Error);
-      vscode.window.showErrorMessage(`清空缓存失败：${(err as Error).message}`);
+      vscode.window.showErrorMessage(`${t('pypto.failedClearCache')}${(err as Error).message}`);
     }
   }
 
   public async deleteForCommand() {
     const yes = 'Clear';
-    const pick = await vscode.window.showWarningMessage('确定要清空全部缓存吗？', { modal: true }, yes);
+    const pick = await vscode.window.showWarningMessage(t('pypto.clearAllCache'), { modal: true }, yes);
     if (pick !== yes) return;
     await this.clearCache();
-    vscode.window.showInformationMessage('缓存已完全清空');
+    vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   }
 
   public async createBigDataFile(hash: string, data: string): Promise<string> {
