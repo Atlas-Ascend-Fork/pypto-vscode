@@ -2,11 +2,11 @@
   <div class="thread-labels" :style="{ width: layout.processLabelWidth + 'px' }">
     <div v-for="(thread, threadIndex) in threadsArray" :key="threadIndex"  
       class="thread-labels-loop" 
-      :class="{'active': `${props.processKey}-${threadIndex}` === curThread}"
+      :class="{'active': `${props.processKey}-${threadIndex}` === curThread, 'activeS': activeThreadName === (thread.threadName)}"
       @mouseover="handleLabelHover(threadIndex)">
       <div 
         class="thread-label-item"
-        :class="[{ 'has-threads-box': thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') }, activeThreadName === (thread.threadName) && 'active']"
+        :class="[{ 'has-threads-box': thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') }]"
         :style="{ height: getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter) + 'px' }"
       >
         {{ thread.threadName }}
@@ -148,13 +148,6 @@ const threadsArray = computed(() => {
   font-weight: 400;
   line-height: 20px;
   text-align: left;
-
-  &.active {
-    background: rgba(49, 122, 247, 1);
-    opacity: 0.7;
-    color: #ffffff;
-    width: 250px;
-  }
 }
 
 .threads-box::before {
