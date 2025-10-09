@@ -2,6 +2,8 @@ import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, TYPES } from 'sprotty';
 import { createDiContainer } from './di.config';
 import { AscppDagBuilder } from './jsonGraph';
+import { singlePathDagBuilder } from './singlePathGraph';
+
 import {
   FitToScreenAction,
   SNode,
@@ -30,6 +32,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
   const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
   const dagBuilder = new AscppDagBuilder();
+  const myBuilder = new   singlePathDagBuilder();
   let originSprottyGraph;
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
@@ -126,13 +129,22 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       currentLayoutConfig.showTensor = showTensorNodes;
       resetModelSource();
     }
-    const sprottyGraph = dagBuilder.createSprottyGraph(
+    // const sprottyGraph = dagBuilder.createSprottyGraph(
+    //   currentData,
+    //   showTensorNodes,
+    //   showSyncNodes,
+    //   colorBySubgraph,
+    //   isDark,
+    //   selectedSubgraphId,
+    // );
+    /* 单条路径搜索调试入口 */
+    const sprottyGraph = myBuilder.createSinglePathGraph(
+      "596",
       currentData,
       showTensorNodes,
-      showSyncNodes,
-      colorBySubgraph,
       isDark,
-      selectedSubgraphId,
+      colorBySubgraph,
+      selectedSubgraphId
     );
 
     originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
