@@ -9,6 +9,7 @@ import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
+import { t } from 'i18next';
 const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
@@ -157,7 +158,7 @@ class DiffComGraphData {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，读取文件数据出现异常`,
+          data: t('pypto.readFileDataErrorOnOpenComGraph'),
         });
       }
     }
@@ -199,14 +200,14 @@ class MsgHandler {
     if (originComGraphData && !originComGraphData.funcHash) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开原图，该文件未找到正确function hash`,
+        data: t('pypto.canNotGetFuncHashOnOpenOriginGraph'),
       });
       return;
     }
     if (diffComGraphData && !diffComGraphData.funcHash) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开对比图，该文件未找到正确function hash`,
+        data: t('pypto.canNotGetFuncHashOnOpenComparisonGraph'),
       });
       return;
     }
@@ -230,7 +231,7 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，解析数据出现异常`,
+          data: t('pypto.parseDataErrorOnOpenComGraph'),
         });
         return;
       }
@@ -320,7 +321,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，function hash未定义`,
+        data: t('pypto.funcHashUndefinedOnOpenSubGraph'),
       });
       return;
     }

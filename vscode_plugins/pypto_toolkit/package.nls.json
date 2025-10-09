@@ -27,5 +27,14 @@
   "pypto.confirm": "Confirm",
   "pypto.configWarning": "Warning: Conflicting shortcut keys are found in the configuration. As a result, the shortcut keys do not take effect. you are advised to modify the shortcut keys",
   "pypto.configImprove": "go to modify it.",
-  "pypto.cannotRender": "PyPTO Toolkit cannot render this file"
+  "pypto.cannotRender": "PyPTO Toolkit cannot render this file",
+  "pypto.readFileDataErrorOnOpenComGraph": "Unable to open the computation graph; an exception occurred while reading file data.",
+  "pypto.canNotGetFuncHashOnOpenSubGraph": "Unable to open the subgraph; the file does not contain the correct function hash.",
+  "pypto.parseDataErrorOnOpenComGraph": "Unable to open the computation graph; an exception occurred during data parsing.",
+  "pypto.funcHashUndefinedOnOpenSubGraph": "Unable to open the subgraph, function hash is undefined",
+  "pypto.canNotGetFuncHashOnOpenOriginGraph": "Unable to open the original graph; the file does not contain the correct function hash.",
+  "pypto.canNotGetFuncHashOnOpenComparisonGraph": "Unable to open the comparison graph; the file does not contain the correct function hash.",
+  "pypto.clearAllCache": "Are you sure you want to clear all cached(memory + disk)?",
+  "pypto.cacheAlreadyCleared": "The cache has been completely cleared.",
+  "pypto.failedClearCache": "Failed to clear cache:"
 }

@@ -10,6 +10,7 @@ import { getIDELang } from '../lang';
 import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
 import { DiffComGraphView } from './diffComGraphView';
+import { t } from 'i18next';
 const { fork } = require('child_process');
 const path = require('path');
 const { parser } = require('stream-json');
@@ -241,7 +242,7 @@ class ComGraphData {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，读取文件数据出现异常`,
+          data: t('pypto.readFileDataErrorOnOpenComGraph'),
         });
       }
     }
@@ -288,7 +289,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，该文件未找到正确function hash`,
+        data: t('pypto.canNotGetFuncHashOnOpenSubGraph'),
       });
       return;
     }
@@ -327,7 +328,7 @@ class MsgHandler {
       } else {
         panel.webview.postMessage({
           command: 'returnError',
-          data: `无法打开计算图，解析数据出现异常`,
+          data: t('pypto.parseDataErrorOnOpenComGraph'),
         });
         return;
       }
@@ -404,7 +405,7 @@ class MsgHandler {
     if (funcHash === undefined) {
       panel.webview.postMessage({
         command: 'returnError',
-        data: `无法打开子图，function hash未定义`,
+        data: t('pypto.funcHashUndefinedOnOpenSubGraph'),
       });
       return;
     }
