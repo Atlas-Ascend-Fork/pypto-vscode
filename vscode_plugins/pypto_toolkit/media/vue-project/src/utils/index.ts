@@ -67,7 +67,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     operations:
       beforeData.operations?.map((op: any, i: number) => {
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
-        BeforeOpMagicMap[op.opmagic] = `operation-${i}-magic-${op.opmagic}-${subgraphId}`;
+        BeforeOpMagicMap[op.opmagic] = `operation-magic-${op.opmagic}-${subgraphId}`;
         return { ...op };
       }) ?? [],
   };
@@ -81,7 +81,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     operations:
       currentData.operations?.map((op: any, i: number) => {
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
-        CurrentOpMagicMap[op.opmagic] = `operation-${i}-magic-${op.opmagic}-${subgraphId}`;
+        CurrentOpMagicMap[op.opmagic] = `operation-magic-${op.opmagic}-${subgraphId}`;
         return { ...op };
       }) ?? [],
   };

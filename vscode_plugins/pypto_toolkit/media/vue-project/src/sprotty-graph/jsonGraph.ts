@@ -1365,7 +1365,7 @@ export class AscppDagBuilder {
 
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
-            const opId = `operation-${opIndex}-magic-${op.opmagic}`;
+            const opId = `operation-magic-${op.opmagic}`;
             
             // Check if this is a synchronization operation
             const isSyncOp = ['SYNC_SRC', 'SYNC_DST', 'BAR.V', 'PHASE1', 'PHASE2'].includes(op.opcode);
@@ -2242,7 +2242,7 @@ export class AscppDagBuilder {
         
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
-            const nodeId = `operation-${opIndex}-magic-${op.opmagic}`;
+            const nodeId = `operation-magic-${op.opmagic}`;
             
             // Track phase transitions
             if (op.opcode === 'PHASE1') {

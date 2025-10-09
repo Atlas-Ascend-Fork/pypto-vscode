@@ -73,7 +73,7 @@ const generateOpMap = (operations: Array<Record<string, any>>) => {
     if (!OpSubgraphMap[subgraphId]) {
       OpSubgraphMap[subgraphId] = {};
     }
-    OpMap[item.opmagic] = `operation-${i}-magic-${item.opmagic}-${subgraphId}`;
+    OpMap[item.opmagic] = `operation-magic-${item.opmagic}-${subgraphId}`;
     OpSubgraphMap[item.subgraphid][item.opmagic] = item;
   }
 };

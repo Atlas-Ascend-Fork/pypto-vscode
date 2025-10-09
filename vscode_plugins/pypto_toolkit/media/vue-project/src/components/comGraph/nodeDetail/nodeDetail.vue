@@ -75,11 +75,11 @@ watch(
         }
       }
       if (props.nodeId.includes(OperationNodeIdPrefix) && props.nodeId.includes(MagicPrefix)) {
-        const index = parseInt(props.nodeId.split(OperationNodeIdPrefix)[1]);
         const id = parseInt(props.nodeId.split(MagicPrefix)[1]);
-        if (!isNaN(index) && !isNaN(id) && index > -1) {
+        if (!isNaN(id)) {
           magicId.value = id;
-          const operationData = getOperationData(parsedJsonData.operations, index, id);
+
+          const operationData = getOperationData(parsedJsonData.operations, id);
           if (operationData) {
             let realOpAttr = parseOpRealAttr(JSON.parse(JSON.stringify(operationData)));
 
