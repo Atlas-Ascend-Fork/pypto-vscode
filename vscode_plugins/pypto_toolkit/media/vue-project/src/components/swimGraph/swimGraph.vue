@@ -954,10 +954,10 @@ const resizeCanvases = () => {
 
 const renderTwoTimeline = () => {
   // 渲染两段时间轴
-  if (window.debug) console.time('renderTwoTimeline');
+  if (import.meta.env.DEV) console.time('renderTwoTimeline');
   renderFixedTimeline();
   renderTimeline();
-  if (window.debug) console.timeEnd('renderTwoTimeline');
+  if (import.meta.env.DEV) console.timeEnd('renderTwoTimeline');
 }
 
 const renderEvent = () => {
@@ -965,7 +965,7 @@ const renderEvent = () => {
   // 渲染每个进程的事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
-      if (window.debug) console.time('renderProcessEvents: ' + processKey);
+      if (import.meta.env.DEV) console.time('renderProcessEvents: ' + processKey);
       // 确保进程画布存在
       const canvasRef = document.querySelector(`[data-process-key="${processKey}"]`);
       if (!canvasRef) {
@@ -975,7 +975,7 @@ const renderEvent = () => {
       } else {
         renderProcessEvents(process, processKey);
       }
-      if (window.debug) console.timeEnd('renderProcessEvents: ' + processKey);
+      if (import.meta.env.DEV) console.timeEnd('renderProcessEvents: ' + processKey);
     }
   }
 }
