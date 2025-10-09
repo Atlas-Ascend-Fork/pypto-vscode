@@ -100,6 +100,7 @@ export class SQLiteCache {
               op_magic TEXT NOT NULL,
               op_subgraphid TEXT NOT NULL,
               op_attr      TEXT,
+              ioperands      TEXT,
               PRIMARY KEY (calleehash,op_magic,op_subgraphid)
             );
         `);     
@@ -204,23 +205,22 @@ export class SQLiteCache {
     console.log('OYXT 删除com_graph_file_hash_map缓存：' + filePath);
   }
   /****************** com_graph_file_callee_op_attr 表 ******************/
-  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opSubgraphid: string, opAttr: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr) VALUES(?,?,?,?)', [
-      calleehash, opMagic, opSubgraphid, opAttr
+  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opSubgraphid: string, opAttr: string, ioperands: string): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr,ioperands) VALUES(?,?,?,?,?)', [
+      calleehash, opMagic, opSubgraphid, opAttr, ioperands
     ]);
   }
-  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string> {
+  public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string[]> {
     const stmt = this.db!.prepare(
-      'SELECT op_attr FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
+      'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
     );
     stmt.bind([calleehash, opMagic, opSubgraphid]);
-    let attrStr ;
+    let row ;
     if (stmt.step()) {
-      const row = stmt.getAsObject() as { op_attr: string};
-      attrStr = row?.op_attr ?? '';
+      row = stmt.getAsObject();
     }
     stmt.free();
-    return attrStr;
+    return row;
   }
   /****************** 4️⃣  生命周期 ******************/
   /** 把内存中的数据持久化到磁盘，在 deactivate() 里调用 **/
