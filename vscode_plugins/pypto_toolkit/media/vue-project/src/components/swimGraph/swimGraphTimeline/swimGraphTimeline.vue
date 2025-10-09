@@ -113,7 +113,7 @@ const editmodelStyle = reactive({
   top: '0px'
 })
 
-const dragStartTime = ref(null);
+
 const toggleEditModel = () => {
   isEditing.value = false;
   refLabel.value = '';
@@ -142,14 +142,8 @@ const timelineMouseDown = (e) => {
   timelineInitStartX = timelineState.startTimeX;
   timelineInitEndX = timelineState.endTimeX;
 
-  dragStartTime.value = Date.now();
-  clearTimeout(dragTimeout);
-
-  dragTimeout = setTimeout(() => {
-    isTimelineDragging = true;
-  }, 200);
-
   if (Math.abs(mouseX - timelineInitStartX) < 5){
+    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'ew-resize';
     timelineCanvas.value.style.cursor = 'ew-resize';
     timelineState.isInLeftTag = true;
@@ -157,6 +151,7 @@ const timelineMouseDown = (e) => {
   }
 
   if (Math.abs(mouseX - timelineInitEndX) < 5){
+    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'ew-resize';
     timelineCanvas.value.style.cursor = 'ew-resize';
     timelineState.isInRightTag = true;
@@ -164,6 +159,7 @@ const timelineMouseDown = (e) => {
   }
 
   if (mouseX > timelineInitStartX && mouseX < timelineInitEndX) {
+    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'move';
     timelineCanvas.value.style.cursor = 'move';
     timelineState.isOnTag = true;
@@ -171,6 +167,7 @@ const timelineMouseDown = (e) => {
   }
 
   if (mouseX < timelineInitStartX || mouseX > timelineInitEndX) {
+    isTimelineDragging = true;
     fixedtimelineCanvas.value.style.cursor = 'crosshair';
     timelineCanvas.value.style.cursor = 'crosshair';
     timelineState.isOutTag = true;
