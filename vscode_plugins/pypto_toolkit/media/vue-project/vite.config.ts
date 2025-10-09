@@ -2,7 +2,9 @@ import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+
 import { copy } from './vite-plugin/copy';
+import { generateDebugHtml } from './vite-plugin/generate-debug-html';
 import { transformIndexHtml } from './vite-plugin/transformIndexHtml';
 
 // https://vitejs.dev/config/
@@ -16,6 +18,7 @@ export default defineConfig({
         { src: './src/static-assets', dest: '../../webview-dist/static-assets' },
       ],
     }),
+    generateDebugHtml(),
     transformIndexHtml(),
   ],
   resolve: {

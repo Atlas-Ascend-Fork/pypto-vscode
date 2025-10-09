@@ -712,41 +712,10 @@ export class ComGraphView {
       .replace(/{{ascTheme}}/g, getIDETheme())
       .replace(/{{ascLang}}/g, getIDELang());
     this.panel.webview.html = new Util().replaceHtmlFromData(replaceParams, html);
-    /* 本地调试方案 */
-    // this.panel.webview.html = this.getDebugHtml(getIDETheme(), getIDELang());
   }
 
   public static revive(panel, fsPath: string, funcHash: string | undefined, magicName: string | undefined, curPath: string | undefined) {
     new ComGraphView(ViewColumn.One).createPanel(fsPath, funcHash, magicName, curPath, panel);
-  }
-
-  getDebugHtml(theme: string, lang: string) {
-    return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <link rel="icon" href="/favicon.ico">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script>
-              window.ascTheme = '${theme}';
-              window.ascLang = '${lang}';
-            </script>
-            <script type="module" src="http://localhost:5173/src/main.ts"></script>
-            <title>Vite App</title>
-            <link rel="stylesheet" href="http://localhost:5173/src/static-assets/icomoon/devui-icon.css" >
-            <link rel="stylesheet" href="http://localhost:5173/src/static-assets/codicon/codicon.css" >
-        </head>
-        <body>
-            <div id="app"></div>
-
-            <script>
-            window.vscode = acquireVsCodeApi && acquireVsCodeApi();
-            window.staticPath = "http://localhost:5173/src";
-            </script>
-        </body>
-        </html>
-        `;
   }
 
   onDispose() {
