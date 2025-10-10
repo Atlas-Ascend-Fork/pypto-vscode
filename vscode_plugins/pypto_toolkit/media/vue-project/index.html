@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PyPTO Toolkit</title>
-    <link rel="stylesheet" href="{{staticPath}}/static-assets/icomoon/devui-icon.css" >
-    <link rel="stylesheet" href="{{staticPath}}/static-assets/codicon/codicon.css" >
+    <link rel="stylesheet" href="{{staticPath}}/static-assets/icomoon/devui-icon.css" />
+    <link rel="stylesheet" href="{{staticPath}}/static-assets/codicon/codicon.css" />
   </head>
   <body>
     <div id="app"></div>
     <script>
-      window.ascTheme = "{{ascTheme}}";
-      window.ascLang = "{{ascLang}}";
+      window.ascTheme = '{{ascTheme}}';
+      window.ascLang = '{{ascLang}}';
     </script>
     <script type="module" src="/src/main.ts"></script>
 
     <script>
-      window.vscode = acquireVsCodeApi && acquireVsCodeApi();
-      window.staticPath = "{{staticPath}}";
+      setTimeout(() => {
+        window.vscode = acquireVsCodeApi && acquireVsCodeApi();
+        window.staticPath = '{{staticPath}}';
+      }, 100);
     </script>
   </body>
 </html>
-
-
