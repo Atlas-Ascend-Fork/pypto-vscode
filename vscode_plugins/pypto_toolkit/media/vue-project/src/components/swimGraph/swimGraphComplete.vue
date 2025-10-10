@@ -726,6 +726,7 @@ const toggleProcess = (processKey) => {
     const ctx = ctxInfo.eventCtx;
     childContextMap.threadEvent.transformEvents(process, processKey);
     childContextMap.threadEvent.renderProcessText(process, ctx);
+    timelineComponent.value.flagRender();
   });
 };
 
@@ -1369,7 +1370,7 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
   const rangeEnd = yLayer + 120;
 
   const filteredEvents = matchingEvents.filter(event => {
-    return event.renderInfo.y >= rangeStart && event.renderInfo.y <= rangeEnd;
+    return event.renderInfo && event.renderInfo.y >= rangeStart && event.renderInfo.y <= rangeEnd;
   });
 
   if (filteredEvents.length === 0) {
