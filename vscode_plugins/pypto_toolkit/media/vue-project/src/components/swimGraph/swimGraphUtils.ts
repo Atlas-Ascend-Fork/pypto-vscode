@@ -508,8 +508,6 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
     hoverCtx: document.querySelector(`[data-hover-process-key="${processKey}"]`),
     backgroundCtx: document.querySelector(`[data-background-process-key="${processKey}"]`),
     lineCanvasCtx:  document.querySelector(`[data-line-process-key="${processKey}"]`),
-    headerCtx: document.querySelector(`[data-process-header-key="${processKey}"]`),
-    headerHoverCtx:  document.querySelector(`[data-process-hover-header-key="${processKey}"]`),
   };
   const processCtxs = ctxs[processKey];
   const availableWidth = containerRect.width;
