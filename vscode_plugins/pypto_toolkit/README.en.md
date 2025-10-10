@@ -85,13 +85,19 @@
 
     The button in the top right corner can open the layer control panel, which supports changing the layout direction and adjusting the node display mode
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20comLayerConfig.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphSetting.gif)
 
   - **Link Locking**
 
     After selecting a node, you can right-click to lock or display only the links related to that node
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20comLockChain.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/lockPath.gif)
+
+  - **Comparison Mode Activation**
+
+    Right-click the calculation graph file and select "Open Calculation Graph Difference Comparison Using PyPTO Toolkit" to open it. It will automatically select the associated comparison file in the same folder. If it is not found, you can manually select the file path for the comparison.
+    
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphDiff.gif)
 
 ## Feedback Channel
 
