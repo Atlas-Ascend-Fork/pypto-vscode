@@ -41,6 +41,8 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
+import { initExtensionQuery } from './core/query';
+
 self.MonacoEnvironment = {
   getWorker(_, label) {
     if (label === 'json') {
@@ -59,7 +61,9 @@ self.MonacoEnvironment = {
   },
 };
 
+initExtensionQuery();
 EventBus.init();
+
 createApp(App)
   .use(Tooltip)
   .use(Icon)

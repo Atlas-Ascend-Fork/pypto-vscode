@@ -8,6 +8,9 @@ import { SwimGraphView } from './view/swimGraphView.js';
 import { ComGraphView } from './view/comGraphView';
 import { SQLiteCache } from './core/sqliteCache';
 import { globalConfig } from './config/config';
+import { startExtensionRequestServer } from './core/server';
+import { initView } from './view';
+
 const i18next = require('i18next');
 const config = globalConfig;
 export async function activate(context: ExtensionContext) {
@@ -59,6 +62,14 @@ export async function activate(context: ExtensionContext) {
   if(config.IS_USE_DB){
     await initDB(context);
   }
+
+  // 启动接口服务
+  const { addWebview } = startExtensionRequestServer({});
+  
+  // 启动编辑区视图
+  initView((viewPanel) => {
+    addWebview(viewPanel.webview);
+  });
 
   if (window.registerWebviewPanelSerializer) {
     window.registerWebviewPanelSerializer('swimLane', {
