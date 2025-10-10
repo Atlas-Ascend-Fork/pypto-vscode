@@ -6,6 +6,7 @@ import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
+import { getQuery } from './core/query';
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -13,6 +14,10 @@ const errorMessage = ref('');
 const loadingStep = ref('');
 const diffInfo = ref({});
 const { updateTheme } = useTheme();
+
+getQuery().then((query) => {
+  graphType.value = query.viewType;
+});
 
 const errorListener = (args) => {
   graphType.value = 'returnError';
@@ -27,7 +32,7 @@ const returnCom = (message) => {
 };
 
 const returnInitData = (message) => {
-  vscode.setState({
+  window.vscode.setState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
