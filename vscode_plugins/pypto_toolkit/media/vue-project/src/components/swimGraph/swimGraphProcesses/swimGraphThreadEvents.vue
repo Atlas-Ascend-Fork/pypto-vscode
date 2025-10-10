@@ -1019,6 +1019,9 @@ const updateProcessDrawData = (process, processKey) => {
   }
   for (const [threadKey, thread] of process.threads.entries()) {
     for (const event of thread.events) {
+      if (event.isCounter) {
+        continue;
+      }
       const { drawData } = event;
       const colors = getEventColor(event);
       const { fillColor, fontColor, strokeColor } = colors;
@@ -1267,16 +1270,16 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.beginPath();
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.roundRect(getNoZoomX(rect.x), rect.y, rect.width * viewState.scale, rect.height, 4);
+    ctx.roundRect(getNoZoomX(rect.x), rect.y, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.font = getFontStyle(9);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
+    const centerX = getNoZoomX(rect.x) + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, getNoZoomX(centerX), centerY);
+    ctx.fillText(rect.text, centerX, centerY);
     if(!largeSpacing){
       return;
     }
@@ -1533,12 +1536,14 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
     ctx.rect(getNoZoomX(x), y, width * viewState.scale, height);
-    ctx.closePath();
-    ctx.stroke();
-    const eventTemp = JSON.parse(JSON.stringify(event));
-    eventTemp.renderInfo.x = getNoZoomX(eventTemp.renderInfo.x);
-    eventTemp.renderInfo.width = eventTemp.renderInfo.width * viewState.scale;
-    highlightEvent(ctx, eventTemp, processKey, false, false);
+    const temp = JSON.parse(JSON.stringify(event));
+    const { fillColor, fontColor, strokeColor } = getEventColor(temp, true, true);
+    temp.drawData.rectColor = fillColor;
+    temp.drawData.strokeColor = strokeColor;
+    temp.drawData.fontColor = fontColor;
+    const { eventCtx } = ctxs[processKey];
+    drawEvent([temp.drawData], eventCtx, false);
+    drawEventText([temp.drawData], eventCtx, false);
     ctx.restore();
   }
 const renderEvents = () => {
