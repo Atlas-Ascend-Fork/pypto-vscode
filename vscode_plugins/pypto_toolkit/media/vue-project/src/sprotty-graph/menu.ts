@@ -167,7 +167,7 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
       return [
         new LabeledAction(`${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`, [callSetFixed(true, false, selectedNodeIds[0], false, '', 0)]),
         new LabeledAction(`${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)]),
-        // new LabeledAction('跳转到代码行', [callSetFixed(false, false, selectedNodeIds[0], true, nodeInfo[0].codePath, nodeInfo[0].codeLine)]),
+        new LabeledAction(`${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`, [callSetFixed(false, false, selectedNodeIds[0], true, nodeInfo[0].codePath, nodeInfo[0].codeLine)]),
         //   new LabeledAction('', []), // 后续需要再打开
         //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),
       ];
