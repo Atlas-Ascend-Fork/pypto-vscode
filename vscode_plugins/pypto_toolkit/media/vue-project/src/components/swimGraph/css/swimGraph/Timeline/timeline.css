@@ -94,7 +94,7 @@
 }
 
 .edit-title {
-  width: 70px;
+  width: auto;
   height: 22px;
   display: flex;
   flex-direction: row;
