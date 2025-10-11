@@ -141,7 +141,7 @@ onMounted(() => {
       @full-render="() => (graphType = 'returnCom')"
       @search-mode="() => (graphType = 'comGraphSearchMode')"
     />
-    <SearchMode v-if="graphType === 'comGraphSearchMode'" />
+    <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
     <SwimGraph v-if="graphType === 'returnSwim'" />
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph
