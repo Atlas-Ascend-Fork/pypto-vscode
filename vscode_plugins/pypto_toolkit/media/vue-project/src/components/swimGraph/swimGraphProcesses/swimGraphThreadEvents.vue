@@ -22,12 +22,11 @@
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
-  getThreadHeight, getThreadStartY,
+  getThreadHeight, getThreadStartY, eventTextSize
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
 
 const { isDarkTheme } = inject('root');
-const eventTextSize = 12 * devicePixelRatio;
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
@@ -45,7 +44,6 @@ const {
   swimlaneContainer,
   lane2line,
   viewState,
-  processedEvents,
   detailsPanelExpanded,
   timeLineX,
   sliderValue,
@@ -1051,11 +1049,8 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   }
 
   const actualPixWidth = actualWidth * devicePixelRatio;
-  let { name: displayName, textWidth } = event;
-  if (textWidth === undefined) {
-    textWidth = ctx.measureText(displayName).width; // 这里测量一次，是像素宽度，后续不用再测量了，用getTextWidth在苹果电脑上测量不准确
-    event.textWidth = textWidth;
-  }
+  let { name: displayName } = event;
+  let textWidth = ctx.measureText(displayName).width;
 
   let displayText = '';
   if (textWidth > actualPixWidth) {
@@ -1073,7 +1068,6 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
     displayText = displayName;
   }
 
-  // 优化文本位置计算
   let textStartX = 0;
   const textWidthDiff = actualPixWidth - textWidth;
   
@@ -1106,10 +1100,7 @@ const drawEvent = (eventDatas, ctx, isDimmed=false) => {
     ctx.rect(drawData.rectX, drawData.rectY, width, drawData.height);
     ctx.fill();
     if (drawData.strokeColor && width * viewState.scale > 10) {
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.stroke();
-      ctx.restore();
     }
   }
 };
@@ -1233,7 +1224,7 @@ const clearDrawConnector = (ctx, processKey) => {
     strokeRoundRect(uiCtx, altClickData.preData, processKey);
   }
 
-  const getNoZoomX = (x) => { return viewState.offsetX + (x * viewState.scale) };
+  const getNoZoomX = (x) => { return viewState.pixelOffsetX + (x * viewState.pixelScale) };
 
   const drawConnector = (ctx, largeSpacing) => {
     const rect = calculateRect(ctx , largeSpacing);
@@ -1243,15 +1234,14 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
     ctx.beginPath();
-    const x = getNoZoomX(rect.x);
-    ctx.roundRect(x, rect.y, rect.width * viewState.scale, rect.height, 4);
+    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.font = getFontStyle(9);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const centerX = getNoZoomX(rect.x + rect.width / 2);
+    const centerX = rect.x + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
     ctx.fillText(rect.text, centerX, centerY);
     // 绘制双向箭头
@@ -1270,35 +1260,34 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.beginPath();
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.roundRect(getNoZoomX(rect.x), rect.y, rect.width, rect.height, 4);
+    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.font = getFontStyle(9);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const centerX = getNoZoomX(rect.x) + rect.width / 2;
+    const centerX = rect.x + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
     ctx.fillText(rect.text, centerX, centerY);
     if(!largeSpacing){
       return;
     }
     // 绘制线水平实线部分
-    const {offsetX, scale} = viewState;
     ctx.beginPath();
-    const {x: preX, y: preY, width: preWidth, height: preHeight}  = altClickData.preData.renderInfo;
-    const {x: lastX, y: lastY}  = altClickData.lastData.renderInfo;
+    let {x: preX, y: preY, width: preWidth, height: preHeight} = renderInfo2pixelData(altClickData.preData.renderInfo);
+    let {x: lastX, y: lastY} = renderInfo2pixelData(altClickData.lastData.renderInfo);
+    const arrowLeftStartX = preX + preWidth;
     const leftLineWidth = lastX;
-    const leftLineHeight = preY + preHeight /2;
-    ctx.moveTo(offsetX + (preX + preWidth) * scale, leftLineHeight ); 
-    ctx.lineTo(offsetX + leftLineWidth * scale, leftLineHeight);
+    const leftLineHeight = preY + preHeight / 2;
+    ctx.moveTo(arrowLeftStartX, leftLineHeight ); 
+    ctx.lineTo(leftLineWidth, leftLineHeight);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
     // 左侧箭头头部
     const arrowSize = 8;
     ctx.beginPath();
-    const arrowLeftStartX = offsetX + (preX + preWidth) * scale;
     ctx.moveTo(arrowLeftStartX, preY + preHeight /2);
     ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight - arrowSize / 2);
     ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight + arrowSize / 2);
@@ -1308,18 +1297,18 @@ const clearDrawConnector = (ctx, processKey) => {
     // 垂直虚线部分（从水平线末端垂直延伸到第二个节点）
     ctx.beginPath();
     ctx.setLineDash([5, 3]);
-    ctx.moveTo(offsetX + lastX * scale, preY + preHeight /2);
-    ctx.lineTo(offsetX + lastX * scale, lastY + preHeight /2);
+    ctx.moveTo(leftLineWidth, preY + preHeight /2);
+    ctx.lineTo(leftLineWidth, lastY + preHeight /2);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.setLineDash([]);
     // 右侧箭头头部
     ctx.beginPath();
-    const arrowRightStartX = offsetX + lastX * scale;
-    ctx.moveTo(arrowRightStartX , preY + preHeight /2);
-    ctx.lineTo(arrowRightStartX-  arrowSize, leftLineHeight - arrowSize / 2);
-    ctx.lineTo(arrowRightStartX-  arrowSize, leftLineHeight + arrowSize / 2);
+    const arrowRightStartX = leftLineWidth;
+    ctx.moveTo(arrowRightStartX, preY + preHeight /2);
+    ctx.lineTo(arrowRightStartX - arrowSize, leftLineHeight - arrowSize / 2);
+    ctx.lineTo(arrowRightStartX - arrowSize, leftLineHeight + arrowSize / 2);
     ctx.closePath();
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
@@ -1342,38 +1331,39 @@ const clearDrawConnector = (ctx, processKey) => {
     const arrowSize = 8;
   
     // 左侧箭头（指向左边）
-    const actLeft = getNoZoomX(rect.leftX);
+    const actLeft = rect.leftX;
     const leftLineWidth = actLeft + arrowSize - 2;
+    const { centerY } = rect;
     ctx.beginPath();
-    ctx.moveTo(getNoZoomX(rect.x), rect.centerY); 
-    ctx.lineTo(leftLineWidth, rect.centerY);
+    ctx.moveTo(rect.x, centerY); 
+    ctx.lineTo(leftLineWidth, centerY);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
   
     // 左侧箭头头部
     ctx.beginPath();
-    ctx.moveTo(leftLineWidth - arrowSize / 2, rect.centerY);
-    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, rect.centerY - arrowSize / 2);
-    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, rect.centerY + arrowSize / 2);
+    ctx.moveTo(leftLineWidth - arrowSize / 2, centerY);
+    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY - arrowSize / 2);
+    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY + arrowSize / 2);
     ctx.closePath();
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
   
     // 右侧箭头（指向右边）
-    const rightLineWidth = getNoZoomX(rect.rightX) - arrowSize + 2;
+    const rightLineWidth = rect.rightX - arrowSize + 2;
     ctx.beginPath();
-    ctx.moveTo(getNoZoomX(rect.x + rect.width), rect.centerY);
-    ctx.lineTo(rightLineWidth , rect.centerY);
+    ctx.moveTo(rect.x + rect.width, centerY);
+    ctx.lineTo(rightLineWidth, centerY);
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.lineWidth = 2;
     ctx.stroke();
   
     // 右侧箭头头部
     ctx.beginPath();
-    ctx.moveTo(rightLineWidth + arrowSize / 2, rect.centerY);
-    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, rect.centerY - arrowSize / 2);
-    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, rect.centerY + arrowSize / 2);
+    ctx.moveTo(rightLineWidth + arrowSize / 2, centerY);
+    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY - arrowSize / 2);
+    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY + arrowSize / 2);
     ctx.closePath();
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.fill();
@@ -1386,36 +1376,48 @@ const clearDrawConnector = (ctx, processKey) => {
     if(!largeSpacing){
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
       }
-    const { x: lastX } = altClickData.lastData.renderInfo;
-    const width = 40 / viewState.scale;
+    let { x: lastX } = altClickData.lastData.renderInfo;
+    lastX = getNoZoomX(lastX);
+    const width = 40 * viewState.pixelScale;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
-    const leftX = preX + preWidth;  // 连线左端点
+    const leftX = getNoZoomX(preX + preWidth);  // 连线左端点
     const rectX = leftX + (lastX - leftX - width) / 2;
     return {
       leftX: leftX,
       rightX: lastX,
       x: rectX,
-      y: preY,
+      y: preY * devicePixelRatio,
       width: width,
-      height: height,
+      height: height * devicePixelRatio,
       centerX: rectX + (width / 2 - text.length) / 2,
-      centerY: centerY,
+      centerY: centerY * devicePixelRatio,
       textX: rectX + (width / 2 - text.length) / 2,
-      textY: centerY + 3,
+      textY: centerY * devicePixelRatio + 3,
       text: text,
       arrowWidth: (lastX - leftX - width - 6) / 2
     };
   };
+
+const renderInfo2pixelData = (renderInfo) => {
+  const {x, width, y, height} = renderInfo;
+  return {
+    x: getNoZoomX(x),
+    width: width * devicePixelRatio,
+    y: y * devicePixelRatio,
+    height: height * devicePixelRatio,
+  };
+};
   
   const calculateDiffRect = (largeSpacing) => {
-    let { x: preX, width: preWidth, y: preY, height: preHeight } = altClickData.preData.renderInfo;
-    if(!largeSpacing){
+    let { x: preX, width: preWidth, y: preY, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo);
+    if (!largeSpacing) {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
-      }
-    const { x: lastX} = altClickData.lastData.renderInfo;
-    const width = 40;
+    }
+    let { x: lastX} = altClickData.lastData.renderInfo;
+    lastX = getNoZoomX(lastX);
+    const width = 40 * viewState.pixelScale;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);

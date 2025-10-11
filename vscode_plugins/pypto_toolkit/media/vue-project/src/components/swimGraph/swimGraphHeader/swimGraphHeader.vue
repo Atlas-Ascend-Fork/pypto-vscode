@@ -42,6 +42,7 @@
 <script setup>
 import { ref, inject, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { devicePixelRatio } from '../swimGraphUtils';
 
 const { t: $t } = useI18n();
 
