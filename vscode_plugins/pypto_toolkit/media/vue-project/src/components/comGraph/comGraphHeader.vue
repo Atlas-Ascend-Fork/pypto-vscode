@@ -620,7 +620,7 @@ const displayResIt = (it) => {
   let symbol = '';
   let displayMagic = '';
   if (it.node_type === 'tensor') {
-    symbol = it.rawtensor_info.symbol + ' ';
+    symbol = (it.rawtensor_info.symbol??'') + ' ';
     displayMagic = it.magic;
   } else {
     displayMagic = it.opmagic;
