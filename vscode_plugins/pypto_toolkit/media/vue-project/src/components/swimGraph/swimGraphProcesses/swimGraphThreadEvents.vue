@@ -1596,7 +1596,7 @@ const eraseEventLine = (flag) => {
         canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
       }
       const ctx = canvasRef.getContext('2d');
-      ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
+      ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
     }
   }
 }
