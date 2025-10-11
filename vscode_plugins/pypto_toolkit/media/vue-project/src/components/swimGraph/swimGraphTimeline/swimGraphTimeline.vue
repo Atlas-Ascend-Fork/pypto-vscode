@@ -176,85 +176,87 @@ const timelineMouseDown = (e) => {
 }
 
 const timelineMouseMove = (e) => {
-  if (!isTimelineDragging) return;
-  isTimelineMove.value = true;
-  const rect = fixedtimelineCanvas.value.getBoundingClientRect();
-  const canvasWidth = viewState.canvasCssWidth;
-  const mouseX = e.clientX - rect.left;
-  const timelineOffsetX = mouseX - timelineInitX;
-  let startTime = 0;
+  if (e.target === fixedtimelineCanvas.value || e.target === flagsCanvas.value) {
+    if (!isTimelineDragging) return;
+    isTimelineMove.value = true;
+    const rect = fixedtimelineCanvas.value.getBoundingClientRect();
+    const canvasWidth = viewState.canvasCssWidth;
+    const mouseX = e.clientX - rect.left;
+    const timelineOffsetX = mouseX - timelineInitX;
+    let startTime = 0;
 
-  if (timelineState.isInLeftTag === true) {
-    if (timelineInitEndX - mouseX === 0) {
-      return;
-    }
-    viewState.scale = canvasWidth / Math.abs(timelineInitEndX - mouseX);
-    viewState.pixelScale = viewState.scale * devicePixelRatio;
-    startTime = fixedXToTime(mouseX + layout.processLabelWidth);
-    const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-    viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
-    // 同步范围滑块变化
-    const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
-    sliderValue.value =parseInt(sliderCount, 10); 
-    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
-    transform();
-    return;
-  }
-
-  if (timelineState.isInRightTag === true) {
-    if (mouseX - timelineInitStartX === 0) {
-      return;
-    }
-    viewState.scale = canvasWidth / Math.abs(mouseX - timelineInitStartX);
-    startTime = fixedXToTime(timelineInitStartX + layout.processLabelWidth);
-    const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-    viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
-    // 同步范围滑块变化
-    const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
-    sliderValue.value = parseInt(sliderCount, 10);
-    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
-    viewState.pixelScale = viewState.scale * devicePixelRatio;
-    transform();
-    return;
-  }
-
-  if (timelineState.isOnTag === true) {
-    const onTagTimerange = mouseX - timelineInitX;
-    startTime = fixedXToTime(timelineInitStartX + onTagTimerange + layout.processLabelWidth);
-    const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-    viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
-    if (viewState.offsetX > 0) {
-      viewState.offsetX = 0;
-      viewState.pixelOffsetX = 0;
+    if (timelineState.isInLeftTag === true) {
+      if (timelineInitEndX - mouseX === 0) {
+        return;
+      }
+      viewState.scale = canvasWidth / Math.abs(timelineInitEndX - mouseX);
+      viewState.pixelScale = viewState.scale * devicePixelRatio;
+      startTime = fixedXToTime(mouseX + layout.processLabelWidth);
+      const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
+      viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
+      // 同步范围滑块变化
+      const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
+      sliderValue.value =parseInt(sliderCount, 10); 
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
       transform();
       return;
     }
-    if (timelineInitEndX + onTagTimerange > canvasWidth) {
-      return;
-    }
-    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
-    transform();
-    return;
-  }
 
-  if (timelineState.isOutTag === true) {
-    if (Math.abs(timelineOffsetX) < 10) {
+    if (timelineState.isInRightTag === true) {
+      if (mouseX - timelineInitStartX === 0) {
+        return;
+      }
+      viewState.scale = canvasWidth / Math.abs(mouseX - timelineInitStartX);
+      startTime = fixedXToTime(timelineInitStartX + layout.processLabelWidth);
+      const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
+      viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
+      // 同步范围滑块变化
+      const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
+      sliderValue.value = parseInt(sliderCount, 10);
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      viewState.pixelScale = viewState.scale * devicePixelRatio;
+      transform();
       return;
     }
-    viewState.scale = canvasWidth / Math.abs(timelineOffsetX);
-    startTime = fixedXToTime(timelineInitX + layout.processLabelWidth);
-    if (timelineOffsetX < 0){
-      startTime = fixedXToTime(mouseX + layout.processLabelWidth);
+
+    if (timelineState.isOnTag === true) {
+      const onTagTimerange = mouseX - timelineInitX;
+      startTime = fixedXToTime(timelineInitStartX + onTagTimerange + layout.processLabelWidth);
+      const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
+      viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
+      if (viewState.offsetX > 0) {
+        viewState.offsetX = 0;
+        viewState.pixelOffsetX = 0;
+        transform();
+        return;
+      }
+      if (timelineInitEndX + onTagTimerange > canvasWidth) {
+        return;
+      }
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      transform();
+      return;
     }
-    const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-    viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
-    // 同步范围滑块变化
-    const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
-    sliderValue.value = parseInt(sliderCount, 10); 
-    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
-    viewState.pixelScale = viewState.scale * devicePixelRatio;
-    transform();
-    return;
+
+    if (timelineState.isOutTag === true) {
+      if (Math.abs(timelineOffsetX) < 10) {
+        return;
+      }
+      viewState.scale = canvasWidth / Math.abs(timelineOffsetX);
+      startTime = fixedXToTime(timelineInitX + layout.processLabelWidth);
+      if (timelineOffsetX < 0){
+        startTime = fixedXToTime(mouseX + layout.processLabelWidth);
+      }
+      const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
+      viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
+      // 同步范围滑块变化
+      const sliderCount = Math.round(Math.log(viewState.scale) / Math.log(1.25));
+      sliderValue.value = parseInt(sliderCount, 10); 
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      viewState.pixelScale = viewState.scale * devicePixelRatio;
+      transform();
+      return;
+    }
   }
 }
 
