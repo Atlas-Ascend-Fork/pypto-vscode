@@ -1565,7 +1565,7 @@ const realCoordinateY = (y) => {
 
 const drawEventLine = (x, color, flag) => {
   const devicePixelRatio = window.devicePixelRatio || 1;
-  const drawx = x * devicePixelRatio;
+  const drawX = x * devicePixelRatio;
   for (const processx of processes.entries()) {
     if (processx[1].expanded) {
       let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
@@ -1578,8 +1578,8 @@ const drawEventLine = (x, color, flag) => {
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(drawx, 0);
-      ctx.lineTo(drawx, canvasRef.height);
+      ctx.moveTo(drawX, 0);
+      ctx.lineTo(drawX, canvasRef.height);
       ctx.stroke();
       ctx.restore();
     }
