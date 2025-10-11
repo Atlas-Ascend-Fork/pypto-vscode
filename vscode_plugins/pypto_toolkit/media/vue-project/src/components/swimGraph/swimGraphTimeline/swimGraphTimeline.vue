@@ -264,7 +264,6 @@ const timelineMouseUp = (e) => {
   if (Math.abs(mouseX - timelineInitX) < 10) {
     isTimelineMove.value = false;
   }
-  clearTimeout(dragTimeout);
   timelineMouseEventReset();
 }
 
@@ -448,7 +447,7 @@ const flagMouseClick = (e) => {
     return ;
   } else {
     currentFlag.value = flag;
-    const flagTime = xToTime(mouseX + layout.processLabelWidth);
+    const flagTime = currentFlag.value.time;
     const currentTime = Math.round((flagTime - viewState.minTime) * 1000);
     formatTime(currentTime);
     checkFlagHover(mouseX, mouseY);

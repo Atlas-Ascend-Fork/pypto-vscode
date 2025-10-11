@@ -4,8 +4,11 @@ import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
 import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
+import SearchEntry from './components/comGraph/searchEntry.vue';
+import SearchMode from './components/comGraph/searchMode.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
+import { getQuery } from './core/query';
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -13,6 +16,10 @@ const errorMessage = ref('');
 const loadingStep = ref('');
 const diffInfo = ref({});
 const { updateTheme } = useTheme();
+
+getQuery().then((query) => {
+  graphType.value = query.viewType;
+});
 
 const errorListener = (args) => {
   graphType.value = 'returnError';
@@ -27,7 +34,7 @@ const returnCom = (message) => {
 };
 
 const returnInitData = (message) => {
-  vscode.setState({
+  window.vscode.setState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
@@ -35,6 +42,7 @@ const returnInitData = (message) => {
 };
 
 const readJsonWarning = (message) => {
+  graphType.value = 'comGraphFullSearchEntry';
   loadingStep.value = message.command;
 };
 
@@ -128,6 +136,12 @@ onMounted(() => {
 <template>
   <header>
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+    <SearchEntry
+      v-if="graphType === 'comGraphFullSearchEntry'"
+      @full-render="() => (graphType = 'returnCom')"
+      @search-mode="() => (graphType = 'comGraphSearchMode')"
+    />
+    <SearchMode v-if="graphType === 'comGraphSearchMode'" />
     <SwimGraph v-if="graphType === 'returnSwim'" />
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph

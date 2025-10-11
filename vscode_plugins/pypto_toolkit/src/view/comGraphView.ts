@@ -17,7 +17,7 @@ const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 const fileHashMap = {};
-const NODE_COUNT_LIMIT = 50000;
+const NODE_COUNT_LIMIT = 30000;
 const DATA_LENGTH_LIMIT = 62000000;
 const globalCallInOutTensorMap = new Map();
 
@@ -275,7 +275,7 @@ class MsgHandler {
       result = await comGraphData.readFileAndSetCache(comGraphData.fsPath, panel);
       isBigFile = result.isBigData;
     }
-    if (!fileHashMap[comGraphData.fsPath] && comGraphData.funcHashMap) {
+    if (!fileHashMap[comGraphData.fsPath] && comGraphData.funcHashMap && Object.keys(comGraphData.funcHashMap).length > 0) {
       fileHashMap[comGraphData.fsPath] = comGraphData.funcHashMap;
     } else {
       // 命中FuncData缓存
@@ -387,6 +387,15 @@ class MsgHandler {
       panel.webview.onDidReceiveMessage((message) => {
         if (message.type === 'askLayout') {
           this.elkLayout(message.data, panel);
+        }
+        if (message.type === 'getFuncTree') {
+          panel.webview.postMessage({
+            command: 'returnFuncTree',
+            entry: entryHash,
+            fsPath: comGraphData.fsPath,
+            curPath: curPath,
+            data: funcTree,
+          });
         }
       });
     });
@@ -784,7 +793,7 @@ function extractOperationNodes(jsonData) {
         opMap[subgraphId] = {};
       }
 
-      operation['node_id'] = `operation-${index}-magic-${operation.opmagic}-${subgraphId}`;
+      operation['node_id'] = `operation-magic-${operation.opmagic}-${subgraphId}`;
       operation['subgraphid'] = subgraphId;
       operation['node_type'] = 'operation';
       opMap[operation.subgraphid][operation.opmagic] = operation;

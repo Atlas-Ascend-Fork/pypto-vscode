@@ -85,13 +85,19 @@
 
     右上角按钮可以开启图层控制面板，支持更改布局方向，更改节点显示模式
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20comLayerConfig.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphSetting.gif)
 
   - **链路锁定**
 
     选中节点后，右键可以锁定或仅显示该节点相关链路
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20comLockChain.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/lockPath.gif)
+
+    **对比图开启**
+
+    右键计算图文件，选择 “使用PyPTO Toolkit打开计算图差异对比” 打开，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphDiff.gif)
+
 
 ## 反馈渠道
 
