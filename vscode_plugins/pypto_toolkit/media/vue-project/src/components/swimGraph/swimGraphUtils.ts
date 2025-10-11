@@ -31,9 +31,16 @@ export const DEP_MODE = {
 };
 
 export let ctxs: any = {};
-export let devicePixelRatio = window.devicePixelRatio || 1;
+export const getDevicePixelRatio = () => { return window.devicePixelRatio || 1; };
+export let devicePixelRatio = getDevicePixelRatio();
+export let eventTextSize = 12 * devicePixelRatio;
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
+
+export const setDevicePixelRatio = (ratio: number) => {
+  devicePixelRatio = ratio;
+  eventTextSize = 12 * devicePixelRatio;
+};
 
 export const getThreadHeight = (processKey: string, threadKey: any, lane2line: Map<string, number>, layout: any, isCounter: boolean = false): number => {
   const cacheKey = `${processKey}@${threadKey}@${isCounter}`;
@@ -464,20 +471,20 @@ export const mkTraceData = (processedEvents, processes, processExpanded, traceDa
 
 // 高DPI Canvas初始化辅助函数
 export const setupHighDPICanvas = (canvas: any, width: number, height: number) => {
-  const devicePixelRatio = window.devicePixelRatio || 1;
+  const currentDevicePixelRatio = getDevicePixelRatio();
   
   // 设置CSS尺寸
   canvas.style.width = width + 'px';
   canvas.style.height = height + 'px';
   
   // 设置实际像素尺寸
-  canvas.width = width * devicePixelRatio;
-  canvas.height = height * devicePixelRatio;
+  canvas.width = width * currentDevicePixelRatio;
+  canvas.height = height * currentDevicePixelRatio;
   
   // 获取上下文并设置缩放
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.scale(currentDevicePixelRatio, currentDevicePixelRatio);
   }
   
   return ctx;

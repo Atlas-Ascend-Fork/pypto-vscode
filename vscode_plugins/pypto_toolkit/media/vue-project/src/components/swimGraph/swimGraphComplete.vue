@@ -71,11 +71,13 @@ import {
   ctxs,
   TimelineWithUnit,
   formatTimeWithUnit,
-  mkTraceData,
+  devicePixelRatio,
+  setDevicePixelRatio,
   updateProcessSize,
   setupHighDPICanvas,
   getCanvasCSSHeight,
   getCanvasCSSWidth,
+  getDevicePixelRatio,
   COLOR_CFG,
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
@@ -144,6 +146,7 @@ const viewState = reactive({
   depMode: 'all',
   scaleChange: 1,
   pixelOffsetX: 0,
+  pixelScale: devicePixelRatio,
   offsetXChange: 0,
   minWidth: 1,
 });
@@ -199,8 +202,8 @@ const isCaseSensitive= ref(false);
 
 // 方法
 const initEventListeners = () => {
-  window.addEventListener('resize', onResize);
   window.addEventListener('message', handleMessage);
+  window.addEventListener('resize', onWindowResize);
 };
 
 const handleMessage = (event) => {
@@ -378,7 +381,7 @@ const transform = () => {
   for (const [processKey, ctxInfo] of Object.entries(ctxs)) {
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
       ctx.save();
-      ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
+      ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
   }
   // 渲染进程事件
@@ -721,7 +724,7 @@ const toggleProcess = (processKey) => {
     if (!ctxInfo) { return };
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
       ctx.save();
-      ctx.setTransform(viewState.pixelScale, 0, 0, window.devicePixelRatio, viewState.pixelOffsetX, 0);
+      ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
     const ctx = ctxInfo.eventCtx;
     childContextMap.threadEvent.transformEvents(process, processKey);
@@ -1019,20 +1022,36 @@ const initCanvases = () => {
   sliderMaxCount.value = Math.round(Math.log(maxScale) / Math.log(1.25));
 };
 
-const onResize = throttle((event) => {
-  if (window.innerWidth === viewState.windowWidth) {
-    return; // 如果只是纵向内容被遮盖，不需要重绘
+const onWindowResize = throttle((event) => {
+  const currentDevicePixelRatio = getDevicePixelRatio();
+  const currentWindowWidth = window.innerWidth;
+  
+  // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
+  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio) {
+    return;
   }
+  
+  // 更新状态
+  setDevicePixelRatio(currentDevicePixelRatio);
+  viewState.windowWidth = currentWindowWidth;
+
+  viewState.scale = 1;
+  viewState.pixelScale = viewState.scale * getDevicePixelRatio();
+  viewState.offsetX = 0;
+  viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
+  sliderValue.value = 0;
+  
+  // 重新计算容器尺寸和canvas尺寸
   resizeCanvases();
-  // 计算偏移量，防止canvasWidth变化偏移量不变导致的缩放问题
-  const canvasWidth = viewState.canvasCssWidth;
-  const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-  const offsetX = (timelineState.startTime - viewState.minTime) / timelinePerPixel;
-  viewState.offsetX = -offsetX;
-  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
-  viewState.windowWidth = window.innerWidth;
-  transform();
-}, 32);
+  
+  // 重新计算时间轴相关参数
+  if (timelineComponent.value) {
+    timelineComponent.value.resizeCanvases();
+  }
+  
+  // 重新渲染所有内容
+  render();
+}, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline=true) => {
   if (!swimlaneContainer.value) return;
