@@ -70,3 +70,6 @@ html {
     transform: translateX(100%);
   }
 }
+.devui-message .devui-message__content {
+  display: inline !important;
+}

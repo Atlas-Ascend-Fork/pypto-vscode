@@ -18,7 +18,7 @@ export function initExtensionQuery() {
   queryConnector.send(null);
 
   queryConnector.receive((query) => {
-    vscode.setState({ query });
+    vscode.value.setState({ query });
     resolveQuery(query);
   });
 }

@@ -73,7 +73,7 @@ export default {
         copy: 'Copy',
         copied: 'Copied',
         readJson: 'Reading data...',
-        readJsonWarning: 'Warning：The current number of layout nodes has exceeded 50,000,which may result in excessively long rendering times and could potentially cause the application to lag or carsh.',
+        readJsonWarning: 'Warning：The current number of layout nodes has exceeded 50,000,which may result in excessively long rendering times and could potentially cause the application to lag or crash.',
         rendering: 'Layout rendering...',
         list: ' List',
         expand: 'Expand ',

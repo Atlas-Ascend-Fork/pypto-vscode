@@ -7,6 +7,7 @@ import ErrorView from './components/comGraph/error.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 import { getQuery } from './core/query';
+import { vscode } from './core/vscode';
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -32,7 +33,7 @@ const returnCom = (message) => {
 };
 
 const returnInitData = (message) => {
-  window.vscode.setState({
+  vscode.value.setState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
@@ -124,7 +125,7 @@ window.addEventListener('message', (event) => {
 });
 
 onMounted(() => {
-  window.vscode.postMessage({
+  vscode.value.postMessage({
     command: 'getInitialData',
   });
 });
