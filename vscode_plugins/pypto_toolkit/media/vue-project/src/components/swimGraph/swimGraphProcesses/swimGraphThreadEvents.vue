@@ -1564,6 +1564,8 @@ const realCoordinateY = (y) => {
 }
 
 const drawEventLine = (x, color, flag) => {
+  const devicePixelRatioValue = window.devicePixelRatio !== undefined ? window.devicePixelRatio : 1;
+  const drawX = x * devicePixelRatioValue;
   for (const processx of processes.entries()) {
     if (processx[1].expanded) {
       let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
@@ -1576,8 +1578,8 @@ const drawEventLine = (x, color, flag) => {
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvasRef.height);
+      ctx.moveTo(drawX, 0);
+      ctx.lineTo(drawX, canvasRef.height);
       ctx.stroke();
       ctx.restore();
     }
@@ -1592,7 +1594,7 @@ const eraseEventLine = (flag) => {
         canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
       }
       const ctx = canvasRef.getContext('2d');
-      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+      ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
     }
   }
 }
