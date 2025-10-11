@@ -131,7 +131,7 @@ watch(
 );
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
-  if (val) {
+  if (Object.keys(val).length) {
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
@@ -145,7 +145,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     initComDocText(jsonValue, isDarkTheme.value);
     comGraphStore.setData('jsonData', jsonValue);
   }
-});
+}, { immediate: true });
 
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {

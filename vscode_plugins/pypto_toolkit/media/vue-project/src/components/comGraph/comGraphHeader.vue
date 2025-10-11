@@ -1013,7 +1013,7 @@ watch(
       opMap = extractOperationNodes(jsonData);
       totalSize.value = calcNodeSize(opMap) + calcNodeSize(tensorMap);
     }
-  }
+  }, { immediate: true }
 );
 
 watch(() => comGraphStore.data.calleeMap, (val) => {
@@ -1021,7 +1021,7 @@ watch(() => comGraphStore.data.calleeMap, (val) => {
     return;
   }
   funcMap.value = extractFuncMap(val);
-});
+}, { immediate: true });
 
 onMounted(() => {
   const inputEl = searchEl.value.$el.querySelector('.dp-category-search-toggle');
@@ -1044,7 +1044,11 @@ onMounted(() => {
     e.preventDefault();
     const icon = searchEl.value.$el.querySelector('.dp-category-search-icon') as HTMLElement;
     icon?.click();
-  })
+  });
+
+  (window as any).vscode.postMessage({
+    type: 'getFuncTree',
+  });
 });
 </script>
 

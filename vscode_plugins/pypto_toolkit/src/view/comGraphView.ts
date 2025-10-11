@@ -17,7 +17,7 @@ const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 const fileHashMap = {};
-const NODE_COUNT_LIMIT = 50000;
+const NODE_COUNT_LIMIT = 30000;
 const DATA_LENGTH_LIMIT = 62000000;
 const globalCallInOutTensorMap = new Map();
 
@@ -387,6 +387,15 @@ class MsgHandler {
       panel.webview.onDidReceiveMessage((message) => {
         if (message.type === 'askLayout') {
           this.elkLayout(message.data, panel);
+        }
+        if (message.type === 'getFuncTree') {
+          panel.webview.postMessage({
+            command: 'returnFuncTree',
+            entry: entryHash,
+            fsPath: comGraphData.fsPath,
+            curPath: curPath,
+            data: funcTree,
+          });
         }
       });
     });
