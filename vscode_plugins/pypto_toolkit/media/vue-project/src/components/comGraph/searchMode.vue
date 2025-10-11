@@ -401,7 +401,7 @@ const displayResIt = (it) => {
   let symbol = '';
   let displayMagic = '';
   if (it.node_type === 'tensor') {
-    symbol = it.rawtensor_info.symbol??'' + ' ';
+    symbol = (it.rawtensor_info.symbol??'') + ' ';
     displayMagic = it.magic;
   } else {
     displayMagic = it.opmagic;
@@ -412,16 +412,11 @@ const displayResIt = (it) => {
   return `${it.node_type} SubgraphID:${it.subgraphid} ${symbol}magic:${displayMagic}`;
 }
 
-const emit = defineEmits(['onLocate']);
-
 const onLocate = (it) => {
   if (it.node_type === 'function') {
     return;
   }
-  if (it.funcHash && it.funcHash !== currentFuncHash) {
-    return;
-  }
-  emit('onLocate', it.node_id);
+  (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
 }
 
 function calcNodeSize(map) {

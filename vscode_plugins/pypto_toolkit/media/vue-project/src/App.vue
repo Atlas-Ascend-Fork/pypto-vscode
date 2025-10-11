@@ -15,6 +15,8 @@ const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
 const diffInfo = ref({});
+const openMode = ref('all');
+const nodeMagic = ref(0);
 const { updateTheme } = useTheme();
 
 getQuery().then((query) => {
@@ -26,7 +28,14 @@ const errorListener = (args) => {
   errorMessage.value = args;
 };
 
+const searchNodeListener = (args) => {
+  graphType.value = 'returnCom';
+  openMode.value = 'path';
+  nodeMagic.value = args;
+};
+
 (window as any).ascEventBus.on('jsonParseError', errorListener);
+(window as any).ascEventBus.on('searchNode', searchNodeListener);
 
 const returnCom = (message) => {
   jsonContent.value = message.data;
@@ -135,7 +144,7 @@ onMounted(() => {
 
 <template>
   <header>
-    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       @full-render="() => (graphType = 'returnCom')"

@@ -46,6 +46,14 @@ const props = defineProps({
   loadingStep: {
     type: String,
     default: ''
+  },
+  openMode: {
+    type: String,
+    default: 'all'
+  },
+  nodeMagic: {
+    type: Number,
+    default: '-1'
   }
 })
 
