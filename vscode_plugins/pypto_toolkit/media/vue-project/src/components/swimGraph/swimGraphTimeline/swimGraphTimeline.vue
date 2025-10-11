@@ -401,7 +401,7 @@ const hoverLineErase = () => {
   childContextMap.processHeaderEvent.eraseProcessHeadLine('over');
   const ctx = hoverFlagsCtx.value;
   const canvas = hoverFlagsCanvas.value;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   hoverCurFlag.value = null;
 };
 
@@ -481,7 +481,7 @@ const flagRender = () => {
   const canvas = flagsCanvas.value;
   childContextMap.threadEvent.eraseEventLine("");
   childContextMap.processHeaderEvent.eraseProcessHeadLine("");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   const start = timelineState.startTime;
   const end = timelineState.endTime;
   if (flags.value.length === 0) return;
