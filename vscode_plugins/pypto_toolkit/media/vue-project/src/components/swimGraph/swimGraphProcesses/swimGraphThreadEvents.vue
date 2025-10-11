@@ -1564,7 +1564,7 @@ const realCoordinateY = (y) => {
 }
 
 const drawEventLine = (x, color, flag) => {
-  const devicePixelRatio = window.devicePixelRatio || 1;
+  const devicePixelRatio = window.devicePixelRatio !== undefined ? window.devicePixelRatio : 1;
   const drawX = x * devicePixelRatio;
   for (const processx of processes.entries()) {
     if (processx[1].expanded) {
