@@ -521,7 +521,7 @@ const transformEvents = (process, processKey) => {
 
   const { height } = eventCtx.canvas;
   for (const ctx of Object.values(ctxs[processKey])) {
-    ctx.clearRect(0, 0, viewState.canvasCssWidth * viewState.scale, height);
+    ctx.clearRect(0, 0, viewState.canvasCssWidth * viewState.scale, ctx.canvas.offsetHeight);
   }
   
   for (const [threadKey, thread] of process.threads.entries()) {
