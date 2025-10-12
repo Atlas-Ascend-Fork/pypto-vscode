@@ -152,7 +152,8 @@
                     <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}"><img class="right" :src="rPath" alt="right"/></button> 
                   </div>
                   <div class="detail-level display-containner">
-                    <d-input-number v-model="refLabel" :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number> 
+                    <div class="input-number-border" :style="{width: inputNumberWidth + 'px'}" :class="{ 'focusable': isFocused}" tabindex="0" @focus="handleFocus" @blur="handleBlur">{{$t('hierarchy')}}</div>
+                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="refLabel" :step="1" :precision="0" :min="-1" @change="onInputChange" @focus="onInputFocus" @blur="onInputBlur"></d-input-number> 
                     <d-tooltip :content="$t('connectionLevel')">
                       <d-icon name="icon-helping" class="help-font"></d-icon>
                     </d-tooltip>
@@ -218,6 +219,9 @@ let durationInfo = ref('0');
 let durationInfoAll = ref('');
 let durationUnitInfo = ref('us');
 const refLabel = ref(-1);
+let isFocused = ref(false);
+const inputNumberWidth = ref(window.ascLang === 'zh' ? 50 : 80);
+const inputNumberRef = ref(null);
 const dynamicWidthStyle = (event) => {
   if(!useDynamicWidth) return {};
   const eventName = getEventTruncateText(event);
@@ -363,6 +367,22 @@ const onInputChange = (newValue, oldValue) => {
   selectEvent(null, processKey);
   selectEvent(selectedEventTemp.value, processKey)
 }
+const onInputFocus = (event) => {
+  isFocused.value = true;
+}
+const onInputBlur = (event) => {
+  isFocused.value = false;
+}
+const handleFocus = (event) => {
+  if(inputNumberRef.value && inputNumberRef.value.focus){
+    inputNumberRef.value.focus();
+  }
+}
+const handleBlur = (event) => {
+  if(inputNumberRef.value && inputNumberRef.value.blur){
+    inputNumberRef.value.blur();
+  }
+}
 // 暴露方法给父组件
 defineExpose({
   refLabel
@@ -371,6 +391,18 @@ defineExpose({
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/Detail/detail.css");
+.input-number-container {
+  margin-left: -6px;
+  :deep() {
+    .devui-input-number__input-box {
+      border-radius: 0 var(--devui-border-radius) var(--devui-border-radius) 0;
+      border-left: none !important;
+    }
+    .devui-input-number__input-box:not(.disabled) {
+      box-shadow: none !important;
+    }
+  }
+}
 </style>
 <style>
 .event-hint-hash {

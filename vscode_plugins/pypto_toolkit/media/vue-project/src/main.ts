@@ -31,6 +31,8 @@ import Select from 'vue-devui/select';
 import 'vue-devui/select/style.css';
 import Checkbox from 'vue-devui/checkbox';
 import 'vue-devui/checkbox/style.css';
+import InputNumber from 'vue-devui/input-number';
+import 'vue-devui/input-number/style.css';
 import i18n from './i18n';
 import EventBus from './service/event-bus';
 import './style.scss';
@@ -80,5 +82,6 @@ createApp(App)
   .use(Badge)
   .use(Message)
   .use(Checkbox)
+  .use(InputNumber)
   .use(i18n)
   .mount('#app');
