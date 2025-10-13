@@ -51,9 +51,7 @@
 }
 
 .content-title {
-  margin-left: 16px;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  margin: 16px;
 }
 
 .picture {
@@ -136,7 +134,7 @@
 }
 
 .ufcat {
-  width: 135px;
+  width: 148px;
   height: 20px;
   color: var(--devui-detail-text);
   font-size: 12px;
@@ -148,14 +146,14 @@
 }
 
 .content-stat {
-  margin: 16px 0 0 10px;
+  margin: 16px 0 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .content-border {
-  width: 98px;
+  width: 108px;
   height: 71px;
   box-sizing: border-box;
   border: 1px solid var(--devui-swim-split-line);
@@ -185,8 +183,7 @@
   line-height: 20px;
   letter-spacing: 0px;
   text-align: left;
-  margin-top: 10px;
-  margin-left: 16px;
+  margin: 10px 16px 0 16px;
 }
 
 .close-button {
@@ -202,7 +199,6 @@
 }
 
 .start-value {
-  width: 113px;
   height: 32px;
   color: var(--devui-primary-text);
   font-size: 14px;
@@ -210,7 +206,7 @@
   line-height: 32px;
   letter-spacing: 0px;
   text-align: left;
-  margin-left: 16px;
+  margin: 0 16px;
 }
 .start-value-key {
   font-size: 24px;
