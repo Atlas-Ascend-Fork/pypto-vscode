@@ -301,7 +301,7 @@ watch(isDarkTheme, () => {
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
-}
+};
 
 onMounted(() => {
   updateTheme();
