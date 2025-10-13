@@ -222,6 +222,10 @@ const calculateDependencies = (events, connections) => {
     const args = event['args']['event-hint'].split(',');
     const taskId = args[args.length - 1].split(':')[1];
     const taskPmuInfo = pmuInfo[taskId];
+    if (taskPmuInfo === undefined) {
+      console.error("PMU: taskID not found:", taskId);
+      return;
+    }
     event['pmu_info'] = taskPmuInfo;
     event['pmu_calc_info'] = {};
     event['pmu_calc_info']['vec_ratio'] = taskPmuInfo.vec_busy_cycles / taskPmuInfo['total cycle'];

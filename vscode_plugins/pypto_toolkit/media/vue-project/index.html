@@ -16,10 +16,8 @@
     <script type="module" src="/src/main.ts"></script>
 
     <script>
-      setTimeout(() => {
-        window.vscode = acquireVsCodeApi && acquireVsCodeApi();
-        window.staticPath = '{{staticPath}}';
-      }, 100);
+      window.vscode = acquireVsCodeApi && acquireVsCodeApi();
+      window.staticPath = '{{staticPath}}';
     </script>
   </body>
 </html>

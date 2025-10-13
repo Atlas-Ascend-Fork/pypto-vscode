@@ -69,6 +69,7 @@ export default {
    compareWrongTips: '选中文件无法解析为计算图',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
+   'hierarchy': '层级: ',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

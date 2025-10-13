@@ -50,6 +50,7 @@
         </d-dropdown>
       </div>
       <div class="module-row-center-container"></div>
+      <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
     </div>
 
     <div 
@@ -161,6 +162,7 @@
 <script setup lang="ts">
 import { ref, defineEmits, inject, onMounted, reactive, watch} from 'vue';
 import { useI18n } from 'vue-i18n';
+import { GraphType } from './type';
 import type { ComGraphContext } from './type';
 import { comGraphStore } from '../../service/com-graph-store';
 import { getCurFunctionDynamicAttr } from '../../sprotty-graph/parseSymbolicAttr';
@@ -184,7 +186,8 @@ const props = defineProps({
   showType: {
     type: String,
     default: 'all'
-  }
+  },
+  graphType: { type: String },
 })
 
 let funcTree = {}
@@ -629,7 +632,7 @@ const displayResIt = (it) => {
   let symbol = '';
   let displayMagic = '';
   if (it.node_type === 'tensor') {
-    symbol = it.rawtensor_info.symbol + ' ';
+    symbol = (it.rawtensor_info.symbol??'') + ' ';
     displayMagic = it.magic;
   } else {
     displayMagic = it.opmagic;
@@ -1077,9 +1080,40 @@ onMounted(() => {
   transform: translate(-50%, -50%);
 }
 
+.module-row-graph-type {
+  color: var(--devui-primary-text);
+  padding: 0 8px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 4px;
+  
+  &.TENSOR_GRAPH {
+    background-color: var(--devui-mint-60);
+  }
+  &.TILE_GRAPH {
+    background-color: var(--devui-green-60);
+  }
+  &.EXECUTE_GRAPH {
+    background-color: var(--devui-cyan-60);
+  }
+  &.BLOCK_GRAPH {
+    background-color: var(--devui-blue-60);
+  }
+  &.LEAF_VF_GRAPH {
+    background-color: var(--devui-indigo-60);
+  }
+  &.INVALID {
+    background-color: var(--devui-red-60);
+  }
+}
+
 .navigation {
   display: flex;
   gap: 4px;
+
+  & > span {
+    line-height: 18px;
+  }
 }
 
 .select-options {
