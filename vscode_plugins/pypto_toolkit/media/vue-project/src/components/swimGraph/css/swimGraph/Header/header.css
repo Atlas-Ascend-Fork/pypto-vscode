@@ -102,12 +102,16 @@
   display: flex;
 }
 
-#measure-button .devui-button .devui-button--outline{
-  background-color: #606061;
+#measure-button.devui-button.devui-button--outline{
+  background-color: var(--backgroundcolor);
+  outline: none;
+  box-shadow: none;
 }
 
-#measure-button .devui-button .devui-button--outline.dark-model{
+#measure-button.devui-button.devui-button--outline.dark-model{
   background-color: rgba(49, 122, 247, 0.2);
+  outline: none;
+  box-shadow: none;
 }
 
 .measure-picture {
