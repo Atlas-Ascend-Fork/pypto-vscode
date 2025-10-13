@@ -8,6 +8,7 @@
 
 ## 项目结构
 
+```
 |-- .vscode
     |-- launch.json  # 调试器相关配置
 |-- media  # webview前端相关内容
@@ -59,7 +60,13 @@
 |-- src  # 插件后端内容
     |-- command  # 命令注册, 事件监听
     |   |-- registerCommand.ts  # 注册命令
+    |-- core # 插件端核心功能
+    |   |-- editorView # 编辑区自定义webview
+    |   |-- connector # 前后端通信
+    |   |-- viewQuery # 向webview前端发送页面参数
     |-- view  # 视图层
+    |   |-- index.ts  # 视图入口（初始化和打开指定视图）
+    |   |-- routes.ts  # 视图路由
     |   |-- comGraphView.ts  # 计算图后端代码
     |   |-- swimGraphView.ts  # 泳道图后端代码
     |-- extension.ts  # 插件入口文件
@@ -78,10 +85,46 @@
 |-- README.md  # 插件介绍
 |-- tsconfig.json  # ts语言设置
 |-- commitlint.config.js  # commit规范校验
+```
 
 ## vue-project代码开发注意点
 
 1. 静态资源用window上的staticPath拼接，保障打包和调试的资源引入正确 `${staticPath}/static-assets/logo.svg`;
+
+## 注册和使用自定义视图
+
+### 注册路由
+/src/view/routes.ts 配置详见ts类型提示
+
+### 打开视图
+
+``` typescript
+const { editorView } = useView();
+const uri = vscode.Uri.file('文件路径');
+const webviewPanel = await editorView.open('视图类型', uri);
+```
+
+## 前后端数据请求
+
+### 后端服务
+
+/src/core/server.ts
+
+```
+TODO: 注册api
+```
+
+### 前端请求
+
+/media/vue-project/src/core/request.ts
+
+``` typescript
+import { request } from '/media/vue-project/src/core/request.ts';
+
+request.post('api地址', params).then((res) => {
+  // 请求响应
+});
+```
 
 ## 依赖参考文档
 
