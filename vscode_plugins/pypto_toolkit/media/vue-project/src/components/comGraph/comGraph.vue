@@ -150,7 +150,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     selectAction = sprottyLoadResult.selectAction;
     getSelectedNodeId = sprottyLoadResult.getSelectedNodeId;
     setDirection = sprottyLoadResult.setModelDirection;
-    initComDocText(jsonValue, isDarkTheme.value);
+    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
     comGraphStore.setData('jsonData', jsonValue);
   }
 }, { immediate: true });

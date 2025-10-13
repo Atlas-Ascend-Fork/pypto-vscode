@@ -129,23 +129,30 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       currentLayoutConfig.showTensor = showTensorNodes;
       resetModelSource();
     }
-    // const sprottyGraph = dagBuilder.createSprottyGraph(
-    //   currentData,
-    //   showTensorNodes,
-    //   showSyncNodes,
-    //   colorBySubgraph,
-    //   isDark,
-    //   selectedSubgraphId,
-    // );
-    /* 单条路径搜索调试入口 */
-    const sprottyGraph = myBuilder.createSinglePathGraph(
-      "596",
-      currentData,
-      showTensorNodes,
-      isDark,
-      colorBySubgraph,
-      selectedSubgraphId
-    );
+
+    let sprottyGraph;
+    if (option?.openMode === 'path' && option?.nodeMagic) {
+      /* 单条路径搜索调试入口 */
+      console.log("dxl test step in createSinglePathGraph");
+      sprottyGraph = myBuilder.createSinglePathGraph(
+        option.nodeMagic.toString(),
+        currentData,
+        showTensorNodes,
+        isDark,
+        colorBySubgraph,
+        selectedSubgraphId
+      );
+    } else {
+      console.log("dxl test step in createSprottyGraph");
+      sprottyGraph = dagBuilder.createSprottyGraph(
+        currentData,
+        showTensorNodes,
+        showSyncNodes,
+        colorBySubgraph,
+        isDark,
+        selectedSubgraphId,
+      );
+    }
 
     originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
 
@@ -301,11 +308,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number) => {
     try {
       currentData = jsonData; // Store the data
       populateSubgraphFilter(); // Populate the subgraph filter
-      updateGraph(isDark); // Use the updateGraph function
+      updateGraph(isDark, {openMode, nodeMagic}); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?
