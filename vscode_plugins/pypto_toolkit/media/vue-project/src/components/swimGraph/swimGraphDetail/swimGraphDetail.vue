@@ -369,20 +369,20 @@ const onInputChange = (newValue, oldValue) => {
 }
 const onInputFocus = (event) => {
   isFocused.value = true;
-}
+};
 const onInputBlur = (event) => {
   isFocused.value = false;
-}
+};
 const handleFocus = (event) => {
-  if(inputNumberRef.value && inputNumberRef.value.focus){
+  if (inputNumberRef.value && inputNumberRef.value.focus) {
     inputNumberRef.value.focus();
   }
-}
+};
 const handleBlur = (event) => {
-  if(inputNumberRef.value && inputNumberRef.value.blur){
+  if (inputNumberRef.value && inputNumberRef.value.blur) {
     inputNumberRef.value.blur();
   }
-}
+};
 // 暴露方法给父组件
 defineExpose({
   refLabel
