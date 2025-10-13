@@ -153,6 +153,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         selectedSubgraphId,
       );
     }
+    sprottyGraph['renderMode'] = option?.openMode || 'all';
 
     originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
 
@@ -201,30 +202,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`${renderType}_mainmap_wheel`, mainMapWheelListener);
 
   (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
-
-  // Function to populate subgraph filter combo box
-  const populateSubgraphFilter = () => {
-    if (!currentData) return;
-
-    const subgraphFilterSelect = document.getElementById('subgraph-filter') as HTMLSelectElement;
-    if (!subgraphFilterSelect) return;
-
-    // Get available subgraphs
-    const availableSubgraphs = dagBuilder.getAvailableSubgraphs(currentData);
-
-    // Clear existing options except "All Subgraphs"
-    subgraphFilterSelect.innerHTML = '<option value="">All Subgraphs</option>';
-
-    // Add options for each subgraph
-    for (const subgraphId of availableSubgraphs) {
-      const option = document.createElement('option');
-      option.value = String(subgraphId);
-      option.textContent = `Subgraph ${subgraphId}`;
-      subgraphFilterSelect.appendChild(option);
-    }
-
-    console.log('Populated subgraph filter with:', availableSubgraphs);
-  };
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {
@@ -311,7 +288,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number) => {
     try {
       currentData = jsonData; // Store the data
-      populateSubgraphFilter(); // Populate the subgraph filter
       updateGraph(isDark, {openMode, nodeMagic}); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
@@ -360,7 +336,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   return {
-    populateSubgraphFilter,
     fitToScreenAction,
     initComDocText,
     colorBySubGraph,
