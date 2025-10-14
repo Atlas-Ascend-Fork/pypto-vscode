@@ -34,6 +34,7 @@ const searchNodeListener = (args) => {
   graphType.value = 'returnCom';
   openMode.value = 'path';
   nodeMagic.value = args;
+  loadingStep.value = 'rendering';
 };
 
 (window as any).ascEventBus.on('jsonParseError', errorListener);
@@ -132,6 +133,15 @@ function dealConfig(config) {
   }
 }
 
+function onFullRender() {
+  if (Object.keys(jsonContent.value).length){
+    loadingStep.value = 'rendering';
+  } else {
+    loadingStep.value = 'readJson';
+  }
+  graphType.value = 'returnCom';
+}
+
 window.addEventListener('message', (event) => {
   const message = event.data;
   CommandCallbackMap[message.command]?.(message);
@@ -150,7 +160,7 @@ onMounted(() => {
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"
-      @full-render="() => (graphType = 'returnCom')"
+      @full-render="onFullRender"
       @search-mode="() => (graphType = 'comGraphSearchMode')"
     />
     <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />

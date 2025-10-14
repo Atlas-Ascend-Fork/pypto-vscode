@@ -181,7 +181,7 @@ onMounted(() => {
       lockText = t('comGraph.pathLocked');
     }
   });
-  if (props.loadingStep === 'readJson') {
+  if (props.loadingStep === 'readJson' || props.loadingStep === 'rendering') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
