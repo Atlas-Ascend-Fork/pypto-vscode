@@ -8,7 +8,7 @@
         <span class="title">{{ t('comGraph.fullRenderComGraph') }}</span>
         <span class="desc">{{ t('comGraph.fullRenderComGraphDesc') }}</span>
       </div>
-      <div class="search-mode" @click="() => emits('searchMode')">
+      <div :class="['search-mode', disabledSearchMode && 'search-mode-disabled']" @click="onClickSearchMode">
         <span class="title">{{ t('comGraph.searchMode') }}</span>
         <span class="desc">{{ t('comGraph.searchModeDesc') }}</span>
       </div>
@@ -20,12 +20,24 @@
 import { inject, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+const props = defineProps({
+  disabledSearchMode: {
+    type: Boolean,
+    default: false,
+  },
+});
 const emits = defineEmits(['fullRender', 'searchMode']);
 
 const { isDarkTheme } = inject('root');
 const { t } = useI18n();
 const svgPath = computed(() => `"${(window as any).staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const iconPath = `${(window as any).staticPath}/static-assets/logo.png`;
+const onClickSearchMode = () => {
+  if (props.disabledSearchMode) {
+    return;
+  }
+  emits('searchMode');
+};
 </script>
 
 <style scoped lang="scss">
@@ -82,10 +94,20 @@ const iconPath = `${(window as any).staticPath}/static-assets/logo.png`;
         line-height: 22px;
       }
 
-      &:hover {
+      &:not(.search-mode-disabled):hover {
         border-color: var(--devui-title-text);
         background-color: var(--devui-flow-water-bg);
         box-shadow: var(--devui-select-shadow);
+      }
+
+      &.search-mode-disabled {
+        background-color: var(--devui-secondary-button-disabled-bg);
+        cursor: not-allowed;
+
+        .title,
+        .desc {
+          color: var(--devui-disabled-text);
+        }
       }
     }
   }

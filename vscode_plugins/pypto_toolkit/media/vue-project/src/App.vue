@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
 import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
@@ -18,6 +18,7 @@ const loadingStep = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
+const disabledSearchMode = computed(() => !Object.keys(jsonContent.value).length);
 const { updateTheme } = useTheme();
 
 getQuery().then((query) => {
@@ -148,6 +149,7 @@ onMounted(() => {
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
+      :disabled-search-mode="disabledSearchMode"
       @full-render="() => (graphType = 'returnCom')"
       @search-mode="() => (graphType = 'comGraphSearchMode')"
     />
