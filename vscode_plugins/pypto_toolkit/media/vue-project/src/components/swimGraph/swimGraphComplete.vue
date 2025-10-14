@@ -117,6 +117,14 @@ const tooltipStyle = reactive({
 const bindFile = ref(false);
 const bindButton = ref($t("bindComGraphJson"));
 const cycleDisplay = ref('none');
+const selectedOption = ref('clockCycle');
+const selectOptions = [
+  {name: $t('clockCycle'), value: 'clockCycle', disabled: false},
+  {name: $t('throughout'), value: 'throughout', disabled: true},
+  {name: $t('cacheHit'), value: 'cacheHit', disabled: true},
+  {name: $t('task'), value: 'task', disabled: false},
+];
+const options = reactive(selectOptions);
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -1425,7 +1433,7 @@ onMounted(() => {
     postMessage({ command: 'getSwimData' });
   }
 });
-provide('swimCycleDisplay', { cycleDisplay });
+provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 
 provide('swimGraphContext', { addChildContext });
 // 提供搜索状态

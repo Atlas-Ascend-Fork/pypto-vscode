@@ -12,11 +12,11 @@
         {{ thread.threadName }}
       </div>
       <div class="threads-box" v-if="thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
-        :style="{'--thread-fill-width': threadFillWidth(thread.threadName) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName)) + '%', 
-          'background': threadFillWidth(thread.threadName) === 100 ? 'var(--devui-timefull-bg)' : 'initial',
+        :style="{'--thread-fill-width': threadFillWidth(thread.threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName, selectedOption)) + '%', 
+          'background': getBackground(thread.threadName, selectedOption),
           'display':cycleDisplay}">
-        <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName) + '%'}"></div>
-        <div class="threads-text"> {{ threadTotaltime(thread.threadName) }}</div>
+        <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%'}"></div>
+        <div class="threads-text"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
         <div class="average-line" :style="{ left: averageValue + '%'}"></div>
       </div>
     </div>
@@ -41,7 +41,7 @@ const {
 } = inject('swimGraphSearch');
 
 const curThread = inject('curThread');
-const { cycleDisplay } = inject('swimCycleDisplay');
+const { cycleDisplay, selectedOption, options } = inject('swimCycleDisplay');
 
 // 定义props
 const props = defineProps({
@@ -55,7 +55,6 @@ const props = defineProps({
   }
 });
 
-
 const averageValue = ref(0);
 
 const calculateThreadCycles = (allProcesses, proKey) => {
@@ -67,6 +66,8 @@ const calculateThreadCycles = (allProcesses, proKey) => {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
           cycleDisplay.value = 'none';
+          const optionToDisable = options.find(option => option.value === 'clockCycle');
+          optionToDisable && (optionToDisable.disabled = true);
           return null;
         }
         totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
@@ -78,30 +79,66 @@ const calculateThreadCycles = (allProcesses, proKey) => {
   return threadCyclesMap;
 };
 
-const threadCyclesMap = calculateThreadCycles(processes, props.processKey);
-let maxThreadTime = new BigNumber(0);
-if (threadCyclesMap) {
-  const values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
-  let sum = new BigNumber(0);
-  if (values.length > 0) {
-    maxThreadTime = values.reduce((max, value) => max.gt(value) ? max : value);
-    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
-    const averageBN = sum.dividedBy(values.length);
-    averageValue.value = averageBN.dividedBy(maxThreadTime).times(100).toNumber();
+const calculateThreadTask = (allProcesses, proKey) => {
+  const threadTaskMap = new Map();
+  const { threads = new Map() } = allProcesses.get(proKey) || {};
+  for(const [threadKey, thread] of threads) {
+    if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+      threadTaskMap.set(thread.threadName, thread.events.length);
+    }
   }
-}
+  if (cycleDisplay.value === 'none') {
+    cycleDisplay.value = 'flex';
+    selectedOption.value = 'task';
+  }
+  return threadTaskMap;
+};
 
-const threadTotaltime = (threadId) => {
-  if (threadCyclesMap) {
+const threadCyclesMap = calculateThreadCycles(processes, props.processKey);
+const threadTaskMap = calculateThreadTask(processes, props.processKey);
+
+const getBackground = (threadId, option) => {
+  let values;
+  if (option === 'clockCycle' && threadCyclesMap) {
+    values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
+    if (values.every((value, _, arr) => value.eq(arr[0]))) {
+      return 'initial';
+    }
+  } else if (option === 'task' && threadTaskMap) {
+    values = Array.from(threadTaskMap.values());
+    if (values.every((value, _, arr) => value === arr[0])) {
+      return 'initial';
+    }
+  }
+  return threadFillWidth(threadId, option) === 100 ? 'var(--devui-timefull-bg)' : 'initial';
+};
+
+const threadTotaltime = (threadId, option) => {
+  if (option === 'clockCycle' && threadCyclesMap) {
     return threadCyclesMap.get(threadId);
+  }  else if (option === 'task' && threadTaskMap) {
+    return threadTaskMap.get(threadId);
   }
   return 0;
 };
 
-const threadFillWidth = (threadId) => {
-  if (threadCyclesMap) {
+const threadFillWidth = (threadId, option) => {
+  let values;
+  if (option === 'clockCycle' && threadCyclesMap) {
     const currenThreadTime = new BigNumber(threadCyclesMap.get(threadId));
+    let maxThreadTime = new BigNumber(0);
+    values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
+    let sum = new BigNumber(0);
+    maxThreadTime = values.reduce((max, value) => max.gt(value) ? max : value);
+    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
+    const averageBN = sum.dividedBy(values.length);
+    averageValue.value = averageBN.dividedBy(maxThreadTime).times(100).toNumber();
     return currenThreadTime.dividedBy(maxThreadTime).times(100).toNumber();
+  } else if (option === 'task' && threadTaskMap) {
+    values = Array.from(threadTaskMap.values());
+    const maxTaskNum = values.length > 0 ? Math.max(...values) : 0;
+    averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxTaskNum) * 100;
+    return (threadTaskMap.get(threadId) / maxTaskNum) * 100;
   }
   return 0;
 };

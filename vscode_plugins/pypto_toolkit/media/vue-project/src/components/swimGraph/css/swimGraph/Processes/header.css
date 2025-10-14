@@ -31,13 +31,6 @@
   text-align: left;
 }
 
-.label_two {
-  display: flex;
-  align-items: center;
-  text-align: right;
-  margin-right: 16px;
-}
-
 .process-header-line {
   flex: 1;
   position: relative;
@@ -92,11 +85,4 @@
   display: inline-flex;
   align-items: center;
   position: relative;
-}
-
-.dropdownSelect {
-  position: absolute;
-  z-index: 1000;
-  top: 40px;
-  left: 180px;
 }
