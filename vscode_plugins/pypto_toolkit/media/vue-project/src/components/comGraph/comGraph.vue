@@ -86,7 +86,8 @@ const fitToScreen = () => {
 
 const nodeDisplayConfig = (type: 'op' | 'all') => {
   updateGraph(isDarkTheme, {
-    showTensorNodes: type === 'op' ? false : true
+    showTensorNodes: type === 'op' ? false : true,
+    openMode: props.openMode, nodeMagic: props.nodeMagic
   })
   showType.value = type;
 }

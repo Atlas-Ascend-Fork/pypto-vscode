@@ -12,6 +12,7 @@ interface ComGraphData {
   inFixedComGraphFlow: boolean;
   visibleOtherNodes: boolean;
   fixedNodeId: string;
+  curSearchNode: string,
   layoutDirection: string;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
@@ -31,6 +32,7 @@ export const comGraphStore: DataStore = reactive({
   data: {
     jsonData: '',
     fixedNodeId: '',
+    curSearchNode: '',
     comGraphNodeData: {},
     calleeMap: {},
     CalleeOpAttrMap: {},

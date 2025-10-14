@@ -130,29 +130,19 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       resetModelSource();
     }
 
-    let sprottyGraph;
-    if (option?.openMode === 'path' && option?.nodeMagic) {
-      /* 单条路径搜索调试入口 */
-      console.log("dxl test step in createSinglePathGraph");
-      sprottyGraph = myBuilder.createSinglePathGraph(
-        option.nodeMagic.toString(),
-        currentData,
-        showTensorNodes,
-        isDark,
-        colorBySubgraph,
-        selectedSubgraphId
-      );
-    } else {
-      console.log("dxl test step in createSprottyGraph");
-      sprottyGraph = dagBuilder.createSprottyGraph(
-        currentData,
-        showTensorNodes,
-        showSyncNodes,
-        colorBySubgraph,
-        isDark,
-        selectedSubgraphId,
-      );
+    let nodeMagic;
+    if (option?.openMode === 'path') {
+      nodeMagic = option?.nodeMagic;
     }
+    const sprottyGraph = dagBuilder.createSprottyGraph(
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      nodeMagic
+    );
 
     originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
 
