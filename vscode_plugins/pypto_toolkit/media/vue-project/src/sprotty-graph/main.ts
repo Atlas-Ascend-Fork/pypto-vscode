@@ -113,6 +113,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const layoutConfigurator = container.get(
       ILayoutConfigurator
     ) as import("./di.config").AstgrLayoutConfigurator;
+    comGraphStore.setData('layoutDirection', currentLayoutConfig.direction);
     layoutConfigurator.setLayoutDirection(currentLayoutConfig.direction);
     layoutConfigurator.setShowTensor(currentLayoutConfig.showTensor);
     layoutConfigurator.setFilePath(currentLayoutConfig.filePath);
