@@ -111,7 +111,7 @@
     "vscode:prepublish": "npm run compile",
     "watch": "concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
     "watch:vscode": "tsc -watch -p ./",
-    "compile": "npm run build:webview && compile:vscode",
+    "compile": "npm run build:webview && tsc -p ./",
     "compile:vscode": "tsc -p ./",
     "dev:webview": "cd media/vue-project && npm run dev",
     "build:webview": "cd media/vue-project && npm run build-only && cd ../../",

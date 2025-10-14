@@ -23,7 +23,7 @@ export class ExtensionConnector<T = unknown, R = T> {
   }
 
   public send(message: T): void {
-    vscode.postMessage({ channel: this.channel, data: message });
+    vscode.value.postMessage({ channel: this.channel, data: message });
   }
 
   public receive(callback: WebviewListener<R>): void {

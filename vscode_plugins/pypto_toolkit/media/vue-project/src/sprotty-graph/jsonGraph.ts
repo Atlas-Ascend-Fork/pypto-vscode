@@ -1900,7 +1900,7 @@ export class AscppDagBuilder {
             if ('calleeMap' in comGraphStore.data && op.calleehash in comGraphStore.data.calleeMap) {
                 funcName = comGraphStore.data.calleeMap[op.calleehash].func_magicname;
             }
-            opName += funcName ?? op.func_magicname;
+            opName += funcName ?? op.func_magicname ?? "Not found function";
         }
         const codePath = op.file;
         const codeLine = op.line;

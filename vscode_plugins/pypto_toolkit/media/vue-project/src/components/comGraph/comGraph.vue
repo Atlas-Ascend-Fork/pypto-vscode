@@ -1,6 +1,6 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType"></ComGraphHeader>
+    <ComGraphHeader @onLocate="onLocate" :showType="showType" :graph-type="graphType"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -67,6 +67,7 @@ const loadingText = ref('');
 const warningText = ref('');
 const healthReportGraphName = ref('');
 const showType = ref('all');
+const graphType = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 
 const switchLockInformationFlag = ref(false);
@@ -141,6 +142,7 @@ watch(
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
+    graphType.value = val.graphtype ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;

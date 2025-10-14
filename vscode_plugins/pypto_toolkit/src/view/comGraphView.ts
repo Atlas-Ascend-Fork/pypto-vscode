@@ -410,6 +410,7 @@ class MsgHandler {
     const layoutDirection = graphData.layoutOptions['elk.direction'];
     const showtensor = graphData.layoutOptions['devkit.showTensor'];
     const filePath = comGraphData.fsPath; // 获取文件路径
+    const renderMode = graphData.layoutOptions['devkit.renderMode']
     let funcHash = comGraphData.funcHash; // 获取函数哈希
     if (funcHash === undefined) {
       panel.webview.postMessage({
@@ -436,7 +437,7 @@ class MsgHandler {
     if (comGraphData.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
-    if (!cache) {
+    if (renderMode === 'path' || !cache) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({
         type: 'layout',
@@ -446,7 +447,7 @@ class MsgHandler {
       child.on('message', async (res) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
-          if (comGraphData.isUsedDB) {
+          if (comGraphData.isUsedDB && renderMode !== 'path') {
             await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
           }
           MsgHandler.postLayoutResult(panel, layoutJsonStr);
