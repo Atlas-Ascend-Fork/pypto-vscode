@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed } from 'vue';
+import { ref, inject, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
 
@@ -64,6 +64,7 @@ const {
   isMeasureModel,
   measureDragStartX,
   measureDragEndX,
+  isDarkTheme,
 } = inject('swimGraphState');
 
 const {
@@ -85,6 +86,7 @@ const {
 const mPath = ref(`${window.staticPath}/static-assets/measure.svg`);
 const caseSensitivePathNoActive = `${window.staticPath}/static-assets/upper_lower.svg`;
 const caseSensitivePathActive = `${window.staticPath}/static-assets/upper_blue.svg`;
+const backgroundColor = ref('#606061');
 
 const caseSensitivePath = computed(() => isCaseSensitive.value ? caseSensitivePathActive : caseSensitivePathNoActive);
 
@@ -291,6 +293,19 @@ const measureModel = () => {
   resizeMeasure();
   transform();
 }
+
+watch(isDarkTheme, () => {
+  updateTheme();
+});
+
+const updateTheme = () => {
+  backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
+  document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
+};
+
+onMounted(() => {
+  updateTheme();
+});
 
 defineExpose({
   leftmove,
