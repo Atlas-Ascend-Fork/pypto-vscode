@@ -15,6 +15,8 @@ import CategorySearch from 'vue-devui/category-search';
 import 'vue-devui/category-search/style.css';
 import Tabs from 'vue-devui/tabs';
 import 'vue-devui/tabs/style.css';
+import Drawer from 'vue-devui/drawer'
+import 'vue-devui/drawer/style.css'
 import Alert from 'vue-devui/alert';
 import 'vue-devui/alert/style.css';
 import Search from 'vue-devui/search';
@@ -84,4 +86,5 @@ createApp(App)
   .use(Checkbox)
   .use(InputNumber)
   .use(i18n)
+  .use(Drawer)
   .mount('#app');
