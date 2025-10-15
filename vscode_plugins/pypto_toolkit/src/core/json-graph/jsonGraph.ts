@@ -31,6 +31,12 @@ export interface AstgrNode extends SNode {
     semanticLabel?: string; // Semantic label for the operation
     coreType?: number; // Core type from sync_queue
     gmBufId?: number; // Global memory buffer ID
+    hasAttr?: boolean;
+    compareType?: any;
+    baseColor?: string;
+    lightColor?: string;
+    codePath?: string;
+    codeLine?: string;
 }
 
 /**
@@ -59,6 +65,9 @@ export interface AstgrOutputNode extends AstgrNode {
  */
 export interface AstgrTensorNode extends AstgrNode {
     type: 'node:tensor';
+    compareType?: string;
+    baseColor?: string;
+    lightColor?: string;
 }
 
 /**
@@ -129,6 +138,10 @@ interface Operation {
     sync_queue?: SyncQueue;
     latency?: number;
     offset?: number[];
+    func_magicname?: string;
+    compareType: any;
+    file?: string;
+    line?: string;
     attr?: (number | (number | string)[])[];
 }
 
@@ -323,7 +336,6 @@ export class AscppDagBuilder {
                                           tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                           magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
-            
             this.panel.webview.postMessage({
                 command: 'returnPathNodesSet',
                 data: Array.from(this.pathNodesSet),
@@ -560,7 +572,7 @@ export class AscppDagBuilder {
     }
 
     public createNodeListMap(funcData: FunctionData) {
-        let actualData = funcData;
+        let actualData: any = funcData;
 
         for (let tensorIndex = 0; tensorIndex < actualData.tensors.length; tensorIndex++) {
             const tensormagic = actualData.tensors[tensorIndex].magic.toString();
@@ -585,13 +597,13 @@ export class AscppDagBuilder {
                 if(!this.tensor2opMap.has(node.toString())) {
                     this.tensor2opMap.set(node.toString(), {inOp: new Set<string>(), outOp: new Set<string>()}); 
                 }
-                this.tensor2opMap.get(node.toString()).outOp.add(opmagic);
+                this.tensor2opMap.get(node.toString())!.outOp.add(opmagic);
             }
             for( let node of ooperands) {
                 if(!this.tensor2opMap.has(node.toString())) {
                     this.tensor2opMap.set(node.toString(), {inOp: new Set<string>(), outOp: new Set<string>()});
                 }
-                this.tensor2opMap.get(node.toString()).inOp.add(opmagic);
+                this.tensor2opMap.get(node.toString())!.inOp.add(opmagic);
             }
         }
     }
@@ -674,7 +686,7 @@ export class AscppDagBuilder {
         }
 
         const opIndex = this.opListMap.get(startNode);
-        const op = actualData.operations[opIndex];
+        const op = actualData.operations[opIndex!];
         const opmagic = op.opmagic.toString();
         
         // DONE : 保证全图去重set
@@ -688,7 +700,7 @@ export class AscppDagBuilder {
         const ioperands = [...new Set(op.ioperands)];
         for (let incastNode of ioperands) {
             let tensorNodeId = this.tensorNodeMap.get(incastNode.toString())?.nodeId;
-            if (this.singlePathNodeSet.has(tensorNodeId)) {
+            if (this.singlePathNodeSet.has(tensorNodeId!)) {
                 continue;
             }
             this.tensorSearchForward(String(incastNode), actualData, nodes, edges, portMap, 
@@ -734,7 +746,7 @@ export class AscppDagBuilder {
         const ooperands = [...new Set(op.ooperands)];
         for (let outcastNode of ooperands) {
             let tensorNodeId = this.tensorNodeMap.get(outcastNode.toString())?.nodeId;
-            if (this.singlePathNodeSet.has(tensorNodeId)) {
+            if (this.singlePathNodeSet.has(tensorNodeId!)) {
                 continue;
             }
             this.tensorSearchBackward(String(outcastNode), actualData, nodes, edges, portMap, 
@@ -758,7 +770,7 @@ export class AscppDagBuilder {
         }
 
         let incastIndex;
-        let slotId = [];
+        let slotId: any[] = [];
         for (let idx = 0; idx < actualData.incasts.length; idx++) {
             if (actualData.incasts[idx][0].toString() === startNode) {
                 incastIndex = idx;
@@ -773,10 +785,10 @@ export class AscppDagBuilder {
 
         // Get the raw tensor ID and then lookup the tensor name
         const incastNodeIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors[incastNodeIndex];
+        const tensor = actualData.tensors![incastNodeIndex!];
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-        if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+        if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
             this.panel.webview.postMessage({
                 command: 'returnError',
                 data: getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取raw tensor magic.`,
@@ -796,14 +808,14 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "In";
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+        tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-out`;
         const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
         const inPort: AstgrPort = {type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8}};
         
         const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
 
-        node.children.push(inPort);
+        node.children!.push(inPort);
         this.singlePathNodeSet.add(nodeId);
         this.pathNodesSet.add(tensorMagic);
         if (actualData.inouttensors) {
@@ -816,7 +828,7 @@ export class AscppDagBuilder {
             portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
         } else {
             // Register incast as producer for direct connections
-            const rawTensorId = `${rawTensor.rawmagic}`;
+            const rawTensorId = `${rawTensor!.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId });
                 
@@ -843,7 +855,7 @@ export class AscppDagBuilder {
         }
 
         let outcastIndex;
-        let slotId = [];
+        let slotId: any[] = [];
         for (let idx = 0; idx < actualData.outcasts.length; idx++) {
             if (actualData.outcasts[idx][0].toString() === startNode) {
                 outcastIndex = idx;
@@ -858,10 +870,10 @@ export class AscppDagBuilder {
 
         // Get the raw tensor ID and then lookup the tensor name
         const outcastNodeIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors[outcastNodeIndex];
+        const tensor = actualData.tensors![outcastNodeIndex!];
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-        if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+        if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
             this.panel.webview.postMessage({
                 command: 'returnError',
                 data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : `无法获取 raw tensor magic.`,
@@ -880,13 +892,13 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "Out";
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+        tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-in`;
         const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
         const outPort: AstgrPort = {type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8}};
 
-        const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
-        node.children.push(outPort);
+        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
+        node.children!.push(outPort);
         this.singlePathNodeSet.add(nodeId);
         this.pathNodesSet.add(tensorMagic);
         
@@ -900,7 +912,7 @@ export class AscppDagBuilder {
         if (showTensorNodes) {
             portMap.set(`consumer-${tensorMagic}`, { nodeId, portId });
         } else {
-            const rawTensorId = `${rawTensor.rawmagic}`;
+            const rawTensorId = `${rawTensor!.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId });
                 
@@ -930,7 +942,7 @@ export class AscppDagBuilder {
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean) 
     {
-        if (actualData.incasts?.some(([n]) => n === Number(startNode)) ) {
+        if (actualData.incasts?.some((t) => t[0] === Number(startNode)) ) {
             this.createIncastNode(startNode, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         }
 
@@ -940,7 +952,7 @@ export class AscppDagBuilder {
         }
         const inOpList = this.tensor2opMap.get(startNode.toString())?.inOp;
 
-        for(let op of inOpList) {
+        for(let op of inOpList!) {
             this.opSearchForward(op.toString(), actualData, nodes, edges, portMap, 
                                  tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                  magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
@@ -979,7 +991,7 @@ export class AscppDagBuilder {
 
         const outOpList = this.tensor2opMap.get(startNode.toString())?.outOp;
 
-        for(let op of outOpList) {
+        for(let op of outOpList!) {
             this.opSearchBackward(op.toString(), actualData, nodes, edges, portMap, 
                                   tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                   magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
@@ -999,7 +1011,7 @@ export class AscppDagBuilder {
         }
 
         const tensorIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors[tensorIndex];
+        const tensor = actualData.tensors[tensorIndex!];
 
         if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
             this.panel.webview.postMessage({
@@ -1010,7 +1022,7 @@ export class AscppDagBuilder {
 
         const tensorMagic = String(tensor.magic);
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-        if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+        if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
             this.panel.webview.postMessage({
                 command: 'returnError',
                 data: getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取 raw tensor magic.`,
@@ -1018,7 +1030,7 @@ export class AscppDagBuilder {
         }
 
         let symbol = rawTensor?.symbol || "Tensor";
-        symbol = `${tensorMagic} ${symbol} (${rawTensor.rawmagic})`;
+        symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
 
         const graphId = tensor?.subgraphid ?? -1;
         let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
@@ -1054,10 +1066,10 @@ export class AscppDagBuilder {
             if (result) {
                 labelParts.push(...result);
             } else {
-                this.getTensorCommonAttr(labelParts, tensor, rawTensor);
+                this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
             }
         } catch (error) {
-            this.getTensorCommonAttr(labelParts, tensor, rawTensor);
+            this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
         }
 
         // Create ports for the tensor node
@@ -1081,7 +1093,7 @@ export class AscppDagBuilder {
             const tensorNode: AstgrTensorNode = {
                 type: 'node:tensor',
                 role: 'tensor',
-                compareType: tensor.compareType,
+                compareType: tensor.compareType!,
                 id: nodeId,
                 magic: `${tensor.magic}`,
                 subgraphId: graphId,
@@ -1200,7 +1212,7 @@ export class AscppDagBuilder {
 
             const tensorMagic = String(tensor.magic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-            if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+            if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
                 this.panel.webview.postMessage({
                     command: 'returnError',
                     data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
@@ -1214,7 +1226,7 @@ export class AscppDagBuilder {
             // }
 
             let symbol = rawTensor?.symbol || "Tensor";
-            symbol = `${tensorMagic} ${symbol} (${rawTensor.rawmagic})`;
+            symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
             
             // Create more detailed label information
             const labelParts: string[] = [];
@@ -1225,10 +1237,10 @@ export class AscppDagBuilder {
                 if (result) {
                     labelParts.push(...result);
                 } else {
-                    this.getTensorCommonAttr(labelParts, tensor, rawTensor);
+                    this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
                 }
             } catch (error) {
-                this.getTensorCommonAttr(labelParts, tensor, rawTensor);
+                this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
             }
             const graphId = tensor?.subgraphid ?? -1;
             let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
@@ -1378,9 +1390,9 @@ export class AscppDagBuilder {
     /**
      * Create a cast Node
      */
-    private createCastNode (tensor: Tensor | undefined, rawTensor: RawTensor | undefined, 
-                            nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string, 
-                            nodeRole: string) : AstgrTensorNode {
+    private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined, 
+                            nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[], 
+                            nodeRole: "operation" | "tensor" | "input" | "output" | "sync") : AstgrTensorNode {
         // Create metadata parts for the tensor
         const metadataParts: string[] = [];
         try {
@@ -1390,18 +1402,18 @@ export class AscppDagBuilder {
             if (result) {
                 metadataParts.push(...result);
             } else {
-                this.getTensorCommonAttr(metadataParts, tensor, rawTensor);
+                this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
             }
         } catch (error) {
-            this.getTensorCommonAttr(metadataParts, tensor, rawTensor);
+            this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         }
         const node: AstgrTensorNode = {
             type: 'node:tensor',
             id: nodeId,
-            compareType: tensor.compareType,
+            compareType: tensor.compareType!,
             // compareType: compareType,
             magic: `${tensorMagic}`,
-            role: `${nodeRole}`,
+            role: nodeRole,
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',
@@ -1509,7 +1521,7 @@ export class AscppDagBuilder {
             //     }
             // }
 
-            const slotId = [];
+            const slotId: any[] = [];
 
             if (Array.isArray(incast) && incast.length > 1) {
                 const temp = Array.isArray(incast[1]) ? incast[1] : [incast[1]]
@@ -1525,8 +1537,8 @@ export class AscppDagBuilder {
             
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
-            const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-            if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+            const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
+            if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
                 this.panel.webview.postMessage({
                     command: 'returnError',
                     data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
@@ -1534,27 +1546,17 @@ export class AscppDagBuilder {
             }
             let tensorName = rawTensor?.symbol || "In";
             
-            tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+            tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
             const graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
             const portId = `tensor-${tensorMagic}-${graphId}-out`;
             const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
 
-            // if (nodeMagic) {
-            //     // check duplicate Nodes
-            //     if (this.singlePathNodeSet.has(nodeId)) {
-            //         console.log("dxl test createIncastNodes singlePathNodeSet", this.singlePathNodeSet);
-            //         const new_graphId = -2;
-            //         nodeId = `tensor-${tensorMagic}-${new_graphId}`;
-            //         this.singlePathNodeSet.add(nodeId);
-            //         return;
-            //     }
-            // }
             const inPort: AstgrPort = {type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8}};
             
-            const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
 
-            node.children.push(inPort);
+            node.children!.push(inPort);
             this.nodeSet.add(nodeId);
             // if (nodeMagic) {
             //     this.singlePathNodeSet.add(nodeId);
@@ -1578,7 +1580,7 @@ export class AscppDagBuilder {
                 // }
             } else {
                 // Register incast as producer for direct connections
-                const rawTensorId = `${rawTensor.rawmagic}`;
+                const rawTensorId = `${rawTensor!.rawmagic}`;
                 if (rawTensorId) {
                     portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId });
                     
@@ -1594,12 +1596,12 @@ export class AscppDagBuilder {
     private createParentIncastNodes(
         actualData: FunctionData,
         nodes: SNode[],
-        edges: SEdge[],
+        edges: any[],
         index,
         inPortId,
     ): void {
-        const tensor = actualData.inouttensors.inTensors[index].tensor;
-        const rawTensor = actualData.inouttensors.inTensors[index].rawTensor;
+        const tensor = actualData.inouttensors!.inTensors[index].tensor;
+        const rawTensor = actualData.inouttensors!.inTensors[index].rawTensor;
         if (!tensor || !rawTensor) {
             return;
         }
@@ -1614,7 +1616,7 @@ export class AscppDagBuilder {
         const nodeId = `parent-incast-${index}-tensor-${index}-${graphId}`;
         const portId = `${nodeId}-out`;
 
-        const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'input');
+        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'input');
         nodes.push(node);
 
         edges.push({
@@ -1629,12 +1631,12 @@ export class AscppDagBuilder {
     private createParentOutCastNodes(
         actualData: FunctionData,
         nodes: SNode[],
-        edges: SEdge[],
+        edges: any[],
         index,
         outPortId
     ): void{
-        const tensor = actualData.inouttensors.outTensors[index].tensor;
-        const rawTensor = actualData.inouttensors.outTensors[index].rawTensor;
+        const tensor = actualData.inouttensors!.outTensors[index].tensor;
+        const rawTensor = actualData.inouttensors!.outTensors[index].rawTensor;
         if (!tensor || !rawTensor) {
             return;
         }
@@ -1653,85 +1655,6 @@ export class AscppDagBuilder {
         const portId = `${nodeId}-in`;
         const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
 
-        //     type: 'node:tensor',
-        //     id: nodeId,
-        //     magic: `${tensorMagic}`,
-        //     role: 'output',
-        //     layout: 'vbox',
-        //     layoutOptions: {
-        //         hAlign: 'left',
-        //         paddingTop: 4,
-        //         paddingBottom: 4,
-        //         paddingLeft: 5,
-        //         paddingRight: 14
-        //     },
-        //     children: [
-        //         // Labels compartment with vbox layout
-        //         {
-        //             type: 'compartment',
-        //             id: `${nodeId}-labels-compartment`,
-        //             layout: 'vbox',
-        //             layoutOptions: {
-        //                 hAlign: 'center',
-        //                 vAlign: 'center',
-        //                 vGap: 10
-        //             },
-        //             children: [
-        //                 {
-        //                     type: 'label',
-        //                     id: `${nodeId}-label-main`,
-        //                     text: tensorName,
-        //                     magic: `${tensorMagic}`,
-        //                     slotId: slotId,
-        //                     cssClasses: ['output-main-label'],
-        //                     layoutOptions: {
-        //                         hAlign: 'left',
-        //                         paddingTop: 0,
-        //                         paddingBottom: 0,
-        //                         paddingLeft: 0,
-        //                         paddingRight: 0
-        //                     },
-        //                 } as SLabel,
-        //                 // Metadata compartment with individual labels
-        //                 ...(metadataParts.length > 0 ? [{
-        //                     type: 'compartment',
-        //                     id: `${nodeId}-metadata-compartment`,
-        //                     layout: 'vbox',
-        //                     layoutOptions: {
-        //                         hAlign: 'left',
-        //                         vGap: 3,
-        //                         paddingTop: 0,
-        //                         paddingBottom: 0,
-        //                         paddingLeft: 0,
-        //                         paddingRight: 0
-        //                     },
-        //                     cssClasses: ['output-metadata-compartment'],
-        //                     children: metadataParts.map((part, index) => {
-        //                         const splitedStr = part.split(':');
-        //                         let value = splitedStr[1];
-        //                         if (value.length > 32) {
-        //                             value = value.slice(0, 32) + '...';
-        //                         }
-        //                         return {
-        //                             type: 'label',
-        //                             id: `${nodeId}-label-meta-${index}`,
-        //                             originText: part,
-        //                             text: [splitedStr[0], value].join(':'),
-        //                             cssClasses: ['output-meta-label'],
-        //                             minZoomLevel: 0.4
-        //                         } as SLabel & MetadataLabel
-        //                     })
-        //                 } as SCompartment] : [])
-        //             ]
-        //         } as SCompartment,
-        //         {
-        //             type: 'port',
-        //             id: portId,
-        //             role: 'input',
-        //             size: { width: 8, height: 8 }
-        //         } as AstgrPort
-        //     ]
-        // };
         nodes.push(node);
 
         edges.push({
@@ -1766,19 +1689,13 @@ export class AscppDagBuilder {
             const outcast = actualData.outcasts[outcastIndex];
             const tensorMagic = String(Array.isArray(outcast) ? outcast[0] : outcast);
 
-            // if (nodeMagic) {
-            //     if (nodeMagic.toString() !== tensorMagic.toString()) {
-            //         continue;
-            //     }
-            // }
-
             if (outcastUnique.has(tensorMagic)) {
                 continue;
             } else {
                 outcastUnique.add(tensorMagic);
             }
 
-            const slotId = [];
+            const slotId: any[] = [];
             if (Array.isArray(outcast) && outcast.length > 1) {
                 const temp = Array.isArray(outcast[1]) ? outcast[1] : [outcast[1]];
                 slotId.push(...temp);
@@ -1793,8 +1710,8 @@ export class AscppDagBuilder {
             
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
-            const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
-            if (rawTensor.rawmagic === undefined || typeof rawTensor.rawmagic !== 'number') {
+            const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
+            if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
                 this.panel.webview.postMessage({
                     command: 'returnError',
                     data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
@@ -1802,7 +1719,7 @@ export class AscppDagBuilder {
             }
             let tensorName = rawTensor?.symbol || "Out";
 
-            tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+            tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
 
             let graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
@@ -1830,89 +1747,8 @@ export class AscppDagBuilder {
                 }
             }
 
-            const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
-
-            //     type: 'node:tensor',
-            //     id: nodeId,
-            //     compareType: tensor.compareType,
-            //     magic: `${tensorMagic}`,
-            //     role: 'output',
-            //     layout: 'vbox',
-            //     layoutOptions: {
-            //         hAlign: 'left',
-            //         paddingTop: 4,
-            //         paddingBottom: 4,
-            //         paddingLeft: 5,
-            //         paddingRight: 14
-            //     },
-            //     children: [
-            //         // Labels compartment with vbox layout
-            //         {
-            //             type: 'compartment',
-            //             id: `${nodeId}-labels-compartment`,
-            //             layout: 'vbox',
-            //             layoutOptions: {
-            //                 hAlign: 'center',
-            //                 vAlign: 'center',
-            //                 vGap: 10
-            //             },
-            //             children: [
-            //                 {
-            //                     type: 'label',
-            //                     id: `${nodeId}-label-main`,
-            //                     text: tensorName,
-            //                     magic: `${tensorMagic}`,
-            //                     slotId: slotId,
-            //                     cssClasses: ['output-main-label'],
-            //                     layoutOptions: {
-            //                         hAlign: 'left',
-            //                         paddingTop: 0,
-            //                         paddingBottom: 0,
-            //                         paddingLeft: 0,
-            //                         paddingRight: 0
-            //                     },
-            //                 } as SLabel,
-            //                 // Metadata compartment with individual labels
-            //                 ...(metadataParts.length > 0 ? [{
-            //                     type: 'compartment',
-            //                     id: `${nodeId}-metadata-compartment`,
-            //                     layout: 'vbox',
-            //                     layoutOptions: {
-            //                         hAlign: 'left',
-            //                         vGap: 3,
-            //                         paddingTop: 0,
-            //                         paddingBottom: 0,
-            //                         paddingLeft: 0,
-            //                         paddingRight: 0
-            //                     },
-            //                     cssClasses: ['output-metadata-compartment'],
-            //                     children: metadataParts.map((part, index) => {
-            //                         const splitedStr = part.split(':');
-            //                         let value = splitedStr[1];
-            //                         if (value.length > 32) {
-            //                             value = value.slice(0, 32) + '...';
-            //                         }
-            //                         return {
-            //                             type: 'label',
-            //                             id: `${nodeId}-label-meta-${index}`,
-            //                             originText: part,
-            //                             text: [splitedStr[0], value].join(':'),
-            //                             cssClasses: ['output-meta-label'],
-            //                             minZoomLevel: 0.4
-            //                         } as SLabel & MetadataLabel
-            //                     })
-            //                 } as SCompartment] : [])
-            //             ]
-            //         } as SCompartment,
-            //         {
-            //             type: 'port',
-            //             id: portId,
-            //             role: 'input',
-            //             size: { width: 8, height: 8 }
-            //         } as AstgrPort
-            //     ]
-            // };
-            node.children.push(outPort);
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
+            node.children!.push(outPort);
             if (actualData.inouttensors) {
                 nodes.push(node);
                 this.createParentOutCastNodes(actualData, nodes, edges, outcastIndex, outPortId);
@@ -1936,7 +1772,7 @@ export class AscppDagBuilder {
 
             } else {
                 // Register outcast as consumer for direct connections
-                const rawTensorId = `${rawTensor.rawmagic}`;
+                const rawTensorId = `${rawTensor!.rawmagic}`;
                 if (rawTensorId) {
                     portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId });
                     
@@ -2007,7 +1843,7 @@ export class AscppDagBuilder {
                     if (!tensor) {
                         continue;
                     }
-                    const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
+                    const rawTensor = rawTensorMap.get(String(tensor.rawtensor))!;
                     callInOutTensor.inTensors.push({tensor, rawTensor});
                 }
                 for (const v of op.ooperands) {
@@ -2015,10 +1851,10 @@ export class AscppDagBuilder {
                     if (!tensor) {
                         continue;
                     }
-                    const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
+                    const rawTensor = rawTensorMap.get(String(tensor.rawtensor))!;
                     callInOutTensor.outTensors.push({tensor, rawTensor});
                 }
-                this.callInOutMap.set(op.calleehash, callInOutTensor);
+                this.callInOutMap.set(op.calleehash!, callInOutTensor);
             }
         }
 
@@ -2070,7 +1906,7 @@ export class AscppDagBuilder {
             type: 'node:sync',
             role: 'sync',
             id: opId,
-            magic: op.opmagic ? String(op.opmagic) : undefined,
+            magic: op.opmagic ? String(op.opmagic) : '',
             opcode: op.opcode,
             pipeId: syncQueue.pipe_id,
             trigPipe: syncQueue.trig_pipe,
@@ -2216,7 +2052,7 @@ export class AscppDagBuilder {
             });
         }
     
-        const reader = new AttrReader(attr);
+        const reader = new AttrReader(attr!);
     
         switch (opcodeStr) {
             case 'copy_in':
@@ -2271,8 +2107,8 @@ export class AscppDagBuilder {
         opId = opId + `-${subgraphId}`;
         if (op.opcode === 'CALL') {
             let funcName = undefined;
-            if ('calleeMap' in this.comGraphData && op.calleehash in this.comGraphData.calleeMap) {
-                funcName = this.comGraphData.calleeMap[op.calleehash].func_magicname;
+            if ('calleeMap' in this.comGraphData && op.calleehash! in this.comGraphData.calleeMap) {
+                funcName = this.comGraphData.calleeMap[op.calleehash!].func_magicname;
             }
             opName += funcName ?? op.func_magicname ?? "Not found function";
         }
@@ -2605,7 +2441,7 @@ export class AscppDagBuilder {
                         });
                     }
                 } else {
-                    let tensorNodeId = this.tensorNodeMap.get(tensorMagic).nodeId;
+                    let tensorNodeId = this.tensorNodeMap.get(tensorMagic)!.nodeId;
                     edges.push({
                         type: 'edge',
                         id: `edge-${opId}-to-${tensorMagic}-${index}`,

@@ -18,7 +18,7 @@ const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 const fileHashMap = {};
-const NODE_COUNT_LIMIT = 30;
+const NODE_COUNT_LIMIT = 10000;
 const DATA_LENGTH_LIMIT = 62000000;
 const globalCallInOutTensorMap = new Map();
 
