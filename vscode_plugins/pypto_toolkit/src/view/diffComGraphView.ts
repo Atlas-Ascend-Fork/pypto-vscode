@@ -250,7 +250,7 @@ class MsgHandler {
           }
         panel.webview.postMessage({
           command: 'returnDiffCom',
-          step: 'rendering',
+          step: 'convertData',
           diffInfo,
         });
       });
