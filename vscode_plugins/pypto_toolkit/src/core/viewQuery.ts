@@ -36,11 +36,11 @@ export class ViewQueryConnector {
   /**
    * 设置页面参数
    */
-  public setQuery(viewPanel: vscode.WebviewPanel, uri: vscode.Uri): void {
-    const query: ViewQuery = { viewType: viewPanel.viewType, title: viewPanel.title, uri };
-    this.queryConnector.addWebview(viewPanel.webview);
-    this.pendingQuery.set(viewPanel.webview, () => {
-      this.queryConnector.send(viewPanel.webview, query);
+  public setQuery({ viewType, title, webview }: vscode.WebviewPanel, uri: vscode.Uri, otherQuery: Record<string, unknown> = {}): void {
+    const query: ViewQuery = { viewType, title, uri, ...otherQuery };
+    this.queryConnector.addWebview(webview);
+    this.pendingQuery.set(webview, () => {
+      this.queryConnector.send(webview, query);
     });
   }
 

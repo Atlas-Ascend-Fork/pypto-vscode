@@ -9,8 +9,9 @@ export function initView(
   onViewActivated?: (viewPanel: vscode.WebviewPanel) => void,
   onViewDisposed?: (viewType: string, uri: vscode.Uri) => void,
 ): { editorView: EditorView } {
-  const raws = adaptRoutesToViewRaws(routes);
-  editorView = new EditorView(raws, onViewActivated, onViewDisposed);
+  const viewRaws = adaptRoutesToViewRaws(routes);
+  editorView = new EditorView(onViewActivated, onViewDisposed);
+  editorView.registerViews(viewRaws);
   return { editorView };
 }
 
