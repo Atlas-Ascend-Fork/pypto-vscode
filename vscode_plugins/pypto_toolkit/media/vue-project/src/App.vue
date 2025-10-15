@@ -80,6 +80,11 @@ const returnCalleeOpAttrMap = (message) => {
   comGraphStore.setData('CalleeOpAttrMap', message.data);
 };
 
+const returnPathNodesSet = (message) => {
+  comGraphStore.setData('pathNodesSet', message.data);
+  console.log("dxl test message", message);
+};
+
 const initComGraph = (message) => {
   graphType.value = 'returnCom';
   loadingStep.value = message.step;
@@ -101,6 +106,7 @@ const CommandCallbackMap = {
   returnCom,
   returnSwim,
   returnCalleeMap,
+  returnPathNodesSet,
   returnCalleeOpAttrMap,
   returnTheme,
   initComGraph,

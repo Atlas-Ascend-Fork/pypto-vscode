@@ -232,6 +232,7 @@ export class AscppDagBuilder {
     tensorNodeMap = new Map<string, { nodeId: string }>();
     opIdMap = new Map<string, string>();
     singlePathNodeSet = new Set<string> ();
+    pathNodesSet = new Set<string> ();
 
     constructor(comGraphData: any, panel: any, callInOutTensorMap?: (data) => any) {
         this.comGraphData = comGraphData;
@@ -288,7 +289,6 @@ export class AscppDagBuilder {
      */
     public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
                               filterSubgraphId?: number, nodeMagic?: string): ExtendedSModelRoot {
-        console.log("dxl test nodeMagic", nodeMagic);
         // Handle potential data structure variations
         let actualData = funcData;
         const colorList = generateColorList(360, isDark);
@@ -323,6 +323,11 @@ export class AscppDagBuilder {
                                           tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                           magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
+
+            this.panel.webview.postMessage({
+                command: 'returnPathNodesSet',
+                data: this.pathNodesSet,
+            });
         } else {
             // Create tensor nodes if enabled
             if (showTensorNodes) {
@@ -721,7 +726,6 @@ export class AscppDagBuilder {
         // DONE : 保证全图去重set
         const graphId = op?.subgraphid ?? -1;
         const opId = `operation-magic-${opmagic}`;
-        // console.log("dxl test opSearchBackward this.opIdMap", this.opIdMap);
 
         if (this.opIdMap.get(opmagic) !== `${opId}-${graphId}`) {
             this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, startNode);
@@ -801,6 +805,7 @@ export class AscppDagBuilder {
 
         node.children.push(inPort);
         this.singlePathNodeSet.add(nodeId);
+        this.pathNodesSet.add(tensorMagic);
         if (actualData.inouttensors) {
             nodes.push(node);
             this.createParentIncastNodes(actualData, nodes, edges, incastIndex, portIdIn);
@@ -821,7 +826,6 @@ export class AscppDagBuilder {
                 rawTensorProducers.get(rawTensorId)!.push({ nodeId, portId });
             }
         }
-        // }
     }
 
     private createOutcastNode(
@@ -884,6 +888,8 @@ export class AscppDagBuilder {
         const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
         node.children.push(outPort);
         this.singlePathNodeSet.add(nodeId);
+        this.pathNodesSet.add(tensorMagic);
+        
         if (actualData.inouttensors) {
             nodes.push(node);
             this.createParentOutCastNodes(actualData, nodes, edges, outcastIndex, outPortId);
@@ -904,7 +910,6 @@ export class AscppDagBuilder {
                 rawTensorConsumers.get(rawTensorId)!.push({ nodeId, portId });
             }
         }
-        // }
     }
 
     /**
@@ -927,11 +932,9 @@ export class AscppDagBuilder {
     {
         if (actualData.incasts?.some(([n]) => n === Number(startNode)) ) {
             this.createIncastNode(startNode, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
-            // this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, startNode.toString());
         }
 
         this.createTensorNode(startNode, actualData, nodes, portMap, rawTensorMap, inoutMap);
-        // this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, startNode);
         if(!this.tensor2opMap.get(startNode.toString())){
             return;
         }
@@ -2457,13 +2460,10 @@ export class AscppDagBuilder {
             children: [...labelChildren]
         } as SCompartment);
 
-        // if (nodeMagic === undefined) {
-            // Create input ports
-            this.createInputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
-            
-            // Create output ports
-            this.createOutputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, showTensorNodes, nodeMagic);
-        // }
+        // Create input ports
+        this.createInputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
+        // Create output ports
+        this.createOutputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, showTensorNodes, nodeMagic);
 
         const node: AstgrNode = {
             type: 'node',
@@ -2489,6 +2489,7 @@ export class AscppDagBuilder {
         nodes.push(node);
         if(nodeMagic) {
             this.opIdMap.set(opmagic, opId);
+            this.pathNodesSet.add(opmagic);
         }
     }
 
