@@ -121,13 +121,14 @@ provide('comGraph', { toggleHealthReport, showLayerControl });
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',
+  convertData: 'comGraph.convertData',
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
 };
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'rendering') {
+    if (val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
     if (val === 'readJsonWarning') {
@@ -181,7 +182,7 @@ onMounted(() => {
       lockText = t('comGraph.pathLocked');
     }
   });
-  if (props.loadingStep === 'readJson' || props.loadingStep === 'rendering') {
+  if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }

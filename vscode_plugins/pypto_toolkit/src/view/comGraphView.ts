@@ -381,7 +381,7 @@ class MsgHandler {
         }
         panel.webview.postMessage({
           command: 'returnCom',
-          step: 'rendering',
+          step: 'convertData',
           data: ret,
         });
       });
