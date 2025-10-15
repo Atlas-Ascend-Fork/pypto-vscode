@@ -681,44 +681,116 @@ const clearDependencyLines = (processKey) => {
 
 // 在依赖线画布上绘制依赖连接线
 const drawDependencyLines = (process, processKey, mode) => {
-  const dependencyCtx = clearDependencyLines(processKey);
-  if (!dependencyCtx) {
-    return;
-  }
-  
-  if (!selectedEvent.value || highlightedPaths.size === 0) {
-    return;
-  }
-  dependencyCtx.lineWidth = 1;
+  const ctx = clearDependencyLines(processKey);
+  if (!ctx || !selectedEvent.value) return;
+  ctx.lineWidth = 1;
 
+  const eventMap = buildEventMap(process);
+  const edgesToDraw = collectRelevantEdges(
+    selectedEvent.value.id,
+    eventMap,
+    mode,
+    userConfig.value.connectionLevel
+  );
+
+  renderDependencyEdges(edgesToDraw, eventMap, ctx);
+  highlightEvent(ctx, selectedEvent.value, processKey, true);
+};
+
+const buildEventMap = (process) => {
   const eventMap = new Map();
-  for (const [threadKey, thread] of process.threads.entries()) {
+  for (const [, thread] of process.threads) {
     for (const event of thread.events) {
       eventMap.set(event.id, event);
     }
   }
+  return eventMap;
+};
 
-  // 获取所有在路径中的相关节点（祖先 + 自身 + 子孙）
-  const allRelevantIds = new Set(Array.from(highlightedPaths));
+const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
+  const edgesToDraw = new Set();
+  
+  const bfsTraversal = (currentId, depth, direction) => {
+    if (depth === 0 || !eventMap.has(currentId)) {
+      return;
+    }
+    
+    const currentEvent = eventMap.get(currentId);
+    let neighbors;
 
-  // 遍历当前进程中的所有事件，绘制依赖线
-  const selectStartTime = selectedEvent.value.startTime;
-  const selectEndTime = selectedEvent.value.endTime;
-  for (const [threadKey, thread] of process.threads.entries()) {
-    for (const event of thread.events) {
-      if (!allRelevantIds.has(event.id)) continue;
-      const needDrawSuccessor = event.startTime >= selectEndTime || event.id === selectedEvent.value.id;
-      const needDrawPredecessor = event.endTime <= selectStartTime || event.id === selectedEvent.value.id;
-      if (needDrawSuccessor && (mode === DEP_MODE.all || mode === DEP_MODE.next)) {
-        drawSuccessor(event, eventMap, dependencyCtx, allRelevantIds);
-      }
-      if (needDrawPredecessor && (mode === DEP_MODE.all || mode === DEP_MODE.pre)) {
-        drawPredecessor(event, eventMap, dependencyCtx, allRelevantIds);
+    if (direction === 'pre') {
+      neighbors = currentEvent.dependencies.predecessors || [];
+    } else {
+      neighbors = currentEvent.dependencies.successors || [];
+    }
+
+    for (const neighborId of neighbors) {
+      const symbol = direction === 'pre' ? `${neighborId}->${currentId}` : `${currentId}->${neighborId}`;
+      if (!edgesToDraw.has(symbol)) {
+        edgesToDraw.add(symbol);
+        bfsTraversal(neighborId, depth - 1, direction);
       }
     }
+  };
+
+  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
+    bfsTraversal(startNodeId, level, 'pre'); // 遍历前驱方向
+  }
+  
+  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
+    bfsTraversal(startNodeId, level, 'next'); // 遍历后继方向
   }
 
-  highlightEvent(dependencyCtx, selectedEvent.value, processKey, true);
+  return Array.from(edgesToDraw);
+};
+
+/**
+ * 收集并绘制所有在层级内的依赖边
+ */
+const renderDependencyEdges = (edgesToDraw, eventMap, ctx) => {
+  for (const edge of edgesToDraw) {
+    const [fromId, toId] = edge.split('->');
+    const fromEvent = eventMap.get(fromId);
+    const toEvent = eventMap.get(toId);
+    const needDraw = fromEvent && toEvent && fromEvent.renderInfo && toEvent.renderInfo;
+    if (needDraw) {
+      drawSingleEdge(fromEvent, toEvent, ctx);
+    }
+  }
+};
+
+/**
+ * 绘制单条依赖线（箭头 + 事件框 + 文本）
+ */
+const drawSingleEdge = (fromEvent, toEvent, ctx) => {
+  if (!fromEvent.renderInfo || !toEvent.renderInfo) {
+    return;
+  }
+  if (fromEvent.renderInfo.processKey !== toEvent.renderInfo.processKey) {
+    return;
+  }
+
+  const fromColor = isDarkTheme.value ? fromEvent.color.dark : fromEvent.color.light;
+  const toColor = isDarkTheme.value ? toEvent.color.dark : toEvent.color.light;
+
+  const sourceColor = selectedEvent.value.id === fromEvent.id ? fromColor.light : fromColor.base;
+  const targetColor = selectedEvent.value.id === toEvent.id ? toColor.light : toColor.base;
+
+  let fromWidth = fromEvent.renderInfo.width;
+  if (fromEvent.isFakeCore) {
+    fromWidth /= viewState.scale;
+  }
+
+  const pos = {
+    startX: (fromEvent.renderInfo.x + fromWidth) * devicePixelRatio,
+    startY: (fromEvent.renderInfo.y + (fromEvent.renderInfo.height / 2)) * devicePixelRatio,
+    endX: toEvent.renderInfo.x * devicePixelRatio,
+    endY: (toEvent.renderInfo.y + (toEvent.renderInfo.height / 2)) * devicePixelRatio,
+  };
+
+  drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+  drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
+  drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
 
 const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true) => {
@@ -729,7 +801,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     return;
   }
   const renderInfo = event.renderInfo;
-  const { fillColor, fontColor, strokeColor } = getEventColor(event, true, stroke);
+  const { fillColor, fontColor } = getEventColor(event, true, stroke);
   const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
@@ -739,7 +811,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     eventWidth: width,
     height: renderInfo.height,
     rectColor: fillColor,
-    strokeColor: strokeColor,
+    strokeColor: '',
     text: '',
     textX: 0,
     textY: 0,
@@ -750,66 +822,6 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
   fillTextInfo(event, ctx, width, drawData, isTextXChange);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
-};
-
-const drawSuccessor = (event, eventMap, dependencyCtx, allRelevantIds) => {
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
-  // 遍历所有后继
-  for (const succId of event.dependencies.successors) {
-    if (allRelevantIds.has(succId)) {
-      const toEvent = eventMap.get(succId);
-      const isSameProcess = toEvent.renderInfo.processKey === event.renderInfo.processKey;
-      if (toEvent && toEvent.renderInfo && event.renderInfo && isSameProcess) {
-        // 获取源节点和目标节点的颜色
-        const toEventColor = isDarkTheme.value ? toEvent.color.dark : toEvent.color.light;
-        const sourceColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
-        const targetColor = selectedEvent.value.id === toEvent.id ? toEventColor.light : toEventColor.base;
-        let eventWidth = event.renderInfo.width;
-        if (event.isFakeCore) {
-          eventWidth = eventWidth / viewState.scale;
-        }
-        const position = {
-          startX: (event.renderInfo.x + eventWidth) * devicePixelRatio,
-          startY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
-          endX: toEvent.renderInfo.x * devicePixelRatio,
-          endY: (toEvent.renderInfo.y + toEvent.renderInfo.height / 2) * devicePixelRatio,
-        };
-        drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
-        drawEvent([event.drawData, toEvent.drawData], dependencyCtx);
-        drawEventText([event.drawData, toEvent.drawData], dependencyCtx);
-      }
-    }
-  }
-};
-
-const drawPredecessor = (event, eventMap, dependencyCtx, allRelevantIds) => {
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
-  // 遍历所有祖先
-  for (const preId of event.dependencies.predecessors) {
-    if (allRelevantIds.has(preId)) {
-      const sourceEvent = eventMap.get(preId);
-      const isSameProcess = sourceEvent.renderInfo.processKey === event.renderInfo.processKey;
-      if (sourceEvent && sourceEvent.renderInfo && event.renderInfo && isSameProcess) {
-        // 获取源节点和目标节点的颜色
-        const sourceEventColor = isDarkTheme.value ? sourceEvent.color.dark : sourceEvent.color.light;
-        const targetColor = selectedEvent.value.id === event.id ? eventColor.light : eventColor.base;
-        const sourceColor = selectedEvent.value.id === sourceEventColor.id ? sourceEventColor.light : sourceEventColor.base;
-        let sourceWidth = sourceEvent.renderInfo.width;
-        if (sourceEvent.isFakeCore) {
-          sourceWidth = sourceWidth / viewState.scale;
-        }
-        const position = {
-          endX: event.renderInfo.x * devicePixelRatio,
-          endY: (event.renderInfo.y + event.renderInfo.height / 2) * devicePixelRatio,
-          startX: (sourceEvent.renderInfo.x + sourceWidth) * devicePixelRatio,
-          startY: (sourceEvent.renderInfo.y + sourceEvent.renderInfo.height / 2) * devicePixelRatio,
-        };
-        drawArrow(dependencyCtx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
-        drawEvent([event.drawData, sourceEvent.drawData], dependencyCtx);
-        drawEventText([event.drawData, sourceEvent.drawData], dependencyCtx);
-      }
-    }
-  }
 };
 
 const drawThreadSeparators = (ctx, process, processKey) => {
