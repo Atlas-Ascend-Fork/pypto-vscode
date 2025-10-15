@@ -95,7 +95,7 @@
 }
 
 .title_down {
-  display: none;
+  display: flex;
   margin-left: 16px;
 }
 
