@@ -1,15 +1,18 @@
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
-import { RegisterCommand } from './command/registerCommand';
-import { hismartliteEx } from './hismarliteEx';
+
 import * as translationEN from '../package.nls.json';
 import * as translationCN from '../package.nls.zh-cn.json';
+
+import { RegisterCommand } from './command/registerCommand';
+import { globalConfig } from './config/config';
+import { ExtensionApiServer } from './core/server';
+import { SQLiteCache } from './core/sqliteCache';
+import { hismartliteEx } from './hismarliteEx';
+import { services } from './services';
+import { initView } from './view';
 import { SwimGraphView } from './view/swimGraphView.js';
 import { ComGraphView } from './view/comGraphView';
-import { SQLiteCache } from './core/sqliteCache';
-import { globalConfig } from './config/config';
-import { startExtensionRequestServer } from './core/server';
-import { initView } from './view';
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -64,11 +67,11 @@ export async function activate(context: ExtensionContext) {
   }
 
   // 启动接口服务
-  const { addWebview } = startExtensionRequestServer({});
+  const server = new ExtensionApiServer(services);
   
   // 启动编辑区视图
   initView((viewPanel) => {
-    addWebview(viewPanel.webview);
+    server.addWebview(viewPanel.webview);
   });
 
   if (window.registerWebviewPanelSerializer) {
