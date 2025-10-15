@@ -81,8 +81,8 @@ const returnCalleeOpAttrMap = (message) => {
 };
 
 const returnPathNodesSet = (message) => {
-  comGraphStore.setData('pathNodesSet', message.data);
-  console.log("dxl test message", message);
+  const nodesSet = new Set(message.data);
+  comGraphStore.setData('pathNodesSet', nodesSet);
 };
 
 const initComGraph = (message) => {

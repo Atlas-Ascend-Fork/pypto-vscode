@@ -187,6 +187,10 @@ const props = defineProps({
     type: String,
     default: 'all'
   },
+  openMode: {
+    type: String,
+    default: 'all'
+  },
   graphType: { type: String },
 })
 
@@ -521,6 +525,18 @@ const onSearch = (e) => {
 }
 
 function filterSearchResult(result: any) {
+  if (props.openMode == 'path' && comGraphStore.data.pathNodesSet.size > 0) {
+    for (let i = result.length - 1; i >= 0; i--) {
+      const obj = result[i];
+      if (obj.node_type == 'operation' && !comGraphStore.data.pathNodesSet.has(obj.opmagic.toString())) {
+        result.splice(i, 1);
+      }
+      if (obj.node_type == 'tensor' && !comGraphStore.data.pathNodesSet.has(obj.magic.toString())) {
+        result.splice(i, 1);
+      }
+    }
+    return;
+  }
   if (currentSelect.value != 'currentPath') {
     return;
   }

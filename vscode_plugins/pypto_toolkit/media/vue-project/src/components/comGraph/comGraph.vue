@@ -1,6 +1,6 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :graph-type="graphType"></ComGraphHeader>
+    <ComGraphHeader @onLocate="onLocate" :showType="showType" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
