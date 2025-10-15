@@ -103,12 +103,13 @@ const onDiffItemClick = (data: DiffListItem) => {
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',
+  convertData: 'comGraph.convertData',
   rendering: 'comGraph.rendering',
 };
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'rendering') {
+    if (val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
     loadingText.value = t(LoadingStatusMap[val]);

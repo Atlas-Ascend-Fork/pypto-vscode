@@ -74,6 +74,7 @@ export default {
       copy: '复制',
       copied: '复制成功',
       readJson: '读取数据中...',
+      convertData: '数据转换中...',
       readJsonWarning: '警告：当前布局节点数已超过5万个，这会导致渲染时间过长，甚至造成应用卡顿或崩溃',
       rendering: '布局渲染中...',
       list: '列表',

@@ -34,7 +34,7 @@ const searchNodeListener = (args) => {
   graphType.value = 'returnCom';
   openMode.value = 'path';
   nodeMagic.value = args;
-  loadingStep.value = 'rendering';
+  loadingStep.value = 'convertData';
 };
 
 (window as any).ascEventBus.on('jsonParseError', errorListener);
@@ -135,7 +135,7 @@ function dealConfig(config) {
 
 function onFullRender() {
   if (Object.keys(jsonContent.value).length){
-    loadingStep.value = 'rendering';
+    loadingStep.value = 'convertData';
   } else {
     loadingStep.value = 'readJson';
   }
@@ -151,6 +151,9 @@ onMounted(() => {
   vscode.value.postMessage({
     command: 'getInitialData',
   });
+  (window as any).ascEventBus.on('comGraphRendering', (args) => {
+    loadingStep.value = args;
+  })
 });
 </script>
 

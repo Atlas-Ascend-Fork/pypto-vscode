@@ -148,6 +148,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     });
     window.addEventListener('message', (event) => {
       if (event.data.type === 'postJsonGraphData' && (!filePath || filePath === event.data.data.filePath)) {
+        (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = event.data.data;
         sprottyGraph['renderMode'] = option?.openMode || 'all';
 
