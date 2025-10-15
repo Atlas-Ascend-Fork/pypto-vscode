@@ -63,7 +63,7 @@ interface OpInfo {
 /**
  * 获取操作所需参数数量和操作名称
  */
-function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): OpInfo {
+function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): OpInfo | undefined {
     if ([0, 1, 2].includes(op)) {
         return { argNum: 1, opName: symsOpNameDict[op] };
     } else if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(op)) {
@@ -73,7 +73,7 @@ function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): O
         if (argNumStr === undefined) {
             (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Missing argument count for ssop_call' : '缺少ssop_call的参数数量');
         }
-        const argNum = parseInt(argNumStr, 10);
+        const argNum = parseInt(argNumStr!, 10);
         if (isNaN(argNum)) {
             (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Invalid argument count: ${argNumStr}` : `参数数量无效: ${argNumStr}`);
         }
@@ -87,7 +87,7 @@ function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[]): O
 /**
  * 递归解析符号列表，生成表达式字符串
  */
-function symsGetExpr(symList: any[], symListReadable: any[]): string {
+function symsGetExpr(symList: any[], symListReadable: any[]): string | undefined {
     const symStr = symList.shift();
     if (symStr === undefined) {
         (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Unexpected end of symbol list' : '符号列表意外结束');
@@ -123,10 +123,10 @@ function symsGetExpr(symList: any[], symListReadable: any[]): string {
         }
         symListReadable.push(symsOpNameDict[op]);
 
-        const { argNum, opName } = symsOpGetInfo(op, symList, symListReadable);
+        const { argNum, opName } = symsOpGetInfo(op, symList, symListReadable)!;
         const args: string[] = [];
         for (let i = 0; i < argNum; i++) {
-            args.push(symsGetExpr(symList, symListReadable));
+            args.push(symsGetExpr(symList, symListReadable)!);
         }
         return `${opName}(${args.join(',')})`;
     } else {
@@ -241,7 +241,7 @@ function splitArgs(argsStr: string): string[] {
 /**
  * 主函数：从 lineInfo 生成数学表达式
  */
-function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string {
+function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string | undefined {
     if (lineInfo === undefined) {
         return "";
     }
@@ -250,7 +250,7 @@ function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string {
     const symListReadable: any[] = [];
     try {
         const expr = symsGetExpr(symList, symListReadable);
-        return parseExpr(expr);
+        return parseExpr(expr!);
     } catch (error) {
         (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? `Can not generating math expression. ${error}` : `无法生成数学表达式，${error}`);
     }
@@ -273,7 +273,7 @@ export class AttrReader {
         return this.attr[this.index++] as number;
     }
 
-    readStringOrNumberArray(): (string | number)[] {
+    readStringOrNumberArray(): (string | number)[] | undefined {
         if (!this.hasNext()) (window as any).ascEventBus.emit('jsonParseError', (window as any).ascLang === 'en' ? 'Unexpected end of attributes.' : '属性意外结束');
         const val = this.attr[this.index++];
         if (Array.isArray(val)) return val;
@@ -292,7 +292,7 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number): string
         if (kind === 1) {
             // symbolicScalar
             const expr = reader.readStringOrNumberArray();
-            result.push(genMathScalarExpr(expr));
+            result.push(genMathScalarExpr(expr)!);
         } else if (kind === 2) {
             // integer
             const value = reader.readNumber();
@@ -308,7 +308,7 @@ export function parseExprList(reader: AttrReader, size: number): string[] {
     const result: string[] = [];
     for (let i = 0; i < size; i++) {
         const expr = reader.readStringOrNumberArray(); // 直接读取表达式数组
-        result.push(genMathScalarExpr(expr));
+        result.push(genMathScalarExpr(expr)!);
     }
     return result;
 }
