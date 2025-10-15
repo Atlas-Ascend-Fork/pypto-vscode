@@ -213,12 +213,7 @@ const handleMessage = (event) => {
       const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
       let newMessage = (oldMessage && oldMessage.message) || message;
       vscode.setState({ message: message });
-      userConfig.value = message.configration;
-      detailComponent.value.refLabel = userConfig.value.connectionLevel;
-      if (message.comGraphPath) {
-        bindFile.value = message.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
-      }
+      setPageState(message);
       loadTraceData(newMessage.data);
       break;
     case 'bindResult':
@@ -1414,11 +1409,21 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
   return null;
 }
 
+const setPageState = (message) => {
+  userConfig.value = message.configration;
+  detailComponent.value.refLabel = userConfig.value.connectionLevel;
+  if (message.comGraphPath) {
+    bindFile.value = message.comGraphPath;
+    bindButton.value = $t('unbindComGraph');
+  }
+};
+
 // 生命周期钩子
 onMounted(() => {
   initEventListeners();
   const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
   if (oldMessage && oldMessage.message.data) {
+    setPageState(oldMessage.message);
     loadTraceData(oldMessage.message.data);
   } else {
     loading.value = true;
