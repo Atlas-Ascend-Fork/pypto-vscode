@@ -208,6 +208,8 @@ const isSearchActive = ref(false);
 const searchQuery = ref('');
 const isCaseSensitive= ref(false);
 
+const pmuTotal = ref({});
+
 // 方法
 const initEventListeners = () => {
   window.addEventListener('message', handleMessage);
@@ -337,6 +339,7 @@ const loadTraceData = (data) => {
 };
 
 const processTraceData = (data) => {
+  pmuTotal.value = data.pmu_total;
   processedEvents.value = data.processedEvents;
   for (const key in data.processes) {
     if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
@@ -1445,6 +1448,10 @@ provide('swimGraphContext', { addChildContext });
 provide('swimGraphSearch', {searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive});
 
 provide('swimGraphCfg', { userConfig });
+
+// provide pmu info
+provide('swimGraphPmuTotal', {pmuTotal});
+
 // 提供状态给子组件
 provide('swimGraphState', {
   timelineComponent,
