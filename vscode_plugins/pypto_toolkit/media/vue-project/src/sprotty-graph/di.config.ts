@@ -45,7 +45,7 @@ import {
   AstgrTensorView,
   InputOutputNodeView,
 } from "./views";
-import { AstgrNode, AstgrPort } from "./jsonGraph";
+import { AstgrNode, AstgrPort } from "./graph.types";
 import { AstgrContextMenuItemProvider, AstgrContextMenuService } from "./menu";
 import { comGraphStore } from '../service/com-graph-store';
 import { getCurrentArea, isNode } from '../utils/index';

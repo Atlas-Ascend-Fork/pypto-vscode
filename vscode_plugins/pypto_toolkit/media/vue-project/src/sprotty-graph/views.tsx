@@ -23,7 +23,7 @@ import { injectable } from 'inversify';
 import { VNode } from 'snabbdom';
 import { RenderingContext, setAttr, ShapeView, SPortImpl, getAbsoluteBounds } from 'sprotty';
 import { Point, Selectable, Hoverable, Dimension, getSubType } from 'sprotty-protocol';
-import { AstgrNode, MetadataLabel } from './jsonGraph';
+import { AstgrNode, MetadataLabel } from './graph.types';
 import { getTextWidth } from '../utils';
 import { comGraphStore } from '../service/com-graph-store';
 
@@ -321,7 +321,7 @@ export class AstgrGraphView implements IView {
         // 选中时  显示追踪轨迹 失焦其他节点和连线
         comGraphStore.setData('inSelectedComGraphFlow',true);
         selectedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));    
-      } else if(hoverNodes.length > 0){ 
+      } else if(hoverNodes.length > 0 && model.children.length < 20000){ 
         // 悬停时 显示追踪轨迹 失焦其他节点和连线
         hoverNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
       }

@@ -11,6 +11,7 @@ import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
 import { DiffComGraphView } from './diffComGraphView';
 import { t } from 'i18next';
+import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 const { fork } = require('child_process');
 const path = require('path');
 const { parser } = require('stream-json');
@@ -397,8 +398,42 @@ class MsgHandler {
             data: funcTree,
           });
         }
+
+        if (message.type === 'getJsonGraphData') {
+          const data = this.getJsonGraphData(message.data, panel);
+          panel.webview.postMessage({
+            type: 'postJsonGraphData',
+            data
+          });
+        }
       });
     });
+  }
+
+  static getJsonGraphData(data, panel) {
+    const {
+      comGraphData,
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      nodeMagic
+    } = data;
+    const dagBuilder = new AscppDagBuilder(comGraphData, panel, this.callInOutTensorMap);
+
+    const sprottyGraph = dagBuilder.createSprottyGraph(
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      nodeMagic
+    );
+
+    return sprottyGraph;
   }
 
   static async elkLayout(graphData, panel) {
@@ -506,7 +541,7 @@ class MsgHandler {
     new ComGraphView(ViewColumn.One).createPanel(panel.comGraphData.fsPath, calleehash, subFuncmagicname, curPath, undefined, calleeOpMagic, calleeOpSubgraphId);
   }
 
-  static callInOutTensorMap(panel: any, data: any) {
+  static callInOutTensorMap(data: any) {
     const dataMap = new Map(Object.entries(data));
     for (const [k, v] of dataMap) {
       globalCallInOutTensorMap.set(k, v);

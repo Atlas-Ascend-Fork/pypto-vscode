@@ -1,8 +1,6 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, TYPES } from 'sprotty';
 import { createDiContainer } from './di.config';
-import { AscppDagBuilder } from './jsonGraph';
-import { singlePathDagBuilder } from './singlePathGraph';
 
 import {
   FitToScreenAction,
@@ -31,8 +29,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
   const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
-  const dagBuilder = new AscppDagBuilder();
-  const myBuilder = new   singlePathDagBuilder();
   let originSprottyGraph;
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
@@ -135,7 +131,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
     }
-    const sprottyGraph = dagBuilder.createSprottyGraph(
+    const data = {
+      comGraphData: JSON.parse(JSON.stringify(comGraphStore.data)),
+      filePath,
       currentData,
       showTensorNodes,
       showSyncNodes,
@@ -143,31 +141,40 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic
-    );
-    sprottyGraph['renderMode'] = option?.openMode || 'all';
+    };
+    (window as any).vscode.postMessage({
+      type: 'getJsonGraphData',
+      data
+    });
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'postJsonGraphData' && (!filePath || filePath === event.data.data.filePath)) {
+        const sprottyGraph = event.data.data;
+        sprottyGraph['renderMode'] = option?.openMode || 'all';
 
-    originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
-
-    // Log performance metrics for large graphs
-    const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
-    const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
-    console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
-    // Set the model and wait for it to be fully rendered
-    modelSource
-      .setModel(sprottyGraph)
-      .then(() => {
-        // Now that the model is fully rendered, fit to screen without animation
-        //第一个incast节点，聚焦左上方展示
-        if (modelSource.model) {
-          renderMinimap(modelSource.model);
-        }
-        if (!sprottyGraph.children) return;
-        let node: SNode | undefined;
-        fitGraphToScreen();
-      })
-      .catch((error) => {
-        console.error('Error setting model:', error);
-      });
+        originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
+    
+        // Log performance metrics for large graphs
+        const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
+        const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
+        console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
+        // Set the model and wait for it to be fully rendered
+        modelSource
+          .setModel(sprottyGraph)
+          .then(() => {
+            // Now that the model is fully rendered, fit to screen without animation
+            //第一个incast节点，聚焦左上方展示
+            if (modelSource.model) {
+              renderMinimap(modelSource.model);
+            }
+            if (!sprottyGraph.children) return;
+            let node: SNode | undefined;
+            fitGraphToScreen();
+          })
+          .catch((error) => {
+            console.error('Error setting model:', error);
+          });
+      }
+    });
   };
 
   const minimapRectMoveListener = (args) => {

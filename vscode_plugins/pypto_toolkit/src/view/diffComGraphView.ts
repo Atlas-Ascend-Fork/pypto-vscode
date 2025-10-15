@@ -10,6 +10,7 @@ import { pick } from 'stream-json/filters/Pick';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
 import { t } from 'i18next';
+import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
@@ -257,9 +258,46 @@ class MsgHandler {
         if (message.type === 'askLayout') {
           this.elkLayout(message.data, panel);
         }
+
+        if (message.type === 'getJsonGraphData') {
+          const data = this.getJsonGraphData(message.data);
+          panel.webview.postMessage({
+            type: 'postJsonGraphData',
+            data: {
+              ...data,
+              filePath: message.data.filePath
+            }
+          });
+        }
       });
     });
   }
+
+  static getJsonGraphData(data) {
+      const {
+        comGraphData,
+        currentData,
+        showTensorNodes,
+        showSyncNodes,
+        colorBySubgraph,
+        isDark,
+        selectedSubgraphId,
+        nodeMagic
+      } = data;
+      const dagBuilder = new AscppDagBuilder(comGraphData, undefined);
+  
+      const sprottyGraph = dagBuilder.createSprottyGraph(
+        currentData,
+        showTensorNodes,
+        showSyncNodes,
+        colorBySubgraph,
+        isDark,
+        selectedSubgraphId,
+        nodeMagic
+      );
+  
+      return sprottyGraph;
+    }
 
   private static async getFuncData(comGraphData: any, isBigFile: boolean, ret: any) {
     if (comGraphData.isUsedDB) {
