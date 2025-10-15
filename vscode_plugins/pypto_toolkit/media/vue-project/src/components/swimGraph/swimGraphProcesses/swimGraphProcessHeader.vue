@@ -6,19 +6,8 @@
         <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
         <span>{{ process.processName }}</span>
       </div>
-      <div class="label_two">
-        <span :style="{'display':cycleDisplay}"> {{ $t(selectedOption) }}</span>
-        <d-tooltip :content="$t('ddTooltip')">
-          <span class="expand-icon-mode" :style="{'display':'none'}" @click="toggleDropDown"><img class="dropDownMode" :src="dropDown" alt="dropDown1"/></span>
-        </d-tooltip>
-        <div v-if="isDropdownVisible" class="dropdownSelect">
-          <ul>
-            <li @click="selectOption('timeCir')">{{ $t("timeCir") }}</li>
-            <li @click="selectOption('throughput')">{{ $t("throughput") }}</li>
-            <li @click="selectOption('cacheHit')">{{ $t("cacheHit") }}</li>
-            <li @click="selectOption('task')">{{ $t("task") }}</li>
-          </ul>
-        </div>
+      <div class="label_two" v-if="isExpanded">
+        <d-select v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm"></d-select>
       </div>
     </div>
     <div class="process-header-line">
@@ -46,14 +35,10 @@ const {
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
-const { cycleDisplay } = inject('swimCycleDisplay');
+const { options, selectedOption } = inject('swimCycleDisplay');
 
 let dropDown = ref(`${window.staticPath}/static-assets/swim_dropDown.svg`);
 let collapse = ref(`${window.staticPath}/static-assets/swim_collapse.svg`);
-
-const isDropdownVisible = ref(false);
-const selectedOption = ref('timeCir');
-const isDisabled = ref(true);
 
 // 定义props
 const props = defineProps({
@@ -66,17 +51,6 @@ const props = defineProps({
     required: true
   }
 });
-
-const toggleDropDown = () => {
-  if(!isDisabled.value) {
-    isDropdownVisible.value = !isDropdownVisible.value;
-  }
-};
-
-const selectOption = (option) => {
-  selectedOption.value = option;
-  isDropdownVisible.value = false;
-};
 
 const isExpanded = computed(() => {
   return processExpanded.get(props.processKey);
@@ -174,6 +148,26 @@ const updateTheme = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 @import url("../css/swimGraph/Processes/header.css");
+.label_two {
+  display: flex;
+  width: 120px;
+  align-items: center;
+  text-align: right;
+  margin-right: 8px;
+  :deep() {
+    .devui-select__selection {
+      background-color: transparent !important;
+      border: none !important;
+      input:focus {
+        outline: none;
+      }
+    }
+    .devui-select__input {
+      color: var(--devui-primary-text);
+      text-align: right;
+    }
+  }
+}
 </style>
