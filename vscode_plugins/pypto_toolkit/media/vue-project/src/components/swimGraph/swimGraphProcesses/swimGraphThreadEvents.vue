@@ -98,8 +98,10 @@ let altClickData = {
 // 框选的起点和终点坐标
 let selection = {
   startX : 0,
+  startLocalX: 0,
   startY: 0,
   endX: 0,
+  endLocalX: 0,
   endY: 0
 };
 let isDragging = ref(false);
@@ -491,15 +493,16 @@ const handleMouseMove = throttle((e) => {
 
   canvasRef.style.cursor = cursor;
   if (!isDragging.value) return;
-  selection.endX = x;
-  selection.endY = y;
-  // 绘制框选
-  drawSelectionBox();
-  const selectionData = getSelection();
-  selectionData.forEach(eventItem => {
-    onSelectionEvent(eventItem);
-  });
-  // 框中逻辑
+  if (!e.altKey && !e.ctrlKey) {
+    selection.endLocalX = x;
+    selection.endY = y;
+    // 绘制框选
+    drawSelectionBox();
+    const selectionData = getSelection();
+    selectionData.forEach(eventItem => {
+      onSelectionEvent(eventItem);
+    });
+  }
 }, 16);
 const drawSelectionBox = () => {
   const uiCanvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
@@ -508,15 +511,14 @@ const drawSelectionBox = () => {
     return;
   }
   uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
-  const {startX, startY, endX, endY} = selection;
+  const {startLocalX, startY, endLocalX, endY} = selection;
   // 填充矩形
   uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
   uiCtx.strokeStyle = 'rgba(53, 127, 255, 1)';
   uiCtx.beginPath();
   uiCtx.lineWidth = 1;
-  uiCtx.roundRect(startX, startY, endX - startX, endY - startY, 4);
+  uiCtx.rect(startLocalX, startY, endLocalX - startLocalX, endY - startY, 4);
   uiCtx.fill();
-  uiCtx.stroke();
 };
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
@@ -667,6 +669,8 @@ const handleMouseDown = (e) => {
   const rect = canvasRef.getBoundingClientRect();
   selection.startX = e.clientX - rect.left;
   selection.startY = e.clientY - rect.top;
+  const { x } = computeLocalXY(canvasRef);
+  selection.startLocalX = x;
   isClick.value = true;
   isDragging.value = true;
   measureDetailsData.value = [];
@@ -684,12 +688,14 @@ const handleMouseUp = throttle((e) => {
   const rect = canvasRef.getBoundingClientRect();
   selection.endX = e.clientX - rect.left;
   selection.endY = e.clientY - rect.top;
+  const { x } = computeLocalXY(canvasRef);
+  selection.endLocalX = x;
   const dx = Math.abs(selection.endX - selection.startX);
   const dy = Math.abs(selection.endY - selection.startY);
   if (dx < 5 || dy < 5) {
     isClick.value = true;
     mulDetailsExpanded.value = false;
-  } else {
+  } else if (!e.ctrlKey) {
     isClick.value = false;
     // 框选后的逻辑
     handleSelection();
