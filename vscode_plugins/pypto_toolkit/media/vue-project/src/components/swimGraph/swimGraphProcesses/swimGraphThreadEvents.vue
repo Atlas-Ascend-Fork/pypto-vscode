@@ -54,7 +54,10 @@ const {
   timelineState,
   processes,
   processExpanded,
-  mulDetailsExpanded
+  mulDetailsExpanded,
+  measureDetailsData,
+  rootHashes,
+  leafHashMap
 } = inject('swimGraphState');
 
 const {
@@ -696,6 +699,10 @@ const handleMouseDown = (e) => {
   selection.startY = e.clientY - rect.top;
   isClick.value = true;
   isDragging.value = true;
+  measureDetailsData.value = [];
+  rootHashes.value = [];
+  leafHashMap.value.clear();
+  mulDetailsExpanded.value = false;
   if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };

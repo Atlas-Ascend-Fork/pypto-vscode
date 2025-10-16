@@ -8,7 +8,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('AICore') }}</div>
-                  <d-tooltip :content="$t('AICore')">
+                  <d-tooltip :content="$t('AICoreTip')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -17,7 +17,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('CubeUtilization') }}</div>
-                  <d-tooltip :content="$t('CubeUtilization')">
+                  <d-tooltip :content="$t('CubeUtilizationTip')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -26,7 +26,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('VectorUtilization') }}</div>
-                  <d-tooltip :content="$t('VectorUtilization')">
+                  <d-tooltip :content="$t('VectorUtilizationTip')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -38,7 +38,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('cubeTime') }}</div>
-                    <d-tooltip :content="$t('cubeTime')">
+                    <d-tooltip :content="$t('cubeTimeTip')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -47,7 +47,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('vectorTime') }}</div>
-                    <d-tooltip :content="$t('vectorTime')">
+                    <d-tooltip :content="$t('vectorTimeTip')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -55,10 +55,10 @@
                 </div>
               </div>
               <div class="measure-detail-data-downarea-time-ratio">
-                <div v-if="cubeCycleRate > 0" class="cube-time-bar" :style="{ flex: `${cubeCycleRate}%` }">
+                <div v-if="cubeCycleRate === '/' || cubeCycleRate > 0" class="cube-time-bar" :style="{ flex: cubeCycleRate && vectorCycleRate === '/' ? '50%' : `${cubeCycleRate}%` }">
                   <div class="cube-time-num">{{ cubeCycleRate }}%</div>
                 </div>
-                <div v-if="vectorCycleRate > 0" class="vector-time-bar" :style="{ flex: `${vectorCycleRate}%` }">
+                <div v-if="vectorCycleRate === '/' || vectorCycleRate > 0" class="vector-time-bar" :style="{ flex: vectorCycleRate && cubeCycleRate === '/' ? '50%' : `${vectorCycleRate}%` }">
                   <div class="vector-time-num">{{ vectorCycleRate }}%</div>
                 </div>
               </div>
@@ -170,22 +170,36 @@ const initDatas = () => {
   }
   const [data] = measureDetailsData.value;
   const handleNaN = (value) => {
-    return isNaN(value) ? '0' : value;
+    return isNaN(value) ? '/' : value;
   };
   AICoreUsage.value = handleNaN(data.AICoreusage);
   AICUsage.value = handleNaN(data.AICusage);
   AIVUsage.value = handleNaN(data.AIVusage);
-  cubeCycle.value = handleNaN(data.cubecycle);
-  vectorCycle.value = handleNaN(data.vectorcycle);
   eventNum.value = handleNaN(data.eventnum);
-  const cubeCycleNum = parseFloat(cubeCycle.value);
-  const vectorCycleNum = parseFloat(vectorCycle.value);
-  if (cubeCycleNum + vectorCycleNum !== 0) {
-    cubeCycleRate.value = parseFloat(((cubeCycleNum / (cubeCycleNum + vectorCycleNum))) * 100 .toFixed(2));
-    vectorCycleRate.value = parseFloat((1 - parseFloat(cubeCycleRate.value)).toFixed(2));
+
+  const processCycleValue = (value) => {
+    return value === 0 ? '/' : handleNaN(value);
+  };
+
+  cubeCycle.value = processCycleValue(data.cubecycle);
+  vectorCycle.value = processCycleValue(data.vectorcycle);
+
+  const cubeCycleNum = cubeCycle.value === '/' ? NaN : parseFloat(cubeCycle.value);
+  const vectorCycleNum = vectorCycle.value === '/' ? NaN : parseFloat(vectorCycle.value);
+
+  if (isNaN(cubeCycleNum) && isNaN(vectorCycleNum)) {
+    cubeCycleRate.value = '/';
+    vectorCycleRate.value = '/';
+  } else if (isNaN(cubeCycleNum)) {
+    cubeCycleRate.value = '/';
+    vectorCycleRate.value = 100;
+  } else if (isNaN(vectorCycleNum)) {
+    cubeCycleRate.value = 100;
+    vectorCycleRate.value = '/';
   } else {
-    cubeCycleRate.value = 0;
-    vectorCycleRate.value = 0;
+    const total = cubeCycleNum + vectorCycleNum;
+    cubeCycleRate.value = parseFloat(((cubeCycleNum / total) * 100).toFixed(2));
+    vectorCycleRate.value = parseFloat(((vectorCycleNum / total) * 100).toFixed(2));
   }
 };
 
