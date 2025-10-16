@@ -67,14 +67,8 @@
         </div>
         <div class="measure-detail-right-section">
           <div class="measure-detail-search-area">
-            <d-input v-model="measureDetailInput" :placeholder="searchPlaceholder" class="measure-detail-search">
-              <template #prepend>
-                <d-select v-model="measureDetailSelect" :options="options" class="measure-detail-select"></d-select>
-              </template>
-              <template #append>
-                <d-icon name="search" @click="onMeasureSearch()" />
-              </template>
-            </d-input>
+            <d-category-search :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;">
+            </d-category-search>
             <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
           </div>
           <div class="measure-detail-data-table">
@@ -97,10 +91,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, nextTick, provide, reactive } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { clone } from 'lodash-es';
-import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { ref, inject, watch} from 'vue';
 
 // 注入父组件提供的状态和方法
 const {
@@ -113,7 +104,6 @@ const {
 const {
 } = inject('swimGraphMethods');
 
-const searchPlaceholder = ref('Search');
 
 const AICoreUsage = ref('0');
 const AICUsage = ref('0');
@@ -129,38 +119,40 @@ const measureDetailTableData = ref([]);
 const measureDetailsPanel = () => {
   mulDetailsExpanded.value = !mulDetailsExpanded.value;
 };
-
-const items = [
-  'Root Func. Hash',
-  'Leaf Func. Hash'
-];
-const measureDetailInput = ref('');
-const measureDetailSelect = ref('Root Func. Hash');
-const options = reactive(items);
-
-const onMeasureSearch = () => {
-  const searchCriteria = measureDetailInput.value;
-  const selectCriteria = measureDetailSelect.value;
-
-  if (measureDetailInput.value === '') {
+let category = [
+    {
+      label: 'Root Func. Hash',
+      field: 'Root',
+      type: 'radio',
+      group: 'Basic',
+      filterKey: 'Option',
+      options: []
+    },
+    {
+      label: 'Leaf Func. Hash',
+      field: 'Leaf',
+      type: 'radio',
+      group: 'Basic',
+      filterKey: 'Option',
+      options: []
+    }
+  ];
+const onMeasureSearch = (event) => {
+  const { selectedTags } = event;
+  if (selectedTags.length === 0) {
     initTableDatas();
     return;
   }
-
-  if (selectCriteria === 'Root Func. Hash') {
-    measureDetailTableData.value = measureDetailTableData.value.filter(item =>
-      item.rootFuncHash === searchCriteria
+  const filteredData = selectedTags.reduce((item, { field, value: { Option } }) => {
+    return item.filter(row =>
+      field === 'Root' ? row.rootFuncHash === Option :
+        field === 'Leaf' ? row.leafFuncHash === Option :
+          true
     );
-  } else if (selectCriteria === 'Leaf Func. Hash') {
-    measureDetailTableData.value = measureDetailTableData.value.filter(item =>
-      item.leafFuncHash === searchCriteria
-    );
-  }
-
+  }, [...measureDetailTableData.value]);
+  measureDetailTableData.value = filteredData;
   if (measureDetailTableData.value.length === 0) {
-    measureDetailTableData.value = [{
-      rootFuncHash: 'No search data'
-    }];
+    measureDetailTableData.value = [];
   }
 };
 
@@ -230,8 +222,14 @@ watch(mulDetailsExpanded, (newValue) => {
   if (newValue === true) {
     initDatas();
     initTableDatas();
+    category.forEach((item, index) => {
+      item.options = index === 0 ? transformToOptions(rootHashes.value, false) : transformToOptions(leafHashMap.value);
+    });
+    category =  JSON.parse(JSON.stringify(category));
   }
 });
+const transformToOptions = (source, isKeys = true) => 
+[...(isKeys ? source.keys() : source.values())].map(item => ({ Option: item }));
 </script>
 
 <style scoped lang="scss">
@@ -261,43 +259,9 @@ watch(mulDetailsExpanded, (newValue) => {
       background: var(--devui-swim-detail-bg);
     }
   }
-
-  .measure-detail-search {
-    width: 410px;
-
-    .devui-input__wrapper {
-      box-shadow: none !important;
-
-      input:focus {
-        outline: none;
-      }
-    }
-
-    .devui-input-slot__append:hover {
-      border: 1px solid var(--devui-form-control-line-active);
-      cursor: pointer;
-    }
-  }
-
-  .measure-detail-select {
-    width: 110px;
-
-    .devui-select__selection {
-      input:focus {
-        box-shadow: none !important;
-        outline: 1px solid var(--devui-form-control-line-active);
-        outline-offset: 0px;
-      }
-    }
-  }
-
-  .measure-detail-select.devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
-    box-shadow: none !important;
-  }
-
-  .measure-detail-select.devui-select--open .devui-select__selection.devui-select__selection--glow-style,
-  .devui-select--focus .devui-select__selection.devui-select__selection--glow-style {
-    box-shadow: none !important;
+  .measure-detail-search-area .dp-category-search-container:focus-within{
+    border-color: #5e7cc0;
+    border-color: var(--devui-form-control-line-active);
   }
 }
 </style>
