@@ -45,7 +45,7 @@ import {
   AstgrTensorView,
   InputOutputNodeView,
 } from "./views";
-import { AstgrNode, AstgrPort } from "./jsonGraph";
+import { AstgrNode, AstgrPort } from "./graph.types";
 import { AstgrContextMenuItemProvider, AstgrContextMenuService } from "./menu";
 import { comGraphStore } from '../service/com-graph-store';
 import { getCurrentArea, isNode } from '../utils/index';
@@ -249,6 +249,7 @@ export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
         "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "40.0", // Also set layered-specific spacing
         "devkit.showTensor": this.showTensor,
         "devkit.filePath": this.filePath,
+        "devkit.renderMode": sgraph['renderMode']
         //"org.eclipse.elk.spacing.labelNode": "5.0",
         //"org.eclipse.elk.spacing.labelLabel": "2.0",
         //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",

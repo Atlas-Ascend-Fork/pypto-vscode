@@ -81,6 +81,7 @@ export default {
         copy: 'Copy',
         copied: 'Copied',
         readJson: 'Reading data...',
+        convertData: 'Converting data...',
         readJsonWarning: 'Warning：The current number of layout nodes has exceeded 50,000,which may result in excessively long rendering times and could potentially cause the application to lag or crash.',
         rendering: 'Layout rendering...',
         list: ' List',
@@ -116,6 +117,12 @@ export default {
         useRegExp: 'Use Regular Expressions',
         pathLocked: 'Path Locked',
         singlePathMode: 'Single Path Mode',
-        pressEscExit: 'Press ESC to exit'
+        pressEscExit: 'Press ESC to exit',
+        nodeCountTips: 'The current number of layout nodes has exceeded 30,000',
+        renderTimeoutTips: 'Which may lead to excessively long rendering times and even cause application lag or crashes',
+        fullRenderComGraph: 'Full Rendering Computational Graph',
+        fullRenderComGraphDesc: 'Conventional rendering is slower when there are a large number of nodes',
+        searchMode: 'Search Mode',
+        searchModeDesc: 'Render the associated links based on the searched nodes'
     }
 }

@@ -1,6 +1,5 @@
 import { comGraphStore } from "../service/com-graph-store";
-import { MEMTYPE_MAP } from "./jsonGraph";
-import { parse } from "path";
+import { MEMTYPE_MAP } from "./graph.types";
 
 // 定义 symbol 类型
 type SymType = 0 | 1 | 2;

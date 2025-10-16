@@ -34,7 +34,7 @@ import {
   emptyPortView,
   InputOutputNodeView,
 } from "./views";
-import { AstgrNode, AstgrPort } from "./jsonGraph";
+import { AstgrNode, AstgrPort } from "./graph.types";
 
 export function createMiniMapDiContainer(sprottyContainerId: string) {
   const randomGraphModule = new ContainerModule(

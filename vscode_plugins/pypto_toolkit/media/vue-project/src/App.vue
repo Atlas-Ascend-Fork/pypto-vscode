@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
 import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
+import SearchEntry from './components/comGraph/searchEntry.vue';
+import SearchMode from './components/comGraph/searchMode.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 import { getQuery } from './core/query';
@@ -14,6 +16,9 @@ const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
 const diffInfo = ref({});
+const openMode = ref('all');
+const nodeMagic = ref(0);
+const disabledSearchMode = computed(() => !Object.keys(jsonContent.value).length);
 const { updateTheme } = useTheme();
 
 getQuery().then((query) => {
@@ -25,7 +30,15 @@ const errorListener = (args) => {
   errorMessage.value = args;
 };
 
+const searchNodeListener = (args) => {
+  graphType.value = 'returnCom';
+  openMode.value = 'path';
+  nodeMagic.value = args;
+  loadingStep.value = 'convertData';
+};
+
 (window as any).ascEventBus.on('jsonParseError', errorListener);
+(window as any).ascEventBus.on('searchNode', searchNodeListener);
 
 const returnCom = (message) => {
   jsonContent.value = message.data;
@@ -41,6 +54,7 @@ const returnInitData = (message) => {
 };
 
 const readJsonWarning = (message) => {
+  graphType.value = 'comGraphFullSearchEntry';
   loadingStep.value = message.command;
 };
 
@@ -66,6 +80,11 @@ const returnCalleeOpAttrMap = (message) => {
   comGraphStore.setData('CalleeOpAttrMap', message.data);
 };
 
+const returnPathNodesSet = (message) => {
+  const nodesSet = new Set(message.data);
+  comGraphStore.setData('pathNodesSet', nodesSet);
+};
+
 const initComGraph = (message) => {
   graphType.value = 'returnCom';
   loadingStep.value = message.step;
@@ -87,6 +106,7 @@ const CommandCallbackMap = {
   returnCom,
   returnSwim,
   returnCalleeMap,
+  returnPathNodesSet,
   returnCalleeOpAttrMap,
   returnTheme,
   initComGraph,
@@ -119,6 +139,15 @@ function dealConfig(config) {
   }
 }
 
+function onFullRender() {
+  if (Object.keys(jsonContent.value).length){
+    loadingStep.value = 'convertData';
+  } else {
+    loadingStep.value = 'readJson';
+  }
+  graphType.value = 'returnCom';
+}
+
 window.addEventListener('message', (event) => {
   const message = event.data;
   CommandCallbackMap[message.command]?.(message);
@@ -128,12 +157,22 @@ onMounted(() => {
   vscode.value.postMessage({
     command: 'getInitialData',
   });
+  (window as any).ascEventBus.on('comGraphRendering', (args) => {
+    loadingStep.value = args;
+  })
 });
 </script>
 
 <template>
   <header>
-    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
+    <SearchEntry
+      v-if="graphType === 'comGraphFullSearchEntry'"
+      :disabled-search-mode="disabledSearchMode"
+      @full-render="onFullRender"
+      @search-mode="() => (graphType = 'comGraphSearchMode')"
+    />
+    <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
     <SwimGraph v-if="graphType === 'returnSwim'" />
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph

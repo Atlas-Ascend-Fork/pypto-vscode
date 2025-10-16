@@ -1,7 +1,7 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, TYPES } from 'sprotty';
 import { createDiContainer } from './di.config';
-import { AscppDagBuilder } from './jsonGraph';
+
 import {
   FitToScreenAction,
   SNode,
@@ -29,7 +29,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
   const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
-  const dagBuilder = new AscppDagBuilder();
   let originSprottyGraph;
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
@@ -110,6 +109,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const layoutConfigurator = container.get(
       ILayoutConfigurator
     ) as import("./di.config").AstgrLayoutConfigurator;
+    comGraphStore.setData('layoutDirection', currentLayoutConfig.direction);
     layoutConfigurator.setLayoutDirection(currentLayoutConfig.direction);
     layoutConfigurator.setShowTensor(currentLayoutConfig.showTensor);
     layoutConfigurator.setFilePath(currentLayoutConfig.filePath);
@@ -126,37 +126,56 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       currentLayoutConfig.showTensor = showTensorNodes;
       resetModelSource();
     }
-    const sprottyGraph = dagBuilder.createSprottyGraph(
+
+    let nodeMagic;
+    if (option?.openMode === 'path') {
+      nodeMagic = option?.nodeMagic;
+    }
+    const data = {
+      comGraphData: JSON.parse(JSON.stringify(comGraphStore.data)),
+      filePath,
       currentData,
       showTensorNodes,
       showSyncNodes,
       colorBySubgraph,
       isDark,
       selectedSubgraphId,
-    );
+      nodeMagic
+    };
+    (window as any).vscode.postMessage({
+      type: 'getJsonGraphData',
+      data
+    });
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'postJsonGraphData' && (!filePath || filePath === event.data.data.filePath)) {
+        (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
+        const sprottyGraph = event.data.data;
+        sprottyGraph['renderMode'] = option?.openMode || 'all';
 
-    originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
-
-    // Log performance metrics for large graphs
-    const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
-    const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
-    console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
-    // Set the model and wait for it to be fully rendered
-    modelSource
-      .setModel(sprottyGraph)
-      .then(() => {
-        // Now that the model is fully rendered, fit to screen without animation
-        //第一个incast节点，聚焦左上方展示
-        if (modelSource.model) {
-          renderMinimap(modelSource.model);
-        }
-        if (!sprottyGraph.children) return;
-        let node: SNode | undefined;
-        fitGraphToScreen();
-      })
-      .catch((error) => {
-        console.error('Error setting model:', error);
-      });
+        originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
+    
+        // Log performance metrics for large graphs
+        const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
+        const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
+        console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
+        // Set the model and wait for it to be fully rendered
+        modelSource
+          .setModel(sprottyGraph)
+          .then(() => {
+            // Now that the model is fully rendered, fit to screen without animation
+            //第一个incast节点，聚焦左上方展示
+            if (modelSource.model) {
+              renderMinimap(modelSource.model);
+            }
+            if (!sprottyGraph.children) return;
+            let node: SNode | undefined;
+            fitGraphToScreen();
+          })
+          .catch((error) => {
+            console.error('Error setting model:', error);
+          });
+      }
+    });
   };
 
   const minimapRectMoveListener = (args) => {
@@ -182,30 +201,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`${renderType}_mainmap_wheel`, mainMapWheelListener);
 
   (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
-
-  // Function to populate subgraph filter combo box
-  const populateSubgraphFilter = () => {
-    if (!currentData) return;
-
-    const subgraphFilterSelect = document.getElementById('subgraph-filter') as HTMLSelectElement;
-    if (!subgraphFilterSelect) return;
-
-    // Get available subgraphs
-    const availableSubgraphs = dagBuilder.getAvailableSubgraphs(currentData);
-
-    // Clear existing options except "All Subgraphs"
-    subgraphFilterSelect.innerHTML = '<option value="">All Subgraphs</option>';
-
-    // Add options for each subgraph
-    for (const subgraphId of availableSubgraphs) {
-      const option = document.createElement('option');
-      option.value = String(subgraphId);
-      option.textContent = `Subgraph ${subgraphId}`;
-      subgraphFilterSelect.appendChild(option);
-    }
-
-    console.log('Populated subgraph filter with:', availableSubgraphs);
-  };
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {
@@ -289,11 +284,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number) => {
     try {
       currentData = jsonData; // Store the data
-      populateSubgraphFilter(); // Populate the subgraph filter
-      updateGraph(isDark); // Use the updateGraph function
+      updateGraph(isDark, {openMode, nodeMagic}); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?
@@ -341,7 +335,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   return {
-    populateSubgraphFilter,
     fitToScreenAction,
     initComDocText,
     colorBySubGraph,

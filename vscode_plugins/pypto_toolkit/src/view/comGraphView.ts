@@ -11,13 +11,14 @@ import { pick } from 'stream-json/filters/Pick';
 import { globalConfig } from '../config/config';
 import { DiffComGraphView } from './diffComGraphView';
 import { t } from 'i18next';
+import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 const { fork } = require('child_process');
 const path = require('path');
 const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 const fileHashMap = {};
-const NODE_COUNT_LIMIT = 50000;
+const NODE_COUNT_LIMIT = 10000;
 const DATA_LENGTH_LIMIT = 62000000;
 const globalCallInOutTensorMap = new Map();
 
@@ -380,7 +381,7 @@ class MsgHandler {
         }
         panel.webview.postMessage({
           command: 'returnCom',
-          step: 'rendering',
+          step: 'convertData',
           data: ret,
         });
       });
@@ -388,8 +389,51 @@ class MsgHandler {
         if (message.type === 'askLayout') {
           this.elkLayout(message.data, panel);
         }
+        if (message.type === 'getFuncTree') {
+          panel.webview.postMessage({
+            command: 'returnFuncTree',
+            entry: entryHash,
+            fsPath: comGraphData.fsPath,
+            curPath: curPath,
+            data: funcTree,
+          });
+        }
+
+        if (message.type === 'getJsonGraphData') {
+          const data = this.getJsonGraphData(message.data, panel);
+          panel.webview.postMessage({
+            type: 'postJsonGraphData',
+            data
+          });
+        }
       });
     });
+  }
+
+  static getJsonGraphData(data, panel) {
+    const {
+      comGraphData,
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      nodeMagic
+    } = data;
+    const dagBuilder = new AscppDagBuilder(comGraphData, panel, this.callInOutTensorMap);
+
+    const sprottyGraph = dagBuilder.createSprottyGraph(
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      nodeMagic
+    );
+
+    return sprottyGraph;
   }
 
   static async elkLayout(graphData, panel) {
@@ -401,6 +445,7 @@ class MsgHandler {
     const layoutDirection = graphData.layoutOptions['elk.direction'];
     const showtensor = graphData.layoutOptions['devkit.showTensor'];
     const filePath = comGraphData.fsPath; // 获取文件路径
+    const renderMode = graphData.layoutOptions['devkit.renderMode']
     let funcHash = comGraphData.funcHash; // 获取函数哈希
     if (funcHash === undefined) {
       panel.webview.postMessage({
@@ -427,7 +472,7 @@ class MsgHandler {
     if (comGraphData.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
-    if (!cache) {
+    if (renderMode === 'path' || !cache) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({
         type: 'layout',
@@ -437,7 +482,7 @@ class MsgHandler {
       child.on('message', async (res) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
-          if (comGraphData.isUsedDB) {
+          if (comGraphData.isUsedDB && renderMode !== 'path') {
             await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
           }
           MsgHandler.postLayoutResult(panel, layoutJsonStr);
@@ -496,7 +541,7 @@ class MsgHandler {
     new ComGraphView(ViewColumn.One).createPanel(panel.comGraphData.fsPath, calleehash, subFuncmagicname, curPath, undefined, calleeOpMagic, calleeOpSubgraphId);
   }
 
-  static callInOutTensorMap(panel: any, data: any) {
+  static callInOutTensorMap(data: any) {
     const dataMap = new Map(Object.entries(data));
     for (const [k, v] of dataMap) {
       globalCallInOutTensorMap.set(k, v);

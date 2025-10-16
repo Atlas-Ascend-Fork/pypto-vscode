@@ -1,6 +1,6 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :graph-type="graphType"></ComGraphHeader>
+    <ComGraphHeader @onLocate="onLocate" :showType="showType" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -46,6 +46,14 @@ const props = defineProps({
   loadingStep: {
     type: String,
     default: ''
+  },
+  openMode: {
+    type: String,
+    default: 'all'
+  },
+  nodeMagic: {
+    type: Number,
+    default: '-1'
   }
 })
 
@@ -79,7 +87,8 @@ const fitToScreen = () => {
 
 const nodeDisplayConfig = (type: 'op' | 'all') => {
   updateGraph(isDarkTheme, {
-    showTensorNodes: type === 'op' ? false : true
+    showTensorNodes: type === 'op' ? false : true,
+    openMode: props.openMode, nodeMagic: props.nodeMagic
   })
   showType.value = type;
 }
@@ -112,13 +121,14 @@ provide('comGraph', { toggleHealthReport, showLayerControl });
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',
+  convertData: 'comGraph.convertData',
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
 };
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'rendering') {
+    if (val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
     if (val === 'readJsonWarning') {
@@ -132,7 +142,7 @@ watch(
 );
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
-  if (val) {
+  if (Object.keys(val).length) {
     graphType.value = val.graphtype ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
@@ -144,10 +154,10 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     selectAction = sprottyLoadResult.selectAction;
     getSelectedNodeId = sprottyLoadResult.getSelectedNodeId;
     setDirection = sprottyLoadResult.setModelDirection;
-    initComDocText(jsonValue, isDarkTheme.value);
+    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
     comGraphStore.setData('jsonData', jsonValue);
   }
-});
+}, { immediate: true });
 
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {
@@ -172,7 +182,7 @@ onMounted(() => {
       lockText = t('comGraph.pathLocked');
     }
   });
-  if (props.loadingStep === 'readJson') {
+  if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
