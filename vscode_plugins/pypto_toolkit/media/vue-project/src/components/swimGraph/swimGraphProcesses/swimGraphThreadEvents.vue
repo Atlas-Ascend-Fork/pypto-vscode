@@ -1,5 +1,5 @@
 <template>
-  <div class="thread-events" :data-process-container="process.key">
+  <div class="thread-events" :data-process-container="process.key" tabindex="0">
     <canvas 
       class="events-canvas" 
       :data-process-key="processKey"
@@ -54,6 +54,7 @@ const {
   timelineState,
   processes,
   processExpanded,
+  mulDetailsExpanded
 } = inject('swimGraphState');
 
 const {
@@ -65,6 +66,9 @@ const {
   rightmove,
   durationToWidth,
   transform,
+  measureDetailGet,
+  xToTime,
+  processThreadEventSearch
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -88,6 +92,15 @@ let altClickData = {
     lastData: null,
     largeSpacing: false
 };
+// 框选的起点和终点坐标
+let selection = {
+  startX : 0,
+  startY: 0,
+  endX: 0,
+  endY: 0
+};
+let isDragging = ref(false);
+let isClick = ref(false);
 // 手动测距，点击第一个节点
 let isMeasureFirst = ref(false);
 // 手动测距，点击第二个节点 ，此时的测距需要保留
@@ -95,7 +108,14 @@ let isMeasureFixed = ref(false);
 // 手动测距，是否交换
 let isMeasureChange = ref(false);
 let wheelDebounceTimer;
+let AICCount = 0;
+let AIVCount = 0;
+let matchingAICEvents = [];
+let matchingAIVEvents = [];
 const handleCanvasClick = (e) => {
+  if(!isClick.value){
+    return;
+  }
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     console.warn(`Canvas for process ${props.processKey} not found during click handling`);
@@ -236,7 +256,9 @@ const handlekeydown = (event) => {
   clearTimeout(wheelDebounceTimer);
   const key = event.key.toLowerCase();
   const canvasRef = getActiveEventCanvas(props.processKey);
-  if (!canvasRef) return;
+  if (!canvasRef) {
+    return;
+  }
   const rect = canvasRef.getBoundingClientRect();
   const mouseX = mousePosition?.x - rect.left;
   const mouseY = mousePosition?.y - rect.top;
@@ -465,8 +487,169 @@ const handleMouseMove = throttle((e) => {
   }
 
   canvasRef.style.cursor = cursor;
+  if (!isDragging.value) return;
+  selection.endX = x;
+  selection.endY = y;
+  // 绘制框选
+  drawSelectionBox();
+  const selectionData = getSelection();
+  selectionData.forEach(eventItem => {
+    onSelectionEvent(eventItem);
+  });
+  // 框中逻辑
 }, 16);
+const drawSelectionBox = () => {
+  const uiCanvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
+  const uiCtx = uiCanvasRef.getContext('2d');
+  if(!uiCtx) {
+    return;
+  }
+  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  const {startX, startY, endX, endY} = selection;
+  // 填充矩形
+  uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
+  uiCtx.strokeStyle = 'rgba(53, 127, 255, 1)';
+  uiCtx.beginPath();
+  uiCtx.lineWidth = 1;
+  uiCtx.roundRect(startX, startY, endX - startX, endY - startY, 4);
+  uiCtx.fill();
+  uiCtx.stroke();
+};
+const handleSelection = () => {
+  // 这里可以判断那些元素在框内
+  checkInSelection();
+  mulDetailsExpanded.value = true;
+  detailsPanelExpanded.value = false;
+};
+const checkInSelection = () => {
+  // 初始化计数器
+  AICCount = 0;
+  AIVCount = 0;
+  matchingAICEvents = [];
+  matchingAIVEvents = [];
+  // 解构选择区域坐标
+  const { startX, startY, endX, endY } = selection;
 
+  // 计算时间范围
+  const startTime = xToTime(startX);
+  const endTime = xToTime(endX);
+  const timeRange = endTime - startTime;
+
+  // 预计算选择框边界
+  const selectMinX = Math.min(startX, endX);
+  const selectMaxX = Math.max(startX, endX);
+  const selectMinY = Math.min(startY, endY);
+  const selectMaxY = Math.max(startY, endY);
+
+  // 遍历进程
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      // 处理线程中的事件
+      const context = {
+        thread, selectMinX, selectMaxX, selectMinY, selectMaxY, startTime, endTime
+      };
+      processThreadEvents(context);
+    });
+  });
+  // 最终统计
+  measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
+};
+const processThreadEvents = ({ thread, selectMinX, selectMaxX, selectMinY, selectMaxY, startTime, endTime }) => {
+  thread.events.forEach(item => {
+    const { threadName, renderInfo } = item;
+    // 检查threadName是否存在且有效
+    if (!threadName?.trim()) {
+      return;
+    }
+    // 精确匹配目标事件前缀
+    const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
+    if (!isTargetEvent) {
+      return;
+    }
+    // 解构渲染信息
+    const { x, y, width, height } = renderInfo;
+
+    // 计算事件矩形边界
+    const eventMinX = x;
+    const eventMaxX = x + width;
+    const eventMinY = y;
+    const eventMaxY = y + height;
+
+    // 检测重叠
+    const isOverlapping = !(
+      eventMinX > selectMaxX ||
+      eventMaxX < selectMinX ||
+      eventMinY > selectMaxY ||
+      eventMaxY < selectMinY
+    );
+    if (!isOverlapping) {
+      return;
+    }
+    if (threadName.includes('AIC_')) {
+      AICCount++;
+      matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+    } else if (threadName.includes('AIV_')) {
+      AIVCount++;
+      matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+    }
+  });
+};
+const getSelection = () => {
+  let selectionArray = [];
+  // 解构选择区域坐标
+  const { startX, startY, endX, endY } = selection;
+  // 预计算选择框边界
+  const selectMinX = Math.min(startX, endX);
+  const selectMaxX = Math.max(startX, endX);
+  const selectMinY = Math.min(startY, endY);
+  const selectMaxY = Math.max(startY, endY);
+  // 遍历进程
+  for (const [processKey, process] of processes.entries()) {
+    if (!process.expanded) {
+      continue;
+    }
+    // 遍历线程
+    for (const [threadKey, thread] of process.threads.entries()) {
+      // 遍历事件
+      for (const item of thread.events) {
+        const { threadName, renderInfo } = item;
+        // 检查threadName是否存在且有效
+        if (!threadName?.trim()) {
+          continue;
+        }
+        // 精确匹配目标事件前缀
+        const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
+        if (!isTargetEvent) {
+          continue;
+        }
+        // 解构渲染信息
+        const { x, y, width, height } = renderInfo;
+
+        // 计算事件矩形边界
+        const eventMinX = x;
+        const eventMaxX = x + width;
+        const eventMinY = y;
+        const eventMaxY = y + height;
+
+        // 检测重叠
+        const isOverlapping = !(
+          eventMinX > selectMaxX ||
+          eventMaxX < selectMinX ||
+          eventMinY > selectMaxY ||
+          eventMaxY < selectMinY
+        );
+        if (isOverlapping) {
+          selectionArray.push(item);
+        }
+      }
+    }
+  }
+  return selectionArray;
+};
 const getOffset = (deltaX, scale) => {
   if (scale <= 10) {
     return deltaX / scale;
@@ -482,7 +665,9 @@ const getOffset = (deltaX, scale) => {
 
 function onHoverEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
-  if (!canvasRef) return;
+  if (!canvasRef) {
+    return;
+  }
   const ctx = canvasRef.getContext('2d');
 
   if (hoveredEvent) {
@@ -492,13 +677,48 @@ function onHoverEvent(hoveredEvent) {
     ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
   }
 }
-
+function onSelectionEvent(hoveredEvent) {
+  const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
+  if (!canvasRef) {
+    return;
+  }
+  const ctx = canvasRef.getContext('2d');
+  highlightEvent(ctx, hoveredEvent, props.processKey, false);
+}
 const handleMouseDown = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
-  if (!e.ctrlKey || !canvasRef) return;
+  if (!canvasRef) {
+    return;
+  }
+  // 获取鼠标按下时的坐标
+  const rect = canvasRef.getBoundingClientRect();
+  selection.startX = e.clientX - rect.left;
+  selection.startY = e.clientY - rect.top;
+  isClick.value = true;
+  isDragging.value = true;
+  if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };
-
+const handleMouseUp = throttle((e) => {
+  const canvasRef = getActiveEventCanvas(props.processKey);
+  if (!canvasRef) {
+    return;
+  }
+  const rect = canvasRef.getBoundingClientRect();
+  selection.endX = e.clientX - rect.left;
+  selection.endY = e.clientY - rect.top;
+  const dx = Math.abs(selection.endX - selection.startX);
+  const dy = Math.abs(selection.endY - selection.startY);
+  if (dx < 5 || dy < 5) {
+    isClick.value = true;
+    mulDetailsExpanded.value = false;
+  } else {
+    isClick.value = false;
+    // 框选后的逻辑
+    handleSelection();
+  }
+  isDragging.value = false;
+}, 16);
 const getCanvasHeight = () => {
   let height = 0;
   for (const [_, thread] of props.process.threads.entries()) {

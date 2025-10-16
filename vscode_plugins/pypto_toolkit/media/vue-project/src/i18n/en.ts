@@ -77,6 +77,12 @@ export default {
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
     'hierarchy': 'Hierarchy: ',
+    'totalEvents': 'There are {eventNum} events in total.',
+    'AICore':'AICore Utilization',
+    'CubeUtilization':'Cube Utilization',
+    'VectorUtilization':'Vector Utilization',
+    'cubeTime': 'Cube Cycle',
+    'VectorTime': 'Vector Cycle',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
