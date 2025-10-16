@@ -563,10 +563,10 @@ const checkInSelection = () => {
       }
       if (threadName.includes('AIC_')) {
         AICCount++;
-        matchingAICEvents = processThreadEventSearch(thread, startTime, endTime);
+        matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
       } else if (threadName.includes('AIV_')) {
         AIVCount++;
-        matchingAIVEvents = processThreadEventSearch(thread, startTime, endTime);
+        matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
       }
     });
   });
