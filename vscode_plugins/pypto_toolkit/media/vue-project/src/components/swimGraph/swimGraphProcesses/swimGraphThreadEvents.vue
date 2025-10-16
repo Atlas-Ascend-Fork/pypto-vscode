@@ -1239,7 +1239,7 @@ const clearDrawConnector = (ctx, processKey) => {
   const getNoZoomX = (x) => { return viewState.pixelOffsetX + (x * viewState.pixelScale) };
 
   const drawConnector = (ctx, largeSpacing) => {
-    const rect = calculateRect(ctx , largeSpacing);
+    const rect = calculateRect(ctx, largeSpacing);
     // 填充矩形
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1327,14 +1327,14 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.restore();
   };
   const drawDistanceSelectionBox = (ctx) =>{
-    const {x: preX, y: preY, width: preWidth, height: preHeight } = altClickData.preData.renderInfo;
-    const {x: lastX} = altClickData.lastData.renderInfo;
+    const {x: preX, y: preY, width: preWidth, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo);
+    const {x: lastX} = renderInfo2pixelData(altClickData.lastData.renderInfo);
     // 填充矩形
     ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.beginPath();
     ctx.lineWidth = 1;
-    ctx.roundRect(getNoZoomX(preX + preWidth) + 1, preY - 2, (lastX - (preX + preWidth)) * viewState.scale, preHeight + 4, 4);
+    ctx.roundRect(preX + preWidth + 1, preY - 2, lastX - (preX + preWidth), preHeight + 4, 4);
     ctx.fill();
     ctx.stroke();
   };
@@ -1390,7 +1390,7 @@ const clearDrawConnector = (ctx, processKey) => {
       }
     let { x: lastX } = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX);
-    const width = 40 * viewState.pixelScale;
+    const width = 40;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
@@ -1429,7 +1429,7 @@ const renderInfo2pixelData = (renderInfo) => {
     }
     let { x: lastX} = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX);
-    const width = 40 * viewState.pixelScale;
+    const width = 40;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
