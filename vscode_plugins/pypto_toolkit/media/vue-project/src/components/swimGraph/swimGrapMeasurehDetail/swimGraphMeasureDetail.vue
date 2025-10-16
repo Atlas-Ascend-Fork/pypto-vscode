@@ -206,17 +206,19 @@ const initDatas = () => {
 const initTableDatas = () => {
   measureDetailTableData.value = [];
   leafHashMap.value.forEach((value, key) => {
-    const avgWallDuration = value['Avg Wall duration'];
-    const occurrences = value.Occurrences;
-    const wallDuration = value['Wall duration'];
-    const tableData = {
-      rootFuncHash: rootHashes.value[0],
-      leafFuncHash: key,
-      occurrences,
-      wallDuration,
-      avgDuration: avgWallDuration
-    };
-    measureDetailTableData.value.push(tableData);
+    rootHashes.value.forEach((rootValue, rootKey) => {
+      const avgWallDuration = value['Avg Wall duration'];
+      const occurrences = value.Occurrences;
+      const wallDuration = value['Wall duration'];
+      const tableData = {
+        rootFuncHash: rootValue,
+        leafFuncHash: key,
+        occurrences,
+        wallDuration,
+        avgDuration: avgWallDuration
+      };
+      measureDetailTableData.value.push(tableData);
+    });
   });
 };
 
