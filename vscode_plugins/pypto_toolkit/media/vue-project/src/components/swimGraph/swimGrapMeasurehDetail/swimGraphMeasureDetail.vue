@@ -144,11 +144,15 @@ const onMeasureSearch = (event) => {
     return;
   }
   const filteredData = selectedTags.reduce((item, { field, value: { Option } }) => {
-    return item.filter(row =>
-      field === 'Root' ? row.rootFuncHash === Option :
-        field === 'Leaf' ? row.leafFuncHash === Option :
-          true
-    );
+    return item.filter(row => {
+      if (field === 'Root') {
+        return row.rootFuncHash === Option;
+      }
+      if (field === 'Leaf') {
+        return row.leafFuncHash === Option;
+      }
+      return true;
+    });
   }, [...measureDetailTableData.value]);
   measureDetailTableData.value = filteredData;
   if (measureDetailTableData.value.length === 0) {
