@@ -132,6 +132,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       nodeMagic = option?.nodeMagic;
     }
     const data = {
+      layout: currentLayoutConfig,
       comGraphData: JSON.parse(JSON.stringify(comGraphStore.data)),
       filePath,
       currentData,
@@ -165,6 +166,15 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
             // Now that the model is fully rendered, fit to screen without animation
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
+              if (!sprottyGraph.isFinial) {
+                (window as any).vscode.postMessage({
+                  type: 'setFinalResult',
+                  data: modelSource.model,
+                  layout: currentLayoutConfig
+                });
+              } else {
+                (window as any).ascEventBus.emit('layoutEnding', true);
+              }
               renderMinimap(modelSource.model);
             }
             if (!sprottyGraph.children) return;

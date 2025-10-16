@@ -182,6 +182,10 @@ onMounted(() => {
       lockText = t('comGraph.pathLocked');
     }
   });
+  (window as any).ascEventBus.on('layoutEnding', (args) => {
+    isLoading.value = false;
+    loadingText.value = '';
+  })
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);

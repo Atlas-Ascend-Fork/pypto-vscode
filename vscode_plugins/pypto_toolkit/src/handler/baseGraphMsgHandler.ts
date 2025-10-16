@@ -101,18 +101,26 @@ export abstract class BaseGraphMsgHandler {
       console.debug('BaseGraphMsgHandler getInitialData  监听到askLayout命令 准备elkLayout');
       void this.elkLayout(message.data, panel);
     }
-    const filePath = panel.comGraphData.fsPath;
-    const funcHash = panel.comGraphData.funcHash;
     if (message.type === 'getJsonGraphData') {
       // 判断是否有最终结果
+      const filePath = panel.comGraphData.fsPath;
+      let funcHash = panel.comGraphData.funcHash;
       let finalResult: any;
       let data: any;
       let isCached = false;
+      const layout = message.data.layout;
+      // 构造缓存 key
+      if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+        funcHash = funcHash + '_hasParent';
+      }
+      if (layout.direction === 'DOWN') funcHash += '_down';
+      if (!layout.showTensor) funcHash += '_notshowtensor';
       if (panel.comGraphData.isUsedDB) {
         finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
       }
       if (finalResult) {
-        data = finalResult.final_result; // 如果有缓存则发送最终数据
+        data = JSON.parse(finalResult.final_result); // 如果有缓存则发送最终数据
+        data['isFinial'] = true;
         isCached = true;
       } else {
         data = this.getJsonGraphData(message.data, panel);
@@ -121,8 +129,17 @@ export abstract class BaseGraphMsgHandler {
     }
     if (message.type === 'setFinalResult') {
       // 插入sql
+      const filePath = panel.comGraphData.fsPath;
+      let funcHash = panel.comGraphData.funcHash;
+      const layout = message.layout;
+      if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+        funcHash = funcHash + '_hasParent';
+      }
+      if (layout.direction === 'DOWN') funcHash += '_down';
+      if (!layout.showTensor) funcHash += '_notshowtensor';
       const lastChangeTime = await getMTime(filePath);
-      await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, message.data, lastChangeTime);
+      const result = JSON.stringify(message.data)
+      await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
     }
   }
 

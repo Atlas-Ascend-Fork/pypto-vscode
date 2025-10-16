@@ -66,6 +66,9 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
         index = new SModelIndex();
         index.add(sgraph);
     }
+    if (sgraph['isFinial']) {
+      return sgraph;
+    }
     const elkGraph = this.transformGraph(sgraph, index);
     if (this.preprocessor) {
         this.preprocessor.preprocess(elkGraph, sgraph, index);
