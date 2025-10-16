@@ -1,3 +1,4 @@
+// src\core\sqliteCache.ts
 import * as vscode from 'vscode';
 import * as path from 'path';
 import initSqlJs, { Database } from 'sql.js';
@@ -78,6 +79,15 @@ export class SQLiteCache {
             );
         `);
     this.db.run(`
+            CREATE TABLE IF NOT EXISTS com_graph_final_result (
+              file_path        TEXT NOT NULL,
+              func_hash        TEXT NOT NULL DEFAULT '',
+              final_result    TEXT,
+              last_change_time TEXT,
+              PRIMARY KEY (file_path, func_hash)
+            );
+        `);    
+    this.db.run(`
             CREATE TABLE IF NOT EXISTS com_graph_func_data (
               file_path          TEXT NOT NULL,
               func_hash          TEXT NOT NULL DEFAULT '',
@@ -135,6 +145,32 @@ export class SQLiteCache {
     console.log('OYXT 删除com_graph_layout缓存：' + filePath);
   }
 
+  /****************** com_graph_final_result 表 (未同步到diskCache.ts)******************/
+  public async comGraphFinalResultSet(filePath: string, funcHash: string, finalResult: string, lastChangeTime: string): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO com_graph_final_result(file_path,func_hash,final_result,last_change_time) VALUES(?,?,?,?)', [
+      filePath,
+      funcHash,
+      finalResult,
+      lastChangeTime,
+    ]);
+    console.log('OYXT 添加com_graph_final_result缓存 filePath：' + filePath + ' funcHash:' + funcHash);
+  }
+  public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphLayoutRow | undefined> {
+    const stmt = this.db!.prepare(
+      'SELECT file_path,layout_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
+    );
+    stmt.bind([filePath, funcHash]);
+    let row: ComGraphLayoutRow | undefined;
+    if (stmt.step()) {
+      row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
+    }
+    stmt.free();
+    return row;
+  }
+  public async comGraphFinalResultDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM com_graph_final_result WHERE file_path=?', [filePath]);
+    console.log('OYXT 删除com_graph_final_result缓存：' + filePath);
+  }
   /****************** com_graph_func_data 表 ******************/
   public async comGraphFuncDataSet(filePath: string, funcHash: string, callHashArr: string, data: string, bigDataFilePath: string, lastChangeTime: string): Promise<void> {
     this.db!.run('INSERT OR REPLACE INTO com_graph_func_data(file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time) VALUES(?,?,?,?,?,?)', [

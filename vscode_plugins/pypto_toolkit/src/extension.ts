@@ -1,3 +1,4 @@
+// src\extension.ts
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
 
@@ -12,7 +13,9 @@ import { hismartliteEx } from './hismarliteEx';
 import { services } from './services';
 import { initView } from './view';
 import { SwimGraphView } from './view/swimGraphView.js';
-import { ComGraphView } from './view/comGraphView';
+import { GraphView } from './view/graphView';
+import { SingleGraphData } from './core/graphData';
+import { SingleGraphHandler } from './handler/singleGraphHandler';
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -83,8 +86,18 @@ export async function activate(context: ExtensionContext) {
 
     window.registerWebviewPanelSerializer('comItemDetailView', {
       async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
-        const { fsPath, funcHash, magicName } = (state as any) || {};
-        ComGraphView.revive(webviewPanel, fsPath, funcHash, magicName, undefined);
+        const { fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId } = (state as any) || {};
+        GraphView.revive(
+          webviewPanel,
+          SingleGraphData,
+          SingleGraphHandler,
+          fsPath,
+          funcHash,
+          magicName,
+          curPath,
+          calleeOpMagic,
+          calleeOpSubgraphId
+        );
       },
     });
   }

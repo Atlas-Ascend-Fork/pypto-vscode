@@ -1,9 +1,10 @@
+// src\view\comGraphView.ts
 import { Uri, ViewColumn, workspace, window, Position, Selection, Range } from 'vscode';
 import { basename, join } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
-import { createReadStream, existsSync, promises as fs } from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import { Util } from '../util';
 import { getIDETheme } from '../theme';
 import { getIDELang } from '../lang';
@@ -252,6 +253,7 @@ class ComGraphData {
 
 class MsgHandler {
   static async getInitialData(panel: any) {
+    console.debug('MsgHandler getInitialData 【开始】 ');
     const config = Util.getComGraphCustomCfg();
     panel.webview.postMessage({
       command: 'initComGraph',
@@ -323,9 +325,9 @@ class MsgHandler {
       } else {
         ret = comGraphData.dataMap[comGraphData?.funcHash];
       }
-
+      let json;
       if (ret) {
-        ret = JSON.parse(ret);
+        json = JSON.parse(ret);
       } else {
         panel.webview.postMessage({
           command: 'returnError',
@@ -334,7 +336,7 @@ class MsgHandler {
         return;
       }
       if (panel.title === 'swimGraphJump') {
-        panel.title = ret.func_magicname;
+        panel.title = json.func_magicname;
       }
 
       const calleeOpAttrMap = {"calleeOpAttr" : calleeOpAttr, "opAttrIncastTensors": [...new Set(ioperands)]};
@@ -342,7 +344,7 @@ class MsgHandler {
       const funcTree = {};
       funcTree[entryHash] = await generateFucTree(entryHash, comGraphData);
       const curPath = panel.curPath ? JSON.parse(panel.curPath) : [comGraphData.funcHash];
-      const nodeCount = ret.operations.length + ret.rawtensors.length + ret.tensors.length;
+      const nodeCount = json.operations.length + json.rawtensors.length + json.tensors.length;
       if (nodeCount > NODE_COUNT_LIMIT) {
         // 提示节点过多的风险
         panel.webview.postMessage({
@@ -353,7 +355,7 @@ class MsgHandler {
         command: 'returnInitData',
         fsPath: comGraphData.fsPath,
         funcHash: funcHash,
-        magicName: ret.func_magicname,
+        magicName: json.func_magicname,
       });
       panel.webview.postMessage({
         command: 'returnCalleeMap',
@@ -377,12 +379,12 @@ class MsgHandler {
       setTimeout(() => {
         const callInOutInfo = globalCallInOutTensorMap.get(comGraphData?.funcHash);
         if (callInOutInfo) {
-          ret.inouttensors = callInOutInfo;
+          json.inouttensors = callInOutInfo;
         }
         panel.webview.postMessage({
           command: 'returnCom',
           step: 'convertData',
-          data: ret,
+          data: json,
         });
       });
       panel.webview.onDidReceiveMessage((message) => {
@@ -408,6 +410,7 @@ class MsgHandler {
         }
       });
     });
+    console.debug('MsgHandler getInitialData 【结束】 ');
   }
 
   static getJsonGraphData(data, panel) {
