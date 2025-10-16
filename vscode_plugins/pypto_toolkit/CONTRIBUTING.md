@@ -99,6 +99,8 @@
 ### 打开视图
 
 ``` typescript
+import { useView } from '/src/views';
+
 const { editorView } = useView();
 const uri = vscode.Uri.file('文件路径');
 const webviewPanel = await editorView.open('视图类型', uri);
@@ -108,20 +110,39 @@ const webviewPanel = await editorView.open('视图类型', uri);
 
 ### 后端服务
 
-/src/core/server.ts
+服务实例 /src/core/server.ts
 
+API实现 /src/services
+
+``` typescript
+// 启动API服务：src/extension.ts
+const server = new ExtensionApiServer(services);
 ```
-TODO: 注册api
+新增模块需要在/src/services/index.ts补充至services
+
+``` typescript
+// src/services/index.ts
+import * as controlFlow from './control-flow';
+import * as workspace from './workspace';
+
+export const services = {
+  // 控制流
+  controlFlow,
+  // 工作区
+  workspace,
+};
 ```
 
 ### 前端请求
 
-/media/vue-project/src/core/request.ts
+请求实例 /media/vue-project/src/core/request.ts
+
+封装请求方法 /media/vue-project/src/apis
 
 ``` typescript
-import { request } from '/media/vue-project/src/core/request.ts';
+import { request } from '../core/request.ts';
 
-request.post('api地址', params).then((res) => {
+request.post('模块/方法', params).then((res) => {
   // 请求响应
 });
 ```
