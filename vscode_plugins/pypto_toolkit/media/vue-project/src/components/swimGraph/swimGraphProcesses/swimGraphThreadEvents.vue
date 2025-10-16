@@ -554,7 +554,7 @@ const checkInSelection = () => {
       if (!isTargetEvent) {
         return;
       }
-      const { renderInfo } = events[0];
+      const [{ renderInfo }] = events;
       const { y } = renderInfo;
       if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
         return;
