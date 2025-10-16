@@ -1,6 +1,6 @@
 import { SEdge, SLabel, SModelRoot, SNode, SPort, SCompartment } from 'sprotty-protocol';
 import { AttrReader, parseSymbolicOrIntList, parseExprList } from './parseSymbolicAttr';
-import { generateColorList, getLighterColorByHex } from './color-list';
+import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { getIDELang } from '../../lang';
 
 /**
