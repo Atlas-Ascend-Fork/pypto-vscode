@@ -534,13 +534,11 @@ const checkInSelection = () => {
   const { startX, startY, endX, endY } = selection;
 
   // 计算时间范围
-  const startTime = xToTime(startX);
-  const endTime = xToTime(endX);
+  const startTime = xToTime(startX + layout.processLabelWidth);
+  const endTime = xToTime(endX + layout.processLabelWidth);
   const timeRange = endTime - startTime;
 
   // 预计算选择框边界
-  const selectMinX = Math.min(startX, endX);
-  const selectMaxX = Math.max(startX, endX);
   const selectMinY = Math.min(startY, endY);
   const selectMaxY = Math.max(startY, endY);
 
@@ -551,55 +549,27 @@ const checkInSelection = () => {
     }
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
-      // 处理线程中的事件
-      const context = {
-        thread, selectMinX, selectMaxX, selectMinY, selectMaxY, startTime, endTime
-      };
-      processThreadEvents(context);
+      const { threadName, events } = thread;
+      const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
+      if (!isTargetEvent) {
+        return;
+      }
+      const [{ renderInfo }] = events;
+      const { y } = renderInfo;
+      if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
+        return;
+      }
+      if (threadName.includes('AIC_')) {
+        AICCount++;
+        matchingAICEvents = processThreadEventSearch(thread, startTime, endTime);
+      } else if (threadName.includes('AIV_')) {
+        AIVCount++;
+        matchingAIVEvents = processThreadEventSearch(thread, startTime, endTime);
+      }
     });
   });
   // 最终统计
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
-};
-const processThreadEvents = ({ thread, selectMinX, selectMaxX, selectMinY, selectMaxY, startTime, endTime }) => {
-  thread.events.forEach(item => {
-    const { threadName, renderInfo } = item;
-    // 检查threadName是否存在且有效
-    if (!threadName?.trim()) {
-      return;
-    }
-    // 精确匹配目标事件前缀
-    const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
-    if (!isTargetEvent) {
-      return;
-    }
-    // 解构渲染信息
-    const { x, y, width, height } = renderInfo;
-
-    // 计算事件矩形边界
-    const eventMinX = x;
-    const eventMaxX = x + width;
-    const eventMinY = y;
-    const eventMaxY = y + height;
-
-    // 检测重叠
-    const isOverlapping = !(
-      eventMinX > selectMaxX ||
-      eventMaxX < selectMinX ||
-      eventMinY > selectMaxY ||
-      eventMaxY < selectMinY
-    );
-    if (!isOverlapping) {
-      return;
-    }
-    if (threadName.includes('AIC_')) {
-      AICCount++;
-      matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-    } else if (threadName.includes('AIV_')) {
-      AIVCount++;
-      matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-    }
-  });
 };
 const getSelection = () => {
   let selectionArray = [];
@@ -639,13 +609,13 @@ const getSelection = () => {
         const eventMaxY = y + height;
 
         // 检测重叠
-        const isOverlapping = !(
-          eventMinX > selectMaxX ||
-          eventMaxX < selectMinX ||
-          eventMinY > selectMaxY ||
-          eventMaxY < selectMinY
+        const isFullyInside = (
+          eventMinX >= selectMinX &&
+          eventMaxX <= selectMaxX &&
+          eventMinY >= selectMinY &&
+          eventMaxY <= selectMaxY
         );
-        if (isOverlapping) {
+        if (isFullyInside) {
           selectionArray.push(item);
         }
       }
