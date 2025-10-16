@@ -11,7 +11,12 @@ interface ComGraphLayoutRow {
   layout_result: string;
   last_change_time: string;
 }
-
+interface ComGraphFinalResultRow {
+  file_path: string;
+  func_hash: string;
+  final_result: string;
+  last_change_time: string;
+}
 interface ComGraphFuncDataRow {
   file_path: string;
   func_hash: string;
@@ -155,14 +160,14 @@ export class SQLiteCache {
     ]);
     console.log('OYXT 添加com_graph_final_result缓存 filePath：' + filePath + ' funcHash:' + funcHash);
   }
-  public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphLayoutRow | undefined> {
+  public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphFinalResultRow | undefined> {
     const stmt = this.db!.prepare(
-      'SELECT file_path,layout_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
+      'SELECT file_path,final_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
     );
     stmt.bind([filePath, funcHash]);
-    let row: ComGraphLayoutRow | undefined;
+    let row: ComGraphFinalResultRow | undefined;
     if (stmt.step()) {
-      row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
+      row = stmt.getAsObject() as unknown as ComGraphFinalResultRow;
     }
     stmt.free();
     return row;

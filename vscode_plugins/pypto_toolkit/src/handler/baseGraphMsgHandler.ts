@@ -101,7 +101,7 @@ export abstract class BaseGraphMsgHandler {
       console.debug('BaseGraphMsgHandler getInitialData  监听到askLayout命令 准备elkLayout');
       void this.elkLayout(message.data, panel);
     }
-    const filePath = panel.comGraphData.filePath;
+    const filePath = panel.comGraphData.fsPath;
     const funcHash = panel.comGraphData.funcHash;
     if (message.type === 'getJsonGraphData') {
       // 判断是否有最终结果
@@ -112,7 +112,7 @@ export abstract class BaseGraphMsgHandler {
         finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
       }
       if (finalResult) {
-        data = finalResult; // 如果有缓存则发送最终数据
+        data = finalResult.final_result; // 如果有缓存则发送最终数据
         isCached = true;
       } else {
         data = this.getJsonGraphData(message.data, panel);
