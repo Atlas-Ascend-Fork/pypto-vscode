@@ -77,6 +77,12 @@ export default {
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
    'hierarchy': '层级: ',
+   'totalEvents': '共{eventNum}个事件',
+   'AICore':'AICore利用率',
+   'CubeUtilization':'Cube利用率',
+   'VectorUtilization':'Vector利用率',
+   'cubeTime': 'Cube Cycle',
+   'VectorTime': 'Vector Cycle',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

@@ -48,6 +48,7 @@
             <div class="measure-drag-area" :style="dragAreaStyle()"></div>
           </div>
         </div>
+        <swim-graph-measure-detail ref="measureDetailComponent"/>
         <!-- 详情区域 -->
         <swim-graph-detail ref="detailComponent"/>
       </div>
@@ -64,6 +65,7 @@ import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
 import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
 import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
+import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
 import { getTextWidth } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -82,6 +84,7 @@ import {
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
+import EventBus from '../../service/event-bus';
 
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -94,6 +97,7 @@ let down_16px = ref(`${window.staticPath}/static-assets/down_16px.svg`);
 const swimlaneContainer = ref(null);
 const timelineComponent = ref(null);
 const detailComponent = ref(null);
+const measureDetailComponent = ref(null);
 const graphProcessesComponent = ref(null);
 const swimgraphHeaderComponent = ref(null);
 const timeLineX = ref(null);
@@ -136,6 +140,10 @@ const measureDragEndY = ref(0);
 const measureDragHeight = ref(0);
 const measureDragCtrl = ref(false);
 const measureDragCtrlX = ref(0);
+const mulDetailsExpanded = ref(false);
+const measureDetailsData = ref([]);
+const rootHashes = ref([]);
+const leafHashMap = ref(new Map());
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -1105,6 +1113,7 @@ const dragAreaStyle = () => {
 };
 
 const measureMouseDown = (e) => {
+  mulDetailsExpanded.value = false;
   renderFixedTimeline();
   renderTimeline();
 
@@ -1292,9 +1301,11 @@ const measureMouseUp = () => {
   }
 
   intelligentSearch();
+  measureDetailSearch();
 
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
+  mulDetailsExpanded.value = true;
   return;
 }
 
@@ -1315,6 +1326,123 @@ const measureMouseLeave = (e) => {
   isMeasureDragging.value = false;
   return;
 }
+
+const processThreadEventSearch = (thread, startTime, endTime) => {
+  const matchedEvents = [];
+  for (const event of thread.events) {
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      matchedEvents.push(event);
+    }
+  }
+  return matchedEvents;
+};
+
+const hashMatchDataGet = (eventHint, eventTime) => {
+  const eventTimeMs = eventTime / 1000;
+  if (eventHint) {
+    const rootHashMatch = eventHint.match(/rootHash:(?<hash>\d+)/);
+    const leafHashMatch = eventHint.match(/leafHash:(?<hash>\d+)/);
+    if (rootHashMatch) {
+      const [, rootHash] = rootHashMatch;
+      if (!rootHashes.value.includes(rootHash)) {
+        rootHashes.value.push(rootHash);
+      }
+    }
+
+    if (leafHashMatch) {
+      const [, leafHash] = leafHashMatch;
+      if (leafHashMap.value.has(leafHash)) {
+        const stats = leafHashMap.value.get(leafHash);
+        stats.Occurrences++;
+        stats['Wall duration'] += eventTimeMs;
+        stats['Avg Wall duration'] = stats['Wall duration'] / stats.Occurrences;
+      } else {
+        leafHashMap.value.set(leafHash, {
+          Occurrences: 1,
+          'Wall duration': eventTimeMs,
+          'Avg Wall duration': eventTimeMs
+        });
+      }
+    }
+  }
+};
+
+const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount) => {
+  let AICoretime = 0;
+  let AICtime = 0;
+  let AIVtime = 0;
+
+  let cubeCycle = 0;
+  let vectorCycle = 0;
+
+  if (matchingAICEvents.length !== 0) {
+    for (const [key, event] of matchingAICEvents.entries()) {
+      const eventTime = event.endTime - event.startTime;
+      AICtime += eventTime;
+      if (event.pmu_info) {
+        cubeCycle += Number(event.pmu_info.cube_busy_cycles);
+        vectorCycle += Number(event.pmu_info.vec_busy_cycles);
+      }
+      const eventHint = event.args['event-hint'];
+      hashMatchDataGet(eventHint, eventTime);
+    }
+  }
+
+  if (matchingAIVEvents.length !== 0) {
+    for (const [key, event] of matchingAIVEvents.entries()) {
+      const eventTime = event.endTime - event.startTime;
+      AIVtime += eventTime;
+      if (event.pmu_info) {
+        cubeCycle += Number(event.pmu_info.cube_busy_cycles);
+        vectorCycle += Number(event.pmu_info.vec_busy_cycles);
+      }
+      const eventHint = event.args['event-hint'];
+      hashMatchDataGet(eventHint, eventTime);
+    }
+  }
+
+  const AICoreCount = AICCount + AIVCount;
+  AICoretime = AICtime + AIVtime;
+  const AICoreUsage = (AICoretime / (timeRange * AICoreCount)) * 100;
+  const AICUsage = (AICtime / (timeRange * AICCount)) * 100;
+  const AIVUsage = (AIVtime / (timeRange * AIVCount)) * 100;
+
+  const eventNum = matchingAICEvents.length + matchingAIVEvents.length;
+
+  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(3), AICusage: AICUsage.toFixed(3), AIVusage: AIVUsage.toFixed(3), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
+};
+
+const measureDetailSearch = () => {
+  measureDetailsData.value = [];
+  rootHashes.value = [];
+  leafHashMap.value.clear();
+
+  const startTime = xToTime(measureDragStartX.value);
+  const endTime = xToTime(measureDragEndX.value);
+  const timeRange = endTime - startTime;
+  const matchingAICEvents = [];
+  const matchingAIVEvents = [];
+
+  let AICCount = 0;
+  let AIVCount = 0;
+
+  for (const [processKey, process] of processes.entries()) {
+    if (process.expanded === false) {
+      continue;
+    }
+    const { threads } = process;
+    for (const [threadKey, thread] of threads.entries()) {
+      if (thread.threadName.includes('AIC_')) {
+        AICCount++;
+        matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+      } else if (thread.threadName.includes('AIV_')) {
+        AIVCount++;
+        matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+      }
+    }
+  }
+  measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
+};
 
 const intelligentSearch = () => {
   let start = measureDragStartX.value;
@@ -1482,6 +1610,10 @@ provide('swimGraphState', {
   measureDragStartX,
   measureDragEndX,
   isDarkTheme,
+  mulDetailsExpanded,
+  measureDetailsData,
+  rootHashes,
+  leafHashMap,
 });
 
 // 提供方法给子组件
@@ -1504,6 +1636,8 @@ provide('swimGraphMethods', {
   resizeMeasure,
   renderEvent,
   transform,
+  measureDetailGet,
+  processThreadEventSearch,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },

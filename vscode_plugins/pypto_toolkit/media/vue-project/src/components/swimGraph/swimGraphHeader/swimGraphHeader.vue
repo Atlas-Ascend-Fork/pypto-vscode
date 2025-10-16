@@ -189,6 +189,7 @@ const {
   measureDragStartX,
   measureDragEndX,
   isDarkTheme,
+  mulDetailsExpanded,
 } = inject('swimGraphState');
 
 const {
@@ -525,6 +526,7 @@ const measureModel = () => {
   measureDragEndX.value = 0;
   resizeMeasure();
   transform();
+  mulDetailsExpanded.value = false;
 }
 
 watch(isDarkTheme, () => {

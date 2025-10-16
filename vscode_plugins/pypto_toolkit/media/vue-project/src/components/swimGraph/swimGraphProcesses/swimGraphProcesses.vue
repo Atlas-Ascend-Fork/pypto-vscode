@@ -53,6 +53,7 @@ const {
   tooltipStyle,
   timelineState,
   isDarkTheme,
+  mulDetailsExpanded
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -77,6 +78,7 @@ provide('swimGraphState', {
   tooltipStyle,
   timelineState,
   isDarkTheme,
+  mulDetailsExpanded
 });
 
 const {
@@ -92,6 +94,9 @@ const {
   render,
   renderEvent,
   transform,
+  measureDetailGet,
+  xToTime,
+  processThreadEventSearch
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -107,6 +112,9 @@ provide('swimGraphMethods', {
   render,
   renderEvent,
   transform,
+  measureDetailGet,
+  xToTime,
+  processThreadEventSearch
 });
 
 const processesContainer = ref(null);

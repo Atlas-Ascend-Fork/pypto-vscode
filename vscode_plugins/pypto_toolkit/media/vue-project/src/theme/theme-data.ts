@@ -109,6 +109,7 @@ export const ideLightTheme = new Theme({
     'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(250, 250, 250, 1), rgba(250, 250, 250, 0) 100%)',
     'devui-header-label': 'rgba(242,242,242,1)',
     'devui-swim-global-bg': '#ffffff',
+    'devui-swim-detail-bg': '#ffffff',
     'devui-search-container': '#f2f2f2',
     'devui-swim-split-line': 'rgba(0,0,0,0.05)', // 分割线
     'devui-swim-text-title': 'rgba(25,25,25,1)',
@@ -240,6 +241,7 @@ export const ideDarkTheme = new Theme({
     'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(31, 31, 31, 1), rgba(31, 31, 31, 0) 100%)', // 计算图head渐变色
     'devui-header-label': 'rgba(43, 43, 43, 1)',
     'devui-swim-global-bg': '#1F1F1F',
+    'devui-swim-detail-bg': 'rgba(38, 38, 38, 1)',
     'devui-search-container': 'rgba(42,42,42,1)',
     'devui-swim-split-line': 'rgba(255,255,255,0.05)', // 分割线
     'devui-swim-text-title': 'rgba(230,230,230,1)',
