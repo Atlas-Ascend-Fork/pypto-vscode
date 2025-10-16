@@ -37,7 +37,7 @@
       <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
         <d-icon name="line-chart" size="15px" color="#b3b3b3"></d-icon>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px">
+      <d-drawer v-model="reportVisible" style="width: 500px">
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
           <div class="task-item-container">
@@ -99,64 +99,7 @@
             </div>
           </div>
         </div>
-        <div class="occupy-rate-container" v-if="pmuExist">
-          <div class="occupy-rate-title">{{occupyRateTitle}}</div>
-          <div class="row-coord">
-            <div class="row-coord-num">0%</div>
-            <div class="row-coord-num">20%</div>
-            <div class="row-coord-num">40%</div>
-            <div class="row-coord-num">60%</div>
-            <div class="row-coord-num">80%</div>
-            <div class="row-coord-num">100%</div>
-          </div>
-          <div class="occupy-rate-chart-container">
-            <div class="occupy-rate-chart-col-coord-container">
-              <div class="occupy-rate-chart-col-coord">Vector Cycles</div>
-              <div class="occupy-rate-chart-col-coord">Cube Cycles</div>
-              <div class="occupy-rate-chart-col-coord">Scalar Cycles</div>
-              <div class="occupy-rate-chart-col-coord">MTE1 Cycles</div>
-              <div class="occupy-rate-chart-col-coord">MTE2 Cycles</div>
-              <div class="occupy-rate-chart-col-coord">MTE3 Cycles</div>
-            </div>
-            <div class="occupy-rate-bar-container">
-              <div class="occupy-rate-bar-line occupy-rate-bar-line-twenty"></div>
-              <div class="occupy-rate-bar-line occupy-rate-bar-line-forty"></div>
-              <div class="occupy-rate-bar-line occupy-rate-bar-line-sixty"></div>
-              <div class="occupy-rate-bar-line occupy-rate-bar-line-eighty"></div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-cube">
-                <div class="occupy-rate-bar vector-occupy-rate-bar" :style="{ width: vectorRateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{vectorRateCycle}}</div>
-                <div class="occupy-rate-percentage">{{vectorRatePercentage}}%</div>
-              </div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-vec">
-                <div class="occupy-rate-bar cube-occupy-rate-bar" :style="{ width: cubeRateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{cubeRateCycle}}</div>
-                <div class="occupy-rate-percentage">{{cubeRatePercentage}}%</div>
-              </div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-scalar">
-                <div class="occupy-rate-bar scalar-occupy-rate-bar" :style="{ width: scalarRateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{scalarRateCycle}}</div>
-                <div class="occupy-rate-percentage">{{scalarRatePercentage}}%</div>
-              </div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-mte1">
-                <div class="occupy-rate-bar mte1-occupy-rate-bar" :style="{ width: mte1RateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{mte1RateCycle}}</div>
-                <div class="occupy-rate-percentage">{{mte1RatePercentage}}%</div>
-              </div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-mte2">
-                <div class="occupy-rate-bar mte2-occupy-rate-bar" :style="{ width: mte2RateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{mte2RateCycle}}</div>
-                <div class="occupy-rate-percentage">{{mte2RatePercentage}}%</div>
-              </div>
-              <div class="occupy-rate-backbar occupy-rate-backbar-mte3">
-                <div class="occupy-rate-bar mte3-occupy-rate-bar" :style="{ width: mte3RateWidth + 'px' }"></div>
-                <div class="occupy-rate-cycle">{{mte3RateCycle}}</div>
-                <div class="occupy-rate-percentage">{{mte3RatePercentage}}%</div>
-              </div>
-
-            </div>
-          </div>
-        </div>
+        <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist"/>
       </d-drawer>
       <d-button class="right-container-buttor hidden" @click="toggleDetailsCores()">{{ $t("data") }}</d-button>
     </div>
@@ -164,9 +107,12 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onMounted } from 'vue';
+import { ref, inject, computed, watch, onMounted, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
+import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
+
+const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
 
@@ -288,7 +234,27 @@ const showDrawer = () => {
   mte1RateWidth.value = pmuTotal.value.mte1_ratio * barWidth;
   mte2RateWidth.value = pmuTotal.value.mte2_ratio * barWidth;
   mte3RateWidth.value = pmuTotal.value.mte3_ratio * barWidth;
+
+  pmuRowCoordLoc.value = ['0%', '18%', '36%', '54%', '72%', '88%'];
+  pmuBackLineLoc.value = ['20%', '40%', '60%', '80%'];
+  pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
+  pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
+                            'MTE2 Cycles', 'MTE3 Cycles'];
+  pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
+                            'rgba(70, 94, 184,11)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
+  pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
+                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
+  pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
+                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
 };
+
+const pmuRowCoordList = ref([]);
+const pmuColCoordList = ref([]);
+const pmuRowCoordLoc = ref([]);
+const pmuBarColorList = ref([]);
+const pmuChartDataLeft = ref([]);
+const pmuChartDataRight = ref([]);
+const pmuBackLineLoc = ref([]);
 
 const pmuExist = ref(true);
 const reportTitle = ref($t('ReportTitle'));
@@ -326,6 +292,8 @@ const scalarRatePercentage = ref(0);
 const mte1RatePercentage = ref(0);
 const mte2RatePercentage = ref(0);
 const mte3RatePercentage = ref(0);
+
+provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc});
 
 const onSearch = (term) => {
   searchQuery.value = term;
