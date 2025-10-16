@@ -184,7 +184,6 @@ const initDatas = () => {
   cubeCycle.value = processCycleValue(data.cubecycle);
   vectorCycle.value = processCycleValue(data.vectorcycle);
 
-
   const cubeCycleNum = cubeCycle.value === '/' ? NaN : parseFloat(cubeCycle.value);
   const vectorCycleNum = vectorCycle.value === '/' ? NaN : parseFloat(vectorCycle.value);
 

@@ -142,6 +142,8 @@
 .measure-detail-data-table {
   margin-top: 12px;
   flex: 1;
+  max-height: 140px;
+  overflow-y: auto;
 }
 
 .close-button {
