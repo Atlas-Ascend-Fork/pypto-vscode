@@ -4,9 +4,9 @@
 
   - **打开泳道图**
 
-    在泳道图 json 文件上右键选择`使用PyPTO Toolkit打开`即可打开
+    在泳道图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可打开
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20openSwim.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.11%20swimOpen.gif)
   
   - **查看节点详情**
 
@@ -53,7 +53,7 @@
 
   - **打开计算图**
 
-    在计算图 json 文件上右键选择`使用PyPTO Toolkit打开`即可
+    在计算图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20openCom.gif)
 
