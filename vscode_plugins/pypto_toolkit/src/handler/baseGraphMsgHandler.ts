@@ -227,7 +227,7 @@ export abstract class BaseGraphMsgHandler {
     let funcHash = comGraphData.funcHash!;
 
     // 构造缓存 key
-    if (this.globalCallInOutTensorMap.has(funcHash)) {
+    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
       funcHash = funcHash + '_hasParent';
     }
     if (layoutDirection === 'DOWN') funcHash += '_down';
@@ -475,7 +475,7 @@ export abstract class BaseGraphMsgHandler {
     // calleeMap
     await this.returnCalleeMap(gd, panel);
     // inouttensors
-    const io = this.globalCallInOutTensorMap.get(gd.funcHash!);
+    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };
   }
@@ -541,7 +541,7 @@ export abstract class BaseGraphMsgHandler {
   static callInOutTensorMap(data: any) {
     const map = new Map(Object.entries(data));
     for (const [k, v] of map) {
-      this.globalCallInOutTensorMap.set(k, v);
+      BaseGraphMsgHandler.globalCallInOutTensorMap.set(k, v);
     }
   }
 
