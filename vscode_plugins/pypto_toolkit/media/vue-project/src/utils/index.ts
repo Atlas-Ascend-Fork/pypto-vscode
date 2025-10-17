@@ -118,7 +118,9 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     if (!bop) {
       cop.compareType = 'add';
       addDiffElements('add', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
-    } else if (cop.opcode != bop.opcode) {
+    } else if (cop.opcode != bop.opcode ||
+              JSON.stringify(cop.ioperands) !== JSON.stringify(bop.ioperands) ||
+              JSON.stringify(cop.ooperands) !== JSON.stringify(bop.ooperands)) {
       cop.compareType = 'change';
       bop.compareType = 'change';
       addDiffElements('change', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
