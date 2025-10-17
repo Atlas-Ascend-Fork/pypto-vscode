@@ -2,6 +2,7 @@
   height: 0px;
   background: var(--devui-swim-detail-bg);
   transition: height 0.3s ease;
+  overflow: hidden;
 }
 
 .measure-details.expanded {
@@ -92,32 +93,40 @@
 }
 
 .cube-time-bar {
+  position: relative;
   height: 24px;
   border-radius: 4px;
   background: rgba(199, 98, 7, 1);
-  display: flex;
-  align-items: center;
 }
 
 .vector-time-bar {
+  position: relative;
   height: 24px;
   border-radius: 4px;
   background: rgba(72, 142, 32, 1);
   display: flex;
-  align-items: center;
   flex-direction: row-reverse;
 }
 
 .cube-time-num {
-  height: 24px;
+  position: absolute;
+  width: 23px;
+  height: 12px;
   font-size: 12px;
-  padding-left: 4px;
+  top: 3px;
+  left: 4px;
+  bottom: 6px;
 }
 
 .vector-time-num {
-  height: 24px;
+  position: absolute;
+  width: 23px;
+  height: 12px;
   font-size: 12px;
-  margin-right: 8px;
+  top: 3px;
+  right: 4px;
+  bottom: 6px;
+  margin-right: 14px;
 }
 
 .measure-detail-right-section {

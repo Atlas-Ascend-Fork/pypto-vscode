@@ -1425,7 +1425,7 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
 
   const eventNum = matchingAICEvents.length + matchingAIVEvents.length;
 
-  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(3), AICusage: AICUsage.toFixed(3), AIVusage: AIVUsage.toFixed(3), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
+  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(2), AICusage: AICUsage.toFixed(2), AIVusage: AIVUsage.toFixed(2), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
 };
 
 const measureDetailSearch = () => {
@@ -1434,8 +1434,15 @@ const measureDetailSearch = () => {
   leafHashes.value = [];
   leafHashMap.value.clear();
 
-  const startTime = xToTime(measureDragStartX.value);
-  const endTime = xToTime(measureDragEndX.value);
+  let startTime = xToTime(measureDragStartX.value);
+  let endTime = xToTime(measureDragEndX.value);
+
+  if (startTime > endTime) {
+    const temp = startTime;
+    startTime = endTime;
+    endTime = temp;
+  }
+
   const timeRange = endTime - startTime;
   const matchingAICEvents = [];
   const matchingAIVEvents = [];

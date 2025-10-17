@@ -8,7 +8,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('AICore') }}</div>
-                  <d-tooltip :content="$t('AICoreTip')">
+                  <d-tooltip :content="$t('AICoreTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -17,7 +17,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('CubeUtilization') }}</div>
-                  <d-tooltip :content="$t('CubeUtilizationTip')">
+                  <d-tooltip :content="$t('CubeUtilizationTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -26,7 +26,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('VectorUtilization') }}</div>
-                  <d-tooltip :content="$t('VectorUtilizationTip')">
+                  <d-tooltip :content="$t('VectorUtilizationTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -38,7 +38,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('cubeTime') }}</div>
-                    <d-tooltip :content="$t('cubeTimeTip')">
+                    <d-tooltip :content="$t('cubeTimeTIP')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -47,7 +47,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('vectorTime') }}</div>
-                    <d-tooltip :content="$t('vectorTimeTip')">
+                    <d-tooltip :content="$t('vectorTimeTIP')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -55,10 +55,10 @@
                 </div>
               </div>
               <div class="measure-detail-data-downarea-time-ratio">
-                <div v-if="cubeCycleRate === '/' || cubeCycleRate > 0" class="cube-time-bar" :style="{ flex: cubeCycleRate && vectorCycleRate === '/' ? '50%' : `${cubeCycleRate}%` }">
+                <div v-if="cubeCycleRateValue > 0" class="cube-time-bar" :style="{ flex: `${cubeCycleRateValue}%` }">
                   <div class="cube-time-num">{{ cubeCycleRate }}%</div>
                 </div>
-                <div v-if="vectorCycleRate === '/' || vectorCycleRate > 0" class="vector-time-bar" :style="{ flex: vectorCycleRate && cubeCycleRate === '/' ? '50%' : `${vectorCycleRate}%` }">
+                <div v-if="vectorCycleRateValue > 0" class="vector-time-bar" :style="{ flex: `${vectorCycleRateValue}%` }">
                   <div class="vector-time-num">{{ vectorCycleRate }}%</div>
                 </div>
               </div>
@@ -113,6 +113,8 @@ const cubeCycle = ref('0');
 const vectorCycle = ref('0');
 const cubeCycleRate = ref('0');
 const vectorCycleRate = ref('0');
+const cubeCycleRateValue = ref('0');
+const vectorCycleRateValue = ref('0');
 const eventNum = ref('0');
 
 const measureDetailTableData = ref([]);
@@ -161,6 +163,15 @@ const onMeasureSearch = (event) => {
   }
 };
 
+const rateToValue = () => {
+  cubeCycleRateValue.value = cubeCycleRate.value === '/' ? 0 :cubeCycleRate.value;
+  vectorCycleRateValue.value = vectorCycleRate.value === '/' ? 0 :vectorCycleRate.value;
+  if (cubeCycleRateValue.value === 0 && vectorCycleRateValue.value === 0) {
+    cubeCycleRateValue.value = 50;
+    vectorCycleRateValue.value = 50;
+  }
+};
+
 const initDatas = () => {
   if (measureDetailsData.value.length === 0) {
     return;
@@ -198,6 +209,7 @@ const initDatas = () => {
     cubeCycleRate.value = parseFloat(((cubeCycleNum / total) * 100).toFixed(2));
     vectorCycleRate.value = parseFloat(((vectorCycleNum / total) * 100).toFixed(2));
   }
+  rateToValue();
 };
 
 const initTableDatas = () => {
@@ -212,8 +224,8 @@ const initTableDatas = () => {
       rootFuncHash: rootHashValue,
       leafFuncHash: leafHashValue,
       occurrences,
-      wallDuration,
-      avgDuration: avgWallDuration
+      wallDuration: Number(wallDuration).toFixed(2),
+      avgDuration: Number(avgWallDuration).toFixed(2)
     };
     measureDetailTableData.value.push(tableData);
   });
