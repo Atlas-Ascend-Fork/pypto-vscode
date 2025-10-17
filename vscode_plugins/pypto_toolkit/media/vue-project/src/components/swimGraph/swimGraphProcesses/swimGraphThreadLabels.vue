@@ -59,24 +59,32 @@ const averageValue = ref(0);
 
 const calculateThreadCycles = (allProcesses, proKey) => {
   const threadCyclesMap = new Map();
+  const threadCacheHitMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
   for(const [threadKey, thread] of threads) {
     let totleCycles = new BigNumber(0);
+    let icacheMiss = new BigNumber(0);
+    let icacheReq = new BigNumber(0);
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
           cycleDisplay.value = 'none';
-          const optionToDisable = options.find(option => option.value === 'clockCycle');
-          optionToDisable && (optionToDisable.disabled = true);
-          return null;
+          const optionToDisable = options.filter(option => option.value === 'clockCycle' || option.value === 'cacheHit');
+          optionToDisable.forEach(option => {
+            option.disabled = true;
+          });
+          return [null, null];
         }
         totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
+        icacheMiss = icacheMiss.plus(new BigNumber(event['pmu_info']['icache_miss']));
+        icacheReq = icacheReq.plus(new BigNumber(event['pmu_info']['icache_req']));
       }
       cycleDisplay.value = 'flex';
       threadCyclesMap.set(thread.threadName, totleCycles.toString());
+      threadCacheHitMap.set(thread.threadName, new BigNumber(1).minus(icacheMiss.dividedBy(icacheReq)).toString());
     }
   }
-  return threadCyclesMap;
+  return [threadCyclesMap, threadCacheHitMap];
 };
 
 const calculateThreadTask = (allProcesses, proKey) => {
@@ -94,7 +102,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
   return threadTaskMap;
 };
 
-const threadCyclesMap = calculateThreadCycles(processes, props.processKey);
+const [threadCyclesMap, threadCacheHitMap] = calculateThreadCycles(processes, props.processKey);
 const threadTaskMap = calculateThreadTask(processes, props.processKey);
 
 const getBackground = (threadId, option) => {
@@ -109,6 +117,13 @@ const getBackground = (threadId, option) => {
     if (values.every((value, _, arr) => value === arr[0])) {
       return 'initial';
     }
+  } else if (option === 'cacheHit' && threadCacheHitMap) {
+    values = Array.from(threadCacheHitMap.values()).map(value => new BigNumber(value));
+    if (values.every((value, _, arr) => value.eq(arr[0]))) {
+      return 'initial';
+    }
+  } else {
+    return 'initial';
   }
   return threadFillWidth(threadId, option) === 100 ? 'var(--devui-timefull-bg)' : 'initial';
 };
@@ -118,6 +133,13 @@ const threadTotaltime = (threadId, option) => {
     return threadCyclesMap.get(threadId);
   }  else if (option === 'task' && threadTaskMap) {
     return threadTaskMap.get(threadId);
+  }  else if (option === 'cacheHit' && threadCacheHitMap) {
+    const hitRate = threadCacheHitMap.get(threadId);
+    if (hitRate) {
+      return parseFloat(hitRate).toFixed(4);
+    }
+  } else {
+    return 0;
   }
   return 0;
 };
@@ -139,8 +161,19 @@ const threadFillWidth = (threadId, option) => {
     const maxTaskNum = values.length > 0 ? Math.max(...values) : 0;
     averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxTaskNum) * 100;
     return (threadTaskMap.get(threadId) / maxTaskNum) * 100;
+  } else if (option === 'cacheHit' && threadCacheHitMap) {
+    const currenThreadHit = new BigNumber(threadCacheHitMap.get(threadId));
+    let maxThreadHit = new BigNumber(0);
+    values = Array.from(threadCacheHitMap.values()).map(value => new BigNumber(value));
+    let sum = new BigNumber(0);
+    maxThreadHit = values.reduce((max, value) => max.gt(value) ? max : value);
+    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
+    const averageBN = sum.dividedBy(values.length);
+    averageValue.value = averageBN.dividedBy(maxThreadHit).times(100).toNumber();
+    return currenThreadHit.dividedBy(maxThreadHit).times(100).toNumber();
+  } else {
+    return 0;
   }
-  return 0;
 };
 
 const handleLabelHover = (threadIndex) => {

@@ -53,8 +53,8 @@
 }
 
 .search-res div {
-  height: 28px;
-  width: 28px;
+  height: 28px !important;
+  width: 28px !important;
   display: flex;
   align-items: center;
   justify-content: center;

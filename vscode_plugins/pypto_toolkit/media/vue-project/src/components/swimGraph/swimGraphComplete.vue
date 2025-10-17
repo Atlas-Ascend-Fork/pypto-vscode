@@ -125,7 +125,7 @@ const selectedOption = ref('clockCycle');
 const selectOptions = [
   {name: $t('clockCycle'), value: 'clockCycle', disabled: false},
   {name: $t('throughout'), value: 'throughout', disabled: true},
-  {name: $t('cacheHit'), value: 'cacheHit', disabled: true},
+  {name: $t('cacheHit'), value: 'cacheHit', disabled: false},
   {name: $t('task'), value: 'task', disabled: false},
 ];
 const options = reactive(selectOptions);

@@ -333,6 +333,9 @@ const onSearch = (term) => {
   if (!searchResult.value.length) {
     clearSearchData();
   }
+  if (isMeasureModel.value) {
+    measureModel();
+  }
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
   searchResultCount.value = searchResult.value.length;
   isSearchActive.value = true;
