@@ -234,6 +234,10 @@ onBeforeMount(() => {
       message: t(tips),
     });
   });
+  (window as any).ascEventBus.on('layoutEnding', (args) => {
+    isLoading.value = false;
+    loadingText.value = '';
+  })
 });
 onMounted(() => {
   if (props.loadingStep === 'readJson') {

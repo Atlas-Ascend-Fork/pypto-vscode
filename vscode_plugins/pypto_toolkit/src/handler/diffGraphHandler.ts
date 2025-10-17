@@ -107,11 +107,12 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     if (graphData.layoutOptions['devkit.filePath'] === 'before') {
       return panel.comGraphData;
     } else {
-      elkFactory.layout(graphData).then((result) => {
-        const layoutJsonStr = JSON.stringify(result);
-        this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['devkit.filePath']);
-      });
-      return;
+      // elkFactory.layout(graphData).then((result) => {
+      //   const layoutJsonStr = JSON.stringify(result);
+      //   this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['devkit.filePath']);
+      // });
+      // return;
+      return panel.diffGraphData;
     }
   }
 
