@@ -4,9 +4,9 @@
 
   - **Open Swimlane Diagram**
 
-    Right-click on the swimlane diagram json file and select `Open with PyPTO Toolkit`
+    Right-click on the swimlane diagram json file and select `PyPTO Toolkit: Open file`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20openSwim.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.11%20swimOpen.gif)
   
   - **View Node Details**
 
@@ -53,7 +53,7 @@
 
   - **Open Computation Graph**
 
-    Right-click on the computation graph json file and select `Open with PyPTO Toolkit`
+    Right-click on the computation graph json file and select `PyPTO Toolkit: Open file`
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20openCom.gif)
 
