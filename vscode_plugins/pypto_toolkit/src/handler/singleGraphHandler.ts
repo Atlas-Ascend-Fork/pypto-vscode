@@ -1,0 +1,83 @@
+import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
+import { SingleGraphData, AbstractGraphData } from '../core/graphData';
+import { getIDETheme } from '../theme';
+import { getIDELang } from '../lang';
+import { SQLiteCache, getMTime } from '../core/sqliteCache';
+
+export class SingleGraphHandler extends BaseGraphMsgHandler {
+  protected static async loadMainData(panel: any): Promise<void> {
+    if (!panel.comGraphData) {
+      panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
+    }
+
+    const gd = panel.comGraphData as SingleGraphData;
+    if (!gd.funcHash) {
+      gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+    }
+  }
+
+  protected static getGraphData(panel: any): AbstractGraphData {
+    return panel.comGraphData as SingleGraphData;
+  }
+  /** 重写 基类方法 */
+  protected static async postInitMessages(panel: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
+    /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
+    panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
+    panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
+
+    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname });
+
+    if (!isDiff && gd.calleeOpMagic && gd.calleeOpSubgraphId) {
+      let opAttrData;
+      let calleeOpAttr: string | undefined;
+      let ioperands: string | undefined;
+      if (gd.isUsedDB) {
+        opAttrData = await SQLiteCache.getInstance().comGraphFileCalleeOpAttrGet(
+          gd.funcHash ?? '',
+          gd.calleeOpMagic.toString(),
+          gd.calleeOpSubgraphId.toString(),
+        );
+        calleeOpAttr = opAttrData.op_attr;
+        ioperands = JSON.parse(opAttrData.ioperands);
+      }
+      if (calleeOpAttr) {
+        panel.webview.postMessage({
+          command: 'returnCalleeOpAttrMap',
+          data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] },
+        });
+      }
+    }
+
+    const funcTree: any = {};
+    funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
+    panel.webview.postMessage({
+      command: 'returnFuncTree',
+      entry: gd.funcHash,
+      fsPath: gd.fsPath,
+      curPath: (panel as any).curPath ?? [gd.funcHash],
+      data: funcTree,
+    });
+  }
+  protected static onDidReceiveMessage(panel: any) {
+    panel.webview.onDidReceiveMessage(
+      async (message) => {
+        console.log(`[GraphView Handler] business command: ${message.command}`);
+        this.CommonMessageActions(message, panel);
+        const gd = panel.comGraphData;
+        const funcTree: any = {};
+        funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
+        if (message.type === 'getFuncTree') {
+          panel.webview.postMessage({
+            command: 'returnFuncTree',
+            entry: gd.funcHash,
+            fsPath: gd.fsPath,
+            curPath: (panel as any).curPath ?? [gd.funcHash],
+            data: funcTree,
+          });
+        }
+      },
+      undefined,
+      panel._disposables ?? [],
+    );
+  }
+}
