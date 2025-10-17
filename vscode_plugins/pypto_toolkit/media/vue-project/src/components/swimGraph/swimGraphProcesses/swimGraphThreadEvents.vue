@@ -57,6 +57,7 @@ const {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap
 } = inject('swimGraphState');
 
@@ -675,6 +676,7 @@ const handleMouseDown = (e) => {
   isDragging.value = true;
   measureDetailsData.value = [];
   rootHashes.value = [];
+  leafHashes.value = [];
   leafHashMap.value.clear();
   mulDetailsExpanded.value = false;
   if (!e.ctrlKey) return;

@@ -143,6 +143,7 @@ const measureDragCtrlX = ref(0);
 const mulDetailsExpanded = ref(false);
 const measureDetailsData = ref([]);
 const rootHashes = ref([]);
+const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
 
 let sliderValue = ref(0);
@@ -1353,25 +1354,29 @@ const hashMatchDataGet = (eventHint, eventTime) => {
   if (eventHint) {
     const rootHashMatch = eventHint.match(/rootHash:(?<hash>\d+)/);
     const leafHashMatch = eventHint.match(/leafHash:(?<hash>\d+)/);
-    if (rootHashMatch) {
+    if (leafHashMatch && rootHashMatch) {
+      const [, leafHash] = leafHashMatch;
       const [, rootHash] = rootHashMatch;
       if (!rootHashes.value.includes(rootHash)) {
         rootHashes.value.push(rootHash);
       }
-    }
 
-    if (leafHashMatch) {
-      const [, leafHash] = leafHashMatch;
-      if (leafHashMap.value.has(leafHash)) {
-        const stats = leafHashMap.value.get(leafHash);
+      if (!leafHashes.value.includes(leafHash)) {
+        leafHashes.value.push(leafHash);
+      }
+      const key = `${leafHash}_${rootHash}`;
+      if (leafHashMap.value.has(key)) {
+        const stats = leafHashMap.value.get(key);
         stats.Occurrences++;
         stats['Wall duration'] += eventTimeMs;
         stats['Avg Wall duration'] = stats['Wall duration'] / stats.Occurrences;
       } else {
-        leafHashMap.value.set(leafHash, {
+        leafHashMap.value.set(key, {
           Occurrences: 1,
           'Wall duration': eventTimeMs,
-          'Avg Wall duration': eventTimeMs
+          'Avg Wall duration': eventTimeMs,
+          'roothash': rootHash,
+          'leafhash': leafHash
         });
       }
     }
@@ -1426,6 +1431,7 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
 const measureDetailSearch = () => {
   measureDetailsData.value = [];
   rootHashes.value = [];
+  leafHashes.value = [];
   leafHashMap.value.clear();
 
   const startTime = xToTime(measureDragStartX.value);
@@ -1624,6 +1630,7 @@ provide('swimGraphState', {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap,
 });
 

@@ -98,6 +98,7 @@ const {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap,
 } = inject('swimGraphState');
 
@@ -202,19 +203,19 @@ const initDatas = () => {
 const initTableDatas = () => {
   measureDetailTableData.value = [];
   leafHashMap.value.forEach((value, key) => {
-    rootHashes.value.forEach((rootValue, rootKey) => {
-      const avgWallDuration = value['Avg Wall duration'];
-      const occurrences = value.Occurrences;
-      const wallDuration = value['Wall duration'];
-      const tableData = {
-        rootFuncHash: rootValue,
-        leafFuncHash: key,
-        occurrences,
-        wallDuration,
-        avgDuration: avgWallDuration
-      };
-      measureDetailTableData.value.push(tableData);
-    });
+    const avgWallDuration = value['Avg Wall duration'];
+    const occurrences = value.Occurrences;
+    const wallDuration = value['Wall duration'];
+    const rootHashValue = value['roothash'];
+    const leafHashValue = value['leafhash'];
+    const tableData = {
+      rootFuncHash: rootHashValue,
+      leafFuncHash: leafHashValue,
+      occurrences,
+      wallDuration,
+      avgDuration: avgWallDuration
+    };
+    measureDetailTableData.value.push(tableData);
   });
 };
 
@@ -227,13 +228,13 @@ watch(mulDetailsExpanded, (newValue) => {
     initDatas();
     initTableDatas();
     category.forEach((item, index) => {
-      item.options = index === 0 ? transformToOptions(rootHashes.value, false) : transformToOptions(leafHashMap.value);
+      item.options = index === 0 ? transformToOptions(rootHashes.value) : transformToOptions(leafHashes.value);
     });
     category =  JSON.parse(JSON.stringify(category));
   }
 });
-const transformToOptions = (source, isKeys = true) => 
-[...(isKeys ? source.keys() : source.values())].map(item => ({ Option: item }));
+const transformToOptions = (source) => 
+  [...source.values()].map(item => ({ Option: item }));
 </script>
 
 <style scoped lang="scss">
