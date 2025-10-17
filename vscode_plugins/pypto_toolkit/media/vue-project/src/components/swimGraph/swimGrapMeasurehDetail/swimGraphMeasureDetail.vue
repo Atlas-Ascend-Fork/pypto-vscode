@@ -206,8 +206,8 @@ const initTableDatas = () => {
     const avgWallDuration = value['Avg Wall duration'];
     const occurrences = value.Occurrences;
     const wallDuration = value['Wall duration'];
-    const rootHashValue = value['roothash'];
-    const leafHashValue = value['leafhash'];
+    const rootHashValue = value['root hash'];
+    const leafHashValue = value['leaf hash'];
     const tableData = {
       rootFuncHash: rootHashValue,
       leafFuncHash: leafHashValue,

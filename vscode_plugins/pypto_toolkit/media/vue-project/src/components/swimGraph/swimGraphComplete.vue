@@ -1375,8 +1375,8 @@ const hashMatchDataGet = (eventHint, eventTime) => {
           Occurrences: 1,
           'Wall duration': eventTimeMs,
           'Avg Wall duration': eventTimeMs,
-          'roothash': rootHash,
-          'leafhash': leafHash
+          'root hash': rootHash,
+          'leaf hash': leafHash
         });
       }
     }
