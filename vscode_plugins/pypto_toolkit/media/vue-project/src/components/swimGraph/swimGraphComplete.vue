@@ -1148,7 +1148,7 @@ const measureMouseDown = (e) => {
 const measureHandleWheel = (e) => {
   timelineComponent.value.handleWheel(e);
   drawMeasureTime();
-}
+};
 
 const drawMeasureTime = () => {
   if (!isMeasureModel) {
