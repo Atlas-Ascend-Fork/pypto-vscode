@@ -9,10 +9,10 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
    */
   protected static async loadMainData(panel: any): Promise<void> {
     // 原图
-    await DiffGraphHandler.loadGrahData(panel, panel.fsPath, 'comGraphData');
+    await DiffGraphHandler.loadGraphData(panel, panel.fsPath, 'comGraphData');
     // 对比图
     panel.otherFsPath = getOtherFilePath(panel.fsPath);
-    await DiffGraphHandler.loadGrahData(panel, panel.otherFsPath, 'diffGraphData');
+    await DiffGraphHandler.loadGraphData(panel, panel.otherFsPath, 'diffGraphData');
   }
 
   /**
@@ -88,7 +88,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   }
 
   /** 5. 获取comGraphData和EntryHash 并挂到面板上 */
-  private static async loadGrahData(panel: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData') {
+  private static async loadGraphData(panel: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData') {
     if (!fsPath) return;
     if (!panel[prop]) {
       panel[prop] = new DiffGraphData(fsPath, panel.funcHash);

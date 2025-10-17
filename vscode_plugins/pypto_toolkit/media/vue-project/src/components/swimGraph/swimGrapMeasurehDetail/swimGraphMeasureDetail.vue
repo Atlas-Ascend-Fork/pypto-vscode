@@ -8,7 +8,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('AICore') }}</div>
-                  <d-tooltip :content="$t('AICore')">
+                  <d-tooltip :content="$t('AICoreTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -17,7 +17,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('CubeUtilization') }}</div>
-                  <d-tooltip :content="$t('CubeUtilization')">
+                  <d-tooltip :content="$t('CubeUtilizationTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -26,7 +26,7 @@
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
                   <div class='data-title'>{{ $t('VectorUtilization') }}</div>
-                  <d-tooltip :content="$t('VectorUtilization')">
+                  <d-tooltip :content="$t('VectorUtilizationTIP')">
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
@@ -38,7 +38,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('cubeTime') }}</div>
-                    <d-tooltip :content="$t('cubeTime')">
+                    <d-tooltip :content="$t('cubeTimeTIP')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -47,7 +47,7 @@
                 <div class="measure-detail-data-item">
                   <div class="data-title-row">
                     <div class='data-title'>{{ $t('vectorTime') }}</div>
-                    <d-tooltip :content="$t('vectorTime')">
+                    <d-tooltip :content="$t('vectorTimeTIP')">
                       <d-icon name="helping" size="16px"></d-icon>
                     </d-tooltip>
                   </div>
@@ -55,10 +55,10 @@
                 </div>
               </div>
               <div class="measure-detail-data-downarea-time-ratio">
-                <div v-if="cubeCycleRate > 0" class="cube-time-bar" :style="{ flex: `${cubeCycleRate}%` }">
+                <div v-if="cubeCycleRateValue > 0" class="cube-time-bar" :style="{ flex: `${cubeCycleRateValue}%` }">
                   <div class="cube-time-num">{{ cubeCycleRate }}%</div>
                 </div>
-                <div v-if="vectorCycleRate > 0" class="vector-time-bar" :style="{ flex: `${vectorCycleRate}%` }">
+                <div v-if="vectorCycleRateValue > 0" class="vector-time-bar" :style="{ flex: `${vectorCycleRateValue}%` }">
                   <div class="vector-time-num">{{ vectorCycleRate }}%</div>
                 </div>
               </div>
@@ -67,14 +67,8 @@
         </div>
         <div class="measure-detail-right-section">
           <div class="measure-detail-search-area">
-            <d-input v-model="measureDetailInput" :placeholder="searchPlaceholder" class="measure-detail-search">
-              <template #prepend>
-                <d-select v-model="measureDetailSelect" :options="options" class="measure-detail-select"></d-select>
-              </template>
-              <template #append>
-                <d-icon name="search" @click="onMeasureSearch()" />
-              </template>
-            </d-input>
+            <d-category-search :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;">
+            </d-category-search>
             <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
           </div>
           <div class="measure-detail-data-table">
@@ -97,23 +91,20 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, nextTick, provide, reactive } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { clone } from 'lodash-es';
-import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { ref, inject, watch} from 'vue';
 
 // 注入父组件提供的状态和方法
 const {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap,
 } = inject('swimGraphState');
 
 const {
 } = inject('swimGraphMethods');
 
-const searchPlaceholder = ref('Search');
 
 const AICoreUsage = ref('0');
 const AICUsage = ref('0');
@@ -122,6 +113,8 @@ const cubeCycle = ref('0');
 const vectorCycle = ref('0');
 const cubeCycleRate = ref('0');
 const vectorCycleRate = ref('0');
+const cubeCycleRateValue = ref('0');
+const vectorCycleRateValue = ref('0');
 const eventNum = ref('0');
 
 const measureDetailTableData = ref([]);
@@ -129,38 +122,53 @@ const measureDetailTableData = ref([]);
 const measureDetailsPanel = () => {
   mulDetailsExpanded.value = !mulDetailsExpanded.value;
 };
-
-const items = [
-  'Root Func. Hash',
-  'Leaf Func. Hash'
-];
-const measureDetailInput = ref('');
-const measureDetailSelect = ref('Root Func. Hash');
-const options = reactive(items);
-
-const onMeasureSearch = () => {
-  const searchCriteria = measureDetailInput.value;
-  const selectCriteria = measureDetailSelect.value;
-
-  if (measureDetailInput.value === '') {
+let category = [
+    {
+      label: 'Root Func. Hash',
+      field: 'Root',
+      type: 'radio',
+      group: 'Basic',
+      filterKey: 'Option',
+      options: []
+    },
+    {
+      label: 'Leaf Func. Hash',
+      field: 'Leaf',
+      type: 'radio',
+      group: 'Basic',
+      filterKey: 'Option',
+      options: []
+    }
+  ];
+const onMeasureSearch = (event) => {
+  const { selectedTags } = event;
+  if (selectedTags.length === 0) {
     initTableDatas();
     return;
   }
-
-  if (selectCriteria === 'Root Func. Hash') {
-    measureDetailTableData.value = measureDetailTableData.value.filter(item =>
-      item.rootFuncHash === searchCriteria
-    );
-  } else if (selectCriteria === 'Leaf Func. Hash') {
-    measureDetailTableData.value = measureDetailTableData.value.filter(item =>
-      item.leafFuncHash === searchCriteria
-    );
-  }
-
+  const filteredData = selectedTags.reduce((item, { field, value: { Option } }) => {
+    return item.filter(row => {
+      if (field === 'Root') {
+        return row.rootFuncHash === Option;
+      }
+      if (field === 'Leaf') {
+        return row.leafFuncHash === Option;
+      }
+      return true;
+    });
+  }, [...measureDetailTableData.value]);
+  measureDetailTableData.value = filteredData;
   if (measureDetailTableData.value.length === 0) {
-    measureDetailTableData.value = [{
-      rootFuncHash: 'No search data'
-    }];
+    measureDetailTableData.value = [];
+  }
+};
+
+const rateToValue = () => {
+  cubeCycleRateValue.value = cubeCycleRate.value === '/' ? 0 :cubeCycleRate.value;
+  vectorCycleRateValue.value = vectorCycleRate.value === '/' ? 0 :vectorCycleRate.value;
+  if (cubeCycleRateValue.value === 0 && vectorCycleRateValue.value === 0) {
+    cubeCycleRateValue.value = 50;
+    vectorCycleRateValue.value = 50;
   }
 };
 
@@ -170,23 +178,38 @@ const initDatas = () => {
   }
   const [data] = measureDetailsData.value;
   const handleNaN = (value) => {
-    return isNaN(value) ? '0' : value;
+    return isNaN(value) ? '/' : value;
   };
   AICoreUsage.value = handleNaN(data.AICoreusage);
   AICUsage.value = handleNaN(data.AICusage);
   AIVUsage.value = handleNaN(data.AIVusage);
-  cubeCycle.value = handleNaN(data.cubecycle);
-  vectorCycle.value = handleNaN(data.vectorcycle);
   eventNum.value = handleNaN(data.eventnum);
-  const cubeCycleNum = parseFloat(cubeCycle.value);
-  const vectorCycleNum = parseFloat(vectorCycle.value);
-  if (cubeCycleNum + vectorCycleNum !== 0) {
-    cubeCycleRate.value = parseFloat(((cubeCycleNum / (cubeCycleNum + vectorCycleNum))) * 100 .toFixed(2));
-    vectorCycleRate.value = parseFloat((1 - parseFloat(cubeCycleRate.value)).toFixed(2));
+
+  const processCycleValue = (value) => {
+    return value === 0 ? '/' : handleNaN(value);
+  };
+
+  cubeCycle.value = processCycleValue(data.cubecycle);
+  vectorCycle.value = processCycleValue(data.vectorcycle);
+
+  const cubeCycleNum = cubeCycle.value === '/' ? NaN : parseFloat(cubeCycle.value);
+  const vectorCycleNum = vectorCycle.value === '/' ? NaN : parseFloat(vectorCycle.value);
+
+  if (isNaN(cubeCycleNum) && isNaN(vectorCycleNum)) {
+    cubeCycleRate.value = '/';
+    vectorCycleRate.value = '/';
+  } else if (isNaN(cubeCycleNum)) {
+    cubeCycleRate.value = '/';
+    vectorCycleRate.value = 100;
+  } else if (isNaN(vectorCycleNum)) {
+    cubeCycleRate.value = 100;
+    vectorCycleRate.value = '/';
   } else {
-    cubeCycleRate.value = 0;
-    vectorCycleRate.value = 0;
+    const total = cubeCycleNum + vectorCycleNum;
+    cubeCycleRate.value = parseFloat(((cubeCycleNum / total) * 100).toFixed(2));
+    vectorCycleRate.value = parseFloat(((vectorCycleNum / total) * 100).toFixed(2));
   }
+  rateToValue();
 };
 
 const initTableDatas = () => {
@@ -195,12 +218,14 @@ const initTableDatas = () => {
     const avgWallDuration = value['Avg Wall duration'];
     const occurrences = value.Occurrences;
     const wallDuration = value['Wall duration'];
+    const rootHashValue = value['root hash'];
+    const leafHashValue = value['leaf hash'];
     const tableData = {
-      rootFuncHash: rootHashes.value[0],
-      leafFuncHash: key,
+      rootFuncHash: rootHashValue,
+      leafFuncHash: leafHashValue,
       occurrences,
-      wallDuration,
-      avgDuration: avgWallDuration
+      wallDuration: Number(wallDuration).toFixed(2),
+      avgDuration: Number(avgWallDuration).toFixed(2)
     };
     measureDetailTableData.value.push(tableData);
   });
@@ -214,8 +239,14 @@ watch(mulDetailsExpanded, (newValue) => {
   if (newValue === true) {
     initDatas();
     initTableDatas();
+    category.forEach((item, index) => {
+      item.options = index === 0 ? transformToOptions(rootHashes.value) : transformToOptions(leafHashes.value);
+    });
+    category =  JSON.parse(JSON.stringify(category));
   }
 });
+const transformToOptions = (source) => 
+  [...source.values()].map(item => ({ Option: item }));
 </script>
 
 <style scoped lang="scss">
@@ -245,43 +276,9 @@ watch(mulDetailsExpanded, (newValue) => {
       background: var(--devui-swim-detail-bg);
     }
   }
-
-  .measure-detail-search {
-    width: 410px;
-
-    .devui-input__wrapper {
-      box-shadow: none !important;
-
-      input:focus {
-        outline: none;
-      }
-    }
-
-    .devui-input-slot__append:hover {
-      border: 1px solid var(--devui-form-control-line-active);
-      cursor: pointer;
-    }
-  }
-
-  .measure-detail-select {
-    width: 110px;
-
-    .devui-select__selection {
-      input:focus {
-        box-shadow: none !important;
-        outline: 1px solid var(--devui-form-control-line-active);
-        outline-offset: 0px;
-      }
-    }
-  }
-
-  .measure-detail-select.devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
-    box-shadow: none !important;
-  }
-
-  .measure-detail-select.devui-select--open .devui-select__selection.devui-select__selection--glow-style,
-  .devui-select--focus .devui-select__selection.devui-select__selection--glow-style {
-    box-shadow: none !important;
+  .measure-detail-search-area .dp-category-search-container:focus-within{
+    border-color: #5e7cc0;
+    border-color: var(--devui-form-control-line-active);
   }
 }
 </style>

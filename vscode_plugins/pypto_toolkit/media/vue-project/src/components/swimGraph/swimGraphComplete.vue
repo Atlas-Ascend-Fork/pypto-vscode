@@ -143,6 +143,7 @@ const measureDragCtrlX = ref(0);
 const mulDetailsExpanded = ref(false);
 const measureDetailsData = ref([]);
 const rootHashes = ref([]);
+const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
 
 let sliderValue = ref(0);
@@ -407,6 +408,7 @@ const transform = () => {
     }
   }
   renderDependencyLines();
+  drawMeasureTime();
   timelineComponent.value.flagRender();
 };
 
@@ -1065,6 +1067,7 @@ const onWindowResize = throttle((event) => {
   
   // 重新渲染所有内容
   render();
+  drawMeasureTime();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline=true) => {
@@ -1145,13 +1148,22 @@ const measureMouseDown = (e) => {
 
 const measureHandleWheel = (e) => {
   timelineComponent.value.handleWheel(e);
+  drawMeasureTime();
+};
+
+const drawMeasureTime = () => {
+  if (!isMeasureModel) {
+    return;
+  }
   const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
   const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
   const component = timelineComponent.value;
-  if (!component || !component.timelineCtx || !component.timelineCanvas) return;
+  if (!component || !component.timelineCtx || !component.timelineCanvas) {
+    return;
+  }
   const ctx = component.timelineCtx;
   drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
-}
+};
 
 const drawMeasureArrow = (ctx, startx, endx, distance) => {
   const areaMidden = 20;
@@ -1342,25 +1354,29 @@ const hashMatchDataGet = (eventHint, eventTime) => {
   if (eventHint) {
     const rootHashMatch = eventHint.match(/rootHash:(?<hash>\d+)/);
     const leafHashMatch = eventHint.match(/leafHash:(?<hash>\d+)/);
-    if (rootHashMatch) {
+    if (leafHashMatch && rootHashMatch) {
+      const [, leafHash] = leafHashMatch;
       const [, rootHash] = rootHashMatch;
       if (!rootHashes.value.includes(rootHash)) {
         rootHashes.value.push(rootHash);
       }
-    }
 
-    if (leafHashMatch) {
-      const [, leafHash] = leafHashMatch;
-      if (leafHashMap.value.has(leafHash)) {
-        const stats = leafHashMap.value.get(leafHash);
+      if (!leafHashes.value.includes(leafHash)) {
+        leafHashes.value.push(leafHash);
+      }
+      const key = `${leafHash}_${rootHash}`;
+      if (leafHashMap.value.has(key)) {
+        const stats = leafHashMap.value.get(key);
         stats.Occurrences++;
         stats['Wall duration'] += eventTimeMs;
         stats['Avg Wall duration'] = stats['Wall duration'] / stats.Occurrences;
       } else {
-        leafHashMap.value.set(leafHash, {
+        leafHashMap.value.set(key, {
           Occurrences: 1,
           'Wall duration': eventTimeMs,
-          'Avg Wall duration': eventTimeMs
+          'Avg Wall duration': eventTimeMs,
+          'root hash': rootHash,
+          'leaf hash': leafHash
         });
       }
     }
@@ -1409,16 +1425,24 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
 
   const eventNum = matchingAICEvents.length + matchingAIVEvents.length;
 
-  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(3), AICusage: AICUsage.toFixed(3), AIVusage: AIVUsage.toFixed(3), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
+  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(2), AICusage: AICUsage.toFixed(2), AIVusage: AIVUsage.toFixed(2), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
 };
 
 const measureDetailSearch = () => {
   measureDetailsData.value = [];
   rootHashes.value = [];
+  leafHashes.value = [];
   leafHashMap.value.clear();
 
-  const startTime = xToTime(measureDragStartX.value);
-  const endTime = xToTime(measureDragEndX.value);
+  let startTime = xToTime(measureDragStartX.value);
+  let endTime = xToTime(measureDragEndX.value);
+
+  if (startTime > endTime) {
+    const temp = startTime;
+    startTime = endTime;
+    endTime = temp;
+  }
+
   const timeRange = endTime - startTime;
   const matchingAICEvents = [];
   const matchingAIVEvents = [];
@@ -1613,6 +1637,7 @@ provide('swimGraphState', {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap,
 });
 

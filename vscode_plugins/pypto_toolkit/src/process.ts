@@ -12,8 +12,8 @@ let lightThemeLightColors: string[] = [];
 // 初始化颜色列表的函数
 async function initializeColors() {
   if (!darkThemeColors) {
-    darkThemeColors = await generateColorList(360);
-    lithtThemeColors = await generateColorList(360, false);
+    darkThemeColors = generateColorList(360);
+    lithtThemeColors = generateColorList(360, false);
     darkThemeBaseColors = darkThemeColors.baseColorList;
     darkThemeLightColors = darkThemeColors.lightColorList;
     lightThemeBaseColors = lithtThemeColors.baseColorList;

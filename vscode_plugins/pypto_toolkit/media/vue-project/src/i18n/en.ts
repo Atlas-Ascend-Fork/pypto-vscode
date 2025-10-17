@@ -82,7 +82,12 @@ export default {
     'CubeUtilization':'Cube Utilization',
     'VectorUtilization':'Vector Utilization',
     'cubeTime': 'Cube Cycle',
-    'VectorTime': 'Vector Cycle',
+    'vectorTime': 'Vector Cycle',
+    'AICoreTIP':'AICore Time / (Toatl duration of selected range * Number of AICore lanes)',
+    'CubeUtilizationTIP':'AIC Time / (Toatl duration of selected range * Number of AIC lanes)',
+    'VectorUtilizationTIP':'AIV Time / (Toatl duration of selected range * Number of AIV lanes)',
+    'cubeTimeTIP': 'Sum of the task cube_busy_cycles within the selected range',
+    'vectorTimeTIP': 'Sum of the task vec_busy_cycles within the selected range',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
@@ -129,6 +134,7 @@ export default {
         fullRenderComGraph: 'Full Rendering Computational Graph',
         fullRenderComGraphDesc: 'Conventional rendering is slower when there are a large number of nodes',
         searchMode: 'Search Mode',
-        searchModeDesc: 'Render the associated links based on the searched nodes'
+        searchModeDesc: 'Render the associated links based on the searched nodes',
+        locateNodeError:'Current node not found, location failed'
     }
 }

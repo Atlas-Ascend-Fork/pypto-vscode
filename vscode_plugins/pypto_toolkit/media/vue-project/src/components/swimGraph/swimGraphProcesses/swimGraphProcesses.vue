@@ -53,7 +53,11 @@ const {
   tooltipStyle,
   timelineState,
   isDarkTheme,
-  mulDetailsExpanded
+  mulDetailsExpanded,
+  measureDetailsData,
+  rootHashes,
+  leafHashes,
+  leafHashMap
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -78,7 +82,11 @@ provide('swimGraphState', {
   tooltipStyle,
   timelineState,
   isDarkTheme,
-  mulDetailsExpanded
+  mulDetailsExpanded,
+  measureDetailsData,
+  rootHashes,
+  leafHashes,
+  leafHashMap
 });
 
 const {

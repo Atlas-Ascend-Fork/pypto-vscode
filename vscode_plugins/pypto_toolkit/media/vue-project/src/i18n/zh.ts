@@ -82,7 +82,12 @@ export default {
    'CubeUtilization':'Cube利用率',
    'VectorUtilization':'Vector利用率',
    'cubeTime': 'Cube Cycle',
-   'VectorTime': 'Vector Cycle',
+   'vectorTime': 'Vector Cycle',
+   'AICoreTIP':'AICore Time / (选中范围总时长 * AICore泳道个数)',
+   'CubeUtilizationTIP':'AIC Time / (选中范围总时长 * AIC泳道个数)',
+   'VectorUtilizationTIP':'AIV Time / (选中范围总时长 * AIV泳道个数)',
+   'cubeTimeTIP': '选中范围中的任务cube_busy_cycles之和',
+   'vectorTimeTIP': '选中范围中的任务vec_busy_cycles之和',
    comGraph: {
       copy: '复制',
       copied: '复制成功',
@@ -129,6 +134,7 @@ export default {
       fullRenderComGraph: '全量渲染计算图',
       fullRenderComGraphDesc: '常规渲染，节点数较多时速度较慢',
       searchMode: '搜索模式',
-      searchModeDesc: '根据搜索出的节点进行关联链路渲染'
+      searchModeDesc: '根据搜索出的节点进行关联链路渲染',
+      locateNodeError:'当前节点未找到，定位失败'
    }
 }

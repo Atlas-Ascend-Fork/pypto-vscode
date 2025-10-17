@@ -114,11 +114,19 @@ const getNodesBySubgraphId = (id: number) => {
 };
 
 const locateNode = (nodeId: number, type: 'op' | 'tensor' | 'subgraph') => {
-  if (type === 'op' && OpMap[nodeId]) {
-    emits('onLocate', OpMap[nodeId]);
+  if (type === 'op') {
+    if (OpMap[nodeId]) {
+      emits('onLocate', OpMap[nodeId]);
+    } else {
+      (window as any).ascEventBus.emit('message_notice', t('comGraph.locateNodeError'));
+    }
   }
-  if (type === 'tensor' && TensorMap[nodeId]) {
-    emits('onLocate', TensorMap[nodeId]);
+  if (type === 'tensor') {
+    if (TensorMap[nodeId]) {
+      emits('onLocate', TensorMap[nodeId]);
+    } else {
+      (window as any).ascEventBus.emit('message_notice', t('comGraph.locateNodeError'));
+    }
   }
   if (type === 'subgraph') {
     const nodes = getNodesBySubgraphId(nodeId) as Record<string, any>;

@@ -1,6 +1,7 @@
 import { ExtensionContext, Uri, ViewColumn, commands, window } from 'vscode';
 import { t as _ } from 'i18next';
 import { SwimGraphView } from '../view/swimGraphView';
+import { loadMaterialColorUtilities } from '../color-list';
 const fs = require('fs');
 const readline = require('readline');
 import { GraphView } from '../view/graphView';
@@ -46,6 +47,7 @@ export class RegisterCommand {
   getCommands() {
     return [
       commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+        await loadMaterialColorUtilities();
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
 
@@ -60,7 +62,8 @@ export class RegisterCommand {
           window.showInformationMessage(_('pypto.cannotRender'));
         }
       }),
-      commands.registerCommand('PyPTO.OpenComGraphByFunchash', (uri: Uri | undefined, funcHash: string) => {
+      commands.registerCommand('PyPTO.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
+        await loadMaterialColorUtilities();
         if (!uri) return;
         new GraphView({ viewType: 'comItemDetailView', title: 'swimGraphJump' }, SingleGraphData, SingleGraphHandler).createPanel(
           uri.fsPath,
@@ -68,6 +71,7 @@ export class RegisterCommand {
         );
       }),
       commands.registerCommand('PyPTO.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
+        await loadMaterialColorUtilities();
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
 
