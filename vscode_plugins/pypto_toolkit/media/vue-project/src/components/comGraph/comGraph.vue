@@ -161,7 +161,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
 
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {
-    if (node.type === 'graph') {
+    if (node.type === 'graph' || node.id.startsWith('parent')) {
       showNodeDetail.value = false;
     } else if (node.id.endsWith('label-main')) {
       nodeId.value = node.id;
