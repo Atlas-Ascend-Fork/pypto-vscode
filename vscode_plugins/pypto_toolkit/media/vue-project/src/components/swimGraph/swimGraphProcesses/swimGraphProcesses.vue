@@ -56,6 +56,7 @@ const {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap
 } = inject('swimGraphState');
 
@@ -84,6 +85,7 @@ provide('swimGraphState', {
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
+  leafHashes,
   leafHashMap
 });
 
