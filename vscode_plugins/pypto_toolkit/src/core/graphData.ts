@@ -1,4 +1,3 @@
-// src\core\graphData.ts
 import { createReadStream } from 'fs';
 const { parser } = require('stream-json');
 const { pick } = require('stream-json/filters/Pick');

@@ -1,4 +1,3 @@
-// handler/singleGraphHandler.ts
 import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { SingleGraphData, AbstractGraphData } from '../core/graphData';
 import { getIDETheme } from '../theme';
@@ -7,20 +6,14 @@ import { SQLiteCache, getMTime } from '../core/sqliteCache';
 
 export class SingleGraphHandler extends BaseGraphMsgHandler {
   protected static async loadMainData(panel: any): Promise<void> {
-    console.debug('SingleGraphHandler loadMainData 【开始】');
-    // 1. 如果面板还没挂数据，先挂
     if (!panel.comGraphData) {
-      console.debug('SingleGraphHandler loadMainData 面板挂数据gd = new SingleGraphData');
       panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
     }
 
-    // 2. 计算/补全入口哈希（直接写回实例，不要 return）
     const gd = panel.comGraphData as SingleGraphData;
     if (!gd.funcHash) {
-      console.debug('SingleGraphHandler loadMainData gd获取EntryHash');
       gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
     }
-    console.debug('SingleGraphHandler loadMainData 【结束】');
   }
 
   protected static getGraphData(panel: any): AbstractGraphData {
@@ -54,7 +47,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         });
       }
     }
-    
+
     const funcTree: any = {};
     funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
     panel.webview.postMessage({

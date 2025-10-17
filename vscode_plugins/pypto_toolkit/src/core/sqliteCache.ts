@@ -1,4 +1,3 @@
-// src\core\sqliteCache.ts
 import * as vscode from 'vscode';
 import * as path from 'path';
 import initSqlJs, { Database } from 'sql.js';
@@ -91,7 +90,7 @@ export class SQLiteCache {
               last_change_time TEXT,
               PRIMARY KEY (file_path, func_hash)
             );
-        `);    
+        `);
     this.db.run(`
             CREATE TABLE IF NOT EXISTS com_graph_func_data (
               file_path          TEXT NOT NULL,
@@ -109,7 +108,7 @@ export class SQLiteCache {
                 data    TEXT,
                 PRIMARY KEY (file_path)
             );
-        `);   
+        `);
     this.db.run(`
             CREATE TABLE IF NOT EXISTS com_graph_file_callee_op_attr (
               calleehash TEXT NOT NULL,
@@ -119,7 +118,7 @@ export class SQLiteCache {
               ioperands      TEXT,
               PRIMARY KEY (calleehash,op_magic,op_subgraphid)
             );
-        `);     
+        `);
     // 需要添加表就继续 this.db.run();
   }
   /****************** 2️⃣  数据表 ******************/
@@ -131,7 +130,6 @@ export class SQLiteCache {
       layoutResult,
       lastChangeTime,
     ]);
-    console.log('OYXT 添加com_graph_layout缓存 filePath：' + filePath + ' funcHash:' + funcHash);
   }
   public async comGraphLayoutGet(filePath: string, funcHash: string): Promise<ComGraphLayoutRow | undefined> {
     const stmt = this.db!.prepare(
@@ -147,7 +145,6 @@ export class SQLiteCache {
   }
   public async comGraphLayoutDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_layout WHERE file_path=?', [filePath]);
-    console.log('OYXT 删除com_graph_layout缓存：' + filePath);
   }
 
   /****************** com_graph_final_result 表 (未同步到diskCache.ts)******************/
@@ -158,7 +155,6 @@ export class SQLiteCache {
       finalResult,
       lastChangeTime,
     ]);
-    console.log('OYXT 添加com_graph_final_result缓存 filePath：' + filePath + ' funcHash:' + funcHash);
   }
   public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphFinalResultRow | undefined> {
     const stmt = this.db!.prepare(
@@ -174,26 +170,23 @@ export class SQLiteCache {
   }
   public async comGraphFinalResultDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_final_result WHERE file_path=?', [filePath]);
-    console.log('OYXT 删除com_graph_final_result缓存：' + filePath);
   }
   /****************** com_graph_func_data 表 ******************/
-  public async comGraphFuncDataSet(filePath: string, funcHash: string, callHashArr: string, data: string, bigDataFilePath: string, lastChangeTime: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO com_graph_func_data(file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time) VALUES(?,?,?,?,?,?)', [
-      filePath,
-      funcHash,
-      callHashArr,
-      data,
-      bigDataFilePath,
-      lastChangeTime,
-    ]);
-    console.log(
-      'OYXT 添加com_graph_func_data缓存 【filePath】：' + filePath + ' 【funcHash】:' + funcHash + ' 【callHashArr】:' + callHashArr,
+  public async comGraphFuncDataSet(
+    filePath: string,
+    funcHash: string,
+    callHashArr: string,
+    data: string,
+    bigDataFilePath: string,
+    lastChangeTime: string,
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO com_graph_func_data(file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time) VALUES(?,?,?,?,?,?)',
+      [filePath, funcHash, callHashArr, data, bigDataFilePath, lastChangeTime],
     );
   }
   public async comGraphFuncDataGetCount(filePath: string): Promise<number> {
-    const stmt = this.db!.prepare(
-      'SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ',
-    );
+    const stmt = this.db!.prepare('SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ');
     stmt.bind([filePath]);
     let count = 0;
     if (stmt.step()) {
@@ -217,22 +210,13 @@ export class SQLiteCache {
   }
   public async comGraphFuncDataDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_func_data WHERE file_path=?', [filePath]);
-    console.log('OYXT 删除com_graph_func_data缓存：' + filePath);
   }
   /****************** com_graph_file_hash_map 表 ******************/
   public async comGraphFileHashMapSet(filePath: string, data: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO com_graph_file_hash_map(file_path,data) VALUES(?,?)', [
-      filePath,
-      data
-    ]);
-    console.log(
-      'OYXT 添加com_graph_file_hash_map缓存 【filePath】：' + filePath + ' 【data】:' + data,
-    );
+    this.db!.run('INSERT OR REPLACE INTO com_graph_file_hash_map(file_path,data) VALUES(?,?)', [filePath, data]);
   }
   public async comGraphFileHashMapGet(filePath: string): Promise<string> {
-    const stmt = this.db!.prepare(
-      'SELECT data FROM com_graph_file_hash_map WHERE file_path=?',
-    );
+    const stmt = this.db!.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
     stmt.bind([filePath]);
     let data = '';
     if (stmt.step()) {
@@ -244,20 +228,26 @@ export class SQLiteCache {
   }
   public async comGraphFileHashMapDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_file_hash_map WHERE file_path=?', [filePath]);
-    console.log('OYXT 删除com_graph_file_hash_map缓存：' + filePath);
   }
   /****************** com_graph_file_callee_op_attr 表 ******************/
-  public async comGraphFileCalleeOpAttrSet(calleehash: string, opMagic: string, opSubgraphid: string, opAttr: string, ioperands: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr,ioperands) VALUES(?,?,?,?,?)', [
-      calleehash, opMagic, opSubgraphid, opAttr, ioperands
-    ]);
+  public async comGraphFileCalleeOpAttrSet(
+    calleehash: string,
+    opMagic: string,
+    opSubgraphid: string,
+    opAttr: string,
+    ioperands: string,
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO com_graph_file_callee_op_attr(calleehash,op_magic,op_subgraphid,op_attr,ioperands) VALUES(?,?,?,?,?)',
+      [calleehash, opMagic, opSubgraphid, opAttr, ioperands],
+    );
   }
   public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string[]> {
     const stmt = this.db!.prepare(
       'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
     );
     stmt.bind([calleehash, opMagic, opSubgraphid]);
-    let row ;
+    let row;
     if (stmt.step()) {
       row = stmt.getAsObject();
     }
@@ -272,7 +262,6 @@ export class SQLiteCache {
     }
     const data = this.db.export();
     await vscode.workspace.fs.writeFile(vscode.Uri.file(this.dbFile), data);
-    console.log('OYXT 缓存数据持久化到磁盘：' + this.dbFile);
   }
 
   /** 彻底清空缓存（内存 + 磁盘 + 大文件） */
@@ -291,22 +280,17 @@ export class SQLiteCache {
 
     // 4. 重新打开一个空数据库（可选）
     await this.open();
-    console.log('OYXT 缓存已完全清空');
   }
 
   public async deleteForCommand() {
     const yes = 'Clear';
-    const pick = await vscode.window.showWarningMessage(
-      t('pypto.clearAllCache'),
-      { modal: true },
-      yes
-    );
+    const pick = await vscode.window.showWarningMessage(t('pypto.clearAllCache'), { modal: true }, yes);
     if (pick !== yes) return;
     await this.clearCache();
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   }
 
-  public async createBigDataFile(hash: string,data: string): Promise<string> {
+  public async createBigDataFile(hash: string, data: string): Promise<string> {
     // 1. 拼文件名：YYYYMMDD_hash.json
     const dateStr = new Date().toISOString().slice(0, 12).replace(/-/g, '');
     const fileName = `${dateStr}_${hash}.json`;
@@ -317,13 +301,8 @@ export class SQLiteCache {
 
     // 3. 确保目录存在
     await vscode.workspace.fs.createDirectory(vscode.Uri.file(bigDataDir));
-    console.log('OYXT writeBigDataFile 文件写入开始');
     // 4. 写文件（异步，不落盘就抛错）
-    await vscode.workspace.fs.writeFile(
-      vscode.Uri.file(bigDataFilePath),
-      Buffer.from(data, 'utf8')
-    );
-    console.log('OYXT writeBigDataFile 文件写入完成');
+    await vscode.workspace.fs.writeFile(vscode.Uri.file(bigDataFilePath), Buffer.from(data, 'utf8'));
     return bigDataFilePath;
   }
   public async readJsonFile(path: string): Promise<string> {
@@ -342,4 +321,3 @@ export async function getMTime(filePath: string): Promise<string> {
   const stat = await fs.stat(filePath); // 或 vscode.workspace.fs.stat(vscode.Uri.file(filePath))
   return stat.mtime.toString();
 }
-

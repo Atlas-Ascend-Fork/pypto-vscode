@@ -1,4 +1,3 @@
-// src\command\registerCommand.ts
 import { ExtensionContext, Uri, ViewColumn, commands, window } from 'vscode';
 import { t as _ } from 'i18next';
 import { SwimGraphView } from '../view/swimGraphView';
@@ -52,7 +51,6 @@ export class RegisterCommand {
 
         const content = ((await this.readFirstNLines(uri.fsPath, 10)) as string[]).join('');
         if (content.includes('entryhash')) {
-          console.debug('触发命令：OpenRenderGraphForCurrent');
           new GraphView({ viewType: 'comItemDetailView', title: basename(uri.fsPath) }, SingleGraphData, SingleGraphHandler).createPanel(
             uri.fsPath,
           );
@@ -64,7 +62,6 @@ export class RegisterCommand {
       }),
       commands.registerCommand('PyPTO.OpenComGraphByFunchash', (uri: Uri | undefined, funcHash: string) => {
         if (!uri) return;
-        console.debug('触发命令：OpenComGraphByFunchash');
         new GraphView({ viewType: 'comItemDetailView', title: 'swimGraphJump' }, SingleGraphData, SingleGraphHandler).createPanel(
           uri.fsPath,
           funcHash,
@@ -76,7 +73,6 @@ export class RegisterCommand {
 
         const content = ((await this.readFirstNLines(uri.fsPath, 10)) as string[]).join('');
         if (content.includes('entryhash')) {
-          console.debug('触发命令：OpenDiffComGraphForCurrent');
           new GraphView(
             { viewType: 'itemDetailView', title: 'Computation Graph Diff', column: ViewColumn.One },
             DiffGraphData,

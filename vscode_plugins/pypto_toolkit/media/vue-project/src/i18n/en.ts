@@ -124,7 +124,7 @@ export default {
         pathLocked: 'Path Locked',
         singlePathMode: 'Single Path Mode',
         pressEscExit: 'Press ESC to exit',
-        nodeCountTips: 'The current number of layout nodes has exceeded 30,000',
+        nodeCountTips: 'The current number of layout nodes has exceeded 10,000',
         renderTimeoutTips: 'Which may lead to excessively long rendering times and even cause application lag or crashes',
         fullRenderComGraph: 'Full Rendering Computational Graph',
         fullRenderComGraphDesc: 'Conventional rendering is slower when there are a large number of nodes',

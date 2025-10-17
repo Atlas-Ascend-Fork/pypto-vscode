@@ -1,4 +1,3 @@
-// src/handler/diffGraphHandler.ts
 import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { DiffGraphData, AbstractGraphData } from '../core/graphData'; // 具体实现类，非抽象
 import { getDiffInfo, getOtherFilePath } from '../util';
@@ -56,7 +55,6 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
 
   /** 4. 重写 getInitialData() */
   public static override async getInitialData(panel: any): Promise<void> {
-    console.debug('DiffGraphHandler getInitialData 【开始】');
     // 1. 初始化
     this.postForReadJson(panel, 'initDiffComGraph');
     await this.initTheme(panel);
@@ -85,10 +83,8 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
     // 5. 同步渲染
     await this.render(panel);
-    // ✅ 监听前端消息
+    // 6. 监听前端消息
     this.onDidReceiveMessage(panel);
-
-    console.debug('DiffGraphHandler getInitialData 【结束】');
   }
 
   /** 5. 获取comGraphData和EntryHash 并挂到面板上 */
@@ -103,15 +99,10 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
   }
 
-  static getElkLayoutComGraghData( panel: any, graphData: any, elkFactory: any) {
+  static getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
     if (graphData.layoutOptions['devkit.filePath'] === 'before') {
       return panel.comGraphData;
     } else {
-      // elkFactory.layout(graphData).then((result) => {
-      //   const layoutJsonStr = JSON.stringify(result);
-      //   this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['devkit.filePath']);
-      // });
-      // return;
       return panel.diffGraphData;
     }
   }

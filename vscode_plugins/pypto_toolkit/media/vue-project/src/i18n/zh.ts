@@ -124,7 +124,7 @@ export default {
       pathLocked: '通路锁定中',
       singlePathMode: '单通路模式',
       pressEscExit: '按[ESC]退出',
-      nodeCountTips: '当前布局节点数已超过3万个',
+      nodeCountTips: '当前布局节点数已超过1万个',
       renderTimeoutTips: '这会导致渲染时间过长，甚至造成应用卡顿或崩溃',
       fullRenderComGraph: '全量渲染计算图',
       fullRenderComGraphDesc: '常规渲染，节点数较多时速度较慢',

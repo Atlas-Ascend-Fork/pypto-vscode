@@ -1,4 +1,3 @@
-// src\extension.ts
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
 
@@ -39,10 +38,10 @@ export async function activate(context: ExtensionContext) {
   const delay = 5000;
   setTimeout(() => {
     const oldExtensions = {
-    'hismartliteopen.ascend-devkit': 'Ascend Devkit',
-    'hismartliteopen.ascend-cpp-devkit': 'Ascend C++ Devkit',
-  };
-  const detectedExtensions: string[] = [];
+      'hismartliteopen.ascend-devkit': 'Ascend Devkit',
+      'hismartliteopen.ascend-cpp-devkit': 'Ascend C++ Devkit',
+    };
+    const detectedExtensions: string[] = [];
     for (const [oldExtensionId, oldExtensionName] of Object.entries(oldExtensions)) {
       const oldExtension = vscode.extensions.getExtension(oldExtensionId);
       if (oldExtension && oldExtension.isActive) {
@@ -50,28 +49,30 @@ export async function activate(context: ExtensionContext) {
       }
     }
     if (detectedExtensions.length) {
-      vscode.window.showWarningMessage(
-        i18next.t('pypto.ExtensionWarned', { oldExtensionName: detectedExtensions.join(', ') }),
-        i18next.t('pypto.ExtensionUninstall'),
-        i18next.t('pypto.ExtensionIgnore'),
-      ).then(selection => {
-        if (selection === i18next.t('pypto.ExtensionUninstall')) {
-          vscode.commands.executeCommand('workbench.extensions.search', `@installed ascend`)
-        }
-      });
+      vscode.window
+        .showWarningMessage(
+          i18next.t('pypto.ExtensionWarned', { oldExtensionName: detectedExtensions.join(', ') }),
+          i18next.t('pypto.ExtensionUninstall'),
+          i18next.t('pypto.ExtensionIgnore'),
+        )
+        .then((selection) => {
+          if (selection === i18next.t('pypto.ExtensionUninstall')) {
+            vscode.commands.executeCommand('workbench.extensions.search', `@installed ascend`);
+          }
+        });
     }
   }, delay);
-  
+
   await hismartliteEx.initHismartliteEx(context);
   const registerCommand = new RegisterCommand(context);
   registerCommand.register();
-  if(config.IS_USE_DB){
+  if (config.IS_USE_DB) {
     await initDB(context);
   }
 
   // 启动接口服务
   const server = new ExtensionApiServer(services);
-  
+
   // 启动编辑区视图
   initView((viewPanel) => {
     server.addWebview(viewPanel.webview);
@@ -96,7 +97,7 @@ export async function activate(context: ExtensionContext) {
           magicName,
           curPath,
           calleeOpMagic,
-          calleeOpSubgraphId
+          calleeOpSubgraphId,
         );
       },
     });
@@ -110,7 +111,7 @@ async function initDB(context: ExtensionContext) {
   watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
   watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
   // 2. 注册命令
-  
+
   vscode.commands.registerCommand('PyPTO.deletePersistFile', () => SQLiteCache.getInstance().deleteForCommand());
   // 3. 监听停用
   context.subscriptions.push(watcher, {
@@ -131,5 +132,4 @@ async function initDB(context: ExtensionContext) {
   await context.globalState.update(key, version);
 }
 
-export async function deactivate() {
-}
+export async function deactivate() {}
