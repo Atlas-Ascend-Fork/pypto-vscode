@@ -143,7 +143,7 @@ watch(
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
-    graphType.value = val.graphtype ? String(val.graphtype) : '';
+    graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
