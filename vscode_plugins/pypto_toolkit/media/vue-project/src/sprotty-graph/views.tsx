@@ -444,6 +444,7 @@ export class AstgrNodeLabelView extends ShapeView {
     /* root节点的类型判断, 是否使用亮色 */
     
     if (label.cssClasses[0].includes('-main-label')) {
+      const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
       if ((node.role !== 'input') && (node.role !== 'output')) {
@@ -454,14 +455,14 @@ export class AstgrNodeLabelView extends ShapeView {
       }
       // 创建第一个text节点
       const titleText = (
-        <text class-sprotty-label={true} fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-parent-node={isParentNode} fill={titleTxtFillColor}>
           {label.text}
         </text>
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
       const idText = (
-        <text class-sprotty-label={true} dy="2em" fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
           {subgraphId}
         </text>
       );

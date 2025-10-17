@@ -136,7 +136,7 @@ rect.sprotty-node.op {
 }
 
 g[class*="-main-label"]:hover {
-  text {
+  text:not(.parent-node) {
     text-decoration: underline;
     cursor: pointer;
   }

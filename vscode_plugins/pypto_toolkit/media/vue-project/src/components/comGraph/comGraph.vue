@@ -143,7 +143,7 @@ watch(
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
-    graphType.value = val.graphtype ? String(val.graphtype) : '';
+    graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
@@ -161,7 +161,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
 
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {
-    if (node.type === 'graph') {
+    if (node.type === 'graph' || node.id.startsWith('parent')) {
       showNodeDetail.value = false;
     } else if (node.id.endsWith('label-main')) {
       nodeId.value = node.id;
