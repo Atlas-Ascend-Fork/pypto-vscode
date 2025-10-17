@@ -407,6 +407,7 @@ const transform = () => {
     }
   }
   renderDependencyLines();
+  drawMeasureTime();
   timelineComponent.value.flagRender();
 };
 
@@ -1065,6 +1066,7 @@ const onWindowResize = throttle((event) => {
   
   // 重新渲染所有内容
   render();
+  drawMeasureTime();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline=true) => {
@@ -1145,13 +1147,22 @@ const measureMouseDown = (e) => {
 
 const measureHandleWheel = (e) => {
   timelineComponent.value.handleWheel(e);
+  drawMeasureTime();
+};
+
+const drawMeasureTime = () => {
+  if (!isMeasureModel) {
+    return;
+  }
   const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
   const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
   const component = timelineComponent.value;
-  if (!component || !component.timelineCtx || !component.timelineCanvas) return;
+  if (!component || !component.timelineCtx || !component.timelineCanvas) {
+    return;
+  }
   const ctx = component.timelineCtx;
   drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
-}
+};
 
 const drawMeasureArrow = (ctx, startx, endx, distance) => {
   const areaMidden = 20;
