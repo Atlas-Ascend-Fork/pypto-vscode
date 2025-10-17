@@ -103,10 +103,9 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
   }
 
-  static getElkLayoutComGraghData(comGraghData: any, panel: any, graphData: any, elkFactory: any) {
-    comGraghData = panel.comGraphData;
+  static getElkLayoutComGraghData( panel: any, graphData: any, elkFactory: any) {
     if (graphData.layoutOptions['devkit.filePath'] === 'before') {
-      comGraghData = panel.originGraphData;
+      return panel.comGraphData;
     } else {
       elkFactory.layout(graphData).then((result) => {
         const layoutJsonStr = JSON.stringify(result);
@@ -114,7 +113,6 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
       });
       return;
     }
-    return comGraghData;
   }
 
   protected static postLayoutResult(panel: any, jsonStr: string, filePath?: string) {

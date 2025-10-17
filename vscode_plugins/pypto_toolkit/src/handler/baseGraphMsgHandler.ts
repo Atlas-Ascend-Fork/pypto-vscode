@@ -217,7 +217,7 @@ export abstract class BaseGraphMsgHandler {
     const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
 
     let comGraphData;
-    comGraphData = this.getElkLayoutComGraghData(comGraphData, panel, graphData, elkFactory);
+    comGraphData = this.getElkLayoutComGraghData(panel, graphData, elkFactory);
     if (!comGraphData) return;
 
     const layoutDirection = graphData.layoutOptions['elk.direction'];
@@ -267,9 +267,8 @@ export abstract class BaseGraphMsgHandler {
   }
 
   // graphData elkFactory 给子类重写预留
-  static getElkLayoutComGraghData(comGraghData: any, panel: any, graphData: any, elkFactory: any) {
-    comGraghData = panel.comGraphData;
-    return comGraghData;
+  static getElkLayoutComGraghData( panel: any, graphData: any, elkFactory: any) {
+    return panel.comGraphData;
   }
 
   /* ===================================================
