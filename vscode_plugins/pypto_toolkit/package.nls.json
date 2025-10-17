@@ -39,5 +39,7 @@
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "Unable to open the comparison graph, the file does not contain the correct function hash.",
   "pypto.clearAllCache": "Are you sure you want to clear all cached(memory + disk)?",
   "pypto.cacheAlreadyCleared": "The cache has been completely cleared.",
-  "pypto.failedClearCache": "Failed to clear cache:"
+  "pypto.failedClearCache": "Failed to clear cache:",
+  "PyPTOToolkit.workspace.controlFlowName": "Running Results",
+  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph"
 }
