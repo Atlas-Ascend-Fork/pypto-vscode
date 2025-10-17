@@ -1173,6 +1173,7 @@ export class AscppDagBuilder {
             };
             nodes.push(tensorNode);
             this.singlePathNodeSet.add(nodeId);
+            this.pathNodesSet.add(tensorMagic);
         }
 
         // Register ports in portMap
