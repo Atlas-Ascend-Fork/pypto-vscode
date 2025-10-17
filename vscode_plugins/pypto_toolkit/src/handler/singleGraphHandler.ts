@@ -69,7 +69,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         console.log(`[GraphView Handler] business command: ${message.command}`);
-        BaseGraphMsgHandler.CommonMessageActions(message, panel);
+        this.CommonMessageActions(message, panel);
         const gd = panel.comGraphData;
         const funcTree: any = {};
         funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);

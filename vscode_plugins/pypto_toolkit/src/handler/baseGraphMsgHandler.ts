@@ -29,7 +29,7 @@ export interface readFileResult {
 /* -------------------- 抽象基类 -------------------- */
 export abstract class BaseGraphMsgHandler {
   /* ---------- 全局 map，多面板共享 ---------- */
-  public static readonly globalCallInOutTensorMap = new Map<string, any>();
+  public static globalCallInOutTensorMap = new Map();
   /** 允许前端调用的业务命令 */
   public static readonly WHITE_COMMANDS = new Set([
     'askLayout',
@@ -65,14 +65,14 @@ export abstract class BaseGraphMsgHandler {
 
     // 2-2 通用：函数哈希校验
     const gd = this.getGraphData(panel);
-    if (!BaseGraphMsgHandler.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenGraph')) return;
+    if (!this.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenGraph')) return;
 
     // 2-3 缓存判断
     console.debug('BaseGraphMsgHandler getInitialData 开始读json数据');
 
-    BaseGraphMsgHandler.postForReadJson(panel, 'initComGraph');
+    this.postForReadJson(panel, 'initComGraph');
     let isBigFile = false;
-    isBigFile = await BaseGraphMsgHandler.getJsonData(gd, panel, isBigFile);
+    isBigFile = await this.getJsonData(gd, panel, isBigFile);
 
     // 2-4 函数元信息
     await this.loadFuncHashMap(panel, gd);
@@ -81,15 +81,15 @@ export abstract class BaseGraphMsgHandler {
     await this.render(panel);
 
     // ✅ 监听布局请求（前端渲染完成后会发）
-    BaseGraphMsgHandler.onDidReceiveMessage(panel);
+    this.onDidReceiveMessage(panel);
     console.debug('BaseGraphMsgHandler getInitialData 【结束】');
   }
 
   protected static onDidReceiveMessage(panel: any) {
     panel.webview.onDidReceiveMessage(
       async (message) => {
-        console.log(`[GraphView Handler] business command: ${message.command}`);
-        await BaseGraphMsgHandler.CommonMessageActions(message, panel);
+        console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type} `);
+        await this.CommonMessageActions(message, panel);
       },
       undefined,
       panel._disposables ?? [],
@@ -125,7 +125,7 @@ export abstract class BaseGraphMsgHandler {
       } else {
         data = this.getJsonGraphData(message.data, panel);
       }
-      BaseGraphMsgHandler.postJsonGraphData(panel, message, data, isCached);
+      this.postJsonGraphData(panel, message, data, isCached);
     }
     if (message.type === 'setFinalResult') {
       // 插入sql
@@ -217,7 +217,7 @@ export abstract class BaseGraphMsgHandler {
     const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
 
     let comGraphData;
-    comGraphData = BaseGraphMsgHandler.getElkLayoutComGraghData(comGraphData, panel, graphData, elkFactory);
+    comGraphData = this.getElkLayoutComGraghData(comGraphData, panel, graphData, elkFactory);
     if (!comGraphData) return;
 
     const layoutDirection = graphData.layoutOptions['elk.direction'];
@@ -227,7 +227,7 @@ export abstract class BaseGraphMsgHandler {
     let funcHash = comGraphData.funcHash!;
 
     // 构造缓存 key
-    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+    if (this.globalCallInOutTensorMap.has(funcHash)) {
       funcHash = funcHash + '_hasParent';
     }
     if (layoutDirection === 'DOWN') funcHash += '_down';
@@ -434,7 +434,7 @@ export abstract class BaseGraphMsgHandler {
     // 1. 取数据
     const { json, io } = await this.fetchGraphJson(gd, panel);
     if (!json) {
-      BaseGraphMsgHandler.returnError(panel, 'pypto.parseDataErrorOnRenderGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnRenderGraph');
       return;
     }
     // 挂 inouttensors
@@ -467,15 +467,15 @@ export abstract class BaseGraphMsgHandler {
       : gd.dataMap[gd.funcHash!];
 
     if (!ret) {
-      BaseGraphMsgHandler.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
       return { json: undefined };
     }
 
     const json = JSON.parse(ret);
     // calleeMap
-    await BaseGraphMsgHandler.returnCalleeMap(gd, panel);
+    await this.returnCalleeMap(gd, panel);
     // inouttensors
-    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
+    const io = this.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };
   }
@@ -525,7 +525,7 @@ export abstract class BaseGraphMsgHandler {
 
   protected static checkFuncHash(panel: any, gd: AbstractGraphData, cmd: string): boolean {
     if (gd && !gd.funcHash) {
-      BaseGraphMsgHandler.returnError(panel, cmd);
+      this.returnError(panel, cmd);
       return false;
     }
     return true;
@@ -539,9 +539,9 @@ export abstract class BaseGraphMsgHandler {
 
   /** 前端一次性把整图的张量输入输出关系推过来 */
   static callInOutTensorMap(data: any) {
-    const map = BaseGraphMsgHandler.globalCallInOutTensorMap;
-    for (const [funcHash, io] of Object.entries(data)) {
-      map.set(funcHash, io);
+    const map = new Map(Object.entries(data));
+    for (const [k, v] of map) {
+      this.globalCallInOutTensorMap.set(k, v);
     }
   }
 

@@ -34,7 +34,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     // 1. 取数据
     const { json } = await this.fetchGraphJson(gd, panel);
     if (!json) {
-      BaseGraphMsgHandler.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
       return;
     }
     const { json: diffJson } = await this.fetchGraphJson(diffgd, panel);
@@ -58,25 +58,25 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   public static override async getInitialData(panel: any): Promise<void> {
     console.debug('DiffGraphHandler getInitialData 【开始】');
     // 1. 初始化
-    BaseGraphMsgHandler.postForReadJson(panel, 'initDiffComGraph');
+    this.postForReadJson(panel, 'initDiffComGraph');
     await this.initTheme(panel);
     await this.loadMainData(panel);
 
     // 2. 校验
     const gd = this.getGraphData(panel);
-    if (!BaseGraphMsgHandler.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
+    if (!this.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
     const diffgd = this.getDiffGraphData(panel);
     if (diffgd) {
-      if (!BaseGraphMsgHandler.checkFuncHash(panel, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) return;
+      if (!this.checkFuncHash(panel, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) return;
     }
 
     // 3. 缓存判断&读取文件数据
     console.debug('DiffGraphHandler getInitialData 开始读json数据');
     let originIsBigFile = false;
     let diffIsBigFile = false;
-    originIsBigFile = await BaseGraphMsgHandler.getJsonData(gd, panel, originIsBigFile);
+    originIsBigFile = await this.getJsonData(gd, panel, originIsBigFile);
     if (diffgd) {
-      diffIsBigFile = await BaseGraphMsgHandler.getJsonData(diffgd, panel, diffIsBigFile);
+      diffIsBigFile = await this.getJsonData(diffgd, panel, diffIsBigFile);
     }
     // 4. 加载FuncHashMap
     await this.loadFuncHashMap(panel, gd);
@@ -86,7 +86,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     // 5. 同步渲染
     await this.render(panel);
     // ✅ 监听前端消息
-    BaseGraphMsgHandler.onDidReceiveMessage(panel);
+    this.onDidReceiveMessage(panel);
 
     console.debug('DiffGraphHandler getInitialData 【结束】');
   }
