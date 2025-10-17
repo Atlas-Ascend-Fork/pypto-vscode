@@ -3,6 +3,7 @@ import { t as _ } from 'i18next';
 import { ComGraphView } from '../view/comGraphView';
 import { DiffComGraphView } from '../view/diffComGraphView';
 import { SwimGraphView } from '../view/swimGraphView';
+import { loadMaterialColorUtilities } from '../color-list';
 const fs = require('fs');
 const readline = require('readline');
 
@@ -48,6 +49,7 @@ export class RegisterCommand {
   getCommands() {
     return [
       commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+        await loadMaterialColorUtilities();
         if (!uri && window.activeTextEditor) {
           uri = window.activeTextEditor.document.uri;
         }
@@ -65,12 +67,14 @@ export class RegisterCommand {
           })
         }
       }),
-      commands.registerCommand('PyPTO.OpenComGraphByFunchash', (uri: Uri | undefined, funcHash: string) => {
+      commands.registerCommand('PyPTO.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
+        await loadMaterialColorUtilities();
         if (uri) {
           new ComGraphView(ViewColumn.One).createPanel(uri.fsPath, funcHash, 'swimGraphJump', undefined);
         }
       }),
       commands.registerCommand('PyPTO.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
+        await loadMaterialColorUtilities();
         if (!uri && window.activeTextEditor) {
           uri = window.activeTextEditor.document.uri;
         }
