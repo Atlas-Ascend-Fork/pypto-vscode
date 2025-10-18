@@ -410,6 +410,9 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
+  if (mulDetailsExpanded.value && !isMeasureModel.value) {
+    childContextMap.threadEvent.drawSelectionBox();
+  }
 };
 
 const parseTime = (processedEvents) => {
