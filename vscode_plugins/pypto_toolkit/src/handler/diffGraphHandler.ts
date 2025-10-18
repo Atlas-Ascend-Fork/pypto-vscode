@@ -33,7 +33,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     // 1. 取数据
     const { json } = await this.fetchGraphJson(gd, panel);
     if (!json) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
       return;
     }
     const { json: diffJson } = await this.fetchGraphJson(diffgd, panel);

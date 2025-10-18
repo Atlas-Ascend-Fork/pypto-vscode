@@ -155,18 +155,15 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
 
         originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
     
-        // Log performance metrics for large graphs
         const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
         const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
         console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
-        // Set the model and wait for it to be fully rendered
         modelSource
           .setModel(sprottyGraph)
           .then(() => {
-            // Now that the model is fully rendered, fit to screen without animation
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
-              if (!sprottyGraph.isFinial) {
+              if (!sprottyGraph.isFinial && !nodeMagic) {
                 (window as any).vscode.postMessage({
                   type: 'setFinalResult',
                   data: modelSource.model,
@@ -326,6 +323,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     if (currentLayoutConfig.direction !== direction) {
       currentLayoutConfig.direction = direction;
       resetModelSource();
+      originSprottyGraph.isFinial = false;
       modelSource.setModel(originSprottyGraph).then(() => {
         fitGraphToScreen();
         renderMinimap(modelSource.model);

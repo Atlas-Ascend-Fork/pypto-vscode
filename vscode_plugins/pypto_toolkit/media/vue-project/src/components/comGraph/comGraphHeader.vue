@@ -702,8 +702,8 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
 
 function openDiffViewer() {
   (window as any).vscode.postMessage({
-    command: 'openDiffViewer'
-    });
+    type: 'openDiffViewer'
+  });
 }
 
 function globalSearch(event) {
@@ -778,7 +778,7 @@ window.addEventListener('message', (event) => {
   if (message.command == 'returnFuncTree') {
     funcTree = message.data;
     passName = message.fsPath.split('\\').pop();
-    curPath.value = message.curPath;
+    curPath.value = typeof message.curPath === 'string' ? JSON.parse(message.curPath) : message.curPath;
     entry.value = message.entry;
     comGraphStore.setData('curPath', message.curPath);
     curList.value = [curPath.value[curPath.value.length - 1]];
