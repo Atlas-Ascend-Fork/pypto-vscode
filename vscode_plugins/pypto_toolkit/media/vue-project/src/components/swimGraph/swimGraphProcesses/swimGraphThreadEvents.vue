@@ -15,6 +15,7 @@
     <canvas class="hover-events-canvas" :data-hover-process-key="process.key"></canvas>
     <canvas class="background-events-canvas" :data-background-process-key="process.key"></canvas>
     <canvas class="line-events-canvas" :data-line-process-key="process.key"></canvas>
+    <canvas class="selection-events-canvas" :data-selection-process-key="process.key"></canvas>
   </div>
 </template>
   
@@ -132,7 +133,9 @@ const handleCanvasClick = (e) => {
     // 拖动画布中
     return;
   }
-
+  if(!isDragging.value){
+    clearSelectionCanvas();
+  } 
   const rect = canvasRef.getBoundingClientRect();
   const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
   const y = e.clientY - rect.top;
@@ -329,6 +332,8 @@ function getCanvasRefs(processKey) {
   if (!backgroundCanvasRef) { return null };
   const lineCanvasRef = document.querySelector(`[data-line-process-key="${processKey}"]`);
   if (!lineCanvasRef) { return null };
+  const selectionCanvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
+  if (!selectionCanvasRef) { return null };
   return {
     canvasRef,
     uiCanvasRef,
@@ -337,6 +342,7 @@ function getCanvasRefs(processKey) {
     backgroundCanvasRef,
     backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
     lineCanvasRef,
+    selectionCanvasRef
   };
 }
 
@@ -506,7 +512,7 @@ const handleMouseMove = throttle((e) => {
   }
 }, 16);
 const drawSelectionBox = () => {
-  const uiCanvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
+  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   const uiCtx = uiCanvasRef.getContext('2d');
   if(!uiCtx) {
     return;
@@ -653,6 +659,14 @@ function onHoverEvent(hoveredEvent) {
     ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
   }
 }
+const clearSelectionCanvas = () => {
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  if (!canvasRef) {
+    return;
+  }
+  const ctx = canvasRef.getContext('2d');
+  ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
+};
 function onSelectionEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
   if (!canvasRef) {
@@ -668,17 +682,18 @@ const handleMouseDown = (e) => {
   }
   // 获取鼠标按下时的坐标
   const rect = canvasRef.getBoundingClientRect();
-  selection.startX = e.clientX - rect.left;
-  selection.startY = e.clientY - rect.top;
-  const { x } = computeLocalXY(canvasRef);
-  selection.startLocalX = x;
+  if (!e.ctrlKey) {
+    selection.startX = e.clientX - rect.left;
+    selection.startY = e.clientY - rect.top;
+    const { x } = computeLocalXY(canvasRef);
+    selection.startLocalX = x;
+  }
   isClick.value = true;
   isDragging.value = true;
   measureDetailsData.value = [];
   rootHashes.value = [];
   leafHashes.value = [];
   leafHashMap.value.clear();
-  mulDetailsExpanded.value = false;
   if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };
@@ -688,10 +703,12 @@ const handleMouseUp = throttle((e) => {
     return;
   }
   const rect = canvasRef.getBoundingClientRect();
-  selection.endX = e.clientX - rect.left;
-  selection.endY = e.clientY - rect.top;
-  const { x } = computeLocalXY(canvasRef);
-  selection.endLocalX = x;
+  if (!e.ctrlKey) {
+    selection.endX = e.clientX - rect.left;
+    selection.endY = e.clientY - rect.top;
+    const { x } = computeLocalXY(canvasRef);
+    selection.endLocalX = x;
+  }
   const dx = Math.abs(selection.endX - selection.startX);
   const dy = Math.abs(selection.endY - selection.startY);
   if (dx < 5 || dy < 5) {
@@ -1833,6 +1850,7 @@ addChildContext('threadEvent', {
   eraseEventLine,
   getOffset,
   transformEvents,
+  drawSelectionBox,
 });
 
 // 每个事件画布都会走一遍
