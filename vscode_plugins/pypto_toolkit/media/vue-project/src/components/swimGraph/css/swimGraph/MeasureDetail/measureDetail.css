@@ -75,13 +75,13 @@
 .cube-time-value {
   font-size: 18px;
   margin-top: 8px;
-  color: green;
+  color: rgb(199, 98, 7);
 }
 
 .vector-time-value {
   font-size: 18px;
   margin-top: 8px;
-  color: orange;
+  color: rgb(72, 142, 32);
 }
 
 .measure-detail-data-downarea-time-ratio {
