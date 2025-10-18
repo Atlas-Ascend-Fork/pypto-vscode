@@ -92,10 +92,10 @@
           </div>
           <div class="cube-data-chart">
             <div class="cube-time-bar" :style="{ width: cubeTimeWidth + 'px' }">
-              <div class="cube-time-num">{{cubeTimePercentage}}%</div>
+              <div class="cube-time-num">{{cubeTimePercentage}}</div>
             </div>
             <div class="vector-time-bar" :style="{ width: vectorTimeWidth + 'px' }">
-              <div class="vector-time-num">{{vectorTimePercentage}}%</div>
+              <div class="vector-time-num">{{vectorTimePercentage}}</div>
             </div>
           </div>
         </div>
@@ -111,6 +111,7 @@ import { ref, inject, computed, watch, onMounted, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
+import BigNumber from 'bignumber.js';
 
 const swimGraphBarChartComponent = ref(null);
 
@@ -174,25 +175,30 @@ const reportVisible = ref(false);
 const showDrawer = () => {
   reportVisible.value = true;
 
-  taskTime.value = viewState.timeRange;
+  if (Number.isInteger(viewState.timeRange)) {
+    taskTime.value = viewState.timeRange;
+  }else {
+    taskTime.value = viewState.timeRange.toFixed(2);
+  }
 
-  let aicTaskTimeSum = 0;
-  let totalCnt = 0;
+  let aicTaskTimeSum = new BigNumber('0');
+  let totalCnt = new BigNumber('0');
   for (const [processKey, processVal] of processes) {
     for (const [threadKey, threadVal] of processVal.threads) {
       if (threadVal.isCounter == false) {
-        totalCnt++;
+        totalCnt = totalCnt.plus(new BigNumber('1'));
       }
       if (threadVal.threadName.toLowerCase().startsWith('aic') || threadVal.threadName.toLowerCase().startsWith('aiv')) {
         for (const event of threadVal.events) {
-          aicTaskTimeSum += event.duration;
+          aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
         }
       }
     }
   }
 
-  aicoreTime.value = aicTaskTimeSum;
-  aicoreRate.value = Math.round(aicTaskTimeSum / (totalCnt * taskTime.value) * 100);
+  aicoreTime.value = aicTaskTimeSum.decimalPlaces(2).toString();
+  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
+  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString();
 
   if (Object.keys(pmuTotal.value).length === 0) {
     cubeRateCycle.value = '/';
@@ -210,8 +216,8 @@ const showDrawer = () => {
 
   const barWidth = 406;
 
-  cubeTimePercentage.value = Math.floor(cubeTime / (cubeTime + vectorTime) * 100);
-  vectorTimePercentage.value = 100 - cubeTimePercentage.value;
+  cubeTimePercentage.value = Math.floor(cubeTime / (cubeTime + vectorTime) * 100) + '%';
+  vectorTimePercentage.value = String(100 - Math.floor(cubeTime / (cubeTime + vectorTime) * 100)) + '%';
   cubeTimeWidth.value = barWidth * cubeTime / (cubeTime + vectorTime);
   vectorTimeWidth.value = barWidth * vectorTime / (cubeTime + vectorTime);
 
@@ -294,7 +300,7 @@ const mte1RatePercentage = ref(0);
 const mte2RatePercentage = ref(0);
 const mte3RatePercentage = ref(0);
 
-provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc});
+provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
 const onSearch = (term) => {
   searchQuery.value = term;
