@@ -43,7 +43,7 @@
 import { ref, reactive, nextTick, provide, inject} from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc} = inject('swimGraphPmuBarChartInfo');
+const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme} = inject('swimGraphPmuBarChartInfo');
 
 const chartDiv = ref(null);
 const rowCoordList = ref([]);
@@ -86,9 +86,9 @@ for (const percent of pmuChartDataRight.value) {
   height: 20px;
   margin-left: 20px;
   margin-top: 16px;
-  color: rgba(230, 230, 230, 1);
   font-size: 12px;
   font-weight: 700;
+  color: var(--vscode-badge-foreground);
 }
 
 .row-coord {
@@ -177,9 +177,9 @@ for (const percent of pmuChartDataRight.value) {
 
 .occupy-rate-cycle {
   height: 12px;
-  color: rgba(230, 230, 230, 1);
   font-size: 12px;
   font-weight: 400;
+  color: var(--vscode-badge-foreground);
   position: absolute;
   left: 8px;
   top: 4px;
@@ -188,10 +188,10 @@ for (const percent of pmuChartDataRight.value) {
 
 .occupy-rate-percentage {
   height: 12px;
-  color: rgba(230, 230, 230, 1);
   font-size: 12px;
   font-weight: 400;
   position: absolute;
+  color: var(--vscode-badge-foreground);
   right: 8px;
   top: 4px;
   z-index: 3;
