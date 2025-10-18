@@ -95,8 +95,8 @@ export abstract class BaseGraphMsgHandler {
     }
     if (message.type === 'getJsonGraphData') {
       // 判断是否有最终结果
-      const filePath = panel.comGraphData.fsPath;
-      let funcHash = panel.comGraphData.funcHash;
+      const filePath = message.data.filePath === 'after' ? panel.diffGraphData?.fsPath : panel.comGraphData.fsPath;
+      let funcHash = message.data.filePath === 'after' ? panel.diffGraphData?.funcHash : panel.comGraphData.funcHash;
       let finalResult: any;
       let data: any;
       let isCached = false;
@@ -107,7 +107,7 @@ export abstract class BaseGraphMsgHandler {
       }
       if (layout.direction === 'DOWN') funcHash += '_down';
       if (!layout.showTensor) funcHash += '_notshowtensor';
-      if (panel.comGraphData.isUsedDB) {
+      if (panel.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
         finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
       }
       if (finalResult) {
@@ -121,9 +121,12 @@ export abstract class BaseGraphMsgHandler {
     }
     if (message.type === 'setFinalResult') {
       // 插入sql
-      const filePath = panel.comGraphData.fsPath;
-      let funcHash = panel.comGraphData.funcHash;
-      const layout = message.layout;
+      const filePath = message.data.filePath === 'after' ? panel.diffGraphData?.fsPath : panel.comGraphData.fsPath;
+      let funcHash = message.data.filePath === 'after' ? panel.diffGraphData?.funcHash : panel.comGraphData.funcHash;
+      if (!filePath) {
+        return;
+      }
+       const layout = message.layout;
       if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
         funcHash = funcHash + '_hasParent';
       }
@@ -132,6 +135,10 @@ export abstract class BaseGraphMsgHandler {
       const lastChangeTime = await getMTime(filePath);
       const result = JSON.stringify(message.data);
       await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
+    }
+
+    if (message.type === "openDiffViewer") {
+      this.openDiffViewer(panel);
     }
   }
 
@@ -197,13 +204,12 @@ export abstract class BaseGraphMsgHandler {
 
     let comGraphData;
     comGraphData = this.getElkLayoutComGraghData(panel, graphData, elkFactory);
-    if (!comGraphData) return;
 
     const layoutDirection = graphData.layoutOptions['elk.direction'];
     const showtensor = graphData.layoutOptions['devkit.showTensor'];
-    const filePath = comGraphData.fsPath;
+    const filePath = comGraphData?.fsPath;
     const renderMode = graphData.layoutOptions['devkit.renderMode'];
-    let funcHash = comGraphData.funcHash!;
+    let funcHash = comGraphData?.funcHash!;
 
     // 构造缓存 key
     if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
@@ -214,7 +220,7 @@ export abstract class BaseGraphMsgHandler {
 
     const lastChangeTime = await getMTime(filePath);
     let cache: any;
-    if (comGraphData.isUsedDB) {
+    if (comGraphData?.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
     if (renderMode === 'path' || !cache) {
@@ -223,7 +229,7 @@ export abstract class BaseGraphMsgHandler {
       child.on('message', async (res: { type: string; data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
-          if (comGraphData.isUsedDB && renderMode !== 'path') {
+          if (comGraphData?.isUsedDB && renderMode !== 'path') {
             await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
           }
           this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['devkit.filePath']);
@@ -364,12 +370,13 @@ export abstract class BaseGraphMsgHandler {
     io?: any;
   }> {
     if (!gd) return { json: undefined };
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+    await delay(100);
     const ret = gd.isUsedDB
       ? await SQLiteCache.getInstance()
           .comGraphFuncDataGet(gd.fsPath, gd.funcHash!)
           .then((r) => (r?.big_data_file_path ? SQLiteCache.getInstance().readJsonFile(r.big_data_file_path) : r?.data ?? null))
       : gd.dataMap[gd.funcHash!];
-
     if (!ret) {
       this.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
       return { json: undefined };
