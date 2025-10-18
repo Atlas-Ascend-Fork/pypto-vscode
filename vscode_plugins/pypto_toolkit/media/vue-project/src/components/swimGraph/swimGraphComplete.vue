@@ -1282,7 +1282,8 @@ const measureMouseMove = (e) => {
     if (deltaX > 0 && viewState.offsetX > 0) {
       viewState.offsetX = 0;
     }
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 
