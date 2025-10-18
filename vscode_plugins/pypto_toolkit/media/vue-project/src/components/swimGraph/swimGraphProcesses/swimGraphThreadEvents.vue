@@ -529,6 +529,11 @@ const drawSelectionBox = () => {
 };
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
+  const selectionData = getSelection();
+  if (!selectionData.length) {
+    clearSelectionCanvas();
+    return;
+  }
   checkInSelection();
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
@@ -543,9 +548,8 @@ const checkInSelection = () => {
   const { startX, startY, endX, endY } = selection;
 
   // 计算时间范围
-  const startTime = xToTime(startX + layout.processLabelWidth);
-  const endTime = xToTime(endX + layout.processLabelWidth);
-  const timeRange = endTime - startTime;
+  const start = xToTime(startX + layout.processLabelWidth);
+  const end = xToTime(endX + layout.processLabelWidth);
 
   // 预计算选择框边界
   const selectMinY = Math.min(startY, endY);
@@ -568,15 +572,29 @@ const checkInSelection = () => {
       if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
         return;
       }
+      const processThreadEventSearchTemp = processThreadEventSearch(thread, start, end);
       if (threadName.includes('AIC_')) {
-        AICCount++;
-        matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+        if (processThreadEventSearchTemp.length) {
+          AICCount++;
+        }
+        matchingAICEvents.push(...processThreadEventSearchTemp);
       } else if (threadName.includes('AIV_')) {
-        AIVCount++;
-        matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
+        if (processThreadEventSearchTemp.length) {
+          AIVCount++;
+        }
+        matchingAIVEvents.push(...processThreadEventSearchTemp);
       }
     });
   });
+  const selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
+  const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
+    ([min, max], { startTime, endTime }) => [
+      Math.min(min, startTime),
+      Math.max(max, endTime)
+    ],
+    selectionEvents.length ? [selectionEvents[0].startTime, selectionEvents[0].endTime] : [0, 0]
+  );
+  const timeRange = selectionEndTime - selectionStartTime;
   // 最终统计
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
 };
