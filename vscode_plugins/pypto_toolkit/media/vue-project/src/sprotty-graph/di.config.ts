@@ -445,7 +445,8 @@ export class CustomMouseListener extends MouseListener {
         if ('calleehash' in current) {
           if ('calleeMap' in comGraphStore.data && current.calleehash in comGraphStore.data.calleeMap) {
               const funcName = comGraphStore.data.calleeMap[current.calleehash];
-              const newPath = [...comGraphStore.data.curPath];
+              
+              const newPath = [...(typeof comGraphStore.data.curPath == 'string' ? JSON.parse(comGraphStore.data.curPath) :comGraphStore.data.curPath)];
               newPath.push(current.calleehash);
               const curPathList = JSON.stringify(newPath);
 

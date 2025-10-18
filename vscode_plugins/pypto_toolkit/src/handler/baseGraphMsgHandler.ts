@@ -217,8 +217,11 @@ export abstract class BaseGraphMsgHandler {
     }
     if (layoutDirection === 'DOWN') funcHash += '_down';
     if (showtensor !== 'true') funcHash += '_notshowtensor';
-
-    const lastChangeTime = await getMTime(filePath);
+    let lastChangeTime;
+    if(filePath) {
+      lastChangeTime = await getMTime(filePath);
+    }
+    
     let cache: any;
     if (comGraphData?.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
