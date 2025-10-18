@@ -124,8 +124,6 @@ const cycleDisplay = ref('none');
 const selectedOption = ref('clockCycle');
 const selectOptions = [
   {name: $t('clockCycle'), value: 'clockCycle', disabled: false},
-  {name: $t('throughout'), value: 'throughout', disabled: true},
-  {name: $t('cacheHit'), value: 'cacheHit', disabled: false},
   {name: $t('task'), value: 'task', disabled: false},
 ];
 const options = reactive(selectOptions);
@@ -410,6 +408,9 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
+  if (mulDetailsExpanded.value && !isMeasureModel.value) {
+    childContextMap.threadEvent.drawSelectionBox();
+  }
 };
 
 const parseTime = (processedEvents) => {
@@ -1282,7 +1283,8 @@ const measureMouseMove = (e) => {
     if (deltaX > 0 && viewState.offsetX > 0) {
       viewState.offsetX = 0;
     }
-    render();
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
     return;
   }
 

@@ -181,6 +181,16 @@
   gap: 8px;
 }
 
+.task-title {
+  height: 18px;
+  color: rgba(153, 153, 153, 1);
+  font-size: 12px;
+  font-weight: 400;
+  gap: 1px;
+  display: flex;
+  flex-direction: row;
+}
+
 .task-title-container {
   height: 18px;
   color: rgba(153, 153, 153, 1);
@@ -193,7 +203,6 @@
 
 .task-data {
   height: 32px;
-  color: rgba(230, 230, 230, 1);
   font-size: 24px;
   font-weight: 500;
 }

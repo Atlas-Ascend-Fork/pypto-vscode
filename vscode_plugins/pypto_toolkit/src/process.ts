@@ -150,7 +150,7 @@ export function parsePmuInfo(csvData: string) {
     for (let j = 0; j < headers.length; j++) {
       TaskInfo[headers[j]] = curLine[j] ? curLine[j].trim() : ''; 
     }
-    pmuInfo[TaskInfo['sub task id']] = TaskInfo; 
+    pmuInfo[String(TaskInfo['seqNo']) + '-' + String(TaskInfo['sub task id'])] = TaskInfo; 
   }
   return pmuInfo;
 }
@@ -219,11 +219,13 @@ const calculateDependencies = (events, connections) => {
   }
 
   function processTaskPmuCalc(event: any, pmuTotal: any, pmuInfo: any) {
-    const args = event['args']['event-hint'].split(',');
-    const taskId = args[args.length - 1].split(':')[1];
-    const taskPmuInfo = pmuInfo[taskId];
+    const taskPmuKey = String(event['args']['seqNo']) + '-' + String(event['args']['taskId']);
+    const taskPmuInfo = pmuInfo[taskPmuKey];
+    if(event.threadName.includes(FAKE_CORE_KEYWORD) == true) {
+      return;
+    }
     if (taskPmuInfo === undefined) {
-      console.error("PMU: taskID not found:", taskId);
+      console.error("PMU: taskID not found:", taskPmuKey);
       return;
     }
     event['pmu_info'] = taskPmuInfo;

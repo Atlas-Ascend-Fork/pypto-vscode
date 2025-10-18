@@ -67,7 +67,7 @@
         </div>
         <div class="measure-detail-right-section">
           <div class="measure-detail-search-area">
-            <d-category-search :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;">
+            <d-category-search :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch">
             </d-category-search>
             <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
           </div>
@@ -122,6 +122,8 @@ const measureDetailTableData = ref([]);
 const measureDetailsPanel = () => {
   mulDetailsExpanded.value = !mulDetailsExpanded.value;
 };
+let searchKeyInfo = '';
+const defaultSearchField = ['Root', 'Leaf'];
 let category = [
     {
       label: 'Root Func. Hash',
@@ -140,11 +142,21 @@ let category = [
       options: []
     }
   ];
+const onSearch = (event) => {
+  const { searchKey } = event;
+  searchKeyInfo = searchKey;
+  if (searchKey === '') {
+    onMeasureSearch(event);
+  }
+};
 const onMeasureSearch = (event) => {
+  initTableDatas();
   const { selectedTags } = event;
-  if (selectedTags.length === 0) {
-    initTableDatas();
-    return;
+  let defaultFilterData = measureDetailTableData.value;
+  if (searchKeyInfo) {
+    defaultFilterData = measureDetailTableData.value.filter(item =>
+      item.rootFuncHash.includes(searchKeyInfo) || item.leafFuncHash.includes(searchKeyInfo)
+    );
   }
   const filteredData = selectedTags.reduce((item, { field, value: { Option } }) => {
     return item.filter(row => {
@@ -156,7 +168,7 @@ const onMeasureSearch = (event) => {
       }
       return true;
     });
-  }, [...measureDetailTableData.value]);
+  }, [...defaultFilterData]);
   measureDetailTableData.value = filteredData;
   if (measureDetailTableData.value.length === 0) {
     measureDetailTableData.value = [];
