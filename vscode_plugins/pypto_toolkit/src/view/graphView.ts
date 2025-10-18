@@ -130,7 +130,7 @@ export class GraphView<T extends AbstractGraphData> {
       handler,
     );
     view.panel = panel; // 复用旧 panel
-    void view.createPanel(fsPath, funcHash,curPath,undefined,magicName,calleeOpMagic,calleeOpSubgraphId);
+    void view.createPanel(fsPath, funcHash,curPath,panel,magicName,calleeOpMagic,calleeOpSubgraphId);
     return view;
   }
   /* --------------------------------------------------
