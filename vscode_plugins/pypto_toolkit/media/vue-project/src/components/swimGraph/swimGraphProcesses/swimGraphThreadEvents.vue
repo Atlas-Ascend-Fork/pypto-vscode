@@ -505,6 +505,7 @@ const handleMouseMove = throttle((e) => {
     selection.endY = y;
     // 绘制框选
     drawSelectionBox();
+    mulDetailsExpanded.value = false;
     const selectionData = getSelection();
     selectionData.forEach(eventItem => {
       onSelectionEvent(eventItem);
@@ -531,6 +532,7 @@ const handleSelection = () => {
   // 这里可以判断那些元素在框内
   const selectionData = getSelection();
   if (!selectionData.length) {
+    mulDetailsExpanded.value = false;
     clearSelectionCanvas();
     return;
   }
