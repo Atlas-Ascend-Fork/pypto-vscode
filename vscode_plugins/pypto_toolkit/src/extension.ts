@@ -15,6 +15,7 @@ import { SwimGraphView } from './view/swimGraphView.js';
 import { GraphView } from './view/graphView';
 import { SingleGraphData } from './core/graphData';
 import { SingleGraphHandler } from './handler/singleGraphHandler';
+import { loadMaterialColorUtilities } from './color-list';
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -82,12 +83,14 @@ export async function activate(context: ExtensionContext) {
   if (window.registerWebviewPanelSerializer) {
     window.registerWebviewPanelSerializer('swimLane', {
       async deserializeWebviewPanel(webviewPanel: WebviewPanel, state: unknown) {
+        await loadMaterialColorUtilities();
         SwimGraphView.revive(webviewPanel, context.extensionUri);
       },
     });
 
     window.registerWebviewPanelSerializer('comItemDetailView', {
       async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
+        await loadMaterialColorUtilities();
         const { fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId } = (state as any) || {};
         GraphView.revive(
           webviewPanel,
