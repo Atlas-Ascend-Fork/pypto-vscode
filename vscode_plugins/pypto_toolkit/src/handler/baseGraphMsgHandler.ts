@@ -378,7 +378,7 @@ export abstract class BaseGraphMsgHandler {
           .then((r) => (r?.big_data_file_path ? SQLiteCache.getInstance().readJsonFile(r.big_data_file_path) : r?.data ?? null))
       : gd.dataMap[gd.funcHash!];
     if (!ret) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
 
@@ -512,7 +512,7 @@ export abstract class BaseGraphMsgHandler {
     // 1. 取数据
     const { json, io } = await this.fetchGraphJson(gd, panel);
     if (!json) {
-      this.returnError(panel, 'pypto.parseDataErrorOnRenderGraph');
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
       return;
     }
     // 挂 inouttensors
