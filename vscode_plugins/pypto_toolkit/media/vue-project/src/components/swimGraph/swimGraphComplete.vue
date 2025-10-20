@@ -133,6 +133,8 @@ const isMeasureDragging = ref(false);
 const showDragAreaBorders = ref(false);
 const measureDragStartX = ref(0);
 const measureDragEndX = ref(0);
+const measureDragStartTime = ref(0);
+const measureDragEndTime = ref(0);
 const measureDragStartY = ref(0);
 const measureDragEndY = ref(0);
 const measureDragHeight = ref(0);
@@ -653,7 +655,7 @@ const renderTimeline = () => {
       ctx.fillText(`${timeValue}`, x + 2, 35);
     }
   }
-    if (isMeasureDragging.value || measureDragCtrl.value) {
+    if (isMeasureDragging.value) {
     const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
     const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
     drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
@@ -1156,8 +1158,28 @@ const drawMeasureTime = () => {
   if (!isMeasureModel) {
     return;
   }
-  const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
-  const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
+  let drawMeasureStartX = timeToX(measureDragStartTime.value);
+  let drawMeasureEndX = timeToX(measureDragEndTime.value);
+
+  if (drawMeasureStartX > drawMeasureEndX) {
+    const temp = drawMeasureEndX;
+    drawMeasureEndX = drawMeasureStartX;
+    drawMeasureStartX = temp;
+  }
+
+  if (drawMeasureStartX - layout.processLabelWidth < 0) {
+    drawMeasureStartX = layout.processLabelWidth;
+  }
+
+  if (drawMeasureEndX - layout.processLabelWidth > viewState.canvasCssWidth) {
+    drawMeasureEndX = viewState.canvasCssWidth + layout.processLabelWidth;
+  }
+
+  document.documentElement.style.setProperty('--maskstart', `${drawMeasureStartX}px`);
+  document.documentElement.style.setProperty('--maskend', `${drawMeasureEndX}px`);
+
+  const measureStartTimeX = drawMeasureStartX - layout.processLabelWidth;
+  const measureEndTimeX = drawMeasureEndX - layout.processLabelWidth;
   const component = timelineComponent.value;
   if (!component || !component.timelineCtx || !component.timelineCanvas) {
     return;
@@ -1337,7 +1359,9 @@ const measureMouseLeave = (e) => {
   }
 
   intelligentSearch();
+  measureDetailSearch();
   isMeasureDragging.value = false;
+  mulDetailsExpanded.value = true;
   return;
 }
 
@@ -1504,6 +1528,9 @@ const intelligentSearch = () => {
     document.documentElement.style.setProperty('--maskstart', `${measureDragEndX.value}px`);
     document.documentElement.style.setProperty('--maskend', `${measureDragStartX.value}px`);
   }
+
+  measureDragStartTime.value = xToTime(measureDragStartX.value);
+  measureDragEndTime.value = xToTime(measureDragEndX.value);
 
   renderFixedTimeline();
   renderTimeline();
