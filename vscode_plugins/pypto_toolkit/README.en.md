@@ -37,6 +37,19 @@
     Clicking on the second axis can add observation lines, and clicking on an observation line can delete or modify it
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20addFlag.gif)
+    
+  - **PMU performance panel**
+
+    Click the report button in the upper left corner to view the PMU performance.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12pmu.gif)
+
+  - **Core utilization statistics**
+
+    Click the metric mode button in the upper left corner, or use the mouse to select nodes to view core utilization statistics.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12coreUti.gif)
+
 
   - **Shortcut Key List**
 
@@ -98,6 +111,12 @@
     Right-click the calculation graph file and select "Open Calculation Graph Difference Comparison Using PyPTO Toolkit" to open it. It will automatically select the associated comparison file in the same folder. If it is not found, you can manually select the file path for the comparison.
     
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphDiff.gif)
+
+  - **Local Search**
+
+    When the number of open file nodes exceeds 10000, you can choose to render all nodes or search for a specific node and render its related linked. It is recommended to use this feature as needed when file size is too large.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
 
 ## Feedback Channel
 
