@@ -77,6 +77,7 @@ export function extractTensorNodes(
     if (!map[sid]) map[sid] = {};
     n.node_id = `tensor-${n.magic}-${sid}`;
     n.node_type = 'tensor';
+    n.subgraphid = sid;
     n.rawtensor_info = rawTensorMap[n.rawtensor!];
     map[sid][n.magic] = n;
   });
@@ -138,10 +139,20 @@ export function searchByFunctionHash(funcMap: Record<string, any>, keyword: stri
 }
 
 export function searchByFunctionName(funcMap: Record<string, any>, keyword: string, isUpper = false, isReg = false) {
-  const reg = buildReg(keyword, isReg, isUpper);
-  return Object.values(funcMap).filter((node: any) =>
-    reg ? reg.test(node.func_magicname) : node.func_magicname.toLowerCase().includes(keyword.toLowerCase()),
-  );
+  const reg = isReg ? new RegExp(keyword) : null;
+  if (reg) {
+    return Object.values(funcMap)
+      .filter(item => reg.test(item.func_magicname));
+  }
+  if (isUpper) {
+    return Object.values(funcMap)
+      .filter(item => {
+        return item.func_magicname.includes(keyword);
+      });
+  }
+  let lowerName = keyword.toLowerCase();
+  return Object.values(funcMap)
+    .filter(item => item.func_magicname.toLowerCase().includes(lowerName));
 }
 
 /* --------------------------------------------------
@@ -203,10 +214,11 @@ export function searchFunc(
       return [...(tensorMap[sid] ? Object.values(tensorMap[sid]) : []), ...(opMap[sid] ? Object.values(opMap[sid]) : [])];
     }
     case 'Rawtensor': {
-      if (option === 'magic')
+      if (option === 'magic') {
         return Object.values(tensorMap)
-          .flatMap((m) => Object.values(m))
-          .filter((n) => n.rawtensor === searchKey);
+          .flatMap(m => Object.values((m)))
+          .filter((n) => n.rawtensor == searchKey);
+      }
       // 默认模糊
       return Object.values(tensorMap)
         .flatMap((m) => Object.values(m))
