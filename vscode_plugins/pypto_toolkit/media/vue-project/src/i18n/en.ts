@@ -88,6 +88,7 @@ export default {
     'VectorUtilizationTIP':'AIV Time / (Toatl duration of selected range * Number of AIV lanes)',
     'cubeTimeTIP': 'Sum of the task cube_busy_cycles within the selected range',
     'vectorTimeTIP': 'Sum of the task vec_busy_cycles within the selected range',
+    layout: 'Layout',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

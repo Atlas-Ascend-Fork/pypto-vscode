@@ -88,6 +88,7 @@ export default {
    'VectorUtilizationTIP':'AIV Time / (选中范围总时长 * AIV泳道个数)',
    'cubeTimeTIP': '选中范围中的任务cube_busy_cycles之和',
    'vectorTimeTIP': '选中范围中的任务vec_busy_cycles之和',
+   layout: '布局',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

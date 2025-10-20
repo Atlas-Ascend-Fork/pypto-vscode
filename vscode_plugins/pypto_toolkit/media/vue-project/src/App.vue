@@ -6,6 +6,7 @@ import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
 import SearchEntry from './components/comGraph/searchEntry.vue';
 import SearchMode from './components/comGraph/searchMode.vue';
+import ThreeColumn from './components/threeColumn/threeColumn.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 import { getQuery } from './core/query';
@@ -161,11 +162,18 @@ onMounted(() => {
     loadingStep.value = args;
   })
 });
+
+const layout = ref('triangular');
 </script>
 
 <template>
   <header>
-    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
+    <ThreeColumn v-if="graphType === 'returnCom'" v-model="layout">
+      <template #code>code</template>
+      <template #comGraph>comGraph</template>
+      <template #swimGraph>swimGraph</template>
+    </ThreeColumn>
+    <ComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"
