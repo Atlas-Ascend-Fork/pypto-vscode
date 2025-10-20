@@ -37,6 +37,8 @@ import InputNumber from 'vue-devui/input-number';
 import 'vue-devui/input-number/style.css';
 import Table from 'vue-devui/table';
 import 'vue-devui/table/style.css';
+import Tree from 'vue-devui/tree';
+import 'vue-devui/tree/style.css';
 import i18n from './i18n';
 import EventBus from './service/event-bus';
 import './style.scss';
@@ -90,4 +92,5 @@ createApp(App)
   .use(Table)
   .use(i18n)
   .use(Drawer)
+  .use(Tree)
   .mount('#app');

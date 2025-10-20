@@ -74,6 +74,7 @@ export default {
     noCompareTips: 'There is no difference between the two graphs',
     compareLargerTips: 'The current difference between the two graphs exceeds 50%, so the comparison of differences will no longer be displayed',
     compareWrongTips: 'The selected file cannot be parsed into a computational graph',
+    controlFlow: 'ControlFlow',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
     'hierarchy': 'Hierarchy: ',

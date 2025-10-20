@@ -6,6 +6,7 @@ import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
 import SearchEntry from './components/comGraph/searchEntry.vue';
 import SearchMode from './components/comGraph/searchMode.vue';
+import Navbar from './components/navbar/navbar.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 import { getQuery } from './core/query';
@@ -165,6 +166,7 @@ onMounted(() => {
 
 <template>
   <header>
+    <Navbar />
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
