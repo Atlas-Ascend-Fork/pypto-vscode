@@ -39,5 +39,7 @@
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图，该文件未找到正确function hash",
   "pypto.clearAllCache": "确定要清空全部缓存（内存+磁盘）吗？",
   "pypto.cacheAlreadyCleared": "缓存已完全清空",
-  "pypto.failedClearCache": "清空缓存失败："
+  "pypto.failedClearCache": "清空缓存失败：",
+  "PyPTOToolkit.workspace.controlFlowName": "运行结果",
+  "PyPTOToolkit.workspace.computeGraphName": "计算图"
 }
