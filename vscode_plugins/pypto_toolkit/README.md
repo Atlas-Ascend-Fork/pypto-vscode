@@ -38,6 +38,18 @@
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images0.10/0.1.10%20addFlag.gif)
 
+  - **PMU性能看板**
+
+    点击左上角的报告按钮，即可查看PMU性能
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12pmu.gif)
+
+  - **核利用率统计**
+
+    点击左上角的度量模式按钮，或者鼠标框选节点，可查看核利用率统计信息
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12coreUti.gif)
+
   - **快捷键列表**
 
     | 快捷键 | 功能描述 |
@@ -97,6 +109,12 @@
 
     右键计算图文件，选择 “使用PyPTO Toolkit打开计算图差异对比” 打开，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/comgraphDiff.gif)
+
+  - **局部搜索**
+
+    打开文件节点数超过1万时，允许选择全量渲染或者搜索某个节点，渲染其相关链路，建议在文件过大时按需使用
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
 
 
 ## 反馈渠道
