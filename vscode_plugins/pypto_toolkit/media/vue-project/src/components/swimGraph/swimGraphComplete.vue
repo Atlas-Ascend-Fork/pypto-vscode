@@ -1667,6 +1667,7 @@ provide('swimGraphMethods', {
   processThreadEventSearch,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
+  flagRender: () => { timelineComponent?.value.flagRender() },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
   rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) }
 });

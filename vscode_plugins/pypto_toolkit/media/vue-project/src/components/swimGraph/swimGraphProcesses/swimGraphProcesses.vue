@@ -92,6 +92,7 @@ provide('swimGraphState', {
 const {
   leftmove,
   rightmove,
+  flagRender,
   toggleProcess,
   findEventAtPosition,
   selectEvent,
@@ -110,6 +111,7 @@ const {
 provide('swimGraphMethods', {
   leftmove,
   rightmove,
+  flagRender,
   toggleProcess,
   findEventAtPosition,
   selectEvent,
