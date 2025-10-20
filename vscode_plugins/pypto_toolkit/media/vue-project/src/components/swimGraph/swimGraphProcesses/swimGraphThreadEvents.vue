@@ -69,6 +69,7 @@ const {
   handleWheel,
   leftmove,
   rightmove,
+  flagRender,
   durationToWidth,
   transform,
   measureDetailGet,
@@ -1889,6 +1890,7 @@ watch(isDarkTheme, () => {
     renderProcessText(props.process, ctx);
   }
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
+  flagRender();
 });
 
 onUnmounted(() => {
