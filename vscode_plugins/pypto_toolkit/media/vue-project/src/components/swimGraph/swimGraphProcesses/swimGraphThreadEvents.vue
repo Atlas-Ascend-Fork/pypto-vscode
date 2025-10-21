@@ -120,6 +120,7 @@ let AICCount = 0;
 let AIVCount = 0;
 let matchingAICEvents = [];
 let matchingAIVEvents = [];
+let selectionEvents = [];
 const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
@@ -507,10 +508,6 @@ const handleMouseMove = throttle((e) => {
     // 绘制框选
     drawSelectionBox();
     mulDetailsExpanded.value = false;
-    const selectionData = getSelection();
-    selectionData.forEach(eventItem => {
-      onSelectionEvent(eventItem);
-    });
   }
 }, 16);
 const drawSelectionBox = () => {
@@ -531,13 +528,15 @@ const drawSelectionBox = () => {
 };
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
-  const selectionData = getSelection();
-  if (!selectionData.length) {
+  checkInSelection();
+  if (!selectionEvents.length) {
     mulDetailsExpanded.value = false;
     clearSelectionCanvas();
     return;
   }
-  checkInSelection();
+  selectionEvents.forEach(eventItem => {
+    onSelectionEvent(eventItem);
+  });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
 };
@@ -547,6 +546,7 @@ const checkInSelection = () => {
   AIVCount = 0;
   matchingAICEvents = [];
   matchingAIVEvents = [];
+  selectionEvents = [];
   // 解构选择区域坐标
   const { startX, startY, endX, endY } = selection;
 
@@ -589,7 +589,7 @@ const checkInSelection = () => {
       }
     });
   });
-  const selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
+  selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
   const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
     ([min, max], { startTime, endTime }) => [
       Math.min(min, startTime),
@@ -600,58 +600,6 @@ const checkInSelection = () => {
   const timeRange = selectionEndTime - selectionStartTime;
   // 最终统计
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
-};
-const getSelection = () => {
-  let selectionArray = [];
-  // 解构选择区域坐标
-  const { startX, startY, endX, endY } = selection;
-  // 预计算选择框边界
-  const selectMinX = Math.min(startX, endX);
-  const selectMaxX = Math.max(startX, endX);
-  const selectMinY = Math.min(startY, endY);
-  const selectMaxY = Math.max(startY, endY);
-  // 遍历进程
-  for (const [processKey, process] of processes.entries()) {
-    if (!process.expanded) {
-      continue;
-    }
-    // 遍历线程
-    for (const [threadKey, thread] of process.threads.entries()) {
-      // 遍历事件
-      for (const item of thread.events) {
-        const { threadName, renderInfo } = item;
-        // 检查threadName是否存在且有效
-        if (!threadName?.trim()) {
-          continue;
-        }
-        // 精确匹配目标事件前缀
-        const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
-        if (!isTargetEvent) {
-          continue;
-        }
-        // 解构渲染信息
-        const { x, y, width, height } = renderInfo;
-
-        // 计算事件矩形边界
-        const eventMinX = x;
-        const eventMaxX = x + width;
-        const eventMinY = y;
-        const eventMaxY = y + height;
-
-        // 检测重叠
-        const isFullyInside = (
-          eventMinX >= selectMinX &&
-          eventMaxX <= selectMaxX &&
-          eventMinY >= selectMinY &&
-          eventMaxY <= selectMaxY
-        );
-        if (isFullyInside) {
-          selectionArray.push(item);
-        }
-      }
-    }
-  }
-  return selectionArray;
 };
 const getOffset = (deltaX, scale) => {
   if (scale <= 10) {
@@ -689,7 +637,7 @@ const clearSelectionCanvas = () => {
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
 };
 function onSelectionEvent(hoveredEvent) {
-  const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   if (!canvasRef) {
     return;
   }
@@ -1062,6 +1010,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     show: true,
   };
   drawEvent([drawData], ctx);
+  ctx.font = getFontStyle(eventTextSize);
   fillTextInfo(event, ctx, width, drawData, isTextXChange);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
