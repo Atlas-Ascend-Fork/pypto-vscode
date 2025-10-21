@@ -82,6 +82,7 @@ export abstract class BaseGraphMsgHandler {
   protected static onDidReceiveMessage(panel: any) {
     panel.webview.onDidReceiveMessage(
       async (message) => {
+        console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type}`);
         await this.CommonMessageActions(message, panel);
       },
       undefined,
@@ -179,7 +180,6 @@ export abstract class BaseGraphMsgHandler {
         console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
       }
     } else {
-      // 纯内存模式，强制读一次
       await graphData.readFileAndSetCache(graphData.fsPath, panel);
     }
     return isBigFile;
@@ -373,22 +373,35 @@ export abstract class BaseGraphMsgHandler {
     io?: any;
   }> {
     if (!gd) return { json: undefined };
-    const delay = (ms) => new Promise(res => setTimeout(res, ms));
-    await delay(100);
-    const ret = gd.isUsedDB
-      ? await SQLiteCache.getInstance()
-          .comGraphFuncDataGet(gd.fsPath, gd.funcHash!)
-          .then((r) => (r?.big_data_file_path ? SQLiteCache.getInstance().readJsonFile(r.big_data_file_path) : r?.data ?? null))
-      : gd.dataMap[gd.funcHash!];
+    let ret: string | null = null;
+
+    /* 1️⃣ 数据库模式：带延迟重试 */
+    if (gd.isUsedDB) {
+      const maxRetry = 5;
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+      for (let i = 0; i < maxRetry; i++) {
+        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+        ret = row?.big_data_file_path
+          ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path)
+          : row?.data ?? null;
+
+        if (ret) {console.debug(`fetchGraphJson comGraphFuncDataGet 拿到数据`); break;}
+        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i+1}次`);
+        await delay(100);      
+      }
+    } else {
+      /* 2️⃣ 内存模式：一次拿完 */
+      ret = gd.dataMap[gd.funcHash!] ?? null;
+    }
+    
     if (!ret) {
       this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
 
     const json = JSON.parse(ret);
-    // calleeMap
     await this.returnCalleeMap(gd, panel);
-    // inouttensors
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };

@@ -156,11 +156,9 @@ export class GraphView<T extends AbstractGraphData> {
 
     // 1. 拦截所有非业务命令
     if (!BaseGraphMsgHandler.WHITE_COMMANDS.has(cmd)) {
-      console.log(`[GraphView] ignore non-business command: ${cmd}`);
       return;
     }
     console.log(`[GraphView] business command: ${cmd}   type:${msg.type}`);
-    console.log(`[GraphView] business msg: ${msg} `);
     if (this.handler[cmd]) {
       this.handler[cmd](this.panel, msg.paramObj);
     }
