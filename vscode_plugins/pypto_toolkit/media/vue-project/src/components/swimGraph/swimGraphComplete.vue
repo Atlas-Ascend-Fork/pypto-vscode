@@ -1155,7 +1155,7 @@ const measureHandleWheel = (e) => {
 };
 
 const drawMeasureTime = () => {
-  if (!isMeasureModel) {
+  if (!isMeasureModel.value) {
     return;
   }
   let drawMeasureStartX = timeToX(measureDragStartTime.value);
