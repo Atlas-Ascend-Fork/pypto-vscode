@@ -469,7 +469,7 @@ const renderTwoTimeline = () => {
 }
 
 const renderEvent = () => {
-  if (!processedEvents.value.length && !counterEvents.value.length) return;
+  if (!processedEvents.value.length) return;
   // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
@@ -501,7 +501,7 @@ const clearDependencyLines = (processKey) => {
 };
 
 const render = () => {
-  if (!processedEvents.value.length && !counterEvents.value.length) return;
+  if (!processedEvents.value.length) return;
   renderTwoTimeline();
   renderEvent();
   renderDependencyLines();

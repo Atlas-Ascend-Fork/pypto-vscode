@@ -25,6 +25,90 @@ interface ComGraphFuncDataRow {
   last_change_time: string;
 }
 
+interface SwimGraphProcessRow {
+  file_path: string;
+  last_change_time: string;
+  pid: number;
+  process_name: string;
+  color_rendering: string;
+}
+
+interface SwimGraphThreadRow {
+  file_path: string;
+  tid: number;
+  last_change_time: string;
+  thread_name: string;
+  arg_key: string;
+  is_counter: number;
+  is_fake_core: number;
+  max_count: number;
+  pid: number;
+  thread_id: number;
+}
+
+interface SwimGraphEventRow {
+  file_path: string;
+  last_change_time: string;
+  id: string;
+  args: string;
+  predecessors: string;
+  successors: string;
+  duration: number;
+  end_time: number;
+  pid: number;
+  tid: number;
+  line: number;
+  is_counter: number;
+  is_fake_core: number;
+  name: string;
+  uid: string;
+  render_end_time: number;
+  render_start_time: number;
+  start_time: number;
+  thread_name: string;
+  ts: number;
+  leaf_index: string;
+  thread_id: number;
+  event_type: string;
+  seq_no: number;
+  task_id: number;
+  color: string;
+}
+
+interface SwimGraphPmuRow {
+  file_path: string;
+  last_change_time: string;
+  uid: string;
+  sub_task_id: string;
+  seq_no: string;
+  thread_id: string;
+  task_id: string;
+  core_id: string;
+  total_cycle: string;
+  vec_busy_cycles: string;
+  cube_busy_cycles: string;
+  scalar_busy_cycles: string;
+  mte1_busy_cycles: string;
+  mte2_busy_cycles: string;
+  mte3_busy_cycles: string;
+  icache_miss: string;
+  icache_req: string;
+  cube_ratio: string;
+  vec_ratio: string;
+  scalar_ratio: string;
+  mte1_ratio: string;
+  mte2_ratio: string;
+  mte3_ratio: string;
+  icache_hit: string;
+}
+
+interface SwimGraphLane2lineRow {
+  file_path: string;
+  last_change_time: string;
+  name: string;
+  value: number;
+}
+
 export class SQLiteCache {
   private static _instance: SQLiteCache;
   private db: Database | undefined;
@@ -120,6 +204,108 @@ export class SQLiteCache {
             );
         `);
     // 需要添加表就继续 this.db.run();
+
+
+    //swimGraph Table 
+    //process
+    this.db.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_process (
+            file_path TEXT NOT NULL,
+            last_change_time TEXT,
+            pid INTEGER NOT NULL,
+            process_name TEXT,
+            color_rendering TEXT,
+            PRIMARY KEY (file_path,pid,last_change_time)
+        );
+    `);
+    //thread
+    this.db.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_thread (
+            file_path TEXT NOT NULL,  
+            tid INTEGER NOT NULL,
+            last_change_time TEXT,
+            thread_name TEXT,
+            arg_key TEXT,
+            is_counter INTEGER,
+            is_fake_core INTEGER,
+            max_count INTEGER,
+            pid INTEGER,
+            thread_id INTEGER,
+            PRIMARY KEY (file_path,thread_id,pid,last_change_time)
+        );
+    `);
+    //event uid: args.seqNo-args.taskId
+    this.db.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_event (
+            file_path TEXT NOT NULL,  
+            last_change_time TEXT,
+            id TEXT NOT NULL,
+            args TEXT,
+            predecessors TEXT,
+            successors TEXT,
+            duration REAL,
+            end_time REAL,
+            pid INTEGER,
+            tid INTEGER,
+            line INTEGER,
+            is_counter INTEGER,
+            is_fake_core INTEGER,
+            name TEXT,
+            uid TEXT,
+            render_end_time REAL,
+            render_start_time REAL,
+            start_time REAL,
+            thread_name TEXT,
+            ts REAL,
+            leaf_index TEXT,
+            thread_id INTEGER,
+            event_type TEXT,
+            seq_no INTEGER,
+            task_id INTEGER,
+            color TEXT,
+            PRIMARY KEY (file_path,pid,thread_id,id,last_change_time)
+        );
+    `);
+    // pmu信息
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS swimgraph_pmu (
+          file_path TEXT NOT NULL,
+          last_change_time TEXT,
+          uid TEXT NOT NULL,  
+          sub_task_id TEXT NOT NULL,
+          seq_no TEXT NOT NULL,
+          thread_id TEXT,
+          task_id TEXT,
+          core_id TEXT,
+          total_cycle TEXT,
+          vec_busy_cycles TEXT,
+          cube_busy_cycles TEXT,
+          scalar_busy_cycles TEXT,
+          mte1_busy_cycles TEXT,
+          mte2_busy_cycles TEXT,
+          mte3_busy_cycles TEXT,
+          icache_miss TEXT,
+          icache_req TEXT,
+          cube_ratio REAL,
+          vec_ratio REAL,
+          scalar_ratio REAL,
+          mte1_ratio REAL,
+          mte2_ratio REAL,
+          mte3_ratio REAL,
+          icache_hit REAL,
+          PRIMARY KEY (file_path,uid,last_change_time)
+      );
+`);
+    //lane2line
+    this.db.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_lane2line (
+            file_path TEXT NOT NULL,
+            last_change_time TEXT,
+            name TEXT NOT NULL,
+            value INTEGER,
+            PRIMARY KEY (file_path,name,last_change_time)
+        );
+    `);
   }
   /****************** 2️⃣  数据表 ******************/
   /****************** com_graph_layout 表 ******************/
@@ -254,6 +440,352 @@ export class SQLiteCache {
     stmt.free();
     return row;
   }
+
+  /****************** swimgraph_process 表 ******************/
+
+  public async swimGraphProcessSet(
+    filePath: string, 
+    lastChangeTime: string, 
+    pid: number, 
+    processName: string,
+    colorRendering: string): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO swimgraph_process(file_path,last_change_time,pid,process_name,color_rendering) VALUES(?,?,?,?,?)', [
+      filePath,
+      lastChangeTime,
+      pid,
+      processName,
+      colorRendering
+    ]);
+  }
+
+  public async swimGraphProcessGetAll(): Promise<SwimGraphProcessRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_process');
+    const rows: SwimGraphProcessRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphProcessRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphProcessGetByFilePath(filePath: string): Promise<SwimGraphProcessRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_process WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphProcessRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphProcessRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphProcessDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_process WHERE file_path=?', [filePath]);
+  }
+
+  /****************** swimgraph_thread 表 ******************/
+
+  public async swimGraphThreadSet(
+    filePath: string, 
+    tid : number,
+    lastChangeTime: string, 
+    threadName: string,
+    argKey: string,
+    isCounter: number,
+    isFakeCore: number,
+    maxCount: number,
+    pid: number,
+    threadId: number): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO swimgraph_thread(file_path,tid,last_change_time,thread_name,arg_key,is_counter,is_fake_core,max_count,pid,thread_id) VALUES(?,?,?,?,?,?,?,?,?,?)', [
+      filePath,
+      tid,
+      lastChangeTime,
+      threadName,
+      argKey,
+      isCounter,
+      isFakeCore,
+      maxCount,
+      pid,
+      threadId
+    ]);
+  }
+
+  public async swimGraphThreadGetAll(): Promise<SwimGraphThreadRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_thread');
+    const rows: SwimGraphThreadRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphThreadRow);
+    }
+    stmt.free();
+    return rows;
+  }
+  
+  public async swimGraphThreadGetByFilePath(filePath: string): Promise<SwimGraphThreadRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_thread WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphThreadRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphThreadRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphThreadGetByFilePathPid(filePath: string, pid: number): Promise<SwimGraphThreadRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_thread WHERE file_path = ? AND pid = ?');
+    stmt.bind([filePath, pid]);
+    const rows: SwimGraphThreadRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphThreadRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphThreadDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_thread WHERE file_path=?', [filePath]);
+  }
+  
+  /****************** swimgraph_event 表 ******************/
+  public async swimGraphEventSet(
+    filePath: string, 
+    lastChangeTime: string, 
+    id: string,
+    threadId: number,
+    eventType: string,
+    args?: string,
+    predecessors?: string,
+    successors?: string,
+    duration?: number,
+    endTime?: number,
+    pid?: number,
+    tid?: number,
+    line?: number,
+    isCounter?: number,
+    isFakeCore?: number,
+    name?: string,
+    uid?: string,
+    renderEndTime?: number,
+    renderStartTime?: number,
+    startTime?: number,
+    threadName?: string,
+    ts?: number,
+    leafIndex?: string,
+    seqNo?: number,
+    taskId?: number,
+    color?: string
+    ): Promise<void> {
+
+    const sql = 
+    `INSERT OR REPLACE INTO swimgraph_event(file_path,last_change_time,id,args,predecessors,
+      successors,duration,end_time,pid,tid,line,is_counter,is_fake_core,name,
+      uid,render_end_time,render_start_time,start_time,thread_name,ts,
+      leaf_index,thread_id,event_type,seq_no,task_id,color) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    
+    const params = [
+      filePath,
+      lastChangeTime,
+      id,
+      args ?? '',
+      predecessors ?? '',
+      successors ?? '',
+      duration ?? 0,
+      endTime ?? 0,
+      pid ?? 0,
+      tid ?? 0,
+      line ?? 0,
+      isCounter ?? 0,
+      isFakeCore ?? 0,
+      name ?? '',
+      uid ?? '',
+      renderEndTime ?? 0,
+      renderStartTime ?? 0,
+      startTime ?? 0,
+      threadName ?? '',
+      ts ?? 0,
+      leafIndex ?? '',
+      threadId,
+      eventType,
+      seqNo ?? 0,
+      taskId ?? 0,
+      color ?? ''
+    ];
+    
+    this.db!.run(sql, params);
+}
+
+  public async swimGraphEventGetAll(): Promise<SwimGraphEventRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_event');
+    const rows: SwimGraphEventRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphEventRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphEventGetByFilePath(filePath: string): Promise<SwimGraphEventRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_event WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphEventRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphEventRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphEventGetByFilePathPidTid(filePath: string, pid: number, thread_id: number): Promise<SwimGraphEventRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_event WHERE file_path = ? AND pid = ? AND thread_id = ?');
+    stmt.bind([filePath, pid, thread_id]);
+    const rows: SwimGraphEventRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphEventRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphEventGetByFilePathPidTidOrderByTsAsc(filePath: string, pid: number, thread_id: number): Promise<SwimGraphEventRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_event WHERE file_path = ? AND pid = ? AND thread_id = ? ORDER BY ts ASC');
+    stmt.bind([filePath, pid, thread_id]);
+    const rows: SwimGraphEventRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphEventRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphEventDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_event WHERE file_path=?', [filePath]);
+  }
+  /****************** swimgraph_pmu 表 ******************/
+  public async swimGraphPmuSet(
+    filePath: string,
+    lastChangeTime: string,
+    uid: string,
+    subTaskId: number,
+    seqNo: number,
+    threadId: number,
+    taskId: number,
+    coreId: number,
+    totalCycle: number,
+    vecBusyCycle: number,
+    cubeBusyCycle: number,
+    scalarBusyCycle: number,
+    mte1BusyCycle: number,
+    mte2BusyCycle: number,
+    mte3BusyCycle: number,
+    icacheMiss: number,
+    icacheReq: number,
+    cubeRatio: number,
+    vecRatio: number,
+    scalarRatio: number,
+    mte1Ratio: number,
+    mte2Ratio: number,
+    mte3Ratio: number,
+    icacheHit: number
+  ): Promise<void> {
+    const sql = 
+      `INSERT OR REPLACE INTO swimgraph_pmu(file_path,last_change_time,uid,sub_task_id,
+        seq_no,thread_id,task_id,core_id,total_cycle,vec_busy_cycles,cube_busy_cycles,scalar_busy_cycles,
+        mte1_busy_cycles,mte2_busy_cycles,mte3_busy_cycles,icache_miss,icache_req,cube_ratio,vec_ratio,
+        scalar_ratio,mte1_ratio,mte2_ratio,mte3_ratio,
+        icache_hit) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    this.db!.run(
+      sql, [
+        filePath,
+        lastChangeTime,
+        uid,
+        subTaskId,
+        seqNo,
+        threadId,
+        taskId,
+        coreId,
+        totalCycle,
+        vecBusyCycle,
+        cubeBusyCycle,
+        scalarBusyCycle,
+        mte1BusyCycle,
+        mte2BusyCycle,
+        mte3BusyCycle,
+        icacheMiss,
+        icacheReq,
+        cubeRatio,
+        vecRatio,
+        scalarRatio,
+        mte1Ratio,
+        mte2Ratio,
+        mte3Ratio,
+        icacheHit
+      ]
+    );
+  }
+
+  public async swimGraphPmuGetAll(): Promise<SwimGraphPmuRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_pmu');
+    const rows: SwimGraphPmuRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphPmuRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphPmuGetByFilePath(filePath: string): Promise<SwimGraphPmuRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_pmu WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphPmuRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphPmuRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphPmuDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_pmu WHERE file_path=?', [filePath]);
+  }
+
+  /****************** swimgraph_lane2line 表 ******************/
+  public async swimGraphLane2lineSet(
+    filePath: string,
+    lastChangeTime: string,
+    name: string,
+    value: number
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO swimgraph_lane2line(file_path,last_change_time,name,value) VALUES(?,?,?,?)',
+      [filePath, lastChangeTime, name, value]
+    );
+  }
+
+  public async swimGraphLane2lineGetAll(): Promise<SwimGraphLane2lineRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_lane2line');
+    const rows: SwimGraphLane2lineRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphLane2lineRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphLane2lineGetByFilePath(filePath: string): Promise<SwimGraphLane2lineRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_lane2line WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphLane2lineRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphLane2lineRow);
+    }
+    stmt.free();
+    return rows;
+  }
+
+  public async swimGraphLane2lineDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_lane2line WHERE file_path=?', [filePath]);
+  }
+
   /****************** 4️⃣  生命周期 ******************/
   /** 把内存中的数据持久化到磁盘，在 deactivate() 里调用 **/
   public async save() {
