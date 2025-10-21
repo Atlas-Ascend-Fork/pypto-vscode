@@ -107,6 +107,7 @@ export abstract class BaseGraphMsgHandler {
       }
       if (layout.direction === 'DOWN') funcHash += '_down';
       if (!layout.showTensor) funcHash += '_notshowtensor';
+      funcHash += message.data.filePath || '';
       if (panel.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
         finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
       }
@@ -132,6 +133,7 @@ export abstract class BaseGraphMsgHandler {
       }
       if (layout.direction === 'DOWN') funcHash += '_down';
       if (!layout.showTensor) funcHash += '_notshowtensor';
+      funcHash += message.data.filePath || '';
       const lastChangeTime = await getMTime(filePath);
       const result = JSON.stringify(message.data);
       await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
@@ -217,6 +219,7 @@ export abstract class BaseGraphMsgHandler {
     }
     if (layoutDirection === 'DOWN') funcHash += '_down';
     if (showtensor !== 'true') funcHash += '_notshowtensor';
+    funcHash += graphData.layoutOptions['devkit.filePath'] || '';
     let lastChangeTime;
     if(filePath) {
       lastChangeTime = await getMTime(filePath);
