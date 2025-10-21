@@ -17,6 +17,27 @@ export interface RunDataManifest {
   swim_graph_path: string;
 }
 
-export interface OutputRecord {
-  dir: OutputDirectory;
+export type OutputRecord = Omit<OutputDetail, 'directoryTree'>;
+
+export interface OutputDetail {
+  /** 标题 */
+  title: string;
+
+  /** 执行时间 */
+  executeTime: string;
+
+  /** output文件夹地址 */
+  directoryPath: string;
+
+  /** 文件目录树 */
+  directoryTree: OutputDirectory;
+
+  /** 源代码文件地址 */
+  sourceFilePath: string;
+
+  /** 控制流文件地址 */
+  controlFlowFilePath: string;
+
+  /** 泳道图文件地址 */
+  swimlaneGraphFilePath: string;
 }

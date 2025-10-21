@@ -1,8 +1,5 @@
 import { Uri, workspace, window, Position, Selection, ViewColumn, Range } from 'vscode';
 import ElkConstructor from 'elkjs/lib/elk.bundled';
-import { createReadStream, existsSync } from 'fs';
-import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
 import { fork } from 'child_process';
 import path from 'path';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
@@ -18,6 +15,7 @@ import { basename } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { GraphView } from '../view/graphView';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
+import { getHealthReport } from '../utils/health-report';
 
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
@@ -348,17 +346,7 @@ export abstract class BaseGraphMsgHandler {
 
   static async getHealthyReport(panel: any) {
     const graphData = panel.comGraphData;
-    const base = graphData.fsPath.replace(/\.json$/, '');
-    const reports: any = {};
-    for (const [key, suffix] of [
-      ['TensorGraph', '_TensorGraphHealthReport.json'],
-      ['TileGraph', '_TileGraphHealthReport.json'],
-      ['ExecuteGraph', '_ExecuteGraph_Health_Report.json'],
-      ['KernelGraph', '_Kernel_Graph_Health_Report.json'],
-    ]) {
-      const file = base + suffix;
-      reports[key] = existsSync(file) ? await this.readHealthyJson(file) : null;
-    }
+    const reports = await getHealthReport(graphData.fsPath);
     panel.webview.postMessage({ command: 'returnHealthyReport', data: reports });
   }
 
@@ -448,16 +436,6 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
-  private static async readHealthyJson(fsPath: string) {
-    return new Promise<any>((resolve) => {
-      const res: any = {};
-      createReadStream(fsPath)
-        .pipe(parser())
-        .pipe(streamValues())
-        .on('data', (d) => Object.assign(res, d.value))
-        .on('end', () => resolve(res));
-    });
-  }
   static async openDiffViewer(panel: any) {
     const { DiffGraphHandler } = await import('../handler/diffGraphHandler');
     new GraphView(
