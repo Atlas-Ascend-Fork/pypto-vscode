@@ -7,6 +7,7 @@ import ErrorView from './components/comGraph/error.vue';
 import SearchEntry from './components/comGraph/searchEntry.vue';
 import SearchMode from './components/comGraph/searchMode.vue';
 import ThreeColumn from './components/threeColumn/threeColumn.vue';
+import SimpleComGraph from './components/comGraph/simpleComGraph.vue';
 import { comGraphStore } from './service/com-graph-store';
 import { useTheme } from './theme/use-theme';
 import { getQuery } from './core/query';
@@ -141,7 +142,7 @@ function dealConfig(config) {
 }
 
 function onFullRender() {
-  if (Object.keys(jsonContent.value).length){
+  if (Object.keys(jsonContent.value).length) {
     loadingStep.value = 'convertData';
   } else {
     loadingStep.value = 'readJson';
@@ -160,7 +161,7 @@ onMounted(() => {
   });
   (window as any).ascEventBus.on('comGraphRendering', (args) => {
     loadingStep.value = args;
-  })
+  });
 });
 
 const layout = ref('triangular');
@@ -168,12 +169,14 @@ const layout = ref('triangular');
 
 <template>
   <header>
-    <ThreeColumn v-if="graphType === 'returnCom'" v-model="layout">
+    <ThreeColumn v-model="layout">
       <template #code>code</template>
-      <template #comGraph>comGraph</template>
+      <template #comGraph>
+        <SimpleComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+      </template>
       <template #swimGraph>swimGraph</template>
     </ThreeColumn>
-    <ComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
+    <!-- <ComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/> -->
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"

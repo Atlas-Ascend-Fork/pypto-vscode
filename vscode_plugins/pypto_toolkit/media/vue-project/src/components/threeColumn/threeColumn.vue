@@ -105,6 +105,8 @@ const { t } = useI18n();
 
     & > div {
       width: 50%;
+      height: 50%;
+      box-sizing: border-box;
     }
     & > div:nth-of-type(1) {
       border-right: 1px solid var(--devui-border-line-deep);

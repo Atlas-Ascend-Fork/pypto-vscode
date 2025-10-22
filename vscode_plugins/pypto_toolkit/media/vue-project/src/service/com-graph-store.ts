@@ -9,6 +9,7 @@ interface ComGraphData {
   pathNodesSet: any,
   curPath: any;
   isDiffGraph: boolean;
+  isSimpleComGraph: boolean;
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
   visibleOtherNodes: boolean;
@@ -38,6 +39,7 @@ export const comGraphStore: DataStore = reactive({
     CalleeOpAttrMap: {},
     curPath: [],
     isDiffGraph: false,
+    isSimpleComGraph: false,
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,
     visibleOtherNodes:false,
