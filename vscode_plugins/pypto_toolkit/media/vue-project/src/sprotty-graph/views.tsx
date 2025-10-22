@@ -26,6 +26,7 @@ import { Point, Selectable, Hoverable, Dimension, getSubType } from 'sprotty-pro
 import { AstgrNode, MetadataLabel } from './graph.types';
 import { getTextWidth } from '../utils';
 import { comGraphStore } from '../service/com-graph-store';
+import { getBounds } from 'sprotty/lib/utils/geometry'
 
 // Extend global window interface to include our coloring flag
 declare global {
@@ -727,6 +728,67 @@ export class AstgrOpMinimapView extends RectangularNodeView {
           width={Math.max(node.size.width, 0)}
           height={Math.max(node.size.height, 0)}
           fill={backgroundFillColor}
+        ></rect>
+      </g>
+    );
+  }
+}
+
+@injectable()
+export class AstgrRectView extends RectangularNodeView {
+  override render(
+    node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
+    context: RenderingContext,
+    args?: IViewArgs
+  ): VNode | undefined {
+
+    if (node.needCalPostion) {
+      node.needCalPostion = false;
+      const nodeMap = node.parent.index.id2element;
+      let startX = Infinity;
+      let startY = Infinity;
+      let endX = -Infinity;
+      let endY = -Infinity;
+      let endYId = '';
+      
+      for (let i = 0; i < node.selectedNodes.length; i++) {
+        const tmpNodes = nodeMap.get(node.selectedNodes[i]);
+        if (!tmpNodes) {
+          continue;
+        }
+        if (tmpNodes.position.x < startX) {
+          startX = tmpNodes.position.x;
+        }
+        if (tmpNodes.position.x + tmpNodes.size.width > endX) {
+          endX = tmpNodes.position.x + tmpNodes.size.width;
+        }
+        if (tmpNodes.position.y < startY) {
+          startY = tmpNodes.position.y;
+        }
+        if (tmpNodes.position.y + tmpNodes.size.height > endY) {
+          endY = tmpNodes.position.y + tmpNodes.size.height;
+          endYId = node.selectedNodes[i];
+        }
+      }
+      node.position.x = startX - 8;
+      node.position.y = startY - 8;
+      node.customSize.width = endX - startX + 16;
+      if (endYId.startsWith('tensor-')) {
+        node.customSize.height = endY - startY + 32;
+      } else {
+        node.customSize.height = endY - startY + 16;
+      }
+    }
+    return (
+      <g>
+        <rect
+          class-op={true}
+          class-sprotty-node={true}
+          width={node.customSize.width}
+          height={node.customSize.height}
+          fill="transparent"
+          stroke="#0277BD"
+          strokeWidth={2}
         ></rect>
       </g>
     );

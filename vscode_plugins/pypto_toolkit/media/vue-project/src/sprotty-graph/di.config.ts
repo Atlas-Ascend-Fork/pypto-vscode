@@ -40,6 +40,7 @@ import {
   AstgrEdge,
   AstgrGraphView,
   AstgrNodeLabelView,
+  AstgrRectView,
   AstgrOpView,
   AstgrPortView,
   AstgrTensorView,
@@ -59,6 +60,9 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
       super(elkFactory, filter, configurator, preprocessor, postprocessor)
   }
   override layout(sgraph: SGraph, index?: SModelIndex): SGraph | Promise<SGraph> {
+    if (sgraph.notNeedLayout) {
+      return sgraph;
+    }
     if (this.getBasicType(sgraph) !== 'graph') {
         return sgraph;
     }
@@ -172,6 +176,10 @@ export function createDiContainer(sprottyContainerId: string) {
 
       configureModelElement(context, "label", SLabelImpl, AstgrNodeLabelView);
 
+      configureModelElement(context, "rect", RectangularNode, AstgrRectView, {
+        disable: [moveFeature],
+      });
+
       configureModelElement(context, "edge", SEdgeImpl, AstgrEdge, {
         disable: [editFeature],
       });
@@ -213,6 +221,13 @@ export function createDiContainer(sprottyContainerId: string) {
   container.load(randomGraphModule); // Your custom module
 
   return container;
+}
+
+
+export class Rect extends RectangularNode {
+  type = 'rect';
+  position = {x: 100, y: 100};
+  size = {width: 120, height: 80};
 }
 
 export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
