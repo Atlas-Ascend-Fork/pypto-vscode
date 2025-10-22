@@ -7,7 +7,12 @@
       </div>
       <template #menu>
         <div class="navbar-history-list">
-          <div v-for="item in historyList" :key="item.title" :class="['list-item', item.title === currentData.title && 'active']">
+          <div
+            v-for="item in historyList"
+            :key="item.title"
+            :class="['list-item', item.title === currentData.title && 'active']"
+            @click="() => (currentData = item)"
+          >
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
           </div>
@@ -19,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue';
+import { inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext } from './navbar-types';
 import { HistoryList } from './mock';
@@ -28,7 +33,7 @@ const { rootProps } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 
 const historyList = ref(HistoryList);
-const currentData = computed(() => historyList.value[0]);
+const currentData = ref(historyList.value[0]);
 </script>
 
 <style scoped lang="scss">
