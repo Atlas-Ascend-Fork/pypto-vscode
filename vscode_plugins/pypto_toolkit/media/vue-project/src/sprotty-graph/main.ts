@@ -342,7 +342,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   }
 
-  const CreateSelectNodesRect = async (semantic_lable : string) => {
+  const createSelectNodesRect = async (semantic_lable : string) => {
     const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);
     if (selectedNodes.length <= 0) {
       return;
@@ -372,7 +372,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.model.notNeedLayout = false;
   }
 
-  const RemoveSelectNodesRect = async () => {
+  const removeSelectNodesRect = async () => {
     modelSource.model.notNeedLayout = true;
     await modelSource.removeElements(['show-node-rect']);
     modelSource.model.notNeedLayout = false;
@@ -389,7 +389,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     getSelectedNodeId,
     setModelDirection,
     syncDiffView,
-    CreateSelectNodesRect,
-    RemoveSelectNodesRect,
+    createSelectNodesRect,
+    removeSelectNodesRect,
   };
 }
