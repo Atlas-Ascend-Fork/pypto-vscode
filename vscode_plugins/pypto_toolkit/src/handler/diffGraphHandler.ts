@@ -100,7 +100,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   }
 
   static getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
-    if (graphData.layoutOptions['devkit.filePath'] === 'before') {
+    if (graphData.layoutOptions['PyPTO.filePath'] === 'before') {
       return panel.comGraphData;
     } else {
       return panel.diffGraphData;
