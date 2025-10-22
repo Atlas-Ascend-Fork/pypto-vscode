@@ -227,3 +227,18 @@ export function searchFuzzy(tensorMap, operationMap, rawtensorMap, funcMap, keyw
         ];
   }
 }
+
+export function findNodeIdsBySemanticLabel(jsonData: Object, semantic_label: string) {
+  const ids: string[] = [];
+  for (const op of jsonData.operations ?? []) {
+    if (op.semantic_label?.includes(semantic_label)) {
+      ids.push(op.node_id);
+    }
+  }
+  for (const t of jsonData.tensors ?? []) {
+    if (t.semantic_label?.includes(semantic_label)) {
+      ids.push(t.node_id);
+    }
+  }
+  return ids;
+}

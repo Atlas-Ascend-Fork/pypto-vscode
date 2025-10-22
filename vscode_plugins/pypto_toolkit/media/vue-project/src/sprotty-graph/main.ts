@@ -1,6 +1,6 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, TYPES } from 'sprotty';
-import { createDiContainer } from './di.config';
+import { createDiContainer, Rect } from './di.config';
 
 import {
   FitToScreenAction,
@@ -13,8 +13,7 @@ import {
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
 import { ILayoutConfigurator } from 'sprotty-elk';
-import { compareJsonData } from '../utils';
-import { after, before } from 'node:test';
+import { findNodeIdsBySemanticLabel } from '../utils/search';
 
 declare const vscode: any;
 const MAINMAP_TYPE = 1;
@@ -277,7 +276,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         retainZoom: retainZoomPara,
         zoomScale: zoomScalePara,
       };
-      modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options));
+      modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options))
+      
     }
   };
 
@@ -342,6 +342,42 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   }
 
+  const createSelectNodesRect = async (semantic_lable : string) => {
+    const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);
+    if (selectedNodes.length <= 0) {
+      return;
+    }
+      
+    selectAction(selectedNodes);
+    modelSource.removeElements(['show-node-rect']);
+    const newRect = new Rect();
+    newRect.id = 'show-node-rect';
+    newRect.customSize = {width: 0, height: 0};
+    newRect.position = {x: 0, y: 0};
+    newRect.selectedNodes = selectedNodes;
+    newRect.needCalPostion = true;
+
+    modelSource.model.notNeedLayout = true;
+    await modelSource.addElements([newRect]);
+    const fitAction: FitToScreenAction = {
+      maxZoom: 2.0, // Increased from 0.01 to allow normal zoom levels
+      padding: 50, // Reduced padding
+      kind: 'fit',
+      elementIds: selectedNodes,
+      animate: true,
+    };
+    modelSource.actionDispatcher.dispatch(fitAction).then(() => {
+      getViewport(modelSource, MAINMAP_FIT_SCREEN);
+    }); 
+    modelSource.model.notNeedLayout = false;
+  }
+
+  const removeSelectNodesRect = async () => {
+    modelSource.model.notNeedLayout = true;
+    await modelSource.removeElements(['show-node-rect']);
+    modelSource.model.notNeedLayout = false;
+  }
+
   return {
     fitToScreenAction,
     initComDocText,
@@ -353,5 +389,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     getSelectedNodeId,
     setModelDirection,
     syncDiffView,
+    createSelectNodesRect,
+    removeSelectNodesRect,
   };
 }
