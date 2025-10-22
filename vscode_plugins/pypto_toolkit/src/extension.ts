@@ -13,8 +13,10 @@ import { services } from './services';
 import { initView } from './view';
 import { SwimGraphView } from './view/swimGraphView.js';
 import { GraphView } from './view/graphView';
-import { SingleGraphData } from './core/graphData';
+import { SingleGraphData,DiffGraphData } from './core/graphData';
 import { SingleGraphHandler } from './handler/singleGraphHandler';
+import { DiffGraphHandler } from './handler/diffGraphHandler';
+
 import { loadMaterialColorUtilities } from './color-list';
 
 const i18next = require('i18next');
@@ -102,6 +104,22 @@ export async function activate(context: ExtensionContext) {
           curPath,
           calleeOpMagic,
           calleeOpSubgraphId,
+        );
+      },
+    });
+
+    window.registerWebviewPanelSerializer('itemDetailView', {
+      async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
+        await loadMaterialColorUtilities();
+        const { fsPath, funcHash, magicName, curPath } = (state as any) || {};
+        GraphView.reviveDiffGraph(
+          webviewPanel,
+          DiffGraphData,
+          DiffGraphHandler,
+          fsPath,
+          funcHash,
+          magicName,
+          curPath,
         );
       },
     });
