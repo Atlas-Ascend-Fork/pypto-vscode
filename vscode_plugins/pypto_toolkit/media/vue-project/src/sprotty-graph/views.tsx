@@ -26,7 +26,6 @@ import { Point, Selectable, Hoverable, Dimension, getSubType } from 'sprotty-pro
 import { AstgrNode, MetadataLabel } from './graph.types';
 import { getTextWidth } from '../utils';
 import { comGraphStore } from '../service/com-graph-store';
-import { getBounds } from 'sprotty/lib/utils/geometry'
 
 // Extend global window interface to include our coloring flag
 declare global {

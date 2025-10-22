@@ -8,8 +8,7 @@ import {
   SelectAction,
   CenterAction,
   SetViewportAction,
-  UpdateModelAction,
-  CreateElementAction
+  UpdateModelAction
 } from 'sprotty-protocol';
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
@@ -34,7 +33,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   let currentLayoutConfig: any = {
     direction: 'RIGHT',
     showTensor: true,
-    filePath: filePath ?? ''
+    filePath: filePath ?? '',
   }
   if (filePath) {
     resetModelSource();
@@ -198,7 +197,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   };
 
   const mainMapFitscreenListener = (args) => {
-    RemoveSelectNodesRect();
     fitToScreenAction();
   };
 
@@ -275,7 +273,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     if (selectedElements.length > 0) {
       const options = {
         animate: animatePara,
-        retainZoom: false,
+        retainZoom: retainZoomPara,
         zoomScale: zoomScalePara,
       };
       modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options))
