@@ -4,9 +4,9 @@ export function useHeader(isVisible: Ref<boolean>) {
   let selectedTags = [];
 
   const hideCategorySearchDropdown = () => {
-    const dom = document.querySelector('.devui-flexible-overlay:has(.dp-category-search-dropdown)');
+    const dom = document.querySelector('.devui-flexible-overlay:has(.dp-category-search-dropdown)') as HTMLElement;
     if (dom) {
-      dom.style.display = 'none';
+      dom.classList.add('hide-category-search-dropdown');
     }
   };
 
