@@ -91,20 +91,6 @@ export class GraphView<T extends AbstractGraphData> {
       this.disposables,
     );
 
-    // 5. 触发子类初始化  目前由前端触发 // await this.handler.getInitialData(this.panel);
-
-    // ✅ 让 VS Code 下次能反序列化
-    console.debug('GraphView createPanel 发送saveState消息');
-    this.panel.webview.postMessage({
-      command: 'saveState',
-      data: {
-        fsPath,
-        funcHash,
-        curPath,
-        calleeOpMagic: this.options.calleeOpMagic,
-        calleeOpSubgraphId: this.options.calleeOpSubgraphId,
-      },
-    });
     return this.panel;
   }
 
@@ -133,6 +119,29 @@ export class GraphView<T extends AbstractGraphData> {
     void view.createPanel(fsPath, funcHash,curPath,panel,magicName,calleeOpMagic,calleeOpSubgraphId);
     return view;
   }
+
+  static reviveDiffGraph<T extends AbstractGraphData>(
+    panel: vscode.WebviewPanel,
+    dataCtor: new (p: string, h?: string, opM?: string, opSg?: string) => T,
+    handler: typeof BaseGraphMsgHandler,
+    fsPath: string,
+    funcHash?: string,
+    magicName?: string,
+    curPath?: string,
+  ): GraphView<T> {
+    const view = new GraphView<T>(
+      {
+        viewType: panel.viewType,
+        title: panel.title,
+        column: vscode.ViewColumn.One,
+      },
+      dataCtor,
+      handler,
+    );
+    view.panel = panel; // 复用旧 panel
+    void view.createPanel(fsPath,funcHash,curPath,panel,magicName);
+    return view;
+  }
   /* --------------------------------------------------
    * 私有：HTML 注入
    * -------------------------------------------------- */
@@ -156,11 +165,9 @@ export class GraphView<T extends AbstractGraphData> {
 
     // 1. 拦截所有非业务命令
     if (!BaseGraphMsgHandler.WHITE_COMMANDS.has(cmd)) {
-      console.log(`[GraphView] ignore non-business command: ${cmd}`);
       return;
     }
     console.log(`[GraphView] business command: ${cmd}   type:${msg.type}`);
-    console.log(`[GraphView] business msg: ${msg} `);
     if (this.handler[cmd]) {
       this.handler[cmd](this.panel, msg.paramObj);
     }

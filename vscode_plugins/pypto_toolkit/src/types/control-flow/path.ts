@@ -1,4 +1,5 @@
 import type { CallOp, ExecuteFunction } from '../execute-graph';
+import { PassStage } from '../workspace/pass';
 import { ControlFlowNode } from './basic-node';
 
 /**
@@ -22,12 +23,12 @@ export interface ControlFlowPath extends ControlFlowNode {
   };
 }
 
-interface LeafFunction extends ExecuteFunction {}
+export interface LeafFunction extends ExecuteFunction {}
 
 /**
  * root->leaf记录
  */
-interface CallLeafRecord extends CallOp {
+export interface CallLeafRecord extends CallOp {
   /** 调用方函数 */
   callerFunction: ExecuteFunction;
 
@@ -38,9 +39,12 @@ interface CallLeafRecord extends CallOp {
 /**
  * 单个优化过程内的PATH信息
  */
-interface PathInPass {
+export interface PathInPass {
   /** 过程序号 */
-  passIndex: number;
+  passIndex: string;
+
+  /** 过程所属阶段 */
+  passStage: PassStage;
 
   /** 过程名称 */
   passName: string;

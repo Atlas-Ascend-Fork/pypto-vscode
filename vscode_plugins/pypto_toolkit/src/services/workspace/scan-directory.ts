@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import {
   ComputeDirectory,
+  ComputeGraph,
   ControlFlowFile,
   OutputDirectory,
   PassDirectory,
@@ -11,6 +12,7 @@ import {
   SwimlaneGraphFile,
 } from '../../types/workspace';
 import { t } from 'i18next';
+import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
 
 const CONTROL_FLOW_SOURCE_FILE = 'program.json';
 
@@ -89,30 +91,71 @@ async function getComputeGraphDirectory(outputUri: vscode.Uri, runData: RunDataM
       directoryType: 'compute',
       name: t('PyPTOToolkit.workspace.computeGraphName'),
       absolutePath: computeDirectoryUri.path,
-      children: await getPassDirectories(computeDirectoryUri),
+      children: await getPassDirectories(computeDirectoryUri, outputUri),
     },
   ];
 }
 
+/** Pass目录名称正则 */
+const PassDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
+
 /**
- * pass目录
- * @param parentDirUri 
- * @returns 
+ * Pass目录
  */
-async function getPassDirectories(parentDirUri: vscode.Uri): Promise<PassDirectory[]> {
+async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Uri): Promise<PassDirectory[]> {
   const subList = await vscode.workspace.fs.readDirectory(parentDirUri);
   const passes: PassDirectory[] = [];
+  let passStage = PassStage.TENSOR_GRAPH;
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.Directory && subPath.startsWith('Pass_')) {
+    if (fileType === vscode.FileType.Directory && PassDirectoryRegExp.test(subPath)) {
+      const [_, passIndex, passName] = subPath.match(PassDirectoryRegExp) ?? [];
       const passUri = vscode.Uri.joinPath(parentDirUri, subPath);
+
+      const computeGraphList = await getComputeGraphFile(passUri, outputUri, passIndex);
+      if (computeGraphList.length === 0) {
+        continue;
+      }
+
       passes.push({
         type: 'dir',
         directoryType: 'pass',
-        name: subPath,
+        passStage: passStage,
+        passIndex: passIndex,
+        name: passName,
         absolutePath: passUri.path,
-        children: [],
+        children: computeGraphList,
       });
+
+      // 判断是否进入下一个stage
+      if (passName.toLowerCase() === StageEndPassNames[passStage][0].toLowerCase()) {
+        passStage = StageEndPassNames[passStage][1];
+      }
     }
   }
   return passes;
+}
+
+/**
+ * 计算图文件
+ */
+async function getComputeGraphFile(passUri: vscode.Uri, outputUri: vscode.Uri, passIndex: string): Promise<ComputeGraph[]> {
+  const subList = await vscode.workspace.fs.readDirectory(passUri);
+  const graphs: ComputeGraph[] = [];
+
+  for (const [subPath, fileType] of subList) {
+    if (fileType === vscode.FileType.File && subPath.endsWith('.json') && !subPath.startsWith('Before')) {
+      const computeGraphUri = vscode.Uri.joinPath(passUri, subPath);
+      graphs.push({
+        type: 'file',
+        fileType: 'computeGraph',
+        extname: '.json',
+        name: subPath,
+        absolutePath: computeGraphUri.path,
+        outputPath: outputUri.path,
+        passIndex,
+      });
+    }
+  }
+
+  return graphs;
 }

@@ -757,6 +757,7 @@ export class AscppDagBuilder {
 
     private createIncastNode(
         startNode: string,
+        tensor: Tensor,
         actualData: FunctionData,
         nodes: SNode[],
         edges: SEdge[],
@@ -784,8 +785,6 @@ export class AscppDagBuilder {
         }
 
         // Get the raw tensor ID and then lookup the tensor name
-        const incastNodeIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors![incastNodeIndex!];
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
@@ -800,7 +799,6 @@ export class AscppDagBuilder {
 
         // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
-            console.log("dxl test createIncastNode singlePathNodeSet", this.singlePathNodeSet);
             const new_graphId = -2;
             nodeId = `tensor-${tensorMagic}-${new_graphId}`;
             this.singlePathNodeSet.add(nodeId);
@@ -842,6 +840,7 @@ export class AscppDagBuilder {
 
     private createOutcastNode(
         startNode: string,
+        tensor: Tensor,
         actualData: FunctionData,
         nodes: SNode[],
         edges: SEdge[],
@@ -869,8 +868,6 @@ export class AscppDagBuilder {
         }
 
         // Get the raw tensor ID and then lookup the tensor name
-        const outcastNodeIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors![outcastNodeIndex!];
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
@@ -884,7 +881,6 @@ export class AscppDagBuilder {
         let nodeId = `tensor-${tensorMagic}-${graphId}`;
         // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
-            console.log("dxl test createOutcastNode singlePathNodeSet", this.singlePathNodeSet);
             graphId = -2;
             nodeId = `tensor-${tensorMagic}-${graphId}`;
             this.singlePathNodeSet.add(nodeId);
@@ -942,11 +938,16 @@ export class AscppDagBuilder {
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean) 
     {
-        if (actualData.incasts?.some((t) => t[0] === Number(startNode)) ) {
-            this.createIncastNode(startNode, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
+        const castNodeIndex = this.tensorListMap.get(startNode);
+        const tensor = actualData.tensors![castNodeIndex!];
+        if(tensor.nodetype === 1) {
+            this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
+        } else if (tensor.nodetype === 2) {
+            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
+        } else {
+            this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
         }
 
-        this.createTensorNode(startNode, actualData, nodes, portMap, rawTensorMap, inoutMap);
         if(!this.tensor2opMap.get(startNode.toString())){
             return;
         }
@@ -977,13 +978,15 @@ export class AscppDagBuilder {
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean) 
     {
+        const castNodeIndex = this.tensorListMap.get(startNode);
+        const tensor = actualData.tensors![castNodeIndex!];
         if (actualData.outcasts?.some(([n]) => n === Number(startNode)) ) {
-            this.createOutcastNode(startNode, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
-            // this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, startNode.toString());
+            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
+        } else if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
+            this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
+        } else {
+            this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
         }
-
-        this.createTensorNode(startNode, actualData, nodes, portMap, rawTensorMap, inoutMap);
-        // this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, startNode.toString());
 
         if(!this.tensor2opMap.get(startNode.toString())){
             return;
@@ -1000,6 +1003,7 @@ export class AscppDagBuilder {
 
     private createTensorNode(
         startNode: string,
+        tensor: Tensor,
         actualData: FunctionData,
         nodes: SNode[],
         portMap: Map<string, PortReference>,
@@ -1009,9 +1013,6 @@ export class AscppDagBuilder {
         if (!actualData.tensors || !Array.isArray(actualData.tensors)) {
             return;
         }
-
-        const tensorIndex = this.tensorListMap.get(startNode);
-        const tensor = actualData.tensors[tensorIndex!];
 
         if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
             this.panel.webview.postMessage({
@@ -1198,7 +1199,6 @@ export class AscppDagBuilder {
         inoutMap: Map<string, Set<string>>,
         nodeMagic?: string | undefined
     ): void {
-        console.log("dxl test createTensorNodes nodeMagic", nodeMagic);
         if (!actualData.tensors || !Array.isArray(actualData.tensors)) {
             return;
         }
@@ -1219,12 +1219,6 @@ export class AscppDagBuilder {
                     data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
                 });
             }
-
-            // if (nodeMagic) {
-            //     if (nodeMagic.toString() !== tensorMagic.toString()) {
-            //         continue;
-            //     }
-            // }
 
             let symbol = rawTensor?.symbol || "Tensor";
             symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
@@ -1372,9 +1366,6 @@ export class AscppDagBuilder {
                 };
                 this.nodeSet.add(nodeId);
                 nodes.push(tensorNode);
-                // if (nodeMagic) {
-                //     this.singlePathNodeSet.add(nodeId);
-                // }
             }
 
             // Register ports in portMap
@@ -1504,8 +1495,7 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         rawTensorMap: Map<string, RawTensor>,
         rawTensorProducers: Map<string, PortReference[]>,
-        showTensorNodes: boolean,
-        nodeMagic?: string
+        showTensorNodes: boolean
     ): void {
         if (!actualData.incasts || !Array.isArray(actualData.incasts)) {
             return;
@@ -1515,12 +1505,6 @@ export class AscppDagBuilder {
         for (let incastIndex = 0; incastIndex < actualData.incasts.length; incastIndex++) {
             const incast = actualData.incasts[incastIndex];
             const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
-
-            // if (nodeMagic) {
-            //     if (nodeMagic.toString() !== tensorMagic.toString()) {
-            //         continue;
-            //     }
-            // }
 
             const slotId: any[] = [];
 
@@ -1559,9 +1543,6 @@ export class AscppDagBuilder {
 
             node.children!.push(inPort);
             this.nodeSet.add(nodeId);
-            // if (nodeMagic) {
-            //     this.singlePathNodeSet.add(nodeId);
-            // }
 
             if (actualData.inouttensors) {
                 nodes.push(node);
@@ -1570,15 +1551,11 @@ export class AscppDagBuilder {
                 nodes.push(node);
             }
             if (showTensorNodes) {
-                // Connect to tensor node's input port
-                // if (!nodeMagic) {
-                    const tensorPort = portMap.get(`producer-${tensorMagic}`);
-                    if (tensorPort) {
-                        portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
-                    }
-                // } else {
-                //     portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
-                // }
+                // Connect to tensor node's input port{
+                const tensorPort = portMap.get(`producer-${tensorMagic}`);
+                if (tensorPort) {
+                    portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
+                }
             } else {
                 // Register incast as producer for direct connections
                 const rawTensorId = `${rawTensor!.rawmagic}`;
@@ -1679,7 +1656,6 @@ export class AscppDagBuilder {
         rawTensorMap: Map<string, RawTensor>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
-        nodeMagic?:string
     ): void {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
@@ -1736,17 +1712,6 @@ export class AscppDagBuilder {
             const portId = `tensor-${tensorMagic}-${graphId}-in`;
             const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
             const outPort: AstgrPort = {type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8}};
-            
-            if (nodeMagic) {
-                // check duplicate Nodes
-                if (this.singlePathNodeSet.has(nodeId)) {
-                    console.log("dxl test createOutcastNodes singlePathNodeSet", this.singlePathNodeSet);
-                    const new_graphId = -2;
-                    nodeId = `tensor-${tensorMagic}-${new_graphId}`;
-                    this.singlePathNodeSet.add(nodeId);
-                    return;
-                }
-            }
 
             const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
             node.children!.push(outPort);
@@ -1756,20 +1721,13 @@ export class AscppDagBuilder {
             } else {
                 nodes.push(node);
             }
-            if (nodeMagic) {
-                this.singlePathNodeSet.add(nodeId);
-            }
 
             if (showTensorNodes) {
                 // Connect to tensor node's output port
-                // if (!nodeMagic) {
-                    const tensorPort = portMap.get(`consumer-${tensorMagic}`);
-                    if (tensorPort) {
-                        portMap.set(`consumer-${tensorMagic}`, { nodeId, portId });
-                    }
-                // } else {
-                //     portMap.set(`consumer-${tensorMagic}`, { nodeId, portId });
-                // }
+                const tensorPort = portMap.get(`consumer-${tensorMagic}`);
+                if (tensorPort) {
+                    portMap.set(`consumer-${tensorMagic}`, { nodeId, portId });
+                }
 
             } else {
                 // Register outcast as consumer for direct connections
