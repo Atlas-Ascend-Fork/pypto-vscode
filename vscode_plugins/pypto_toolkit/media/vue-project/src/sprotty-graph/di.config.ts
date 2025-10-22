@@ -439,7 +439,7 @@ export class CustomMouseListener extends MouseListener {
 
   doubleClick(target: SModelElement, event: MouseEvent): Action[] {
     console.log('double click');
-    if (target?.id.startsWith("operation")) {
+    if (target?.id.startsWith("operation") && !comGraphStore.data.isSimpleComGraph) {
       let current = target;
       while (current) {
         if ('calleehash' in current) {
