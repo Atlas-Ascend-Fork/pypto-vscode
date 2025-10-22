@@ -471,6 +471,9 @@ export abstract class BaseGraphMsgHandler {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
     panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
     panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
+    /* 设置state 让 VS Code 下次能反序列化 */
+    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname });
+
   }
 
   protected static checkFuncHash(panel: any, gd: AbstractGraphData, cmd: string): boolean {
