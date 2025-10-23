@@ -11,7 +11,7 @@
             v-for="item in historyList"
             :key="item.title"
             :class="['list-item', item.title === currentData.title && 'active']"
-            @click="() => rootEmits('currentRecordChange', item.directoryPath)"
+            @click="() => onClick(item)"
           >
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
@@ -27,6 +27,7 @@
 import { computed, inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
+import { openControlFlow } from '../../apis/opener';
 
 const { rootProps, rootEmits, historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
@@ -42,6 +43,12 @@ const currentData = computed<Partial<HistoryData>>(() => {
   }
   return {};
 });
+
+function onClick(item: HistoryData) {
+  openControlFlow({ outputPath: item.directoryPath, controlFlowPath: item.controlFlowFilePath });
+}
+
+defineExpose({ getCurrentRecord: () => currentData.value });
 </script>
 
 <style scoped lang="scss">

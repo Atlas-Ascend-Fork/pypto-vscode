@@ -413,8 +413,8 @@ export abstract class BaseGraphMsgHandler {
         panel.webview.postMessage({ command: 'readJsonWarning' });
       }
       /** Pass目录名称正则 */
-      const passDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
-      const [_, __, passName] = panel.fsPath.match(passDirectoryRegExp)
+      const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
+      const [_, __, passName] = panel.fsPath.match(passDirectoryRegExp) ?? [];
       panel.webview.postMessage({
         command: cmd,
         step: 'convertData',

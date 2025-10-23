@@ -4,7 +4,7 @@
       <div class="history-icon">
         <i class="icon-assembly-new"></i>
       </div>
-      <HistoryList />
+      <HistoryList ref="historyListEl" />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -14,7 +14,7 @@
         </div>
       </d-tooltip>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']">
+      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="() => jump['controlFlow']">
         <i class="icon-sharing"></i>
         <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
       </div>
@@ -29,7 +29,7 @@
         </div>
       </div>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div class="swim-graph">
+      <div class="swim-graph" @click="() => jump['swim']">
         <i class="icon-project-nav"></i>
       </div>
     </div>
@@ -50,10 +50,12 @@ import type { HistoryData, ControlFlowData, NavbarEmits } from './navbar-types';
 import type { PathInPass, LeafFunction } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
+import { openControlFlow } from '../../apis/opener';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
 const emits = defineEmits<NavbarEmits>();
+const historyListEl = ref();
 const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
@@ -76,6 +78,19 @@ watch(
   },
   { immediate: true },
 );
+
+function jump(type: 'controlFlow' | 'swim') {
+  const map = {
+    controlFlow: 'controlFlowFilePath',
+    swim: 'swimlaneGraphFilePath',
+  };
+  if (historyListEl.value) {
+    const record = historyListEl.value.getCurrentRecord() as HistoryData;
+    if (record.directoryPath) {
+      openControlFlow({ outputPath: record.directoryPath, controlFlowPath: record[map[type]] });
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">

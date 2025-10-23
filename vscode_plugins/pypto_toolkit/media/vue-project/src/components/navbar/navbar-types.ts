@@ -4,8 +4,6 @@ import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafF
 
 export type HistoryData = OutputRecord;
 
-
-
 export type ControlFlowData = ControlFlowPath | ControlFlowIf | ControlFlowLoop;
 
 export interface PathTreeData {
