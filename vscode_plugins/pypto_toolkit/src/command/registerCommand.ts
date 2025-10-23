@@ -87,7 +87,7 @@ export class RegisterCommand {
           window.showInformationMessage(_('pypto.cannotRender'));
         }
       }),
-      commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+      commands.registerCommand('PyPTO.OpenLinkageMode', async (uri: Uri | undefined) => {
         await loadMaterialColorUtilities();
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;

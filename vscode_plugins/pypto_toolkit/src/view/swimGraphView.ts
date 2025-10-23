@@ -12,12 +12,12 @@ import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo } from '../process';
 import { getIDELang } from '../lang';
 
-class SwimData {
+export class SwimData {
 
-  public uri: string;
+  public uri: Uri;
   public fsPath: string;
 
-  constructor(uri: string, fsPath: string) {
+  constructor(uri: Uri, fsPath: string) {
     this.uri = uri;
     this.fsPath = fsPath;
   }
@@ -320,7 +320,7 @@ export class SwimGraphView {
     this._disposables = [];
 
     this.panel = panel;
-    this.panel.swimData = new SwimData(this.panel.webview.asWebviewUri(uri).toString(), uri.fsPath);
+    this.panel.swimData = new SwimData(uri, uri.fsPath);
     this.panel.msgHandler = MsgHandler;
 
     this.initWebViewPanel();

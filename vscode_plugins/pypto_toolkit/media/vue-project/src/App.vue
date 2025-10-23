@@ -174,7 +174,9 @@ const layout = ref('triangular');
       <template #comGraph>
         <SimpleComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
-      <template #swimGraph>swimGraph</template>
+      <template #swimGraph>
+        <SwimGraph v-if="graphType === 'returnSwim'" />
+      </template>
     </ThreeColumn>
     <!-- <ComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/> -->
     <SearchEntry

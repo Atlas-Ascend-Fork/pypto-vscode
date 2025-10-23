@@ -38,8 +38,6 @@ export abstract class BaseGraphMsgHandler {
     'callInOutTensorMap',
     'getSubgraph',
     // 以后扩展再往里加
-    'getPyCode',
-    'savePyCode',
   ]);
 
   static async initTheme(panel: any) {
@@ -345,47 +343,6 @@ export abstract class BaseGraphMsgHandler {
     }
 
     panel.webview.postMessage({ command: 'globalSearchResult', data: resultMap });
-  }
-
-  static getPyCode(panel: any) {
-    // 替换成本地python文件路径
-    const codePath = 'D:\\code\\demos\\traceData\\test.py';
-    let code = '';
-    try {
-      code = readFileSync(codePath, 'utf8');
-    } catch (err) {
-      console.error(`${codePath}读取 py 文件时发生错误:`, err);
-    }
-    panel.webview.postMessage({
-      command: 'returnPyCode',
-      data: code
-    });
-  }
-
-  static savePyCode(panel: any, code: string) {
-    // 替换成本地python文件路径
-    const codePath = 'D:\\code\\demos\\traceData\\test.py';
-
-    try {
-      // 保存代码到文件
-      writeFileSync(codePath, code, 'utf8');
-      
-      // 通知前端保存成功
-      panel.webview.postMessage({
-        command: 'saveSuccess',
-        data: 'Code saved successfully'
-      });
-
-      console.log(`Code saved to: ${codePath}`);
-    } catch (err: any) {
-      console.error(`保存文件时发生错误:`, err);
-      
-      // 通知前端保存失败
-      panel.webview.postMessage({
-        command: 'saveError',
-        data: err.message
-      });
-    }
   }
 
   static async getHealthyReport(panel: any) {

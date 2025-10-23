@@ -2,15 +2,53 @@ import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vsco
 import { hismartliteEx } from '../hismarliteEx';
 import { Util } from '../util';
 import { join } from 'path';
-import { readFileSync} from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { getIDETheme } from '../theme';
 import { getIDELang } from '../lang';
 import { SingleGraphHandler } from '../handler/singleGraphHandler';
-import { MsgHandler } from './swimGraphView'
 import * as vscode from 'vscode';
+import { MsgHandler, SwimData } from './swimGraphView';
+import { Fider } from './threeColumnEntry';
 
 class codeMsgHandler {
+  static getPyCode(panel: any) {
+    const codePath = panel.codePath;
+    let code = '';
+    try {
+      code = readFileSync(codePath, 'utf8');
+    } catch (err) {
+      console.error(`${codePath}读取 py 文件时发生错误:`, err);
+    }
+    panel.webview.postMessage({
+      command: 'returnPyCode',
+      data: code
+    });
+  }
 
+  static savePyCode(panel: any, code: string) {
+    const codePath = panel.codePath;
+
+    try {
+      // 保存代码到文件
+      writeFileSync(codePath, code, 'utf8');
+      
+      // 通知前端保存成功
+      panel.webview.postMessage({
+        command: 'saveSuccess',
+        data: 'Code saved successfully'
+      });
+
+      console.log(`Code saved to: ${codePath}`);
+    } catch (err: any) {
+      console.error(`保存文件时发生错误:`, err);
+      
+      // 通知前端保存失败
+      panel.webview.postMessage({
+        command: 'saveError',
+        data: err.message
+      });
+    }
+  }
 }
 
 class comGraphHandler extends SingleGraphHandler {
@@ -48,10 +86,10 @@ export class ThreeColumnGraphView {
     this.comPath = comgraphUri?.fsPath;
 
     this.panel = panel;
-    this.panel.codeHandler = codeMsgHandler;
+    this.panel.codeMsgHandler = codeMsgHandler;
     this.panel.comgraphHanlder = comGraphHandler;
     this.panel.swimgraphHandler = swimGrapHandler;
-    this.initRelativePath();
+    this.panel.codePath = this.codePath;
     this.initWebViewPanel();
 
     const context: any = hismartliteEx.context;
@@ -87,7 +125,13 @@ export class ThreeColumnGraphView {
   }
 
   // 初始化自动关联路径
-  initRelativePath() {
+  async initRelativePath(
+    codePath: string,
+    swimPath: string | undefined,
+    comPath: string | undefined
+  ): Promise<{ codePath: string; swimPath: string | undefined; comPath: string | undefined }> {
+    const ret = await new Fider(codePath).findByCodePath(swimPath, comPath);
+    return { codePath, ...ret };
   }
 
   public static createPanel(ucodeUri: Uri, swimUri?: Uri, comgraphUri?: Uri) {
@@ -130,7 +174,16 @@ export class ThreeColumnGraphView {
     }
   }
 
-  initWebViewPanel() {
+  async initWebViewPanel() {
+    if (!this.swimPath || !this.comPath) {
+      const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimPath, this.comPath);
+      if (!swimPath || !comPath) {
+        return;
+      }
+      this.panel.swimPath = swimPath;
+      this.panel.comPath = comPath;
+      this.panel.swimData = new SwimData(Uri.file(swimPath), swimPath);
+    }
     let replaceParams: any[] = [];
     const htmlPath = join(hismartliteEx.extensionPath, 'webview-dist', 'index.html');
     let documentText = readFileSync(htmlPath);
@@ -154,6 +207,3 @@ export class ThreeColumnGraphView {
     }
   }
 }
-
-
-

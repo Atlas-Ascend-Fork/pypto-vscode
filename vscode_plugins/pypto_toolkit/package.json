@@ -31,6 +31,11 @@
         "category": "PyPTO.renderDiffComGraph",
         "command": "PyPTO.OpenDiffComGraphForCurrent",
         "title": "%pypto.OpenDiffComGraphForCurrent%"
+      },
+      {
+        "category": "PyPTO.OpenLinkageMode",
+        "command": "PyPTO.OpenLinkageMode",
+        "title": "%PyPTO.OpenLinkageMode%"
       }
     ],
     "menus": {
