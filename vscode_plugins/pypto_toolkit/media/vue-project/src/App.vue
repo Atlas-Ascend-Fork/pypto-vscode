@@ -61,7 +61,9 @@ const readJsonWarning = (message) => {
 };
 
 const returnSwim = (message) => {
-  graphType.value = 'returnSwim';
+  if (graphType.value !== 'threeColumn') {
+    graphType.value = 'returnSwim';
+  }
   jsonContent.value = message.data;
 };
 
@@ -88,7 +90,9 @@ const returnPathNodesSet = (message) => {
 };
 
 const initComGraph = (message) => {
-  graphType.value = 'returnCom';
+  if (graphType.value !== 'threeColumn') {
+    graphType.value = 'returnCom';
+  }
   loadingStep.value = message.step;
   dealConfig(message.configration);
 };
@@ -104,6 +108,10 @@ const returnDiffCom = (message) => {
   loadingStep.value = message.step;
 };
 
+const setThreeColumnMode = (message) => {
+  graphType.value = 'threeColumn';
+}
+
 const CommandCallbackMap = {
   returnCom,
   returnSwim,
@@ -117,6 +125,7 @@ const CommandCallbackMap = {
   readJsonWarning,
   initDiffComGraph,
   returnDiffCom,
+  setThreeColumnMode
 };
 
 function dealConfig(config) {
@@ -169,16 +178,16 @@ const layout = ref('triangular');
 
 <template>
   <header>
-    <ThreeColumn v-model="layout">
+    <ThreeColumn v-model="layout" v-if="graphType === 'threeColumn'">
       <template #code>code</template>
       <template #comGraph>
-        <SimpleComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+        <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
       <template #swimGraph>
-        <SwimGraph v-if="graphType === 'returnSwim'" />
+        <SwimGraph />
       </template>
     </ThreeColumn>
-    <!-- <ComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/> -->
+    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"

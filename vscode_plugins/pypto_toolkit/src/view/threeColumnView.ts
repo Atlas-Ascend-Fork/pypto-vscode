@@ -9,6 +9,7 @@ import { SingleGraphHandler } from '../handler/singleGraphHandler';
 import * as vscode from 'vscode';
 import { MsgHandler, SwimData } from './swimGraphView';
 import { Fider } from './threeColumnEntry';
+import { SingleGraphData } from '../core/graphData';
 
 class codeMsgHandler {
   static getPyCode(panel: any) {
@@ -61,6 +62,16 @@ class comGraphHandler extends SingleGraphHandler {
       });
     });    
   }
+  static override async loadMainData(panel: any): Promise<void> {
+      if (!panel.comGraphData) {
+        panel.comGraphData = new SingleGraphData(panel.comPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
+      }
+  
+      const gd = panel.comGraphData as SingleGraphData;
+      if (!gd.funcHash) {
+        gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+      }
+    }
 }
 
 class swimGrapHandler extends MsgHandler {
