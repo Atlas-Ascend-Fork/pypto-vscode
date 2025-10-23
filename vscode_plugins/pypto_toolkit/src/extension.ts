@@ -73,14 +73,13 @@ export async function activate(context: ExtensionContext) {
     await initDB(context);
   }
 
-  // 报错阻塞，暂时注释
-  // // 启动接口服务
-  // const server = new ExtensionApiServer(services);
+  // 启动接口服务
+  const server = new ExtensionApiServer(services);
 
-  // // 启动编辑区视图
-  // initView((viewPanel) => {
-  //   server.addWebview(viewPanel.webview);
-  // });
+  // 启动编辑区视图
+  initView((viewPanel) => {
+    server.addWebview(viewPanel.webview);
+  });
 
   if (window.registerWebviewPanelSerializer) {
     window.registerWebviewPanelSerializer('swimLane', {

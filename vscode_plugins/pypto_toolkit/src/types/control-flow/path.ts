@@ -78,6 +78,9 @@ export interface LeafInPass {
   /** Leaf计算图文件路径 */
   leafFilePath: string;
 
+  /** 所属PATH的名称 */
+  rootPathName: string;
+
   /** 所属PATH的计算图文件路径 */
   rootFilePath: string;
 }
