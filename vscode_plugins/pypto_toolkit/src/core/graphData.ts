@@ -68,7 +68,7 @@ export abstract class GraphData {
 
   private async processFunctions(fsPath: string, value: any, result: readFileResult, panel: any): Promise<void> {
     try {
-      const insertPromises: Promise<void>[] = [];
+      const sqlJobs: (() => Promise<void>)[] = [];
       /* 1. 汇总 funcHashMap */
       for (const funcItem of value.functions) {
         const hash = String(funcItem.hash);
@@ -78,7 +78,7 @@ export abstract class GraphData {
         };
       }
       if (this.isUsedDB) {
-        insertPromises.push(SQLiteCache.getInstance().comGraphFileHashMapSet(fsPath, JSON.stringify(this.funcHashMap)));
+        sqlJobs.push(() => SQLiteCache.getInstance().comGraphFileHashMapSet(fsPath, JSON.stringify(this.funcHashMap)));
       }
 
       /* 2. 构造插入任务数组 */
@@ -98,7 +98,7 @@ export abstract class GraphData {
             if (op.opmagic.toString()) {
               if (this.isUsedDB) {
                 const ioperands = [...new Set(op.ioperands)];
-                insertPromises.push(
+                sqlJobs.push(() =>
                   SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(
                     op.calleehash,
                     op.opmagic,
@@ -124,7 +124,7 @@ export abstract class GraphData {
         if (data.length >= DATA_LENGTH_LIMIT) {
           result.isBigFile = true;
           const bigPath = await SQLiteCache.getInstance().createBigDataFile(funcItem.hash, data);
-          insertPromises.push(
+          sqlJobs.push(() =>
             SQLiteCache.getInstance().comGraphFuncDataSet(
               fsPath,
               String(funcItem.hash),
@@ -135,14 +135,14 @@ export abstract class GraphData {
             ),
           );
         } else {
-          insertPromises.push(
+          sqlJobs.push(() =>
             SQLiteCache.getInstance().comGraphFuncDataSet(fsPath, String(funcItem.hash), callHashArr.toString(), data, '', lastChangeTime),
           );
         }
       }
       // 等所有 INSERT 真正进内存 DB
-      if (insertPromises.length) {
-        await Promise.all(insertPromises);
+      if (sqlJobs.length) {
+        await Promise.all(sqlJobs.map((fn) => fn()));
       }
       await SQLiteCache.getInstance().save();
     } catch (e) {

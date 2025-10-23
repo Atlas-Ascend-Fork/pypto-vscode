@@ -5,7 +5,7 @@
       :data-process-key="processKey"
       @click="handleCanvasClick" 
       @mousemove="handleMouseMove"
-      @mouseleave="hideTooltip"
+      @mouseleave="handleMouseLeave"
       @mousedown="handleMouseDown" 
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
@@ -69,6 +69,7 @@ const {
   handleWheel,
   leftmove,
   rightmove,
+  flagRender,
   durationToWidth,
   transform,
   measureDetailGet,
@@ -119,6 +120,7 @@ let AICCount = 0;
 let AIVCount = 0;
 let matchingAICEvents = [];
 let matchingAIVEvents = [];
+let selectionEvents = [];
 const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
@@ -506,10 +508,6 @@ const handleMouseMove = throttle((e) => {
     // 绘制框选
     drawSelectionBox();
     mulDetailsExpanded.value = false;
-    const selectionData = getSelection();
-    selectionData.forEach(eventItem => {
-      onSelectionEvent(eventItem);
-    });
   }
 }, 16);
 const drawSelectionBox = () => {
@@ -530,13 +528,15 @@ const drawSelectionBox = () => {
 };
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
-  const selectionData = getSelection();
-  if (!selectionData.length) {
+  checkInSelection();
+  if (!selectionEvents.length) {
     mulDetailsExpanded.value = false;
     clearSelectionCanvas();
     return;
   }
-  checkInSelection();
+  selectionEvents.forEach(eventItem => {
+    onSelectionEvent(eventItem);
+  });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
 };
@@ -546,7 +546,13 @@ const checkInSelection = () => {
   AIVCount = 0;
   matchingAICEvents = [];
   matchingAIVEvents = [];
+  selectionEvents = [];
   // 解构选择区域坐标
+  if (selection.endX < selection.startX) {
+    [selection.startX, selection.endX] = [selection.endX, selection.startX];
+    [selection.startLocalX, selection.endLocalX] = [selection.endLocalX, selection.startLocalX];
+    [selection.startY, selection.endY] = [selection.endY, selection.startY];
+  }
   const { startX, startY, endX, endY } = selection;
 
   // 计算时间范围
@@ -588,7 +594,7 @@ const checkInSelection = () => {
       }
     });
   });
-  const selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
+  selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
   const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
     ([min, max], { startTime, endTime }) => [
       Math.min(min, startTime),
@@ -599,58 +605,6 @@ const checkInSelection = () => {
   const timeRange = selectionEndTime - selectionStartTime;
   // 最终统计
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
-};
-const getSelection = () => {
-  let selectionArray = [];
-  // 解构选择区域坐标
-  const { startX, startY, endX, endY } = selection;
-  // 预计算选择框边界
-  const selectMinX = Math.min(startX, endX);
-  const selectMaxX = Math.max(startX, endX);
-  const selectMinY = Math.min(startY, endY);
-  const selectMaxY = Math.max(startY, endY);
-  // 遍历进程
-  for (const [processKey, process] of processes.entries()) {
-    if (!process.expanded) {
-      continue;
-    }
-    // 遍历线程
-    for (const [threadKey, thread] of process.threads.entries()) {
-      // 遍历事件
-      for (const item of thread.events) {
-        const { threadName, renderInfo } = item;
-        // 检查threadName是否存在且有效
-        if (!threadName?.trim()) {
-          continue;
-        }
-        // 精确匹配目标事件前缀
-        const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
-        if (!isTargetEvent) {
-          continue;
-        }
-        // 解构渲染信息
-        const { x, y, width, height } = renderInfo;
-
-        // 计算事件矩形边界
-        const eventMinX = x;
-        const eventMaxX = x + width;
-        const eventMinY = y;
-        const eventMaxY = y + height;
-
-        // 检测重叠
-        const isFullyInside = (
-          eventMinX >= selectMinX &&
-          eventMaxX <= selectMaxX &&
-          eventMinY >= selectMinY &&
-          eventMaxY <= selectMaxY
-        );
-        if (isFullyInside) {
-          selectionArray.push(item);
-        }
-      }
-    }
-  }
-  return selectionArray;
 };
 const getOffset = (deltaX, scale) => {
   if (scale <= 10) {
@@ -688,7 +642,7 @@ const clearSelectionCanvas = () => {
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
 };
 function onSelectionEvent(hoveredEvent) {
-  const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   if (!canvasRef) {
     return;
   }
@@ -718,6 +672,16 @@ const handleMouseDown = (e) => {
   lastMoveX = e.clientX;
 };
 const handleMouseUp = throttle((e) => {
+  selectionFinished(e);
+}, 16);
+
+const handleMouseLeave = throttle((e) => {
+  hideTooltip();
+  if (isDragging.value) {
+    selectionFinished(e);
+  }
+}, 16);
+const selectionFinished = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
@@ -740,7 +704,7 @@ const handleMouseUp = throttle((e) => {
     handleSelection();
   }
   isDragging.value = false;
-}, 16);
+};
 const getCanvasHeight = () => {
   let height = 0;
   for (const [_, thread] of props.process.threads.entries()) {
@@ -1061,6 +1025,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     show: true,
   };
   drawEvent([drawData], ctx);
+  ctx.font = getFontStyle(eventTextSize);
   fillTextInfo(event, ctx, width, drawData, isTextXChange);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
@@ -1173,12 +1138,18 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     textX: 0, textY: 0, fontColor: '', show: true
   });
   
-  for (const event of thread.events) {
+  thread.events.forEach((event, index, array) => {
     // 冲突处理：将渲染时间后移1个单位以避免重叠
     const hasTimeConflict = thread.isFakeCore && previousEventData && previousEventData.renderEndTime > event.renderStartTime;
-    if (hasTimeConflict){
+    if (hasTimeConflict) {
+      // 获取当前事件的所有后置依赖事件
+      const dependentEvents = getDependentEvents(event.dependencies.successors);
+      const minDependentStartTime = dependentEvents.length ? Math.min(...dependentEvents.map(dep => dep.startTime)) : timelineState.endTime;
+      const lastEventData = array[index + 1];
+      const lastStartTime = lastEventData ? lastEventData.startTime : timelineState.endTime;
+      const duration = Math.min((Math.min(minDependentStartTime, lastStartTime) - event.startTime) / 2, 1);
       // 冲突处理：将渲染时间后移1个单位
-      const newRenderStartTime = event.renderEndTime + 1;
+      const newRenderStartTime = event.renderStartTime + duration;
       event.renderStartTime = newRenderStartTime;
       event.renderEndTime = newRenderStartTime + 1;
     }
@@ -1192,13 +1163,30 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
       event.drawData = drawData;
       eventDatas.push(drawData);
     } else {
-      continue;
+      return;
     }
     previousEventData = event;
-  }
+  });
   drawEvent(eventDatas, ctx);
 };
-
+const getDependentEvents = (successors) => {
+  const dependentEvents = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      const { threadName, events } = thread;
+      events.forEach((event, eventKey) => {
+        if (successors.includes(event.id)) {
+          dependentEvents.push(event);
+        }
+      });
+    });
+  });
+  return dependentEvents;
+};
 const getEventColor = (event, highlight=false, stroke=true) => {
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
@@ -1889,6 +1877,7 @@ watch(isDarkTheme, () => {
     renderProcessText(props.process, ctx);
   }
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
+  flagRender();
 });
 
 onUnmounted(() => {

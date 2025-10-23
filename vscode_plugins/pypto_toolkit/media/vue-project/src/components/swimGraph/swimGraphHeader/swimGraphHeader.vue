@@ -247,8 +247,13 @@ const showDrawer = () => {
   pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
   pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
                             'MTE2 Cycles', 'MTE3 Cycles'];
-  pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
-                            'rgba(70, 94, 184,11)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
+  if (isDarkTheme.value) {
+    pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
+                            'rgba(70, 94, 184, 1)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
+  } else {
+    pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
+                            'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
+  }
   pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
                             mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
   pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
