@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="height: 100vh;">
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
@@ -53,9 +53,8 @@
         <swim-graph-detail ref="detailComponent"/>
       </div>
     </div>
-
+    <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
   </div>
-  <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
 </template>
 
 <script setup>
