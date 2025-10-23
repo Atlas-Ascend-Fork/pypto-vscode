@@ -1,3 +1,5 @@
+import { PassStage } from './pass';
+
 interface DirectoryOrFile {
   type: 'dir' | 'file';
 
@@ -43,6 +45,12 @@ export interface ComputeDirectory extends CommonDirectory {
 export interface PassDirectory extends CommonDirectory {
   directoryType: 'pass';
 
+  /** 过程所属的阶段 */
+  passStage: PassStage;
+
+  /** Pass序号 */
+  passIndex: string;
+
   /** 子目录或文件 */
   children: ComputeGraph[];
 }
@@ -72,6 +80,9 @@ export interface ControlFlowFile extends CommonFile {
  */
 export interface ComputeGraph extends CommonFile {
   fileType: 'computeGraph';
+
+  /** 所属pass序号 */
+  passIndex: string;
 }
 
 /**

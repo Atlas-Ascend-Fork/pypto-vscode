@@ -136,7 +136,7 @@ const threadTotaltime = (threadId, option) => {
   }  else if (option === 'cacheHit' && threadCacheHitMap) {
     const hitRate = threadCacheHitMap.get(threadId);
     if (hitRate) {
-      return parseFloat(hitRate).toFixed(4);
+      return parseFloat(hitRate).toFixed(2);
     }
   } else {
     return 0;

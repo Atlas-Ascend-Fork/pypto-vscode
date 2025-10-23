@@ -241,7 +241,7 @@ function splitArgs(argsStr: string): string[] {
 /**
  * 主函数：从 lineInfo 生成数学表达式
  */
-function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string | undefined {
+export function genMathScalarExpr(lineInfo: (string | number)[] | undefined): string | undefined {
     if (lineInfo === undefined) {
         return "";
     }

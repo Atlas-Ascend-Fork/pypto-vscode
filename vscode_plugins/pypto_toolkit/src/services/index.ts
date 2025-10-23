@@ -1,5 +1,5 @@
 import { getControlFlow } from './control-flow';
-import { getOutputRecords } from './workspace';
+import { getOutputRecords, getOutputDetail } from './workspace';
 
 export const services = {
   // 控制流
@@ -11,5 +11,8 @@ export const services = {
   workspace: {
     /** 获取运行结果记录 */
     getOutputRecords,
+
+    /** 获取运行结果详情 */
+    getOutputDetail,
   },
 };
