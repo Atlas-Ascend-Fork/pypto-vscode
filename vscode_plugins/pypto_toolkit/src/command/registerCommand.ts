@@ -9,6 +9,7 @@ import { SingleGraphData, DiffGraphData } from '../core/graphData';
 import { SingleGraphHandler } from '../handler/singleGraphHandler';
 import { DiffGraphHandler } from '../handler/diffGraphHandler';
 import { basename } from 'path';
+import { ThreeColumnGraphView } from '../view/threeColumnView';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -85,6 +86,13 @@ export class RegisterCommand {
         } else {
           window.showInformationMessage(_('pypto.cannotRender'));
         }
+      }),
+      commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+        await loadMaterialColorUtilities();
+        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+        if (!uri) return;
+
+        ThreeColumnGraphView.createPanel(uri);
       }),
     ];
   }

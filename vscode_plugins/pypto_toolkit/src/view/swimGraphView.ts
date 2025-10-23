@@ -23,7 +23,7 @@ class SwimData {
   }
 }
 
-class MsgHandler {
+export class MsgHandler {
 
   static cachePath: string;
 

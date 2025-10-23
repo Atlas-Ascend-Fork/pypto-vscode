@@ -44,6 +44,11 @@
           "command": "PyPTO.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
           "group": "navigation"
+        },
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py",
+          "group": "navigation"
         }
       ]
     },

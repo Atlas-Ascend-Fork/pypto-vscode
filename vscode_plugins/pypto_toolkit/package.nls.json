@@ -41,5 +41,6 @@
   "pypto.cacheAlreadyCleared": "The cache has been completely cleared.",
   "pypto.failedClearCache": "Failed to clear cache:",
   "PyPTOToolkit.workspace.controlFlowName": "Running Results",
-  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph"
+  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
+  "PyPTO.OpenLinkageMode": "PyPTO Toolkit: Open linkage mode"
 }
