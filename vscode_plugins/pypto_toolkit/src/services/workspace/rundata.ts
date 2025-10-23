@@ -4,8 +4,6 @@ import * as vscode from 'vscode';
 
 import { RunDataManifest } from '../../types/workspace';
 
-const RUN_DATA_FILE_NAME = 'rundata.json';
-
 /**
  * 当前目录是否包含rundata文件
  */

@@ -114,11 +114,11 @@ async function isOutputDirectory(uri: vscode.Uri): Promise<boolean> {
  */
 function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
   const directoryPath = outputUri.path;
-  const sourceFilePath = runData.pto_src_file ? path.join(directoryPath, runData.pto_src_file) : '';
-  const controlFlowFilePath = path.join(directoryPath, 'program.json');
-  const swimlaneGraphFilePath = runData.swim_graph_path ? path.join(directoryPath, runData.swim_graph_path) : '';
+  const sourceFilePath = runData.pto_src_file ? path.posix.join(directoryPath, runData.pto_src_file) : '';
+  const controlFlowFilePath = path.posix.join(directoryPath, 'program.json');
+  const swimlaneGraphFilePath = runData.swim_graph_path ? path.posix.join(directoryPath, runData.swim_graph_path) : '';
 
-  const directoryName = path.basename(directoryPath);
+  const directoryName = path.posix.basename(directoryPath);
   const [_, timestamp] = directoryName.match(OutputDirectoryRegExp) ?? [];
   const executeDate = `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}`;
   const executeTime = `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`;
