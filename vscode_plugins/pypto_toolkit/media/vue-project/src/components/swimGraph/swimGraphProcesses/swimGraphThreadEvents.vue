@@ -5,7 +5,7 @@
       :data-process-key="processKey"
       @click="handleCanvasClick" 
       @mousemove="handleMouseMove"
-      @mouseleave="hideTooltip"
+      @mouseleave="handleMouseLeave"
       @mousedown="handleMouseDown" 
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
@@ -548,6 +548,11 @@ const checkInSelection = () => {
   matchingAIVEvents = [];
   selectionEvents = [];
   // 解构选择区域坐标
+  if (selection.endX < selection.startX) {
+    [selection.startX, selection.endX] = [selection.endX, selection.startX];
+    [selection.startLocalX, selection.endLocalX] = [selection.endLocalX, selection.startLocalX];
+    [selection.startY, selection.endY] = [selection.endY, selection.startY];
+  }
   const { startX, startY, endX, endY } = selection;
 
   // 计算时间范围
@@ -667,6 +672,16 @@ const handleMouseDown = (e) => {
   lastMoveX = e.clientX;
 };
 const handleMouseUp = throttle((e) => {
+  selectionFinished(e);
+}, 16);
+
+const handleMouseLeave = throttle((e) => {
+  hideTooltip();
+  if (isDragging.value) {
+    selectionFinished(e);
+  }
+}, 16);
+const selectionFinished = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
@@ -689,7 +704,7 @@ const handleMouseUp = throttle((e) => {
     handleSelection();
   }
   isDragging.value = false;
-}, 16);
+};
 const getCanvasHeight = () => {
   let height = 0;
   for (const [_, thread] of props.process.threads.entries()) {
@@ -1123,12 +1138,18 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     textX: 0, textY: 0, fontColor: '', show: true
   });
   
-  for (const event of thread.events) {
+  thread.events.forEach((event, index, array) => {
     // 冲突处理：将渲染时间后移1个单位以避免重叠
     const hasTimeConflict = thread.isFakeCore && previousEventData && previousEventData.renderEndTime > event.renderStartTime;
-    if (hasTimeConflict){
+    if (hasTimeConflict) {
+      // 获取当前事件的所有后置依赖事件
+      const dependentEvents = getDependentEvents(event.dependencies.successors);
+      const minDependentStartTime = dependentEvents.length ? Math.min(...dependentEvents.map(dep => dep.startTime)) : timelineState.endTime;
+      const lastEventData = array[index + 1];
+      const lastStartTime = lastEventData ? lastEventData.startTime : timelineState.endTime;
+      const duration = Math.min((Math.min(minDependentStartTime, lastStartTime) - event.startTime) / 2, 1);
       // 冲突处理：将渲染时间后移1个单位
-      const newRenderStartTime = event.renderEndTime + 1;
+      const newRenderStartTime = event.renderStartTime + duration;
       event.renderStartTime = newRenderStartTime;
       event.renderEndTime = newRenderStartTime + 1;
     }
@@ -1142,13 +1163,30 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
       event.drawData = drawData;
       eventDatas.push(drawData);
     } else {
-      continue;
+      return;
     }
     previousEventData = event;
-  }
+  });
   drawEvent(eventDatas, ctx);
 };
-
+const getDependentEvents = (successors) => {
+  const dependentEvents = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      const { threadName, events } = thread;
+      events.forEach((event, eventKey) => {
+        if (successors.includes(event.id)) {
+          dependentEvents.push(event);
+        }
+      });
+    });
+  });
+  return dependentEvents;
+};
 const getEventColor = (event, highlight=false, stroke=true) => {
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
