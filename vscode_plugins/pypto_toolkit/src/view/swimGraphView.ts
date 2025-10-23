@@ -100,8 +100,29 @@ class MsgHandler {
     } catch (err) {
       console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
     }
+    const task2topo = {};
+    const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
+    try {
+      const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
+      const dynTopoLines = dynTopoContent.split('\n').slice(1);
+      for (const line of dynTopoLines) {
+        const curLine = line.split(',');
+        if (curLine.length >= 10) {
+          const seqNo = curLine[0];
+          const taskId = curLine[1];
+          const leafIndex = curLine[5];
+          const successors = curLine.slice(9)
+                                    .map(item => item.trim())
+                                    .filter(item => item !== '')
+                                    .map(item => `${seqNo}-${item}`);
+          task2topo[`${seqNo}-${taskId}`] = { leafIndex, successors };
+        }
+      } 
+    } catch (error) {
+      console.log('读取dyn_topo.txt发生错误',error);
+    } 
     const swimDataObj = JSON.parse(swimStr);
-    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo);
+    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo);
     swimData.lane2line = Object.fromEntries(swimData.lane2line);
     swimData.processes = Object.fromEntries(swimData.processes);
     swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
