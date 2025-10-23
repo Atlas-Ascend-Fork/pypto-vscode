@@ -7,13 +7,22 @@ import { getIDETheme } from '../theme';
 import { getIDELang } from '../lang';
 import { SingleGraphHandler } from '../handler/singleGraphHandler';
 import { MsgHandler } from './swimGraphView'
+import * as vscode from 'vscode';
 
 class codeMsgHandler {
 
 }
 
 class comGraphHandler extends SingleGraphHandler {
-  
+  static searchFuncHashInProject(panel, funcHash: string) {
+    vscode.workspace.findFiles(`**/*${funcHash}*.json`).then(fileList => {
+      const res = fileList.map(uri => uri.fsPath);
+      panel.webview.postMessage({
+        type: 'getFuncHashFileList',
+        data: res,
+      });
+    });    
+  }
 }
 
 class swimGrapHandler extends MsgHandler {
