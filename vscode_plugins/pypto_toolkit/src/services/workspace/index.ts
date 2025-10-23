@@ -31,14 +31,20 @@ const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${pat
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
+  const { keyword, sortBy = 'executeTime', sortOrder = 'desc' } = params;
   const outputCollectionUri = vscode.Uri.file(OUTPUT_COLLECTION_PATH);
   if (!outputCollectionUri) {
     return { data: [] };
   }
 
-  const records: OutputRecord[] = await getRecordsFromDirectory(outputCollectionUri);
+  const records: OutputRecord[] = await getRecordsFromDirectory(outputCollectionUri, keyword);
 
-  // TODO 筛选、排序
+  // 执行排序
+  records.sort((a, b) => {
+    const sortFlag = sortOrder === 'asc' ? 1 : -1;
+    return a[sortBy] > b[sortBy] ? sortFlag : sortFlag;
+  });
+
   return { data: records };
 }
 
@@ -66,7 +72,7 @@ export async function getOutputDetail(params: GetOutputDetailParams): Promise<Ge
 /**
  * 获取指定目录下的编译记录
  */
-async function getRecordsFromDirectory(directoryUri: vscode.Uri): Promise<OutputRecord[]> {
+async function getRecordsFromDirectory(directoryUri: vscode.Uri, keyword?: string): Promise<OutputRecord[]> {
   let subList: [string, vscode.FileType][];
   try {
     subList = await vscode.workspace.fs.readDirectory(directoryUri);
@@ -77,13 +83,15 @@ async function getRecordsFromDirectory(directoryUri: vscode.Uri): Promise<Output
 
   const records: OutputRecord[] = [];
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.Directory) {
-      const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
-      if (await isOutputDirectory(rootDirUri)) {
-        const runData = await readOutputRunData(rootDirUri);
-        const record = getOutputRecord(rootDirUri, runData);
-        records.push(record);
-      }
+    const noMatchKeyword = keyword && !subPath.includes(keyword);
+    if (fileType !== vscode.FileType.Directory || noMatchKeyword) {
+      continue;
+    }
+    const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
+    if (await isOutputDirectory(rootDirUri)) {
+      const runData = await readOutputRunData(rootDirUri);
+      const record = getOutputRecord(rootDirUri, runData);
+      records.push(record);
     }
   }
 
@@ -115,7 +123,7 @@ function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): Outpu
   const executeDate = `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}`;
   const executeTime = `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`;
   return {
-    title: `${runData.runtype}_${timestamp.slice(0, 8)}_序号`, // TODO
+    title: `${runData.runtype}_${timestamp.slice(0, 8)}_${timestamp.slice(8, 14)}`,
     executeTime: `${executeDate} ${executeTime}`,
     directoryPath,
     sourceFilePath,

@@ -79,7 +79,7 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     });
     return new Promise((resolve, reject) => {
       window.addEventListener('message', (event) => {
-        if (event.data.type === 'postLayoutResult' && (!event.data.filePath || event.data.filePath === elkGraph.layoutOptions['devkit.filePath'])) {
+        if (event.data.type === 'postLayoutResult' && (!event.data.filePath || event.data.filePath === elkGraph.layoutOptions['PyPTO.filePath'])) {
           resolve(event.data.data)
         }
       });
@@ -250,9 +250,9 @@ export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
         //"org.eclipse.elk.spacing.nodeNode": "30.0", // Reduced from 40.0 for tighter layout
         //"org.eclipse.elk.spacing.nodeNodeBetweenLayers": "25.0", // Reduced layer spacing
         "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "40.0", // Also set layered-specific spacing
-        "devkit.showTensor": this.showTensor,
-        "devkit.filePath": this.filePath,
-        "devkit.renderMode": sgraph['renderMode']
+        "PyPTO.showTensor": this.showTensor,
+        "PyPTO.filePath": this.filePath,
+        "PyPTO.renderMode": sgraph['renderMode']
         //"org.eclipse.elk.spacing.labelNode": "5.0",
         //"org.eclipse.elk.spacing.labelLabel": "2.0",
         //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",

@@ -151,9 +151,9 @@ export class GraphView<T extends AbstractGraphData> {
   private async getHtmlContent(): Promise<string> {
     const baseUri = this.panel!.webview.asWebviewUri(vscode.Uri.file(join(hismartliteEx.extensionPath)));
     const htmlPath = vscode.Uri.file(join(hismartliteEx.extensionPath, 'webview-dist', 'index.html'));
-    const document = await vscode.workspace.openTextDocument(htmlPath);
+    const document = await vscode.workspace.fs.readFile(htmlPath);
     return document
-      .getText()
+      .toString()
       .replace(/{{root}}/g, baseUri.toString())
       .replace(/{{staticPath}}/g, `${baseUri}/webview-dist`)
       .replace(/{{ascTheme}}/g, getIDETheme())
