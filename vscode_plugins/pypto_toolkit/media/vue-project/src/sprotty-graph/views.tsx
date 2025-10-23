@@ -1195,6 +1195,9 @@ export class AstgrEdge extends PolylineEdgeView {
   }
 
   override renderLine(edge: SEdgeImpl, segments: Point[], context: RenderingContext, args?: IViewArgs): VNode {
+    if((edge.root as any).zoom < 0.03) {
+      return (<g></g>);
+    }
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
       incomingNodes: new Set<string>(),
