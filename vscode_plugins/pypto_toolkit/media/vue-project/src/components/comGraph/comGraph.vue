@@ -1,6 +1,7 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    <Navbar />
+    <!-- <ComGraphHeader @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader> -->
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -33,6 +34,7 @@ import HealthReport from './healthReport/healthReport.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
+import Navbar from '../navbar/navbar.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';

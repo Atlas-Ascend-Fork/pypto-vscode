@@ -6,7 +6,7 @@
     :offset="10"
     close-scope="blank"
     class="pass-list-menu-wrap"
-    @toggle="(val) => (isOpen = val)"
+    @toggle="onToggle"
   >
     <div class="pass-list-container" @click="isOpen = !isOpen">
       <div :class="['pass-type', currentData.passStage]">{{ UpperFirstStr(currentData.passStage) }}</div>
@@ -76,6 +76,11 @@ watch(
   },
   { immediate: true },
 );
+
+function onToggle(val: boolean) {
+  isOpen.value = val;
+  filterKey.value = '';
+}
 
 function selectPass(pass: PassData) {
   isOpen.value = false;
