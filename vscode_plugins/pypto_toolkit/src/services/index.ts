@@ -1,4 +1,5 @@
 import { getControlFlow } from './control-flow';
+import { openComputeGraph, openControlFlow, openSwimlaneGraph } from './tmp-view-opener';
 import { getOutputRecords, getOutputDetail } from './workspace';
 
 export const services = {
@@ -14,5 +15,11 @@ export const services = {
 
     /** 获取运行结果详情 */
     getOutputDetail,
+  },
+  //【临时】开启webview
+  tmpViewOpener: {
+    openControlFlow,
+    openComputeGraph,
+    openSwimlaneGraph,
   },
 };
