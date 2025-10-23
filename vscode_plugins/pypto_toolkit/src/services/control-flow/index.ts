@@ -26,7 +26,7 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
   try {
     const programUri = vscode.Uri.joinPath(vscode.Uri.file(params.outputDirPath), 'program.json');
     const fileContent = (await vscode.workspace.fs.readFile(programUri)).toString();
-    program = JSON.parse(fileContent); // TODO 超大数字精度丢失
+    program = JSON.parse(fileContent);
   } catch {
     throw new Error('无法解析program.json');
   }
