@@ -10,8 +10,19 @@ export const VIRTUAL_SCHEME = 'PyPTO';
  * @returns 虚拟uri
  */
 export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string): vscode.Uri {
-  const path = `${uri.path} - ${subTitle || viewType}`;
-  return uri.with({ scheme: VIRTUAL_SCHEME, path, query: JSON.stringify({ path: uri.fsPath, viewType }) });
+    const path = `${uri.path} - ${subTitle || viewType}`;
+    let originalQuery = {};
+    try {
+        originalQuery = JSON.parse(uri.query);
+    } catch {
+        // do nothing
+    }
+
+    return uri.with({
+        scheme: VIRTUAL_SCHEME,
+        path,
+        query: JSON.stringify({...originalQuery, path: uri.fsPath, viewType})
+    });
 }
 
 /**
@@ -20,10 +31,10 @@ export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string
  * @returns 文件路径 && 视图类型
  */
 export function fromVirtualUri(virtualUri: vscode.Uri): { path: string; viewType: string } {
-  try {
-    const { path, viewType } = JSON.parse(virtualUri.query);
-    return { path, viewType };
-  } catch {
-    throw new Error('VirtualUri参数解析失败');
-  }
+    try {
+        const {path, viewType} = JSON.parse(virtualUri.query);
+        return {path, viewType};
+    } catch {
+        throw new Error('VirtualUri参数解析失败');
+    }
 }
