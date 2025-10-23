@@ -122,9 +122,9 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "watch": "concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
-    "watch:vscode": "tsc -p ./ --watch",
+    "watch:vscode": "node scripts/clean-output.mjs && tsc -p ./ --watch",
     "compile": "npm run build:webview && npm run compile:vscode",
-    "compile:vscode": "tsc -p ./",
+    "compile:vscode": "node scripts/clean-output.mjs && tsc -p ./",
     "dev:webview": "cd media/vue-project && npm run dev",
     "build:webview": "cd media/vue-project && npm run build-only && cd ../../",
     "lint": "eslint . --fix",
