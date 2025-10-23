@@ -186,11 +186,15 @@ export class PathLeafAnalyzer {
       }
       usedLeaf.add(record.calleeHash);
       const leafFile = leafs[record.calleeHash];
+      if (!leafFile) {
+        continue;
+      }
       leafFunctions.push({
         leafName: leafFile.name,
         isOwnedLeaf: leafFile.pathName === rootPathName,
         programId: leafFile.leafProgramId!,
         leafFilePath: leafFile.absolutePath,
+        rootPathName: leafFile.pathName,
         rootFilePath: roots[leafFile.pathName].absolutePath,
       });
     }
