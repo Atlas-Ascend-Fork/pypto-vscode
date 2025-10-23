@@ -202,9 +202,15 @@ function onSelectedNodeChange(args) {
   if (syncOperate.value) {
     if (args[1] === 'after') {
       beforeIns?.selectAction(args[0] ? [args[0].id] : []);
+      if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+        beforeIns?.centerNodeAction([args[0].id], undefined, undefined, beforeMinimapEl.value.getCurrentScale());
+      }
     }
     if (args[1] === 'before') {
       afterIns?.selectAction(args[0] ? [args[0].id] : []);
+      if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+        args[0] && afterIns?.centerNodeAction([args[0].id], undefined, undefined, afterMinimapEl.value.getCurrentScale());
+      }
     }
   }
 }
@@ -237,7 +243,7 @@ onBeforeMount(() => {
   (window as any).ascEventBus.on('layoutEnding', (args) => {
     isLoading.value = false;
     loadingText.value = '';
-  })
+  });
 });
 onMounted(() => {
   if (props.loadingStep === 'readJson') {

@@ -1,10 +1,8 @@
 import { Uri, workspace, window, Position, Selection, ViewColumn, Range } from 'vscode';
 import ElkConstructor from 'elkjs/lib/elk.bundled';
-import { createReadStream, existsSync } from 'fs';
-import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
 import { fork } from 'child_process';
 import path from 'path';
+import { readFileSync, writeFileSync } from 'fs';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
 import { getIDETheme } from '../theme';
@@ -18,6 +16,7 @@ import { basename } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { GraphView } from '../view/graphView';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
+import { getHealthReport } from '../utils/health-report';
 
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
@@ -39,6 +38,8 @@ export abstract class BaseGraphMsgHandler {
     'callInOutTensorMap',
     'getSubgraph',
     // 以后扩展再往里加
+    'getPyCode',
+    'savePyCode',
   ]);
 
   static async initTheme(panel: any) {
@@ -82,6 +83,7 @@ export abstract class BaseGraphMsgHandler {
   protected static onDidReceiveMessage(panel: any) {
     panel.webview.onDidReceiveMessage(
       async (message) => {
+        console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type}`);
         await this.CommonMessageActions(message, panel);
       },
       undefined,
@@ -179,7 +181,6 @@ export abstract class BaseGraphMsgHandler {
         console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
       }
     } else {
-      // 纯内存模式，强制读一次
       await graphData.readFileAndSetCache(graphData.fsPath, panel);
     }
     return isBigFile;
@@ -346,19 +347,50 @@ export abstract class BaseGraphMsgHandler {
     panel.webview.postMessage({ command: 'globalSearchResult', data: resultMap });
   }
 
+  static getPyCode(panel: any) {
+    // 替换成本地python文件路径
+    const codePath = 'D:\\code\\demos\\traceData\\test.py';
+    let code = '';
+    try {
+      code = readFileSync(codePath, 'utf8');
+    } catch (err) {
+      console.error(`${codePath}读取 py 文件时发生错误:`, err);
+    }
+    panel.webview.postMessage({
+      command: 'returnPyCode',
+      data: code
+    });
+  }
+
+  static savePyCode(panel: any, code: string) {
+    // 替换成本地python文件路径
+    const codePath = 'D:\\code\\demos\\traceData\\test.py';
+
+    try {
+      // 保存代码到文件
+      writeFileSync(codePath, code, 'utf8');
+      
+      // 通知前端保存成功
+      panel.webview.postMessage({
+        command: 'saveSuccess',
+        data: 'Code saved successfully'
+      });
+
+      console.log(`Code saved to: ${codePath}`);
+    } catch (err: any) {
+      console.error(`保存文件时发生错误:`, err);
+      
+      // 通知前端保存失败
+      panel.webview.postMessage({
+        command: 'saveError',
+        data: err.message
+      });
+    }
+  }
+
   static async getHealthyReport(panel: any) {
     const graphData = panel.comGraphData;
-    const base = graphData.fsPath.replace(/\.json$/, '');
-    const reports: any = {};
-    for (const [key, suffix] of [
-      ['TensorGraph', '_TensorGraphHealthReport.json'],
-      ['TileGraph', '_TileGraphHealthReport.json'],
-      ['ExecuteGraph', '_ExecuteGraph_Health_Report.json'],
-      ['KernelGraph', '_Kernel_Graph_Health_Report.json'],
-    ]) {
-      const file = base + suffix;
-      reports[key] = existsSync(file) ? await this.readHealthyJson(file) : null;
-    }
+    const reports = await getHealthReport(graphData.fsPath);
     panel.webview.postMessage({ command: 'returnHealthyReport', data: reports });
   }
 
@@ -373,22 +405,35 @@ export abstract class BaseGraphMsgHandler {
     io?: any;
   }> {
     if (!gd) return { json: undefined };
-    const delay = (ms) => new Promise(res => setTimeout(res, ms));
-    await delay(100);
-    const ret = gd.isUsedDB
-      ? await SQLiteCache.getInstance()
-          .comGraphFuncDataGet(gd.fsPath, gd.funcHash!)
-          .then((r) => (r?.big_data_file_path ? SQLiteCache.getInstance().readJsonFile(r.big_data_file_path) : r?.data ?? null))
-      : gd.dataMap[gd.funcHash!];
+    let ret: string | null = null;
+
+    /* 1️⃣ 数据库模式：带延迟重试 */
+    if (gd.isUsedDB) {
+      const maxRetry = 5;
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+      for (let i = 0; i < maxRetry; i++) {
+        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+        ret = row?.big_data_file_path
+          ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path)
+          : row?.data ?? null;
+
+        if (ret) {console.debug(`fetchGraphJson comGraphFuncDataGet 拿到数据`); break;}
+        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i+1}次`);
+        await delay(100);      
+      }
+    } else {
+      /* 2️⃣ 内存模式：一次拿完 */
+      ret = gd.dataMap[gd.funcHash!] ?? null;
+    }
+    
     if (!ret) {
       this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
 
     const json = JSON.parse(ret);
-    // calleeMap
     await this.returnCalleeMap(gd, panel);
-    // inouttensors
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };
@@ -435,16 +480,6 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
-  private static async readHealthyJson(fsPath: string) {
-    return new Promise<any>((resolve) => {
-      const res: any = {};
-      createReadStream(fsPath)
-        .pipe(parser())
-        .pipe(streamValues())
-        .on('data', (d) => Object.assign(res, d.value))
-        .on('end', () => resolve(res));
-    });
-  }
   static async openDiffViewer(panel: any) {
     const { DiffGraphHandler } = await import('../handler/diffGraphHandler');
     new GraphView(
@@ -458,6 +493,9 @@ export abstract class BaseGraphMsgHandler {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
     panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
     panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
+    /* 设置state 让 VS Code 下次能反序列化 */
+    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname });
+
   }
 
   protected static checkFuncHash(panel: any, gd: AbstractGraphData, cmd: string): boolean {

@@ -13,15 +13,19 @@
     </div>
   </div>
   <div :class="['three-column-content', modelValue]">
-    <div><slot name="code" /></div>
+    <div><editor /></div>
     <div><slot name="comGraph" /></div>
     <div><slot name="swimGraph" /></div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { inject, provide } from 'vue';
 import type { PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
+import editor from '../linkMode/editor.vue';
+
+const { isDarkTheme } = inject('root');
 
 defineProps({
   modelValue: {
@@ -32,6 +36,8 @@ defineProps({
 const emits = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
+
+provide('threeColumnState', { isDarkTheme });
 </script>
 
 <style scoped lang="scss">

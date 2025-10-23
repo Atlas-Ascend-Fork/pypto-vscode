@@ -1,5 +1,6 @@
 <template>
   <div class="com-graph-container">
+    <ComGraphHeader :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']" @onLocate="onLocate" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div
       :style="{
         backgroundImage: 'url(' + svgPath + ')',
@@ -9,6 +10,7 @@
     >
       <div id="sprotty"></div>
     </div>
+    <ComGraphMinimap v-if="!isLoading"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
@@ -17,6 +19,8 @@
 import { useSprottyLoad } from '../../sprotty-graph/main';
 import { onMounted, watch, defineProps, ref, inject, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ComGraphHeader from './comGraphHeader.vue';
+import ComGraphMinimap from './comGraphMinimap.vue';
 import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 
@@ -36,7 +40,7 @@ const props = defineProps({
   },
   nodeMagic: {
     type: Number,
-    default: '-1',
+    default: -1,
   },
 });
 
@@ -44,7 +48,10 @@ const { isDarkTheme } = inject('root');
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
+const graphType = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
+let centerNodeAction;
+let selectAction;
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -52,6 +59,11 @@ window.addEventListener('message', (event) => {
     loadingText.value = '';
   }
 });
+
+const onLocate = (id) => {
+  centerNodeAction([id]);
+  selectAction([id]);
+};
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',
@@ -79,10 +91,21 @@ watch(
   [() => props.jsonContent, isDarkTheme],
   ([val]) => {
     if (Object.keys(val).length) {
+      graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
-      useSprottyLoad().initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      const sprottyLoadResult = useSprottyLoad();
+      sprottyLoadResult.initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      centerNodeAction = sprottyLoadResult.centerNodeAction;
+      selectAction = sprottyLoadResult.selectAction;
       comGraphStore.setData('jsonData', jsonValue);
-      comGraphStore.setData('isSimpleComGraph', true);
+      comGraphStore.setData('comGraphConfig', {
+        isSimple: true,
+        isHoverHighlightNode: false,
+        showExtendBtn: false,
+        canLockPath: false,
+        canViewNodeDetail: false,
+        canViewSubgraph: false,
+      });
     }
   },
   { immediate: true },
@@ -108,6 +131,18 @@ onMounted(() => {
   height: 100%;
   position: relative;
   background-color: var(--devui-global-bg);
+
+  .com-graph-header {
+    position: absolute;
+    height: 82px;
+    width: 100%;
+    top: 0;
+    z-index: 10;
+    
+    &.with-extend-btn {
+      height: 150px;
+    }
+  }
 
   #sprotty {
     height: 100%;

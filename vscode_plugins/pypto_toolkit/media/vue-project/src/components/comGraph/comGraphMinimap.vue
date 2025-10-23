@@ -347,7 +347,7 @@ function syncZoomChange(args) {
   isActive.value = args[3];
 }
 
-defineExpose({ updateRectPosition, syncZoomChange });
+defineExpose({ updateRectPosition, syncZoomChange, getCurrentScale: () => mainmapScale.value });
 
 onMounted(() => {
   (window as any).ascEventBus.on(`${props.type}_render-over`, renderListener);

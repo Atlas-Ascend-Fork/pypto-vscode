@@ -40,7 +40,7 @@
   "pypto.clearAllCache": "Are you sure you want to clear all cached(memory + disk)?",
   "pypto.cacheAlreadyCleared": "The cache has been completely cleared.",
   "pypto.failedClearCache": "Failed to clear cache:",
-  "PyPTOToolkit.workspace.controlFlowName": "Running Results",
-  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
-  "PyPTO.OpenLinkageMode": "PyPTO Toolkit: Open linkage mode"
+  "PyPTO.OpenLinkageMode": "PyPTO Toolkit: Open linkage mode",
+  "PyPTOToolkit.workspace.controlFlowName": "Result Overview",
+  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph"
 }

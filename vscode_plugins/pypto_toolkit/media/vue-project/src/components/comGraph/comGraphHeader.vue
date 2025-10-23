@@ -1,8 +1,8 @@
 <template>
   <div class="com-graph-header">
-    <div class="corner-container">
-      <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" position="left" overlay-class="corner-tips">
-        <div class="corner-icon-container" @click="openHealthReport">
+    <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
+      <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="openHealthReport">
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
@@ -11,13 +11,13 @@
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip> -->
-      <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100"  position="left" overlay-class="corner-tips">
-        <div class="corner-icon-container" @click="showLayerControl = true">
-          <LayerControlIcon :active="showLayerControl" />
+      <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="changeLayer">
+          <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl)" />
         </div>
       </d-tooltip>
-      <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100"  position="left" overlay-class="corner-tips">
-        <div class="corner-icon-container" @click="openDiffViewer">
+      <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="openDiffViewer">
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
@@ -192,6 +192,7 @@ const props = defineProps({
     default: 'all'
   },
   graphType: { type: String },
+  isLoading: { type: Boolean, default: false }
 })
 
 let funcTree = {}
@@ -221,7 +222,7 @@ function getLayerList(curPath, funcTree) {
 
 
 const { t } = useI18n();
-const { toggleHealthReport, showLayerControl } = inject('comGraph') as ComGraphContext;
+const comGraphCtx = inject('comGraph', undefined) as ComGraphContext | undefined;
 const searchEl = ref();
 let passName = 'Loading';
 let curPath = ref([]);
@@ -342,7 +343,7 @@ const curSearchOptions = [
 ];
 
 const currentSelect = ref('current');
-const allOptions = ref(searchOptions);
+const allOptions = ref(comGraphStore.data.comGraphConfig.isSimple ? [searchOptions[0]] : searchOptions);
 const selectWidth = ref(getTextWidth(allOptions.value[0].name, 13) + 28);
 const textConfig = {
   keywordName: t('comGraph.keyword')
@@ -685,8 +686,17 @@ const onJump = (it) => {
 }
 
 const openHealthReport = () => {
-  toggleHealthReport(true);
+  if (props.isLoading) {
+    return;
+  }
+  comGraphCtx?.toggleHealthReport(true);
 };
+
+const changeLayer = () => {
+  if (!props.isLoading && comGraphCtx) {
+    comGraphCtx.showLayerControl.value = true
+  }
+}
 
 function jumpToGraph(funcHash) {
   const funcMagicName = funcMap.value[funcHash]?.func_magicname;
@@ -701,6 +711,9 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
 }
 
 function openDiffViewer() {
+  if (props.isLoading || props.openMode !== 'all') {
+    return;
+  }
   (window as any).vscode.postMessage({
     type: 'openDiffViewer'
   });
@@ -1220,7 +1233,7 @@ onMounted(() => {
     color: var(--devui-overlay-icon);
   }
 
-  &:hover {
+  &:not(.corner-icon-disabled):hover {
     cursor: pointer;
     .devui-icon__container {
       color: var(--devui-operation-text-hover);
@@ -1229,6 +1242,23 @@ onMounted(() => {
       :deep() {
         path {
           stroke: var(--devui-operation-text-hover);
+        }
+      }
+    }
+  }
+
+  &.corner-icon-disabled {
+    background-color: var(--devui-secondary-button-disabled-bg);
+    cursor: not-allowed;
+
+    .devui-icon__container {
+      color: var(--devui-disabled-icon);
+    }
+
+    svg {
+      :deep() {
+        path {
+          stroke: var(--devui-disabled-icon) !important;
         }
       }
     }
