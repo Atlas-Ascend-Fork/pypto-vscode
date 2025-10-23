@@ -321,7 +321,7 @@ export class AstgrGraphView implements IView {
         // 选中时  显示追踪轨迹 失焦其他节点和连线
         comGraphStore.setData('inSelectedComGraphFlow',true);
         selectedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));    
-      } else if(hoverNodes.length > 0 && model.children.length < 20000){ 
+      } else if(hoverNodes.length > 0 && model.children.length < 20000 && comGraphStore.data.comGraphConfig.isHoverHighlightNode){ 
         // 悬停时 显示追踪轨迹 失焦其他节点和连线
         hoverNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
       }
@@ -353,7 +353,7 @@ export class AstgrGraphView implements IView {
     const transform = `scale(${model.zoom}) translate(${-model.scroll.x},${-model.scroll.y})`;
     let trace = window['trace'];
     return (
-      <svg class-sprotty-graph={true} class-has-trace={hasTrace} class-in-selected-trace={comGraphStore.data.inSelectedComGraphFlow} >
+      <svg class-sprotty-graph={true} class-has-trace={hasTrace && comGraphStore.data.comGraphConfig.isHoverHighlightNode} class-in-selected-trace={comGraphStore.data.inSelectedComGraphFlow} >
         <g transform={transform}>{context.renderChildren(model, { trace })}</g>
       </svg>
     );
@@ -455,14 +455,14 @@ export class AstgrNodeLabelView extends ShapeView {
       }
       // 创建第一个text节点
       const titleText = (
-        <text class-sprotty-label={true} class-parent-node={isParentNode} fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} fill={titleTxtFillColor}>
           {label.text}
         </text>
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
       const idText = (
-        <text class-sprotty-label={true} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
           {subgraphId}
         </text>
       );
@@ -1316,7 +1316,7 @@ export class AstgrPortView extends ShapeView {
     const circleELement = (
       <circle
         class-sprotty-port={true}
-        class-mouseover={node.parent.hoverFeedback}
+        class-mouseover={node.parent.hoverFeedback && comGraphStore.data.comGraphConfig.isHoverHighlightNode}
         class-selected={node.parent.selected}
         cx={isInPort ? Math.max(node.size.width, 0) - xDelta : 0 + xDelta}
         cy={Math.max(node.size.width, 0) / 2}
