@@ -9,8 +9,8 @@
   >
     <div :class="['path-list-container', isOpen && 'is-open']" @click="() => (isOpen = !isOpen)">
       <div class="selected-path">
-        <div class="path-parent">{{ parentData }}</div>
-        <div class="path-current">{{ currentData.magicName }}</div>
+        <div class="path-parent" :title="parentData">{{ parentData }}</div>
+        <div class="path-current" :title="currentData?.label">{{ currentData?.label }}</div>
       </div>
       <i class="icon-chevron-down-2"></i>
     </div>
@@ -24,35 +24,61 @@
         @click.stop
         @search="onSearch"
       ></d-search>
-      <d-tree ref="treeEl" :data="treeData" @node-click="onNodeClick"></d-tree>
+      <d-tree ref="treeEl" :data="treeData" class="path-list-tree" @node-click="onNodeClick">
+        <template #content="{ nodeData }">
+          <span class="path-list-tree-node-content" :title="nodeData.label">{{ nodeData.label }}</span>
+        </template>
+      </d-tree>
+      <div v-if="searchNoRes" class="search-no-res">{{ t('noDataMatched') }}</div>
     </template>
   </d-dropdown>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, nextTick, ref } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PathList } from './mock';
 import { NavbarProvideKey } from './navbar-types';
-import type { NavbarContext, PathData } from './navbar-types';
+import type { NavbarContext, PathTreeData } from './navbar-types';
+import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
 import { transformAndFlatTreeData } from './util';
+import { PassList } from './mock';
 
 const { t } = useI18n();
-const { passList, leafFunctions } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, rootEmits, controlFlowList, passList, leafFunctions } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 const treeEl = ref();
-const TreeDataMap: Record<number, PathData> = {};
-transformAndFlatTreeData(PathList, TreeDataMap);
-const treeData = ref(PathList);
-const currentData = ref({ id: 50, magic: 50, magicName: 'TENSOR_MLA_LOOP_L0_sIdx_Unroll1_PATH0_root_50' });
-leafFunctions.value = TreeDataMap[currentData.value.magic].meta?.leafFunctions ?? [];
-passList.value = TreeDataMap[currentData.value.magic].meta?.passes ?? [];
+const TreeDataMap: Record<PathTreeData['id'], PathTreeData> = {};
+const treeData = ref<PathTreeData[]>([]);
+const currentData = ref<PathTreeData>();
+const searchNoRes = ref(false);
 const parentData = computed(() => {
   if (currentData.value) {
-    return TreeDataMap[currentData.value.magic].parentNode.magicName;
+    return TreeDataMap[currentData.value.id]?.parentNode?.label;
   }
   return '';
 });
+
+watch(
+  controlFlowList,
+  (val) => {
+    if (val?.length) {
+      treeData.value = transformAndFlatTreeData(val, TreeDataMap);
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  [treeData, () => rootProps.currentPathMagic],
+  () => {
+    if (treeData.value.length && rootProps.currentPathMagic !== -1) {
+      currentData.value = TreeDataMap[rootProps.currentPathMagic];
+      passList.value = (currentData.value.controlFlowData as ControlFlowPath).meta.passes ?? [];
+      leafFunctions.value = (currentData.value.controlFlowData as ControlFlowPath).meta.leafFunctions ?? [];
+    }
+  },
+  { immediate: true },
+);
 
 const onToggle = (val) => {
   isOpen.value = val;
@@ -65,14 +91,15 @@ const onToggle = (val) => {
 
 function onSearch(val: string) {
   treeEl.value.treeFactory.searchTree(val, { isFilter: true });
+  searchNoRes.value = treeEl.value.treeFactory.treeData.value.every((item) => item.isHide);
 }
 
-function onNodeClick(node) {
+function onNodeClick(node: PathTreeData) {
   if (node.isLeaf) {
-    currentData.value = node;
     isOpen.value = false;
-    passList.value = node.meta.passes;
-    leafFunctions.value = node.meta.leafFunctions;
+    passList.value = (node.controlFlowData as ControlFlowPath).meta.passes ?? [];
+    leafFunctions.value = (node.controlFlowData as ControlFlowPath).meta.leafFunctions ?? [];
+    rootEmits('currentPathChange', node.id);
   } else {
     treeEl.value.treeFactory.deselectNode(node);
     treeEl.value.treeFactory.selectNode(currentData.value);
@@ -95,12 +122,20 @@ function onNodeClick(node) {
     font-size: 12px;
     font-weight: bold;
     line-height: 18px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .path-current {
     color: var(--devui-placeholder-text);
     font-size: 12px;
     line-height: 18px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   i {
@@ -119,6 +154,7 @@ function onNodeClick(node) {
 
 <style lang="scss">
 .path-list-menu-wrap {
+  width: 400px;
   padding: 12px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -145,6 +181,11 @@ function onNodeClick(node) {
         }
       }
     }
+  }
+
+  .path-list-tree {
+    max-height: 400px;
+    overflow: auto;
   }
 
   .devui-tree__node-folder {
@@ -189,5 +230,19 @@ function onNodeClick(node) {
       margin-left: 0;
     }
   }
+
+  .search-no-res {
+    text-align: center;
+    color: var(--devui-placeholder-text);
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
+
+.path-list-tree-node-content {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

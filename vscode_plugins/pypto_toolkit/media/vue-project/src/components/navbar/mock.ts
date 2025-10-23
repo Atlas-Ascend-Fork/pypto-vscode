@@ -59,6 +59,8 @@ export const PathList = [
                 { passIndex: '07', passStage: 'tile', passName: 'DuplicateView', hasHealthReport: false },
                 { passIndex: '08', passStage: 'tile', passName: 'DuplicateView', hasHealthReport: false },
                 { passIndex: '09', passStage: 'block', passName: 'DuplicateView', hasHealthReport: false },
+                { passIndex: '10', passStage: 'block', passName: 'DuplicateView', hasHealthReport: false },
+                { passIndex: '11', passStage: 'block', passName: 'DuplicateView', hasHealthReport: false },
               ],
             },
           },
@@ -106,4 +108,19 @@ export const PathList = [
       },
     ],
   },
+];
+
+export const PassList = [
+  { passIndex: '00', passStage: 'tensor', passName: 'LoopUnroll', hasHealthReport: false },
+  { passIndex: '01', passStage: 'tensor', passName: 'InferMemoryConflict', hasHealthReport: false },
+  { passIndex: '02', passStage: 'tensor', passName: 'ExpandFunction', hasHealthReport: false },
+  { passIndex: '03', passStage: 'tile', passName: 'DuplicateView03', hasHealthReport: false },
+  { passIndex: '04', passStage: 'tile', passName: 'DuplicateView04', hasHealthReport: false },
+  { passIndex: '05', passStage: 'tile', passName: 'DuplicateView05', hasHealthReport: false },
+  { passIndex: '06', passStage: 'tile', passName: 'DuplicateView06', hasHealthReport: false },
+  { passIndex: '07', passStage: 'tile', passName: 'DuplicateView07', hasHealthReport: false },
+  { passIndex: '08', passStage: 'tile', passName: 'DuplicateView08', hasHealthReport: false },
+  { passIndex: '09', passStage: 'block', passName: 'DuplicateView09', hasHealthReport: false },
+  { passIndex: '10', passStage: 'block', passName: 'DuplicateView10', hasHealthReport: false },
+  { passIndex: '11', passStage: 'block', passName: 'DuplicateView11', hasHealthReport: false },
 ];

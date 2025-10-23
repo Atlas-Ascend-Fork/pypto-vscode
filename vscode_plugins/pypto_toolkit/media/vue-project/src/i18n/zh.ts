@@ -75,6 +75,8 @@ export default {
    compareLargerTips: '当前两个图的差异超过50%，不再显示差异对比',
    compareWrongTips: '选中文件无法解析为计算图',
    controlFlow: '控制流',
+   noDataMatched: '未匹配到数据',
+   jumpCodeTips: '跳转源码，设计中，敬请期待',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
    'hierarchy': '层级: ',

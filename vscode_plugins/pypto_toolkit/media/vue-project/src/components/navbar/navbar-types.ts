@@ -1,66 +1,64 @@
 import type { PropType, InjectionKey, ExtractPropTypes, Ref } from 'vue';
+import type { OutputRecord } from '../../../../../src/types/workspace/output';
+import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafFunction } from '../../../../../src/types/control-flow';
 
-interface RunData {
+export type HistoryData = OutputRecord;
+
+
+
+export type ControlFlowData = ControlFlowPath | ControlFlowIf | ControlFlowLoop;
+
+export interface PathTreeData {
+  controlFlowData: ControlFlowData;
+  id: number;
   label: string;
-  date: string;
-}
-
-type PassStage = 'tensor' | 'tile' | 'block';
-
-export interface PassData {
-  passIndex: string;
-  passStage: PassStage;
-  passName: string;
-  hasHealthReport: boolean;
-}
-
-export interface LeafFunctionData {
-  magic: number;
-  magicName: string;
-  hash: string;
-}
-
-interface PathMetaData {
-  leafFunctions: LeafFunctionData[];
-  passes: PassData[];
-}
-
-export interface PathData {
-  nodeType: string;
-  magic: number;
-  magicName: string;
-  hash: string;
-  children?: PathData[];
-  meta?: PathMetaData;
-  [k: string]: any;
+  parentNode?: PathTreeData;
+  expanded?: boolean;
+  disableToggle?: boolean;
+  children?: PathTreeData[];
+  [key: string]: any;
 }
 
 type Step = 'controlFlow' | 'comGraph';
 
 export const navbarProps = {
-  currentRunData: {
-    type: Object as PropType<RunData>,
-    default: () => ({}),
+  currentRecordDirectoryPath: {
+    type: String as PropType<HistoryData['directoryPath']>,
+    default: '',
   },
   currentStep: {
     type: String as PropType<Step>,
     default: 'comGraph',
   },
-  historyList: {
-    type: Array as PropType<RunData[]>,
-    default: () => [],
+  currentPathMagic: {
+    type: Number as PropType<ControlFlowPath['magic']>,
+    default: -1,
   },
-  pathList: {
-    type: Array,
-    default: () => [],
+  currentPassName: {
+    type: String as PropType<PathInPass['passName']>,
+    default: '',
+  },
+  currentLeafHash: {
+    type: String as PropType<LeafFunction['hash']>,
+    default: '',
   },
 };
 
 type NavbarProps = ExtractPropTypes<typeof navbarProps>;
 
+export type NavbarEmits = {
+  (e: 'currentRecordChange', msg: HistoryData['directoryPath']): void;
+  (e: 'currentPathChange', msg: ControlFlowPath['magic']): void;
+  (e: 'currentPassChange', msg: PathInPass['passName']): void;
+  (e: 'currentLeafChange', msg: LeafFunction['hash']): void;
+};
+
 export interface NavbarContext {
   rootProps: NavbarProps;
-  passList: Ref<PassData[]>;
-  leafFunctions: Ref<LeafFunctionData[]>;
+  rootEmits: NavbarEmits;
+  historyList: Ref<HistoryData[]>;
+  controlFlowList: Ref<ControlFlowData[]>;
+  passList: Ref<PathInPass[]>;
+  leafFunctions: Ref<LeafFunction[]>;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

@@ -2,7 +2,7 @@
   <div class="selected-history">
     <d-dropdown :position="['bottom-start']" :offset="20" @toggle="(val) => (isOpen = val)">
       <div :class="['selected-history-title', isOpen && 'is-open']">
-        <span>{{ currentData.title }}</span>
+        <span :title="currentData.title">{{ currentData.title }}</span>
         <i class="icon-chevron-down-2"></i>
       </div>
       <template #menu>
@@ -11,7 +11,7 @@
             v-for="item in historyList"
             :key="item.title"
             :class="['list-item', item.title === currentData.title && 'active']"
-            @click="() => (currentData = item)"
+            @click="() => rootEmits('currentRecordChange', item.directoryPath)"
           >
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
@@ -24,16 +24,24 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { NavbarContext } from './navbar-types';
-import { HistoryList } from './mock';
+import type { NavbarContext, HistoryData } from './navbar-types';
 
-const { rootProps } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, rootEmits, historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 
-const historyList = ref(HistoryList);
-const currentData = ref(historyList.value[0]);
+const currentData = computed<Partial<HistoryData>>(() => {
+  if (rootProps.currentRecordDirectoryPath) {
+    for (let i = 0; i < historyList.value.length; i++) {
+      const item = historyList.value[i];
+      if (item.directoryPath === rootProps.currentRecordDirectoryPath) {
+        return item;
+      }
+    }
+  }
+  return {};
+});
 </script>
 
 <style scoped lang="scss">
@@ -48,6 +56,10 @@ const currentData = ref(historyList.value[0]);
     font-weight: bold;
     line-height: 22px;
     color: var(--devui-primary-text);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     cursor: pointer;
 
     i {

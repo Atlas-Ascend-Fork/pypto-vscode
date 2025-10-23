@@ -15,6 +15,8 @@ const graphType = ref('');
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
+const outputDirPath = ref('');
+const passName = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
@@ -43,6 +45,8 @@ const searchNodeListener = (args) => {
 const returnCom = (message) => {
   jsonContent.value = message.data;
   loadingStep.value = message.step;
+  outputDirPath.value = message.outputDirPath;
+  passName.value = message.passName;
 };
 
 const returnInitData = (message) => {
@@ -50,6 +54,7 @@ const returnInitData = (message) => {
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
+    outputDirPath: message.outputDirPath,
   });
 };
 
@@ -165,7 +170,15 @@ onMounted(() => {
 
 <template>
   <header>
-    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
+    <ComGraph
+      v-if="graphType === 'returnCom'"
+      :outputDirPath="outputDirPath"
+      :jsonContent="jsonContent"
+      :loadingStep="loadingStep"
+      :openMode="openMode"
+      :nodeMagic="nodeMagic"
+      :pass-name="passName"
+    />
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"

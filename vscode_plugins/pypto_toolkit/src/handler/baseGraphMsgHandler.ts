@@ -409,10 +409,15 @@ export abstract class BaseGraphMsgHandler {
       if (nodeCount > NODE_COUNT_LIMIT) {
         panel.webview.postMessage({ command: 'readJsonWarning' });
       }
+      /** Pass目录名称正则 */
+      const passDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
+      const [_, __, passName] = panel.fsPath.match(passDirectoryRegExp)
       panel.webview.postMessage({
         command: cmd,
         step: 'convertData',
         data: json,
+        outputDirPath: panel.outputDirPath,
+        passName
       });
     } else if (cmd == 'returnDiffCom') {
       panel.webview.postMessage({

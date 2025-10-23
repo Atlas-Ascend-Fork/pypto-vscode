@@ -1,7 +1,7 @@
 <template>
   <d-dropdown :position="['bottom-start']" :offset="14" @toggle="(val) => (isOpen = val)">
     <div :class="['leaf-function-container', isOpen && 'is-open']">
-      <div class="select-val">{{ currentLeaf?.magicName }}</div>
+      <div class="select-val">{{ currentLeaf.magicName }}</div>
       <i class="icon-chevron-down-2"></i>
     </div>
     <template #menu>
@@ -10,7 +10,7 @@
           v-for="item in leafFunctions"
           :key="item.magic"
           :title="item.magicName"
-          :class="['list-item', item.magic === currentLeaf.magic && 'active']"
+          :class="['list-item', item.hash === currentLeaf.hash && 'active']"
           @click="() => onClick(item)"
         >
           {{ item.magicName }}
@@ -21,16 +21,27 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { NavbarContext, LeafFunctionData } from './navbar-types';
+import type { NavbarContext } from './navbar-types';
+import type { LeafFunction } from '../../../../../src/types/control-flow';
 
-const { leafFunctions } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, rootEmits, leafFunctions } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
-const currentLeaf = ref(leafFunctions.value[0]);
+const currentLeaf = computed<Partial<LeafFunction>>(() => {
+  if (rootProps.currentLeafHash) {
+    for (let i = 0; i < leafFunctions.value.length; i++) {
+      const item = leafFunctions.value[i];
+      if (item.hash === rootProps.currentLeafHash) {
+        return item;
+      }
+    }
+  }
+  return {};
+});
 
-const onClick = (item: LeafFunctionData) => {
-  currentLeaf.value = item;
+const onClick = (item: LeafFunction) => {
+  rootEmits('currentLeafChange', item.hash);
 };
 </script>
 

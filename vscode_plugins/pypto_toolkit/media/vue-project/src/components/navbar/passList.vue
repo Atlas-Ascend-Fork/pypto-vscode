@@ -2,23 +2,23 @@
   <d-dropdown
     :visible="isOpen"
     trigger="manually"
-    :position="['bottom']"
+    :position="['bottom-start']"
     :offset="10"
     close-scope="blank"
     class="pass-list-menu-wrap"
     @toggle="onToggle"
   >
     <div class="pass-list-container" @click="isOpen = !isOpen">
-      <div :class="['pass-type', currentData.passStage]">{{ UpperFirstStr(currentData.passStage) }}</div>
+      <div :class="['pass-type', currentData?.passStage]">{{ currentData?.passStage ? UpperFirstStr(currentData?.passStage) : '' }}</div>
       <div>
-        <div class="pass-content">{{ currentData.passIndex }} {{ currentData.passName }}</div>
+        <div class="pass-content">{{ currentData?.passIndex }} {{ currentData?.passName }}</div>
         <div class="dot-step">
-          <ThreeDot dot-color="var(--devui-split-line)" />
-          <span :class="['big-dot', isLastGraph('tensor') && 'last-tensor']"></span>
-          <ThreeDot :dot-color="isMiddleTile() ? '#7ddfe7' : 'var(--devui-split-line)'" />
-          <span :class="['big-dot', isLastGraph('tile') && 'last-tile']"></span>
-          <ThreeDot dot-color="var(--devui-split-line)" />
-          <span :class="['big-dot', isLastGraph('block') && 'last-block']"></span>
+          <ThreeDot :dot-color="isMiddleGraph(PassStage.TENSOR_GRAPH) ? '#fde55c' : 'var(--devui-split-line)'" />
+          <span :class="['big-dot', isLastGraph(PassStage.TENSOR_GRAPH) && 'last-tensor']"></span>
+          <ThreeDot :dot-color="isMiddleGraph(PassStage.TILE_GRAPH) ? '#7ddfe7' : 'var(--devui-split-line)'" />
+          <span :class="['big-dot', isLastGraph(PassStage.TILE_GRAPH) && 'last-tile']"></span>
+          <ThreeDot :dot-color="isMiddleGraph(PassStage.BLOCK_GRAPH) ? '#63d5a8' : 'var(--devui-split-line)'" />
+          <span :class="['big-dot', isLastGraph(PassStage.BLOCK_GRAPH) && 'last-block']"></span>
         </div>
       </div>
     </div>
@@ -39,6 +39,7 @@
           <span>{{ pass.passName }}</span>
         </div>
       </div>
+      <div v-if="!Object.keys(renderPassList).length" class="search-no-res">{{ t('noDataMatched') }}</div>
     </template>
   </d-dropdown>
 </template>
@@ -48,14 +49,16 @@ import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ThreeDot from './threeDot.vue';
 import { transformPassList, UpperFirstStr } from './util';
-import { NavbarContext, NavbarProvideKey, PassData } from './navbar-types';
+import { NavbarContext, NavbarProvideKey } from './navbar-types';
+import { PassStage } from '../../../../../src/types/workspace/pass';
+import type { PathInPass } from '../../../../../src/types/control-flow';
 
 const { t } = useI18n();
-const { passList } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, rootEmits, passList } = inject(NavbarProvideKey) as NavbarContext;
 const filterKey = ref('');
 const isOpen = ref(false);
-const currentData = ref<PassData>({ passIndex: '09', passStage: 'block', passName: 'DuplicateView', hasHealthReport: false });
-let PassListMap: Partial<Record<PassData['passStage'], PassData[]>> = {};
+const currentData = ref<PathInPass>();
+let PassListMap: Partial<Record<PathInPass['passStage'], PathInPass[]>> = {};
 
 const renderPassList = computed(() => {
   if (!filterKey.value) {
@@ -72,31 +75,51 @@ watch(
   (val) => {
     if (val) {
       PassListMap = transformPassList(val);
+      updateCurrentData();
     }
   },
   { immediate: true },
 );
+
+watch(
+  () => rootProps.currentPassName,
+  () => {
+    updateCurrentData();
+  },
+  { immediate: true },
+);
+
+function updateCurrentData() {
+  if (rootProps.currentPassName && passList.value.length) {
+    for (let i = 0; i < passList.value.length; i++) {
+      const item = passList.value[i];
+      if (item.passName === rootProps.currentPassName) {
+        currentData.value = item;
+      }
+    }
+  }
+}
 
 function onToggle(val: boolean) {
   isOpen.value = val;
   filterKey.value = '';
 }
 
-function selectPass(pass: PassData) {
+function selectPass(pass: PathInPass) {
   isOpen.value = false;
-  currentData.value = pass;
+  rootEmits('currentPassChange', pass.passName);
 }
 
-function isLastGraph(passStage: PassData['passStage']) {
+function isLastGraph(passStage: PathInPass['passStage']) {
   const temp = PassListMap[passStage];
-  if (temp?.length) {
+  if (temp?.length && currentData.value) {
     return currentData.value.passIndex === temp[temp.length - 1].passIndex;
   }
 }
 
-function isMiddleTile() {
-  const temp = PassListMap['tile'];
-  if (temp?.length && currentData.value.passStage === 'tile') {
+function isMiddleGraph(passStage: PathInPass['passStage']) {
+  const temp = PassListMap[passStage];
+  if (temp?.length && currentData.value && currentData.value.passStage === passStage) {
     return currentData.value.passIndex !== temp[temp.length - 1].passIndex;
   }
 }
@@ -165,6 +188,7 @@ function isMiddleTile() {
 
 <style lang="scss">
 .pass-list-menu-wrap {
+  width: 220px;
   padding: 12px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -227,6 +251,13 @@ function isMiddleTile() {
     &:not(:last-of-type) {
       margin-bottom: 4px;
     }
+  }
+
+  .search-no-res {
+    text-align: center;
+    color: var(--devui-placeholder-text);
+    font-size: 12px;
+    line-height: 16px;
   }
 }
 </style>

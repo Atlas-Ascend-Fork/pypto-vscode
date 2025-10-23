@@ -8,9 +8,11 @@
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
-      <div class="source-code">
-        <i class="icon-code"></i>
-      </div>
+      <d-tooltip :content="t('jumpCodeTips')" position="bottom" overlay-class="navbar-list-tooltip">
+        <div class="source-code">
+          <i class="icon-code"></i>
+        </div>
+      </d-tooltip>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
       <div :class="['control-flow', currentStep === 'controlFlow' && 'active']">
         <i class="icon-sharing"></i>
@@ -23,7 +25,7 @@
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
           <PassList />
           <div class="dividing-line"></div>
-          <LeafFunction />
+          <LeafFunctionCom />
         </div>
       </div>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
@@ -35,23 +37,45 @@
 </template>
 
 <script setup lang="ts">
-import { provide, ref } from 'vue';
+import { provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { navbarProps } from './navbar-types';
 import PathList from './pathList.vue';
-import LeafFunction from './leafFunction.vue';
+import LeafFunctionCom from './leafFunction.vue';
 import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { PassData, LeafFunctionData } from './navbar-types';
+import type { HistoryData, ControlFlowData, NavbarEmits } from './navbar-types';
+import type { PathInPass, LeafFunction } from '../../../../../src/types/control-flow/path';
+import { getOutputRecords } from '../../apis/workspace';
+import { getControlFlow } from '../../apis/control-flow';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
-const passList = ref<PassData[]>([]);
-const leafFunctions = ref<LeafFunctionData[]>([]);
+const emits = defineEmits<NavbarEmits>();
+const historyList = ref<HistoryData[]>([]);
+const controlFlowList = ref<ControlFlowData[]>([]);
+const passList = ref<PathInPass[]>([]);
+const leafFunctions = ref<LeafFunction[]>([]);
 
-provide(NavbarProvideKey, { rootProps: props, passList, leafFunctions });
+provide(NavbarProvideKey, { rootProps: props, rootEmits: emits, historyList, controlFlowList, passList, leafFunctions });
+
+getOutputRecords({}).then((res) => {
+  historyList.value = res.data;
+});
+
+watch(
+  () => props.currentRecordDirectoryPath,
+  (val) => {
+    if (val) {
+      getControlFlow(val).then((res) => {
+        controlFlowList.value = res.data;
+      });
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="scss">
@@ -59,6 +83,9 @@ provide(NavbarProvideKey, { rootProps: props, passList, leafFunctions });
   display: flex;
   align-items: center;
   gap: 16px;
+  height: fit-content;
+  margin-top: 16px;
+  margin-left: 16px;
   box-sizing: border-box;
 
   .history-wrap {
@@ -156,5 +183,11 @@ provide(NavbarProvideKey, { rootProps: props, passList, leafFunctions });
       }
     }
   }
+}
+</style>
+
+<style lang="scss">
+.navbar-list-tooltip.devui-tooltip {
+  max-width: 300px;
 }
 </style>

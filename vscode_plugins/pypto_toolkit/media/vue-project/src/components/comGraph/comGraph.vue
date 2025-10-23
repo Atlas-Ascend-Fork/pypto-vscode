@@ -1,7 +1,17 @@
 <template>
   <div class="com-graph-container">
-    <Navbar />
-    <!-- <ComGraphHeader @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader> -->
+    <div v-if="outputDirPath" class="com-graph-navbar-wrap">
+      <Navbar
+        :current-record-directory-path="outputDirPath"
+        :current-path-magic="currentPathMagic"
+        :current-pass-name="currentPassName"
+        :current-leaf-hash="currentLeafHash"
+        @current-path-change="(e) => currentPathMagic = e"
+        @current-pass-change="(e) => currentPassName = e"
+      />
+      <ComGraphHeader in-navbar @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    </div>
+    <ComGraphHeader v-else @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -55,9 +65,21 @@ const props = defineProps({
   },
   nodeMagic: {
     type: Number,
-    default: '-1'
+    default: -1
+  },
+  outputDirPath: {
+    type: String,
+    default: '/C:/Users/w30015077/.pypto/run/rundata_20250925141700'
+    //default: ''
+  },
+  passName: {
+    type: String,
+    default: ''
   }
-})
+});
+const currentPathMagic = ref(-1);
+const currentPassName = ref('');
+const currentLeafHash = ref('');
 
 const { isDarkTheme } = inject('root');
 const showHealthReport = ref(false);
@@ -143,9 +165,15 @@ watch(
   },
 );
 
+watch(() => props.passName, (val) => {
+  currentPassName.value = val;
+}, { immediate:true })
+
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
+    currentPathMagic.value = val.funcmagic;
+    currentLeafHash.value = val.hash;
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
@@ -245,6 +273,32 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   height: 100vh;
   position: relative;
   background-color: var(--devui-global-bg);
+
+  .com-graph-navbar-wrap {
+    position: absolute;
+    width: 100%;
+    height: 150px;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--devui-header-gradient-bg);
+
+    .navbar-container {
+      flex: 1;
+    }
+
+    .com-graph-header {
+      position: relative;
+      width: 541px;
+      background: unset;
+
+      .toolbar-row {
+        top: 16px;
+      }
+    }
+  }
 
   .com-graph-header {
     position: absolute;
