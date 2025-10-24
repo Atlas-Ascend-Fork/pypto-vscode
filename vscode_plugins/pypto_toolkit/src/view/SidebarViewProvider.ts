@@ -72,7 +72,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
         let webviewText = webview.asWebviewUri(vscode.Uri.file(path.join(hismartliteEx.extensionPath)));
 
         let html = indexHtml.toString()
-            .replace(/{{root}}/g, webviewText)
+            .replace(/{{root}}/g, `${webviewText}`)
             .replace(/{{staticPath}}/g, `${webviewText}/webview-dist`)
             .replace(/{{ascTheme}}/g, getIDETheme())
             .replace(/{{ascLang}}/g, getIDELang());
