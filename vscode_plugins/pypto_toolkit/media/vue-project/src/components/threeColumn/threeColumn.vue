@@ -143,5 +143,13 @@ provide('threeColumnState', { isDarkTheme });
       border-left: 1px solid var(--devui-border-line-deep);
     }
   }
+
+  & > div:nth-of-type(3) {
+    :deep() {
+      .container {
+        position: relative;
+      }
+    }
+  }
 }
 </style>

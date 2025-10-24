@@ -136,6 +136,7 @@ export default {
       fullRenderComGraphDesc: '常规渲染，节点数较多时速度较慢',
       searchMode: '搜索模式',
       searchModeDesc: '根据搜索出的节点进行关联链路渲染',
-      locateNodeError:'当前节点未找到，定位失败'
+      locateNodeError:'当前节点未找到，定位失败',
+      pleaseSelect: '请选择'
    }
 }
