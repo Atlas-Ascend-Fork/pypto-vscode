@@ -4,7 +4,7 @@
       <div class="history-icon">
         <i class="icon-assembly-new"></i>
       </div>
-      <HistoryList ref="historyListEl" />
+      <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -23,13 +23,13 @@
         <i class="icon-base-info"></i>
         <PathList v-if="currentStep === 'comGraph'" />
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
-          <PassList />
+          <PassList ref="passEl" />
           <div class="dividing-line"></div>
           <LeafFunctionCom />
         </div>
       </div>
-      <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div class="swim-graph" @click="jumpSwim">
+      <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
+      <div v-if="showSwim" class="swim-graph" @click="jumpSwim">
         <i class="icon-project-nav"></i>
       </div>
     </div>
@@ -46,7 +46,7 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { HistoryData, ControlFlowData } from './navbar-types';
+import type { HistoryData, ControlFlowData, PathTreeData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
@@ -56,10 +56,12 @@ import { findFirstPath } from './util';
 const { t } = useI18n();
 const props = defineProps(navbarProps);
 const historyListEl = ref();
+const passEl = ref();
 const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
+const showSwim = ref(true);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
 
@@ -79,6 +81,11 @@ watch(
   { immediate: true },
 );
 
+function onRecordChange() {
+  const record = historyListEl.value.getCurrentRecord() as HistoryData;
+  showSwim.value = Boolean(record.swimlaneGraphFilePath);
+}
+
 function onJumpCom() {
   if (props.currentStep === 'comGraph') {
     return;
@@ -86,7 +93,7 @@ function onJumpCom() {
   const firstPath = findFirstPath(controlFlowList.value);
   if (firstPath) {
     const lastPass = firstPath.meta.passes[firstPath.meta.passes.length - 1];
-    jumpComGraph(lastPass.graphFilePath);
+    jumpComGraph(lastPass.graphFilePath, lastPass.pathName);
   }
 }
 
@@ -108,11 +115,14 @@ function jumpSwim() {
   }
 }
 
-function jumpComGraph(filePath: string) {
+function jumpComGraph(filePath: string, pathName?: string) {
   if (historyListEl.value) {
     const record = historyListEl.value.getCurrentRecord() as HistoryData;
+    if (!pathName) {
+      pathName = (passEl.value?.getCurrentPass() as PathInPass | undefined)?.pathName ?? '';
+    }
     if (record.directoryPath) {
-      openComputeGraph({ outputPath: record.directoryPath, computeGraphPath: filePath });
+      openComputeGraph({ outputPath: record.directoryPath, computeGraphPath: filePath, pathName });
     }
   }
 }

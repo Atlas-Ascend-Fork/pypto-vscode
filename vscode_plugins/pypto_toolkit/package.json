@@ -117,7 +117,26 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sidebar",
+          "title": "PyPTO Toolkit",
+          "icon": "media/images/logo.png"
+        }
+      ]
+    },
+    "views": {
+      "sidebar": [
+        {
+          "type": "webview",
+          "id": "PyPTO-Toolkit-Sidebar",
+          "name": "PyPTO Toolkit",
+          "icon": "media/images/logo.png"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
