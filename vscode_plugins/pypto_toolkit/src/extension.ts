@@ -131,6 +131,74 @@ export async function activate(context: ExtensionContext) {
             },
         });
     }
+  }, delay);
+
+  await hismartliteEx.initHismartliteEx(context);
+  const registerCommand = new RegisterCommand(context);
+  registerCommand.register();
+  if (config.IS_USE_DB) {
+    await initDB(context);
+  }
+
+    // 启动接口服务
+    const server = new ExtensionApiServer(services);
+
+    // 启动编辑区视图
+    initView((viewPanel) => {
+        server.addWebview(viewPanel.webview);
+    });
+    const sidebarViewProvider = new SidebarViewProvider(context.extensionUri, server);
+
+    vscode.window.registerWebviewViewProvider(
+        SidebarViewProvider.viewType, // 页面 ID
+        sidebarViewProvider, // 页面实例
+        {webviewOptions: {retainContextWhenHidden: true}} // 界面不可见时仍然保留内容
+    )
+
+  if (window.registerWebviewPanelSerializer) {
+    window.registerWebviewPanelSerializer('swimLane', {
+      async deserializeWebviewPanel(webviewPanel: WebviewPanel, state: unknown) {
+        await loadMaterialColorUtilities();
+        SwimGraphView.revive(webviewPanel, context.extensionUri);
+      },
+    });
+
+    window.registerWebviewPanelSerializer('comItemDetailView', {
+      async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
+        await loadMaterialColorUtilities();
+        const { fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId, outputDirPath, pathName } = (state as any) || {};
+        GraphView.revive(
+          webviewPanel,
+          SingleGraphData,
+          SingleGraphHandler,
+          fsPath,
+          funcHash,
+          magicName,
+          curPath,
+          calleeOpMagic,
+          calleeOpSubgraphId,
+          outputDirPath,
+          pathName
+        );
+      },
+    });
+
+    window.registerWebviewPanelSerializer('itemDetailView', {
+      async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
+        await loadMaterialColorUtilities();
+        const { fsPath, funcHash, magicName, curPath } = (state as any) || {};
+        GraphView.reviveDiffGraph(
+          webviewPanel,
+          DiffGraphData,
+          DiffGraphHandler,
+          fsPath,
+          funcHash,
+          magicName,
+          curPath,
+        );
+      },
+    });
+  }
 }
 
 async function initDB(context: ExtensionContext) {
