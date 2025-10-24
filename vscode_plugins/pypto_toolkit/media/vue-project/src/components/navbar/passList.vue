@@ -116,7 +116,7 @@ function onToggle(val: boolean) {
 
 function selectPass(pass: PathInPass) {
   isOpen.value = false;
-  jumpComGraph(pass.graphFilePath);
+  jumpComGraph(pass.graphFilePath, pass.pathName);
 }
 
 function isLastGraph(passStage: PathInPass['passStage']) {
@@ -132,6 +132,8 @@ function isMiddleGraph(passStage: PathInPass['passStage']) {
     return currentData.value.passIndex !== temp[temp.length - 1].passIndex;
   }
 }
+
+defineExpose({ getCurrentPass: () => currentData.value });
 </script>
 
 <style scoped lang="scss">
