@@ -58,5 +58,6 @@ export interface NavbarContext {
   controlFlowList: Ref<ControlFlowData[]>;
   passList: Ref<PathInPass[]>;
   leafFunctions: Ref<LeafFunction[]>;
+  jumpComGraph: (filePath: string) => void;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

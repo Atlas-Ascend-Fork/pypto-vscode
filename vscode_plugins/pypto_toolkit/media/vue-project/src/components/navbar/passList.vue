@@ -54,7 +54,7 @@ import { PassStage } from '../../../../../src/types/workspace/pass';
 import type { PathInPass } from '../../../../../src/types/control-flow';
 
 const { t } = useI18n();
-const { rootProps, rootEmits, passList } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, rootEmits, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
 const filterKey = ref('');
 const isOpen = ref(false);
 const currentData = ref<PathInPass>();
@@ -107,6 +107,7 @@ function onToggle(val: boolean) {
 
 function selectPass(pass: PathInPass) {
   isOpen.value = false;
+  jumpComGraph(pass.graphFilePath);
   rootEmits('currentPassChange', pass.passName);
 }
 

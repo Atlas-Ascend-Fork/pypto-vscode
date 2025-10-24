@@ -14,7 +14,7 @@
         </div>
       </d-tooltip>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="() => jump['controlFlow']">
+      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
         <i class="icon-sharing"></i>
         <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
       </div>
@@ -29,7 +29,7 @@
         </div>
       </div>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div class="swim-graph" @click="() => jump['swim']">
+      <div class="swim-graph" @click="jumpSwim">
         <i class="icon-project-nav"></i>
       </div>
     </div>
@@ -50,7 +50,7 @@ import type { HistoryData, ControlFlowData, NavbarEmits } from './navbar-types';
 import type { PathInPass, LeafFunction } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
-import { openControlFlow } from '../../apis/opener';
+import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -61,7 +61,7 @@ const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafFunction[]>([]);
 
-provide(NavbarProvideKey, { rootProps: props, rootEmits: emits, historyList, controlFlowList, passList, leafFunctions });
+provide(NavbarProvideKey, { rootProps: props, rootEmits: emits, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
 
 getOutputRecords({}).then((res) => {
   historyList.value = res.data;
@@ -73,21 +73,36 @@ watch(
     if (val) {
       getControlFlow(val).then((res) => {
         controlFlowList.value = res.data;
+        console.log(res.data);
       });
     }
   },
   { immediate: true },
 );
 
-function jump(type: 'controlFlow' | 'swim') {
-  const map = {
-    controlFlow: 'controlFlowFilePath',
-    swim: 'swimlaneGraphFilePath',
-  };
+function jumpControlFlow() {
   if (historyListEl.value) {
     const record = historyListEl.value.getCurrentRecord() as HistoryData;
     if (record.directoryPath) {
-      openControlFlow({ outputPath: record.directoryPath, controlFlowPath: record[map[type]] });
+      openControlFlow({ outputPath: record.directoryPath, controlFlowPath: record.controlFlowFilePath });
+    }
+  }
+}
+
+function jumpSwim() {
+  if (historyListEl.value) {
+    const record = historyListEl.value.getCurrentRecord() as HistoryData;
+    if (record.directoryPath) {
+      openSwimlaneGraph({ swimlaneGraphPath: record.swimlaneGraphFilePath });
+    }
+  }
+}
+
+function jumpComGraph(filePath: string) {
+  if (historyListEl.value) {
+    const record = historyListEl.value.getCurrentRecord() as HistoryData;
+    if (record.directoryPath) {
+      openComputeGraph({ outputPath: record.directoryPath, computeGraphPath: filePath });
     }
   }
 }
