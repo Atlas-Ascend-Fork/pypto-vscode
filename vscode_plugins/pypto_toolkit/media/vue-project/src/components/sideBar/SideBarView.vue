@@ -33,7 +33,7 @@
     <div class="tree-container">
       <d-tree ref="treeRef" :data="visibleItems" show-line="false" :expanded-keys="expandedKeys"
               @expand="handleNodeExpand"
-              @collapse="handleNodeCollapse"  :height="900" @node-click="nodeClick" :node-class="() => 'custom-tree-node'">
+              @collapse="handleNodeCollapse"  :height="1200" @node-click="nodeClick" :node-class="() => 'custom-tree-node'">
 
         <!-- 1. content插槽：自定义节点主内容（图标+文本） -->
         <template #content="{ nodeData }">
