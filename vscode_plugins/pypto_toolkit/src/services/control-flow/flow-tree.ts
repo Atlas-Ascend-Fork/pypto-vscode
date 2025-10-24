@@ -38,6 +38,7 @@ export class FlowTreeAnalyzer {
         throw new Error(`未知的根节点类型（functype: ${calleeFunction.functype},hash: ${calleeFunction.hash}）`);
       }
     }
+    this.pathLeafAnalyzer.calculateLeafFunctionCalledRecords();
     return controlFlow;
   }
 

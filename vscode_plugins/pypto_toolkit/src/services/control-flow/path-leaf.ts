@@ -1,7 +1,6 @@
 import type { CallLeafRecord, ControlFlowPath, FunctionNode, LeafFunction, LeafInPass, PathInPass } from '../../types/control-flow';
 import type { ExecuteFunction } from '../../types/execute-graph';
 import { ComputeGraph, PassDirectory, PassStage } from '../../types/workspace';
-import { hasHealthReport } from '../../utils/health-report';
 
 import { functionNodeToExecuteFunction } from './utils';
 
@@ -54,7 +53,7 @@ export class PathLeafAnalyzer {
          */
         calledRecords: [],
         calleeRecords: calleeRecords,
-        passes: this.findPathInPasses(functionNode, calleeRecords),
+        passes: this.findPathInPasses(functionNode, ownedLeafFunctions, calleeRecords),
       },
     };
 
@@ -152,6 +151,7 @@ export class PathLeafAnalyzer {
    */
   private findPathInPasses(
     pathFunction: FunctionNode,
+    ownedLeafFunctions: ControlFlowPath['meta']['leafFunctions'],
     calleeRecords: ControlFlowPath['meta']['calleeRecords'],
   ): ControlFlowPath['meta']['passes'] {
     const pathName = pathFunction.func_magicname.replace(`_root_${pathFunction.funcmagic}`, '');
@@ -159,17 +159,25 @@ export class PathLeafAnalyzer {
     for (const { roots, leafs, passName, passStage } of this.passFiles) {
       const pathFile = roots[pathName];
       if (pathFile) {
+        const hasHealthReport = this.pathHasHealthReport(
+          pathFile,
+          ownedLeafFunctions.map((item) => leafs?.[item.hash]),
+        );
         pathInPasses.push({
           passIndex: pathFile.passIndex,
           passName,
           passStage,
           graphFilePath: pathFile.absolutePath,
-          hasHealthReport: hasHealthReport(pathFile.absolutePath), // TODO 扫描Leaf是否有健康度报告
+          hasHealthReport,
           leafFunctions: leafs ? this.findLeafInPass(calleeRecords, roots, leafs, pathName) : [],
         });
       }
     }
     return pathInPasses;
+  }
+
+  private pathHasHealthReport(pathFile: ComputeGraph, leafFiles: (ComputeGraph | undefined)[]) {
+    return [pathFile, ...leafFiles].some((item) => item?.hasHealthReport);
   }
 
   private findLeafInPass(
