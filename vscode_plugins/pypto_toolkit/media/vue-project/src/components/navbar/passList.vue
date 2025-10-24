@@ -32,14 +32,22 @@
         @click.stop
         @search="(e) => (filterKey = e)"
       ></d-search>
-      <div v-for="item in Object.keys(renderPassList)" :key="item" class="pass-list-item-stage">
-        <div :class="[item]">{{ UpperFirstStr(item) }} Graph</div>
-        <div v-for="pass in renderPassList[item]" :key="pass.passIndex" class="pass-list-item" @click="() => selectPass(pass)">
-          <span>{{ pass.passIndex }}</span>
-          <span>{{ pass.passName }}</span>
+      <div style="max-height: 400px; overflow: auto">
+        <div v-for="item in Object.keys(renderPassList)" :key="item" class="pass-list-item-stage">
+          <div :class="[item]">{{ UpperFirstStr(item) }} Graph</div>
+          <div
+            v-for="pass in renderPassList[item]"
+            :key="pass.passIndex"
+            :class="['pass-list-item', pass.passIndex === currentData?.passIndex && 'active']"
+            @click="() => selectPass(pass)"
+          >
+            <span>{{ pass.passIndex }}</span>
+            <span :title="pass.passName">{{ pass.passName }}</span>
+            <d-icon v-if="pass.hasHealthReport" name="icon-line-chart" color="var(--devui-status-success-text)" size="14px"></d-icon>
+          </div>
         </div>
+        <div v-if="!Object.keys(renderPassList).length" class="search-no-res">{{ t('noDataMatched') }}</div>
       </div>
-      <div v-if="!Object.keys(renderPassList).length" class="search-no-res">{{ t('noDataMatched') }}</div>
     </template>
   </d-dropdown>
 </template>
@@ -54,7 +62,7 @@ import { PassStage } from '../../../../../src/types/workspace/pass';
 import type { PathInPass } from '../../../../../src/types/control-flow';
 
 const { t } = useI18n();
-const { rootProps, rootEmits, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, passList, leafFunctions, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
 const filterKey = ref('');
 const isOpen = ref(false);
 const currentData = ref<PathInPass>();
@@ -82,7 +90,7 @@ watch(
 );
 
 watch(
-  () => rootProps.currentPassName,
+  () => rootProps.currentPassIndex,
   () => {
     updateCurrentData();
   },
@@ -90,11 +98,12 @@ watch(
 );
 
 function updateCurrentData() {
-  if (rootProps.currentPassName && passList.value.length) {
+  if (rootProps.currentPassIndex && passList.value.length) {
     for (let i = 0; i < passList.value.length; i++) {
       const item = passList.value[i];
-      if (item.passName === rootProps.currentPassName) {
+      if (parseInt(item.passIndex) === parseInt(rootProps.currentPassIndex)) {
         currentData.value = item;
+        leafFunctions.value = item.leafFunctions;
       }
     }
   }
@@ -108,7 +117,6 @@ function onToggle(val: boolean) {
 function selectPass(pass: PathInPass) {
   isOpen.value = false;
   jumpComGraph(pass.graphFilePath);
-  rootEmits('currentPassChange', pass.passName);
 }
 
 function isLastGraph(passStage: PathInPass['passStage']) {
@@ -189,7 +197,7 @@ function isMiddleGraph(passStage: PathInPass['passStage']) {
 
 <style lang="scss">
 .pass-list-menu-wrap {
-  width: 220px;
+  width: 240px;
   padding: 12px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -251,6 +259,12 @@ function isMiddleGraph(passStage: PathInPass['passStage']) {
 
     &:not(:last-of-type) {
       margin-bottom: 4px;
+    }
+
+    span:nth-of-type(2) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

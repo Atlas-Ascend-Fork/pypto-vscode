@@ -49,7 +49,8 @@ export class GraphView<T extends AbstractGraphData> {
     magicName?: string ,
     calleeOpMagic?: string, 
     calleeOpSubgraphId?: string, 
-    outputDirPath?: string
+    outputDirPath?: string,
+    pathName?: string
   ): Promise<vscode.WebviewPanel> {
     // 1. 如果已存在，直接复用
     if (existingPanel) {
@@ -76,6 +77,7 @@ export class GraphView<T extends AbstractGraphData> {
     (this.panel as any).graphData = new this.dataCtor(fsPath, funcHash, calleeOpMagic,calleeOpSubgraphId);
     (this.panel as any).fsPath = fsPath;
     (this.panel as any).outputDirPath = outputDirPath;
+    (this.panel as any).pathName = pathName;
     (this.panel as any).funcHash = funcHash;
     (this.panel as any).calleeOpMagic = calleeOpMagic;
     (this.panel as any).calleeOpSubgraphId = calleeOpSubgraphId;
@@ -106,7 +108,8 @@ export class GraphView<T extends AbstractGraphData> {
     curPath?: string,
     calleeOpMagic?: string,
     calleeOpSubgraphId?: string,
-    outputDirPath?: string
+    outputDirPath?: string,
+    pathName?: string
   ): GraphView<T> {
     const view = new GraphView<T>(
       {
@@ -119,7 +122,7 @@ export class GraphView<T extends AbstractGraphData> {
       handler,
     );
     view.panel = panel; // 复用旧 panel
-    void view.createPanel(fsPath, funcHash,curPath,panel,magicName,calleeOpMagic,calleeOpSubgraphId, outputDirPath);
+    void view.createPanel(fsPath, funcHash,curPath,panel,magicName,calleeOpMagic,calleeOpSubgraphId, outputDirPath, pathName);
     return view;
   }
 

@@ -16,7 +16,9 @@ const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
 const outputDirPath = ref('');
-const passName = ref('');
+const passIndex = ref('');
+const pathName = ref('');
+const fileName = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
@@ -46,7 +48,9 @@ const returnCom = (message) => {
   jsonContent.value = message.data;
   loadingStep.value = message.step;
   outputDirPath.value = message.outputDirPath;
-  passName.value = message.passName;
+  passIndex.value = message.passIndex;
+  pathName.value = message.pathName;
+  fileName.value = message.fileName;
 };
 
 const returnInitData = (message) => {
@@ -55,6 +59,7 @@ const returnInitData = (message) => {
     funcHash: message.funcHash,
     magicName: message.magicName,
     outputDirPath: message.outputDirPath,
+    pathName: message.pathName,
   });
 };
 
@@ -177,7 +182,9 @@ onMounted(() => {
       :loadingStep="loadingStep"
       :openMode="openMode"
       :nodeMagic="nodeMagic"
-      :pass-name="passName"
+      :pass-index="passIndex"
+      :path-name="pathName"
+      :file-name="fileName"
     />
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"

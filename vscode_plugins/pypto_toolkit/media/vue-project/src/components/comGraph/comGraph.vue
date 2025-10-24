@@ -2,12 +2,11 @@
   <div class="com-graph-container">
     <div v-if="outputDirPath" class="com-graph-navbar-wrap">
       <Navbar
+        current-step="comGraph"
         :current-record-directory-path="outputDirPath"
-        :current-path-magic="currentPathMagic"
-        :current-pass-name="currentPassName"
-        :current-leaf-hash="currentLeafHash"
-        @current-path-change="(e) => currentPathMagic = e"
-        @current-pass-change="(e) => currentPassName = e"
+        :current-path-magic-name="pathName"
+        :current-pass-index="passIndex"
+        :current-leaf-name="fileName"
       />
       <ComGraphHeader in-navbar @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     </div>
@@ -69,17 +68,21 @@ const props = defineProps({
   },
   outputDirPath: {
     type: String,
-    default: '/C:/Users/w30015077/.pypto/run/rundata_20250925141700'
-    //default: ''
+    default: ''
   },
-  passName: {
+  passIndex: {
+    type: String,
+    default: '027'
+  },
+  pathName: {
+    type: String,
+    default: ''
+  },
+  fileName: {
     type: String,
     default: ''
   }
 });
-const currentPathMagic = ref(-1);
-const currentPassName = ref('');
-const currentLeafHash = ref('');
 
 const { isDarkTheme } = inject('root');
 const showHealthReport = ref(false);
@@ -165,15 +168,9 @@ watch(
   },
 );
 
-watch(() => props.passName, (val) => {
-  currentPassName.value = val;
-}, { immediate:true })
-
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
-    currentPathMagic.value = val.funcmagic;
-    currentLeafHash.value = val.hash;
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
@@ -296,6 +293,7 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
 
       .toolbar-row {
         top: 16px;
+        left: 8px;
       }
     }
   }

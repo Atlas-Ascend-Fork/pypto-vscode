@@ -29,7 +29,7 @@ import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 
-const { rootProps, rootEmits, historyList } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 
 const currentData = computed<Partial<HistoryData>>(() => {

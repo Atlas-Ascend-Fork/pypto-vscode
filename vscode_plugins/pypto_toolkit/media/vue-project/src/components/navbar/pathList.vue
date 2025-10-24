@@ -41,19 +41,18 @@ import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
 import { transformAndFlatTreeData } from './util';
-import { PassList } from './mock';
 
 const { t } = useI18n();
-const { rootProps, rootEmits, controlFlowList, passList, leafFunctions } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, controlFlowList, passList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 const treeEl = ref();
-const TreeDataMap: Record<PathTreeData['id'], PathTreeData> = {};
+const TreeDataMap: Record<PathTreeData['label'], PathTreeData> = {};
 const treeData = ref<PathTreeData[]>([]);
 const currentData = ref<PathTreeData>();
 const searchNoRes = ref(false);
 const parentData = computed(() => {
   if (currentData.value) {
-    return TreeDataMap[currentData.value.id]?.parentNode?.label;
+    return TreeDataMap[currentData.value.label]?.parentNode?.label;
   }
   return '';
 });
@@ -69,12 +68,16 @@ watch(
 );
 
 watch(
-  [treeData, () => rootProps.currentPathMagic],
+  [treeData, () => rootProps.currentPathMagicName],
   () => {
-    if (treeData.value.length && rootProps.currentPathMagic !== -1) {
-      currentData.value = TreeDataMap[rootProps.currentPathMagic];
-      passList.value = (currentData.value.controlFlowData as ControlFlowPath).meta.passes ?? [];
-      leafFunctions.value = (currentData.value.controlFlowData as ControlFlowPath).meta.leafFunctions ?? [];
+    if (treeData.value.length && rootProps.currentPathMagicName) {
+      const keys = Object.keys(TreeDataMap);
+      for (let i = 0; i < keys.length; i++) {
+        if (keys[i].startsWith(rootProps.currentPathMagicName)) {
+          currentData.value = TreeDataMap[keys[i]];
+          passList.value = (currentData.value?.controlFlowData as ControlFlowPath).meta?.passes ?? [];
+        }
+      }
     }
   },
   { immediate: true },
@@ -97,9 +100,8 @@ function onSearch(val: string) {
 function onNodeClick(node: PathTreeData) {
   if (node.isLeaf) {
     isOpen.value = false;
+    currentData.value = node;
     passList.value = (node.controlFlowData as ControlFlowPath).meta.passes ?? [];
-    leafFunctions.value = (node.controlFlowData as ControlFlowPath).meta.leafFunctions ?? [];
-    rootEmits('currentPathChange', node.id);
   } else {
     treeEl.value.treeFactory.deselectNode(node);
     treeEl.value.treeFactory.selectNode(currentData.value);
@@ -122,7 +124,7 @@ function onNodeClick(node: PathTreeData) {
     font-size: 12px;
     font-weight: bold;
     line-height: 18px;
-    max-width: 200px;
+    max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -132,7 +134,7 @@ function onNodeClick(node: PathTreeData) {
     color: var(--devui-placeholder-text);
     font-size: 12px;
     line-height: 18px;
-    max-width: 200px;
+    max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -414,13 +414,15 @@ export abstract class BaseGraphMsgHandler {
       }
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
-      const [_, __, passName] = panel.fsPath.match(passDirectoryRegExp) ?? [];
+      const [_, passIndex, __] = panel.fsPath.match(passDirectoryRegExp) ?? [];
       panel.webview.postMessage({
         command: cmd,
         step: 'convertData',
         data: json,
         outputDirPath: panel.outputDirPath,
-        passName
+        passIndex,
+        pathName: panel.pathName,
+        fileName: basename(panel.fsPath)
       });
     } else if (cmd == 'returnDiffCom') {
       panel.webview.postMessage({

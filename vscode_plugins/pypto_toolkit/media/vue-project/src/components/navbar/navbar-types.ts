@@ -1,6 +1,6 @@
 import type { PropType, InjectionKey, ExtractPropTypes, Ref } from 'vue';
 import type { OutputRecord } from '../../../../../src/types/workspace/output';
-import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafFunction } from '../../../../../src/types/control-flow';
+import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafInPass } from '../../../../../src/types/control-flow';
 
 export type HistoryData = OutputRecord;
 
@@ -26,38 +26,30 @@ export const navbarProps = {
   },
   currentStep: {
     type: String as PropType<Step>,
-    default: 'comGraph',
+    default: 'controlFlow',
   },
-  currentPathMagic: {
-    type: Number as PropType<ControlFlowPath['magic']>,
+  currentPathMagicName: {
+    type: String as PropType<ControlFlowPath['magicName']>,
     default: -1,
   },
-  currentPassName: {
-    type: String as PropType<PathInPass['passName']>,
+  currentPassIndex: {
+    type: String as PropType<PathInPass['passIndex']>,
     default: '',
   },
-  currentLeafHash: {
-    type: String as PropType<LeafFunction['hash']>,
+  currentLeafName: {
+    type: String as PropType<LeafInPass['leafName']>,
     default: '',
   },
 };
 
 type NavbarProps = ExtractPropTypes<typeof navbarProps>;
 
-export type NavbarEmits = {
-  (e: 'currentRecordChange', msg: HistoryData['directoryPath']): void;
-  (e: 'currentPathChange', msg: ControlFlowPath['magic']): void;
-  (e: 'currentPassChange', msg: PathInPass['passName']): void;
-  (e: 'currentLeafChange', msg: LeafFunction['hash']): void;
-};
-
 export interface NavbarContext {
   rootProps: NavbarProps;
-  rootEmits: NavbarEmits;
   historyList: Ref<HistoryData[]>;
   controlFlowList: Ref<ControlFlowData[]>;
   passList: Ref<PathInPass[]>;
-  leafFunctions: Ref<LeafFunction[]>;
+  leafFunctions: Ref<LeafInPass[]>;
   jumpComGraph: (filePath: string) => void;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

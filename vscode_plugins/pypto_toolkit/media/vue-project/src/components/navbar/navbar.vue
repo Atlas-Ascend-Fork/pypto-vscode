@@ -19,7 +19,7 @@
         <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
       </div>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['com-graph', currentStep === 'comGraph' && 'active']">
+      <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
         <i class="icon-base-info"></i>
         <PathList v-if="currentStep === 'comGraph'" />
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
@@ -46,22 +46,22 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { HistoryData, ControlFlowData, NavbarEmits } from './navbar-types';
-import type { PathInPass, LeafFunction } from '../../../../../src/types/control-flow/path';
+import type { HistoryData, ControlFlowData } from './navbar-types';
+import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
+import { findFirstPath } from './util';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
-const emits = defineEmits<NavbarEmits>();
 const historyListEl = ref();
 const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
-const leafFunctions = ref<LeafFunction[]>([]);
+const leafFunctions = ref<LeafInPass[]>([]);
 
-provide(NavbarProvideKey, { rootProps: props, rootEmits: emits, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
+provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
 
 getOutputRecords({}).then((res) => {
   historyList.value = res.data;
@@ -73,12 +73,23 @@ watch(
     if (val) {
       getControlFlow(val).then((res) => {
         controlFlowList.value = res.data;
-        console.log(res.data);
+        console.warn(res.data);
       });
     }
   },
   { immediate: true },
 );
+
+function onJumpCom() {
+  if (props.currentStep === 'comGraph') {
+    return;
+  }
+  const firstPath = findFirstPath(controlFlowList.value);
+  if (firstPath) {
+    const lastPass = firstPath.meta.passes[firstPath.meta.passes.length - 1];
+    jumpComGraph(lastPass.graphFilePath);
+  }
+}
 
 function jumpControlFlow() {
   if (historyListEl.value) {
@@ -167,8 +178,16 @@ function jumpComGraph(filePath: string) {
       }
     }
 
+    .swim-graph {
+      cursor: pointer;
+    }
+
     .control-flow,
     .com-graph {
+      &:not(.active) {
+        cursor: pointer;
+      }
+
       i {
         margin-left: 0;
         font-size: 14px;
