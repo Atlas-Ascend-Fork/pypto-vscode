@@ -19,8 +19,9 @@ const lightThemeLightColors = lithtThemeColors.lightColorList;
 
 const containerRef = ref(null);
 let editor = null;
-let semanticDecorations = [];
-let currentHoverDecoration = null;
+let semanticDecorations = []; // gutter装饰条
+let currentHoverDecoration = null; // 悬停的背景装饰
+let labelInfoDecorations = []; // 存储标签信息装饰
 let initCodePath = '';
 let initTotalLine = 0;
 
@@ -102,6 +103,44 @@ const findSemanticLabelAtPosition = (position) => {
   );
 };
 
+// 在行尾显示语义标签信息
+const showLabelInfo = (position) => {
+  // 清除之前的标签信息装饰
+  clearLabelInfo();
+
+  const currentLabel = findSemanticLabelAtPosition(position);
+  if (!currentLabel) {
+    return;
+  }
+  
+  if (!currentLabel) return;
+  
+  const lineContent = editor.getModel().getLineContent(position.lineNumber);
+  const lineLength = lineContent.length;
+  
+  // 创建标签信息装饰器
+  const labelInfoDecoration = {
+    range: new monaco.Range(position.lineNumber, 0, position.lineNumber, lineLength + 1),
+    options: {
+      after: {
+        content: `      semantic label: ${currentLabel.name}`,
+        inlineClassName: 'semantic-label-info',
+      },
+    }
+  };
+  
+  const decorations = editor.deltaDecorations([], [labelInfoDecoration]);
+  labelInfoDecorations = decorations;
+};
+
+// 清除标签信息显示
+const clearLabelInfo = () => {
+  if (labelInfoDecorations && labelInfoDecorations.length > 0) {
+    editor.deltaDecorations(labelInfoDecorations, []);
+    labelInfoDecorations = [];
+  }
+};
+
 // 更新悬停装饰
 const updateHoverDecoration = (position) => {
   // 清除之前的悬停装饰
@@ -125,6 +164,7 @@ const updateHoverDecoration = (position) => {
     };
     
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
+    window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
   }
 };
 
@@ -138,6 +178,14 @@ const setupHoverListeners = () => {
     updateHoverDecoration(position);
   });
 
+  // 鼠标点击事件
+  editor.onMouseDown((e) => {
+    const position = e.target.position;
+    if (position) {
+      showLabelInfo(position);
+    }
+  });
+
   // 鼠标移出编辑器事件
   editor.onDidBlurEditorWidget(() => {
     if (currentHoverDecoration) {
@@ -146,10 +194,11 @@ const setupHoverListeners = () => {
     }
   });
 
-  // 内容变化时更新悬停
+  // 内容变化事件
   editor.onDidChangeModelContent(() => {
     const cursorPosition = editor.getPosition();
     updateHoverDecoration(cursorPosition);
+    clearLabelInfo();
   });
 };
 
@@ -222,8 +271,6 @@ const initEditor = (code) => {
     // 设置悬停样式
     setupHoverStyles();
     
-    // 解析并应用语义标签
-    applySemanticDecorations();
     setupHoverListeners();
     
     // 监听内容变化，实时更新语义标签
@@ -240,8 +287,12 @@ const initEditor = (code) => {
 };
 
 const updateTheme = () => {
-  const data = editor.getValue();
-  initEditor(data);
+  if (editor) {
+    const theme = isDarkTheme.value ? 'vs-dark' : 'vs';
+    monaco.editor.setTheme(theme);
+    setupHoverStyles();
+    applySemanticDecorations();
+  }
 };
 
 const postMessage = (message) => {
@@ -269,13 +320,13 @@ const handleMessage = (event) => {
     case 'saveError':
       console.error('Failed to save code:', message.data);
       break;
+    case 'returnCompleteData':
+      mkSemanticLabel(message.data, initCodePath);
+      parseSemanticLabels(initTotalLine);
+      applySemanticDecorations();
+      break;
   }
 };
-
-window.ascEventBus.on('returnCompleteData', (args) => {
-  mkSemanticLabel(args, codePath);
-  parseSemanticLabels(initTotalLine);
-});
 
 // 在组件挂载前配置 Monaco
 configureMonaco();
@@ -293,6 +344,7 @@ onUnmounted(() => {
   }
   // 清理所有语义标签装饰
   semanticDecorations = [];
+  labelInfoDecorations = [];
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
@@ -307,7 +359,7 @@ watch(isDarkTheme, () => {
 .editor-container {
   height: 100%;
 }
-.semantic-hover-highlight {
-  background-color: rgba(128, 128, 128, 0.1);
+.semantic-label-info {
+  color: grey !important;
 }
 </style>
