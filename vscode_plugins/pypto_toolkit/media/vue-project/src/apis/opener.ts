@@ -12,7 +12,7 @@ export function openControlFlow(params: { outputPath: string; controlFlowPath: s
 /**
  * 打开计算图
  */
-export function openComputeGraph(params: { outputPath: string; computeGraphPath: string }) {
+export function openComputeGraph(params: { outputPath: string; computeGraphPath: string; passName:string }) {
   request.post(`${OPENER_PREFIX}/openComputeGraph`, params);
 }
 

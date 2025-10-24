@@ -260,6 +260,7 @@ function openGraph(item) {
   openComputeGraph({
     outputPath: outPutPath.value,
     computeGraphPath: item.graphFilePath,
+    pathName: item.passName,
   })
 
 

@@ -42,7 +42,9 @@
             </div>
 
             <!-- 节点文本区域（两行布局） -->
-            <div v-if="nodeData.type === 'dir'" class="node-text-folder" @dblclick="nodeClick(nodeData)">
+            <div v-if="nodeData.type === 'dir'" :class="{
+              'node-text-folder':nodeData.level===1,
+            }" @dblclick="nodeClick(nodeData)">
               <div class="node-label">{{ nodeData.label }}</div>
               <div class="node-date" v-if="nodeData.date">{{ nodeData.date }}</div>
             </div>
@@ -97,6 +99,7 @@ import {useI18n} from 'vue-i18n';
 import {getOutputDetail, getOutputRecords} from "@/apis/workspace";
 import {GetOutputRecordsRes} from "../../../../../src/services/workspace";
 import {DevUITreeChildrenNode, DevUITreeNode} from "@/components/sideBar/types/sidebarModle";
+import {openComputeGraph, openControlFlow, openSwimlaneGraph} from "@/apis/opener";
 
 const {t} = useI18n();
 const treeRef = ref(null);
@@ -159,15 +162,23 @@ const handleNodeCollapse = (node: DevUITreeNode) => {
   node.expanded = false;
 };
 
-async function nodeClick(node) {
+async function nodeClick(node: DevUITreeNode) {
   if (node.label === '结果总览') {
-    window.vscode.postMessage({
-      command: 'openGraphView',
-      data: {
-        absolutepath: node.absolutePath,
-        outputpath: node.outputPath
-      }
-    });
+    openControlFlow({
+      controlFlowPath: node.absolutePath,
+      outputPath: node.outputPath
+    })
+  }
+  if (node.label === '泳道图') {
+    openSwimlaneGraph({swimlaneGraphPath:node.absolutePath})
+  }
+  if (node.extname === '.json') {
+    openComputeGraph({
+      outputPath:node.outputPath,
+      computeGraphPath:node.absolutePath,
+      passName:node.name
+    })
+
   }
 
 }
@@ -205,14 +216,13 @@ async function transformData(outputData: GetOutputRecordsRes) {
           child[j].id = child[j].absolutePath;
           child[j].label = child[j].name;
           child[j].type = child[j].type === 'dir' ? 'dir' : 'file';
-          child[j].isLeaf = !(child[j].type === 'dir');
-          if (child[j].type === 'dir') {
+          child[j].isLeaf = !(child[j].type === 'dir'&&child[j].children.length);
+          if (child[j].type === 'dir'&&!child[j].isLeaf) {
             transformChild(child[j].children)
           }
         }
 
       }
-
       transformChild(child);
 
       treeData.value.push({

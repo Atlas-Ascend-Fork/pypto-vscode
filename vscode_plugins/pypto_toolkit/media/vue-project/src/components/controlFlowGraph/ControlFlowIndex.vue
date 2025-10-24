@@ -13,7 +13,7 @@
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
     <d-editable-select class="tool-select" :placeholder="t('controlFlow.searchPlaceholder')" v-model="SearchValue"
-                       :allow-clear="true" :options="options" :width="320" :change="selectChange"></d-editable-select>
+                     :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange"></d-editable-select>
 
   </div>
 </template>
@@ -519,19 +519,11 @@ class LogoWithRectCombo extends RectCombo {
 const options = ref([])
 const SearchValue = ref('');
 
-// devui选中事件 未生效
+// 搜索时定位搜索loop
 function selectChange(value) {
+  graph.setElementState(value, 'selected');
+  graph.focusElement(value)
 }
-
-// 选中搜索时，定位搜索loop
-watch(() => SearchValue.value, (sqValue) => {
-  if (sqValue) {
-    graph.setElementState(sqValue, 'selected');
-    graph.focusElement(sqValue)
-  }
-})
-
-
 
 //  初始化 G6 图表（
 const initG6Graph = (nodes, edges, combos,) => {
