@@ -23,7 +23,7 @@
 import { inject, provide } from 'vue';
 import type { PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
-import editor from '../linkMode/editor.vue';
+import editor from './editor.vue';
 
 const { isDarkTheme } = inject('root');
 
@@ -141,6 +141,14 @@ provide('threeColumnState', { isDarkTheme });
     }
     & > div:nth-of-type(3) {
       border-left: 1px solid var(--devui-border-line-deep);
+    }
+  }
+
+  & > div:nth-of-type(3) {
+    :deep() {
+      .container {
+        position: relative;
+      }
     }
   }
 }

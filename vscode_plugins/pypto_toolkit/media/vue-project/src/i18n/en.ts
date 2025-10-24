@@ -136,6 +136,7 @@ export default {
         fullRenderComGraphDesc: 'Conventional rendering is slower when there are a large number of nodes',
         searchMode: 'Search Mode',
         searchModeDesc: 'Render the associated links based on the searched nodes',
-        locateNodeError:'Current node not found, location failed'
+        locateNodeError:'Current node not found, location failed',
+        pleaseSelect: 'Please select'
     }
 }

@@ -52,7 +52,7 @@
         },
         {
           "command": "PyPTO.OpenLinkageMode",
-          "when": "resourceExtname == .py",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
       ]

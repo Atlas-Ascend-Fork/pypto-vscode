@@ -184,7 +184,7 @@ const layout = ref('triangular');
         <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
       <template #swimGraph>
-        <SwimGraph />
+        <SwimGraph style="height: 100%"  />
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>

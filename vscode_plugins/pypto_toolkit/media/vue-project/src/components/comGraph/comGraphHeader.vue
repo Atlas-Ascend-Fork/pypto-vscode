@@ -13,7 +13,7 @@
       </d-tooltip> -->
       <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="changeLayer">
-          <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl)" />
+          <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl.value)" />
         </div>
       </d-tooltip>
       <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">

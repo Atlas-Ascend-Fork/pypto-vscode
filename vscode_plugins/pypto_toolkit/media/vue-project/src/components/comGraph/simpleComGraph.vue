@@ -1,6 +1,12 @@
 <template>
-  <div class="com-graph-container">
-    <ComGraphHeader :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']" @onLocate="onLocate" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+  <div class="simple-com-graph-container">
+    <ComGraphHeader
+      :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
+      @onLocate="onLocate"
+      :graph-type="graphType"
+      :openMode="props.openMode"
+    ></ComGraphHeader>
+    <d-select v-model="rootHash" :options="rootHashList" :placeholder="t('comGraph.pleaseSelect')" class="simple-com-root-hash-list"></d-select>
     <div
       :style="{
         backgroundImage: 'url(' + svgPath + ')',
@@ -49,9 +55,12 @@ const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
 const graphType = ref('');
+const rootHash = ref('');
+const rootHashList = ref([]);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
+let createSelectNodesRect;
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -59,6 +68,18 @@ window.addEventListener('message', (event) => {
     loadingText.value = '';
   }
 });
+
+(window as any).ascEventBus.on('returnSematicLabelFromCode', (args) => {
+  createSelectNodesRect(args.label);
+});
+(window as any).ascEventBus.on('returnSematicLabelFromSwim', (args) => {
+  createSelectNodesRect(args.label);
+  rootHashList.value = args.rootHashList;
+  rootHash.value = rootHashList.value[0];
+});
+(window as any).ascEventBus.on('rect_node_hover', (args) => {
+  (window as any).ascEventBus.emit('returnSematicLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value })
+})
 
 const onLocate = (id) => {
   centerNodeAction([id]);
@@ -97,6 +118,7 @@ watch(
       sprottyLoadResult.initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
+      createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
@@ -126,7 +148,7 @@ onMounted(() => {
 <style lang="scss">
 @import '../../sprotty-graph/style/diagram.css';
 
-.com-graph-container {
+.simple-com-graph-container {
   width: 100%;
   height: 100%;
   position: relative;
@@ -138,10 +160,22 @@ onMounted(() => {
     width: 100%;
     top: 0;
     z-index: 10;
-    
+
     &.with-extend-btn {
       height: 150px;
     }
+
+    .toolbar-row {
+      left: calc(100% - 485px);
+    }
+  }
+
+  .simple-com-root-hash-list {
+    position: absolute;
+    left: 16px;
+    top: 52px;
+    z-index: 12;
+    width: 140px;
   }
 
   #sprotty {
