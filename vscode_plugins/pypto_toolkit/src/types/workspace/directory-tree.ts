@@ -87,6 +87,9 @@ export interface ComputeGraph extends CommonFile {
   /** root名称 */
   pathName: string;
 
+  /** 是否有健康报告 */
+  hasHealthReport: boolean;
+
   /** 计算图类型 */
   computeType: 'all' | 'root' | 'leaf';
 

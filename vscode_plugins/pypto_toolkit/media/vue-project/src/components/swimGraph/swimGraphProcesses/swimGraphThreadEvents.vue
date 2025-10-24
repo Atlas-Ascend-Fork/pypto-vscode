@@ -1646,7 +1646,7 @@ const renderInfo2pixelData = (renderInfo) => {
   const {x, width, y, height} = renderInfo;
   return {
     x: getNoZoomX(x),
-    width: width * devicePixelRatio,
+    width: width * viewState.pixelScale,
     y: y * devicePixelRatio,
     height: height * devicePixelRatio,
   };
