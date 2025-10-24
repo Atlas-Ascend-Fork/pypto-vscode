@@ -411,6 +411,9 @@ export class CustomMouseListener extends MouseListener {
 
   mouseOver(target: SModelElement, event: MouseEvent): Action[] {
     (window as any).ascEventBus.emit('view_mouseover');
+    if (target instanceof RectangularNode) {
+      console.log("mouse over Node ", target.semanticLabel);
+    }
     return [];
   }
 
