@@ -6,7 +6,7 @@
     </div>
     <template #menu>
       <div class="leaf-function-list">
-        <div v-if="ownedList.length" class="owned-title">{{ t('directLine') }}</div>
+        <div v-if="ownedList.length" class="owned-title">{{ t('directRelative') }}</div>
         <div
           v-for="item in ownedList"
           :key="item.leafName"
@@ -17,7 +17,7 @@
           {{ item.leafName }}
         </div>
         <div v-if="notOwnedList.length" class="dividing-line"></div>
-        <div v-if="notOwnedList.length" class="not-owned-title">{{ t('notDirectLine') }}</div>
+        <div v-if="notOwnedList.length" class="not-owned-title">{{ t('notDirectRelative') }}</div>
         <div
           v-for="item in notOwnedList"
           :key="item.leafName"
