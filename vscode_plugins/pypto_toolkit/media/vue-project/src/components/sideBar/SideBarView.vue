@@ -6,11 +6,8 @@
       <div class="title">
         <div class="name">{{ t('sideBar.title') }}</div>
       </div>
-
-
       <i class="icon icon-search-new"></i>
     </div>
-
     <!-- 筛选区 -->
     <div class="filters">
       <d-icon class="sort" operable @click="sortOption = !sortOption">
@@ -28,12 +25,11 @@
         </template>
       </d-select>
     </div>
-
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container">
       <d-tree ref="treeRef" :data="visibleItems" show-line="false" :expanded-keys="expandedKeys"
               @expand="handleNodeExpand"
-              @collapse="handleNodeCollapse"  :height="1200" @node-click="nodeClick" :node-class="() => 'custom-tree-node'">
+              @collapse="handleNodeCollapse"  :height="1150" @node-click="nodeClick" :node-class="() => 'custom-tree-node'">
 
         <!-- 1. content插槽：自定义节点主内容（图标+文本） -->
         <template #content="{ nodeData }">
@@ -105,7 +101,6 @@ import {DevUITreeChildrenNode, DevUITreeNode} from "@/components/sideBar/types/s
 const {t} = useI18n();
 const treeRef = ref(null);
 
-
 /**
  * 下拉选择器数据源
  */
@@ -132,19 +127,17 @@ const expandedKeys = ref<string[]>([]);
 /**
  * 计算属性：节点筛选与排序
  */
-const filteredAllItems = computed(() => {
-  if (contentOption.value === 'all') return allItems.value;
-  return allItems.value.filter(item =>
-      contentOption.value === 'dir' ? item.type === 'dir' : item.type === 'file'
-  );
-});
-
 
 const sortedLoadedItems = computed(() => {
-  return [...filteredAllItems.value].sort((a, b) => {
-    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-    if (sortOption.value) return a.date.getTime() - b.date.getTime();
-    return b.date.getTime() - a.date.getTime();
+
+  return [...treeData.value].sort((a, b) => {
+    if (sortOption.value) {
+      new Date(a.date).getTime()
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    }else {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+
   });
 });
 
@@ -273,11 +266,10 @@ onMounted(async () => {
   display: flex;
   justify-content: start;
   align-items: center;
-  gap: 200px;
   font-family: 'HarmonyOS Sans SC 2025';
   height: 28px;
   padding: 0 16px;
-
+  gap: 200px;
   .title {
     display: flex;
     align-items: center;
@@ -295,7 +287,9 @@ onMounted(async () => {
       opacity: 0.8;
     }
   }
-
+.tree-search{
+  width: 150px;
+}
   .icon {
     font-size: 16px;
     opacity: 0.8;
