@@ -43,7 +43,7 @@ import type { ControlFlowPath } from '../../../../../src/types/control-flow/path
 import { transformAndFlatTreeData } from './util';
 
 const { t } = useI18n();
-const { rootProps, controlFlowList, passList } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, controlFlowList, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 const treeEl = ref();
 const TreeDataMap: Record<PathTreeData['label'], PathTreeData> = {};
@@ -101,7 +101,11 @@ function onNodeClick(node: PathTreeData) {
   if (node.isLeaf) {
     isOpen.value = false;
     currentData.value = node;
-    passList.value = (node.controlFlowData as ControlFlowPath).meta.passes ?? [];
+    const tempPassList = (node.controlFlowData as ControlFlowPath).meta.passes ?? [];
+    if (tempPassList.length) {
+      const lastPass = tempPassList[tempPassList.length - 1];
+      jumpComGraph(lastPass.graphFilePath, lastPass.pathName);
+    }
   } else {
     treeEl.value.treeFactory.deselectNode(node);
     treeEl.value.treeFactory.selectNode(currentData.value);

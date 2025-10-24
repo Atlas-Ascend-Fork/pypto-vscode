@@ -29,6 +29,8 @@ import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 
+const emits = defineEmits(['recordChange']);
+
 const { rootProps, historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 
@@ -37,6 +39,7 @@ const currentData = computed<Partial<HistoryData>>(() => {
     for (let i = 0; i < historyList.value.length; i++) {
       const item = historyList.value[i];
       if (item.directoryPath === rootProps.currentRecordDirectoryPath) {
+        emits('recordChange');
         return item;
       }
     }
