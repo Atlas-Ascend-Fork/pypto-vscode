@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 import { hismartliteEx } from '../../hismarliteEx';
 import { getIDELang } from '../../lang';
 import { getIDETheme } from '../../theme';
-import type { ViewQuery } from '../viewQuery';
 import { ViewQueryConnector } from '../viewQuery';
 
 import { EditorViewFileSystemProvider } from './fileSystemProvider';
@@ -21,8 +20,12 @@ export interface EditorViewRaw {
   title: string;
 }
 
-interface EditorViewState {
-  query: ViewQuery;
+interface EditorViewOptions {
+  /** 路由参数，页面使用getQuery获取 */
+  query?: Record<string, unknown>;
+
+  /** 打开的窗口区域 */
+  viewColumn?: vscode.ViewColumn;
 }
 
 const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.editorView';
@@ -64,14 +67,15 @@ export class EditorView {
    * @param uri 文件路径
    * @param column 渲染的窗口分栏
    */
-  public open(viewType: string, uri: vscode.Uri, column: vscode.ViewColumn = vscode.ViewColumn.Active): Promise<vscode.WebviewPanel> {
+  public open(viewType: string, uri: vscode.Uri, options: EditorViewOptions = {}): Promise<vscode.WebviewPanel> {
+    const { viewColumn = vscode.ViewColumn.Active, query } = options;
     const viewRaw = this.viewRawMap.get(viewType);
     if (!viewRaw) {
       throw new Error(`Webview - ${viewType} 不存在`);
     }
 
-    const virtualUri = toVirtualUri(uri, viewType, viewRaw.title);
-    vscode.commands.executeCommand('vscode.open', virtualUri, { preview: false, viewColumn: column }, viewRaw.title);
+    const virtualUri = toVirtualUri(uri, viewType, viewRaw.title, query);
+    vscode.commands.executeCommand('vscode.open', virtualUri, { preview: false, viewColumn }, viewRaw.title);
 
     return new Promise((resolve) => {
       this.pendingViewPanel.set(virtualUri.path, resolve);
