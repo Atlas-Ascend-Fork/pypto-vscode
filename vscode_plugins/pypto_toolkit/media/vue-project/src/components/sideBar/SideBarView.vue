@@ -25,7 +25,6 @@
 
       <d-select v-model="contentOption" class="filter-select" :options="contentOptions" placeholder="选择显示内容">
         <template #default>
-          <option value="111" name="111"></option>
         </template>
       </d-select>
     </div>
