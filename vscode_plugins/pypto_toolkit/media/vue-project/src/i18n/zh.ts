@@ -141,12 +141,12 @@ export default {
       searchMode: '搜索模式',
       searchModeDesc: '根据搜索出的节点进行关联链路渲染',
       locateNodeError:'当前节点未找到，定位失败'
-   }   
+   },
     sideBar: {
         title: '运行结果',
         sortName: '执行时间',
     },
-    controlFlow: {
+    controlFlows: {
         searchPlaceholder: '搜索loop关键字',
         noMatchingData: '没有找到匹配的数据',
         allComputationalPanelTitle: '所有计算图',

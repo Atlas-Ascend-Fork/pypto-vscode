@@ -115,11 +115,11 @@
 
             <!-- 空数据提示：当前页签无匹配数据时显示 -->
             <div v-if="processedTableData(tabIndex).length === 0" class="empty-tip">
-              {{ t('controlFlow.noMatchingData') }}
+              {{ t('controlFlows.noMatchingData') }}
             </div>
           </d-tab>
           <d-tab v-if="passList.length" class="data-tabs" :id="'tab-3'"
-                 :title="t('controlFlow.allComputationalPanelTitle')">
+                 :title="t('controlFlows.allComputationalPanelTitle')">
             <div class="data-tabs_computes">
               <!-- 每组数据 -->
               <div v-for="(group,groupIndex) in passList" :key="groupIndex">
@@ -168,13 +168,13 @@ const panelData = ref<PanelData>({
 });
 const tableTitle: TableTitleType[] = [
   {
-    name: t('controlFlow.callFunctionTableName'),
-    value: t('controlFlow.callFunctionTableValue'),
+    name: t('controlFlows.callFunctionTableName'),
+    value: t('controlFlows.callFunctionTableValue'),
   },
   {
-    name: t('controlFlow.leafFunctionTableName'),
-    value: t('controlFlow.leafFunctionTableValue'),
-    detailTitle: t('controlFlow.detailTitle'),
+    name: t('controlFlows.leafFunctionTableName'),
+    value: t('controlFlows.leafFunctionTableValue'),
+    detailTitle: t('controlFlows.detailTitle'),
   }
 ]
 const outPutPath = ref()
@@ -512,11 +512,11 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
 
   const calleeObj: TabData = {
-    name: t('controlFlow.callFunctionPanelTitle'),
+    name: t('controlFlows.callFunctionPanelTitle'),
     data: calleeList,
   }
   const calledObj: TabData = {
-    name: t('controlFlow.calledFunctionPanelTitle'),
+    name: t('controlFlows.calledFunctionPanelTitle'),
     data: calledList,
   }
   panelData.value.title = nodeData.data.source.magicName.substring(7);

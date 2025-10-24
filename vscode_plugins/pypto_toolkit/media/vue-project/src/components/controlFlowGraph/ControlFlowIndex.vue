@@ -1,6 +1,7 @@
 <template>
   <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
+    <Navbar/>
     <div ref="chartContainer" class="chart-container"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
@@ -12,7 +13,7 @@
       <span class="tool-line"></span>
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
-    <d-editable-select class="tool-select" :placeholder="t('controlFlow.searchPlaceholder')" v-model="SearchValue"
+    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="SearchValue"
                      :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange"></d-editable-select>
 
   </div>

@@ -141,12 +141,12 @@ export default {
         searchMode: 'Search Mode',
         searchModeDesc: 'Render the associated links based on the searched nodes',
         locateNodeError:'Current node not found, location failed'
-    }    
+    },
     sideBar: {
         title: 'Compilation result',
         sortName: 'Execution time',
     },
-    controlFlow: {
+    controlFlows: {
         searchPlaceholder: 'Search loop keyword',
         noMatchingData: 'No matching data found',
         allComputationalPanelTitle: 'All computational graphs',
