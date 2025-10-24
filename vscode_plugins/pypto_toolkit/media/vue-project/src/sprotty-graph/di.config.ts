@@ -396,6 +396,14 @@ export class CustomMouseListener extends MouseListener {
 
   mouseOver(target: SModelElement, event: MouseEvent): Action[] {
     (window as any).ascEventBus.emit('view_mouseover');
+    if (target instanceof SGraphImpl) {
+      (window as any).ascEventBus.emit('closeNodeTip', true);
+    }
+    if (target instanceof RectangularNode) {
+      if ((target.root as any).zoom < 0.5) {
+        (window as any).ascEventBus.emit('showNodeTip', target);
+      }
+    }
     return [];
   }
 
@@ -471,6 +479,7 @@ export class CustomMouseListener extends MouseListener {
 
   wheel(target: SModelElementImpl, event: WheelEvent): Action[] {
     const moveArea = getCurrentArea(event);
+    (window as any).ascEventBus.emit('closeNodeTip', true);
     setTimeout(() => {
       (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false, moveArea]);
     }, 0);
