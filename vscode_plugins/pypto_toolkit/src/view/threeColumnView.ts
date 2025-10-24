@@ -63,15 +63,26 @@ class comGraphHandler extends SingleGraphHandler {
     });    
   }
   static override async loadMainData(panel: any): Promise<void> {
-      if (!panel.comGraphData) {
-        panel.comGraphData = new SingleGraphData(panel.comPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
-      }
-  
-      const gd = panel.comGraphData as SingleGraphData;
-      if (!gd.funcHash) {
-        gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
-      }
+    if (!panel.comGraphData) {
+      panel.comGraphData = new SingleGraphData(panel.comPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
     }
+
+    const gd = panel.comGraphData as SingleGraphData;
+    if (!gd.funcHash) {
+      gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+    }
+  }
+
+  static override async getInitialData(panel: any) {
+    await super.getInitialData(panel);
+    const graphData = this.getGraphData(panel);
+    const fullData = await graphData.getCompleteData(graphData.fsPath);
+
+    panel.webview.postMessage({
+      command: 'returnCompleteData',
+      data: fullData
+    })
+  }
 }
 
 class swimGrapHandler extends MsgHandler {
