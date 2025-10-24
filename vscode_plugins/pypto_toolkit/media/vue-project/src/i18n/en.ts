@@ -141,5 +141,21 @@ export default {
         searchMode: 'Search Mode',
         searchModeDesc: 'Render the associated links based on the searched nodes',
         locateNodeError:'Current node not found, location failed'
+    },
+    sideBar: {
+        title: 'Compilation result',
+        sortName: 'Execution time',
+    },
+    controlFlows: {
+        searchPlaceholder: 'Search loop keyword',
+        noMatchingData: 'No matching data found',
+        allComputationalPanelTitle: 'All computational graphs',
+        callFunctionPanelTitle: 'call-function-callee',
+        calledFunctionPanelTitle: 'called-function-called',
+        callFunctionTableName: 'callee function name',
+        callFunctionTableValue: 'callee frequency',
+        leafFunctionTableName: 'leaf functions',
+        leafFunctionTableValue: 'callee frequency',
+        detailTitle: 'Called functions and call counts',
     }
 }

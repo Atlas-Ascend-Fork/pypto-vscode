@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import {onMounted, ref, computed} from 'vue';
 import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
 import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
 import SearchEntry from './components/comGraph/searchEntry.vue';
 import SearchMode from './components/comGraph/searchMode.vue';
-import { comGraphStore } from './service/com-graph-store';
-import { useTheme } from './theme/use-theme';
-import { getQuery } from './core/query';
-import { vscode } from './core/vscode';
+import {comGraphStore} from './service/com-graph-store';
+import {useTheme} from './theme/use-theme';
+import {getQuery} from './core/query';
+import {vscode} from './core/vscode';
+import SideBarView from './components/sideBar/SideBarView.vue';
+import ControlFlowIndex from "./components/controlFlowGraph/ControlFlowIndex.vue";
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -22,8 +24,8 @@ const fileName = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
-const disabledSearchMode = computed(() => !Object.keys(jsonContent.value).length);
-const { updateTheme } = useTheme();
+const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
+const {updateTheme} = useTheme();
 
 getQuery().then((query) => {
   graphType.value = query.viewType;
@@ -71,6 +73,12 @@ const readJsonWarning = (message) => {
 const returnSwim = (message) => {
   graphType.value = 'returnSwim';
   jsonContent.value = message.data;
+};
+
+const returnSidBar = (message) => {
+  graphType.value = 'returnSidBar';
+  jsonContent.value = message.data;
+  console.log(message.data)
 };
 
 const returnError = (message) => {
@@ -125,6 +133,7 @@ const CommandCallbackMap = {
   readJsonWarning,
   initDiffComGraph,
   returnDiffCom,
+  returnSidBar,
 };
 
 function dealConfig(config) {
@@ -150,7 +159,7 @@ function dealConfig(config) {
 }
 
 function onFullRender() {
-  if (Object.keys(jsonContent.value).length){
+  if (Object.keys(jsonContent.value).length) {
     loadingStep.value = 'convertData';
   } else {
     loadingStep.value = 'readJson';
@@ -203,9 +212,19 @@ onMounted(() => {
       :beforeFileName="diffInfo.beforeFileName"
       :loadingStep="loadingStep"
     />
+    <div class="parent-container" v-if="graphType === 'controlFlow'">
+      <ControlFlowIndex></ControlFlowIndex>
+    </div>
+    <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
   </header>
 </template>
-
+<style scoped>
+.parent-container {
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+</style>
 <style lang="scss">
 header {
   min-width: 960px;

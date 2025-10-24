@@ -141,5 +141,22 @@ export default {
       searchMode: '搜索模式',
       searchModeDesc: '根据搜索出的节点进行关联链路渲染',
       locateNodeError:'当前节点未找到，定位失败'
-   }
+   },
+    sideBar: {
+        title: '运行结果',
+        sortName: '执行时间',
+    },
+    controlFlows: {
+        searchPlaceholder: '搜索loop关键字',
+        noMatchingData: '没有找到匹配的数据',
+        allComputationalPanelTitle: '所有计算图',
+        callFunctionPanelTitle: '调用函数-callee',
+        calledFunctionPanelTitle: '被调用函数-called',
+        callFunctionTableName: 'callee function 名称',
+        callFunctionTableValue: 'callee次数',
+        leafFunctionTableName: 'leaf functions',
+        leafFunctionTableValue: 'callee次数',
+        detailTitle: '被调用函数及调用次数',
+
+    }
 }
