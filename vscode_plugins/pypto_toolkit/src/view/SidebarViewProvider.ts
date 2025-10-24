@@ -6,7 +6,7 @@ import {getIDETheme} from '../theme';
 import {getIDELang} from '../lang';
 import {Util} from '../util';
 import {useView} from "./index";
-import {ExtensionApiServer} from "../core/server";
+import {ExtensionApiServer} from '../core/server';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
@@ -60,6 +60,26 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
 
     }
+    private _getHtmlForWebview(webview: vscode.Webview) {
+        let replaceParams: any[] = [];
+        // 打包的前端页面资源的路径
+        const guiSidebarPath = vscode.Uri.joinPath(this._extensionUri, '/webview-dist');
 
+        // 前端页面的入口文件
+        const indexPath = vscode.Uri.joinPath(guiSidebarPath, '/index.html');
+
+        let indexHtml = fs.readFileSync(indexPath.fsPath, 'utf-8');
+        let webviewText = webview.asWebviewUri(vscode.Uri.file(path.join(hismartliteEx.extensionPath)));
+
+        let html = indexHtml.toString()
+            .replace(/{{root}}/g, webviewText)
+            .replace(/{{staticPath}}/g, `${webviewText}/webview-dist`)
+            .replace(/{{ascTheme}}/g, getIDETheme())
+            .replace(/{{ascLang}}/g, getIDELang());
+        const sideHtml = new Util().replaceHtmlFromData(replaceParams, html);
+        // 将本地资源路径替换成 webview 可以加载的资源路径
+        return sideHtml
+
+    }
 
 }

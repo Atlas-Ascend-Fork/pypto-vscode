@@ -43,7 +43,6 @@ const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
 const PATH_CARD_NODE_TYPE = 'path-card-node';
-const IF_CARD_NODE_TYPE = 'if-card-node';
 const zoom = ref(1)
 let graph = null;
 const {t} = useI18n();
@@ -532,30 +531,13 @@ watch(() => SearchValue.value, (sqValue) => {
   }
 })
 
-// 自定义布局
-class DiagonalLayout extends BaseLayout {
-  id = 'diagonal-layout';
 
-  async execute(data: GraphData): Promise<GraphData> {
-    const {nodes = []} = data;
-    return {
-      nodes: nodes.map((node, index) => ({
-        id: node.id,
-        style: {
-          x: 50 * index + 25,
-          y: 50 * index + 25,
-        },
-      })),
-    };
-  }
-}
 
 //  初始化 G6 图表（
 const initG6Graph = (nodes, edges, combos,) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNode);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
-  register(ExtensionCategory.LAYOUT, 'diagonal-layout', DiagonalLayout);
   const container = chartContainer.value as HTMLDivElement;
 
   graph = new Graph({
@@ -622,17 +604,7 @@ const initG6Graph = (nodes, edges, combos,) => {
         inactive: {
           fill: '',
           opacity: 1,
-
         },
-        // highlight: {
-        //   stroke: '#FF6A00',
-        //   lineWidth: 2,
-        // },
-        // disabled: {
-        //   fill: '#ECECEC',
-        //   stroke: '#BFBFBF',
-        //   opacity: 0.5,
-        // },
       },
     },
 

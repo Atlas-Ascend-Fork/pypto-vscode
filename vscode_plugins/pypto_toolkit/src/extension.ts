@@ -17,7 +17,7 @@ import {SingleGraphData, DiffGraphData} from './core/graphData';
 import {SingleGraphHandler} from './handler/singleGraphHandler';
 import {DiffGraphHandler} from './handler/diffGraphHandler';
 import {loadMaterialColorUtilities} from './color-list';
-import {SidebarViewProvider} from "./view/SidebarViewProvider";
+import {SidebarViewProvider} from './view/SidebarViewProvider';
 
 const i18next = require('i18next');
 const config = globalConfig;

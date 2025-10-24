@@ -76,7 +76,6 @@
                             }"></i>
               </div>
 
-
               <div v-else @click="(event) => {
                             event.stopPropagation();
                             toggleNode(nodeData);
