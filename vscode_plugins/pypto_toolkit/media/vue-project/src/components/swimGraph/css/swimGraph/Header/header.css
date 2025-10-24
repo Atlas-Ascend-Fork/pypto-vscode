@@ -90,6 +90,19 @@
   align-items: center;
   justify-content: center;
 }
+.cfg-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: var(--backgroundcolor);
+  box-shadow: var(--devui-tips-shadow);
+  cursor: pointer;
+}
+
+.cfg-button .button-content {
+  top: 3px;
+}
 
 .hidden {
   display: none !important;

@@ -35,6 +35,7 @@
             <!-- 时间轴区域 -->
             <swim-graph-timeline ref="timelineComponent" />
           </div>
+          <swim-graph-config ref="configComponent" />
         </div>   
       </div>
       <div class="main-view" v-show="!loading">
@@ -67,6 +68,7 @@ import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
 import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
 import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
+import SwimGraphConfig from './swimGraphConfig/swimGraphConfig.vue';
 import { getTextWidth } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -101,6 +103,7 @@ const detailComponent = ref(null);
 const measureDetailComponent = ref(null);
 const graphProcessesComponent = ref(null);
 const swimgraphHeaderComponent = ref(null);
+const configComponent = ref(null);
 const timeLineX = ref(null);
 const traceData = ref(null);
 const processedEvents = ref([]);
@@ -135,6 +138,11 @@ const selectOptions = [
   {name: $t('task'), value: 'task', disabled: false},
 ];
 const options = reactive(selectOptions);
+
+const textOption = ref([]);
+const modeOption = ref('');
+const connectionLevelCfg = ref(-1);
+const isCfgEditing = ref(false);
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -898,7 +906,7 @@ const findEventAtPosition = (x, y, processKey) => {
 };
 
 const showDependencies = (event, type) => {
-  const displayName = event.isCounter ? event.displayName : (event.name || 'Event');
+  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   const predecessors = event.dependencies.predecessors.map(id => id2event[id]).filter(e => e);
 
   const successors = event.dependencies.successors.map(id => id2event[id]).filter(e => e);
@@ -944,7 +952,7 @@ const showDependencies = (event, type) => {
           ctx.closePath();
           ctx.fillStyle = colorCfg.eventFontNoColor;
           ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName:(pre.name || 'Event'));
+          let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName:(getDisplayName(pre) || 'Event'));
           ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
           ctx.beginPath();
           ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
@@ -980,7 +988,7 @@ const showDependencies = (event, type) => {
           ctx.closePath();
           ctx.fillStyle = colorCfg.eventFontNoColor;
           ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName:(dep.name || 'Event'));
+          let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName:(getDisplayName(dep) || 'Event'));
           ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
           ctx.beginPath();
           ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
@@ -1001,6 +1009,17 @@ const showDependencies = (event, type) => {
           ctx.stroke();
       });
   }
+};
+
+const getDisplayName = (event) => {
+  let {name: displayName} = event;
+  if (textOption.value?.length === 1 && textOption.value[0] === 'taskName') {
+    displayName = displayName.split('(')[0].trim();
+  } else if (textOption.value?.length === 1 && textOption.value[0] === 'taskLabel') {
+    const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
+    displayName = labelPart ? labelPart.groups.label.trim() : '';
+  }
+  return displayName;
 };
 
 const overflowText = (actualWidth, text) => {
@@ -1612,6 +1631,9 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 
 const setPageState = (message) => {
   userConfig.value = message.configration;
+  modeOption.value = userConfig.value.colorRending;
+  textOption.value = userConfig.value.textRending;
+  connectionLevelCfg.value = userConfig.value.connectionLevel;
   detailComponent.value.refLabel = userConfig.value.connectionLevel;
   if (message.comGraphPath) {
     bindFile.value = message.comGraphPath;
@@ -1637,7 +1659,7 @@ provide('swimGraphContext', { addChildContext });
 // 提供搜索状态
 provide('swimGraphSearch', {searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive});
 
-provide('swimGraphCfg', { userConfig });
+provide('swimGraphCfg', { userConfig, textOption, modeOption, connectionLevelCfg });
 
 // provide pmu info
 provide('swimGraphPmuTotal', {pmuTotal});
@@ -1680,6 +1702,7 @@ provide('swimGraphState', {
   leafHashes,
   leafHashMap,
   dependencyLinesInfo,
+  isCfgEditing,
 });
 
 // 提供方法给子组件
@@ -1704,6 +1727,7 @@ provide('swimGraphMethods', {
   transform,
   measureDetailGet,
   processThreadEventSearch,
+  getDisplayName,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   flagRender: () => { timelineComponent?.value.flagRender() },

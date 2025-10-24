@@ -368,7 +368,7 @@ export const mkTraceData = (processedEvents, processes, processExpanded, traceDa
         }
         counterEvents.value.push({ ...event, isCounter: true });
       } else {
-        const color = getEventColor(event);
+        const color = getEventColor(event, 'subGraph');
         const threadName =  threadNames.get(`${event.pid}-${event.tid}`);
         eventTasks.push({ ...event, originalIndex: index, color, threadName});
       }

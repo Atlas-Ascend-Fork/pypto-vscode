@@ -111,7 +111,8 @@ const {
   transform,
   measureDetailGet,
   xToTime,
-  processThreadEventSearch
+  processThreadEventSearch,
+  getDisplayName
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -130,7 +131,8 @@ provide('swimGraphMethods', {
   transform,
   measureDetailGet,
   xToTime,
-  processThreadEventSearch
+  processThreadEventSearch,
+  getDisplayName
 });
 
 const processesContainer = ref(null);
