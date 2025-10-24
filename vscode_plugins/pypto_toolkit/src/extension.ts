@@ -92,7 +92,7 @@ export async function activate(context: ExtensionContext) {
     window.registerWebviewPanelSerializer('comItemDetailView', {
       async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
         await loadMaterialColorUtilities();
-        const { fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId } = (state as any) || {};
+        const { fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId, outputDirPath, pathName } = (state as any) || {};
         GraphView.revive(
           webviewPanel,
           SingleGraphData,
@@ -103,6 +103,8 @@ export async function activate(context: ExtensionContext) {
           curPath,
           calleeOpMagic,
           calleeOpSubgraphId,
+          outputDirPath,
+          pathName
         );
       },
     });

@@ -1,6 +1,16 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    <div v-if="outputDirPath" class="com-graph-navbar-wrap">
+      <Navbar
+        current-step="comGraph"
+        :current-record-directory-path="outputDirPath"
+        :current-path-magic-name="pathName"
+        :current-pass-index="passIndex"
+        :current-leaf-name="fileName"
+      />
+      <ComGraphHeader in-navbar @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    </div>
+    <ComGraphHeader v-else @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -33,6 +43,7 @@ import HealthReport from './healthReport/healthReport.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
+import Navbar from '../navbar/navbar.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';
@@ -53,9 +64,25 @@ const props = defineProps({
   },
   nodeMagic: {
     type: Number,
-    default: '-1'
+    default: -1
+  },
+  outputDirPath: {
+    type: String,
+    default: ''
+  },
+  passIndex: {
+    type: String,
+    default: ''
+  },
+  pathName: {
+    type: String,
+    default: ''
+  },
+  fileName: {
+    type: String,
+    default: ''
   }
-})
+});
 
 const { isDarkTheme } = inject('root');
 const showHealthReport = ref(false);
@@ -243,6 +270,33 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   height: 100vh;
   position: relative;
   background-color: var(--devui-global-bg);
+
+  .com-graph-navbar-wrap {
+    position: absolute;
+    width: 100%;
+    height: 150px;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--devui-header-gradient-bg);
+
+    .navbar-container {
+      flex: 1;
+    }
+
+    .com-graph-header {
+      position: relative;
+      width: 541px;
+      background: unset;
+
+      .toolbar-row {
+        top: 16px;
+        left: 8px;
+      }
+    }
+  }
 
   .com-graph-header {
     position: absolute;
