@@ -8,6 +8,7 @@ import { hismartliteEx } from '../hismarliteEx';
 import { AbstractGraphData } from '../core/graphData';
 import { BaseGraphMsgHandler } from '../handler/baseGraphMsgHandler';
 import { basename } from 'path';
+import { useServer } from '../core/server';
 
 export interface GraphViewOptions {
   /** 面板类型标识，对应 package.json contributes.views */
@@ -70,6 +71,8 @@ export class GraphView<T extends AbstractGraphData> {
         },
       );
     }
+    const server = useServer();
+    server.addWebview(this.panel.webview);
 
     // 2. 把数据挂到 panel 上
     console.debug('GraphView createPanel 原始数据挂载');
