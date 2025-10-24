@@ -24,10 +24,21 @@ type ApiGroup = {
   [key: string]: ApiGroup | Api;
 };
 
+let server: ExtensionApiServer;
+
+export function initServer(apis: ApiGroup): ExtensionApiServer {
+  server = new ExtensionApiServer(apis);
+  return server;
+}
+
+export function useServer(): ExtensionApiServer {
+  return server;
+}
+
 /**
  * 接口服务，监听webview端请求
  */
-export class ExtensionApiServer {
+class ExtensionApiServer {
   private connector: WebviewConnector<ResponseMessage, RequestMessage>;
 
   /**

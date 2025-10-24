@@ -13,7 +13,7 @@ import {
 } from '../../types/workspace';
 import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
-import { hasHealthReport } from '../../utils/health-report';
+import { hasHealthReport, isHealthReport } from '../../utils/health-report';
 
 const CONTROL_FLOW_SOURCE_FILE = 'program.json';
 
@@ -163,7 +163,7 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
         outputPath: outputUri.path,
         passIndex,
         pathName,
-        hasHealthReport: hasHealthReport(computeGraphUri.path),
+        hasHealthReport: hasHealthReport(computeGraphUri.fsPath),
         computeType,
         leafProgramId,
         leafHash,
@@ -175,7 +175,7 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
 }
 
 function isComputeGraph(subPath: string, { passIndex, passName }: Pass): boolean {
-  return subPath.startsWith(`After_0${passIndex}_${passName}_`) && subPath.endsWith('.json');
+  return subPath.startsWith(`After_0${passIndex}_${passName}_`) && subPath.endsWith('.json') && !isHealthReport(subPath);
 }
 
 function decodeComputeGraphFilename(

@@ -167,6 +167,7 @@ export class PathLeafAnalyzer {
           passIndex: pathFile.passIndex,
           passName,
           passStage,
+          pathName,
           graphFilePath: pathFile.absolutePath,
           hasHealthReport,
           leafFunctions: leafs ? this.findLeafInPass(calleeRecords, roots, leafs, pathName) : [],

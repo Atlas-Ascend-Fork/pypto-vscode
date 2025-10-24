@@ -8,6 +8,7 @@ import { GraphView } from '../../view/graphView';
 import { SingleGraphData } from '../../core/graphData';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphView } from '../../view/swimGraphView';
+import { loadMaterialColorUtilities } from '../../color-list';
 
 /**
  * 打开控制流
@@ -20,7 +21,8 @@ export function openControlFlow(params: { outputPath: string; controlFlowPath: s
 /**
  * 打开计算图
  */
-export function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string }) {
+export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string }) {
+  await loadMaterialColorUtilities();
   const uri = vscode.Uri.file(params.computeGraphPath);
   new GraphView(
     { viewType: 'comItemDetailView', title: path.basename(params.computeGraphPath) },
@@ -32,7 +34,8 @@ export function openComputeGraph(params: { outputPath: string; computeGraphPath:
 /**
  * 打开泳道图
  */
-export function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
+export async function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
+  await loadMaterialColorUtilities();
   const uri = vscode.Uri.file(params.swimlaneGraphPath);
   SwimGraphView.createPanel(uri);
 }

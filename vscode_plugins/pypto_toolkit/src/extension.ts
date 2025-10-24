@@ -6,14 +6,14 @@ import * as translationCN from '../package.nls.zh-cn.json';
 
 import {RegisterCommand} from './command/registerCommand';
 import {globalConfig} from './config/config';
-import {ExtensionApiServer} from './core/server';
+import {initServer} from './core/server';
 import {SQLiteCache} from './core/sqliteCache';
 import {hismartliteEx} from './hismarliteEx';
 import {services} from './services';
 import {initView} from './view';
 import {SwimGraphView} from './view/swimGraphView.js';
 import {GraphView} from './view/graphView';
-import {SingleGraphData, DiffGraphData} from './core/graphData';
+import {SingleGraphData,  DiffGraphData} from './core/graphData';
 import {SingleGraphHandler} from './handler/singleGraphHandler';
 import {DiffGraphHandler} from './handler/diffGraphHandler';
 import {loadMaterialColorUtilities} from './color-list';
@@ -75,7 +75,7 @@ export async function activate(context: ExtensionContext) {
     }
 
     // 启动接口服务
-    const server = new ExtensionApiServer(services);
+    const server = initServer(services);
 
     // 启动编辑区视图
     initView((viewPanel) => {
@@ -113,7 +113,7 @@ export async function activate(context: ExtensionContext) {
                     calleeOpMagic,
                     calleeOpSubgraphId,
                     outputDirPath,
-                    pathName
+                    pathName,
                 );
             },
         });

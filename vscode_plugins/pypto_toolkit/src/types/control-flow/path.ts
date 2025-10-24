@@ -52,6 +52,9 @@ export interface PathInPass {
   /** 过程名称 */
   passName: string;
 
+  /** PATH名称 */
+  pathName: string;
+
   /** 计算图文件路径 */
   graphFilePath: string;
 
