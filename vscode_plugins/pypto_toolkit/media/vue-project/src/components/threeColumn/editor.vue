@@ -6,6 +6,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, inject } from 'vue';
 import * as monaco from 'monaco-editor';
 import { generateColorList, getColorByString } from '../../utils/color-list';
+import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
 
 const { isDarkTheme } = inject('threeColumnState');
 
@@ -20,7 +21,8 @@ const containerRef = ref(null);
 let editor = null;
 let semanticDecorations = [];
 let currentHoverDecoration = null;
-let currentLabels = [];
+let initCodePath = '';
+let initTotalLine = 0;
 
 // 配置 Monaco Editor
 const configureMonaco = () => {
@@ -45,41 +47,8 @@ const configureMonaco = () => {
   }
 };
 
-// 解析语义标签
-const parseSemanticLabels = (code) => {
-  const lines = code.split('\n');
-  const labels = [];
-  let currentLabel = { name: 'default', startLine: 1, endLine: lines.length };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const match = line.match(/^#\s*set\s+semantic_label\s+(\w+)/);
-    if (match) {
-      // 如果已经有标签，先设置结束行
-      if (currentLabel.name !== 'default') {
-        currentLabel.endLine = i;
-        labels.push({ ...currentLabel });
-      }
-      
-      // 开始新的标签
-      currentLabel = {
-        name: match[1],
-        startLine: i + 2, // 下一行开始
-        endLine: lines.length
-      };
-    }
-  }
-
-  // 添加最后一个标签
-  if (currentLabel.name !== 'default') {
-    labels.push(currentLabel);
-  }
-
-  return labels;
-};
-
 // 应用语义标签装饰
-const applySemanticDecorations = (labels) => {
+const applySemanticDecorations = () => {
   if (!editor) return;
 
   // 清除之前的装饰
@@ -126,7 +95,7 @@ const applySemanticDecorations = (labels) => {
 };
 
 // 查找光标所在的语义标签区域
-const findSemanticLabelAtPosition = (position, labels) => {
+const findSemanticLabelAtPosition = (position) => {
   return labels.find(label => 
     position.lineNumber >= label.startLine && 
     position.lineNumber <= label.endLine
@@ -143,7 +112,7 @@ const updateHoverDecoration = (position) => {
   
   if (!position) return;
   
-  const currentLabel = findSemanticLabelAtPosition(position, currentLabels);
+  const currentLabel = findSemanticLabelAtPosition(position);
   
   // 如果当前在语义标签区域内，添加悬停效果
   if (currentLabel) {
@@ -160,7 +129,7 @@ const updateHoverDecoration = (position) => {
 };
 
 // 添加鼠标悬停事件监听
-const setupHoverListeners = (labels) => {
+const setupHoverListeners = () => {
   if (!editor) return;
 
   // 鼠标移动事件
@@ -187,9 +156,11 @@ const setupHoverListeners = (labels) => {
 // 添加悬停效果的 CSS
 const setupHoverStyles = () => {
   const style = document.createElement('style');
+  const bkColor = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   style.textContent = `
     .semantic-hover-highlight {
-      background-color: rgba(128, 128, 128, 0.1) !important;
+      background-color: ${bkColor} !important;
+      opacity: 0.2 !important;
     }
   `;
   document.head.appendChild(style);
@@ -229,11 +200,12 @@ const initEditor = (code) => {
   }
 
   const container = containerRef.value;
+  const language = initCodePath.endsWith('py') ? 'python' : 'cpp';
 
   try {
     editor = monaco.editor.create(container, {
       value: code,
-      language: 'python',
+      language: language,
       automaticLayout: true,
       theme: isDarkTheme.value ? 'vs-dark' : 'vs',
       minimap: { enabled: true },
@@ -251,15 +223,12 @@ const initEditor = (code) => {
     setupHoverStyles();
     
     // 解析并应用语义标签
-    currentLabels = parseSemanticLabels(code);
-    applySemanticDecorations(currentLabels);
+    applySemanticDecorations();
     setupHoverListeners();
     
     // 监听内容变化，实时更新语义标签
     editor.onDidChangeModelContent(() => {
-      const newCode = editor.getValue();
-      currentLabels = parseSemanticLabels(newCode);
-      applySemanticDecorations(currentLabels);
+      applySemanticDecorations();
       // 触发保存
       debouncedSave();
     });
@@ -289,7 +258,10 @@ const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
     case 'returnPyCode':
-      nextTick(() => initEditor(message.data));
+      const { codePath, code } = message.data;
+      initCodePath = codePath;
+      initTotalLine = code.split('\n').length;
+      nextTick(() => initEditor(code));
       break;
     case 'saveSuccess':
       console.log('Code saved successfully');
@@ -299,6 +271,11 @@ const handleMessage = (event) => {
       break;
   }
 };
+
+window.ascEventBus.on('returnCompleteData', (args) => {
+  mkSemanticLabel(args, codePath);
+  parseSemanticLabels(initTotalLine);
+});
 
 // 在组件挂载前配置 Monaco
 configureMonaco();

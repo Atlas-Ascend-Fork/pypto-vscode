@@ -22,7 +22,7 @@ class codeMsgHandler {
     }
     panel.webview.postMessage({
       command: 'returnPyCode',
-      data: code
+      data: { code, codePath },
     });
   }
 
