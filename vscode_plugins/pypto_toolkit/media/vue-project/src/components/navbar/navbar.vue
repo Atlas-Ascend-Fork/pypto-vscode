@@ -73,7 +73,6 @@ watch(
     if (val) {
       getControlFlow(val).then((res) => {
         controlFlowList.value = res.data;
-        console.warn(res.data);
       });
     }
   },

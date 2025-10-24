@@ -72,7 +72,7 @@ const props = defineProps({
   },
   passIndex: {
     type: String,
-    default: '027'
+    default: ''
   },
   pathName: {
     type: String,
