@@ -13,20 +13,20 @@ import { SwimGraphView } from '../../view/swimGraphView';
  * 打开控制流
  */
 export function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
-  const uri = vscode.Uri.file(params.controlFlowPath).with({ query: JSON.stringify({ url: params.outputPath }) });
-  useView().editorView.open('controlFlow', uri);
+  const uri = vscode.Uri.file(params.controlFlowPath);
+  useView().editorView.open('controlFlow', uri, { query: { url: params.outputPath } });
 }
 
 /**
  * 打开计算图
  */
-export function openComputeGraph(params: { outputPath: string; computeGraphPath: string }) {
+export function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string }) {
   const uri = vscode.Uri.file(params.computeGraphPath);
   new GraphView(
     { viewType: 'comItemDetailView', title: path.basename(params.computeGraphPath) },
     SingleGraphData,
     SingleGraphHandler,
-  ).createPanel(uri.fsPath, undefined, undefined, undefined, undefined, undefined, undefined, params.outputPath);
+  ).createPanel(uri.fsPath, undefined, undefined, undefined, undefined, undefined, undefined, params.outputPath, params.pathName);
 }
 
 /**
