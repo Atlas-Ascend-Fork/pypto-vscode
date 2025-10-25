@@ -126,10 +126,12 @@ function jumpNotOwn(item: LeafInPass) {
 
 .leaf-function-list {
   max-width: 300px;
+  max-height: 400px;
   padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
+  overflow: auto;
 
   .owned-title,
   .not-owned-title {

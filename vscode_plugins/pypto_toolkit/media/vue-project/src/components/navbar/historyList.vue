@@ -39,7 +39,7 @@ const currentData = computed<Partial<HistoryData>>(() => {
     for (let i = 0; i < historyList.value.length; i++) {
       const item = historyList.value[i];
       if (item.directoryPath === rootProps.currentRecordDirectoryPath) {
-        emits('recordChange');
+        emits('recordChange', item);
         return item;
       }
     }

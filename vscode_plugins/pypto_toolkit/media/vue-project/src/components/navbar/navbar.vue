@@ -81,8 +81,7 @@ watch(
   { immediate: true },
 );
 
-function onRecordChange() {
-  const record = historyListEl.value.getCurrentRecord() as HistoryData;
+function onRecordChange(record: HistoryData) {
   showSwim.value = Boolean(record.swimlaneGraphFilePath);
 }
 
