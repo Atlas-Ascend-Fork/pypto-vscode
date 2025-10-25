@@ -1932,6 +1932,10 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
     });
   });
   boundaries = calcRowBoundaries(points);
+  if (!boundaries.length) {
+    clearSelectionCanvas();
+    return;
+  }
   drawBoundary();
 });
 addChildContext('threadEvent', {
