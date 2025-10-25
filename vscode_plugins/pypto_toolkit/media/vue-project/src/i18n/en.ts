@@ -90,6 +90,7 @@ export default {
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
     directRelative: 'Direct relative',
     notDirectRelative: 'Not direct relative',
+    pleaseSelect: 'Please select',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
     'hierarchy': 'Hierarchy: ',

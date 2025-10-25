@@ -170,6 +170,10 @@ defineExpose({ getCurrentPass: () => currentData.value });
     font-size: 10px;
     color: var(--devui-title-text);
     margin-bottom: 2px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dot-step {

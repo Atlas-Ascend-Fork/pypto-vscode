@@ -30,7 +30,7 @@ export const navbarProps = {
   },
   currentPathMagicName: {
     type: String as PropType<ControlFlowPath['magicName']>,
-    default: -1,
+    default: '',
   },
   currentPassIndex: {
     type: String as PropType<PathInPass['passIndex']>,
