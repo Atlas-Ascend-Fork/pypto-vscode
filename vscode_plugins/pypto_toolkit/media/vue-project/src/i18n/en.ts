@@ -157,5 +157,6 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
+        tableSearch:'Search',
     }
 }

@@ -9,13 +9,10 @@ export function transformData(rootNodes: GroupNode): {
     const nodes: ControlFlowNodesType[] = [];
     const edges: EdgesType[] = [];
     const combos: CombsType[] = [];
-
     let lastNodeY = 0;
     let loopRankSep = 0;
-
     let isFirstNode = false;
     let magicName = '';
-
     let loopTopCount = 0;
     let loopBottomCount = 0;
     let loopLastPathCount = 0;
@@ -23,7 +20,7 @@ export function transformData(rootNodes: GroupNode): {
 
 
     function traverse(node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number) {
-        const id = node.magicName.substring(7);
+        const id = node.magicName.substring('TENSOR_'.length);
         if (node.nodeType === "LOOP") {
             deepRankSep++;
             loopTopCount++;
@@ -171,19 +168,14 @@ export function transformData(rootNodes: GroupNode): {
             const starY = lastNodeY + loopTopCount * 40 + loopLastPathCount * 25 + 30;
 
             function layoutTree(root: GroupNode, level: number = 0, startX: number) {
-
                 root.y = level;
-
                 if (root.children && root.children.length !== 0) {
                     const offsetIf = root?.children[0]?.nodeType === 'IF' ? 150 : 0
-
                     const leftLeafX = startX - horizontalSpacing - nodeWidth - offsetIf;
                     const rightLeafX = startX + horizontalSpacing + nodeWidth + offsetIf;
                     layoutTree(root.children[0], level + 1, leftLeafX);
                     layoutTree(root.children[1], level + 1, rightLeafX);
                 }
-
-
                 let name = '';
                 if (root.nodeType === "PATH") {
                     name = root.magicName.substring(root.magicName.indexOf("PATH"));
@@ -194,7 +186,6 @@ export function transformData(rootNodes: GroupNode): {
                     called: root?.meta?.calledRecords?.length || 0,
                     callee: root?.meta?.calleeRecords?.length || 0,
                 };
-
                 //     计算errorStats（todo）
                 const errorStats = {
                     NullPointer: 0,
@@ -203,9 +194,7 @@ export function transformData(rootNodes: GroupNode): {
                 const nodeSize = root.nodeType === "PATH" ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100]
                 loopRankSep = deepRankSep
                 if (root.x !== undefined && root.y !== undefined) {
-
                     root.hash = root.hash === '' ? `${root.x}${root.y}` : root.hash
-
                     let newNode: ControlFlowNodesType = {
                         id: root.hash,
                         type: root.nodeType === "PATH" ? 'path-card-node' : 'if-card-node',
@@ -221,12 +210,10 @@ export function transformData(rootNodes: GroupNode): {
                             x: startX + 200,
                             y: starY + root.y * (nodeHeight + verticalSpacing),
                         },
-
                     }
                     root.x = startX + 200;
                     root.y = starY + root.y * (nodeHeight + verticalSpacing);
                     lastNodeY = Math.max((newNode.style.y), lastNodeY)
-
                     if (root.nodeType === "IF") {
                         newNode.data = {
                             ...newNode.data,
@@ -241,14 +228,12 @@ export function transformData(rootNodes: GroupNode): {
                     nodes.push(newNode)
                 }
             }
-
             const queue: GroupNode[] = [root];
             layoutTree(root, 0, maxLevelPixelWidth / 2)
         }
 
         //  如果是if嵌套节点
         if (node.nodeType === "IF" || (node.nodeType === "PATH" && parentType === "IF")) {
-
             if (isFirstNode) {
                 drawNode(node)
                 lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
@@ -258,7 +243,6 @@ export function transformData(rootNodes: GroupNode): {
                 loopLastPathCount = deepRankSep;
                 isFirstNode = false;
             }
-
         }
 
         parentType = node.nodeType;
@@ -330,7 +314,7 @@ export function transformData(rootNodes: GroupNode): {
                         router: {
                             type: 'orth',
                         },
-                    },
+                    }
                 })
             }
         }
