@@ -1,7 +1,7 @@
 <template>
   <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
-    <Navbar/>
+    <div class="tool-navbar"><Navbar :current-record-directory-path="outPutPath"/></div>
     <div ref="chartContainer" class="chart-container"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
@@ -13,7 +13,7 @@
       <span class="tool-line"></span>
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
-    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="SearchValue"
+    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="SearchValue"  max-height="500"
                      :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange"></d-editable-select>
 
   </div>
@@ -28,13 +28,14 @@ import {
   Rect,
   type RectStyleProps,
   register,
-  Diamond, GraphEvent, DagreLayout, BaseLayout, GraphData,
+  Diamond, GraphEvent
 } from '@antv/g6';
 import type {BaseCustomElementStyleProps, Group} from '@antv/g-lite';
-import RightPanel from "@/components/controlFlowGraph/RightPanel.vue";
-import {transformData} from "@/components/controlFlowGraph/utile/parse-Data-utile";
-import {getQuery} from "@/core/query";
-import {getControlFlow} from "@/apis/control-flow";
+import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
+import {transformData} from '@/components/controlFlowGraph/util/parse-Data-utile';
+import {getQuery} from '@/core/query';
+import {getControlFlow} from '@/apis/control-flow';
+import Navbar from '@/components/navbar/navbar.vue';
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
@@ -340,7 +341,7 @@ class IfCardNode extends Diamond {
   get cardData(): Required<IfCardData> {
     const rawData = this.nodeData || {};
     return {
-      name: rawData.id || 'if', // 默认
+      name: 'IF', // 默认，全程改为悬浮提示。
     };
   }
 
@@ -399,12 +400,6 @@ class IfCardNode extends Diamond {
       fill: '#F9B766',
       isClosed: true,
       backgroundRadius: 8,
-      // width:10,
-      // height:10,
-      // x:-3.5,
-      // y:-17,
-      // fill: 'rgba(246,158,57,1)', // 卡片背景色
-      // stroke: 'rgba(246,158,57,1)',
     };
   }
 
@@ -473,7 +468,6 @@ class LogoWithRectCombo extends RectCombo {
     }, this)
     // loop标签右侧图片背景板
     const righthitArea = this.upsert('right--area', 'rect', {
-      x: 100,
       y: y - 15,
       x: -width / 2 + 68 + this.id.length * 10.3,
       width: 20,
@@ -496,23 +490,14 @@ class LogoWithRectCombo extends RectCombo {
       righthitArea?.addEventListener('click', (e) => {
         // 阻止事件冒泡，避免触发节点的点击事件
         e.stopPropagation();
-        console.log('Button clicked on node:', attributes);
-        console.log(this.nodeData)
         // 如果数据中有回调函数，则调用
       });
       righthitArea.__clickBound = true; // 标记已绑定事件，避免重复绑定
     }
   }
-
   render(attributes, container) {
     super.render(attributes, container);
     const shape = this.drawButton(attributes);
-  }
-
-  onCreate(attributes) {
-    this.shapeMap['right-svg'].addEventListener('click', () => {
-      console.log('Button clicked on node:', this.id, attributes);
-    });
   }
 }
 
@@ -522,8 +507,10 @@ const SearchValue = ref('');
 
 // 搜索时定位搜索loop
 function selectChange(value) {
-  graph.setElementState(value, 'selected');
-  graph.focusElement(value)
+  if(SearchValue.value){
+    graph.setElementState(value, 'selected');
+    graph.focusElement(value)
+  }
 }
 
 //  初始化 G6 图表（
@@ -561,8 +548,15 @@ const initG6Graph = (nodes, edges, combos,) => {
         backgroundSize: 'fit',
         opacity: '0.1'
       },
+      {
+        type: 'tooltip',
+        // 只对if节点启用，边不显示tooltip
+        enable: (e,itemes) => itemes[0].type === 'if-card-node',
+        getContent: (e, items) => {
+          return `<div>${items[0].data.source.magicName}</div>`;
+        },
+      },
     ],
-
     data: {
       nodes,
       edges,
@@ -600,7 +594,6 @@ const initG6Graph = (nodes, edges, combos,) => {
         },
       },
     },
-
     combo: {
       type: 'combo-with-extra-button',
       style: {
@@ -661,12 +654,10 @@ const initG6Graph = (nodes, edges, combos,) => {
         type: 'click-select',
         degree: 1,
         state: 'selected', // 选中的状态
-        neighborState: 'active', // 相邻节点附着状态
-        unselectedState: 'inactive', // 未选中节点状态
+        neighborState: 'selected', // 相邻节点附着状态
         multiple: true,
         trigger: ['shift'],
       }, 'drag-canvas', 'zoom-canvas', 'hover-activate',
-      // 'drag-element',//元素拖拽
     ],
   });
 
@@ -686,27 +677,21 @@ const initG6Graph = (nodes, edges, combos,) => {
 };
 
 onMounted(async () => {
-  try {
-    const res = await getQuery();
-    outPutPath.value = JSON.parse(res.uri.query).url
-    const data = await getControlFlow(outPutPath.value);
+  const res = await getQuery();
+  outPutPath.value = JSON.parse(res.uri.query).url
+  const data = await getControlFlow(outPutPath.value);
 
-    rootData.value = data.data;
-    const {nodes, edges, combos} = transformData(rootData.value);
-    initG6Graph(nodes, edges, combos);
-    // 初始化搜索组件数据源
-    combos.forEach(item => {
-      options.value.push({
-        label: item.id,
-        value: item.id,
-        data: item,
-      });
-    })
-  } catch (e) {
-    console.log('rootDatarootDatarootData', e)
-  }
-
-
+  rootData.value = data.data;
+  const {nodes, edges, combos} = transformData(rootData.value);
+  initG6Graph(nodes, edges, combos);
+  // 初始化搜索组件数据源
+  combos.forEach(item => {
+    options.value.push({
+      label: item.id,
+      value: item.id,
+      data: item,
+    });
+  })
 });
 
 onUnmounted(() => {
@@ -720,6 +705,10 @@ onUnmounted(() => {
   height: 100%;
   box-sizing: border-box;
   background-color: #1F1F1F;
+}
+.tool-navbar{
+  position: absolute !important;
+  z-index: 99;
 }
 
 .chart-container {
@@ -777,7 +766,6 @@ onUnmounted(() => {
     line-height: 24px;
     cursor: pointer;
   }
-
 }
 
 .tool-select {
@@ -785,7 +773,7 @@ onUnmounted(() => {
   right: 16px;
   top: 30px;
   color: #E6E6E6;
-
+  z-index:99;
   :deep(.devui-editable-select__arrow-icon) {
     display: none;
   }
@@ -803,6 +791,9 @@ onUnmounted(() => {
     font-size: 13px;
     color: #E6E6E6;
     caret-color: rgba(49, 122, 247, 1);
+    &:focus{
+      outline: none;
+    }
   }
 }
 </style>

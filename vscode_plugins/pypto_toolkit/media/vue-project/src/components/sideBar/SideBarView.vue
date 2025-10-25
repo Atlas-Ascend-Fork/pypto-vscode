@@ -19,19 +19,20 @@
           </div>
         </template>
       </d-icon>
-
-      <d-select v-model="contentOption" class="filter-select" :options="contentOptions" placeholder="选择显示内容">
-        <template #default>
-        </template>
-      </d-select>
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container">
-      <d-tree ref="treeRef" :data="visibleItems" show-line="false" :expanded-keys="expandedKeys"
-              @expand="handleNodeExpand"
-              @collapse="handleNodeCollapse"  :height="1150" @node-click="nodeClick" :node-class="() => 'custom-tree-node'">
-
-        <!-- 1. content插槽：自定义节点主内容（图标+文本） -->
+      <d-tree
+        ref="treeRef"
+        :data="visibleItems"
+        :expanded-keys="expandedKeys"
+        :node-class="() => 'custom-tree-node'"
+        show-line="false"
+        @expand="handleNodeExpand"
+        @collapse="handleNodeCollapse"
+        @node-click="nodeClick"
+      >
+        <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
             <div class="icon">
@@ -105,15 +106,6 @@ const {t} = useI18n();
 const treeRef = ref(null);
 
 /**
- * 下拉选择器数据源
- */
-const contentOptions = [
-  {value: 'all', name: 'mla_prolog.cpp'},
-  {value: 'folders', name: '仅文件夹'},
-  {value: 'files', name: '仅文件'}
-];
-
-/**
  * 树节点数据
  * - 文件夹节点：type='dir', isLeaf=false, 可包含children
  * - 文件节点：type='file', isLeaf=true, 无children
@@ -124,7 +116,6 @@ const treeData = ref<DevUITreeNode[]>([])
  */
 const sortOption = ref(false);
 const contentOption = ref('all');
-const allItems = ref<DevUITreeNode[]>(treeData.value);
 const expandedKeys = ref<string[]>([]);
 
 /**
@@ -163,38 +154,24 @@ const handleNodeCollapse = (node: DevUITreeNode) => {
 };
 
 async function nodeClick(node: DevUITreeNode) {
-  if (node.label === '结果总览') {
+  if (node.fileType === 'controlFlow') {
+    // 打开控制流
     openControlFlow({
       controlFlowPath: node.absolutePath,
       outputPath: node.outputPath
     })
-  }
-  if (node.label === '泳道图') {
+  } else if (node.fileType === 'swimlaneGraph') {
+    // 打开泳道图
     openSwimlaneGraph({swimlaneGraphPath:node.absolutePath})
-  }
-  if (node.extname === '.json') {
+  } else if (node.fileType === 'computeGraph') {
+    // 打开计算图
     openComputeGraph({
       outputPath:node.outputPath,
       computeGraphPath:node.absolutePath,
       passName:node.name
     })
-
   }
-
 }
-
-/**
- * 工具函数
- */
-const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
-};
 
 /**
  * 监听筛选条件变化
@@ -265,6 +242,7 @@ onMounted(async () => {
   color: #ffffff;
   min-height: 100vh;
   width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -276,11 +254,10 @@ onMounted(async () => {
   display: flex;
   justify-content: start;
   align-items: center;
-  font-family: 'HarmonyOS Sans SC 2025';
   height: 28px;
   padding: 0 16px;
-  gap: 200px;
   .title {
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 2px;
@@ -359,36 +336,45 @@ onMounted(async () => {
   }
 }
 
-:deep(#app ) {
-  :deep(header) {
-    min-width: 300px !important;
-  }
-}
-
-:deep(.tree-container) {
+.tree-container {
+  width: 100%;
   flex: 1;
-  justify-content: space-between;
   min-height: 0;
-  padding: 0px 16px;
   margin-top: 4px;
   box-sizing: border-box;
+  overflow: auto;
 
-  /* 节点文本样式 */
-
-  .devui-tree__node {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+  :deep(.devui-tree) {
+    min-width: 100%;
+    width: fit-content;
     height: fit-content;
-    padding: 0px 12px;
 
-    .devui-tree__node-content {
-      padding: 0;
+    /* 节点文本样式 */
+    .devui-tree__node {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 0px 12px;
 
+      &[style*="padding-left: 0px"] {
+        height: 48px;
+      }
+
+      &:has(+.devui-tree__node[style*="padding-left: 0px"]),
+      &:last-of-type  {
+        border-bottom: 1px solid var(--vscode-sideBar-border);
+      }
+
+      &.active {
+        background-color: rgba(255, 255, 255, 0.1);
+
+        .node-label {
+          color: #FFFFFF !important;
+        }
+      }
 
       .devui-tree__node-content--value-wrapper {
         height: max-content !important;
-
 
         .tree-container-content {
           display: flex;
@@ -399,9 +385,6 @@ onMounted(async () => {
 
           .icon {
             font-size: 16px;
-
-            .icon-folder-new {
-            }
 
             .icon-file {
               color: orange
@@ -414,11 +397,9 @@ onMounted(async () => {
           }
 
           .node-text-folder {
-
             display: flex;
             justify-content: center;
             flex-direction: column;
-
             height: 48px !important;
 
             .node-label {
@@ -447,22 +428,17 @@ onMounted(async () => {
             display: flex;
             justify-content: center;
             flex-direction: column;
-
             height: 28px !important;
 
             .node-label {
               font-size: 13px;
               color: #B3B3B3;
-
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
               line-height: 20px;
-
             }
-
           }
-
         }
       }
 
@@ -484,36 +460,26 @@ onMounted(async () => {
         }
       }
 
-    }
+      .devui-tree__node-content.active {
+        background-color: transparent;
+      }
 
-    .devui-tree__node-content.active {
-      background-color: rgba(255, 255, 255, 0.1);
+      .devui-tree__node-content:not(.active):hover {
+        background-color: rgba(49, 122, 247, 0);
+      }
 
-      .node-label {
-        color: #FFFFFF !important;
+      .devui-tree__node-vline {
+        opacity: 0 !important;
+        height: 0px !important;
+      }
+
+      .devui-tree__node-hline {
+        opacity: 0 !important;
+        height: 0px !important;
 
       }
-    }
-
-    .devui-tree__node-content:not(.active):hover {
-      background-color: rgba(49, 122, 247, 0);
-    }
-
-    .devui-tree__node-vline {
-      opacity: 0 !important;
-      height: 0px !important;
-    }
-
-    .devui-tree__node-hline {
-      opacity: 0 !important;
-      height: 0px !important;
 
     }
-
-  }
-
-
-  .devui-tree-node__indent {
   }
 }
 

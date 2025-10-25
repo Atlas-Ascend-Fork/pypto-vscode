@@ -64,6 +64,17 @@ export default {
     'editLabel': 'custom tags',
     'editInput': 'Enter 0 to 16 characters',
     'connectionLevel': 'configuration the max connection level on the swimlane(-1: disabled)',
+    'taskConnectionLevel':'Task Connection Level',
+    'shadingMode':'Shading Mode',
+    'eventTask':'Task Content Display',
+    'colorRendering':'Task Color Rendering',
+    'subGraph':'By SubGraph',
+    'stichedFunc':'By Stiched Function',
+    'label':'By Semantic Label',
+    'allText':'All Fields',
+    'taskName':'Task Name',
+    'taskLabel':'Semantic Label',
+    'swimRenderCfg':'Swimlane Rendering Configuration',
     'clockCycle': 'clock cycle',
     'throughout': 'throughout',
     'cacheHit': 'cache hit ratio',
@@ -141,7 +152,10 @@ export default {
         fullRenderComGraphDesc: 'Conventional rendering is slower when there are a large number of nodes',
         searchMode: 'Search Mode',
         searchModeDesc: 'Render the associated links based on the searched nodes',
-        locateNodeError:'Current node not found, location failed'
+        locateNodeError:'Current node not found, location failed',
+        searchHistoryTips: 'History',
+        searchPageTips: 'Page Instruction',
+        searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes'
     },
     sideBar: {
         title: 'Compilation result',
@@ -158,5 +172,6 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
+        tableSearch:'Search',
     }
 }

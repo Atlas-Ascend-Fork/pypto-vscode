@@ -16,7 +16,7 @@
           <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
                  :key="tabIndex" :title="tab.name" class="data-tabs">
             <!-- 搜索框：筛选当前页签表格数据，支持清空 -->
-            <d-input v-model="searchKeywords[tabIndex]" class="search-input" placeholder="Search"
+            <d-input v-model="searchKeywords[tabIndex]" class="search-input" :placeholder="t('controlFlows.tableSearch')"
                      @input="handleSearch(tabIndex)">
               <template #prefix>
                 <d-icon class="search-input__icon" name="search"/>
@@ -260,7 +260,7 @@ function openGraph(item) {
   openComputeGraph({
     outputPath: outPutPath.value,
     computeGraphPath: item.graphFilePath,
-    pathName: item.passName,
+    pathName: item.pathName,
   })
 
 
@@ -484,22 +484,24 @@ function getPassList(passes: PassesType[]) {
   let nowState = '';
   let item: GroupItem = {}
 
-  for (const pass of passes) {
-    if (pass.passStage !== nowState) {
+  for(let i = 0; i < passes.length; i++) {
+    if (passes[i].passStage !== nowState) {
       if (nowState !== '') {
         passGroups.push(item);
       }
-      nowState = pass.passStage;
+      nowState = passes[i].passStage;
       item = {icon: "icon-code", members: []}
-      item.name = `${pass.passStage} Graph`
+      item.name = `${passes[i].passStage} Graph`
       item.members.push({
-        ...pass,
-        type: pass.hasHealthReport ? 'success' : 'other',
+        ...passes[i],
+        type: passes[i].hasHealthReport ? 'success' : 'other',
       })
     } else {
-      item.members.push(pass)
+      item.members.push(passes[i])
     }
-
+    if(i===passes.length-1) {
+      passGroups.push(item);
+    }
   }
   return passGroups;
 }
@@ -507,6 +509,7 @@ function getPassList(passes: PassesType[]) {
 function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   outPutPath.value = path
   const {leafFunctions, calledRecords, calleeRecords} = nodeData.data.source.meta;
+  console.log(nodeData)
 
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
@@ -521,8 +524,8 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   }
   panelData.value.title = nodeData.data.source.magicName.substring(7);
   panelData.value.tabs = [];
-  panelData.value.tabs.push(calleeObj);
   panelData.value.tabs.push(calledObj);
+  panelData.value.tabs.push(calleeObj);
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes)
@@ -676,7 +679,6 @@ defineExpose({
       }
     }
   }
-
   // 抽屉内容区：内边距和高度控制
   .drawer-content {
     padding: 18px 0px;
@@ -689,7 +691,6 @@ defineExpose({
       display: flex;
       flex-direction: column;
       max-height: 990px;
-
       overflow-y: scroll;
 
       // 页签面板：内边距控制
@@ -718,7 +719,6 @@ defineExpose({
       // 表格组件
       .content-table {
         margin-top: 16px;
-
         height: 100%;
         width: 440px;
         border-radius: 12px 12px 0 0;
@@ -732,7 +732,6 @@ defineExpose({
             justify-content: start;
             padding-left: 12px;
             box-sizing: border-box;
-
           }
 
           //表头左侧
@@ -779,7 +778,6 @@ defineExpose({
             width: 80px;
           }
         }
-
 
         :deep( .is-left) {
           padding-left: 0 !important;
@@ -830,8 +828,6 @@ defineExpose({
         :deep(.devui-table_cell) {
           overflow: visible;
         }
-
-
       }
     }
   }
@@ -861,10 +857,8 @@ defineExpose({
   background-color: var(--devui-tab-bg);
   box-sizing: border-box;
   padding: 2px;
-
   li {
     background-color: var(--devui-tab-bg);
-
     a {
       color: var(--devui-secondary-text);
     }
@@ -886,10 +880,8 @@ defineExpose({
 //表头背景色穿透
 :deep(.devui-table__thead ) {
   height: 32px;
-
   tr {
     background-color: var(--devui-flow-chart-nest-bg) !important;
-
     th:nth-child(3) {
       width: 0;
       display: none;
@@ -965,7 +957,6 @@ defineExpose({
       padding-left: 12px;
       padding-right: 18px;
     }
-
     .expand-row_frequency {
       display: flex;
       flex: 1;
@@ -974,25 +965,17 @@ defineExpose({
       align-items: center;
       box-sizing: border-box;
       padding-left: 10px;
-
       .expand-row_frequency_name {
         width: 24px;
-
       }
-
       .expand-row_frequency_progress {
-
         .expand-row-progress {
           padding-left: 8px;
           width: 80px;
         }
       }
-
-
     }
-
   }
-
 }
 
 :deep(colgroup) {
@@ -1001,8 +984,6 @@ defineExpose({
     display: none;
   }
 }
-
-
 </style>
 <style lang="less">
 

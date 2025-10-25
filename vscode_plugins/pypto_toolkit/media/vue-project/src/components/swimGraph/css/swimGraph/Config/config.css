@@ -1,0 +1,101 @@
+.cfgEdit {
+    width: 300px;
+    height: 348px;
+    border-radius: 8px;
+    position: absolute;
+    background: var(--devui-select-bg);
+    border: 1px solid var(--devui-swim-split-line);
+    z-index: 200;
+    word-wrap: break-word;
+    color: var(--devui-tooltip-text);
+    top: 60px;
+    right: 8px;
+    display: flex;
+    padding: 16px;
+}
+
+.cfg-title {
+    width: auto;
+    height: 24px;
+    font-weight: 700;
+    line-height: 24px;
+    letter-spacing: 0px;
+    text-align: left;
+}
+
+.cfg-head {
+    display: flex;
+}
+
+.cfg-close-button {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 12px;
+    right: 24px;
+    cursor: pointer;
+    color: var(--devui-swim-text-title);
+}
+
+.cfg-select {
+    margin-top: 16px;
+}
+
+.cfg-Shading-mode {
+    margin-top: 16px;
+}
+
+.cfg-Shading-mode-t {
+    color: var(--devui-secondary-text);
+    height: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: 0px;
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.task-content {
+    margin-top: 16px;
+}
+
+.task-content-t {
+    color: var(--devui-secondary-text);
+    height: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.task-connection-level {
+    margin-top: 16px;
+}
+
+.task-connection-level-t {
+    color: var(--devui-secondary-text);
+    height: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    text-align: left;
+}
+
+.task-connection-level-tip {
+    color: var(--devui-secondary-text);
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0px;
+    text-align: left;
+}
+
+.cfg-line {
+    width: 262px;
+    height: 0;
+    border: 1px solid var(--devui-slider-container-bg);
+    margin-top: 16px;
+}

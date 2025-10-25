@@ -259,7 +259,7 @@ export const ideDarkTheme = new Theme({
     'devui-warning-bg':'rgba(246,158,57,0.2)',
     'devui-timebar-bg':'rgba(255,255,255,0.08)',
     'devui-timefull-bg':'rgba(118,46,39,1)',
-    'devui-search-active-bg':'rgba(49, 122, 247, 1)',
+    'devui-search-active-bg':'rgba(49, 122, 247, 1)'
   },
   isDark: true,
 });

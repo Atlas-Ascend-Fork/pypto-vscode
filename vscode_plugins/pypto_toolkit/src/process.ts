@@ -300,7 +300,7 @@ const calculateDependencies = (events, connections) => {
       pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
   
-  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any) {
+  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, mode: string) {
     let counterEvents: any[] = [];
     let processedEvents: any[] = [];
     let processes = new Map();
@@ -314,7 +314,6 @@ const calculateDependencies = (events, connections) => {
     const threadNames = new Map();
     const eventTasks: any[] = [];
     const connections: any[] = [];
-    const mode = 'subGraph'
   
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];

@@ -89,6 +89,18 @@ export class Util {
       console.error('Failed to write mapping cache:', err);
     }
   }
+  static writeSwimConfigMap(cachePath: string, paramObj: string) {
+    try {
+      const JsedparamObj = JSON.parse(paramObj);
+      const data = {
+        colorRending: JsedparamObj.colorRending,
+        textRending: JsedparamObj.textRending,
+      }
+      writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Failed to write mapping cache:', err);
+    }
+  }
 }
 
 export function getFileNameByPath(fsPath: string) {

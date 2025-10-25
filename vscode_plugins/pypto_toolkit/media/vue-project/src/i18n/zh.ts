@@ -64,6 +64,17 @@ export default {
    'editLabel': '自定义标签',
    'editInput': '请输入0-16位字符',
    'connectionLevel': '配置泳道图最大显示层级(-1: 表示不使能)',
+   'taskConnectionLevel':'任务连线层级',
+   'shadingMode':'着色模式',
+   'eventTask':'Task内容展示',
+   'colorRendering':'Task颜色渲染',
+   'subGraph':'按子图',
+   'stichedFunc':'按stiched Function',
+   'label':'按语义标签',
+   'allText':'全部字段',
+   'taskName':'任务名称',
+   'taskLabel':'语义标签',
+   'swimRenderCfg':'泳道图渲染配置',
    'clockCycle': '时钟周期',
    'throughout': '吞吐量',
    'cacheHit': '缓存命中率',
@@ -141,7 +152,10 @@ export default {
       fullRenderComGraphDesc: '常规渲染，节点数较多时速度较慢',
       searchMode: '搜索模式',
       searchModeDesc: '根据搜索出的节点进行关联链路渲染',
-      locateNodeError:'当前节点未找到，定位失败'
+      locateNodeError:'当前节点未找到，定位失败',
+      searchHistoryTips: '历史搜索记录',
+      searchPageTips: '界面说明',
+      searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图'
    },
     sideBar: {
         title: '运行结果',
@@ -158,6 +172,6 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
-
+        tableSearch:'搜索',
     }
 }
