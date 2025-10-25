@@ -1,5 +1,5 @@
 <template>
-  <div class="zoom-control" :style="{right: `${offsetRight + 15}px`}">
+  <div class="zoom-control" :style="{width: `${width}px`, right: `${offsetRight + 15}px`}">
     <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);" :title="t('zoomOut')" @click="zoomOut"></button>
     <input type="text" :value="inputValue" class="zoom-value" @blur="commitZoom" @keydown.enter="$event.target.blur()" @input="onInput "/>
     <span class="text-value">%</span>
@@ -7,7 +7,7 @@
     <div class="empty-rect"> </div>
     <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="fitScreen"></button>
   </div>
-  <div ref="minimapContainerEl" class="com-graph-minimap-container" :style="{right: `${offsetRight + 15}px`}" @click="minimapClick">
+  <div ref="minimapContainerEl" class="com-graph-minimap-container" :style="{width: `${width}px`, height: `${height}px`, right: `${offsetRight + 15}px`}" @click="minimapClick">
     <div class="com-graph-minimap" :id="`${type}_minimap`">
     </div>
     <div
@@ -34,6 +34,14 @@ const props = defineProps({
   type: {
     type: String as PropType<'after' | 'before' | ''>,
     default: ''
+  },
+  width: {
+    type: Number,
+    default: 260
+  },
+  height: {
+    type: Number,
+    default: 160
   }
 });
 const emits = defineEmits(['mousedown', 'mousemove', 'mouseup']);
@@ -41,8 +49,8 @@ const emits = defineEmits(['mousedown', 'mousemove', 'mouseup']);
 const { t } = useI18n();
 const rectLeft = ref(0);
 const rectTop = ref(0);
-const rectWidth = ref(260);
-const rectHeight = ref(160);
+const rectWidth = ref(props.width);
+const rectHeight = ref(props.height);
 const rectIsDragging = ref(false);
 const isRectVisible  = ref(false);
 const rectScale = ref(1.0);
@@ -52,8 +60,8 @@ const isActive = ref(false);
 const minimapContainerEl = ref<HTMLElement>();
 const moveRectEl = ref<HTMLElement>();
 
-let minimapWidth = 260;
-let minimapHeight = 160;
+let minimapWidth = props.width;
+let minimapHeight = props.height;
 let minimapTop = 0;
 let minimapLeft = 0;
 let minimapScale = 1.0;
@@ -362,8 +370,6 @@ onMounted(() => {
 <style lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
 .com-graph-minimap-container {
-  height: 160px;
-  width: 260px;
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);
   background: $devui-base-bg;
@@ -386,7 +392,6 @@ onMounted(() => {
   position: absolute;
   display: flex;
   align-items: center;
-  width: 260px;
   height: 32px;
   background: $devui-base-bg;
   flex-direction: row;

@@ -16,7 +16,7 @@
     >
       <div id="sprotty"></div>
     </div>
-    <ComGraphMinimap v-if="!isLoading"></ComGraphMinimap>
+    <ComGraphMinimap v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
