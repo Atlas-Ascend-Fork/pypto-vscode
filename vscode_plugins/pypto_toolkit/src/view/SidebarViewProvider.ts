@@ -6,19 +6,19 @@ import {getIDETheme} from '../theme';
 import {getIDELang} from '../lang';
 import {Util} from '../util';
 import {useView} from "./index";
-import {ExtensionApiServer} from '../core/server';
+import {useServer} from '../core/server';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
     public websidePanel: vscode.Webview;
     private extensionUri: string;
+    private servers: ReturnType<typeof useServer>;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,// 插件所在路径
-        private servers: ExtensionApiServer,
     ) {
         this.extensionUri = _extensionUri.toString();
-
+        this.servers = useServer();
     }
 
     public resolveWebviewView(
