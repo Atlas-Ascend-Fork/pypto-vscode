@@ -15,107 +15,109 @@
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
           <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
                  :key="tabIndex" :title="tab.name" class="data-tabs">
-            <!-- 搜索框：筛选当前页签表格数据，支持清空 -->
-            <d-input v-model="searchKeywords[tabIndex]" class="search-input" :placeholder="t('controlFlows.tableSearch')"
-                     @input="handleSearch(tabIndex)">
-              <template #prefix>
-                <d-icon class="search-input__icon" name="search"/>
-              </template>
-              <template v-if="searchKeywords[tabIndex]" #suffix>
-                <d-icon class="search-input__clear" name="close"
-                        @click.stop="searchKeywords[tabIndex] = ''"/>
-              </template>
-            </d-input>
-            <!-- 表格组件：支持展开详情、列排序，深色主题适配 -->
-            <d-table ref="tableRef" :data="processedTableData(tabIndex)"
-                     :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
-                     :row-hovered-highlight="true"
-                     class="content-table"
-                     :header-bg="true"
-                     row-key="id"
-                     @row-click="onRowClick"
-                     @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
-                     @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
-            >
+            <div class="call-record">
+              <!-- 搜索框：筛选当前页签表格数据，支持清空 -->
+              <d-input v-model="searchKeywords[tabIndex]" class="search-input" :placeholder="t('controlFlows.tableSearch')"
+                      @input="handleSearch(tabIndex)">
+                <template #prefix>
+                  <d-icon class="search-input__icon" name="search"/>
+                </template>
+                <template v-if="searchKeywords[tabIndex]" #suffix>
+                  <d-icon class="search-input__clear" name="close"
+                          @click.stop="searchKeywords[tabIndex] = ''"/>
+                </template>
+              </d-input>
+              <!-- 表格组件：支持展开详情、列排序，深色主题适配 -->
+              <d-table ref="tableRef" :data="processedTableData(tabIndex)"
+                      :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
+                      :row-hovered-highlight="true"
+                      class="content-table"
+                      :header-bg="true"
+                      row-key="id"
+                      fix-header
+                      @row-click="onRowClick"
+                      @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
+                      @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
+              >
 
-              <d-column field="name" width="286px">
-                <template #header>
-                  <span class="table-header-left">{{ tableTitle[tabIndex].name }}</span>
-                  <div class=" left-sort">
-                    <div class="sort-icon">
-                      <d-icon class="sort" operable @click="sortLeaf(tabIndex)">
-                        <template #prefix>
-                          <div class="icon-group">
-                            <i class="icon-run-o icon-up"></i>
-                            <i class="icon-run-o icon-down"></i>
+                <d-column field="name" width="286px" show-overflow-tooltip>
+                  <template #header>
+                    <span class="table-header-left">{{ tableTitle[tabIndex].name }}</span>
+                    <div class=" left-sort">
+                      <div class="sort-icon">
+                        <d-icon class="sort" operable @click="sortLeaf(tabIndex)">
+                          <template #prefix>
+                            <div class="icon-group">
+                              <i class="icon-run-o icon-up"></i>
+                              <i class="icon-run-o icon-down"></i>
+                            </div>
+                          </template>
+                        </d-icon>
+                      </div>
+
+                    </div>
+
+                  </template>
+                  <template #default="scope">
+                    <div class="table-leaf-sell">
+                      <span class="callee-sell-name">{{ scope.row.name }}</span>
+                    </div>
+                  </template>
+                </d-column>
+
+                <d-column field="frequency" width="154px">
+                  <template #header="scope">
+                    <span class="table-header-right">{{ tableTitle[tabIndex].value }}</span>
+                    <d-icon class="sort" operable @click="sortFrequency(tabIndex)">
+                      <template #prefix>
+                        <div class="icon-group">
+                          <i class="icon-run-o icon-up"></i>
+                          <i class="icon-run-o icon-down"></i>
+                        </div>
+                      </template>
+                    </d-icon>
+                  </template>
+                  <template #default="scope">
+                    <div class="table-callee-sell">
+                      <span class="callee-sell-count">{{ scope.row.frequency }}</span>
+                      <div v-if="scope.row.frequency==='-'" class="callee-sell-progress"></div>
+                      <d-progress v-else class="callee-sell-progress" :percentage="scope.row.frequency*10"
+                                  barBgColor="#317AF7" height="6px"></d-progress>
+                    </div>
+                  </template>
+                </d-column>
+                <!-- 表格展开列：点击展开显示当前行详情数据 -->
+                <d-column type="expand" width="0px">
+                  <template #default="rowData">
+                    <div class="content-table__expand-column">
+                      <div class="expand-content">
+                        {{ tableTitle[tabIndex].detailTitle }}
+                      </div>
+                      <div v-for="item in rowData.row.detail" class="expand-row">
+                        <div class="expand-row_title">
+                          {{ item.label }}
+                        </div>
+                        <div class="expand-row_frequency">
+                          <span class="expand-row_frequency_name">
+                            {{ item.value }}
+                          </span>
+                          <div class="expand-row_frequency_progress">
+                            <div v-if="item.value==='-'" class="expand-row-progress"></div>
+                            <d-progress v-else class="expand-row-progress" :percentage="item.value*10"
+                                        barBgColor="#317AF7" height="6px"></d-progress>
                           </div>
-                        </template>
-                      </d-icon>
-                    </div>
-
-                  </div>
-
-                </template>
-                <template #default="scope">
-                  <div class="table-leaf-sell">
-                    <span class="callee-sell-name">{{ scope.row.name }}</span>
-                  </div>
-                </template>
-              </d-column>
-
-              <d-column field="frequency" width="154px">
-                <template #header="scope">
-                  <span class="table-header-right">{{ tableTitle[tabIndex].value }}</span>
-                  <d-icon class="sort" operable @click="sortFrequency(tabIndex)">
-                    <template #prefix>
-                      <div class="icon-group">
-                        <i class="icon-run-o icon-up"></i>
-                        <i class="icon-run-o icon-down"></i>
-                      </div>
-                    </template>
-                  </d-icon>
-                </template>
-                <template #default="scope">
-                  <div class="table-callee-sell">
-                    <span class="callee-sell-count">{{ scope.row.frequency }}</span>
-                    <div v-if="scope.row.frequency==='-'" class="callee-sell-progress"></div>
-                    <d-progress v-else class="callee-sell-progress" :percentage="scope.row.frequency*10"
-                                barBgColor="#317AF7" height="6px"></d-progress>
-                  </div>
-                </template>
-              </d-column>
-              <!-- 表格展开列：点击展开显示当前行详情数据 -->
-              <d-column type="expand" width="0px">
-                <template #default="rowData">
-                  <div class="content-table__expand-column">
-                    <div class="expand-content">
-                      {{ tableTitle[tabIndex].detailTitle }}
-                    </div>
-                    <div v-for="item in rowData.row.detail" class="expand-row">
-                      <div class="expand-row_title">
-                        {{ item.label }}
-                      </div>
-                      <div class="expand-row_frequency">
-                        <span class="expand-row_frequency_name">
-                          {{ item.value }}
-                        </span>
-                        <div class="expand-row_frequency_progress">
-                          <div v-if="item.value==='-'" class="expand-row-progress"></div>
-                          <d-progress v-else class="expand-row-progress" :percentage="item.value*10"
-                                      barBgColor="#317AF7" height="6px"></d-progress>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </template>
+                </d-column>
 
-                </template>
-              </d-column>
+              </d-table>
 
-            </d-table>
-
-            <!-- 空数据提示：当前页签无匹配数据时显示 -->
-            <div v-if="processedTableData(tabIndex).length === 0" class="empty-tip">
-              {{ t('controlFlows.noMatchingData') }}
+              <!-- 空数据提示：当前页签无匹配数据时显示 -->
+              <div v-if="processedTableData(tabIndex).length === 0" class="empty-tip">
+                {{ t('controlFlows.noMatchingData') }}
+              </div>
             </div>
           </d-tab>
           <d-tab v-if="passList.length" class="data-tabs" :id="'tab-3'"
@@ -123,7 +125,7 @@
             <div class="data-tabs_computes">
               <!-- 每组数据 -->
               <div v-for="(group,groupIndex) in passList" :key="groupIndex">
-                <div class="group-line">
+                <div class="group-line" :style="`color:${group.color}`">
                   <i class="group-line-icon icon-management-new"></i>
                   <span class="group-line-title"> {{ group.name }}</span>
                 </div>
@@ -170,11 +172,11 @@ const tableTitle: TableTitleType[] = [
   {
     name: t('controlFlows.callFunctionTableName'),
     value: t('controlFlows.callFunctionTableValue'),
+    detailTitle: t('controlFlows.detailTitle'),
   },
   {
     name: t('controlFlows.leafFunctionTableName'),
     value: t('controlFlows.leafFunctionTableValue'),
-    detailTitle: t('controlFlows.detailTitle'),
   }
 ]
 const outPutPath = ref()
@@ -424,7 +426,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
     const leafFrequency = calledRecordObj.hasOwnProperty(leaf.hash) ? calledRecordObj[leaf.hash].frequency : '-';
     let leafObj: TableRowData = {
       id: `${index}`,
-      name: 'leaf',
+      name: `leaf_${leaf.programId}`,
       frequency: leafFrequency,
     }
 
@@ -462,7 +464,7 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
     } else {
       calleeFunctionObj[calleeHash] = {
         id: `${index}`,
-        name: `${leafFunctionMap.has(calleeHash) ? 'leaf' : callee.calleeFunction.magicName}`,
+        name: leafFunctionMap.has(calleeHash) ? `leaf_${callee.calleeFunction.programId}` : callee.calleeFunction.magicName,
         frequency: 1,
       }
       index++;
@@ -479,6 +481,12 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 
 }
 
+const passStageTitle = {
+  tensor: { label: 'Tensor Graph', color: 'rgb(253,229,92)' },
+  tile: { label: 'Tile Graph', color: 'rgb(125,223,231)' },
+  block: { label: 'Block Graph', color: 'rgb(99,213,168)' },
+};
+
 function getPassList(passes: PassesType[]) {
   const passGroups: GroupItem[] = []
   let nowState = '';
@@ -490,8 +498,9 @@ function getPassList(passes: PassesType[]) {
         passGroups.push(item);
       }
       nowState = passes[i].passStage;
-      item = {icon: "icon-code", members: []}
-      item.name = `${passes[i].passStage} Graph`
+      item = {icon: "icon-code", members: []};
+      item.name = passStageTitle[passes[i].passStage].label;
+      item.color = passStageTitle[passes[i].passStage].color;
       item.members.push({
         ...passes[i],
         type: passes[i].hasHealthReport ? 'success' : 'other',
@@ -586,6 +595,12 @@ defineExpose({
 })
 </script>
 
+<style lang="less">
+.drawer-container {
+  overflow: hidden;
+}
+</style>
+
 <style lang="less" scoped>
 
 .data-tabs_computes {
@@ -604,7 +619,6 @@ defineExpose({
 
     .group-line-title {
       font-size: 14px;
-      color: #999;
     }
 
     .group-line-name {
@@ -681,17 +695,25 @@ defineExpose({
   }
   // 抽屉内容区：内边距和高度控制
   .drawer-content {
+    flex: 1;
     padding: 18px 0px;
     box-sizing: border-box;
-    height: 990px;
-    overflow-y: hidden;
+    height: 0;
     // Tabs组件：深色主题适配
     .data-tabs {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      max-height: 990px;
-      overflow-y: scroll;
+      height: 100%;
+
+      :deep(div[role="tabpanel"]) {
+        height: 100%;
+        overflow-y: auto;
+      }
+
+      .call-record {
+        height: 100%;
+      }
+
+      
 
       // 页签面板：内边距控制
       .data-tabs__pane {
@@ -718,9 +740,9 @@ defineExpose({
 
       // 表格组件
       .content-table {
+        width: 100%;
+        height: calc(100% - 60px);
         margin-top: 16px;
-        height: 100%;
-        width: 440px;
         border-radius: 12px 12px 0 0;
         //表头
         :deep(.header-container) {
@@ -747,9 +769,10 @@ defineExpose({
         //左leaf cell
         .table-leaf-sell {
           width: 100%;
-          display: flex;
-          justify-content: start;
           padding-left: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
 
           .callee-sell-name {
             color: var(--devui-primary-text);
@@ -881,7 +904,7 @@ defineExpose({
 :deep(.devui-table__thead ) {
   height: 32px;
   tr {
-    background-color: var(--devui-flow-chart-nest-bg) !important;
+    background-color: #313131 !important;
     th:nth-child(3) {
       width: 0;
       display: none;
@@ -919,25 +942,18 @@ defineExpose({
   font-size: 13px;
   line-height: 20px;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 440px !important;
 
   .expand-content {
     display: flex;
     align-items: center;
-    width: 440px !important;
     box-sizing: border-box;
     padding-left: 12px;
     align-self: start;
     border-bottom: 1px solid var(--devui-split-line);
     height: 32px;
-
   }
 
   .expand-row {
-    width: 440px !important;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -949,12 +965,12 @@ defineExpose({
       display: flex;
       flex-wrap: wrap;
       justify-content: start;
-      width: 270px !important;
+      width: 286px !important;
       box-sizing: border-box;
       word-break: break-all;
       padding-top: 4px;
       padding-bottom: 4px;
-      padding-left: 12px;
+      padding-left: 24px;
       padding-right: 18px;
     }
     .expand-row_frequency {
