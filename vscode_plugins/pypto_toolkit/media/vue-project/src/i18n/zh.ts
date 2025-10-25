@@ -140,7 +140,10 @@ export default {
       fullRenderComGraphDesc: '常规渲染，节点数较多时速度较慢',
       searchMode: '搜索模式',
       searchModeDesc: '根据搜索出的节点进行关联链路渲染',
-      locateNodeError:'当前节点未找到，定位失败'
+      locateNodeError:'当前节点未找到，定位失败',
+      searchHistoryTips: '历史搜索记录',
+      searchPageTips: '界面说明',
+      searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图'
    },
     sideBar: {
         title: '运行结果',
