@@ -80,7 +80,7 @@ export const getThreadStartY = (process: any, processKey: any, threadKey: string
     if (thread[key] === threadKey) {
       break;
     }
-    threadY += getThreadHeight(processKey, threadKey, lane2line, layout, thread.isCounter);
+    threadY += getThreadHeight(processKey, thread[key], lane2line, layout, thread.isCounter);
   }
   
   threadCache.set(cacheKey, { height: 0, startY: threadY });
