@@ -1,20 +1,20 @@
 <template>
   <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
-    <div class="tool-navbar"><Navbar :current-record-directory-path="outPutPath"/></div>
+    <div class="tool-navbar"><Navbar :current-record-directory-path="outPutPath" :control-flow-data="rootData"/></div>
     <div ref="chartContainer" class="chart-container"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
-      <i class="icon icon-minus" @click="graph.zoomTo(graph.getZoom()-0.1)"></i>
+      <i class="icon icon-minus" @click="graphZoomTo(-0.1)"></i>
       <span class="tool-line"></span>
       <span class="tool-zoom">{{ Math.round(zoom * 100) }}%</span>
       <span class="tool-line"></span>
-      <i class="icon icon-add" @click="graph.zoomTo(graph.getZoom()+0.1)"></i>
+      <i class="icon icon-add" @click="graphZoomTo(0.1)"></i>
       <span class="tool-line"></span>
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
-    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="SearchValue"  max-height="500"
-                     :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange"></d-editable-select>
+    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="searchValue"  max-height="500"
+                     :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange" @blur="isEditableSelected=false" @focus="isEditableSelected=true"></d-editable-select>
 
   </div>
 </template>
@@ -50,7 +50,7 @@ let graph = null;
 const {t} = useI18n();
 const rootData = ref([])
 const outPutPath = ref()
-
+const isEditableSelected=ref(false);
 // 定义自定义PATH节点数据类型
 interface PathCardData {
   name?: string;
@@ -66,7 +66,10 @@ interface PathCardData {
 interface IfCardData {
   name?: string;
 }
-
+async function graphZoomTo(size:number){
+  zoom.value+=size;
+ await graph.zoomTo(zoom.value);
+}
 // 自定义节点类（继承 Rect）,path节点
 class PathCardNode extends Rect {
   /**
@@ -503,18 +506,18 @@ class LogoWithRectCombo extends RectCombo {
 
 
 const options = ref([])
-const SearchValue = ref('');
+const searchValue = ref('');
 
 // 搜索时定位搜索loop
 function selectChange(value) {
-  if(SearchValue.value){
+  if(searchValue.value){
     graph.setElementState(value, 'selected');
     graph.focusElement(value)
   }
 }
 
 //  初始化 G6 图表（
-const initG6Graph = (nodes, edges, combos,) => {
+ const initG6Graph =async (nodes, edges, combos,) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNode);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
@@ -664,18 +667,13 @@ const initG6Graph = (nodes, edges, combos,) => {
   graph.on(GraphEvent.AFTER_TRANSFORM,async () => {
    await graph.resize()
     zoom.value = graph.getZoom()
-    graph.layout();
-    graph.resize();
+    await  graph.layout();
+    await graph.resize();
   })
-  graph.render();
+   await graph.render();
   // 初始化时视角自适应
-  setTimeout(async () => {
-   await graph.fitView()
-    // 初始化时，自适应最大缩放100%，
-    if(zoom.value>1){
-      graph.zoomTo(1)
-    }
-  }, 50)
+   graph.fitCenter()
+
 };
 
 onMounted(async () => {
@@ -685,7 +683,7 @@ onMounted(async () => {
 
   rootData.value = data.data;
   const {nodes, edges, combos} = transformData(rootData.value);
-  initG6Graph(nodes, edges, combos);
+ await initG6Graph(nodes, edges, combos);
   // 初始化搜索组件数据源
   combos.forEach(item => {
     options.value.push({
@@ -693,6 +691,15 @@ onMounted(async () => {
       value: item.id,
       data: item,
     });
+  })
+  nodes.forEach(item => {
+    if(item.type!=='if-card-node'){
+      options.value.push({
+        label: item.data.name,
+        value: item.id,
+        data: item,
+      });
+    }
   })
 });
 
