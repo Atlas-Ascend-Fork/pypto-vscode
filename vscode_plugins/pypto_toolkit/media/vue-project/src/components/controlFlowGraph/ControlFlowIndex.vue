@@ -28,14 +28,14 @@ import {
   Rect,
   type RectStyleProps,
   register,
-  Diamond, GraphEvent, DagreLayout, BaseLayout, GraphData,
+  Diamond, GraphEvent
 } from '@antv/g6';
 import type {BaseCustomElementStyleProps, Group} from '@antv/g-lite';
-import RightPanel from "@/components/controlFlowGraph/RightPanel.vue";
-import {transformData} from "@/components/controlFlowGraph/utile/parse-Data-utile";
-import {getQuery} from "@/core/query";
-import {getControlFlow} from "@/apis/control-flow";
-import Navbar from "@/components/navbar/navbar.vue";
+import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
+import {transformData} from '@/components/controlFlowGraph/util/parse-Data-utile';
+import {getQuery} from '@/core/query';
+import {getControlFlow} from '@/apis/control-flow';
+import Navbar from '@/components/navbar/navbar.vue';
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
@@ -468,7 +468,6 @@ class LogoWithRectCombo extends RectCombo {
     }, this)
     // loop标签右侧图片背景板
     const righthitArea = this.upsert('right--area', 'rect', {
-      x: 100,
       y: y - 15,
       x: -width / 2 + 68 + this.id.length * 10.3,
       width: 20,
@@ -491,23 +490,14 @@ class LogoWithRectCombo extends RectCombo {
       righthitArea?.addEventListener('click', (e) => {
         // 阻止事件冒泡，避免触发节点的点击事件
         e.stopPropagation();
-        console.log('Button clicked on node:', attributes);
-        console.log(this.nodeData)
         // 如果数据中有回调函数，则调用
       });
       righthitArea.__clickBound = true; // 标记已绑定事件，避免重复绑定
     }
   }
-
   render(attributes, container) {
     super.render(attributes, container);
     const shape = this.drawButton(attributes);
-  }
-
-  onCreate(attributes) {
-    this.shapeMap['right-svg'].addEventListener('click', () => {
-      console.log('Button clicked on node:', this.id, attributes);
-    });
   }
 }
 
@@ -687,27 +677,21 @@ const initG6Graph = (nodes, edges, combos,) => {
 };
 
 onMounted(async () => {
-  try {
-    const res = await getQuery();
-    outPutPath.value = JSON.parse(res.uri.query).url
-    const data = await getControlFlow(outPutPath.value);
+  const res = await getQuery();
+  outPutPath.value = JSON.parse(res.uri.query).url
+  const data = await getControlFlow(outPutPath.value);
 
-    rootData.value = data.data;
-    const {nodes, edges, combos} = transformData(rootData.value);
-    initG6Graph(nodes, edges, combos);
-    // 初始化搜索组件数据源
-    combos.forEach(item => {
-      options.value.push({
-        label: item.id,
-        value: item.id,
-        data: item,
-      });
-    })
-  } catch (e) {
-    console.log('G6 rootData', e)
-  }
-
-
+  rootData.value = data.data;
+  const {nodes, edges, combos} = transformData(rootData.value);
+  initG6Graph(nodes, edges, combos);
+  // 初始化搜索组件数据源
+  combos.forEach(item => {
+    options.value.push({
+      label: item.id,
+      value: item.id,
+      data: item,
+    });
+  })
 });
 
 onUnmounted(() => {
