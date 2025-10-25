@@ -246,6 +246,6 @@ function jumpComGraph(filePath: string, pathName?: string) {
 
 <style lang="scss">
 .navbar-list-tooltip.devui-tooltip {
-  max-width: 300px;
+  max-width: 230px;
 }
 </style>
