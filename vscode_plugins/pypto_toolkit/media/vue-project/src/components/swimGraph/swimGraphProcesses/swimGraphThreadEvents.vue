@@ -553,7 +553,7 @@ const handleSelection = () => {
 };
 // 按y坐标分组， 计算每行的左右边界
 const calcRowBoundaries = (nodes) => {
-  const rows = [];
+  const rows = {};
   const space = 4;
   nodes.forEach(([x, y, w, h]) => {
     // 按y坐标分组(假设每行高度固定)
