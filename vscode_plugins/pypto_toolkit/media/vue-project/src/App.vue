@@ -215,8 +215,9 @@ onMounted(() => {
     <div class="parent-container" v-if="graphType === 'controlFlow'">
       <ControlFlowIndex></ControlFlowIndex>
     </div>
-    <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
   </header>
+  <!-- 导航栏 -->
+  <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
 </template>
 <style scoped>
 .parent-container {

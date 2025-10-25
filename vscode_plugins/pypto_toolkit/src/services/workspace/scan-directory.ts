@@ -122,7 +122,7 @@ async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Ur
         directoryType: 'pass',
         passStage: passStage,
         passIndex: passIndex,
-        name: passName,
+        name: subPath,
         absolutePath: passUri.path,
         children: computeGraphList,
       });
