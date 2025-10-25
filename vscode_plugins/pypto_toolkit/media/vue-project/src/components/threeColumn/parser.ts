@@ -53,18 +53,19 @@ export function parseSemanticLabels(totalLines: number): SemanticRange[] {
   for (let i = 1; i < labeledLines.length; i++) {
     const currentLabeledLine = labeledLines[i];
     const endLine = currentLabeledLine - 1;
+    const nextName = lineToSemanticMap.get(currentLabeledLine)!;
     
     // 确保结束行不小于开始行
-    if (endLine >= startLine) {
+    if (endLine >= startLine && currentName !== nextName) {
       labels.push({
         name: currentName,
         startLine: startLine,
         endLine: endLine
       });
+      startLine = currentLabeledLine;
     }
     
-    currentName = lineToSemanticMap.get(currentLabeledLine)!;
-    startLine = currentLabeledLine;
+    currentName = nextName;
   }
   
   // 最后一个范围结束于总行数

@@ -1,5 +1,35 @@
 <template>
-  <div ref="containerRef" class="editor-container"></div>
+  <div ref="containerRef" class="editor-container">
+    <!-- 锁图标悬浮框 -->
+    <div v-if="!isLocked && lockPosition" 
+         class="lock-indicator"
+         @mouseenter="lockMouseEnter"
+         @mouseleave="lockMouseLeave"
+         @click="lockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+           cursor: 'pointer',
+         }">
+      <d-icon name="lock-open"></d-icon>
+    </div>
+    <div v-if="isLocked && unlockPosition" 
+         class="lock-indicator"
+         @click="unLockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+           cursor: 'pointer',
+         }">
+      <d-icon name="icon-lock-private"></d-icon>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -19,11 +49,19 @@ const lightThemeLightColors = lithtThemeColors.lightColorList;
 
 const containerRef = ref(null);
 let editor = null;
+let lastSentLabel = '';
+let lastMoveLabel = null;
 let semanticDecorations = []; // gutter装饰条
 let currentHoverDecoration = null; // 悬停的背景装饰
 let labelInfoDecorations = []; // 存储标签信息装饰
 let initCodePath = '';
 let initTotalLine = 0;
+let canUpdateLabelSelect = false; // 是否更新背景色，如果鼠标在锁上，则不更新
+
+const isLocked = ref(false);
+const lockedLabel = ref(null);
+const lockPosition = ref(null);
+const unlockPosition = ref(null);
 
 // 配置 Monaco Editor
 const configureMonaco = () => {
@@ -141,8 +179,118 @@ const clearLabelInfo = () => {
   }
 };
 
+// 获取视口中指定行号的DOM元素
+const getLineDomElement = (lineNumber) => {
+  if (!editor) return null;
+  
+  const editorDom = editor.getDomNode();
+  if (!editorDom) return null;
+  
+  // 获取视口可见范围
+  const visibleRanges = editor.getVisibleRanges();
+  if (visibleRanges.length === 0) return null;
+  
+  const topVisibleLine = visibleRanges[0].startLineNumber;
+  const bottomVisibleLine = visibleRanges[0].endLineNumber;
+  
+  // 如果目标行不在视口内，返回视口内的第一行
+  if (lineNumber < topVisibleLine || lineNumber > bottomVisibleLine) {
+    lineNumber = topVisibleLine;
+  }
+  
+  const viewLineIndex = lineNumber - topVisibleLine;
+  const viewLines = editorDom.querySelector('.view-lines');
+  if (!viewLines) return null;
+  const viewLineElements = viewLines.querySelectorAll('.view-line');
+  if (viewLineElements.length === 0) return null;
+
+  const sortedElements = Array.from(viewLineElements).sort((a, b) => {
+    const topA = parseInt(a.style.top) || 0;
+    const topB = parseInt(b.style.top) || 0;
+    return topA - topB;
+  });
+  
+  return sortedElements[viewLineIndex] || sortedElements[0];
+};
+
+// 更新锁图标位置
+const updateLockPosition = (label) => {
+  if (!editor || !label) return;
+  
+  // 获取要显示锁的行号（标签首行或视口首行）
+  const topVisibleLine = editor.getVisibleRanges()[0]?.startLineNumber || 1;
+  const displayLine = Math.max(label.startLine, topVisibleLine);
+  
+  try {
+    // 获取对应的DOM元素
+    const domElement = getLineDomElement(displayLine);
+    if (domElement) {
+      const rect = domElement.getBoundingClientRect();
+      const editorRect = editor.getDomNode().getBoundingClientRect();
+      
+      lockPosition.value = {
+        top: rect.top - editorRect.top - 15,
+        left: 60,
+      };
+    } else {
+      console.warn('no domElement to show lock icon');
+    }
+  } catch (error) {
+    console.warn('Failed to calculate lock position:', error);
+  }
+};
+
+// 支持锁定
+const enableLock = (label) => {
+  if (!canUpdateLabelSelect) return;
+  
+  updateLockPosition(label);
+};
+
+// 退出锁定状态
+const deactivateLock = () => {
+  if (!isLocked.value) return;
+  
+  isLocked.value = false;
+  lockedLabel.value = null;
+  lockPosition.value = null;
+  
+  // 清除悬停装饰
+  if (currentHoverDecoration) {
+    editor.deltaDecorations(currentHoverDecoration, []);
+    currentHoverDecoration = null;
+  }
+  console.log('send deactiveLock');
+  window.ascEventBus.emit('deactivateLock');
+};
+
+const lockMouseEnter = (e) => {
+  canUpdateLabelSelect = false;
+};
+
+const lockMouseLeave = (e) => {
+  canUpdateLabelSelect = true;
+};
+
+const lockClick = (e) => {
+  e.stopPropagation();
+  lockedLabel.value = lastMoveLabel;
+  isLocked.value = true;
+  unlockPosition.value = lockPosition.value;
+  console.log('send activeLock ', lastMoveLabel.name);
+  window.ascEventBus.emit('activeLock', { label: lastMoveLabel.name });
+};
+
+const unLockClick = (e) => {
+  e.stopPropagation();
+  deactivateLock();
+};
+
 // 更新悬停装饰
-const updateHoverDecoration = (position) => {
+const updateHoverDecoration = (position, emit = true) => {
+  // 如果处于锁定状态，不更新悬停装饰
+  if (isLocked.value || !canUpdateLabelSelect) return;
+  
   // 清除之前的悬停装饰
   if (currentHoverDecoration) {
     editor.deltaDecorations(currentHoverDecoration, []);
@@ -164,7 +312,51 @@ const updateHoverDecoration = (position) => {
     };
     
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
-    window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
+    if (emit && lastSentLabel !== currentLabel.name) {
+      lastSentLabel = currentLabel.name;
+      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
+    }
+  }
+};
+
+// 通过泳道图/计算图发送的语义标签，更新悬停装饰
+const updateHoverDecorationBySemanticLabel = (label) => {
+  if (isLocked.value) {
+    return;
+  }
+  const targetLabel = labels.find(l => l.name === label);
+  
+  if (!targetLabel) {
+    updateHoverDecoration(null);
+    return;
+  }
+  
+  const position = {
+    lineNumber: targetLabel.startLine,
+    column: 1
+  };
+  
+  updateHoverDecoration(position, false);
+  
+  const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
+  editor.revealPositionInCenter(startPosition);
+  editor.setPosition(startPosition);
+  editor.focus();
+};
+
+// ESC键处理
+const handleKeyDown = (e) => {
+  if (e.keyCode === 9 /* Escape */ && isLocked.value) {
+    deactivateLock();
+    e.preventDefault();
+    e.stopPropagation();
+  }
+};
+
+// 滚动事件处理，更新锁位置
+const handleScroll = () => {
+  if (isLocked.value && lockedLabel.value) {
+    updateLockPosition(lockedLabel.value);
   }
 };
 
@@ -175,7 +367,20 @@ const setupHoverListeners = () => {
   // 鼠标移动事件
   editor.onMouseMove((e) => {
     const position = e.target.position;
-    updateHoverDecoration(position);
+    const currentLabel = findSemanticLabelAtPosition(position);
+    if (currentLabel && currentLabel.name !== lastMoveLabel) {
+      // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
+      canUpdateLabelSelect = true;
+      setTimeout(() => {
+        updateHoverDecoration(position);
+        if (currentLabel && !isLocked.value) {
+          enableLock(currentLabel);
+        }
+        if (canUpdateLabelSelect) {
+          lastMoveLabel = currentLabel;
+        }
+      }, 160);
+    }
   });
 
   // 鼠标点击事件
@@ -188,7 +393,8 @@ const setupHoverListeners = () => {
 
   // 鼠标移出编辑器事件
   editor.onDidBlurEditorWidget(() => {
-    if (currentHoverDecoration) {
+    // 移出时不解除锁定状态
+    if (!isLocked.value && currentHoverDecoration) {
       editor.deltaDecorations(currentHoverDecoration, []);
       currentHoverDecoration = null;
     }
@@ -197,8 +403,15 @@ const setupHoverListeners = () => {
   // 内容变化事件
   editor.onDidChangeModelContent(() => {
     const cursorPosition = editor.getPosition();
-    updateHoverDecoration(cursorPosition);
+    if (!isLocked.value) {
+      updateHoverDecoration(cursorPosition);
+    }
     clearLabelInfo();
+  });
+
+  // 滚动事件监听
+  editor.onDidScrollChange(() => {
+    handleScroll();
   });
 };
 
@@ -210,6 +423,13 @@ const setupHoverStyles = () => {
     .semantic-hover-highlight {
       background-color: ${bkColor} !important;
       opacity: 0.2 !important;
+    }
+    .lock-indicator {
+      position: absolute;
+      z-index: 100;
+      font-size: 16px;
+      cusor: pointer;
+      filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
     }
   `;
   document.head.appendChild(style);
@@ -273,6 +493,11 @@ const initEditor = (code) => {
     
     setupHoverListeners();
     
+    // 添加键盘事件监听
+    editor.addCommand(monaco.KeyCode.Escape, () => {
+      deactivateLock();
+    });
+    
     // 监听内容变化，实时更新语义标签
     editor.onDidChangeModelContent(() => {
       applySemanticDecorations();
@@ -300,6 +525,13 @@ const postMessage = (message) => {
     window.vscode.postMessage(message);
   }
 };
+
+window.ascEventBus.on('returnSemanticLabelFromCom', (args) => {
+  updateHoverDecorationBySemanticLabel(args.label);
+});
+window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
+  updateHoverDecorationBySemanticLabel(args.label);
+});
 
 const initEventListeners = () => {
   window.addEventListener('message', handleMessage);
@@ -348,6 +580,8 @@ onUnmounted(() => {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
+  // 新增：移除全局事件监听
+  document.removeEventListener('keydown', handleKeyDown);
 });
 
 watch(isDarkTheme, () => {
@@ -358,6 +592,7 @@ watch(isDarkTheme, () => {
 <style>
 .editor-container {
   height: 100%;
+  position: relative;
 }
 .semantic-label-info {
   color: grey !important;
