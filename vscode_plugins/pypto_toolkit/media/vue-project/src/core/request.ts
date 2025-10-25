@@ -1,18 +1,5 @@
 import { ExtensionConnector } from './connector';
-import type { RequestMessage, ResponseMessage } from '../../../../src/core/server';
-import { vscode } from './vscode';
-
-interface RequestOptions {
-  /** 超时时间（单位：ms），默认10000 */
-  timeout?: number;
-
-  /**
-   * 使用自定义异常处理
-   * - true 屏蔽全局异常处理（弹窗提示），异常时执行 Promise.reject
-   * - false(默认) 使用全局异常处理，不执行 Promise.reject
-   */
-  useCustomErrorHandler?: boolean;
-}
+import type { RequestOptions, RequestMessage, ResponseMessage } from '../../../../src/core/server';
 
 interface ExtensionRequest {
   post: <Data, Res>(api: string, params: Data, options?: RequestOptions) => Promise<Res>;
@@ -51,7 +38,7 @@ function createExtensionRequest(): ExtensionRequest {
     post: <Data, Res>(api: string, params: Data, options?: RequestOptions): Promise<Res> => {
       const optionsWithDefault = getOptionsWithDefault(options);
       const requestId = `${api}-${Date.now()}`;
-      connector.send({ api, requestId, data: params });
+      connector.send({ api, requestId, data: params, options: optionsWithDefault });
 
       return new Promise((resolve, reject) => {
         // 请求超时
@@ -93,7 +80,8 @@ function makeErrorHandler(
     clearTimeout(requestTimeout);
     if (options.useCustomErrorHandler) {
       reject(error);
-      return;
+    } else {
+      // server端唤起vscode错误提示
     }
   };
 }
