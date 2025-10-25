@@ -32,7 +32,8 @@ const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-
+let points = [];
+let boundaries = [];
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -543,7 +544,7 @@ const handleSelection = () => {
 // 按y坐标分组， 计算每行的左右边界
 const calcRowBoundaries = (nodes) => {
   const rows = {};
-  const space = 4;
+  const space = 2;
   nodes.forEach(([x, y, w, h]) => {
     // 按y坐标分组(假设每行高度固定)
     const rowKey = `${y}`;
@@ -566,10 +567,16 @@ const calcRowBoundaries = (nodes) => {
     }));
 };
 // 绘制边界路径
-const drawBoundary = (boundaries, ctx) => {
+const drawBoundary = () => {
+  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const ctx = uiCanvasRef.getContext('2d');
+  if (!ctx) {
+    return;
+  }
+  ctx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
   ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 / viewState.scale;
   ctx.beginPath();
   const firstRow = boundaries[0];
   const lastRow = boundaries[boundaries.length - 1];
@@ -1876,14 +1883,7 @@ const eraseEventLine = (flag) => {
     }
   }
 }
-let points = [];
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
-  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
-  const uiCtx = uiCanvasRef.getContext('2d');
-  if (!uiCtx) {
-    return;
-  }
-  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
   if (!label) {
     return;
   }
@@ -1906,8 +1906,8 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
       });
     });
   });
-  const boundaries = calcRowBoundaries(points);
-  drawBoundary(boundaries, uiCtx);
+  boundaries = calcRowBoundaries(points);
+  drawBoundary();
 });
 addChildContext('threadEvent', {
   getCanvasHeight,
@@ -1925,6 +1925,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  drawBoundary
 });
 
 // 每个事件画布都会走一遍
