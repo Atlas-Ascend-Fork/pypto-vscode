@@ -661,8 +661,8 @@ const initG6Graph = (nodes, edges, combos,) => {
     ],
   });
 
-  graph.on(GraphEvent.AFTER_TRANSFORM, () => {
-    graph.resize()
+  graph.on(GraphEvent.AFTER_TRANSFORM,async () => {
+   await graph.resize()
     zoom.value = graph.getZoom()
     graph.layout();
     graph.resize();
