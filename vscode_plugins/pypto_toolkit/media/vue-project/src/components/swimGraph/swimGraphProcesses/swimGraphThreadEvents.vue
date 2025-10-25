@@ -32,7 +32,8 @@ const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-
+let points = [];
+let boundaries = [];
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -539,6 +540,84 @@ const handleSelection = () => {
   });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
+};
+// 按y坐标分组， 计算每行的左右边界
+const calcRowBoundaries = (nodes) => {
+  const rows = {};
+  const space = 2;
+  nodes.forEach(([x, y, w, h]) => {
+    // 按y坐标分组(假设每行高度固定)
+    const rowKey = `${y}`;
+    if (!rows[rowKey]) {
+      rows[rowKey] = { left: x, right: x + w, top: y, bottom: y + h };
+    } else {
+      rows[rowKey].left = Math.min(rows[rowKey].left, x);
+      rows[rowKey].right = Math.max(rows[rowKey].right, x + w);
+      rows[rowKey].bottom = y + h; //更新行高(取最大)
+    }
+  });
+  // 转换成有序数组 [{left, right, top, bottom}, ...]
+  return Object.values(rows)
+    .sort((a, b) => a.top - b.top)
+    .map(row => ({
+      leftTop: [row.left - space, row.top - space],
+      leftBottom: [row.left - space, row.bottom + space],
+      rightTop: [row.right + space, row.top - space],
+      rightBottom: [row.right + space, row.bottom + space],
+    }));
+};
+// 绘制边界路径
+const drawBoundary = () => {
+  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const ctx = uiCanvasRef.getContext('2d');
+  if (!ctx) {
+    return;
+  }
+  ctx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
+  ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
+  ctx.lineWidth = 1 / viewState.scale;
+  ctx.beginPath();
+  const firstRow = boundaries[0];
+  const lastRow = boundaries[boundaries.length - 1];
+  // 起点： 首行左上
+  ctx.moveTo(...firstRow.leftTop);
+  // 绘制左边界
+  for (let i = 0; i < boundaries.length; i++) {
+    const currentRow = boundaries[i];
+    if (i === 0) {
+      // 首行： 直接左上 -> 左下
+      ctx.lineTo(...currentRow.leftBottom);
+    } else {
+      const preRow = boundaries[i - 1];
+      // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
+      ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  //水平过渡
+      ctx.lineTo(...currentRow.leftTop);  //垂直上升
+      ctx.lineTo(...currentRow.leftBottom);  //垂直上升
+    }
+  }
+  // 绘制右边界
+  // 从最下行左下 -> 右下
+  ctx.lineTo(...lastRow.rightBottom);
+  for (let i = boundaries.length - 1; i >= 0; i--) {
+    const currentRow = boundaries[i];
+    if (i === boundaries.length - 1) {
+      // 最下行： 直接右下 -> 右上
+      ctx.lineTo(...currentRow.rightTop);
+    } else {
+      const nextRow = boundaries[i + 1];
+      // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
+      ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  //水平过渡
+      ctx.lineTo(...currentRow.rightBottom);  //垂直上升
+      ctx.lineTo(...currentRow.rightTop);  //垂直下降
+    }
+  }
+  // 闭合路径: 首行右上 -> 左下
+  ctx.lineTo(...firstRow.rightTop);
+  ctx.lineTo(...firstRow.leftTop);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -1804,7 +1883,32 @@ const eraseEventLine = (flag) => {
     }
   }
 }
-
+window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+  if (!label) {
+    return;
+  }
+  points = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      const { events } = thread;
+      events.forEach((event, eventKey) => {
+        const { args } = event;
+        const { color } = args;
+        if (color === label) {
+          const { x, y, width, height } = event.renderInfo;
+          points.push([x, y, width, height]);
+          onSelectionEvent(event);
+        }
+      });
+    });
+  });
+  boundaries = calcRowBoundaries(points);
+  drawBoundary();
+});
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
@@ -1821,6 +1925,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  drawBoundary
 });
 
 // 每个事件画布都会走一遍
