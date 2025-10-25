@@ -26,6 +26,7 @@
       ></d-search>
       <d-tree ref="treeEl" :data="treeData" class="path-list-tree" @node-click="onNodeClick">
         <template #content="{ nodeData }">
+          <i :class="nodeData.isLeaf ? 'icon-sharing' : 'icon-loop-new'"></i>
           <span class="path-list-tree-node-content" :title="nodeData.label">{{ nodeData.label }}</span>
         </template>
       </d-tree>
@@ -250,5 +251,6 @@ function onNodeClick(node: PathTreeData) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-left: 4px;
 }
 </style>

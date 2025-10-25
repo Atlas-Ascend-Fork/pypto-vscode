@@ -105,6 +105,10 @@ function jumpNotOwn(item: LeafInPass) {
     font-size: 12px;
     line-height: 16px;
     color: var(--devui-placeholder-text);
+    max-width: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   i {
