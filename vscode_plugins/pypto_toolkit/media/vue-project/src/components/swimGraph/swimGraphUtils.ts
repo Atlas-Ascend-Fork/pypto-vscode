@@ -310,15 +310,13 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
   ctx.setTransform(1, 0, 0, 1, translate * devicePixelRatio, 0);
   ctx.strokeStyle = gradient;
   ctx.lineWidth = 2 * devicePixelRatio;
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endXLine, endY);
-  ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(endXLine, endY);
-  ctx.lineTo(endX, endY);
-  ctx.stroke();
+  const path = new Path2D();
+  path.moveTo(startX, startY);
+  path.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endXLine, endY);
+  path.lineTo(endX, endY);
+
+  ctx.stroke(path);
 
   const arrowLength = 10;
   const arrowAngle = Math.PI / 6;
@@ -339,6 +337,8 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
   ctx.fillStyle = endColor;
   ctx.fill();
   ctx.restore();
+
+  return path;
 };
 
 export const mkTraceData = (processedEvents, processes, processExpanded, traceData, counterEvents, lane2line) => {

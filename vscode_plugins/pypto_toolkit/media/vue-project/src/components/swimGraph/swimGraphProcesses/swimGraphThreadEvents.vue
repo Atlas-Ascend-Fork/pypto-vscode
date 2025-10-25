@@ -52,6 +52,8 @@ const {
   initialScale,
   tooltip,
   tooltipStyle,
+  lineTooltip,
+  lineTooltipStyle,
   timelineState,
   processes,
   processExpanded,
@@ -59,7 +61,8 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  dependencyLinesInfo
 } = inject('swimGraphState');
 
 const {
@@ -432,6 +435,39 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   return cursor;
 }
 
+const findLineAtPoint = (ctx, point) => {
+  for (const line of dependencyLinesInfo.value) {
+    if (ctx.isPointInStroke(line.linePath, point.x, point.y)) {
+      return { fromEvent: line.fromEvent, toEvent: line.toEvent };
+    }
+  }
+  return null;
+};
+
+const handleLineTooltipAndCursor = (e, x, y) => {
+  let cursor = '';
+  if (dependencyLinesInfo.value.length === 0) {
+    return cursor;
+  }
+  const point = { x, y };
+
+  const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${props.processKey}"]`);
+  if (!dependencyCanvasRef) {
+    return cursor;
+  }
+
+  const dependencyCtx = dependencyCanvasRef.getContext('2d');
+  const line = findLineAtPoint(dependencyCtx, point);
+
+  if (line && !e.altKey && !e.ctrlKey) {
+    lineShowTooltip(e, line.fromEvent, line.toEvent);
+    cursor = 'pointer';
+  } else {
+    hideLineTooltip();
+  }
+  return cursor;
+};
+
 function handleCtrlDragPan(e, canvasRef) {
   let cursor = null;
   if (e.ctrlKey && e.buttons === 1) {
@@ -494,6 +530,8 @@ const handleMouseMove = throttle((e) => {
   }
 
   let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
+
+  cursor = handleLineTooltipAndCursor(e, x, y) || '';
 
   const dragCursor = handleCtrlDragPan(e, canvasRef);
   if (dragCursor) {
@@ -650,6 +688,7 @@ function onSelectionEvent(hoveredEvent) {
   highlightEvent(ctx, hoveredEvent, props.processKey, false);
 }
 const handleMouseDown = (e) => {
+  hideLineTooltip();
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
@@ -877,6 +916,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
 };
 
 const clearDependencyLines = (processKey) => {
+  dependencyLinesInfo.value = [];
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${processKey}"]`);
   if (!dependencyCanvasRef) return false;
   
@@ -994,7 +1034,9 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
     endY: (toEvent.renderInfo.y + (toEvent.renderInfo.height / 2)) * devicePixelRatio,
   };
 
-  drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+  const linePath = drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+
+  dependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
   drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
   drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
@@ -1434,8 +1476,57 @@ const showTooltip = (e, event, canvasRef) => {
   tooltipStyle.top = (e.clientY - 10) + 'px';
 };
 
+const lineShowTooltip = (e, startEvent, endEvent) => {
+  if (!startEvent.args['ooperand-hint'] || !endEvent.args['ioperand-hint']) {
+    return;
+  }
+
+  let jsonStartHint = startEvent.args['ooperand-hint'].replace(/'/g, '"');
+  jsonStartHint = jsonStartHint.replace(/\b(?<number>\d+)\b(?=\s*[:\]])/g, '"$<number>"');
+
+  let jsonEndHint = endEvent.args['ioperand-hint'].replace(/'/g, '"');
+  jsonEndHint = jsonEndHint.replace(/\b(?<number>\d+)\b(?=\s*[:\]])/g, '"$<number>"');
+
+  const startHint = JSON.parse(jsonStartHint);
+  const endHint = JSON.parse(jsonEndHint);
+  const startMap = new Map(startHint.map(item => [Object.keys(item)[0], item]));
+  const endMap = new Map(endHint.map(item => [Object.keys(item)[0], item]));
+
+  const interSectionMap = new Map();
+  for (const [key, value] of startMap) {
+    if (endMap.has(key) && JSON.stringify(value) === JSON.stringify(endMap.get(key))) {
+      interSectionMap.set(key, value);
+    }
+  }
+
+  if (interSectionMap.size === 0) {
+    return;
+  }
+
+  let lineTooltipContent = `<div class="linetooltip-container">`;
+  for (const [key, value] of interSectionMap) {
+    const { shape, dtype, rawmagic, mem_usage } = value[key];
+    const valueString = `shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}`;
+    lineTooltipContent += `<div class="linetooltip-item"><span class="linetooltip-value">${valueString}</span></div>`;
+  }
+  lineTooltipContent += '</div>';
+  lineTooltip.value.innerHTML = lineTooltipContent;
+  lineTooltipStyle.display = 'block';
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  if (e.clientX  + 200  > canvasCSSWidth) {
+    lineTooltipStyle.left = (e.clientX - 100) + 'px';
+  } else {
+    lineTooltipStyle.left = (e.clientX + 10) + 'px';
+  }
+  lineTooltipStyle.top = (e.clientY - 10) + 'px';
+};
+
 const hideTooltip = () => {
   tooltipStyle.display = 'none';
+};
+
+const hideLineTooltip = () => {
+  lineTooltipStyle.display = 'none';
 };
 const clearDrawConnector = (ctx, processKey) => {
     const canvasRef = getActiveEventCanvas(processKey);

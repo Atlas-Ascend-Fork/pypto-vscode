@@ -56,6 +56,7 @@
 
   </div>
   <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
+  <div class="linetooltip" ref="lineTooltip" :style="lineTooltipStyle"></div>
 </template>
 
 <script setup>
@@ -113,7 +114,13 @@ const loadingText = ref($t("loadTraceData"));
 const detailsPanelExpanded = ref(false);
 const detailsCoresExpanded = ref(false);
 const tooltip = ref(null);
+const lineTooltip = ref(null);
 const tooltipStyle = reactive({
+  display: 'none',
+  left: '0px',
+  top: '0px'
+});
+const lineTooltipStyle = reactive({
   display: 'none',
   left: '0px',
   top: '0px'
@@ -146,6 +153,7 @@ const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
+const dependencyLinesInfo = ref([]);
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -1658,6 +1666,8 @@ provide('swimGraphState', {
   childContextMap,
   tooltip,
   tooltipStyle,
+  lineTooltip,
+  lineTooltipStyle,
   bindFile,
   bindButton,
   isMeasureModel,
@@ -1669,6 +1679,7 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  dependencyLinesInfo,
 });
 
 // 提供方法给子组件

@@ -44,3 +44,31 @@
   word-wrap: break-word;
   color: var(--devui-primary-text);
 }
+
+.linetooltip {
+  position: absolute;
+  background: var(--devui-tooltip-bg);
+  border: 1px solid var(--devui-swim-split-line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  word-wrap: break-word;
+  color: var(--devui-tooltip-text);
+}
+
+.linetooltip-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.linetooltip-item {
+  display: block;
+}
+
+.linetooltip-value {
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--devui-primary-text);
+}
