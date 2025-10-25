@@ -1884,6 +1884,9 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
     return;
   }
   uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  if (!label) {
+    return;
+  }
   points = [];
   processes.forEach((process, processKey) => {
     if (!process.expanded) {
