@@ -502,6 +502,14 @@ const handleMouseMove = throttle((e) => {
   }
 
   canvasRef.style.cursor = cursor;
+  if (hoveredEvent) {
+    const { args } = hoveredEvent ?? {};
+    const { color } = args ?? {};
+    const eventHintStr = args?.['event-hint'] ?? '';
+    const rootHashList = getRootHashList(eventHintStr);
+    // 使用可选链和空值合并确保安全
+    window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+  }
   if (!isDragging.value) return;
   if (!e.altKey && !e.ctrlKey) {
     selection.endLocalX = x;
@@ -511,6 +519,22 @@ const handleMouseMove = throttle((e) => {
     mulDetailsExpanded.value = false;
   }
 }, 16);
+const getRootHashList = (eventHintStr) => {
+  // 添加输入验证
+  if (typeof eventHintStr !== 'string') {
+    console.warn('Expected string input for eventHintStr');
+    return [];
+  }
+
+  // 使用全局匹配和命名捕获组，支持匹配多个根哈希
+  const rootHashRegex = /rootHash:(?<hash>\d+)/g;
+  const matches = [...eventHintStr.matchAll(rootHashRegex)];
+
+  // 使用可选链和空值合并确保安全提取
+  return matches
+    .map(match => match?.groups?.hash)
+    .filter(hash => hash != null);
+};
 const drawSelectionBox = () => {
   const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   const uiCtx = uiCanvasRef.getContext('2d');
