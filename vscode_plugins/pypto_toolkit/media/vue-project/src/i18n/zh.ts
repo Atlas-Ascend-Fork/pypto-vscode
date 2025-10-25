@@ -79,6 +79,7 @@ export default {
    jumpCodeTips: '跳转源码，设计中，敬请期待',
    directRelative: '直系',
    notDirectRelative: '非直系',
+   pleaseSelect: '请选择',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
    'hierarchy': '层级: ',

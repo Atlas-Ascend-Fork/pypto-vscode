@@ -1,7 +1,8 @@
 <template>
   <d-dropdown :position="['bottom-start']" :offset="14" @toggle="(val) => (isOpen = val)">
     <div :class="['leaf-function-container', isOpen && 'is-open']">
-      <div class="select-val" :title="currentLeaf.leafName">{{ currentLeaf.leafName }}</div>
+      <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ currentLeaf.leafName }}</div>
+      <div v-else class="please-select-placeholder">{{ t('pleaseSelect') }}</div>
       <i class="icon-chevron-down-2"></i>
     </div>
     <template #menu>
@@ -98,6 +99,12 @@ function jumpNotOwn(item: LeafInPass) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .please-select-placeholder {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--devui-placeholder-text);
   }
 
   i {

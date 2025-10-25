@@ -24,8 +24,8 @@
         <PathList v-if="currentStep === 'comGraph'" />
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
           <PassList ref="passEl" />
-          <div class="dividing-line"></div>
-          <LeafFunctionCom />
+          <div v-if="leafFunctions.length" class="dividing-line"></div>
+          <LeafFunctionCom v-if="leafFunctions.length" />
         </div>
       </div>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
@@ -46,7 +46,7 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { HistoryData, ControlFlowData, PathTreeData } from './navbar-types';
+import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
