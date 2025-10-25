@@ -77,11 +77,12 @@ const {
   transform,
   measureDetailGet,
   xToTime,
-  processThreadEventSearch
+  processThreadEventSearch,
+  getDisplayName
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
-const { userConfig } = inject('swimGraphCfg');
+const { userConfig, textOption } = inject('swimGraphCfg');
 // 测距的最小距离，若小于这个距离，不显示左右箭头
 const nodeSpaceMin = 58;
 // 定义props
@@ -1333,7 +1334,7 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   }
 
   const actualPixWidth = actualWidth * devicePixelRatio;
-  let { name: displayName } = event;
+  let displayName = getDisplayName(event);
   let textWidth = ctx.measureText(displayName).width;
 
   let displayText = '';
@@ -1452,7 +1453,7 @@ const renderProcessText = (process, ctx) => {
 const showTooltip = (e, event, canvasRef) => {
   if (!tooltip.value) return;
 
-  const displayName = event.isCounter ? event.displayName : (event.name || 'Event');
+  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("title")}</span><span class="tooltip-value">${displayName}</span></div>`;
   if(event.cat){
@@ -1950,6 +1951,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  getEventColor
 });
 
 // 每个事件画布都会走一遍

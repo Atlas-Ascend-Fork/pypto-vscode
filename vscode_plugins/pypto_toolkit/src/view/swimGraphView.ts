@@ -1,4 +1,4 @@
-import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vscode';
+import { Uri, ViewColumn, commands, window, WebviewPanel, workspace, ConfigurationTarget } from 'vscode';
 import { hismartliteEx } from '../hismarliteEx';
 import { Util } from '../util';
 import { dirname, join, extname, resolve } from 'path';
@@ -76,7 +76,11 @@ class MsgHandler {
     MsgHandler.cachePath = Util.getCachePath();
     const cache = Util.readSwim2ComGraphMap(MsgHandler.cachePath);
     const comGraphPath = cache[swimPath];
+    const colorRending = cache['colorRending'] ?? 'subGraph';
+    const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ??  ['taskName', 'taskLabel'];
     const config = Util.getSwimGraphCustomCfg();
+    config['colorRending'] = colorRending;
+    config['textRending'] = textRending;
 
     const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
     let pmuData = '';
@@ -122,7 +126,7 @@ class MsgHandler {
       console.log('读取dyn_topo.txt发生错误',error);
     } 
     const swimDataObj = JSON.parse(swimStr);
-    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo);
+    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
     swimData.lane2line = Object.fromEntries(swimData.lane2line);
     swimData.processes = Object.fromEntries(swimData.processes);
     swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
@@ -325,6 +329,15 @@ class MsgHandler {
   // 提示信息
   static async showMessage(panel: any, paramObj: { text: string }) {
     window.showInformationMessage(paramObj.text);
+  }
+  // 保存全局配置
+  static async saveRendingMode(panel: any, paramObj: string) {
+    Util.writeSwimConfigMap(MsgHandler.cachePath, paramObj);
+  }
+  // 保存全局配置
+  static async changeUserCfgConnection(panel: any, paramObj: {level: number}) {
+    const config = workspace.getConfiguration('PyPTOToolkit');
+    config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
   }
 }
 
