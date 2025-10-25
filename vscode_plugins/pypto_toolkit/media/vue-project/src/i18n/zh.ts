@@ -171,6 +171,6 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
-
+        tableSearch:'搜索',
     }
 }

@@ -5,7 +5,7 @@ import {hismartliteEx} from '../hismarliteEx';
 import {getIDETheme} from '../theme';
 import {getIDELang} from '../lang';
 import {Util} from '../util';
-import {useView} from "./index";
+import {useView} from './index';
 import {useServer} from '../core/server';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
