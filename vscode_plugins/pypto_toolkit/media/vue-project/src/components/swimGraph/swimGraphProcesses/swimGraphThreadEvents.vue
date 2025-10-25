@@ -526,9 +526,7 @@ const drawSelectionBox = () => {
   uiCtx.rect(startLocalX, startY, endLocalX - startLocalX, endY - startY, 4);
   uiCtx.fill();
 };
-let points = [];
 const handleSelection = () => {
-  points = [];
   // 这里可以判断那些元素在框内
   checkInSelection();
   if (!selectionEvents.length) {
@@ -537,19 +535,10 @@ const handleSelection = () => {
     return;
   }
   selectionEvents.forEach(eventItem => {
-    const { x, y, width, height } = eventItem.renderInfo;
-    points.push([x, y, width, height]);
     onSelectionEvent(eventItem);
   });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
-  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
-  const uiCtx = uiCanvasRef.getContext('2d');
-  if (!uiCtx) {
-    return;
-  }
-  const boundaries = calcRowBoundaries(points);
-  drawBoundary(boundaries, uiCtx);
 };
 // 按y坐标分组， 计算每行的左右边界
 const calcRowBoundaries = (nodes) => {
@@ -1887,7 +1876,36 @@ const eraseEventLine = (flag) => {
     }
   }
 }
-
+let points = [];
+window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const uiCtx = uiCanvasRef.getContext('2d');
+  if (!uiCtx) {
+    return;
+  }
+  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  points = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      const { events } = thread;
+      events.forEach((event, eventKey) => {
+        const { args } = event;
+        const { color } = args;
+        if (color === label) {
+          const { x, y, width, height } = event.renderInfo;
+          points.push([x, y, width, height]);
+          onSelectionEvent(event);
+        }
+      });
+    });
+  });
+  const boundaries = calcRowBoundaries(points);
+  drawBoundary(boundaries, uiCtx);
+});
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
