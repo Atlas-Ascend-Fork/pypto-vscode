@@ -165,8 +165,6 @@ const updateHoverDecoration = (position) => {
     
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
-  } else {
-    window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
   }
 };
 
