@@ -1909,6 +1909,7 @@ const eraseEventLine = (flag) => {
 }
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
   if (!label) {
+    clearSelectionCanvas();
     return;
   }
   points = [];
