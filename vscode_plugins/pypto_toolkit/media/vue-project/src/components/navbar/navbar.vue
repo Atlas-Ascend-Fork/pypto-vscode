@@ -70,12 +70,24 @@ getOutputRecords({}).then((res) => {
 });
 
 watch(
-  () => props.currentRecordDirectoryPath,
-  (val) => {
-    if (val) {
-      getControlFlow(val).then((res) => {
-        controlFlowList.value = res.data;
-      });
+    ()=>props.currentRecordDirectoryPath,
+    (val)=>{
+      if(val&&props.currentStep!=='controlFlow'){
+        getControlFlow(val).then((res)=>{
+          controlFlowList.value=res.data;
+        })
+      }
+    },
+    { immediate: true }
+)
+
+watch(
+    () => props.controlFlowData,
+    (val) => {
+      if (val) {
+        if(val.length>0) {
+          controlFlowList.value=val;
+        }
     }
   },
   { immediate: true },

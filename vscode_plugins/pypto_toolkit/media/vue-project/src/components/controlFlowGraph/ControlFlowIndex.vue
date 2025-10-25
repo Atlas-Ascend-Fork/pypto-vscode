@@ -32,7 +32,7 @@ import {
 } from '@antv/g6';
 import type {BaseCustomElementStyleProps, Group} from '@antv/g-lite';
 import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
-import {transformData} from '@/components/controlFlowGraph/util/parse-Data-utile';
+import {transformData} from '@/components/controlFlowGraph/util/parse-data';
 import {getQuery} from '@/core/query';
 import {getControlFlow} from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
@@ -669,11 +669,13 @@ const initG6Graph = (nodes, edges, combos,) => {
   })
   graph.render();
   // 初始化时视角自适应
-  setTimeout(() => {
-    graph.fitView()
+  setTimeout(async () => {
+   await graph.fitView()
+    // 初始化时，自适应最大缩放100%，
+    if(zoom.value>1){
+      graph.zoomTo(1)
+    }
   }, 50)
-
-  // graph.layout();
 };
 
 onMounted(async () => {
