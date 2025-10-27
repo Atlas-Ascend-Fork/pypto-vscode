@@ -22,6 +22,7 @@ interface ComGraphData {
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
   visibleOtherNodes: boolean;
+  isNodeRectLock: boolean;
   fixedNodeId: string;
   layoutDirection: string;
   tensorAttrFunc?: (node) => Array<string>;
@@ -48,6 +49,7 @@ export const comGraphStore: DataStore = reactive({
     CalleeOpAttrMap: {},
     curPath: [],
     isDiffGraph: false,
+    isNodeRectLock: false,
     comGraphConfig: {
       isSimple: false,
       isHoverHighlightNode: true,

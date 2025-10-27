@@ -411,8 +411,13 @@ export class CustomMouseListener extends MouseListener {
 
   mouseOver(target: SModelElement, event: MouseEvent): Action[] {
     (window as any).ascEventBus.emit('view_mouseover');
+    if (target instanceof SGraphImpl) {
+      (window as any).ascEventBus.emit('rect_node_leave');
+    }
     if (target instanceof RectangularNode) {
-      (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel });
+      if (target.id !== 'show-node-rect') {
+        (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel });
+      }
     }
     return [];
   }
