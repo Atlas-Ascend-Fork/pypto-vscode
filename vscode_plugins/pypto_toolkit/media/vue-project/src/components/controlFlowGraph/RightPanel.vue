@@ -857,9 +857,6 @@ defineExpose({
 
           }
         }
-        :deep(.hover-enabled){
-          background-color: pink !important;
-        }
 
         :deep(.devui-table_cell) {
           overflow: visible;
