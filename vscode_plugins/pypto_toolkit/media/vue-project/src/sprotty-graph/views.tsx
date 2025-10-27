@@ -769,15 +769,27 @@ export class AstgrRectView extends RectangularNodeView {
           endYId = node.selectedNodes[i];
         }
       }
-      node.position.x = startX - 8;
-      node.position.y = startY - 8;
-      node.customSize.width = endX - startX + 16;
-      if (endYId.startsWith('tensor-')) {
-        node.customSize.height = endY - startY + 32;
+      node.position.x = startX - 40;
+      node.position.y = startY - 40;
+      node.customSize.width = endX - startX + 80;
+      node.customSize.height = endY - startY + 80;
+    }
+
+    let lockOpenSvgName: string;
+    if(comGraphStore.data.isNodeRectLock) {
+      if((window as any).isAscDark) {
+        lockOpenSvgName = 'lock-private';
       } else {
-        node.customSize.height = endY - startY + 16;
+        lockOpenSvgName = 'lock-private-light';
+      }
+    } else {
+      if ((window as any).isAscDark) {
+        lockOpenSvgName = 'lock-open';
+      } else {
+        lockOpenSvgName = 'lock-open-light';
       }
     }
+
     return (
       <g>
         <rect
@@ -789,6 +801,10 @@ export class AstgrRectView extends RectangularNodeView {
           stroke="#0277BD"
           strokeWidth={2}
         ></rect>
+        <g id='show_node_rect_lock'>
+          <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
+          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
+        </g>
       </g>
     );
   }

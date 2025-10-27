@@ -6,7 +6,19 @@
       :graph-type="graphType"
       :openMode="props.openMode"
     ></ComGraphHeader>
-    <d-select v-model="rootHash" :options="rootHashList" :placeholder="t('comGraph.pleaseSelect')" class="simple-com-root-hash-list"></d-select>
+    <d-select
+      v-model="rootHash"
+      :options="rootHashList"
+      :placeholder="t('comGraph.pleaseSelect')"
+      class="simple-com-root-hash-list"
+      menu-class="simple-com-root-hash-list-menu"
+      @value-change="onHashChange"
+      @toggle-change="onHashMenuToggleChange"
+    >
+      <template #empty>
+        <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
+      </template>
+    </d-select>
     <div
       :style="{
         backgroundImage: 'url(' + svgPath + ')',
@@ -23,12 +35,13 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, inject, computed } from 'vue';
+import { onMounted, watch, defineProps, ref, inject, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
 import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
+import { vscode } from '../../core/vscode';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -56,11 +69,12 @@ const loadingText = ref('');
 const warningText = ref('');
 const graphType = ref('');
 const rootHash = ref('');
-const rootHashList = ref([]);
+const rootHashList = ref<Record<'name' | 'value', string>[]>([]);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
 let createSelectNodesRect;
+let removeSelectNodesRect;
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -69,17 +83,75 @@ window.addEventListener('message', (event) => {
   }
 });
 
-(window as any).ascEventBus.on('returnSematicLabelFromCode', (args) => {
+(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
   createSelectNodesRect(args.label);
+  listenLockClick();
 });
-(window as any).ascEventBus.on('returnSematicLabelFromSwim', (args) => {
+(window as any).ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
   createSelectNodesRect(args.label);
-  rootHashList.value = args.rootHashList;
-  rootHash.value = rootHashList.value[0];
+  listenLockClick();
+  if (args.rootHashList?.length) {
+    rootHash.value = args.rootHashList[0];
+    generateHashList(args.rootHashList);
+    onHashChange({ value: rootHash.value });
+  }
 });
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
-  (window as any).ascEventBus.emit('returnSematicLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value })
-})
+  if (args.semanticLabel) {
+    createSelectNodesRect(args.semanticLabel);
+    listenLockClick();
+    (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
+  }
+});
+(window as any).ascEventBus.on('rect_node_leave', () => {
+  if (comGraphStore.data.isNodeRectLock) {
+    return;
+  }
+  removeSelectNodesRect();
+  lockIcon?.removeEventListener('click', onLockClick);
+});
+
+let timer: ReturnType<typeof setTimeout>;
+let lockIcon: HTMLElement | null;
+function onLockClick() {
+  comGraphStore.data.isNodeRectLock = !comGraphStore.data.isNodeRectLock;
+}
+function listenLockClick() {
+  timer = setTimeout(() => {
+    lockIcon = document.querySelector('#show_node_rect_lock');
+    if (lockIcon) {
+      lockIcon.addEventListener('click', onLockClick);
+    }
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }, 50);
+}
+
+function generateHashList(list: string[]) {
+  rootHashList.value = [];
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i];
+    rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+  }
+}
+
+function onHashMenuToggleChange() {
+  nextTick(() => {
+    const menuList = document.querySelectorAll('.simple-com-root-hash-list-menu li');
+    for (let i = 0; i < menuList.length; i++) {
+      const item = menuList[i] as HTMLElement;
+      item.setAttribute('title', item.innerText);
+    }
+  });
+}
+
+const onHashChange = (val) => {
+  vscode.value.postMessage({
+    command: 'innerGetSubgraph',
+    data: val.value,
+  });
+};
 
 const onLocate = (id) => {
   centerNodeAction([id]);
@@ -92,6 +164,16 @@ const LoadingStatusMap = {
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
 };
+
+watch(rootHash, () => {
+  nextTick(() => {
+    const inputDom = document.querySelector('.simple-com-root-hash-list input') as HTMLInputElement | null;
+    if (inputDom) {
+      inputDom.setAttribute('title', inputDom.value);
+    }
+  });
+});
+
 watch(
   () => props.loadingStep,
   (val) => {
@@ -119,6 +201,7 @@ watch(
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
       createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;
+      removeSelectNodesRect = sprottyLoadResult.removeSelectNodesRect;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
@@ -188,5 +271,11 @@ onMounted(() => {
     display: flex;
     align-items: center;
   }
+}
+
+.simple-com-root-hash-empty {
+  padding: 4px 0;
+  text-align: center;
+  color: var(--devui-placeholder-text);
 }
 </style>

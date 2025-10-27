@@ -138,6 +138,7 @@ export default {
         searchMode: 'Search Mode',
         searchModeDesc: 'Render the associated links based on the searched nodes',
         locateNodeError:'Current node not found, location failed',
-        pleaseSelect: 'Please select'
+        pleaseSelect: 'Please select',
+        noData: 'No data'
     }
 }
