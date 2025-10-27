@@ -452,34 +452,6 @@ class LogoWithRectCombo extends RectCombo {
       fontSize: 16
     }, this)
     await nextTick();
-    // loop标签右侧图片背景板todo,loop 代码预留接口
-    // const righthitArea = this.upsert('right--area', 'rect', {
-    //   y: y - 15,
-    //   x: -width / 2 + 68 + this.id.length * 10.3,
-    //   width: 20,
-    //   height: 35,
-    //   radius: 8,
-    //   fill: '#1F1F1F'
-    //   , cursor: 'pointer'
-    // }, this);
-    // loop标签右侧图片
-    // const rightImage = this.upsert('right-svg', 'image', {
-    //   y: y - 10,
-    //   x: -width / 2 + 40 + this.id.length * 9.5,
-    //   width: 20,
-    //   height: 20,
-    //   src: loopRightSvg.value,
-    //   cursor: 'pointer'
-    // }, righthitArea)
-    // 为按钮添加点击事件l
-    // if (!righthitArea?.__clickBound) {
-    //   righthitArea?.addEventListener('click', (e) => {
-    //     // 阻止事件冒泡，避免触发节点的点击事件
-    //     e.stopPropagation();
-    //     // 如果数据中有回调函数，则调用
-    //   });
-    //   righthitArea.__clickBound = true; // 标记已绑定事件，避免重复绑定
-    // }
   }
 
 
