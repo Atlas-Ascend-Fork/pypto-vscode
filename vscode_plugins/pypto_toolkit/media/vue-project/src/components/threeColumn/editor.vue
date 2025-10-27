@@ -1,5 +1,6 @@
 <template>
   <div ref="containerRef" class="editor-container">
+    <Loading v-if="loading" :loadingText="loadingText" warningText="" />
     <!-- 锁图标悬浮框 -->
     <div v-if="!isLocked && lockPosition" 
          class="lock-indicator"
@@ -37,7 +38,10 @@ import { ref, onMounted, onUnmounted, nextTick, watch, inject } from 'vue';
 import * as monaco from 'monaco-editor';
 import { generateColorList, getColorByString } from '../../utils/color-list';
 import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
+import { useI18n } from 'vue-i18n';
+import Loading from '../comGraph/loading.vue';
 
+const { t: $t } = useI18n();
 const { isDarkTheme } = inject('threeColumnState');
 
 const darkThemeColors = generateColorList(360);
@@ -48,6 +52,8 @@ const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
 const containerRef = ref(null);
+const loadingText = ref($t('loadCode'));
+const loading = ref(true);
 let editor = null;
 let lastSentLabel = '';
 let lastMoveLabel = null;
@@ -544,6 +550,7 @@ const handleMessage = (event) => {
       const { codePath, code } = message.data;
       initCodePath = codePath;
       initTotalLine = code.split('\n').length;
+      loading.value = false;
       nextTick(() => initEditor(code));
       break;
     case 'saveSuccess':
