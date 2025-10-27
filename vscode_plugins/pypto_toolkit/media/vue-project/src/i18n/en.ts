@@ -75,6 +75,7 @@ export default {
     'taskName':'Task Name',
     'taskLabel':'Semantic Label',
     'swimRenderCfg':'Swimlane Rendering Configuration',
+    'configButtonTip':'The configuration is unavailable because the dyn_topo.txt file is missing',
     'clockCycle': 'clock cycle',
     'throughout': 'throughout',
     'cacheHit': 'cache hit ratio',
@@ -175,5 +176,6 @@ export default {
         detailTitle: 'Called functions and call counts',
         tableSearch:'Search',
         dataParseError: 'Unable to open Control Flow, data parsing exception.\nReason: ',
+        leafName:'leaf function',
     }
 }
