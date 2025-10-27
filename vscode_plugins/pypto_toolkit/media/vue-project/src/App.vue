@@ -28,7 +28,7 @@ const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).lengt
 const {updateTheme} = useTheme();
 
 getQuery().then((query) => {
-  graphType.value = query.viewType;
+  graphType.value = query._viewType;
 });
 
 const errorListener = (args) => {

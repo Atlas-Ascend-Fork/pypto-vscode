@@ -678,7 +678,7 @@ const initG6Graph = (nodes, edges, combos,) => {
 
 onMounted(async () => {
   const res = await getQuery();
-  outPutPath.value = JSON.parse(res.uri.query).url
+  outPutPath.value = res.url
   const data = await getControlFlow(outPutPath.value);
 
   rootData.value = data.data;
