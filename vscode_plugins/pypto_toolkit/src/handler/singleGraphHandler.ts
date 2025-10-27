@@ -7,7 +7,7 @@ import { SQLiteCache, getMTime } from '../core/sqliteCache';
 export class SingleGraphHandler extends BaseGraphMsgHandler {
   protected static async loadMainData(panel: any): Promise<void> {
     if (!panel.comGraphData) {
-      panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId);
+      panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId, panel.outputDirPath, panel.pathName);
     }
 
     const gd = panel.comGraphData as SingleGraphData;
@@ -25,7 +25,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
     panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
     /* 设置state 让 VS Code 下次能反序列化 */
-    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname });
+    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname, outputDirPath: gd.outputDirPath, pathName: panel.pathName });
 
     if (!isDiff && gd.calleeOpMagic && gd.calleeOpSubgraphId) {
       let opAttrData;

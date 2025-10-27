@@ -18,6 +18,8 @@ export interface AbstractGraphData {
   funcHashMap: Record<string, any>;
   calleeOpMagic?: string;
   calleeOpSubgraphId?: string;
+  outputDirPath?: string;
+  pathName?: string;
   calleeOpAttrMap: Record<string, string>;
   readFileAndSetCache(fsPath: string, panel: any): Promise<readFileResult>;
 }
@@ -32,14 +34,18 @@ export abstract class GraphData {
   isUsedDB = false;
   calleeOpMagic?: string;
   calleeOpSubgraphId?: string;
+  outputDirPath?: string;
+  pathName?: string;
   /** 外部可 await 的“写入+提交”完成信号 */
   public writeDone!: Promise<void>;
 
-  constructor(fsPath: string, funcHash: string | undefined, calleeOpMagic?: string, calleeOpSubgraphId?: string) {
+  constructor(fsPath: string, funcHash: string | undefined, calleeOpMagic?: string, calleeOpSubgraphId?: string, outputDirPath?: string, pathName?: string) {
     this.fsPath = fsPath;
     this.funcHash = funcHash;
     this.calleeOpMagic = calleeOpMagic;
     this.calleeOpSubgraphId = calleeOpSubgraphId;
+    this.outputDirPath = outputDirPath;
+    this.pathName = pathName;
   }
 
   // 读取json文件并存入缓存 并返回大小文件判断

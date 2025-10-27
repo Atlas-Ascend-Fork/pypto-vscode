@@ -117,16 +117,36 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sidebar",
+          "title": "PyPTO Toolkit",
+          "icon": "media/images/logo.png"
+        }
+      ]
+    },
+    "views": {
+      "sidebar": [
+        {
+          "type": "webview",
+          "id": "PyPTO-Toolkit-Sidebar",
+          "name": "PyPTO Toolkit",
+          "icon": "media/images/logo.png"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "watch": "concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
-    "watch:vscode": "node scripts/clean-output.mjs && tsc -p ./ --watch",
-    "compile": "npm run build:webview && npm run compile:vscode",
-    "compile:vscode": "node scripts/clean-output.mjs && tsc -p ./",
+    "watch": "npm run clean && concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
+    "watch:vscode": "tsc -p ./ --watch",
+    "compile": "npm run clean && npm run build:webview && npm run compile:vscode",
+    "compile:vscode": "tsc -p ./",
     "dev:webview": "cd media/vue-project && npm run dev",
     "build:webview": "cd media/vue-project && npm run build-only && cd ../../",
+    "clean": "node scripts/clean-output.mjs",
     "lint": "eslint . --fix",
     "postcompile": "node scripts/copy-wasm.js",
     "pretest": "npm run lint"

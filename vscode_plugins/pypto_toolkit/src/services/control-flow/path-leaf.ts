@@ -99,14 +99,15 @@ export class PathLeafAnalyzer {
     return (
       pathFunction.programs?.map<LeafFunction>((leafFunctionMagic, programIndex) => {
         const leafFunctionNode = this.functionMagicMap.get(leafFunctionMagic)!;
+        const programId = programIndex.toString().padStart(2, '0');
         if (this.leafFunctionHashMap.has(leafFunctionNode.hash)) {
           const leafFunction = this.leafFunctionHashMap.get(leafFunctionNode.hash)!;
-          leafFunction.programId = programIndex.toFixed(2);
+          leafFunction.programId = programId;
           return leafFunction;
         } else {
           const leafFunction = {
             ...functionNodeToExecuteFunction(leafFunctionNode),
-            programId: programIndex.toFixed(2),
+            programId,
           };
           this.leafFunctionHashMap.set(leafFunctionNode.hash, leafFunction);
           return leafFunction;
@@ -167,6 +168,7 @@ export class PathLeafAnalyzer {
           passIndex: pathFile.passIndex,
           passName,
           passStage,
+          pathName,
           graphFilePath: pathFile.absolutePath,
           hasHealthReport,
           leafFunctions: leafs ? this.findLeafInPass(calleeRecords, roots, leafs, pathName) : [],

@@ -3,10 +3,23 @@ import * as vscode from 'vscode';
 
 import { WebviewConnector } from './connector';
 
+export interface RequestOptions {
+  /** 超时时间（单位：ms），默认10000 */
+  timeout?: number;
+
+  /**
+   * 使用自定义异常处理
+   * - true 屏蔽全局异常处理（弹窗提示），异常时执行 Promise.reject
+   * - false(默认) 使用全局异常处理，不执行 Promise.reject
+   */
+  useCustomErrorHandler?: boolean;
+}
+
 export interface RequestMessage {
   api: string;
   requestId: string;
   data: unknown;
+  options: Required<RequestOptions>;
 }
 
 export interface ResponseMessage {
@@ -24,10 +37,21 @@ type ApiGroup = {
   [key: string]: ApiGroup | Api;
 };
 
+let server: ExtensionApiServer;
+
+export function initServer(apis: ApiGroup): ExtensionApiServer {
+  server = new ExtensionApiServer(apis);
+  return server;
+}
+
+export function useServer(): ExtensionApiServer {
+  return server;
+}
+
 /**
  * 接口服务，监听webview端请求
  */
-export class ExtensionApiServer {
+class ExtensionApiServer {
   private connector: WebviewConnector<ResponseMessage, RequestMessage>;
 
   /**
@@ -44,7 +68,7 @@ export class ExtensionApiServer {
   private initRequestConnector(): void {
     this.connector = new WebviewConnector('request');
     this.connector.receive(async (requestMessage, webview) => {
-      const { api: apiPath, requestId, data } = requestMessage;
+      const { api: apiPath, data } = requestMessage;
       const currentApi = this.getApi(apiPath);
       if (!currentApi) {
         this.resNotFoundError(webview, requestMessage);
@@ -72,33 +96,43 @@ export class ExtensionApiServer {
     return apiOrGroup instanceof Function ? apiOrGroup : undefined;
   }
 
-  private resSuccess(webview: vscode.Webview, { api, requestId }: RequestMessage, resData: unknown): void {
+  private resSuccess(webview: vscode.Webview, requestMessage: RequestMessage, resData: unknown): void {
     this.connector.send(webview, {
-      api,
-      requestId,
+      ...this.makeBasicResponse(requestMessage),
       statusCode: 200,
       message: t('PyPTOToolkit.request.statusSuccess'),
       data: resData,
     });
   }
 
-  private resNotFoundError(webview: vscode.Webview, { api, requestId }: RequestMessage): void {
+  private resNotFoundError(webview: vscode.Webview, requestMessage: RequestMessage): void {
+    const errorMessage = t('PyPTOToolkit.request.statusNotFound', { apiName: requestMessage.api });
     this.connector.send(webview, {
-      api,
-      requestId,
+      ...this.makeBasicResponse(requestMessage),
       statusCode: 404,
-      message: t('PyPTOToolkit.request.statusNotFound', { apiName: api }),
+      message: errorMessage,
     });
+
+    vscode.window.showErrorMessage(errorMessage);
   }
 
-  private resServerError(webview: vscode.Webview, { api, requestId }: RequestMessage, error: unknown): void {
+  private resServerError(webview: vscode.Webview, requestMessage: RequestMessage, error: unknown): void {
+    const errorMessage = t('PyPTOToolkit.request.statusServerError', { apiName: requestMessage.api });
+    const errorObject = this.makeSendableError(error);
     this.connector.send(webview, {
-      api,
-      requestId,
+      ...this.makeBasicResponse(requestMessage),
       statusCode: 500,
-      message: t('PyPTOToolkit.request.statusServerError', { apiName: api }),
-      error: this.makeSendableError(error),
+      message: errorMessage,
+      error: errorObject,
     });
+
+    if (!requestMessage.options.useCustomErrorHandler) {
+      vscode.window.showErrorMessage(`${errorMessage}: \n${errorObject.message}`);
+    }
+  }
+
+  private makeBasicResponse({ api, requestId }: RequestMessage) {
+    return { api, requestId };
   }
 
   /**

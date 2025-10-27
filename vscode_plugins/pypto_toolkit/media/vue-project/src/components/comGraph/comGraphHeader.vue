@@ -23,7 +23,7 @@
       </d-tooltip>
     </div>
 
-    <div class="module-row" ref="module_row">
+    <div v-if="!inNavbar" class="module-row" ref="module_row">
       <div class="arrow-container">
         <d-icon name="icon-arrow-left-l" class="module-icon" size="16px" @click="backwards"></d-icon>
       </div>
@@ -192,7 +192,8 @@ const props = defineProps({
     default: 'all'
   },
   graphType: { type: String },
-  isLoading: { type: Boolean, default: false }
+  isLoading: { type: Boolean, default: false },
+  inNavbar: { type: Boolean, default: false }
 })
 
 let funcTree = {}
