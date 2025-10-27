@@ -518,8 +518,8 @@ const handleMouseMove = throttle((e) => {
     }
     preLabel = color;
   }
-  if (!isDragging.value && isLockStatus) return;
-  if (!e.altKey && !e.ctrlKey) {
+  if (isLockStatus) return;
+  if (isDragging.value && !e.altKey && !e.ctrlKey) {
     selection.endLocalX = x;
     selection.endY = y;
     // 绘制框选
