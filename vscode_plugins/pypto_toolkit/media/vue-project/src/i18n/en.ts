@@ -161,6 +161,7 @@ export default {
     sideBar: {
         title: 'Compilation result',
         sortName: 'Execution time',
+        searchPlaceholder: 'Search from compilation result',
     },
     controlFlows: {
         searchPlaceholder: 'Search loop keyword',
@@ -174,6 +175,7 @@ export default {
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
         tableSearch:'Search',
+        dataParseError: 'Unable to open Control Flow, data parsing exception.\nReason: ',
         leafName:'leaf function',
     }
 }

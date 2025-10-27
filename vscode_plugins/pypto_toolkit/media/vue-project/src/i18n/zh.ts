@@ -161,6 +161,7 @@ export default {
     sideBar: {
         title: '运行结果',
         sortName: '执行时间',
+        searchPlaceholder: '搜索运行结果',
     },
     controlFlows: {
         searchPlaceholder: '搜索loop关键字',
@@ -174,6 +175,7 @@ export default {
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
         tableSearch:'搜索',
+        dataParseError: '无法打开控制流，解析数据异常\n异常原因：',
         leafName:'leaf 函数',
     }
 }

@@ -1,6 +1,8 @@
 import { ExtensionConnector } from './connector';
 import type { RequestOptions, RequestMessage, ResponseMessage } from '../../../../src/core/server';
 
+export type { RequestOptions };
+
 interface ExtensionRequest {
   post: <Data, Res>(api: string, params: Data, options?: RequestOptions) => Promise<Res>;
 }
