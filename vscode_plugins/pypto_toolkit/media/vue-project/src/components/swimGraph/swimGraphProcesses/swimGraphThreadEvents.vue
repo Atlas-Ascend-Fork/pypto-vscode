@@ -35,6 +35,7 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
+let isLockStatus = false;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -125,6 +126,9 @@ let matchingAIVEvents = [];
 let selectionEvents = [];
 const handleCanvasClick = (e) => {
   if(!isClick.value){
+    return;
+  }
+  if(isLockStatus){
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -490,7 +494,7 @@ const handleMouseMove = throttle((e) => {
     return;
   }
 
-  if (!e.altKey) {
+  if (!e.altKey && !isLockStatus) {
     onHoverEvent(hoveredEvent);
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
   }
@@ -509,12 +513,12 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = getRootHashList(eventHintStr);
     // 使用可选链和空值合并确保安全
-    if (preLabel && preLabel !== color) {
+    if (preLabel && preLabel !== color && !isLockStatus) {
       window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
   }
-  if (!isDragging.value) return;
+  if (!isDragging.value && isLockStatus) return;
   if (!e.altKey && !e.ctrlKey) {
     selection.endLocalX = x;
     selection.endY = y;
@@ -753,24 +757,31 @@ const handleMouseDown = (e) => {
   if (!canvasRef) {
     return;
   }
-  // 获取鼠标按下时的坐标
-  const rect = canvasRef.getBoundingClientRect();
-  if (!e.ctrlKey) {
-    selection.startX = e.clientX - rect.left;
-    selection.startY = e.clientY - rect.top;
-    const { x } = computeLocalXY(canvasRef);
-    selection.startLocalX = x;
+  if (!isLockStatus) {
+    // 获取鼠标按下时的坐标
+    const rect = canvasRef.getBoundingClientRect();
+    if (!e.ctrlKey) {
+      selection.startX = e.clientX - rect.left;
+      selection.startY = e.clientY - rect.top;
+      const { x } = computeLocalXY(canvasRef);
+      selection.startLocalX = x;
+    }
+
+    isClick.value = true;
+    isDragging.value = true;
+
+    measureDetailsData.value = [];
+    rootHashes.value = [];
+    leafHashes.value = [];
+    leafHashMap.value.clear();
   }
-  isClick.value = true;
-  isDragging.value = true;
-  measureDetailsData.value = [];
-  rootHashes.value = [];
-  leafHashes.value = [];
-  leafHashMap.value.clear();
   if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };
 const handleMouseUp = throttle((e) => {
+  if(isLockStatus) {
+    return;
+  }
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
@@ -1908,7 +1919,7 @@ const eraseEventLine = (flag) => {
     }
   }
 }
-window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+const handleOutline = (label) => {
   if (!label) {
     clearSelectionCanvas();
     return;
@@ -1933,7 +1944,6 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
           points.push([x, y, width, height]);
           drawColorDatas.push(event);
         }
-
       });
     });
     changeNodeColor(processKey, true);
@@ -1941,6 +1951,12 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
     drawColorDatas.forEach((event, eventKey) => {
       onSelectionEvent(event, eventCtx, processKey);
     });
+    if (!isLockStatus && drawColorDatas.length) {
+      const { args } = drawColorDatas[0] ?? {};
+      const eventHintStr = args?.['event-hint'] ?? '';
+      const rootHashList = getRootHashList(eventHintStr);
+      window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+    }
   });
   boundaries = calcRowBoundaries(points);
   if (!boundaries.length) {
@@ -1948,6 +1964,16 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
     return;
   }
   drawBoundary();
+};
+window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+  handleOutline(label);
+});
+window.ascEventBus.on('activeLock', ({ label }) => {
+  handleOutline(label);
+  isLockStatus = true;
+});
+window.ascEventBus.on('deactivateLock', () => {
+  isLockStatus = false;
 });
 addChildContext('threadEvent', {
   getCanvasHeight,
