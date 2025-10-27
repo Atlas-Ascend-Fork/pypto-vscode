@@ -110,11 +110,11 @@ window.addEventListener('message', (event) => {
   lockIcon?.removeEventListener('click', onLockClick);
 });
 (window as any).ascEventBus.on('activeLock', () => {
-  onLockClick();
+  comGraphStore.data.isNodeRectLock = true;
   hoverFeedbackAction();
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
-  onLockClick();
+  comGraphStore.data.isNodeRectLock = false;
   hoverFeedbackAction();
 });
 
@@ -122,19 +122,17 @@ let timer: ReturnType<typeof setTimeout>;
 let lockIcon: HTMLElement | null;
 function onLockClick() {
   comGraphStore.data.isNodeRectLock = !comGraphStore.data.isNodeRectLock;
+  if (comGraphStore.data.isNodeRectLock) {
+    (window as any).ascEventBus.emit('activeLock');
+  } else {
+    (window as any).ascEventBus.emit('deactivateLock');
+  }
 }
 function listenLockClick() {
   timer = setTimeout(() => {
     lockIcon = document.querySelector('#show_node_rect_lock');
     if (lockIcon) {
-      lockIcon.addEventListener('click', () => {
-        onLockClick();
-        if (comGraphStore.data.isNodeRectLock) {
-          (window as any).ascEventBus.emit('activeLock');
-        } else {
-          (window as any).ascEventBus.emit('deactivateLock');
-        }
-      });
+      lockIcon.addEventListener('click', onLockClick);
     }
     if (timer) {
       clearTimeout(timer);
