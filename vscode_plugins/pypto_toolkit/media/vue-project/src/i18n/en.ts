@@ -75,6 +75,7 @@ export default {
     'taskName':'Task Name',
     'taskLabel':'Semantic Label',
     'swimRenderCfg':'Swimlane Rendering Configuration',
+    'configButtonTip':'The configuration is unavailable because the dyn_topo.txt file is missing',
     'clockCycle': 'clock cycle',
     'throughout': 'throughout',
     'cacheHit': 'cache hit ratio',

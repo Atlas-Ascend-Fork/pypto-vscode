@@ -40,8 +40,8 @@ const getSubGraphId = (event, mode) => {
   if (mode === "subGraph") {
     if (event.leafIndex) {
       subGraphId = event.leafIndex;
-    } else if (event.args && event.args['ascend-hint']) {
-      const subGraphArr = event.args['ascend-hint'].split(',');
+    } else if (event.args && event.args['event-hint']) {
+      const subGraphArr = event.args['event-hint'].split(',');
       const subGraphItem = subGraphArr.find(item => item.includes('subGraphId'));
       subGraphId = subGraphItem ? subGraphItem.split(':')[1] : null;
     }
