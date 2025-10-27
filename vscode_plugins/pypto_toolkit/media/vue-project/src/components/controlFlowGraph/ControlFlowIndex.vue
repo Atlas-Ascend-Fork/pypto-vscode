@@ -4,7 +4,7 @@
     <div class="tool-navbar">
       <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath"/>
     </div>
-    <div ref="chartContainer" class="chart-container"></div>
+    <div id="controlGraph" ref="chartContainer" class="chart-container" :class="{'init-graph':!isGraphVisible}"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
       <i class="icon icon-minus" @click="graphZoomTo(-0.1)"></i>
@@ -17,15 +17,22 @@
     </div>
     <d-editable-select v-model="searchValue" :allow-clear="true" :options="options"
                        :placeholder="t('controlFlows.searchPlaceholder')"
-                       :position="['bottom']" :width="320" class="tool-select" max-height="500"
-                       @blur="isEditableSelected=false"
-                       @change="selectChange" @focus="isEditableSelected=true"></d-editable-select>
+                       :position="['bottom']" :width="320" class="tool-select"
+                       :class="{
+                         'tool-select-focus':!isEditableSelected
+                       }"
+                       max-height="500"
+                       @change="selectChange" ></d-editable-select>
+    <d-icon class="search-input__icon tool-select-search " :class="{
+      'tool-select-search-icon':!isSearchIconVisible,
+    }"  name="search"/>
+
 
   </div>
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Diamond, ExtensionCategory, Graph, GraphEvent, Rect, RectCombo, type RectStyleProps, register } from '@antv/g6';
 import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
@@ -35,6 +42,7 @@ import { getQuery } from '@/core/query';
 import { getControlFlow } from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
 import { IfCardData, PathCardData } from "@/components/controlFlowGraph/type/node-detail-types";
+import {isEditableLabel, isEditLabelAction} from "sprotty";
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
@@ -51,7 +59,7 @@ const {t} = useI18n();
 const rootData = ref([])
 const outPutPath = ref()
 const isEditableSelected = ref(false);
-
+const isGraphVisible = ref(false);
 
 async function graphZoomTo(size: number) {
   zoom.value += size;
@@ -465,6 +473,11 @@ class LogoWithRectCombo extends RectCombo {
 
 const options = ref([])
 const searchValue = ref('');
+const isSearchIconVisible = ref(true);
+watch(()=>searchValue.value, (value)=> {
+  isSearchIconVisible.value=!(value.length!==0);
+  isEditableSelected.value=!isSearchIconVisible.value;
+})
 
 // 搜索时定位搜索loop
 function selectChange(value) {
@@ -630,8 +643,12 @@ const initG6Graph = async (nodes, edges, combos,) => {
   })
   await graph.render();
   // 初始化时视角自适应
-  graph.fitCenter()
-
+  await graph.fitView();
+  if(await graph.getZoom()>1){
+    zoom.value=1;
+    await graph.zoomTo(1);
+  }
+  isGraphVisible.value=true
 };
 
 onMounted(async () => {
@@ -685,6 +702,10 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.init-graph {
+  visibility: hidden;
+}
+
 .img-class {
   background-color: #E6E6E6;
 }
@@ -736,19 +757,17 @@ onUnmounted(() => {
   }
 }
 
-.tool-select {
+.tool-select{
   position: fixed;
   right: 16px;
   top: 30px;
   color: #E6E6E6;
   z-index: 99;
-
-  :deep(.devui-editable-select__arrow-icon) {
-    display: none;
-  }
-
   :deep(.devui-editable-select__clear-icon) {
     display: flex !important;
+  }
+  :deep(.devui-editable-select__arrow-icon) {
+    display: none;
   }
 
   :deep(.devui-editable-select__item--selected) {
@@ -765,5 +784,21 @@ onUnmounted(() => {
       outline: none;
     }
   }
+}
+
+.tool-select-focus {
+  :deep(.devui-editable-select__clear-icon) {
+    display: none !important;
+  }
+}
+.tool-select-search {
+  position: fixed;
+  right: 24px;
+  top: 40px;
+  color: #E6E6E6;
+  z-index: 99;
+}
+.tool-select-search-icon{
+  display: none;
 }
 </style>

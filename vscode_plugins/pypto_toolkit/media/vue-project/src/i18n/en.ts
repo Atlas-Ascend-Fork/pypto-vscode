@@ -164,9 +164,9 @@ export default {
     controlFlows: {
         searchPlaceholder: 'Search loop keyword',
         noMatchingData: 'No matching data found',
-        allComputationalPanelTitle: 'All computational graphs',
-        callFunctionPanelTitle: 'call-function-callee',
-        calledFunctionPanelTitle: 'called-function-called',
+        allComputationalPanelTitle: 'passes',
+        callFunctionPanelTitle: 'callee',
+        calledFunctionPanelTitle: 'called',
         callFunctionTableName: 'callee function name',
         callFunctionTableValue: 'callee frequency',
         leafFunctionTableName: 'leaf functions',
