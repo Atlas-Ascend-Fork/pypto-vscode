@@ -5,6 +5,7 @@ export default {
     'expandAll': 'Expand All',
     'collapseAll': 'Collapse All',
     'loadTraceData': 'Waiting for trace data to load...',
+    'loadCode': 'Waiting for code to load...',
     'hide': '▼ Hide',
     'show': '▼ Show',
     'nodeDetails': 'Node Details',

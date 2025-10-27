@@ -334,15 +334,24 @@ const updateHoverDecorationBySemanticLabel = (label) => {
   
   if (!targetLabel) {
     updateHoverDecoration(null);
+    lockPosition.value = null;
+    lastMoveLabel = null;
     return;
   }
-  
+
+  canUpdateLabelSelect = true;
   const position = {
     lineNumber: targetLabel.startLine,
     column: 1
   };
   
   updateHoverDecoration(position, false);
+  if (!isLocked.value) {
+    enableLock(targetLabel);
+  }
+  if (canUpdateLabelSelect) {
+    lastMoveLabel = targetLabel;
+  }
   
   const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
   editor.revealPositionInCenter(startPosition);
@@ -385,7 +394,7 @@ const setupHoverListeners = () => {
         if (canUpdateLabelSelect) {
           lastMoveLabel = currentLabel;
         }
-      }, 160);
+      }, 80);
     }
   });
 
