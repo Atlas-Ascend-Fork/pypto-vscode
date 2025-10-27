@@ -1,15 +1,9 @@
 {
   "compilerOptions": {
-    "composite": true,
     "experimentalDecorators": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["./src/**/*"],
-  "references": [
-    {
-      "path": "../../"
-    }
-  ]
+  "include": ["./src/**/*"]
 }

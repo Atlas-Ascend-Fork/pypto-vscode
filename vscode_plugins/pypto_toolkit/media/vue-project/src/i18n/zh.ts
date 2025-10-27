@@ -160,6 +160,7 @@ export default {
     sideBar: {
         title: '运行结果',
         sortName: '执行时间',
+        searchPlaceholder: '搜索运行结果',
     },
     controlFlows: {
         searchPlaceholder: '搜索loop关键字',

@@ -160,6 +160,7 @@ export default {
     sideBar: {
         title: 'Compilation result',
         sortName: 'Execution time',
+        searchPlaceholder: 'Search from compilation result',
     },
     controlFlows: {
         searchPlaceholder: 'Search loop keyword',

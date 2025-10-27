@@ -2,11 +2,14 @@
   <div class="sidebar-container">
     <!-- 标题栏 -->
     <div class="header">
-      <div class="title">
-        <div class="name">{{ t('sideBar.title') }}</div>
+      <div class="name">
+        {{ t('sideBar.title') }}
       </div>
-      <i class="icon icon-search-new"></i>
+      <div class="refresh" @click="getAllRecords">
+        <d-icon name="refresh"></d-icon>
+      </div>
     </div>
+    <SideBarSearch :model-value="keyword" @search="handleSearch"></SideBarSearch>
     <!-- 筛选区 -->
     <div class="filters">
       <d-icon class="sort" operable @click="sortOption = !sortOption">
@@ -23,6 +26,7 @@
     <div class="tree-container">
       <d-tree
         ref="treeRef"
+        v-loading="searchLoading"
         :data="visibleTreeData"
         :node-class="() => 'custom-tree-node'"
         show-line="false"
@@ -110,6 +114,8 @@ import { getOutputDetail, getOutputRecords } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
+import SideBarSearch from './SideBarSearch.vue';
+
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
@@ -124,10 +130,6 @@ const treeRef = ref(null);
  */
 const treeData = ref<DevUITreeNode[]>([]);
 const visibleTreeData = computed(() => [...treeData.value]);
-/**
- * 状态管理
- */
-const sortOption = ref(false);
 
 async function nodeClick(node: DevUITreeNode) {
   if (node.fileType === 'controlFlow') {
@@ -153,7 +155,6 @@ const nodeChildrenMap = new Map();
 
 async function transformData(outputData: OutputRecords) {
   nodeChildrenMap.clear();
-  treeData.value = [];
 
   function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
     const children: DevUITreeNode[] = [];
@@ -200,12 +201,24 @@ onMounted(() => {
   getAllRecords();
 });
 
+const keyword = ref('');
+const searchLoading = ref(false);
+const sortOption = ref(false);
+
 watch(sortOption, () => {
   getAllRecords();
 });
 
-async function getAllRecords() {
-  const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
+async function handleSearch(value: string): Promise<void> {
+  searchLoading.value = true;
+  keyword.value = value;
+  await getAllRecords();
+  searchLoading.value = false;
+}
+
+async function getAllRecords(): Promise<void> {
+  treeData.value = [];
+  const { data } = await getOutputRecords({ keyword: keyword.value, sortOrder: sortOption.value ? 'asc' : 'desc' });
   console.log('output records', data);
   await transformData(data);
 }
@@ -236,24 +249,32 @@ async function getAllRecords() {
   align-items: center;
   height: 28px;
   padding: 0 16px;
-  .title {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 2px;
 
-    .name {
-      color: #ffffff;
-      margin: 0;
-      font-size: 14px;
-      line-height: 22px;
+  .name {
+    color: #ffffff;
+    margin: 0;
+    font-size: 14px;
+    line-height: 27px;
+  }
+
+  .refresh {
+    width: 28px;
+    height: 28px;
+    padding: 7px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      :deep(*) {
+        color: var(--devui-link-text);
+      }
     }
 
-    .icon {
-      font-size: 20px;
-      opacity: 0.8;
+    :deep(*) {
+      color: var(--devui-title-text);
     }
   }
+
   .tree-search {
     width: 150px;
   }
@@ -325,6 +346,7 @@ async function getAllRecords() {
     min-width: 100%;
     width: fit-content;
     height: fit-content;
+    min-height: 300px;
 
     /* 节点文本样式 */
     .devui-tree__node {
@@ -434,10 +456,6 @@ async function getAllRecords() {
 
       .devui-tree__node-content.active {
         background-color: transparent;
-      }
-
-      .devui-tree__node-content:not(.active):hover {
-        background-color: rgba(49, 122, 247, 0);
       }
 
       .devui-tree__node-vline {
