@@ -8,7 +8,8 @@ import {
   SelectAction,
   CenterAction,
   SetViewportAction,
-  UpdateModelAction
+  UpdateModelAction,
+  HoverFeedbackAction
 } from 'sprotty-protocol';
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
@@ -256,6 +257,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(SetViewportAction.create(rootId, newViewport, options));
   };
 
+  /* 手动触发原生update用于更新视图 */
+  const hoverFeedbackAction = () => {
+    modelSource.actionDispatcher.dispatch(HoverFeedbackAction.create({mouseIsOver:true, mouseoverElement: 'root'}));
+  }
+
   const setMinimapViewportAction = async (x: number, y: number, zoomPara: number, animatePara?: boolean) => {
     // 让主图把这块区域居中并调整缩放到对应比例
     const newViewport = {
@@ -392,5 +398,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     createSelectNodesRect,
     removeSelectNodesRect,
     resetModelSource,
+    hoverFeedbackAction
   };
 }

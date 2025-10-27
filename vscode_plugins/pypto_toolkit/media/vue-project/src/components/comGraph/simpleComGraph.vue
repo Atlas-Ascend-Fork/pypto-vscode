@@ -73,6 +73,7 @@ const rootHashList = ref<Record<'name' | 'value', string>[]>([]);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
+let hoverFeedbackAction;
 let createSelectNodesRect;
 let removeSelectNodesRect;
 
@@ -83,17 +84,15 @@ window.addEventListener('message', (event) => {
   }
 });
 
-(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
-  createSelectNodesRect(args.label);
-  listenLockClick();
-});
 (window as any).ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
   createSelectNodesRect(args.label);
   listenLockClick();
   if (args.rootHashList?.length) {
     rootHash.value = args.rootHashList[0];
     generateHashList(args.rootHashList);
-    onHashChange({ value: rootHash.value });
+    if (comGraphStore.data.isNodeRectLock) {
+      onHashChange({ name: comGraphStore.data.calleeMap[rootHash.value].func_magicname, value: rootHash.value });
+    }
   }
 });
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
@@ -110,6 +109,14 @@ window.addEventListener('message', (event) => {
   removeSelectNodesRect();
   lockIcon?.removeEventListener('click', onLockClick);
 });
+(window as any).ascEventBus.on('activeLock', () => {
+  onLockClick();
+  hoverFeedbackAction();
+});
+(window as any).ascEventBus.on('deactivateLock', () => {
+  onLockClick();
+  hoverFeedbackAction();
+});
 
 let timer: ReturnType<typeof setTimeout>;
 let lockIcon: HTMLElement | null;
@@ -120,7 +127,14 @@ function listenLockClick() {
   timer = setTimeout(() => {
     lockIcon = document.querySelector('#show_node_rect_lock');
     if (lockIcon) {
-      lockIcon.addEventListener('click', onLockClick);
+      lockIcon.addEventListener('click', () => {
+        onLockClick();
+        if (comGraphStore.data.isNodeRectLock) {
+          (window as any).ascEventBus.emit('activeLock');
+        } else {
+          (window as any).ascEventBus.emit('deactivateLock');
+        }
+      });
     }
     if (timer) {
       clearTimeout(timer);
@@ -149,7 +163,7 @@ function onHashMenuToggleChange() {
 const onHashChange = (val) => {
   vscode.value.postMessage({
     command: 'innerGetSubgraph',
-    data: val.value,
+    paramObj: { calleehash: val.value, subFuncmagicname: val.name },
   });
 };
 
@@ -202,6 +216,7 @@ watch(
       selectAction = sprottyLoadResult.selectAction;
       createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;
       removeSelectNodesRect = sprottyLoadResult.removeSelectNodesRect;
+      hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
