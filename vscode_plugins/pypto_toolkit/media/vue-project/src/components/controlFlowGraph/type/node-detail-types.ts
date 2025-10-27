@@ -182,3 +182,23 @@ export interface MemberItem extends PassesType {
     type: 'warning' | 'err' | 'success' | string;
     icon?: string; // 图标使用DevUI的类名
 }
+
+/**
+ * 自定义节点类型
+ */
+
+// 定义自定义PATH节点数据类型
+export interface PathCardData {
+    name?: string;
+    functionStats?: {
+        leafFunctions?: number;
+        called?: number;
+        callee?: number;
+    };
+    errorStats?: Record<string, number>;
+}
+
+// 定义自定义IF节点数据类型
+export interface IfCardData {
+    name?: string;
+}

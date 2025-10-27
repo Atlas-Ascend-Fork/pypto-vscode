@@ -1,4 +1,4 @@
-import {CombsType, EdgesType, GroupNode, ControlFlowNodesType} from "../type/node-detail-types";
+import { CombsType, ControlFlowNodesType, EdgesType, GroupNode } from "../type/node-detail-types";
 
 
 export function transformData(rootNodes: GroupNode): {
@@ -65,10 +65,8 @@ export function transformData(rootNodes: GroupNode): {
                 callee: node?.meta?.calleeRecords?.length || 0,
             };
 
-            //     计算errorStats（todo）
+            //     计算errorStats（todo：预留err 对象接口）
             const errorStats = {
-                // NullPointer: 0,
-                // Exception: 0,
             }
             const nodeSize = node.nodeType === "PATH" ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100]
             let newNode: ControlFlowNodesType = {
@@ -186,10 +184,8 @@ export function transformData(rootNodes: GroupNode): {
                     called: root?.meta?.calledRecords?.length || 0,
                     callee: root?.meta?.calleeRecords?.length || 0,
                 };
-                //     计算errorStats（todo）
+                //     计算errorStats（todo:本版本无err，预留接口）
                 const errorStats = {
-                    NullPointer: 0,
-                    Exception: 0,
                 }
                 const nodeSize = root.nodeType === "PATH" ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100]
                 loopRankSep = deepRankSep
