@@ -2249,7 +2249,7 @@ export class AscppDagBuilder {
                 paddingTop: 4,
                 paddingBottom: 4,
                 paddingLeft: 6,
-                paddingRight: 34
+                paddingRight: op.calleehash ? 34 : 0
             },
             cssClasses: ['operation-labels-compartment'],
             children: [...labelChildren]

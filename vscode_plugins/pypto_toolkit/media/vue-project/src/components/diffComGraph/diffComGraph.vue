@@ -173,12 +173,18 @@ function onZoomChange(args) {
   }
 }
 function onAfterMinimapZoomChange(args) {
+  if (beforeMinimapEl.value.getCurrentScale() === args[0]) {
+    return;
+  }
   if (syncOperate.value) {
     beforeIns?.syncDiffView([args[1], args[2], args[0]]);
     beforeMinimapEl.value?.syncZoomChange(args);
   }
 }
 function onBeforeMinimapZoomChange(args) {
+  if (afterMinimapEl.value.getCurrentScale() === args[0]) {
+    return;
+  }
   if (syncOperate.value) {
     afterIns?.syncDiffView([args[1], args[2], args[0]]);
     afterMinimapEl.value?.syncZoomChange(args);
