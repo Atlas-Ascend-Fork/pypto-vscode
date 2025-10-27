@@ -1,46 +1,46 @@
 <template>
   <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
-    <div class="tool-navbar"><Navbar :current-record-directory-path="outPutPath"/></div>
+    <div class="tool-navbar">
+      <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath"/>
+    </div>
     <div ref="chartContainer" class="chart-container"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
-      <i class="icon icon-minus" @click="graph.zoomTo(graph.getZoom()-0.1)"></i>
+      <i class="icon icon-minus" @click="graphZoomTo(-0.1)"></i>
       <span class="tool-line"></span>
       <span class="tool-zoom">{{ Math.round(zoom * 100) }}%</span>
       <span class="tool-line"></span>
-      <i class="icon icon-add" @click="graph.zoomTo(graph.getZoom()+0.1)"></i>
+      <i class="icon icon-add" @click="graphZoomTo(0.1)"></i>
       <span class="tool-line"></span>
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
-    <d-editable-select class="tool-select" :placeholder="t('controlFlows.searchPlaceholder')" v-model="SearchValue"  max-height="500"
-                     :position="['bottom']"  :allow-clear="true" :options="options" :width="320" @change="selectChange"></d-editable-select>
+    <d-editable-select v-model="searchValue" :allow-clear="true" :options="options"
+                       :placeholder="t('controlFlows.searchPlaceholder')"
+                       :position="['bottom']" :width="320" class="tool-select" max-height="500"
+                       @blur="isEditableSelected=false"
+                       @change="selectChange" @focus="isEditableSelected=true"></d-editable-select>
 
   </div>
 </template>
 
 <script lang="ts" setup>
-import {onMounted, onUnmounted, ref, watch} from 'vue';
-import {useI18n} from 'vue-i18n';
-import {
-  RectCombo, ExtensionCategory,
-  Graph,
-  Rect,
-  type RectStyleProps,
-  register,
-  Diamond, GraphEvent
-} from '@antv/g6';
-import type {BaseCustomElementStyleProps, Group} from '@antv/g-lite';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { Diamond, ExtensionCategory, Graph, GraphEvent, Rect, RectCombo, type RectStyleProps, register } from '@antv/g6';
+import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
 import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
-import {transformData} from '@/components/controlFlowGraph/util/parse-Data-utile';
-import {getQuery} from '@/core/query';
-import {getControlFlow} from '@/apis/control-flow';
+import { transformData } from '@/components/controlFlowGraph/util/parse-data';
+import { getQuery } from '@/core/query';
+import { getControlFlow } from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
+import { IfCardData, PathCardData } from "@/components/controlFlowGraph/type/node-detail-types";
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
 const loopRightSvg = ref(`${window.staticPath}/static-assets/op-node-sign.svg`);
-const loopLeftSvg = ref(`${window.staticPath}/static-assets/icon_title_3.svg`);
+const loopLeftSvg = ref(`${window.staticPath}/static-assets/swim_left.svg`);
+const loopLeftSvgSelect = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
@@ -50,21 +50,12 @@ let graph = null;
 const {t} = useI18n();
 const rootData = ref([])
 const outPutPath = ref()
+const isEditableSelected = ref(false);
 
-// 定义自定义PATH节点数据类型
-interface PathCardData {
-  name?: string;
-  functionStats?: {
-    leafFunction?: number;
-    called?: number;
-    callee?: number;
-  };
-  errorStats?: Record<string, number>;
-}
 
-// 定义自定义IF节点数据类型
-interface IfCardData {
-  name?: string;
+async function graphZoomTo(size: number) {
+  zoom.value += size;
+  await graph.zoomTo(zoom.value);
 }
 
 // 自定义节点类（继承 Rect）,path节点
@@ -84,9 +75,9 @@ class PathCardNode extends Rect {
     return {
       name: rawData.name || 'PATH', // 默认名
       functionStats: {
-        leafFunction: rawData.functionStats?.leafFunction || 14,
-        called: rawData.functionStats?.called || 17,
-        callee: rawData.functionStats?.callee || 143,
+        leafFunction: rawData.functionStats?.leafFunction,
+        called: rawData.functionStats?.called,
+        callee: rawData.functionStats?.callee,
       },
       errorStats: rawData.errorStats || null,
     };
@@ -184,8 +175,6 @@ class PathCardNode extends Rect {
       width: width - 40, // 分割线宽度 = 卡片宽 - 2*内边距
       height: 1, // 分割线高度 1px
       fill: 'rgba(255, 255, 255, 0.1)',
-
-
     };
   }
 
@@ -236,18 +225,18 @@ class PathCardNode extends Rect {
     const {functionStats} = this.cardData;
     const startY = -this.getSize(attributes)[1] / 2 + 56; // 统计项起始 Y 坐标（分割线下方 12px）
     const stats = [
-      {label: 'leaf Function', value: functionStats.leafFunction},
-      {label: 'called', value: functionStats.called},
-      {label: 'callee', value: functionStats.callee},
+      { label: t('controlFlows.leafName'), value: functionStats.leafFunction },
+      { label: t('controlFlows.calledFunctionPanelTitle'), value: functionStats.called },
+      { label: t('controlFlows.callFunctionPanelTitle'), value: functionStats.callee },
     ];
 
     // 遍历绘制每个统计项（Label + Value）
     stats.forEach((item, index) => {
       const y = startY + index * 30; // 统计项间距 30px
       // 绘制 Label
-      this.upsert(`func-label-${index}`, 'text', this.getFuncLabelStyle(attributes, y, item.label), container);
+      this.upsert(`func-label-${ index }`, 'text', this.getFuncLabelStyle(attributes, y, item.label), container);
       // 绘制 Value
-      this.upsert(`func-value-${index}`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
+      this.upsert(`func-value-${ index }`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
     });
   }
 
@@ -271,23 +260,13 @@ class PathCardNode extends Rect {
   /**
    * 绘制错误统计项（有 errorStats 时才绘制）
    */
-  drawErrorStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+  async drawErrorStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
     const {errorStats} = this.cardData;
     if (!errorStats || Object.keys(errorStats).length === 0) return;
 
     // 1. 错误统计前的分割线
     const funcEndY = -this.getSize(attributes)[1] / 2 + 56 + 2 * 30; // 函数统计项结束 Y 坐标
     this.drawSeparator(attributes, funcEndY + 18, container);
-
-    // 2. 遍历绘制错误项
-    const errorList = Object.entries(errorStats);
-    errorList.forEach(([label, value], index) => {
-      const y = funcEndY + 35 + index * 30; // 错误项起始 Y 坐标（分割线下方 12px）
-      // 错误 Label（复用函数统计的 Label 样式）
-      this.upsert(`error-label-${label}`, 'text', this.getFuncLabelStyle(attributes, y, label), container);
-      // 错误 Value（红色）
-      this.upsert(`error-value-${label}`, 'text', this.getErrorValueStyle(attributes, y, value), container);
-    });
   }
 
   getHoleStyle(attributes) {
@@ -434,18 +413,24 @@ class LogoWithRectCombo extends RectCombo {
     return this.context.graph.getNodeData(this.id) as { data?: PathCardData };
   }
 
-  drawButton(attributes) {
+  async drawButton(attributes) {
     const {collapsed} = attributes;
     const [width, height] = this.getKeySize(attributes);
     const btnR = 8;
     const y = -height / 2;
     const x = -width / 2 + 10;
+    const states = this.nodeData.states;
+    let isSelected = false;
+    if (states && states.length > 0) {
+      isSelected = states.includes('selected');
+    }
+    let isSelectedTextColor = isSelected ? '#317AF7' : '#B3B3B3'
+
     // loop标签背景色板
     const hitArea = this.upsert('hit-area', 'rect', {
-      x: 100,
       y: y - 15,
       x,
-      width: 80 + this.id.length * 10.3,
+      width: 20 + this.id.length * 10.3,
       height: 35,
       radius: 8,
       fill: '#1F1F1F'
@@ -456,45 +441,21 @@ class LogoWithRectCombo extends RectCombo {
       x: x + 10,
       width: 20,
       height: 20,
-      src: loopLeftSvg.value
+      src: isSelected ? loopLeftSvgSelect.value : loopLeftSvg.value,
+      color: isSelectedTextColor,
     }, this)
     // loop标签文本
-    const text = this.upsert('loop-text', 'text', {
+    const text = await this.upsert('loop-text', 'text', {
       y: y + 10,
       x: x + 35,
       text: this.id,
-      fill: '#B3B3B3',
+      fill: isSelectedTextColor,
       fontSize: 16
     }, this)
-    // loop标签右侧图片背景板
-    const righthitArea = this.upsert('right--area', 'rect', {
-      y: y - 15,
-      x: -width / 2 + 68 + this.id.length * 10.3,
-      width: 20,
-      height: 35,
-      radius: 8,
-      fill: '#1F1F1F'
-      , cursor: 'pointer'
-    }, this);
-    // loop标签右侧图片
-    const rightImage = this.upsert('right-svg', 'image', {
-      y: y - 10,
-      x: -width / 2 + 40 + this.id.length * 9.5,
-      width: 20,
-      height: 20,
-      src: loopRightSvg.value,
-      cursor: 'pointer'
-    }, righthitArea)
-    // 为按钮添加点击事件l
-    if (!righthitArea?.__clickBound) {
-      righthitArea?.addEventListener('click', (e) => {
-        // 阻止事件冒泡，避免触发节点的点击事件
-        e.stopPropagation();
-        // 如果数据中有回调函数，则调用
-      });
-      righthitArea.__clickBound = true; // 标记已绑定事件，避免重复绑定
-    }
+    await nextTick();
   }
+
+
   render(attributes, container) {
     super.render(attributes, container);
     const shape = this.drawButton(attributes);
@@ -503,18 +464,18 @@ class LogoWithRectCombo extends RectCombo {
 
 
 const options = ref([])
-const SearchValue = ref('');
+const searchValue = ref('');
 
 // 搜索时定位搜索loop
 function selectChange(value) {
-  if(SearchValue.value){
+  if (searchValue.value) {
     graph.setElementState(value, 'selected');
     graph.focusElement(value)
   }
 }
 
 //  初始化 G6 图表（
-const initG6Graph = (nodes, edges, combos,) => {
+const initG6Graph = async (nodes, edges, combos,) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNode);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
@@ -551,7 +512,7 @@ const initG6Graph = (nodes, edges, combos,) => {
       {
         type: 'tooltip',
         // 只对if节点启用，边不显示tooltip
-        enable: (e,itemes) => itemes[0].type === 'if-card-node',
+        enable: (e, itemes) => itemes[0].type === 'if-card-node',
         getContent: (e, items) => {
           return `<div>${items[0].data.source.magicName}</div>`;
         },
@@ -661,19 +622,16 @@ const initG6Graph = (nodes, edges, combos,) => {
     ],
   });
 
-  graph.on(GraphEvent.AFTER_TRANSFORM, () => {
-    graph.resize()
+  graph.on(GraphEvent.AFTER_TRANSFORM, async () => {
+    await graph.resize()
     zoom.value = graph.getZoom()
-    graph.layout();
-    graph.resize();
+    await graph.layout();
+    await graph.resize();
   })
-  graph.render();
+  await graph.render();
   // 初始化时视角自适应
-  setTimeout(() => {
-    graph.fitView()
-  }, 50)
+  graph.fitCenter()
 
-  // graph.layout();
 };
 
 onMounted(async () => {
@@ -683,7 +641,7 @@ onMounted(async () => {
 
   rootData.value = data.data;
   const {nodes, edges, combos} = transformData(rootData.value);
-  initG6Graph(nodes, edges, combos);
+  await initG6Graph(nodes, edges, combos);
   // 初始化搜索组件数据源
   combos.forEach(item => {
     options.value.push({
@@ -691,6 +649,15 @@ onMounted(async () => {
       value: item.id,
       data: item,
     });
+  })
+  nodes.forEach(item => {
+    if (item.type !== 'if-card-node') {
+      options.value.push({
+        label: item.data.name,
+        value: item.id,
+        data: item,
+      });
+    }
   })
 });
 
@@ -706,7 +673,8 @@ onUnmounted(() => {
   box-sizing: border-box;
   background-color: #1F1F1F;
 }
-.tool-navbar{
+
+.tool-navbar {
   position: absolute !important;
   z-index: 99;
 }
@@ -773,7 +741,8 @@ onUnmounted(() => {
   right: 16px;
   top: 30px;
   color: #E6E6E6;
-  z-index:99;
+  z-index: 99;
+
   :deep(.devui-editable-select__arrow-icon) {
     display: none;
   }
@@ -791,7 +760,8 @@ onUnmounted(() => {
     font-size: 13px;
     color: #E6E6E6;
     caret-color: rgba(49, 122, 247, 1);
-    &:focus{
+
+    &:focus {
       outline: none;
     }
   }

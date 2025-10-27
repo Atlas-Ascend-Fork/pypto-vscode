@@ -40,6 +40,10 @@ export const navbarProps = {
     type: String as PropType<LeafInPass['leafName']>,
     default: '',
   },
+  controlFlowData:{
+      type:Array as PropType<ControlFlowData[]>,
+      default:[]
+  }
 };
 
 type NavbarProps = ExtractPropTypes<typeof navbarProps>;
