@@ -34,6 +34,7 @@ const curThread = inject('curThread');
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
+let preLabel = '';
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -508,7 +509,10 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = getRootHashList(eventHintStr);
     // 使用可选链和空值合并确保安全
-    window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+    if (preLabel && preLabel !== color) {
+      window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+    }
+    preLabel = color;
   }
   if (!isDragging.value) return;
   if (!e.altKey && !e.ctrlKey) {
