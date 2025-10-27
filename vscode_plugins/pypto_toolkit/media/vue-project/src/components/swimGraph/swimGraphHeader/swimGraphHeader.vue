@@ -29,9 +29,11 @@
         </div>
         <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
       </div>
-      <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;">
-        <LayerControlIcon :active="isCfgEditing"/>
-      </d-button>
+      <d-tooltip :content="$t('configButtonTip')" :mouse-enter-delay="100" :disabled="!iscfgdisabled" overlay-class="corner-tips">
+        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="iscfgdisabled">
+          <LayerControlIcon :active="isCfgEditing"/>
+        </d-button>
+      </d-tooltip>
       <d-tooltip :content="$t('Measure')">
         <d-button id= "measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
           <img class="measure-picture" :src="mPath" alt="measure-picture">
@@ -520,6 +522,19 @@ const measureModel = () => {
   transform();
   mulDetailsExpanded.value = false;
 }
+
+const iscfgdisabled = computed(() => {
+  for (const process of processes.values()) {
+    for (const thread of process.threads.values()) {
+        for (const event of thread.events) {
+            if (!event.isCounter && event.leftIndex === undefined) {
+                return true;
+            }
+        }
+    }
+  }
+  return false;
+});
 
 watch(isDarkTheme, () => {
   updateTheme();

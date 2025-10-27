@@ -334,7 +334,6 @@ class MsgHandler {
   static async saveRendingMode(panel: any, paramObj: string) {
     Util.writeSwimConfigMap(MsgHandler.cachePath, paramObj);
   }
-  // 保存全局配置
   static async changeUserCfgConnection(panel: any, paramObj: {level: number}) {
     const config = workspace.getConfiguration('PyPTOToolkit');
     config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
