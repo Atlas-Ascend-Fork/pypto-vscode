@@ -275,7 +275,7 @@ const isSearchFocus = ref(false);
 const upperActive = ref(false);
 const regActive = ref(false);
 const iconPath = `${(window as any).staticPath}/static-assets/logo.png`;
-const historyList = localStorage['history'].split(',');
+const historyList = localStorage['history']?.split(',');
 
 const { onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -329,7 +329,7 @@ const historyOnSearch = (searchNode) => {
   hasSearched = false;
   upperActive.value = false;
   regActive.value = false;
-  const realSearchKey = searchNode.split(':')[1];
+  const realSearchKey = searchNode?.split(':')[1] ?? undefined;
   const e = {
     selectedTags: [],
     searchKey : realSearchKey,
@@ -421,7 +421,7 @@ function setSearchHistory(searchContent: string, result: any) {
 
   const newRecord = `${searchKeyType}:${searchContent}`;
 
-  const nodePos = oldSearchList.findIndex(pastnode => pastnode.split(':')[1] === searchContent);
+  const nodePos = oldSearchList.findIndex(pastnode => pastnode?.split(':')[1] === searchContent);
   if (nodePos !== -1) {
     oldSearchList.splice(nodePos, 1);
   }
@@ -517,22 +517,6 @@ const onLocate = (it) => {
     return;
   }
   (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
-}
-
-const historyNodeOnLocate = (it) => {
-  const nodeMagic = (it.split(':')[1]);
-  const nodeType = (it.split(':')[0]);
-  // unmatched节点直接提示 未匹配，点击无效
-  // subgraphid节点提示 搜索具体id？
-  if (nodeType === 'unmatched') {
-    (window as any).ascEventBus.emit('message_notice', 
-        `${(window as any).ascLang === 'en' ? 'unmatched node' :'未匹配节点'}`);
-  } else if (nodeType === 'subgraphId') {
-    (window as any).ascEventBus.emit('message_notice', 
-        `${(window as any).ascLang === 'en' ? 'please select a node in nodes of searching result' :'请在搜索框内选中具体节点'}`);
-  } else {
-    (window as any).ascEventBus.emit('searchNode', nodeMagic);
-  }
 }
 
 function calcNodeSize(map) {
