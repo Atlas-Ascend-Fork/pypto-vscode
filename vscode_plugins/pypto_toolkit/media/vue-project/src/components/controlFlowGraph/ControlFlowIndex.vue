@@ -1,5 +1,6 @@
 <template>
-  <div class="g6-flow-chart">
+  <ErrorView v-if="dataParseError" :jsonContent="`${t('controlFlows.dataParseError')}${dataParseErrorReason}`" />
+  <div v-else class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar"><Navbar :current-record-directory-path="outPutPath"/></div>
     <div ref="chartContainer" class="chart-container"></div>
@@ -32,10 +33,11 @@ import {
 } from '@antv/g6';
 import type {BaseCustomElementStyleProps, Group} from '@antv/g-lite';
 import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
-import {transformData} from '@/components/controlFlowGraph/util/parse-Data-utile';
+import {transformData} from '@/components/controlFlowGraph/util/parse-data';
 import {getQuery} from '@/core/query';
 import {getControlFlow} from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
+import ErrorView from '@/components/comGraph/error.vue';
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
@@ -676,12 +678,21 @@ const initG6Graph = (nodes, edges, combos,) => {
   // graph.layout();
 };
 
+const dataParseError = ref(false);
+const dataParseErrorReason = ref('');
+
 onMounted(async () => {
   const res = await getQuery();
   outPutPath.value = res.url
-  const data = await getControlFlow(outPutPath.value);
+  try {
+    const data = await getControlFlow(outPutPath.value, { useCustomErrorHandler: true });
+    rootData.value = data.data;
+  } catch (e: any) {
+    dataParseError.value = true;
+    dataParseErrorReason.value = e.message || '';
+    return;
+  }
 
-  rootData.value = data.data;
   const {nodes, edges, combos} = transformData(rootData.value);
   initG6Graph(nodes, edges, combos);
   // 初始化搜索组件数据源

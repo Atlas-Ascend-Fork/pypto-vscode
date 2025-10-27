@@ -173,5 +173,6 @@ export default {
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
         tableSearch:'搜索',
+        dataParseError: '无法打开控制流，解析数据异常\n异常原因：',
     }
 }
