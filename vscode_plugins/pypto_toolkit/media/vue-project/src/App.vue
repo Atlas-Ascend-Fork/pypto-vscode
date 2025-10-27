@@ -112,6 +112,10 @@ const setThreeColumnMode = (message) => {
   graphType.value = 'threeColumn';
 }
 
+const updateJsonContent = (message) => {
+  jsonContent.value = message.data;
+}
+
 const CommandCallbackMap = {
   returnCom,
   returnSwim,
@@ -125,7 +129,8 @@ const CommandCallbackMap = {
   readJsonWarning,
   initDiffComGraph,
   returnDiffCom,
-  setThreeColumnMode
+  setThreeColumnMode,
+  updateJsonContent
 };
 
 function dealConfig(config) {

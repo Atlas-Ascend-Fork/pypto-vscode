@@ -391,5 +391,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     syncDiffView,
     createSelectNodesRect,
     removeSelectNodesRect,
+    resetModelSource,
   };
 }

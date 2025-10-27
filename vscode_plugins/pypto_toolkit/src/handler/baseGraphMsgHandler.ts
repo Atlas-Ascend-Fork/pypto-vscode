@@ -37,6 +37,7 @@ export abstract class BaseGraphMsgHandler {
     'getInitialData',
     'callInOutTensorMap',
     'getSubgraph',
+    'innerGetSubgraph',
     // 以后扩展再往里加
   ]);
 
@@ -282,6 +283,41 @@ export abstract class BaseGraphMsgHandler {
       curPath,
       undefined,
     );
+  }
+
+  static async innerGetSubgraph(panel: any, data: any) {
+    const gd = this.getGraphData(panel);
+    gd.funcHash = data.calleehash;
+    panel.title = data.subFuncmagicname;
+
+    let ret: string | null = null;
+    if (gd.isUsedDB) {
+      const maxRetry = 5;
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+      for (let i = 0; i < maxRetry; i++) {
+        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+        ret = row?.big_data_file_path
+          ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path)
+          : row?.data ?? null;
+
+        if (ret) {console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`); break;}
+        console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i+1}次`);
+        await delay(100);
+      }
+    } else {
+      /* 2️⃣ 内存模式：一次拿完 */
+      ret = gd.dataMap[gd.funcHash!] ?? null;
+    }
+    if (!ret) {
+      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      return { json: undefined };
+    }
+    const json = JSON.parse(ret);
+    panel.webview.postMessage({
+      command: 'updateJsonContent',
+      data: json,
+    });
   }
 
   static async jumpToCodeLine(_panel: any, data: any) {
