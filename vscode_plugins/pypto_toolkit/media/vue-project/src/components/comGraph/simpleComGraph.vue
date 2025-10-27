@@ -90,7 +90,10 @@ window.addEventListener('message', (event) => {
   if (args.rootHashList?.length) {
     rootHash.value = args.rootHashList[0];
     generateHashList(args.rootHashList);
-    if (comGraphStore.data.isNodeRectLock) {
+    if (
+      comGraphStore.data.isNodeRectLock &&
+      args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
+    ) {
       onHashChange({ name: comGraphStore.data.calleeMap[rootHash.value].func_magicname, value: rootHash.value });
     }
   }
