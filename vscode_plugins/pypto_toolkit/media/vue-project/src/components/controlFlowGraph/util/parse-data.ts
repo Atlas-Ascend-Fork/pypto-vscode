@@ -180,7 +180,7 @@ export function transformData(rootNodes: GroupNode): {
                 }
                 //     计算functionStats
                 const functionStats = {
-                    leafFunctions: root?.meta?.leafFunctions?.length || 0,
+                    leafFunction: root?.meta?.leafFunctions?.length || 0,
                     called: root?.meta?.calledRecords?.length || 0,
                     callee: root?.meta?.calleeRecords?.length || 0,
                 };

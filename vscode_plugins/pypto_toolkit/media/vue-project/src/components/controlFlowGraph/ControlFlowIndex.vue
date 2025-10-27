@@ -74,7 +74,7 @@ class PathCardNode extends Rect {
     return {
       name: rawData.name || 'PATH', // 默认名
       functionStats: {
-        leafFunction: rawData.functionStats?.leafFunctions,
+        leafFunction: rawData.functionStats?.leafFunction,
         called: rawData.functionStats?.called,
         callee: rawData.functionStats?.callee,
       },
@@ -665,7 +665,6 @@ onMounted(async () => {
   const res = await getQuery();
   outPutPath.value = JSON.parse(res.uri.query).url
   const data = await getControlFlow(outPutPath.value);
-  console.log('getControlFlow', data)
 
   rootData.value = data.data;
   const {nodes, edges, combos} = transformData(rootData.value);
