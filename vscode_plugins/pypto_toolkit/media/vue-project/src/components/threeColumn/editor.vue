@@ -141,6 +141,9 @@ const applySemanticDecorations = () => {
 
 // 查找光标所在的语义标签区域
 const findSemanticLabelAtPosition = (position) => {
+  if (!position) {
+    return null;
+  } 
   return labels.find(label => 
     position.lineNumber >= label.startLine && 
     position.lineNumber <= label.endLine
@@ -395,6 +398,8 @@ const setupHoverListeners = () => {
           lastMoveLabel = currentLabel;
         }
       }, 80);
+    } else if (!currentLabel && !isLocked.value) {
+      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
     }
   });
 

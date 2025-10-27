@@ -1042,6 +1042,14 @@ const initCanvases = () => {
   sliderMaxCount.value = Math.round(Math.log(maxScale) / Math.log(1.25));
 };
 
+const resetState = () => {
+  viewState.scale = 1;
+  viewState.pixelScale = viewState.scale * getDevicePixelRatio();
+  viewState.offsetX = 0;
+  viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
+  sliderValue.value = 0;
+};
+
 const onWindowResize = throttle((event) => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
@@ -1055,11 +1063,7 @@ const onWindowResize = throttle((event) => {
   setDevicePixelRatio(currentDevicePixelRatio);
   viewState.windowWidth = currentWindowWidth;
 
-  viewState.scale = 1;
-  viewState.pixelScale = viewState.scale * getDevicePixelRatio();
-  viewState.offsetX = 0;
-  viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
-  sliderValue.value = 0;
+  resetState();
   
   // 重新计算容器尺寸和canvas尺寸
   resizeCanvases();
@@ -1693,11 +1697,13 @@ provide('swimGraphMethods', {
   transform,
   measureDetailGet,
   processThreadEventSearch,
+  resetState,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   flagRender: () => { timelineComponent?.value.flagRender() },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
-  rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) }
+  rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) },
+  changeScale: (zoomFactor, centerPositionX, render = true) => { timelineComponent?.value.changeScale(zoomFactor, centerPositionX, render) },
 });
 watch(isDarkTheme, () => {
   updateTheme();

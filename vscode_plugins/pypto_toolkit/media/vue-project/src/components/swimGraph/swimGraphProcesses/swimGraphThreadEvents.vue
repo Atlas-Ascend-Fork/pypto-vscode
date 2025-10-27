@@ -77,7 +77,9 @@ const {
   transform,
   measureDetailGet,
   xToTime,
-  processThreadEventSearch
+  processThreadEventSearch,
+  changeScale,
+  resetState,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -608,6 +610,9 @@ const drawBoundary = () => {
     return;
   }
   ctx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  if (!boundaries.length) {
+    return;
+  }
   ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   ctx.lineWidth = 1 / viewState.scale;
@@ -1919,17 +1924,57 @@ const eraseEventLine = (flag) => {
     }
   }
 }
+
+const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
+  const xRange = (maxX - minX) * viewState.pixelScale;
+  const targetWidth = viewState.canvasCssWidth * 0.8;
+  const widthValid = Math.abs(xRange - targetWidth) < viewState.canvasCssWidth * 0.1;
+  const viewValid = startT >= timelineState.startTime && endT <= timelineState.endTime;
+  if (widthValid && viewValid) {
+    swimlaneContainer.value.scrollTo({
+      top: minY,
+      behavior: 'smooth',
+    });
+    return;
+  }
+  const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
+  changeScale(zoomFactor, 0, false);
+  const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
+  if (eventLeftX < 0) {
+    rightmove(0 - eventLeftX);
+  }
+  const eventRightX = (maxX * viewState.scale) + viewState.offsetX;
+  const divElement = document.getElementsByClassName('swimlane-container');
+  const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth; // 滚动条的宽度
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  const actualMaxX = canvasCSSWidth - scrollWidth; // 视口最右x坐标
+  if (eventLeftX < actualMaxX && eventRightX > actualMaxX) {
+    // 一半被隐藏在视口之外
+    const hiddenWidth = eventRightX - canvasCSSWidth;
+    leftmove(hiddenWidth + scrollWidth);
+  } else if (eventLeftX > actualMaxX) {
+    // 整个被隐藏在视口之外
+    leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
+  }
+  swimlaneContainer.value.scrollTo({
+    top: minY,
+    behavior: 'smooth',
+  });
+};
+
 const handleOutline = (label) => {
   if (!label) {
     clearSelectionCanvas();
     return;
   }
   points = [];
+  let drawColorDatas = {};
+  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   processes.forEach((process, processKey) => {
     if (!process.expanded) {
       return;
     }
-    let drawColorDatas = [];
+    drawColorDatas[processKey] = [];
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
       if (thread.isCounter) {
@@ -1941,29 +1986,42 @@ const handleOutline = (label) => {
         const { color } = args;
         if (color === label) {
           const { x, y, width, height } = event.renderInfo;
+          boundRange.minX = Math.min(boundRange.minX, x);
+          boundRange.maxX = Math.max(boundRange.maxX, x + width);
+          boundRange.startT = Math.min(boundRange.startT, event.startTime);
+          boundRange.endT = Math.max(boundRange.endT, event.endTime);
+          boundRange.minY = Math.min(boundRange.minY, y);
+          boundRange.maxY = Math.max(boundRange.maxX, y + height);
           points.push([x, y, width, height]);
-          drawColorDatas.push(event);
+          drawColorDatas[processKey].push(event);
         }
       });
     });
-    changeNodeColor(processKey, true);
-    const { eventCtx } = ctxs[processKey];
-    drawColorDatas.forEach((event, eventKey) => {
-      onSelectionEvent(event, eventCtx, processKey);
-    });
-    if (!isLockStatus && drawColorDatas.length) {
-      const { args } = drawColorDatas[0] ?? {};
-      const eventHintStr = args?.['event-hint'] ?? '';
-      const rootHashList = getRootHashList(eventHintStr);
-      window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
-    }
   });
   boundaries = calcRowBoundaries(points);
-  if (!boundaries.length) {
+  if (boundaries.length) {
+    transformCanvas(boundRange);
+    processes.forEach((process, processKey) => {
+      if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+        return;
+      }
+      changeNodeColor(processKey, true);
+      const { eventCtx } = ctxs[processKey];
+      drawColorDatas[processKey].forEach((event, eventKey) => {
+        onSelectionEvent(event, eventCtx, processKey);
+      });
+      if (!isLockStatus && drawColorDatas[processKey].length) {
+        const { args } = drawColorDatas[processKey][0] ?? {};
+        const eventHintStr = args?.['event-hint'] ?? '';
+        const rootHashList = getRootHashList(eventHintStr);
+        window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
+    });
+    drawBoundary();
+  } else {
     clearSelectionCanvas();
     return;
   }
-  drawBoundary();
 };
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
   handleOutline(label);

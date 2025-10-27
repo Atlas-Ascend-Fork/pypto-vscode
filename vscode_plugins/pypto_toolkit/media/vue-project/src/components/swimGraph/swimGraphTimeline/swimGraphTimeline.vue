@@ -291,36 +291,24 @@ const throttledRender = throttle(() => {
   transform();
 }, 16); // 约60fps
 
-const handleWheel = (e) => {
-  clearTimeout(wheelDebounceTimer);
-  const isZooming = e.ctrlKey;
-
-  if (!timelineCanvas.value) return;
-
-  const rect = timelineCanvas.value.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  // 如果没有按住 ctrl 键，则允许默认滚动行为（不阻止事件）
-  if (!isZooming) {
-    return;
-  }
-  if (viewState.scale * 10 >= sliderMax.value && e.deltaY < 0) {
+const changeScale = (zoomFactor, centerPositionX, render = true) => {
+  if (viewState.scale * 10 >= sliderMax.value && zoomFactor > 1) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMaxInfo'));
     }, 100);
     return;
   }
-  const zoomFactor = e.deltaY >  0 ? 0.8 : 1.25;
   const oldScale = viewState.scale;
   const oldOffsetX = viewState.offsetX;
 
-  if (e.deltaY > 0 && oldScale === initialScale.value && oldOffsetX >= 0) {
+  if (zoomFactor < 1 && oldScale === initialScale.value && oldOffsetX >= 0) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMinInfo'));
     }, 100);
     return;
   }
   
-  if (e.deltaY > 0 && viewState.scale * zoomFactor < initialScale.value) {
+  if (zoomFactor < 1 && viewState.scale * zoomFactor < initialScale.value) {
     viewState.scale = initialScale.value;
   } else {
     viewState.scale = Math.max(initialScale.value, Math.min(sliderMax.value / 10, viewState.scale * zoomFactor));
@@ -330,7 +318,7 @@ const handleWheel = (e) => {
   sliderValue.value = parseInt(sliderCount, 10); 
 
   viewState.scaleChange = viewState.scale / oldScale;
-  viewState.offsetX = mouseX - (mouseX - oldOffsetX) * viewState.scaleChange;
+  viewState.offsetX = centerPositionX - (centerPositionX - oldOffsetX) * viewState.scaleChange;
   const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
   timeLineX.value = endSecondTimex;
   const timeLineEndX = Math.abs(timeLineX.value);
@@ -345,7 +333,25 @@ const handleWheel = (e) => {
   viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
   viewState.minWidth = 1 / viewState.scale;
 
-  throttledRender();
+  if (render) {
+    throttledRender();
+  }
+};
+
+const handleWheel = (e) => {
+  clearTimeout(wheelDebounceTimer);
+  const isZooming = e.ctrlKey;
+
+  if (!timelineCanvas.value) return;
+
+  const rect = timelineCanvas.value.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  // 如果没有按住 ctrl 键，则允许默认滚动行为（不阻止事件）
+  if (!isZooming) {
+    return;
+  }
+  const zoomFactor = e.deltaY > 0 ? 0.8 : 1.25;
+  changeScale(zoomFactor, mouseX);
 };
 const postMessage = (message) => {
   if (window.vscode) {
@@ -676,6 +682,7 @@ defineExpose({
   timelineCtx,
   handleWheel,
   flagRender,
+  changeScale,
 });
 </script>
 
