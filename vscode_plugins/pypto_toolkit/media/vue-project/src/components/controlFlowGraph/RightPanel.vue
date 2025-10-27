@@ -17,27 +17,30 @@
                  :key="tabIndex" :title="tab.name" class="data-tabs">
             <div class="call-record">
               <!-- 搜索框：筛选当前页签表格数据，支持清空 -->
-              <d-input v-model="searchKeywords[tabIndex]" class="search-input" :placeholder="t('controlFlows.tableSearch')"
-                      @input="handleSearch(tabIndex)">
+              <d-input v-model="searchKeywords[tabIndex]" class="search-input"
+                       :placeholder="t('controlFlows.tableSearch')"
+                       @input="processedTableData(tabIndex)"
+              >
                 <template #prefix>
                   <d-icon class="search-input__icon" name="search"/>
                 </template>
-                <template v-if="searchKeywords[tabIndex]" #suffix>
-                  <d-icon class="search-input__clear" name="close"
+                <template  #suffix>
+                  <d-icon v-if="searchKeywords[tabIndex]" class="search-input__clear" name="close"
                           @click.stop="searchKeywords[tabIndex] = ''"/>
                 </template>
               </d-input>
               <!-- 表格组件：支持展开详情、列排序，深色主题适配 -->
               <d-table ref="tableRef" :data="processedTableData(tabIndex)"
-                      :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
-                      :row-hovered-highlight="true"
-                      class="content-table"
-                      :header-bg="true"
-                      row-key="id"
-                      fix-header
-                      @row-click="onRowClick"
-                      @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
-                      @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
+                       :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
+                       :row-hovered-highlight="true"
+                       class="content-table"
+                       :header-bg="true"
+                       row-key="id"
+                       fix-header
+                       @row-click="onRowClick"
+                       @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
+                       @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
+                       v-if="isTableVisited"
               >
 
                 <d-column field="name" width="286px" show-overflow-tooltip>
@@ -133,7 +136,7 @@
                      @click="openGraph(item)">
                   <span class="group-line-name"> {{ item.passIndex }}</span>
                   <span class="group-line-name"> {{ item.passName }}</span>
-                  <i v-if="item.icon" :class="item.icon" @click="openGraphViewFn"></i>
+                  <i v-if="item.icon" :class="item.icon" class="group-member-icon" @click="openGraphViewFn"></i>
                 </div>
               </div>
             </div>
@@ -145,7 +148,7 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue';
+import { ref, watch } from 'vue';
 import {
   CalledRecordsType, CalleeRecordsType,
   ControlFlowNodesType, DetailItem, GroupItem, LeafFunctionType,
@@ -154,8 +157,8 @@ import {
   SortOption, TabData,
   TableRowData, TableTitleType
 } from "@/components/controlFlowGraph/type/node-detail-types";
-import {useI18n} from 'vue-i18n';
-import {openComputeGraph} from "@/apis/opener";
+import { useI18n } from 'vue-i18n';
+import { openComputeGraph } from "@/apis/opener";
 
 // ========================== 1. 绑定组件 ==========================
 const tableRef = ref();
@@ -197,6 +200,8 @@ const sortOptions = ref<Record<number, SortOption>>({});
 const tableRefs = ref<Record<number, any>>({});
 // 展开行ID：按页签存储展开的行ID（{ 页签索引: [行ID数组] }）
 const defaultExpandedRowKeys = ref<Record<number, string[]>>({});
+// 控制table显示隐藏
+const isTableVisited=ref<boolean>(true);
 
 // ========================== 4. 事件处理 ==========================
 /**
@@ -343,6 +348,7 @@ const getColumnSortMethod = (field: string) => {
  * @returns 筛选+排序后的表格数据
  */
 const processedTableData = (tabIndex: number) => {
+
   // 边界判断：当前无抽屉数据或页签不存在时返回空数组
   if (!currentDrawerData.value || !currentDrawerData.value.tabs[tabIndex]) {
     return [];
@@ -355,11 +361,10 @@ const processedTableData = (tabIndex: number) => {
   // 1. 筛选：关键词匹配任意字段（不区分大小写）
   let filteredData = [...tab.data];
   if (keyword) {
-    filteredData = filteredData.filter(row =>
-        Object.values(row).some(val =>
-            String(val).toLowerCase().includes(keyword.toLowerCase())
-        )
-    );
+    filteredData = filteredData.filter(row => row.name.toLowerCase().includes(keyword.toLowerCase()))
+    isTableVisited.value=!!filteredData.length;
+  }else {
+    isTableVisited.value=true
   }
 
   // 2. 排序：根据当前排序状态处理
@@ -482,9 +487,9 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 }
 
 const passStageTitle = {
-  tensor: { label: 'Tensor Graph', color: 'rgb(253,229,92)' },
-  tile: { label: 'Tile Graph', color: 'rgb(125,223,231)' },
-  block: { label: 'Block Graph', color: 'rgb(99,213,168)' },
+  tensor: {label: 'Tensor Graph', color: 'rgb(253,229,92)'},
+  tile: {label: 'Tile Graph', color: 'rgb(125,223,231)'},
+  block: {label: 'Block Graph', color: 'rgb(99,213,168)'},
 };
 
 function getPassList(passes: PassesType[]) {
@@ -492,7 +497,7 @@ function getPassList(passes: PassesType[]) {
   let nowState = '';
   let item: GroupItem = {}
 
-  for(let i = 0; i < passes.length; i++) {
+  for (let i = 0; i < passes.length; i++) {
     if (passes[i].passStage !== nowState) {
       if (nowState !== '') {
         passGroups.push(item);
@@ -501,14 +506,13 @@ function getPassList(passes: PassesType[]) {
       item = {icon: "icon-code", members: []};
       item.name = passStageTitle[passes[i].passStage].label;
       item.color = passStageTitle[passes[i].passStage].color;
-      item.members.push({
-        ...passes[i],
-        type: passes[i].hasHealthReport ? 'success' : 'other',
-      })
-    } else {
-      item.members.push(passes[i])
     }
-    if(i===passes.length-1) {
+    item.members.push({
+      ...passes[i],
+      type: 'other',
+      icon: passes[i].hasHealthReport ? "icon-overview":'',
+    })
+    if (i === passes.length - 1) {
       passGroups.push(item);
     }
   }
@@ -518,8 +522,6 @@ function getPassList(passes: PassesType[]) {
 function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   outPutPath.value = path
   const {leafFunctions, calledRecords, calleeRecords} = nodeData.data.source.meta;
-  console.log(nodeData)
-
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
 
@@ -607,8 +609,6 @@ defineExpose({
   width: 100%;
   height: 100%;
   padding-left: 4px;
-
-
   .group-line {
     display: flex;
     align-items: center;
@@ -616,7 +616,12 @@ defineExpose({
     width: 100%;
     height: 28px;
     margin-bottom: 4px;
-
+    cursor: pointer;
+    padding-left: 8px;
+    border-radius: 4px;
+    &:hover{
+      background-color: var(--devui-input-hover-bg);
+    }
     .group-line-title {
       font-size: 14px;
     }
@@ -631,7 +636,13 @@ defineExpose({
       width: 16px;
       height: 16px;
     }
-
+    .group-member-icon{
+      display: flex;
+      align-items: center;
+      color: #94d735;
+      width: 16px;
+      height: 16px;
+    }
   }
 }
 
@@ -693,6 +704,7 @@ defineExpose({
       }
     }
   }
+
   // 抽屉内容区：内边距和高度控制
   .drawer-content {
     flex: 1;
@@ -713,7 +725,6 @@ defineExpose({
         height: 100%;
       }
 
-      
 
       // 页签面板：内边距控制
       .data-tabs__pane {
@@ -846,7 +857,9 @@ defineExpose({
 
           }
         }
-
+        :deep(.hover-enabled){
+          background-color: pink !important;
+        }
 
         :deep(.devui-table_cell) {
           overflow: visible;
@@ -880,8 +893,10 @@ defineExpose({
   background-color: var(--devui-tab-bg);
   box-sizing: border-box;
   padding: 2px;
+
   li {
     background-color: var(--devui-tab-bg);
+
     a {
       color: var(--devui-secondary-text);
     }
@@ -903,8 +918,10 @@ defineExpose({
 //表头背景色穿透
 :deep(.devui-table__thead ) {
   height: 32px;
+
   tr {
     background-color: #313131 !important;
+
     th:nth-child(3) {
       width: 0;
       display: none;
@@ -973,6 +990,7 @@ defineExpose({
       padding-left: 24px;
       padding-right: 18px;
     }
+
     .expand-row_frequency {
       display: flex;
       flex: 1;
@@ -981,9 +999,11 @@ defineExpose({
       align-items: center;
       box-sizing: border-box;
       padding-left: 10px;
+
       .expand-row_frequency_name {
         width: 24px;
       }
+
       .expand-row_frequency_progress {
         .expand-row-progress {
           padding-left: 8px;

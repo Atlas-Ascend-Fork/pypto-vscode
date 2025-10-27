@@ -39,7 +39,8 @@ import { IfCardData, PathCardData } from "@/components/controlFlowGraph/type/nod
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
 const loopRightSvg = ref(`${window.staticPath}/static-assets/op-node-sign.svg`);
-const loopLeftSvg = ref(`${window.staticPath}/static-assets/icon_title_3.svg`);
+const loopLeftSvg = ref(`${window.staticPath}/static-assets/swim_left.svg`);
+const loopLeftSvgSelect = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
@@ -224,9 +225,9 @@ class PathCardNode extends Rect {
     const {functionStats} = this.cardData;
     const startY = -this.getSize(attributes)[1] / 2 + 56; // 统计项起始 Y 坐标（分割线下方 12px）
     const stats = [
-      { label: 'leaf Function', value: functionStats.leafFunction },
-      { label: 'called', value: functionStats.called },
-      { label: 'callee', value: functionStats.callee },
+      { label: t('controlFlows.leafName'), value: functionStats.leafFunction },
+      { label: t('controlFlows.calledFunctionPanelTitle'), value: functionStats.called },
+      { label: t('controlFlows.callFunctionPanelTitle'), value: functionStats.callee },
     ];
 
     // 遍历绘制每个统计项（Label + Value）
@@ -440,7 +441,7 @@ class LogoWithRectCombo extends RectCombo {
       x: x + 10,
       width: 20,
       height: 20,
-      src: isSelected ? loopRightSvg.value : loopLeftSvg.value,
+      src: isSelected ? loopLeftSvgSelect.value : loopLeftSvg.value,
       color: isSelectedTextColor,
     }, this)
     // loop标签文本
