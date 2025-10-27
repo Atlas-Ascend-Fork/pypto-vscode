@@ -559,8 +559,10 @@ const handleSelection = () => {
     clearSelectionCanvas();
     return;
   }
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const ctx = canvasRef.getContext('2d');
   selectionEvents.forEach(eventItem => {
-    onSelectionEvent(eventItem);
+    onSelectionEvent(eventItem, ctx, props.processKey);
   });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
@@ -739,13 +741,8 @@ const clearSelectionCanvas = () => {
   const ctx = canvasRef.getContext('2d');
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
 };
-function onSelectionEvent(hoveredEvent) {
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
-  if (!canvasRef) {
-    return;
-  }
-  const ctx = canvasRef.getContext('2d');
-  highlightEvent(ctx, hoveredEvent, props.processKey, false);
+function onSelectionEvent(hoveredEvent, ctx, processKey) {
+  highlightEvent(ctx, hoveredEvent, processKey, false);
 }
 const handleMouseDown = (e) => {
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -1917,8 +1914,12 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
     if (!process.expanded) {
       return;
     }
+    let drawColorDatas = [];
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
+      if (thread.isCounter) {
+        return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
+      }
       const { events } = thread;
       events.forEach((event, eventKey) => {
         const { args } = event;
@@ -1926,9 +1927,15 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
         if (color === label) {
           const { x, y, width, height } = event.renderInfo;
           points.push([x, y, width, height]);
-          onSelectionEvent(event);
+          drawColorDatas.push(event);
         }
+
       });
+    });
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    drawColorDatas.forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey);
     });
   });
   boundaries = calcRowBoundaries(points);
