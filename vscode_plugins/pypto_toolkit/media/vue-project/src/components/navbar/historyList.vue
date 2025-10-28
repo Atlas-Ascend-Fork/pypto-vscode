@@ -98,10 +98,12 @@ defineExpose({ getCurrentRecord: () => currentData.value });
 
 .navbar-history-list {
   max-width: 300px;
+  max-height: 400px;
   padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
+  overflow: auto;
 
   .list-item {
     height: 50px;
