@@ -90,7 +90,7 @@ function makeErrorHandler(
 
 function getOptionsWithDefault(options?: RequestOptions): Required<RequestOptions> {
   return {
-    timeout: 10000,
+    timeout: 60000, // 默认60秒
     useCustomErrorHandler: false,
     ...options,
   };

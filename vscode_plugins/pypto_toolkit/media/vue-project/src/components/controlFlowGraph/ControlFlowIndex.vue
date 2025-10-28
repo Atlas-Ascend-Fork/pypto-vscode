@@ -1,5 +1,5 @@
 <template>
-  <ErrorView v-if="dataParseError" :jsonContent="`${t('controlFlows.dataParseError')}${dataParseErrorReason}`" />
+  <ErrorView v-if="dataParseError" :jsonContent="t('controlFlows.dataParseError')" />
   <div v-else class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
@@ -650,7 +650,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
 };
 
 const dataParseError = ref(false);
-const dataParseErrorReason = ref('');
 
 onMounted(async () => {
   const res = await getQuery();
@@ -660,7 +659,6 @@ onMounted(async () => {
     rootData.value = data.data;
   } catch (e: any) {
     dataParseError.value = true;
-    dataParseErrorReason.value = e.message || '';
     return;
   }
 

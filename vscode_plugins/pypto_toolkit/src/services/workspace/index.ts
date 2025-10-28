@@ -7,9 +7,6 @@ import { hasOutputRunData, readOutputRunData } from './rundata';
 import { getOutputDirectory } from './scan-directory';
 
 export interface GetOutputRecordParams {
-  /** 模糊搜索 */
-  keyword?: string;
-
   /** 算子源文件 */
   operatorSourceFile?: string;
 
@@ -31,13 +28,13 @@ const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${pat
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  const { keyword, sortBy = 'executeTime', sortOrder = 'desc' } = params;
+  const { sortBy = 'executeTime', sortOrder = 'desc' } = params;
   const outputCollectionUri = vscode.Uri.file(OUTPUT_COLLECTION_PATH);
   if (!outputCollectionUri) {
     return { data: [] };
   }
 
-  const records: OutputRecord[] = await getRecordsFromDirectory(outputCollectionUri, keyword);
+  const records: OutputRecord[] = await getRecordsFromDirectory(outputCollectionUri);
 
   // 执行排序
   records.sort((a, b) => {
@@ -72,7 +69,7 @@ export async function getOutputDetail(params: GetOutputDetailParams): Promise<Ge
 /**
  * 获取指定目录下的编译记录
  */
-async function getRecordsFromDirectory(directoryUri: vscode.Uri, keyword?: string): Promise<OutputRecord[]> {
+async function getRecordsFromDirectory(directoryUri: vscode.Uri): Promise<OutputRecord[]> {
   let subList: [string, vscode.FileType][];
   try {
     subList = await vscode.workspace.fs.readDirectory(directoryUri);
@@ -90,10 +87,6 @@ async function getRecordsFromDirectory(directoryUri: vscode.Uri, keyword?: strin
     if (await isOutputDirectory(rootDirUri)) {
       const runData = await readOutputRunData(rootDirUri);
       const record = getOutputRecord(rootDirUri, runData);
-      const noMatchKeyword = keyword && !record.title.includes(keyword);
-      if (noMatchKeyword) {
-        continue;
-      }
       records.push(record);
     }
   }
