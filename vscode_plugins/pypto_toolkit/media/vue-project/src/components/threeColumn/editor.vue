@@ -411,6 +411,7 @@ const setupHoverListeners = () => {
         sendMsg('returnSemanticLabelFromCode', { label: '' });
         lastSentLabel = null;
         lastMoveLabel = null;
+        lockPosition.value = null;
         updateHoverDecoration(null);
       }, 80);
     }
