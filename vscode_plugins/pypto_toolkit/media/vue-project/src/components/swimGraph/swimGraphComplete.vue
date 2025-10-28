@@ -410,7 +410,7 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
-  childContextMap.threadEvent.drawBoundary();
+  childContextMap.threadEvent.resizeDrawBoundary();
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
   }

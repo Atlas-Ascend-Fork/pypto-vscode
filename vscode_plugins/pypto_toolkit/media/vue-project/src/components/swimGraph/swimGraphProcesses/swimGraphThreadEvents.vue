@@ -35,6 +35,7 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
+let drawColorDatas = {};
 let isLockStatus = false;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
@@ -660,6 +661,19 @@ const drawBoundary = () => {
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+};
+const resizeDrawBoundary = () => {
+  processes.forEach((process, processKey) => {
+    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+      return;
+    }
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    drawColorDatas[processKey].forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey, false);
+    });
+  });
+  drawBoundary();
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -1979,7 +1993,7 @@ const handleOutline = (label) => {
     return;
   }
   points = [];
-  let drawColorDatas = {};
+  drawColorDatas = {};
   let rootHashArray = [];
   const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   processes.forEach((process, processKey) => {
@@ -2074,7 +2088,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
-  drawBoundary
+  resizeDrawBoundary
 });
 
 // 每个事件画布都会走一遍
