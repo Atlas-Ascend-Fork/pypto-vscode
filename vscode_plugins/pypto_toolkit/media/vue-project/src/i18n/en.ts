@@ -175,7 +175,7 @@ export default {
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
         tableSearch:'Search',
-        dataParseError: 'Unable to open Control Flow, data parsing exception.\nReason: ',
+        dataParseError: 'Unable to open Control Flow, data parsing exception.',
         leafName:'leaf function',
     }
 }
