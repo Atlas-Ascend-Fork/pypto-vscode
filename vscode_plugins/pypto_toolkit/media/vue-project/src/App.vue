@@ -183,7 +183,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <header>
+  <header :class="[outputDirPath && 'com-graph-with-navbar']">
     <ComGraph
       v-if="graphType === 'returnCom'"
       :outputDirPath="outputDirPath"
@@ -229,5 +229,9 @@ onMounted(() => {
 <style lang="scss">
 header {
   min-width: 960px;
+
+  &.com-graph-with-navbar {
+    min-width: 1574px;
+  }
 }
 </style>
