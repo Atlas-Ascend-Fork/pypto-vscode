@@ -32,6 +32,7 @@ const currentLabels = ref<string[]>([]);
 const tipNodeMagic = ref('0');
 const titleRectColor = ref('');
 const titleRectHeight = ref(48);
+const scale = ref(1);
 
 const nodeTipStyle = computed(() => ({
   left: `${nodeTipLeft.value}px`,
@@ -39,6 +40,7 @@ const nodeTipStyle = computed(() => ({
   width: `${nodeTipWidth.value}px`,
   height: `${nodeTipHeight.value}px`,
   backgroundColor: tipColor.value,
+  transform: `scale(${scale.value})`,
 }));
 
 onMounted(() => {
@@ -47,6 +49,10 @@ onMounted(() => {
         showNodeTip.value = false;
     });
     (window as any).ascEventBus.on('showNodeTip', debounce((target) => {
+        const screenZoom = window.devicePixelRatio;
+        if (screenZoom < 1.25) {
+            scale.value = 1.25 / screenZoom;
+        }
         let initLeft = 0;
         let initTop = 0;
         if (target.parent.filePath) {
@@ -65,8 +71,10 @@ onMounted(() => {
         nodeTipWidth.value = target.size.width;
         nodeTipHeight.value = target.size.height + 4;
         // left 定位到中间计算 positionX +  x / 2 - x * zoom / 2
-        nodeTipLeft.value = -target.parent.scroll.x * target.parent.zoom + target.position.x * target.parent.zoom - ((target.size.width * (1 - target.parent.zoom)) / 2) + initLeft; 
-        nodeTipTop.value = -target.parent.scroll.y * target.parent.zoom - target.size.height + target.position.y * target.parent.zoom - 32 * target.parent.zoom + initTop;
+        nodeTipLeft.value = -target.parent.scroll.x * target.parent.zoom +
+                            target.position.x * target.parent.zoom - ((target.size.width * (1 - target.parent.zoom)) / 2) + initLeft;
+        nodeTipTop.value = -target.parent.scroll.y * target.parent.zoom - target.size.height +
+                            target.position.y * target.parent.zoom + initTop - 32 * target.parent.zoom - ((target.size.height) * (scale.value - 1) / 2);
         tipNodeMagic.value = target.magic;
         const targetTitle = target.children?.[0].children?.[0];
         const targetLabel = target.children?.[0].children?.[1]?.children ?? [];
