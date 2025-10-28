@@ -2019,7 +2019,7 @@ const handleOutline = (label) => {
       });
       if (!isLockStatus && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
-        window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+        window.ascEventBus?.emit('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
     drawBoundary();
