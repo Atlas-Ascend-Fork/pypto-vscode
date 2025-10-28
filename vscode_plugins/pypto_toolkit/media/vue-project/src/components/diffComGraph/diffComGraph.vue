@@ -32,6 +32,7 @@
         <Loading v-if="isLoading" :loadingText="loadingText" />
       </div>
     </div>
+    <ShowTip></ShowTip>
   </div>
 </template>
 
@@ -48,6 +49,7 @@ import MiniMap from '../comGraph/comGraphMinimap.vue';
 import DiffList from './diffList.vue';
 import type { DiffListItem } from './type';
 import { Message } from 'vue-devui/message';
+import ShowTip from '../util/showTip.vue';
 
 const props = defineProps({
   afterJson: Object,
