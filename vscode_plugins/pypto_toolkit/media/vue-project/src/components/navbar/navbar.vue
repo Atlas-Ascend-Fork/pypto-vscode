@@ -65,32 +65,32 @@ const showSwim = ref(true);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
 
-getOutputRecords({}).then((res) => {
+getOutputRecords({}, { timeout: 600000 }).then((res) => {
   historyList.value = res.data;
 });
 
 watch(
-    () => props.currentRecordDirectoryPath,
-    (val) => {
-      if (val && props.currentStep !== 'controlFlow') {
-        getControlFlow(val).then((res) => {
-          controlFlowList.value = res.data;
-        })
-      }
-    },
-    {immediate: true}
-)
+  () => props.currentRecordDirectoryPath,
+  (val) => {
+    if (val && props.currentStep !== 'controlFlow') {
+      getControlFlow(val, { timeout: 600000 }).then((res) => {
+        controlFlowList.value = res.data;
+      });
+    }
+  },
+  { immediate: true },
+);
 
 watch(
-    () => props.controlFlowData,
-    (val) => {
-      if (val) {
-        if (val.length > 0) {
-          controlFlowList.value = val;
-        }
+  () => props.controlFlowData,
+  (val) => {
+    if (val) {
+      if (val.length > 0) {
+        controlFlowList.value = val;
       }
-    },
-    {immediate: true},
+    }
+  },
+  { immediate: true },
 );
 
 function onRecordChange(record: HistoryData) {

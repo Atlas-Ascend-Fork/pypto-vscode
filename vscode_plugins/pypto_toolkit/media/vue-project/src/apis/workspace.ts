@@ -1,4 +1,4 @@
-import { request } from '../core/request';
+import { request, RequestOptions } from '../core/request';
 import type {
   GetOutputDetailParams,
   GetOutputDetailRes,
@@ -11,8 +11,8 @@ const WORKSPACE_PREFIX = 'workspace';
 /**
  * 获取所有运行记录
  */
-export function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  return request.post(`${WORKSPACE_PREFIX}/getOutputRecords`, params);
+export function getOutputRecords(params: GetOutputRecordParams, options?: RequestOptions): Promise<GetOutputRecordsRes> {
+  return request.post(`${WORKSPACE_PREFIX}/getOutputRecords`, params, options);
 }
 
 /**
