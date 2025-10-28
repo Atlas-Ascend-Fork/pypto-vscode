@@ -76,6 +76,8 @@ let selectAction;
 let hoverFeedbackAction;
 let createSelectNodesRect;
 let removeSelectNodesRect;
+let initComDocText;
+let resetModelSource;
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -213,13 +215,21 @@ watch(
     if (Object.keys(val).length) {
       graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+      if (initComDocText){
+        initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+        comGraphStore.setData('jsonData', jsonValue);
+        resetModelSource();
+        return;
+      }
       const sprottyLoadResult = useSprottyLoad();
-      sprottyLoadResult.initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      initComDocText = sprottyLoadResult.initComDocText;
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
       createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;
       removeSelectNodesRect = sprottyLoadResult.removeSelectNodesRect;
       hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
+      resetModelSource = sprottyLoadResult.resetModelSource;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
