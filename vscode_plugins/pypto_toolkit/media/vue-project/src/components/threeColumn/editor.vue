@@ -272,7 +272,7 @@ const deactivateLock = () => {
     currentHoverDecoration = null;
   }
   console.log('send deactiveLock');
-  window.ascEventBus.emit('deactivateLock');
+  sendMsg('deactivateLock');
 };
 
 const lockMouseEnter = (e) => {
@@ -289,7 +289,7 @@ const lockClick = (e) => {
   isLocked.value = true;
   unlockPosition.value = lockPosition.value;
   console.log('send activeLock ', lastMoveLabel.name);
-  window.ascEventBus.emit('activeLock', { label: lastMoveLabel.name });
+  sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
 const unLockClick = (e) => {
@@ -326,7 +326,7 @@ const updateHoverDecoration = (position, emit = true) => {
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
       console.log('returnSemanticLabelFromCode', currentLabel.name);
-      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
+      sendMsg('returnSemanticLabelFromCode', { 'label': currentLabel.name });
     }
   }
 };
@@ -408,7 +408,7 @@ const setupHoverListeners = () => {
           return;
         }
         console.log('returnSemanticLabelFromCode');
-        window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
+        sendMsg('returnSemanticLabelFromCode', { label: '' });
         lastSentLabel = null;
         lastMoveLabel = null;
         updateHoverDecoration(null);
@@ -560,6 +560,14 @@ window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
 
 const initEventListeners = () => {
   window.addEventListener('message', handleMessage);
+};
+
+const sendMsg = (command, param) => {
+  try {
+    window.ascEventBus.emit(command, param);
+  } catch (error) {
+    console.error(`${command}执行失败`, error);
+  }
 };
 
 const handleMessage = (event) => {
