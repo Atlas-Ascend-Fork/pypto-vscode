@@ -438,7 +438,7 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
 
 const findLineAtPoint = (ctx, point) => {
   // 还原传入坐标为绘制算法
-  const pointX = point.x * viewState.scale * viewState.scale + viewState.offsetX;
+  const pointX = (point.x * viewState.scale * viewState.scale) + viewState.offsetX;
   for (const line of dependencyLinesInfo.value) {
     if (ctx.isPointInStroke(line.linePath, pointX, point.y)) {
       return { fromEvent: line.fromEvent, toEvent: line.toEvent };
