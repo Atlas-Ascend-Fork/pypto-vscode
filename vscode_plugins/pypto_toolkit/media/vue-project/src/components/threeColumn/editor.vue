@@ -1,6 +1,7 @@
 <template>
-  <div ref="containerRef" class="editor-container">
-    <Loading v-if="loading" :loadingText="loadingText" warningText="" />
+<div class="container">
+  <Loading v-if="loading" :loadingText="loadingText" warningText="" />
+  <div v-show="!loading" ref="containerRef" class="editor-container">
     <!-- 锁图标悬浮框 -->
     <div v-if="!isLocked && lockPosition" 
          class="lock-indicator"
@@ -31,6 +32,7 @@
       <d-icon name="icon-lock-private"></d-icon>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -141,6 +143,9 @@ const applySemanticDecorations = () => {
 
 // 查找光标所在的语义标签区域
 const findSemanticLabelAtPosition = (position) => {
+  if (!position) {
+    return null;
+  } 
   return labels.find(label => 
     position.lineNumber >= label.startLine && 
     position.lineNumber <= label.endLine
@@ -395,6 +400,10 @@ const setupHoverListeners = () => {
           lastMoveLabel = currentLabel;
         }
       }, 80);
+    } else if (!currentLabel && !isLocked.value) {
+      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
+      lockPosition.value = null;
+      updateHoverDecoration(null);
     }
   });
 
@@ -559,7 +568,7 @@ const handleMessage = (event) => {
       const { codePath, code } = message.data;
       initCodePath = codePath;
       initTotalLine = code.split('\n').length;
-      loading.value = false;
+      loadingText.value = $t('loadSemanticLabel');
       nextTick(() => initEditor(code));
       break;
     case 'saveSuccess':
@@ -572,6 +581,7 @@ const handleMessage = (event) => {
       mkSemanticLabel(message.data, initCodePath);
       parseSemanticLabels(initTotalLine);
       applySemanticDecorations();
+      loading.value = false;
       break;
   }
 };
@@ -606,7 +616,7 @@ watch(isDarkTheme, () => {
 </script>
 
 <style>
-.editor-container {
+.container, .editor-container {
   height: 100%;
   position: relative;
 }
