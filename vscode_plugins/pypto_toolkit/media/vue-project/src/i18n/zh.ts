@@ -69,12 +69,13 @@ export default {
    'eventTask':'Task内容展示',
    'colorRendering':'Task颜色渲染',
    'subGraph':'按子图',
-   'stichedFunc':'按stiched Function',
+   'stichedFunc':'按Stiched Function',
    'label':'按语义标签',
    'allText':'全部字段',
    'taskName':'任务名称',
    'taskLabel':'语义标签',
    'swimRenderCfg':'泳道图渲染配置',
+   'configButtonTip':'缺少dyn_topo.txt文件，该配置不可用',
    'clockCycle': '时钟周期',
    'throughout': '吞吐量',
    'cacheHit': '缓存命中率',
@@ -160,6 +161,7 @@ export default {
     sideBar: {
         title: '运行结果',
         sortName: '执行时间',
+        searchPlaceholder: '搜索运行结果',
     },
     controlFlows: {
         searchPlaceholder: '搜索loop关键字',
@@ -173,6 +175,7 @@ export default {
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
         tableSearch:'搜索',
+        dataParseError: '无法打开控制流，解析数据异常\n异常原因：',
         leafName:'leaf 函数',
     }
 }

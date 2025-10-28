@@ -1,10 +1,11 @@
 <template>
-  <div class="g6-flow-chart">
+  <ErrorView v-if="dataParseError" :jsonContent="`${t('controlFlows.dataParseError')}${dataParseErrorReason}`" />
+  <div v-else class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
-      <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath"/>
+      <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath" />
     </div>
-    <div id="controlGraph" ref="chartContainer" class="chart-container" :class="{'init-graph':!isGraphVisible}"></div>
+    <div id="controlGraph" ref="chartContainer" class="chart-container" :class="{ 'init-graph': !isGraphVisible }"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
       <i class="icon icon-minus" @click="graphZoomTo(-0.1)"></i>
@@ -16,23 +17,19 @@
       <i class="icon icon-location-new" @click=" graph.fitView()"></i>
     </div>
     <d-editable-select v-model="searchValue" :allow-clear="true" :options="options"
-                       :placeholder="t('controlFlows.searchPlaceholder')"
-                       :position="['bottom']" :width="320" class="tool-select"
-                       :class="{
-                         'tool-select-focus':!isEditableSelected
-                       }"
-                       max-height="500"
-                       @change="selectChange" ></d-editable-select>
+      :placeholder="t('controlFlows.searchPlaceholder')" :position="['bottom']" :width="320" class="tool-select" :class="{
+        'tool-select-focus': !isEditableSelected
+      }" max-height="500" @change="selectChange"></d-editable-select>
     <d-icon class="search-input__icon tool-select-search " :class="{
-      'tool-select-search-icon':!isSearchIconVisible,
-    }"  name="search"/>
+      'tool-select-search-icon': !isSearchIconVisible,
+    }" name="search" />
 
 
   </div>
 </template>
 
 <script lang="ts" setup>
-import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Diamond, ExtensionCategory, Graph, GraphEvent, Rect, RectCombo, type RectStyleProps, register } from '@antv/g6';
 import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
@@ -42,7 +39,8 @@ import { getQuery } from '@/core/query';
 import { getControlFlow } from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
 import { IfCardData, PathCardData } from "@/components/controlFlowGraph/type/node-detail-types";
-import {isEditableLabel, isEditLabelAction} from "sprotty";
+import { isEditableLabel, isEditLabelAction } from "sprotty";
+import ErrorView from '@/components/comGraph/error.vue';
 
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
@@ -55,7 +53,7 @@ const chartContainer = ref<HTMLDivElement | null>(null);
 const PATH_CARD_NODE_TYPE = 'path-card-node';
 const zoom = ref(1)
 let graph = null;
-const {t} = useI18n();
+const { t } = useI18n();
 const rootData = ref([])
 const outPutPath = ref()
 const isEditableSelected = ref(false);
@@ -230,7 +228,7 @@ class PathCardNode extends Rect {
    * 绘制函数统计项
    */
   drawFunctionStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    const {functionStats} = this.cardData;
+    const { functionStats } = this.cardData;
     const startY = -this.getSize(attributes)[1] / 2 + 56; // 统计项起始 Y 坐标（分割线下方 12px）
     const stats = [
       { label: t('controlFlows.leafName'), value: functionStats.leafFunction },
@@ -242,9 +240,9 @@ class PathCardNode extends Rect {
     stats.forEach((item, index) => {
       const y = startY + index * 30; // 统计项间距 30px
       // 绘制 Label
-      this.upsert(`func-label-${ index }`, 'text', this.getFuncLabelStyle(attributes, y, item.label), container);
+      this.upsert(`func-label-${index}`, 'text', this.getFuncLabelStyle(attributes, y, item.label), container);
       // 绘制 Value
-      this.upsert(`func-value-${ index }`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
+      this.upsert(`func-value-${index}`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
     });
   }
 
@@ -269,7 +267,7 @@ class PathCardNode extends Rect {
    * 绘制错误统计项（有 errorStats 时才绘制）
    */
   async drawErrorStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    const {errorStats} = this.cardData;
+    const { errorStats } = this.cardData;
     if (!errorStats || Object.keys(errorStats).length === 0) return;
 
     // 1. 错误统计前的分割线
@@ -297,7 +295,7 @@ class PathCardNode extends Rect {
 
   // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
   render(
-      attributes = this.parsedAttributes, container: Group | undefined
+    attributes = this.parsedAttributes, container: Group | undefined
   ) {
     // // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
@@ -397,7 +395,7 @@ class IfCardNode extends Diamond {
 
   // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
   render(
-      attributes = this.parsedAttributes, container: Group | undefined
+    attributes = this.parsedAttributes, container: Group | undefined
   ) {
     // // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
@@ -422,7 +420,7 @@ class LogoWithRectCombo extends RectCombo {
   }
 
   async drawButton(attributes) {
-    const {collapsed} = attributes;
+    const { collapsed } = attributes;
     const [width, height] = this.getKeySize(attributes);
     const btnR = 8;
     const y = -height / 2;
@@ -474,9 +472,9 @@ class LogoWithRectCombo extends RectCombo {
 const options = ref([])
 const searchValue = ref('');
 const isSearchIconVisible = ref(true);
-watch(()=>searchValue.value, (value)=> {
-  isSearchIconVisible.value=!(value.length!==0);
-  isEditableSelected.value=!isSearchIconVisible.value;
+watch(() => searchValue.value, (value) => {
+  isSearchIconVisible.value = !(value.length !== 0);
+  isEditableSelected.value = !isSearchIconVisible.value;
 })
 
 // 搜索时定位搜索loop
@@ -553,9 +551,9 @@ const initG6Graph = async (nodes, edges, combos,) => {
         ports: [{
           placement: 'top',
         },
-          {
-            placement: "bottom"
-          }]
+        {
+          placement: "bottom"
+        }]
       },
       // 各种状态下的样式
       state: {
@@ -644,20 +642,29 @@ const initG6Graph = async (nodes, edges, combos,) => {
   await graph.render();
   // 初始化时视角自适应
   await graph.fitView();
-  if(await graph.getZoom()>1){
-    zoom.value=1;
+  if (await graph.getZoom() > 1) {
+    zoom.value = 1;
     await graph.zoomTo(1);
   }
-  isGraphVisible.value=true
+  isGraphVisible.value = true
 };
+
+const dataParseError = ref(false);
+const dataParseErrorReason = ref('');
 
 onMounted(async () => {
   const res = await getQuery();
-  outPutPath.value = JSON.parse(res.uri.query).url
-  const data = await getControlFlow(outPutPath.value);
+  outPutPath.value = res.url
+  try {
+    const data = await getControlFlow(outPutPath.value, { useCustomErrorHandler: true });
+    rootData.value = data.data;
+  } catch (e: any) {
+    dataParseError.value = true;
+    dataParseErrorReason.value = e.message || '';
+    return;
+  }
 
-  rootData.value = data.data;
-  const {nodes, edges, combos} = transformData(rootData.value);
+  const { nodes, edges, combos } = transformData(rootData.value);
   await initG6Graph(nodes, edges, combos);
   // 初始化搜索组件数据源
   combos.forEach(item => {
@@ -757,15 +764,17 @@ onUnmounted(() => {
   }
 }
 
-.tool-select{
+.tool-select {
   position: fixed;
   right: 16px;
   top: 30px;
   color: #E6E6E6;
   z-index: 99;
+
   :deep(.devui-editable-select__clear-icon) {
     display: flex !important;
   }
+
   :deep(.devui-editable-select__arrow-icon) {
     display: none;
   }
@@ -791,6 +800,7 @@ onUnmounted(() => {
     display: none !important;
   }
 }
+
 .tool-select-search {
   position: fixed;
   right: 24px;
@@ -798,7 +808,8 @@ onUnmounted(() => {
   color: #E6E6E6;
   z-index: 99;
 }
-.tool-select-search-icon{
+
+.tool-select-search-icon {
   display: none;
 }
 </style>

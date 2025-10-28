@@ -129,12 +129,12 @@ export class EditorView {
     this.onViewActivated?.(viewPanel);
 
     // 设置页面参数
-    this.queryConnector.setQuery(viewPanel, uri, virtualQuery);
+    this.queryConnector.setQuery(viewPanel.webview, uri, virtualQuery);
 
     // 监听销毁
     viewPanel.onDidDispose(() => {
       // hook
-      this.onViewDisposed?.(virtualQuery.viewType, uri);
+      this.onViewDisposed?.(virtualQuery._viewType, uri);
     });
   }
 }

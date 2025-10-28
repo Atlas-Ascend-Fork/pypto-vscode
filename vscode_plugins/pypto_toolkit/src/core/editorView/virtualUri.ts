@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { UriQuery } from '../viewQuery';
 
 export const VIRTUAL_SCHEME = 'PyPTO';
 
@@ -10,9 +11,10 @@ export const VIRTUAL_SCHEME = 'PyPTO';
  * @param query 文件副标题
  * @returns 虚拟uri
  */
-export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string, query?: object): vscode.Uri {
-  const path = `${uri.path} - ${subTitle || viewType}`;
-  return uri.with({ scheme: VIRTUAL_SCHEME, path, query: JSON.stringify({ ...query, path: uri.fsPath, viewType }) });
+export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string, query?: Record<string, unknown>): vscode.Uri {
+  const virtualPath = `${uri.path} - ${subTitle || viewType}`;
+  const uriQuery: UriQuery = { ...query, _path: uri.fsPath, _viewType: viewType };
+  return uri.with({ scheme: VIRTUAL_SCHEME, path: virtualPath, query: JSON.stringify(uriQuery) });
 }
 
 /**
@@ -20,10 +22,9 @@ export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string
  * @param virtualUri 虚拟uri
  * @returns 文件路径 && 视图类型
  */
-export function fromVirtualUri(virtualUri: vscode.Uri): { path: string; viewType: string } {
+export function fromVirtualUri(virtualUri: vscode.Uri): UriQuery {
   try {
-    const { path, viewType } = JSON.parse(virtualUri.query);
-    return { path, viewType };
+    return JSON.parse(virtualUri.query);
   } catch {
     throw new Error('VirtualUri参数解析失败');
   }

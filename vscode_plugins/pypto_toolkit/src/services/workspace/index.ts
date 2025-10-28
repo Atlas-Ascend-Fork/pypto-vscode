@@ -83,14 +83,17 @@ async function getRecordsFromDirectory(directoryUri: vscode.Uri, keyword?: strin
 
   const records: OutputRecord[] = [];
   for (const [subPath, fileType] of subList) {
-    const noMatchKeyword = keyword && !subPath.includes(keyword);
-    if (fileType !== vscode.FileType.Directory || noMatchKeyword) {
+    if (fileType !== vscode.FileType.Directory) {
       continue;
     }
     const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
     if (await isOutputDirectory(rootDirUri)) {
       const runData = await readOutputRunData(rootDirUri);
       const record = getOutputRecord(rootDirUri, runData);
+      const noMatchKeyword = keyword && !record.title.includes(keyword);
+      if (noMatchKeyword) {
+        continue;
+      }
       records.push(record);
     }
   }

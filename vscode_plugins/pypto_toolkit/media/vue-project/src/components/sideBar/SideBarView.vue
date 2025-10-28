@@ -1,13 +1,15 @@
 <template>
   <div class="sidebar-container">
-
     <!-- 标题栏 -->
     <div class="header">
-      <div class="title">
-        <div class="name">{{ t('sideBar.title') }}</div>
+      <div class="name">
+        {{ t('sideBar.title') }}
       </div>
-      <i class="icon icon-search-new"></i>
+      <div class="refresh" @click="getAllRecords">
+        <d-icon name="refresh"></d-icon>
+      </div>
     </div>
+    <SideBarSearch :model-value="keyword" @search="handleSearch"></SideBarSearch>
     <!-- 筛选区 -->
     <div class="filters">
       <d-icon class="sort" operable @click="sortOption = !sortOption">
@@ -24,28 +26,25 @@
     <div class="tree-container">
       <d-tree
         ref="treeRef"
-        :data="visibleItems"
-        :expanded-keys="expandedKeys"
+        v-loading="searchLoading"
+        :data="visibleTreeData"
         :node-class="() => 'custom-tree-node'"
         show-line="false"
-        @expand="handleNodeExpand"
-        @collapse="handleNodeCollapse"
         @node-click="nodeClick"
+        @lazy-load="lazyLoad"
       >
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
             <div class="icon">
               <!-- 节点图标（文件夹/文件） -->
-              <i v-if="nodeData.type === 'dir'&&!nodeData.executeTime" class=" icon-folder-new"></i>
-              <i v-if="nodeData.fileType==='computeGraph'" class="icon-json"></i>
-              <i v-if="nodeData.extname==='json'" class="icon-file "></i>
+              <i v-if="nodeData.type === 'dir' && !nodeData.executeTime" class="icon-folder-new"></i>
+              <i v-if="nodeData.fileType === 'computeGraph'" class="icon-json"></i>
+              <i v-if="nodeData.extname === 'json'" class="icon-file"></i>
             </div>
 
             <!-- 节点文本区域（两行布局） -->
-            <div v-if="nodeData.type === 'dir'" :class="{
-              'node-text-folder':nodeData.level===1,
-            }" @dblclick="nodeClick(nodeData)">
+            <div v-if="nodeData.type === 'dir'" :class="{ 'node-text-folder': nodeData.level === 1 }" @dblclick="nodeClick(nodeData)">
               <div class="node-label">{{ nodeData.label }}</div>
               <div class="node-date" v-if="nodeData.date">{{ nodeData.date }}</div>
             </div>
@@ -63,46 +62,65 @@
             <span v-if="nodeData.isLeaf" class="devui-tree-node__indent"></span>
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
-              <div v-if="nodeData.date" @click="(event) => {
-                            event.stopPropagation();
-                            toggleNode(nodeData);
-                        }" class="devui-tree-node-icon">
-
-                <i class="icon icon-chevron-right" :style="{
-                                transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                                cursor: 'pointer'
-                            }"></i>
+              <div
+                v-if="nodeData.date"
+                @click="
+                  (event) => {
+                    event.stopPropagation();
+                    toggleNode(nodeData);
+                  }
+                "
+                class="devui-tree-node-icon"
+              >
+                <i
+                  class="icon icon-chevron-right"
+                  :style="{
+                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                    cursor: 'pointer',
+                  }"
+                ></i>
               </div>
 
-              <div v-else @click="(event) => {
-                            event.stopPropagation();
-                            toggleNode(nodeData);
-                        }" class="devui-tree-children-node-icon">
-
-                <i class="devui-tree-children-node-icon icon icon-chevron-right " :style="{
-                                transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                                cursor: 'pointer'
-                            }"></i>
+              <div
+                v-else
+                @click="
+                  (event) => {
+                    event.stopPropagation();
+                    toggleNode(nodeData);
+                  }
+                "
+                class="devui-tree-children-node-icon"
+              >
+                <i
+                  class="devui-tree-children-node-icon icon icon-chevron-right"
+                  :style="{
+                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                    cursor: 'pointer',
+                  }"
+                ></i>
               </div>
             </div>
           </div>
         </template>
       </d-tree>
-
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref, computed, watch, onMounted} from 'vue';
-import {useI18n} from 'vue-i18n';
-import {getOutputDetail, getOutputRecords} from "@/apis/workspace";
-import {GetOutputRecordsRes} from "../../../../../src/services/workspace";
-import {DevUITreeChildrenNode, DevUITreeNode} from "@/components/sideBar/types/sidebarModle";
-import {openComputeGraph, openControlFlow, openSwimlaneGraph} from "@/apis/opener";
+import { ref, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { getOutputDetail, getOutputRecords } from '@/apis/workspace';
+import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
+import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
-const {t} = useI18n();
+import SideBarSearch from './SideBarSearch.vue';
+
+type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
+
+type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
+
+const { t } = useI18n();
 const treeRef = ref(null);
 
 /**
@@ -110,125 +128,100 @@ const treeRef = ref(null);
  * - 文件夹节点：type='dir', isLeaf=false, 可包含children
  * - 文件节点：type='file', isLeaf=true, 无children
  */
-const treeData = ref<DevUITreeNode[]>([])
-/**
- * 状态管理
- */
-const sortOption = ref(false);
-const contentOption = ref('all');
-const expandedKeys = ref<string[]>([]);
-
-/**
- * 计算属性：节点筛选与排序
- */
-
-const sortedLoadedItems = computed(() => {
-
-  return [...treeData.value].sort((a, b) => {
-    if (sortOption.value) {
-      new Date(a.date).getTime()
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    }else {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }
-
-  });
-});
-
-const visibleItems = computed(() => sortedLoadedItems.value);
-
-
-/**
- * 事件处理
- */
-const handleNodeExpand = (node: DevUITreeNode) => {
-  if (!expandedKeys.value.includes(node.id)) {
-    expandedKeys.value = [...expandedKeys.value, node.id];
-  }
-  node.expanded = true;
-};
-
-const handleNodeCollapse = (node: DevUITreeNode) => {
-  expandedKeys.value = expandedKeys.value.filter(key => key !== node.id);
-  node.expanded = false;
-};
+const treeData = ref<DevUITreeNode[]>([]);
+const visibleTreeData = computed(() => [...treeData.value]);
 
 async function nodeClick(node: DevUITreeNode) {
   if (node.fileType === 'controlFlow') {
     // 打开控制流
     openControlFlow({
       controlFlowPath: node.absolutePath,
-      outputPath: node.outputPath
-    })
+      outputPath: node.outputPath,
+    });
   } else if (node.fileType === 'swimlaneGraph') {
     // 打开泳道图
-    openSwimlaneGraph({swimlaneGraphPath:node.absolutePath})
+    openSwimlaneGraph({ swimlaneGraphPath: node.absolutePath });
   } else if (node.fileType === 'computeGraph') {
     // 打开计算图
     openComputeGraph({
-      outputPath:node.outputPath,
-      computeGraphPath:node.absolutePath,
-      passName:node.name
-    })
+      computeGraphPath: node.absolutePath,
+      outputPath: node.pathName ? node.outputPath : undefined,
+      pathName: node.pathName,
+    });
   }
 }
 
-/**
- * 监听筛选条件变化
- */
-watch([sortOption, contentOption], ([newSort, newFilter], [oldSort, oldFilter]) => {
-  if (newFilter !== oldFilter) {
-    expandedKeys.value = [];
+const nodeChildrenMap = new Map();
+
+async function transformData(outputData: OutputRecords) {
+  nodeChildrenMap.clear();
+
+  function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
+    const children: DevUITreeNode[] = [];
+    for (const dirOrFile of subDirOrFile) {
+      const child: DevUITreeNode = {
+        id: dirOrFile.absolutePath,
+        label: dirOrFile.name,
+        type: dirOrFile.type,
+        expanded: false,
+        isLeaf: !(dirOrFile.type === 'dir' && dirOrFile.children.length),
+        ...dirOrFile,
+        children: undefined,
+      };
+      children.push(child);
+      if (dirOrFile.type === 'dir' && !child.isLeaf) {
+        nodeChildrenMap.set(child.id, transformChild(dirOrFile.children as unknown as DirectoryTree['children']));
+      }
+    }
+    return children;
   }
+
+  for (const record of outputData) {
+    const rootNode: DevUITreeNode = {
+      id: record.title,
+      label: record.title,
+      type: 'dir',
+      date: record.executeTime,
+      expanded: false,
+      isLeaf: false,
+      ...record,
+    };
+    treeData.value.push(rootNode);
+    const detail = await getOutputDetail(record.directoryPath);
+    const child = transformChild(detail.data.directoryTree.children);
+    nodeChildrenMap.set(rootNode.id, child);
+  }
+}
+
+function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
+  callback({ treeItems: nodeChildrenMap.get(parentNode.id), node: parentNode });
+}
+
+onMounted(() => {
+  getAllRecords();
 });
 
-async function transformData(outputData: GetOutputRecordsRes) {
-  try {
-    for (let i = 0; i < outputData.data.length; i++) {
-      const detail = await getOutputDetail(outputData.data[i].directoryPath)
-      const child: DevUITreeChildrenNode[] = detail.data.directoryTree.children
+const keyword = ref('');
+const searchLoading = ref(false);
+const sortOption = ref(false);
 
-      function transformChild(child: DevUITreeChildrenNode[]) {
-        for (let j = 0; j < child.length; j++) {
-          child[j].id = child[j].absolutePath;
-          child[j].label = child[j].name;
-          child[j].type = child[j].type === 'dir' ? 'dir' : 'file';
-          child[j].isLeaf = !(child[j].type === 'dir'&&child[j].children.length);
-          if (child[j].type === 'dir'&&!child[j].isLeaf) {
-            transformChild(child[j].children)
-          }
-        }
+watch(sortOption, () => {
+  getAllRecords();
+});
 
-      }
-      transformChild(child);
-
-      treeData.value.push({
-        id: outputData.data[i].title,
-        type: 'dir',
-        isLeaf: false, ...outputData.data[i],
-        children: child,
-        date: outputData.data[i].executeTime,
-        label: outputData.data[i].title,
-      });
-    }
-  } catch (e) {
-    console.log(e)
-  }
-
-
+async function handleSearch(value: string): Promise<void> {
+  searchLoading.value = true;
+  keyword.value = value;
+  await getAllRecords();
+  searchLoading.value = false;
 }
 
-onMounted(async () => {
-  try {
-    const outputData: GetOutputRecordsRes = await getOutputRecords({})
-    await transformData(outputData);
-
-  } catch (error) {
-    console.log(error)
-
-  }
-
-})
+async function getAllRecords(): Promise<void> {
+  treeData.value = [];
+  const { data } = await getOutputRecords({ keyword: keyword.value, sortOrder: sortOption.value ? 'asc' : 'desc' });
+  console.log('output records', data);
+  await transformData(data);
+}
 </script>
 
 <style scoped lang="less">
@@ -256,32 +249,39 @@ onMounted(async () => {
   align-items: center;
   height: 28px;
   padding: 0 16px;
-  .title {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 2px;
 
-    .name {
-      color: #FFFFFF;
-      margin: 0;
-      font-size: 14px;
-      line-height: 22px;
+  .name {
+    color: #ffffff;
+    margin: 0;
+    font-size: 14px;
+    line-height: 27px;
+  }
+
+  .refresh {
+    width: 28px;
+    height: 28px;
+    padding: 7px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      :deep(*) {
+        color: var(--devui-link-text);
+      }
     }
 
-    .icon {
-      font-size: 20px;
-      opacity: 0.8;
+    :deep(*) {
+      color: var(--devui-title-text);
     }
   }
-.tree-search{
-  width: 150px;
-}
+
+  .tree-search {
+    width: 150px;
+  }
   .icon {
     font-size: 16px;
     opacity: 0.8;
   }
-
 }
 
 .filters {
@@ -324,7 +324,6 @@ onMounted(async () => {
       .icon-down {
         transform: rotate(90deg);
       }
-
     }
   }
 
@@ -332,7 +331,6 @@ onMounted(async () => {
     width: 132px;
     height: 28px;
     border-radius: 8px !important;
-
   }
 }
 
@@ -348,6 +346,7 @@ onMounted(async () => {
     min-width: 100%;
     width: fit-content;
     height: fit-content;
+    min-height: 300px;
 
     /* 节点文本样式 */
     .devui-tree__node {
@@ -356,12 +355,12 @@ onMounted(async () => {
       justify-content: space-between;
       padding: 0px 12px;
 
-      &[style*="padding-left: 0px"] {
+      &[style*='padding-left: 0px'] {
         height: 48px;
       }
 
-      &:has(+.devui-tree__node[style*="padding-left: 0px"]),
-      &:last-of-type  {
+      &:has(+ .devui-tree__node[style*='padding-left: 0px']),
+      &:last-of-type {
         border-bottom: 1px solid var(--vscode-sideBar-border);
       }
 
@@ -369,7 +368,7 @@ onMounted(async () => {
         background-color: rgba(255, 255, 255, 0.1);
 
         .node-label {
-          color: #FFFFFF !important;
+          color: #ffffff !important;
         }
       }
 
@@ -387,13 +386,12 @@ onMounted(async () => {
             font-size: 16px;
 
             .icon-file {
-              color: orange
+              color: orange;
             }
 
             .icon-json {
-              color: orange
+              color: orange;
             }
-
           }
 
           .node-text-folder {
@@ -405,11 +403,10 @@ onMounted(async () => {
             .node-label {
               font-size: 14px;
               line-height: 22px;
-              color: #E6E6E6;
+              color: #e6e6e6;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-
             }
 
             .node-date {
@@ -420,11 +417,9 @@ onMounted(async () => {
               overflow: hidden;
               text-overflow: ellipsis;
             }
-
           }
 
           .node-text-children {
-
             display: flex;
             justify-content: center;
             flex-direction: column;
@@ -432,7 +427,7 @@ onMounted(async () => {
 
             .node-label {
               font-size: 13px;
-              color: #B3B3B3;
+              color: #b3b3b3;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -455,17 +450,12 @@ onMounted(async () => {
 
           .icon {
             align-items: start;
-
           }
         }
       }
 
       .devui-tree__node-content.active {
         background-color: transparent;
-      }
-
-      .devui-tree__node-content:not(.active):hover {
-        background-color: rgba(49, 122, 247, 0);
       }
 
       .devui-tree__node-vline {
@@ -476,9 +466,7 @@ onMounted(async () => {
       .devui-tree__node-hline {
         opacity: 0 !important;
         height: 0px !important;
-
       }
-
     }
   }
 }
@@ -492,7 +480,7 @@ onMounted(async () => {
     height: 28px !important;
     border: none;
     font-size: 13px;
-    color: #E6E6E6 !important;
+    color: #e6e6e6 !important;
   }
 }
 </style>

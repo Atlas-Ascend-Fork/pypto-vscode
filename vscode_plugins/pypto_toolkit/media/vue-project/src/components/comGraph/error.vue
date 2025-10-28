@@ -48,6 +48,7 @@ const props = defineProps({
     line-height: 24px;
     letter-spacing: 0px;
     text-align: center;
+    white-space: pre-wrap;
   }
 }
 
