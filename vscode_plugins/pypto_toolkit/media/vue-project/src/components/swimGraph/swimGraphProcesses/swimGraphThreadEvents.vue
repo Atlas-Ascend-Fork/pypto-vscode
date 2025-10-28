@@ -1970,13 +1970,14 @@ const handleOutline = (label) => {
   }
   points = [];
   let drawColorDatas = {};
+  let rootHashArray = [];
   const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   processes.forEach((process, processKey) => {
     if (!process.expanded) {
       return;
     }
     drawColorDatas[processKey] = [];
-    let rootHashArray = [];
+    rootHashArray = [];
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
       if (thread.isCounter) {
