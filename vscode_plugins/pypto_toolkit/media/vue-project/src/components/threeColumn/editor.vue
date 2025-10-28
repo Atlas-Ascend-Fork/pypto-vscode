@@ -272,7 +272,7 @@ const deactivateLock = () => {
     currentHoverDecoration = null;
   }
   console.log('send deactiveLock');
-  window.ascEventBus.emit('deactivateLock');
+  sendMsg('deactivateLock');
 };
 
 const lockMouseEnter = (e) => {
@@ -289,7 +289,7 @@ const lockClick = (e) => {
   isLocked.value = true;
   unlockPosition.value = lockPosition.value;
   console.log('send activeLock ', lastMoveLabel.name);
-  window.ascEventBus.emit('activeLock', { label: lastMoveLabel.name });
+  sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
 const unLockClick = (e) => {
@@ -325,7 +325,8 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
-      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
+      console.log('returnSemanticLabelFromCode', currentLabel.name);
+      sendMsg('returnSemanticLabelFromCode', { 'label': currentLabel.name });
     }
   }
 };
@@ -400,10 +401,19 @@ const setupHoverListeners = () => {
           lastMoveLabel = currentLabel;
         }
       }, 80);
-    } else if (!currentLabel && !isLocked.value) {
-      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
-      lockPosition.value = null;
-      updateHoverDecoration(null);
+    } else if (!currentLabel && !isLocked.value && lastSentLabel) {
+      canUpdateLabelSelect = true;
+      setTimeout(() => {
+        if (!canUpdateLabelSelect || !lastSentLabel) {
+          return;
+        }
+        console.log('returnSemanticLabelFromCode');
+        sendMsg('returnSemanticLabelFromCode', { label: '' });
+        lastSentLabel = null;
+        lastMoveLabel = null;
+        lockPosition.value = null;
+        updateHoverDecoration(null);
+      }, 80);
     }
   });
 
@@ -415,14 +425,6 @@ const setupHoverListeners = () => {
     }
   });
 
-  // 鼠标移出编辑器事件
-  editor.onDidBlurEditorWidget(() => {
-    // 移出时不解除锁定状态
-    if (!isLocked.value && currentHoverDecoration) {
-      editor.deltaDecorations(currentHoverDecoration, []);
-      currentHoverDecoration = null;
-    }
-  });
 
   // 内容变化事件
   editor.onDidChangeModelContent(() => {
@@ -559,6 +561,14 @@ window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
 
 const initEventListeners = () => {
   window.addEventListener('message', handleMessage);
+};
+
+const sendMsg = (command, param) => {
+  try {
+    window.ascEventBus.emit(command, param);
+  } catch (error) {
+    console.error(`${command}执行失败`, error);
+  }
 };
 
 const handleMessage = (event) => {

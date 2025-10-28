@@ -516,7 +516,7 @@ const handleMouseMove = throttle((e) => {
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
     if (preLabel && preLabel !== color && !isLockStatus) {
-      window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+      sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
   }
@@ -1938,11 +1938,13 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     });
     return;
   }
+  let needRender = true;
   const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
   changeScale(zoomFactor, 0, false);
   const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
+    needRender = false;
   }
   const eventRightX = (maxX * viewState.scale) + viewState.offsetX;
   const divElement = document.getElementsByClassName('swimlane-container');
@@ -1953,9 +1955,14 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     // 一半被隐藏在视口之外
     const hiddenWidth = eventRightX - canvasCSSWidth;
     leftmove(hiddenWidth + scrollWidth);
+    needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 整个被隐藏在视口之外
     leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
+    needRender = false;
+  }
+  if (needRender) {
+    transform();
   }
   swimlaneContainer.value.scrollTo({
     top: minY,
@@ -2019,7 +2026,7 @@ const handleOutline = (label) => {
       });
       if (!isLockStatus && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
-        window.ascEventBus?.emit('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+        sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
     drawBoundary();
@@ -2038,6 +2045,13 @@ window.ascEventBus.on('activeLock', ({ label }) => {
 window.ascEventBus.on('deactivateLock', () => {
   isLockStatus = false;
 });
+const sendMsg = (command, param) => {
+  try {
+    window.ascEventBus.emit(command, param);
+  } catch (error) {
+    console.error(`${command}执行失败`, error);
+  }
+};
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
