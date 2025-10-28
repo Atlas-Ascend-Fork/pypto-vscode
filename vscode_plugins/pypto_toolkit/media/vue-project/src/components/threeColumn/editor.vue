@@ -325,6 +325,7 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
+      console.log('returnSemanticLabelFromCode', currentLabel.name);
       window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': currentLabel.name });
     }
   }
@@ -400,10 +401,18 @@ const setupHoverListeners = () => {
           lastMoveLabel = currentLabel;
         }
       }, 80);
-    } else if (!currentLabel && !isLocked.value) {
-      window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
-      lockPosition.value = null;
-      updateHoverDecoration(null);
+    } else if (!currentLabel && !isLocked.value && lastSentLabel) {
+      canUpdateLabelSelect = true;
+      setTimeout(() => {
+        if (!canUpdateLabelSelect || !lastSentLabel) {
+          return;
+        }
+        console.log('returnSemanticLabelFromCode');
+        window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
+        lastSentLabel = null;
+        lastMoveLabel = null;
+        updateHoverDecoration(null);
+      }, 80);
     }
   });
 
@@ -415,14 +424,6 @@ const setupHoverListeners = () => {
     }
   });
 
-  // 鼠标移出编辑器事件
-  editor.onDidBlurEditorWidget(() => {
-    // 移出时不解除锁定状态
-    if (!isLocked.value && currentHoverDecoration) {
-      editor.deltaDecorations(currentHoverDecoration, []);
-      currentHoverDecoration = null;
-    }
-  });
 
   // 内容变化事件
   editor.onDidChangeModelContent(() => {
