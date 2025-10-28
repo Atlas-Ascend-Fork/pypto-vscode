@@ -1938,11 +1938,13 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     });
     return;
   }
+  let needRender = true;
   const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
   changeScale(zoomFactor, 0, false);
   const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
+    needRender = false;
   }
   const eventRightX = (maxX * viewState.scale) + viewState.offsetX;
   const divElement = document.getElementsByClassName('swimlane-container');
@@ -1953,9 +1955,14 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     // 一半被隐藏在视口之外
     const hiddenWidth = eventRightX - canvasCSSWidth;
     leftmove(hiddenWidth + scrollWidth);
+    needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 整个被隐藏在视口之外
     leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
+    needRender = false;
+  }
+  if (needRender) {
+    transform();
   }
   swimlaneContainer.value.scrollTo({
     top: minY,
