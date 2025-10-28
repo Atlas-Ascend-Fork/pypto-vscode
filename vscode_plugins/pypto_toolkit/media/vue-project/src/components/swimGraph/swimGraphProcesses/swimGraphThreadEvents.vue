@@ -513,7 +513,7 @@ const handleMouseMove = throttle((e) => {
     const { args } = hoveredEvent ?? {};
     const { color } = args ?? {};
     const eventHintStr = args?.['event-hint'] ?? '';
-    const rootHashList = getRootHashList(eventHintStr);
+    const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
     if (preLabel && preLabel !== color && !isLockStatus) {
       window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
@@ -541,9 +541,10 @@ const getRootHashList = (eventHintStr) => {
   const matches = [...eventHintStr.matchAll(rootHashRegex)];
 
   // 使用可选链和空值合并确保安全提取
-  return matches
+  const hashArray = matches
     .map(match => match?.groups?.hash)
     .filter(hash => hash != null);
+  return hashArray.join(',');
 };
 const drawSelectionBox = () => {
   const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -1975,6 +1976,7 @@ const handleOutline = (label) => {
       return;
     }
     drawColorDatas[processKey] = [];
+    let rootHashArray = [];
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
       if (thread.isCounter) {
@@ -2009,11 +2011,13 @@ const handleOutline = (label) => {
       const { eventCtx } = ctxs[processKey];
       drawColorDatas[processKey].forEach((event, eventKey) => {
         onSelectionEvent(event, eventCtx, processKey);
+        const { args } = event ?? {};
+        const eventHintStr = args?.['event-hint'] ?? '';
+        const rootHashStr = getRootHashList(eventHintStr);
+        rootHashArray.push(rootHashStr);
       });
       if (!isLockStatus && drawColorDatas[processKey].length) {
-        const { args } = drawColorDatas[processKey][0] ?? {};
-        const eventHintStr = args?.['event-hint'] ?? '';
-        const rootHashList = getRootHashList(eventHintStr);
+        const rootHashList = [...new Set(rootHashArray)];
         window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
