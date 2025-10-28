@@ -402,6 +402,8 @@ const setupHoverListeners = () => {
       }, 80);
     } else if (!currentLabel && !isLocked.value) {
       window.ascEventBus.emit('returnSemanticLabelFromCode', { 'label': '' });
+      lockPosition.value = null;
+      updateHoverDecoration(null);
     }
   });
 
