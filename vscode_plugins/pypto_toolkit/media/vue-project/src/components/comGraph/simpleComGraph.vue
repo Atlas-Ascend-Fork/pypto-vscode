@@ -3,7 +3,6 @@
     <ComGraphHeader
       :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
       @onLocate="onLocate"
-      :graph-type="graphType"
       :openMode="props.openMode"
     ></ComGraphHeader>
     <d-select
@@ -276,13 +275,18 @@ onMounted(() => {
 
     .toolbar-row {
       left: calc(100% - 485px);
+      margin-top: 16px;
+    }
+
+    .module-row {
+      display: none;
     }
   }
 
   .simple-com-root-hash-list {
     position: absolute;
     left: 16px;
-    top: 52px;
+    top: 16px;
     z-index: 12;
     width: 140px;
   }

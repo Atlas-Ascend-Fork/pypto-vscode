@@ -343,7 +343,7 @@ const curSearchOptions = [
 ];
 
 const currentSelect = ref('current');
-const allOptions = ref(comGraphStore.data.comGraphConfig.isSimple ? [searchOptions[0]] : searchOptions);
+const allOptions = ref(searchOptions);
 const selectWidth = ref(getTextWidth(allOptions.value[0].name, 13) + 28);
 const textConfig = {
   keywordName: t('comGraph.keyword')
@@ -385,6 +385,12 @@ watch(currentSelect, (newVal) => {
     category.value = categoryCurrent;
   }
   onSelectedTagsChange({ selectedTags: [] });
+});
+
+watch(() => comGraphStore.data.comGraphConfig.isSimple, (val) => {
+  if (val) {
+    allOptions.value = [searchOptions[0]]
+  }
 });
 
 const onSelectedChange = (e) => {
