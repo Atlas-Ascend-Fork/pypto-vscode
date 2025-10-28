@@ -430,7 +430,7 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   font-size: 8.55px;
   white-space: nowrap;
   line-height: 12px;
-  padding-top: 4px;
+  padding-top: 3px;
   padding-left: 10px;
 }
 
