@@ -11,7 +11,7 @@
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
       <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
-        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @change="handleTabChange">
+        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @change="handleTabChange" custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
           <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
                  :key="tabIndex" :title="tab.name" class="data-tabs">
@@ -614,8 +614,7 @@ defineExpose({
     align-items: center;
     gap: 4px;
     width: 100%;
-    height: 28px;
-    margin-bottom: 4px;
+    height: 32px;
     cursor: pointer;
     padding-left: 8px;
     border-radius: 4px;
@@ -645,31 +644,6 @@ defineExpose({
     }
   }
 }
-
-
-// 触发按钮组：控制按钮布局和间距
-.trigger-buttons {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-// 触发按钮：基础样式+按按钮名称匹配背景色
-.trigger-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  color: var(--devui-title-text);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
 
 // 抽屉容器：深色主题，右侧弹出，固定宽度
 .drawer-container {
@@ -723,6 +697,7 @@ defineExpose({
 
       .call-record {
         height: 100%;
+        width: 100%;
       }
 
 
@@ -737,7 +712,6 @@ defineExpose({
         .search-input {
           width: 200px;
           border-radius: 6px !important;
-          margin-top: 16px;
           // 搜索图标：颜色适配
           .search-input__icon {
             display: flex;
@@ -854,7 +828,6 @@ defineExpose({
               justify-content: center;
               transform: rotate(90deg);
             }
-
           }
         }
 
@@ -869,7 +842,7 @@ defineExpose({
 
 // 空数据提示：样式适配
 .empty-tip {
-  margin: 40px auto;
+  padding-top: 16px;
   text-align: center;
   color: var(--devui-primary-text);
   font-size: 14px;
@@ -903,7 +876,6 @@ defineExpose({
   .active {
     background-color: var(--devui-secondary-button-active-bg);
     border-radius: 4px;
-
     .devui-tabs__nav-content {
       a {
         color: var(--devui-title-text) !important;
@@ -931,7 +903,9 @@ defineExpose({
   tr {
     background-color: var(--devui-card-bg) !important;
   }
-
+  tr:hover{
+    background-color: var(--devui-input-active-bg)!important;
+  }
   tr {
     height: 32px;
 
@@ -944,12 +918,14 @@ defineExpose({
       display: none;
     }
   }
-
-  .demo-hover {
-    background-color: pink !important;
-  }
 }
+:deep(.devui-table){
+  scrollbar-width: none!important;
+}
+:deep(.devui-table__fix-header){
+  scrollbar-width: none!important;
 
+}
 .content-table__expand-column {
   // 展开内容区：样式适配
   background-color: var(--devui-nest-bg);
