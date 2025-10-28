@@ -516,7 +516,7 @@ const handleMouseMove = throttle((e) => {
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
     if (preLabel && preLabel !== color && !isLockStatus) {
-      window.ascEventBus?.emit('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+      sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
   }
@@ -2026,7 +2026,7 @@ const handleOutline = (label) => {
       });
       if (!isLockStatus && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
-        window.ascEventBus?.emit('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+        sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
     drawBoundary();
@@ -2045,6 +2045,13 @@ window.ascEventBus.on('activeLock', ({ label }) => {
 window.ascEventBus.on('deactivateLock', () => {
   isLockStatus = false;
 });
+const sendMsg = (command, param) => {
+  try {
+    window.ascEventBus.emit(command, param);
+  } catch (error) {
+    console.error(`${command}执行失败`, error);
+  }
+};
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
