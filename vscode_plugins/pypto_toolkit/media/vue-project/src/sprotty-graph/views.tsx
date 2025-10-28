@@ -637,6 +637,13 @@ export class AstgrOpView extends RectangularNodeView {
         backgroundFilter = 'grayscale(1)';
       }
     }
+    if (comGraphStore.data.selectedNodeSemanticLabel) {
+      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+        backgroundFillColor = node.lightColor;
+      } else {
+        backgroundFilter = 'grayscale(1)';
+      }
+    }
     let opSign;
     if (node.calleehash) {
       let svgName = '';
@@ -898,6 +905,14 @@ export class AstgrTensorView extends RectangularNodeView {
         inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
       }
       if (!incoming && !outgoing) {
+        backgroundFilter = 'grayscale(1)';
+      }
+    }
+    if (comGraphStore.data.selectedNodeSemanticLabel) {
+      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+        titleBackgroundFillColor = node.lightColor;
+        inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
+      } else {
         backgroundFilter = 'grayscale(1)';
       }
     }

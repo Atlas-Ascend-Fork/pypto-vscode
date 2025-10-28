@@ -88,16 +88,24 @@ function onMessageFromSwim(args) {
   createSelectNodesRect(args.label);
   listenLockClick();
   if (args.rootHashList?.length) {
-    rootHash.value = args.rootHashList[0];
+    if (comGraphStore.data.curPath.length) {
+      rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
+    }
     generateHashList(args.rootHashList);
     if (
       comGraphStore.data.isNodeRectLock &&
-      args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
+      !args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
     ) {
       onHashChange({ name: comGraphStore.data.calleeMap[rootHash.value].func_magicname, value: rootHash.value });
     }
   }
 }
+(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
+  if (!args.label) {
+    removeSelectNodesRect();
+    lockIcon?.removeEventListener('click', onLockClick);
+  }
+});
 (window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', onMessageFromSwim);
 (window as any).ascEventBus.on('returnSemanticLabelFromSwim', onMessageFromSwim);
 (window as any).ascEventBus.on('rect_node_hover', (args) => {

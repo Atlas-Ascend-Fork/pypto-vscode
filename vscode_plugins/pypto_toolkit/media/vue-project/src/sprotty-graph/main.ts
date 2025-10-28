@@ -354,7 +354,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       return;
     }
       
-    selectAction(selectedNodes);
+    comGraphStore.data.selectedNodeSemanticLabel = semantic_lable;
     modelSource.removeElements(['show-node-rect']);
     const newRect = new Rect();
     newRect.id = 'show-node-rect';
@@ -379,6 +379,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   const removeSelectNodesRect = async () => {
+    comGraphStore.data.selectedNodeSemanticLabel = '';
     modelSource.model.notNeedLayout = true;
     await modelSource.removeElements(['show-node-rect']);
     modelSource.model.notNeedLayout = false;

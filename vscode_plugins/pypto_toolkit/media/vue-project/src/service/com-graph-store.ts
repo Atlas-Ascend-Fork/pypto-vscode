@@ -25,6 +25,7 @@ interface ComGraphData {
   isNodeRectLock: boolean;
   fixedNodeId: string;
   layoutDirection: string;
+  selectedNodeSemanticLabel: string;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -43,6 +44,7 @@ export const comGraphStore: DataStore = reactive({
   data: {
     jsonData: '',
     fixedNodeId: '',
+    selectedNodeSemanticLabel: '',
     pathNodesSet: [],
     comGraphNodeData: {},
     calleeMap: {},
