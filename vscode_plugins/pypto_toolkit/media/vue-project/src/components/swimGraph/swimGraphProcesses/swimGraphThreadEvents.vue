@@ -1986,6 +1986,9 @@ const handleOutline = (label) => {
     if (!process.expanded) {
       return;
     }
+    highlightedPaths.clear();
+    detailsPanelExpanded.value = false;
+    selectEvent(null, props.processKey);
     drawColorDatas[processKey] = [];
     rootHashArray = [];
     // 遍历线程
