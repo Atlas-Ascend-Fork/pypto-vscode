@@ -29,7 +29,6 @@ export class Fider {
     if (!swimPath && !comPath) {
       const autoPaths = await this.tryFindLatestOutputPaths();
       if (autoPaths.swimPath && autoPaths.comPath) {
-        window.showInformationMessage(t('pypto.autoFinded'));
         return autoPaths;
       }
   

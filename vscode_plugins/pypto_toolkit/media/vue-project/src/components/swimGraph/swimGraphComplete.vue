@@ -1703,7 +1703,9 @@ provide('swimGraphMethods', {
   flagRender: () => { timelineComponent?.value.flagRender() },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
   rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) },
-  changeScale: (zoomFactor, centerPositionX, render = true) => { timelineComponent?.value.changeScale(zoomFactor, centerPositionX, render) },
+  changeScale: (zoomFactor, centerPositionX, render = true, isManual = true) => {
+    timelineComponent?.value.changeScale(zoomFactor, centerPositionX, render, isManual);
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();

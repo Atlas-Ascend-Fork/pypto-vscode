@@ -291,20 +291,24 @@ const throttledRender = throttle(() => {
   transform();
 }, 16); // 约60fps
 
-const changeScale = (zoomFactor, centerPositionX, render = true) => {
+const changeScale = (zoomFactor, centerPositionX, render = true, isManual = true) => {
   if (viewState.scale * 10 >= sliderMax.value && zoomFactor > 1) {
-    wheelDebounceTimer = setTimeout(() => {
-      postMessage($t('scaleMaxInfo'));
-    }, 100);
+    if (isManual) {
+      wheelDebounceTimer = setTimeout(() => {
+        postMessage($t('scaleMaxInfo'));
+      }, 100);
+    }
     return;
   }
   const oldScale = viewState.scale;
   const oldOffsetX = viewState.offsetX;
 
   if (zoomFactor < 1 && oldScale === initialScale.value && oldOffsetX >= 0) {
-    wheelDebounceTimer = setTimeout(() => {
-      postMessage($t('scaleMinInfo'));
-    }, 100);
+    if (isManual) {
+      wheelDebounceTimer = setTimeout(() => {
+        postMessage($t('scaleMinInfo'));
+      }, 100);
+    }
     return;
   }
   

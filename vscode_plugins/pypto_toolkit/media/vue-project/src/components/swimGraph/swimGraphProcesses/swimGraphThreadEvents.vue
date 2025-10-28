@@ -1956,7 +1956,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   }
   let needRender = true;
   const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
-  changeScale(zoomFactor, 0, false);
+  changeScale(zoomFactor, 0, false, false);
   const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
