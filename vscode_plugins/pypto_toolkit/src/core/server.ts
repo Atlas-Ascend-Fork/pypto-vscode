@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { WebviewConnector } from './connector';
 
 export interface RequestOptions {
-  /** 超时时间（单位：ms），默认10000 */
+  /** 超时时间（单位：ms），默认30000 */
   timeout?: number;
 
   /**

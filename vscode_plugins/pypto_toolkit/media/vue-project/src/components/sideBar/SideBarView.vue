@@ -8,8 +8,9 @@
       <div class="refresh" @click="getAllRecords">
         <d-icon name="refresh"></d-icon>
       </div>
+      <div class="flex1"></div>
+      <SideBarSearch @search="updateKeyword"></SideBarSearch>
     </div>
-    <SideBarSearch :model-value="keyword" @search="handleSearch"></SideBarSearch>
     <!-- 筛选区 -->
     <div class="filters">
       <d-icon class="sort" operable @click="sortOption = !sortOption">
@@ -23,10 +24,9 @@
       </d-icon>
     </div>
     <!-- 树组件：双插槽用法 -->
-    <div class="tree-container">
+    <div class="tree-container" v-loading="isLoading">
       <d-tree
         ref="treeRef"
-        v-loading="searchLoading"
         :data="visibleTreeData"
         :node-class="() => 'custom-tree-node'"
         show-line="false"
@@ -44,12 +44,12 @@
             </div>
 
             <!-- 节点文本区域（两行布局） -->
-            <div v-if="nodeData.type === 'dir'" :class="{ 'node-text-folder': nodeData.level === 1 }" @dblclick="nodeClick(nodeData)">
-              <div class="node-label">{{ nodeData.label }}</div>
+            <div v-if="nodeData.type === 'dir'" :class="{ 'node-text-folder': nodeData.level === 1 }">
+              <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
               <div class="node-date" v-if="nodeData.date">{{ nodeData.date }}</div>
             </div>
-            <div v-else class="node-text-children" @dblclick="nodeClick(nodeData)">
-              <div class="node-label">{{ nodeData.label }}</div>
+            <div v-else class="node-text-children">
+              <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
             </div>
           </div>
         </template>
@@ -58,41 +58,12 @@
         <template #icon="{ nodeData, toggleNode }">
           <div class="toggle-icon-container">
             <!-- 叶子节点：显示空白占位 -->
-
             <span v-if="nodeData.isLeaf" class="devui-tree-node__indent"></span>
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
-              <div
-                v-if="nodeData.date"
-                @click="
-                  (event) => {
-                    event.stopPropagation();
-                    toggleNode(nodeData);
-                  }
-                "
-                class="devui-tree-node-icon"
-              >
+              <div @click.stop="() => toggleNode(nodeData)" :class="{ 'devui-tree-node-icon': nodeData.date }">
                 <i
                   class="icon icon-chevron-right"
-                  :style="{
-                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                    cursor: 'pointer',
-                  }"
-                ></i>
-              </div>
-
-              <div
-                v-else
-                @click="
-                  (event) => {
-                    event.stopPropagation();
-                    toggleNode(nodeData);
-                  }
-                "
-                class="devui-tree-children-node-icon"
-              >
-                <i
-                  class="devui-tree-children-node-icon icon icon-chevron-right"
                   :style="{
                     transform: nodeData.expanded ? 'rotate(90deg)' : '',
                     cursor: 'pointer',
@@ -115,6 +86,7 @@ import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
 import SideBarSearch from './SideBarSearch.vue';
+import { useSearchingHighlight } from './hooks/use-searching-highlight';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -122,6 +94,8 @@ type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['direct
 
 const { t } = useI18n();
 const treeRef = ref(null);
+
+const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 
 /**
  * 树节点数据
@@ -186,10 +160,13 @@ async function transformData(outputData: OutputRecords) {
       isLeaf: false,
       ...record,
     };
-    treeData.value.push(rootNode);
+
+    // 记录子节点
     const detail = await getOutputDetail(record.directoryPath);
     const child = transformChild(detail.data.directoryTree.children);
     nodeChildrenMap.set(rootNode.id, child);
+
+    treeData.value.push(rootNode);
   }
 }
 
@@ -201,26 +178,19 @@ onMounted(() => {
   getAllRecords();
 });
 
-const keyword = ref('');
-const searchLoading = ref(false);
+const isLoading = ref(false);
 const sortOption = ref(false);
 
 watch(sortOption, () => {
   getAllRecords();
 });
 
-async function handleSearch(value: string): Promise<void> {
-  searchLoading.value = true;
-  keyword.value = value;
-  await getAllRecords();
-  searchLoading.value = false;
-}
-
 async function getAllRecords(): Promise<void> {
+  isLoading.value = true;
   treeData.value = [];
-  const { data } = await getOutputRecords({ keyword: keyword.value, sortOrder: sortOption.value ? 'asc' : 'desc' });
-  console.log('output records', data);
+  const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
   await transformData(data);
+  isLoading.value = false;
 }
 </script>
 
@@ -273,6 +243,10 @@ async function getAllRecords(): Promise<void> {
     :deep(*) {
       color: var(--devui-title-text);
     }
+  }
+
+  .flex1 {
+    flex: 1;
   }
 
   .tree-search {
@@ -346,7 +320,7 @@ async function getAllRecords(): Promise<void> {
     min-width: 100%;
     width: fit-content;
     height: fit-content;
-    min-height: 300px;
+    min-height: 48px;
 
     /* 节点文本样式 */
     .devui-tree__node {

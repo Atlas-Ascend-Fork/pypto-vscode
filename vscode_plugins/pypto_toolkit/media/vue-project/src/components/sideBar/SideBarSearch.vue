@@ -2,31 +2,42 @@
 import { debounce } from 'lodash-es';
 import { nextTick, ref } from 'vue';
 
-const props = defineProps<{
-  modelValue: string;
-}>();
-
 const emit = defineEmits<{
   (e: 'search', keyword: string): void;
 }>();
 
-const isActive = ref(true);
+const isActive = ref(false);
 const searchInput = ref(null);
 const keyword = ref('');
 
 function activeSearchInput() {
-  keyword.value = props.modelValue;
+  keyword.value = '';
   isActive.value = true;
   nextTick(() => {
     searchInput.value.focus();
   });
 }
 
+function handleBlur() {
+  if (!keyword.value) {
+    hideSearchInput();
+  }
+}
+
 function handleSearch() {
   emit('search', keyword.value);
 }
 
+// 停止输入500ms，触发搜索
 const debounceSearch = debounce(handleSearch, 500);
+
+/**
+ * 隐藏输入框
+ */
+function hideSearchInput() {
+  debounceSearch.flush();
+  isActive.value = false;
+}
 </script>
 
 <template>
@@ -39,6 +50,7 @@ const debounceSearch = debounce(handleSearch, 500);
       icon-position="left"
       :placeholder="$t('sideBar.searchPlaceholder')"
       clearable
+      @blur="handleBlur"
       @clear="handleSearch"
       @keyup.enter="handleSearch"
       @input="debounceSearch"
@@ -53,16 +65,20 @@ const debounceSearch = debounce(handleSearch, 500);
 
 <style lang="less" scoped>
 .side-bar-search {
-  padding: 0 16px;
+  width: 28px;
+  height: 28px;
+  position: relative;
 
   .search-input {
     width: calc(100vw - 32px);
+    position: absolute;
+    right: 0;
   }
 
   .icon-search-new {
     cursor: pointer;
     font-size: 16px;
-    padding: 6px;
+    padding: 6px 7px 6px 5px;
 
     &:hover {
       color: var(--devui-link-text);
