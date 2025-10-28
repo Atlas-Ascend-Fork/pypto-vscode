@@ -95,7 +95,7 @@
         <div class="history-header">{{ t('comGraph.searchHistoryTips') }}</div>
         <div class="history-tags">
           <span v-for="item in historyList" :key="item" class="history-tag" @click="historyOnSearch(item)">
-            {{item}}
+              {{restoreHistory(item)}}
           </span>
         </div>
       </div>
@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, onMounted, reactive, watch} from 'vue';
+import { ref, defineEmits, onMounted, reactive, watch, capitalize} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { comGraphStore } from '../../service/com-graph-store';
 import { getCurFunctionDynamicAttr } from '../../sprotty-graph/parseSymbolicAttr';
@@ -275,7 +275,7 @@ const isSearchFocus = ref(false);
 const upperActive = ref(false);
 const regActive = ref(false);
 const iconPath = `${(window as any).staticPath}/static-assets/logo.png`;
-const historyList = localStorage['history']?.split(',');
+let  historyList = localStorage[props?.jsonContent?.hash]?.split(',');
 
 const { onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -325,15 +325,44 @@ function regSearch() {
   icon?.click();
 }
 
+const restoreHistory = (item) => {
+  if (!item) return item;
+  const kvPair = item.split(':');
+  const category = kvPair[0] ?? '';
+  const searchKey = kvPair[1] ?? '';
+  const isFuzz = kvPair[2] ?? undefined;
+  const optValue = kvPair[3] ?? undefined;
+
+  if (!category || !searchKey) {
+    return item;
+  }
+
+  const shownItem = (isFuzz === 'true' && optValue) ? `${category}:${optValue}:${searchKey}` : `${category}:${searchKey}`
+  return shownItem;
+}
+
 const historyOnSearch = (searchNode) => {
   hasSearched = false;
   upperActive.value = false;
   regActive.value = false;
+
+  let nodeType = searchNode?.split(':')[0] ?? undefined;
+  if (nodeType) {
+    nodeType = capitalize(nodeType);
+    if (nodeType === "Implicit") {
+      nodeType = undefined;
+    }
+  }
   const realSearchKey = searchNode?.split(':')[1] ?? undefined;
+  const isFuzz = searchNode?.split(':')[2] ?? undefined;
+  const optionValue = searchNode?.split(':')[3] ?? undefined;
+
+  const selectedTagOption = (isFuzz === "true") ? optionValue : undefined;
+
   const e = {
-    selectedTags: [],
+    selectedTags: [{field: nodeType, value: {Option: selectedTagOption} }],
     searchKey : realSearchKey,
-    category : undefined
+    category : nodeType,
   }
   onSearch(e);
 }
@@ -399,67 +428,43 @@ const onSearch = (e) => {
   }
   filterSearchResult(res.value);
   resSize.value = res.value.length;
-  setSearchHistory(e.searchKey, res.value);
+  setSearchHistory(e.searchKey, res.value, e.option, e.category);
 }
 
-function setSearchHistory(searchContent: string, result: any) {
+function setSearchHistory(searchContent: string, result: any, optionValue?: string, searchNodeType?: string) {
   if (!(searchContent) || searchContent === '') {
     return;
   }
   searchContent = searchContent.trim();
-  const searchKeyType = matchNodeType(searchContent, result);
+  const searchKeyType = matchNodeType(searchContent, result, searchNodeType);
 
-  const fixedkey = "history";
-
-  let oldSearchList: string[];
-  const oldSearchHistory = localStorage.getItem(fixedkey);
-  if (!oldSearchHistory) {
-    oldSearchList = [];
-  } else {
-    oldSearchList = oldSearchHistory.split(',');
+  let currentPageHistory = localStorage.getItem(currentFuncHash)?.split(',');
+  if (!currentPageHistory) {
+    currentPageHistory = [];
   }
 
-  const newRecord = `${searchKeyType}:${searchContent}`;
+  const isFuzz = optionValue ? true : false;
+  const newRecord = optionValue ? `${searchKeyType}:${searchContent}:${isFuzz}:${optionValue}` : `${searchKeyType}:${searchContent}:${isFuzz}`;
 
-  const nodePos = oldSearchList.findIndex(pastnode => pastnode?.split(':')[1] === searchContent);
+  const nodePos = currentPageHistory.findIndex(pastnode => pastnode?.split(':')[1] === searchContent);
   if (nodePos !== -1) {
-    oldSearchList.splice(nodePos, 1);
+    currentPageHistory.splice(nodePos, 1);
   }
-  oldSearchList.unshift(newRecord);
+  currentPageHistory.unshift(newRecord);
 
-  if (oldSearchList.length > 20) {
-    oldSearchList.pop();
+  if (currentPageHistory.length > 20) {
+    currentPageHistory.pop();
   }
 
-  const newSearchList = oldSearchList.join(',');
-  localStorage.setItem(fixedkey, newSearchList);
+  const newPageHistory = currentPageHistory.join(',');
+  localStorage.setItem(currentFuncHash, newPageHistory);
 }
 
-function matchNodeType(searchContent: string, result: any) {
-  let searchKey = 'unmatched';
+function matchNodeType(searchContent: string, result: any, searchNodeType?: string) {
+  let searchKey = 'implicit';
 
-  for (let i = result.length - 1; i >= 0; i--) {
-    const obj = result[i];
-    if (obj.magic?.toString() === searchContent || obj.opmagic?.toString() === searchContent) {
-      searchKey = obj.node_type;
-      return searchKey;
-    }
-  }
-
-  for (let i = result.length - 1; i >= 0; i--) {
-    const obj = result[i];
-    if (obj.node_type === 'tensor' && obj.rawtensor?.toString() === searchContent) {
-      searchKey = 'rawtensor';
-      return searchKey;
-    }
-  }
-
-  for (let i = result.length - 1; i >= 0; i--) {
-    const obj = result[i];
-    if (obj.subgraphid?.toString() === searchContent) {
-      searchKey = 'subgraphId';
-      return searchKey;
-    }
+  if (searchNodeType && searchNodeType !== '') {
+    searchKey = searchNodeType.charAt(0).toLowerCase() + searchNodeType.slice(1);
   }
 
   return searchKey;
