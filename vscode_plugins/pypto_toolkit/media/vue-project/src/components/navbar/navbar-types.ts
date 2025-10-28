@@ -40,10 +40,10 @@ export const navbarProps = {
     type: String as PropType<LeafInPass['leafName']>,
     default: '',
   },
-  controlFlowData:{
-      type:Array as PropType<ControlFlowData[]>,
-      default:[]
-  }
+  controlFlowData: {
+    type: Array as PropType<ControlFlowData[]>,
+    default: () => [],
+  },
 };
 
 type NavbarProps = ExtractPropTypes<typeof navbarProps>;
@@ -55,5 +55,6 @@ export interface NavbarContext {
   passList: Ref<PathInPass[]>;
   leafFunctions: Ref<LeafInPass[]>;
   jumpComGraph: (filePath: string, pathName?: string) => void;
+  emitLeafChange: (leafName: string) => void;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

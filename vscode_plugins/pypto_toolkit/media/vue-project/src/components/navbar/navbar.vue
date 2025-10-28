@@ -55,6 +55,7 @@ import { findFirstPath } from './util';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
+const emits = defineEmits(['leafChange']);
 const historyListEl = ref();
 const passEl = ref();
 const historyList = ref<HistoryData[]>([]);
@@ -63,7 +64,7 @@ const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
 const showSwim = ref(true);
 
-provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph });
+provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
 
 getOutputRecords({}, { timeout: 600000 }).then((res) => {
   historyList.value = res.data;
@@ -92,6 +93,10 @@ watch(
   },
   { immediate: true },
 );
+
+function emitLeafChange(leafName: string) {
+  emits('leafChange', leafName);
+}
 
 function onRecordChange(record: HistoryData) {
   showSwim.value = Boolean(record.swimlaneGraphFilePath);

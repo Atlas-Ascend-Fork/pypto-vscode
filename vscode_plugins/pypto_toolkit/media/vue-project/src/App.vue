@@ -231,7 +231,7 @@ header {
   min-width: 960px;
 
   &.com-graph-with-navbar {
-    min-width: 1574px;
+    min-width: 1076px;
   }
 }
 </style>
