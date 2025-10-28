@@ -84,7 +84,7 @@ window.addEventListener('message', (event) => {
   }
 });
 
-(window as any).ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
+function onMessageFromSwim(args) {
   createSelectNodesRect(args.label);
   listenLockClick();
   if (args.rootHashList?.length) {
@@ -97,7 +97,9 @@ window.addEventListener('message', (event) => {
       onHashChange({ name: comGraphStore.data.calleeMap[rootHash.value].func_magicname, value: rootHash.value });
     }
   }
-});
+}
+(window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', onMessageFromSwim);
+(window as any).ascEventBus.on('returnSemanticLabelFromSwim', onMessageFromSwim);
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
   if (args.semanticLabel) {
     createSelectNodesRect(args.semanticLabel);
