@@ -83,3 +83,26 @@ export function generateColorList(count: number, isDark = true) {
     lightColorList: originLightColorList
   }
 }
+
+function dbj2Hash(str: string) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * 根据字符串获取颜色
+ * @param str
+ * @param baseColorList 某种主题下的默认态颜色列表
+ * @param lightColorList 某种主题下的高亮态颜色列表
+ * @returns 默认态颜色和高亮态颜色
+ */
+export function getColorByString(str: string, baseColorList: any, lightColorList: any) {
+  const hash = dbj2Hash(str);
+  const index = hash % baseColorList.length;
+  const baseColor = baseColorList[index];
+  const lightColor = lightColorList[index];
+  return { baseColor, lightColor };
+}

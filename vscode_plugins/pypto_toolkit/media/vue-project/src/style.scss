@@ -76,3 +76,7 @@ html {
 .hide-category-search-dropdown {
   display: none !important;
 }
+input,
+input:focus {
+  outline: none !important;
+}

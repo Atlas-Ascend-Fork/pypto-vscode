@@ -51,13 +51,16 @@ const {
   initialScale,
   tooltip,
   tooltipStyle,
+  lineTooltip,
+  lineTooltipStyle,
   timelineState,
   isDarkTheme,
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  dependencyLinesInfo
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -80,13 +83,16 @@ provide('swimGraphState', {
   initialScale,
   tooltip,
   tooltipStyle,
+  lineTooltip,
+  lineTooltipStyle,
   timelineState,
   isDarkTheme,
   mulDetailsExpanded,
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  dependencyLinesInfo
 });
 
 const {
@@ -106,6 +112,7 @@ const {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
+  getDisplayName,
   changeScale,
   resetState,
 } = inject('swimGraphMethods');
@@ -127,6 +134,7 @@ provide('swimGraphMethods', {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
+  getDisplayName,
   changeScale,
   resetState,
 });

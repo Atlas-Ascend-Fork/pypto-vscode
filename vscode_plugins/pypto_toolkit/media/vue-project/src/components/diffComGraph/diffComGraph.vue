@@ -32,6 +32,7 @@
         <Loading v-if="isLoading" :loadingText="loadingText" />
       </div>
     </div>
+    <ShowTip></ShowTip>
   </div>
 </template>
 
@@ -48,6 +49,7 @@ import MiniMap from '../comGraph/comGraphMinimap.vue';
 import DiffList from './diffList.vue';
 import type { DiffListItem } from './type';
 import { Message } from 'vue-devui/message';
+import ShowTip from '../util/showTip.vue';
 
 const props = defineProps({
   afterJson: Object,
@@ -173,12 +175,18 @@ function onZoomChange(args) {
   }
 }
 function onAfterMinimapZoomChange(args) {
+  if (beforeMinimapEl.value.getCurrentScale() === args[0]) {
+    return;
+  }
   if (syncOperate.value) {
     beforeIns?.syncDiffView([args[1], args[2], args[0]]);
     beforeMinimapEl.value?.syncZoomChange(args);
   }
 }
 function onBeforeMinimapZoomChange(args) {
+  if (afterMinimapEl.value.getCurrentScale() === args[0]) {
+    return;
+  }
   if (syncOperate.value) {
     afterIns?.syncDiffView([args[1], args[2], args[0]]);
     afterMinimapEl.value?.syncZoomChange(args);

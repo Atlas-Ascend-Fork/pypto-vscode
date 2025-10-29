@@ -2,21 +2,23 @@ import * as vscode from 'vscode';
 
 import { WebviewConnector } from './connector';
 
-/**
- * 页面参数
- */
-export interface ViewQuery {
+export interface UriQuery {
   /** 页面类型（组件路由） */
-  viewType: string;
+  _viewType: string;
 
-  /** 页面标题 */
-  title: string;
-
-  /** 文件路径 */
-  uri: vscode.Uri;
+  /** 真正的文件路径 */
+  _path: string;
 
   [key: string]: unknown;
 }
+
+/**
+ * 页面参数
+ */
+export type ViewQuery = UriQuery & {
+  /** 文件路径 */
+  _uri: vscode.Uri;
+};
 
 /**
  * 页面参数通信器
@@ -36,8 +38,8 @@ export class ViewQueryConnector {
   /**
    * 设置页面参数
    */
-  public setQuery({ viewType, title, webview }: vscode.WebviewPanel, uri: vscode.Uri, otherQuery: Record<string, unknown> = {}): void {
-    const query: ViewQuery = { viewType, title, uri, ...otherQuery };
+  public setQuery(webview: vscode.Webview, uri: vscode.Uri, uriQuery: UriQuery): void {
+    const query: ViewQuery = { _uri: uri, ...uriQuery };
     this.queryConnector.addWebview(webview);
     this.pendingQuery.set(webview, () => {
       this.queryConnector.send(webview, query);

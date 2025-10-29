@@ -7,9 +7,6 @@ import { hasOutputRunData, readOutputRunData } from './rundata';
 import { getOutputDirectory } from './scan-directory';
 
 export interface GetOutputRecordParams {
-  /** 模糊搜索 */
-  keyword?: string;
-
   /** 算子源文件 */
   operatorSourceFile?: string;
 
@@ -31,6 +28,7 @@ const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${pat
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
+  const { sortBy = 'executeTime', sortOrder = 'desc' } = params;
   const outputCollectionUri = vscode.Uri.file(OUTPUT_COLLECTION_PATH);
   if (!outputCollectionUri) {
     return { data: [] };
@@ -38,7 +36,12 @@ export async function getOutputRecords(params: GetOutputRecordParams): Promise<G
 
   const records: OutputRecord[] = await getRecordsFromDirectory(outputCollectionUri);
 
-  // TODO 筛选、排序
+  // 执行排序
+  records.sort((a, b) => {
+    const sortFlag = sortOrder === 'asc' ? 1 : -1;
+    return a[sortBy] > b[sortBy] ? sortFlag : sortFlag;
+  });
+
   return { data: records };
 }
 
@@ -77,13 +80,14 @@ async function getRecordsFromDirectory(directoryUri: vscode.Uri): Promise<Output
 
   const records: OutputRecord[] = [];
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.Directory) {
-      const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
-      if (await isOutputDirectory(rootDirUri)) {
-        const runData = await readOutputRunData(rootDirUri);
-        const record = getOutputRecord(rootDirUri, runData);
-        records.push(record);
-      }
+    if (fileType !== vscode.FileType.Directory) {
+      continue;
+    }
+    const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
+    if (await isOutputDirectory(rootDirUri)) {
+      const runData = await readOutputRunData(rootDirUri);
+      const record = getOutputRecord(rootDirUri, runData);
+      records.push(record);
     }
   }
 
@@ -106,16 +110,16 @@ async function isOutputDirectory(uri: vscode.Uri): Promise<boolean> {
  */
 function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
   const directoryPath = outputUri.path;
-  const sourceFilePath = runData.pto_src_file ? path.join(directoryPath, runData.pto_src_file) : '';
-  const controlFlowFilePath = path.join(directoryPath, 'program.json');
-  const swimlaneGraphFilePath = runData.swim_graph_path ? path.join(directoryPath, runData.swim_graph_path) : '';
+  const sourceFilePath = runData.pto_src_file ? path.posix.join(directoryPath, runData.pto_src_file) : '';
+  const controlFlowFilePath = path.posix.join(directoryPath, 'program.json');
+  const swimlaneGraphFilePath = runData.swim_graph_path ? path.posix.join(directoryPath, runData.swim_graph_path) : '';
 
-  const directoryName = path.basename(directoryPath);
+  const directoryName = path.posix.basename(directoryPath);
   const [_, timestamp] = directoryName.match(OutputDirectoryRegExp) ?? [];
   const executeDate = `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}`;
   const executeTime = `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`;
   return {
-    title: `${runData.runtype}_${timestamp.slice(0, 8)}_序号`, // TODO
+    title: `${runData.runtype}_${timestamp.slice(0, 8)}_${timestamp.slice(8, 14)}`,
     executeTime: `${executeDate} ${executeTime}`,
     directoryPath,
     sourceFilePath,

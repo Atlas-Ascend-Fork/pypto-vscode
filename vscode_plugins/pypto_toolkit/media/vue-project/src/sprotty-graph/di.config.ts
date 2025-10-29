@@ -83,7 +83,7 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     });
     return new Promise((resolve, reject) => {
       window.addEventListener('message', (event) => {
-        if (event.data.type === 'postLayoutResult' && (!event.data.filePath || event.data.filePath === elkGraph.layoutOptions['devkit.filePath'])) {
+        if (event.data.type === 'postLayoutResult' && (!event.data.filePath || event.data.filePath === elkGraph.layoutOptions['PyPTO.filePath'])) {
           resolve(event.data.data)
         }
       });
@@ -265,9 +265,9 @@ export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
         //"org.eclipse.elk.spacing.nodeNode": "30.0", // Reduced from 40.0 for tighter layout
         //"org.eclipse.elk.spacing.nodeNodeBetweenLayers": "25.0", // Reduced layer spacing
         "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "40.0", // Also set layered-specific spacing
-        "devkit.showTensor": this.showTensor,
-        "devkit.filePath": this.filePath,
-        "devkit.renderMode": sgraph['renderMode']
+        "PyPTO.showTensor": this.showTensor,
+        "PyPTO.filePath": this.filePath,
+        "PyPTO.renderMode": sgraph['renderMode']
         //"org.eclipse.elk.spacing.labelNode": "5.0",
         //"org.eclipse.elk.spacing.labelLabel": "2.0",
         //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",
@@ -412,9 +412,13 @@ export class CustomMouseListener extends MouseListener {
   mouseOver(target: SModelElement, event: MouseEvent): Action[] {
     (window as any).ascEventBus.emit('view_mouseover');
     if (target instanceof SGraphImpl) {
+      (window as any).ascEventBus.emit('closeNodeTip', true);
       (window as any).ascEventBus.emit('rect_node_leave');
     }
     if (target instanceof RectangularNode) {
+      if ((target.root as any).zoom < 0.5) {
+        (window as any).ascEventBus.emit('showNodeTip', target);
+      }
       if (target.id !== 'show-node-rect') {
         (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel });
       }
@@ -494,6 +498,7 @@ export class CustomMouseListener extends MouseListener {
 
   wheel(target: SModelElementImpl, event: WheelEvent): Action[] {
     const moveArea = getCurrentArea(event);
+    (window as any).ascEventBus.emit('closeNodeTip', true);
     setTimeout(() => {
       (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false, moveArea]);
     }, 0);

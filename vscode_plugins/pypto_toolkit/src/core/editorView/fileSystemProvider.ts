@@ -27,8 +27,8 @@ export class EditorViewFileSystemProvider implements vscode.FileSystemProvider, 
   }
 
   public stat(uri: vscode.Uri): vscode.FileStat {
-    const { path } = fromVirtualUri(uri);
-    const { size, ctime, mtime } = fs.statSync(path);
+    const { _path } = fromVirtualUri(uri);
+    const { size, ctime, mtime } = fs.statSync(_path);
     return { type: vscode.FileType.File, size, ctime: ctime.getTime(), mtime: mtime.getTime() };
   }
 

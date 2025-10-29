@@ -13,6 +13,7 @@ import {
 } from '../../types/workspace';
 import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
+import { hasHealthReport, isHealthReport } from '../../utils/health-report';
 
 const CONTROL_FLOW_SOURCE_FILE = 'program.json';
 
@@ -68,7 +69,7 @@ async function getSwimlaneFile(outputUri: vscode.Uri, runData: RunDataManifest):
     {
       type: 'file',
       fileType: 'swimlaneGraph',
-      name: runData.swim_graph_path,
+      name: t('PyPTOToolkit.workspace.swimlaneGraphName'),
       absolutePath: swimlaneFileUri.path,
       extname: 'json',
       outputPath: outputUri.path,
@@ -97,7 +98,7 @@ async function getComputeGraphDirectory(outputUri: vscode.Uri, runData: RunDataM
 }
 
 /** Pass目录名称正则 */
-const PassDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
+const passDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
 
 /**
  * Pass目录
@@ -107,11 +108,11 @@ async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Ur
   const passes: PassDirectory[] = [];
   let passStage = PassStage.TENSOR_GRAPH;
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.Directory && PassDirectoryRegExp.test(subPath)) {
-      const [_, passIndex, passName] = subPath.match(PassDirectoryRegExp) ?? [];
+    if (fileType === vscode.FileType.Directory && passDirectoryRegExp.test(subPath)) {
+      const [_, passIndex, passName] = subPath.match(passDirectoryRegExp) ?? [];
       const passUri = vscode.Uri.joinPath(parentDirUri, subPath);
 
-      const computeGraphList = await getComputeGraphFile(passUri, outputUri, passIndex);
+      const computeGraphList = await getComputeGraphFile(outputUri, { passUri, passIndex, passName });
       if (computeGraphList.length === 0) {
         continue;
       }
@@ -121,7 +122,7 @@ async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Ur
         directoryType: 'pass',
         passStage: passStage,
         passIndex: passIndex,
-        name: passName,
+        name: subPath,
         absolutePath: passUri.path,
         children: computeGraphList,
       });
@@ -135,16 +136,24 @@ async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Ur
   return passes;
 }
 
+interface Pass {
+  passUri: vscode.Uri;
+  passIndex: string;
+  passName: string;
+}
+
 /**
  * 计算图文件
  */
-async function getComputeGraphFile(passUri: vscode.Uri, outputUri: vscode.Uri, passIndex: string): Promise<ComputeGraph[]> {
+async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<ComputeGraph[]> {
+  const { passUri, passIndex } = pass;
   const subList = await vscode.workspace.fs.readDirectory(passUri);
   const graphs: ComputeGraph[] = [];
 
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.File && subPath.endsWith('.json') && !subPath.startsWith('Before')) {
+    if (fileType === vscode.FileType.File && isComputeGraph(subPath, pass)) {
       const computeGraphUri = vscode.Uri.joinPath(passUri, subPath);
+      const { pathName, computeType, leafProgramId, leafHash } = decodeComputeGraphFilename(subPath, pass);
       graphs.push({
         type: 'file',
         fileType: 'computeGraph',
@@ -153,9 +162,30 @@ async function getComputeGraphFile(passUri: vscode.Uri, outputUri: vscode.Uri, p
         absolutePath: computeGraphUri.path,
         outputPath: outputUri.path,
         passIndex,
+        pathName,
+        hasHealthReport: hasHealthReport(computeGraphUri.fsPath),
+        computeType,
+        leafProgramId,
+        leafHash,
       });
     }
   }
 
   return graphs;
+}
+
+function isComputeGraph(subPath: string, { passIndex, passName }: Pass): boolean {
+  return subPath.startsWith(`After_0${passIndex}_${passName}_`) && subPath.endsWith('.json') && !isHealthReport(subPath);
+}
+
+function decodeComputeGraphFilename(
+  filename: string,
+  { passIndex, passName }: Pass,
+): Pick<ComputeGraph, 'pathName' | 'computeType' | 'leafProgramId' | 'leafHash'> {
+  const fileNameRegExp = new RegExp(
+    `^After_0${passIndex}_${passName}(?:_\\d+)?_(\\w+_PATH\\d+)_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
+  );
+  const [_, pathName, rootOrLeaf, leafProgramId, leafHash] = filename.match(fileNameRegExp) ?? [];
+  const computeType = rootOrLeaf ? (rootOrLeaf.toLowerCase() as 'root' | 'leaf') : 'all';
+  return { pathName, computeType, leafProgramId, leafHash };
 }

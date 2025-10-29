@@ -83,6 +83,21 @@ export interface ComputeGraph extends CommonFile {
 
   /** 所属pass序号 */
   passIndex: string;
+
+  /** root名称 */
+  pathName: string;
+
+  /** 是否有健康报告 */
+  hasHealthReport: boolean;
+
+  /** 计算图类型 */
+  computeType: 'all' | 'root' | 'leaf';
+
+  /** leaf的序号 */
+  leafProgramId: string | null;
+
+  /** leaf function的hash值 */
+  leafHash: string | null;
 }
 
 /**

@@ -282,8 +282,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         retainZoom: retainZoomPara,
         zoomScale: zoomScalePara,
       };
-      modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options))
-      
+      modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
+        getViewport(modelSource, MAINMAP_FIT_SCREEN);
+      });
     }
   };
 

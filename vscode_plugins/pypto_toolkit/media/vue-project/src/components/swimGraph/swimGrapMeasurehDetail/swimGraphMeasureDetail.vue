@@ -56,10 +56,10 @@
               </div>
               <div class="measure-detail-data-downarea-time-ratio">
                 <div v-if="cubeCycleRateValue > 0" class="cube-time-bar" :style="{ flex: `${cubeCycleRateValue}%` }">
-                  <div class="cube-time-num">{{ cubeCycleRate }}%</div>
+                  <div class="cube-time-num">{{ cubeCycleRate }}</div>
                 </div>
                 <div v-if="vectorCycleRateValue > 0" class="vector-time-bar" :style="{ flex: `${vectorCycleRateValue}%` }">
-                  <div class="vector-time-num">{{ vectorCycleRate }}%</div>
+                  <div class="vector-time-num">{{ vectorCycleRate }}</div>
                 </div>
               </div>
             </div>
@@ -182,6 +182,8 @@ const rateToValue = () => {
     cubeCycleRateValue.value = 50;
     vectorCycleRateValue.value = 50;
   }
+  cubeCycleRate.value = cubeCycleRate.value === '/' ? cubeCycleRate.value : `${cubeCycleRate.value}%`;
+  vectorCycleRate.value = vectorCycleRate.value === '/' ? vectorCycleRate.value : `${vectorCycleRate.value}%`;
 };
 
 const initDatas = () => {

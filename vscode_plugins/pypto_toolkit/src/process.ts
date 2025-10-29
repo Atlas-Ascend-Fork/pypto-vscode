@@ -1,4 +1,4 @@
-import { generateColorList} from './color-list';
+import { generateColorList, getColorByString } from './color-list';
 import BigNumber from 'bignumber.js'
 
 // 异步初始化颜色列表
@@ -21,44 +21,71 @@ async function initializeColors() {
   }
 }
 
-const getSubGraphId = (event) => {
+const getLeafIndex = (event, task2topo) => {
+  const { args } = event;
+  const seqNo = args?.seqNo;
+  const taskId = args?.taskId;
+  if (seqNo === undefined || taskId === undefined) {
+    return null;
+  }
+  const key = `${seqNo}-${taskId}`;
+  return task2topo[key]?.leafIndex;
+};
+
+
+const getSubGraphId = (event, mode) => {
   let subGraphId;
-  if (event.args && event.args['ascend-hint']) {
-    const subGraphArr = event.args['ascend-hint'].split(',');
-    const subGraphItem = subGraphArr.find(item => item.includes('subGraphId'));
-    subGraphId = subGraphItem ? subGraphItem.split(':')[1] : null;
+  const nameParts = event.name.split('(')[0].split('-').map(part => part.trim());
+
+  if (mode === "subGraph") {
+    if (event.leafIndex) {
+      subGraphId = event.leafIndex;
+    } else if (event.args && event.args['event-hint']) {
+      const subGraphArr = event.args['event-hint'].split(',');
+      const subGraphItem = subGraphArr.find(item => item.includes('subGraphId'));
+      subGraphId = subGraphItem ? subGraphItem.split(':')[1] : null;
+    }
+    if (subGraphId === null) {
+      subGraphId = nameParts[nameParts.length - 1];
+    }
+  } else if (mode === "stichedFunc") {
+    subGraphId = nameParts[0];
   }
-  if (!subGraphId) {
-    const nameParts = event.name.split('(')[0].split('-');
-    subGraphId = nameParts[nameParts.length - 1].trim();
-  }
+
   return Number(subGraphId) || 15;
 };
 
 
-async function getEventColor(event) {
+async function getEventColor(event: any, mode: string): Promise<{ dark: { base: string, light: string }, light: { base: string, light: string } }> {
   // 确保颜色已初始化
   await initializeColors();
-  
-  const subGraphId = getSubGraphId(event);
-  let dBaseColor = darkThemeBaseColors[subGraphId];
-  let dLightColor = darkThemeLightColors[subGraphId];
-  let lBaseColor = lightThemeBaseColors[subGraphId];
-  let lLightColor = lightThemeLightColors[subGraphId];
-
-  if (subGraphId > 360 && !dBaseColor) {
-    dBaseColor = darkThemeBaseColors[subGraphId % 360];
-    dLightColor = darkThemeLightColors[subGraphId % 360];
-    lBaseColor = lightThemeBaseColors[subGraphId % 360];
-    lLightColor = lightThemeLightColors[subGraphId % 360];
+  let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
+  if (mode !== "label") {
+    const subGraphId = getSubGraphId(event, mode);
+    dBaseColor = darkThemeBaseColors[subGraphId];
+    dLightColor = darkThemeLightColors[subGraphId];
+    lBaseColor = lightThemeBaseColors[subGraphId];
+    lLightColor = lightThemeLightColors[subGraphId];
+ 
+   if (subGraphId > 360 && !dBaseColor) {
+     dBaseColor = darkThemeBaseColors[subGraphId % 360];
+     dLightColor = darkThemeLightColors[subGraphId % 360];
+     lBaseColor = lightThemeBaseColors[subGraphId % 360];
+     lLightColor = lightThemeLightColors[subGraphId % 360];
+   }
+  } else {
+    const label = event.args?.color || '';
+    const dres = getColorByString(label, darkThemeBaseColors, darkThemeLightColors);
+    const lres = getColorByString(label, lightThemeBaseColors, lightThemeLightColors);
+    dBaseColor = dres.baseColor;
+    dLightColor = dres.lightColor;
+    lBaseColor = lres.baseColor;
+    lLightColor = lres.lightColor;
   }
-
-  if (!dBaseColor || !dLightColor || !lBaseColor || !lLightColor) {
-    dBaseColor = '#666666';
-    dLightColor = '#666666';
-    lBaseColor = '#666666';
-    lLightColor = '#666666';
-  }
+  dBaseColor = dBaseColor ?? '#666666';
+  dLightColor = dLightColor ?? '#666666';
+  lBaseColor = lBaseColor ?? '#666666';
+  lLightColor = lLightColor ?? '#666666';
   return { dark: { base: dBaseColor, light: dLightColor }, light: { base: lBaseColor, light: lLightColor } };
 };
 
@@ -273,7 +300,7 @@ const calculateDependencies = (events, connections) => {
       pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
   
-  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any) {
+  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, mode: string) {
     let counterEvents: any[] = [];
     let processedEvents: any[] = [];
     let processes = new Map();
@@ -295,16 +322,18 @@ const calculateDependencies = (events, connections) => {
       } else if (event.name === 'thread_name') {
         threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
       } else if (event.cat === 'event' || event.ph === 'C') {
-        if (event.ph === 'C' && (typeof(event.args.size) === 'number')) {
+        if (event.ph === 'C' && (typeof(event.args.size) === 'number' || typeof(event.args['/byte']) === 'number')) {
           const sId = event.name;
           if (!threadNames.has(sId)) {
             threadNames.set(sId, event.name);
           }
           counterEvents.push({ ...event, isCounter: true });
         } else {
-          const color = await getEventColor(event);
+          const leafIndex = getLeafIndex(event, task2topo);
+          event['leafIndex'] = leafIndex;
+          const color = await getEventColor(event, mode);
           const threadName =  threadNames.get(`${event.pid}-${event.tid}`);
-          eventTasks.push({ ...event, originalIndex: index, color, threadName});
+          eventTasks.push({ ...event, originalIndex: index, color, threadName, leafIndex});
         }
       } else if (event.cat === 'machine-view-last-dep') {
         connections.push(event);

@@ -1,30 +1,36 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import {onMounted, ref, computed} from 'vue';
 import ComGraph from './components/comGraph/comGraph.vue';
 import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
 import DiffComGraph from './components/diffComGraph/diffComGraph.vue';
 import ErrorView from './components/comGraph/error.vue';
 import SearchEntry from './components/comGraph/searchEntry.vue';
 import SearchMode from './components/comGraph/searchMode.vue';
+import {comGraphStore} from './service/com-graph-store';
+import {useTheme} from './theme/use-theme';
+import {getQuery} from './core/query';
+import {vscode} from './core/vscode';
+import SideBarView from './components/sideBar/SideBarView.vue';
+import ControlFlowIndex from "./components/controlFlowGraph/ControlFlowIndex.vue";
 import ThreeColumn from './components/threeColumn/threeColumn.vue';
 import SimpleComGraph from './components/comGraph/simpleComGraph.vue';
-import { comGraphStore } from './service/com-graph-store';
-import { useTheme } from './theme/use-theme';
-import { getQuery } from './core/query';
-import { vscode } from './core/vscode';
 
 const graphType = ref('');
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
+const outputDirPath = ref('');
+const passIndex = ref('');
+const pathName = ref('');
+const fileName = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
-const disabledSearchMode = computed(() => !Object.keys(jsonContent.value).length);
-const { updateTheme } = useTheme();
+const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
+const {updateTheme} = useTheme();
 
 getQuery().then((query) => {
-  graphType.value = query.viewType;
+  graphType.value = query._viewType;
 });
 
 const errorListener = (args) => {
@@ -45,6 +51,10 @@ const searchNodeListener = (args) => {
 const returnCom = (message) => {
   jsonContent.value = message.data;
   loadingStep.value = message.step;
+  outputDirPath.value = message.outputDirPath;
+  passIndex.value = message.passIndex;
+  pathName.value = message.pathName;
+  fileName.value = message.fileName;
 };
 
 const returnInitData = (message) => {
@@ -52,6 +62,8 @@ const returnInitData = (message) => {
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
+    outputDirPath: message.outputDirPath,
+    pathName: message.pathName,
   });
 };
 
@@ -65,6 +77,12 @@ const returnSwim = (message) => {
     graphType.value = 'returnSwim';
   }
   jsonContent.value = message.data;
+};
+
+const returnSidBar = (message) => {
+  graphType.value = 'returnSidBar';
+  jsonContent.value = message.data;
+  console.log(message.data)
 };
 
 const returnError = (message) => {
@@ -129,6 +147,7 @@ const CommandCallbackMap = {
   readJsonWarning,
   initDiffComGraph,
   returnDiffCom,
+  returnSidBar,
   setThreeColumnMode,
   updateJsonContent
 };
@@ -182,7 +201,7 @@ const layout = ref('triangular');
 </script>
 
 <template>
-  <header>
+  <header :class="[outputDirPath && 'com-graph-with-navbar']">
     <ThreeColumn v-model="layout" v-if="graphType === 'threeColumn'">
       <template #code>code</template>
       <template #comGraph>
@@ -192,7 +211,17 @@ const layout = ref('triangular');
         <SwimGraph style="height: 100%"  />
       </template>
     </ThreeColumn>
-    <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
+    <ComGraph
+      v-if="graphType === 'returnCom'"
+      :outputDirPath="outputDirPath"
+      :jsonContent="jsonContent"
+      :loadingStep="loadingStep"
+      :openMode="openMode"
+      :nodeMagic="nodeMagic"
+      :pass-index="passIndex"
+      :path-name="pathName"
+      :file-name="fileName"
+    />
     <SearchEntry
       v-if="graphType === 'comGraphFullSearchEntry'"
       :disabled-search-mode="disabledSearchMode"
@@ -210,11 +239,26 @@ const layout = ref('triangular');
       :beforeFileName="diffInfo.beforeFileName"
       :loadingStep="loadingStep"
     />
+    <div class="parent-container" v-if="graphType === 'controlFlow'">
+      <ControlFlowIndex></ControlFlowIndex>
+    </div>
   </header>
+  <!-- 导航栏 -->
+  <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
 </template>
-
+<style scoped>
+.parent-container {
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+</style>
 <style lang="scss">
 header {
   min-width: 960px;
+
+  &.com-graph-with-navbar {
+    min-width: 1076px;
+  }
 }
 </style>

@@ -226,7 +226,7 @@ function initRect() {
   //calcurrent scale
   const sprottyRoot = document.getElementById(`sprotty${props.type ? '-' + props.type : ''}_root`);
   if (!sprottyRoot) return;
-  if (originalHeight > originalWidth) {
+  if (sprottyRoot.clientHeight > sprottyRoot.clientWidth) {
     scaleRation = (sprottyRoot.clientHeight / originalHeight);
     rectInitHeight = rect.height;
     rectInitWidth = Math.min(minimapWidth, (rect.height / sprottyRoot.clientHeight) * sprottyRoot.clientWidth);

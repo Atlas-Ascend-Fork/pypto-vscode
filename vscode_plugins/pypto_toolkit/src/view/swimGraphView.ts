@@ -1,4 +1,4 @@
-import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vscode';
+import { Uri, ViewColumn, commands, window, WebviewPanel, workspace, ConfigurationTarget } from 'vscode';
 import { hismartliteEx } from '../hismarliteEx';
 import { Util } from '../util';
 import { dirname, join, extname, resolve } from 'path';
@@ -76,7 +76,11 @@ export class MsgHandler {
     MsgHandler.cachePath = Util.getCachePath();
     const cache = Util.readSwim2ComGraphMap(MsgHandler.cachePath);
     const comGraphPath = cache[swimPath];
+    const colorRending = cache['colorRending'] ?? 'subGraph';
+    const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ??  ['taskName', 'taskLabel'];
     const config = Util.getSwimGraphCustomCfg();
+    config['colorRending'] = colorRending;
+    config['textRending'] = textRending;
 
     const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
     let pmuData = '';
@@ -100,8 +104,29 @@ export class MsgHandler {
     } catch (err) {
       console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
     }
+    const task2topo = {};
+    const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
+    try {
+      const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
+      const dynTopoLines = dynTopoContent.split('\n').slice(1);
+      for (const line of dynTopoLines) {
+        const curLine = line.split(',');
+        if (curLine.length >= 10) {
+          const seqNo = curLine[0];
+          const taskId = curLine[1];
+          const leafIndex = curLine[5];
+          const successors = curLine.slice(9)
+                                    .map(item => item.trim())
+                                    .filter(item => item !== '')
+                                    .map(item => `${seqNo}-${item}`);
+          task2topo[`${seqNo}-${taskId}`] = { leafIndex, successors };
+        }
+      } 
+    } catch (error) {
+      console.log('读取dyn_topo.txt发生错误',error);
+    } 
     const swimDataObj = JSON.parse(swimStr);
-    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo);
+    const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
     swimData.lane2line = Object.fromEntries(swimData.lane2line);
     swimData.processes = Object.fromEntries(swimData.processes);
     swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
@@ -304,6 +329,14 @@ export class MsgHandler {
   // 提示信息
   static async showMessage(panel: any, paramObj: { text: string }) {
     window.showInformationMessage(paramObj.text);
+  }
+  // 保存全局配置
+  static async saveRendingMode(panel: any, paramObj: string) {
+    Util.writeSwimConfigMap(MsgHandler.cachePath, paramObj);
+  }
+  static async changeUserCfgConnection(panel: any, paramObj: {level: number}) {
+    const config = workspace.getConfiguration('PyPTOToolkit');
+    config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
   }
 }
 

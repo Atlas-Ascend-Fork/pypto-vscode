@@ -1,6 +1,17 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    <div v-if="outputDirPath" :class="['com-graph-navbar-wrap', Boolean(currentLeaf) && 'with-leaf-name']">
+      <Navbar
+        current-step="comGraph"
+        :current-record-directory-path="outputDirPath"
+        :current-path-magic-name="pathName"
+        :current-pass-index="passIndex"
+        :current-leaf-name="fileName"
+        @leaf-change="(e) => (currentLeaf = e)"
+      />
+      <ComGraphHeader in-navbar @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
+    </div>
+    <ComGraphHeader v-else @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
         backgroundImage: 'url(' + svgPath + ')',
         backgroundRepeat: 'repeat',
@@ -11,7 +22,7 @@
     <div class="lock-information" v-if="switchLockInformationFlag">
       <div class="lock-information-item">{{lockText}}，{{ t('comGraph.pressEscExit') }}</div>
     </div>
-    
+    <ShowTip></ShowTip>
     <ComGraphMinimap
       v-if="!isLoading"
       :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'KernelGraph' ? 488 : 400) : 0"
@@ -33,9 +44,12 @@ import HealthReport from './healthReport/healthReport.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
+import Navbar from '../navbar/navbar.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';
+import { debounce } from 'lodash-es';
+import ShowTip from '../util/showTip.vue';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -53,9 +67,25 @@ const props = defineProps({
   },
   nodeMagic: {
     type: Number,
-    default: '-1'
+    default: -1
+  },
+  outputDirPath: {
+    type: String,
+    default: ''
+  },
+  passIndex: {
+    type: String,
+    default: ''
+  },
+  pathName: {
+    type: String,
+    default: ''
+  },
+  fileName: {
+    type: String,
+    default: ''
   }
-})
+});
 
 const { isDarkTheme } = inject('root');
 const showHealthReport = ref(false);
@@ -68,6 +98,7 @@ const warningText = ref('');
 const healthReportGraphName = ref('');
 const showType = ref('all');
 const graphType = ref('');
+const currentLeaf = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 
 const switchLockInformationFlag = ref(false);
@@ -82,6 +113,8 @@ let selectAction;
 let getSelectedNodeId;
 let resetModelSource;
 let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
+
+
 const fitToScreen = () => {
   fitToScreenAction();
 }
@@ -252,6 +285,47 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   position: relative;
   background-color: var(--devui-global-bg);
 
+  .com-graph-navbar-wrap {
+    position: absolute;
+    width: 100%;
+    height: 150px;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--devui-header-gradient-bg);
+
+    .navbar-container {
+      flex: 1;
+    }
+
+    .com-graph-header {
+      position: relative;
+      max-width: 541px;
+      background: unset;
+
+      .toolbar-row {
+        max-width: 470px;
+        top: 16px;
+        left: 8px;
+
+        .category-search {
+          width: calc(100% - var(--select-width));
+
+          .dp-category-search-icon {
+            background-color: var(--devui-base-bg);
+            z-index: 2;
+          }
+
+          .dp-category-search-input {
+            min-width: 120px;
+          }
+        }
+      }
+    }
+  }
+
   .com-graph-header {
     position: absolute;
     height: 150px;
@@ -262,6 +336,62 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
 
   #sprotty {
     height: 100%;
+  }
+}
+
+@media screen and (max-width: 1396px) {
+  .com-graph-container {
+    .com-graph-navbar-wrap.with-leaf-name {
+        .navbar-container {
+          padding-right: 80px;
+        }
+
+        .com-graph-header {
+          .toolbar-row {
+            position: fixed;
+            max-width: unset;
+            top: 68px;
+            left: 16px;
+          }
+        }
+      }
+  }
+}
+
+@media screen and (max-width: 1254px) {
+  .com-graph-navbar-wrap:not(.with-leaf-name) {
+    .navbar-container {
+      padding-right: 80px;
+    }
+
+    .com-graph-header {
+      .toolbar-row {
+        position: fixed;
+        max-width: unset;
+        top: 68px;
+        left: 16px;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1255px) {
+  .com-graph-navbar-wrap:not(.with-leaf-name) {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1397px) {
+  .com-graph-navbar-wrap.with-leaf-name {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
+      }
+    }
   }
 }
 

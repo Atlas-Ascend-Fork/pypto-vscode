@@ -29,13 +29,18 @@
         </div>
         <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
       </div>
+      <d-tooltip :content="$t('configButtonTip')" :mouse-enter-delay="100" :disabled="!iscfgdisabled" overlay-class="corner-tips">
+        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="iscfgdisabled">
+          <LayerControlIcon :active="isCfgEditing"/>
+        </d-button>
+      </d-tooltip>
       <d-tooltip :content="$t('Measure')">
         <d-button id= "measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
-          <img class="measure-picture" :src="mPath" alt="measure-picture">
+          <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>
       <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
-        <d-icon name="line-chart" size="15px" color="#b3b3b3"></d-icon>
+        <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
       </d-button>
       <d-drawer v-model="reportVisible" style="width: 500px">
         <div class="report-title">{{reportTitle}}</div>
@@ -111,6 +116,8 @@ import { ref, inject, computed, watch, onMounted, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
+import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
+import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
 
 const swimGraphBarChartComponent = ref(null);
@@ -137,6 +144,7 @@ const {
   measureDragEndX,
   isDarkTheme,
   mulDetailsExpanded,
+  isCfgEditing,
 } = inject('swimGraphState');
 
 const {
@@ -153,6 +161,7 @@ const {
   getTimelineCanvas,
   resizeMeasure,
   selectEvent,
+  getDisplayName
 } = inject('swimGraphMethods');
 
 const {
@@ -171,6 +180,10 @@ const searchPlaceholder = $t("searchKeyword");
 const searchResultCount = ref(0);
 
 const reportVisible = ref(false);
+
+const showSwimCfg = () => {
+  isCfgEditing.value = !isCfgEditing.value;
+};
 
 const showDrawer = () => {
   reportVisible.value = true;
@@ -330,11 +343,11 @@ const onSearch = (term) => {
     for (const [threadKey, thread] of process.threads.entries()) {
       thread.events.forEach(event => {
         if (isCaseSensitive.value) {
-          if (event.name.includes(term)) {
+          if (getDisplayName(event).includes(term)) {
             searchResult.value.push([event, thread.threadName, processkey]);
           }
         } else {
-          if (event.name.toLowerCase().includes(termL)) {
+          if (getDisplayName(event).toLowerCase().includes(termL)) {
             searchResult.value.push([event, thread.threadName, processkey]);
           }
         }
@@ -511,6 +524,19 @@ const measureModel = () => {
   mulDetailsExpanded.value = false;
 }
 
+const iscfgdisabled = computed(() => {
+  for (const process of processes.values()) {
+    for (const thread of process.threads.values()) {
+        for (const event of thread.events) {
+            if (!event.isCounter && event.leafIndex === undefined) {
+                return true;
+            }
+        }
+    }
+  }
+  return false;
+});
+
 watch(isDarkTheme, () => {
   updateTheme();
 });
@@ -554,6 +580,31 @@ defineExpose({
     }
   }
 }
+
+.cfg-button.devui-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: var(--devui-secondary-button-bg);
+  box-shadow: var(--devui-tips-shadow);
+  cursor: pointer;
+  .button-content {
+    color: var(--devui-overlay-icon);
+    top: 3px;
+  }
+  &.devui-button--outline--secondary:disabled {
+    color: var(--devui-disabled-icon);
+    border: var(--devui-secondary-button-border);
+    background-color: var(--devui-secondary-button-disabled-bg);
+    svg {
+      path {
+        stroke: var(--devui-disabled-icon) !important;
+      }
+    }
+  }
+}
+
 #swimSlider .devui-slider__runway .devui-slider__bar {
   background-color: var(--devui-slider-bar);
 }
