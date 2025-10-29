@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { UriQuery } from '../viewQuery';
+import { UriQuery } from '../view/view-query';
 
 export const VIRTUAL_SCHEME = 'PyPTO';
 

@@ -1,4 +1,4 @@
-import type { ViewQuery } from '../../../../src/core/viewQuery';
+import type { ViewQuery } from 'ext:/core/view/view-query';
 
 import { ExtensionConnector } from './connector';
 

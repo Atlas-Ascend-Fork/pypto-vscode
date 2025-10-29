@@ -62,8 +62,9 @@
     |   |-- registerCommand.ts  # 注册命令
     |-- core # 插件端核心功能
     |   |-- editorView # 编辑区自定义webview
-    |   |-- connector # 前后端通信
-    |   |-- viewQuery # 向webview前端发送页面参数
+    |   |-- view # 视图相关功能
+    |   |   |-- view-query.ts # 向webview前端发送页面参数
+    |   |-- connector.ts # 前后端通信
     |-- view  # 视图层
     |   |-- index.ts  # 视图入口（初始化和打开指定视图）
     |   |-- routes.ts  # 视图路由
@@ -110,7 +111,7 @@ const webviewPanel = await editorView.open('视图类型', uri);
 
 ### 后端服务
 
-服务实例 /src/core/server.ts
+服务实例 /src/core/request-server.ts
 
 API实现 /src/services
 
