@@ -142,9 +142,6 @@ defineExpose({
 
 /* 搜索结果列表：宽度匹配d-search，最大高度500px */
 .search-result-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
   width: 320px; /* 与d-search宽度完全一致 */
   max-height: 500px;
   overflow-y: auto;
