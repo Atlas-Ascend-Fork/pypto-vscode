@@ -298,16 +298,20 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
       background: unset;
 
       .toolbar-row {
-        width: calc(100% - 80px) !important;
         max-width: 470px;
         top: 16px;
         left: 8px;
 
         .category-search {
-          width: calc(100% - 67px);
+          width: calc(100% - var(--select-width));
+
+          .dp-category-search-icon {
+            background-color: var(--devui-base-bg);
+            z-index: 2;
+          }
 
           .dp-category-search-input {
-            min-width: 100px;
+            min-width: 120px;
           }
         }
       }
@@ -358,6 +362,26 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
         max-width: unset;
         top: 68px;
         left: 16px;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1255px) {
+  .com-graph-navbar-wrap:not(.with-leaf-name) {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1397px) {
+  .com-graph-navbar-wrap.with-leaf-name {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
       }
     }
   }

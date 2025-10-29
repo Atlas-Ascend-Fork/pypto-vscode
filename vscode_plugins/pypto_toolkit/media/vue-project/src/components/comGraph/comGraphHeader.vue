@@ -56,7 +56,7 @@
     <div 
       class="toolbar-row"
       :class="{ 'search-focusd': isSearchFocus}"
-      :style="{width: 402 + selectWidth + 'px'}"
+      :style="{width: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px'}"
      >
       <d-select
         menu-class="globalSelect"
