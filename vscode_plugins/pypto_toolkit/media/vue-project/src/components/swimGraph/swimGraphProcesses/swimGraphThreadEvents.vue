@@ -35,6 +35,7 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
+let drawColorDatas = {};
 let isLockStatus = false;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
@@ -557,6 +558,8 @@ const handleMouseMove = throttle((e) => {
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
     if (preLabel && preLabel !== color && !isLockStatus) {
+      clearSelectionCanvas();
+      renderEvents();
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
@@ -614,7 +617,7 @@ const handleSelection = () => {
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   const ctx = canvasRef.getContext('2d');
   selectionEvents.forEach(eventItem => {
-    onSelectionEvent(eventItem, ctx, props.processKey);
+    onSelectionEvent(eventItem, ctx, props.processKey, true);
   });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
@@ -699,6 +702,22 @@ const drawBoundary = () => {
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+};
+const resizeDrawBoundary = () => {
+  processes.forEach((process, processKey) => {
+    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+      return;
+    }
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    if (!drawColorDatas[processKey]) {
+      return;
+    }
+    drawColorDatas[processKey].forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey, false);
+    });
+  });
+  drawBoundary();
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -801,8 +820,8 @@ const clearSelectionCanvas = () => {
   const ctx = canvasRef.getContext('2d');
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
 };
-function onSelectionEvent(hoveredEvent, ctx, processKey) {
-  highlightEvent(ctx, hoveredEvent, processKey, false);
+function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
+  highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
 }
 const handleMouseDown = (e) => {
   hideLineTooltip();
@@ -1165,7 +1184,7 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
   drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
 
-const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true) => {
+const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => {
   if (!event || !event.renderInfo) {
     return;
   }
@@ -1173,7 +1192,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     return;
   }
   const renderInfo = event.renderInfo;
-  const { fillColor, fontColor } = getEventColor(event, true, stroke);
+  const { fillColor, fontColor } = getEventColor(event, highlight, stroke);
   const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
@@ -1192,7 +1211,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
   };
   drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
-  fillTextInfo(event, ctx, width, drawData, isTextXChange);
+  fillTextInfo(event, ctx, width, drawData, true);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
 };
@@ -2072,7 +2091,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   }
   let needRender = true;
   const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
-  changeScale(zoomFactor, 0, false);
+  changeScale(zoomFactor, 0, false, false);
   const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
@@ -2105,16 +2124,20 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
 const handleOutline = (label) => {
   if (!label) {
     clearSelectionCanvas();
+    renderEvents();
     return;
   }
   points = [];
-  let drawColorDatas = {};
+  drawColorDatas = {};
   let rootHashArray = [];
   const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   processes.forEach((process, processKey) => {
     if (!process.expanded) {
       return;
     }
+    highlightedPaths.clear();
+    detailsPanelExpanded.value = false;
+    selectEvent(null, props.processKey);
     drawColorDatas[processKey] = [];
     rootHashArray = [];
     // 遍历线程
@@ -2150,7 +2173,7 @@ const handleOutline = (label) => {
       changeNodeColor(processKey, true);
       const { eventCtx } = ctxs[processKey];
       drawColorDatas[processKey].forEach((event, eventKey) => {
-        onSelectionEvent(event, eventCtx, processKey);
+        onSelectionEvent(event, eventCtx, processKey, false);
         const { args } = event ?? {};
         const eventHintStr = args?.['event-hint'] ?? '';
         const rootHashStr = getRootHashList(eventHintStr);
@@ -2200,6 +2223,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  resizeDrawBoundary,
   getEventColor,
   drawBoundary
 });

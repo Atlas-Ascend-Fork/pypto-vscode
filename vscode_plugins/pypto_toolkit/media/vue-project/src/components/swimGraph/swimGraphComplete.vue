@@ -87,7 +87,12 @@ import {
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
-
+const props = defineProps({
+  isThreeColumn: {
+    type: Boolean,
+    default: false
+  }
+});
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const titlePath = ref(`${window.staticPath}/static-assets/title_40px.svg`);
@@ -426,7 +431,9 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
-  childContextMap.threadEvent.drawBoundary();
+  if(props.isThreeColumn){
+    childContextMap.threadEvent.resizeDrawBoundary();
+  }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
   }
@@ -1738,7 +1745,9 @@ provide('swimGraphMethods', {
   flagRender: () => { timelineComponent?.value.flagRender() },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
   rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) },
-  changeScale: (zoomFactor, centerPositionX, render = true) => { timelineComponent?.value.changeScale(zoomFactor, centerPositionX, render) },
+  changeScale: (zoomFactor, centerPositionX, render = true, isManual = true) => {
+    timelineComponent?.value.changeScale(zoomFactor, centerPositionX, render, isManual);
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();
