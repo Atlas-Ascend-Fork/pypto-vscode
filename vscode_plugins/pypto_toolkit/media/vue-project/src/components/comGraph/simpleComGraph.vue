@@ -137,7 +137,7 @@ let lockIcon: HTMLElement | null;
 function onLockClick() {
   comGraphStore.data.isNodeRectLock = !comGraphStore.data.isNodeRectLock;
   if (comGraphStore.data.isNodeRectLock) {
-    (window as any).ascEventBus.emit('activeLock');
+    (window as any).ascEventBus.emit('activeLock', { label: comGraphStore.data.selectedNodeSemanticLabel });
   } else {
     (window as any).ascEventBus.emit('deactivateLock');
   }
@@ -222,7 +222,7 @@ watch(
     if (Object.keys(val).length) {
       graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
-      if (initComDocText){
+      if (initComDocText) {
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
         comGraphStore.setData('jsonData', jsonValue);
         resetModelSource();
