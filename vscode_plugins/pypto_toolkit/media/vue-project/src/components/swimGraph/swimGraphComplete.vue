@@ -84,7 +84,12 @@ import {
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
-
+const props = defineProps({
+  isThreeColumn: {
+    type: Boolean,
+    default: false
+  }
+});
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const titlePath = ref(`${window.staticPath}/static-assets/title_40px.svg`);
@@ -410,7 +415,9 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
-  childContextMap.threadEvent.resizeDrawBoundary();
+  if(props.isThreeColumn){
+    childContextMap.threadEvent.resizeDrawBoundary();
+  }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
   }

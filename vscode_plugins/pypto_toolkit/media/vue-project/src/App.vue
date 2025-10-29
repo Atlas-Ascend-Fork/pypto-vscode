@@ -189,7 +189,7 @@ const layout = ref('triangular');
         <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
       <template #swimGraph>
-        <SwimGraph style="height: 100%"  />
+        <SwimGraph style="height: 100%" :is-three-column="true"/>
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'returnCom'" :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"/>
@@ -200,7 +200,7 @@ const layout = ref('triangular');
       @search-mode="() => (graphType = 'comGraphSearchMode')"
     />
     <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
-    <SwimGraph v-if="graphType === 'returnSwim'" />
+    <SwimGraph v-if="graphType === 'returnSwim'" :is-three-column="false"/>
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph
       v-if="graphType === 'returnDiffCom'"
