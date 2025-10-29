@@ -271,7 +271,6 @@ const deactivateLock = () => {
     editor.deltaDecorations(currentHoverDecoration, []);
     currentHoverDecoration = null;
   }
-  console.log('send deactiveLock');
   sendMsg('deactivateLock');
 };
 
@@ -288,7 +287,6 @@ const lockClick = (e) => {
   lockedLabel.value = lastMoveLabel;
   isLocked.value = true;
   unlockPosition.value = lockPosition.value;
-  console.log('send activeLock ', lastMoveLabel.name);
   sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
@@ -325,7 +323,6 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
-      console.log('returnSemanticLabelFromCode', currentLabel.name);
       sendMsg('returnSemanticLabelFromCode', { 'label': currentLabel.name });
     }
   }
@@ -407,7 +404,6 @@ const setupHoverListeners = () => {
         if (!canUpdateLabelSelect || !lastSentLabel) {
           return;
         }
-        console.log('returnSemanticLabelFromCode');
         sendMsg('returnSemanticLabelFromCode', { label: '' });
         lastSentLabel = null;
         lastMoveLabel = null;
@@ -530,8 +526,6 @@ const initEditor = (code) => {
       // 触发保存
       debouncedSave();
     });
-    
-    console.log('Monaco Editor initialized with semantic labels');
   } catch (error) {
     console.error('Failed to initialize Monaco Editor:', error);
   }
@@ -565,6 +559,7 @@ const initEventListeners = () => {
 
 const sendMsg = (command, param) => {
   try {
+    console.log('editor: ', command, param);
     window.ascEventBus.emit(command, param);
   } catch (error) {
     console.error(`${command}执行失败`, error);
