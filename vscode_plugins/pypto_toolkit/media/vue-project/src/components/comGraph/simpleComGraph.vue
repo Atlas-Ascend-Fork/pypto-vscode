@@ -85,8 +85,21 @@ window.addEventListener('message', (event) => {
   }
 });
 
+(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
+  if (!args.label) {
+    removeSelectNodesRect();
+    lockIcon?.removeEventListener('click', onLockClick);
+  }
+});
+
+// 规避锁定时泳道图发送消息，重新创建框选时，框选消失的问题
+let prevent = false;
 function onMessageFromSwim(args) {
-  createSelectNodesRect(args.label);
+  if (prevent) {
+    prevent = false;
+    return;
+  }
+  createSelectNodesRect(args.label, false);
   listenLockClick();
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
@@ -101,17 +114,12 @@ function onMessageFromSwim(args) {
     }
   }
 }
-(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
-  if (!args.label) {
-    removeSelectNodesRect();
-    lockIcon?.removeEventListener('click', onLockClick);
-  }
-});
 (window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', onMessageFromSwim);
 (window as any).ascEventBus.on('returnSemanticLabelFromSwim', onMessageFromSwim);
+
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
   if (args.semanticLabel) {
-    createSelectNodesRect(args.semanticLabel);
+    createSelectNodesRect(args.semanticLabel, false);
     listenLockClick();
     (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
   }
@@ -122,9 +130,13 @@ function onMessageFromSwim(args) {
   }
   removeSelectNodesRect();
   lockIcon?.removeEventListener('click', onLockClick);
+  (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: '' });
 });
-(window as any).ascEventBus.on('activeLock', () => {
+
+(window as any).ascEventBus.on('activeLock', (args) => {
+  prevent = true;
   comGraphStore.data.isNodeRectLock = true;
+  createSelectNodesRect(args.label, true);
   hoverFeedbackAction();
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
