@@ -669,6 +669,9 @@ const resizeDrawBoundary = () => {
     }
     changeNodeColor(processKey, true);
     const { eventCtx } = ctxs[processKey];
+    if (!drawColorDatas[processKey]) {
+      return;
+    }
     drawColorDatas[processKey].forEach((event, eventKey) => {
       onSelectionEvent(event, eventCtx, processKey, false);
     });
