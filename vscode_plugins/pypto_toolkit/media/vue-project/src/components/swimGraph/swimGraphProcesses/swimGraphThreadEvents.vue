@@ -36,7 +36,6 @@ let points = [];
 let boundaries = [];
 let preLabel = '';
 let drawColorDatas = {};
-let isLockStatus = false;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -63,7 +62,8 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  isLockStatus
 } = inject('swimGraphState');
 
 const {
@@ -131,7 +131,7 @@ const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
   }
-  if(isLockStatus){
+  if (isLockStatus.value) {
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -497,7 +497,7 @@ const handleMouseMove = throttle((e) => {
     return;
   }
 
-  if (!e.altKey && !isLockStatus) {
+  if (!e.altKey && !isLockStatus.value) {
     onHoverEvent(hoveredEvent);
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
   }
@@ -516,14 +516,16 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
-    if (preLabel && preLabel !== color && !isLockStatus) {
+    if (preLabel && preLabel !== color && !isLockStatus.value) {
       clearSelectionCanvas();
       renderEvents();
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
   }
-  if (isLockStatus) return;
+  if (isLockStatus.value) {
+    return;
+  }
   if (isDragging.value && !e.altKey && !e.ctrlKey) {
     selection.endLocalX = x;
     selection.endY = y;
@@ -782,7 +784,7 @@ const handleMouseDown = (e) => {
   if (!canvasRef) {
     return;
   }
-  if (!isLockStatus) {
+  if (!isLockStatus.value) {
     // 获取鼠标按下时的坐标
     const rect = canvasRef.getBoundingClientRect();
     if (!e.ctrlKey) {
@@ -804,7 +806,7 @@ const handleMouseDown = (e) => {
   lastMoveX = e.clientX;
 };
 const handleMouseUp = throttle((e) => {
-  if(isLockStatus) {
+  if(isLockStatus.value) {
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -2047,7 +2049,7 @@ const handleOutline = (label) => {
         const rootHashStr = getRootHashList(eventHintStr);
         rootHashArray.push(rootHashStr);
       });
-      if (!isLockStatus && drawColorDatas[processKey].length) {
+      if (!isLockStatus.value && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
         sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
@@ -2063,10 +2065,10 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
   handleOutline(label);
-  isLockStatus = true;
+  isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
-  isLockStatus = false;
+  isLockStatus.value = false;
 });
 const sendMsg = (command, param) => {
   try {

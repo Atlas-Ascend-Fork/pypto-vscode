@@ -57,7 +57,8 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  isLockStatus
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -86,7 +87,8 @@ provide('swimGraphState', {
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  isLockStatus
 });
 
 const {

@@ -150,7 +150,7 @@ const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
-
+let isLockStatus = ref(false);
 let sliderValue = ref(0);
 const sliderMax = ref(100);
 const sliderMaxCount = ref(100);
@@ -1680,6 +1680,7 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  isLockStatus
 });
 
 // 提供方法给子组件
