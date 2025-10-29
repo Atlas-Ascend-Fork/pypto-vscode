@@ -84,7 +84,6 @@ async function graphZoomTo(size: number) {
 
 //工具栏恢复初始位置
 async function graphFitView(){
- // await graph.translateTo(initPosition.value);
   await graph.fitCenter(true,{
     duration: 100,
     easing: 'ease',
@@ -257,7 +256,7 @@ class PathCardNode extends Rect {
    * 绘制函数统计项
    */
   drawFunctionStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    const {functionStats} = this.cardData;
+    const { functionStats } = this.cardData;
     const startY = -this.getSize(attributes)[1] / 2 + 56; // 统计项起始 Y 坐标（分割线下方 12px）
     const stats = [
       {label: t('controlFlows.leafName'), value: functionStats.leafFunction},
@@ -324,7 +323,7 @@ class PathCardNode extends Rect {
 
   // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
   render(
-      attributes = this.parsedAttributes, container: Group | undefined
+  attributes = this.parsedAttributes, container: Group | undefined
   ) {
     // // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
@@ -424,7 +423,7 @@ class IfCardNode extends Diamond {
 
   // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
   render(
-      attributes = this.parsedAttributes, container: Group | undefined
+  attributes = this.parsedAttributes, container: Group | undefined
   ) {
     // // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
@@ -449,7 +448,7 @@ class LogoWithRectCombo extends RectCombo {
   }
 
   async drawButton(attributes) {
-    const {collapsed} = attributes;
+    const { collapsed } = attributes;
     const [width, height] = this.getKeySize(attributes);
     const btnR = 8;
     const y = -height / 2;

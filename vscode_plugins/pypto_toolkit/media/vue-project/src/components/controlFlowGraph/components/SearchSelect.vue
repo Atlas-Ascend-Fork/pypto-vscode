@@ -120,7 +120,6 @@ const clear = () => {
 };
 // 列表项点击
 const handleItemClick = (item: typeof props.options[0]) => {
-  console.log(111)
   searchValue.value = String(item.label);
   emit('selected-value', item);
   isOpen.value = false;
