@@ -558,8 +558,7 @@ const handleMouseMove = throttle((e) => {
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
     if (preLabel && preLabel !== color && !isLockStatus.value) {
-      clearSelectionCanvas();
-      renderEvents();
+       handleOutline(color);
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
@@ -706,6 +705,9 @@ const drawBoundary = () => {
   ctx.stroke();
 };
 const resizeDrawBoundary = () => {
+  if(!drawColorDatas.length){
+    return
+  }
   processes.forEach((process, processKey) => {
     if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
@@ -928,7 +930,7 @@ const transformEvents = (process, processKey) => {
 
       eventCtx.stroke();
       eventCtx.closePath();
-    } else if (!selectedEvent.value) {
+    } else if (!selectedEvent.value && !drawColorDatas.length) {
       let eventDatas = [];
       for (const event of thread.events) {
         const { drawData } = event;
@@ -946,7 +948,7 @@ const transformEvents = (process, processKey) => {
     }
   }
 
-  if (selectedEvent.value) {
+  if (selectedEvent.value && !drawColorDatas.length) {
     changeNodeColor(processKey, true, false);
   }
 
