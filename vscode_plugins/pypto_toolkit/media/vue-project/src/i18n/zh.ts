@@ -160,7 +160,6 @@ export default {
       searchHistoryTips: '历史搜索记录',
       searchPageTips: '界面说明',
       searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图',
-      locateNodeError:'当前节点未找到，定位失败',
       pleaseSelect: '请选择',
       noData: '无数据'
    },
@@ -184,5 +183,4 @@ export default {
         dataParseError: '无法打开控制流，解析数据异常。',
         leafName:'leaf 函数',
     }
-   }
 }
