@@ -1,12 +1,13 @@
 <template>
   <div class="com-graph-container">
-    <div v-if="outputDirPath" class="com-graph-navbar-wrap">
+    <div v-if="outputDirPath" :class="['com-graph-navbar-wrap', Boolean(currentLeaf) && 'with-leaf-name']">
       <Navbar
         current-step="comGraph"
         :current-record-directory-path="outputDirPath"
         :current-path-magic-name="pathName"
         :current-pass-index="passIndex"
         :current-leaf-name="fileName"
+        @leaf-change="(e) => (currentLeaf = e)"
       />
       <ComGraphHeader in-navbar @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     </div>
@@ -97,6 +98,7 @@ const warningText = ref('');
 const healthReportGraphName = ref('');
 const showType = ref('all');
 const graphType = ref('');
+const currentLeaf = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 
 const switchLockInformationFlag = ref(false);
@@ -292,12 +294,26 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
 
     .com-graph-header {
       position: relative;
-      width: 541px;
+      max-width: 541px;
       background: unset;
 
       .toolbar-row {
+        max-width: 470px;
         top: 16px;
         left: 8px;
+
+        .category-search {
+          width: calc(100% - var(--select-width));
+
+          .dp-category-search-icon {
+            background-color: var(--devui-base-bg);
+            z-index: 2;
+          }
+
+          .dp-category-search-input {
+            min-width: 120px;
+          }
+        }
       }
     }
   }
@@ -312,6 +328,62 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
 
   #sprotty {
     height: 100%;
+  }
+}
+
+@media screen and (max-width: 1396px) {
+  .com-graph-container {
+    .com-graph-navbar-wrap.with-leaf-name {
+        .navbar-container {
+          padding-right: 80px;
+        }
+
+        .com-graph-header {
+          .toolbar-row {
+            position: fixed;
+            max-width: unset;
+            top: 68px;
+            left: 16px;
+          }
+        }
+      }
+  }
+}
+
+@media screen and (max-width: 1254px) {
+  .com-graph-navbar-wrap:not(.with-leaf-name) {
+    .navbar-container {
+      padding-right: 80px;
+    }
+
+    .com-graph-header {
+      .toolbar-row {
+        position: fixed;
+        max-width: unset;
+        top: 68px;
+        left: 16px;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1255px) {
+  .com-graph-navbar-wrap:not(.with-leaf-name) {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1397px) {
+  .com-graph-navbar-wrap.with-leaf-name {
+    .com-graph-header {
+      .toolbar-row {
+        width: calc(100% - 80px) !important;
+      }
+    }
   }
 }
 

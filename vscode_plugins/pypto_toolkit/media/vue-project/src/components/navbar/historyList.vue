@@ -68,7 +68,7 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     color: var(--devui-primary-text);
 
     span {
-      max-width: 200px;
+      max-width: 160px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
