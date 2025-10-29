@@ -1716,6 +1716,7 @@ provide('swimGraphState', {
   isLockStatus,
   dependencyLinesInfo,
   isCfgEditing,
+  isThreeColumn: props.isThreeColumn,
 });
 
 // 提供方法给子组件

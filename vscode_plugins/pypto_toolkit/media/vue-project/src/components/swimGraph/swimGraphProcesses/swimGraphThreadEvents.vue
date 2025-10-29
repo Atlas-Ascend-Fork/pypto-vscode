@@ -66,7 +66,8 @@ const {
   leafHashes,
   leafHashMap,
   isLockStatus,
-  dependencyLinesInfo
+  dependencyLinesInfo,
+  isThreeColumn,
 } = inject('swimGraphState');
 
 const {
@@ -557,11 +558,14 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
-    if (preLabel && preLabel !== color && !isLockStatus.value) {
-       handleOutline(color);
+    if (preLabel && preLabel !== color && !isLockStatus.value && isThreeColumn) {
+      handleOutline(color, false);
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
+  } else if (isThreeColumn && !isLockStatus.value && preLabel) {
+    sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+    preLabel = '';
   }
   if (isLockStatus.value) {
     return;
@@ -705,9 +709,6 @@ const drawBoundary = () => {
   ctx.stroke();
 };
 const resizeDrawBoundary = () => {
-  if(!drawColorDatas.length){
-    return
-  }
   processes.forEach((process, processKey) => {
     if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
@@ -2125,7 +2126,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label) => {
+const handleOutline = (label, needTransform = true) => {
   if (!label) {
     clearSelectionCanvas();
     renderEvents();
@@ -2169,7 +2170,9 @@ const handleOutline = (label) => {
   });
   boundaries = calcRowBoundaries(points);
   if (boundaries.length) {
-    transformCanvas(boundRange);
+    if (needTransform) {
+      transformCanvas(boundRange);
+    }
     processes.forEach((process, processKey) => {
       if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
         return;
