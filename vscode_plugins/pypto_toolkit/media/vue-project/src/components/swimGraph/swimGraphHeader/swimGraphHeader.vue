@@ -144,6 +144,7 @@ const {
   measureDragEndX,
   isDarkTheme,
   mulDetailsExpanded,
+  isLockStatus,
   isCfgEditing,
 } = inject('swimGraphState');
 
@@ -321,6 +322,9 @@ const mte3RatePercentage = ref(0);
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
 const onSearch = (term) => {
+  if (isLockStatus.value) {
+    return;
+  }
   searchQuery.value = term;
   let termL = term.toLowerCase();
   searchResult.value = [];

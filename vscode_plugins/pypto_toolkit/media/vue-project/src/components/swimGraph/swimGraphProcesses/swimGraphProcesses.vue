@@ -59,6 +59,7 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
+  isLockStatus,
   leafHashMap,
   dependencyLinesInfo
 } = inject('swimGraphState');
@@ -92,6 +93,7 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  isLockStatus,
   dependencyLinesInfo
 });
 

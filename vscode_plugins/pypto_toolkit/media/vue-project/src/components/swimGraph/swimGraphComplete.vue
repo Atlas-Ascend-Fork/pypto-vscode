@@ -165,6 +165,7 @@ const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
+let isLockStatus = ref(false);
 const dependencyLinesInfo = ref([]);
 
 let sliderValue = ref(0);
@@ -1712,6 +1713,7 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  isLockStatus,
   dependencyLinesInfo,
   isCfgEditing,
 });
