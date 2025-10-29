@@ -36,25 +36,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
         this.servers.addWebview(webviewView.webview);
         webviewView.webview.onDidReceiveMessage(async (message) => {
-
             if (message.command === 'getInitialData') {
                 webviewView.webview.postMessage({
                     command: 'returnSidBar',
                 })
-            }
-            if (message.command === 'openGraphView') {
-                const {editorView} = useView();
-                try {
-                    const url = vscode.Uri.parse(message.data.absolutepath).with({
-                        query: JSON.stringify({
-                            url: message.data.outputpath
-                        })
-                    })
-                    const webviewPanel = await editorView.open('controlFlow', url);
-
-                } catch (e) {
-                    console.log('controlFlow err', e)
-                }
             }
         })
 

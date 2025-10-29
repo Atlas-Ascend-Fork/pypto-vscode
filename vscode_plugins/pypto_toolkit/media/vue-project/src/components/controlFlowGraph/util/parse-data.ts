@@ -156,7 +156,7 @@ export function transformData(rootNodes: GroupNode): {
 
 
         function drawNode(root: GroupNode) {
-            const verticalSpacing = 50;
+            const verticalSpacing = -40;
             const horizontalSpacing = 0;
             const nodeWidth = 200;
             const nodeHeight = 220;
@@ -168,7 +168,7 @@ export function transformData(rootNodes: GroupNode): {
             function layoutTree(root: GroupNode, level: number = 0, startX: number) {
                 root.y = level;
                 if (root.children && root.children.length !== 0) {
-                    const offsetIf = root?.children[0]?.nodeType === 'IF' ? 150 : 0
+                    const offsetIf = root?.children[0]?.nodeType === 'IF' ? 50 : -80;
                     const leftLeafX = startX - horizontalSpacing - nodeWidth - offsetIf;
                     const rightLeafX = startX + horizontalSpacing + nodeWidth + offsetIf;
                     layoutTree(root.children[0], level + 1, leftLeafX);
@@ -203,11 +203,11 @@ export function transformData(rootNodes: GroupNode): {
                             errorStats,
                         },
                         style: {
-                            x: startX + 200,
+                            x: startX + 120,
                             y: starY + root.y * (nodeHeight + verticalSpacing),
                         },
                     }
-                    root.x = startX + 200;
+                    root.x = startX + 30 * deepRankSep;
                     root.y = starY + root.y * (nodeHeight + verticalSpacing);
                     lastNodeY = Math.max((newNode.style.y), lastNodeY)
                     if (root.nodeType === "IF") {

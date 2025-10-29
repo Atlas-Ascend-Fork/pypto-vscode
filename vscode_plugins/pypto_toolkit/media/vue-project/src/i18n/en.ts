@@ -127,7 +127,7 @@ export default {
         group: 'Group',
         flat: 'Lay Flat',
         onlyPath: 'Only Path',
-        notShowTensorReport:'Only OP is Displayed, Tensor is not shown',
+        notShowTensorReport: 'Only OP is Displayed, Tensor is not shown',
         operationLog: 'Operation Log',
         layerControl: 'Layer Control',
         graphLayout: 'Graph Layout',
@@ -164,7 +164,7 @@ export default {
         searchPlaceholder: 'Search from compilation result',
     },
     controlFlows: {
-        searchPlaceholder: 'Search loop keyword',
+        searchPlaceholder: 'Search keyword',
         noMatchingData: 'No matching data found',
         allComputationalPanelTitle: 'passes',
         callFunctionPanelTitle: 'callee',
@@ -174,8 +174,8 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
-        tableSearch:'Search',
+        tableSearch: 'Search',
         dataParseError: 'Unable to open Control Flow, data parsing exception.',
-        leafName:'leaf function',
+        leafName: 'leaf function',
     }
 }

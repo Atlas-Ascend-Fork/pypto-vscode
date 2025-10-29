@@ -11,7 +11,8 @@
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
       <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
-        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @change="handleTabChange" custom-width="140px">
+        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange"
+                custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
           <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
                  :key="tabIndex" :title="tab.name" class="data-tabs">
@@ -24,7 +25,7 @@
                 <template #prefix>
                   <d-icon class="search-input__icon" name="search"/>
                 </template>
-                <template  #suffix>
+                <template #suffix>
                   <d-icon v-if="searchKeywords[tabIndex]" class="search-input__clear" name="close"
                           @click.stop="searchKeywords[tabIndex] = ''"/>
                 </template>
@@ -84,7 +85,8 @@
                     <div class="table-callee-sell">
                       <span class="callee-sell-count">{{ scope.row.frequency }}</span>
                       <div v-if="scope.row.frequency==='-'" class="callee-sell-progress"></div>
-                      <d-progress v-else class="callee-sell-progress" :percentage="scope.row.frequency*10"
+                      <d-progress v-else class="callee-sell-progress"
+                                  :percentage="(scope.row.frequency/(tabIndex===0?calledMaxFrequency:calleeMaxFrequency))*100"
                                   barBgColor="#317AF7" height="6px"></d-progress>
                     </div>
                   </template>
@@ -106,7 +108,8 @@
                           </span>
                           <div class="expand-row_frequency_progress">
                             <div v-if="item.value==='-'" class="expand-row-progress"></div>
-                            <d-progress v-else class="expand-row-progress" :percentage="item.value*10"
+                            <d-progress v-else class="expand-row-progress"
+                                        :percentage="(item.value/rowData.row.detailMaxCalled)*100"
                                         barBgColor="#317AF7" height="6px"></d-progress>
                           </div>
                         </div>
@@ -165,7 +168,7 @@ const tableRef = ref();
 
 // ========================== 2. 数据 ==========================
 // 按钮配置数据：点击不同按钮打开对应数据的抽屉
-const {t} = useI18n();
+const { t } = useI18n();
 const passList = ref<GroupItem[]>([])
 const panelData = ref<PanelData>({
   title: '',
@@ -201,7 +204,7 @@ const tableRefs = ref<Record<number, any>>({});
 // 展开行ID：按页签存储展开的行ID（{ 页签索引: [行ID数组] }）
 const defaultExpandedRowKeys = ref<Record<number, string[]>>({});
 // 控制table显示隐藏
-const isTableVisited=ref<boolean>(true);
+const isTableVisited = ref<boolean>(true);
 
 // ========================== 4. 事件处理 ==========================
 /**
@@ -362,9 +365,9 @@ const processedTableData = (tabIndex: number) => {
   let filteredData = [...tab.data];
   if (keyword) {
     filteredData = filteredData.filter(row => row.name.toLowerCase().includes(keyword.toLowerCase()))
-    isTableVisited.value=!!filteredData.length;
-  }else {
-    isTableVisited.value=true
+    isTableVisited.value = !!filteredData.length;
+  } else {
+    isTableVisited.value = true
   }
 
   // 2. 排序：根据当前排序状态处理
@@ -386,8 +389,11 @@ function onRowClick(params) {
   }
 }
 
-function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
+const calledMaxFrequency = ref(0)
+const calleeMaxFrequency = ref(0)
 
+function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
+  calledMaxFrequency.value = 0
   // 统计被调用数据
   const calledRecordObj = {}
   let index = 0;
@@ -437,7 +443,9 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
 
     if (calledRecordObj.hasOwnProperty(leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== "{}") {
       const detail: DetailItem[] = []
+      let detailMaxCalled = 0;
       for (let i in calledRecordObj[leaf.hash].detail) {
+        detailMaxCalled = Math.max(detailMaxCalled, calledRecordObj[leaf.hash].detail[i].value)
         detail.push({
           label: calledRecordObj[leaf.hash].detail[i].label,
           value: calledRecordObj[leaf.hash].detail[i].value.toString(),
@@ -446,8 +454,10 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
       leafObj = {
         ...leafObj,
         detail,
+        detailMaxCalled,
       }
     }
+    calledMaxFrequency.value = Math.max(calledMaxFrequency.value, leafObj.frequency)
     tableData.push(leafObj)
   }
   tableData.sort((a, b) => b.frequency - a.frequency)
@@ -456,6 +466,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
 
 function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeRecordsType[]): TableRowData[] {
   const calleeFunctionObj = {}
+  calleeMaxFrequency.value = 0
   let index = 0;
   const leafFunctionMap = new Map()
   leafFunctions.forEach(leafFunction => {
@@ -478,6 +489,7 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 // 转换为表格数据对象列表并从高到低排序
   const tableData: TableRowData[] = [];
   for (let i in calleeFunctionObj) {
+    calleeMaxFrequency.value = Math.max(calleeMaxFrequency.value, calleeFunctionObj[i].frequency)
     tableData.push(calleeFunctionObj[i]);
   }
   tableData.sort((a, b) => b.frequency - a.frequency)
@@ -510,7 +522,7 @@ function getPassList(passes: PassesType[]) {
     item.members.push({
       ...passes[i],
       type: 'other',
-      icon: passes[i].hasHealthReport ? "icon-overview":'',
+      icon: passes[i].hasHealthReport ? "icon-overview" : '',
     })
     if (i === passes.length - 1) {
       passGroups.push(item);
@@ -558,18 +570,6 @@ watch(
     {deep: true}
 );
 
-/**
- * 监听页签变化：切换页签时打印日志（备用调试）
- */
-watch(
-    () => activeTabId.value,
-    (newId) => {
-      const tabIndex = Number(newId.split('-')[1]);
-      if (tableRefs.value[tabIndex]) {
-        console.log(`切换到页签 ${tabIndex}`, tableRefs.value[tabIndex]);
-      }
-    }
-);
 
 // ========================== 7. 计算图moke数据 ==========================
 
@@ -609,6 +609,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   padding-left: 4px;
+
   .group-line {
     display: flex;
     align-items: center;
@@ -618,9 +619,11 @@ defineExpose({
     cursor: pointer;
     padding-left: 8px;
     border-radius: 4px;
-    &:hover{
+
+    &:hover {
       background-color: var(--devui-input-hover-bg);
     }
+
     .group-line-title {
       font-size: 14px;
     }
@@ -635,7 +638,8 @@ defineExpose({
       width: 16px;
       height: 16px;
     }
-    .group-member-icon{
+
+    .group-member-icon {
       display: flex;
       align-items: center;
       color: #94d735;
@@ -876,6 +880,7 @@ defineExpose({
   .active {
     background-color: var(--devui-secondary-button-active-bg);
     border-radius: 4px;
+
     .devui-tabs__nav-content {
       a {
         color: var(--devui-title-text) !important;
@@ -903,9 +908,13 @@ defineExpose({
   tr {
     background-color: var(--devui-card-bg) !important;
   }
-  tr:hover{
-    background-color: var(--devui-input-active-bg)!important;
+
+  .devui-table__row {
+    &:hover {
+      background-color: var(--devui-input-active-bg) !important;
+    }
   }
+
   tr {
     height: 32px;
 
@@ -919,19 +928,26 @@ defineExpose({
     }
   }
 }
-:deep(.devui-table){
-  scrollbar-width: none!important;
+
+:deep(.devui-table) {
+  scrollbar-width: none !important;
 }
-:deep(.devui-table__fix-header){
-  scrollbar-width: none!important;
+
+:deep(.devui-table__fix-header) {
+  scrollbar-width: none !important;
 
 }
+
 .content-table__expand-column {
   // 展开内容区：样式适配
   background-color: var(--devui-nest-bg);
   font-size: 13px;
   line-height: 20px;
   box-sizing: border-box;
+
+  &:hover {
+    background-color: var(--devui-nest-bg);
+  }
 
   .expand-content {
     display: flex;
@@ -941,6 +957,10 @@ defineExpose({
     align-self: start;
     border-bottom: 1px solid var(--devui-split-line);
     height: 32px;
+
+    &:hover {
+      background-color: var(--devui-input-hover-bg);
+    }
   }
 
   .expand-row {
@@ -950,6 +970,10 @@ defineExpose({
     justify-content: center;
     border-bottom: 1px solid var(--devui-split-line);
     min-height: 32px;
+
+    &:hover {
+      background-color: var(--devui-input-hover-bg);
+    }
 
     .expand-row_title {
       display: flex;
