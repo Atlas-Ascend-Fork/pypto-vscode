@@ -78,6 +78,9 @@ export interface LeafInPass {
   /** PATH下的Leaf序号 */
   programId: string;
 
+  /** Leaf计算图文件名称 */
+  leafFileName: string;
+
   /** Leaf计算图文件路径 */
   leafFilePath: string;
 

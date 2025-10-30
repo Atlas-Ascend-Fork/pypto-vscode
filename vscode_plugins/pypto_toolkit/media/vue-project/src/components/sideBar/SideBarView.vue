@@ -188,8 +188,15 @@ watch(sortOption, () => {
 async function getAllRecords(): Promise<void> {
   isLoading.value = true;
   treeData.value = [];
-  const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
-  await transformData(data);
+  try {
+    const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
+    await transformData(data);
+  } catch (e: unknown) {
+    isLoading.value = false;
+    if (e instanceof Error) {
+      throw e;
+    }
+  }
   isLoading.value = false;
 }
 </script>
@@ -333,9 +340,11 @@ async function getAllRecords(): Promise<void> {
         height: 48px;
       }
 
+      // 顶层节点之间显示分隔线
+      border-bottom: 1px solid transparent;
       &:has(+ .devui-tree__node[style*='padding-left: 0px']),
       &:last-of-type {
-        border-bottom: 1px solid var(--vscode-sideBar-border);
+        border-bottom-color: var(--vscode-sideBar-border);
       }
 
       &.active {

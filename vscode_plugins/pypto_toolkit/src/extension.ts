@@ -6,7 +6,7 @@ import * as translationCN from '../package.nls.zh-cn.json';
 
 import {RegisterCommand} from './command/registerCommand';
 import {globalConfig} from './config/config';
-import {initServer} from './core/server';
+import {initServer} from './core/request-server';
 import {SQLiteCache} from './core/sqliteCache';
 import {hismartliteEx} from './hismarliteEx';
 import {services} from './services';
