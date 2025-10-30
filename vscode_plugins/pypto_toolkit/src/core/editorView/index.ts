@@ -130,9 +130,13 @@ export class EditorView {
 
     // 设置页面参数
     this.queryConnector.setQuery(viewPanel.webview, uri, virtualQuery);
-
+    // 监听主题变化
+    const themeListener = vscode.window.onDidChangeActiveColorTheme(
+      () => viewPanel.webview.postMessage({command: 'returnTheme', data: getIDETheme()}), null
+    )
     // 监听销毁
     viewPanel.onDidDispose(() => {
+      themeListener.dispose()
       // hook
       this.onViewDisposed?.(virtualQuery._viewType, uri);
     });

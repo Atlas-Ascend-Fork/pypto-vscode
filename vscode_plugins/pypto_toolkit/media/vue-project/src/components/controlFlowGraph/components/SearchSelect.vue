@@ -161,7 +161,7 @@ defineExpose({
 
 .result-item.active,
 .result-item:hover {
-  color: #E6E6E6;
+  color: var(--devui-primary-text);
   background-color: var(--devui-input-active-bg);
   border-radius: 4px;
 }

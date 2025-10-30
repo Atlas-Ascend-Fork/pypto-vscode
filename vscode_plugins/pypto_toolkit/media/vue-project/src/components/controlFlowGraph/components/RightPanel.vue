@@ -139,7 +139,7 @@
                      @click="openGraph(item)">
                   <span class="group-line-name"> {{ item.passIndex }}</span>
                   <span class="group-line-name"> {{ item.passName }}</span>
-                  <i v-if="item.icon" :class="item.icon" class="group-member-icon" @click="openGraphViewFn"></i>
+                  <span class="group-member-icon" v-if="item.icon"><img :src="healthIcon"/></span>
                 </div>
               </div>
             </div>
@@ -162,6 +162,9 @@ import {
 } from "@/components/controlFlowGraph/type/node-detail-types";
 import { useI18n } from 'vue-i18n';
 import { openComputeGraph } from "@/apis/opener";
+
+
+const healthIcon = ref(`${window.staticPath}/static-assets/control_flow_health.svg`);
 
 // ========================== 1. 绑定组件 ==========================
 const tableRef = ref();
@@ -522,7 +525,7 @@ function getPassList(passes: PassesType[]) {
     item.members.push({
       ...passes[i],
       type: 'other',
-      icon: passes[i].hasHealthReport ? "icon-overview" : '',
+      icon: passes[i].hasHealthReport ? "icon-HealthReport" : '',
     })
     if (i === passes.length - 1) {
       passGroups.push(item);
@@ -642,7 +645,6 @@ defineExpose({
     .group-member-icon {
       display: flex;
       align-items: center;
-      color: #94d735;
       width: 16px;
       height: 16px;
     }
@@ -894,7 +896,7 @@ defineExpose({
   height: 32px;
 
   tr {
-    background-color: #313131 !important;
+    background-color: var(--control-flow-panel-table-title-bg) !important;
 
     th:nth-child(3) {
       width: 0;

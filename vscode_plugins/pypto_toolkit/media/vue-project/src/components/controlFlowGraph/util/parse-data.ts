@@ -190,7 +190,7 @@ export function transformData(rootNodes: GroupNode): {
                 const nodeSize = root.nodeType === "PATH" ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100]
                 loopRankSep = deepRankSep
                 if (root.x !== undefined && root.y !== undefined) {
-                    root.hash = root.hash === '' ? `${root.x}${root.y}` : root.hash
+                    root.hash = root.hash === '' ? `${root.x}${root.y}${parentId}` : root.hash
                     let newNode: ControlFlowNodesType = {
                         id: root.hash,
                         type: root.nodeType === "PATH" ? 'path-card-node' : 'if-card-node',
@@ -203,11 +203,11 @@ export function transformData(rootNodes: GroupNode): {
                             errorStats,
                         },
                         style: {
-                            x: startX + 120,
+                            x: startX + 25 * deepRankSep,
                             y: starY + root.y * (nodeHeight + verticalSpacing),
                         },
                     }
-                    root.x = startX + 30 * deepRankSep;
+                    root.x = startX;
                     root.y = starY + root.y * (nodeHeight + verticalSpacing);
                     lastNodeY = Math.max((newNode.style.y), lastNodeY)
                     if (root.nodeType === "IF") {
@@ -238,6 +238,12 @@ export function transformData(rootNodes: GroupNode): {
                 lastPathBottomCount = loopLastPathCount;
                 loopLastPathCount = deepRankSep;
                 isFirstNode = false;
+            } else if (parentType === "LOOP") {
+                drawNode(node)
+                lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
+                loopTopCount = 0;
+                lastPathBottomCount = loopLastPathCount;
+                loopLastPathCount = deepRankSep;
             }
         }
 

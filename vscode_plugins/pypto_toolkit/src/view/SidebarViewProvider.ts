@@ -43,8 +43,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
             }
         })
 
+        //  主题变化自动刷新
+        vscode.window.onDidChangeActiveColorTheme(
+            () => webviewView.webview.postMessage({command: 'returnTheme', data: getIDETheme()}),
+            null,
+        );
 
     }
+
     private _getHtmlForWebview(webview: vscode.Webview) {
         let replaceParams: any[] = [];
         // 打包的前端页面资源的路径

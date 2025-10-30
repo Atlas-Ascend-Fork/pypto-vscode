@@ -201,8 +201,8 @@ async function getAllRecords(): Promise<void> {
  * 基础样式
  */
 .sidebar-container {
-  background: #181818;
-  color: #ffffff;
+  background: var(--devui-card-bg);
+  color: var(--control-flow-sidebar-search-icon);
   min-height: 100vh;
   width: 100%;
   height: 100vh;
@@ -221,7 +221,7 @@ async function getAllRecords(): Promise<void> {
   padding: 0 16px;
 
   .name {
-    color: #ffffff;
+    color: var(--control-flow-sidebar-search-title);
     margin: 0;
     font-size: 14px;
     line-height: 27px;
@@ -241,7 +241,7 @@ async function getAllRecords(): Promise<void> {
     }
 
     :deep(*) {
-      color: var(--devui-title-text);
+      color: var(--control-flow-sidebar-search-icon);
     }
   }
 
@@ -252,6 +252,7 @@ async function getAllRecords(): Promise<void> {
   .tree-search {
     width: 150px;
   }
+
   .icon {
     font-size: 16px;
     opacity: 0.8;
@@ -273,17 +274,16 @@ async function getAllRecords(): Promise<void> {
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--control-flow-sidebar-search-button);
     border-radius: 4px;
     box-sizing: border-box !important;
     white-space: nowrap;
     text-overflow: ellipsis;
     height: 28px !important;
-    width: 100px !important;
+    width: 110px !important;
     padding-left: 4px !important;
 
     .sort-name {
-      // color: #E6E6E6;
       font-size: 13px;
     }
 
@@ -339,10 +339,10 @@ async function getAllRecords(): Promise<void> {
       }
 
       &.active {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: var(--devui-input-active-bg);
 
         .node-label {
-          color: #ffffff !important;
+          color: var(--control-flow-sidebar-tree-label) !important;
         }
       }
 
@@ -377,7 +377,7 @@ async function getAllRecords(): Promise<void> {
             .node-label {
               font-size: 14px;
               line-height: 22px;
-              color: #e6e6e6;
+              color: var(--control-flow-sidebar-tree-main-label);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -386,7 +386,7 @@ async function getAllRecords(): Promise<void> {
             .node-date {
               font-size: 12px;
               line-height: 18px;
-              color: #999999;
+              color: var(--control-flow-sidebar-tree-placeholder);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -401,7 +401,7 @@ async function getAllRecords(): Promise<void> {
 
             .node-label {
               font-size: 13px;
-              color: #b3b3b3;
+              color: var(--devui-secondary-text);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -445,16 +445,4 @@ async function getAllRecords(): Promise<void> {
   }
 }
 
-:deep(.devui-select__selection) {
-  height: 28px !important;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-
-  .devui-select__input {
-    height: 28px !important;
-    border: none;
-    font-size: 13px;
-    color: #e6e6e6 !important;
-  }
-}
 </style>

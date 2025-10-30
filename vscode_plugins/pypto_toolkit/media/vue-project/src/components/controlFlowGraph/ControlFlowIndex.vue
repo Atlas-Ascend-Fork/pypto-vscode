@@ -14,15 +14,25 @@
       />
     </div>
     <div id="controlGraph" ref="chartContainer" class="chart-container"
-         :class="{ 'init-graph': !isGraphVisible }"></div>
+         :class="{ 'init-graph': !isGraphVisible }" :style="{
+        backgroundImage: 'url(' + svgPath + ')',
+        backgroundRepeat: 'repeat',
+      height: '100%'
+    }"></div>
+
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
-      <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);" :title="t('zoomOut')" @click="graphZoomTo(-10)"></button>
-      <input type="text" :value="zoom" class="zoom-value" @blur="inputZoomTo" @keydown.enter="$event.target.blur()" @input="onInput "/>
+      <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);"
+              :title="t('zoomOut')" @click="graphZoomTo(-10)"></button>
+      <input type="text" :value="zoom" class="zoom-value" @blur="inputZoomTo" @keydown.enter="$event.target.blur()"
+             @input="onInput "/>
       <span class="text-value">%</span>
-      <button class="icon-op-add" style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px;" :title="t('zoomIn')" @click="graphZoomTo(10)"></button>
-      <div class="empty-rect"> </div>
-      <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="graphFitView"></button>
+      <button class="icon-op-add" style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px;"
+              :title="t('zoomIn')" @click="graphZoomTo(10)"></button>
+      <div class="empty-rect"></div>
+      <button class="icon-location-new location-icon" :class="{active: isActive}"
+              style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')"
+              @click="graphFitView"></button>
     </div>
 
   </div>
@@ -30,8 +40,8 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import {useI18n} from 'vue-i18n';
 import {
   CommonEvent,
   Diamond,
@@ -55,10 +65,11 @@ import ErrorView from '@/components/comGraph/error.vue';
 import SearchSelect from "@/components/controlFlowGraph/components/SearchSelect.vue";
 import Loading from "@/components/comGraph/loading.vue";
 
-const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
-const svgPath = ref(`${window.staticPath}/static-assets/spot-ControlFlow-BG.svg`);
-const loopLeftSvg = ref(`${window.staticPath}/static-assets/swim_left.svg`);
-const loopLeftSvgSelect = ref(`${window.staticPath}/static-assets/swim_right.svg`);
+const { isDarkTheme } = inject('root');
+const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
+const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
+const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
+const loopLeftSvg = ref(`${window.staticPath}/static-assets/loop.svg`);
 const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
@@ -67,13 +78,11 @@ let graph = null;
 const { t } = useI18n();
 const rootData = ref([])
 const outPutPath = ref()
-const isEditableSelected = ref(false);
 const isGraphVisible = ref(false);
 const searchSelectRef = ref(null);
 const isLoading = ref(true);
-const initPosition=ref<number[]>([])
 const zoom = ref(1)
-const initZoom=ref()
+const initZoom = ref()
 const isActive = ref(false);
 
 // 工具栏缩放
@@ -82,22 +91,22 @@ function onInput(e) {
   zoom.value = val;
 }
 
-async function inputZoomTo(){
-  await graph.zoomTo(zoom.value/100);
-  isActive.value=false
+async function inputZoomTo() {
+  await graph.zoomTo(zoom.value / 100);
+  isActive.value = false
 }
 
 async function graphZoomTo(size: number) {
-  if(zoom.value +size>0){
+  if (zoom.value + size > 0) {
     zoom.value += size;
-    await graph.zoomTo(zoom.value/100);
+    await graph.zoomTo(zoom.value / 100);
   }
   isActive.value = false;
 }
 
 //工具栏恢复初始位置
-async function graphFitView(){
-  await graph.fitCenter(true,{
+async function graphFitView() {
+  await graph.fitCenter(true, {
     duration: 100,
     easing: 'ease',
   });
@@ -139,10 +148,11 @@ class PathCardNode extends Rect {
    */
   getCardBaseStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width, height] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? '#333333' : '#ffffff';
     return {
       width,
       height,
-      fill: '#333333', // 卡片背景色
+      fill: fillColor, // 卡片背景色
       radius: 8, // 卡片圆角
 
     };
@@ -155,12 +165,14 @@ class PathCardNode extends Rect {
   getPathLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width] = this.getSize(attributes);
     const topY = -this.getSize(attributes)[1] / 2 + 30; // 顶部 Y 坐标（基于节点中心）
+    const fillColor = isDarkTheme.value ? '#e6e6e6' : '#191919';
+
     return {
-      x: -width / 2 + 20, // 左内边距 20px
+      x: -width / 2 + 35, // 左内边距 20px
       y: topY,
       text: this.cardData.name,
       fontSize: 14,
-      fill: '#E6E6E6', // 原文本色
+      fill: fillColor, // 原文本色
       fontWeight: 500,
     };
   }
@@ -168,7 +180,7 @@ class PathCardNode extends Rect {
   /**
    * 图标样式
    */
-  getMyIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
+  getRightIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width] = this.getSize(attributes);
     const topY = -this.getSize(attributes)[1] / 2 + 30;
 
@@ -178,7 +190,20 @@ class PathCardNode extends Rect {
       width: 20,
       height: 20,
       src: attributes.avatarUrl || '',
-      fill: 'rgba(255, 255, 255, 1)',
+      cursor: 'pointer'
+    };
+  }
+
+  getLeftIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
+    const [width] = this.getSize(attributes);
+    const topY = -this.getSize(attributes)[1] / 2 + 30;
+
+    return {
+      x: -width / 2 + 10,
+      y: topY - 18,
+      width: 20,
+      height: 20,
+      src: iconPathLeft.value,
       cursor: 'pointer'
     };
   }
@@ -191,9 +216,10 @@ class PathCardNode extends Rect {
     this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
   }
 
-  drawIconContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+  drawRightIconContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+    this.upsert('path-icon-left', 'image', this.getLeftIconStyle(attributes), container);
     // 绘制图标
-    const btn = this.upsert('path-icon', 'image', this.getMyIconStyle(attributes), container);
+    const btn = this.upsert('path-icon-right', 'image', this.getRightIconStyle(attributes), container);
     // 为按钮添加点击事件
     if (!btn.__clickBound) {
       btn.addEventListener('click', (e) => {
@@ -216,12 +242,13 @@ class PathCardNode extends Rect {
    */
   getSeparatorStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number) {
     const [width] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
     return {
       x: -width / 2 + 20, // 左右内边距 20px
       y,
       width: width - 40, // 分割线宽度 = 卡片宽 - 2*内边距
       height: 1, // 分割线高度 1px
-      fill: 'rgba(255, 255, 255, 0.1)',
+      fill: fillColor,
     };
   }
 
@@ -238,12 +265,14 @@ class PathCardNode extends Rect {
    */
   getFuncLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, label: string) {
     const [width] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? '#999999' : '#595959';
+
     return {
-      x: -width / 2 + 20, // 左内边距 20px
+      x: -width / 2 + 10, // 左内边距 20px
       y,
       text: label,
       fontSize: 12,
-      fill: '#999999', // Label 色
+      fill: fillColor, // Label 色
       textAlign: 'left',
       textBaseline: 'middle',
     };
@@ -254,12 +283,14 @@ class PathCardNode extends Rect {
    */
   getFuncValueStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, value: number) {
     const [width] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? '#e6e6e6' : '#191919';
+
     return {
       x: width / 2 - 20, // 右内边距 20px
       y,
       text: value.toString(),
       fontSize: 14,
-      fill: '#E6E6E6', // 字体颜色
+      fill: fillColor, // 字体颜色
       textAlign: 'right',
       textBaseline: 'middle',
     };
@@ -269,8 +300,8 @@ class PathCardNode extends Rect {
    * 绘制函数统计项
    */
   drawFunctionStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    const { functionStats } = this.cardData;
-    const startY = -this.getSize(attributes)[1] / 2 + 56; // 统计项起始 Y 坐标（分割线下方 12px）
+    const {functionStats} = this.cardData;
+    const startY = -this.getSize(attributes)[1] / 2 + 60; // 统计项起始 Y 坐标
     const stats = [
       {label: t('controlFlows.leafName'), value: functionStats.leafFunction},
       {label: t('controlFlows.calledFunctionPanelTitle'), value: functionStats.called},
@@ -293,12 +324,14 @@ class PathCardNode extends Rect {
    */
   getErrorValueStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, value: number) {
     const [width] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? '#EE696F' : '#c7000b';
+
     return {
       x: width / 2 - 20,
       y,
       text: value.toString(),
       fontSize: 16,
-      fill: '#EE696F', //错误文本色
+      fill: fillColor, //错误文本色
       textAlign: 'right',
       textBaseline: 'middle',
     };
@@ -308,24 +341,26 @@ class PathCardNode extends Rect {
    * 绘制错误统计项（有 errorStats 时才绘制）
    */
   async drawErrorStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    const { errorStats } = this.cardData;
+    const {errorStats} = this.cardData;
     if (!errorStats || Object.keys(errorStats).length === 0) return;
 
     // 1. 错误统计前的分割线
     const funcEndY = -this.getSize(attributes)[1] / 2 + 56 + 2 * 30; // 函数统计项结束 Y 坐标
-    this.drawSeparator(attributes, funcEndY + 18, container);
+    this.drawSeparator(attributes, funcEndY + 20, container);
   }
 
   getHoleStyle(attributes) {
     const [width] = this.getSize(attributes);
     const topY = -this.getSize(attributes)[1] / 2; // 顶部 Y 坐标（基于节点中心）
+    const fillColor = isDarkTheme.value ? 'rgba(255,255,255,0.05)' : 'rgba(25,25,25,0.05)';
+
     return {
       x: -width / 2,
       y: topY,
       radius: '8 8 0 0',
       width: width,
       height: 45,
-      fill: '#3D3D3D',
+      fill: fillColor,
     };
   }
 
@@ -338,18 +373,17 @@ class PathCardNode extends Rect {
   render(
   attributes = this.parsedAttributes, container: Group | undefined
   ) {
-    // // 1. 合并基础样式（覆盖 Rect 默认样式）
+    // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
       ...attributes,
       ...this.getCardBaseStyle(attributes),
     };
     // 2. 绘制基础矩形（继承 Rect 的核心能力）
     super.render(mergedAttrs, container);
-    // // // 3. 绘制卡片内部元素
-    this.drawSeparator(mergedAttrs, -mergedAttrs.height / 2 + 40, container); // 路径下方分割线
+    // 3. 绘制卡片内部元素
     this.drawHoleShape(mergedAttrs, container);
     this.drawPathContainer(mergedAttrs, container); // 顶部name容器
-    this.drawIconContainer(mergedAttrs, container); // 顶部图片容器
+    this.drawRightIconContainer(mergedAttrs, container); // 顶部图片容器
     this.drawFunctionStats(mergedAttrs, container); // 函数统计项
     this.drawErrorStats(mergedAttrs, container); // 错误统计项
   }
@@ -473,11 +507,18 @@ class LogoWithRectCombo extends RectCombo {
       isSelected = states.includes('selected');
       isActived = states.includes('active');
     }
-    let isSelectedTextColor = isSelected ? '#317AF7' : '#B3B3B3';
-    let isActivedTextColor = isActived ? '#317AF7' : '#B3B3B3'
-    let isSelectedHitAreaColor = isSelected ? '#317AF7' : '#1F1F1F';
+    const buttonBlue = isDarkTheme.value ? '#317AF7' : '#0950de';
+    const buttonWeak = isDarkTheme.value ? '#1F1F1F' : '#fafafa';
+
+    const textBlue = isDarkTheme.value ? '#317AF7' : '#0a59f7';
+    const textWeak = isDarkTheme.value ? '#b3b3b3' : '#777777';
+
+    const selectTextColor = isDarkTheme.value ? '#FFFFFF' : '#000000';
+
+    let isActivedTextColor = isActived ? textBlue : textWeak;
+    let isSelectedHitAreaColor = isSelected ? buttonBlue : buttonWeak;
     if (isSelected) {
-      isActivedTextColor = '#FFFFFF'
+      isActivedTextColor = selectTextColor
     }
 
 
@@ -496,8 +537,7 @@ class LogoWithRectCombo extends RectCombo {
       x: x + 10,
       width: 20,
       height: 20,
-      src: isSelected ? loopLeftSvgSelect.value : loopLeftSvg.value,
-      color: isSelectedTextColor,
+      src: loopLeftSvg.value,
     }, this)
     // loop标签文本
     const text = await this.upsert('loop-text', 'text', {
@@ -560,8 +600,8 @@ const handleSelectedValue = (value) => {
 };
 
 // 鼠标hover以及键盘上下高亮
-const handHoverEvent=(value)=>{
-  handleMatchedResults(matchedResults.value )
+const handHoverEvent = (value) => {
+  handleMatchedResults(matchedResults.value)
   graph.setElementState(value, 'selected');
 }
 
@@ -571,7 +611,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
   const container = chartContainer.value as HTMLDivElement;
-
   graph = new Graph({
     container: container,
     plugins: [
@@ -582,7 +621,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
         size: [260, 160],
         container: minimapRef.value,
         containerStyle: {
-          backgroundColor: '#292A2E', // 设置背景色
           borderRadius: '20px 20px 0 0',
         },
         maskStyle: {
@@ -593,7 +631,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
       {
         type: 'background',
         key: 'my-background', // 为插件指定标识符，方便动态更新
-        backgroundColor: '#1F1F1F', // 设置背景色
+        backgroundColor: 'var(--devui-page-bg)', // 设置背景色
         backgroundImage: `url(${svgPath.value} )`, // 设置背景图
         backgroundRepeat: 'space',
         backgroundPosition: '10px ',
@@ -624,7 +662,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
             return [200, 100]
           }
         },
-        avatarUrl: iconPath1.value,
+        avatarUrl: iconPathRight.value,
         border: 1,
         halo: false, // 启用光晕
         haloLineWidth: 0,
@@ -644,7 +682,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
           lineWidth: 0,
         },
         inactive: {
-          fill: '',
           opacity: 1,
         },
       },
@@ -659,13 +696,13 @@ const initG6Graph = async (nodes, edges, combos,) => {
         lineWidth: 1,
         lineDash: [6, 4],
         lineCap: 'round',
-        stroke: '#666666',
+        stroke: () => isDarkTheme.value ? '#666666' : '#aeaeae',
       },
       state: {
         selected: {
           lineWidth: 2,
-          fill: '#317AF7',
-          stroke: '#317AF7',
+          fill: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
+          stroke: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
           lineDash: [2, 1],
           lineCap: 'square',
           halo: false, // 启用光晕
@@ -673,8 +710,8 @@ const initG6Graph = async (nodes, edges, combos,) => {
         },
         highlight: {
           lineWidth: 1,
-          fill: '#317AF7',
-          stroke: '#317AF7',
+          fill: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
+          stroke: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
           halo: false, // 启用光晕
           haloLineWidth: 0,
         },
@@ -685,8 +722,8 @@ const initG6Graph = async (nodes, edges, combos,) => {
         },
         active: {
           lineWidth: 1,
-          fill: '#317AF7',
-          stroke: '#317AF7',
+          fill: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
+          stroke: () => isDarkTheme.value ? '#317af7' : '#0a59f7',
           halo: false, // 启用光晕
           haloLineWidth: 0,
         },
@@ -741,14 +778,20 @@ const initG6Graph = async (nodes, edges, combos,) => {
     await graph.resize();
     await graph.render();
   })
+  watch(() => isDarkTheme.value, async () => {
+    combosNode.value.forEach((node) => {
+      const id = node.id
+      graph.setElementState(id, [],);
+    })
+  })
 
-  function fitActive(){
-    isActive.value=false
+  function fitActive() {
+    isActive.value = false
   }
 
   // 监听滚轮以及拖拽事件，使得自适应按钮取消高亮
-  graph.on(CommonEvent.WHEEL,fitActive)
-  graph.on(CommonEvent.DRAG,fitActive)
+  graph.on(CommonEvent.WHEEL, fitActive)
+  graph.on(CommonEvent.DRAG, fitActive)
 
   function clickFun(event) {
     searchSelectRef.value.clear()
@@ -756,6 +799,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
       graph.setElementState(event.target.id, 'selected');
     }
   }
+
   // 监听点击事件
   graph.on(CommonEvent.CLICK, clickFun)
 
@@ -773,7 +817,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
     await graph.zoomTo(initSize - 0.05);
   }
 
-  initZoom.value=zoom.value/100;
+  initZoom.value = zoom.value / 100;
   isGraphVisible.value = true;
   isLoading.value = false;
 };
@@ -823,7 +867,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  background-color: #1F1F1F;
+  background-color: var(--control-flow-sidebar-bg);
 }
 
 .tool-navbar {
@@ -837,9 +881,10 @@ onUnmounted(() => {
   padding: 12px;
   gap: 8px;
   background: var(--devui-header-gradient-bg);
-  .tool-select{
+
+  .tool-select {
     position: relative;
-    top:16px
+    top: 16px
   }
 }
 
@@ -853,19 +898,17 @@ onUnmounted(() => {
   visibility: hidden;
 }
 
-.img-class {
-  background-color: #E6E6E6;
-}
-
 .minimap-type {
   position: absolute !important;
-  background-color: #292A2E !important; // 设置背景色
+  background-color: var(--devui-base-bg) !important; // 设置背景色
+  box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   border-radius: 20px 20px 0 0 !important;
   width: 260px;
   height: 160px;
   right: 16px;
   bottom: 48px;
 }
+
 .tool-select-focus {
   :deep(.devui-editable-select__clear-icon) {
     display: none !important;
@@ -876,7 +919,7 @@ onUnmounted(() => {
   position: fixed;
   right: 24px;
   top: 40px;
-  color: #E6E6E6;
+  color: var(--devui-primary-text);
   z-index: 99;
 }
 
@@ -886,6 +929,7 @@ onUnmounted(() => {
 </style>
 <style lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
+
 .tool-bar {
   position: fixed;
   right: 16px;
@@ -895,6 +939,7 @@ onUnmounted(() => {
   width: 260px;
   height: 32px;
   background: $devui-base-bg;
+  box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   flex-direction: row;
   justify-content: center;
   padding: 4px 12px;
@@ -917,6 +962,7 @@ onUnmounted(() => {
       color: rgba(49, 122, 247, 1);
     }
   }
+
   .zoom-value {
     width: 42px;
     border: none;
@@ -925,14 +971,16 @@ onUnmounted(() => {
     font-size: 12px;
     text-align: right;
     padding: 0;
-    outline:0 !important;
+    outline: 0 !important;
     box-shadow: none !important;
   }
+
   .text-value {
     color: $devui-text;
     font-size: 12px;
     margin-right: 26px;
   }
+
   .empty-rect {
     width: 1px;
     height: 16px;
@@ -941,10 +989,12 @@ onUnmounted(() => {
     margin-right: 32px;
     background-color: rgba(255, 255, 255, 0.05);
   }
+
   .tool-zoom {
     font-size: 12px;
     line-height: 18px;
   }
+
   .icon-minus:before {
     content: "\E0DB";
   }
