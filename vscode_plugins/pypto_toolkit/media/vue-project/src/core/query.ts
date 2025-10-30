@@ -1,7 +1,6 @@
 import type { ViewQuery } from '../../../../src/core/viewQuery';
 
 import { ExtensionConnector } from './connector';
-import { vscode } from './vscode';
 
 let resolveQuery: (value: ViewQuery) => void;
 let thenableQuery: Promise<ViewQuery> = new Promise((resolve) => {
@@ -18,7 +17,6 @@ export function initExtensionQuery() {
   queryConnector.send(null);
 
   queryConnector.receive((query) => {
-    vscode.value.setState({ query });
     resolveQuery(query);
   });
 }

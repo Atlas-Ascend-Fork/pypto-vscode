@@ -23,7 +23,10 @@ export interface ControlFlowPath extends ControlFlowNode {
   };
 }
 
-export interface LeafFunction extends ExecuteFunction {}
+export interface LeafFunction extends ExecuteFunction {
+  /** 在PATH下的序号 */
+  programId: string;
+}
 
 /**
  * root->leaf记录
@@ -49,9 +52,38 @@ export interface PathInPass {
   /** 过程名称 */
   passName: string;
 
+  /** PATH名称 */
+  pathName: string;
+
   /** 计算图文件路径 */
   graphFilePath: string;
 
   /** 是否有健康报告 */
   hasHealthReport: boolean;
+
+  /** 当前过程调用的leaf function */
+  leafFunctions: LeafInPass[];
+}
+
+/**
+ * 单个优化过程内的PATH调用的Leaf信息
+ */
+export interface LeafInPass {
+  /** 名称 */
+  leafName: string;
+
+  /** 是否属于当前PATH */
+  isOwnedLeaf: boolean;
+
+  /** PATH下的Leaf序号 */
+  programId: string;
+
+  /** Leaf计算图文件路径 */
+  leafFilePath: string;
+
+  /** 所属PATH的名称 */
+  rootPathName: string;
+
+  /** 所属PATH的计算图文件路径 */
+  rootFilePath: string;
 }

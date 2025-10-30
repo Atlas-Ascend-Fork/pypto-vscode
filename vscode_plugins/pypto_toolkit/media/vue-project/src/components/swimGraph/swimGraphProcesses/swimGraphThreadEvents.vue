@@ -5,7 +5,7 @@
       :data-process-key="processKey"
       @click="handleCanvasClick" 
       @mousemove="handleMouseMove"
-      @mouseleave="hideTooltip"
+      @mouseleave="handleMouseLeave"
       @mousedown="handleMouseDown" 
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
@@ -36,7 +36,6 @@ let points = [];
 let boundaries = [];
 let preLabel = '';
 let drawColorDatas = {};
-let isLockStatus = false;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -56,6 +55,8 @@ const {
   initialScale,
   tooltip,
   tooltipStyle,
+  lineTooltip,
+  lineTooltipStyle,
   timelineState,
   processes,
   processExpanded,
@@ -63,7 +64,10 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
-  leafHashMap
+  leafHashMap,
+  isLockStatus,
+  dependencyLinesInfo,
+  isThreeColumn,
 } = inject('swimGraphState');
 
 const {
@@ -79,12 +83,13 @@ const {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
+  getDisplayName,
   changeScale,
   resetState,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
-const { userConfig } = inject('swimGraphCfg');
+const { userConfig, textOption } = inject('swimGraphCfg');
 // 测距的最小距离，若小于这个距离，不显示左右箭头
 const nodeSpaceMin = 58;
 // 定义props
@@ -131,7 +136,7 @@ const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
   }
-  if(isLockStatus){
+  if (isLockStatus.value) {
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -441,6 +446,41 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   return cursor;
 }
 
+const findLineAtPoint = (ctx, point) => {
+  // 还原传入坐标为绘制算法
+  const pointX = (point.x * viewState.scale * viewState.scale) + viewState.offsetX;
+  for (const line of dependencyLinesInfo.value) {
+    if (ctx.isPointInStroke(line.linePath, pointX, point.y)) {
+      return { fromEvent: line.fromEvent, toEvent: line.toEvent };
+    }
+  }
+  return null;
+};
+
+const handleLineTooltipAndCursor = (e, x, y) => {
+  let cursor = '';
+  if (dependencyLinesInfo.value.length === 0) {
+    return cursor;
+  }
+  const point = { x, y };
+
+  const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${props.processKey}"]`);
+  if (!dependencyCanvasRef) {
+    return cursor;
+  }
+
+  const dependencyCtx = dependencyCanvasRef.getContext('2d');
+  const line = findLineAtPoint(dependencyCtx, point);
+
+  if (line && !e.altKey && !e.ctrlKey) {
+    lineShowTooltip(e, line.fromEvent, line.toEvent);
+    cursor = 'pointer';
+  } else {
+    hideLineTooltip();
+  }
+  return cursor;
+};
+
 function handleCtrlDragPan(e, canvasRef) {
   let cursor = null;
   if (e.ctrlKey && e.buttons === 1) {
@@ -497,12 +537,14 @@ const handleMouseMove = throttle((e) => {
     return;
   }
 
-  if (!e.altKey && !isLockStatus) {
+  if (!e.altKey && !isLockStatus.value) {
     onHoverEvent(hoveredEvent);
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
   }
 
   let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
+
+  cursor = handleLineTooltipAndCursor(e, x, y) || '';
 
   const dragCursor = handleCtrlDragPan(e, canvasRef);
   if (dragCursor) {
@@ -516,14 +558,18 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
-    if (preLabel && preLabel !== color && !isLockStatus) {
-      clearSelectionCanvas();
-      renderEvents();
+    if (preLabel && preLabel !== color && !isLockStatus.value && isThreeColumn) {
+      handleOutline(color, false);
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
+  } else if (isThreeColumn && !isLockStatus.value && preLabel) {
+    sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+    preLabel = '';
   }
-  if (isLockStatus) return;
+  if (isLockStatus.value) {
+    return;
+  }
   if (isDragging.value && !e.altKey && !e.ctrlKey) {
     selection.endLocalX = x;
     selection.endY = y;
@@ -686,6 +732,11 @@ const checkInSelection = () => {
   matchingAIVEvents = [];
   selectionEvents = [];
   // 解构选择区域坐标
+  if (selection.endX < selection.startX) {
+    [selection.startX, selection.endX] = [selection.endX, selection.startX];
+    [selection.startLocalX, selection.endLocalX] = [selection.endLocalX, selection.startLocalX];
+    [selection.startY, selection.endY] = [selection.endY, selection.startY];
+  }
   const { startX, startY, endX, endY } = selection;
 
   // 计算时间范围
@@ -778,11 +829,12 @@ function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
   highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
 }
 const handleMouseDown = (e) => {
+  hideLineTooltip();
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
   }
-  if (!isLockStatus) {
+  if (!isLockStatus.value) {
     // 获取鼠标按下时的坐标
     const rect = canvasRef.getBoundingClientRect();
     if (!e.ctrlKey) {
@@ -804,7 +856,17 @@ const handleMouseDown = (e) => {
   lastMoveX = e.clientX;
 };
 const handleMouseUp = throttle((e) => {
-  if(isLockStatus) {
+  selectionFinished(e);
+}, 16);
+
+const handleMouseLeave = throttle((e) => {
+  hideTooltip();
+  if (isDragging.value) {
+    selectionFinished(e);
+  }
+}, 16);
+const selectionFinished = (e) => {
+  if(isLockStatus.value) {
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
@@ -829,7 +891,7 @@ const handleMouseUp = throttle((e) => {
     handleSelection();
   }
   isDragging.value = false;
-}, 16);
+};
 const getCanvasHeight = () => {
   let height = 0;
   for (const [_, thread] of props.process.threads.entries()) {
@@ -869,7 +931,7 @@ const transformEvents = (process, processKey) => {
 
       eventCtx.stroke();
       eventCtx.closePath();
-    } else if (!selectedEvent.value) {
+    } else if (!selectedEvent.value && !drawColorDatas.length) {
       let eventDatas = [];
       for (const event of thread.events) {
         const { drawData } = event;
@@ -887,7 +949,7 @@ const transformEvents = (process, processKey) => {
     }
   }
 
-  if (selectedEvent.value) {
+  if (selectedEvent.value && !drawColorDatas.length) {
     changeNodeColor(processKey, true, false);
   }
 
@@ -1002,6 +1064,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
 };
 
 const clearDependencyLines = (processKey) => {
+  dependencyLinesInfo.value = [];
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${processKey}"]`);
   if (!dependencyCanvasRef) return false;
   
@@ -1119,7 +1182,9 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
     endY: (toEvent.renderInfo.y + (toEvent.renderInfo.height / 2)) * devicePixelRatio,
   };
 
-  drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+  const linePath = drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+
+  dependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
   drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
   drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
@@ -1263,12 +1328,18 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     textX: 0, textY: 0, fontColor: '', show: true
   });
   
-  for (const event of thread.events) {
+  thread.events.forEach((event, index, array) => {
     // 冲突处理：将渲染时间后移1个单位以避免重叠
     const hasTimeConflict = thread.isFakeCore && previousEventData && previousEventData.renderEndTime > event.renderStartTime;
-    if (hasTimeConflict){
+    if (hasTimeConflict) {
+      // 获取当前事件的所有后置依赖事件
+      const dependentEvents = getDependentEvents(event.dependencies.successors);
+      const minDependentStartTime = dependentEvents.length ? Math.min(...dependentEvents.map(dep => dep.startTime)) : timelineState.endTime;
+      const lastEventData = array[index + 1];
+      const lastStartTime = lastEventData ? lastEventData.startTime : timelineState.endTime;
+      const duration = Math.min((Math.min(minDependentStartTime, lastStartTime) - event.startTime) / 2, 1);
       // 冲突处理：将渲染时间后移1个单位
-      const newRenderStartTime = event.renderEndTime + 1;
+      const newRenderStartTime = event.renderStartTime + duration;
       event.renderStartTime = newRenderStartTime;
       event.renderEndTime = newRenderStartTime + 1;
     }
@@ -1282,13 +1353,30 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
       event.drawData = drawData;
       eventDatas.push(drawData);
     } else {
-      continue;
+      return;
     }
     previousEventData = event;
-  }
+  });
   drawEvent(eventDatas, ctx);
 };
-
+const getDependentEvents = (successors) => {
+  const dependentEvents = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      const { threadName, events } = thread;
+      events.forEach((event, eventKey) => {
+        if (successors.includes(event.id)) {
+          dependentEvents.push(event);
+        }
+      });
+    });
+  });
+  return dependentEvents;
+};
 const getEventColor = (event, highlight=false, stroke=true) => {
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
@@ -1393,7 +1481,7 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   }
 
   const actualPixWidth = actualWidth * devicePixelRatio;
-  let { name: displayName } = event;
+  let displayName = getDisplayName(event);
   let textWidth = ctx.measureText(displayName).width;
 
   let displayText = '';
@@ -1512,7 +1600,7 @@ const renderProcessText = (process, ctx) => {
 const showTooltip = (e, event, canvasRef) => {
   if (!tooltip.value) return;
 
-  const displayName = event.isCounter ? event.displayName : (event.name || 'Event');
+  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("title")}</span><span class="tooltip-value">${displayName}</span></div>`;
   if(event.cat){
@@ -1536,8 +1624,57 @@ const showTooltip = (e, event, canvasRef) => {
   tooltipStyle.top = (e.clientY - 10) + 'px';
 };
 
+const lineShowTooltip = (e, startEvent, endEvent) => {
+  if (!startEvent.args['ooperand-hint'] || !endEvent.args['ioperand-hint']) {
+    return;
+  }
+
+  let jsonStartHint = startEvent.args['ooperand-hint'].replace(/'/g, '"');
+  jsonStartHint = jsonStartHint.replace(/\b(?<number>\d+)\b(?=\s*[:\]])/g, '"$<number>"');
+
+  let jsonEndHint = endEvent.args['ioperand-hint'].replace(/'/g, '"');
+  jsonEndHint = jsonEndHint.replace(/\b(?<number>\d+)\b(?=\s*[:\]])/g, '"$<number>"');
+
+  const startHint = JSON.parse(jsonStartHint);
+  const endHint = JSON.parse(jsonEndHint);
+  const startMap = new Map(startHint.map(item => [Object.keys(item)[0], item]));
+  const endMap = new Map(endHint.map(item => [Object.keys(item)[0], item]));
+
+  const interSectionMap = new Map();
+  for (const [key, value] of startMap) {
+    if (endMap.has(key) && JSON.stringify(value) === JSON.stringify(endMap.get(key))) {
+      interSectionMap.set(key, value);
+    }
+  }
+
+  if (interSectionMap.size === 0) {
+    return;
+  }
+
+  let lineTooltipContent = `<div class="linetooltip-container">`;
+  for (const [key, value] of interSectionMap) {
+    const { shape, dtype, rawmagic, mem_usage } = value[key];
+    const valueString = `shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}`;
+    lineTooltipContent += `<div class="linetooltip-item"><span class="linetooltip-value">${valueString}</span></div>`;
+  }
+  lineTooltipContent += '</div>';
+  lineTooltip.value.innerHTML = lineTooltipContent;
+  lineTooltipStyle.display = 'block';
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  if (e.clientX  + 200  > canvasCSSWidth) {
+    lineTooltipStyle.left = (e.clientX - 100) + 'px';
+  } else {
+    lineTooltipStyle.left = (e.clientX + 10) + 'px';
+  }
+  lineTooltipStyle.top = (e.clientY - 10) + 'px';
+};
+
 const hideTooltip = () => {
   tooltipStyle.display = 'none';
+};
+
+const hideLineTooltip = () => {
+  lineTooltipStyle.display = 'none';
 };
 const clearDrawConnector = (ctx, processKey) => {
     const canvasRef = getActiveEventCanvas(processKey);
@@ -1748,7 +1885,7 @@ const renderInfo2pixelData = (renderInfo) => {
   const {x, width, y, height} = renderInfo;
   return {
     x: getNoZoomX(x),
-    width: width * devicePixelRatio,
+    width: width * viewState.pixelScale,
     y: y * devicePixelRatio,
     height: height * devicePixelRatio,
   };
@@ -1989,7 +2126,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label) => {
+const handleOutline = (label, needTransform = true) => {
   if (!label) {
     clearSelectionCanvas();
     renderEvents();
@@ -2033,7 +2170,9 @@ const handleOutline = (label) => {
   });
   boundaries = calcRowBoundaries(points);
   if (boundaries.length) {
-    transformCanvas(boundRange);
+    if (needTransform) {
+      transformCanvas(boundRange);
+    }
     processes.forEach((process, processKey) => {
       if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
         return;
@@ -2047,7 +2186,7 @@ const handleOutline = (label) => {
         const rootHashStr = getRootHashList(eventHintStr);
         rootHashArray.push(rootHashStr);
       });
-      if (!isLockStatus && drawColorDatas[processKey].length) {
+      if (!isLockStatus.value && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
         sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
       }
@@ -2063,10 +2202,10 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
   handleOutline(label);
-  isLockStatus = true;
+  isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
-  isLockStatus = false;
+  isLockStatus.value = false;
 });
 const sendMsg = (command, param) => {
   try {
@@ -2091,7 +2230,9 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
-  resizeDrawBoundary
+  resizeDrawBoundary,
+  getEventColor,
+  drawBoundary
 });
 
 // 每个事件画布都会走一遍

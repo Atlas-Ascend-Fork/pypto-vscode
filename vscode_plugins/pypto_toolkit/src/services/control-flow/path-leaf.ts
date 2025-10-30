@@ -1,7 +1,6 @@
-import type { CallLeafRecord, ControlFlowPath, FunctionNode, LeafFunction, PathInPass } from '../../types/control-flow';
+import type { CallLeafRecord, ControlFlowPath, FunctionNode, LeafFunction, LeafInPass, PathInPass } from '../../types/control-flow';
 import type { ExecuteFunction } from '../../types/execute-graph';
-import { PassDirectory } from '../../types/workspace';
-import { hasHealthReport } from '../../utils/health-report';
+import { ComputeGraph, PassDirectory, PassStage } from '../../types/workspace';
 
 import { functionNodeToExecuteFunction } from './utils';
 
@@ -12,35 +11,49 @@ export class PathLeafAnalyzer {
   /** 所有path */
   private pathFunctions: ControlFlowPath[] = [];
 
+  private leafFunctionHashMap: Map<string, LeafFunction> = new Map();
+
   /** leaf function被调用 */
   private leafFunctionCalledMap: Map<string, ExecuteFunction[]> = new Map();
 
+  private passFiles: {
+    roots: Record<string, ComputeGraph>;
+    leafs: Record<string, ComputeGraph> | null;
+    passName: string;
+    passStage: PassStage;
+  }[] = [];
+
   /**
    * @param functionHashMap 所有函数(key: hash)
-   * @param ownedFunctions 函数和下属函数关系(key: magic)
+   * @param functionMagicMap 所有函数(key: magic)
    */
   constructor(
     private functionHashMap: Map<string, FunctionNode>,
-    private ownedFunctions: Map<number, FunctionNode[]>,
-    private passes: PassDirectory[],
-  ) {}
+    private functionMagicMap: Map<number, FunctionNode>,
+    passes: PassDirectory[],
+  ) {
+    this.scanAllPasses(passes);
+  }
 
   /**
    * 生成控制流PATH节点
    */
   public makePathFunction(functionNode: FunctionNode): ControlFlowPath {
+    const callerFunction = functionNodeToExecuteFunction(functionNode);
+    const ownedLeafFunctions = this.findOwnedLeafFunctions(functionNode);
+    const calleeRecords = this.findCalleeRecords(functionNode, callerFunction);
     const pathFunction: ControlFlowPath = {
       nodeType: 'PATH',
-      ...functionNodeToExecuteFunction(functionNode),
+      ...callerFunction,
       meta: {
-        leafFunctions: this.findOwnedLeafFunctions(functionNode.funcmagic),
+        leafFunctions: ownedLeafFunctions,
         /**
          * 遍历functions后计算赋值
          * @see calculateLeafFunctionCalledRecords
          */
         calledRecords: [],
-        calleeRecords: this.findCalleeRecords(functionNode),
-        passes: this.findPathInPasses(functionNode),
+        calleeRecords: calleeRecords,
+        passes: this.findPathInPasses(functionNode, ownedLeafFunctions, calleeRecords),
       },
     };
 
@@ -60,53 +73,69 @@ export class PathLeafAnalyzer {
     });
   }
 
+  private scanAllPasses(passes: PassDirectory[]): void {
+    for (const pass of passes) {
+      const roots: Record<string, ComputeGraph> = {};
+      const leafs: Record<string, ComputeGraph> = {};
+      let noLeaf = true;
+      for (const computeGraph of pass.children) {
+        if (computeGraph.computeType === 'root') {
+          roots[computeGraph.pathName] = computeGraph;
+        } else if (computeGraph.computeType === 'all' && !roots[computeGraph.pathName]) {
+          roots[computeGraph.pathName] = computeGraph;
+        } else {
+          noLeaf = false;
+          leafs[computeGraph.leafHash!] = computeGraph;
+        }
+      }
+      this.passFiles.push({ roots, leafs: noLeaf ? null : leafs, passName: pass.name, passStage: pass.passStage });
+    }
+  }
+
   /**
    * 查找path下属所有leaf function
    */
-  private findOwnedLeafFunctions(pathMagic: number): ControlFlowPath['meta']['leafFunctions'] {
-    const subFunctions = this.ownedFunctions.get(pathMagic) ?? [];
-    return subFunctions.map((item) => functionNodeToExecuteFunction(item));
+  private findOwnedLeafFunctions(pathFunction: FunctionNode): ControlFlowPath['meta']['leafFunctions'] {
+    return (
+      pathFunction.programs?.map<LeafFunction>((leafFunctionMagic, programIndex) => {
+        const leafFunctionNode = this.functionMagicMap.get(leafFunctionMagic)!;
+        const programId = programIndex.toString().padStart(2, '0');
+        if (this.leafFunctionHashMap.has(leafFunctionNode.hash)) {
+          const leafFunction = this.leafFunctionHashMap.get(leafFunctionNode.hash)!;
+          leafFunction.programId = programId;
+          return leafFunction;
+        } else {
+          const leafFunction = {
+            ...functionNodeToExecuteFunction(leafFunctionNode),
+            programId,
+          };
+          this.leafFunctionHashMap.set(leafFunctionNode.hash, leafFunction);
+          return leafFunction;
+        }
+      }) ?? []
+    );
   }
 
   /**
    * 查找path调用的所有leaf function
    */
-  private findCalleeRecords(pathFunction: FunctionNode): ControlFlowPath['meta']['calleeRecords'] {
+  private findCalleeRecords(pathFunction: FunctionNode, callerFunction: ExecuteFunction): ControlFlowPath['meta']['calleeRecords'] {
     const noCalleeHash = !Reflect.has(pathFunction.operations[0], 'calleehash');
     if (noCalleeHash) {
       return [];
     }
     const leafFunctionNodes = pathFunction.operations.map(({ calleehash }) => this.functionHashMap.get(calleehash!)!);
     return leafFunctionNodes.map((leafFunctionNode) => {
-      const callerFunction = functionNodeToExecuteFunction(pathFunction);
       if (!this.leafFunctionCalledMap.has(leafFunctionNode.hash)) {
         this.leafFunctionCalledMap.set(leafFunctionNode.hash, []);
       }
       this.leafFunctionCalledMap.get(leafFunctionNode.hash)?.push(callerFunction);
-      const calleeFunction = functionNodeToExecuteFunction(leafFunctionNode);
+
+      const calleeFunction =
+        this.leafFunctionHashMap.get(leafFunctionNode.hash) ?? (functionNodeToExecuteFunction(leafFunctionNode) as LeafFunction);
+      this.leafFunctionHashMap.set(leafFunctionNode.hash, calleeFunction);
       return this.makeCallRecord(callerFunction, calleeFunction);
     });
-  }
-
-  /**
-   * 获取所有过程中的path计算图
-   */
-  private findPathInPasses(pathFunction: FunctionNode): PathInPass[] {
-    const magicName = pathFunction.func_magicname;
-    const pathInPasses: PathInPass[] = [];
-    for (const pass of this.passes) {
-      const pathFile = pass.children.find(({ name }) => name.includes(magicName));
-      if (pathFile) {
-        pathInPasses.push({
-          passIndex: pass.passIndex,
-          passStage: pass.passStage,
-          passName: pass.name,
-          graphFilePath: pathFile.absolutePath,
-          hasHealthReport: hasHealthReport(pathFile.absolutePath),
-        });
-      }
-    }
-    return pathInPasses;
   }
 
   private makeCallRecord(caller: ExecuteFunction, callee: LeafFunction): CallLeafRecord {
@@ -116,5 +145,69 @@ export class PathLeafAnalyzer {
       calleeHash: callee.hash,
       calleeFunction: callee,
     };
+  }
+
+  /**
+   * 获取所有过程中的path计算图
+   */
+  private findPathInPasses(
+    pathFunction: FunctionNode,
+    ownedLeafFunctions: ControlFlowPath['meta']['leafFunctions'],
+    calleeRecords: ControlFlowPath['meta']['calleeRecords'],
+  ): ControlFlowPath['meta']['passes'] {
+    const pathName = pathFunction.func_magicname.replace(`_root_${pathFunction.funcmagic}`, '');
+    const pathInPasses: PathInPass[] = [];
+    for (const { roots, leafs, passName, passStage } of this.passFiles) {
+      const pathFile = roots[pathName];
+      if (pathFile) {
+        const hasHealthReport = this.pathHasHealthReport(
+          pathFile,
+          ownedLeafFunctions.map((item) => leafs?.[item.hash]),
+        );
+        pathInPasses.push({
+          passIndex: pathFile.passIndex,
+          passName,
+          passStage,
+          pathName,
+          graphFilePath: pathFile.absolutePath,
+          hasHealthReport,
+          leafFunctions: leafs ? this.findLeafInPass(calleeRecords, roots, leafs, pathName) : [],
+        });
+      }
+    }
+    return pathInPasses;
+  }
+
+  private pathHasHealthReport(pathFile: ComputeGraph, leafFiles: (ComputeGraph | undefined)[]) {
+    return [pathFile, ...leafFiles].some((item) => item?.hasHealthReport);
+  }
+
+  private findLeafInPass(
+    calleeRecords: ControlFlowPath['meta']['calleeRecords'],
+    roots: Record<string, ComputeGraph>,
+    leafs: Record<string, ComputeGraph>,
+    rootPathName: string,
+  ): LeafInPass[] {
+    const usedLeaf = new Set();
+    const leafFunctions: LeafInPass[] = [];
+    for (const record of calleeRecords) {
+      if (usedLeaf.has(record.calleeHash)) {
+        continue;
+      }
+      usedLeaf.add(record.calleeHash);
+      const leafFile = leafs[record.calleeHash];
+      if (!leafFile) {
+        continue;
+      }
+      leafFunctions.push({
+        leafName: leafFile.name,
+        isOwnedLeaf: leafFile.pathName === rootPathName,
+        programId: leafFile.leafProgramId!,
+        leafFilePath: leafFile.absolutePath,
+        rootPathName: leafFile.pathName,
+        rootFilePath: roots[leafFile.pathName].absolutePath,
+      });
+    }
+    return leafFunctions;
   }
 }

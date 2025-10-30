@@ -12,8 +12,8 @@ export class FlowTreeAnalyzer {
   /** 以hash为键的function */
   private functionHashMap: Map<string, FunctionNode> = new Map();
 
-  /** 以parent_funcmagic为键的function */
-  private functionParentMap: Map<number, FunctionNode[]> = new Map();
+  /** 以magic为键的function */
+  private functionMagicMap: Map<number, FunctionNode> = new Map();
 
   private conditionAnalyzer: ConditionAnalyzer;
 
@@ -22,7 +22,7 @@ export class FlowTreeAnalyzer {
   constructor(private program: ProgramOutput, passes: PassDirectory[]) {
     this.allFunctionsToMap(program.functions);
     this.conditionAnalyzer = new ConditionAnalyzer();
-    this.pathLeafAnalyzer = new PathLeafAnalyzer(this.functionHashMap, this.functionParentMap, passes);
+    this.pathLeafAnalyzer = new PathLeafAnalyzer(this.functionHashMap, this.functionMagicMap, passes);
   }
 
   public getControlFlow(): (ControlFlowPath | ControlFlowIf | ControlFlowLoop)[] {
@@ -38,19 +38,14 @@ export class FlowTreeAnalyzer {
         throw new Error(`未知的根节点类型（functype: ${calleeFunction.functype},hash: ${calleeFunction.hash}）`);
       }
     }
+    this.pathLeafAnalyzer.calculateLeafFunctionCalledRecords();
     return controlFlow;
   }
 
   private allFunctionsToMap(functions: FunctionNode[]) {
     for (const functionNode of functions) {
       this.functionHashMap.set(functionNode.hash, functionNode);
-
-      if (functionNode.parent_funcmagic) {
-        if (!this.functionParentMap.has(functionNode.parent_funcmagic)) {
-          this.functionParentMap.set(functionNode.parent_funcmagic, []);
-        }
-        this.functionParentMap.get(functionNode.parent_funcmagic)!.push(functionNode);
-      }
+      this.functionMagicMap.set(functionNode.funcmagic, functionNode);
     }
   }
 

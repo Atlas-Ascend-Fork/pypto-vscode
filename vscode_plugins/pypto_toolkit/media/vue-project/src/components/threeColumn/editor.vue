@@ -42,6 +42,7 @@ import { generateColorList, getColorByString } from '../../utils/color-list';
 import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
 import { useI18n } from 'vue-i18n';
 import Loading from '../comGraph/loading.vue';
+import { throttle } from 'lodash-es';
 
 const { t: $t } = useI18n();
 const { isDarkTheme } = inject('threeColumnState');
@@ -271,7 +272,6 @@ const deactivateLock = () => {
     editor.deltaDecorations(currentHoverDecoration, []);
     currentHoverDecoration = null;
   }
-  console.log('send deactiveLock');
   sendMsg('deactivateLock');
 };
 
@@ -288,7 +288,6 @@ const lockClick = (e) => {
   lockedLabel.value = lastMoveLabel;
   isLocked.value = true;
   unlockPosition.value = lockPosition.value;
-  console.log('send activeLock ', lastMoveLabel.name);
   sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
@@ -325,7 +324,6 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
-      console.log('returnSemanticLabelFromCode', currentLabel.name);
       sendMsg('returnSemanticLabelFromCode', { 'label': currentLabel.name });
     }
   }
@@ -381,13 +379,8 @@ const handleScroll = () => {
   }
 };
 
-// 添加鼠标悬停事件监听
-const setupHoverListeners = () => {
-  if (!editor) return;
-
-  // 鼠标移动事件
-  editor.onMouseMove((e) => {
-    const position = e.target.position;
+const handleMouseMove = (e) => {
+  const position = e.target.position;
     const currentLabel = findSemanticLabelAtPosition(position);
     if (currentLabel && currentLabel.name !== lastMoveLabel) {
       // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
@@ -407,7 +400,6 @@ const setupHoverListeners = () => {
         if (!canUpdateLabelSelect || !lastSentLabel) {
           return;
         }
-        console.log('returnSemanticLabelFromCode');
         sendMsg('returnSemanticLabelFromCode', { label: '' });
         lastSentLabel = null;
         lastMoveLabel = null;
@@ -415,6 +407,15 @@ const setupHoverListeners = () => {
         updateHoverDecoration(null);
       }, 80);
     }
+};
+
+// 添加鼠标悬停事件监听
+const setupHoverListeners = () => {
+  if (!editor) return;
+
+  // 鼠标移动事件
+  editor.onMouseMove((e) => {
+    handleMouseMove(e);
   });
 
   // 鼠标点击事件
@@ -530,8 +531,6 @@ const initEditor = (code) => {
       // 触发保存
       debouncedSave();
     });
-    
-    console.log('Monaco Editor initialized with semantic labels');
   } catch (error) {
     console.error('Failed to initialize Monaco Editor:', error);
   }
@@ -558,6 +557,16 @@ window.ascEventBus.on('returnSemanticLabelFromCom', (args) => {
 window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
   updateHoverDecorationBySemanticLabel(args.label);
 });
+window.ascEventBus.on('activeLock', (args) => {
+  if (lastMoveLabel !== args.label) {
+    updateHoverDecorationBySemanticLabel(args.label);
+  }
+  isLocked.value = true;
+  unlockPosition.value = lockPosition.value;
+});
+window.ascEventBus.on('deactivateLock', () => {
+  deactivateLock();
+});
 
 const initEventListeners = () => {
   window.addEventListener('message', handleMessage);
@@ -565,6 +574,7 @@ const initEventListeners = () => {
 
 const sendMsg = (command, param) => {
   try {
+    console.log('editor: ', command, param);
     window.ascEventBus.emit(command, param);
   } catch (error) {
     console.error(`${command}执行失败`, error);

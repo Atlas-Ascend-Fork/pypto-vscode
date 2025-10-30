@@ -781,6 +781,7 @@ export class AstgrRectView extends RectangularNodeView {
       node.customSize.width = endX - startX + 80;
       node.customSize.height = endY - startY + 80;
     }
+    let strokeWidth = node.parent.zoom >= 1 ? 2 : (2 / node.parent.zoom);
 
     let lockOpenSvgName: string;
     if(comGraphStore.data.isNodeRectLock) {
@@ -805,8 +806,8 @@ export class AstgrRectView extends RectangularNodeView {
           width={node.customSize.width}
           height={node.customSize.height}
           fill="transparent"
-          stroke="#0277BD"
-          strokeWidth={2}
+          stroke="#317af7"
+          stroke-width={strokeWidth}
         ></rect>
         <g id='show_node_rect_lock'>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
@@ -1287,6 +1288,9 @@ export class AstgrEdge extends PolylineEdgeView {
   }
 
   override renderLine(edge: SEdgeImpl, segments: Point[], context: RenderingContext, args?: IViewArgs): VNode {
+    if((edge.root as any).zoom < 0.03) {
+      return (<g></g>);
+    }
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
       incomingNodes: new Set<string>(),

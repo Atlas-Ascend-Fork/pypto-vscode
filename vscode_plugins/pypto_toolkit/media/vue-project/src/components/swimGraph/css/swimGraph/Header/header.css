@@ -39,9 +39,9 @@
 }
 
 .case-dark {
-  border: 1px solid rgba(49, 122, 247, 0.2);
+  border: 1px solid var(--devui-secondary-button-active-bg);
   border-radius: 4px;
-  background-color: rgba(49, 122, 247, 0.2);
+  background-color: var(--devui-secondary-button-active-bg);
 }
 
 .search-res {
@@ -59,13 +59,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--devui-secondary-button-bg);
 }
 
 .right-container {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
   margin-left:auto;
 }
 .slider-container {
@@ -91,6 +91,23 @@
   justify-content: center;
 }
 
+.icon-container {
+  background-color: var(--devui-secondary-button-bg);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-container .button-content{
+  color: var(--devui-overlay-icon);
+  display: flex;
+}
+.icon-container.devui-button.devui-button--outline{
+  background-color: var(--devui-secondary-button-bg);
+  outline: none;
+  box-shadow: none;
+}
+
 .hidden {
   display: none !important;
 }
@@ -99,17 +116,18 @@
   cursor: pointer;
 }
 #measure-button .button-content{
+  color: var(--devui-overlay-icon);
   display: flex;
 }
 
 #measure-button.devui-button.devui-button--outline{
-  background-color: var(--backgroundcolor);
+  background-color: var(--devui-secondary-button-bg);
   outline: none;
   box-shadow: none;
 }
 
 #measure-button.devui-button.devui-button--outline.dark-model{
-  background-color: rgba(49, 122, 247, 0.2);
+  background-color: var(--devui-secondary-button-active-bg);
   outline: none;
   box-shadow: none;
 }
@@ -117,14 +135,6 @@
 .measure-picture {
   width: 16px;
   height: 16px;
-}
-
-.icon-container {
-  background-color: #606061;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .devui-icon__container {

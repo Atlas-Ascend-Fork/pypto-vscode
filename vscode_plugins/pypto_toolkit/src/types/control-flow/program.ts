@@ -37,6 +37,9 @@ export interface FunctionNode {
   /** 调用的其他函数或算子 */
   operations: { calleehash?: string; opmagic?: number }[];
 
+  /** 直属leaf function 的 magic 清单 */
+  programs?: number[];
+
   /** 动态函数属性 */
   dynamic?: {
     /** 条件路径 [operation.opmagic， [[条件, 是否满足条件], ...]] */

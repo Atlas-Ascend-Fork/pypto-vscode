@@ -37,7 +37,7 @@
   "pypto.allFile": "All File",
   "PyPTOToolkit.request.statusNotFound": "Api {{apiName}} not found.",
   "PyPTOToolkit.request.statusSuccess": "Request success.",
-  "PyPTOToolkit.request.statusServerError": "Api {{apiName}} error.",
+  "PyPTOToolkit.request.statusServerError": "Api {{apiName}} error",
   "pypto.readFileDataErrorOnOpenComGraph": "Unable to open the computation graph, an exception occurred while reading file data.",
   "pypto.canNotGetFuncHashOnOpenSubGraph": "Unable to open the subgraph, the file does not contain the correct function hash.",
   "pypto.parseDataErrorOnOpenComGraph": "Unable to open the computation graph, an exception occurred during data parsing.",
@@ -49,5 +49,6 @@
   "pypto.failedClearCache": "Failed to clear cache:",
   "PyPTO.OpenLinkageMode": "PyPTO Toolkit: Open linkage mode",
   "PyPTOToolkit.workspace.controlFlowName": "Result Overview",
-  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph"
+  "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
+  "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph"
 }
