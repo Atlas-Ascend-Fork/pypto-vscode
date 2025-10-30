@@ -26,7 +26,7 @@
     "sprotty-elk": "^1.4.0",
     "sprotty-protocol": "^1.4.0",
     "vue": "^3.4.21",
-    "vue-devui": "1.6.31",
+    "vue-devui": "1.6.34-alpha.0",
     "vue-i18n": "11.1.10"
   },
   "devDependencies": {

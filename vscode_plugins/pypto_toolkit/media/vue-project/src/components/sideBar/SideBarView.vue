@@ -93,8 +93,6 @@ type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
 
 const { t } = useI18n();
-const treeRef = ref(null);
-
 const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 
 /**
@@ -105,7 +103,7 @@ const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 const treeData = ref<DevUITreeNode[]>([]);
 const visibleTreeData = computed(() => [...treeData.value]);
 
-async function nodeClick(node: DevUITreeNode) {
+function nodeClick(node: DevUITreeNode): void {
   if (node.fileType === 'controlFlow') {
     // 打开控制流
     openControlFlow({
@@ -122,7 +120,17 @@ async function nodeClick(node: DevUITreeNode) {
       outputPath: node.pathName ? node.outputPath : undefined,
       pathName: node.pathName,
     });
+  } else {
+    toggleNode(node);
   }
+}
+
+const treeRef = ref(null);
+/**
+ * 展开/折叠
+ */
+function toggleNode(node: DevUITreeNode): void {
+  treeRef.value.treeFactory.toggleNode(node);
 }
 
 const nodeChildrenMap = new Map();
@@ -347,7 +355,8 @@ async function getAllRecords(): Promise<void> {
         border-bottom-color: var(--vscode-sideBar-border);
       }
 
-      &.active {
+      &.active,
+      &:hover {
         background-color: rgba(255, 255, 255, 0.1);
 
         .node-label {
@@ -437,8 +446,11 @@ async function getAllRecords(): Promise<void> {
         }
       }
 
-      .devui-tree__node-content.active {
-        background-color: transparent;
+      .devui-tree__node-content {
+        &.active,
+        &:hover {
+          background-color: transparent;
+        }
       }
 
       .devui-tree__node-vline {
