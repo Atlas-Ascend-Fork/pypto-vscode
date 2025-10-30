@@ -94,6 +94,7 @@ window.addEventListener('message', (event) => {
 
 // 规避锁定时泳道图发送消息，重新创建框选时，框选消失的问题
 let prevent = false;
+let hashListFromSwim;
 function onMessageFromSwim(args) {
   if (prevent) {
     prevent = false;
@@ -105,7 +106,8 @@ function onMessageFromSwim(args) {
     if (comGraphStore.data.curPath.length) {
       rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
     }
-    generateHashList();
+    hashListFromSwim = args.rootHashList;
+    generateHashList(false);
     if (
       comGraphStore.data.isNodeRectLock &&
       !args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
@@ -138,6 +140,7 @@ function onMessageFromSwim(args) {
   comGraphStore.data.isNodeRectLock = true;
   createSelectNodesRect(args.label, true);
   hoverFeedbackAction();
+  generateHashList(true);
   const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
@@ -146,6 +149,7 @@ function onMessageFromSwim(args) {
 (window as any).ascEventBus.on('deactivateLock', () => {
   comGraphStore.data.isNodeRectLock = false;
   hoverFeedbackAction();
+  generateHashList(false);
 });
 
 let timer: ReturnType<typeof setTimeout>;
@@ -170,12 +174,18 @@ function listenLockClick() {
   }, 50);
 }
 
-function generateHashList() {
+function generateHashList(isLock: boolean) {
   rootHashList.value = [];
-  const tempHashList = Object.keys(comGraphStore.data.calleeMap);
-  for (let i = 0; i < tempHashList.length; i++) {
-    const item = tempHashList[i];
-    rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+  if (isLock) {
+    for (const item of hashListFromSwim) {
+      rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+    }
+  } else {
+    const tempHashList = Object.keys(comGraphStore.data.calleeMap);
+    for (let i = 0; i < tempHashList.length; i++) {
+      const item = tempHashList[i];
+      rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+    }
   }
 }
 
