@@ -17,13 +17,12 @@
          :class="{ 'init-graph': !isGraphVisible }"></div>
     <div ref="minimapRef" class="minimap-type"></div>
     <div class="tool-bar">
-      <i class="icon icon-minus" @click="graphZoomTo(-0.1)"></i>
-      <span class="tool-line"></span>
-      <span class="tool-zoom">{{ Math.round(zoom * 100) }}%</span>
-      <span class="tool-line"></span>
-      <i class="icon icon-add" @click="graphZoomTo(0.1)"></i>
-      <span class="tool-line"></span>
-      <i class="icon icon-location-new" @click="graphFitView "></i>
+      <button class="icon-minus" style="width: 16px; height: 16px; left: 32px; color: var(--devui-text);" :title="t('zoomOut')" @click="graphZoomTo(-10)"></button>
+      <input type="text" :value="zoom" class="zoom-value" @blur="inputZoomTo" @keydown.enter="$event.target.blur()" @input="onInput "/>
+      <span class="text-value">%</span>
+      <button class="icon-op-add" style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px;" :title="t('zoomIn')" @click="graphZoomTo(10)"></button>
+      <div class="empty-rect"> </div>
+      <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="graphFitView"></button>
     </div>
 
   </div>
@@ -46,7 +45,7 @@ import {
   register
 } from '@antv/g6';
 import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
-import RightPanel from '@/components/controlFlowGraph/RightPanel.vue';
+import RightPanel from '@/components/controlFlowGraph/components/RightPanel.vue';
 import { transformData } from '@/components/controlFlowGraph/util/parse-data';
 import { getQuery } from '@/core/query';
 import { getControlFlow } from '@/apis/control-flow';
@@ -64,7 +63,6 @@ const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
 const PATH_CARD_NODE_TYPE = 'path-card-node';
-const zoom = ref(1)
 let graph = null;
 const { t } = useI18n();
 const rootData = ref([])
@@ -74,12 +72,27 @@ const isGraphVisible = ref(false);
 const searchSelectRef = ref(null);
 const isLoading = ref(true);
 const initPosition=ref<number[]>([])
-const initZoom=ref<number>()
+const zoom = ref(1)
+const initZoom=ref()
+const isActive = ref(false);
 
 // 工具栏缩放
+function onInput(e) {
+  let val = e.target.value.replace(/[^0-9]/g, '');
+  zoom.value = val;
+}
+
+async function inputZoomTo(){
+  await graph.zoomTo(zoom.value/100);
+  isActive.value=false
+}
+
 async function graphZoomTo(size: number) {
-  zoom.value += size;
-  await graph.zoomTo(zoom.value);
+  if(zoom.value +size>0){
+    zoom.value += size;
+    await graph.zoomTo(zoom.value/100);
+  }
+  isActive.value = false;
 }
 
 //工具栏恢复初始位置
@@ -89,7 +102,7 @@ async function graphFitView(){
     easing: 'ease',
   });
   await graph.zoomTo(initZoom.value);
-  zoom.value=initZoom.value;
+  isActive.value = true;
 }
 
 // 自定义节点类（继承 Rect）,path节点
@@ -566,7 +579,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
       {
         key: 'my-minimap',
         type: 'minimap',
-        size: [200, 160],
+        size: [260, 160],
         container: minimapRef.value,
         containerStyle: {
           backgroundColor: '#292A2E', // 设置背景色
@@ -713,19 +726,29 @@ const initG6Graph = async (nodes, edges, combos,) => {
     ],
   });
   await graph.render();
+
+  // 监听画布变化时，更新画布大小
   graph.on(GraphEvent.AFTER_SIZE_CHANGE, async () => {
-    zoom.value = await graph?.getZoom()
+    zoom.value = Math.round(await graph?.getZoom() * 100)
     await graph.layout();
     await graph.resize();
     await graph.render();
   })
 
   graph.on(GraphEvent.AFTER_TRANSFORM, async () => {
-    zoom.value = await graph?.getZoom()
+    zoom.value = Math.round(await graph?.getZoom() * 100)
     await graph.layout();
     await graph.resize();
     await graph.render();
   })
+
+  function fitActive(){
+    isActive.value=false
+  }
+
+  // 监听滚轮以及拖拽事件，使得自适应按钮取消高亮
+  graph.on(CommonEvent.WHEEL,fitActive)
+  graph.on(CommonEvent.DRAG,fitActive)
 
   function clickFun(event) {
     searchSelectRef.value.clear()
@@ -733,7 +756,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
       graph.setElementState(event.target.id, 'selected');
     }
   }
-
+  // 监听点击事件
   graph.on(CommonEvent.CLICK, clickFun)
 
   // 初始化时视角自适应
@@ -742,15 +765,15 @@ const initG6Graph = async (nodes, edges, combos,) => {
   // 调整节点过多或过少时的缩放比例
   if (initSize > 0.7) {
     // 确保当节点较少时，节点不会太小
-    zoom.value = 0.7;
+    zoom.value = 70;
     await graph.zoomTo(0.7);
   } else if (initSize < 0.7 && initSize > 0.05) {
     // 确保当大量节点时，有loop虚线初始化不会溢出屏幕
-    zoom.value = initSize - 0.05;
+    zoom.value = Math.round(initSize * 100) - 5;
     await graph.zoomTo(initSize - 0.05);
   }
 
-  initZoom.value=zoom.value;
+  initZoom.value=zoom.value/100;
   isGraphVisible.value = true;
   isLoading.value = false;
 };
@@ -838,51 +861,11 @@ onUnmounted(() => {
   position: absolute !important;
   background-color: #292A2E !important; // 设置背景色
   border-radius: 20px 20px 0 0 !important;
-  width: 200px;
+  width: 260px;
   height: 160px;
   right: 16px;
-  bottom: 65px;
+  bottom: 48px;
 }
-
-.tool-bar {
-  position: fixed;
-  width: 200px;
-  height: 32px;
-  right: 16px;
-  bottom: 30px;
-  background-color: rgba(51, 51, 51, 1);
-  border-radius: 24px;
-  display: flex;
-  box-sizing: border-box;
-  justify-content: space-between;
-  padding: 0 10px;
-  align-items: center;
-  z-index: 2;
-
-  .tool-line {
-    width: 1px;
-    height: 12px;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .tool-zoom {
-    font-size: 12px;
-    line-height: 18px;
-  }
-
-  .icon {
-    display: flex;
-    align-self: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    line-height: 24px;
-    cursor: pointer;
-  }
-}
-
-
-
 .tool-select-focus {
   :deep(.devui-editable-select__clear-icon) {
     display: none !important;
@@ -899,5 +882,71 @@ onUnmounted(() => {
 
 .tool-select-search-icon {
   display: none;
+}
+</style>
+<style lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+.tool-bar {
+  position: fixed;
+  right: 16px;
+  bottom: 15px;
+  display: flex;
+  align-items: center;
+  width: 260px;
+  height: 32px;
+  background: $devui-base-bg;
+  flex-direction: row;
+  justify-content: center;
+  padding: 4px 12px;
+  gap: 32;
+  border-radius: 0 0 12px 12px;
+  transition: right $devui-animation-duration-slow $devui-animation-ease-in-out-smooth;
+
+  button {
+    font-size: 12px;
+    border: none;
+    background-color: unset;
+    cursor: pointer;
+
+    &.location-icon {
+      font-size: 14px;
+      color: $devui-text;
+    }
+
+    &.location-icon.active {
+      color: rgba(49, 122, 247, 1);
+    }
+  }
+  .zoom-value {
+    width: 42px;
+    border: none;
+    background: transparent;
+    color: $devui-text;
+    font-size: 12px;
+    text-align: right;
+    padding: 0;
+    outline:0 !important;
+    box-shadow: none !important;
+  }
+  .text-value {
+    color: $devui-text;
+    font-size: 12px;
+    margin-right: 26px;
+  }
+  .empty-rect {
+    width: 1px;
+    height: 16px;
+    left: 183px;
+    margin-left: 8px;
+    margin-right: 32px;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  .tool-zoom {
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .icon-minus:before {
+    content: "\E0DB";
+  }
 }
 </style>
