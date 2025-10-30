@@ -105,7 +105,7 @@ function onMessageFromSwim(args) {
     if (comGraphStore.data.curPath.length) {
       rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
     }
-    generateHashList(args.rootHashList);
+    generateHashList();
     if (
       comGraphStore.data.isNodeRectLock &&
       !args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
@@ -138,6 +138,10 @@ function onMessageFromSwim(args) {
   comGraphStore.data.isNodeRectLock = true;
   createSelectNodesRect(args.label, true);
   hoverFeedbackAction();
+  const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
+  if (rootHashList.value.every((item) => item.value !== currentHash)) {
+    rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
+  }
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
   comGraphStore.data.isNodeRectLock = false;
@@ -166,10 +170,11 @@ function listenLockClick() {
   }, 50);
 }
 
-function generateHashList(list: string[]) {
+function generateHashList() {
   rootHashList.value = [];
-  for (let i = 0; i < list.length; i++) {
-    const item = list[i];
+  const tempHashList = Object.keys(comGraphStore.data.calleeMap);
+  for (let i = 0; i < tempHashList.length; i++) {
+    const item = tempHashList[i];
     rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
   }
 }
