@@ -9,6 +9,7 @@
       v-model="rootHash"
       :options="rootHashList"
       :placeholder="t('comGraph.pleaseSelect')"
+      :position="['bottom-start']"
       class="simple-com-root-hash-list"
       menu-class="simple-com-root-hash-list-menu"
       @value-change="onHashChange"
@@ -344,5 +345,9 @@ onMounted(() => {
   padding: 4px 0;
   text-align: center;
   color: var(--devui-placeholder-text);
+}
+
+.simple-com-root-hash-list-menu {
+  width: 300px !important;
 }
 </style>
