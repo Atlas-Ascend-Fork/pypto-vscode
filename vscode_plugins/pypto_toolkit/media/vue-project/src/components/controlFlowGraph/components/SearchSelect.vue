@@ -1,16 +1,13 @@
 <template>
   <div class="search-select-container">
-    <d-search
-        v-model="searchValue"
-        class="mt-0 mb-2 search-input"
-        :placeholder="t('controlFlows.searchPlaceholder')"
-        style="width: 320px"
-        icon-position="left"
-        @input="handleInputChange"
-        @keydown="handleKeyDown"
-        @search="handleOfficialSearch"
-    />
-
+    <d-input v-model="searchValue"
+             class="mt-0 mb-2 search-input"
+             @input="handleInputChange"
+             @keydown="handleKeyDown"
+             style="width: 320px"
+             clearable
+             :placeholder="t('controlFlows.searchPlaceholder')"
+             prefix="search"/>
     <div
         v-if="isOpen && visibleResults.length"
         class="search-result-list"
@@ -32,7 +29,7 @@
 
 <script lang="ts" setup>
 import {onUnmounted, ref, watch} from 'vue';
-import { useI18n } from 'vue-i18n';
+import {useI18n} from 'vue-i18n';
 // 1. 数据源
 const props = defineProps<{
   options: Array<{
@@ -45,7 +42,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'matched-results', value: typeof props.options): void; // 匹配结果
   (e: 'selected-value', value: typeof props.options[0] | null): void; // 选中项
-  (e:'active-event',value: string): void; //搜索预选hover高亮事件
+  (e: 'active-event', value: string): void; //搜索预选hover高亮事件
 }>();
 
 // 3. 内部状态
@@ -64,15 +61,15 @@ const handleOfficialSearch = () => {
   isOpen.value = visibleResults.length > 0;
 };
 
-watch(()=>activeIndex.value, (value) => {
-  if(value!==-1){
-    emit('active-event', visibleResults?.value[activeIndex?.value]?.value ??''); // 通知父组件高亮
+watch(() => activeIndex.value, (value) => {
+  if (value !== -1) {
+    emit('active-event', visibleResults?.value[activeIndex?.value]?.value ?? ''); // 通知父组件高亮
   }
 })
 
 // 实时输入触发模糊搜索
 const handleInputChange = (val: string) => {
-  if (searchValue.value === '') {
+  if (val === '') {
     visibleResults.value = [];
     isOpen.value = false;
     emit('matched-results', []);
@@ -81,7 +78,7 @@ const handleInputChange = (val: string) => {
     isOpen.value = true;
   }
   // 模糊匹配label/value（符合需求）
-  const matched = props.options.filter(item => String(item.label).toLowerCase().includes(searchValue.value.toLowerCase()));
+  const matched = props.options.filter(item => String(item.label).toLowerCase().includes(val.toLowerCase()));
   visibleResults.value = matched;
   emit('matched-results', matched);
 };
