@@ -382,6 +382,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   const removeSelectNodesRect = async () => {
+    comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
     modelSource.model.notNeedLayout = true;
     await modelSource.removeElements(['show-node-rect']);
