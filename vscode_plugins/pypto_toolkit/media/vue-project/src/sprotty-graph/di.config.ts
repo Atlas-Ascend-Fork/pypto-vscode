@@ -127,7 +127,7 @@ export function createDiContainer(sprottyContainerId: string) {
         .inSingletonScope();
 
       rebind(TYPES.ILogger).to(ConsoleLogger).inSingletonScope();
-      rebind(TYPES.LogLevel).toConstantValue(LogLevel.log);
+      rebind(TYPES.LogLevel).toConstantValue(LogLevel.error);
       rebind(UpdateModelCommand).to(TrackSelectedUpdateModelCommand);
       bind(TYPES.IContextMenuService).to(AstgrContextMenuService);
       bind(TYPES.IContextMenuItemProvider).to(AstgrContextMenuItemProvider);
