@@ -2,7 +2,7 @@ import type { CallLeafRecord, ControlFlowPath, FunctionNode, LeafFunction, LeafI
 import type { ExecuteFunction } from '../../types/execute-graph';
 import { ComputeGraph, PassDirectory, PassStage } from '../../types/workspace';
 
-import { functionNodeToExecuteFunction } from './utils';
+import { functionNodeToExecuteFunction, getFunctionName } from './utils';
 
 /**
  * 解析PATH函数和下属leaf functions
@@ -39,8 +39,8 @@ export class PathLeafAnalyzer {
    * 生成控制流PATH节点
    */
   public makePathFunction(functionNode: FunctionNode): ControlFlowPath {
-    const callerFunction = functionNodeToExecuteFunction(functionNode);
     const ownedLeafFunctions = this.findOwnedLeafFunctions(functionNode);
+    const callerFunction = functionNodeToExecuteFunction(functionNode);
     const calleeRecords = this.findCalleeRecords(functionNode, callerFunction);
     const pathFunction: ControlFlowPath = {
       nodeType: 'PATH',
@@ -100,18 +100,13 @@ export class PathLeafAnalyzer {
       pathFunction.programs?.map<LeafFunction>((leafFunctionMagic, programIndex) => {
         const leafFunctionNode = this.functionMagicMap.get(leafFunctionMagic)!;
         const programId = programIndex.toString().padStart(2, '0');
-        if (this.leafFunctionHashMap.has(leafFunctionNode.hash)) {
-          const leafFunction = this.leafFunctionHashMap.get(leafFunctionNode.hash)!;
-          leafFunction.programId = programId;
-          return leafFunction;
-        } else {
-          const leafFunction = {
-            ...functionNodeToExecuteFunction(leafFunctionNode),
-            programId,
-          };
-          this.leafFunctionHashMap.set(leafFunctionNode.hash, leafFunction);
-          return leafFunction;
+        if (!this.leafFunctionHashMap.has(leafFunctionNode.hash)) {
+          this.leafFunctionHashMap.set(leafFunctionNode.hash, functionNodeToExecuteFunction(leafFunctionNode) as LeafFunction);
         }
+        const leafFunction = this.leafFunctionHashMap.get(leafFunctionNode.hash)!;
+        leafFunction.magicName = `${getFunctionName(pathFunction)}_leaf_${programId}`;
+        leafFunction.programId = programId;
+        return leafFunction;
       }) ?? []
     );
   }
@@ -155,7 +150,7 @@ export class PathLeafAnalyzer {
     ownedLeafFunctions: ControlFlowPath['meta']['leafFunctions'],
     calleeRecords: ControlFlowPath['meta']['calleeRecords'],
   ): ControlFlowPath['meta']['passes'] {
-    const pathName = pathFunction.func_magicname.replace(`_root_${pathFunction.funcmagic}`, '');
+    const pathName = getFunctionName(pathFunction);
     const pathInPasses: PathInPass[] = [];
     for (const { roots, leafs, passName, passStage } of this.passFiles) {
       const pathFile = roots[pathName];
@@ -200,9 +195,10 @@ export class PathLeafAnalyzer {
         continue;
       }
       leafFunctions.push({
-        leafName: leafFile.name,
+        leafName: `${leafFile.pathName}_leaf_${leafFile.leafProgramId}`,
         isOwnedLeaf: leafFile.pathName === rootPathName,
         programId: leafFile.leafProgramId!,
+        leafFileName: leafFile.name,
         leafFilePath: leafFile.absolutePath,
         rootPathName: leafFile.pathName,
         rootFilePath: roots[leafFile.pathName].absolutePath,

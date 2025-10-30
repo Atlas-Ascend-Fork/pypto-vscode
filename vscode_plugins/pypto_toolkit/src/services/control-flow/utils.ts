@@ -4,7 +4,11 @@ import type { ExecuteFunction } from '../../types/execute-graph';
 export function functionNodeToExecuteFunction(functionNode: FunctionNode): ExecuteFunction {
   return {
     magic: functionNode.funcmagic,
-    magicName: functionNode.func_magicname,
+    magicName: getFunctionName(functionNode),
     hash: functionNode.hash,
   };
+}
+
+export function getFunctionName(functionNode: FunctionNode): string {
+  return functionNode.rawname.replace(/_root$/, '');
 }

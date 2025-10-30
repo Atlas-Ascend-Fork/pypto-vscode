@@ -15,7 +15,7 @@
           :class="['list-item', item.leafName === currentLeaf.leafName && 'active']"
           @click="() => jumpOwn(item)"
         >
-          {{ item.leafName }}
+          {{ `leaf_${item.programId}` }}
         </div>
         <div v-if="notOwnedList.length" class="dividing-line"></div>
         <div v-if="notOwnedList.length" class="not-owned-title">{{ t('notDirectRelative') }}</div>
@@ -41,7 +41,7 @@ import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext } from './navbar-types';
-import type { LeafInPass } from '../../../../../src/types/control-flow';
+import type { LeafInPass } from 'ext:/types/control-flow';
 import { transformLeafFunctionList } from './util';
 
 const { t } = useI18n();
@@ -53,8 +53,8 @@ const currentLeaf = computed<Partial<LeafInPass>>(() => {
   if (rootProps.currentLeafName) {
     for (let i = 0; i < leafFunctions.value.length; i++) {
       const item = leafFunctions.value[i];
-      if (item.leafName === rootProps.currentLeafName) {
-        emitLeafChange(item.leafName);
+      if (item.leafFileName === rootProps.currentLeafName) {
+        emitLeafChange(item.leafFileName);
         return item;
       }
     }
