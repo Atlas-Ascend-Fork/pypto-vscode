@@ -16,6 +16,7 @@
     <canvas class="background-events-canvas" :data-background-process-key="process.key"></canvas>
     <canvas class="line-events-canvas" :data-line-process-key="process.key"></canvas>
     <canvas class="selection-events-canvas" :data-selection-process-key="process.key"></canvas>
+    <canvas class="three-column-events-canvas" :data-three-column-process-key="process.key"></canvas>
   </div>
 </template>
   
@@ -39,7 +40,7 @@ let drawColorDatas = {};
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
-
+let isHoverLockStatus = false;
 // 注入父组件提供的状态和方法
 const {
   layout,
@@ -150,7 +151,7 @@ const handleCanvasClick = (e) => {
     return;
   }
   if(!isDragging.value){
-    clearSelectionCanvas();
+    clearSelectionCanvas('data-selection-process-key');
   } 
   const rect = canvasRef.getBoundingClientRect();
   const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
@@ -159,6 +160,18 @@ const handleCanvasClick = (e) => {
   // 检查是否点击了事件
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
   canvasclickedEvent.value = clickedEvent;
+  if (isThreeColumn) {
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (isPointInPolygon) {
+      if (!clickedEvent) {
+        isHoverLockStatus = true;
+        return;
+      }
+    } else {
+      isHoverLockStatus = false;
+      clearSelectionCanvas('data-three-column-process-key');
+    }
+  }
   if (clickedEvent) {
     if(e.altKey){
       // 清空hover画布 
@@ -350,6 +363,8 @@ function getCanvasRefs(processKey) {
   if (!lineCanvasRef) { return null };
   const selectionCanvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
   if (!selectionCanvasRef) { return null };
+  const threeColumnCanvasRef = document.querySelector(`[data-three-column-process-key="${processKey}"]`);
+  if (!threeColumnCanvasRef) { return null };
   return {
     canvasRef,
     uiCanvasRef,
@@ -358,7 +373,8 @@ function getCanvasRefs(processKey) {
     backgroundCanvasRef,
     backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
     lineCanvasRef,
-    selectionCanvasRef
+    selectionCanvasRef,
+    threeColumnCanvasRef
   };
 }
 
@@ -558,12 +574,12 @@ const handleMouseMove = throttle((e) => {
     const eventHintStr = args?.['event-hint'] ?? '';
     const rootHashList = [getRootHashList(eventHintStr)];
     // 使用可选链和空值合并确保安全
-    if (preLabel && preLabel !== color && !isLockStatus.value && isThreeColumn) {
+    if (preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus) {
       handleOutline(color, false);
       sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
     }
     preLabel = color;
-  } else if (isThreeColumn && !isLockStatus.value && preLabel) {
+  } else if (isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
   }
@@ -616,7 +632,7 @@ const handleSelection = () => {
   checkInSelection();
   if (!selectionEvents.length) {
     mulDetailsExpanded.value = false;
-    clearSelectionCanvas();
+    clearSelectionCanvas('data-selection-process-key');
     return;
   }
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -654,7 +670,7 @@ const calcRowBoundaries = (nodes) => {
 };
 // 绘制边界路径
 const drawBoundary = () => {
-  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const uiCanvasRef = document.querySelector(`[data-three-column-process-key="${props.processKey}"]`);
   const ctx = uiCanvasRef.getContext('2d');
   if (!ctx) {
     return;
@@ -817,8 +833,8 @@ function onHoverEvent(hoveredEvent) {
     ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
   }
 }
-const clearSelectionCanvas = () => {
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+const clearSelectionCanvas = (key) => {
+  const canvasRef = document.querySelector(`[${key}="${props.processKey}"]`);
   if (!canvasRef) {
     return;
   }
@@ -2128,7 +2144,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
 
 const handleOutline = (label, needTransform = true) => {
   if (!label) {
-    clearSelectionCanvas();
+    clearSelectionCanvas('data-three-column-process-key');
     renderEvents();
     return;
   }
@@ -2193,7 +2209,7 @@ const handleOutline = (label, needTransform = true) => {
     });
     drawBoundary();
   } else {
-    clearSelectionCanvas();
+    clearSelectionCanvas('[data-three-column-process-key');
     return;
   }
 };
@@ -2213,6 +2229,48 @@ const sendMsg = (command, param) => {
   } catch (error) {
     console.error(`${command}执行失败`, error);
   }
+};
+const isPointInPolygonFun = (point, boundaries) => {
+  if (!boundaries || boundaries.length === 0) return false;
+
+  const [x, y] = point;
+
+  // 构建边界多边形的所有顶点
+  const polygonPoints = [];
+
+  // 收集左边界点（从上到下）
+  for (let i = 0; i < boundaries.length; i++) {
+    polygonPoints.push(boundaries[i].leftTop);
+  }
+  polygonPoints.push(boundaries[boundaries.length - 1].leftBottom);
+
+  // 收集右边界点（从下到上）
+  for (let i = boundaries.length - 1; i >= 0; i--) {
+    polygonPoints.push(boundaries[i].rightBottom);
+    polygonPoints.push(boundaries[i].rightTop);
+  }
+
+  // 使用射线法判断点是否在多边形内
+  let inside = false;
+  for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+    const [xi, yi] = polygonPoints[i];
+    const [xj, yj] = polygonPoints[j];
+
+    // 检查点是否在多边形边界上
+    if ((xi === x && yi === y) || (xj === x && yj === y)) {
+      return true;
+    }
+
+    // 射线法核心判断
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+
+    if (intersect) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
 };
 addChildContext('threadEvent', {
   getCanvasHeight,

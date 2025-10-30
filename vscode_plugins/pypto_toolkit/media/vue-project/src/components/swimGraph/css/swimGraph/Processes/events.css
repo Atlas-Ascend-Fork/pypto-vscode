@@ -46,7 +46,8 @@
   pointer-events: none;
 }
 
-.selection-events-canvas {
+.selection-events-canvas,
+.three-column-events-canvas {
   position: absolute;
   top: 0;
   left: 0;
