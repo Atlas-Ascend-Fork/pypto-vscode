@@ -413,13 +413,15 @@ export class CustomMouseListener extends MouseListener {
     (window as any).ascEventBus.emit('view_mouseover');
     if (target instanceof SGraphImpl) {
       (window as any).ascEventBus.emit('closeNodeTip', true);
-      (window as any).ascEventBus.emit('rect_node_leave');
+      if (!comGraphStore.data.stableRect) {
+        (window as any).ascEventBus.emit('rect_node_leave');
+      }
     }
     if (target instanceof RectangularNode) {
       if ((target.root as any).zoom < 0.5) {
         (window as any).ascEventBus.emit('showNodeTip', target);
       }
-      if (target.id !== 'show-node-rect') {
+      if (target.id !== 'show-node-rect' && !comGraphStore.data.stableRect) {
         (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel });
       }
     }
@@ -442,7 +444,11 @@ export class CustomMouseListener extends MouseListener {
   mouseUp(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     let root;
+    if (target.id === 'show-node-rect') {
+      comGraphStore.data.stableRect = true;
+    }
     if (target.id === 'root') {
+      comGraphStore.data.stableRect = false;
       mouseUpTimer = setTimeout(() => {
         const selectedNodes = target.children?.filter((e) => isNode(e as any) && (e as any).selected).map((e) => e.id);
         if (!selectedNodes?.length) {

@@ -781,7 +781,7 @@ export class AstgrRectView extends RectangularNodeView {
       node.customSize.width = endX - startX + 80;
       node.customSize.height = endY - startY + 80;
     }
-    let strokeWidth = node.parent.zoom >= 1 ? 2 : (2 / node.parent.zoom);
+    let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
 
     let lockOpenSvgName: string;
     if(comGraphStore.data.isNodeRectLock) {

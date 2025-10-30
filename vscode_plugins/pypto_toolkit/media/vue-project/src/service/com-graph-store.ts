@@ -23,6 +23,7 @@ interface ComGraphData {
   inFixedComGraphFlow: boolean;
   visibleOtherNodes: boolean;
   isNodeRectLock: boolean;
+  stableRect:boolean;
   fixedNodeId: string;
   layoutDirection: string;
   selectedNodeSemanticLabel: string;
@@ -52,6 +53,7 @@ export const comGraphStore: DataStore = reactive({
     curPath: [],
     isDiffGraph: false,
     isNodeRectLock: false,
+    stableRect: false,
     comGraphConfig: {
       isSimple: false,
       isHoverHighlightNode: true,
