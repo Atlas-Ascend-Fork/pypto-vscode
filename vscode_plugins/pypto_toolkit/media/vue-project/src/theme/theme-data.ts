@@ -130,6 +130,13 @@ export const ideLightTheme = new Theme({
     'devui-search-active-bg':'rgba(10, 89, 247, 1)',
     'devui-select-hover-border-color':'rgba(57,121,249,1)',
     'devui-select-active-border-color':'rgba(10,89,247,1)',
+    'devui-category-search-bg': 'rgba(0, 0, 0, 0.05)',
+    'devui-category-search-placeholder': 'rgba(174, 174, 174, 1)',
+    'devui-category-search-font-color': 'rgba(25, 25, 25, 1)',
+    'devui-category-search-hover-border': 'rgba(57, 121, 249, 1)',
+    'devui-category-search-dropdown-bg': 'rgba(255, 255, 255, 1)',
+    'devui-category-search-dropdown-item-bg': 'rgba(0, 0, 0, 0.1)',
+    'devui-category-search-dropdown-item-color': 'rgba(25, 25, 25, 1)'
   },
   isDark: false,
 });
@@ -264,6 +271,13 @@ export const ideDarkTheme = new Theme({
     'devui-search-active-bg':'rgba(49, 122, 247, 1)',
     'devui-select-hover-border-color':'rgba(82,145,255,1)',
     'devui-select-active-border-color':'rgba(49,122,247,1)',
+    'devui-category-search-bg': 'rgba(255, 255, 255, 0.05)',
+    'devui-category-search-placeholder': 'rgba(153, 153, 153, 1)',
+    'devui-category-search-font-color': 'rgba(230, 230, 230, 1)',
+    'devui-category-search-hover-border': 'rgba(82, 145, 255, 1)',
+    'devui-category-search-dropdown-bg': 'rgba(54, 54, 54, 1)',
+    'devui-category-search-dropdown-item-bg': 'rgba(255, 255, 255, 0.1)',
+    'devui-category-search-dropdown-item-color': 'rgba(230, 230, 230, 1)'
   },
   isDark: true,
 });

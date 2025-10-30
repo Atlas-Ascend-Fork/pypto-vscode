@@ -15,7 +15,7 @@
   z-index: 1000;
   max-width: 300px;
   word-wrap: break-word;
-  color: var(--devui-tooltip-text)
+  color: var(--devui-tooltip-text);
 }
 
 .tooltip-container {
@@ -71,4 +71,20 @@
   font-size: 13px;
   white-space: nowrap;
   color: var(--devui-primary-text);
+}
+.dp-no-data-text {
+  font-size: 13px;
+}
+.devui-flexible-overlay {
+  background: var(--devui-category-search-dropdown-bg) !important;
+}
+.dp-dropdown-menu-template {
+  padding: 4px !important;
+}
+.dp-dropdown-menu-template .dp-dropdown-item {
+  padding: 4px !important;
+}
+.dp-dropdown-menu-template .dp-dropdown-item:hover {
+  color: var(--devui-category-search-dropdown-item-color);
+  background-color: var(--devui-category-search-dropdown-item-bg);
 }

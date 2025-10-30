@@ -511,9 +511,9 @@
   margin-left: 8px !important;
 }
 .input-number-border {
-  height: 32px;
+  height: 28px;
   font-size: 14px;
-  line-height: 32px;
+  line-height: 28px;
   padding-left:10px;
   transition: border 0.3s ease;
   background-color: var(--devui-base-bg);
