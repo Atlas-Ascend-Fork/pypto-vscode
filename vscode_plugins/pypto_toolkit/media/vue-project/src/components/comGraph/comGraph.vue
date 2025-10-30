@@ -13,9 +13,10 @@
     </div>
     <ComGraphHeader v-else @onLocate="onLocate" :showType="showType" :is-loading="isLoading" :graph-type="graphType" :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
-        backgroundImage: 'url(' + svgPath + ')',
-        backgroundRepeat: 'repeat',
-      height: '100%'
+      backgroundImage: 'url(' + svgPath + ')',
+      backgroundRepeat: 'repeat',
+      height: '100%',
+      cursor: isDragging ? 'grabbing' : 'auto'
     }">
       <div id="sprotty"></div>
     </div>
@@ -100,7 +101,7 @@ const showType = ref('all');
 const graphType = ref('');
 const currentLeaf = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
-
+const isDragging = ref(false);
 const switchLockInformationFlag = ref(false);
 let lockText= '';
 
@@ -223,6 +224,13 @@ onMounted(() => {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
+  (window as any).ascEventBus.on('view_mousedown', (args) => {
+    isDragging.value = true;
+  });
+  document.addEventListener('mouseup', function() {
+    isDragging.value = false;
+  });
+
 });
 
 // 统一出口：解除固定

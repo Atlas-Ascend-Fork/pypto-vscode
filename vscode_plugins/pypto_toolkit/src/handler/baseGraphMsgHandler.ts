@@ -414,7 +414,7 @@ export abstract class BaseGraphMsgHandler {
       }
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
-      const [_, passIndex, __] = panel.fsPath.match(passDirectoryRegExp) ?? [];
+      const [_, passIndex, __] = panel.fsPath?.match(passDirectoryRegExp) ?? [];
       panel.webview.postMessage({
         command: cmd,
         step: 'convertData',
@@ -422,7 +422,7 @@ export abstract class BaseGraphMsgHandler {
         outputDirPath: panel.outputDirPath,
         passIndex,
         pathName: panel.pathName,
-        fileName: basename(panel.fsPath)
+        fileName: basename(panel.fsPath || panel.comPath)
       });
     } else if (cmd == 'returnDiffCom') {
       panel.webview.postMessage({
