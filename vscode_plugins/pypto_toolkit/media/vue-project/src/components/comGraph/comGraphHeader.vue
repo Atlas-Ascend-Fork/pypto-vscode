@@ -53,28 +53,32 @@
       <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
     </div>
 
-    <div 
-      class="toolbar-row"
-      :class="{ 'search-focusd': isSearchFocus}"
-      :style="{width: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px'}"
-     >
-      <d-select
-        menu-class="globalSelect"
-        :options="allOptions"
-        v-model="currentSelect"
-        :placeholder="t('comGraph.currentGraph')"
-        class="select-options"
-        :style="{width:selectWidth + 'px'}"
-        @click="onSelectClick"
-        />
-      <d-dropdown 
-        class="search-dropdown" 
-        overlay-class="searchResultDown"
-        trigger="manually" 
-        :visible="isVisible"
-        :position="['bottom-start']"
-        @toggle="(val) => isVisible = val"
+    <d-dropdown
+      ref="dropdownEl"
+      class="com-graph-header-search-dropdown" 
+      trigger="manually" 
+      :offset="10"
+      :visible="isVisible"
+      :position="['bottom']"
+      :style="{ '--dropdown-width': dropdownWidth }"
+      @toggle="(val) => isVisible = val"
+    >
+      <div
+        ref="toolbarRowEl"
+        class="toolbar-row"
+        :class="{ 'search-focusd': isSearchFocus}"
+        :style="{width: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px' }"
       >
+        <d-select
+          menu-class="globalSelect"
+          :options="allOptions"
+          v-model="currentSelect"
+          :placeholder="t('comGraph.currentGraph')"
+          class="select-options"
+          :style="{width:selectWidth + 'px'}"
+          @click="onSelectClick"
+          />
+        
         <d-category-search
           ref="searchEl"
           :category="category"
@@ -116,25 +120,25 @@
             </div>
           </template>
         </d-category-search>
-        <template #menu>
-          <ul class="search-res-list">
-            <div class="res-size">
-              <span class="res-size-text">
-                {{ t('comGraph.searchResSize', {resSize}) }}
-              </span>
+      </div>
+      <template #menu>
+        <ul class="search-res-list">
+          <div class="res-size">
+            <span class="res-size-text">
+              {{ t('comGraph.searchResSize', {resSize}) }}
+            </span>
+          </div>
+          <div v-for="(it, index) in res" :key="index" 
+            class="res-it"
+            @click="onLocate(it)">
+            <div class="res-it-text" :title="displayResIt(it)">
+              {{displayResIt(it)}}
+              <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
             </div>
-            <div v-for="(it, index) in res" :key="index" 
-              class="res-it"
-              @click="onLocate(it)">
-              <div class="res-it-text" :title="displayResIt(it)">
-                {{displayResIt(it)}}
-                <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
-              </div>
-            </div>
-          </ul>
-        </template>
-      </d-dropdown>
-    </div>
+          </div>
+        </ul>
+      </template>
+    </d-dropdown>
 
     <div class="control-flow" v-if="ctrl_flow.hasDynamic">
       <div class="control-flow-itername control-flow-base" :title="`itername: ${ctrl_flow.itername}`">
@@ -377,7 +381,7 @@ const isPathExist = ref(false);
 const upperActive = ref(false);
 const regActive = ref(false);
 
-const { onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
+const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
 watch(currentSelect, (newVal) => {
   if (newVal === 'global') {
@@ -1079,7 +1083,7 @@ onMounted(() => {
 }
 
 .res-size {
-  width: 450px;
+  width: calc(var(--dropdown-width) - 15px);
   height: 28px;
   padding: 4px;
   border-radius: 4px;
@@ -1372,9 +1376,9 @@ onMounted(() => {
 </style>
 
 <style lang='scss'>
-.search-dropdown {
+.com-graph-header-search-dropdown {
   padding: 4px;
-  width: 465px;
+  width: var(--dropdown-width);
   display: flex;
   flex-direction: column;
   gap: 4;
@@ -1395,11 +1399,4 @@ onMounted(() => {
 .globalSelect .devui-select__item  {
   font-size: 13px !important;
 }
-
-.searchResultDown {
-  transform: translate(-65px, 10px) !important;
-}
-
-
-
 </style>
