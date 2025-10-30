@@ -18,7 +18,7 @@
          }">
       <d-icon name="lock-open"></d-icon>
     </div>
-    <div v-if="isLocked && unlockPosition" 
+    <div v-if="isLocked && lockPosition" 
          class="lock-indicator"
          @click="unLockClick"
          :style="{
@@ -70,7 +70,6 @@ let canUpdateLabelSelect = false; // 是否更新背景色，如果鼠标在锁�
 const isLocked = ref(false);
 const lockedLabel = ref(null);
 const lockPosition = ref(null);
-const unlockPosition = ref(null);
 
 // 配置 Monaco Editor
 const configureMonaco = () => {
@@ -287,7 +286,6 @@ const lockClick = (e) => {
   e.stopPropagation();
   lockedLabel.value = lastMoveLabel;
   isLocked.value = true;
-  unlockPosition.value = lockPosition.value;
   sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
@@ -458,7 +456,7 @@ const setupHoverStyles = () => {
       position: absolute;
       z-index: 100;
       font-size: 16px;
-      cusor: pointer;
+      cusror: pointer;
       filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
     }
   `;
@@ -565,7 +563,6 @@ window.ascEventBus.on('activeLock', (args) => {
     updateHoverDecorationBySemanticLabel(args.label);
   }
   isLocked.value = true;
-  unlockPosition.value = lockPosition.value;
 });
 window.ascEventBus.on('deactivateLock', () => {
   deactivateLock();

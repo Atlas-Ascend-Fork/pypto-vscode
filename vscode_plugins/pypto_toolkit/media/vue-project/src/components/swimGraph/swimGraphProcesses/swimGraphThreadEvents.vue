@@ -1,5 +1,29 @@
 <template>
   <div class="thread-events" :data-process-container="process.key" tabindex="0">
+    <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
+         class="lock-indicator"
+         @click="lockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+         }">
+      <d-icon name="lock-open"></d-icon>
+    </div>
+    <div v-if="isThreeColumn && isLockStatus && lockPosition" 
+         class="lock-indicator"
+         @click="unLockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+         }">
+      <d-icon name="icon-lock-private"></d-icon>
+    </div>
     <canvas 
       class="events-canvas" 
       :data-process-key="processKey"
@@ -32,11 +56,13 @@ const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
+const lockPosition = ref(null);
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
 let drawColorDatas = {};
+const spaceInThreeCol = 2;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
@@ -170,6 +196,7 @@ const handleCanvasClick = (e) => {
     } else {
       isHoverLockStatus = false;
       clearSelectionCanvas('data-three-column-process-key');
+      toggleLock();
     }
   }
   if (clickedEvent) {
@@ -646,7 +673,6 @@ const handleSelection = () => {
 // 按y坐标分组， 计算每行的左右边界
 const calcRowBoundaries = (nodes) => {
   const rows = {};
-  const space = 2;
   nodes.forEach(([x, y, w, h]) => {
     // 按y坐标分组(假设每行高度固定)
     const rowKey = `${y}`;
@@ -662,10 +688,10 @@ const calcRowBoundaries = (nodes) => {
   return Object.values(rows)
     .sort((a, b) => a.top - b.top)
     .map(row => ({
-      leftTop: [row.left - space, row.top - space],
-      leftBottom: [row.left - space, row.bottom + space],
-      rightTop: [row.right + space, row.top - space],
-      rightBottom: [row.right + space, row.bottom + space],
+      leftTop: [row.left, row.top],
+      leftBottom: [row.left, row.bottom],
+      rightTop: [row.right, row.top],
+      rightBottom: [row.right, row.bottom],
     }));
 };
 // 绘制边界路径
@@ -679,22 +705,33 @@ const drawBoundary = () => {
   if (!boundaries.length) {
     return;
   }
+  const space = spaceInThreeCol;
+  const xSpace = space / viewState.scale;
+  const temp = boundaries.map((row) => {
+    return {
+      leftTop: [row.leftTop[0] - xSpace, row.leftTop[1] - space],
+      leftBottom: [row.leftBottom[0] - xSpace, row.leftBottom[1] + space],
+      rightTop: [row.rightTop[0] + xSpace, row.rightTop[1] - space],
+      rightBottom: [row.rightBottom[0] + xSpace, row.rightBottom[1] + space],
+    };
+  });
+
   ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   ctx.lineWidth = 1 / viewState.scale;
   ctx.beginPath();
-  const firstRow = boundaries[0];
-  const lastRow = boundaries[boundaries.length - 1];
+  const firstRow = temp[0];
+  const lastRow = temp[temp.length - 1];
   // 起点： 首行左上
   ctx.moveTo(...firstRow.leftTop);
   // 绘制左边界
-  for (let i = 0; i < boundaries.length; i++) {
-    const currentRow = boundaries[i];
+  for (let i = 0; i < temp.length; i++) {
+    const currentRow = temp[i];
     if (i === 0) {
       // 首行： 直接左上 -> 左下
       ctx.lineTo(...currentRow.leftBottom);
     } else {
-      const preRow = boundaries[i - 1];
+      const preRow = temp[i - 1];
       // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
       ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  //水平过渡
       ctx.lineTo(...currentRow.leftTop);  //垂直上升
@@ -704,13 +741,13 @@ const drawBoundary = () => {
   // 绘制右边界
   // 从最下行左下 -> 右下
   ctx.lineTo(...lastRow.rightBottom);
-  for (let i = boundaries.length - 1; i >= 0; i--) {
-    const currentRow = boundaries[i];
-    if (i === boundaries.length - 1) {
+  for (let i = temp.length - 1; i >= 0; i--) {
+    const currentRow = temp[i];
+    if (i === temp.length - 1) {
       // 最下行： 直接右下 -> 右上
       ctx.lineTo(...currentRow.rightTop);
     } else {
-      const nextRow = boundaries[i + 1];
+      const nextRow = temp[i + 1];
       // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
       ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  //水平过渡
       ctx.lineTo(...currentRow.rightBottom);  //垂直上升
@@ -723,6 +760,32 @@ const drawBoundary = () => {
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+};
+const lockClick = (e) => {
+  e.stopPropagation();
+  isLockStatus.value = true;
+  sendMsg('activeLock', { label: preLabel });
+};
+
+const unLockClick = (e) => {
+  e.stopPropagation();
+  isLockStatus.value = false;
+  sendMsg('deactivateLock');
+};
+const toggleLock = () => {
+  if (!boundaries.length) {
+    lockPosition.value = null;
+    return;
+  }
+  let [x, y]= boundaries[0].leftTop;
+  x = x * viewState.scale + viewState.offsetX + spaceInThreeCol;
+  if (x < 0) {
+    return;
+  }
+  lockPosition.value = {
+    top: y,
+    left: x,
+  };
 };
 const resizeDrawBoundary = () => {
   processes.forEach((process, processKey) => {
@@ -840,6 +903,8 @@ const clearSelectionCanvas = (key) => {
   }
   const ctx = canvasRef.getContext('2d');
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
+  points = [];
+  boundaries = [];
 };
 function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
   highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
@@ -2208,6 +2273,7 @@ const handleOutline = (label, needTransform = true) => {
       }
     });
     drawBoundary();
+    toggleLock();
   } else {
     clearSelectionCanvas('[data-three-column-process-key');
     return;
@@ -2217,7 +2283,7 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
   handleOutline(label);
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
-  handleOutline(label);
+  handleOutline(label, false);
   isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
@@ -2288,6 +2354,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  toggleLock,
   resizeDrawBoundary,
   getEventColor,
   drawBoundary

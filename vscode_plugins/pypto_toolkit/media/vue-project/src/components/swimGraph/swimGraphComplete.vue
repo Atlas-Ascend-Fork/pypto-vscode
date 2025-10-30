@@ -434,6 +434,7 @@ const transform = () => {
   timelineComponent.value.flagRender();
   if(props.isThreeColumn){
     childContextMap.threadEvent.resizeDrawBoundary();
+    childContextMap.threadEvent.toggleLock();
   }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
