@@ -874,6 +874,7 @@ onMounted(() => {
 .com-graph-header {
   height: 160px;
   background: var(--devui-header-gradient-bg);
+  pointer-events: none;
 }
 
 .corner-container {
@@ -884,12 +885,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  pointer-events: all;
 }
 
 .arrow-container {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: all;
 
   &:hover {
     box-shadow: 0 4px 16px 0 $devui-shadow;
@@ -1278,6 +1281,7 @@ onMounted(() => {
   border-radius: 4px;
   border: 1px solid;
   border-color: var(--devui-line);
+  pointer-events: all;
 }
 
 .toolbar-row.search-focusd {

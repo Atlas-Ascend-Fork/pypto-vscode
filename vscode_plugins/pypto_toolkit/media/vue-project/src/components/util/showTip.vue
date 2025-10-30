@@ -1,6 +1,6 @@
 <template>
     <div class="node-rect" v-if="showNodeTip" :style="nodeTipStyle">
-      <div class="title-rect" :style="{backgroundColor: titleRectColor, height: titleRectHeight + 'px'}">
+        <div class="title-rect" :style="{backgroundColor: titleRectColor, height: titleRectHeight + 'px'}">
         <div class="label-title" >{{ currentLabels[0] }} </div>
         <div class="sub-title">{{ currentLabels[1] }} </div>
         <div class="label-magic">{{ tipNodeMagic }} </div>
@@ -134,9 +134,12 @@ onMounted(() => {
 .label-magic {
   position: absolute;
   color: var(--devui-text);
-  right: 4px;
-  top: 4px;
+  right: 0px;
+  top: 0px;
   font-size: 10px;
+  padding: 4px;
+  border-radius: 0 8px 0 8px;
+  background-color: var(--devui-node-badge-bg);
 }
 
 .label-line {
