@@ -307,7 +307,9 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = null;
   }
   
-  if (!position) return;
+  if (!position) {
+    return;
+  }
   
   const currentLabel = findSemanticLabelAtPosition(position);
   
@@ -379,10 +381,10 @@ const handleScroll = () => {
   }
 };
 
-const handleMouseMove = (e) => {
+const handleMouseMove = throttle((e) => {
   const position = e.target.position;
     const currentLabel = findSemanticLabelAtPosition(position);
-    if (currentLabel && currentLabel.name !== lastMoveLabel) {
+    if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
       // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
       canUpdateLabelSelect = true;
       setTimeout(() => {
@@ -400,14 +402,15 @@ const handleMouseMove = (e) => {
         if (!canUpdateLabelSelect || !lastSentLabel) {
           return;
         }
-        sendMsg('returnSemanticLabelFromCode', { label: '' });
         lastSentLabel = null;
         lastMoveLabel = null;
         lockPosition.value = null;
         updateHoverDecoration(null);
+        sendMsg('returnSemanticLabelFromCode', { label: '' });
+        return;
       }, 80);
     }
-};
+}, 16);
 
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
@@ -575,7 +578,9 @@ const initEventListeners = () => {
 const sendMsg = (command, param) => {
   try {
     console.log('editor: ', command, param);
-    window.ascEventBus.emit(command, param);
+    Promise.resolve().then(() => {
+      window.ascEventBus.emit(command, param);
+    });
   } catch (error) {
     console.error(`${command}执行失败`, error);
   }
