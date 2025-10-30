@@ -75,7 +75,7 @@ const lockPosition = ref(null);
 const configureMonaco = () => {
   if (typeof window !== 'undefined') {
     self.MonacoEnvironment = {
-      getWorkerUrl: function (moduleId, label) {
+      getWorkerUrl: (moduleId, label) => {
         if (label === 'json') {
           return './monaco-editor-workers/json.worker.js';
         }
@@ -96,7 +96,9 @@ const configureMonaco = () => {
 
 // 应用语义标签装饰
 const applySemanticDecorations = () => {
-  if (!editor) return;
+  if (!editor) {
+    return;
+  }
 
   // 清除之前的装饰
   semanticDecorations.forEach(decoration => {
@@ -162,8 +164,6 @@ const showLabelInfo = (position) => {
     return;
   }
   
-  if (!currentLabel) return;
-  
   const lineContent = editor.getModel().getLineContent(position.lineNumber);
   const lineLength = lineContent.length;
   
@@ -192,28 +192,34 @@ const clearLabelInfo = () => {
 
 // 获取视口中指定行号的DOM元素
 const getLineDomElement = (lineNumber) => {
-  if (!editor) return null;
+  if (!editor) {
+    return null;
+  }
   
   const editorDom = editor.getDomNode();
-  if (!editorDom) return null;
+  if (!editorDom) {
+    return null;
+  }
   
   // 获取视口可见范围
   const visibleRanges = editor.getVisibleRanges();
-  if (visibleRanges.length === 0) return null;
+  if (visibleRanges.length === 0) {
+    return null;
+  }
   
   const topVisibleLine = visibleRanges[0].startLineNumber;
   const bottomVisibleLine = visibleRanges[0].endLineNumber;
-  
   // 如果目标行不在视口内，返回视口内的第一行
-  if (lineNumber < topVisibleLine || lineNumber > bottomVisibleLine) {
-    lineNumber = topVisibleLine;
-  }
-  
-  const viewLineIndex = lineNumber - topVisibleLine;
+  const line = (lineNumber < topVisibleLine || lineNumber > bottomVisibleLine) ? topVisibleLine : lineNumber;
+  const viewLineIndex = line - topVisibleLine;
   const viewLines = editorDom.querySelector('.view-lines');
-  if (!viewLines) return null;
+  if (!viewLines) {
+    return null;
+  }
   const viewLineElements = viewLines.querySelectorAll('.view-line');
-  if (viewLineElements.length === 0) return null;
+  if (viewLineElements.length === 0) {
+    return null;
+  }
 
   const sortedElements = Array.from(viewLineElements).sort((a, b) => {
     const topA = parseInt(a.style.top) || 0;
@@ -226,41 +232,41 @@ const getLineDomElement = (lineNumber) => {
 
 // 更新锁图标位置
 const updateLockPosition = (label) => {
-  if (!editor || !label) return;
+  if (!editor || !label) {
+    return;
+  }
   
   // 获取要显示锁的行号（标签首行或视口首行）
   const topVisibleLine = editor.getVisibleRanges()[0]?.startLineNumber || 1;
   const displayLine = Math.max(label.startLine, topVisibleLine);
   
-  try {
-    // 获取对应的DOM元素
-    const domElement = getLineDomElement(displayLine);
-    if (domElement) {
-      const rect = domElement.getBoundingClientRect();
-      const editorRect = editor.getDomNode().getBoundingClientRect();
-      
-      lockPosition.value = {
-        top: rect.top - editorRect.top - 15,
-        left: 60,
-      };
-    } else {
-      console.warn('no domElement to show lock icon');
-    }
-  } catch (error) {
-    console.warn('Failed to calculate lock position:', error);
+  // 获取对应的DOM元素
+  const domElement = getLineDomElement(displayLine);
+  if (domElement) {
+    const rect = domElement.getBoundingClientRect();
+    const editorRect = editor.getDomNode().getBoundingClientRect();
+    
+    lockPosition.value = {
+      top: rect.top - editorRect.top - 15,
+      left: 60,
+    };
   }
 };
 
 // 支持锁定
 const enableLock = (label) => {
-  if (!canUpdateLabelSelect) return;
+  if (!canUpdateLabelSelect) {
+    return;
+  }
   
   updateLockPosition(label);
 };
 
 // 退出锁定状态
 const deactivateLock = () => {
-  if (!isLocked.value) return;
+  if (!isLocked.value) {
+    return;
+  }
   
   isLocked.value = false;
   lockedLabel.value = null;
@@ -297,7 +303,9 @@ const unLockClick = (e) => {
 // 更新悬停装饰
 const updateHoverDecoration = (position, emit = true) => {
   // 如果处于锁定状态，不更新悬停装饰
-  if (isLocked.value || !canUpdateLabelSelect) return;
+  if (isLocked.value || !canUpdateLabelSelect) {
+    return;
+  }
   
   // 清除之前的悬停装饰
   if (currentHoverDecoration) {
@@ -324,7 +332,7 @@ const updateHoverDecoration = (position, emit = true) => {
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
     if (emit && lastSentLabel !== currentLabel.name) {
       lastSentLabel = currentLabel.name;
-      sendMsg('returnSemanticLabelFromCode', { 'label': currentLabel.name });
+      sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
     }
   }
 };
@@ -380,39 +388,41 @@ const handleScroll = () => {
 };
 
 const handleMouseMove = throttle((e) => {
-  const position = e.target.position;
-    const currentLabel = findSemanticLabelAtPosition(position);
-    if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
-      // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
-      canUpdateLabelSelect = true;
-      setTimeout(() => {
-        updateHoverDecoration(position);
-        if (currentLabel && !isLocked.value) {
-          enableLock(currentLabel);
-        }
-        if (canUpdateLabelSelect) {
-          lastMoveLabel = currentLabel;
-        }
-      }, 80);
-    } else if (!currentLabel && !isLocked.value && lastSentLabel) {
-      canUpdateLabelSelect = true;
-      setTimeout(() => {
-        if (!canUpdateLabelSelect || !lastSentLabel) {
-          return;
-        }
-        lastSentLabel = null;
-        lastMoveLabel = null;
-        lockPosition.value = null;
-        updateHoverDecoration(null);
-        sendMsg('returnSemanticLabelFromCode', { label: '' });
+  const { position } = e.target;
+  const currentLabel = findSemanticLabelAtPosition(position);
+  if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
+    // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
+    canUpdateLabelSelect = true;
+    setTimeout(() => {
+      updateHoverDecoration(position);
+      if (currentLabel && !isLocked.value) {
+        enableLock(currentLabel);
+      }
+      if (canUpdateLabelSelect) {
+        lastMoveLabel = currentLabel;
+      }
+    }, 80);
+  } else if (!currentLabel && !isLocked.value && lastSentLabel) {
+    canUpdateLabelSelect = true;
+    setTimeout(() => {
+      if (!canUpdateLabelSelect || !lastSentLabel) {
         return;
-      }, 80);
-    }
+      }
+      lastSentLabel = null;
+      lastMoveLabel = null;
+      lockPosition.value = null;
+      updateHoverDecoration(null);
+      sendMsg('returnSemanticLabelFromCode', { label: '' });
+      return;
+    }, 80);
+  }
 }, 16);
 
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
-  if (!editor) return;
+  if (!editor) {
+    return;
+  }
 
   // 鼠标移动事件
   editor.onMouseMove((e) => {
@@ -421,12 +431,11 @@ const setupHoverListeners = () => {
 
   // 鼠标点击事件
   editor.onMouseDown((e) => {
-    const position = e.target.position;
+    const { position } = e.target;
     if (position) {
       showLabelInfo(position);
     }
   });
-
 
   // 内容变化事件
   editor.onDidChangeModelContent(() => {
@@ -465,7 +474,9 @@ const setupHoverStyles = () => {
 
 // 保存代码到文件
 const saveCodeToFile = () => {
-  if (!editor) return;
+  if (!editor) {
+    return;
+  }
   
   const currentCode = editor.getValue();
   postMessage({ 
@@ -499,42 +510,39 @@ const initEditor = (code) => {
   const container = containerRef.value;
   const language = initCodePath.endsWith('py') ? 'python' : 'cpp';
 
-  try {
-    editor = monaco.editor.create(container, {
-      value: code,
-      language: language,
-      automaticLayout: true,
-      theme: isDarkTheme.value ? 'vs-dark' : 'vs',
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-      lineNumbers: 'on',
-      roundedSelection: false,
-      scrollbar: {
-        vertical: 'visible',
-        horizontal: 'visible',
-        useShadows: false
-      }
-    });
-    
-    // 设置悬停样式
-    setupHoverStyles();
-    
-    setupHoverListeners();
-    
-    // 添加键盘事件监听
-    editor.addCommand(monaco.KeyCode.Escape, () => {
-      deactivateLock();
-    });
-    
-    // 监听内容变化，实时更新语义标签
-    editor.onDidChangeModelContent(() => {
-      applySemanticDecorations();
-      // 触发保存
-      debouncedSave();
-    });
-  } catch (error) {
-    console.error('Failed to initialize Monaco Editor:', error);
-  }
+  editor = monaco.editor.create(container, {
+    value: code,
+    language,
+    automaticLayout: true,
+    theme: isDarkTheme.value ? 'vs-dark' : 'vs',
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    lineNumbers: 'on',
+    roundedSelection: false,
+    scrollbar: {
+      vertical: 'visible',
+      horizontal: 'visible',
+      useShadows: false
+    }
+  });
+  
+  // 设置悬停样式
+  setupHoverStyles();
+  
+  setupHoverListeners();
+  
+  // 添加键盘事件监听
+  editor.addCommand(monaco.KeyCode.Escape, () => {
+    deactivateLock();
+  });
+  
+  // 监听内容变化，实时更新语义标签
+  editor.onDidChangeModelContent(() => {
+    applySemanticDecorations();
+    // 触发保存
+    debouncedSave();
+  });
+
 };
 
 const updateTheme = () => {
@@ -573,37 +581,29 @@ const initEventListeners = () => {
 };
 
 const sendMsg = (command, param) => {
-  try {
-    console.log('editor: ', command, param);
-    Promise.resolve().then(() => {
-      window.ascEventBus.emit(command, param);
-    });
-  } catch (error) {
-    console.error(`${command}执行失败`, error);
-  }
+  Promise.resolve().then(() => {
+    window.ascEventBus.emit(command, param);
+  });
 };
 
 const handleMessage = (event) => {
   const message = event.data;
   switch (message.command) {
-    case 'returnPyCode':
+    case 'returnPyCode': {
       const { codePath, code } = message.data;
       initCodePath = codePath;
       initTotalLine = code.split('\n').length;
       loadingText.value = $t('loadSemanticLabel');
       nextTick(() => initEditor(code));
       break;
-    case 'saveSuccess':
-      console.log('Code saved successfully');
-      break;
-    case 'saveError':
-      console.error('Failed to save code:', message.data);
-      break;
+    }
     case 'returnCompleteData':
       mkSemanticLabel(message.data, initCodePath);
       parseSemanticLabels(initTotalLine);
       applySemanticDecorations();
       loading.value = false;
+      break;
+    default:
       break;
   }
 };

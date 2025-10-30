@@ -2210,7 +2210,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
 const handleOutline = (label, needTransform = true) => {
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
-    renderEvents();
+    transform();
     return;
   }
   points = [];
