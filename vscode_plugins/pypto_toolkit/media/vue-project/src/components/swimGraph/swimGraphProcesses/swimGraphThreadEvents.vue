@@ -1558,7 +1558,7 @@ const clearDrawConnector = (ctx, processKey) => {
     const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
     const uiCtx = uiCanvasRef.getContext('2d');
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
-    uiCtx.lineWidth = 2;
+    uiCtx.lineWidth = 2 / viewState.scale;
     strokeRoundRect(uiCtx, altClickData.preData, processKey);
   }
 
@@ -1813,7 +1813,7 @@ const renderInfo2pixelData = (renderInfo) => {
   };
   const drawRoundedRect = (ctx, event, processKey) => {
     ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 / viewState.scale;
     strokeRoundRect(ctx, event, processKey);
   };
   const calculateAndDrawConnection = (uiCtx) => {
@@ -1882,6 +1882,7 @@ const renderInfo2pixelData = (renderInfo) => {
     temp.drawData.strokeColor = strokeColor;
     temp.drawData.fontColor = fontColor;
     const { eventCtx } = ctxs[processKey];
+    eventCtx.lineWidth = ctx.lineWidth;
     drawEvent([temp.drawData], eventCtx, false);
     drawEventText([temp.drawData], eventCtx, false);
     ctx.restore();
