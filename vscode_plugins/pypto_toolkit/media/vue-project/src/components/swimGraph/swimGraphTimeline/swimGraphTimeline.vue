@@ -131,6 +131,12 @@ const fixedXToTime = (x) => {
   return viewState.minTime + (normalizedTime * viewState.timeRange);
 };
 
+const mouseStyleChange = (style) => {
+  isTimelineDragging = true;
+  fixedtimelineCanvas.value.style.cursor = style;
+  flagsCanvas.value.style.cursor = style;
+};
+
 const timelineMouseDown = (e) => {
   hoverLineErase();
   if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) return;
@@ -143,33 +149,25 @@ const timelineMouseDown = (e) => {
   timelineInitEndX = timelineState.endTimeX;
 
   if (Math.abs(mouseX - timelineInitStartX) < 5){
-    isTimelineDragging = true;
-    fixedtimelineCanvas.value.style.cursor = 'ew-resize';
-    timelineCanvas.value.style.cursor = 'ew-resize';
+    mouseStyleChange('move');
     timelineState.isInLeftTag = true;
     return;
   }
 
   if (Math.abs(mouseX - timelineInitEndX) < 5){
-    isTimelineDragging = true;
-    fixedtimelineCanvas.value.style.cursor = 'ew-resize';
-    timelineCanvas.value.style.cursor = 'ew-resize';
+    mouseStyleChange('move');
     timelineState.isInRightTag = true;
     return;
   }
 
   if (mouseX > timelineInitStartX && mouseX < timelineInitEndX) {
-    isTimelineDragging = true;
-    fixedtimelineCanvas.value.style.cursor = 'move';
-    timelineCanvas.value.style.cursor = 'move';
+    mouseStyleChange('grab');
     timelineState.isOnTag = true;
     return;
   }
 
   if (mouseX < timelineInitStartX || mouseX > timelineInitEndX) {
-    isTimelineDragging = true;
-    fixedtimelineCanvas.value.style.cursor = 'crosshair';
-    timelineCanvas.value.style.cursor = 'crosshair';
+    mouseStyleChange('s-resize');
     timelineState.isOutTag = true;
     return;
   }
