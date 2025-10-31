@@ -3,7 +3,7 @@
     :visible="isOpen"
     trigger="manually"
     :position="['bottom-start']"
-    :offset="10"
+    :offset="14"
     close-scope="blank"
     class="pass-list-menu-wrap"
     @toggle="onToggle"
@@ -32,9 +32,9 @@
         @click.stop
         @search="(e) => (filterKey = e)"
       ></d-search>
-      <div style="max-height: 400px; overflow: auto">
+      <div ref="scrollEl" class="scroll-container pypto-scrollbar">
         <div v-for="item in Object.keys(renderPassList)" :key="item" class="pass-list-item-stage">
-          <div :class="[item]">{{ UpperFirstStr(item) }} Graph</div>
+          <div :class="['stage-name', item]">{{ UpperFirstStr(item) }} Graph</div>
           <div
             v-for="pass in renderPassList[item]"
             :key="pass.passIndex"
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ThreeDot from './threeDot.vue';
 import { transformPassList, UpperFirstStr } from './util';
@@ -66,6 +66,7 @@ const { rootProps, passList, leafFunctions, jumpComGraph } = inject(NavbarProvid
 const filterKey = ref('');
 const isOpen = ref(false);
 const currentData = ref<PathInPass>();
+const scrollEl = ref<HTMLElement>();
 let PassListMap: Partial<Record<PathInPass['passStage'], PathInPass[]>> = {};
 
 const renderPassList = computed(() => {
@@ -112,6 +113,16 @@ function updateCurrentData() {
 function onToggle(val: boolean) {
   isOpen.value = val;
   filterKey.value = '';
+  if (val) {
+    nextTick(() => {
+      const activeItem = scrollEl.value.querySelector('.pass-list-item.active');
+      if (activeItem) {
+        const activeItemTop = activeItem.getBoundingClientRect().top;
+        const listTop = scrollEl.value.getBoundingClientRect().top;
+        scrollEl.value.scrollTop = activeItemTop - listTop;
+      }
+    });
+  }
 }
 
 function selectPass(pass: PathInPass) {
@@ -202,14 +213,18 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </style>
 
 <style lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+
 .pass-list-menu-wrap {
   width: 240px;
-  padding: 12px;
+  padding: 12px 4px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
 
   .pass-list-search {
+    margin-left: 8px;
+    margin-right: 8px;
     margin-bottom: 16px;
 
     .devui-search__icon {
@@ -232,6 +247,12 @@ defineExpose({ getCurrentPass: () => currentData.value });
     }
   }
 
+  .scroll-container {
+    max-height: 400px;
+    padding: 0 8px;
+    overflow: auto;
+  }
+
   .pass-list-item-stage {
     &:not(:first-of-type) {
       margin-top: 16px;
@@ -241,6 +262,10 @@ defineExpose({ getCurrentPass: () => currentData.value });
       font-size: 14px;
       line-height: 20px;
       margin-bottom: 8px;
+    }
+
+    .stage-name {
+      padding: 0 8px;
     }
 
     .tensor {
@@ -258,13 +283,24 @@ defineExpose({ getCurrentPass: () => currentData.value });
     display: flex;
     align-items: center;
     gap: 4px;
+    padding: 4px 8px;
     font-size: 14px;
     color: var(--devui-primary-text);
-    line-height: 24px;
+    line-height: 20px;
+    border-radius: 4px;
     cursor: pointer;
+    transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
 
     &:not(:last-of-type) {
       margin-bottom: 4px;
+    }
+
+    &:not(.active):hover {
+      background-color: var(--devui-input-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--devui-input-active-bg);
     }
 
     span:nth-of-type(2) {

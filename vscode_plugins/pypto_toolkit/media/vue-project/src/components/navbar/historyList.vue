@@ -1,12 +1,12 @@
 <template>
   <div class="selected-history">
-    <d-dropdown :position="['bottom-start']" :offset="20" @toggle="(val) => (isOpen = val)">
+    <d-dropdown :position="['bottom-start']" :offset="20" class="history-list-menu-wrap" @toggle="(val) => (isOpen = val)">
       <div :class="['selected-history-title', isOpen && 'is-open']">
         <span :title="currentData.title">{{ currentData.title }}</span>
         <i class="icon-chevron-down-2"></i>
       </div>
       <template #menu>
-        <div class="navbar-history-list">
+        <div class="navbar-history-list pypto-scrollbar">
           <div
             v-for="item in historyList"
             :key="item.title"
@@ -99,10 +99,7 @@ defineExpose({ getCurrentRecord: () => currentData.value });
 .navbar-history-list {
   max-width: 300px;
   max-height: 400px;
-  padding: 8px;
-  border-radius: 8px;
-  background-color: var(--devui-select-bg);
-  box-sizing: border-box;
+  padding: 0 8px;
   overflow: auto;
 
   .list-item {
@@ -141,5 +138,14 @@ defineExpose({ getCurrentRecord: () => currentData.value });
       color: var(--devui-secondary-text);
     }
   }
+}
+</style>
+
+<style lang="scss">
+.history-list-menu-wrap {
+  padding: 12px 4px;
+  border-radius: 8px;
+  background-color: var(--devui-select-bg);
+  box-sizing: border-box;
 }
 </style>

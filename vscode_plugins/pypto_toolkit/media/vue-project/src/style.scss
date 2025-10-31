@@ -12,6 +12,18 @@ html {
   background-color: var(--devui-tooltip-bg);
   z-index: 1060;
 }
+.pypto-scrollbar {
+  scrollbar-color: unset !important;
+
+  &::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 8px !important;
+  }
+}
 .devui-data-grid.devui-scroll-overlay,
 .devui-drawer .health-report-content {
   scrollbar-color: unset !important;
