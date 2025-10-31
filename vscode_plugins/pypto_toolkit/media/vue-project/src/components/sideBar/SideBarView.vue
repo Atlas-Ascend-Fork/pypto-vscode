@@ -23,14 +23,8 @@
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container" v-loading="isLoading">
-      <d-tree
-        ref="treeRef"
-        :data="visibleTreeData"
-        :node-class="() => 'custom-tree-node'"
-        show-line="false"
-        @node-click="nodeClick"
-        @lazy-load="lazyLoad"
-      >
+      <d-tree ref="treeRef" :data="visibleTreeData" :node-class="() => 'custom-tree-node'" show-line="false"
+        @node-click="nodeClick" @lazy-load="lazyLoad">
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
@@ -60,13 +54,10 @@
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
               <div @click.stop="() => toggleNode(nodeData)" :class="{ 'devui-tree-node-icon': nodeData.date }">
-                <i
-                  class="icon icon-chevron-right"
-                  :style="{
-                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                    cursor: 'pointer',
-                  }"
-                ></i>
+                <i class="icon icon-chevron-right" :style="{
+                  transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                  cursor: 'pointer',
+                }"></i>
               </div>
             </div>
           </div>
@@ -92,8 +83,6 @@ type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['direct
 const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
 const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
-const treeRef = ref(null);
-
 const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 
 /**
@@ -104,7 +93,7 @@ const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 const treeData = ref<DevUITreeNode[]>([]);
 const visibleTreeData = computed(() => [...treeData.value]);
 
-async function nodeClick(node: DevUITreeNode) {
+function nodeClick(node: DevUITreeNode): void {
   if (node.fileType === 'controlFlow') {
     // 打开控制流
     openControlFlow({
@@ -121,7 +110,17 @@ async function nodeClick(node: DevUITreeNode) {
       outputPath: node.pathName ? node.outputPath : undefined,
       pathName: node.pathName,
     });
+  } else {
+    toggleNode(node);
   }
+}
+
+const treeRef = ref(null);
+/**
+ * 展开/折叠
+ */
+function toggleNode(node: DevUITreeNode): void {
+  treeRef.value.treeFactory.toggleNode(node);
 }
 
 const nodeChildrenMap = new Map();
@@ -283,11 +282,11 @@ async function getAllRecords(): Promise<void> {
     gap: 8px;
     background-color: var(--control-flow-sidebar-search-button);
     border-radius: 4px;
-    box-sizing: border-box ;
+    box-sizing: border-box;
     white-space: nowrap;
     text-overflow: ellipsis;
     height: 28px;
-    line-height: 28px ;
+    line-height: 28px;
     padding: 8px;
 
     .sort-name {
@@ -299,7 +298,7 @@ async function getAllRecords(): Promise<void> {
       display: flex;
       align-items: center;
 
-      .sort-icon{
+      .sort-icon {
         width: 16px;
         height: 16px;
         font-size: 16px;
@@ -341,12 +340,14 @@ async function getAllRecords(): Promise<void> {
 
       // 顶层节点之间显示分隔线
       border-bottom: 1px solid transparent;
+
       &:has(+ .devui-tree__node[style*='padding-left: 0px']),
       &:last-of-type {
         border-bottom-color: var(--vscode-sideBar-border);
       }
 
-      &.active {
+      &.active,
+      &:hover {
         background-color: var(--devui-input-active-bg);
 
         .node-label {
@@ -436,8 +437,12 @@ async function getAllRecords(): Promise<void> {
         }
       }
 
-      .devui-tree__node-content.active {
-        background-color: transparent;
+      .devui-tree__node-content {
+
+        &.active,
+        &:hover {
+          background-color: transparent;
+        }
       }
 
       .devui-tree__node-vline {
@@ -452,5 +457,4 @@ async function getAllRecords(): Promise<void> {
     }
   }
 }
-
 </style>

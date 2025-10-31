@@ -13,9 +13,8 @@
       </div>
       <div class="threads-box" v-if="thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
         :style="{'--thread-fill-width': threadFillWidth(thread.threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName, selectedOption)) + '%', 
-          'background': getBackground(thread.threadName, selectedOption),
           'display':cycleDisplay}">
-        <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%'}"></div>
+        <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%', 'background': getBackground(thread.threadName, selectedOption)}"></div>
         <div class="threads-text"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
         <div class="average-line" :style="{ left: averageValue + '%'}"></div>
       </div>
@@ -69,10 +68,7 @@ const calculateThreadCycles = (allProcesses, proKey) => {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
           cycleDisplay.value = 'none';
-          const optionToDisable = options.filter(option => option.value === 'clockCycle' || option.value === 'cacheHit');
-          optionToDisable.forEach(option => {
-            option.disabled = true;
-          });
+          options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
           return [null, null];
         }
         totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
@@ -110,22 +106,22 @@ const getBackground = (threadId, option) => {
   if (option === 'clockCycle' && threadCyclesMap) {
     values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
     if (values.every((value, _, arr) => value.eq(arr[0]))) {
-      return 'initial';
+      return 'var(--devui-timebar-bg)';
     }
   } else if (option === 'task' && threadTaskMap) {
     values = Array.from(threadTaskMap.values());
     if (values.every((value, _, arr) => value === arr[0])) {
-      return 'initial';
+      return 'var(--devui-timebar-bg)';
     }
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     values = Array.from(threadCacheHitMap.values()).map(value => new BigNumber(value));
     if (values.every((value, _, arr) => value.eq(arr[0]))) {
-      return 'initial';
+      return 'var(--devui-timebar-bg)';
     }
   } else {
-    return 'initial';
+    return 'var(--devui-timebar-bg)';
   }
-  return threadFillWidth(threadId, option) === 100 ? 'var(--devui-timefull-bg)' : 'initial';
+  return threadFillWidth(threadId, option) === 100 ? 'var(--devui-timefull-bg)' : 'var(--devui-timebar-bg)';
 };
 
 const threadTotaltime = (threadId, option) => {

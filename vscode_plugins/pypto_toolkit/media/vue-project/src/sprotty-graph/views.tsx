@@ -1255,13 +1255,18 @@ export class AstgrPortView extends ShapeView {
     const isInPort = node.id.endsWith('-in');
     const direction = comGraphStore.data.layoutDirection;
     const xDelta = direction === 'RIGHT' ? 0 : 4;
+    let yDelta = direction === 'RIGHT' ? 0 : isInPort ? 4 : -4;
+
+    if (node.id.includes('tensor') && !isInPort) {
+      yDelta = 0;
+    }
     const circleELement = (
       <circle
         class-sprotty-port={true}
         class-mouseover={node.parent.hoverFeedback}
         class-selected={node.parent.selected}
         cx={isInPort ? Math.max(node.size.width, 0) - xDelta : 0 + xDelta}
-        cy={Math.max(node.size.width, 0) / 2}
+        cy={Math.max(node.size.width, 0) / 2 + yDelta}
         r={Math.max(node.size.width, 0) / 2}
         stroke="var(--devui-page-bg)"
         stroke-width="1.43"

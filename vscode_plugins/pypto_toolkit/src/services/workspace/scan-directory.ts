@@ -86,15 +86,18 @@ async function getComputeGraphDirectory(outputUri: vscode.Uri, runData: RunDataM
   }
 
   const computeDirectoryUri = vscode.Uri.joinPath(outputUri, runData.compute_graph_path);
-  return [
-    {
-      type: 'dir',
-      directoryType: 'compute',
-      name: t('PyPTOToolkit.workspace.computeGraphName'),
-      absolutePath: computeDirectoryUri.path,
-      children: await getPassDirectories(computeDirectoryUri, outputUri),
-    },
-  ];
+  const passDirectories = await getPassDirectories(computeDirectoryUri, outputUri);
+  return passDirectories.length > 0
+    ? [
+        {
+          type: 'dir',
+          directoryType: 'compute',
+          name: t('PyPTOToolkit.workspace.computeGraphName'),
+          absolutePath: computeDirectoryUri.path,
+          children: passDirectories,
+        },
+      ]
+    : [];
 }
 
 /** Pass目录名称正则 */
