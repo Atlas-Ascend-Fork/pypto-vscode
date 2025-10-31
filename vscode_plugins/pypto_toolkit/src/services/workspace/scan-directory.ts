@@ -7,29 +7,27 @@ import {
   ComputeGraph,
   ControlFlowFile,
   OutputDirectory,
+  OutputRecord,
   PassDirectory,
-  RunDataManifest,
   SwimlaneGraphFile,
 } from '../../types/workspace';
 import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
 import { hasHealthReport, isHealthReport } from '../../utils/health-report';
 
-const CONTROL_FLOW_SOURCE_FILE = 'program.json';
-
 /**
  * 运行结果
  */
-export async function getOutputDirectory(outputUri: vscode.Uri, runData: RunDataManifest): Promise<OutputDirectory> {
+export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<OutputDirectory> {
   return {
     type: 'dir',
     directoryType: 'output',
     name: path.basename(outputUri.path),
     absolutePath: outputUri.path,
     children: [
-      ...(await getControlFlowFile(outputUri)),
-      ...(await getSwimlaneFile(outputUri, runData)),
-      ...(await getComputeGraphDirectory(outputUri, runData)),
+      ...(await getControlFlowFile(outputUri, record)),
+      ...(await getSwimlaneFile(outputUri, record)),
+      ...(await getComputeGraphDirectory(outputUri, record)),
     ],
   };
 }
@@ -37,8 +35,12 @@ export async function getOutputDirectory(outputUri: vscode.Uri, runData: RunData
 /**
  * 控制流文件
  */
-async function getControlFlowFile(outputUri: vscode.Uri): Promise<ControlFlowFile[]> {
-  const controlFlowUri = vscode.Uri.joinPath(outputUri, CONTROL_FLOW_SOURCE_FILE);
+async function getControlFlowFile(outputUri: vscode.Uri, record: OutputRecord): Promise<ControlFlowFile[]> {
+  if(!record.controlFlowFilePath) {
+    return [];
+  }
+
+  const controlFlowUri = vscode.Uri.file(record.controlFlowFilePath);
   try {
     await vscode.workspace.fs.readFile(controlFlowUri);
   } catch {
@@ -59,12 +61,12 @@ async function getControlFlowFile(outputUri: vscode.Uri): Promise<ControlFlowFil
 /**
  * 泳道图文件
  */
-async function getSwimlaneFile(outputUri: vscode.Uri, runData: RunDataManifest): Promise<SwimlaneGraphFile[]> {
-  if (!runData.swim_graph_path) {
+async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Promise<SwimlaneGraphFile[]> {
+  if (!record.swimlaneGraphFilePath) {
     return [];
   }
 
-  const swimlaneFileUri = vscode.Uri.joinPath(outputUri, runData.swim_graph_path);
+  const swimlaneFileUri = vscode.Uri.file(record.swimlaneGraphFilePath);
   return [
     {
       type: 'file',
@@ -80,12 +82,12 @@ async function getSwimlaneFile(outputUri: vscode.Uri, runData: RunDataManifest):
 /**
  * 计算图目录
  */
-async function getComputeGraphDirectory(outputUri: vscode.Uri, runData: RunDataManifest): Promise<ComputeDirectory[]> {
-  if (runData.compute_graph_path === undefined) {
+async function getComputeGraphDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<ComputeDirectory[]> {
+  if (!record.computeGraphDirPath) {
     return [];
   }
 
-  const computeDirectoryUri = vscode.Uri.joinPath(outputUri, runData.compute_graph_path);
+  const computeDirectoryUri = vscode.Uri.file(record.computeGraphDirPath);
   const passDirectories = await getPassDirectories(computeDirectoryUri, outputUri);
   return passDirectories.length > 0
     ? [

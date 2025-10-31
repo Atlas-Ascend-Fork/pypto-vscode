@@ -79,7 +79,9 @@ const PATH_CARD_NODE_TYPE = 'path-card-node';
 let graph = null;
 const { t } = useI18n();
 const rootData = ref([])
-const outPutPath = ref()
+const outPutPath = ref();
+const programPath = ref();
+const isEditableSelected = ref(false);
 const isGraphVisible = ref(false);
 const searchSelectRef = ref(null);
 const isLoading = ref(true);
@@ -829,9 +831,13 @@ const initG6Graph = async (nodes, edges, combos,) => {
 const dataParseError = ref(false);
 onMounted(async () => {
   const res = await getQuery();
-  outPutPath.value = res.url
+  outPutPath.value = res.url;
+  programPath.value = res._path;
   try {
-    const data = await getControlFlow(outPutPath.value, {useCustomErrorHandler: true});
+    const data = await getControlFlow(
+      { outputDirPath: outPutPath.value, controlFlowFilePath: programPath.value },
+      { useCustomErrorHandler: true },
+    );
     rootData.value = data.data;
   } catch (e: any) {
     dataParseError.value = true;

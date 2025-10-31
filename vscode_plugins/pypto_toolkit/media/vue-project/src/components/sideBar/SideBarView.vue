@@ -76,6 +76,7 @@ import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/ope
 
 import SideBarSearch from './SideBarSearch.vue';
 import { useSearchingHighlight } from './hooks/use-searching-highlight';
+import { debounce } from 'lodash-es';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -125,7 +126,7 @@ function toggleNode(node: DevUITreeNode): void {
 
 const nodeChildrenMap = new Map();
 
-async function transformData(outputData: OutputRecords) {
+async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]> {
   nodeChildrenMap.clear();
 
   function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
@@ -148,6 +149,7 @@ async function transformData(outputData: OutputRecords) {
     return children;
   }
 
+  const records: DevUITreeNode[] = [];
   for (const record of outputData) {
     const rootNode: DevUITreeNode = {
       id: record.title,
@@ -164,8 +166,9 @@ async function transformData(outputData: OutputRecords) {
     const child = transformChild(detail.data.directoryTree.children);
     nodeChildrenMap.set(rootNode.id, child);
 
-    treeData.value.push(rootNode);
+    records.push(rootNode);
   }
+  return records;
 }
 
 function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
@@ -177,18 +180,14 @@ onMounted(() => {
 });
 
 const isLoading = ref(false);
-const sortOption = ref(false);
-
-watch(sortOption, () => {
-  getAllRecords();
-});
 
 async function getAllRecords(): Promise<void> {
+  const snapshot = sortOption.value;
   isLoading.value = true;
   treeData.value = [];
   try {
     const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
-    await transformData(data);
+    treeData.value = await transformData(data);
   } catch (e: unknown) {
     isLoading.value = false;
     if (e instanceof Error) {
@@ -197,6 +196,14 @@ async function getAllRecords(): Promise<void> {
   }
   isLoading.value = false;
 }
+
+const debouncedGetRecords = debounce(getAllRecords, 500);
+
+const sortOption = ref(false);
+
+watch(sortOption, () => {
+  debouncedGetRecords();
+});
 </script>
 
 <style scoped lang="less">
