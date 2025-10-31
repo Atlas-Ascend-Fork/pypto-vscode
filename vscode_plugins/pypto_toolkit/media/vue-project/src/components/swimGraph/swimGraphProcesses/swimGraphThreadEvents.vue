@@ -1478,7 +1478,7 @@ const showTooltip = (e, event, canvasRef) => {
   } else {
       tooltipStyle.left = (e.clientX + 10) + 'px';
   }
-  tooltipStyle.top = (e.clientY - 10) + 'px';
+  tooltipStyle.top = (e.clientY + 10) + 'px';
 };
 
 const lineShowTooltip = (e, startEvent, endEvent) => {
