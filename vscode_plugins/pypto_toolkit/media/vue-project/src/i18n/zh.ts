@@ -91,6 +91,7 @@ export default {
    controlFlow: '控制流',
    noDataMatched: '未匹配到数据',
    jumpCodeTips: '跳转源码，设计中，敬请期待',
+   threeColumnTips: '三纵向布局设计中，敬请期待',
    directRelative: '直系',
    notDirectRelative: '非直系',
    pleaseSelect: '请选择',

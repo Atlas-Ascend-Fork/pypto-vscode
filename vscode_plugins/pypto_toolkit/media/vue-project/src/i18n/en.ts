@@ -91,6 +91,7 @@ export default {
     controlFlow: 'ControlFlow',
     noDataMatched: 'No data matched',
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
+    threeColumnTips: 'Three vertical layout, under design, please look forward to.',
     directRelative: 'Direct relative',
     notDirectRelative: 'Not direct relative',
     pleaseSelect: 'Please select',

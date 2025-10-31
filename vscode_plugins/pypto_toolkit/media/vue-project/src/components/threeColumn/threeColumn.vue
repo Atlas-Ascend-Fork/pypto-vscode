@@ -6,11 +6,13 @@
       <span></span>
       <span></span>
     </div>
-    <div :class="['three-column', modelValue === 'threeColumn' && 'active']" @click="() => emits('update:modelValue', 'threeColumn')">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
+    <d-tooltip :content="t('threeColumnTips')" position="bottom-start" overlay-class="three-column-design-tips">
+      <div :class="['three-column', 'disabled', modelValue === 'threeColumn' && 'active']">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </d-tooltip>
   </div>
   <div :class="['three-column-content', modelValue]">
     <div><editor /></div>
@@ -95,6 +97,15 @@ provide('threeColumnState', { isDarkTheme });
   }
 
   .three-column {
+    &.disabled {
+      border-color: var(--devui-disabled-icon);
+      cursor: not-allowed;
+
+      span {
+        background-color: var(--devui-disabled-icon);
+      }
+    }
+
     span {
       flex: 1;
     }
@@ -151,5 +162,11 @@ provide('threeColumnState', { isDarkTheme });
       }
     }
   }
+}
+</style>
+
+<style lang="scss">
+.three-column-design-tips {
+  max-width: unset;
 }
 </style>
