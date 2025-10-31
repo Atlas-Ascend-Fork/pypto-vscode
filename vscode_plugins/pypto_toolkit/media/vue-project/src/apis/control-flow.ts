@@ -7,7 +7,6 @@ const CONTROL_FLOW_PREFIX = 'controlFlow';
 /**
  * 获取控制流
  */
-export function getControlFlow(outputDirPath: string, options?: RequestOptions): Promise<GetControlFlowRes> {
-  const params: GetControlFlowParams = { outputDirPath };
+export function getControlFlow(params: GetControlFlowParams, options?: RequestOptions): Promise<GetControlFlowRes> {
   return request.post(`${CONTROL_FLOW_PREFIX}/getControlFlow`, params, options);
 }

@@ -10,6 +10,9 @@ export interface RunDataManifest {
   /** 源码路径 */
   pto_src_file: string;
 
+  /** 控制流路径 */
+  program_file: string;
+
   /** 计算图目录 */
   compute_graph_path: string;
 
@@ -33,11 +36,14 @@ export interface OutputDetail {
   directoryTree: OutputDirectory;
 
   /** 源代码文件地址 */
-  sourceFilePath: string;
+  sourceFilePath: string | null;
 
   /** 控制流文件地址 */
-  controlFlowFilePath: string;
+  controlFlowFilePath: string | null;
 
   /** 泳道图文件地址 */
-  swimlaneGraphFilePath: string;
+  swimlaneGraphFilePath: string | null;
+
+  /** 计算图目录地址 */
+  computeGraphDirPath: string | null;
 }

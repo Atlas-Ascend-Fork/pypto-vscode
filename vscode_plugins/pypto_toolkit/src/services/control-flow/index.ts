@@ -9,6 +9,9 @@ import { FlowTreeAnalyzer } from './flow-tree';
 export interface GetControlFlowParams {
   /** 编译结果文件夹路径 */
   outputDirPath: string;
+
+  /** program.json文件路径 */
+  controlFlowFilePath: string;
 }
 
 export interface GetControlFlowRes {
@@ -24,7 +27,7 @@ export interface GetControlFlowRes {
 export async function getControlFlow(params: GetControlFlowParams): Promise<GetControlFlowRes> {
   let program: ProgramOutput;
   try {
-    const programUri = vscode.Uri.joinPath(vscode.Uri.file(params.outputDirPath), 'program.json');
+    const programUri = vscode.Uri.file(params.controlFlowFilePath);
     const fileContent = (await vscode.workspace.fs.readFile(programUri)).toString();
     program = JSON.parse(fileContent);
   } catch {

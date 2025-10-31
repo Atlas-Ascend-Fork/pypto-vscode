@@ -21,7 +21,7 @@ export interface GetOutputRecordsRes {
   data: OutputRecord[];
 }
 
-const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
+const USER_HOME_PATH = process.env.USERPROFILE ?? '/root';
 const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
 /**
@@ -59,9 +59,10 @@ export interface GetOutputDetailRes {
 export async function getOutputDetail(params: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const outputUri = vscode.Uri.file(params.outputDirPath);
   const runData = await readOutputRunData(outputUri);
+  const record = getOutputRecord(outputUri, runData);
   const detail = {
-    ...getOutputRecord(outputUri, runData),
-    directoryTree: await getOutputDirectory(outputUri, runData),
+    ...record,
+    directoryTree: await getOutputDirectory(outputUri, record),
   };
   return { data: detail };
 }
@@ -110,9 +111,10 @@ async function isOutputDirectory(uri: vscode.Uri): Promise<boolean> {
  */
 function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
   const directoryPath = outputUri.path;
-  const sourceFilePath = runData.pto_src_file ? path.posix.join(directoryPath, runData.pto_src_file) : '';
-  const controlFlowFilePath = path.posix.join(directoryPath, 'program.json');
-  const swimlaneGraphFilePath = runData.swim_graph_path ? path.posix.join(directoryPath, runData.swim_graph_path) : '';
+  const sourceFilePath = runData.pto_src_file || null;
+  const controlFlowFilePath = runData.program_file || null;
+  const swimlaneGraphFilePath = runData.swim_graph_path || null;
+  const computeGraphDirPath = runData.compute_graph_path || null;
 
   const directoryName = path.posix.basename(directoryPath);
   const [_, timestamp] = directoryName.match(OutputDirectoryRegExp) ?? [];
@@ -125,5 +127,6 @@ function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): Outpu
     sourceFilePath,
     controlFlowFilePath,
     swimlaneGraphFilePath,
+    computeGraphDirPath,
   };
 }
