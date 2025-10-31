@@ -13,26 +13,18 @@
     </div>
     <!-- 筛选区 -->
     <div class="filters">
-      <d-icon class="sort" operable @click="sortOption = !sortOption">
-        <template #prefix>
-          <span class="sort-name">{{ t('sideBar.sortName') }}</span>
-          <div class="icon-group">
-            <i v-if="sortOption" class="icon-run-o icon-up"></i>
-            <i v-if="!sortOption" class="icon-run-o icon-down"></i>
-          </div>
-        </template>
-      </d-icon>
+      <div class="sort" operable @click="sortOption = !sortOption">
+        <span class="sort-name">{{ t('sideBar.sortName') }}</span>
+        <div class="sort-group">
+          <img v-if="sortOption" :src="sortUp" class="sort-icon">
+          <img v-else :src="sortDown" class="sort-icon">
+        </div>
+      </div>
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container" v-loading="isLoading">
-      <d-tree
-        ref="treeRef"
-        :data="visibleTreeData"
-        :node-class="() => 'custom-tree-node'"
-        show-line="false"
-        @node-click="nodeClick"
-        @lazy-load="lazyLoad"
-      >
+      <d-tree ref="treeRef" :data="visibleTreeData" :node-class="() => 'custom-tree-node'" show-line="false"
+        @node-click="nodeClick" @lazy-load="lazyLoad">
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
@@ -62,13 +54,10 @@
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
               <div @click.stop="() => toggleNode(nodeData)" :class="{ 'devui-tree-node-icon': nodeData.date }">
-                <i
-                  class="icon icon-chevron-right"
-                  :style="{
-                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                    cursor: 'pointer',
-                  }"
-                ></i>
+                <i class="icon icon-chevron-right" :style="{
+                  transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                  cursor: 'pointer',
+                }"></i>
               </div>
             </div>
           </div>
@@ -92,7 +81,8 @@ import { debounce } from 'lodash-es';
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
-
+const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
+const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
 const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 
@@ -223,8 +213,8 @@ watch(sortOption, () => {
  * 基础样式
  */
 .sidebar-container {
-  background: #181818;
-  color: #ffffff;
+  background: var(--devui-card-bg);
+  color: var(--control-flow-sidebar-search-icon);
   min-height: 100vh;
   width: 100%;
   height: 100vh;
@@ -243,7 +233,7 @@ watch(sortOption, () => {
   padding: 0 16px;
 
   .name {
-    color: #ffffff;
+    color: var(--control-flow-sidebar-search-title);
     margin: 0;
     font-size: 14px;
     line-height: 27px;
@@ -263,7 +253,7 @@ watch(sortOption, () => {
     }
 
     :deep(*) {
-      color: var(--devui-title-text);
+      color: var(--control-flow-sidebar-search-icon);
     }
   }
 
@@ -274,6 +264,7 @@ watch(sortOption, () => {
   .tree-search {
     width: 150px;
   }
+
   .icon {
     font-size: 16px;
     opacity: 0.8;
@@ -293,32 +284,31 @@ watch(sortOption, () => {
   .sort {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.05);
+    gap: 8px;
+    background-color: var(--control-flow-sidebar-search-button);
     border-radius: 4px;
-    box-sizing: border-box !important;
+    box-sizing: border-box;
     white-space: nowrap;
     text-overflow: ellipsis;
-    height: 28px !important;
-    width: 100px !important;
-    padding-left: 4px !important;
+    height: 28px;
+    line-height: 28px;
+    padding: 8px;
 
     .sort-name {
-      // color: #E6E6E6;
       font-size: 13px;
     }
 
-    .icon-group {
+    .sort-group {
+      height: 28px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
 
-      .icon-up {
-        transform: rotate(-90deg);
-      }
-
-      .icon-down {
-        transform: rotate(90deg);
+      .sort-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
       }
     }
   }
@@ -357,6 +347,7 @@ watch(sortOption, () => {
 
       // 顶层节点之间显示分隔线
       border-bottom: 1px solid transparent;
+
       &:has(+ .devui-tree__node[style*='padding-left: 0px']),
       &:last-of-type {
         border-bottom-color: var(--vscode-sideBar-border);
@@ -364,10 +355,10 @@ watch(sortOption, () => {
 
       &.active,
       &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: var(--devui-input-active-bg);
 
         .node-label {
-          color: #ffffff !important;
+          color: var(--control-flow-sidebar-tree-label) !important;
         }
       }
 
@@ -402,7 +393,7 @@ watch(sortOption, () => {
             .node-label {
               font-size: 14px;
               line-height: 22px;
-              color: #e6e6e6;
+              color: var(--control-flow-sidebar-tree-main-label);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -411,7 +402,7 @@ watch(sortOption, () => {
             .node-date {
               font-size: 12px;
               line-height: 18px;
-              color: #999999;
+              color: var(--control-flow-sidebar-tree-placeholder);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -426,7 +417,7 @@ watch(sortOption, () => {
 
             .node-label {
               font-size: 13px;
-              color: #b3b3b3;
+              color: var(--devui-secondary-text);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -454,6 +445,7 @@ watch(sortOption, () => {
       }
 
       .devui-tree__node-content {
+
         &.active,
         &:hover {
           background-color: transparent;
@@ -470,19 +462,6 @@ watch(sortOption, () => {
         height: 0px !important;
       }
     }
-  }
-}
-
-:deep(.devui-select__selection) {
-  height: 28px !important;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-
-  .devui-select__input {
-    height: 28px !important;
-    border: none;
-    font-size: 13px;
-    color: #e6e6e6 !important;
   }
 }
 </style>

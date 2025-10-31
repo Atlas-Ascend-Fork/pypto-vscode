@@ -166,7 +166,7 @@ export default {
         searchPlaceholder: '搜索运行结果',
     },
     controlFlows: {
-        searchPlaceholder: '搜索loop关键字',
+        searchPlaceholder: '搜索loop关键字，或输入计算图全名直达',
         noMatchingData: '没有找到匹配的数据',
         allComputationalPanelTitle: '所有计算图',
         callFunctionPanelTitle: '调用函数-callee',
@@ -176,8 +176,8 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
-        tableSearch:'搜索',
+        tableSearch: '搜索',
         dataParseError: '无法打开控制流，解析数据异常。',
-        leafName:'leaf 函数',
+        leafName: 'leaf 函数',
     }
 }
