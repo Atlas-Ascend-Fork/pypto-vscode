@@ -152,6 +152,10 @@ export const ideLightTheme = new Theme({
     'control-flow-tab-bg': 'rgba(243,243,243,1)', // 控制流tab未选中
     'control-flow-table-header': 'rgba(243,243,243,1)', // 控制流header
     'control-flow-table-hover': 'rgba(49,122,247,0.2)', // hover选中背景
+    'control-flow-table-minimap-bg':'#F3F3F3',
+    'control-flow-panel-table-tensor': 'rgb(209,159,0)',
+    'control-flow-panel-table-Tile': 'rgb(28,148,164)',
+    'control-flow-panel-table-block': 'rgb(5,131,88)',
   },
   isDark: false,
 });
@@ -308,6 +312,10 @@ export const ideDarkTheme = new Theme({
     'control-flow-tab-bg': '#1a1a1a', // 控制流tab未选择
     'control-flow-table-header': '#313131', // 控制流table
     'control-flow-table-hover': 'rgba(49,122,247,0.20)', // hover选中背景
+    'control-flow-table-minimap-bg':'#292A2E',
+    'control-flow-panel-table-tensor': 'rgb(253,229,92)',
+    'control-flow-panel-table-Tile': 'rgb(125,223,231)',
+    'control-flow-panel-table-block': 'rgb(99,213,168)',
   },
   isDark: true,
 });

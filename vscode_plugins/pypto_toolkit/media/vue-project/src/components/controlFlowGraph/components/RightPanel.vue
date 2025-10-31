@@ -130,8 +130,10 @@
                 </div>
                 <div v-for="(item,index) in group.members" :key="index" class="group-line" :style="getColor(item.type)"
                      @click="openGraph(item)">
-                  <span class="group-line-name"> {{ item.passIndex }}</span>
-                  <span class="group-line-name"> {{ item.passName }}</span>
+                  <div class="line-group">
+                    <span class="group-line-index"> {{ item.passIndex }}</span>
+                    <span class="group-line-name" :title="item.passName "> {{ item.passName }}</span>
+                  </div>
                   <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon"/></span>
                 </div>
               </div>
@@ -498,9 +500,9 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 }
 
 const passStageTitle = {
-  tensor: {label: 'Tensor Graph', color: 'rgb(253,229,92)'},
-  tile: {label: 'Tile Graph', color: 'rgb(125,223,231)'},
-  block: {label: 'Block Graph', color: 'rgb(99,213,168)'},
+  tensor: {label: 'Tensor Graph', color: 'var(--control-flow-panel-table-tensor)'},
+  tile: {label: 'Tile Graph', color: 'var(--control-flow-panel-table-Tile)'},
+  block: {label: 'Block Graph', color: 'var(--control-flow-panel-table-block)'},
 };
 
 function getPassList(passes: PassesType[]) {
@@ -627,11 +629,22 @@ defineExpose({
     .group-line-title {
       font-size: 14px;
     }
+.line-group{
+  display: flex;
+  width: 440px;
+  padding: 4px 8px;
+  gap:4px;
+  font-size: 13px;
+  font-weight: 400;
 
-    .group-line-name {
-      font-size: 13px;
-    }
-
+  .group-line-name {
+    width: 390px;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
     .group-line-icon {
       display: flex;
       align-items: center;

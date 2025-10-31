@@ -308,9 +308,10 @@ export function transformData(rootNodes: GroupNode): {
                     target: childId,
                     type: 'polyline',
                     style: {
-                        lineWidth: 3,
+                        lineWidth: 1,
                         radius: 20,
-                        stroke: 'rgb(102,102,102)',
+                        stroke: '#666666',
+                        opacity:0.8,
                         controlPoints: [[node.style.x, (node.style.y + child.y) / 2]],
                         endArrow: true,
                         router: {

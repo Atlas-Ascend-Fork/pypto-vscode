@@ -904,7 +904,7 @@ onUnmounted(() => {
 
 .minimap-type {
   position: absolute !important;
-  background-color: var(--devui-base-bg) !important; // 设置背景色
+  background-color: var(--control-flow-table-minimap-bg) !important; // 设
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   border-radius: 20px 20px 0 0 !important;
   width: 260px;
@@ -930,6 +930,9 @@ onUnmounted(() => {
 .tool-select-search-icon {
   display: none;
 }
+.tool-bar {
+  background-color: var(--control-flow-table-minimap-bg);
+}
 </style>
 <style lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
@@ -942,7 +945,6 @@ onUnmounted(() => {
   align-items: center;
   width: 260px;
   height: 32px;
-  background: $devui-base-bg;
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   flex-direction: row;
   justify-content: center;
