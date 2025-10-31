@@ -474,7 +474,7 @@ class IfCardNode extends Diamond {
   render(
   attributes = this.parsedAttributes, container: Group | undefined
   ) {
-    // // 1. 合并基础样式（覆盖 Rect 默认样式）
+    // 1. 合并基础样式（覆盖 Rect 默认样式）
     const mergedAttrs = {
       ...attributes,
       ...this.getCardBaseStyle(attributes),
