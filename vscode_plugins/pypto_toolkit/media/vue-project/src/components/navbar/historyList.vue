@@ -66,6 +66,7 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     font-weight: bold;
     line-height: 22px;
     color: var(--devui-primary-text);
+    pointer-events: all;
 
     span {
       max-width: 160px;
