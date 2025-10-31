@@ -34,14 +34,13 @@
               style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')"
               @click="graphFitView"></button>
     </div>
-
   </div>
   <Loading v-if="isLoading" :loadingText="'loading'"/>
 </template>
 
 <script lang="ts" setup>
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import {useI18n} from 'vue-i18n';
+import { useI18n } from 'vue-i18n';
 import {
   CommonEvent,
   Diamond,

@@ -148,7 +148,6 @@ export class EditorView {
     };
     this.queryConnector.setQuery(viewPanel.webview, viewQuery);
 
-    this.queryConnector.setQuery(viewPanel.webview, uri, virtualQuery);
     // 监听主题变化
     const themeListener = vscode.window.onDidChangeActiveColorTheme(
       () => viewPanel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }), null
