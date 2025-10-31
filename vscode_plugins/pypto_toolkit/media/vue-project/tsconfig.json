@@ -2,7 +2,8 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "ext:/*": ["../../src/*"]
     }
   },
   "include": ["./src/**/*"]

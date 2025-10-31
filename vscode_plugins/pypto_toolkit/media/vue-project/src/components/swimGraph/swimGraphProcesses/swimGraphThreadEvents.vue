@@ -83,6 +83,7 @@ const {
 
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
+const { isSearchActive } = inject('swimGraphSearch');
 // 测距的最小距离，若小于这个距离，不显示左右箭头
 const nodeSpaceMin = 58;
 // 定义props
@@ -935,11 +936,12 @@ const drawDependencyLines = (process, processKey, mode) => {
   ctx.lineWidth = 1;
 
   const eventMap = buildEventMap(process);
+  let level = isSearchActive ? 0 : userConfig.value.connectionLevel;
   const edgesToDraw = collectRelevantEdges(
     selectedEvent.value.id,
     eventMap,
     mode,
-    userConfig.value.connectionLevel
+    level
   );
 
   renderDependencyEdges(edgesToDraw, eventMap, ctx);

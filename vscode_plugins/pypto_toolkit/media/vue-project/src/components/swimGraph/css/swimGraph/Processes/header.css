@@ -29,6 +29,12 @@
   display: flex;
   align-items: center;
   text-align: left;
+  width: 140px;
+}
+.label_one  span:last-child{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .process-header-line {
@@ -40,6 +46,7 @@
 
 .expand-icon {
   margin-left: 16px;
+  margin-right: 4px;
   font-family: monospace;
   font-weight: bold;
   text-align: center;

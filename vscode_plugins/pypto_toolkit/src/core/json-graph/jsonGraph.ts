@@ -2127,9 +2127,9 @@ export class AscppDagBuilder {
                 hAlign: 'left',
                 vGap: 3,
                 paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 0,
-                    paddingRight: 50
+                paddingBottom: 0,
+                paddingLeft: 0,
+                paddingRight: 0
             },
             children: []
         }
@@ -2249,7 +2249,7 @@ export class AscppDagBuilder {
                 paddingTop: 4,
                 paddingBottom: 4,
                 paddingLeft: 6,
-                paddingRight: op.calleehash ? 34 : 0
+                paddingRight: 34
             },
             cssClasses: ['operation-labels-compartment'],
             children: [...labelChildren]

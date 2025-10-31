@@ -29,19 +29,28 @@
 
 .case-sensitive {
   position: absolute;
-  right: 22px;
-  border: none;
+  right: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--devui-search-container-bg);
   cursor:pointer;
+  width: 20px;
+  height: 20px;
+  color: rgba(179, 179, 179, 1);
+  background-color: rgba(255, 255, 255, 0.13);
+  border-radius: 4px;
+  margin-right: 4px;
+  border: 1px solid transparent;
 }
 
-.case-dark {
-  border: 1px solid var(--devui-secondary-button-active-bg);
-  border-radius: 4px;
-  background-color: var(--devui-secondary-button-active-bg);
+.case-sensitive:hover {
+  color: rgba(49, 122, 247, 1);
+}
+
+.case-sensitive.case-dark {
+  border-color: rgba(49, 122, 247, 1);
+  color: rgba(49, 122, 247, 1);
 }
 
 .search-res {

@@ -153,48 +153,72 @@ const onInputChange = (newValue) => {
 @import url("../css/swimGraph/Config/config.css");
 .cfg-select {
     width: 160px;
+    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
+        border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
+        border-color: var(--devui-select-active-border-color) !important;
+    }
     .devui-select__selection {
-        background-color: transparent !important;
-        border: none !important;
-        input:focus {
-            outline: none;
-        }
+        background-color: transparent;
+        border-color: transparent;
         .devui-select__input {
             padding: 0;
-            background-color: transparent !important;
+            background-color: transparent;
         }
     }
 }
 
 .cfg-Shading-mode {
+    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
+        border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
+        border-color: var(--devui-select-active-border-color) !important;
+    }
+
     .devui-select__selection {
+        height: 28px;
         background-color: var(--devui-input-bg) !important;
-        border: none !important;
-        input:focus {
-            outline: none;
+        border-color: transparent;
+        input {
+            display:flex;
+            align-items: center;
         }
     }
 }
 
 .task-content {
+    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
+        border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
+        border-color: var(--devui-select-active-border-color) !important;
+    }
     .devui-select__selection {
+        height: 28px;
         background-color: var(--devui-input-bg) !important;
-        border: none !important;
-        input:focus {
-            outline: none;
-        }
+        border-color: transparent;
         .devui-select__multiple {
-            height: 24px;
+            height: 20px;
         }
     }
 }
 
 .task-connection-level {
+    .devui-input-number.devui-input-number--glow-style:hover {
+        border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-input-number.devui-input-number--glow-style:focus-within .devui-input-number__input-box:not(.disabled) {
+        border-color: var(--devui-select-active-border-color);
+    }
     .devui-input-number {
         background-color: var(--devui-input-bg) !important;
+        height: 28px;
+        border-color: transparent;
         input {
             background-color: var(--devui-input-bg) !important;
-            outline: none !important;
+            border-color: transparent;
         }
     }
 }
