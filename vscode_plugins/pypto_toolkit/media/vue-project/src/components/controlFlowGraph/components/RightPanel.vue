@@ -55,7 +55,6 @@
                           </template>
                         </d-icon>
                       </div>
-
                     </div>
 
                   </template>
@@ -376,7 +375,9 @@ const processedTableData = (tabIndex: number) => {
       return sortDirection === 'ASC' ? sortResult : -sortResult;
     });
   }
-
+  if(filteredData.length===0){
+    isTableVisited.value = false;
+  }
   return filteredData;
 };
 
@@ -764,7 +765,6 @@ defineExpose({
             color: var(--devui-primary-text);
             font-size: 13px;
             line-height: 20px;
-            padding-right: 20px;
           }
         }
 
