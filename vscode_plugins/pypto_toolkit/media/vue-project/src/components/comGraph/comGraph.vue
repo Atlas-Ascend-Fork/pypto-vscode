@@ -295,6 +295,7 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
     justify-content: space-between;
     gap: 8px;
     background: var(--devui-header-gradient-bg);
+    pointer-events: none;
 
     .navbar-container {
       flex: 1;

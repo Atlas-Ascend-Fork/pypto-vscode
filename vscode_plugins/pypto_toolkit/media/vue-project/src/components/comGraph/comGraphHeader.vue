@@ -1385,6 +1385,7 @@ onMounted(() => {
 }
 
 .globalSelect .devui-select__item  {
+  padding: 8px;
   font-size: 13px !important;
 }
 </style>
