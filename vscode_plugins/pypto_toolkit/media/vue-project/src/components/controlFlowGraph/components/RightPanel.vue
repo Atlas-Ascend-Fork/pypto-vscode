@@ -538,18 +538,23 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
 
-  const calleeObj: TabData = {
-    name: t('controlFlows.callFunctionPanelTitle'),
-    data: calleeList,
-  }
-  const calledObj: TabData = {
-    name: t('controlFlows.calledFunctionPanelTitle'),
-    data: calledList,
-  }
   panelData.value.title = nodeData.data.source.magicName.substring(7);
   panelData.value.tabs = [];
-  panelData.value.tabs.push(calledObj);
-  panelData.value.tabs.push(calleeObj);
+  if(calledList.length){
+    const calledObj: TabData = {
+      name: t('controlFlows.calledFunctionPanelTitle'),
+      data: calledList,
+    }
+    panelData.value.tabs.push(calledObj);
+  }
+
+  if(calleeList.length){
+    const calleeObj: TabData = {
+      name: t('controlFlows.callFunctionPanelTitle'),
+      data: calleeList,
+    }
+    panelData.value.tabs.push(calleeObj);
+  }
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes)
@@ -638,7 +643,7 @@ defineExpose({
   font-weight: 400;
 
   .group-line-name {
-    width: 390px;
+    width: 380px;
     font-size: 13px;
     overflow: hidden;
     text-overflow: ellipsis;

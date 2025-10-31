@@ -751,7 +751,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
         type: 'click-select',
         degree: 1,
         state: 'selected', // 选中的状态
-        neighborState: 'selected', // 相邻节点附着状态
+        neighborState: '', // 相邻节点附着状态
         multiple: true,
         trigger: ['shift'],
       }, 'zoom-canvas', 'hover-activate',
