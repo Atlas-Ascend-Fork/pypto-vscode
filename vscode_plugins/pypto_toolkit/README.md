@@ -1,5 +1,37 @@
 # PyPTO Toolkit 插件使用说明
 
+## 历史运行结果
+
+  - **查看历史运行结果**
+
+    点击VS Code侧边栏PyPTO图标，未显示图标可在侧边栏点击右键，勾选 `PyPTO Toolkit`
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
+
+  - **搜索运行结果**
+
+    运行结果名称为 `执行方式 + 执行日期 + 执行时间`，可根据需要自行搜索
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
+
+## 结果总览
+
+  - **打开结果总览**
+
+    选择任意运行结果目录，展开后点击 `结果总览`
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif)
+
+  - **搜索节点**
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowSearch.gif)
+
+  - **查看PATH详情**
+
+    点击PATH卡片右上角图标查看详情
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowOpenPathDrawer.gif)
+
 ## 泳道图
 
   - **打开泳道图**
