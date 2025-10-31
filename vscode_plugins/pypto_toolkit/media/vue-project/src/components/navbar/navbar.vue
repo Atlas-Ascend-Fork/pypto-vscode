@@ -195,6 +195,7 @@ function jumpComGraph(filePath: string, pathName?: string) {
       border-radius: 24px;
       border: 1px solid var(--devui-placeholder-text);
       box-sizing: border-box;
+      pointer-events: all;
 
       i {
         color: var(--devui-placeholder-text);
