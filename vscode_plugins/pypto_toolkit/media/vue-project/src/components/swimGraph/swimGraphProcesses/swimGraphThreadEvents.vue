@@ -1824,7 +1824,7 @@ const renderInfo2pixelData = (renderInfo) => {
     const { renderInfo: lastRenderInfo } = altClickData.lastData;
     const { x: preX, y: preY, width: preWidth} = preRenderInfo;
     const { x: lastDataX, y: lastDataY} = lastRenderInfo;
-    const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX ));
+    const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX)) * viewState.scale;
     if (nodeSpacingX < 3) {
       return;
     }
@@ -1850,7 +1850,7 @@ const renderInfo2pixelData = (renderInfo) => {
       const { renderInfo: lastRenderInfo } = altClickData.lastData;
       const { x: preX, y: preY, width: perWidth} = preRenderInfo;
       const { x: lastX, y: lastY} = lastRenderInfo;
-      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX ));
+      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX)) * viewState.scale;
       if(nodeSpacingX < 3) return;
       let largeSpacing = nodeSpacingX > nodeSpaceMin;
       if(lastX < preX){
