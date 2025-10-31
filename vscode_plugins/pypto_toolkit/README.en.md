@@ -1,5 +1,37 @@
 # PyPTO Toolkit Plugin User Guide
 
+## Compilation Result
+
+  - **Check compilation result**
+
+    Click the icon in the VS Code sidebar, if the icon is not displayed, right-click in the sidebar and check `PyPTO Toolkit`.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
+
+  - **Search from compilation result**
+
+    The output file name is in the format of `Run Type + Execution Date + Execution Time`.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
+
+## Result Overview
+
+  - **Open result overview**
+
+    Select any result directory, expand it, and click `Result Overview`.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif)
+
+  - **Search for nodes**
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowSearch.gif)
+
+  - **Check PATH node detail**
+
+    Click the icon in the upper right corner of the PATH card to view details.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowOpenPathDrawer.gif)
+
 ## Swimlane Diagram
 
   - **Open Swimlane Diagram**
