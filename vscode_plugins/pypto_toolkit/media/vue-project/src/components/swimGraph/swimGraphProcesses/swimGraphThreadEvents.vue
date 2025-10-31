@@ -936,7 +936,7 @@ const drawDependencyLines = (process, processKey, mode) => {
   ctx.lineWidth = 1;
 
   const eventMap = buildEventMap(process);
-  let level = isSearchActive ? 0 : userConfig.value.connectionLevel;
+  let level = isSearchActive.value ? 0 : userConfig.value.connectionLevel;
   const edgesToDraw = collectRelevantEdges(
     selectedEvent.value.id,
     eventMap,
