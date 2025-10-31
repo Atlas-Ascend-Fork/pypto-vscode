@@ -546,6 +546,8 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
       data: calledList,
     }
     panelData.value.tabs.push(calledObj);
+  }else {
+    calledMaxFrequency.value = calleeMaxFrequency.value;
   }
 
   if(calleeList.length){
@@ -554,6 +556,8 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
       data: calleeList,
     }
     panelData.value.tabs.push(calleeObj);
+  }else {
+    calleeMaxFrequency.value = calledMaxFrequency.value;
   }
 
   if (nodeData.data.source.meta?.passes) {
