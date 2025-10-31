@@ -249,6 +249,9 @@ function jumpNotOwn(item: LeafInPass) {
 </style>
 
 <style lang="scss">
+.devui-flexible-overlay:has(.leaf-function-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
 .leaf-function-menu-wrap {
   padding: 12px 4px;
   border-radius: 8px;

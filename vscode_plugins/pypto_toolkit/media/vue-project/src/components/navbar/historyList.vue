@@ -143,6 +143,9 @@ defineExpose({ getCurrentRecord: () => currentData.value });
 </style>
 
 <style lang="scss">
+.devui-flexible-overlay:has(.history-list-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
 .history-list-menu-wrap {
   padding: 12px 4px;
   border-radius: 8px;

@@ -172,6 +172,10 @@ function onNodeClick(node: PathTreeData) {
 </style>
 
 <style lang="scss">
+.devui-flexible-overlay:has(.path-list-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
+
 .path-list-menu-wrap {
   width: 400px;
   padding: 12px 4px;
