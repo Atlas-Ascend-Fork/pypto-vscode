@@ -13,15 +13,13 @@
     </div>
     <!-- 筛选区 -->
     <div class="filters">
-      <d-icon class="sort" operable @click="sortOption = !sortOption">
-        <template #prefix>
-          <span class="sort-name">{{ t('sideBar.sortName') }}</span>
-          <div class="icon-group">
-            <i v-if="sortOption" class="icon-run-o icon-up"></i>
-            <i v-if="!sortOption" class="icon-run-o icon-down"></i>
-          </div>
-        </template>
-      </d-icon>
+      <div class="sort" operable @click="sortOption = !sortOption">
+        <span class="sort-name">{{ t('sideBar.sortName') }}</span>
+        <div class="sort-group">
+          <img v-if="sortOption" :src="sortUp" class="sort-icon">
+          <img v-else :src="sortDown" class="sort-icon">
+        </div>
+      </div>
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container" v-loading="isLoading">
@@ -91,7 +89,8 @@ import { useSearchingHighlight } from './hooks/use-searching-highlight';
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
-
+const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
+const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
 const treeRef = ref(null);
 
@@ -279,31 +278,31 @@ async function getAllRecords(): Promise<void> {
   .sort {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
+    gap: 8px;
     background-color: var(--control-flow-sidebar-search-button);
     border-radius: 4px;
-    box-sizing: border-box !important;
+    box-sizing: border-box ;
     white-space: nowrap;
     text-overflow: ellipsis;
-    height: 28px !important;
-    width: 110px !important;
-    padding-left: 4px !important;
+    height: 28px;
+    line-height: 28px ;
+    padding: 8px;
 
     .sort-name {
       font-size: 13px;
     }
 
-    .icon-group {
+    .sort-group {
+      height: 28px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
 
-      .icon-up {
-        transform: rotate(-90deg);
-      }
-
-      .icon-down {
-        transform: rotate(90deg);
+      .sort-icon{
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
       }
     }
   }

@@ -157,12 +157,13 @@ defineExpose({
   height: 28px;
   line-height: 20px;
   font-size: 13px;
+  color: var(--devui-slider-bar);
 }
 
 .result-item.active,
 .result-item:hover {
-  color: var(--devui-primary-text);
-  background-color: var(--devui-input-active-bg);
+  color: var(--devui-slider-bar);
+  background-color: var(--control-flow-search-hover-bg);
   border-radius: 4px;
 }
 </style>

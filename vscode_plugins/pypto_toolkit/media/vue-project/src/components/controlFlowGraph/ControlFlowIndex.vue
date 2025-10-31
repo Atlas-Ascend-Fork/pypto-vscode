@@ -66,9 +66,12 @@ import Loading from "@/components/comGraph/loading.vue";
 
 const { isDarkTheme } = inject('root');
 const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
+const iconPathRightLight = ref(`${window.staticPath}/static-assets/control_flow_path_right-light.svg`);
 const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
+const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const loopLeftSvg = ref(`${window.staticPath}/static-assets/loop.svg`);
+const loopLeftSvgLight = ref(`${window.staticPath}/static-assets/loop-light.svg`);
 const sideBarRef = ref(null);
 const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
@@ -147,7 +150,7 @@ class PathCardNode extends Rect {
    */
   getCardBaseStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width, height] = this.getSize(attributes);
-    const fillColor = isDarkTheme.value ? '#333333' : '#ffffff';
+    const fillColor = isDarkTheme.value ? '#333333' : 'rgba(255,255,255,1)';
     return {
       width,
       height,
@@ -163,7 +166,7 @@ class PathCardNode extends Rect {
    */
   getPathLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width] = this.getSize(attributes);
-    const topY = -this.getSize(attributes)[1] / 2 + 30; // 顶部 Y 坐标（基于节点中心）
+    const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
     const fillColor = isDarkTheme.value ? '#e6e6e6' : '#191919';
 
     return {
@@ -172,7 +175,7 @@ class PathCardNode extends Rect {
       text: this.cardData.name,
       fontSize: 14,
       fill: fillColor, // 原文本色
-      fontWeight: 500,
+      fontWeight: 700,
     };
   }
 
@@ -181,11 +184,11 @@ class PathCardNode extends Rect {
    */
   getRightIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width] = this.getSize(attributes);
-    const topY = -this.getSize(attributes)[1] / 2 + 30;
+    const topY = -this.getSize(attributes)[1] / 2;
 
     return {
       x: width / 2 - 30,
-      y: topY - 18,
+      y: topY + 6,
       width: 20,
       height: 20,
       src: attributes.avatarUrl || '',
@@ -195,14 +198,14 @@ class PathCardNode extends Rect {
 
   getLeftIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
     const [width] = this.getSize(attributes);
-    const topY = -this.getSize(attributes)[1] / 2 + 30;
-
+    const topY = -this.getSize(attributes)[1] / 2;
+    const iconPath=isDarkTheme.value ? iconPathLeft.value:iconPathLeftLight.value;
     return {
       x: -width / 2 + 10,
-      y: topY - 18,
+      y: topY + 6,
       width: 20,
       height: 20,
-      src: iconPathLeft.value,
+      src: iconPath,
       cursor: 'pointer'
     };
   }
@@ -264,7 +267,7 @@ class PathCardNode extends Rect {
    */
   getFuncLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, label: string) {
     const [width] = this.getSize(attributes);
-    const fillColor = isDarkTheme.value ? '#999999' : '#595959';
+    const fillColor = isDarkTheme.value ? '#999999' : 'rgba(174,174,174,1)';
 
     return {
       x: -width / 2 + 10, // 左内边距 20px
@@ -300,7 +303,7 @@ class PathCardNode extends Rect {
    */
   drawFunctionStats(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
     const {functionStats} = this.cardData;
-    const startY = -this.getSize(attributes)[1] / 2 + 60; // 统计项起始 Y 坐标
+    const startY = -this.getSize(attributes)[1] / 2 + 54; // 统计项起始 Y 坐标
     const stats = [
       {label: t('controlFlows.leafName'), value: functionStats.leafFunction},
       {label: t('controlFlows.calledFunctionPanelTitle'), value: functionStats.called},
@@ -351,14 +354,14 @@ class PathCardNode extends Rect {
   getHoleStyle(attributes) {
     const [width] = this.getSize(attributes);
     const topY = -this.getSize(attributes)[1] / 2; // 顶部 Y 坐标（基于节点中心）
-    const fillColor = isDarkTheme.value ? 'rgba(255,255,255,0.05)' : 'rgba(25,25,25,0.05)';
+    const fillColor = isDarkTheme.value ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
 
     return {
       x: -width / 2,
       y: topY,
       radius: '8 8 0 0',
       width: width,
-      height: 45,
+      height: 32,
       fill: fillColor,
     };
   }
@@ -507,17 +510,17 @@ class LogoWithRectCombo extends RectCombo {
       isActived = states.includes('active');
     }
     const buttonBlue = isDarkTheme.value ? '#317AF7' : '#0950de';
-    const buttonWeak = isDarkTheme.value ? '#1F1F1F' : '#fafafa';
-
+    const buttonWeak = isDarkTheme.value ? '#1F1F1F' : 'rgba(243,243,243,1)';
     const textBlue = isDarkTheme.value ? '#317AF7' : '#0a59f7';
     const textWeak = isDarkTheme.value ? '#b3b3b3' : '#777777';
-
     const selectTextColor = isDarkTheme.value ? '#FFFFFF' : '#000000';
 
+    let loopLeftIcon=isDarkTheme.value ? loopLeftSvg.value : loopLeftSvgLight.value;
     let isActivedTextColor = isActived ? textBlue : textWeak;
     let isSelectedHitAreaColor = isSelected ? buttonBlue : buttonWeak;
     if (isSelected) {
-      isActivedTextColor = selectTextColor
+      isActivedTextColor = '#FFFFFF'
+      loopLeftIcon=loopLeftSvg.value;
     }
 
 
@@ -536,7 +539,7 @@ class LogoWithRectCombo extends RectCombo {
       x: x + 10,
       width: 20,
       height: 20,
-      src: loopLeftSvg.value,
+      src: loopLeftIcon,
     }, this)
     // loop标签文本
     const text = await this.upsert('loop-text', 'text', {
@@ -630,8 +633,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
       {
         type: 'background',
         key: 'my-background', // 为插件指定标识符，方便动态更新
-        backgroundColor: 'var(--devui-page-bg)', // 设置背景色
-        backgroundImage: `url(${svgPath.value} )`, // 设置背景图
+        backgroundColor: 'var(--control-flow-bg)', // 设置背景色
         backgroundRepeat: 'space',
         backgroundPosition: '10px ',
         backgroundSize: 'fit',
@@ -661,7 +663,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
             return [200, 100]
           }
         },
-        avatarUrl: iconPathRight.value,
+        avatarUrl:()=>isDarkTheme.value ? iconPathRight.value : iconPathRightLight.value,
         border: 1,
         halo: false, // 启用光晕
         haloLineWidth: 0,
@@ -778,6 +780,9 @@ const initG6Graph = async (nodes, edges, combos,) => {
     await graph.render();
   })
   watch(() => isDarkTheme.value, async () => {
+    graph.draw()
+    await graph.render();
+
     combosNode.value.forEach((node) => {
       const id = node.id
       graph.setElementState(id, [],);
@@ -866,7 +871,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  background-color: var(--control-flow-sidebar-bg);
+  background-color: var(--control-flow-bg);
 }
 
 .tool-navbar {

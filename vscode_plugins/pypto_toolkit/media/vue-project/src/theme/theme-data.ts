@@ -138,6 +138,13 @@ export const ideLightTheme = new Theme({
     'control-flow-sidebar-tree-main-label': '#191919',
     'control-flow-sidebar-tree-placeholder': '#AEAEAE',
     'control-flow-panel-table-title-bg': 'rgba(0,0,0,0.05)',
+    'control-flow-bg': '#F3F3F3',
+    'control-flow-search-hover-bg': 'rgba(0, 0, 0, 0.1)',
+    'control-flow-search-text': 'rgba(25, 25, 25, 1)',
+    'control-flow-tab-active-bg': 'rgba(255, 255, 255, 1)', // 控制流tab选中
+    'control-flow-tab-bg': 'rgba(243,243,243,1)', // 控制流tab未选中
+    'control-flow-table-header': 'rgba(243,243,243,1)', // 控制流header
+    'control-flow-table-hover': 'rgba(49,122,247,0.2)', // hover选中背景
   },
   isDark: false,
 });
@@ -280,6 +287,13 @@ export const ideDarkTheme = new Theme({
     'control-flow-sidebar-tree-placeholder': '#999999',
     'control-flow-panel-table-title-bg': '#313131',
     'control-flow-sidebar-tree-label': '#ffffff',
+    'control-flow-bg': '#1f1f1f',
+    'control-flow-search-hover-bg': 'rgba(49, 122, 247, 0.2)',
+    'control-flow-search-text': 'rgba(230, 230, 230, 1)',
+    'control-flow-tab-active-bg': '#333333', // 控制流tab选中
+    'control-flow-tab-bg': '#1a1a1a', // 控制流tab未选择
+    'control-flow-table-header': '#313131', // 控制流table
+    'control-flow-table-hover': 'rgba(49,122,247,0.20)', // hover选中背景
   },
   isDark: true,
 });

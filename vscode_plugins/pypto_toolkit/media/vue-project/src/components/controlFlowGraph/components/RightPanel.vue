@@ -51,10 +51,7 @@
                       <div class="sort-icon">
                         <d-icon class="sort" operable @click="sortLeaf(tabIndex)">
                           <template #prefix>
-                            <div class="icon-group">
-                              <i class="icon-run-o icon-up"></i>
-                              <i class="icon-run-o icon-down"></i>
-                            </div>
+                            <img :src="sortIcon" class="icon-sort">
                           </template>
                         </d-icon>
                       </div>
@@ -74,10 +71,7 @@
                     <span class="table-header-right">{{ tableTitle[tabIndex].value }}</span>
                     <d-icon class="sort" operable @click="sortFrequency(tabIndex)">
                       <template #prefix>
-                        <div class="icon-group">
-                          <i class="icon-run-o icon-up"></i>
-                          <i class="icon-run-o icon-down"></i>
-                        </div>
+                        <img :src="sortIcon" class="icon-sort">
                       </template>
                     </d-icon>
                   </template>
@@ -139,7 +133,7 @@
                      @click="openGraph(item)">
                   <span class="group-line-name"> {{ item.passIndex }}</span>
                   <span class="group-line-name"> {{ item.passName }}</span>
-                  <span class="group-member-icon" v-if="item.icon"><img :src="healthIcon"/></span>
+                  <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon"/></span>
                 </div>
               </div>
             </div>
@@ -165,7 +159,8 @@ import { openComputeGraph } from "@/apis/opener";
 
 
 const healthIcon = ref(`${window.staticPath}/static-assets/control_flow_health.svg`);
-
+const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort.svg`);
+const rgb='rgb(97,201,131)'
 // ========================== 1. 绑定组件 ==========================
 const tableRef = ref();
 
@@ -603,6 +598,7 @@ defineExpose({
 <style lang="less">
 .drawer-container {
   overflow: hidden;
+  box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.16);
 }
 </style>
 
@@ -653,7 +649,6 @@ defineExpose({
 
 // 抽屉容器：深色主题，右侧弹出，固定宽度
 .drawer-container {
-
   // 抽屉头部：标题和关闭按钮布局
   .drawer-header {
     display: flex;
@@ -809,31 +804,11 @@ defineExpose({
           box-sizing: border-box;
           z-index: 9999;
 
-          .icon-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding-left: 16px;
-
-            .icon-up {
-              padding: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              transform: rotate(-90deg);
-            }
-
-            .icon-down {
-              padding: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              transform: rotate(90deg);
-            }
+          .icon-sort {
+            margin-left: 10px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
           }
         }
 
@@ -861,17 +836,17 @@ defineExpose({
   box-sizing: border-box;
   border: 1px solid var(--devui-button-group-bg);
   border-radius: 6px;
-  background-color: var(--devui-tab-bg) !important;
+  background-color: var(--control-flow-tab-bg) !important;
 }
 
 //页签穿透修改
 :deep(.devui-tabs__nav--options ) {
-  background-color: var(--devui-tab-bg);
+  background-color: var(--control-flow-tab-bg);
   box-sizing: border-box;
   padding: 2px;
 
   li {
-    background-color: var(--devui-tab-bg);
+    background-color: var(--control-flow-tab-bg);
 
     a {
       color: var(--devui-secondary-text);
@@ -880,7 +855,7 @@ defineExpose({
 
   //页签选中穿透修改
   .active {
-    background-color: var(--devui-secondary-button-active-bg);
+    background-color: var(--control-flow-tab-active-bg);
     border-radius: 4px;
 
     .devui-tabs__nav-content {
@@ -896,7 +871,7 @@ defineExpose({
   height: 32px;
 
   tr {
-    background-color: var(--control-flow-panel-table-title-bg) !important;
+    background-color: var(--control-flow-table-header) !important;
 
     th:nth-child(3) {
       width: 0;
@@ -913,7 +888,7 @@ defineExpose({
 
   .devui-table__row {
     &:hover {
-      background-color: var(--devui-input-active-bg) !important;
+      background-color: var(--control-flow-table-hover) !important;
     }
   }
 
