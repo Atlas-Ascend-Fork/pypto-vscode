@@ -75,7 +75,7 @@ export default {
     'taskName':'Task Name',
     'taskLabel':'Semantic Label',
     'swimRenderCfg':'Swimlane Rendering Configuration',
-    'configButtonDisTip':'The configuration is unavailable because the dyn_topo.txt file is missing',
+    'configButtonDisTip':'The leafIndex cannot be parsed, User-defined coloring is not supported',
     'configButtonTip':'Swimlane Rendering Configuration',
     'PerformanceStatus':'Performance Statistics',
     'clockCycle': 'clock cycle',

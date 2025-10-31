@@ -75,7 +75,7 @@ export default {
    'taskName':'任务名称',
    'taskLabel':'语义标签',
    'swimRenderCfg':'泳道图渲染配置',
-   'configButtonDisTip':'缺少dyn_topo.txt文件，该配置不可用',
+   'configButtonDisTip':'无法解析leafIndex, 不支持自定义染色',
    'configButtonTip':'渲染配置',
    'PerformanceStatus':'性能统计',
    'clockCycle': '时钟周期',
