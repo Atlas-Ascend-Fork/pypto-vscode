@@ -33,8 +33,8 @@
         </div>
         <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
       </div>
-      <d-tooltip :content="$t('configButtonTip')" :mouse-enter-delay="100" :disabled="!iscfgdisabled" overlay-class="corner-tips">
-        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="iscfgdisabled">
+      <d-tooltip :content="isCfgDisabled ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
+        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isCfgDisabled">
           <LayerControlIcon :active="isCfgEditing"/>
         </d-button>
       </d-tooltip>
@@ -43,9 +43,11 @@
           <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>
-      <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
-        <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
-      </d-button>
+      <d-tooltip :content="$t('PerformanceStatus')" position="bottom">
+        <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
+          <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
+        </d-button>
+      </d-tooltip>
       <d-drawer v-model="reportVisible" style="width: 500px">
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
@@ -528,11 +530,11 @@ const measureModel = () => {
   mulDetailsExpanded.value = false;
 }
 
-const iscfgdisabled = computed(() => {
+const isCfgDisabled = computed(() => {
   for (const process of processes.values()) {
     for (const thread of process.threads.values()) {
         for (const event of thread.events) {
-            if (!event.isCounter && event.leafIndex === undefined) {
+            if (!event.isCounter && !(event.leafIndex)) {
                 return true;
             }
         }

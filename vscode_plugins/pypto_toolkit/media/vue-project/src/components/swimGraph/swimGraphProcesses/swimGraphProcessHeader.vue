@@ -152,7 +152,7 @@ const updateTheme = () => {
 @import url("../css/swimGraph/Processes/header.css");
 .label_two {
   display: flex;
-  width: 110px;
+  width: 118px;
   align-items: center;
   text-align: right;
   margin-right: 8px;
