@@ -67,7 +67,7 @@
         </div>
         <div class="measure-detail-right-section">
           <div class="measure-detail-search-area">
-            <d-category-search :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch">
+            <d-category-search class="measure-detail-category-search" :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch">
             </d-category-search>
             <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
           </div>
@@ -265,6 +265,34 @@ const transformToOptions = (source) =>
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/MeasureDetail/measureDetail.css");
+:deep() {
+  .measure-detail-category-search.dp-category-search-container {
+    border: none;
+    background: var(--devui-category-search-bg);
+  }
+
+  .measure-detail-category-search.dp-category-search-container .devui-tag .devui-tag__item.devui-tag--md {
+    font-size: 13px;
+  }
+
+  .measure-detail-category-search.dp-category-search-container:focus-within {
+    border: 1px solid var(--devui-search-active-bg);
+  }
+
+  .measure-detail-category-search.container-hover {
+    border: 1px solid var(--devui-category-search-hover-border);
+  }
+
+  .measure-detail-category-search.dp-category-search-container .dp-category-search-toggle {
+    color: var(--devui-category-search-font-color);
+    caret-color: var(--devui-search-active-bg);
+
+    &::placeholder {
+      color: var(--devui-category-search-placeholder);
+      font-size: 13px;
+    }
+  }
+}
 </style>
 
 <style scoped lang="scss">
