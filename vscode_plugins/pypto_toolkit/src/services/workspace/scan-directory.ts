@@ -15,8 +15,6 @@ import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
 import { hasHealthReport, isHealthReport } from '../../utils/health-report';
 
-const CONTROL_FLOW_SOURCE_FILE = 'program.json';
-
 /**
  * 运行结果
  */

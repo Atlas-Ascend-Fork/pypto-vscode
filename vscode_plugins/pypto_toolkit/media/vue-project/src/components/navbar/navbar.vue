@@ -62,6 +62,7 @@ const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
+const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
@@ -71,10 +72,10 @@ getOutputRecords({}, { timeout: 600000 }).then((res) => {
 });
 
 watch(
-  () => props.currentRecordDirectoryPath,
-  (val) => {
-    if (val && props.currentStep !== 'controlFlow') {
-      getControlFlow(val, { timeout: 600000 }).then((res) => {
+  [() => props.currentRecordDirectoryPath, currentRecord],
+  ([outputDirPath, record]) => {
+    if (outputDirPath && record && props.currentStep !== 'controlFlow') {
+      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000 }).then((res) => {
         controlFlowList.value = res.data;
       });
     }
@@ -99,6 +100,7 @@ function emitLeafChange(leafName: string) {
 }
 
 function onRecordChange(record: HistoryData) {
+  currentRecord.value = record;
   showSwim.value = Boolean(record.swimlaneGraphFilePath);
 }
 
