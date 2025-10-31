@@ -2,7 +2,7 @@
   <div class="navbar-container">
     <div class="history-wrap">
       <div class="history-icon">
-        <i class="icon-assembly-new"></i>
+        <HistoryIcon/>
       </div>
       <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
@@ -45,6 +45,7 @@ import LeafFunctionCom from './leafFunction.vue';
 import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
+import HistoryIcon from './icons/history-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
@@ -165,7 +166,6 @@ function jumpComGraph(filePath: string, pathName?: string) {
       width: 40px;
       height: 40px;
       color: #ffffff;
-      font-size: 32px;
       border-radius: 40px;
       background-color: #5f58c7;
     }
