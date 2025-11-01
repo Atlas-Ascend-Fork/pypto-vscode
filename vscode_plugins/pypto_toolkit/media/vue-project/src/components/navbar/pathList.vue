@@ -27,7 +27,8 @@
       ></d-search>
       <d-tree ref="treeEl" :data="treeData" class="path-list-tree pypto-scrollbar" @node-click="onNodeClick">
         <template #content="{ nodeData }">
-          <i :class="nodeData.isLeaf ? 'icon-sharing' : 'icon-loop-new'"></i>
+          <PathIcon v-if="nodeData.isLeaf" />
+          <LoopIcon v-else />
           <span class="path-list-tree-node-content" :title="nodeData.label">{{ nodeData.label }}</span>
         </template>
       </d-tree>
@@ -43,6 +44,8 @@ import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
 import { transformAndFlatTreeData } from './util';
+import LoopIcon from './icons/loop-icon.vue';
+import PathIcon from './icons/path-icon.vue';
 
 const { t } = useI18n();
 const { rootProps, controlFlowList, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
@@ -172,6 +175,10 @@ function onNodeClick(node: PathTreeData) {
 </style>
 
 <style lang="scss">
+.devui-flexible-overlay:has(.path-list-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
+
 .path-list-menu-wrap {
   width: 400px;
   padding: 12px 4px;
@@ -267,6 +274,7 @@ function onNodeClick(node: PathTreeData) {
 }
 
 .path-list-tree-node-content {
+  flex: 1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
