@@ -7,16 +7,13 @@
                 <d-button icon="icon-close" style="border:none; background-color: transparent" @click="togglecfgEditModel"></d-button>
             </div>
         </div>
-        <div class="cfg-select">
-            <d-select v-model="shadingOption" :options="shadingOptions" option-disabled-key="disabled" :placeholder="$t('colorRendering')" size="sm"></d-select>
-        </div>
         <div class="cfg-Shading-mode">
             <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
             <d-select v-model="modeOption" :options="modeOptions" size="sm" @update:modelValue="OnModeChange"></d-select>
         </div>
         <div class="task-content">
             <div class="task-content-t">{{ $t('eventTask') }} </div>
-            <d-select v-model="textOption" :options="textOptions" :multiple="true" size="sm" @update:modelValue="OnTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
+            <d-select :class="[textOption.length === 1 && 'singleOption']" :menu-class="[textOption.length === 1 && 'singleOptionMenu']" v-model="textOption" :options="textOptions" :multiple="true" size="sm" @update:modelValue="OnTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
         </div>
         <div class="cfg-line"></div>
         <div class="task-connection-level">
@@ -151,24 +148,6 @@ const onInputChange = (newValue) => {
 
 <style lang="scss">
 @import url("../css/swimGraph/Config/config.css");
-.cfg-select {
-    width: 160px;
-    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
-        border-color: var(--devui-select-hover-border-color);
-    }
-    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
-        border-color: var(--devui-select-active-border-color) !important;
-    }
-    .devui-select__selection {
-        background-color: transparent;
-        border-color: transparent;
-        .devui-select__input {
-            padding: 0;
-            background-color: transparent;
-        }
-    }
-}
-
 .cfg-Shading-mode {
     .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
         border-color: var(--devui-select-hover-border-color);
@@ -220,6 +199,16 @@ const onInputChange = (newValue) => {
             background-color: var(--devui-input-bg) !important;
             border-color: transparent;
         }
+    }
+}
+
+.singleOption a {
+    pointer-events: none;
+}
+
+.singleOptionMenu {
+    .active {
+        pointer-events: none;
     }
 }
 </style>

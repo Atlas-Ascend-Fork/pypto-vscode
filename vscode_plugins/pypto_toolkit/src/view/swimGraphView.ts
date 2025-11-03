@@ -73,6 +73,13 @@ export class MsgHandler {
   static async getSwimData(panel: any) {
     const swimUri = panel.swimData.uri;
     const swimPath = panel.swimData.fsPath;
+    if (!existsSync(swimPath)) {
+      panel.webview.postMessage({
+        command: 'noSwimFile',
+        swimPath,
+      });
+      return ;
+    }
     MsgHandler.cachePath = Util.getCachePath();
     const cache = Util.readSwim2ComGraphMap(MsgHandler.cachePath);
     const comGraphPath = cache[swimPath];

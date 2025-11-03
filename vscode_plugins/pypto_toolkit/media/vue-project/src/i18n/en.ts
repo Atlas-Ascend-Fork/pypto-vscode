@@ -54,6 +54,7 @@ export default {
     'swimErroMsgMISSING_THREADS_FIELDS': 'swimGraphJson: Thread event must contain pid, tid and args.name.',
     'swimErroMsgNO_THREADS': 'swimGraphJson: Each process must have at least one thread.',
     'swimErroMsgNO_PROCESS_NAME': 'swimGraphJson: There must be at least one event with name process_name.',
+    'swimErroMsgFILE_NOT_FOUND': 'The path of the swimLane file does not exist: ',
     'tips1': 'Jump to compilation. please look forward to the design.',
     'tips2': 'Jump to the calculation diagram overview, under design, please look forward to.',
     'swimGraph': 'Swimlane',
