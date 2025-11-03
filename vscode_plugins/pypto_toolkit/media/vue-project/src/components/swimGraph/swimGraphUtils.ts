@@ -34,12 +34,14 @@ export let ctxs: any = {};
 export const getDevicePixelRatio = () => { return window.devicePixelRatio || 1; };
 export let devicePixelRatio = getDevicePixelRatio();
 export let eventTextSize = 12 * devicePixelRatio;
+export let meaureTextSize = 12 * devicePixelRatio;
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
 
 export const setDevicePixelRatio = (ratio: number) => {
   devicePixelRatio = ratio;
   eventTextSize = 12 * devicePixelRatio;
+  meaureTextSize = 9 * devicePixelRatio;
 };
 
 export const getThreadHeight = (processKey: string, threadKey: any, lane2line: Map<string, number>, layout: any, isCounter: boolean = false): number => {
@@ -529,6 +531,9 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
       processCtxs[key] = setupHighDPICanvas(processCtxs[key], canvasWidth, canvasHeight);
     }
   }
+  const currentDevicePixelRatio = getDevicePixelRatio();
   viewState.canvasCssWidth = canvasWidth;
   viewState.canvasWidth = processCtxs.eventCtx.canvas.width;
+  viewState.clearWidth = Math.max(viewState.canvasCssWidth, viewState.canvasWidth);
+  viewState.clearHeight = Math.max(canvasHeight, canvasHeight * currentDevicePixelRatio);
 };

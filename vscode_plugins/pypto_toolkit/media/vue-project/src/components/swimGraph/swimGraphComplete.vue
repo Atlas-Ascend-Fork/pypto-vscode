@@ -176,6 +176,8 @@ const viewState = reactive({
   timeRange: 0,
   canvasCssWidth: 0,
   canvasWidth: 0,
+  clearWidth: 0,
+  clearHeight: 0,
   windowWidth: 0,
   depMode: 'all',
   scaleChange: 1,
