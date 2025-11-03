@@ -4,6 +4,7 @@
     trigger="manually"
     close-scope="blank"
     :position="['bottom']"
+    :offset="7"
     class="path-list-menu-wrap"
     @toggle="onToggle"
   >
@@ -24,9 +25,10 @@
         @click.stop
         @search="onSearch"
       ></d-search>
-      <d-tree ref="treeEl" :data="treeData" class="path-list-tree" @node-click="onNodeClick">
+      <d-tree ref="treeEl" :data="treeData" class="path-list-tree pypto-scrollbar" @node-click="onNodeClick">
         <template #content="{ nodeData }">
-          <i :class="nodeData.isLeaf ? 'icon-sharing' : 'icon-loop-new'"></i>
+          <PathIcon v-if="nodeData.isLeaf" />
+          <LoopIcon v-else />
           <span class="path-list-tree-node-content" :title="nodeData.label">{{ nodeData.label }}</span>
         </template>
       </d-tree>
@@ -42,6 +44,8 @@ import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
 import { transformAndFlatTreeData } from './util';
+import LoopIcon from './icons/loop-icon.vue';
+import PathIcon from './icons/path-icon.vue';
 
 const { t } = useI18n();
 const { rootProps, controlFlowList, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
@@ -84,11 +88,22 @@ watch(
   { immediate: true },
 );
 
+let timer: ReturnType<typeof setTimeout>;
 const onToggle = (val) => {
   isOpen.value = val;
   if (val) {
     nextTick(() => {
       treeEl.value.treeFactory.selectNode(currentData.value);
+      timer = setTimeout(() => {
+        const listDom = treeEl.value.$el;
+        const activeItem = listDom.querySelector('.devui-tree__node.active');
+        if (activeItem) {
+          const activeItemTop = activeItem.getBoundingClientRect().top;
+          const listTop = listDom.getBoundingClientRect().top;
+          listDom.scrollTop = activeItemTop - listTop;
+        }
+        timer && clearTimeout(timer);
+      });
     });
   }
 };
@@ -160,14 +175,20 @@ function onNodeClick(node: PathTreeData) {
 </style>
 
 <style lang="scss">
+.devui-flexible-overlay:has(.path-list-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
+
 .path-list-menu-wrap {
   width: 400px;
-  padding: 12px;
+  padding: 12px 4px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
 
   .path-list-search {
+    margin-left: 8px;
+    margin-right: 8px;
     margin-bottom: 16px;
 
     .devui-search__icon {
@@ -191,6 +212,7 @@ function onNodeClick(node: PathTreeData) {
   }
 
   .path-list-tree {
+    padding: 0 8px;
     max-height: 400px;
     overflow: auto;
   }
@@ -211,13 +233,18 @@ function onNodeClick(node: PathTreeData) {
   }
 
   .devui-tree__node {
+    color: var(--devui-primary-text);
+
+    &.devui-tree__node--open {
+      color: var(--devui-secondary-text);
+    }
+
     .devui-tree__node-content {
       &:not(.active):hover {
         background-color: var(--devui-input-hover-bg);
       }
 
       &.active {
-        color: var(--devui-operation-text-hover);
         background-color: var(--devui-input-active-bg);
       }
 
@@ -247,6 +274,7 @@ function onNodeClick(node: PathTreeData) {
 }
 
 .path-list-tree-node-content {
+  flex: 1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

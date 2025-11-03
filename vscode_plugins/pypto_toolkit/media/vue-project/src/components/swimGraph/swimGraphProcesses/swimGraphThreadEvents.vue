@@ -117,6 +117,7 @@ const {
 
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
+const { isSearchActive } = inject('swimGraphSearch');
 // 测距的最小距离，若小于这个距离，不显示左右箭头
 const nodeSpaceMin = 58;
 // 定义props
@@ -1161,11 +1162,12 @@ const drawDependencyLines = (process, processKey, mode) => {
   ctx.lineWidth = 1;
 
   const eventMap = buildEventMap(process);
+  let level = isSearchActive.value ? 0 : userConfig.value.connectionLevel;
   const edgesToDraw = collectRelevantEdges(
     selectedEvent.value.id,
     eventMap,
     mode,
-    userConfig.value.connectionLevel
+    level
   );
 
   renderDependencyEdges(edgesToDraw, eventMap, ctx);
@@ -1702,7 +1704,7 @@ const showTooltip = (e, event, canvasRef) => {
   } else {
       tooltipStyle.left = (e.clientX + 10) + 'px';
   }
-  tooltipStyle.top = (e.clientY - 10) + 'px';
+  tooltipStyle.top = (e.clientY + 10) + 'px';
 };
 
 const lineShowTooltip = (e, startEvent, endEvent) => {
@@ -1782,7 +1784,7 @@ const clearDrawConnector = (ctx, processKey) => {
     const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
     const uiCtx = uiCanvasRef.getContext('2d');
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
-    uiCtx.lineWidth = 2;
+    uiCtx.lineWidth = 2 / viewState.scale;
     strokeRoundRect(uiCtx, altClickData.preData, processKey);
   }
 
@@ -2037,7 +2039,7 @@ const renderInfo2pixelData = (renderInfo) => {
   };
   const drawRoundedRect = (ctx, event, processKey) => {
     ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 / viewState.scale;
     strokeRoundRect(ctx, event, processKey);
   };
   const calculateAndDrawConnection = (uiCtx) => {
@@ -2048,7 +2050,7 @@ const renderInfo2pixelData = (renderInfo) => {
     const { renderInfo: lastRenderInfo } = altClickData.lastData;
     const { x: preX, y: preY, width: preWidth} = preRenderInfo;
     const { x: lastDataX, y: lastDataY} = lastRenderInfo;
-    const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX ));
+    const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX)) * viewState.scale;
     if (nodeSpacingX < 3) {
       return;
     }
@@ -2074,7 +2076,7 @@ const renderInfo2pixelData = (renderInfo) => {
       const { renderInfo: lastRenderInfo } = altClickData.lastData;
       const { x: preX, y: preY, width: perWidth} = preRenderInfo;
       const { x: lastX, y: lastY} = lastRenderInfo;
-      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX ));
+      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX)) * viewState.scale;
       if(nodeSpacingX < 3) return;
       let largeSpacing = nodeSpacingX > nodeSpaceMin;
       if(lastX < preX){
@@ -2106,6 +2108,7 @@ const renderInfo2pixelData = (renderInfo) => {
     temp.drawData.strokeColor = strokeColor;
     temp.drawData.fontColor = fontColor;
     const { eventCtx } = ctxs[processKey];
+    eventCtx.lineWidth = ctx.lineWidth;
     drawEvent([temp.drawData], eventCtx, false);
     drawEventText([temp.drawData], eventCtx, false);
     ctx.restore();

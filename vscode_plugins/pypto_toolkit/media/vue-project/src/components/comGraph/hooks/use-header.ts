@@ -1,7 +1,10 @@
-import type { Ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
 
 export function useHeader(isVisible: Ref<boolean>) {
   let selectedTags = [];
+  const dropdownEl = ref();
+  const dropdownWidth = ref('0px');
+  const toolbarRowEl = ref<HTMLElement>();
 
   const hideCategorySearchDropdown = () => {
     const dom = document.querySelector('.devui-flexible-overlay:has(.dp-category-search-dropdown)') as HTMLElement;
@@ -30,5 +33,26 @@ export function useHeader(isVisible: Ref<boolean>) {
     }
   };
 
-  return { onCategoryClick, onSelectedTagsChange, onSelectClick };
+  const updateDropdownWidth = () => {
+    if (isVisible.value) {
+      if (toolbarRowEl.value) {
+        dropdownWidth.value = toolbarRowEl.value.getBoundingClientRect().width + 'px';
+      }
+      dropdownEl.value?.updatePosition();
+    }
+  };
+
+  watch(isVisible, () => {
+    updateDropdownWidth();
+  });
+
+  onMounted(() => {
+    window.addEventListener('resize', updateDropdownWidth);
+  });
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', updateDropdownWidth);
+  });
+
+  return { dropdownEl, toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick };
 }

@@ -1,5 +1,5 @@
 import { ExtensionConnector } from './connector';
-import type { RequestOptions, RequestMessage, ResponseMessage } from '../../../../src/core/server';
+import type { RequestOptions, RequestMessage, ResponseMessage } from 'ext:/core/request-server';
 
 export type { RequestOptions };
 

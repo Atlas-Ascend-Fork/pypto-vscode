@@ -6,7 +6,9 @@ import * as vscode from 'vscode';
 import { hismartliteEx } from '../../hismarliteEx';
 import { getIDELang } from '../../lang';
 import { getIDETheme } from '../../theme';
-import { ViewQueryConnector } from '../viewQuery';
+import { ViewQuery, ViewQueryConnector } from '../view/view-query';
+import { makeViewServerConfig, ViewServer } from '../view/view-server';
+import { makeViewServerContext } from '../view/view-server-context';
 
 import { EditorViewFileSystemProvider } from './fileSystemProvider';
 import { fromVirtualUri, toVirtualUri } from './virtualUri';
@@ -18,6 +20,9 @@ export interface EditorViewRaw {
 
   /** 页面标题 */
   title: string;
+
+  /** 页面服务端，每个webview使用独立的实例 */
+  viewServer?: typeof ViewServer;
 }
 
 interface EditorViewOptions {
@@ -119,22 +124,39 @@ export class EditorView {
    * 激活页面
    */
   private activeViewPanel(viewPanel: vscode.WebviewPanel, uri: vscode.Uri): void {
-    const virtualQuery = fromVirtualUri(uri);
+    const uriQuery = fromVirtualUri(uri);
 
     // 加载html
     const htmlTemplateText = getWebviewEntryCode(viewPanel);
     viewPanel.webview.html = htmlTemplateText;
 
+    // 视图服务
+    const { viewServer } = this.viewRawMap.get(uriQuery._viewType) ?? {};
+    if (viewServer) {
+      const ctx = makeViewServerContext(viewPanel, vscode.Uri.file(uriQuery._path));
+      new viewServer(ctx);
+    }
+
     // hook
     this.onViewActivated?.(viewPanel);
 
     // 设置页面参数
-    this.queryConnector.setQuery(viewPanel.webview, uri, virtualQuery);
+    const viewQuery: ViewQuery = {
+      ...uriQuery,
+      _uri: uri,
+      _server: makeViewServerConfig(viewServer),
+    };
+    this.queryConnector.setQuery(viewPanel.webview, viewQuery);
 
+    // 监听主题变化
+    const themeListener = vscode.window.onDidChangeActiveColorTheme(
+      () => viewPanel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }), null
+    )
     // 监听销毁
     viewPanel.onDidDispose(() => {
+      themeListener.dispose()
       // hook
-      this.onViewDisposed?.(virtualQuery._viewType, uri);
+      this.onViewDisposed?.(uriQuery._viewType, uri);
     });
   }
 }

@@ -6,7 +6,7 @@ import {getIDETheme} from '../theme';
 import {getIDELang} from '../lang';
 import {Util} from '../util';
 import {useView} from './index';
-import {useServer} from '../core/server';
+import {useServer} from '../core/request-server';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
@@ -36,30 +36,21 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
         this.servers.addWebview(webviewView.webview);
         webviewView.webview.onDidReceiveMessage(async (message) => {
-
             if (message.command === 'getInitialData') {
                 webviewView.webview.postMessage({
                     command: 'returnSidBar',
                 })
             }
-            if (message.command === 'openGraphView') {
-                const {editorView} = useView();
-                try {
-                    const url = vscode.Uri.parse(message.data.absolutepath).with({
-                        query: JSON.stringify({
-                            url: message.data.outputpath
-                        })
-                    })
-                    const webviewPanel = await editorView.open('controlFlow', url);
-
-                } catch (e) {
-                    console.log('controlFlow err', e)
-                }
-            }
         })
 
+        //  主题变化自动刷新
+        vscode.window.onDidChangeActiveColorTheme(
+            () => webviewView.webview.postMessage({command: 'returnTheme', data: getIDETheme()}),
+            null,
+        );
 
     }
+
     private _getHtmlForWebview(webview: vscode.Webview) {
         let replaceParams: any[] = [];
         // 打包的前端页面资源的路径

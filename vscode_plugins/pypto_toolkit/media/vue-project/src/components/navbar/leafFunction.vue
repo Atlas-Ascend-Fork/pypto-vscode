@@ -1,12 +1,12 @@
 <template>
-  <d-dropdown :position="['bottom-start']" :offset="14" @toggle="(val) => (isOpen = val)">
+  <d-dropdown :position="['bottom-start']" :offset="18" class="leaf-function-menu-wrap" @toggle="onToggle">
     <div :class="['leaf-function-container', isOpen && 'is-open']">
       <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ currentLeaf.leafName }}</div>
       <div v-else class="please-select-placeholder">{{ t('pleaseSelect') }}</div>
       <i class="icon-chevron-down-2"></i>
     </div>
     <template #menu>
-      <div class="leaf-function-list">
+      <div ref="listEl" class="leaf-function-list pypto-scrollbar">
         <div v-if="ownedList.length" class="owned-title">{{ t('directRelative') }}</div>
         <div
           v-for="item in ownedList"
@@ -15,7 +15,7 @@
           :class="['list-item', item.leafName === currentLeaf.leafName && 'active']"
           @click="() => jumpOwn(item)"
         >
-          {{ item.leafName }}
+          {{ `leaf_${item.programId}` }}
         </div>
         <div v-if="notOwnedList.length" class="dividing-line"></div>
         <div v-if="notOwnedList.length" class="not-owned-title">{{ t('notDirectRelative') }}</div>
@@ -37,11 +37,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext } from './navbar-types';
-import type { LeafInPass } from '../../../../../src/types/control-flow';
+import type { LeafInPass } from 'ext:/types/control-flow';
 import { transformLeafFunctionList } from './util';
 
 const { t } = useI18n();
@@ -49,12 +49,13 @@ const { rootProps, leafFunctions, jumpComGraph, emitLeafChange } = inject(Navbar
 const isOpen = ref(false);
 const ownedList = ref<LeafInPass[]>([]);
 const notOwnedList = ref<LeafInPass[]>([]);
+const listEl = ref<HTMLElement>();
 const currentLeaf = computed<Partial<LeafInPass>>(() => {
   if (rootProps.currentLeafName) {
     for (let i = 0; i < leafFunctions.value.length; i++) {
       const item = leafFunctions.value[i];
-      if (item.leafName === rootProps.currentLeafName) {
-        emitLeafChange(item.leafName);
+      if (item.leafFileName === rootProps.currentLeafName) {
+        emitLeafChange(item.leafFileName);
         return item;
       }
     }
@@ -73,6 +74,21 @@ watch(
   },
   { immediate: true },
 );
+
+function onToggle(val) {
+  isOpen.value = val;
+  if (val) {
+    nextTick(() => {
+      const selector = currentLeaf.value.isOwnedLeaf ? '.list-item.active' : '.not-owned-list-item.active';
+      const activeItem = listEl.value.querySelector(selector);
+      if (activeItem) {
+        const activeItemTop = activeItem.getBoundingClientRect().top;
+        const listTop = listEl.value.getBoundingClientRect().top;
+        listEl.value.scrollTop = activeItemTop - listTop;
+      }
+    });
+  }
+}
 
 function jumpOwn(item: LeafInPass) {
   jumpComGraph(item.leafFilePath);
@@ -128,10 +144,7 @@ function jumpNotOwn(item: LeafInPass) {
 .leaf-function-list {
   max-width: 300px;
   max-height: 400px;
-  padding: 8px;
-  border-radius: 8px;
-  background-color: var(--devui-select-bg);
-  box-sizing: border-box;
+  padding: 0 8px;
   overflow: auto;
 
   .owned-title,
@@ -162,6 +175,7 @@ function jumpNotOwn(item: LeafInPass) {
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+    transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
 
     &:not(:last-of-type) {
       margin-bottom: 4px;
@@ -182,6 +196,11 @@ function jumpNotOwn(item: LeafInPass) {
     align-items: center;
     gap: 8px;
     padding: 4px 8px;
+    transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
+
+    &:not(:last-of-type) {
+      margin-bottom: 4px;
+    }
 
     &:not(.active):hover {
       border-radius: 4px;
@@ -226,5 +245,17 @@ function jumpNotOwn(item: LeafInPass) {
       font-size: 14px;
     }
   }
+}
+</style>
+
+<style lang="scss">
+.devui-flexible-overlay:has(.leaf-function-menu-wrap) {
+  box-shadow: var(--devui-select-shadow);
+}
+.leaf-function-menu-wrap {
+  padding: 12px 4px;
+  border-radius: 8px;
+  background-color: var(--devui-select-bg);
+  box-sizing: border-box;
 }
 </style>

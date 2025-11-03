@@ -156,7 +156,7 @@ export function transformData(rootNodes: GroupNode): {
 
 
         function drawNode(root: GroupNode) {
-            const verticalSpacing = 50;
+            const verticalSpacing = -40;
             const horizontalSpacing = 0;
             const nodeWidth = 200;
             const nodeHeight = 220;
@@ -168,7 +168,7 @@ export function transformData(rootNodes: GroupNode): {
             function layoutTree(root: GroupNode, level: number = 0, startX: number) {
                 root.y = level;
                 if (root.children && root.children.length !== 0) {
-                    const offsetIf = root?.children[0]?.nodeType === 'IF' ? 150 : 0
+                    const offsetIf = root?.children[0]?.nodeType === 'IF' ? 50 : -80;
                     const leftLeafX = startX - horizontalSpacing - nodeWidth - offsetIf;
                     const rightLeafX = startX + horizontalSpacing + nodeWidth + offsetIf;
                     layoutTree(root.children[0], level + 1, leftLeafX);
@@ -190,7 +190,7 @@ export function transformData(rootNodes: GroupNode): {
                 const nodeSize = root.nodeType === "PATH" ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100]
                 loopRankSep = deepRankSep
                 if (root.x !== undefined && root.y !== undefined) {
-                    root.hash = root.hash === '' ? `${root.x}${root.y}` : root.hash
+                    root.hash = root.hash === '' ? `${root.x}${root.y}${parentId}` : root.hash
                     let newNode: ControlFlowNodesType = {
                         id: root.hash,
                         type: root.nodeType === "PATH" ? 'path-card-node' : 'if-card-node',
@@ -203,11 +203,11 @@ export function transformData(rootNodes: GroupNode): {
                             errorStats,
                         },
                         style: {
-                            x: startX + 200,
+                            x: startX + 25 * deepRankSep,
                             y: starY + root.y * (nodeHeight + verticalSpacing),
                         },
                     }
-                    root.x = startX + 200;
+                    root.x = startX;
                     root.y = starY + root.y * (nodeHeight + verticalSpacing);
                     lastNodeY = Math.max((newNode.style.y), lastNodeY)
                     if (root.nodeType === "IF") {
@@ -238,6 +238,12 @@ export function transformData(rootNodes: GroupNode): {
                 lastPathBottomCount = loopLastPathCount;
                 loopLastPathCount = deepRankSep;
                 isFirstNode = false;
+            } else if (parentType === "LOOP") {
+                drawNode(node)
+                lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
+                loopTopCount = 0;
+                lastPathBottomCount = loopLastPathCount;
+                loopLastPathCount = deepRankSep;
             }
         }
 
@@ -302,9 +308,10 @@ export function transformData(rootNodes: GroupNode): {
                     target: childId,
                     type: 'polyline',
                     style: {
-                        lineWidth: 3,
+                        lineWidth: 1,
                         radius: 20,
-                        stroke: 'rgb(102,102,102)',
+                        stroke: '#666666',
+                        opacity:0.8,
                         controlPoints: [[node.style.x, (node.style.y + child.y) / 2]],
                         endArrow: true,
                         router: {

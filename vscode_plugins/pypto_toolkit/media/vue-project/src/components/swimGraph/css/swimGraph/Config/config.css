@@ -85,7 +85,8 @@
 
 .task-connection-level-tip {
     color: var(--devui-secondary-text);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    margin-top: 4px;
     font-size: 12px;
     font-weight: 400;
     line-height: 16px;

@@ -7,7 +7,7 @@
         <span>{{ process.processName }}</span>
       </div>
       <div class="label_two" v-if="isExpanded">
-        <d-select v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm"></d-select>
+        <d-select menu-class="globalSelect" v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm"></d-select>
       </div>
     </div>
     <div class="process-header-line">
@@ -152,22 +152,38 @@ const updateTheme = () => {
 @import url("../css/swimGraph/Processes/header.css");
 .label_two {
   display: flex;
-  width: 120px;
+  width: 118px;
   align-items: center;
   text-align: right;
   margin-right: 8px;
+  margin-left: 8px;
   :deep() {
+    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
+      border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
+      border-color: var(--devui-select-active-border-color) !important;
+    }
     .devui-select__selection {
-      background-color: transparent !important;
-      border: none !important;
-      input:focus {
-        outline: none;
-      }
+      background-color: transparent;
+      border-color: transparent;
     }
     .devui-select__input {
       color: var(--devui-primary-text);
       text-align: right;
     }
   }
+}
+</style>
+<style lang="scss">
+.globalSelect {
+  border-radius: 8px;
+  gap: 4;
+  padding: 4px;
+}
+
+.globalSelect .devui-select__item { 
+  font-size: 13px !important;
+  border-radius: 4px;
 }
 </style>

@@ -8,7 +8,7 @@ import { hismartliteEx } from '../hismarliteEx';
 import { AbstractGraphData } from '../core/graphData';
 import { BaseGraphMsgHandler } from '../handler/baseGraphMsgHandler';
 import { basename } from 'path';
-import { useServer } from '../core/server';
+import { useServer } from '../core/request-server';
 
 export interface GraphViewOptions {
   /** 面板类型标识，对应 package.json contributes.views */

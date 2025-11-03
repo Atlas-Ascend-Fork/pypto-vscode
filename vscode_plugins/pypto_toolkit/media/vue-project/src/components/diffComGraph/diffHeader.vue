@@ -14,7 +14,7 @@ const props = defineProps({
   top: 0;
   z-index: 10;
   width: 100%;
-  height: 160px;
+  height: 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--devui-primary-text);

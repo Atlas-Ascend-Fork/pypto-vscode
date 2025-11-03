@@ -12,7 +12,7 @@ export function useSearchingHighlight() {
       return text;
     }
     console.log('textToHighlightHtml', text, text.replace(new RegExp(`${keyword}`, 'ig'), generateHighlightSpan));
-    return text.replace(new RegExp(`${keyword.value}`, 'ig'), generateHighlightSpan);
+    return text.replace(new RegExp(`${keyword.value}`, 'i'), generateHighlightSpan);
   }
 
   return { updateKeyword, textToHighlightHtml };

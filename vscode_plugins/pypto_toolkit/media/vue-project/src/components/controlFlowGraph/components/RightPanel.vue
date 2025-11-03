@@ -11,7 +11,8 @@
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
       <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
-        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @change="handleTabChange" custom-width="140px">
+        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange"
+                custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
           <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
                  :key="tabIndex" :title="tab.name" class="data-tabs">
@@ -24,7 +25,7 @@
                 <template #prefix>
                   <d-icon class="search-input__icon" name="search"/>
                 </template>
-                <template  #suffix>
+                <template #suffix>
                   <d-icon v-if="searchKeywords[tabIndex]" class="search-input__clear" name="close"
                           @click.stop="searchKeywords[tabIndex] = ''"/>
                 </template>
@@ -50,14 +51,10 @@
                       <div class="sort-icon">
                         <d-icon class="sort" operable @click="sortLeaf(tabIndex)">
                           <template #prefix>
-                            <div class="icon-group">
-                              <i class="icon-run-o icon-up"></i>
-                              <i class="icon-run-o icon-down"></i>
-                            </div>
+                            <img :src="sortIcon" class="icon-sort">
                           </template>
                         </d-icon>
                       </div>
-
                     </div>
 
                   </template>
@@ -73,10 +70,7 @@
                     <span class="table-header-right">{{ tableTitle[tabIndex].value }}</span>
                     <d-icon class="sort" operable @click="sortFrequency(tabIndex)">
                       <template #prefix>
-                        <div class="icon-group">
-                          <i class="icon-run-o icon-up"></i>
-                          <i class="icon-run-o icon-down"></i>
-                        </div>
+                        <img :src="sortIcon" class="icon-sort">
                       </template>
                     </d-icon>
                   </template>
@@ -84,7 +78,8 @@
                     <div class="table-callee-sell">
                       <span class="callee-sell-count">{{ scope.row.frequency }}</span>
                       <div v-if="scope.row.frequency==='-'" class="callee-sell-progress"></div>
-                      <d-progress v-else class="callee-sell-progress" :percentage="scope.row.frequency*10"
+                      <d-progress v-else class="callee-sell-progress"
+                                  :percentage="(scope.row.frequency/(tabIndex===0?calledMaxFrequency:calleeMaxFrequency))*100"
                                   barBgColor="#317AF7" height="6px"></d-progress>
                     </div>
                   </template>
@@ -106,7 +101,8 @@
                           </span>
                           <div class="expand-row_frequency_progress">
                             <div v-if="item.value==='-'" class="expand-row-progress"></div>
-                            <d-progress v-else class="expand-row-progress" :percentage="item.value*10"
+                            <d-progress v-else class="expand-row-progress"
+                                        :percentage="(item.value/rowData.row.detailMaxCalled)*100"
                                         barBgColor="#317AF7" height="6px"></d-progress>
                           </div>
                         </div>
@@ -134,9 +130,11 @@
                 </div>
                 <div v-for="(item,index) in group.members" :key="index" class="group-line" :style="getColor(item.type)"
                      @click="openGraph(item)">
-                  <span class="group-line-name"> {{ item.passIndex }}</span>
-                  <span class="group-line-name"> {{ item.passName }}</span>
-                  <i v-if="item.icon" :class="item.icon" class="group-member-icon" @click="openGraphViewFn"></i>
+                  <div class="line-group">
+                    <span class="group-line-index"> {{ item.passIndex }}</span>
+                    <span class="group-line-name" :title="item.passName "> {{ item.passName }}</span>
+                  </div>
+                  <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon"/></span>
                 </div>
               </div>
             </div>
@@ -160,12 +158,16 @@ import {
 import { useI18n } from 'vue-i18n';
 import { openComputeGraph } from "@/apis/opener";
 
+
+const healthIcon = ref(`${window.staticPath}/static-assets/control_flow_health.svg`);
+const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort.svg`);
+const rgb='rgb(97,201,131)'
 // ========================== 1. 绑定组件 ==========================
 const tableRef = ref();
 
 // ========================== 2. 数据 ==========================
 // 按钮配置数据：点击不同按钮打开对应数据的抽屉
-const {t} = useI18n();
+const { t } = useI18n();
 const passList = ref<GroupItem[]>([])
 const panelData = ref<PanelData>({
   title: '',
@@ -201,7 +203,7 @@ const tableRefs = ref<Record<number, any>>({});
 // 展开行ID：按页签存储展开的行ID（{ 页签索引: [行ID数组] }）
 const defaultExpandedRowKeys = ref<Record<number, string[]>>({});
 // 控制table显示隐藏
-const isTableVisited=ref<boolean>(true);
+const isTableVisited = ref<boolean>(true);
 
 // ========================== 4. 事件处理 ==========================
 /**
@@ -362,9 +364,9 @@ const processedTableData = (tabIndex: number) => {
   let filteredData = [...tab.data];
   if (keyword) {
     filteredData = filteredData.filter(row => row.name.toLowerCase().includes(keyword.toLowerCase()))
-    isTableVisited.value=!!filteredData.length;
-  }else {
-    isTableVisited.value=true
+    isTableVisited.value = !!filteredData.length;
+  } else {
+    isTableVisited.value = true
   }
 
   // 2. 排序：根据当前排序状态处理
@@ -375,7 +377,9 @@ const processedTableData = (tabIndex: number) => {
       return sortDirection === 'ASC' ? sortResult : -sortResult;
     });
   }
-
+  if(filteredData.length===0){
+    isTableVisited.value = false;
+  }
   return filteredData;
 };
 
@@ -386,8 +390,11 @@ function onRowClick(params) {
   }
 }
 
-function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
+const calledMaxFrequency = ref(0)
+const calleeMaxFrequency = ref(0)
 
+function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
+  calledMaxFrequency.value = 0
   // 统计被调用数据
   const calledRecordObj = {}
   let index = 0;
@@ -437,7 +444,9 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
 
     if (calledRecordObj.hasOwnProperty(leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== "{}") {
       const detail: DetailItem[] = []
+      let detailMaxCalled = 0;
       for (let i in calledRecordObj[leaf.hash].detail) {
+        detailMaxCalled = Math.max(detailMaxCalled, calledRecordObj[leaf.hash].detail[i].value)
         detail.push({
           label: calledRecordObj[leaf.hash].detail[i].label,
           value: calledRecordObj[leaf.hash].detail[i].value.toString(),
@@ -446,8 +455,10 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
       leafObj = {
         ...leafObj,
         detail,
+        detailMaxCalled,
       }
     }
+    calledMaxFrequency.value = Math.max(calledMaxFrequency.value, leafObj.frequency)
     tableData.push(leafObj)
   }
   tableData.sort((a, b) => b.frequency - a.frequency)
@@ -456,6 +467,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
 
 function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeRecordsType[]): TableRowData[] {
   const calleeFunctionObj = {}
+  calleeMaxFrequency.value = 0
   let index = 0;
   const leafFunctionMap = new Map()
   leafFunctions.forEach(leafFunction => {
@@ -478,6 +490,7 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 // 转换为表格数据对象列表并从高到低排序
   const tableData: TableRowData[] = [];
   for (let i in calleeFunctionObj) {
+    calleeMaxFrequency.value = Math.max(calleeMaxFrequency.value, calleeFunctionObj[i].frequency)
     tableData.push(calleeFunctionObj[i]);
   }
   tableData.sort((a, b) => b.frequency - a.frequency)
@@ -487,9 +500,9 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
 }
 
 const passStageTitle = {
-  tensor: {label: 'Tensor Graph', color: 'rgb(253,229,92)'},
-  tile: {label: 'Tile Graph', color: 'rgb(125,223,231)'},
-  block: {label: 'Block Graph', color: 'rgb(99,213,168)'},
+  tensor: {label: 'Tensor Graph', color: 'var(--control-flow-panel-table-tensor)'},
+  tile: {label: 'Tile Graph', color: 'var(--control-flow-panel-table-Tile)'},
+  block: {label: 'Block Graph', color: 'var(--control-flow-panel-table-block)'},
 };
 
 function getPassList(passes: PassesType[]) {
@@ -510,7 +523,7 @@ function getPassList(passes: PassesType[]) {
     item.members.push({
       ...passes[i],
       type: 'other',
-      icon: passes[i].hasHealthReport ? "icon-overview":'',
+      icon: passes[i].hasHealthReport ? "icon-HealthReport" : '',
     })
     if (i === passes.length - 1) {
       passGroups.push(item);
@@ -525,18 +538,27 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
 
-  const calleeObj: TabData = {
-    name: t('controlFlows.callFunctionPanelTitle'),
-    data: calleeList,
-  }
-  const calledObj: TabData = {
-    name: t('controlFlows.calledFunctionPanelTitle'),
-    data: calledList,
-  }
   panelData.value.title = nodeData.data.source.magicName.substring(7);
   panelData.value.tabs = [];
-  panelData.value.tabs.push(calledObj);
-  panelData.value.tabs.push(calleeObj);
+  if(calledList.length){
+    const calledObj: TabData = {
+      name: t('controlFlows.calledFunctionPanelTitle'),
+      data: calledList,
+    }
+    panelData.value.tabs.push(calledObj);
+  }else {
+    calledMaxFrequency.value = calleeMaxFrequency.value;
+  }
+
+  if(calleeList.length){
+    const calleeObj: TabData = {
+      name: t('controlFlows.callFunctionPanelTitle'),
+      data: calleeList,
+    }
+    panelData.value.tabs.push(calleeObj);
+  }else {
+    calleeMaxFrequency.value = calledMaxFrequency.value;
+  }
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes)
@@ -558,18 +580,6 @@ watch(
     {deep: true}
 );
 
-/**
- * 监听页签变化：切换页签时打印日志（备用调试）
- */
-watch(
-    () => activeTabId.value,
-    (newId) => {
-      const tabIndex = Number(newId.split('-')[1]);
-      if (tableRefs.value[tabIndex]) {
-        console.log(`切换到页签 ${tabIndex}`, tableRefs.value[tabIndex]);
-      }
-    }
-);
 
 // ========================== 7. 计算图moke数据 ==========================
 
@@ -600,6 +610,7 @@ defineExpose({
 <style lang="less">
 .drawer-container {
   overflow: hidden;
+  box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.16);
 }
 </style>
 
@@ -609,6 +620,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   padding-left: 4px;
+
   .group-line {
     display: flex;
     align-items: center;
@@ -618,27 +630,40 @@ defineExpose({
     cursor: pointer;
     padding-left: 8px;
     border-radius: 4px;
-    &:hover{
+
+    &:hover {
       background-color: var(--devui-input-hover-bg);
     }
+
     .group-line-title {
       font-size: 14px;
     }
+.line-group{
+  display: flex;
+  width: 440px;
+  padding: 4px 8px;
+  gap:4px;
+  font-size: 13px;
+  font-weight: 400;
 
-    .group-line-name {
-      font-size: 13px;
-    }
-
+  .group-line-name {
+    width: 380px;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
     .group-line-icon {
       display: flex;
       align-items: center;
       width: 16px;
       height: 16px;
     }
-    .group-member-icon{
+
+    .group-member-icon {
       display: flex;
       align-items: center;
-      color: #94d735;
       width: 16px;
       height: 16px;
     }
@@ -647,7 +672,6 @@ defineExpose({
 
 // 抽屉容器：深色主题，右侧弹出，固定宽度
 .drawer-container {
-
   // 抽屉头部：标题和关闭按钮布局
   .drawer-header {
     display: flex;
@@ -763,7 +787,6 @@ defineExpose({
             color: var(--devui-primary-text);
             font-size: 13px;
             line-height: 20px;
-            padding-right: 20px;
           }
         }
 
@@ -803,31 +826,11 @@ defineExpose({
           box-sizing: border-box;
           z-index: 9999;
 
-          .icon-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding-left: 16px;
-
-            .icon-up {
-              padding: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              transform: rotate(-90deg);
-            }
-
-            .icon-down {
-              padding: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              transform: rotate(90deg);
-            }
+          .icon-sort {
+            margin-left: 10px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
           }
         }
 
@@ -855,17 +858,17 @@ defineExpose({
   box-sizing: border-box;
   border: 1px solid var(--devui-button-group-bg);
   border-radius: 6px;
-  background-color: var(--devui-tab-bg) !important;
+  background-color: var(--control-flow-tab-bg) !important;
 }
 
 //页签穿透修改
 :deep(.devui-tabs__nav--options ) {
-  background-color: var(--devui-tab-bg);
+  background-color: var(--control-flow-tab-bg);
   box-sizing: border-box;
   padding: 2px;
 
   li {
-    background-color: var(--devui-tab-bg);
+    background-color: var(--control-flow-tab-bg);
 
     a {
       color: var(--devui-secondary-text);
@@ -874,8 +877,9 @@ defineExpose({
 
   //页签选中穿透修改
   .active {
-    background-color: var(--devui-secondary-button-active-bg);
+    background-color: var(--control-flow-tab-active-bg);
     border-radius: 4px;
+
     .devui-tabs__nav-content {
       a {
         color: var(--devui-title-text) !important;
@@ -889,7 +893,7 @@ defineExpose({
   height: 32px;
 
   tr {
-    background-color: #313131 !important;
+    background-color: var(--control-flow-table-header) !important;
 
     th:nth-child(3) {
       width: 0;
@@ -903,9 +907,13 @@ defineExpose({
   tr {
     background-color: var(--devui-card-bg) !important;
   }
-  tr:hover{
-    background-color: var(--devui-input-active-bg)!important;
+
+  .devui-table__row {
+    &:hover {
+      background-color: var(--control-flow-table-hover) !important;
+    }
   }
+
   tr {
     height: 32px;
 
@@ -919,19 +927,26 @@ defineExpose({
     }
   }
 }
-:deep(.devui-table){
-  scrollbar-width: none!important;
+
+:deep(.devui-table) {
+  scrollbar-width: none !important;
 }
-:deep(.devui-table__fix-header){
-  scrollbar-width: none!important;
+
+:deep(.devui-table__fix-header) {
+  scrollbar-width: none !important;
 
 }
+
 .content-table__expand-column {
   // 展开内容区：样式适配
   background-color: var(--devui-nest-bg);
   font-size: 13px;
   line-height: 20px;
   box-sizing: border-box;
+
+  &:hover {
+    background-color: var(--devui-nest-bg);
+  }
 
   .expand-content {
     display: flex;
@@ -941,6 +956,10 @@ defineExpose({
     align-self: start;
     border-bottom: 1px solid var(--devui-split-line);
     height: 32px;
+
+    &:hover {
+      background-color: var(--devui-input-hover-bg);
+    }
   }
 
   .expand-row {
@@ -950,6 +969,10 @@ defineExpose({
     justify-content: center;
     border-bottom: 1px solid var(--devui-split-line);
     min-height: 32px;
+
+    &:hover {
+      background-color: var(--devui-input-hover-bg);
+    }
 
     .expand-row_title {
       display: flex;

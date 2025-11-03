@@ -31,6 +31,9 @@ export interface FunctionNode {
   /** 执行图节点名称 */
   func_magicname: string;
 
+  /** 执行图节点名称(无magic) */
+  rawname: string;
+
   /** hash值用来查询调用关系 */
   hash: string;
 

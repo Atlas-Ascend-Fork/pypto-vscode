@@ -77,7 +77,9 @@ export default {
    'taskName':'任务名称',
    'taskLabel':'语义标签',
    'swimRenderCfg':'泳道图渲染配置',
-   'configButtonTip':'缺少dyn_topo.txt文件，该配置不可用',
+   'configButtonDisTip':'无法解析leafIndex, 不支持自定义染色',
+   'configButtonTip':'渲染配置',
+   'PerformanceStatus':'性能统计',
    'clockCycle': '时钟周期',
    'throughout': '吞吐量',
    'cacheHit': '缓存命中率',
@@ -170,7 +172,7 @@ export default {
         searchPlaceholder: '搜索运行结果',
     },
     controlFlows: {
-        searchPlaceholder: '搜索loop关键字',
+        searchPlaceholder: '搜索loop关键字，或输入计算图全名直达',
         noMatchingData: '没有找到匹配的数据',
         allComputationalPanelTitle: '所有计算图',
         callFunctionPanelTitle: '调用函数-callee',
@@ -180,8 +182,8 @@ export default {
         leafFunctionTableName: 'leaf functions',
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
-        tableSearch:'搜索',
+        tableSearch: '搜索',
         dataParseError: '无法打开控制流，解析数据异常。',
-        leafName:'leaf 函数',
+        leafName: 'leaf 函数',
     }
 }

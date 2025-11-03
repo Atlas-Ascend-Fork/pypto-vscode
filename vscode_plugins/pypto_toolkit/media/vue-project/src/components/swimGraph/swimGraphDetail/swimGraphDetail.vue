@@ -391,16 +391,35 @@ defineExpose({
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/Detail/detail.css");
-.input-number-container {
-  margin-left: -6px;
-  :deep() {
-    .devui-input-number__input-box {
-      border-radius: 0 var(--devui-border-radius) var(--devui-border-radius) 0;
-      border-left: none !important;
+:deep() {
+  .input-number-container {
+    margin-left: -6px;
+
+    :deep() {
+      .devui-input-number__input-box {
+        border-radius: 0 var(--devui-border-radius) var(--devui-border-radius) 0;
+        border-left: none !important;
+      }
+
+      .devui-input-number__input-box:not(.disabled) {
+        box-shadow: none !important;
+      }
     }
-    .devui-input-number__input-box:not(.disabled) {
-      box-shadow: none !important;
-    }
+  }
+
+  .input-number-container.devui-input-number {
+    width: 54px;
+  }
+
+  .input-number-container.devui-input-number--md {
+    height: 28px;
+  }
+
+  .input-number-container .devui-input-number__input-box:not(.disabled) {
+    border-left: none;
+    box-shadow: none !important;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 }
 </style>

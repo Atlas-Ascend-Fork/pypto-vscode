@@ -2,7 +2,7 @@
   <div class="navbar-container">
     <div class="history-wrap">
       <div class="history-icon">
-        <i class="icon-assembly-new"></i>
+        <HistoryIcon/>
       </div>
       <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
@@ -45,6 +45,7 @@ import LeafFunctionCom from './leafFunction.vue';
 import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
+import HistoryIcon from './icons/history-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
@@ -62,6 +63,7 @@ const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
+const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
@@ -71,10 +73,10 @@ getOutputRecords({}, { timeout: 600000 }).then((res) => {
 });
 
 watch(
-  () => props.currentRecordDirectoryPath,
-  (val) => {
-    if (val && props.currentStep !== 'controlFlow') {
-      getControlFlow(val, { timeout: 600000 }).then((res) => {
+  [() => props.currentRecordDirectoryPath, currentRecord],
+  ([outputDirPath, record]) => {
+    if (outputDirPath && record && props.currentStep !== 'controlFlow') {
+      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000 }).then((res) => {
         controlFlowList.value = res.data;
       });
     }
@@ -99,6 +101,7 @@ function emitLeafChange(leafName: string) {
 }
 
 function onRecordChange(record: HistoryData) {
+  currentRecord.value = record;
   showSwim.value = Boolean(record.swimlaneGraphFilePath);
 }
 
@@ -165,7 +168,6 @@ function jumpComGraph(filePath: string, pathName?: string) {
       width: 40px;
       height: 40px;
       color: #ffffff;
-      font-size: 32px;
       border-radius: 40px;
       background-color: #5f58c7;
     }
@@ -195,6 +197,7 @@ function jumpComGraph(filePath: string, pathName?: string) {
       border-radius: 24px;
       border: 1px solid var(--devui-placeholder-text);
       box-sizing: border-box;
+      pointer-events: all;
 
       i {
         color: var(--devui-placeholder-text);

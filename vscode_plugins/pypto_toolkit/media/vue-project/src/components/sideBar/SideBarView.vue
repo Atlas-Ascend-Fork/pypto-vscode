@@ -13,26 +13,18 @@
     </div>
     <!-- 筛选区 -->
     <div class="filters">
-      <d-icon class="sort" operable @click="sortOption = !sortOption">
-        <template #prefix>
-          <span class="sort-name">{{ t('sideBar.sortName') }}</span>
-          <div class="icon-group">
-            <i v-if="sortOption" class="icon-run-o icon-up"></i>
-            <i v-if="!sortOption" class="icon-run-o icon-down"></i>
-          </div>
-        </template>
-      </d-icon>
+      <div class="sort" operable @click="sortOption = !sortOption">
+        <span class="sort-name">{{ t('sideBar.sortName') }}</span>
+        <div class="sort-group">
+          <img v-if="sortOption" :src="sortUp" class="sort-icon">
+          <img v-else :src="sortDown" class="sort-icon">
+        </div>
+      </div>
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container" v-loading="isLoading">
-      <d-tree
-        ref="treeRef"
-        :data="visibleTreeData"
-        :node-class="() => 'custom-tree-node'"
-        show-line="false"
-        @node-click="nodeClick"
-        @lazy-load="lazyLoad"
-      >
+      <d-tree ref="treeRef" :data="visibleTreeData" :node-class="() => 'custom-tree-node'" show-line="false"
+        @node-click="nodeClick" @lazy-load="lazyLoad">
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
@@ -62,13 +54,10 @@
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
               <div @click.stop="() => toggleNode(nodeData)" :class="{ 'devui-tree-node-icon': nodeData.date }">
-                <i
-                  class="icon icon-chevron-right"
-                  :style="{
-                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                    cursor: 'pointer',
-                  }"
-                ></i>
+                <i class="icon icon-chevron-right" :style="{
+                  transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                  cursor: 'pointer',
+                }"></i>
               </div>
             </div>
           </div>
@@ -87,14 +76,14 @@ import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/ope
 
 import SideBarSearch from './SideBarSearch.vue';
 import { useSearchingHighlight } from './hooks/use-searching-highlight';
+import { debounce } from 'lodash-es';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
-
+const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
+const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
-const treeRef = ref(null);
-
 const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 
 /**
@@ -105,7 +94,7 @@ const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
 const treeData = ref<DevUITreeNode[]>([]);
 const visibleTreeData = computed(() => [...treeData.value]);
 
-async function nodeClick(node: DevUITreeNode) {
+function nodeClick(node: DevUITreeNode): void {
   if (node.fileType === 'controlFlow') {
     // 打开控制流
     openControlFlow({
@@ -122,12 +111,22 @@ async function nodeClick(node: DevUITreeNode) {
       outputPath: node.pathName ? node.outputPath : undefined,
       pathName: node.pathName,
     });
+  } else {
+    toggleNode(node);
   }
+}
+
+const treeRef = ref(null);
+/**
+ * 展开/折叠
+ */
+function toggleNode(node: DevUITreeNode): void {
+  treeRef.value.treeFactory.toggleNode(node);
 }
 
 const nodeChildrenMap = new Map();
 
-async function transformData(outputData: OutputRecords) {
+async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]> {
   nodeChildrenMap.clear();
 
   function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
@@ -150,6 +149,7 @@ async function transformData(outputData: OutputRecords) {
     return children;
   }
 
+  const records: DevUITreeNode[] = [];
   for (const record of outputData) {
     const rootNode: DevUITreeNode = {
       id: record.title,
@@ -166,8 +166,9 @@ async function transformData(outputData: OutputRecords) {
     const child = transformChild(detail.data.directoryTree.children);
     nodeChildrenMap.set(rootNode.id, child);
 
-    treeData.value.push(rootNode);
+    records.push(rootNode);
   }
+  return records;
 }
 
 function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
@@ -179,19 +180,30 @@ onMounted(() => {
 });
 
 const isLoading = ref(false);
+
+async function getAllRecords(): Promise<void> {
+  const snapshot = sortOption.value;
+  isLoading.value = true;
+  treeData.value = [];
+  try {
+    const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
+    treeData.value = await transformData(data);
+  } catch (e: unknown) {
+    isLoading.value = false;
+    if (e instanceof Error) {
+      throw e;
+    }
+  }
+  isLoading.value = false;
+}
+
+const debouncedGetRecords = debounce(getAllRecords, 500);
+
 const sortOption = ref(false);
 
 watch(sortOption, () => {
-  getAllRecords();
+  debouncedGetRecords();
 });
-
-async function getAllRecords(): Promise<void> {
-  isLoading.value = true;
-  treeData.value = [];
-  const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
-  await transformData(data);
-  isLoading.value = false;
-}
 </script>
 
 <style scoped lang="less">
@@ -201,8 +213,8 @@ async function getAllRecords(): Promise<void> {
  * 基础样式
  */
 .sidebar-container {
-  background: #181818;
-  color: #ffffff;
+  background: var(--devui-card-bg);
+  color: var(--control-flow-sidebar-search-icon);
   min-height: 100vh;
   width: 100%;
   height: 100vh;
@@ -221,7 +233,7 @@ async function getAllRecords(): Promise<void> {
   padding: 0 16px;
 
   .name {
-    color: #ffffff;
+    color: var(--control-flow-sidebar-search-title);
     margin: 0;
     font-size: 14px;
     line-height: 27px;
@@ -241,7 +253,7 @@ async function getAllRecords(): Promise<void> {
     }
 
     :deep(*) {
-      color: var(--devui-title-text);
+      color: var(--control-flow-sidebar-search-icon);
     }
   }
 
@@ -252,6 +264,7 @@ async function getAllRecords(): Promise<void> {
   .tree-search {
     width: 150px;
   }
+
   .icon {
     font-size: 16px;
     opacity: 0.8;
@@ -271,32 +284,31 @@ async function getAllRecords(): Promise<void> {
   .sort {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.05);
+    gap: 8px;
+    background-color: var(--control-flow-sidebar-search-button);
     border-radius: 4px;
-    box-sizing: border-box !important;
+    box-sizing: border-box;
     white-space: nowrap;
     text-overflow: ellipsis;
-    height: 28px !important;
-    width: 100px !important;
-    padding-left: 4px !important;
+    height: 28px;
+    line-height: 28px;
+    padding: 8px;
 
     .sort-name {
-      // color: #E6E6E6;
       font-size: 13px;
     }
 
-    .icon-group {
+    .sort-group {
+      height: 28px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
 
-      .icon-up {
-        transform: rotate(-90deg);
-      }
-
-      .icon-down {
-        transform: rotate(90deg);
+      .sort-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
       }
     }
   }
@@ -333,16 +345,20 @@ async function getAllRecords(): Promise<void> {
         height: 48px;
       }
 
+      // 顶层节点之间显示分隔线
+      border-bottom: 1px solid transparent;
+
       &:has(+ .devui-tree__node[style*='padding-left: 0px']),
       &:last-of-type {
-        border-bottom: 1px solid var(--vscode-sideBar-border);
+        border-bottom-color: var(--vscode-sideBar-border);
       }
 
-      &.active {
-        background-color: rgba(255, 255, 255, 0.1);
+      &.active,
+      &:hover {
+        background-color: var(--devui-input-active-bg);
 
         .node-label {
-          color: #ffffff !important;
+          color: var(--control-flow-sidebar-tree-label) !important;
         }
       }
 
@@ -377,7 +393,7 @@ async function getAllRecords(): Promise<void> {
             .node-label {
               font-size: 14px;
               line-height: 22px;
-              color: #e6e6e6;
+              color: var(--control-flow-sidebar-tree-main-label);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -386,7 +402,7 @@ async function getAllRecords(): Promise<void> {
             .node-date {
               font-size: 12px;
               line-height: 18px;
-              color: #999999;
+              color: var(--control-flow-sidebar-tree-placeholder);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -401,7 +417,7 @@ async function getAllRecords(): Promise<void> {
 
             .node-label {
               font-size: 13px;
-              color: #b3b3b3;
+              color: var(--devui-secondary-text);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -428,8 +444,12 @@ async function getAllRecords(): Promise<void> {
         }
       }
 
-      .devui-tree__node-content.active {
-        background-color: transparent;
+      .devui-tree__node-content {
+
+        &.active,
+        &:hover {
+          background-color: transparent;
+        }
       }
 
       .devui-tree__node-vline {
@@ -442,19 +462,6 @@ async function getAllRecords(): Promise<void> {
         height: 0px !important;
       }
     }
-  }
-}
-
-:deep(.devui-select__selection) {
-  height: 28px !important;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-
-  .devui-select__input {
-    height: 28px !important;
-    border: none;
-    font-size: 13px;
-    color: #e6e6e6 !important;
   }
 }
 </style>
