@@ -208,11 +208,11 @@ const isTableVisited = ref<boolean>(true);
 // ========================== 4. 事件处理 ==========================
 /**
  * 打开抽屉：初始化当前抽屉数据和状态（搜索、排序、展开行）
- * @param data 点击按钮对应的配置数据
+ * @param tabIndex 打开页签
  */
-const openDrawer = () => {
+const openDrawer = ( tabIndex: number ) => {
   currentDrawerData.value = panelData.value;
-  activeTabId.value = 'tab-0';
+  activeTabId.value = `tab-${tabIndex}`;
 
   try {
     // 初始化每个页签的状态
@@ -271,8 +271,6 @@ function openGraph(item) {
     computeGraphPath: item.graphFilePath,
     pathName: item.pathName,
   })
-
-
 }
 
 const sortFrequencyType = ref<SortInfo>({field: 'frequency', direction: "ASC"})
@@ -532,7 +530,7 @@ function getPassList(passes: PassesType[]) {
   return passGroups;
 }
 
-function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
+function transFormPanelData(nodeData: ControlFlowNodesType, path: string , tabIndex: number) {
   outPutPath.value = path
   const {leafFunctions, calledRecords, calleeRecords} = nodeData.data.source.meta;
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
@@ -548,6 +546,7 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
     panelData.value.tabs.push(calledObj);
   }else {
     calledMaxFrequency.value = calleeMaxFrequency.value;
+    tabIndex = 0;
   }
 
   if(calleeList.length){
@@ -558,12 +557,13 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
     panelData.value.tabs.push(calleeObj);
   }else {
     calleeMaxFrequency.value = calledMaxFrequency.value;
+    tabIndex = 0;
   }
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes)
   }
-  openDrawer()
+  openDrawer(tabIndex)
 }
 
 

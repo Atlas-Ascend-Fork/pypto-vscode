@@ -63,6 +63,7 @@ import { IfCardData, PathCardData } from "@/components/controlFlowGraph/type/nod
 import ErrorView from '@/components/comGraph/error.vue';
 import SearchSelect from "@/components/controlFlowGraph/components/SearchSelect.vue";
 import Loading from "@/components/comGraph/loading.vue";
+import { openComputeGraph } from "@/apis/opener";
 
 const { isDarkTheme } = inject('root');
 const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
@@ -178,6 +179,26 @@ class PathCardNode extends Rect {
       fontSize: 14,
       fill: fillColor, // 原文本色
       fontWeight: 700,
+      cursor: 'pointer',
+    };
+  }
+  getPathUnderLineStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, lineWidth: number) {
+    const [width] = this.getSize(attributes);
+    const fillColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
+    const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
+    const states = this.nodeData.states;
+    let opacity = 0;
+    if(states && (states.includes('path-label') || states.includes('path-icon-left'))) {
+      opacity = 1;
+    }
+    return {
+      x: -width / 2 + 35,
+      y: topY,
+      width:lineWidth,
+      height: 1,
+      fontWeight: 700,
+      fill: fillColor,
+      opacity,
     };
   }
 
@@ -213,30 +234,73 @@ class PathCardNode extends Rect {
   }
 
   /**
+   * 打开图
+   */
+  openGraph(){
+    const length = this.nodeData.data.source.meta?.passes.length;
+    openComputeGraph({
+      outputPath: outPutPath.value,
+      computeGraphPath: this.nodeData.data.source.meta?.passes[length - 1].graphFilePath,
+      pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
+    })
+  }
+
+  /**
    * 绘制路径容器（名称 + 图标）
    */
   drawPathContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
     // 绘制路径名称
-    this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
+    const text=  this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
+    const { width } = text.getBBox(); // 获取文本宽度
+
+    // 绘制下划线
+    this.upsert('path-line', 'rect', this.getPathUnderLineStyle(attributes, width), container);
+
+    if (!text.__clickBound) {
+      text.addEventListener('click', (e) => {
+        // 阻止事件冒泡，避免触发节点的点击事件
+        e.stopPropagation();
+        this.openGraph();
+        // 如果数据中有回调函数，则调用
+        if (typeof attributes.onButtonClick === 'function') {
+          attributes.onButtonClick(this.id, this.data);
+        }
+      });
+      text.__clickBound = true; // 标记已绑定事件，避免重复绑定
+    }
   }
 
   drawRightIconContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
-    this.upsert('path-icon-left', 'image', this.getLeftIconStyle(attributes), container);
+    const leftIcon = this.upsert('path-icon-left', 'image', this.getLeftIconStyle(attributes), container);
     // 绘制图标
-    const btn = this.upsert('path-icon-right', 'image', this.getRightIconStyle(attributes), container);
-    // 为按钮添加点击事件
-    if (!btn.__clickBound) {
-      btn.addEventListener('click', (e) => {
+    const rightIcon = this.upsert('path-icon-right', 'image', this.getRightIconStyle(attributes), container);
+    // 右侧按钮打开抽屉
+    if (!rightIcon.__clickBound) {
+      rightIcon.addEventListener('click', (e) => {
         // 阻止事件冒泡，避免触发节点的点击事件
         e.stopPropagation();
-        sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value)
+        sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, 0)
         // 执行业务逻辑
         // 如果数据中有回调函数，则调用
         if (typeof attributes.onButtonClick === 'function') {
           attributes.onButtonClick(this.id, this.data);
         }
       });
-      btn.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      rightIcon.__clickBound = true; // 标记已绑定事件，避免重复绑定
+    }
+
+    // 左侧按钮打开计算图
+    if (!leftIcon.__clickBound) {
+      leftIcon.addEventListener('click', (e) => {
+        // 阻止事件冒泡，避免触发节点的点击事件
+        e.stopPropagation();
+        this.openGraph();
+        // 如果数据中有回调函数，则调用
+        if (typeof attributes.onButtonClick === 'function') {
+          attributes.onButtonClick(this.id, this.data);
+        }
+      });
+      leftIcon.__clickBound = true; // 标记已绑定事件，避免重复绑定
     }
   }
 
@@ -272,7 +336,7 @@ class PathCardNode extends Rect {
     const fillColor = isDarkTheme.value ? '#999999' : 'rgba(174,174,174,1)';
 
     return {
-      x: -width / 2 + 10, // 左内边距 20px
+      x: -width / 2 + 12,
       y,
       text: label,
       fontSize: 12,
@@ -300,6 +364,27 @@ class PathCardNode extends Rect {
     };
   }
 
+
+  getFuncLabelBgStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, container: Group, className: string) {
+    const [width] = this.getSize(attributes);
+    let fillColor = isDarkTheme.value ? '#333333' : 'rgba(255,255,255,1)';
+    const states = this.nodeData.states;
+    if(states&&states.includes(className)) {
+      fillColor= isDarkTheme.value ? '#e6e6e6' : 'rgba(0,0,0,0.5)'
+    }
+    type:className;
+    return {
+      x: -width / 2 +8 , // 左右内边距 8
+      y,
+      width: width - 16, // 分割线宽度 = 卡片宽 - 内边距
+      height: 24,
+      fill: fillColor,
+      radius:4,
+      opacity:0.2,
+      cursor: 'pointer'
+    };
+  }
+
   /**
    * 绘制函数统计项
    */
@@ -319,6 +404,23 @@ class PathCardNode extends Rect {
       this.upsert(`func-label-${index}`, 'text', this.getFuncLabelStyle(attributes, y, item.label), container);
       // 绘制 Value
       this.upsert(`func-value-${index}`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
+      // hover背景
+      const funcBg=  this.upsert(`func_bg_${index}`,'rect',this.getFuncLabelBgStyle(attributes, y-12,container,`func_bg_${index}`), container);
+
+      if (!funcBg.__clickBound) {
+        funcBg.addEventListener('click', (e) => {
+          const states = this.nodeData.states;
+          const index=states.includes('func_bg_2') ? 1 : 0;
+          // 阻止事件冒泡，避免触发节点的点击事件
+          e.stopPropagation();
+          sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, index)
+          // 如果数据中有回调函数，则调用
+          if (typeof attributes.onButtonClick === 'function') {
+            attributes.onButtonClick(this.id, this.data);
+          }
+        });
+        funcBg.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      }
     });
   }
 
@@ -736,12 +838,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
           opacity: 0.5,
         }
       },
-      layout: {
-        type: 'antv-dagre',
-        rankdir: 'TB',
-        align: 'DL',
-        sortByCombo: true,
-      },
       "animation": {
         "enter": "fade", // 使用渐变动画
         "update": "translate", // 使用平移动画
@@ -781,6 +877,27 @@ const initG6Graph = async (nodes, edges, combos,) => {
     await graph.resize();
     await graph.render();
   })
+
+  // path内hover事件
+  const lineHoverClass=['func_bg_0', 'func_bg_1', 'func_bg_2', 'path-label' , 'path-icon-left']
+  graph.on(NodeEvent.POINTER_OVER,async (event)=>{
+    const { target, originalTarget } = event;
+    if(lineHoverClass.includes(originalTarget.className)){
+      await graph.setElementState(target.id,originalTarget.className )
+    }else {
+      const currentStates = graph.getElementState(target.id);
+      const newStates = currentStates.filter((state) => !lineHoverClass.includes(state));
+      graph.setElementState(target.id, newStates);
+    }
+  })
+
+  graph.on(NodeEvent.POINTER_LEAVE,async (event)=>{
+    const { target } = event;
+    const currentStates = graph.getElementState(target.id);
+    const newStates = currentStates.filter((state) => !lineHoverClass.includes(state));
+    graph.setElementState(target.id, newStates);
+  })
+
   watch(() => isDarkTheme.value, async () => {
     graph.draw()
     await graph.render();
