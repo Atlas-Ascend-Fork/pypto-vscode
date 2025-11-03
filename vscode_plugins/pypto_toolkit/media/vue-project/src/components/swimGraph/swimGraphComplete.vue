@@ -270,6 +270,9 @@ const handleMessage = (event) => {
         bindButton.value = $t("unbindComGraph");
       }
       break;
+    case 'noSwimFile':
+      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
+      break;
   }
 };
 
@@ -288,7 +291,8 @@ let ERROR_MESSAGES = {
   MISSING_PROCESS_NAME: $t("swimErroMsgMISSING_PROCESS_NAME"),
   MISSING_THREADS_FIELDS: $t("swimErroMsgMISSING_THREADS_FIELDS"),
   NO_THREADS: $t("swimErroMsgNO_THREADS"),
-  NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME")
+  NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME"),
+  FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
 }
 
 const validData = (data) => {

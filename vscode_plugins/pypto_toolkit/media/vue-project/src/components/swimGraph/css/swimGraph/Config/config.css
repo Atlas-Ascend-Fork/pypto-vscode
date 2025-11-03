@@ -1,6 +1,6 @@
 .cfgEdit {
     width: 300px;
-    height: 348px;
+    height: 308px;
     border-radius: 8px;
     position: absolute;
     background: var(--devui-select-bg);
@@ -35,10 +35,6 @@
     right: 24px;
     cursor: pointer;
     color: var(--devui-swim-text-title);
-}
-
-.cfg-select {
-    margin-top: 16px;
 }
 
 .cfg-Shading-mode {
