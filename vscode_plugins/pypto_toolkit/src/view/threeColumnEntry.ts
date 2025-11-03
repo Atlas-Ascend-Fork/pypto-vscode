@@ -33,7 +33,9 @@ export class Fider {
       }
   
       // 如果自动查找失败，回退到手动选择
-      return await this.handleNoPathsProvided(this.codePath);
+      if (!swimPath && !comPath) {
+        return await this.handleNoPathsProvided(this.codePath);
+      }
     }
   
     // 情况3: 只有泳道图路径
@@ -46,7 +48,7 @@ export class Fider {
       return await this.handleOnlyComPathProvided(this.codePath, comPath);
     }
   
-    return {  swimPath, comPath };
+    return { swimPath, comPath };
   }
 
   private async tryFindLatestOutputPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
@@ -97,6 +99,14 @@ export class Fider {
           comPath: possibleComPath
         };
       }
+      if (comPathExists) {
+        this.comPath = possibleComPath;
+        return this.findByCodePath(undefined, possibleComPath);
+      }
+      if (swimPathExists) {
+        this.swimPath = possibleSwimPath;
+        return this.findByCodePath(possibleSwimPath, undefined);
+      }
   
     } catch (error) {
       console.error('自动查找输出目录时出错:', error);
@@ -110,7 +120,7 @@ export class Fider {
     const swimPath = await this.selectFile(t('pypto.selectSwimFile'));
   
     if (!swimPath) {
-      window.showWarningMessage('pypto.noSwimFileSelect');
+      window.showWarningMessage(t('pypto.noSwimFileSelect'));
       return { codePath, swimPath: undefined, comPath: undefined };
     }
   
@@ -124,7 +134,7 @@ export class Fider {
   
     if (!comPath) {
       // 如果没找到，让用户选择计算图路径
-      comPath = await this.selectFile('pypto.selectComFile');
+      comPath = await this.selectFile(t('pypto.selectComFile'));
     }
   
     return { codePath, swimPath, comPath };

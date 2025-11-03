@@ -55,6 +55,13 @@
           "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
+      ],
+      "editor/context": [
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": [

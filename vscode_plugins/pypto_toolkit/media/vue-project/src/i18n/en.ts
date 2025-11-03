@@ -6,7 +6,6 @@ export default {
     'collapseAll': 'Collapse All',
     'loadTraceData': 'Loading trace data...',
     'loadCode': 'Loading code...',
-    'loadSemanticLabel': 'Loading semantic label...',
     'hide': '▼ Hide',
     'show': '▼ Show',
     'nodeDetails': 'Node Details',

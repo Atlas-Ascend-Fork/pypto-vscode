@@ -65,7 +65,6 @@ let currentHoverDecoration = null; // 悬停的背景装饰
 let labelInfoDecorations = []; // 存储标签信息装饰
 let initCodePath = '';
 let initTotalLine = 0;
-let canUpdateLabelSelect = false; // 是否更新背景色，如果鼠标在锁上，则不更新
 
 const isLocked = ref(false);
 const lockedLabel = ref(null);
@@ -247,18 +246,14 @@ const updateLockPosition = (label) => {
     const editorRect = editor.getDomNode().getBoundingClientRect();
     
     lockPosition.value = {
-      top: rect.top - editorRect.top - 15,
-      left: 60,
+      top: rect.top - editorRect.top + 20,
+      left: 63,
     };
   }
 };
 
 // 支持锁定
 const enableLock = (label) => {
-  if (!canUpdateLabelSelect) {
-    return;
-  }
-  
   updateLockPosition(label);
 };
 
@@ -270,22 +265,8 @@ const deactivateLock = () => {
   
   isLocked.value = false;
   lockedLabel.value = null;
-  lockPosition.value = null;
   
-  // 清除悬停装饰
-  if (currentHoverDecoration) {
-    editor.deltaDecorations(currentHoverDecoration, []);
-    currentHoverDecoration = null;
-  }
   sendMsg('deactivateLock');
-};
-
-const lockMouseEnter = (e) => {
-  canUpdateLabelSelect = false;
-};
-
-const lockMouseLeave = (e) => {
-  canUpdateLabelSelect = true;
 };
 
 const lockClick = (e) => {
@@ -303,7 +284,7 @@ const unLockClick = (e) => {
 // 更新悬停装饰
 const updateHoverDecoration = (position, emit = true) => {
   // 如果处于锁定状态，不更新悬停装饰
-  if (isLocked.value || !canUpdateLabelSelect) {
+  if (isLocked.value) {
     return;
   }
   
@@ -351,7 +332,6 @@ const updateHoverDecorationBySemanticLabel = (label) => {
     return;
   }
 
-  canUpdateLabelSelect = true;
   const position = {
     lineNumber: targetLabel.startLine,
     column: 1
@@ -360,9 +340,6 @@ const updateHoverDecorationBySemanticLabel = (label) => {
   updateHoverDecoration(position, false);
   if (!isLocked.value) {
     enableLock(targetLabel);
-  }
-  if (canUpdateLabelSelect) {
-    lastMoveLabel = targetLabel;
   }
   
   const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
@@ -391,30 +368,21 @@ const handleMouseMove = throttle((e) => {
   const { position } = e.target;
   const currentLabel = findSemanticLabelAtPosition(position);
   if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
-    // 延迟更新代码背景色，如果移动到了锁图标上，可以被锁图标拦截更新
-    canUpdateLabelSelect = true;
-    setTimeout(() => {
-      updateHoverDecoration(position);
-      if (currentLabel && !isLocked.value) {
-        enableLock(currentLabel);
-      }
-      if (canUpdateLabelSelect) {
-        lastMoveLabel = currentLabel;
-      }
-    }, 80);
+    updateHoverDecoration(position);
+    if (currentLabel && !isLocked.value) {
+      enableLock(currentLabel);
+    }
+    lastMoveLabel = currentLabel;
   } else if (!currentLabel && !isLocked.value && lastSentLabel) {
-    canUpdateLabelSelect = true;
-    setTimeout(() => {
-      if (!canUpdateLabelSelect || !lastSentLabel) {
-        return;
-      }
-      lastSentLabel = null;
-      lastMoveLabel = null;
-      lockPosition.value = null;
-      updateHoverDecoration(null);
-      sendMsg('returnSemanticLabelFromCode', { label: '' });
+    if (!lastSentLabel) {
       return;
-    }, 80);
+    }
+    lastSentLabel = null;
+    lastMoveLabel = null;
+    lockPosition.value = null;
+    updateHoverDecoration(null);
+    sendMsg('returnSemanticLabelFromCode', { label: '' });
+    return;
   }
 }, 16);
 
@@ -566,11 +534,13 @@ window.ascEventBus.on('returnSemanticLabelFromCom', (args) => {
 window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
   updateHoverDecorationBySemanticLabel(args.label);
 });
-window.ascEventBus.on('activeLock', (args) => {
-  if (lastMoveLabel !== args.label) {
-    updateHoverDecorationBySemanticLabel(args.label);
+window.ascEventBus.on('activeLock', ({ label }) => {
+  if (lastMoveLabel !== label) {
+    updateHoverDecorationBySemanticLabel(label);
   }
   isLocked.value = true;
+  const targetLabel = labels.find(l => l.name === label);
+  lockedLabel.value = targetLabel;
 });
 window.ascEventBus.on('deactivateLock', () => {
   deactivateLock();
@@ -593,7 +563,7 @@ const handleMessage = (event) => {
       const { codePath, code } = message.data;
       initCodePath = codePath;
       initTotalLine = code.split('\n').length;
-      loadingText.value = $t('loadSemanticLabel');
+      loading.value = false;
       nextTick(() => initEditor(code));
       break;
     }
@@ -601,7 +571,6 @@ const handleMessage = (event) => {
       mkSemanticLabel(message.data, initCodePath);
       parseSemanticLabels(initTotalLine);
       applySemanticDecorations();
-      loading.value = false;
       break;
     default:
       break;

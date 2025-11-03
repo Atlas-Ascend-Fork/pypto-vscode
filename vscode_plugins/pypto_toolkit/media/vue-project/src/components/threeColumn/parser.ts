@@ -1,13 +1,23 @@
 export const lineToSemanticMap = new Map<number, string>();
 export let labels: SemanticRange[] = [];
 
+function normalize(filePath: string) {
+  if (filePath.includes('\\')) {
+    const driveLetter = filePath[0].toLowerCase();
+    const _path = filePath.slice(1);
+    return `${driveLetter}${_path}`;
+  }
+  return filePath;
+}
+
 export function mkSemanticLabel(jsonData: any, filePath: string) {
+  const nfilePath = normalize(filePath);
   lineToSemanticMap.clear();
   if (jsonData.functions && Array.isArray(jsonData.functions)) {
     jsonData.functions.forEach((func: any) => {
       if (func.operations && Array.isArray(func.operations)) {
         func.operations.forEach((op: any) => {
-          if (op.file && op.file === filePath) {
+          if (op.file && normalize(op.file) === nfilePath) {
             const line = op.line;
             const semanticLabels = op.semantic_label || [];
             

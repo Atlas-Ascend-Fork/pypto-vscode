@@ -200,6 +200,7 @@ export class ThreeColumnGraphView {
     if (!this.swimPath || !this.comPath) {
       const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimPath, this.comPath);
       if (!swimPath || !comPath) {
+        this.panel.dispose();
         return;
       }
       this.panel.swimPath = swimPath;

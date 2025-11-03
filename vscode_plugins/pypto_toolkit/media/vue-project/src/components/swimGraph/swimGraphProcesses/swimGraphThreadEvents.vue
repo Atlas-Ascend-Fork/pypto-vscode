@@ -2206,7 +2206,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   }
   swimlaneContainer.value.scrollTo({
     top: minY,
-    behavior: 'smooth',
+    behavior: 'auto',
   });
 };
 
@@ -2283,6 +2283,9 @@ const handleOutline = (label, needTransform = true) => {
   }
 };
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+  handleOutline(label);
+});
+window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
   handleOutline(label);
 });
 window.ascEventBus.on('activeLock', ({ label }) => {

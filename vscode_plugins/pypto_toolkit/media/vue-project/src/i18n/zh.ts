@@ -6,7 +6,6 @@ export default {
    'collapseAll': '折叠所有',
    'loadTraceData': '等待加载 trace 数据...',
    'loadCode': '等待加载 code 数据...',
-   'loadSemanticLabel': '等待加载语义标签',
    'hide': '▲ 隐藏',
    'show': '▼ 显示',
    'nodeDetails': '节点详情',
