@@ -1272,7 +1272,6 @@ export class AscppDagBuilder {
             if (nodeMagic) {
                 // check duplicate Nodes in single path
                 if (this.singlePathNodeSet.has(nodeId)) {
-                    console.log("dxl test createTensorNode singlePathNodeSet", this.singlePathNodeSet);
                     const new_graphId = -2;
                     nodeId = `tensor-${tensorMagic}-${new_graphId}`;
                     this.singlePathNodeSet.add(nodeId);

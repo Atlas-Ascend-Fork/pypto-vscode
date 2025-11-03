@@ -363,7 +363,7 @@ export class AstgrGraphView implements IView {
 @injectable()
 export class AstgrLabelView extends SLabelView {
   override render(label: Readonly<SLabelImpl>, context: RenderingContext): VNode | undefined {
-    if (!this.isVisible(label, context)) {
+    if ((!this.isVisible(label, context)) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
 
@@ -428,7 +428,7 @@ export class AstgrLabelView extends SLabelView {
 export class AstgrNodeLabelView extends ShapeView {
   render(label: Readonly<SLabelImpl & MetadataLabel>, context: RenderingContext): VNode | undefined {
     const defaultZoomLevel = 0.3; // Default zoom level for visibility
-    if (!this.isVisible(label, context) || !showDetail(label.root as ViewportRootElementImpl, label.minZoomLevel ?? defaultZoomLevel)) {
+    if ((!this.isVisible(label, context) && (!comGraphStore.data.svgExportMode))|| !showDetail(label.root as ViewportRootElementImpl, label.minZoomLevel ?? defaultZoomLevel)) {
       return undefined;
     }
     let vnode;
@@ -546,7 +546,7 @@ export class AstgrOpView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs,
   ): VNode | undefined {
-    if (!this.isVisible(node, context)) {
+    if (!this.isVisible(node, context) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
 
@@ -740,7 +740,7 @@ export class AstgrTensorView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs,
   ): VNode | undefined {
-    if (!this.isVisible(node, context)) {
+    if ((!this.isVisible(node, context)) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
 
@@ -952,7 +952,7 @@ export class  AstgrTensorMinimapView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs,
   ): VNode | undefined {
-    if (!this.isVisible(node, context)) {
+    if ((!this.isVisible(node, context)) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
 
@@ -1022,7 +1022,7 @@ export class InputOutputNodeView extends ShapeView {
     context: RenderingContext,
     args?: IViewArgs,
   ): VNode | undefined {
-    if (!this.isVisible(node, context)) {
+    if ((!this.isVisible(node, context)) || (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
 
@@ -1172,7 +1172,7 @@ export class AstgrEdge extends PolylineEdgeView {
     if (route.length === 0) {
       return this.renderDanglingEdge('Cannot compute route', edge, context);
     }
-    if (!this.isVisible(edge, route, context)) {
+    if ((!this.isVisible(edge, route, context)) && (!comGraphStore.data.svgExportMode)) {
       if (edge.children.length === 0) {
         return undefined;
       }
@@ -1249,7 +1249,7 @@ export class AstgrEdge extends PolylineEdgeView {
 @injectable()
 export class AstgrPortView extends ShapeView {
   render(node: Readonly<SPortImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
-    if (!this.isVisible(node, context)) {
+    if ((!this.isVisible(node, context)) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
     const isInPort = node.id.endsWith('-in');
