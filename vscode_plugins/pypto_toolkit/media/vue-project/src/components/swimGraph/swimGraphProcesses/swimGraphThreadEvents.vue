@@ -23,7 +23,7 @@
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
-  getThreadHeight, getThreadStartY, eventTextSize
+  getThreadHeight, getThreadStartY, eventTextSize, meaureTextSize
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
 
@@ -385,7 +385,7 @@ function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
   let hoverId = `${props.processKey}-${curId}`;
   if (hoverId != curThread.value) {
     curThread.value = hoverId;
-    backgroundCanvasCtx.clearRect(0, 0, viewState.canvasCssWidth, backgroundCanvasRef.offsetHeight);
+    backgroundCanvasCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
     backgroundCanvasCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
     backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
   }
@@ -417,10 +417,10 @@ function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth;
   const actSpacingX = nodeSpacingX * viewState.scale;
   if (actSpacingX <= 3) { return };
-  const canvasCSSWidth = viewState.canvasCssWidth;
+  const { canvasWidth } = viewState;
   const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x);
   const noZoomPreX = getNoZoomX(preData?.renderInfo?.x) + (preData?.renderInfo?.width * viewState.scale);
-  if (noZoomLastX < (canvasCSSWidth - scrollWidth) && noZoomPreX > 0 ) {
+  if (noZoomLastX < (canvasWidth - scrollWidth) && noZoomPreX > 0 ) {
     altClickData = { preData, lastData, largeSpacing: actSpacingX > nodeSpaceMin };
     drawConnector(uiCtx, altClickData.largeSpacing);
   }
@@ -558,7 +558,7 @@ const drawSelectionBox = () => {
   if(!uiCtx) {
     return;
   }
-  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  uiCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   const {startLocalX, startY, endLocalX, endY} = selection;
   // 填充矩形
   uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
@@ -667,12 +667,9 @@ function onHoverEvent(hoveredEvent) {
     return;
   }
   const ctx = canvasRef.getContext('2d');
-
+  ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   if (hoveredEvent) {
-    ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     highlightEvent(ctx, hoveredEvent, props.processKey, false);
-  } else {
-    ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
   }
 }
 const clearSelectionCanvas = () => {
@@ -681,7 +678,7 @@ const clearSelectionCanvas = () => {
     return;
   }
   const ctx = canvasRef.getContext('2d');
-  ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
+  ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
 };
 function onSelectionEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -768,9 +765,8 @@ const resizeCanvas = () => {
 const transformEvents = (process, processKey) => {
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
-  const { height } = eventCtx.canvas;
   for (const ctx of Object.values(ctxs[processKey])) {
-    ctx.clearRect(0, 0, viewState.canvasCssWidth * viewState.scale, ctx.canvas.offsetHeight);
+    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   }
   
   for (const [threadKey, thread] of process.threads.entries()) {
@@ -809,7 +805,7 @@ const transformEvents = (process, processKey) => {
     changeNodeColor(processKey, true, false);
   }
 
-  highlightThread(process, processKey, backgroundCtx, height);
+  highlightThread(process, processKey, backgroundCtx);
   drawThreadSeparators(eventCtx, process, processKey);
 };
 
@@ -828,19 +824,18 @@ const renderProcessEvents = (process, processKey) => {
 
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
-  const offsetHeight = canvasRef.offsetHeight;
   for (const ctx of Object.values(ctxs[processKey])) {
     if (ctx) {
-      ctx.clearRect(0, 0, viewState.canvasCssWidth, offsetHeight);
+      ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
     }
   }
 
   drawThreads(process, processKey, eventCtx);
-  highlightThread(process, processKey, backgroundCtx, offsetHeight);
+  highlightThread(process, processKey, backgroundCtx);
   drawThreadSeparators(eventCtx, process, processKey);
 }
 
-const highlightThread = (process, processKey, backgroundCtx, height) => {
+const highlightThread = (process, processKey, backgroundCtx) => {
   if (curThread.value != '') {
     const [curProcess, lane] = curThread.value.split('-');
     const curLane = parseInt(lane);
@@ -859,9 +854,9 @@ const highlightThread = (process, processKey, backgroundCtx, height) => {
         if (index >= curLane) { break };
         curY += curHeight;
       }
-      backgroundCtx.clearRect(0, 0, viewState.canvasCssWidth, height);
+      backgroundCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
       backgroundCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-      backgroundCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
+      backgroundCtx.fillRect(0, curY, viewState.clearWidth, curHeight);
     }
   }
 };
@@ -914,7 +909,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
     }
   }
 
-  eventCtx.clearRect(0, 0, viewState.canvasCssWidth, maxThreadY);
+  eventCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   drawEvent(drawDatas, eventCtx, isDimmed);
   if (needText) drawEventText(drawDatas, eventCtx, isDimmed);
 };
@@ -925,7 +920,7 @@ const clearDependencyLines = (processKey) => {
   if (!dependencyCanvasRef) return false;
   
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
-  dependencyCtx.clearRect(0, 0, dependencyCanvasRef.offsetWidth, dependencyCanvasRef.offsetHeight);
+  dependencyCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   return dependencyCtx;
 };
 
@@ -1537,9 +1532,7 @@ const clearDrawConnector = (ctx, processKey) => {
     const canvasRef = getActiveEventCanvas(processKey);
     ctx.lineWidth = 2;
     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    const canvasCSSWidth = viewState.canvasCssWidth;
-    const canvasCSSHeight = getCanvasCSSHeight(canvasRef);
-    ctx.clearRect(0, 0, canvasCSSWidth, canvasCSSHeight);
+    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
     altClickData = {
       preData: null,
       lastData: null,
@@ -1551,9 +1544,7 @@ const clearDrawConnector = (ctx, processKey) => {
     const canvasRef = getActiveEventCanvas(processKey);
     ctx.lineWidth = 2;
     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    const canvasCSSWidth = viewState.canvasCssWidth;
-    const canvasCSSHeight = getCanvasCSSHeight(canvasRef);
-    ctx.clearRect(0, 0, canvasCSSWidth, canvasCSSHeight);
+    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
     // 补画第一个手动测距的节点
     const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
     const uiCtx = uiCanvasRef.getContext('2d');
@@ -1576,7 +1567,7 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(9);
+    ctx.font = getFontStyle(meaureTextSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const centerX = rect.x + rect.width / 2;
@@ -1602,7 +1593,7 @@ const clearDrawConnector = (ctx, processKey) => {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(9);
+    ctx.font = getFontStyle(meaureTextSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const centerX = rect.x + rect.width / 2;
@@ -1716,7 +1707,7 @@ const clearDrawConnector = (ctx, processKey) => {
       }
     let { x: lastX } = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX);
-    const width = 40;
+    const width = 40 * devicePixelRatio;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
@@ -1755,7 +1746,7 @@ const renderInfo2pixelData = (renderInfo) => {
     }
     let { x: lastX} = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX);
-    const width = 40;
+    const width = 40 * devicePixelRatio;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = getMeasureDistance(altClickData);
@@ -1935,7 +1926,7 @@ const eraseEventLine = (flag) => {
         canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
       }
       const ctx = canvasRef.getContext('2d');
-      ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
+      ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
     }
   }
 }

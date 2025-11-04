@@ -622,6 +622,7 @@ const resizeCanvases = () => {
     const ctx = setupHighDPICanvas(fixedtimelineCanvas.value, canvasWidth, 20);
     viewState.canvasCssWidth = canvasWidth;
     viewState.canvasWidth = ctx.canvas.width;
+    viewState.clearWidth = Math.max(viewState.canvasCssWidth, viewState.canvasWidth);
   }
   if (timelineCanvas.value) {
     setupHighDPICanvas(timelineCanvas.value, canvasWidth, 40);
