@@ -432,7 +432,7 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
-  if(props.isThreeColumn){
+  if (props.isThreeColumn) {
     childContextMap.threadEvent.resizeDrawBoundary();
     childContextMap.threadEvent.toggleLock();
   }

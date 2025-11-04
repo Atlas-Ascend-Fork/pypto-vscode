@@ -671,7 +671,7 @@ const handleSelection = () => {
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
 };
-// 按y坐标分组， 计算每行的左右边界
+// 按y坐标分组，计算每行的左右边界
 const calcRowBoundaries = (nodes) => {
   const rows = {};
   nodes.forEach(([x, y, w, h]) => {
@@ -682,7 +682,7 @@ const calcRowBoundaries = (nodes) => {
     } else {
       rows[rowKey].left = Math.min(rows[rowKey].left, x);
       rows[rowKey].right = Math.max(rows[rowKey].right, x + w);
-      rows[rowKey].bottom = y + h; //更新行高(取最大)
+      rows[rowKey].bottom = y + h; // 更新行高(取最大)
     }
   });
   // 转换成有序数组 [{left, right, top, bottom}, ...]
@@ -721,22 +721,22 @@ const drawBoundary = () => {
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   ctx.lineWidth = 1 / viewState.scale;
   ctx.beginPath();
-  const firstRow = temp[0];
+  const [firstRow] = temp;
   const lastRow = temp[temp.length - 1];
-  // 起点： 首行左上
+  // 起点：首行左上
   ctx.moveTo(...firstRow.leftTop);
   // 绘制左边界
   for (let i = 0; i < temp.length; i++) {
     const currentRow = temp[i];
     if (i === 0) {
-      // 首行： 直接左上 -> 左下
+      // 首行：直接左上 -> 左下
       ctx.lineTo(...currentRow.leftBottom);
     } else {
       const preRow = temp[i - 1];
       // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
-      ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  //水平过渡
-      ctx.lineTo(...currentRow.leftTop);  //垂直上升
-      ctx.lineTo(...currentRow.leftBottom);  //垂直上升
+      ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+      ctx.lineTo(...currentRow.leftTop);  // 垂直上升
+      ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
     }
   }
   // 绘制右边界
@@ -750,9 +750,9 @@ const drawBoundary = () => {
     } else {
       const nextRow = temp[i + 1];
       // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
-      ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  //水平过渡
-      ctx.lineTo(...currentRow.rightBottom);  //垂直上升
-      ctx.lineTo(...currentRow.rightTop);  //垂直下降
+      ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+      ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
+      ctx.lineTo(...currentRow.rightTop);  // 垂直下降
     }
   }
   // 闭合路径: 首行右上 -> 左下
@@ -904,6 +904,9 @@ const clearSelectionCanvas = (key) => {
   }
   const ctx = canvasRef.getContext('2d');
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvasRef.offsetHeight);
+  if (key !== 'data-three-column-process-key') {
+    return;
+  }
   points = [];
   boundaries = [];
 };
@@ -2278,7 +2281,7 @@ const handleOutline = (label, needTransform = true) => {
     drawBoundary();
     toggleLock();
   } else {
-    clearSelectionCanvas('[data-three-column-process-key');
+    clearSelectionCanvas('data-three-column-process-key');
     return;
   }
 };
