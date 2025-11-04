@@ -250,7 +250,7 @@ class PathCardNode extends Rect {
    */
   drawPathContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
     // 绘制路径名称
-    const text=  this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
+    const text =  this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
     const { width } = text.getBBox(); // 获取文本宽度
 
     // 绘制下划线
@@ -405,7 +405,7 @@ class PathCardNode extends Rect {
       // 绘制 Value
       this.upsert(`func-value-${index}`, 'text', this.getFuncValueStyle(attributes, y, item.value), container);
       // hover背景
-      const funcBg=  this.upsert(`func_bg_${index}`,'rect',this.getFuncLabelBgStyle(attributes, y-12,container,`func_bg_${index}`), container);
+      const funcBg = this.upsert(`func_bg_${index}`,'rect',this.getFuncLabelBgStyle(attributes, y-12,container,`func_bg_${index}`), container);
 
       if (!funcBg.__clickBound) {
         funcBg.addEventListener('click', (e) => {
@@ -711,6 +711,14 @@ const handHoverEvent = (value) => {
   graph.setElementState(value, 'selected');
 }
 
+// 更新画布大小
+async function updateGraphSize(){
+  await graph.layout();
+  await graph.resize();
+  await graph.render()
+  await graph.draw()
+}
+
 //  初始化 G6 图表（
 const initG6Graph = async (nodes, edges, combos,) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNode);
@@ -745,11 +753,20 @@ const initG6Graph = async (nodes, edges, combos,) => {
       },
       {
         type: 'tooltip',
+        key: 'my-tooltip',
         // 只对if节点启用，边不显示tooltip
         enable: (e, itemes) => itemes[0].type === 'if-card-node',
         getContent: (e, items) => {
           return `<div>${items[0].data.source.magicName}</div>`;
         },
+        style:{
+          '.tooltip':
+              {
+                visibility: 'hidden 0',
+                background:isDarkTheme.value ? '#363636' : '#FFFFFF',
+                color:isDarkTheme.value ? '#FFFFFF' : '#363636',
+              }
+        }
       },
     ],
     data: {
@@ -863,20 +880,6 @@ const initG6Graph = async (nodes, edges, combos,) => {
   });
   await graph.render();
 
-  // 监听画布变化时，更新画布大小
-  graph.on(GraphEvent.AFTER_SIZE_CHANGE, async () => {
-    zoom.value = Math.round(await graph?.getZoom() * 100)
-    await graph.layout();
-    await graph.resize();
-    await graph.render();
-  })
-
-  graph.on(GraphEvent.AFTER_TRANSFORM, async () => {
-    zoom.value = Math.round(await graph?.getZoom() * 100)
-    await graph.layout();
-    await graph.resize();
-    await graph.render();
-  })
 
   // path内hover事件
   const lineHoverClass=['func_bg_0', 'func_bg_1', 'func_bg_2', 'path-label' , 'path-icon-left']
@@ -906,6 +909,16 @@ const initG6Graph = async (nodes, edges, combos,) => {
       const id = node.id
       graph.setElementState(id, [],);
     })
+    graph.updatePlugin({
+      key: 'my-tooltip',
+      style:{
+        '.tooltip':
+            {
+              background:isDarkTheme.value ? '#363636' : '#FFFFFF',
+              color:isDarkTheme.value ? '#FFFFFF' : '#363636'
+            }
+      }
+    });
   })
 
   function fitActive() {
@@ -982,9 +995,11 @@ onMounted(async () => {
       });
     }
   })
+  window.addEventListener('resize', updateGraphSize);
 });
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateGraphSize);
 });
 </script>
 
@@ -1053,8 +1068,14 @@ onUnmounted(() => {
 .tool-select-search-icon {
   display: none;
 }
+
 .tool-bar {
   background-color: var(--control-flow-table-minimap-bg);
+}
+
+:deep(.tooltip){
+  border-radius: 8px !important;
+  transition-duration: 0s !important;
 }
 </style>
 <style lang="scss">
