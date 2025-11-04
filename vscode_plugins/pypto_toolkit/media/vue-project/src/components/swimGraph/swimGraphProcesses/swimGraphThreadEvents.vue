@@ -591,7 +591,6 @@ const handleMouseMove = throttle((e) => {
   if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
-    clearSelectionCanvas('data-three-column-process-key');
   }
   if (isLockStatus.value) {
     return;
@@ -613,12 +612,15 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   // 使用可选链和空值合并确保安全
-  if (preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus) {
+  if (shouldUpdateOutline(preLabel, color, isLockStatus, isThreeColumn, isHoverLockStatus)) {
     handleOutline(color, false);
     sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
   }
   preLabel = color;
   return true;
+};
+const shouldUpdateOutline = (preLabel, color, isLockStatus, isThreeColumn, isHoverLockStatus) => {
+  return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus;
 };
 const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
   let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
