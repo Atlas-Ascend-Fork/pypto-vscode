@@ -426,6 +426,11 @@ const setupHoverListeners = () => {
   editor.onDidScrollChange(() => {
     handleScroll();
   });
+
+  editor.onMouseLeave(() => {
+    lastMoveLabel = null;
+    lastSentLabel = null;
+  });
 };
 
 // 添加悬停效果的 CSS
