@@ -588,9 +588,14 @@ const handleMouseMove = throttle((e) => {
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
   const hasHnadleHover = handleHoverEvent(hoveredEvent);
-  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
+  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (!isPointInPolygon) {
+      clearSelectionCanvas('data-three-column-process-key');
+      selectEvent(null, props.processKey);
+    }
   }
   if (isLockStatus.value) {
     return;
@@ -2282,6 +2287,7 @@ const handleOutline = (label, needTransform = true) => {
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
+    selectEvent(null, props.processKey);
     if (!isLockStatus.value) {
       sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
     }
