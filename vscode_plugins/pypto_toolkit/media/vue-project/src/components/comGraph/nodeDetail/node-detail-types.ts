@@ -9,4 +9,7 @@ export const nodeDetailProps = {
   jsonContent: {
     type: Object
   },
+  height: {
+    type: Number,
+  }
 };
