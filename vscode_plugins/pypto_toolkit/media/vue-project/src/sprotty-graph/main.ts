@@ -357,10 +357,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
       
     if (comGraphStore.data.selectedNodeSemanticLabel !== semantic_lable) {
-      const index = modelSource.currentRoot.children.findIndex((t, i) => {
+      const firstNode = modelSource.currentRoot.children.find((t, i) => {
         return t.type.includes('node');
       })
-      modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
+      const firstEdge = modelSource.currentRoot.children.find((t: any) => {
+        return t.sourceId.includes(firstNode.id)
+      })
+      modelSource.removeElements([{elementId:'show-node-rect', parentId: firstEdge.id}]);
       comGraphStore.data.selectedNodeSemanticLabel = semantic_lable;
       const newRect = new Rect();
       newRect.id = 'show-node-rect';
@@ -370,7 +373,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       newRect.needCalPostion = true;
   
       modelSource.model.notNeedLayout = true;
-      await modelSource.addElements([{element: newRect, parentId: modelSource.currentRoot.children[index - 1].id}]);
+      await modelSource.addElements([{element: newRect, parentId: firstEdge.id}]);
     }
     const fitAction: FitToScreenAction = {
       maxZoom: 2.0, // Increased from 0.01 to allow normal zoom levels
