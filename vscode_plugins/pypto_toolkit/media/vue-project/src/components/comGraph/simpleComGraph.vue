@@ -126,6 +126,9 @@ function onMessageFromSwim(args) {
 (window as any).ascEventBus.on('returnSemanticLabelFromSwim', onMessageFromSwim);
 
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
+  if (comGraphStore.data.isNodeRectLock) {
+    return;
+  }
   if (args.semanticLabel) {
     createSelectNodesRect(args.semanticLabel, false);
     listenLockClick();

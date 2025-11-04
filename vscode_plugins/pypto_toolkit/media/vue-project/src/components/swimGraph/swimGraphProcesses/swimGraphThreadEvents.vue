@@ -625,7 +625,6 @@ const handleMouseMove = throttle((e) => {
 const getRootHashList = (eventHintStr) => {
   // 添加输入验证
   if (typeof eventHintStr !== 'string') {
-    console.warn('Expected string input for eventHintStr');
     return [];
   }
 
@@ -779,7 +778,7 @@ const toggleLock = () => {
     return;
   }
   let [x, y]= boundaries[0].leftTop;
-  x = x * viewState.scale + viewState.offsetX + spaceInThreeCol;
+  x = (x * viewState.scale) + viewState.offsetX + spaceInThreeCol;
   if (x < 0) {
     return;
   }
@@ -2302,14 +2301,14 @@ window.ascEventBus.on('deactivateLock', () => {
   isLockStatus.value = false;
 });
 const sendMsg = (command, param) => {
-  try {
+  Promise.resolve().then(() => {
     window.ascEventBus.emit(command, param);
-  } catch (error) {
-    console.error(`${command}执行失败`, error);
-  }
+  });
 };
-const isPointInPolygonFun = (point, boundaries) => {
-  if (!boundaries || boundaries.length === 0) return false;
+const isPointInPolygonFun = (point, polygonBoundaries) => {
+  if (!polygonBoundaries || polygonBoundaries.length === 0) {
+    return false;
+  }
 
   const [x, y] = point;
 
@@ -2317,15 +2316,15 @@ const isPointInPolygonFun = (point, boundaries) => {
   const polygonPoints = [];
 
   // 收集左边界点（从上到下）
-  for (let i = 0; i < boundaries.length; i++) {
-    polygonPoints.push(boundaries[i].leftTop);
+  for (let i = 0; i < polygonBoundaries.length; i++) {
+    polygonPoints.push(polygonBoundaries[i].leftTop);
   }
-  polygonPoints.push(boundaries[boundaries.length - 1].leftBottom);
+  polygonPoints.push(polygonBoundaries[polygonBoundaries.length - 1].leftBottom);
 
   // 收集右边界点（从下到上）
-  for (let i = boundaries.length - 1; i >= 0; i--) {
-    polygonPoints.push(boundaries[i].rightBottom);
-    polygonPoints.push(boundaries[i].rightTop);
+  for (let i = polygonBoundaries.length - 1; i >= 0; i--) {
+    polygonPoints.push(polygonBoundaries[i].rightBottom);
+    polygonPoints.push(polygonBoundaries[i].rightTop);
   }
 
   // 使用射线法判断点是否在多边形内
@@ -2335,20 +2334,23 @@ const isPointInPolygonFun = (point, boundaries) => {
     const [xj, yj] = polygonPoints[j];
 
     // 检查点是否在多边形边界上
-    if ((xi === x && yi === y) || (xj === x && yj === y)) {
+    if (isPointOnVertex()) {
       return true;
     }
 
     // 射线法核心判断
-    const intersect = ((yi > y) !== (yj > y)) &&
-      (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-
+    const intersect = ((yi > y) !== (yj > y)) && 
+      (x < (((xj - xi) * (y - yi)) / (yj - yi)) + xi);
     if (intersect) {
       inside = !inside;
     }
   }
 
   return inside;
+};
+
+const isPointOnVertex = (xi, yi, xj, yj, x, y) => {
+  return (xi === x && yi === y) || (xj === x && yj === y);
 };
 addChildContext('threadEvent', {
   getCanvasHeight,
