@@ -155,8 +155,8 @@ const updateTheme = () => {
   width: 118px;
   align-items: center;
   text-align: right;
-  margin-right: 8px;
-  margin-left: 8px;
+  margin-right: 4px;
+  margin-left: 4px;
   :deep() {
     .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
       border-color: var(--devui-select-hover-border-color);
