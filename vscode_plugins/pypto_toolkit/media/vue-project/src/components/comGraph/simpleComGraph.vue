@@ -28,6 +28,7 @@
     >
       <div id="sprotty"></div>
     </div>
+    <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
     <ComGraphMinimap v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
@@ -42,6 +43,7 @@ import ComGraphMinimap from './comGraphMinimap.vue';
 import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { vscode } from '../../core/vscode';
+import NodeDetail from './nodeDetail/nodeDetail.vue';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -78,6 +80,9 @@ let createSelectNodesRect;
 let removeSelectNodesRect;
 let initComDocText;
 let resetModelSource;
+const showNodeDetail = ref(false);
+const nodeId = ref('');
+const containerHeight = ref(0);
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -271,7 +276,7 @@ watch(
         isHoverHighlightNode: false,
         showExtendBtn: false,
         canLockPath: false,
-        canViewNodeDetail: false,
+        canViewNodeDetail: true,
         canViewSubgraph: false,
       });
     }
@@ -280,6 +285,16 @@ watch(
 );
 
 onMounted(() => {
+  (window as any).ascEventBus.on('view_mouseup', (node) => {
+    if (node.type === 'graph' || node.id.startsWith('parent')) {
+      showNodeDetail.value = false;
+    } else if (node.id.endsWith('label-main')) {
+      nodeId.value = node.id;
+      const container = document.querySelector('.simple-com-graph-container');
+      containerHeight.value = container.getBoundingClientRect().height;
+      showNodeDetail.value = true;
+    }
+  });
   (window as any).ascEventBus.on('layoutEnding', (args) => {
     isLoading.value = false;
     loadingText.value = '';
