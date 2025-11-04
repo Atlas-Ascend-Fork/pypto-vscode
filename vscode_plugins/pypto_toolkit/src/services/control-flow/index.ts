@@ -25,10 +25,11 @@ export interface GetControlFlowRes {
  * @returns
  */
 export async function getControlFlow(params: GetControlFlowParams): Promise<GetControlFlowRes> {
+  const programUri = vscode.Uri.file(params.controlFlowFilePath);
+  const fileContent = (await vscode.workspace.fs.readFile(programUri)).toString();
+
   let program: ProgramOutput;
   try {
-    const programUri = vscode.Uri.file(params.controlFlowFilePath);
-    const fileContent = (await vscode.workspace.fs.readFile(programUri)).toString();
     program = JSON.parse(fileContent);
   } catch {
     throw new Error('无法解析program.json');
