@@ -391,6 +391,11 @@ function onRowClick(params) {
 const calledMaxFrequency = ref(0)
 const calleeMaxFrequency = ref(0)
 
+/**
+ *  获取Called表格数据
+ * @param leafFunctions path中leafFunctions列表
+ * @param calledRecords path中calledRecords列表
+ */
 function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
   calledMaxFrequency.value = 0
   // 统计被调用数据
@@ -463,6 +468,11 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
   return tableData;
 }
 
+/**
+ *  获取Called表格数据
+ * @param leafFunctions path中leafFunctions列表
+ * @param calleeRecords path中calleeRecords列表
+ */
 function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeRecordsType[]): TableRowData[] {
   const calleeFunctionObj = {}
   calleeMaxFrequency.value = 0
@@ -503,6 +513,10 @@ const passStageTitle = {
   block: {label: 'Block Graph', color: 'var(--control-flow-panel-table-block)'},
 };
 
+/**
+ *  计算图列表数据转换
+ * @param passes path中passes列表
+ */
 function getPassList(passes: PassesType[]) {
   const passGroups: GroupItem[] = []
   let nowState = '';
@@ -530,6 +544,12 @@ function getPassList(passes: PassesType[]) {
   return passGroups;
 }
 
+/**
+ *  数据转换，提取node节点数据，转换为抽屉所需数据格式
+ * @param nodeData path节点数据
+ * @param path 打开计算图所需outPutPath值
+ * @param tabIndex 首次打开抽屉时查看标签页值
+ */
 function transFormPanelData(nodeData: ControlFlowNodesType, path: string , tabIndex: number) {
   outPutPath.value = path
   const {leafFunctions, calledRecords, calleeRecords} = nodeData.data.source.meta;
