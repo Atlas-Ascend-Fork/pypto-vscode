@@ -2334,7 +2334,12 @@ const isPointInPolygonFun = (point, polygonBoundaries) => {
     const [xj, yj] = polygonPoints[j];
 
     // 检查点是否在多边形边界上
-    if (isPointOnVertex()) {
+    const pointsObj = {
+      p1: { x: xi, y: yi },
+      p2: { x: xj, y: yj },
+      point: { x, y }
+    };
+    if (isPointOnVertex(pointsObj)) {
       return true;
     }
 
@@ -2349,8 +2354,8 @@ const isPointInPolygonFun = (point, polygonBoundaries) => {
   return inside;
 };
 
-const isPointOnVertex = (xi, yi, xj, yj, x, y) => {
-  return (xi === x && yi === y) || (xj === x && yj === y);
+const isPointOnVertex = ({ p1, p2, point }) => {
+  return (p1.x === point.x && p1.y === point.y) || (p2.x === point.x && p2.y === point.y);
 };
 addChildContext('threadEvent', {
   getCanvasHeight,
