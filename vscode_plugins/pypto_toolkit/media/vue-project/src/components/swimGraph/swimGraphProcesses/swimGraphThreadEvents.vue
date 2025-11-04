@@ -586,20 +586,12 @@ const handleMouseMove = throttle((e) => {
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
   }
 
-  let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
-
-  cursor = handleLineTooltipAndCursor(e, x, y) || '';
-
-  const dragCursor = handleCtrlDragPan(e, canvasRef);
-  if (dragCursor) {
-    cursor = dragCursor;
-  }
-
-  canvasRef.style.cursor = cursor;
+  updateCursorState(e, hoveredEvent, x, y, canvasRef);
   const hasHnadleHover = handleHoverEvent(hoveredEvent);
   if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
+    clearSelectionCanvas('data-three-column-process-key');
   }
   if (isLockStatus.value) {
     return;
@@ -627,6 +619,15 @@ const handleHoverEvent = (hoveredEvent) => {
   }
   preLabel = color;
   return true;
+};
+const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
+  let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
+  cursor = handleLineTooltipAndCursor(e, x, y) || '';
+  const dragCursor = handleCtrlDragPan(e, canvasRef);
+  if (dragCursor) {
+    cursor = dragCursor;
+  }
+  canvasRef.style.cursor = cursor;
 };
 const getRootHashList = (eventHintStr) => {
   // 添加输入验证
