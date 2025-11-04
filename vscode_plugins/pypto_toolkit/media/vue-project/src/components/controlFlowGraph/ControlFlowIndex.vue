@@ -886,7 +886,7 @@ const initG6Graph = async (nodes, edges, combos,) => {
   graph.on(NodeEvent.POINTER_OVER,async (event)=>{
     const { target, originalTarget } = event;
     if(lineHoverClass.includes(originalTarget.className)){
-      await graph.setElementState(target.id,originalTarget.className )
+      await graph.setElementState(target.id, originalTarget.className)
     }else {
       const currentStates = graph.getElementState(target.id);
       const newStates = currentStates.filter((state) => !lineHoverClass.includes(state));
