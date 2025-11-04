@@ -78,7 +78,6 @@ const returnSwim = (message) => {
 const returnSidBar = (message) => {
   graphType.value = 'returnSidBar';
   jsonContent.value = message.data;
-  console.log(message.data)
 };
 
 const returnError = (message) => {
