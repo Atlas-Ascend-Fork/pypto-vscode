@@ -1388,6 +1388,7 @@ const measureMouseUp = () => {
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
     mulDetailsExpanded.value = true;
     measureDetailsExpanded.value = true;
+    detailsPanelExpanded.value = false;
     return; 
   }
   return;
@@ -1412,6 +1413,7 @@ const measureMouseLeave = (e) => {
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
     mulDetailsExpanded.value = true;
     measureDetailsExpanded.value = true;
+    detailsPanelExpanded.value = false;
     return; 
   }
   return;
