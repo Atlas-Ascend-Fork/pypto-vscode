@@ -236,8 +236,16 @@ const updateLockPosition = (label) => {
   }
   
   // 获取要显示锁的行号（标签首行或视口首行）
-  const topVisibleLine = editor.getVisibleRanges()[0]?.startLineNumber || 1;
-  const displayLine = Math.max(label.startLine, topVisibleLine);
+  const visibleRanges = editor.getVisibleRanges();
+  if (!visibleRanges || !visibleRanges[0]) {
+    return;
+  }
+  const { startLineNumber: topVisibleLine, endLineNumber: bottomVisibleLine } = visibleRanges[0];
+  if (label.startLine < topVisibleLine || label.startLine > bottomVisibleLine) {
+    lockPosition.value = null;
+    return;
+  }
+  const displayLine = label.startLine;
   
   // 获取对应的DOM元素
   const domElement = getLineDomElement(displayLine);
@@ -359,8 +367,8 @@ const handleKeyDown = (e) => {
 
 // 滚动事件处理，更新锁位置
 const handleScroll = () => {
-  if (isLocked.value && lockedLabel.value) {
-    updateLockPosition(lockedLabel.value);
+  if (lastMoveLabel) {
+    updateLockPosition(lastMoveLabel);
   }
 };
 

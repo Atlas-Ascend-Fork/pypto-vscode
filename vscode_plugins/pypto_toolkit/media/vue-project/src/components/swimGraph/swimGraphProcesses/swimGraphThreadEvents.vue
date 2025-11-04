@@ -914,6 +914,7 @@ const clearSelectionCanvas = (key) => {
   }
   points = [];
   boundaries = [];
+  lockPosition.value = isLockStatus.value ? lockPosition.value : false;
 };
 function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
   highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
