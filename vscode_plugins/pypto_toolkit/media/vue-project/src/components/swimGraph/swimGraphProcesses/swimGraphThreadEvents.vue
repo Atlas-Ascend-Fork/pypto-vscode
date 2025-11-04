@@ -596,18 +596,8 @@ const handleMouseMove = throttle((e) => {
   }
 
   canvasRef.style.cursor = cursor;
-  if (hoveredEvent) {
-    const { args } = hoveredEvent ?? {};
-    const { color } = args ?? {};
-    const eventHintStr = args?.['event-hint'] ?? '';
-    const rootHashList = [getRootHashList(eventHintStr)];
-    // 使用可选链和空值合并确保安全
-    if (preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus) {
-      handleOutline(color, false);
-      sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
-    }
-    preLabel = color;
-  } else if (isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
+  const hasHnadleHover = handleHoverEvent(hoveredEvent);
+  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
   }
@@ -622,6 +612,22 @@ const handleMouseMove = throttle((e) => {
     mulDetailsExpanded.value = false;
   }
 }, 16);
+const handleHoverEvent = (hoveredEvent) => {
+  if (!hoveredEvent) {
+    return false;
+  }
+  const { args } = hoveredEvent ?? {};
+  const { color } = args ?? {};
+  const eventHintStr = args?.['event-hint'] ?? '';
+  const rootHashList = [getRootHashList(eventHintStr)];
+  // 使用可选链和空值合并确保安全
+  if (preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus) {
+    handleOutline(color, false);
+    sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+  }
+  preLabel = color;
+  return true;
+};
 const getRootHashList = (eventHintStr) => {
   // 添加输入验证
   if (typeof eventHintStr !== 'string') {
