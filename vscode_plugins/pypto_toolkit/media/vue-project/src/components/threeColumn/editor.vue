@@ -240,8 +240,8 @@ const updateLockPosition = (label) => {
   if (!visibleRanges || !visibleRanges[0]) {
     return;
   }
-  const [topVisibleLine, bottomVisibleLine] = visibleRanges[0];
-  if (label.startLine < topVisibleLine || label.startLine > bottomVisibleLine) {
+  const [{ startLineNumber, endLineNumber }] = visibleRanges;
+  if (label.startLine < startLineNumber || label.startLine > endLineNumber) {
     lockPosition.value = null;
     return;
   }
