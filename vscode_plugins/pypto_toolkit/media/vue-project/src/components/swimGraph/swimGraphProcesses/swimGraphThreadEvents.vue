@@ -2282,6 +2282,9 @@ const handleOutline = (label, needTransform = true) => {
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
+    if (!isLockStatus.value) {
+      sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
+    }
     return;
   }
 };

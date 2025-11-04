@@ -352,6 +352,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const createSelectNodesRect = async (semantic_lable : string, isLocate: boolean) => {
     const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);
     if (selectedNodes.length <= 0) {
+      removeSelectNodesRect();
       return;
     }
       

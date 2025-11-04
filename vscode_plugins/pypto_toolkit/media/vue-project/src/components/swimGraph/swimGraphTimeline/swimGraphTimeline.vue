@@ -291,7 +291,7 @@ const throttledRender = throttle(() => {
   transform();
 }, 16); // 约60fps
 
-const changeScale = (zoomFactor, centerPositionX, render = true, isManual = true) => {
+const changeScale = (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
   if (viewState.scale * 10 >= sliderMax.value && zoomFactor > 1) {
     if (isManual) {
       wheelDebounceTimer = setTimeout(() => {
@@ -322,7 +322,7 @@ const changeScale = (zoomFactor, centerPositionX, render = true, isManual = true
   sliderValue.value = parseInt(sliderCount, 10); 
 
   viewState.scaleChange = viewState.scale / oldScale;
-  viewState.offsetX = centerPositionX - (centerPositionX - oldOffsetX) * viewState.scaleChange;
+  viewState.offsetX = centerPositionX - ((centerPositionX - oldOffsetX) * viewState.scaleChange);
   const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
   timeLineX.value = endSecondTimex;
   const timeLineEndX = Math.abs(timeLineX.value);
@@ -337,7 +337,7 @@ const changeScale = (zoomFactor, centerPositionX, render = true, isManual = true
   viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
   viewState.minWidth = 1 / viewState.scale;
 
-  if (render) {
+  if (needRender) {
     throttledRender();
   }
 };

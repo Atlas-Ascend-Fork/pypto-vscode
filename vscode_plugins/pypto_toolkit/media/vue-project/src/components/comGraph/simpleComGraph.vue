@@ -259,6 +259,20 @@ watch(
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
         comGraphStore.setData('jsonData', jsonValue);
         resetModelSource();
+        (window as any).vscode.postMessage({
+          type: 'getFuncTree',
+        });
+        let shouldListenViewZoom = true;
+        if (comGraphStore.data.isNodeRectLock && comGraphStore.data.selectedNodeSemanticLabel) {
+          (window as any).ascEventBus.on(`_view_zoom`, () => {
+            if (shouldListenViewZoom) {
+              const tempLabel = comGraphStore.data.selectedNodeSemanticLabel;
+              comGraphStore.data.selectedNodeSemanticLabel = '';
+              createSelectNodesRect(tempLabel);
+              shouldListenViewZoom = false;
+            }
+          });
+        }
         return;
       }
       const sprottyLoadResult = useSprottyLoad();
