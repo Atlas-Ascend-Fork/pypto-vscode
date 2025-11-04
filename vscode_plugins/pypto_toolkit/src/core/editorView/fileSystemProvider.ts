@@ -1,8 +1,6 @@
-import fs from 'node:fs';
-
 import * as vscode from 'vscode';
 
-import { fromVirtualUri, VIRTUAL_SCHEME } from './virtualUri';
+import { VIRTUAL_SCHEME } from './virtualUri';
 
 const emptyDisposable: vscode.Disposable = { dispose: () => null };
 
@@ -26,10 +24,8 @@ export class EditorViewFileSystemProvider implements vscode.FileSystemProvider, 
     return emptyDisposable;
   }
 
-  public stat(uri: vscode.Uri): vscode.FileStat {
-    const { _path } = fromVirtualUri(uri);
-    const { size, ctime, mtime } = fs.statSync(_path);
-    return { type: vscode.FileType.File, size, ctime: ctime.getTime(), mtime: mtime.getTime() };
+  public stat(): vscode.FileStat {
+    return { type: vscode.FileType.Unknown, size: 0, ctime: 0, mtime: 0 };
   }
 
   public readDirectory(): [string, vscode.FileType][] {

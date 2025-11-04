@@ -36,14 +36,11 @@ export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRe
  * 控制流文件
  */
 async function getControlFlowFile(outputUri: vscode.Uri, record: OutputRecord): Promise<ControlFlowFile[]> {
-  if(!record.controlFlowFilePath) {
+  if (!record.controlFlowFilePath || !path.isAbsolute(record.controlFlowFilePath)) {
     return [];
   }
-
   const controlFlowUri = vscode.Uri.file(record.controlFlowFilePath);
-  try {
-    await vscode.workspace.fs.readFile(controlFlowUri);
-  } catch {
+  if (!(await isFileExist(controlFlowUri))) {
     return [];
   }
   return [
@@ -62,11 +59,13 @@ async function getControlFlowFile(outputUri: vscode.Uri, record: OutputRecord): 
  * 泳道图文件
  */
 async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Promise<SwimlaneGraphFile[]> {
-  if (!record.swimlaneGraphFilePath) {
+  if (!record.swimlaneGraphFilePath || !path.isAbsolute(record.swimlaneGraphFilePath)) {
     return [];
   }
-
   const swimlaneFileUri = vscode.Uri.file(record.swimlaneGraphFilePath);
+  if (!(await isFileExist(swimlaneFileUri))) {
+    return [];
+  }
   return [
     {
       type: 'file',
@@ -83,7 +82,7 @@ async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Pro
  * 计算图目录
  */
 async function getComputeGraphDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<ComputeDirectory[]> {
-  if (!record.computeGraphDirPath) {
+  if (!record.computeGraphDirPath || !path.isAbsolute(record.computeGraphDirPath)) {
     return [];
   }
 
@@ -109,7 +108,13 @@ const passDirectoryRegExp = /^Pass_(\d+)_(\w+)$/;
  * Pass目录
  */
 async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Uri): Promise<PassDirectory[]> {
-  const subList = await vscode.workspace.fs.readDirectory(parentDirUri);
+  let subList: [string, vscode.FileType][];
+  try {
+    subList = await vscode.workspace.fs.readDirectory(parentDirUri);
+  } catch {
+    return [];
+  }
+
   const passes: PassDirectory[] = [];
   let passStage = PassStage.TENSOR_GRAPH;
   for (const [subPath, fileType] of subList) {
@@ -177,6 +182,15 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
   }
 
   return graphs;
+}
+
+async function isFileExist(fileUri: vscode.Uri): Promise<boolean> {
+  try {
+    await vscode.workspace.fs.stat(fileUri);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isComputeGraph(subPath: string, { passIndex, passName }: Pass): boolean {
