@@ -23,7 +23,6 @@ export class ViewServer<Apis extends string, Refs extends string> implements Dis
    */
   constructor(private _ctx: ViewServerContext) {
     _ctx.init.call(this);
-    this.created(_ctx);
   }
 
   /**
@@ -36,7 +35,12 @@ export class ViewServer<Apis extends string, Refs extends string> implements Dis
   /**
    * 创建视图hook（继承类覆盖）
    */
-  protected created(ctx: ViewServerContext) {}
+  public created(ctx: ViewServerContext) {}
+
+  /**
+   * 销毁视图hook（继承类覆盖）
+   */
+  public disposed() {}
 
   /**
    * 设置响应式对象的值

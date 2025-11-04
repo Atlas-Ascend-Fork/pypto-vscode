@@ -77,8 +77,8 @@ class ExtensionApiServer {
       try {
         const resData = await currentApi(data);
         this.resSuccess(webview, requestMessage, resData);
-      } catch (e: unknown) {
-        this.resServerError(webview, requestMessage, e);
+      } catch (e) {
+        this.resServerError(webview, requestMessage, e as Error);
         throw e;
       }
     });
@@ -116,7 +116,7 @@ class ExtensionApiServer {
     vscode.window.showErrorMessage(errorMessage);
   }
 
-  private resServerError(webview: vscode.Webview, requestMessage: RequestMessage, error: unknown): void {
+  private resServerError(webview: vscode.Webview, requestMessage: RequestMessage, error: Error): void {
     const errorMessage = t('PyPTOToolkit.request.statusServerError', { apiName: requestMessage.api });
     const errorObject = this.makeSendableError(error);
     this.connector.send(webview, {

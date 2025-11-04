@@ -125,16 +125,18 @@ export class EditorView {
    */
   private activeViewPanel(viewPanel: vscode.WebviewPanel, uri: vscode.Uri): void {
     const uriQuery = fromVirtualUri(uri);
+    const { viewServer } = this.viewRawMap.get(uriQuery._viewType) ?? {};
 
     // 加载html
     const htmlTemplateText = getWebviewEntryCode(viewPanel);
     viewPanel.webview.html = htmlTemplateText;
 
     // 视图服务
-    const { viewServer } = this.viewRawMap.get(uriQuery._viewType) ?? {};
+    let server: ViewServer<'', ''>;
     if (viewServer) {
       const ctx = makeViewServerContext(viewPanel, vscode.Uri.file(uriQuery._path));
-      new viewServer(ctx);
+      server = new viewServer(ctx);
+      server.created(ctx);
     }
 
     // hook
@@ -150,11 +152,14 @@ export class EditorView {
 
     // 监听主题变化
     const themeListener = vscode.window.onDidChangeActiveColorTheme(
-      () => viewPanel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }), null
-    )
+      () => viewPanel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }),
+      null,
+    );
+
     // 监听销毁
     viewPanel.onDidDispose(() => {
-      themeListener.dispose()
+      themeListener.dispose();
+      server?.disposed();
       // hook
       this.onViewDisposed?.(uriQuery._viewType, uri);
     });
