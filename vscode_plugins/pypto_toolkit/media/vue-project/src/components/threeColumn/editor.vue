@@ -510,7 +510,6 @@ const initEditor = (code) => {
     // 触发保存
     debouncedSave();
   });
-
 };
 
 const updateTheme = () => {
