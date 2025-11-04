@@ -21,7 +21,6 @@ export function useComboCardNodes() {
 
         async drawButton(attributes) {
             const [width, height] = this.getKeySize(attributes);
-            const btnR = 8;
             const y = -height / 2;
             const x = -width / 2 + 10;
             const states = this.nodeData.states;
@@ -46,7 +45,7 @@ export function useComboCardNodes() {
             }
 
             // loop标签背景色板
-            const hitArea = this.upsert('hit-area', 'rect', {
+            this.upsert('hit-area', 'rect', {
                 y: y - 15,
                 x,
                 width: 20 + this.id.length * 10.3,
@@ -55,7 +54,7 @@ export function useComboCardNodes() {
                 fill: isSelectedHitAreaColor
             }, this);
             // loop标签左图片
-            const leftImage = this.upsert('left-svg', 'image', {
+            this.upsert('left-svg', 'image', {
                 y: y - 8,
                 x: x + 10,
                 width: 20,
@@ -63,7 +62,7 @@ export function useComboCardNodes() {
                 src: loopLeftIcon,
             }, this)
             // loop标签文本
-            const text = await this.upsert('loop-text', 'text', {
+            await this.upsert('loop-text', 'text', {
                 y: y + 12,
                 x: x + 35,
                 text: this.id,
@@ -75,7 +74,7 @@ export function useComboCardNodes() {
 
         render(attributes, container) {
             super.render(attributes, container);
-            const shape = this.drawButton(attributes);
+            this.drawButton(attributes);
         }
     }
     return {
