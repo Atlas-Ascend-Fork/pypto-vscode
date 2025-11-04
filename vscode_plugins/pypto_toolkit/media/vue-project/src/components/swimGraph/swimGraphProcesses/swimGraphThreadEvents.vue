@@ -612,14 +612,14 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   // 使用可选链和空值合并确保安全
-  if (shouldUpdateOutline(preLabel, color, isLockStatus, isThreeColumn, isHoverLockStatus)) {
+  if (shouldUpdateOutline(color)) {
     handleOutline(color, false);
     sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
   }
   preLabel = color;
   return true;
 };
-const shouldUpdateOutline = (preLabel, color, isLockStatus, isThreeColumn, isHoverLockStatus) => {
+const shouldUpdateOutline = (color) => {
   return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus;
 };
 const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
