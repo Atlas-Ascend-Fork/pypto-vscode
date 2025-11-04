@@ -96,6 +96,7 @@ import { ref, inject, watch} from 'vue';
 // 注入父组件提供的状态和方法
 const {
   mulDetailsExpanded,
+  measureDetailsExpanded,
   measureDetailsData,
   rootHashes,
   leafHashes,
@@ -249,8 +250,8 @@ const initTableDatas = () => {
 defineExpose({
 });
 
-watch(mulDetailsExpanded, (newValue) => {
-  if (newValue === true) {
+watch([mulDetailsExpanded, measureDetailsExpanded], ([newMulValue, newMeasureValue]) => {
+  if (newMulValue === true || newMeasureValue === true) {
     initDatas();
     initTableDatas();
     category.forEach((item, index) => {
@@ -291,6 +292,15 @@ const transformToOptions = (source) =>
       color: var(--devui-category-search-placeholder);
       font-size: 13px;
     }
+  }
+
+  .mulDetailTable .devui-table__thead .header-container .title {
+    line-height: 24px;
+    max-width: 100%;
+  }
+
+  .mulDetailTable .devui-table__tbody tr td {
+    line-height: 32px;
   }
 }
 </style>
