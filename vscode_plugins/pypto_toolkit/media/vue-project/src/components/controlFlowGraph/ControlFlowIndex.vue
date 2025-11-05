@@ -78,7 +78,7 @@ const initZoom = ref()
 const isActive = ref(false);
 const options = ref([])
 const combosNode = ref(null);
-const { PathCardNodes } = usePathCardNodes(sideBarRef,outPutPath.value)
+const { PathCardNodes } = usePathCardNodes(sideBarRef,outPutPath)
 const { IfCardNode } = useIfCardNodes()
 const { LogoWithRectCombo } = useComboCardNodes()
 

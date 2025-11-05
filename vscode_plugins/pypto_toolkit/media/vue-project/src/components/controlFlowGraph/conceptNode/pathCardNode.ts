@@ -145,7 +145,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
         openGraph(){
             const length = this.nodeData.data.source.meta?.passes.length;
             openComputeGraph({
-                outputPath: outPutPath,
+                outputPath: outPutPath.value as string,
                 computeGraphPath: this.nodeData.data.source.meta?.passes[length - 1].graphFilePath,
                 pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
             })
@@ -185,7 +185,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
                 rightIcon.addEventListener('click', (e) => {
                     // 阻止事件冒泡，避免触发节点的点击事件
                     e.stopPropagation();
-                    sideBarRef.value.transFormPanelData(this.nodeData, outPutPath, 0)
+                    sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, 0)
                     // 执行业务逻辑
                     // 如果数据中有回调函数，则调用
                     if (typeof attributes.onButtonClick === 'function') {
@@ -321,7 +321,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
                         const index=states.includes('func_bg_2') ? 1 : 0;
                         // 阻止事件冒泡，避免触发节点的点击事件
                         e.stopPropagation();
-                        sideBarRef.value.transFormPanelData(this.nodeData, outPutPath, index)
+                        sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, index)
                         // 如果数据中有回调函数，则调用
                         if (typeof attributes.onButtonClick === 'function') {
                             attributes.onButtonClick(this.id, this.data);

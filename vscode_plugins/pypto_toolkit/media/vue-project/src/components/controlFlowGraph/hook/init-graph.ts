@@ -38,14 +38,6 @@ export function useInitGraph(container, minimapRef, nodes, edges, combos, isDark
                 getContent: (e, items) => {
                     return `<div>${items[0].data.source.magicName}</div>`;
                 },
-                style:{
-                    '.tooltip':
-                        {
-                            visibility: 'hidden 0',
-                            background: 'var(--devui-select-bg)',
-                            color: 'var(--control-flow-tip-color)',
-                        }
-                }
             },
         ],
         data: {
@@ -186,6 +178,7 @@ export function useInitGraph(container, minimapRef, nodes, edges, combos, isDark
             style:{
                 '.tooltip':
                     {
+                        visibility: 'hidden',
                         background: getThemeColorTool('devui-tooltip-bg', isDarkTheme.value),
                         color: getThemeColorTool('control-flow-tip-color', isDarkTheme.value),
                     }
