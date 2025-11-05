@@ -722,8 +722,8 @@ const drawBoundary = () => {
   const space = spaceInThreeCol;
   const xSpace = space / viewState.scale;
   const { minLeft, maxRight } = boundaries.reduce((acc, item) => {
-    const left = item.leftTop[0];
-    const right = item.rightTop[0];
+    const [left] = item.leftTop;
+    const [right] = item.rightTop;
     return {
       minLeft: Math.min(acc.minLeft, left),
       maxRight: Math.max(acc.maxRight, right)
