@@ -1,7 +1,7 @@
 <template>
 <div class="container">
   <Loading v-if="loading" :loadingText="loadingText" warningText="" />
-  <div v-show="!loading" ref="containerRef" class="editor-container">
+  <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave">
     <!-- 锁图标悬浮框 -->
     <div v-if="!isLocked && lockPosition" 
          class="lock-indicator"
@@ -240,8 +240,8 @@ const updateLockPosition = (label) => {
   if (!visibleRanges || !visibleRanges[0]) {
     return;
   }
-  const { startLineNumber: topVisibleLine, endLineNumber: bottomVisibleLine } = visibleRanges[0];
-  if (label.startLine < topVisibleLine || label.startLine > bottomVisibleLine) {
+  const [{ startLineNumber, endLineNumber }] = visibleRanges;
+  if (label.startLine < startLineNumber || label.startLine > endLineNumber) {
     lockPosition.value = null;
     return;
   }
@@ -426,6 +426,11 @@ const setupHoverListeners = () => {
   editor.onDidScrollChange(() => {
     handleScroll();
   });
+};
+
+const handleMouseLeave = () => {
+  lastMoveLabel = null;
+  lastSentLabel = null;
 };
 
 // 添加悬停效果的 CSS

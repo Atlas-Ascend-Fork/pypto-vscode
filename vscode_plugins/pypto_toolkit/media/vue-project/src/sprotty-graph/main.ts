@@ -360,6 +360,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       const firstNode = modelSource.currentRoot.children.find((t, i) => {
         return t.type.includes('node');
       })
+      modelSource.model.notNeedLayout = true;
       const firstEdge = modelSource.currentRoot.children.find((t: any) => {
         return t.sourceId.includes(firstNode.id)
       })
@@ -372,7 +373,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       newRect.selectedNodes = selectedNodes;
       newRect.needCalPostion = true;
   
-      modelSource.model.notNeedLayout = true;
       await modelSource.addElements([{element: newRect, parentId: firstEdge.id}]);
     }
     const fitAction: FitToScreenAction = {
@@ -380,20 +380,20 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       padding: 50, // Reduced padding
       kind: 'fit',
       elementIds: selectedNodes,
-      animate: true,
+      animate: false,
     };
     isLocate && modelSource.actionDispatcher.dispatch(fitAction).then(() => {
       getViewport(modelSource, MAINMAP_FIT_SCREEN);
     }); 
-    modelSource.model.notNeedLayout = true;
   }
 
   const removeSelectNodesRect = async () => {
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
-    modelSource.model.notNeedLayout = true;
-    await modelSource.removeElements(['show-node-rect']);
-    modelSource.model.notNeedLayout = false;
+    const index = modelSource.currentRoot.children.findIndex((t, i) => {
+        return t.type.includes('node');
+    })
+    await modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
   }
 
   return {

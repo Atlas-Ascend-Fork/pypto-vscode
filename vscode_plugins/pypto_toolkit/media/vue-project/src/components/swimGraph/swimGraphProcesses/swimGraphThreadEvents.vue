@@ -588,9 +588,14 @@ const handleMouseMove = throttle((e) => {
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
   const hasHnadleHover = handleHoverEvent(hoveredEvent);
-  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && preLabel && !isHoverLockStatus) {
+  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && !isHoverLockStatus) {
     sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
     preLabel = '';
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (!isPointInPolygon) {
+      clearSelectionCanvas('data-three-column-process-key');
+      selectEvent(null, props.processKey);
+    }
   }
   if (isLockStatus.value) {
     return;
@@ -716,15 +721,24 @@ const drawBoundary = () => {
   }
   const space = spaceInThreeCol;
   const xSpace = space / viewState.scale;
+  const { minLeft, maxRight } = boundaries.reduce((acc, item) => {
+    const [left] = item.leftTop;
+    const [right] = item.rightTop;
+    return {
+      minLeft: Math.min(acc.minLeft, left),
+      maxRight: Math.max(acc.maxRight, right)
+    };
+  }, { minLeft: Infinity, maxRight: -Infinity });
+  const isAtLeftEdge = viewState.offsetX === 0 && minLeft <= xSpace;
+  const isAtRightEdge = viewState.offsetX === 0 && maxRight >= viewState.canvasWidth;
   const temp = boundaries.map((row) => {
     return {
-      leftTop: [row.leftTop[0] - xSpace, row.leftTop[1] - space],
-      leftBottom: [row.leftBottom[0] - xSpace, row.leftBottom[1] + space],
-      rightTop: [row.rightTop[0] + xSpace, row.rightTop[1] - space],
-      rightBottom: [row.rightBottom[0] + xSpace, row.rightBottom[1] + space],
+      leftTop: [isAtLeftEdge ? row.leftTop[0] : row.leftTop[0] - xSpace, row.leftTop[1] - space],
+      leftBottom: [isAtLeftEdge ? row.leftBottom[0] : row.leftBottom[0] - xSpace, row.leftBottom[1] + space],
+      rightTop: [isAtRightEdge ? row.rightTop[0] : row.rightTop[0] + xSpace, row.rightTop[1] - space],
+      rightBottom: [isAtRightEdge ? row.rightBottom[0] : row.rightBottom[0] + xSpace, row.rightBottom[1] + space],
     };
   });
-
   ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   ctx.lineWidth = 1 / viewState.scale;
@@ -2282,6 +2296,7 @@ const handleOutline = (label, needTransform = true) => {
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
+    selectEvent(null, props.processKey);
     if (!isLockStatus.value) {
       sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
     }
