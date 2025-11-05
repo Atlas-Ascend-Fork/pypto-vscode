@@ -3,6 +3,8 @@ import { readonly, Ref, ref } from 'vue';
 import type { ViewServer, ViewServerConfig } from 'ext:/core/view/view-server';
 import type { ViewServerApiMessage, ViewServerApiResponse, ViewServerUpdateRefMessage } from 'ext:/core/view/view-server-context';
 
+import { deepToRaw } from '@/utils/reactive';
+
 import { ExtensionConnector } from './connector';
 import { getQuery } from './query';
 
@@ -57,7 +59,7 @@ export function useViewServer<ServerInstance extends ViewServer<string, string>>
 /** api */
 const serverApiConnector = new ExtensionConnector<ViewServerApiMessage, ViewServerApiResponse>('viewServerApi');
 const pendingApis = new Map();
-serverApiConnector.receive(({ api, requestId, response }) => {
+serverApiConnector.receive(({ requestId, response }) => {
   if (!pendingApis.has(requestId)) {
     return;
   }
@@ -72,7 +74,7 @@ serverApiConnector.receive(({ api, requestId, response }) => {
 function getViewServerApi(api: string): (...args: unknown[]) => Promise<unknown> {
   return (...params) => {
     const requestId = `${api}-${Date.now()}`;
-    serverApiConnector.send({ api: api, requestId, params });
+    serverApiConnector.send({ api: api, requestId, params: deepToRaw(params) });
     return new Promise((resolve) => {
       pendingApis.set(requestId, resolve);
     });

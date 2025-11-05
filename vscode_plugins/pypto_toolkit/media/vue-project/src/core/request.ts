@@ -1,5 +1,8 @@
-import { ExtensionConnector } from './connector';
 import type { RequestOptions, RequestMessage, ResponseMessage } from 'ext:/core/request-server';
+
+import { deepToRaw } from '@/utils/reactive';
+
+import { ExtensionConnector } from './connector';
 
 export type { RequestOptions };
 
@@ -40,7 +43,7 @@ function createExtensionRequest(): ExtensionRequest {
     post: <Data, Res>(api: string, params: Data, options?: RequestOptions): Promise<Res> => {
       const optionsWithDefault = getOptionsWithDefault(options);
       const requestId = `${api}-${Date.now()}`;
-      connector.send({ api, requestId, data: params, options: optionsWithDefault });
+      connector.send({ api, requestId, data: deepToRaw(params), options: optionsWithDefault });
 
       return new Promise((resolve, reject) => {
         // 请求超时
