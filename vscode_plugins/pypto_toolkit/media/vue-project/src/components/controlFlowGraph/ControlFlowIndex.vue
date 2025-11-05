@@ -66,10 +66,10 @@ import Navbar from '@/components/navbar/navbar.vue';
 import ErrorView from '@/components/comGraph/error.vue';
 import SearchSelect from '@/components/controlFlowGraph/components/SearchSelect.vue';
 import Loading from '@/components/comGraph/loading.vue';
-import { usePathCardNodes } from '@/components/controlFlowGraph/conceptNode/pathCardNode';
-import { useIfCardNodes } from '@/components/controlFlowGraph/conceptNode/ifCardNode';
-import { useComboCardNodes } from '@/components/controlFlowGraph/conceptNode/comboNode';
-import { useInitGraph } from '@/components/controlFlowGraph/hook/init-graph';
+import { usePathCardNodes } from '@/components/controlFlowGraph/hook/usePathCardNode';
+import { useIfCardNodes } from '@/components/controlFlowGraph/hook/useIfCardNode';
+import { useComboCardNodes } from '@/components/controlFlowGraph/hook/useComboNode';
+import { useInitGraph } from '@/components/controlFlowGraph/hook/useInitGraph';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -257,7 +257,7 @@ onMounted(async () => {
   nodes.forEach((item) => {
     if (item.type !== 'if-card-node') {
       options.value.push({
-        label: item.data.name,
+        label: item.data.source.magicName,
         value: item.id,
         data: item,
       });

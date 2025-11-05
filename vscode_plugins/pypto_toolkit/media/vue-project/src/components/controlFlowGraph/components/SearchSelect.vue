@@ -1,25 +1,23 @@
 <template>
   <div class="search-select-container">
-    <d-input v-model="searchValue"
-             class="mt-0 mb-2 search-input"
-             @input="handleInputChange"
-             @keydown="handleKeyDown"
-             style="width: 320px"
-             clearable
-             :placeholder="t('controlFlows.searchPlaceholder')"
-             prefix="search"/>
-    <div
-        v-if="isOpen && visibleResults.length"
-        class="search-result-list"
-        @mousedown.prevent
-    >
+    <d-input
+      v-model="searchValue"
+      class="mt-0 mb-2 search-input"
+      @input="debouncedHandleInput"
+      @keydown="handleKeyDown"
+      style="width: 320px"
+      clearable
+      :placeholder="t('controlFlows.searchPlaceholder')"
+      prefix="search"
+    />
+    <div v-if="isOpen && visibleResults.length" class="search-result-list" @mousedown.prevent>
       <div
-          v-for="(item, index) in visibleResults"
-          :key="item.value"
-          :class="{ active: index === activeIndex }"
-          class="result-item"
-          @click="handleItemClick(item)"
-          @mouseenter="activeIndex = index"
+        v-for="(item, index) in visibleResults"
+        :key="item.value"
+        :class="{ active: index === activeIndex }"
+        class="result-item"
+        @click="handleItemClick(item)"
+        @mouseenter="activeIndex = index"
       >
         {{ item.label }}
       </div>
@@ -28,8 +26,8 @@
 </template>
 
 <script lang="ts" setup>
-import {onUnmounted, ref, watch} from 'vue';
-import {useI18n} from 'vue-i18n';
+import { onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 // 1. 数据源
 const props = defineProps<{
   options: Array<{
@@ -41,7 +39,7 @@ const props = defineProps<{
 // 2. 向父组件传递的事件（
 const emit = defineEmits<{
   (e: 'matched-results', value: typeof props.options): void; // 匹配结果
-  (e: 'selected-value', value: typeof props.options[0] | null): void; // 选中项
+  (e: 'selected-value', value: (typeof props.options)[0] | null): void; // 选中项
   (e: 'active-event', value: string): void; //搜索预选hover高亮事件
 }>();
 
@@ -50,7 +48,7 @@ const searchValue = ref('');
 const visibleResults = ref<typeof props.options>([]);
 const isOpen = ref(false);
 const activeIndex = ref(-1);
-const {t} = useI18n();
+const { t } = useI18n();
 
 // 4. @search事件触发（如回车、点击搜索图标，用于主动确认搜索）
 const handleOfficialSearch = () => {
@@ -61,11 +59,31 @@ const handleOfficialSearch = () => {
   isOpen.value = visibleResults.length > 0;
 };
 
-watch(() => activeIndex.value, (value) => {
-  if (value !== -1) {
-    emit('active-event', visibleResults?.value[activeIndex?.value]?.value ?? ''); // 通知父组件高亮
-  }
-})
+watch(
+  () => activeIndex.value,
+  (value) => {
+    if (value !== -1) {
+      emit('active-event', visibleResults?.value[activeIndex?.value]?.value ?? ''); // 通知父组件高亮
+    }
+  },
+);
+
+// 防抖函数,避免连续输入时频繁筛选
+let debounceTimer = null; // 防抖计时器
+const debounce = (fn, wait = 300) => {
+  return (...args) => {
+    // 每次触发时清除之前的计时器
+    if (debounceTimer) clearTimeout(debounceTimer);
+    // 重新计时，等待 wait 毫秒后执行
+    debounceTimer = setTimeout(() => {
+      fn.apply(this, args); // 执行原始函数
+    }, wait);
+  };
+};
+
+const debouncedHandleInput = debounce((e) => {
+  handleInputChange(e);
+}, 300);
 
 // 实时输入触发模糊搜索
 const handleInputChange = (val: string) => {
@@ -78,7 +96,7 @@ const handleInputChange = (val: string) => {
     isOpen.value = true;
   }
   // 模糊匹配label/value（符合需求）
-  const matched = props.options.filter(item => String(item.label).toLowerCase().includes(val.toLowerCase()));
+  const matched = props.options.filter((item) => String(item.label).toLowerCase().includes(val.toLowerCase()));
   visibleResults.value = matched;
   emit('matched-results', matched);
 };
@@ -116,7 +134,7 @@ const clear = () => {
   emit('selected-value', null); // 通知父组件选中项已清空
 };
 // 列表项点击
-const handleItemClick = (item: typeof props.options[0]) => {
+const handleItemClick = (item: (typeof props.options)[0]) => {
   searchValue.value = String(item.label);
   emit('selected-value', item);
   isOpen.value = false;
@@ -126,7 +144,10 @@ const handleItemClick = (item: typeof props.options[0]) => {
 defineExpose({
   clear, // 暴露清空方法
 });
-
+// 组件卸载时清除计时器
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+});
 </script>
 
 <style scoped>

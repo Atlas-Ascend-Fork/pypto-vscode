@@ -1,4 +1,4 @@
-import { inject, ref } from 'vue';
+import { Ref, ref } from 'vue';
 import { RectCombo } from '@antv/g6';
 import { PathCardData } from '@/components/controlFlowGraph/type/node-detail-types';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
@@ -6,7 +6,7 @@ import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
 /**
  * 自定义组合节点hook函数
  */
-export function useComboCardNodes(isDarkTheme) {
+export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
   const loopLeftSvg = ref(`${window.staticPath}/static-assets/loop.svg`);
   const loopLeftSvgLight = ref(`${window.staticPath}/static-assets/loop-light.svg`);
   // 自定义组合

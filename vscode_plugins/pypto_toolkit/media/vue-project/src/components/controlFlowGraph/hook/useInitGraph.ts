@@ -1,9 +1,18 @@
-import { watch } from 'vue';
+import { Ref, watch } from 'vue';
 import { Graph, NodeEvent } from '@antv/g6';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
-import { useComboCardNodes } from '../conceptNode/comboNode';
+import { useComboCardNodes } from './useComboNode';
+import { ControlFlowNodesType, EdgesType, CombsType } from '../type/node-detail-types';
 
-export function useInitGraph(container, minimapRef, nodes, edges, combos, isDarkTheme, combosNode) {
+export function useInitGraph(
+  container: HTMLDivElement,
+  minimapRef: Ref<HTMLDivElement>,
+  nodes: ControlFlowNodesType[],
+  edges: EdgesType[],
+  combos: CombsType[],
+  isDarkTheme: Ref<boolean>,
+  combosNode: Ref<CombsType[]>,
+) {
   const { comboInitConfig } = useComboCardNodes(isDarkTheme);
 
   const PATH_CARD_NODE_TYPE = 'path-card-node';
