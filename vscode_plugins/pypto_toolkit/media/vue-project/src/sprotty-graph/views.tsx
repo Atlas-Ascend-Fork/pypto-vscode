@@ -1238,7 +1238,7 @@ function createRoundedCorner(prev, corner, next, radius) {
 @injectable()
 export class AstgrEdge extends PolylineEdgeView {
   override render(edge: Readonly<SEdgeImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
-    if((edge.root as any)?.zoom < 0.05) {
+    if((edge.root as any)?.zoom < 0.05 && !comGraphStore.data.comGraphConfig.isSimple) {
       return;
     }
     const trace = (args as AstgrViewArgs)?.trace ?? {

@@ -449,6 +449,7 @@ export class CustomMouseListener extends MouseListener {
     }
     if (target.id === 'root') {
       comGraphStore.data.stableRect = false;
+      (window as any).ascEventBus.emit('rect_node_leave');
       mouseUpTimer = setTimeout(() => {
         const selectedNodes = target.children?.filter((e) => isNode(e as any) && (e as any).selected).map((e) => e.id);
         if (!selectedNodes?.length) {

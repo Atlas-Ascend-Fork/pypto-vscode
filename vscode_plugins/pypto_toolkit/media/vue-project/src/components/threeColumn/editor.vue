@@ -1,7 +1,7 @@
 <template>
 <div class="container">
   <Loading v-if="loading" :loadingText="loadingText" warningText="" />
-  <div v-show="!loading" ref="containerRef" class="editor-container">
+  <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave">
     <!-- 锁图标悬浮框 -->
     <div v-if="!isLocked && lockPosition" 
          class="lock-indicator"
@@ -431,6 +431,11 @@ const setupHoverListeners = () => {
     lastMoveLabel = null;
     lastSentLabel = null;
   });
+};
+
+const handleMouseLeave = () => {
+  lastMoveLabel = null;
+  lastSentLabel = null;
 };
 
 // 添加悬停效果的 CSS
