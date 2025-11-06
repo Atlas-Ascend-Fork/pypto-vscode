@@ -184,6 +184,5 @@ export default {
         tableSearch: 'Search',
         dataParseError: 'Unable to open Control Flow, data parsing exception.',
         leafName: 'leaf function',
-        locateNodeError:'Current node not found, location failed',
     }
 }

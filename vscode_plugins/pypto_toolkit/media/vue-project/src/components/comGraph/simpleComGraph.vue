@@ -44,6 +44,7 @@ import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { vscode } from '../../core/vscode';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
+import { debounce } from 'lodash-es';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -100,20 +101,19 @@ window.addEventListener('message', (event) => {
 
 // 规避锁定时泳道图发送消息，重新创建框选时，框选消失的问题
 let prevent = false;
-let hashListFromSwim;
+let currentLockLabel: string = '';
 function onMessageFromSwim(args) {
   if (prevent) {
     prevent = false;
     return;
   }
-  createSelectNodesRect(args.label, false);
+  createSelectNodesRect(args.label, true);
   listenLockClick();
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
       rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
     }
-    hashListFromSwim = args.rootHashList;
-    generateHashList(false);
+    generateHashList();
     if (
       comGraphStore.data.isNodeRectLock &&
       !args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
@@ -122,8 +122,8 @@ function onMessageFromSwim(args) {
     }
   }
 }
-(window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', onMessageFromSwim);
-(window as any).ascEventBus.on('returnSemanticLabelFromSwim', onMessageFromSwim);
+(window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', debounce(onMessageFromSwim, 100));
+(window as any).ascEventBus.on('returnSemanticLabelFromSwim', debounce(onMessageFromSwim, 100));
 
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
   if (comGraphStore.data.isNodeRectLock) {
@@ -146,19 +146,22 @@ function onMessageFromSwim(args) {
 
 (window as any).ascEventBus.on('activeLock', (args) => {
   prevent = true;
+  currentLockLabel = args.label;
   comGraphStore.data.isNodeRectLock = true;
   createSelectNodesRect(args.label, true);
   hoverFeedbackAction();
-  generateHashList(true);
   const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
 });
+(window as any).ascEventBus.on('returnHashList', (args) => {
+  generateHashList(args.rootHashList ?? []);
+});
 (window as any).ascEventBus.on('deactivateLock', () => {
   comGraphStore.data.isNodeRectLock = false;
   hoverFeedbackAction();
-  generateHashList(false);
+  generateHashList();
 });
 
 let timer: ReturnType<typeof setTimeout>;
@@ -183,10 +186,10 @@ function listenLockClick() {
   }, 50);
 }
 
-function generateHashList(isLock: boolean) {
+function generateHashList(hashList?: string[]) {
   rootHashList.value = [];
-  if (isLock) {
-    for (const item of hashListFromSwim) {
+  if (hashList) {
+    for (const item of hashList) {
       rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
     }
   } else {
@@ -239,7 +242,7 @@ watch(rootHash, () => {
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'rendering' || val === 'convertData') {
+    if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
     if (val === 'readJsonWarning') {
@@ -266,12 +269,12 @@ watch(
           type: 'getFuncTree',
         });
         let shouldListenViewZoom = true;
-        if (comGraphStore.data.isNodeRectLock && comGraphStore.data.selectedNodeSemanticLabel) {
+        if (comGraphStore.data.isNodeRectLock && currentLockLabel) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
-              const tempLabel = comGraphStore.data.selectedNodeSemanticLabel;
               comGraphStore.data.selectedNodeSemanticLabel = '';
-              createSelectNodesRect(tempLabel);
+              createSelectNodesRect(currentLockLabel, true);
+              listenLockClick();
               shouldListenViewZoom = false;
             }
           });
@@ -296,6 +299,10 @@ watch(
         canViewNodeDetail: true,
         canViewSubgraph: false,
       });
+      generateHashList();
+      if (comGraphStore.data.curPath.length) {
+        rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
+      }
     }
   },
   { immediate: true },
