@@ -291,7 +291,6 @@ export abstract class BaseGraphMsgHandler {
   static async innerGetSubgraph(panel: any, data: any) {
     const gd = this.getGraphData(panel);
     gd.funcHash = data.calleehash;
-    panel.title = data.subFuncmagicname;
 
     let ret: string | null = null;
     if (gd.isUsedDB) {

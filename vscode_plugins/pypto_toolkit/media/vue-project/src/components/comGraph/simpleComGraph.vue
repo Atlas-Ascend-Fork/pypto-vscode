@@ -173,6 +173,7 @@ function onLockClick() {
   } else {
     (window as any).ascEventBus.emit('deactivateLock');
   }
+  comGraphStore.data.stableRect = false;
 }
 function listenLockClick() {
   timer = setTimeout(() => {
