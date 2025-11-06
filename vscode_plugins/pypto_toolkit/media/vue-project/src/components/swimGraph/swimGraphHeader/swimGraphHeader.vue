@@ -9,6 +9,8 @@
           :placeholder="searchPlaceholder"
           :show-glow-style="false"
           size="sm"
+          is-keyup-search
+          :delay="200"
           @search="onSearch"
         />
         <d-tooltip :content="$t('caseSensitive')" v-if="searchQuery" position="bottom">
@@ -550,7 +552,18 @@ const isCfgDisabled = computed(() => {
 watch(isDarkTheme, () => {
   updateTheme();
 });
-
+watch(isLockStatus, () => {
+  if (!isLockStatus.value) {
+    return
+  }
+  searchQuery.value = '';
+  searchResultCount.value = 0;
+  currentResultIndex.value = 0;
+  isSearchActive.value = false;
+  detailsPanelExpanded.value = false;
+  selectedEvent.value = null;
+  clearSearchData();
+});
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
