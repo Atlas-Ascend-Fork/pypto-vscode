@@ -50,6 +50,13 @@ export function useInitGraph(
         getContent: (e, items) => {
           return `<div>${items[0].data.source.magicName}</div>`;
         },
+        style: {
+          '.tooltip': {
+            visibility: 'hidden',
+            background: getThemeColorTool('devui-tooltip-bg', isDarkTheme.value),
+            color: getThemeColorTool('control-flow-tip-color', isDarkTheme.value),
+          },
+        },
       },
     ],
     data: {
@@ -94,6 +101,7 @@ export function useInitGraph(
     },
     combo: comboInitConfig,
     behaviors: [
+      'level-of-detail',
       {
         type: 'click-select',
         degree: 1,

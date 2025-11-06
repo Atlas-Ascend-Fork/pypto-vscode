@@ -1,4 +1,4 @@
-import { Rect, type RectStyleProps } from '@antv/g6';
+import { BaseBehavior, CanvasEvent, GraphEvent, Rect, type RectStyleProps } from '@antv/g6';
 import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
 import { PathCardData } from '@/components/controlFlowGraph/type/node-detail-types';
 import { inject, ref } from 'vue';
@@ -18,6 +18,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
   const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
   const iconPathRightLight = ref(`${window.staticPath}/static-assets/control_flow_path_right-light.svg`);
+  const DEFAULT_LEVEL = 'detailed';
 
   // 自定义节点类（继承 Rect）,path节点
   class PathCardNodes extends Rect {
@@ -26,6 +27,10 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      */
     get nodeData() {
       return this.context.graph.getNodeData(this.id) as { data?: PathCardData };
+    }
+
+    get level() {
+      return this.data.level || DEFAULT_LEVEL;
     }
 
     /**
@@ -68,6 +73,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      * 路径名称样式
      */
     getPathLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
       const fillColor = getThemeColorTool('control-flow-sidebar-tree-main-label', isDarkTheme.value);
@@ -82,6 +88,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       };
     }
     getPathUnderLineStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, lineWidth: number) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const fillColor = getThemeColorTool('devui-category-search-dropdown-item-bg', isDarkTheme.value);
       const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
@@ -105,6 +112,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      * 图标样式
      */
     getRightIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2;
       const iconPath = isDarkTheme.value ? iconPathRight.value : iconPathRightLight.value;
@@ -120,6 +128,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     }
 
     getLeftIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2;
       const iconPath = isDarkTheme.value ? iconPathLeft.value : iconPathLeftLight.value;
@@ -152,12 +161,11 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     drawPathContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
       // 绘制路径名称
       const text = this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
-      const { width } = text.getBBox(); // 获取文本宽度
 
-      // 绘制下划线
-      this.upsert('path-line', 'rect', this.getPathUnderLineStyle(attributes, width), container);
-
-      if (!text.__clickBound) {
+      if (text && !text.__clickBound) {
+        const { width } = text.getBBox(); // 获取文本宽度
+        // 绘制下划线
+        this.upsert('path-line', 'rect', this.getPathUnderLineStyle(attributes, width), container);
         text.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
@@ -176,7 +184,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       // 绘制图标
       const rightIcon = this.upsert('path-icon-right', 'image', this.getRightIconStyle(attributes), container);
       // 右侧按钮打开抽屉
-      if (!rightIcon.__clickBound) {
+      if (rightIcon && !rightIcon.__clickBound) {
         rightIcon.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
@@ -191,7 +199,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       }
 
       // 左侧按钮打开计算图
-      if (!leftIcon.__clickBound) {
+      if (leftIcon && !leftIcon.__clickBound) {
         leftIcon.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
@@ -233,8 +241,8 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      * 函数统计项 Label 样式（左对齐）
      */
     getFuncLabelStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, label: string) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
-
       const fillColor = getThemeColorTool('control-flow-path-left-label', isDarkTheme.value);
 
       return {
@@ -252,6 +260,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      * 函数统计项 Value 样式（右对齐）
      */
     getFuncValueStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, value: number) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const fillColor = getThemeColorTool('control-flow-path-right-value', isDarkTheme.value);
 
@@ -267,6 +276,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     }
 
     getFuncLabelBgStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, y: number, container: Group, className: string) {
+      if (this.level === 'overview') return false;
       type: className;
       const [width] = this.getSize(attributes);
       let fillColor = getThemeColorTool('devui-secondary-button-bg', isDarkTheme.value);
@@ -314,7 +324,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
           container,
         );
 
-        if (!funcBg.__clickBound) {
+        if (funcBg && !funcBg.__clickBound) {
           funcBg.addEventListener('click', (e) => {
             const states = this.nodeData.states;
             const index = states.includes('func_bg_2') ? 1 : 0;
@@ -363,6 +373,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     }
 
     getHoleStyle(attributes) {
+      if (this.level === 'overview') return false;
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2; // 顶部 Y 坐标（基于节点中心）
       const fillColor = isDarkTheme.value ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
@@ -400,7 +411,56 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     }
   }
 
+  // 计算缩放等级用于隐藏细节
+  class LevelOfDetail extends BaseBehavior {
+    prevLevel = DEFAULT_LEVEL;
+    levels = {
+      ['overview']: [0, 0.3],
+      ['detailed']: [0.3, Infinity],
+    };
+
+    constructor(context, options) {
+      super(context, options);
+      this.bindEvents();
+    }
+
+    update(options) {
+      this.unbindEvents();
+      super.update(options);
+      this.bindEvents();
+    }
+
+    updateZoomLevel = async (e) => {
+      const { graph } = this.context;
+      if (e.data && 'scale' in e.data) {
+        const scale = e.data.scale;
+        const level = Object.entries(this.levels).find(([key, [min, max]]) => scale > min && scale <= max)?.[0];
+        if (level && this.prevLevel !== level) {
+          graph.updateNodeData((prev) => prev.map((node) => ({ ...node, data: { ...node.data, level } })));
+          this.prevLevel = level;
+        }
+        await graph.draw();
+      }
+    };
+
+    bindEvents() {
+      const { graph } = this.context;
+      graph.on(GraphEvent.AFTER_TRANSFORM, this.updateZoomLevel);
+    }
+
+    unbindEvents() {
+      const { graph } = this.context;
+      graph.off(CanvasEvent.WHEEL, this.updateZoomLevel);
+    }
+
+    destroy() {
+      this.unbindEvents();
+      super.destroy();
+    }
+  }
+
   return {
     PathCardNodes,
+    LevelOfDetail,
   };
 }

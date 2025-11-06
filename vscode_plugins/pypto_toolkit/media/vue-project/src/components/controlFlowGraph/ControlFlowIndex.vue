@@ -89,7 +89,7 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
-const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath);
+const { PathCardNodes, LevelOfDetail } = usePathCardNodes(sideBarRef, outPutPath);
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme);
 
@@ -179,6 +179,7 @@ const initG6Graph = async (nodes, edges, combos) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNodes);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
+  register(ExtensionCategory.BEHAVIOR, 'level-of-detail', LevelOfDetail);
   const container = chartContainer.value as HTMLDivElement;
   const { g6Graph } = useInitGraph(container, minimapRef, nodes, edges, combos, isDarkTheme, combosNode);
   graph = g6Graph;
