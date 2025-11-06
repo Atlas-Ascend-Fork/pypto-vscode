@@ -558,7 +558,7 @@ function handleCtrlDragPan(e, canvasRef) {
 const handleAltMove = (e, hoverInfo, refs) => {
   const hoveredEvent = hoverInfo?.event;
   const { uiCtx } = refs;
-  handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx)
+  handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx);
 };
 
 const handlePureMove = (hoverInfo, refs, localPosition) => {
@@ -874,7 +874,7 @@ const drawConnectLines = (lineArray, ctx) => {
       ctx.stroke();
     } else {
       // 否则先水平移动，再垂直移动
-      const midPoint = [end[0], start[1]];  //水平移动到目标列
+      const midPoint = [end[0], start[1]];  // 水平移动到目标列
       ctx.beginPath();
       ctx.moveTo(...start);
       ctx.lineTo(...midPoint);
