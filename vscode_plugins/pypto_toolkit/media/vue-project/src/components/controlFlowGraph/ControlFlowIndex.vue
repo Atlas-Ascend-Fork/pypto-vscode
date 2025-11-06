@@ -262,6 +262,7 @@ onMounted(async () => {
       });
     }
   });
+  updateGraphSize();
   window.addEventListener('resize', updateGraphSize);
 });
 
