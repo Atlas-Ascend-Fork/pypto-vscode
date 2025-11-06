@@ -2330,7 +2330,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label, needTransform = true, needSendCom = ture) => {
+const handleOutline = (label, needTransform = true, needSendCom = ture, isLock = false) => {
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
     transform();
@@ -2392,8 +2392,8 @@ const handleOutline = (label, needTransform = true, needSendCom = ture) => {
       });
       if (!isLockStatus.value && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
-        sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
-        sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
+        needSendCom && sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+        isLock && sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
     drawBoundary();
@@ -2402,8 +2402,8 @@ const handleOutline = (label, needTransform = true, needSendCom = ture) => {
     clearSelectionCanvas('data-three-column-process-key');
     selectEvent(null, props.processKey);
     if (!isLockStatus.value) {
-      sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
-      sendMsg('sendHashList', { rootHashList: [] });
+      needSendCom && sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
+      isLock && sendMsg('sendHashList', { rootHashList: [] });
     }
     return;
   }
@@ -2415,7 +2415,7 @@ window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
   handleOutline(label, true, false);
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
-  handleOutline(label, false);
+  handleOutline(label, false, true, true);
   isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
