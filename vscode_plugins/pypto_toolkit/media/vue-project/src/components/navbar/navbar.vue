@@ -2,7 +2,7 @@
   <div class="navbar-container">
     <div class="history-wrap">
       <div class="history-icon">
-        <HistoryIcon/>
+        <HistoryIcon />
       </div>
       <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
@@ -18,8 +18,8 @@
         <i class="icon-sharing"></i>
         <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
       </div>
-      <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
+      <ThreeDot v-if="lastPass" dot-color="var(--devui-placeholder-icon)" />
+      <div v-if="lastPass" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
         <i class="icon-base-info"></i>
         <PathList v-if="currentStep === 'comGraph'" />
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
@@ -65,6 +65,7 @@ const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
 const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
+const lastPass = ref<PathInPass>();
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
 
@@ -78,6 +79,7 @@ watch(
     if (outputDirPath && record && props.currentStep !== 'controlFlow') {
       getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000 }).then((res) => {
         controlFlowList.value = res.data;
+        findLastPass();
       });
     }
   },
@@ -90,6 +92,7 @@ watch(
     if (val) {
       if (val.length > 0) {
         controlFlowList.value = val;
+        findLastPass();
       }
     }
   },
@@ -105,15 +108,20 @@ function onRecordChange(record: HistoryData) {
   showSwim.value = Boolean(record.swimlaneGraphFilePath);
 }
 
+function findLastPass() {
+  if (controlFlowList.value.length) {
+    const firstPath = findFirstPath(controlFlowList.value);
+    if (firstPath && firstPath.meta?.passes?.length) {
+      lastPass.value = firstPath.meta.passes[firstPath.meta.passes.length - 1];
+    }
+  }
+}
+
 function onJumpCom() {
   if (props.currentStep === 'comGraph') {
     return;
   }
-  const firstPath = findFirstPath(controlFlowList.value);
-  if (firstPath) {
-    const lastPass = firstPath.meta.passes[firstPath.meta.passes.length - 1];
-    jumpComGraph(lastPass.graphFilePath, lastPass.pathName);
-  }
+  jumpComGraph(lastPass.value.graphFilePath, lastPass.value.pathName);
 }
 
 function jumpControlFlow() {
