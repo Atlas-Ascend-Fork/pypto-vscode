@@ -2,7 +2,7 @@
   <div class="navbar-container">
     <div class="history-wrap">
       <div class="history-icon">
-        <HistoryIcon/>
+        <HistoryIcon />
       </div>
       <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
@@ -65,6 +65,7 @@ const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
 const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
+const getControlFlowError = ref(false);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
 
@@ -76,9 +77,13 @@ watch(
   [() => props.currentRecordDirectoryPath, currentRecord],
   ([outputDirPath, record]) => {
     if (outputDirPath && record && props.currentStep !== 'controlFlow') {
-      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000 }).then((res) => {
-        controlFlowList.value = res.data;
-      });
+      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000, useCustomErrorHandler: true })
+        .then((res) => {
+          controlFlowList.value = res.data;
+        })
+        .catch(() => {
+          getControlFlowError.value = true;
+        });
     }
   },
   { immediate: true },
