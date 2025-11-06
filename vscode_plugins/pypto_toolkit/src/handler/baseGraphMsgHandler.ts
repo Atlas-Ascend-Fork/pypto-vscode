@@ -1,7 +1,8 @@
-import { Uri, workspace, window, Position, Selection, ViewColumn, Range } from 'vscode';
+import { Uri, workspace, window, Position, Selection, ViewColumn, Range, commands } from 'vscode';
 import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { fork } from 'child_process';
 import path from 'path';
+import * as fs from 'fs';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
 import { getIDETheme } from '../theme';
@@ -278,12 +279,27 @@ export abstract class BaseGraphMsgHandler {
     }
     const { SingleGraphHandler } = await import('../handler/singleGraphHandler');
 
-    new GraphView({ viewType: 'comItemDetailView', title: basename(comGraphData.fsPath) }, SingleGraphData, SingleGraphHandler).createPanel(
-      comGraphData.fsPath,
-      calleehash,
-      curPath,
-      undefined,
-    );
+    let targetPath = comGraphData.fsPath;
+    let targetCurPath = JSON.parse(curPath);
+    const rootFilePath = comGraphData.fsPath;
+    const extName = path.extname(rootFilePath);
+    const rootBaseName = path.basename(rootFilePath, extName);
+    if (rootBaseName.endsWith('ROOT')) {
+      const splitIdx = rootBaseName.indexOf('_');
+      const filePrefix = rootBaseName.slice(0, splitIdx);
+
+      const fileDir =  path.dirname(rootFilePath);
+      const fileList = fs.readdirSync(fileDir);
+      for (let matchedFile of fileList) {
+        if (matchedFile.endsWith(extName) && matchedFile.includes(calleehash) && matchedFile.startsWith(filePrefix)) {
+          targetPath = path.join(fileDir, matchedFile);
+          targetCurPath = targetCurPath.filter(func => func === calleehash);
+          break;
+        }
+      }
+    }
+    targetCurPath = JSON.stringify(targetCurPath);
+    commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath));
   }
 
   static async jumpToCodeLine(_panel: any, data: any) {
@@ -392,16 +408,58 @@ export abstract class BaseGraphMsgHandler {
     }
 
     const json = JSON.parse(ret);
-    await this.returnCalleeMap(gd, panel);
+    await this.returnCalleeMap(gd, panel, json);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };
   }
 
-  private static async returnCalleeMap(gd: AbstractGraphData, panel: any) {
-    const calleeMap = gd.isUsedDB
+  private static searchSubFunc(funcHash: string, filePrefix: string, dirName: string, 
+                                tempCalleemap: Record<string, { functype: string, func_magicname: string }>) : Record<string, { functype: string, func_magicname: string }> {
+    const fileList = fs.readdirSync(dirName);
+    const matchedFiles = fileList.filter(
+      f => 
+        f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix)
+    );
+
+    for (const matchedFile of matchedFiles) {
+      const targetPath = path.join(dirName, matchedFile);
+      const targetFile = fs.readFileSync(targetPath, 'utf8');
+      const targetJson = JSON.parse(targetFile);
+      const targetFunctype = targetJson.functions?.[0]?.functype;
+      const targetFuncMagicname = targetJson.functions?.[0]?.func_magicname;
+      tempCalleemap[funcHash] = {functype: targetFunctype, func_magicname: targetFuncMagicname};
+    }
+    return tempCalleemap;
+  }
+
+  private static subGraphFileSearch(fileJson: any, gd: AbstractGraphData, calleeMap: any) : Record<string, { functype: string, func_magicname: string }> {
+    const filePath = gd.fsPath;
+    const extName = path.extname(filePath);
+    const baseName = path.basename(filePath, extName);
+    const dirName = path.dirname(filePath);
+    const splitIdx = baseName.indexOf('_');
+    const filePrefix = baseName.slice(0, splitIdx);
+    const isRoot: boolean = baseName.endsWith('ROOT');
+    const tempCalleemap: Record<string, { functype: string, func_magicname: string }> = {};
+    if(!isRoot) {
+      return calleeMap;
+    } else {
+      Object.assign(tempCalleemap, calleeMap);
+      for (let subFunc of fileJson.operations) {
+        const funcHash = subFunc.calleehash;
+        this.searchSubFunc(funcHash, filePrefix, dirName, tempCalleemap);
+      }
+    }
+    return tempCalleemap;
+  }
+
+  private static async returnCalleeMap(gd: AbstractGraphData, panel: any, filejson: any) {
+    let calleeMap = gd.isUsedDB
       ? JSON.parse(await SQLiteCache.getInstance().comGraphFileHashMapGet(gd.fsPath))
       : graphFileHashMap[gd.fsPath];
+    calleeMap = this.subGraphFileSearch(filejson, gd, calleeMap);
+    graphFileHashMap[gd.fsPath] = calleeMap;
     panel.webview.postMessage({ command: 'returnCalleeMap', data: graphFileHashMap[gd.fsPath] || {} });
     return calleeMap;
   }
