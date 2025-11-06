@@ -868,6 +868,29 @@ const lockClick = (e) => {
   e.stopPropagation();
   isLockStatus.value = true;
   sendMsg('activeLock', { label: preLabel });
+  let rootHashArray = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    process.threads.forEach((thread, threadKey) => {
+      if (thread.isCounter) {
+        return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
+      }
+      const { events } = thread;
+      events.forEach((event, eventKey) => {
+        const { args } = event;
+        const { color } = args;
+        if (color === preLabel) {
+          const eventHintStr = args?.['event-hint'] ?? '';
+          const rootHashStr = getRootHashList(eventHintStr);
+          rootHashArray.push(rootHashStr);
+        }
+      });
+    });
+  });
+  const rootHashList = [...new Set(rootHashArray)];
+  sendMsg('sendHashList', { rootHashList });
 };
 
 const unLockClick = (e) => {
@@ -2370,6 +2393,7 @@ const handleOutline = (label, needTransform = true) => {
       if (!isLockStatus.value && drawColorDatas[processKey].length) {
         const rootHashList = [...new Set(rootHashArray)];
         sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+        sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
       }
     });
     drawBoundary();
@@ -2379,6 +2403,7 @@ const handleOutline = (label, needTransform = true) => {
     selectEvent(null, props.processKey);
     if (!isLockStatus.value) {
       sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
+      sendMsg('sendHashList', { rootHashList: [] });
     }
     return;
   }
