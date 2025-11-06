@@ -2330,7 +2330,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label, needTransform = true) => {
+const handleOutline = (label, needTransform = true, needSendCom = ture) => {
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
     transform();
@@ -2412,7 +2412,7 @@ window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
   handleOutline(label);
 });
 window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
-  handleOutline(label);
+  handleOutline(label, true, false);
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
   handleOutline(label, false);
