@@ -2330,7 +2330,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label, needTransform = true, needSendCom = ture, isLock = false) => {
+const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
     transform();
