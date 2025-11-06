@@ -589,7 +589,7 @@ const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
   const hasHnadleHover = handleHoverEvent(hoveredEvent);
   if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
-    if (!isPointInPolygon) {
+    if (!isPointInPolygon && preLabel) {
       sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
       preLabel = '';
       clearSelectionCanvas('data-three-column-process-key');
@@ -2389,7 +2389,7 @@ const setSelectedData = (boundRange, label) => {
   });
 };
 
-const drawSelection = (drawColorDatas, label, needSendCom, isLock) => {
+const drawSelection = (label, needSendCom, isLock) => {
   let rootHashArray = [];
   processes.forEach((process, processKey) => {
     if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
@@ -2432,7 +2432,7 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     if (needTransform) {
       transformCanvas(boundRange);
     }
-    drawSelection(drawColorDatas, label, needSendCom, isLock);
+    drawSelection(label, needSendCom, isLock);
     drawBoundary();
     toggleLock();
   } else {
