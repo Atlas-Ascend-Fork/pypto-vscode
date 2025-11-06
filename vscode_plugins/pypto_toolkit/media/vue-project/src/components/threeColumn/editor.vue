@@ -1,7 +1,7 @@
 <template>
 <div class="container">
   <Loading v-if="loading" :loadingText="loadingText" warningText="" />
-  <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave">
+  <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
     <!-- 锁图标悬浮框 -->
     <div v-if="!isLocked && lockPosition" 
          class="lock-indicator"
@@ -60,6 +60,8 @@ const loading = ref(true);
 let editor = null;
 let lastSentLabel = '';
 let lastMoveLabel = null;
+let lockedLabel = null;
+let isMouseLeaved = false;
 let semanticDecorations = []; // gutter装饰条
 let currentHoverDecoration = null; // 悬停的背景装饰
 let labelInfoDecorations = []; // 存储标签信息装饰
@@ -67,7 +69,6 @@ let initCodePath = '';
 let initTotalLine = 0;
 
 const isLocked = ref(false);
-const lockedLabel = ref(null);
 const lockPosition = ref(null);
 
 // 配置 Monaco Editor
@@ -272,14 +273,14 @@ const deactivateLock = () => {
   }
   
   isLocked.value = false;
-  lockedLabel.value = null;
+  lockedLabel = null;
   
   sendMsg('deactivateLock');
 };
 
 const lockClick = (e) => {
   e.stopPropagation();
-  lockedLabel.value = lastMoveLabel;
+  lockedLabel = lastMoveLabel;
   isLocked.value = true;
   sendMsg('activeLock', { label: lastMoveLabel.name });
 };
@@ -317,9 +318,8 @@ const updateHoverDecoration = (position, emit = true) => {
         className: 'semantic-hover-highlight'
       }
     };
-    
     currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
-    if (emit && lastSentLabel !== currentLabel.name) {
+    if (emit && lastSentLabel !== currentLabel.name && !isMouseLeaved) {
       lastSentLabel = currentLabel.name;
       sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
     }
@@ -346,14 +346,14 @@ const updateHoverDecorationBySemanticLabel = (label) => {
   };
   
   updateHoverDecoration(position, false);
-  if (!isLocked.value) {
-    enableLock(targetLabel);
-  }
   
   const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
   editor.revealPositionInCenter(startPosition);
   editor.setPosition(startPosition);
   editor.focus();
+  if (!isLocked.value) {
+    enableLock(targetLabel);
+  }
 };
 
 // ESC键处理
@@ -367,29 +367,34 @@ const handleKeyDown = (e) => {
 
 // 滚动事件处理，更新锁位置
 const handleScroll = () => {
-  if (lastMoveLabel) {
-    updateLockPosition(lastMoveLabel);
+  const label = lastMoveLabel || lockedLabel;
+  if (label) {
+    updateLockPosition(label);
   }
 };
 
 const handleMouseMove = throttle((e) => {
+  if (isMouseLeaved) {
+    return;
+  }
   const { position } = e.target;
   const currentLabel = findSemanticLabelAtPosition(position);
   if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
     updateHoverDecoration(position);
-    if (currentLabel && !isLocked.value) {
+    if (isLocked.value) {
+      enableLock(lockedLabel);
+    } else {
       enableLock(currentLabel);
+      lastMoveLabel = currentLabel;
     }
-    lastMoveLabel = currentLabel;
-  } else if (!currentLabel && !isLocked.value && lastSentLabel) {
-    if (!lastSentLabel) {
-      return;
+  } else if (!currentLabel && !isLocked.value) {
+    if (lastSentLabel) {
+      lastSentLabel = null;
+      sendMsg('returnSemanticLabelFromCode', { label: '' });
     }
-    lastSentLabel = null;
     lastMoveLabel = null;
     lockPosition.value = null;
     updateHoverDecoration(null);
-    sendMsg('returnSemanticLabelFromCode', { label: '' });
     return;
   }
 }, 100);
@@ -436,6 +441,12 @@ const setupHoverListeners = () => {
 const handleMouseLeave = () => {
   lastMoveLabel = null;
   lastSentLabel = null;
+  isMouseLeaved = true;
+  updateHoverDecoration(null);
+};
+
+const handleMouseEnter = () => {
+  isMouseLeaved = false;
 };
 
 // 添加悬停效果的 CSS
@@ -557,7 +568,7 @@ window.ascEventBus.on('activeLock', ({ label }) => {
   }
   isLocked.value = true;
   const targetLabel = labels.find(l => l.name === label);
-  lockedLabel.value = targetLabel;
+  lockedLabel = targetLabel;
 });
 window.ascEventBus.on('deactivateLock', () => {
   deactivateLock();

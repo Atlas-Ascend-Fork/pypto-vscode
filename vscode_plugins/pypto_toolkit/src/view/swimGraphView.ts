@@ -69,6 +69,13 @@ export class MsgHandler {
     });
   }
 
+  static validateFile(panel: any, content: string) {
+    panel.webview.postMessage({
+      command: 'validateSwimFile',
+      content,
+    });
+  }
+
   // 获取json信息和绑定的计算图文件路径
   static async getSwimData(panel: any) {
     const swimUri = panel.swimData.uri;
@@ -106,6 +113,7 @@ export class MsgHandler {
     let swimStr = '';
     try {
       swimStr = readFileSync(swimPath, 'utf8');
+      MsgHandler.validateFile(panel, swimStr);
       console.log('读取merged_swimlane.json文件');
 
     } catch (err) {

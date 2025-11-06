@@ -925,6 +925,7 @@ const toggleLock = () => {
   let [x, y]= boundaries[0][0].leftTop;
   x = (x * viewState.scale) + viewState.offsetX + spaceInThreeCol;
   if (x < 0) {
+    lockPosition.value = null;
     return;
   }
   lockPosition.value = {
@@ -2356,7 +2357,9 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
 const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
-    transform();
+    changeNodeColor(props.processKey, false);
+    const { eventCtx } = ctxs[processKey];
+    drawThreadSeparators(eventCtx, props.process, props.processKey);
     return;
   }
   points = [];
