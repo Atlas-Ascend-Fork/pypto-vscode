@@ -698,16 +698,40 @@ const calcRowBoundaries = (nodes) => {
       rows[rowKey].bottom = y + h; // 更新行高(取最大)
     }
   });
-  // 转换成有序数组 [{left, right, top, bottom}, ...]
-  return Object.values(rows)
-    .sort((a, b) => a.top - b.top)
-    .map(row => ({
+  const sortedRows = Object.values(rows).sort((a, b) => a.top - b.top);
+  if (!sortedRows.length) {
+    return [];
+  }
+  // 分割为连续区域
+  const regions = [];
+  let currentRegion = [sortedRows[0]];
+  for (let i = 1; i < sortedRows.length; i++) {
+    const prevRow = sortedRows[i - 1];
+    const currentRow = sortedRows[i];
+    const gap = currentRow.top - prevRow.bottom;
+    const threshold = 2 * (currentRow.bottom - currentRow.top); // 阈值：行高的两倍
+    if (gap > threshold) {
+      regions.push(currentRegion);
+      currentRegion = [currentRow];
+    } else {
+      currentRegion.push(currentRow);
+    }
+  }
+  if (currentRegion.length > 0) {
+    regions.push(currentRegion);
+  }
+
+  // 返回每个区域的行对象数组
+  return regions.map(region => {
+    return region.map(row => ({
       leftTop: [row.left, row.top],
       leftBottom: [row.left, row.bottom],
       rightTop: [row.right, row.top],
       rightBottom: [row.right, row.bottom],
     }));
+  });
 };
+
 // 绘制边界路径
 const drawBoundary = () => {
   const uiCanvasRef = document.querySelector(`[data-three-column-process-key="${props.processKey}"]`);
@@ -721,68 +745,124 @@ const drawBoundary = () => {
   }
   const space = spaceInThreeCol;
   const xSpace = space / viewState.scale;
-  const { minLeft, maxRight } = boundaries.reduce((acc, item) => {
-    const [left] = item.leftTop;
-    const [right] = item.rightTop;
-    return {
-      minLeft: Math.min(acc.minLeft, left),
-      maxRight: Math.max(acc.maxRight, right)
-    };
+  const { minLeft, maxRight } = boundaries.reduce((acc, group) => {
+    return group.reduce((groupAcc, item) => {
+      const [left] = item.leftTop;
+      const [right] = item.rightTop;
+      return {
+        minLeft: Math.min(groupAcc.minLeft, left),
+        maxRight: Math.max(groupAcc.maxRight, right)
+      };
+    }, acc);
   }, { minLeft: Infinity, maxRight: -Infinity });
   const isAtLeftEdge = viewState.offsetX === 0 && minLeft <= xSpace;
   const isAtRightEdge = viewState.offsetX === 0 && maxRight >= viewState.canvasWidth;
-  const temp = boundaries.map((row) => {
-    return {
-      leftTop: [isAtLeftEdge ? row.leftTop[0] : row.leftTop[0] - xSpace, row.leftTop[1] - space],
-      leftBottom: [isAtLeftEdge ? row.leftBottom[0] : row.leftBottom[0] - xSpace, row.leftBottom[1] + space],
-      rightTop: [isAtRightEdge ? row.rightTop[0] : row.rightTop[0] + xSpace, row.rightTop[1] - space],
-      rightBottom: [isAtRightEdge ? row.rightBottom[0] : row.rightBottom[0] + xSpace, row.rightBottom[1] + space],
-    };
+  // 计算每个区域的左右边界范围
+  const tempRegions = boundaries.map(region => {
+    return region.map(row => {
+      const leftX = isAtLeftEdge ? row.leftTop[0] : row.leftTop[0] - xSpace;
+      const rightX = isAtRightEdge ? row.rightTop[0] : row.rightTop[0] + xSpace;
+      const topY = row.leftTop[1] - space;
+      const bottomY = row.leftBottom[1] + space;
+      return {
+        leftTop: [leftX, topY],
+        leftBottom: [leftX, bottomY],
+        rightTop: [rightX, topY],
+        rightBottom: [rightX, bottomY],
+        width: rightX - leftX
+      };
+    });
   });
   ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
   ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
   ctx.lineWidth = 1 / viewState.scale;
-  ctx.beginPath();
-  const [firstRow] = temp;
-  const lastRow = temp[temp.length - 1];
-  // 起点：首行左上
-  ctx.moveTo(...firstRow.leftTop);
-  // 绘制左边界
-  for (let i = 0; i < temp.length; i++) {
-    const currentRow = temp[i];
-    if (i === 0) {
-      // 首行：直接左上 -> 左下
-      ctx.lineTo(...currentRow.leftBottom);
+  // 遍历每个区域并绘制路径
+  let lineArray = [];
+  for (const region of tempRegions) {
+    ctx.beginPath();
+    const [firstRow] = region;
+    const lastRow = region[region.length - 1];
+    // 起点：首行左上
+    ctx.moveTo(...firstRow.leftTop);
+    // 绘制左边界
+    let minObj = firstRow; // 默认取第一个对象
+    for (let i = 0; i < region.length; i++) {
+      const currentRow = region[i];
+      if (i === 0) {
+        // 首行：直接左上 -> 左下
+        ctx.lineTo(...currentRow.leftBottom);
+      } else {
+        const preRow = region[i - 1];
+        // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
+        if ((Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) - currentRow.width) !== (Math.abs(preRow.rightBottom[0] - currentRow.rightBottom[0]) - preRow.width)) {
+          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+        } else {
+          if (Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) < currentRow.width) {
+            ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+          }
+        }
+        ctx.lineTo(...currentRow.leftTop);  // 垂直上升
+        ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
+      }
+      if (currentRow.leftBottom[0] < minObj.leftBottom[0]) {
+        minObj = currentRow; // 找到更小的则替换
+      }
+    }
+    // 绘制右边界
+    // 从最下行左下 -> 右下
+    ctx.lineTo(...lastRow.rightBottom);
+    lineArray.push(minObj);
+    for (let i = region.length - 1; i >= 0; i--) {
+      const currentRow = region[i];
+      if (i === region.length - 1) {
+        // 最下行： 直接右下 -> 右上
+        ctx.lineTo(...currentRow.rightTop);
+      } else {
+        const nextRow = region[i + 1];
+        // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
+        if ((Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) - nextRow.width) !== (Math.abs(currentRow.rightBottom[0] - nextRow.rightBottom[0]) - currentRow.width)) {
+          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+        } else {
+          if (Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) < nextRow.width) {
+            ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+          }
+        }
+        ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
+        ctx.lineTo(...currentRow.rightTop);  // 垂直下降
+      }
+    }
+    // 闭合路径: 首行右上 -> 左下
+    ctx.lineTo(...firstRow.rightTop);
+    ctx.lineTo(...firstRow.leftTop);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // 绘制不同区域的连线
+  drawConnectLines(lineArray, ctx);
+};
+const drawConnectLines = (lineArray, ctx) => {
+  const connectPoints = lineArray.map(item => item.leftBottom);
+  // 绘制连线
+  for (let i = 0; i < connectPoints.length - 1; i++) {
+    const start = connectPoints[i];
+    const end = connectPoints[i + 1];
+    // 如果起点和终点在同一列（x相同），直接画垂直线
+    if (start[0] === end[0]) {
+      ctx.beginPath();
+      ctx.moveTo(...start);
+      ctx.lineTo(...end);
+      ctx.stroke();
     } else {
-      const preRow = temp[i - 1];
-      // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
-      ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
-      ctx.lineTo(...currentRow.leftTop);  // 垂直上升
-      ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
+      // 否则先水平移动，再垂直移动
+      const midPoint = [end[0], start[1]];  //水平移动到目标列
+      ctx.beginPath();
+      ctx.moveTo(...start);
+      ctx.lineTo(...midPoint);
+      ctx.lineTo(...end);
+      ctx.stroke();
     }
   }
-  // 绘制右边界
-  // 从最下行左下 -> 右下
-  ctx.lineTo(...lastRow.rightBottom);
-  for (let i = temp.length - 1; i >= 0; i--) {
-    const currentRow = temp[i];
-    if (i === temp.length - 1) {
-      // 最下行： 直接右下 -> 右上
-      ctx.lineTo(...currentRow.rightTop);
-    } else {
-      const nextRow = temp[i + 1];
-      // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
-      ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
-      ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
-      ctx.lineTo(...currentRow.rightTop);  // 垂直下降
-    }
-  }
-  // 闭合路径: 首行右上 -> 左下
-  ctx.lineTo(...firstRow.rightTop);
-  ctx.lineTo(...firstRow.leftTop);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
 };
 const lockClick = (e) => {
   e.stopPropagation();
@@ -800,7 +880,7 @@ const toggleLock = () => {
     lockPosition.value = null;
     return;
   }
-  let [x, y]= boundaries[0].leftTop;
+  let [x, y]= boundaries[0][0].leftTop;
   x = (x * viewState.scale) + viewState.offsetX + spaceInThreeCol;
   if (x < 0) {
     return;
@@ -2333,14 +2413,18 @@ const isPointInPolygonFun = (point, polygonBoundaries) => {
 
   // 收集左边界点（从上到下）
   for (let i = 0; i < polygonBoundaries.length; i++) {
-    polygonPoints.push(polygonBoundaries[i].leftTop);
+    for (let j = 0; j < polygonBoundaries[i].length; j++) {
+      polygonPoints.push(polygonBoundaries[i][j].leftTop);
+    }
   }
-  polygonPoints.push(polygonBoundaries[polygonBoundaries.length - 1].leftBottom);
+  polygonPoints.push(polygonBoundaries[polygonBoundaries.length - 1][polygonBoundaries[polygonBoundaries.length - 1].length - 1].leftBottom);
 
   // 收集右边界点（从下到上）
   for (let i = polygonBoundaries.length - 1; i >= 0; i--) {
-    polygonPoints.push(polygonBoundaries[i].rightBottom);
-    polygonPoints.push(polygonBoundaries[i].rightTop);
+    for (let j = polygonBoundaries[i].length - 1; j >= 0; j--) {
+      polygonPoints.push(polygonBoundaries[i][j].rightBottom);
+      polygonPoints.push(polygonBoundaries[i][j].rightTop);
+    }
   }
 
   // 使用射线法判断点是否在多边形内
