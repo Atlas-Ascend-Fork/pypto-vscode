@@ -138,6 +138,8 @@ function symsGetExpr(symList: any[], symListReadable: any[]): string | undefined
  * 解析表达式字符串（如 ssop_add(...)）为数学表达式
  */
 function parseExpr(expr: string): string {
+    expr = expr.trim();
+
     if (!expr.startsWith('ssop_')) {
         return expr;
     }
@@ -147,33 +149,40 @@ function parseExpr(expr: string): string {
         return expr;
     }
 
-    const [, opType, args] = opMatch;
+    const [, opType, insideArgStr] = opMatch;
+    const args = splitArgs(insideArgStr).map(parseExpr);
+    const argStr = splitArgs(args);
+    if (argStr.length === 0){
+        return '()';
+    } 
+
+    if ((!opType) || (!(opType in opMap))) {
+        return expr;
+    }
 
     if (opType === 'ssop_call') {
-        const argsStr = splitArgs(args);
-        if (argsStr.length === 0) return '()';
-        const funcName = argsStr[0];
-        const funcArgs = argsStr.slice(1).map(parseArgs);
-        return `${funcName}(${funcArgs.join(', ')})`;
+        const funcName = args[0];
+        const funcArgs = args.slice(1).join(', ');
+        return `${funcName}(${funcArgs})`;
     }
 
     if (opType in opMap) {
         const opChar = opMap[opType];
+
         if (oneArgsOperation.includes(opType)) {
-            const right = parseArgs(args);
+            const right = splitArgs(insideArgStr).map(parseExpr);
             return opChar === '!' ? `${opChar}(${right})` : `${opChar}${right}`;
         } else {
-            const parsedArgs = parseArgs(args);
-            if (Array.isArray(parsedArgs)) {
-                const [left, right] = parsedArgs;
-                if (opChar === 'min' || opChar === 'max') {
-                    return `${opChar}(${left}, ${right})`;
-                } else {
-                    return `${left} ${opChar} ${right}`;
-                }
-            } else {
-                // fallback
-                return `${opChar}(${parsedArgs})`;
+            if (opType === 'ssop_min' || opType === 'ssop_max') {
+                return `${opChar}(${args[0]}, ${args[1]})`;
+            }
+
+            if (args.length === 2) {
+                return `(${args[0]} ${opChar} ${args[1]})`;
+            }
+
+            if (args.length === 1) {
+                return `${opChar}(${args[0]})`;
             }
         }
     }

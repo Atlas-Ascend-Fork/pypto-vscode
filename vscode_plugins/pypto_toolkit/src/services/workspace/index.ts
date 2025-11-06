@@ -21,15 +21,20 @@ export interface GetOutputRecordsRes {
   data: OutputRecord[];
 }
 
-const USER_HOME_PATH = process.env.USERPROFILE ?? '/root';
-const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
+/** 当前用户根目录 */
+const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
+
+/** PYPTO运行记录根目录 */
+const RUN_DATA_HOME = process.env.PYPTO_HOME
+  ? `${process.env.PYPTO_HOME}${path.sep}run`
+  : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
 /**
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
   const { sortBy = 'executeTime', sortOrder = 'desc' } = params;
-  const outputCollectionUri = vscode.Uri.file(OUTPUT_COLLECTION_PATH);
+  const outputCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
   if (!outputCollectionUri) {
     return { data: [] };
   }
