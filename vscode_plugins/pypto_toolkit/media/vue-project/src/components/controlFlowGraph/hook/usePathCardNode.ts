@@ -11,9 +11,8 @@ import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
  * @param sideBarRef 右侧抽屉
  * @param outPutPath 用于打开计算图
  */
-export function usePathCardNodes(sideBarRef, outPutPath) {
+export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
   const { t } = useI18n();
-  const { isDarkTheme } = inject('root');
   const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
   const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
@@ -77,6 +76,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
       const fillColor = getThemeColorTool('control-flow-sidebar-tree-main-label', isDarkTheme.value);
+      const isPointer = this.nodeData.data.source.meta.passes.length !== 0;
       return {
         x: -width / 2 + 35, // 左内边距 20px
         y: topY,
@@ -84,11 +84,12 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
         fontSize: 14,
         fill: fillColor, // 原文本色
         fontWeight: 700,
-        cursor: 'pointer',
+        cursor: isPointer ? 'pointer' : '',
       };
     }
     getPathUnderLineStyle(attributes: RectStyleProps & BaseCustomElementStyleProps, lineWidth: number) {
       if (this.level === 'overview') return false;
+      if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const [width] = this.getSize(attributes);
       const fillColor = getThemeColorTool('devui-category-search-dropdown-item-bg', isDarkTheme.value);
       const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
@@ -113,6 +114,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      */
     getRightIconStyle(attributes: RectStyleProps & BaseCustomElementStyleProps) {
       if (this.level === 'overview') return false;
+      if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2;
       const iconPath = isDarkTheme.value ? iconPathRight.value : iconPathRightLight.value;
@@ -124,6 +126,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
         height: 20,
         src: iconPath,
         cursor: 'pointer',
+        opacity: 1,
       };
     }
 
@@ -132,14 +135,14 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       const [width] = this.getSize(attributes);
       const topY = -this.getSize(attributes)[1] / 2;
       const iconPath = isDarkTheme.value ? iconPathLeft.value : iconPathLeftLight.value;
-
+      const isPointer = this.nodeData.data.source.meta.passes.length !== 0;
       return {
         x: -width / 2 + 10,
         y: topY + 6,
         width: 20,
         height: 20,
         src: iconPath,
-        cursor: 'pointer',
+        cursor: isPointer ? 'pointer' : '',
       };
     }
 
@@ -147,6 +150,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
      * 打开图
      */
     openGraph() {
+      if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const length = this.nodeData.data.source.meta?.passes.length;
       openComputeGraph({
         outputPath: outPutPath.value as string,
@@ -161,11 +165,13 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
     drawPathContainer(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
       // 绘制路径名称
       const text = this.upsert('path-label', 'text', this.getPathLabelStyle(attributes), container);
+      if (this.level === 'overview') return;
+      const { width } = text?.getBBox(); // 获取文本宽度
+
+      this.upsert('path-line', 'rect', this.getPathUnderLineStyle(attributes, width), container);
 
       if (text && !text.__clickBound) {
-        const { width } = text.getBBox(); // 获取文本宽度
         // 绘制下划线
-        this.upsert('path-line', 'rect', this.getPathUnderLineStyle(attributes, width), container);
         text.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
@@ -188,7 +194,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
         rightIcon.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
-          sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, 0);
+          sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, 2);
           // 执行业务逻辑
           // 如果数据中有回调函数，则调用
           if (typeof attributes.onButtonClick === 'function') {
@@ -199,7 +205,7 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       }
 
       // 左侧按钮打开计算图
-      if (leftIcon && !leftIcon.__clickBound) {
+      if (leftIcon && !leftIcon.__clickBound && this.nodeData.data.source.meta.passes.length !== 0) {
         leftIcon.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
@@ -281,8 +287,10 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
       const [width] = this.getSize(attributes);
       let fillColor = getThemeColorTool('devui-secondary-button-bg', isDarkTheme.value);
       const states = this.nodeData.states;
+      let opacity = 0;
       if (states && states.includes(className)) {
         fillColor = getThemeColorTool('control-flow-path-hover', isDarkTheme.value);
+        opacity = 0.2;
       }
 
       return {
@@ -292,8 +300,8 @@ export function usePathCardNodes(sideBarRef, outPutPath) {
         height: 24,
         fill: fillColor,
         radius: 4,
-        opacity: 0.2,
         cursor: 'pointer',
+        opacity,
       };
     }
 

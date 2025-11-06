@@ -59,17 +59,6 @@ const handleOfficialSearch = () => {
   isOpen.value = visibleResults.length > 0;
 };
 
-watch(
-  () => activeIndex.value,
-  (value) => {
-    if (value !== -1) {
-      emit('active-event', visibleResults?.value[activeIndex?.value]?.value ?? ''); // 通知父组件高亮
-    }
-  },
-);
-
-// 防抖函数,避免连续输入时频繁筛选
-let debounceTimer = null; // 防抖计时器
 const debounce = (fn, wait = 300) => {
   return (...args) => {
     // 每次触发时清除之前的计时器
@@ -80,6 +69,23 @@ const debounce = (fn, wait = 300) => {
     }, wait);
   };
 };
+// 延迟时间：100（平衡性能和用户体验，避免卡顿感）
+const debouncedEmitActiveEvent = debounce((newActiveIndex) => {
+  // 仅当 newActiveIndex 不为 -1 时 emit
+  if (newActiveIndex === -1) return;
+  const targetValue = visibleResults?.value[newActiveIndex]?.value ?? '';
+  emit('active-event', targetValue); // 通知父组件
+}, 100);
+
+watch(
+  () => activeIndex.value,
+  (newVal) => {
+    debouncedEmitActiveEvent(newVal);
+  },
+);
+
+// 防抖函数,避免连续输入时频繁筛选
+let debounceTimer = null; // 防抖计时器
 
 const debouncedHandleInput = debounce((e) => {
   handleInputChange(e);
@@ -131,7 +137,6 @@ const clear = () => {
   isOpen.value = false; // 关闭列表
   activeIndex.value = -1; // 重置选中索引
   emit('matched-results', []); // 通知父组件结果已清空
-  emit('selected-value', null); // 通知父组件选中项已清空
 };
 // 列表项点击
 const handleItemClick = (item: (typeof props.options)[0]) => {

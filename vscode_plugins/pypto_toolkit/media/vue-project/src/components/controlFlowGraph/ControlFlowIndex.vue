@@ -89,9 +89,10 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
-const { PathCardNodes, LevelOfDetail } = usePathCardNodes(sideBarRef, outPutPath);
+const { PathCardNodes, LevelOfDetail } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme);
+const clearAllNodeState = {};
 
 // 工具栏缩放
 function onInput(e) {
@@ -131,32 +132,25 @@ const selectedValue = ref(null); // 选中项
 const handleMatchedResults = async (results) => {
   matchedResults.value = results;
   if (matchedResults.value.length > 0) {
-    combosNode.value.forEach((node) => {
-      const id = node.id;
-      graph.setElementState(id, []);
-    });
+    graph.setElementState(clearAllNodeState);
     matchedResults.value.forEach((item) => {
       const id = item.value;
       graph.setElementState(id, 'active');
     });
   } else {
-    combosNode.value.forEach((node) => {
-      const id = node.id;
-      graph.setElementState(id, []);
-    });
+    graph.setElementState(clearAllNodeState);
   }
 };
 
 //鼠标选中以及enter按下类型高亮
 const handleSelectedValue = (value) => {
   selectedValue.value = value;
-  combosNode.value.forEach((node) => {
-    const id = node.id;
-    graph.setElementState(id, []);
-  });
+  graph.setElementState(clearAllNodeState);
+
   if (selectedValue.value) {
     graph.setElementState(selectedValue.value.value, 'selected');
     graph.focusElement(selectedValue.value.value);
+    graph.draw();
   }
 };
 
@@ -199,7 +193,9 @@ const initG6Graph = async (nodes, edges, combos) => {
   graph.on(CommonEvent.DRAG, fitActive);
 
   function clickFun(event) {
-    searchSelectRef.value.clear();
+    if (matchedResults.value.length > 0) {
+      searchSelectRef.value.clear();
+    }
     if (event.target.id) {
       graph.setElementState(event.target.id, 'selected');
     }
@@ -245,8 +241,10 @@ onMounted(async () => {
   }
 
   const { nodes, edges, combos } = transformData(rootData.value);
-  combosNode.value = combos;
+  combosNode.value = [...combos, ...nodes];
+
   await initG6Graph(nodes, edges, combos);
+  combosNode.value.forEach((item) => (clearAllNodeState[item.id] = []));
   // 初始化搜索组件数据源
   combos.forEach((item) => {
     options.value.push({

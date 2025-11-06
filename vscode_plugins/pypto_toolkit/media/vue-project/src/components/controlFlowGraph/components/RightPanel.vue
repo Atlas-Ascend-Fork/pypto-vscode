@@ -143,7 +143,7 @@
               </div>
             </div>
           </d-tab>
-          <d-tab v-if="passList.length" class="data-tabs" :id="'tab-3'" :title="t('controlFlows.allComputationalPanelTitle')">
+          <d-tab v-if="passList.length" class="data-tabs" :id="'tab-2'" :title="t('controlFlows.allComputationalPanelTitle')">
             <div class="data-tabs_computes">
               <!-- 每组数据 -->
               <div v-for="(group, groupIndex) in passList" :key="groupIndex">
@@ -591,7 +591,6 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabInd
     panelData.value.tabs.push(calledObj);
   } else {
     calledMaxFrequency.value = calleeMaxFrequency.value;
-    tabIndex = 0;
   }
 
   if (calleeList.length) {
@@ -602,8 +601,9 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabInd
     panelData.value.tabs.push(calleeObj);
   } else {
     calleeMaxFrequency.value = calledMaxFrequency.value;
-    tabIndex = 0;
   }
+  
+  if((calleeList.length===0||calledList.length===0)&&tabIndex!==2)tabIndex = 0;
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes);

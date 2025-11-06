@@ -126,7 +126,8 @@ export function useInitGraph(
   g6Graph.on(NodeEvent.POINTER_OVER, async (event) => {
     const { target, originalTarget } = event;
     if (lineHoverClass.includes(originalTarget.className)) {
-      await g6Graph.setElementState(target.id, originalTarget.className);
+      const currentStates = g6Graph.getElementState(target.id);
+      await g6Graph.setElementState(target.id, [originalTarget.className, ...currentStates]);
     } else {
       const currentStates = g6Graph.getElementState(target.id);
       const newStates = currentStates.filter((state) => !lineHoverClass.includes(state));
