@@ -112,6 +112,7 @@ export default {
     'cubeTimeTIP': 'Sum of the task cube_busy_cycles within the selected range',
     'vectorTimeTIP': 'Sum of the task vec_busy_cycles within the selected range',
     layout: 'Layout',
+    interlockModeSearchTip: 'In linkage mode, after locking the semantic tags, the search function is not supported.',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

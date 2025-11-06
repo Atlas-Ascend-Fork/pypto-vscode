@@ -112,6 +112,7 @@ export default {
    'cubeTimeTIP': '选中范围中的任务cube_busy_cycles之和',
    'vectorTimeTIP': '选中范围中的任务vec_busy_cycles之和',
    layout: '布局',
+   interlockModeSearchTip: '联动模式下，锁定语义标签后，不支持搜索功能',
    comGraph: {
       copy: '复制',
       copied: '复制成功',
