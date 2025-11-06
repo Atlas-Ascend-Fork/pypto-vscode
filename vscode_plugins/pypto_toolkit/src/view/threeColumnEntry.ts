@@ -16,7 +16,7 @@ export class Fider {
 
   async findByCodePath(
     swimPath: string | undefined,
-    comPath: string | undefined
+    comPath: string | undefined,
   ): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
     if (!this.codePath) {
       return { swimPath: undefined, comPath: undefined };
@@ -28,14 +28,16 @@ export class Fider {
     // 情况2: 两个路径都未提供 - 自动查找最新输出目录
     if (!swimPath && !comPath) {
       const autoPaths = await this.tryFindLatestOutputPaths();
-      if (autoPaths.swimPath && autoPaths.comPath) {
+      const { swimPath: foundSwim, comPath: foundCom } = autoPaths;
+      if (foundSwim && foundCom) {
         return autoPaths;
       }
-  
-      // 如果自动查找失败，回退到手动选择
-      if (!swimPath && !comPath) {
+      // 如果没有目录或者目录里既没有泳道也没有计算，回退到手动选择
+      if (!foundSwim && !foundCom) {
         return await this.handleNoPathsProvided(this.codePath);
       }
+      // 任意一个没有，说明用户取消了，直接返回
+      return { swimPath: undefined, comPath: undefined };
     }
   
     // 情况3: 只有泳道图路径
@@ -55,7 +57,7 @@ export class Fider {
     try {
       // 获取工作区根目录
       const workspaceFolders = workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
+      if (!workspaceFolders || workspaceFolders.length === 0 || !this.codePath) {
         return { swimPath: undefined, comPath: undefined };
       }
   
@@ -101,11 +103,11 @@ export class Fider {
       }
       if (comPathExists) {
         this.comPath = possibleComPath;
-        return this.findByCodePath(undefined, possibleComPath);
+        return this.handleOnlyComPathProvided(this.codePath, possibleComPath);
       }
       if (swimPathExists) {
         this.swimPath = possibleSwimPath;
-        return this.findByCodePath(possibleSwimPath, undefined);
+        return await this.handleOnlySwimPathProvided(this.codePath, possibleSwimPath);
       }
   
     } catch (error) {

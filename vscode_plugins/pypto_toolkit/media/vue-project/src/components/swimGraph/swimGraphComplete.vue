@@ -795,6 +795,7 @@ const selectEvent = (event, processKey) => {
   } else {
     childContextMap.threadEvent.changeNodeColor(processKey, false);
     clearDependencyLines(processKey);
+    detailsPanelExpanded.value = false;
   }
   const { eventCtx } = ctxs[processKey];
   childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(processKey), processKey);

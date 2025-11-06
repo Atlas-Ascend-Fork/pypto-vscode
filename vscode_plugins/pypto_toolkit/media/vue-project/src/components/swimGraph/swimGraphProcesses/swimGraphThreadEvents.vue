@@ -66,7 +66,7 @@ const spaceInThreeCol = 2;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
-let isHoverLockStatus = false;
+let isHoverLockStatus = false; // 选定状态
 // 注入父组件提供的状态和方法
 const {
   layout,
@@ -555,58 +555,77 @@ function handleCtrlDragPan(e, canvasRef) {
   return cursor;
 }
 
+const handleAltMove = (e, hoverInfo, refs) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { uiCtx } = refs;
+  handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx)
+};
+
+const handlePureMove = (hoverInfo, refs, localPosition) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { preData, lastData, nodeSpacingX } = hoverInfo?.altClickData || {};
+  const { uiCtx, canvasRef } = refs;
+  const eventCtx = canvasRef.getContext('2d');
+  const { x, y } = localPosition;
+  if (!isLockStatus.value) {
+    onHoverEvent(hoveredEvent);
+    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+    if (isDragging.value) {
+      selection.endLocalX = x;
+      selection.endY = y;
+      // 绘制框选
+      drawSelectionBox();
+      mulDetailsExpanded.value = false;
+    }
+  }
+  if (isThreeColumn) {
+    handle3PureMove(hoverInfo, localPosition, eventCtx);
+  }
+};
+
+const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { x, y } = localPosition;
+  const hasHnadleHover = handleHoverEvent(hoveredEvent);
+  if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus) {
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (!isPointInPolygon) {
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+      preLabel = '';
+      clearSelectionCanvas('data-three-column-process-key');
+      changeNodeColor(props.processKey, false);
+      drawThreadSeparators(eventCtx, props.process, props.processKey);
+    }
+  }
+};
+
 const handleMouseMove = throttle((e) => {
   const refs = getCanvasRefs(props.processKey);
-  if (!refs) return;
-  const { canvasRef, uiCanvasRef, uiCtx, hoverCanvasRef, backgroundCanvasRef, backgroundCanvasCtx } = refs;
+  if (!refs) { return };
+  const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
 
   if (altClickData.preData && altClickData.lastData && !e.altKey && !isMeasureFixed.value) {
     clearDrawConnector(uiCtx, props.processKey);
   }
 
   updateMousePos(e);
-  const { x, y } = computeLocalXY(canvasRef);
-
+  const localPosition = computeLocalXY(canvasRef);
+  const { x, y } = localPosition;
   const info = findEventAtPosition(x, y, props.processKey);
   const hoveredEvent = info?.event;
-  const { preData, lastData, nodeSpacingX } = info?.altClickData || {};
 
   highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
-
-  if (!e.altKey) {
+  
+  if (e.altKey) {
+    handleAltMove(e, info, refs);
+  } else if (e.ctrlKey) {
     isMeasureFirst.value = false;
-  }
-
-  if (handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx)) {
-    return;
-  }
-
-  if (!e.altKey && !isLockStatus.value) {
-    onHoverEvent(hoveredEvent);
-    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+  } else {
+    isMeasureFirst.value = false;
+    handlePureMove(info, refs, localPosition);
   }
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
-  const hasHnadleHover = handleHoverEvent(hoveredEvent);
-  if (!hasHnadleHover && isThreeColumn && !isLockStatus.value && !isHoverLockStatus) {
-    sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
-    preLabel = '';
-    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
-    if (!isPointInPolygon) {
-      clearSelectionCanvas('data-three-column-process-key');
-      selectEvent(null, props.processKey);
-    }
-  }
-  if (isLockStatus.value) {
-    return;
-  }
-  if (isDragging.value && !e.altKey && !e.ctrlKey) {
-    selection.endLocalX = x;
-    selection.endY = y;
-    // 绘制框选
-    drawSelectionBox();
-    mulDetailsExpanded.value = false;
-  }
 }, 16);
 const handleHoverEvent = (hoveredEvent) => {
   if (!hoveredEvent) {
@@ -920,6 +939,7 @@ const resizeDrawBoundary = () => {
     }
     changeNodeColor(processKey, true);
     const { eventCtx } = ctxs[processKey];
+    drawThreadSeparators(eventCtx, process, processKey);
     if (!drawColorDatas[processKey]) {
       return;
     }
@@ -1264,7 +1284,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
     }
   }
 
-  eventCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 0.5);
   drawEvent(drawDatas, eventCtx, isDimmed);
   if (needText) drawEventText(drawDatas, eventCtx, isDimmed);
 };
@@ -1451,6 +1471,9 @@ const drawThreadSeparators = (ctx, process, processKey) => {
   for (let i = 0; i < threadKeys.length; i++) {
     const threadKey = threadKeys[i];
     const thread = process.threads.get(threadKey);
+    if (thread.isCounter) {
+      break;
+    }
     ctx.beginPath();
     ctx.moveTo(0, thread.bottomY);
     ctx.lineTo(viewState.canvasCssWidth, thread.bottomY);
@@ -2346,7 +2369,6 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     }
     highlightedPaths.clear();
     detailsPanelExpanded.value = false;
-    selectEvent(null, props.processKey);
     drawColorDatas[processKey] = [];
     rootHashArray = [];
     // 遍历线程
@@ -2383,6 +2405,7 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
       }
       changeNodeColor(processKey, true);
       const { eventCtx } = ctxs[processKey];
+      drawThreadSeparators(eventCtx, process, processKey);
       drawColorDatas[processKey].forEach((event, eventKey) => {
         onSelectionEvent(event, eventCtx, processKey, false);
         const { args } = event ?? {};

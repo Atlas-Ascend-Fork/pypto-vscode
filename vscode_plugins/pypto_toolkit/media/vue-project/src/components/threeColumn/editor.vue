@@ -392,7 +392,7 @@ const handleMouseMove = throttle((e) => {
     sendMsg('returnSemanticLabelFromCode', { label: '' });
     return;
   }
-}, 16);
+}, 100);
 
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
