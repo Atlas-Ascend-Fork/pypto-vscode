@@ -10,7 +10,7 @@
     <div class="navbar-list">
       <d-tooltip :content="t('jumpCodeTips')" position="bottom" overlay-class="navbar-list-tooltip">
         <div class="source-code">
-          <i class="icon-code"></i>
+          <CodeIcon />
         </div>
       </d-tooltip>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
@@ -20,7 +20,7 @@
       </div>
       <ThreeDot v-if="lastPass" dot-color="var(--devui-placeholder-icon)" />
       <div v-if="lastPass" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
-        <i class="icon-base-info"></i>
+        <ComGraphIcon />
         <PathList v-if="currentStep === 'comGraph'" />
         <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
           <PassList ref="passEl" />
@@ -30,7 +30,7 @@
       </div>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
       <div v-if="showSwim" class="swim-graph" @click="jumpSwim">
-        <i class="icon-project-nav"></i>
+        <SwimIcon />
       </div>
     </div>
   </div>
@@ -46,6 +46,9 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import HistoryIcon from './icons/history-icon.vue';
+import CodeIcon from './icons/code-icon.vue';
+import ComGraphIcon from './icons/com-graph-icon.vue';
+import SwimIcon from './icons/swim-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
