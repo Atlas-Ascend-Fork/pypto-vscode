@@ -157,6 +157,7 @@ const measureDragHeight = ref(0);
 const measureDragCtrl = ref(false);
 const measureDragCtrlX = ref(0);
 const mulDetailsExpanded = ref(false);
+const measureDetailsExpanded = ref(false);
 const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
@@ -176,6 +177,8 @@ const viewState = reactive({
   timeRange: 0,
   canvasCssWidth: 0,
   canvasWidth: 0,
+  clearWidth: 0,
+  clearHeight: 0,
   windowWidth: 0,
   depMode: 'all',
   scaleChange: 1,
@@ -270,6 +273,9 @@ const handleMessage = (event) => {
         bindButton.value = $t("unbindComGraph");
       }
       break;
+    case 'noSwimFile':
+      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
+      break;
   }
 };
 
@@ -288,7 +294,8 @@ let ERROR_MESSAGES = {
   MISSING_PROCESS_NAME: $t("swimErroMsgMISSING_PROCESS_NAME"),
   MISSING_THREADS_FIELDS: $t("swimErroMsgMISSING_THREADS_FIELDS"),
   NO_THREADS: $t("swimErroMsgNO_THREADS"),
-  NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME")
+  NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME"),
+  FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
 }
 
 const validData = (data) => {
@@ -601,7 +608,7 @@ const renderFixedTimeline = () => {
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
-        ctx.fillStyle = isDarkTheme.value ?  'rgba(102, 102, 102, 1)' : '#cccccc';
+        ctx.fillStyle = isDarkTheme.value ?  'rgba(102, 102, 102, 0.7)' : '#cccccc';
       }
       ctx.fillText(`${value}${unit}`, x + 2, 15);
     }
@@ -1147,7 +1154,7 @@ const dragAreaStyle = () => {
 };
 
 const measureMouseDown = (e) => {
-  mulDetailsExpanded.value = false;
+  measureDetailsExpanded.value = false;
   renderFixedTimeline();
   renderTimeline();
 
@@ -1369,7 +1376,12 @@ const measureMouseUp = () => {
 
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
-  mulDetailsExpanded.value = true;
+  if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
+    mulDetailsExpanded.value = true;
+    measureDetailsExpanded.value = true;
+    detailsPanelExpanded.value = false;
+    return; 
+  }
   return;
 }
 
@@ -1389,7 +1401,12 @@ const measureMouseLeave = (e) => {
   intelligentSearch();
   measureDetailSearch();
   isMeasureDragging.value = false;
-  mulDetailsExpanded.value = true;
+  if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
+    mulDetailsExpanded.value = true;
+    measureDetailsExpanded.value = true;
+    detailsPanelExpanded.value = false;
+    return; 
+  }
   return;
 }
 
@@ -1697,6 +1714,7 @@ provide('swimGraphState', {
   measureDragEndX,
   isDarkTheme,
   mulDetailsExpanded,
+  measureDetailsExpanded,
   measureDetailsData,
   rootHashes,
   leafHashes,

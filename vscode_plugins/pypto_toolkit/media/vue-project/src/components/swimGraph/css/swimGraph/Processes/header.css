@@ -10,7 +10,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-right: 1px solid var(--devui-swim-split-line);
   box-shadow: inset 0px -1px 0px 0px rgba(255, 255, 255, 0.05);
   color: var(--devui-primary-text);
   font-size: 14px;
@@ -29,9 +28,9 @@
   display: flex;
   align-items: center;
   text-align: left;
-  width: 140px;
+  width: 145px;
 }
-.label_one  span:last-child{
+.label_one  span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
