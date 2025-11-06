@@ -21,8 +21,8 @@ export interface GetOutputRecordsRes {
   data: OutputRecord[];
 }
 
-const USER_HOME_PATH = process.env.USERPROFILE ?? '/root';
-const OUTPUT_COLLECTION_PATH = process.env.PYPTO_HOME || `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
+const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
+const OUTPUT_COLLECTION_PATH = `${process.env.PYPTO_HOME}${path.sep}run` || `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
 /**
  * 获取运行结果记录
