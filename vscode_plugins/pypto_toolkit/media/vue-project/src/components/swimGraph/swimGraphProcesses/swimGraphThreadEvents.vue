@@ -751,6 +751,65 @@ const calcRowBoundaries = (nodes) => {
   });
 };
 
+const drawPath = (ctx, tempRegions, lineArray) => {
+  for (const region of tempRegions) {
+    ctx.beginPath();
+    const [firstRow] = region;
+    const lastRow = region[region.length - 1];
+    // 起点：首行左上
+    ctx.moveTo(...firstRow.leftTop);
+    // 绘制左边界
+    let minObj = firstRow; // 默认取第一个对象
+    for (let i = 0; i < region.length; i++) {
+      const currentRow = region[i];
+      if (i === 0) {
+        // 首行：直接左上 -> 左下
+        ctx.lineTo(...currentRow.leftBottom);
+      } else {
+        const preRow = region[i - 1];
+        // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
+        if ((Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) - currentRow.width) !== (Math.abs(preRow.rightBottom[0] - currentRow.rightBottom[0]) - preRow.width)) {
+          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+        } else if (Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) < currentRow.width) {
+          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+        }
+        ctx.lineTo(...currentRow.leftTop);  // 垂直上升
+        ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
+      }
+      if (currentRow.leftBottom[0] < minObj.leftBottom[0]) {
+        minObj = currentRow; // 找到更小的则替换
+      }
+    }
+    // 绘制右边界
+    // 从最下行左下 -> 右下
+    ctx.lineTo(...lastRow.rightBottom);
+    lineArray.push(minObj);
+    for (let i = region.length - 1; i >= 0; i--) {
+      const currentRow = region[i];
+      if (i === region.length - 1) {
+        // 最下行： 直接右下 -> 右上
+        ctx.lineTo(...currentRow.rightTop);
+      } else {
+        const nextRow = region[i + 1];
+        // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
+        if ((Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) - nextRow.width) !== (Math.abs(currentRow.rightBottom[0] - nextRow.rightBottom[0]) - currentRow.width)) {
+          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+        } else if (Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) < nextRow.width) {
+          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+        }
+        ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
+        ctx.lineTo(...currentRow.rightTop);  // 垂直下降
+      }
+    }
+    // 闭合路径: 首行右上 -> 左下
+    ctx.lineTo(...firstRow.rightTop);
+    ctx.lineTo(...firstRow.leftTop);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+};
+
 // 绘制边界路径
 const drawBoundary = () => {
   const uiCanvasRef = document.querySelector(`[data-three-column-process-key="${props.processKey}"]`);
@@ -797,66 +856,7 @@ const drawBoundary = () => {
   ctx.lineWidth = 1 / viewState.scale;
   // 遍历每个区域并绘制路径
   let lineArray = [];
-  for (const region of tempRegions) {
-    ctx.beginPath();
-    const [firstRow] = region;
-    const lastRow = region[region.length - 1];
-    // 起点：首行左上
-    ctx.moveTo(...firstRow.leftTop);
-    // 绘制左边界
-    let minObj = firstRow; // 默认取第一个对象
-    for (let i = 0; i < region.length; i++) {
-      const currentRow = region[i];
-      if (i === 0) {
-        // 首行：直接左上 -> 左下
-        ctx.lineTo(...currentRow.leftBottom);
-      } else {
-        const preRow = region[i - 1];
-        // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
-        if ((Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) - currentRow.width) !== (Math.abs(preRow.rightBottom[0] - currentRow.rightBottom[0]) - preRow.width)) {
-          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
-        } else {
-          if (Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) < currentRow.width) {
-            ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
-          }
-        }
-        ctx.lineTo(...currentRow.leftTop);  // 垂直上升
-        ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
-      }
-      if (currentRow.leftBottom[0] < minObj.leftBottom[0]) {
-        minObj = currentRow; // 找到更小的则替换
-      }
-    }
-    // 绘制右边界
-    // 从最下行左下 -> 右下
-    ctx.lineTo(...lastRow.rightBottom);
-    lineArray.push(minObj);
-    for (let i = region.length - 1; i >= 0; i--) {
-      const currentRow = region[i];
-      if (i === region.length - 1) {
-        // 最下行： 直接右下 -> 右上
-        ctx.lineTo(...currentRow.rightTop);
-      } else {
-        const nextRow = region[i + 1];
-        // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
-        if ((Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) - nextRow.width) !== (Math.abs(currentRow.rightBottom[0] - nextRow.rightBottom[0]) - currentRow.width)) {
-          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
-        } else {
-          if (Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) < nextRow.width) {
-            ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
-          }
-        }
-        ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
-        ctx.lineTo(...currentRow.rightTop);  // 垂直下降
-      }
-    }
-    // 闭合路径: 首行右上 -> 左下
-    ctx.lineTo(...firstRow.rightTop);
-    ctx.lineTo(...firstRow.leftTop);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
+  drawPath(ctx, tempRegions, lineArray);
   // 绘制不同区域的连线
   drawConnectLines(lineArray, ctx);
 };
@@ -2354,18 +2354,9 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
-const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
-  if (!label) {
-    clearSelectionCanvas('data-three-column-process-key');
-    changeNodeColor(props.processKey, false);
-    const { eventCtx } = ctxs[processKey];
-    drawThreadSeparators(eventCtx, props.process, props.processKey);
-    return;
-  }
+const setSelectedData = (boundRange, label) => {
   points = [];
   drawColorDatas = {};
-  let rootHashArray = [];
-  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   processes.forEach((process, processKey) => {
     if (!process.expanded) {
       return;
@@ -2373,7 +2364,6 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     highlightedPaths.clear();
     detailsPanelExpanded.value = false;
     drawColorDatas[processKey] = [];
-    rootHashArray = [];
     // 遍历线程
     process.threads.forEach((thread, threadKey) => {
       if (thread.isCounter) {
@@ -2397,41 +2387,66 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
       });
     });
   });
+};
+
+const drawSelection = (drawColorDatas, label, needSendCom, isLock) => {
+  let rootHashArray = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+      return;
+    }
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    drawThreadSeparators(eventCtx, process, processKey);
+    drawColorDatas[processKey].forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey, false);
+      const { args } = event ?? {};
+      const eventHintStr = args?.['event-hint'] ?? '';
+      const rootHashStr = getRootHashList(eventHintStr);
+      rootHashArray.push(rootHashStr);
+    });
+    if (!isLockStatus.value && drawColorDatas[processKey].length) {
+      const rootHashList = [...new Set(rootHashArray)];
+      if (needSendCom) {
+        sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
+      if (isLock) {
+        sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
+    }
+  });
+}; 
+
+const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
+  if (!label) {
+    clearSelectionCanvas('data-three-column-process-key');
+    changeNodeColor(props.processKey, false);
+    const { eventCtx } = ctxs[props.processKey];
+    drawThreadSeparators(eventCtx, props.process, props.processKey);
+    return;
+  }
+  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
+  setSelectedData(boundRange, label);
   boundaries = calcRowBoundaries(points);
   if (boundaries.length) {
     if (needTransform) {
       transformCanvas(boundRange);
     }
-    processes.forEach((process, processKey) => {
-      if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
-        return;
-      }
-      changeNodeColor(processKey, true);
-      const { eventCtx } = ctxs[processKey];
-      drawThreadSeparators(eventCtx, process, processKey);
-      drawColorDatas[processKey].forEach((event, eventKey) => {
-        onSelectionEvent(event, eventCtx, processKey, false);
-        const { args } = event ?? {};
-        const eventHintStr = args?.['event-hint'] ?? '';
-        const rootHashStr = getRootHashList(eventHintStr);
-        rootHashArray.push(rootHashStr);
-      });
-      if (!isLockStatus.value && drawColorDatas[processKey].length) {
-        const rootHashList = [...new Set(rootHashArray)];
-        needSendCom && sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
-        isLock && sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
-      }
-    });
+    drawSelection(drawColorDatas, label, needSendCom, isLock);
     drawBoundary();
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
     selectEvent(null, props.processKey);
-    if (!isLockStatus.value) {
-      needSendCom && sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
-      isLock && sendMsg('sendHashList', { rootHashList: [] });
+    if (isLockStatus.value) {
+      return;
     }
-    return;
+    if (needSendCom) {
+      sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
+    }
+    if (isLock) {
+      sendMsg('sendHashList', { rootHashList: [] });
+    }
   }
 };
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {

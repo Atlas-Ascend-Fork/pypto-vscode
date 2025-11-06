@@ -547,7 +547,7 @@ watch(isDarkTheme, () => {
 });
 watch(isLockStatus, () => {
   if (!isLockStatus.value) {
-    return
+    return;
   }
   searchQuery.value = '';
   searchResultCount.value = 0;
