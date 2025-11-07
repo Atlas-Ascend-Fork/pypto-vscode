@@ -6,11 +6,6 @@
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
-      <!-- <d-tooltip :content="t('comGraph.operationLog')" :mouse-enter-delay="100"  position="left" overlay-class="corner-tips">
-        <div class="corner-icon-container">
-          <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
-        </div>
-      </d-tooltip> -->
       <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="onShowLayerControl">
           <LayerControlIcon :active="showLayerControl" />
@@ -19,6 +14,11 @@
       <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="openDiffViewer">
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
+        </div>
+      </d-tooltip>
+      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="debounceSvgOutput">
+          <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
     </div>
@@ -382,6 +382,9 @@ const isSearchFocus = ref(false);
 const isPathExist = ref(false);
 const upperActive = ref(false);
 const regActive = ref(false);
+const onlySvgOutputOnce = ref(false);
+const isExporting = ref(false);
+let svgResetTimer = null
 
 const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -718,6 +721,30 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
     });
 }
 
+function svgOutput() {
+  if (props.isLoading || props.openMode !== 'all') {
+    return;
+  }
+
+  const copyStyles = false;
+  comGraphStore.data.svgExportMode = true;
+  (window as any).ascEventBus.emit('svgOutput', copyStyles);
+}
+
+const debounceSvgOutput = () => {
+  if (isExporting.value) {
+    return;
+  }
+
+  isExporting.value = true;
+  svgResetTimer = setTimeout(() => {
+    // 当响应时间过长时重置状态
+    isExporting.value = false;
+  }, 30000)
+  svgOutput();
+
+}
+
 function openDiffViewer() {
   if (props.isLoading || props.openMode !== 'all') {
     return;
@@ -871,6 +898,15 @@ onMounted(() => {
   (window as any).vscode.postMessage({
     type: 'getFuncTree',
   });
+
+  (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
+    isExporting.value = false;
+    comGraphStore.data.svgExportMode = false;
+    if (svgResetTimer) {
+      clearTimeout(svgResetTimer);
+    }
+  });
+
 });
 </script>
 

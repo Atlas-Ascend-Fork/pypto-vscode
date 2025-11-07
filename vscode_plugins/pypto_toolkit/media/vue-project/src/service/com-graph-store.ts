@@ -14,6 +14,7 @@ interface ComGraphData {
   visibleOtherNodes: boolean;
   fixedNodeId: string;
   layoutDirection: string;
+  svgExportMode: boolean;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -41,7 +42,8 @@ export const comGraphStore: DataStore = reactive({
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,
     visibleOtherNodes:false,
-    layoutDirection: 'RIGHT'
+    layoutDirection: 'RIGHT',
+    svgExportMode: false,
   },
 
   setData(key: string, value: any) {

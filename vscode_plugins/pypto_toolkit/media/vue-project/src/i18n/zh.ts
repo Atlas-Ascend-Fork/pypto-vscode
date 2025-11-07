@@ -138,6 +138,7 @@ export default {
       leftRight: '左右',
       topBottom: '上下',
       openDiffViewer: '查看差异对比',
+      svgOutput: '以svg格式输出当前页面的计算图',
       searchResSize: `共有{resSize}个结果`,
       currentGraph: '当前图',
       globalGraph: '整图',
