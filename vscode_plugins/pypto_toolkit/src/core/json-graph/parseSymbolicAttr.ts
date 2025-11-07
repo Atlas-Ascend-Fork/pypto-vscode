@@ -151,7 +151,7 @@ function parseExpr(expr: string): string {
 
     const [, opType, insideArgStr] = opMatch;
     const args = splitArgs(insideArgStr).map(parseExpr);
-    const argStr = splitArgs(args);
+    const argStr = splitArgs(args as unknown as string);
     if (argStr.length === 0){
         return '()';
     } 
