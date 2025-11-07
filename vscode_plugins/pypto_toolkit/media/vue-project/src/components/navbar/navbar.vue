@@ -14,24 +14,30 @@
         </div>
       </d-tooltip>
       <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
-        <i class="icon-sharing"></i>
-        <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
-      </div>
-      <ThreeDot v-if="lastPass" dot-color="var(--devui-placeholder-icon)" />
-      <div v-if="lastPass" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
-        <ComGraphIcon />
-        <PathList v-if="currentStep === 'comGraph'" />
-        <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
-          <PassList ref="passEl" />
-          <div v-if="leafFunctions.length" class="dividing-line"></div>
-          <LeafFunctionCom v-if="leafFunctions.length" />
+      <d-tooltip :content="t('controlFlow')" position="bottom" :disabled="currentStep === 'controlFlow'">
+        <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
+          <i class="icon-sharing"></i>
+          <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
         </div>
-      </div>
+      </d-tooltip>
+      <ThreeDot v-if="lastPass" dot-color="var(--devui-placeholder-icon)" />
+      <d-tooltip v-if="lastPass" :content="t('comGraphName')" position="bottom" :disabled="currentStep === 'comGraph'">
+        <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
+          <ComGraphIcon />
+          <PathList v-if="currentStep === 'comGraph'" />
+          <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
+            <PassList ref="passEl" />
+            <div v-if="leafFunctions.length" class="dividing-line"></div>
+            <LeafFunctionCom v-if="leafFunctions.length" />
+          </div>
+        </div>
+      </d-tooltip>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
-      <div v-if="showSwim" class="swim-graph" @click="jumpSwim">
-        <SwimIcon />
-      </div>
+      <d-tooltip v-if="showSwim" :content="t('swimGraph')" position="bottom">
+        <div class="swim-graph" @click="jumpSwim">
+          <SwimIcon />
+        </div>
+      </d-tooltip>
     </div>
   </div>
 </template>

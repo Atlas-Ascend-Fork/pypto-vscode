@@ -90,6 +90,7 @@ export default {
     compareLargerTips: 'The current difference between the two graphs exceeds 50%, so the comparison of differences will no longer be displayed',
     compareWrongTips: 'The selected file cannot be parsed into a computational graph',
     controlFlow: 'ControlFlow',
+    comGraphName: 'ComputationalGraph',
     noDataMatched: 'No data matched',
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
     directRelative: 'Direct relative',
