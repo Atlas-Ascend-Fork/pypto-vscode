@@ -351,7 +351,7 @@ onMounted(() => {
     }
 
     .toolbar-row {
-      left: calc(100% - 485px);
+      left: calc(100% - 418px - var(--select-width));
       margin-top: 16px;
     }
 
