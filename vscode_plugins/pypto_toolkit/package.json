@@ -31,6 +31,11 @@
         "category": "PyPTO.renderDiffComGraph",
         "command": "PyPTO.OpenDiffComGraphForCurrent",
         "title": "%pypto.OpenDiffComGraphForCurrent%"
+      },
+      {
+        "category": "PyPTO.OpenLinkageMode",
+        "command": "PyPTO.OpenLinkageMode",
+        "title": "%PyPTO.OpenLinkageMode%"
       }
     ],
     "menus": {
@@ -43,6 +48,18 @@
         {
           "command": "PyPTO.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
+          "group": "navigation"
+        },
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
       ]

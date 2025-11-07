@@ -1,6 +1,6 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, SModelRootImpl, TYPES } from 'sprotty';
-import { createDiContainer } from './di.config';
+import { createDiContainer, Rect } from './di.config';
 import { createSvg } from './svgExport';
 
 import {
@@ -10,14 +10,12 @@ import {
   CenterAction,
   SetViewportAction,
   UpdateModelAction,
+  HoverFeedbackAction
 } from 'sprotty-protocol';
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
 import { ILayoutConfigurator } from 'sprotty-elk';
-import { compareJsonData } from '../utils';
-import { after, before } from 'node:test';
-import { transform } from 'typescript';
-import { targetName } from 'inversify';
+import { findNodeIdsBySemanticLabel } from '../utils/search';
 
 declare const vscode: any;
 const MAINMAP_TYPE = 1;
@@ -288,6 +286,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     createSvg(svgElement, copyStyles);
   }
 
+  /* 手动触发原生update用于更新视图 */
+  const hoverFeedbackAction = () => {
+    modelSource.actionDispatcher.dispatch(HoverFeedbackAction.create({mouseIsOver:true, mouseoverElement: 'root'}));
+  }
+
   const setMinimapViewportAction = async (x: number, y: number, zoomPara: number, animatePara?: boolean) => {
     // 让主图把这块区域居中并调整缩放到对应比例
     const newViewport = {
@@ -375,6 +378,53 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   }
 
+  const createSelectNodesRect = async (semantic_lable : string, isLocate: boolean) => {
+    const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);
+    if (selectedNodes.length <= 0) {
+      removeSelectNodesRect();
+      return;
+    }
+      
+    if (comGraphStore.data.selectedNodeSemanticLabel !== semantic_lable) {
+      const firstNode = modelSource.currentRoot.children.find((t, i) => {
+        return t.type.includes('node');
+      })
+      modelSource.model.notNeedLayout = true;
+      const firstEdge = modelSource.currentRoot.children.find((t: any) => {
+        return t.sourceId.includes(firstNode.id)
+      })
+      modelSource.removeElements([{elementId:'show-node-rect', parentId: firstEdge.id}]);
+      comGraphStore.data.selectedNodeSemanticLabel = semantic_lable;
+      const newRect = new Rect();
+      newRect.id = 'show-node-rect';
+      newRect.customSize = {width: 0, height: 0};
+      newRect.position = {x: 0, y: 0};
+      newRect.selectedNodes = selectedNodes;
+      newRect.needCalPostion = true;
+  
+      await modelSource.addElements([{element: newRect, parentId: firstEdge.id}]);
+    }
+    const fitAction: FitToScreenAction = {
+      maxZoom: 2.0, // Increased from 0.01 to allow normal zoom levels
+      padding: 50, // Reduced padding
+      kind: 'fit',
+      elementIds: selectedNodes,
+      animate: false,
+    };
+    isLocate && modelSource.actionDispatcher.dispatch(fitAction).then(() => {
+      getViewport(modelSource, MAINMAP_FIT_SCREEN);
+    }); 
+  }
+
+  const removeSelectNodesRect = async () => {
+    comGraphStore.data.stableRect = false;
+    comGraphStore.data.selectedNodeSemanticLabel = '';
+    const index = modelSource.currentRoot.children.findIndex((t, i) => {
+        return t.type.includes('node');
+    })
+    await modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
+  }
+
   return {
     fitToScreenAction,
     initComDocText,
@@ -386,5 +436,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     getSelectedNodeId,
     setModelDirection,
     syncDiffView,
+    createSelectNodesRect,
+    removeSelectNodesRect,
+    resetModelSource,
+    hoverFeedbackAction
   };
 }

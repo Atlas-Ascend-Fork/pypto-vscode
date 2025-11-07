@@ -5,6 +5,7 @@ export default {
    'expandAll': '展开所有',
    'collapseAll': '折叠所有',
    'loadTraceData': '等待加载 trace 数据...',
+   'loadCode': '等待加载 code 数据...',
    'hide': '▲ 隐藏',
    'show': '▼ 显示',
    'nodeDetails': '节点详情',
@@ -92,6 +93,7 @@ export default {
    controlFlow: '控制流',
    noDataMatched: '未匹配到数据',
    jumpCodeTips: '跳转源码，设计中，敬请期待',
+   threeColumnTips: '三纵向布局设计中，敬请期待',
    directRelative: '直系',
    notDirectRelative: '非直系',
    pleaseSelect: '请选择',
@@ -109,6 +111,8 @@ export default {
    'VectorUtilizationTIP':'AIV Time / (选中范围总时长 * AIV泳道个数)',
    'cubeTimeTIP': '选中范围中的任务cube_busy_cycles之和',
    'vectorTimeTIP': '选中范围中的任务vec_busy_cycles之和',
+   layout: '布局',
+   interlockModeSearchTip: '联动模式下，锁定语义标签后，不支持搜索功能',
    comGraph: {
       copy: '复制',
       copied: '复制成功',
@@ -160,7 +164,9 @@ export default {
       locateNodeError:'当前节点未找到，定位失败',
       searchHistoryTips: '历史搜索记录',
       searchPageTips: '界面说明',
-      searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图'
+      searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图',
+      pleaseSelect: '请选择',
+      noData: '无数据'
    },
     sideBar: {
         title: '运行结果',

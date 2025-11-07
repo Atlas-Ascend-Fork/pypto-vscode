@@ -59,8 +59,10 @@ const {
   measureDetailsData,
   rootHashes,
   leafHashes,
+  isLockStatus,
   leafHashMap,
-  dependencyLinesInfo
+  dependencyLinesInfo,
+  isThreeColumn,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -92,7 +94,9 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
-  dependencyLinesInfo
+  isLockStatus,
+  dependencyLinesInfo,
+  isThreeColumn,
 });
 
 const {
@@ -112,7 +116,9 @@ const {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
-  getDisplayName
+  getDisplayName,
+  changeScale,
+  resetState,
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -132,7 +138,9 @@ provide('swimGraphMethods', {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
-  getDisplayName
+  getDisplayName,
+  changeScale,
+  resetState,
 });
 
 const processesContainer = ref(null);

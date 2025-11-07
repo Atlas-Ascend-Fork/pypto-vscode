@@ -321,7 +321,7 @@ export class AstgrGraphView implements IView {
         // 选中时  显示追踪轨迹 失焦其他节点和连线
         comGraphStore.setData('inSelectedComGraphFlow',true);
         selectedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));    
-      } else if(hoverNodes.length > 0 && model.children.length < 20000){ 
+      } else if(hoverNodes.length > 0 && model.children.length < 20000 && comGraphStore.data.comGraphConfig.isHoverHighlightNode){ 
         // 悬停时 显示追踪轨迹 失焦其他节点和连线
         hoverNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
       }
@@ -353,7 +353,7 @@ export class AstgrGraphView implements IView {
     const transform = `scale(${model.zoom}) translate(${-model.scroll.x},${-model.scroll.y})`;
     let trace = window['trace'];
     return (
-      <svg class-sprotty-graph={true} class-has-trace={hasTrace} class-in-selected-trace={comGraphStore.data.inSelectedComGraphFlow} >
+      <svg class-sprotty-graph={true} class-has-trace={hasTrace && comGraphStore.data.comGraphConfig.isHoverHighlightNode} class-in-selected-trace={comGraphStore.data.inSelectedComGraphFlow} >
         <g transform={transform}>{context.renderChildren(model, { trace })}</g>
       </svg>
     );
@@ -449,20 +449,20 @@ export class AstgrNodeLabelView extends ShapeView {
       let titleTxtFillColor = 'var(--devui-primary-text)';
       if ((node.role !== 'input') && (node.role !== 'output')) {
         // if(label.id.includes("operation")) node = label.parent;
-        if (node.selected) {
+        if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
         }
       }
       // 创建第一个text节点
       const titleText = (
-        <text class-sprotty-label={true} class-parent-node={isParentNode} fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} fill={titleTxtFillColor}>
           {label.text}
         </text>
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
       const idText = (
-        <text class-sprotty-label={true} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
+        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
           {subgraphId}
         </text>
       );
@@ -482,7 +482,7 @@ export class AstgrNodeLabelView extends ShapeView {
       let keyFillOpacity = '0.6';
       let valueFillColor = 'var(--devui-primary-text)';
       
-      if (node.selected && node.role === 'operation') {
+      if ((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') {
         keyFillColor = 'var(--devui-op-node-selected-label-text)';
         keyFillOpacity = '1';
         valueFillColor = 'var(--devui-op-node-selected-value-text)';
@@ -637,6 +637,13 @@ export class AstgrOpView extends RectangularNodeView {
         backgroundFilter = 'grayscale(1)';
       }
     }
+    if (comGraphStore.data.selectedNodeSemanticLabel) {
+      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+        backgroundFillColor = node.lightColor;
+      } else {
+        backgroundFilter = 'grayscale(1)';
+      }
+    }
     let opSign;
     if (node.calleehash) {
       let svgName = '';
@@ -734,6 +741,84 @@ export class AstgrOpMinimapView extends RectangularNodeView {
 }
 
 @injectable()
+export class AstgrRectView extends RectangularNodeView {
+  override render(
+    node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
+    context: RenderingContext,
+    args?: IViewArgs
+  ): VNode | undefined {
+
+    if (node.needCalPostion) {
+      node.needCalPostion = false;
+      const nodeMap = node.parent.index.id2element;
+      let startX = Infinity;
+      let startY = Infinity;
+      let endX = -Infinity;
+      let endY = -Infinity;
+      let endYId = '';
+      
+      for (let i = 0; i < node.selectedNodes.length; i++) {
+        const tmpNodes = nodeMap.get(node.selectedNodes[i]);
+        if (!tmpNodes) {
+          continue;
+        }
+        if (tmpNodes.position.x < startX) {
+          startX = tmpNodes.position.x;
+        }
+        if (tmpNodes.position.x + tmpNodes.size.width > endX) {
+          endX = tmpNodes.position.x + tmpNodes.size.width;
+        }
+        if (tmpNodes.position.y < startY) {
+          startY = tmpNodes.position.y;
+        }
+        if (tmpNodes.position.y + tmpNodes.size.height > endY) {
+          endY = tmpNodes.position.y + tmpNodes.size.height;
+          endYId = node.selectedNodes[i];
+        }
+      }
+      node.position.x = startX - 40;
+      node.position.y = startY - 40;
+      node.customSize.width = endX - startX + 80;
+      node.customSize.height = endY - startY + 80;
+    }
+    let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
+
+    let lockOpenSvgName: string;
+    if(comGraphStore.data.isNodeRectLock) {
+      if((window as any).isAscDark) {
+        lockOpenSvgName = 'lock-private';
+      } else {
+        lockOpenSvgName = 'lock-private-light';
+      }
+    } else {
+      if ((window as any).isAscDark) {
+        lockOpenSvgName = 'lock-open';
+      } else {
+        lockOpenSvgName = 'lock-open-light';
+      }
+    }
+
+    return (
+      <g>
+        <rect
+          class-op={true}
+          class-sprotty-node={true}
+          width={node.customSize.width}
+          height={node.customSize.height}
+          fill="transparent"
+          stroke="#317af7"
+          stroke-width={strokeWidth}
+        ></rect>
+        <g id='show_node_rect_lock'>
+          <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
+          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
+        </g>
+      </g>
+    );
+  }
+}
+
+@injectable()
 export class AstgrTensorView extends RectangularNodeView {
   override render(
     node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
@@ -821,6 +906,14 @@ export class AstgrTensorView extends RectangularNodeView {
         inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
       }
       if (!incoming && !outgoing) {
+        backgroundFilter = 'grayscale(1)';
+      }
+    }
+    if (comGraphStore.data.selectedNodeSemanticLabel) {
+      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+        titleBackgroundFillColor = node.lightColor;
+        inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
+      } else {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -1145,7 +1238,7 @@ function createRoundedCorner(prev, corner, next, radius) {
 @injectable()
 export class AstgrEdge extends PolylineEdgeView {
   override render(edge: Readonly<SEdgeImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
-    if((edge.root as any)?.zoom < 0.05) {
+    if((edge.root as any)?.zoom < 0.05 && !comGraphStore.data.comGraphConfig.isSimple) {
       return;
     }
     const trace = (args as AstgrViewArgs)?.trace ?? {
@@ -1263,7 +1356,7 @@ export class AstgrPortView extends ShapeView {
     const circleELement = (
       <circle
         class-sprotty-port={true}
-        class-mouseover={node.parent.hoverFeedback}
+        class-mouseover={node.parent.hoverFeedback && comGraphStore.data.comGraphConfig.isHoverHighlightNode}
         class-selected={node.parent.selected}
         cx={isInPort ? Math.max(node.size.width, 0) - xDelta : 0 + xDelta}
         cy={Math.max(node.size.width, 0) / 2 + yDelta}

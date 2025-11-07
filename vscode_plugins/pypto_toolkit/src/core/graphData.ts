@@ -22,6 +22,7 @@ export interface AbstractGraphData {
   pathName?: string;
   calleeOpAttrMap: Record<string, string>;
   readFileAndSetCache(fsPath: string, panel: any): Promise<readFileResult>;
+  getCompleteData(fsPath: string): Promise<any>;
 }
 
 export abstract class GraphData {
@@ -61,6 +62,29 @@ export abstract class GraphData {
           const value = ele.value;
           if (!value.functions) return;
           await this.processFunctions(fsPath, value, result, panel);
+        })
+        .on('end', () => {
+          resolve(result);
+        })
+        .on('error', (err) => {
+          // 错误处理
+          reject(err);
+        });
+    });
+  }
+
+  async getCompleteData(fsPath) {
+    const fileStream = createReadStream(fsPath);
+    const pipeline = fileStream.pipe(parser()).pipe(streamValues());
+    let result: any;
+
+    return await new Promise((resolve, reject) => {
+      pipeline
+        .on('data', async (ele) => {
+          // 处理数据
+          const value = ele.value;
+          if (!value.functions) return;
+          result = value;
         })
         .on('end', () => {
           resolve(result);

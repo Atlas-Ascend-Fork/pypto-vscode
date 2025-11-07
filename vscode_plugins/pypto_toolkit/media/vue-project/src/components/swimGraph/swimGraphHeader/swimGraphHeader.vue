@@ -2,15 +2,10 @@
   <div class="zoom-controls">
     <div class="left-container">
       <div class="search-container">
-        <d-search
-          class="swim-search"
-          v-model="searchQuery"
-          icon-position="left"
-          :placeholder="searchPlaceholder"
-          :show-glow-style="false"
-          size="sm"
-          @search="onSearch"
-        />
+        <d-tooltip :content="$t('interlockModeSearchTip')" position="right">
+          <d-search class="swim-search" v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+            :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
+        </d-tooltip>
         <d-tooltip :content="$t('caseSensitive')" v-if="searchQuery" position="bottom">
           <button class="case-sensitive" @click="toggleCaseSensitivity" :class="{'case-dark': isCaseSensitive}">
             <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
@@ -150,6 +145,7 @@ const {
   measureDragEndX,
   isDarkTheme,
   mulDetailsExpanded,
+  isLockStatus,
   isCfgEditing,
 } = inject('swimGraphState');
 
@@ -327,6 +323,9 @@ const mte3RatePercentage = ref(0);
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
 const onSearch = (term) => {
+  if (isLockStatus.value) {
+    return;
+  }
   searchQuery.value = term;
   let termL = term.toLowerCase();
   searchResult.value = [];
@@ -546,7 +545,18 @@ const isCfgDisabled = computed(() => {
 watch(isDarkTheme, () => {
   updateTheme();
 });
-
+watch(isLockStatus, () => {
+  if (!isLockStatus.value) {
+    return;
+  }
+  searchQuery.value = '';
+  searchResultCount.value = 0;
+  currentResultIndex.value = 0;
+  isSearchActive.value = false;
+  detailsPanelExpanded.value = false;
+  selectedEvent.value = null;
+  clearSearchData();
+});
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);

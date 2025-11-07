@@ -79,6 +79,7 @@ export const ideLightTheme = new Theme({
     'devui-status-warning-bg': '#fde2bd', // 警告色-背景
     'devui-split-line': 'rgba(0,0,0,0.1)', // 分割线-浅
     'devui-split-line-deep': '#dfdfdf', // 分割线-深
+    'devui-border-line-deep': '#dfdfdf',
     'devui-storage-unit-split': '#999999', // 计算图存储单元分割线
     'devui-pipe-warning-line': '#e7434a', // 计算图pipe告警边框
     'devui-pipe-warning-line-weak': 'rgba(231,67,74,0.3)', // 计算图pipe告警边框弱化
@@ -239,6 +240,7 @@ export const ideDarkTheme = new Theme({
     'devui-status-warning-bg': '#642802', // 警告色-背景
     'devui-split-line': 'rgba(255,255,255,0.1)', // 分割线
     'devui-split-line-deep': '#4d4d4d', // 分割线-深
+    'devui-border-line-deep': '#000000',
     'devui-storage-unit-split': '#999999', // 计算图存储单元分割线
     'devui-pipe-warning-line': '#e7434a', // 计算图pipe告警边框
     'devui-pipe-warning-line-weak': 'rgba(231,67,74,0.3)', // 计算图pipe告警边框弱化

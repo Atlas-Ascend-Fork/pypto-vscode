@@ -1,14 +1,14 @@
 <template>
   <div class="com-graph-header">
-    <div class="corner-container">
+    <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
       <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="openHealthReport">
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
       <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
-        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="onShowLayerControl">
-          <LayerControlIcon :active="showLayerControl" />
+        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="changeLayer">
+          <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl.value)" />
         </div>
       </d-tooltip>
       <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
@@ -229,7 +229,7 @@ function getLayerList(curPath, funcTree) {
 
 
 const { t } = useI18n();
-const { toggleHealthReport, showLayerControl } = inject('comGraph') as ComGraphContext;
+const comGraphCtx = inject('comGraph', undefined) as ComGraphContext | undefined;
 const searchEl = ref();
 let passName = 'Loading';
 let curPath = ref([]);
@@ -395,6 +395,12 @@ watch(currentSelect, (newVal) => {
     category.value = categoryCurrent;
   }
   onSelectedTagsChange({ selectedTags: [] });
+});
+
+watch(() => comGraphStore.data.comGraphConfig.isSimple, (val) => {
+  if (val) {
+    allOptions.value = [searchOptions[0]]
+  }
 });
 
 const onSelectedChange = (e) => {
@@ -699,14 +705,13 @@ const openHealthReport = () => {
   if (props.isLoading) {
     return;
   }
-  toggleHealthReport(true);
+  comGraphCtx?.toggleHealthReport(true);
 };
 
-const onShowLayerControl = () => {
-  if (props.isLoading) {
-    return;
+const changeLayer = () => {
+  if (!props.isLoading && comGraphCtx) {
+    comGraphCtx.showLayerControl.value = true
   }
-  showLayerControl.value = true;
 }
 
 function jumpToGraph(funcHash) {

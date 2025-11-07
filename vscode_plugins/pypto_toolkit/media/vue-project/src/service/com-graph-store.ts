@@ -1,6 +1,15 @@
 import { reactive } from "vue";
 import { SModelRoot } from 'sprotty-protocol';
 
+interface ComGraphConfig {
+  isSimple: boolean; // 是否简化模式
+  isHoverHighlightNode: boolean; // 是否悬浮高亮节点
+  showExtendBtn:boolean; // 是否显示图层控制，健康度报告，差异对比按钮
+  canLockPath: boolean; // 是否锁定链路
+  canViewNodeDetail: boolean; // 是否支持查看详情
+  canViewSubgraph: boolean; // 是否能够下钻子图
+}
+
 interface ComGraphData {
   jsonData: Object;
   comGraphNodeData: any;
@@ -9,12 +18,16 @@ interface ComGraphData {
   pathNodesSet: any,
   curPath: any;
   isDiffGraph: boolean;
+  comGraphConfig: ComGraphConfig;
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
   visibleOtherNodes: boolean;
+  isNodeRectLock: boolean;
+  stableRect:boolean;
   fixedNodeId: string;
   layoutDirection: string;
   svgExportMode: boolean;
+  selectedNodeSemanticLabel: string;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -33,12 +46,23 @@ export const comGraphStore: DataStore = reactive({
   data: {
     jsonData: '',
     fixedNodeId: '',
+    selectedNodeSemanticLabel: '',
     pathNodesSet: [],
     comGraphNodeData: {},
     calleeMap: {},
     CalleeOpAttrMap: {},
     curPath: [],
     isDiffGraph: false,
+    isNodeRectLock: false,
+    stableRect: false,
+    comGraphConfig: {
+      isSimple: false,
+      isHoverHighlightNode: true,
+      showExtendBtn: true,
+      canLockPath: true,
+      canViewNodeDetail: true,
+      canViewSubgraph: true,
+    },
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,
     visibleOtherNodes:false,

@@ -32,7 +32,7 @@ export class AstgrContextMenuService implements IContextMenuService {
         onHide();
       }
     };
-    if (!comGraphStore.data.isDiffGraph) {
+    if (!comGraphStore.data.isDiffGraph && comGraphStore.data.comGraphConfig.canLockPath) {
       menuNode = this.createMenu(items, hideMenu);
   
       container?.appendChild(menuNode);
