@@ -2,10 +2,12 @@
   <div class="zoom-controls">
     <div class="left-container">
       <div class="search-container">
-        <d-tooltip :content="$t('interlockModeSearchTip')" position="right">
-          <d-search class="swim-search" v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+        <d-tooltip :content="$t('interlockModeSearchTip')" position="right" v-if="isLockStatus">
+          <d-search class="swim-search" :disabled="isLockStatus"  v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
             :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
         </d-tooltip>
+        <d-search v-else class="swim-search" v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+            :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
         <d-tooltip :content="$t('caseSensitive')" v-if="searchQuery" position="bottom">
           <button class="case-sensitive" @click="toggleCaseSensitivity" :class="{'case-dark': isCaseSensitive}">
             <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">

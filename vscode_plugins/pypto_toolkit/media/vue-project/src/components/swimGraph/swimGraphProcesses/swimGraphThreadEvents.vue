@@ -752,14 +752,19 @@ const calcRowBoundaries = (nodes) => {
 };
 
 const drawPath = (ctx, tempRegions, lineArray) => {
-  for (const region of tempRegions) {
+  tempRegions.forEach((region, index) => {
     ctx.beginPath();
     const [firstRow] = region;
     const lastRow = region[region.length - 1];
+    if (index === 0 || index === tempRegions.length - 1) {
+      lineArray.push(index === 0 ? lastRow : firstRow);
+    } else {
+      lineArray.push(firstRow);
+      region.length > 1 && lineArray.push(lastRow);
+    }
     // 起点：首行左上
     ctx.moveTo(...firstRow.leftTop);
     // 绘制左边界
-    let minObj = firstRow; // 默认取第一个对象
     for (let i = 0; i < region.length; i++) {
       const currentRow = region[i];
       if (i === 0) {
@@ -776,14 +781,10 @@ const drawPath = (ctx, tempRegions, lineArray) => {
         ctx.lineTo(...currentRow.leftTop);  // 垂直上升
         ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
       }
-      if (currentRow.leftBottom[0] < minObj.leftBottom[0]) {
-        minObj = currentRow; // 找到更小的则替换
-      }
     }
     // 绘制右边界
     // 从最下行左下 -> 右下
     ctx.lineTo(...lastRow.rightBottom);
-    lineArray.push(minObj);
     for (let i = region.length - 1; i >= 0; i--) {
       const currentRow = region[i];
       if (i === region.length - 1) {
@@ -807,7 +808,7 @@ const drawPath = (ctx, tempRegions, lineArray) => {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-  }
+  });
 };
 
 // 绘制边界路径
@@ -861,27 +862,31 @@ const drawBoundary = () => {
   drawConnectLines(lineArray, ctx);
 };
 const drawConnectLines = (lineArray, ctx) => {
-  const connectPoints = lineArray.map(item => item.leftBottom);
-  // 绘制连线
-  for (let i = 0; i < connectPoints.length - 1; i++) {
-    const start = connectPoints[i];
-    const end = connectPoints[i + 1];
-    // 如果起点和终点在同一列（x相同），直接画垂直线
-    if (start[0] === end[0]) {
-      ctx.beginPath();
-      ctx.moveTo(...start);
-      ctx.lineTo(...end);
-      ctx.stroke();
-    } else {
-      // 否则先水平移动，再垂直移动
-      const midPoint = [end[0], start[1]];  // 水平移动到目标列
-      ctx.beginPath();
-      ctx.moveTo(...start);
-      ctx.lineTo(...midPoint);
-      ctx.lineTo(...end);
-      ctx.stroke();
-    }
+  if (!lineArray.length || lineArray.length < 2 || !ctx) {
+    return;
   }
+  lineArray.slice(0, -1).forEach((current, i) => {
+    const next = lineArray[i + 1];
+    const [cp1, cp2] = calculateControlPoints(current.rightBottom, next.leftTop);
+    ctx.beginPath();
+    ctx.moveTo(...current.rightBottom);
+    ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], ...next.leftTop);
+    ctx.stroke();
+  });
+};
+const calculateControlPoints = (start, end) => {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  // 根据目标点在上方调整控制点逻辑
+  const isAbove = end[1] < start[1];  // 判断是否在上方
+  return [
+    // 第一个控制点： 向右下方偏移
+    [start[0] + absDx * 0.3, start[1] + absDy * (isAbove ? 0.2 : 0.4)],
+    // 第二个控制点： 向左上方偏移
+    [end[0] - absDx * 0.3, end[1] - absDy * (isAbove ? 0.4 : 0.2)]
+  ];
 };
 const lockClick = (e) => {
   e.stopPropagation();
