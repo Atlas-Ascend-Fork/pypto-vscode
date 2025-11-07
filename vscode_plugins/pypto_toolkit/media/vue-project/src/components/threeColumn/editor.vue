@@ -431,11 +431,6 @@ const setupHoverListeners = () => {
   editor.onDidScrollChange(() => {
     handleScroll();
   });
-
-  editor.onMouseLeave(() => {
-    lastMoveLabel = null;
-    lastSentLabel = null;
-  });
 };
 
 const handleMouseLeave = () => {
