@@ -9,11 +9,9 @@ export function transformData(rootNodes: GroupNode): {
   const edges: EdgesType[] = [];
   const combos: CombsType[] = [];
   let lastNodeY = 0;
-  let loopRankSep = 0;
   let isFirstNode = false;
   let magicName = '';
   let loopTopCount = 0;
-  let loopBottomCount = 0;
   let loopLastPathCount = 0;
   let lastPathBottomCount = 0;
 
@@ -43,7 +41,6 @@ export function transformData(rootNodes: GroupNode): {
       const pathWidth = 200;
       if (isFirstNode) {
         lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
-        loopBottomCount = loopTopCount;
         loopTopCount = 0;
         lastPathBottomCount = loopLastPathCount;
         loopLastPathCount = deepRankSep;
@@ -85,8 +82,6 @@ export function transformData(rootNodes: GroupNode): {
       };
       lastNodeY += nodeSize[1] + 20;
       nodes.push(newNode);
-      // nodeMap.set(id,newNode)
-      loopRankSep = deepRankSep;
       parentType = node.nodeType;
       // 递归子节点
       if (node.children) {
@@ -189,8 +184,6 @@ export function transformData(rootNodes: GroupNode): {
         };
         //     计算errorStats（todo:本版本无err，预留接口）
         const errorStats = {};
-        const nodeSize = root.nodeType === 'PATH' ? [200, 140 + Object.keys(errorStats).length * 30] : [200, 100];
-        loopRankSep = deepRankSep;
         if (root.x !== undefined && root.y !== undefined) {
           root.hash = root.hash === '' ? `${root.x}${root.y}${parentId}` : root.hash;
           let newNode: ControlFlowNodesType = {
@@ -226,7 +219,6 @@ export function transformData(rootNodes: GroupNode): {
           nodes.push(newNode);
         }
       }
-      const queue: GroupNode[] = [root];
       layoutTree(root, 0, maxLevelPixelWidth / 2);
     }
     //  如果是if嵌套节点
@@ -234,7 +226,6 @@ export function transformData(rootNodes: GroupNode): {
       if (isFirstNode) {
         drawNode(node);
         lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
-        loopBottomCount = loopTopCount;
         loopTopCount = 0;
         lastPathBottomCount = loopLastPathCount;
         loopLastPathCount = deepRankSep;
@@ -269,16 +260,7 @@ export function transformData(rootNodes: GroupNode): {
   for (let i = 0; i < nodes.length; i++) {
     const current = nodes[i];
     const next = nodes[i + 1];
-    if (next && current.type === 'path-card-node' && current.type === next.type) {
-      if (current.data?.type === 'IF-PATH') {
-        continue;
-      }
-      edges.push({
-        source: current.id,
-        target: next.id,
-        style: { lineWidth: 0, opacity: 0 },
-      });
-    } else if (next && current.type === 'path-card-node' && next.type === 'if-card-node') {
+    if (next && current.type === 'path-card-node' && (current.type === next.type || next.type === 'if-card-node')) {
       if (current.data?.type === 'IF-PATH') {
         continue;
       }
