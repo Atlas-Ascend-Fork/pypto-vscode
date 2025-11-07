@@ -492,7 +492,7 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
 
 const findLineAtPoint = (ctx, point) => {
   // 还原传入坐标为绘制算法
-  const pointX = (point.x * viewState.scale * viewState.scale) + viewState.offsetX;
+  const pointX = ((point.x * viewState.scale * viewState.scale) + viewState.pixelOffsetX) * devicePixelRatio;
   for (const line of dependencyLinesInfo.value) {
     if (ctx.isPointInStroke(line.linePath, pointX, point.y)) {
       return { fromEvent: line.fromEvent, toEvent: line.toEvent };
@@ -1885,7 +1885,7 @@ const lineShowTooltip = (e, startEvent, endEvent) => {
   let lineTooltipContent = `<div class="linetooltip-container">`;
   for (const [key, value] of interSectionMap) {
     const { shape, dtype, rawmagic, mem_usage } = value[key];
-    const valueString = `shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}`;
+    const valueString = `{${key}: {shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}}}`;
     lineTooltipContent += `<div class="linetooltip-item"><span class="linetooltip-value">${valueString}</span></div>`;
   }
   lineTooltipContent += '</div>';
