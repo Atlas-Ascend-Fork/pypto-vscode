@@ -28,6 +28,7 @@ const openMode = ref('all');
 const nodeMagic = ref(0);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 const {updateTheme} = useTheme();
+let inThreeColumnMode = false;
 
 getQuery().then((query) => {
   graphType.value = query._viewType;
@@ -68,8 +69,10 @@ const returnInitData = (message) => {
 };
 
 const readJsonWarning = (message) => {
-  graphType.value = 'comGraphFullSearchEntry';
-  loadingStep.value = message.command;
+  if (!inThreeColumnMode) {
+    graphType.value = 'comGraphFullSearchEntry';
+    loadingStep.value = message.command;
+  }
 };
 
 const returnSwim = (message) => {
@@ -128,6 +131,7 @@ const returnDiffCom = (message) => {
 
 const setThreeColumnMode = (message) => {
   graphType.value = 'threeColumn';
+  inThreeColumnMode = true;
 }
 
 const updateJsonContent = (message) => {
