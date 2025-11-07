@@ -142,6 +142,7 @@ export default {
         leftRight: 'Left & Right',
         topBottom: 'Top & Bottom',
         openDiffViewer: 'Open Diff Viewer',
+        svgOutput: 'Export the compute graph of the current page in SVG format',
         searchResSize: `Found {resSize} results`,
         currentGraph: 'Current Graph',
         globalGraph: 'Global Graph',

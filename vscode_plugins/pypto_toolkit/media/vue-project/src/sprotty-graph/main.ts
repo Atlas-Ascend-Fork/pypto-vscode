@@ -1,6 +1,7 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
-import { LocalModelSource, TYPES } from 'sprotty';
+import { LocalModelSource, SModelRootImpl, TYPES } from 'sprotty';
 import { createDiContainer, Rect } from './di.config';
+import { createSvg } from './svgExport';
 
 import {
   FitToScreenAction,
@@ -21,6 +22,7 @@ const MAINMAP_TYPE = 1;
 const MINIMAP_TYPE = 2;
 const MAINMAP_WHEEL = 3;
 const MAINMAP_FIT_SCREEN = 4;
+
 export function useSprottyLoad(containerId?: string, filePath?: string) {
   const SPROTTY_CONTAINER_ID = containerId ?? 'sprotty';
   const renderType = filePath ?? '';
@@ -201,6 +203,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     fitToScreenAction();
   };
 
+  const svgExportRequestListener = (args) => {
+    requestExportSvgAction(args);
+  };
+
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
@@ -208,6 +214,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`${renderType}_mainmap_wheel`, mainMapWheelListener);
 
   (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
+
+  (window as any).ascEventBus.on(`svgOutput`, svgExportRequestListener);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {
@@ -256,6 +264,27 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     };
     modelSource.actionDispatcher.dispatch(SetViewportAction.create(rootId, newViewport, options));
   };
+
+  const requestExportSvgAction = async (copyStyles?: boolean) => {
+    const originViewInfo = await modelSource.getViewport();
+    const x: number = originViewInfo.scroll.x;
+    const y: number = originViewInfo.scroll.y;
+    const svgViewport = {
+      scroll: {x, y},
+      zoom: 1.0,
+    };
+    const viewOptions = {
+      animate: false,
+    }
+
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+    await modelSource.actionDispatcher.dispatch(SetViewportAction.create(modelSource.model.id, svgViewport, viewOptions));
+    await delay(1000);
+
+    const svgElement =  document.getElementById('sprotty').querySelector('svg');
+
+    createSvg(svgElement, copyStyles);
+  }
 
   /* 手动触发原生update用于更新视图 */
   const hoverFeedbackAction = () => {
