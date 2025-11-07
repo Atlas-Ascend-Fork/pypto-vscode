@@ -45,7 +45,7 @@ const getSubGraphId = (event, mode) => {
       const subGraphItem = subGraphArr.find(item => item.includes('subGraphId'));
       subGraphId = subGraphItem ? subGraphItem.split(':')[1] : null;
     }
-    if (subGraphId === null) {
+    if (subGraphId === null || subGraphId === undefined) {
       subGraphId = nameParts[nameParts.length - 1];
     }
   } else if (mode === "stichedFunc") {
