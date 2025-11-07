@@ -1,62 +1,79 @@
 <template>
   <div class="sidebar-demo-container">
     <!-- 抽屉组件：右侧弹出，包含页签和表格核心内容 -->
-    <d-drawer :lock-scroll="false" v-model="drawerVisible" :show-overlay="true" class="drawer-container"
-              placement="right" @close="handleDrawerClose" @open="handleDrawerOpen">
+    <d-drawer
+      :lock-scroll="false"
+      v-model="drawerVisible"
+      :show-overlay="true"
+      class="drawer-container"
+      placement="right"
+      @close="handleDrawerClose"
+      @open="handleDrawerOpen"
+    >
       <div class="drawer-header">
         <div class="drawer-header__title">{{ currentDrawerData?.title }}</div>
-        <i class="icon icon-close" @click="drawerVisible=false"></i>
+        <i class="icon icon-close" @click="drawerVisible = false"></i>
       </div>
 
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
       <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
-        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange"
-                custom-width="140px">
+        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange" custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
-          <d-tab v-for="(tab, tabIndex) in currentDrawerData?.tabs || []" :id="`tab-${tabIndex}`"
-                 :key="tabIndex" :title="tab.name" class="data-tabs">
+          <d-tab
+            v-for="(tab, tabIndex) in currentDrawerData?.tabs || []"
+            :id="`tab-${tabIndex}`"
+            :key="tabIndex"
+            :title="tab.name"
+            class="data-tabs"
+          >
             <div class="call-record">
               <!-- 搜索框：筛选当前页签表格数据，支持清空 -->
-              <d-input v-model="searchKeywords[tabIndex]" class="search-input"
-                       :placeholder="t('controlFlows.tableSearch')"
-                       @input="processedTableData(tabIndex)"
+              <d-input
+                v-model="searchKeywords[tabIndex]"
+                class="search-input"
+                :placeholder="t('controlFlows.tableSearch')"
+                @input="processedTableData(tabIndex)"
               >
                 <template #prefix>
-                  <d-icon class="search-input__icon" name="search"/>
+                  <d-icon class="search-input__icon" name="search" />
                 </template>
                 <template #suffix>
-                  <d-icon v-if="searchKeywords[tabIndex]" class="search-input__clear" name="close"
-                          @click.stop="searchKeywords[tabIndex] = ''"/>
+                  <d-icon
+                    v-if="searchKeywords[tabIndex]"
+                    class="search-input__clear"
+                    name="close"
+                    @click.stop="searchKeywords[tabIndex] = ''"
+                  />
                 </template>
               </d-input>
               <!-- 表格组件：支持展开详情、列排序，深色主题适配 -->
-              <d-table ref="tableRef" :data="processedTableData(tabIndex)"
-                       :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
-                       :row-hovered-highlight="true"
-                       class="content-table"
-                       :header-bg="true"
-                       row-key="id"
-                       fix-header
-                       @row-click="onRowClick"
-                       @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
-                       @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
-                       v-if="isTableVisited"
+              <d-table
+                ref="tableRef"
+                :data="processedTableData(tabIndex)"
+                :expand-row-keys="defaultExpandedRowKeys[tabIndex]"
+                :row-hovered-highlight="true"
+                class="content-table"
+                :header-bg="true"
+                row-key="id"
+                fix-header
+                @row-click="onRowClick"
+                @expand-change="(currentRow: TableRowData, expandedRows: TableRowData[]) => handleExpandChange(tabIndex, currentRow, expandedRows)"
+                @sort-change="(sortInfo: SortInfo) => handleSortChange(tabIndex, sortInfo)"
+                v-if="isTableVisited"
               >
-
                 <d-column field="name" width="286px" show-overflow-tooltip>
                   <template #header>
                     <span class="table-header-left">{{ tableTitle[tabIndex].name }}</span>
-                    <div class=" left-sort">
+                    <div class="left-sort">
                       <div class="sort-icon">
                         <d-icon class="sort" operable @click="sortLeaf(tabIndex)">
                           <template #prefix>
-                            <img :src="sortIcon" class="icon-sort">
+                            <img :src="sortIcon" class="icon-sort" />
                           </template>
                         </d-icon>
                       </div>
                     </div>
-
                   </template>
                   <template #default="scope">
                     <div class="table-leaf-sell">
@@ -70,17 +87,21 @@
                     <span class="table-header-right">{{ tableTitle[tabIndex].value }}</span>
                     <d-icon class="sort" operable @click="sortFrequency(tabIndex)">
                       <template #prefix>
-                        <img :src="sortIcon" class="icon-sort">
+                        <img :src="sortIcon" class="icon-sort" />
                       </template>
                     </d-icon>
                   </template>
                   <template #default="scope">
                     <div class="table-callee-sell">
                       <span class="callee-sell-count">{{ scope.row.frequency }}</span>
-                      <div v-if="scope.row.frequency==='-'" class="callee-sell-progress"></div>
-                      <d-progress v-else class="callee-sell-progress"
-                                  :percentage="(scope.row.frequency/(tabIndex===0?calledMaxFrequency:calleeMaxFrequency))*100"
-                                  barBgColor="#317AF7" height="6px"></d-progress>
+                      <div v-if="scope.row.frequency === '-'" class="callee-sell-progress"></div>
+                      <d-progress
+                        v-else
+                        class="callee-sell-progress"
+                        :percentage="(scope.row.frequency / (tabIndex === 0 ? calledMaxFrequency : calleeMaxFrequency)) * 100"
+                        barBgColor="#317AF7"
+                        height="6px"
+                      ></d-progress>
                     </div>
                   </template>
                 </d-column>
@@ -100,17 +121,20 @@
                             {{ item.value }}
                           </span>
                           <div class="expand-row_frequency_progress">
-                            <div v-if="item.value==='-'" class="expand-row-progress"></div>
-                            <d-progress v-else class="expand-row-progress"
-                                        :percentage="(item.value/rowData.row.detailMaxCalled)*100"
-                                        barBgColor="#317AF7" height="6px"></d-progress>
+                            <div v-if="item.value === '-'" class="expand-row-progress"></div>
+                            <d-progress
+                              v-else
+                              class="expand-row-progress"
+                              :percentage="(item.value / rowData.row.detailMaxCalled) * 100"
+                              barBgColor="#317AF7"
+                              height="6px"
+                            ></d-progress>
                           </div>
                         </div>
                       </div>
                     </div>
                   </template>
                 </d-column>
-
               </d-table>
 
               <!-- 空数据提示：当前页签无匹配数据时显示 -->
@@ -119,22 +143,26 @@
               </div>
             </div>
           </d-tab>
-          <d-tab v-if="passList.length" class="data-tabs" :id="'tab-3'"
-                 :title="t('controlFlows.allComputationalPanelTitle')">
+          <d-tab v-if="passList.length" class="data-tabs" :id="'tab-2'" :title="t('controlFlows.allComputationalPanelTitle')">
             <div class="data-tabs_computes">
               <!-- 每组数据 -->
-              <div v-for="(group,groupIndex) in passList" :key="groupIndex">
+              <div v-for="(group, groupIndex) in passList" :key="groupIndex">
                 <div class="group-line" :style="`color:${group.color}`">
                   <i class="group-line-icon icon-management-new"></i>
                   <span class="group-line-title"> {{ group.name }}</span>
                 </div>
-                <div v-for="(item,index) in group.members" :key="index" class="group-line" :style="getColor(item.type)"
-                     @click="openGraph(item)">
+                <div
+                  v-for="(item, index) in group.members"
+                  :key="index"
+                  class="group-line"
+                  :style="getColor(item.type)"
+                  @click="openGraph(item)"
+                >
                   <div class="line-group">
                     <span class="group-line-index"> {{ item.passIndex }}</span>
-                    <span class="group-line-name" :title="item.passName "> {{ item.passName }}</span>
+                    <span class="group-line-name" :title="item.passName"> {{ item.passName }}</span>
                   </div>
-                  <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon"/></span>
+                  <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon" /></span>
                 </div>
               </div>
             </div>
@@ -148,30 +176,36 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
 import {
-  CalledRecordsType, CalleeRecordsType,
-  ControlFlowNodesType, DetailItem, GroupItem, LeafFunctionType,
-  PanelData, PassesType,
+  CalledRecordsType,
+  CalleeRecordsType,
+  ControlFlowNodesType,
+  DetailItem,
+  GroupItem,
+  LeafFunctionType,
+  PanelData,
+  PassesType,
   SortInfo,
-  SortOption, TabData,
-  TableRowData, TableTitleType
-} from "@/components/controlFlowGraph/type/node-detail-types";
+  SortOption,
+  TabData,
+  TableRowData,
+  TableTitleType,
+} from '@/components/controlFlowGraph/type/node-detail-types';
 import { useI18n } from 'vue-i18n';
-import { openComputeGraph } from "@/apis/opener";
-
+import { openComputeGraph } from '@/apis/opener';
 
 const healthIcon = ref(`${window.staticPath}/static-assets/control_flow_health.svg`);
 const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort.svg`);
-const rgb='rgb(97,201,131)'
+const rgb = 'rgb(97,201,131)';
 // ========================== 1. 绑定组件 ==========================
 const tableRef = ref();
 
 // ========================== 2. 数据 ==========================
 // 按钮配置数据：点击不同按钮打开对应数据的抽屉
 const { t } = useI18n();
-const passList = ref<GroupItem[]>([])
+const passList = ref<GroupItem[]>([]);
 const panelData = ref<PanelData>({
   title: '',
-  tabs: []
+  tabs: [],
 });
 const tableTitle: TableTitleType[] = [
   {
@@ -182,9 +216,9 @@ const tableTitle: TableTitleType[] = [
   {
     name: t('controlFlows.leafFunctionTableName'),
     value: t('controlFlows.leafFunctionTableValue'),
-  }
-]
-const outPutPath = ref()
+  },
+];
+const outPutPath = ref();
 // ========================== 3. 状态管理 ==========================
 // 抽屉显示状态：控制抽屉是否弹出
 const drawerVisible = ref(false);
@@ -208,18 +242,18 @@ const isTableVisited = ref<boolean>(true);
 // ========================== 4. 事件处理 ==========================
 /**
  * 打开抽屉：初始化当前抽屉数据和状态（搜索、排序、展开行）
- * @param data 点击按钮对应的配置数据
+ * @param tabIndex 打开页签
  */
-const openDrawer = () => {
+const openDrawer = (tabIndex: number) => {
   currentDrawerData.value = panelData.value;
-  activeTabId.value = 'tab-0';
+  activeTabId.value = `tab-${tabIndex}`;
 
   try {
     // 初始化每个页签的状态
     panelData.value.tabs.forEach((_, tabIndex) => {
       searchKeywords.value[tabIndex] = ''; // 清空搜索
-      sortOptions.value[tabIndex] = {sortField: 'frequency', sortDirection: "DESC"}; // 清空旧排序
-      sortStates.value[tabIndex] = {field: '', direction: null}; // 清空新排序
+      sortOptions.value[tabIndex] = { sortField: 'frequency', sortDirection: 'DESC' }; // 清空旧排序
+      sortStates.value[tabIndex] = { field: '', direction: null }; // 清空新排序
       defaultExpandedRowKeys.value[tabIndex] = []; // 清空展开行
       tableRefs.value[tabIndex] = null; // 清空表格引用
     });
@@ -228,7 +262,6 @@ const openDrawer = () => {
   } catch (err) {
     console.log(err);
   }
-
 };
 
 /**
@@ -270,22 +303,20 @@ function openGraph(item) {
     outputPath: outPutPath.value,
     computeGraphPath: item.graphFilePath,
     pathName: item.pathName,
-  })
-
-
+  });
 }
 
-const sortFrequencyType = ref<SortInfo>({field: 'frequency', direction: "ASC"})
+const sortFrequencyType = ref<SortInfo>({ field: 'frequency', direction: 'ASC' });
 
 function sortFrequency(tabIndex: number) {
-  sortFrequencyType.value.direction = sortFrequencyType.value.direction === "ASC" ? "DESC" : "ASC";
+  sortFrequencyType.value.direction = sortFrequencyType.value.direction === 'ASC' ? 'DESC' : 'ASC';
   handleSortChange(tabIndex, sortFrequencyType.value);
 }
 
-const sortLeafType = ref<SortInfo>({field: 'name', direction: "ASC"})
+const sortLeafType = ref<SortInfo>({ field: 'name', direction: 'ASC' });
 
 function sortLeaf(tabIndex: number) {
-  sortLeafType.value.direction = sortLeafType.value.direction === "ASC" ? "DESC" : "ASC";
+  sortLeafType.value.direction = sortLeafType.value.direction === 'ASC' ? 'DESC' : 'ASC';
   handleSortChange(tabIndex, sortLeafType.value);
 }
 
@@ -297,7 +328,6 @@ function sortLeaf(tabIndex: number) {
 const handleSortChange = (tabIndex: number, sortInfo: SortInfo) => {
   // 更新排序状态
   sortStates.value[tabIndex] = sortInfo;
-
 };
 
 /**
@@ -307,7 +337,7 @@ const handleSortChange = (tabIndex: number, sortInfo: SortInfo) => {
  * @param expandedRows 所有展开的行数据
  */
 const handleExpandChange = (tabIndex: number, currentRow: TableRowData, expandedRows: TableRowData[]) => {
-  defaultExpandedRowKeys.value[tabIndex] = expandedRows.map(row => row.id);
+  defaultExpandedRowKeys.value[tabIndex] = expandedRows.map((row) => row.id);
 };
 
 // ========================== 5. 工具函数 ==========================
@@ -320,8 +350,8 @@ const getColumnSortMethod = (field: string) => {
   return (a: any, b: any) => {
     let valueA = a[field];
     let valueB = b[field];
-    valueA = valueA === '-' ? '0' : valueA
-    valueB = valueB === '-' ? '0' : valueB
+    valueA = valueA === '-' ? '0' : valueA;
+    valueB = valueB === '-' ? '0' : valueB;
 
     // 处理空值：空值排在后面
     if (valueA === null || valueA === undefined) return 1;
@@ -350,7 +380,6 @@ const getColumnSortMethod = (field: string) => {
  * @returns 筛选+排序后的表格数据
  */
 const processedTableData = (tabIndex: number) => {
-
   // 边界判断：当前无抽屉数据或页签不存在时返回空数组
   if (!currentDrawerData.value || !currentDrawerData.value.tabs[tabIndex]) {
     return [];
@@ -358,15 +387,15 @@ const processedTableData = (tabIndex: number) => {
 
   const tab = currentDrawerData.value.tabs[tabIndex];
   const keyword = searchKeywords.value[tabIndex] || '';
-  const {field: sortField, direction: sortDirection} = sortStates.value[tabIndex] || {};
+  const { field: sortField, direction: sortDirection } = sortStates.value[tabIndex] || {};
 
   // 1. 筛选：关键词匹配任意字段（不区分大小写）
   let filteredData = [...tab.data];
   if (keyword) {
-    filteredData = filteredData.filter(row => row.name.toLowerCase().includes(keyword.toLowerCase()))
+    filteredData = filteredData.filter((row) => row.name.toLowerCase().includes(keyword.toLowerCase()));
     isTableVisited.value = !!filteredData.length;
   } else {
-    isTableVisited.value = true
+    isTableVisited.value = true;
   }
 
   // 2. 排序：根据当前排序状态处理
@@ -377,7 +406,7 @@ const processedTableData = (tabIndex: number) => {
       return sortDirection === 'ASC' ? sortResult : -sortResult;
     });
   }
-  if(filteredData.length===0){
+  if (filteredData.length === 0) {
     isTableVisited.value = false;
   }
   return filteredData;
@@ -385,18 +414,22 @@ const processedTableData = (tabIndex: number) => {
 
 function onRowClick(params) {
   if (params.row.detail) {
-    tableRef.value[0].store.toggleRowExpansion(params.row)
-
+    tableRef.value[0].store.toggleRowExpansion(params.row);
   }
 }
 
-const calledMaxFrequency = ref(0)
-const calleeMaxFrequency = ref(0)
+const calledMaxFrequency = ref(0);
+const calleeMaxFrequency = ref(0);
 
+/**
+ *  获取Called表格数据
+ * @param leafFunctions path中leafFunctions列表
+ * @param calledRecords path中calledRecords列表
+ */
 function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
-  calledMaxFrequency.value = 0
+  calledMaxFrequency.value = 0;
   // 统计被调用数据
-  const calledRecordObj = {}
+  const calledRecordObj = {};
   let index = 0;
   for (const called of calledRecords) {
     const callerHash = called.callerHash;
@@ -406,28 +439,25 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
 
       if (calledRecordObj[calleeHash].detail.hasOwnProperty(callerHash)) {
         calledRecordObj[calleeHash].detail[callerHash].value++;
-
       } else {
         calledRecordObj[calleeHash].detail[callerHash] = {
           value: 1,
-          label: called.callerFunction.magicName.substring(7)
-        }
+          label: called.callerFunction.magicName.substring(7),
+        };
       }
-
     } else {
       calledRecordObj[calleeHash] = {
         id: `${index}`,
         name: `${called.calleeFunction.magicName}`,
         frequency: 1,
-        detail: {}
-      }
+        detail: {},
+      };
       calledRecordObj[calleeHash].detail[callerHash] = {
         value: 1,
-        label: called.callerFunction.magicName.substring(7)
-      }
+        label: called.callerFunction.magicName.substring(7),
+      };
       index++;
     }
-
   }
 
   // 转换为表格数据对象列表并从高到低排序
@@ -440,13 +470,13 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
       id: `${index}`,
       name: `leaf_${leaf.programId}`,
       frequency: leafFrequency,
-    }
+    };
 
-    if (calledRecordObj.hasOwnProperty(leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== "{}") {
-      const detail: DetailItem[] = []
+    if (calledRecordObj.hasOwnProperty(leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== '{}') {
+      const detail: DetailItem[] = [];
       let detailMaxCalled = 0;
       for (let i in calledRecordObj[leaf.hash].detail) {
-        detailMaxCalled = Math.max(detailMaxCalled, calledRecordObj[leaf.hash].detail[i].value)
+        detailMaxCalled = Math.max(detailMaxCalled, calledRecordObj[leaf.hash].detail[i].value);
         detail.push({
           label: calledRecordObj[leaf.hash].detail[i].label,
           value: calledRecordObj[leaf.hash].detail[i].value.toString(),
@@ -456,23 +486,28 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
         ...leafObj,
         detail,
         detailMaxCalled,
-      }
+      };
     }
-    calledMaxFrequency.value = Math.max(calledMaxFrequency.value, leafObj.frequency)
-    tableData.push(leafObj)
+    calledMaxFrequency.value = Math.max(calledMaxFrequency.value, leafObj.frequency);
+    tableData.push(leafObj);
   }
-  tableData.sort((a, b) => b.frequency - a.frequency)
+  tableData.sort((a, b) => b.frequency - a.frequency);
   return tableData;
 }
 
+/**
+ *  获取Called表格数据
+ * @param leafFunctions path中leafFunctions列表
+ * @param calleeRecords path中calleeRecords列表
+ */
 function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeRecordsType[]): TableRowData[] {
-  const calleeFunctionObj = {}
-  calleeMaxFrequency.value = 0
+  const calleeFunctionObj = {};
+  calleeMaxFrequency.value = 0;
   let index = 0;
-  const leafFunctionMap = new Map()
-  leafFunctions.forEach(leafFunction => {
-    leafFunctionMap.set(leafFunction.hash, leafFunction.magicName)
-  })
+  const leafFunctionMap = new Map();
+  leafFunctions.forEach((leafFunction) => {
+    leafFunctionMap.set(leafFunction.hash, leafFunction.magicName);
+  });
   // 统计次数
   for (const callee of calleeRecords) {
     const calleeHash = callee.calleeHash;
@@ -483,32 +518,34 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
         id: `${index}`,
         name: leafFunctionMap.has(calleeHash) ? `leaf_${callee.calleeFunction.programId}` : callee.calleeFunction.magicName,
         frequency: 1,
-      }
+      };
       index++;
     }
   }
-// 转换为表格数据对象列表并从高到低排序
+  // 转换为表格数据对象列表并从高到低排序
   const tableData: TableRowData[] = [];
   for (let i in calleeFunctionObj) {
-    calleeMaxFrequency.value = Math.max(calleeMaxFrequency.value, calleeFunctionObj[i].frequency)
+    calleeMaxFrequency.value = Math.max(calleeMaxFrequency.value, calleeFunctionObj[i].frequency);
     tableData.push(calleeFunctionObj[i]);
   }
-  tableData.sort((a, b) => b.frequency - a.frequency)
+  tableData.sort((a, b) => b.frequency - a.frequency);
   return tableData;
-
-
 }
 
 const passStageTitle = {
-  tensor: {label: 'Tensor Graph', color: 'var(--control-flow-panel-table-tensor)'},
-  tile: {label: 'Tile Graph', color: 'var(--control-flow-panel-table-Tile)'},
-  block: {label: 'Block Graph', color: 'var(--control-flow-panel-table-block)'},
+  tensor: { label: 'Tensor Graph', color: 'var(--control-flow-panel-table-tensor)' },
+  tile: { label: 'Tile Graph', color: 'var(--control-flow-panel-table-Tile)' },
+  block: { label: 'Block Graph', color: 'var(--control-flow-panel-table-block)' },
 };
 
+/**
+ *  计算图列表数据转换
+ * @param passes path中passes列表
+ */
 function getPassList(passes: PassesType[]) {
-  const passGroups: GroupItem[] = []
+  const passGroups: GroupItem[] = [];
   let nowState = '';
-  let item: GroupItem = {}
+  let item: GroupItem = {};
 
   for (let i = 0; i < passes.length; i++) {
     if (passes[i].passStage !== nowState) {
@@ -516,15 +553,15 @@ function getPassList(passes: PassesType[]) {
         passGroups.push(item);
       }
       nowState = passes[i].passStage;
-      item = {icon: "icon-code", members: []};
+      item = { icon: 'icon-code', members: [] };
       item.name = passStageTitle[passes[i].passStage].label;
       item.color = passStageTitle[passes[i].passStage].color;
     }
     item.members.push({
       ...passes[i],
       type: 'other',
-      icon: passes[i].hasHealthReport ? "icon-HealthReport" : '',
-    })
+      icon: passes[i].hasHealthReport ? 'icon-HealthReport' : '',
+    });
     if (i === passes.length - 1) {
       passGroups.push(item);
     }
@@ -532,54 +569,60 @@ function getPassList(passes: PassesType[]) {
   return passGroups;
 }
 
-function transFormPanelData(nodeData: ControlFlowNodesType, path: string) {
-  outPutPath.value = path
-  const {leafFunctions, calledRecords, calleeRecords} = nodeData.data.source.meta;
+/**
+ *  数据转换，提取node节点数据，转换为抽屉所需数据格式
+ * @param nodeData path节点数据
+ * @param path 打开计算图所需outPutPath值
+ * @param tabIndex 首次打开抽屉时查看标签页值
+ */
+function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabIndex: number) {
+  outPutPath.value = path;
+  const { leafFunctions, calledRecords, calleeRecords } = nodeData.data.source.meta;
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);
 
   panelData.value.title = nodeData.data.source.magicName.substring(7);
   panelData.value.tabs = [];
-  if(calledList.length){
+  if (calledList.length) {
     const calledObj: TabData = {
       name: t('controlFlows.calledFunctionPanelTitle'),
       data: calledList,
-    }
+    };
     panelData.value.tabs.push(calledObj);
-  }else {
+  } else {
     calledMaxFrequency.value = calleeMaxFrequency.value;
   }
 
-  if(calleeList.length){
+  if (calleeList.length) {
     const calleeObj: TabData = {
       name: t('controlFlows.callFunctionPanelTitle'),
       data: calleeList,
-    }
+    };
     panelData.value.tabs.push(calleeObj);
-  }else {
+  } else {
     calleeMaxFrequency.value = calledMaxFrequency.value;
   }
+  
+  if((calleeList.length===0||calledList.length===0)&&tabIndex!==2)tabIndex = 0;
 
   if (nodeData.data.source.meta?.passes) {
-    passList.value = getPassList(nodeData.data.source.meta?.passes)
+    passList.value = getPassList(nodeData.data.source.meta?.passes);
   }
-  openDrawer()
+  openDrawer(tabIndex);
 }
-
 
 // ========================== 6. 监听事件 ==========================
 /**
  * 监听搜索和旧排序变化：变化时清空当前页签的展开行（避免数据错位）
  */
 watch(
-    [() => searchKeywords.value, () => sortOptions.value],
-    ([newSearch, newSort]) => {
-      const currentTabIndex = Number(activeTabId.value.split('-')[1]);
-      defaultExpandedRowKeys.value[currentTabIndex] = [];
-    },
-    {deep: true}
+  [() => searchKeywords.value, () => sortOptions.value],
+  ([newSearch, newSort]) => {
+    const currentTabIndex = Number(activeTabId.value.split('-')[1]);
+    defaultExpandedRowKeys.value[currentTabIndex] = [];
+  },
+  { deep: true },
 );
-
 
 // ========================== 7. 计算图moke数据 ==========================
 
@@ -590,7 +633,6 @@ function getColor(type: string) {
   if (type == 'warning') {
     return 'color: #F9B766';
   }
-
 }
 
 function openGraphViewFn() {
@@ -600,11 +642,9 @@ function openGraphViewFn() {
   });
 }
 
-
 defineExpose({
-  transFormPanelData
-
-})
+  transFormPanelData,
+});
 </script>
 
 <style lang="less">
@@ -615,7 +655,6 @@ defineExpose({
 </style>
 
 <style lang="less" scoped>
-
 .data-tabs_computes {
   width: 100%;
   height: 100%;
@@ -638,22 +677,22 @@ defineExpose({
     .group-line-title {
       font-size: 14px;
     }
-.line-group{
-  display: flex;
-  width: 440px;
-  padding: 4px 8px;
-  gap:4px;
-  font-size: 13px;
-  font-weight: 400;
+    .line-group {
+      display: flex;
+      width: 440px;
+      padding: 4px 8px;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 400;
 
-  .group-line-name {
-    width: 380px;
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
+      .group-line-name {
+        width: 380px;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
     .group-line-icon {
       display: flex;
       align-items: center;
@@ -714,7 +753,7 @@ defineExpose({
       width: 100%;
       height: 100%;
 
-      :deep(div[role="tabpanel"]) {
+      :deep(div[role='tabpanel']) {
         height: 100%;
         overflow-y: auto;
       }
@@ -723,7 +762,6 @@ defineExpose({
         height: 100%;
         width: 100%;
       }
-
 
       // 页签面板：内边距控制
       .data-tabs__pane {
@@ -810,7 +848,7 @@ defineExpose({
           }
         }
 
-        :deep( .is-left) {
+        :deep(.is-left) {
           padding-left: 0 !important;
           padding-right: 0 !important;
         }
@@ -842,7 +880,6 @@ defineExpose({
   }
 }
 
-
 // 空数据提示：样式适配
 .empty-tip {
   padding-top: 16px;
@@ -862,7 +899,7 @@ defineExpose({
 }
 
 //页签穿透修改
-:deep(.devui-tabs__nav--options ) {
+:deep(.devui-tabs__nav--options) {
   background-color: var(--control-flow-tab-bg);
   box-sizing: border-box;
   padding: 2px;
@@ -889,7 +926,7 @@ defineExpose({
 }
 
 //表头背景色穿透
-:deep(.devui-table__thead ) {
+:deep(.devui-table__thead) {
   height: 32px;
 
   tr {
@@ -934,7 +971,6 @@ defineExpose({
 
 :deep(.devui-table__fix-header) {
   scrollbar-width: none !important;
-
 }
 
 .content-table__expand-column {
@@ -1018,7 +1054,6 @@ defineExpose({
 }
 </style>
 <style lang="less">
-
 .devui-drawer--right {
   background-color: var(--devui-card-bg) !important;
   width: 480px !important;
@@ -1026,5 +1061,4 @@ defineExpose({
   height: 100vh;
   box-sizing: border-box;
 }
-
 </style>

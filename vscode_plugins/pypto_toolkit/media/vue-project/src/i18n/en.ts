@@ -174,7 +174,7 @@ export default {
         searchPlaceholder: 'Search from compilation result',
     },
     controlFlows: {
-        searchPlaceholder: 'Search keyword',
+        searchPlaceholder: 'Search',
         noMatchingData: 'No matching data found',
         allComputationalPanelTitle: 'passes',
         callFunctionPanelTitle: 'callee',

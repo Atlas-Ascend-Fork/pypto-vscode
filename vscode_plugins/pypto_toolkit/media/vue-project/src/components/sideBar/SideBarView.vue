@@ -304,7 +304,7 @@ watch(sortOption, () => {
       height: 28px;
       display: flex;
       align-items: center;
-
+      cursor: pointer;
       .sort-icon {
         width: 16px;
         height: 16px;
