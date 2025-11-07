@@ -421,6 +421,13 @@ defineExpose({
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
+  .input-number-container .devui-input-number__control-buttons .control-button.control-dec svg {
+    bottom: 0;
+  }
+  
+  .input-number-container .devui-input-number__control-buttons .control-button.control-inc svg {
+    top: 0;
+  }
 }
 </style>
 <style>

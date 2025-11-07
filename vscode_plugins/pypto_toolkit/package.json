@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "0.1.12",
+  "version": "1.0.0",
   "icon": "media/images/logo.png",
   "engines": {
     "vscode": "^1.45.2"
@@ -31,6 +31,11 @@
         "category": "PyPTO.renderDiffComGraph",
         "command": "PyPTO.OpenDiffComGraphForCurrent",
         "title": "%pypto.OpenDiffComGraphForCurrent%"
+      },
+      {
+        "category": "PyPTO.OpenLinkageMode",
+        "command": "PyPTO.OpenLinkageMode",
+        "title": "%PyPTO.OpenLinkageMode%"
       }
     ],
     "menus": {
@@ -43,6 +48,18 @@
         {
           "command": "PyPTO.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
+          "group": "navigation"
+        },
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "PyPTO.OpenLinkageMode",
+          "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
       ]

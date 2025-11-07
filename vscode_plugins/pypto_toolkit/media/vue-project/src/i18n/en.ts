@@ -4,7 +4,8 @@ export default {
     'resizeWindow': 'Resize Window',
     'expandAll': 'Expand All',
     'collapseAll': 'Collapse All',
-    'loadTraceData': 'Waiting for trace data to load...',
+    'loadTraceData': 'Loading trace data...',
+    'loadCode': 'Loading code...',
     'hide': '▼ Hide',
     'show': '▼ Show',
     'nodeDetails': 'Node Details',
@@ -92,6 +93,7 @@ export default {
     controlFlow: 'ControlFlow',
     noDataMatched: 'No data matched',
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
+    threeColumnTips: 'Three vertical layout, under design, please look forward to.',
     directRelative: 'Direct relative',
     notDirectRelative: 'Not direct relative',
     pleaseSelect: 'Please select',
@@ -109,6 +111,8 @@ export default {
     'VectorUtilizationTIP':'AIV Time / (Toatl duration of selected range * Number of AIV lanes)',
     'cubeTimeTIP': 'Sum of the task cube_busy_cycles within the selected range',
     'vectorTimeTIP': 'Sum of the task vec_busy_cycles within the selected range',
+    layout: 'Layout',
+    interlockModeSearchTip: 'In linkage mode, after locking the semantic tags, the search function is not supported.',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
@@ -138,6 +142,7 @@ export default {
         leftRight: 'Left & Right',
         topBottom: 'Top & Bottom',
         openDiffViewer: 'Open Diff Viewer',
+        svgOutput: 'Export the compute graph of the current page in SVG format',
         searchResSize: `Found {resSize} results`,
         currentGraph: 'Current Graph',
         globalGraph: 'Global Graph',
@@ -159,7 +164,9 @@ export default {
         locateNodeError:'Current node not found, location failed',
         searchHistoryTips: 'History',
         searchPageTips: 'Page Instruction',
-        searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes'
+        searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
+        pleaseSelect: 'Please select',
+        noData: 'No data'
     },
     sideBar: {
         title: 'Compilation result',
@@ -167,7 +174,7 @@ export default {
         searchPlaceholder: 'Search from compilation result',
     },
     controlFlows: {
-        searchPlaceholder: 'Search keyword',
+        searchPlaceholder: 'Search',
         noMatchingData: 'No matching data found',
         allComputationalPanelTitle: 'passes',
         callFunctionPanelTitle: 'callee',

@@ -79,6 +79,7 @@ export const ideLightTheme = new Theme({
     'devui-status-warning-bg': '#fde2bd', // 警告色-背景
     'devui-split-line': 'rgba(0,0,0,0.1)', // 分割线-浅
     'devui-split-line-deep': '#dfdfdf', // 分割线-深
+    'devui-border-line-deep': '#dfdfdf',
     'devui-storage-unit-split': '#999999', // 计算图存储单元分割线
     'devui-pipe-warning-line': '#e7434a', // 计算图pipe告警边框
     'devui-pipe-warning-line-weak': 'rgba(231,67,74,0.3)', // 计算图pipe告警边框弱化
@@ -152,10 +153,20 @@ export const ideLightTheme = new Theme({
     'control-flow-tab-bg': 'rgba(243,243,243,1)', // 控制流tab未选中
     'control-flow-table-header': 'rgba(243,243,243,1)', // 控制流header
     'control-flow-table-hover': 'rgba(49,122,247,0.2)', // hover选中背景
-    'control-flow-table-minimap-bg':'#F3F3F3',
+    'control-flow-table-minimap-bg': '#F3F3F3',
     'control-flow-panel-table-tensor': 'rgb(209,159,0)',
     'control-flow-panel-table-Tile': 'rgb(28,148,164)',
     'control-flow-panel-table-block': 'rgb(5,131,88)',
+    'control-flow-tip-color': '#363636',
+    'control-flow-loop-title-bg-active': '#0950de',
+    'control-flow-loop-title-bg-weak': 'rgba(243,243,243,1)',
+    'control-flow-loop-title-text-hover': '#0a59f7',
+    'control-flow-loop-title-text': '#777777',
+    'control-flow-path-left-label': 'rgba(174,174,174,1)',
+    'control-flow-path-right-value': '#191919',
+    'control-flow-path-hover': 'rgba(0,0,0,0.5)',
+    'control-flow-loop-stroke': '#aeaeae',
+    'control-flow-path-card-active': 'rgba(255, 255, 255, 1)',
   },
   isDark: false,
 });
@@ -239,6 +250,7 @@ export const ideDarkTheme = new Theme({
     'devui-status-warning-bg': '#642802', // 警告色-背景
     'devui-split-line': 'rgba(255,255,255,0.1)', // 分割线
     'devui-split-line-deep': '#4d4d4d', // 分割线-深
+    'devui-border-line-deep': '#000000',
     'devui-storage-unit-split': '#999999', // 计算图存储单元分割线
     'devui-pipe-warning-line': '#e7434a', // 计算图pipe告警边框
     'devui-pipe-warning-line-weak': 'rgba(231,67,74,0.3)', // 计算图pipe告警边框弱化
@@ -312,10 +324,20 @@ export const ideDarkTheme = new Theme({
     'control-flow-tab-bg': '#1a1a1a', // 控制流tab未选择
     'control-flow-table-header': '#313131', // 控制流table
     'control-flow-table-hover': 'rgba(49,122,247,0.20)', // hover选中背景
-    'control-flow-table-minimap-bg':'#292A2E',
+    'control-flow-table-minimap-bg': '#292A2E',
     'control-flow-panel-table-tensor': 'rgb(253,229,92)',
     'control-flow-panel-table-Tile': 'rgb(125,223,231)',
     'control-flow-panel-table-block': 'rgb(99,213,168)',
+    'control-flow-tip-color': '#FFFFFF',
+    'control-flow-loop-title-bg-active': '#317AF7',
+    'control-flow-loop-title-bg-weak': '#1F1F1F',
+    'control-flow-loop-title-text-hover': '#317AF7',
+    'control-flow-loop-title-text': '#b3b3b3',
+    'control-flow-path-left-label': '#999999',
+    'control-flow-path-right-value': '#e6e6e6',
+    'control-flow-path-hover': '#e6e6e6',
+    'control-flow-loop-stroke': '#666666',
+    'control-flow-path-card-active': 'rgba(77,77,77,1)',
   },
   isDark: true,
 });

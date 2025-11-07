@@ -9,6 +9,10 @@ import { ViewServer } from './view-server';
  */
 export interface ViewServerContext {
   /**
+   * 视图类型
+   */
+  viewType: string;
+  /**
    * 文件地址
    */
   fileUri?: Uri;
@@ -33,9 +37,10 @@ export interface ViewServerContext {
  * @param webviewPanel
  * @returns
  */
-export function makeViewServerContext(webviewPanel: WebviewPanel, uri?: Uri): ViewServerContext {
+export function makeViewServerContext(webviewPanel: WebviewPanel, viewType: string, uri?: Uri): ViewServerContext {
   const { webview, dispose } = webviewPanel;
   return {
+    viewType,
     fileUri: uri,
     init() {
       initApiConnector(webview, this);
@@ -82,7 +87,7 @@ function initApiConnector(webview: Webview, instance: ViewServer<string, string>
     if (!staticThis._apis.includes(api)) {
       throw new Error(`视图类${instance.constructor.name}中未声明接口${api}，请在_apis补充声明`);
     }
-    const response = await instance[api].call(instance, params);
+    const response = await instance[api].call(instance, ...params);
     apiConnector.send({ api, requestId, response });
   }
 }

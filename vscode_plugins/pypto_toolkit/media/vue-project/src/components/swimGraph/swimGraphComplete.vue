@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="height: 100vh;">
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
@@ -54,10 +54,9 @@
         <swim-graph-detail ref="detailComponent"/>
       </div>
     </div>
-
+    <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
+    <div class="linetooltip" ref="lineTooltip" :style="lineTooltipStyle"></div>
   </div>
-  <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
-  <div class="linetooltip" ref="lineTooltip" :style="lineTooltipStyle"></div>
 </template>
 
 <script setup>
@@ -88,7 +87,12 @@ import {
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
-
+const props = defineProps({
+  isThreeColumn: {
+    type: Boolean,
+    default: false
+  }
+});
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const titlePath = ref(`${window.staticPath}/static-assets/title_40px.svg`);
@@ -162,6 +166,7 @@ const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
+let isLockStatus = ref(false);
 const dependencyLinesInfo = ref([]);
 
 let sliderValue = ref(0);
@@ -276,6 +281,9 @@ const handleMessage = (event) => {
     case 'noSwimFile':
       window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
       break;
+    case 'validateSwimFile':
+      validData(JSON.parse(message.content));
+      break;
   }
 };
 
@@ -301,6 +309,7 @@ let ERROR_MESSAGES = {
 const validData = (data) => {
   if (!data || !data.traceEvents || !Array.isArray(data.traceEvents)) {
     window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_FILE}`);
+    return;
   }
 
   let hasProcessName = false;
@@ -434,6 +443,10 @@ const transform = () => {
   renderDependencyLines();
   drawMeasureTime();
   timelineComponent.value.flagRender();
+  if (props.isThreeColumn) {
+    childContextMap.threadEvent.resizeDrawBoundary();
+    childContextMap.threadEvent.toggleLock();
+  }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
   }
@@ -786,6 +799,7 @@ const selectEvent = (event, processKey) => {
   } else {
     childContextMap.threadEvent.changeNodeColor(processKey, false);
     clearDependencyLines(processKey);
+    detailsPanelExpanded.value = false;
   }
   const { eventCtx } = ctxs[processKey];
   childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(processKey), processKey);
@@ -1076,6 +1090,14 @@ const initCanvases = () => {
   sliderMaxCount.value = Math.round(Math.log(maxScale) / Math.log(1.25));
 };
 
+const resetState = () => {
+  viewState.scale = 1;
+  viewState.pixelScale = viewState.scale * getDevicePixelRatio();
+  viewState.offsetX = 0;
+  viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
+  sliderValue.value = 0;
+};
+
 const onWindowResize = throttle((event) => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
@@ -1089,11 +1111,7 @@ const onWindowResize = throttle((event) => {
   setDevicePixelRatio(currentDevicePixelRatio);
   viewState.windowWidth = currentWindowWidth;
 
-  viewState.scale = 1;
-  viewState.pixelScale = viewState.scale * getDevicePixelRatio();
-  viewState.offsetX = 0;
-  viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
-  sliderValue.value = 0;
+  resetState();
   
   // 重新计算容器尺寸和canvas尺寸
   resizeCanvases();
@@ -1719,8 +1737,10 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  isLockStatus,
   dependencyLinesInfo,
   isCfgEditing,
+  isThreeColumn: props.isThreeColumn,
 });
 
 // 提供方法给子组件
@@ -1746,11 +1766,15 @@ provide('swimGraphMethods', {
   measureDetailGet,
   processThreadEventSearch,
   getDisplayName,
+  resetState,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   flagRender: () => { timelineComponent?.value.flagRender() },
   leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
-  rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) }
+  rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) },
+  changeScale: (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
+    timelineComponent?.value.changeScale(zoomFactor, centerPositionX, needRender, isManual);
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();

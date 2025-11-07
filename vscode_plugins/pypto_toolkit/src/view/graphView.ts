@@ -23,11 +23,6 @@ export interface GraphViewOptions {
   calleeOpSubgraphId?: string;
 }
 
-/**
- * 通用 Graph Webview 壳
- * T : 具体 GraphData 子类
- * H : 具体 Handler（单图 or 差异）
- */
 export class GraphView<T extends AbstractGraphData> {
   public title: string;  
   private panel?: vscode.WebviewPanel;
@@ -35,9 +30,7 @@ export class GraphView<T extends AbstractGraphData> {
 
   constructor(
     private options: GraphViewOptions,
-    /** 工厂：如何把 fsPath+funcHash 变成 T 实例 */
     private dataCtor: new (fsPath: string, funcHash?: string, calleeOpMagic?: string, calleeOpSubgraphId?: string) => T,
-    /** 工厂：对应哪个 Handler（SingleGraphHandler | DiffGraphHandler） */
     private handler: typeof BaseGraphMsgHandler,
   ) {}
 

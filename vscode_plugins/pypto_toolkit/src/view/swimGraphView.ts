@@ -12,18 +12,18 @@ import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo } from '../process';
 import { getIDELang } from '../lang';
 
-class SwimData {
+export class SwimData {
 
-  public uri: string;
+  public uri: Uri;
   public fsPath: string;
 
-  constructor(uri: string, fsPath: string) {
+  constructor(uri: Uri, fsPath: string) {
     this.uri = uri;
     this.fsPath = fsPath;
   }
 }
 
-class MsgHandler {
+export class MsgHandler {
 
   static cachePath: string;
 
@@ -69,6 +69,13 @@ class MsgHandler {
     });
   }
 
+  static validateFile(panel: any, content: string) {
+    panel.webview.postMessage({
+      command: 'validateSwimFile',
+      content,
+    });
+  }
+
   // 获取json信息和绑定的计算图文件路径
   static async getSwimData(panel: any) {
     const swimUri = panel.swimData.uri;
@@ -106,6 +113,7 @@ class MsgHandler {
     let swimStr = '';
     try {
       swimStr = readFileSync(swimPath, 'utf8');
+      MsgHandler.validateFile(panel, swimStr);
       console.log('读取merged_swimlane.json文件');
 
     } catch (err) {
@@ -360,7 +368,7 @@ export class SwimGraphView {
     this._disposables = [];
 
     this.panel = panel;
-    this.panel.swimData = new SwimData(this.panel.webview.asWebviewUri(uri).toString(), uri.fsPath);
+    this.panel.swimData = new SwimData(uri, uri.fsPath);
     this.panel.msgHandler = MsgHandler;
 
     this.initWebViewPanel();
