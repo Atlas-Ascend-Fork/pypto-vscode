@@ -760,7 +760,9 @@ const drawPath = (ctx, tempRegions, lineArray) => {
       lineArray.push(index === 0 ? lastRow : firstRow);
     } else {
       lineArray.push(firstRow);
-      region.length > 1 && lineArray.push(lastRow);
+      if (region.length > 1) {
+        lineArray.push(lastRow);
+      }
     }
     // 起点：首行左上
     ctx.moveTo(...firstRow.leftTop);
@@ -883,9 +885,9 @@ const calculateControlPoints = (start, end) => {
   const isAbove = end[1] < start[1];  // 判断是否在上方
   return [
     // 第一个控制点： 向右下方偏移
-    [start[0] + absDx * 0.3, start[1] + absDy * (isAbove ? 0.2 : 0.4)],
+    [start[0] + (absDx * 0.3), start[1] + (absDy * (isAbove ? 0.2 : 0.4))],
     // 第二个控制点： 向左上方偏移
-    [end[0] - absDx * 0.3, end[1] - absDy * (isAbove ? 0.4 : 0.2)]
+    [end[0] - (absDx * 0.3), end[1] - (absDy * (isAbove ? 0.4 : 0.2))]
   ];
 };
 const lockClick = (e) => {
