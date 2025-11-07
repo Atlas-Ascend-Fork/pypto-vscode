@@ -291,8 +291,9 @@ onUnmounted(() => {
   padding: 12px;
   gap: 8px;
   background: var(--devui-header-gradient-bg);
-
+  pointer-events: none;
   .tool-select {
+    pointer-events: all;
     position: relative;
     top: 16px;
   }

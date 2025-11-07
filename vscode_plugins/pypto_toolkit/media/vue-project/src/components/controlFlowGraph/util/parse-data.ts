@@ -79,7 +79,7 @@ export function transformData(rootNodes: GroupNode): {
           // errorStats,
         },
         style: {
-          x: 50 * deepRankSep,
+          x: 30 * deepRankSep,
           y: lastNodeY,
         },
       };
@@ -205,7 +205,7 @@ export function transformData(rootNodes: GroupNode): {
               errorStats,
             },
             style: {
-              x: startX + 45 * deepRankSep,
+              x: startX + 30 * deepRankSep,
               y: starY + root.y * (nodeHeight + verticalSpacing),
             },
           };
