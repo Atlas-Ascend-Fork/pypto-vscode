@@ -134,7 +134,7 @@ export class EditorView {
     // 视图服务
     let server: ViewServer<'', ''>;
     if (viewServer) {
-      const ctx = makeViewServerContext(viewPanel, vscode.Uri.file(uriQuery._path));
+      const ctx = makeViewServerContext(viewPanel, uriQuery._viewType, vscode.Uri.file(uriQuery._path));
       server = new viewServer(ctx);
       server.created(ctx);
     }
