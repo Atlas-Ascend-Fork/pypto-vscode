@@ -137,6 +137,13 @@ export class Fider {
     if (!comPath) {
       // 如果没找到，让用户选择计算图路径
       comPath = await this.selectFile(t('pypto.selectComFile'));
+      if (comPath) {
+        // 如果用户选择的计算图同目录有配套的泳道图文件，则使用配套的
+        const autoSwimPath = await this.findSwimPathByComPath(comPath);
+        if (autoSwimPath) {
+          return { codePath, swimPath: autoSwimPath, comPath };
+        }
+      }
     }
   
     return { codePath, swimPath, comPath };
@@ -150,6 +157,13 @@ export class Fider {
     if (!swimPath) {
       // 如果没找到，让用户选择泳道图路径
       swimPath = await this.selectFile(t('pypto.selectSwimFile'));
+      if (swimPath) {
+        // 如果用户选择的泳道图同目录有配套的计算图文件，则使用配套的
+        const autoComPath = await this.findComPathBySwimPath(swimPath);
+        if (autoComPath) {
+          return { codePath, swimPath, comPath: autoComPath };
+        }
+      }
     }
   
     return { codePath, swimPath, comPath };
