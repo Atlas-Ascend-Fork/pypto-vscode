@@ -304,6 +304,11 @@ const updateHoverDecoration = (position, emit = true) => {
   }
   
   if (!position) {
+    lockPosition.value = null;
+    if (lastSentLabel) {
+      sendMsg('returnSemanticLabelFromCode', { label: '' });
+      lastSentLabel = null;
+    }
     return;
   }
   
@@ -334,7 +339,7 @@ const updateHoverDecorationBySemanticLabel = (label) => {
   const targetLabel = labels.find(l => l.name === label);
   
   if (!targetLabel) {
-    updateHoverDecoration(null);
+    updateHoverDecoration(null, false);
     lockPosition.value = null;
     lastMoveLabel = null;
     return;
@@ -435,7 +440,7 @@ const setupHoverListeners = () => {
 
 const handleMouseLeave = () => {
   lastMoveLabel = null;
-  lastSentLabel = null;
+  lastSentLabel = 'Mouse Leave';
   isMouseLeaved = true;
   updateHoverDecoration(null);
 };
