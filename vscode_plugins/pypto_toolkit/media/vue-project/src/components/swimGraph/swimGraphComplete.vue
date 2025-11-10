@@ -282,7 +282,7 @@ const handleMessage = (event) => {
       window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
       break;
     case 'validateSwimFile':
-      validData(JSON.parse(message.content));
+      validData(message.content);
       break;
   }
 };
@@ -304,9 +304,17 @@ let ERROR_MESSAGES = {
   NO_THREADS: $t("swimErroMsgNO_THREADS"),
   NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME"),
   FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
+  NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
 
-const validData = (data) => {
+const validData = (dataStr) => {
+  let data = {};
+  try {
+    data = JSON.parse(dataStr);
+  } catch (error) {
+    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.NOT_JSON}`);
+    return;
+  }
   if (!data || !data.traceEvents || !Array.isArray(data.traceEvents)) {
     window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_FILE}`);
     return;

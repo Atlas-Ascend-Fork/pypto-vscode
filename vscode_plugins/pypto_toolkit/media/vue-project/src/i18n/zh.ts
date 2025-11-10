@@ -55,6 +55,7 @@ export default {
    'swimErroMsgNO_THREADS': '泳道图文件：每个process必须至少有一个thread.',
    'swimErroMsgNO_PROCESS_NAME': '泳道图文件：需至少有一个name为process_name的事件.',
    'swimErroMsgFILE_NOT_FOUND': '泳道图文件路径不存在：',
+   'swimErroMsgNot_JSON': '所选文件不是 JSON 格式',
    'tips1': '跳转编译对象，设计中，敬请期待',
    'tips2': '跳转计算图总览，设计中，敬请期待',
    'swimGraph': '泳道图',
