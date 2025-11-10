@@ -298,9 +298,17 @@ export abstract class BaseGraphMsgHandler {
           break;
         }
       }
+      targetCurPath = JSON.stringify(targetCurPath);
+      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath));
+    } else {
+      new GraphView({ viewType: 'comItemDetailView', title: basename(comGraphData.fsPath) }, SingleGraphData, SingleGraphHandler).createPanel(
+        comGraphData.fsPath,
+        calleehash,
+        curPath,
+        undefined,
+      );
     }
-    targetCurPath = JSON.stringify(targetCurPath);
-    commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath));
+
   }
 
   static async innerGetSubgraph(panel: any, data: any) {
