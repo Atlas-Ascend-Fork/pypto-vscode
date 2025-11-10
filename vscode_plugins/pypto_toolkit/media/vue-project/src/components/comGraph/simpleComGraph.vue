@@ -10,7 +10,7 @@
       :options="rootHashList"
       :placeholder="t('comGraph.pleaseSelect')"
       :position="['bottom-start']"
-      class="simple-com-root-hash-list"
+      :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
       menu-class="simple-com-root-hash-list-menu"
       @value-change="onHashChange"
       @toggle-change="onHashMenuToggleChange"
@@ -366,6 +366,10 @@ onMounted(() => {
     top: 16px;
     z-index: 12;
     width: 140px;
+
+    &.not-allow-expand {
+      pointer-events: none;
+    }
   }
 
   #sprotty {

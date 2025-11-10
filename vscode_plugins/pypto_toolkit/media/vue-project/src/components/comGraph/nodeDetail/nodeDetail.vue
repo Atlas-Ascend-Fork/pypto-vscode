@@ -62,9 +62,7 @@ watch(
   () => props.nodeId,
   (val) => {
     if (val) {
-      if (!parsedJsonData) {
-        parsedJsonData = props.jsonContent;
-      }
+      parsedJsonData = props.jsonContent;
       if (props.nodeId.includes(TensorNodeIdPrefix)) {
         const id = parseInt(props.nodeId.split(TensorNodeIdPrefix)[1]);
         if (!isNaN(id)) {
