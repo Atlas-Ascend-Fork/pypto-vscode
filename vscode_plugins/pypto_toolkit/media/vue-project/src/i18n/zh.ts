@@ -96,6 +96,7 @@ export default {
    compareLargerTips: '当前两个图的差异超过50%，不再显示差异对比',
    compareWrongTips: '选中文件无法解析为计算图',
    controlFlow: '控制流',
+   comGraphName: '计算图',
    noDataMatched: '未匹配到数据',
    jumpCodeTips: '跳转源码，设计中，敬请期待',
    threeColumnTips: '三纵向布局设计中，敬请期待',

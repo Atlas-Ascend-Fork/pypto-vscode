@@ -11,7 +11,9 @@
     <div class="pass-list-container" @click="isOpen = !isOpen">
       <div :class="['pass-type', currentData?.passStage]">{{ currentData?.passStage ? UpperFirstStr(currentData?.passStage) : '' }}</div>
       <div>
-        <div class="pass-content">{{ currentData?.passIndex }} {{ currentData?.passName }}</div>
+        <div class="pass-content" :title="`${currentData?.passIndex} ${currentData?.passName}`">
+          {{ currentData?.passIndex }} {{ currentData?.passName }}
+        </div>
         <div class="dot-step">
           <ThreeDot :dot-color="isMiddleGraph(PassStage.TENSOR_GRAPH) ? '#fde55c' : 'var(--devui-split-line)'" />
           <span :class="['big-dot', isLastGraph(PassStage.TENSOR_GRAPH) && 'last-tensor']"></span>
