@@ -1,12 +1,12 @@
 import { Ref, watch } from 'vue';
-import { Graph, NodeEvent } from '@antv/g6';
+import { Graph, MinimapOptions, NodeEvent } from '@antv/g6';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
 import { useComboCardNodes } from './useComboNode';
 import { ControlFlowNodesType, EdgesType, CombsType } from '../type/node-detail-types';
 
 export function useInitGraph(
   container: HTMLDivElement,
-  minimapRef: Ref<HTMLDivElement>,
+  minimapOptions: Ref<MinimapOptions>,
   nodes: ControlFlowNodesType[],
   edges: EdgesType[],
   combos: CombsType[],
@@ -20,18 +20,7 @@ export function useInitGraph(
     container: container,
     plugins: [
       //   小地图
-      {
-        key: 'my-minimap',
-        type: 'minimap',
-        size: [260, 160],
-        container: minimapRef.value,
-        containerStyle: {
-          borderRadius: '20px 20px 0 0',
-        },
-        maskStyle: {
-          border: '1px solid rgba(49,122,247,0.51)',
-        },
-      },
+      minimapOptions.value,
       //  画布背景
       {
         type: 'background',
