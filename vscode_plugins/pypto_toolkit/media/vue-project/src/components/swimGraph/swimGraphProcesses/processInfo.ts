@@ -7,7 +7,7 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
-const getSubGraphId = (event, mode) => {
+export const getSubGraphId = (event, mode) => {
   let subGraphId;
   const nameParts = event.name.split('(')[0].split('-').map(part => part.trim());
 
@@ -19,7 +19,7 @@ const getSubGraphId = (event, mode) => {
       const subGraphItem = subGraphArr.find(item => item.includes('subGraphId'));
       subGraphId = subGraphItem ? subGraphItem.split(':')[1] : null;
     }
-    if (subGraphId === null) {
+    if (subGraphId === null || subGraphId === undefined) {
       subGraphId = nameParts[nameParts.length - 1];
     }
   } else if (mode === "stichedFunc") {

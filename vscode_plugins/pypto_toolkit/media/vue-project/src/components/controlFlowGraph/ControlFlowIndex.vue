@@ -24,8 +24,7 @@
         height: '100%',
       }"
     ></div>
-
-    <div ref="minimapRef" class="minimap-type"></div>
+    <MinimapContainer class="minimap-type"></MinimapContainer>
     <div class="tool-bar">
       <button
         class="icon-minus"
@@ -57,7 +56,7 @@
 <script lang="ts" setup>
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CommonEvent, ExtensionCategory, GraphEvent, register } from '@antv/g6';
+import { CommonEvent, ExtensionCategory, Graph, GraphEvent, register } from '@antv/g6';
 import RightPanel from '@/components/controlFlowGraph/components/RightPanel.vue';
 import { transformData } from '@/components/controlFlowGraph/util/parse-data';
 import { getQuery } from '@/core/query';
@@ -66,16 +65,16 @@ import Navbar from '@/components/navbar/navbar.vue';
 import ErrorView from '@/components/comGraph/error.vue';
 import SearchSelect from '@/components/controlFlowGraph/components/SearchSelect.vue';
 import Loading from '@/components/comGraph/loading.vue';
-import { usePathCardNodes } from '@/components/controlFlowGraph/hook/usePathCardNode';
-import { useIfCardNodes } from '@/components/controlFlowGraph/hook/useIfCardNode';
-import { useComboCardNodes } from '@/components/controlFlowGraph/hook/useComboNode';
-import { useInitGraph } from '@/components/controlFlowGraph/hook/useInitGraph';
+import { usePathCardNodes } from '@/components/controlFlowGraph/hooks/usePathCardNode';
+import { useIfCardNodes } from '@/components/controlFlowGraph/hooks/useIfCardNode';
+import { useComboCardNodes } from '@/components/controlFlowGraph/hooks/useComboNode';
+import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
+import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hook/useLevelOfetail';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const sideBarRef = ref(null);
-const minimapRef = ref(null);
 const chartContainer = ref<HTMLDivElement | null>(null);
 let graph = null;
 const { t } = useI18n();
@@ -173,14 +172,17 @@ async function updateGraphSize() {
 }
 
 //  初始化 G6 图表（
+const graphRef = ref<Graph>();
+const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef);
 const initG6Graph = async (nodes, edges, combos) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNodes);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
   register(ExtensionCategory.BEHAVIOR, 'level-of-detail', LevelOfDetail);
   const container = chartContainer.value as HTMLDivElement;
-  const { g6Graph } = useInitGraph(container, minimapRef, nodes, edges, combos, isDarkTheme, combosNode);
+  const { g6Graph } = useInitGraph(container, minimapPluginOptions, nodes, edges, combos, isDarkTheme, combosNode);
   graph = g6Graph;
+  graphRef.value = g6Graph;
   // 绘制
   await graph.render();
   // 更新小地图缩放值
@@ -357,8 +359,6 @@ onUnmounted(() => {
   background-color: var(--control-flow-table-minimap-bg) !important; // 设
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   border-radius: 20px 20px 0 0 !important;
-  width: 260px;
-  height: 160px;
   right: 16px;
   bottom: 48px;
 }

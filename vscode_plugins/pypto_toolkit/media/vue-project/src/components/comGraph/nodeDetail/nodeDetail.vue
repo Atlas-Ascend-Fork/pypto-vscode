@@ -1,7 +1,9 @@
 <template>
   <Teleport to="body">
     <Transition name="drawer-fade">
-      <div v-if="modelValue" ref="drawerEl" class="node-detail-drawer">
+      <div v-if="modelValue" ref="drawerEl" :style="{
+        height: height ? height + 40 + 'px' : 'auto'
+      }" class="node-detail-drawer">
         <div class="header">
           <span class="title">Magic: {{ magicId }}</span>
           <em class="icon icon-close" @click="() => emits('update:modelValue', false)"></em>
@@ -60,9 +62,7 @@ watch(
   () => props.nodeId,
   (val) => {
     if (val) {
-      if (!parsedJsonData) {
-        parsedJsonData = props.jsonContent;
-      }
+      parsedJsonData = props.jsonContent;
       if (props.nodeId.includes(TensorNodeIdPrefix)) {
         const id = parseInt(props.nodeId.split(TensorNodeIdPrefix)[1]);
         if (!isNaN(id)) {

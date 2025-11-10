@@ -10,7 +10,7 @@
         <div class="details-title" v-if="!selectedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
           <div class="detail-content">
-            <div class="content-one">
+            <div class="content-one" v-if="selectedView === 'args'">
               <div class="content-title">
                 <div class="title">
                   <img class="picture" :src="tPath" alt="picture">
@@ -58,88 +58,171 @@
                 </div>
               </div>
             </div>
+            <template v-else>
+              <div class="content-one-pipe">
+                <div class="pipe-content-title">
+                  <div class="pipe-title">
+                    <img class="picture" :src="tPath" alt="picture">
+                  </div>
+                  <div class="pipe-name">
+                    <div>{{ getEventDisplayName(selectedEvent) }}</div>
+                    <div class="pipe-subgraph">
+                      <span :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(selectedEvent, 'subGraph') }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pipe-content-stat">
+                  <div class="pipe-start">
+                    <span>
+                      <span>Start</span><span class="ml5">({{ startTimeUnitInfo }})</span>
+                      <span class="arrow-right-top"><d-icon name="icon-arrow-right-l" class="right-button"></d-icon></span>
+                      <span>Duration</span><span class="ml5">({{ durationUnitInfo }})</span>
+                    </span>
+                    <span>{{ $t('hitRate')}}</span>
+                  </div>
+                  <div class="pipe-time">
+                    <span>
+                      <span class="start-value-key">{{ startTimeInfo }}</span>
+                      <span class="arrow-right"><d-icon name="icon-arrow-right-l" class="right-button"></d-icon></span>
+                      <span class="start-value-key">{{ durationInfo }}</span>
+                    </span>
+                    <span class="start-value-key">{{ getEventCacheHit(selectedEvent)}}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
             <div class="detail-main-container">
             <div class="content-args">
               <div class="content-args-head">
-                <div class="main-text">Args</div>
+                <div class="main-text">
+                  <div class="buttonG">
+                    <d-button variant="text" @click="selectView('args')">{{$t('args')}}</d-button>
+                    <d-button variant="text" @click="selectView('pipeStat')">{{$t('pipeStat')}}</d-button>
+                  </div>
+                  <div class="underline" :class="{ 'left-active': selectedView === 'args', 'right-active': selectedView === 'pipeStat'}"></div>
+                </div>
                 <div class="bindbox">
                   <d-tooltip position="bottom" :content=bindToolTip>
                     <d-button variant="text" color="secondary" v-show="bindFile" @click="openBoundComGraph" class="jump-to-file"><strong class="icon-details"></strong></d-button>
                   </d-tooltip>
-                  <d-button variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
+                  <d-button v-if="selectedView === 'args'" variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
                 </div>
               </div>
-              <template v-if="selectedEvent.isCounter">
-                <strong>{{ $t("countValue") }}</strong> {{ selectedEvent.counterSize }}<br>
-                <strong>{{ $t("type") }}</strong> {{ $t("counterEvent") }}<br>
-              </template>
-              <template v-else>
-                <div class="argstime">
-                  <span class="third-text">duration</span>
-                  <span class="main-text">{{ selectedEvent.duration }}</span>
-                </div>
-                <div class="argstime">
-                  <span class="third-text">end_time</span>
-                  <span class="main-text">{{ selectedEvent.endTime - viewState.minTime }}</span>
-                </div>
-                <div style="display: none;">
-                  <span>last_pred</span>
-                  <span>17</span>
-                </div>
-                <div style="display: none;">
-                  <span>ready_time</span>
-                  <span>3640</span>
-                </div>
-                <div class="argstime">
-                  <span class="third-text">start_time</span>
-                  <span class="main-text">{{ selectedEvent.startTime - viewState.minTime }}</span>
-                </div>
-                <div style="display: none;">
-                  <span>subgraph_average</span>
-                  <span>569</span>
-                </div>
-                <div style="display: none;">
-                  <span>subgraph_max</span>
-                  <span>569</span>
-                </div>
-                <div style="display: none;">
-                  <span>subgraph_min</span>
-                  <span>569</span>
-                </div>
-                <div v-for="(value, key) in selectedEvent.args" :key="key" :id="key" class="args-item">
-                  <d-tooltip :content="key" v-if="value !== ''">
-                    <span class="args-key third-text">{{ key }}</span>
-                  </d-tooltip>
-                  <span v-if="value !== '' && key === 'ioperand-hint' ">
-                    <template v-if="value.includes('rawmagic')">
-                      <span class="args-value main-text" v-html="ioperandHtml"></span>
-                    </template>
-                    <span v-else class="args-value main-text"> {{ value }} </span>
-                  </span>
+              <div class="content-two" v-if="selectedView === 'args'">
+                <template v-if="selectedEvent.isCounter">
+                  <strong>{{ $t("countValue") }}</strong> {{ selectedEvent.counterSize }}<br>
+                  <strong>{{ $t("type") }}</strong> {{ $t("counterEvent") }}<br>
+                </template>
+                <template v-else>
+                  <div class="argstime">
+                    <span class="third-text">duration</span>
+                    <span class="main-text">{{ selectedEvent.duration }}</span>
+                  </div>
+                  <div class="argstime">
+                    <span class="third-text">end_time</span>
+                    <span class="main-text">{{ selectedEvent.endTime - viewState.minTime }}</span>
+                  </div>
+                  <div style="display: none;">
+                    <span>last_pred</span>
+                    <span>17</span>
+                  </div>
+                  <div style="display: none;">
+                    <span>ready_time</span>
+                    <span>3640</span>
+                  </div>
+                  <div class="argstime">
+                    <span class="third-text">start_time</span>
+                    <span class="main-text">{{ selectedEvent.startTime - viewState.minTime }}</span>
+                  </div>
+                  <div style="display: none;">
+                    <span>subgraph_average</span>
+                    <span>569</span>
+                  </div>
+                  <div style="display: none;">
+                    <span>subgraph_max</span>
+                    <span>569</span>
+                  </div>
+                  <div style="display: none;">
+                    <span>subgraph_min</span>
+                    <span>569</span>
+                  </div>
+                  <div v-for="(value, key) in selectedEvent.args" :key="key" :id="key" class="args-item">
+                    <d-tooltip :content="key" v-if="value !== ''">
+                      <span class="args-key third-text">{{ key }}</span>
+                    </d-tooltip>
+                    <span v-if="value !== '' && key === 'ioperand-hint' ">
+                      <template v-if="value.includes('rawmagic')">
+                        <span class="args-value main-text" v-html="ioperandHtml"></span>
+                      </template>
+                      <span v-else class="args-value main-text"> {{ value }} </span>
+                    </span>
 
-                  <span v-if="value !== '' && key === 'ooperand-hint' ">
-                    <template v-if="value.includes('rawmagic')">
-                      <span class="args-value main-text" v-html="ooperandHtml"></span>
-                    </template>
-                    <span v-else class="args-value main-text"> {{ value }} </span>
-                  </span>
+                    <span v-if="value !== '' && key === 'ooperand-hint' ">
+                      <template v-if="value.includes('rawmagic')">
+                        <span class="args-value main-text" v-html="ooperandHtml"></span>
+                      </template>
+                      <span v-else class="args-value main-text"> {{ value }} </span>
+                    </span>
 
-                  <span v-if="value !== '' && key !== 'event-hint' && key !== 'ioperand-hint' && key !== 'ooperand-hint' ">
-                    <span class="args-value main-text">{{ value }}</span>
-                  </span>
+                    <span v-if="value !== '' && key !== 'event-hint' && key !== 'ioperand-hint' && key !== 'ooperand-hint' ">
+                      <span class="args-value main-text">{{ value }}</span>
+                    </span>
 
-                  <span class="args-button" v-if="typeof(value) === 'string' && (value.includes('rootHash') || value.includes('leafHash'))">
-                    <span v-for="(item, key) in splitValue(value)">
-                      <span v-if="item[0]=='rootHash' || item[0]=='leafHash'" class="main-text">
-                        {{ item[0] }}:<span class="event-hint-hash" @click="jumpToComGraph(item[1])">{{ item[1] }}</span>.
-                      </span>
-                      <span v-else class="main-text">
-                        {{ item[0] }}:{{ item[1] }},
+                    <span class="args-button" v-if="typeof(value) === 'string' && (value.includes('rootHash') || value.includes('leafHash'))">
+                      <span v-for="(item, key) in splitValue(value)">
+                        <span v-if="item[0]=='rootHash' || item[0]=='leafHash'" class="main-text">
+                          {{ item[0] }}:<span class="event-hint-hash" @click="jumpToComGraph(item[1])">{{ item[1] }}</span>.
+                        </span>
+                        <span v-else class="main-text">
+                          {{ item[0] }}:{{ item[1] }},
+                        </span>
                       </span>
                     </span>
-                  </span>
 
+                  </div>
+                </template>
+              </div>
+              <template v-else>
+                <div class="pipe-bar-chart" v-if="selectedEvent.pmu_info">
+                  <div class="row-coord" :class="{'row-coord-active': selectedView === 'pipeStat'}">
+                    <div class="row-coord-num" 
+                      v-for="(coordIt, index) in rowCoordList" 
+                      :key="index"
+                      :style="{ left: rowCoordLoc[index]}">
+                      {{rowCoordList[index]}}
+                    </div>
+                  </div>
+                  <div class="occupy-rate-chart-container" :class="{'chart-container-active': selectedView === 'pipeStat'}" ref="barChartContainerDiv">
+                    <div class="occupy-rate-chart-col-coord-container" ref="colCoordContainerDiv">
+                      <div class="occupy-rate-chart-col-coord" 
+                        v-for="(colCoordIt, index) in colCoordList"
+                        :key="index">
+                        {{colCoordIt}}
+                      </div>
+                    </div>
+                    <div class="occupy-rate-bar-container"
+                      :style="{ height: rowCoordList.length * 36 + 4 + 'px'}">
+                      <div class="occupy-rate-bar-line"
+                        v-for="(lineLoc, index) in backLineLoc"
+                        :key="index"
+                        :style="{ left: lineLoc}"> 
+                      </div>
+
+                      <div class="occupy-rate-backbar"
+                        v-for="(dataLeft, index) in chartDataLeft"
+                        :key="index"
+                        :style="{ top: 8 + 36 * index + 'px'}">
+                        <div class="occupy-rate-bar" 
+                          :style="{ width: barWidthList[index] + 'px', background: pmuBarColorList[index]}"></div>
+                        <div class="occupy-rate-cycle">{{ dataLeft }}</div>
+                        <div class="occupy-rate-percentage">{{ chartDataRight[index] }}%</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                <template v-else>
+                  <div class="noPmu"> {{ $t('noPmu')}} </div>
+                </template>
               </template>
             </div>
             <div id="canvas-container">
@@ -183,6 +266,7 @@ import { ref, computed, inject, watch, nextTick, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
 import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { getSubGraphId } from '../swimGraphProcesses/processInfo';
 const { t: $t } = useI18n();
 const useDynamicWidth = ref(true);
 const detailsContent = ref(null);
@@ -222,6 +306,81 @@ const refLabel = ref(-1);
 let isFocused = ref(false);
 const inputNumberWidth = ref(window.ascLang === 'zh' ? 50 : 80);
 const inputNumberRef = ref(null);
+const rowCoordLoc = ref(['0%', '18%', '36%', '54%', '72%', '88%']);
+const backLineLoc = ref(['20%', '40%', '60%', '80%']);
+const rowCoordList = ref(['0%', '20%', '40%', '60%', '80%', '100%']);
+const colCoordList = ref(['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
+                            'MTE2 Cycles', 'MTE3 Cycles']);
+const pmuBarColorList = ref([]);
+const vectorRateCycle = ref('/');
+const cubeRateCycle = ref('/');
+const scalarRateCycle = ref('/');
+const mte1RateCycle = ref('/');
+const mte2RateCycle = ref('/');
+const mte3RateCycle = ref('/');
+
+const vectorRatePercentage = ref(0);
+const cubeRatePercentage = ref(0);
+const scalarRatePercentage = ref(0);
+const mte1RatePercentage = ref(0);
+const mte2RatePercentage = ref(0);
+const mte3RatePercentage = ref(0);
+if (isDarkTheme.value) {
+  pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
+                          'rgba(70, 94, 184, 1)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
+} else {
+  pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
+                          'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
+}
+
+const barWidthList = ref([]);
+const chartDataLeft = ref([]);
+const chartDataRight = ref([]);
+
+const selectedView = ref('args');
+const selectView = (view) => {
+  selectedView.value = view;
+};
+const getEventCacheHit = (event) => {
+  if (event.pmu_calc_info) {
+    return (event.pmu_calc_info.icache_hit * 100).toFixed(2) + '%';
+  }
+  if (event.pmu_info) {
+    return (event.pmu_info.icache_hit * 100).toFixed(2) + '%';
+  }
+  return '/';
+};
+
+const updateEventPmu = (event) => {
+  if (event.pmu_info) {
+    let pmuData = event.pmu_info;
+    let pmucalcData = event.pmu_calc_info ? event.pmu_calc_info : pmuData;
+    vectorRateCycle.value = pmuData.vec_busy_cycles;
+    cubeRateCycle.value = pmuData.cube_busy_cycles;
+    scalarRateCycle.value = pmuData.scalar_busy_cycles;
+    mte1RateCycle.value = pmuData.mte1_busy_cycles;
+    mte2RateCycle.value = pmuData.mte2_busy_cycles;
+    mte3RateCycle.value = pmuData.mte3_busy_cycles;
+
+    vectorRatePercentage.value = Math.round(pmucalcData.vec_ratio * 100);
+    cubeRatePercentage.value = Math.round(pmucalcData.cube_ratio * 100);
+    scalarRatePercentage.value = Math.round(pmucalcData.scalar_ratio * 100);
+    mte1RatePercentage.value = Math.round(pmucalcData.mte1_ratio * 100);
+    mte2RatePercentage.value = Math.round(pmucalcData.mte2_ratio * 100);
+    mte3RatePercentage.value = Math.round(pmucalcData.mte3_ratio * 100);
+
+    chartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
+                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
+    chartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
+                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
+    const barChartContainerDivWidth = 340;
+    barWidthList.value = [];
+    for (const percent of chartDataRight.value) {
+      barWidthList.value.push(barChartContainerDivWidth * percent / 100);
+    }
+  }
+};
+
 const dynamicWidthStyle = (event) => {
   if(!useDynamicWidth) return {};
   const eventName = getEventTruncateText(event);
@@ -334,14 +493,14 @@ watch(selectedEvent, (newEvent) => {
     startTimeInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).value;
     startTimeUnitInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).unit;
     startTimeInfoAll.value = startTimeInfo.value + startTimeUnitInfo.value;
-    if(startTimeInfo.value.length  > 5 ){
+    if(startTimeInfo.value.length  > 5 && selectedView === 'args' ){
       startTimeInfo.value = startTimeInfo.value.slice(0, 5) + '...';
       startTimeUnitInfo.value = '';
     }
     durationInfo.value = formatTimeWithUnit(selectedEvent.value.duration).value;
     durationUnitInfo.value = formatTimeWithUnit(selectedEvent.value.duration).unit;
     durationInfoAll.value = durationInfo.value + durationUnitInfo.value;
-    if(durationInfo.value.length  > 5 ){
+    if(durationInfo.value.length  > 5 && selectedView === 'args'){
       durationInfo.value = durationInfo.value.slice(0, 5) + '...';
       durationUnitInfo.value = '';
     }
@@ -349,6 +508,8 @@ watch(selectedEvent, (newEvent) => {
       createHint(newEvent, 'ioperand-hint');
       createHint(newEvent, 'ooperand-hint');
       showDependencies(newEvent, "both");
+      updateEventPmu(newEvent);
+      getEventCacheHit(newEvent);
     });
   }
 });
@@ -420,6 +581,13 @@ defineExpose({
     box-shadow: none !important;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+  }
+  .input-number-container .devui-input-number__control-buttons .control-button.control-dec svg {
+    bottom: 0;
+  }
+  
+  .input-number-container .devui-input-number__control-buttons .control-button.control-inc svg {
+    top: 0;
   }
 }
 </style>

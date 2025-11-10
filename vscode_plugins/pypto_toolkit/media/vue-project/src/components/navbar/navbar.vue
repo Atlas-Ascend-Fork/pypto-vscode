@@ -10,28 +10,42 @@
     <div class="navbar-list">
       <d-tooltip :content="t('jumpCodeTips')" position="bottom" overlay-class="navbar-list-tooltip">
         <div class="source-code">
-          <i class="icon-code"></i>
+          <CodeIcon />
         </div>
       </d-tooltip>
-      <ThreeDot dot-color="var(--devui-placeholder-icon)" />
-      <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
-        <i class="icon-sharing"></i>
-        <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
-      </div>
-      <ThreeDot v-if="lastPass" dot-color="var(--devui-placeholder-icon)" />
-      <div v-if="lastPass" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
-        <i class="icon-base-info"></i>
-        <PathList v-if="currentStep === 'comGraph'" />
-        <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
-          <PassList ref="passEl" />
-          <div v-if="leafFunctions.length" class="dividing-line"></div>
-          <LeafFunctionCom v-if="leafFunctions.length" />
+      <ThreeDot v-if="!getControlFlowError" dot-color="var(--devui-placeholder-icon)" />
+      <d-tooltip v-if="!getControlFlowError" :content="t('controlFlow')" position="bottom" :disabled="currentStep === 'controlFlow'">
+        <div :class="['control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
+          <i class="icon-sharing"></i>
+          <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
         </div>
-      </div>
+      </d-tooltip>
+      <ThreeDot v-if="currentStep === 'comGraph' || lastPass" dot-color="var(--devui-placeholder-icon)" />
+      <d-tooltip
+        v-if="currentStep === 'comGraph' || lastPass"
+        :content="t('comGraphName')"
+        position="bottom"
+        :disabled="currentStep === 'comGraph'"
+      >
+        <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
+          <ComGraphIcon />
+          <div v-if="getControlFlowError" class="com-graph-error" :title="comGraphName">{{ comGraphName }}</div>
+          <template v-else>
+            <PathList v-if="currentStep === 'comGraph'" />
+            <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
+              <PassList ref="passEl" />
+              <div v-if="leafFunctions.length" class="dividing-line"></div>
+              <LeafFunctionCom v-if="leafFunctions.length" />
+            </div>
+          </template>
+        </div>
+      </d-tooltip>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
-      <div v-if="showSwim" class="swim-graph" @click="jumpSwim">
-        <i class="icon-project-nav"></i>
-      </div>
+      <d-tooltip v-if="showSwim" :content="t('swimGraph')" position="bottom">
+        <div class="swim-graph" @click="jumpSwim">
+          <SwimIcon />
+        </div>
+      </d-tooltip>
     </div>
   </div>
 </template>
@@ -46,6 +60,9 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import HistoryIcon from './icons/history-icon.vue';
+import CodeIcon from './icons/code-icon.vue';
+import ComGraphIcon from './icons/com-graph-icon.vue';
+import SwimIcon from './icons/swim-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
@@ -53,6 +70,7 @@ import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
+import { useNavbar } from './hooks/use-navbar';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -66,8 +84,11 @@ const leafFunctions = ref<LeafInPass[]>([]);
 const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
 const lastPass = ref<PathInPass>();
+const getControlFlowError = ref(false);
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
+
+const { comGraphName } = useNavbar();
 
 getOutputRecords({}, { timeout: 600000 }).then((res) => {
   historyList.value = res.data;
@@ -77,10 +98,13 @@ watch(
   [() => props.currentRecordDirectoryPath, currentRecord],
   ([outputDirPath, record]) => {
     if (outputDirPath && record && props.currentStep !== 'controlFlow') {
-      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000 }).then((res) => {
-        controlFlowList.value = res.data;
-        findLastPass();
-      });
+      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000, useCustomErrorHandler: true })
+        .then((res) => {
+          controlFlowList.value = res.data;
+        })
+        .catch(() => {
+          getControlFlowError.value = true;
+        });
     }
   },
   { immediate: true },
@@ -265,6 +289,19 @@ function jumpComGraph(filePath: string, pathName?: string) {
         box-sizing: border-box;
         padding: 8px;
         border-radius: 40px;
+      }
+    }
+
+    .com-graph {
+      .com-graph-error {
+        line-height: 16px;
+        font-size: 14px;
+        color: var(--devui-title-text);
+        margin-right: 12px;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }

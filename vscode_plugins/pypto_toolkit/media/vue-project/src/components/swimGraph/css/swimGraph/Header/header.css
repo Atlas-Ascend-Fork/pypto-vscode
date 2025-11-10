@@ -434,7 +434,7 @@
 .occupy-rate-bar {
   height: 24px;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--devui-swim-split-line);
   backdrop-filter: blur(10px);
   z-index: 2;
   position: absolute;
@@ -468,7 +468,7 @@
 
 .occupy-rate-cycle {
   height: 12px;
-  color: rgba(230, 230, 230, 1);
+  color: var(--devui-primary-text);
   font-size: 12px;
   font-weight: 400;
   position: absolute;
@@ -479,7 +479,7 @@
 
 .occupy-rate-percentage {
   height: 12px;
-  color: rgba(230, 230, 230, 1);
+  color: var(--devui-primary-text);
   font-size: 12px;
   font-weight: 400;
   position: absolute;
