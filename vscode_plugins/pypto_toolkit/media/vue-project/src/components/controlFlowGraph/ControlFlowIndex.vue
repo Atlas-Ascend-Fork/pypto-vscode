@@ -70,7 +70,7 @@ import { useIfCardNodes } from '@/components/controlFlowGraph/hooks/useIfCardNod
 import { useComboCardNodes } from '@/components/controlFlowGraph/hooks/useComboNode';
 import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
 import { useMinimap } from './hooks/use-minimap';
-import { useLevelOfDetail } from './hook/useLevelOfetail';
+import { useLevelOfDetail } from './hooks/useLevelOfetail';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
