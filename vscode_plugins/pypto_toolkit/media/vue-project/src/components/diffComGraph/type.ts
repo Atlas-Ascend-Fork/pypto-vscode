@@ -9,3 +9,5 @@ export interface DiffListItem {
   magic: number | string;
   nodeId: string;
 }
+
+export type TDiffLayout = 'horizontal' | 'vertical';
