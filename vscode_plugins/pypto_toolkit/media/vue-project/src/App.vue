@@ -211,10 +211,10 @@ onMounted(() => {
       :beforeFileName="diffInfo.beforeFileName"
       :loadingStep="loadingStep"
     />
-    <div class="parent-container" v-if="graphType === 'controlFlow'">
-      <ControlFlowIndex></ControlFlowIndex>
-    </div>
   </header>
+  <div class="parent-container" v-if="graphType === 'controlFlow'">
+    <ControlFlowIndex></ControlFlowIndex>
+  </div>
   <!-- 导航栏 -->
   <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
 </template>

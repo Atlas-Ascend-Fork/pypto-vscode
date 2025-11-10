@@ -70,6 +70,7 @@ import { usePathCardNodes } from '@/components/controlFlowGraph/hook/usePathCard
 import { useIfCardNodes } from '@/components/controlFlowGraph/hook/useIfCardNode';
 import { useComboCardNodes } from '@/components/controlFlowGraph/hook/useComboNode';
 import { useInitGraph } from '@/components/controlFlowGraph/hook/useInitGraph';
+import { useLevelOfDetail } from './hook/useLevelOfetail';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -89,7 +90,8 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
-const { PathCardNodes, LevelOfDetail } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
+const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
+const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme);
 const clearAllNodeState = {};
@@ -136,6 +138,8 @@ const handleMatchedResults = async (results) => {
     matchedResults.value.forEach((item) => {
       const id = item.value;
       graph.setElementState(id, 'active');
+      graph.setElementZIndex(zIndex.value);
+      graph.setElementZIndex(id, 101);
     });
   } else {
     graph.setElementState(clearAllNodeState);
@@ -181,7 +185,14 @@ const initG6Graph = async (nodes, edges, combos) => {
   await graph.render();
   // 更新小地图缩放值
   graph.on(GraphEvent.AFTER_TRANSFORM, async () => {
-    zoom.value = Math.round((await graph?.getZoom()) * 100);
+    const zoomNow = await graph?.getZoom();
+    zoom.value = Math.round(zoomNow * 100);
+    if (zoomNow < 0.5) {
+      // 保持缩放过程中，已选中的层级处于最高层级
+      graph.setElementZIndex(zIndex.value);
+      const nodes = await graph.getElementDataByState('combo', 'selected');
+      if (nodes.length > 0) await graph.setElementZIndex(nodes[0].id, 101);
+    }
   });
 
   function fitActive() {
@@ -192,12 +203,36 @@ const initG6Graph = async (nodes, edges, combos) => {
   graph.on(CommonEvent.WHEEL, fitActive);
   graph.on(CommonEvent.DRAG, fitActive);
 
-  function clickFun(event) {
+  // 点击子combo时，最外层父combo需要隐藏
+  async function setCombParentHidden(id) {
+    const elementData = await graph.getElementData(id);
+    // 仅当节点类型为 LOOP 时才执行后续逻辑
+    if (elementData.data.nodeType === 'LOOP') {
+      // 有组合父级：递归处理
+      if (elementData.combo) {
+        await setCombParentHidden(elementData.combo);
+      }
+      // 无组合父级：设置隐藏状态
+      else {
+        await graph.setElementState(id, 'comboHidden');
+      }
+    }
+  }
+
+  async function clickFun(event) {
+    await graph.setElementZIndex(zIndex.value);
+    graph.setElementState(clearAllNodeState);
+
     if (matchedResults.value.length > 0) {
       searchSelectRef.value.clear();
     }
     if (event.target.id) {
-      graph.setElementState(event.target.id, 'selected');
+      await graph.setElementState(event.target.id, 'selected');
+      const targetData = await graph.getElementData(event.target.id);
+      if (targetData.data.nodeType === 'LOOP' && targetData.combo) setCombParentHidden(event.target.id);
+      await graph.setElementZIndex(zIndex.value);
+      // 已选中的层级处于最高层级
+      await graph.setElementZIndex(event.target.id, 101);
     }
   }
 
@@ -224,6 +259,7 @@ const initG6Graph = async (nodes, edges, combos) => {
 };
 
 const dataParseError = ref(false);
+const zIndex = ref({});//保存所有节点的初始层级
 onMounted(async () => {
   const res = await getQuery();
   outPutPath.value = res.url;
@@ -252,8 +288,13 @@ onMounted(async () => {
       value: item.id,
       data: item,
     });
+    if (item.combo) {
+      zIndex.value[item.id] = graph.getElementZIndex(item.id);
+    } else {
+      zIndex.value[item.id] = 99;//最外层loop层级，仅次于选中层级
+    }
   });
-  nodes.forEach((item) => {
+  nodes.forEach(async (item) => {
     if (item.type !== 'if-card-node') {
       options.value.push({
         label: item.data.source.magicName,
@@ -261,7 +302,9 @@ onMounted(async () => {
         data: item,
       });
     }
+    zIndex.value[item.id] = -1;//path节点处于最低层级
   });
+  await graph.setElementZIndex(zIndex.value);
   updateGraphSize();
   window.addEventListener('resize', updateGraphSize);
 });
@@ -284,7 +327,7 @@ onUnmounted(() => {
   position: absolute !important;
   z-index: 10;
   width: 100%;
-  height: 150px;
+  height: 140px;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -351,7 +394,7 @@ onUnmounted(() => {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .tool-bar {
-  position: fixed;
+  position: absolute;
   right: 16px;
   bottom: 15px;
   display: flex;

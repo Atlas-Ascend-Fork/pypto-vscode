@@ -16,15 +16,21 @@
       <div class="sort" operable @click="sortOption = !sortOption">
         <span class="sort-name">{{ t('sideBar.sortName') }}</span>
         <div class="sort-group">
-          <img v-if="sortOption" :src="sortUp" class="sort-icon">
-          <img v-else :src="sortDown" class="sort-icon">
+          <img v-if="sortOption" :src="sortUp" class="sort-icon" />
+          <img v-else :src="sortDown" class="sort-icon" />
         </div>
       </div>
     </div>
     <!-- 树组件：双插槽用法 -->
     <div class="tree-container" v-loading="isLoading">
-      <d-tree ref="treeRef" :data="visibleTreeData" :node-class="() => 'custom-tree-node'" show-line="false"
-        @node-click="nodeClick" @lazy-load="lazyLoad">
+      <d-tree
+        ref="treeRef"
+        :data="visibleTreeData"
+        :node-class="() => 'custom-tree-node'"
+        show-line="false"
+        @node-click="nodeClick"
+        @lazy-load="lazyLoad"
+      >
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
           <div class="tree-container-content">
@@ -54,10 +60,13 @@
             <!-- 非叶子节点：显示展开/折叠箭头 -->
             <div v-else>
               <div @click.stop="() => toggleNode(nodeData)" :class="{ 'devui-tree-node-icon': nodeData.date }">
-                <i class="icon icon-chevron-right" :style="{
-                  transform: nodeData.expanded ? 'rotate(90deg)' : '',
-                  cursor: 'pointer',
-                }"></i>
+                <i
+                  class="icon icon-chevron-right"
+                  :style="{
+                    transform: nodeData.expanded ? 'rotate(90deg)' : '',
+                    cursor: 'pointer',
+                  }"
+                ></i>
               </div>
             </div>
           </div>
@@ -353,10 +362,16 @@ watch(sortOption, () => {
         border-bottom-color: var(--vscode-sideBar-border);
       }
 
-      &.active,
-      &:hover {
+      &.active {
         background-color: var(--devui-input-active-bg);
 
+        .node-label {
+          color: var(--control-flow-sidebar-tree-label) !important;
+        }
+      }
+
+      &:hover {
+        background-color: var(--devui-input-hover-bg);
         .node-label {
           color: var(--control-flow-sidebar-tree-label) !important;
         }
@@ -445,7 +460,6 @@ watch(sortOption, () => {
       }
 
       .devui-tree__node-content {
-
         &.active,
         &:hover {
           background-color: transparent;
