@@ -1,6 +1,9 @@
 import { SModelRootImpl} from 'sprotty';
+import { comGraphStore } from '../service/com-graph-store';
 
-function downloadSvgFile(svgString: string, fileName = 'diagram.svg') {
+const moreBorder = 50;
+
+function downloadSvgFile(svgString: string, fileName: string = 'diagram.svg') {
     const blob = new Blob([svgString], {type: 'image/svf+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,7 +52,8 @@ function createDocMid(iframeMid: HTMLIFrameElement): Document {
 }
 
 export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolean) {
-    
+    const svgTheme = document.body?.dataset?.vscodeThemeId;
+
     const midSerializer = new XMLSerializer();
     const svgMid = midSerializer.serializeToString(svgElementOrig);
     const iframeMid: HTMLIFrameElement = document.createElement('iframe');
@@ -63,8 +67,8 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
     if (skipCopyStyles === false) {
         const g = svgElementNew.querySelector('g');
 
-        const gWidth = g.getBoundingClientRect().width;
-        const gHeight = g.getBoundingClientRect().height;
+        const gWidth = (g.getBoundingClientRect().width) + moreBorder;
+        const gHeight = (g.getBoundingClientRect().height) + moreBorder;
 
         svgElementNew.setAttribute('width', gWidth?.toString());
         svgElementNew.setAttribute('height', gHeight?.toString());
@@ -81,10 +85,21 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
 
         const parentNode = svgElementNew.querySelector('g');
         parentNode.querySelectorAll('g[id*="operation"] image').forEach(img => img.remove());
+
+        const newBackground = svgTheme?.toLowerCase()?.includes('dark') ? 'black' : undefined;
+        if (newBackground) {
+            let svgElementNewStyle = svgElementNew.getAttribute('style');
+            svgElementNewStyle += `background:${newBackground}`
+            svgElementNew.setAttribute('style', svgElementNewStyle);
+        }
+
     }
 
     const svgCode = midSerializer.serializeToString(svgElementNew);
     document.body.removeChild(iframeMid);
 
-    downloadSvgFile(svgCode);
+    const data = comGraphStore.data?.jsonData;
+    const originFileName = (data as any).func_magicname;
+    const fileName = `${originFileName}.svg`;
+    downloadSvgFile(svgCode, fileName);
 }
