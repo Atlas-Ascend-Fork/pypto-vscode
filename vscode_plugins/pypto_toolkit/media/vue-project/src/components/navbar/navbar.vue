@@ -66,7 +66,7 @@ import SwimIcon from './icons/swim-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
-import { getOutputRecords } from '../../apis/workspace';
+import { getOutputRecords, getOutputDetail } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
@@ -97,6 +97,14 @@ getOutputRecords({}, { timeout: 600000 }).then((res) => {
 watch(
   [() => props.currentRecordDirectoryPath, currentRecord],
   ([outputDirPath, record]) => {
+    if (record) {
+      getOutputDetail(record.directoryPath).then((res) => {
+        const children = res?.data.directoryTree.children;
+        if (children?.length) {
+          showSwim.value = children.some((item) => item.fileType === 'swimlaneGraph');
+        }
+      });
+    }
     if (outputDirPath && record && props.currentStep !== 'controlFlow') {
       getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000, useCustomErrorHandler: true })
         .then((res) => {
@@ -129,7 +137,6 @@ function emitLeafChange(leafName: string) {
 
 function onRecordChange(record: HistoryData) {
   currentRecord.value = record;
-  showSwim.value = Boolean(record.swimlaneGraphFilePath);
 }
 
 function findLastPass() {
