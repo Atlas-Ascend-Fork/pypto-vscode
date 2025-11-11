@@ -9,13 +9,24 @@ import { SingleGraphData } from '../../core/graphData';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphView } from '../../view/swimGraphView';
 import { loadMaterialColorUtilities } from '../../color-list';
+import { readOutputRunData } from '../workspace/rundata';
+import { getOutputRecord } from '../workspace';
+import { t } from 'i18next';
 
 /**
  * 打开控制流
  */
-export function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
-  const uri = vscode.Uri.file(params.controlFlowPath);
-  useView().editorView.open('controlFlow', uri, { query: { url: params.outputPath } });
+export async function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
+  const { outputPath, controlFlowPath } = params;
+  const outputUri = vscode.Uri.file(outputPath);
+  const controlFlowUri = vscode.Uri.file(controlFlowPath);
+
+  // 标题使用output名称+图类型
+  const runData = await readOutputRunData(outputUri);
+  const record = getOutputRecord(outputUri, runData);
+  const customTitle = `${record.title} - ${t('PyPTOToolkit.workspace.controlFlowName')}`;
+
+  useView().editorView.open('controlFlow', controlFlowUri, { query: { url: outputPath }, title: customTitle });
 }
 
 /**
