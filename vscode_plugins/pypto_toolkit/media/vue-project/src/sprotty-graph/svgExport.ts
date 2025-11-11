@@ -85,13 +85,14 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
 
         const parentNode = svgElementNew.querySelector('g');
         parentNode.querySelectorAll('g[id*="operation"] image').forEach(img => img.remove());
-
         const newBackground = svgTheme?.toLowerCase()?.includes('dark') ? 'black' : undefined;
         if (newBackground) {
             let svgElementNewStyle = svgElementNew.getAttribute('style');
             svgElementNewStyle += `background:${newBackground}`
             svgElementNew.setAttribute('style', svgElementNewStyle);
         }
+
+        parentNode.querySelectorAll('image')?.forEach(g_image => g_image.remove());
 
     }
 
