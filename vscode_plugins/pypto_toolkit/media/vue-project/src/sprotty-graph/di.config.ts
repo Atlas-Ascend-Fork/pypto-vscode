@@ -53,10 +53,10 @@ import { getCurrentArea, isNode } from '../utils/index';
 @injectable()
 class CustomElkLayoutEngine extends ElkLayoutEngine {
   constructor(elkFactory: ElkFactory,
-        protected override readonly filter: IElementFilter,
-        protected override readonly configurator: ILayoutConfigurator,
-        protected override readonly preprocessor?: ILayoutPreprocessor,
-        protected override readonly postprocessor?: ILayoutPostprocessor) {
+        protected readonly filter: IElementFilter,
+        protected readonly configurator: ILayoutConfigurator,
+        protected readonly preprocessor?: ILayoutPreprocessor,
+        protected readonly postprocessor?: ILayoutPostprocessor) {
       super(elkFactory, filter, configurator, preprocessor, postprocessor)
   }
   override layout(sgraph: SGraph, index?: SModelIndex): SGraph | Promise<SGraph> {
@@ -396,7 +396,7 @@ let mouseDownTimer: ReturnType<typeof setTimeout>;
 let mouseUpTimer: ReturnType<typeof setTimeout>;
 @injectable()
 export class CustomMouseListener extends MouseListener {
-  override mouseDown(target: SModelElement, event: MouseEvent): Action[] {
+  mouseDown(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     if (target.id !== 'root') {
       mouseDownTimer = setTimeout(() => {
@@ -409,7 +409,7 @@ export class CustomMouseListener extends MouseListener {
     return []; // 可返回要派发的操作
   }
 
-  override mouseOver(target: SModelElement, event: MouseEvent): Action[] {
+  mouseOver(target: SModelElement, event: MouseEvent): Action[] {
     (window as any).ascEventBus.emit('view_mouseover');
     if (target instanceof SGraphImpl) {
       (window as any).ascEventBus.emit('closeNodeTip', true);
@@ -428,7 +428,7 @@ export class CustomMouseListener extends MouseListener {
     return [];
   }
 
-  override mouseMove(target: SModelElement, event: MouseEvent): Action[] {
+  mouseMove(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     if (target.id == 'root') {
       (window as any).ascEventBus.emit('view_mousemove', [target.scroll.x, target.scroll.y, target.zoom, moveArea]);
@@ -441,7 +441,7 @@ export class CustomMouseListener extends MouseListener {
     return [];
   }
 
-  override mouseUp(target: SModelElement, event: MouseEvent): Action[] {
+  mouseUp(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     let root;
     if (target.id === 'show-node-rect') {
@@ -465,13 +465,13 @@ export class CustomMouseListener extends MouseListener {
     return [];
   }
 
-  override mouseLeave(target: SModelElement, event: MouseEvent): Action[] {
+  mouseLeave(target: SModelElement, event: MouseEvent): Action[] {
     const moveArea = getCurrentArea(event);
     (window as any).ascEventBus.emit('view_mouseleave', [target.root.scroll.x, target.root.scroll.y, moveArea]);
     return [];
   }
 
-  override doubleClick(target: SModelElement, event: MouseEvent): Action[] {
+  doubleClick(target: SModelElement, event: MouseEvent): Action[] {
     console.log('double click');
     if (target?.id.startsWith("operation") && comGraphStore.data.comGraphConfig.canViewSubgraph) {
       let current = target;
@@ -503,7 +503,7 @@ export class CustomMouseListener extends MouseListener {
     return[];
   }
 
-  override wheel(target: SModelElementImpl, event: WheelEvent): Action[] {
+  wheel(target: SModelElementImpl, event: WheelEvent): Action[] {
     const moveArea = getCurrentArea(event);
     (window as any).ascEventBus.emit('closeNodeTip', true);
     setTimeout(() => {
