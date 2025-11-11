@@ -162,9 +162,15 @@
   flex-direction:column;
 }
 
+.close-container {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  right: 20px;
+  top: 20px;
+}
+
 .report-title {
-  margin-top: 20px;
-  margin-left: 20px;
   height: 26px;
   font-size: 18px;
   line-height: 18px;
@@ -174,8 +180,6 @@
 
 .task-container {
   margin-top: 12px;
-  margin-left: 20px;
-  margin-right: 20px;
   width: 440px;
   height: 90px;
   display: flex;
@@ -228,10 +232,8 @@
 
 .aicore-container {
   margin-top: 16px;
-  margin-left: 20px;
-  margin-right: 20px;
   width: 440px;
-  height: 184px;
+  height: 192px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -292,7 +294,6 @@
 
 .cube-time-num {
   position: absolute;
-  width: 23px;
   height: 12px;
   font-size: 12px;
   top: 3px;
@@ -303,7 +304,6 @@
 
 .vector-time-num {
   position: absolute;
-  width: 23px;
   height: 12px;
   font-size: 12px;
   top: 3px;
@@ -314,21 +314,21 @@
 
 .occupy-rate-title {
   height: 20px;
-  margin-left: 20px;
   margin-top: 16px;
   color: rgba(230, 230, 230, 1);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .row-coord {
-  margin-left:121px ;
+  margin-left:100px ;
   margin-top: 8px;
   height: 18px;
   width: 350px;
   gap: 40px;
   display: flex;
   flex-direction: row;
+  position: relative;
 }
 
 .row-coord-num {
@@ -340,7 +340,6 @@
 }
 
 .occupy-rate-chart-container {
-  margin-left: 20px;
   display: flex;
   flex-direction: row;
   width: 440px;
@@ -407,6 +406,12 @@
   position: absolute;
   bottom: 0;
   left: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 1px,
+    var(--devui-slider-container-bg) 4px
+  );
 }
 
 .occupy-rate-backbar-cube {
@@ -440,6 +445,7 @@
   position: absolute;
   left: 0;
   top: 0;
+  border-radius: 4px 0 0 4px;
 }
 
 .vector-occupy-rate-bar {
