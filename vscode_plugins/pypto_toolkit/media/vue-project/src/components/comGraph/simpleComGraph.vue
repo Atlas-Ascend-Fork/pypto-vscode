@@ -107,8 +107,12 @@ function onMessageFromSwim(args) {
     prevent = false;
     return;
   }
-  createSelectNodesRect(args.label, true);
-  listenLockClick();
+  if (args.label) {
+    createSelectNodesRect(args.label, true);
+    listenLockClick();
+  } else {
+    removeSelectNodesRect();
+  }
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
       rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
