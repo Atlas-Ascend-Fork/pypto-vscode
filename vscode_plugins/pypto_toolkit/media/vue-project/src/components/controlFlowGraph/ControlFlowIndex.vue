@@ -70,7 +70,7 @@ import { useIfCardNodes } from '@/components/controlFlowGraph/hooks/useIfCardNod
 import { useComboCardNodes } from '@/components/controlFlowGraph/hooks/useComboNode';
 import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
 import { useMinimap } from './hooks/use-minimap';
-import { useLevelOfDetail } from './hooks/useLevelOfetail';
+import { useLevelOfDetail } from './hooks/useZoomLevel';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -130,15 +130,13 @@ const selectedValue = ref(null); // 选中项
 
 // 处理子组件事件
 // 过滤类型高亮
-const handleMatchedResults = async (results) => {
+const handleMatchedResults = (results) => {
   matchedResults.value = results;
   if (matchedResults.value.length > 0) {
     graph.setElementState(clearAllNodeState);
     matchedResults.value.forEach((item) => {
       const id = item.value;
       graph.setElementState(id, 'active');
-      graph.setElementZIndex(zIndex.value);
-      graph.setElementZIndex(id, 101);
     });
   } else {
     graph.setElementState(clearAllNodeState);
@@ -161,6 +159,10 @@ const handleSelectedValue = (value) => {
 const handHoverEvent = (value) => {
   handleMatchedResults(matchedResults.value);
   graph.setElementState(value, 'selected');
+  if (zoom.value < 50) {
+    graph.setElementZIndex(zIndex.value);
+    graph.setElementZIndex(value, 101);
+  }
 };
 
 // 更新画布大小
@@ -261,7 +263,7 @@ const initG6Graph = async (nodes, edges, combos) => {
 };
 
 const dataParseError = ref(false);
-const zIndex = ref({});//保存所有节点的初始层级
+const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
   const res = await getQuery();
   outPutPath.value = res.url;
@@ -293,7 +295,7 @@ onMounted(async () => {
     if (item.combo) {
       zIndex.value[item.id] = graph.getElementZIndex(item.id);
     } else {
-      zIndex.value[item.id] = 99;//最外层loop层级，仅次于选中层级
+      zIndex.value[item.id] = 99; //最外层loop层级，仅次于选中层级
     }
   });
   nodes.forEach(async (item) => {
@@ -304,7 +306,7 @@ onMounted(async () => {
         data: item,
       });
     }
-    zIndex.value[item.id] = -1;//path节点处于最低层级
+    zIndex.value[item.id] = -1; //path节点处于最低层级
   });
   await graph.setElementZIndex(zIndex.value);
   updateGraphSize();

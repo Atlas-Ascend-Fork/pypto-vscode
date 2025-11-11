@@ -1,7 +1,8 @@
 import { BaseBehavior, CanvasEvent, GraphEvent } from '@antv/g6';
 
+const DEFAULT_LEVEL = 'detailed';
+
 export function useLevelOfDetail() {
-  const DEFAULT_LEVEL = 'detailed';
 
   // 计算缩放等级用于隐藏细节
   class LevelOfDetail extends BaseBehavior {

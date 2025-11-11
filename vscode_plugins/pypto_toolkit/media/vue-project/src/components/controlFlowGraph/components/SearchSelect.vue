@@ -10,14 +10,15 @@
       :placeholder="t('controlFlows.searchPlaceholder')"
       prefix="search"
     />
-    <div v-if="isOpen && visibleResults.length" class="search-result-list" @mousedown.prevent>
+    <div v-if="isOpen && visibleResults.length" class="search-result-list" @mousedown.prevent ref="resultContainerRef">
       <div
         v-for="(item, index) in visibleResults"
         :key="item.value"
         :class="{ active: index === activeIndex }"
         class="result-item"
         @click="handleItemClick(item)"
-        @mouseenter="activeIndex = index"
+        @mouseenter="handleMouseEnter(index)"
+        ref="resultItemRefs"
       >
         {{ item.label }}
       </div>
@@ -26,7 +27,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onUnmounted, ref, watch } from 'vue';
+import { nextTick, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 // 1. 数据源
 const props = defineProps<{
@@ -47,17 +48,12 @@ const emit = defineEmits<{
 const searchValue = ref('');
 const visibleResults = ref<typeof props.options>([]);
 const isOpen = ref(false);
+const resultContainerRef = ref(null); // 容器ref
+const resultItemRefs = ref<HTMLDivElement[]>([]);
 const activeIndex = ref(-1);
 const { t } = useI18n();
-
-// 4. @search事件触发（如回车、点击搜索图标，用于主动确认搜索）
-const handleOfficialSearch = () => {
-  if (!searchValue.value) {
-    isOpen.value = false;
-    emit('matched-results', []);
-  }
-  isOpen.value = visibleResults.length > 0;
-};
+// 添加触发来源标记（区分键盘/鼠标）
+const isKeydownTrigger = ref(false);
 
 const debounce = (fn, wait = 300) => {
   return (...args) => {
@@ -69,6 +65,7 @@ const debounce = (fn, wait = 300) => {
     }, wait);
   };
 };
+
 // 延迟时间：100（平衡性能和用户体验，避免卡顿感）
 const debouncedEmitActiveEvent = debounce((newActiveIndex) => {
   // 仅当 newActiveIndex 不为 -1 时 emit
@@ -81,6 +78,37 @@ watch(
   () => activeIndex.value,
   (newVal) => {
     debouncedEmitActiveEvent(newVal);
+    if (!isKeydownTrigger.value || newVal < 0) return;
+    const container = resultContainerRef.value;
+    const activeItem = resultItemRefs.value[newVal];
+
+    if (!container || !activeItem) return;
+
+    // 获取容器和选中项的位置信息
+    const containerRect = container.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+
+    // 计算选中项相对于容器的位置（容器内的顶部距离）
+    const itemTopInContainer = itemRect.top - containerRect.top + container.scrollTop;
+    const itemBottomInContainer = itemTopInContainer + itemRect.height;
+
+    // 容器的可视高度
+    const containerVisibleHeight = container.clientHeight;
+
+    // 滚动逻辑：确保选中项完全在可视区域内
+    if (itemTopInContainer < 0) {
+      // 选中项在容器顶部上方，向上滚动
+      container.scrollTo({
+        top: itemTopInContainer,
+        behavior: 'smooth', // 平滑滚动
+      });
+    } else if (itemBottomInContainer > containerVisibleHeight) {
+      // 选中项在容器底部下方，向下滚动
+      container.scrollTo({
+        top: itemBottomInContainer - containerVisibleHeight,
+        behavior: 'smooth',
+      });
+    }
   },
 );
 
@@ -107,6 +135,12 @@ const handleInputChange = (val: string) => {
   emit('matched-results', matched);
 };
 
+// 鼠标hover事件
+const handleMouseEnter = (index: number) => {
+  isKeydownTrigger.value = false; // 鼠标触发，禁用滚动
+  activeIndex.value = index;
+};
+
 // 键盘控制（上下键切换、Enter确认）
 const handleKeyDown = (e: KeyboardEvent) => {
   const len = visibleResults.value.length;
@@ -115,11 +149,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
   switch (e.key) {
     case 'ArrowDown':
       e.preventDefault();
-      activeIndex.value = (activeIndex.value + 1) % len;
+      isKeydownTrigger.value = true; // 键盘触发，启用滚动
+      activeIndex.value = activeIndex.value + 1 < len ? activeIndex.value + 1 : activeIndex.value;
       break;
     case 'ArrowUp':
       e.preventDefault();
-      activeIndex.value = (activeIndex.value - 1 + len) % len;
+      isKeydownTrigger.value = true; // 键盘触发，启用滚动
+      activeIndex.value = activeIndex.value - 1 > -1 ? activeIndex.value - 1 : activeIndex.value;
       break;
     case 'Enter':
       e.preventDefault();
@@ -179,7 +215,6 @@ onUnmounted(() => {
   align-items: center;
   padding: 4px;
   cursor: pointer;
-  transition: background 0.2s;
   height: 28px;
   line-height: 20px;
   font-size: 13px;
