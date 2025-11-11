@@ -79,26 +79,15 @@ for (const percent of pmuChartDataRight.value) {
 
 <style scoped>
 .occupy-rate-container {
-  width: 470;
+  width: 440;
 }
 
 .occupy-rate-title {
   height: 20px;
-  margin-left: 20px;
   margin-top: 16px;
   font-size: 12px;
   font-weight: 700;
   color: var(--vscode-badge-foreground);
-}
-
-.row-coord {
-  margin-left: 121px;
-  margin-top: 8px;
-  height: 18px;
-  width: 350px;
-  display: flex;
-  flex-direction: row;
-  position: relative;
 }
 
 .row-coord-num {
@@ -108,14 +97,6 @@ for (const percent of pmuChartDataRight.value) {
   font-size: 12px;
   font-weight: 400;
   position: absolute;
-}
-
-.occupy-rate-chart-container {
-  margin-left: 20px;
-  display: flex;
-  flex-direction: row;
-  width: 440px;
-  height: 220px;
 }
 
 .occupy-rate-chart-col-coord-container {
