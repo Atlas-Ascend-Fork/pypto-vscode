@@ -1065,7 +1065,7 @@ onMounted(() => {
 }
 
 .res-it {
-  width: 447px;
+  width: calc(var(--dropdown-width) - 15px);
   height: 28px;
   padding: 4px;
   border-radius: 4px;
@@ -1085,7 +1085,10 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding-right: 26px;
+    
+    &:has(.res-it-icon) {
+      padding-right: 26px;
+    }
   }
 
   .res-it-icon {
