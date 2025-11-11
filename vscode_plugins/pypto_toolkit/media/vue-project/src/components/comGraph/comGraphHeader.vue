@@ -16,8 +16,8 @@
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
-      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
-        <div :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="debounceSvgOutput">
+      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]" @click="debounceSvgOutput">
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
@@ -384,7 +384,6 @@ const upperActive = ref(false);
 const regActive = ref(false);
 const onlySvgOutputOnce = ref(false);
 const isExporting = ref(false);
-let svgResetTimer = null
 
 const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -727,7 +726,7 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
 }
 
 function svgOutput() {
-  if (props.isLoading || props.openMode !== 'all') {
+  if (props.isLoading) {
     return;
   }
 
@@ -742,10 +741,6 @@ const debounceSvgOutput = () => {
   }
 
   isExporting.value = true;
-  svgResetTimer = setTimeout(() => {
-    // 当响应时间过长时重置状态
-    isExporting.value = false;
-  }, 30000)
   svgOutput();
 
 }
@@ -907,9 +902,6 @@ onMounted(() => {
   (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
     isExporting.value = false;
     comGraphStore.data.svgExportMode = false;
-    if (svgResetTimer) {
-      clearTimeout(svgResetTimer);
-    }
   });
 
 });

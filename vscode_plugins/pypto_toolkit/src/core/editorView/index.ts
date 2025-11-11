@@ -19,7 +19,7 @@ export interface EditorViewRaw {
   viewType: string;
 
   /** 页面标题 */
-  title: string;
+  title: string | ((uri: vscode.Uri) => string);
 
   /** 页面服务端，每个webview使用独立的实例 */
   viewServer?: typeof ViewServer;
@@ -31,6 +31,9 @@ interface EditorViewOptions {
 
   /** 打开的窗口区域 */
   viewColumn?: vscode.ViewColumn;
+
+  /** 自定义标题 */
+  title?: string;
 }
 
 const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.editorView';
@@ -73,14 +76,16 @@ export class EditorView {
    * @param column 渲染的窗口分栏
    */
   public open(viewType: string, uri: vscode.Uri, options: EditorViewOptions = {}): Promise<vscode.WebviewPanel> {
-    const { viewColumn = vscode.ViewColumn.Active, query } = options;
+    const { viewColumn = vscode.ViewColumn.Active, query, title } = options;
     const viewRaw = this.viewRawMap.get(viewType);
     if (!viewRaw) {
       throw new Error(`Webview - ${viewType} 不存在`);
     }
 
-    const virtualUri = toVirtualUri(uri, viewType, viewRaw.title, query);
-    vscode.commands.executeCommand('vscode.open', virtualUri, { preview: false, viewColumn }, viewRaw.title);
+    const rawTitle: string = viewRaw.title instanceof Function ? viewRaw.title(uri) : viewRaw.title;
+    const staticTitle = title ?? rawTitle;
+    const virtualUri = toVirtualUri(uri, viewType, staticTitle, query);
+    vscode.commands.executeCommand('vscode.open', virtualUri, { preview: false, viewColumn });
 
     return new Promise((resolve) => {
       this.pendingViewPanel.set(virtualUri.path, resolve);

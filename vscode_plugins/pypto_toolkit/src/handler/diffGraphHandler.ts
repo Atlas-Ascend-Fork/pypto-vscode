@@ -7,7 +7,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   /**
    * 1. 把两份图数据挂到面板
    */
-  protected static async loadMainData(panel: any): Promise<void> {
+  protected static override async loadMainData(panel: any): Promise<void> {
     // 原图
     await DiffGraphHandler.loadGraphData(panel, panel.fsPath, 'comGraphData');
     // 对比图
@@ -18,7 +18,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   /**
    * 2. 获取comGraphData
    */
-  protected static getGraphData(panel: any): AbstractGraphData {
+  protected static override getGraphData(panel: any): AbstractGraphData {
     return panel.comGraphData as DiffGraphData;
   }
   protected static getDiffGraphData(panel: any): AbstractGraphData {
@@ -26,7 +26,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   }
 
   /** 3. 重写 render()，一次性把两份 JSON 都发给前端 */
-  protected static async render(panel: any) {
+  protected static override async render(panel: any) {
     console.debug('DiffGraphHandler render 【开始】');
     const gd = this.getGraphData(panel);
     const diffgd = this.getDiffGraphData(panel);
@@ -100,7 +100,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   }
 
   /** 6. 重写一些小的父类方法 */
-  static getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
+  static override getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
     if (graphData.layoutOptions['PyPTO.filePath'] === 'before') {
       return panel.comGraphData;
     } else {
@@ -108,7 +108,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
   }
 
-  protected static postLayoutResult(panel: any, jsonStr: string, filePath?: string) {
+  protected static override postLayoutResult(panel: any, jsonStr: string, filePath?: string) {
     panel.webview.postMessage({
       type: 'postLayoutResult',
       data: JSON.parse(jsonStr),
@@ -116,7 +116,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     });
   }
 
-  static postJsonGraphData(panel: any, message: any, data: any, isCached: boolean) {
+  static override postJsonGraphData(panel: any, message: any, data: any, isCached: boolean) {
     panel.webview.postMessage({
       type: 'postJsonGraphData',
       data: {
