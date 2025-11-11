@@ -186,6 +186,10 @@ function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: D
 
 onMounted(() => {
   getAllRecords();
+  // 禁用原生右键菜单
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // 阻止原生菜单弹出
+  });
 });
 
 const isLoading = ref(false);

@@ -311,6 +311,10 @@ onMounted(async () => {
   await graph.setElementZIndex(zIndex.value);
   updateGraphSize();
   window.addEventListener('resize', updateGraphSize);
+  // 禁用原生右键菜单
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // 阻止原生菜单弹出
+  });
 });
 
 onUnmounted(() => {
