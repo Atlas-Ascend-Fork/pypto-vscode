@@ -108,6 +108,12 @@ function jumpNotOwn(item: LeafInPass) {
   gap: 4px;
   cursor: pointer;
 
+  &:hover {
+    .select-val {
+      color: var(--devui-operation-text-hover);
+    }
+  }
+
   .select-val {
     color: var(--devui-title-text);
     font-size: 12px;
@@ -116,6 +122,7 @@ function jumpNotOwn(item: LeafInPass) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .please-select-placeholder {

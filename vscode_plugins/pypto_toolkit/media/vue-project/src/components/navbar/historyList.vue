@@ -67,6 +67,11 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     line-height: 22px;
     color: var(--devui-primary-text);
     pointer-events: all;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
+
+    &:hover {
+      color: var(--devui-operation-text-hover);
+    }
 
     span {
       max-width: 160px;
@@ -79,7 +84,7 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     i {
       font-size: 16px;
       font-weight: bold;
-      color: var(--devui-primary-text);
+      color: var(--devui-placeholder-text);
       transition: transform $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
     }
 

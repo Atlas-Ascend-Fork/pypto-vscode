@@ -150,10 +150,18 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </script>
 
 <style scoped lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+
 .pass-list-container {
   display: flex;
   gap: 4px;
   cursor: pointer;
+
+  &:hover {
+    .pass-content {
+      color: var(--devui-operation-text-hover);
+    }
+  }
 
   .pass-type {
     height: 16px;
@@ -187,6 +195,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .dot-step {

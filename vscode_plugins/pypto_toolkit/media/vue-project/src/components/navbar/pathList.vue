@@ -139,6 +139,12 @@ function onNodeClick(node: PathTreeData) {
   margin-right: 8px;
   cursor: pointer;
 
+  &:hover {
+    .path-parent {
+      color: var(--devui-operation-text-hover);
+    }
+  }
+
   .path-parent {
     color: var(--devui-primary-text);
     font-size: 12px;
@@ -148,6 +154,7 @@ function onNodeClick(node: PathTreeData) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .path-current {
