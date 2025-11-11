@@ -61,6 +61,7 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
+let lockedLabel = '';
 let drawColorDatas = {};
 const spaceInThreeCol = 2;
 const getActiveEventCanvas = (processKey) => {
@@ -891,6 +892,7 @@ const calculateControlPoints = (start, end) => {
   ];
 };
 const lockClick = (e) => {
+  lockedLabel = preLabel;
   e.stopPropagation();
   isLockStatus.value = true;
   sendMsg('activeLock', { label: preLabel });
@@ -920,6 +922,7 @@ const lockClick = (e) => {
 };
 
 const unLockClick = (e) => {
+  lockedLabel = '';
   e.stopPropagation();
   isLockStatus.value = false;
   sendMsg('deactivateLock');
@@ -2463,11 +2466,23 @@ window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
   handleOutline(label, true, false);
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
+  lockedLabel = label;
   handleOutline(label, false, true, true);
   isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
+  lockedLabel = '';
   isLockStatus.value = false;
+});
+window.ascEventBus.on('clearSearchEvent', () => {
+  let { eventCtx } = ctxs[props.processKey];
+  if (!selectedEvent.value) {
+    return;
+  }
+  const { color } = selectedEvent.value.args;
+  const isDimmed = lockedLabel !== color;
+  drawEvent([selectedEvent.value.drawData], eventCtx, isDimmed);
+  selectedEvent.value = null;
 });
 const sendMsg = (command, param) => {
   Promise.resolve().then(() => {

@@ -548,7 +548,7 @@ watch(isDarkTheme, () => {
   updateTheme();
 });
 watch(isLockStatus, () => {
-  if (!isLockStatus.value) {
+  if (!isLockStatus.value && !searchQuery.value) {
     return;
   }
   searchQuery.value = '';
@@ -556,14 +556,17 @@ watch(isLockStatus, () => {
   currentResultIndex.value = 0;
   isSearchActive.value = false;
   detailsPanelExpanded.value = false;
-  selectedEvent.value = null;
-  clearSearchData();
+  sendMsg('clearSearchEvent');
 });
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
 };
-
+const sendMsg = (command, param) => {
+  Promise.resolve().then(() => {
+    window.ascEventBus.emit(command, param);
+  });
+};
 onMounted(() => {
   updateTheme();
 });
