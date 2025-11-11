@@ -104,7 +104,7 @@ export interface CombsType {
       endLine: number;
     };
   };
-  comboWidth: number;//记录loop宽度
+  comboWidth: number; //记录loop宽度
 }
 
 /**
@@ -184,18 +184,26 @@ export interface MemberItem extends PassesType {
 
 // 定义自定义PATH节点数据类型
 export interface PathCardData {
-  level: string;
-  scale: number;
+  level?: string;
+  scale?: number;
   name?: string;
   functionStats?: {
-    leafFunctions?: number;
+    leafFunction?: number;
     called?: number;
     callee?: number;
   };
   errorStats?: Record<string, number>;
+  source: GroupNode;
 }
 
 // 定义自定义IF节点数据类型
 export interface IfCardData {
   name?: string;
+}
+
+// 控制流搜索模糊匹配列表item类型
+export interface SearchSelectItem {
+  data: CombsType;
+  label: string;
+  value: string;
 }

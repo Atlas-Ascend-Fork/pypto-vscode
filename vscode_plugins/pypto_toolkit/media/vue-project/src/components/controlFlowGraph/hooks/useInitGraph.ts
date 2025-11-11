@@ -4,6 +4,17 @@ import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
 import { useComboCardNodes } from './useComboNode';
 import { ControlFlowNodesType, EdgesType, CombsType } from '../type/node-detail-types';
 
+/**
+ * 初始化绘图
+ * @param container g6挂载容器
+ * @param minimapOptions 小地图配置项
+ * @param nodes 节点数据
+ * @param edges 边数据
+ * @param combos 组合数据
+ * @param isDarkTheme 当前主题
+ * @param combosNode 组合记录
+ * @returns 返回graph实例
+ */
 export function useInitGraph(
   container: HTMLDivElement,
   minimapOptions: Ref<MinimapOptions>,

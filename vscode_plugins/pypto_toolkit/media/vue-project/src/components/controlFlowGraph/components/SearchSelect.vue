@@ -55,7 +55,12 @@ const { t } = useI18n();
 // 添加触发来源标记（区分键盘/鼠标）
 const isKeydownTrigger = ref(false);
 
-const debounce = (fn, wait = 300) => {
+/**
+ * 防抖工具
+ * @param fn 需要被防抖执行的原始函数
+ * @param wait 延迟时间
+ */
+const debounce = (fn: Function, wait = 300) => {
   return (...args) => {
     // 每次触发时清除之前的计时器
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -66,10 +71,15 @@ const debounce = (fn, wait = 300) => {
   };
 };
 
-// 延迟时间：100（平衡性能和用户体验，避免卡顿感）
-const debouncedEmitActiveEvent = debounce((newActiveIndex) => {
+/**
+ * 延迟时间：100（平衡性能和用户体验，避免卡顿感）
+ * @param newActiveIndex 选中项的下标
+ */
+const debouncedEmitActiveEvent = debounce((newActiveIndex: number) => {
   // 仅当 newActiveIndex 不为 -1 时 emit
-  if (newActiveIndex === -1) return;
+  if (newActiveIndex === -1) {
+    return;
+  }
   const targetValue = visibleResults?.value[newActiveIndex]?.value ?? '';
   emit('active-event', targetValue); // 通知父组件
 }, 100);
@@ -78,11 +88,15 @@ watch(
   () => activeIndex.value,
   (newVal) => {
     debouncedEmitActiveEvent(newVal);
-    if (!isKeydownTrigger.value || newVal < 0) return;
+    if (!isKeydownTrigger.value || newVal < 0) {
+      return;
+    }
     const container = resultContainerRef.value;
     const activeItem = resultItemRefs.value[newVal];
 
-    if (!container || !activeItem) return;
+    if (!container || !activeItem) {
+      return;
+    }
 
     // 获取容器和选中项的位置信息
     const containerRect = container.getBoundingClientRect();
@@ -115,7 +129,11 @@ watch(
 // 防抖函数,避免连续输入时频繁筛选
 let debounceTimer = null; // 防抖计时器
 
-const debouncedHandleInput = debounce((e) => {
+/**
+ * 用户输入时防抖
+ * @param e 用户输入的字符串
+ */
+const debouncedHandleInput = debounce((e: string) => {
   handleInputChange(e);
 }, 300);
 
@@ -144,7 +162,9 @@ const handleMouseEnter = (index: number) => {
 // 键盘控制（上下键切换、Enter确认）
 const handleKeyDown = (e: KeyboardEvent) => {
   const len = visibleResults.value.length;
-  if (len === 0) return;
+  if (len === 0) {
+    return;
+  }
 
   switch (e.key) {
     case 'ArrowDown':
@@ -166,7 +186,9 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 };
 
-// 定义需要对外暴露的方法
+/**
+ * 定义需要对外暴露的方法，重置搜索组件
+ */
 const clear = () => {
   searchValue.value = ''; // 清空搜索框
   visibleResults.value = []; // 清空结果列表
@@ -174,7 +196,11 @@ const clear = () => {
   activeIndex.value = -1; // 重置选中索引
   emit('matched-results', []); // 通知父组件结果已清空
 };
-// 列表项点击
+
+/**
+ * 列表项点击触发选中
+ * @param item 点击选中项
+ */
 const handleItemClick = (item: (typeof props.options)[0]) => {
   searchValue.value = String(item.label);
   emit('selected-value', item);

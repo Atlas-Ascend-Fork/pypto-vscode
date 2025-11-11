@@ -1,9 +1,8 @@
-import { BaseBehavior, CanvasEvent, GraphEvent } from '@antv/g6';
+import { BaseBehavior, BaseBehaviorOptions, CanvasEvent, GraphEvent, RuntimeContext } from '@antv/g6';
 
 const DEFAULT_LEVEL = 'detailed';
 
 export function useLevelOfDetail() {
-
   // 计算缩放等级用于隐藏细节
   class LevelOfDetail extends BaseBehavior {
     prevLevel = DEFAULT_LEVEL;
@@ -12,18 +11,31 @@ export function useLevelOfDetail() {
       ['detailed']: [0.3, Infinity],
     };
 
-    constructor(context, options) {
+    /**
+     * 初始化，参数由behavior自动传入
+     * @param context 上下文
+     * @param options 配置项
+     */
+    constructor(context: RuntimeContext, options: Partial<BaseBehaviorOptions>) {
       super(context, options);
       this.bindEvents();
     }
 
-    update(options) {
+    /**
+     * 更新节点数据
+     * @param options 更新配置
+     */
+    override update(options: Partial<BaseBehaviorOptions>) {
       this.unbindEvents();
       super.update(options);
       this.bindEvents();
     }
 
-    updateZoomLevel = async (e) => {
+    /**
+     * 记录缩放等级
+     * @param e 由监听器传入当前画布数据
+     */
+    updateZoomLevel = async (e: PointerEvent) => {
       const { graph } = this.context;
       if (e.data && 'scale' in e.data) {
         const scale = e.data.scale;
@@ -48,7 +60,7 @@ export function useLevelOfDetail() {
       graph.off(CanvasEvent.WHEEL, this.updateZoomLevel);
     }
 
-    destroy() {
+    override destroy() {
       this.unbindEvents();
       super.destroy();
     }

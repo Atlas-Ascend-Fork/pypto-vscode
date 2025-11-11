@@ -29,14 +29,14 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
     }
 
     get level() {
-      return this.data.level || DEFAULT_LEVEL;
+      return this.data?.level || DEFAULT_LEVEL;
     }
 
     /**
      * 2. 处理数据默认值
      */
     get cardData(): Required<PathCardData> {
-      const rawData = this.nodeData.data || {};
+      const rawData = this.nodeData.data;
       return {
         name: rawData.name || 'PATH', // 默认名
         functionStats: {
