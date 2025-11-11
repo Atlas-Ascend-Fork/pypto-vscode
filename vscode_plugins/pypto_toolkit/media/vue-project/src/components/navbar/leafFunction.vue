@@ -202,7 +202,7 @@ function jumpNotOwn(item: LeafInPass) {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding: 4px 8px;
+    padding: 5px 8px;
     transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
 
     &:not(:last-of-type) {
@@ -213,10 +213,6 @@ function jumpNotOwn(item: LeafInPass) {
       border-radius: 4px;
       background-color: var(--devui-input-hover-bg);
       cursor: pointer;
-
-      & > div > div:first-of-type {
-        color: var(--devui-operation-text-hover);
-      }
     }
 
     &.active {
@@ -239,11 +235,16 @@ function jumpNotOwn(item: LeafInPass) {
         white-space: nowrap;
 
         &:first-of-type {
+          font-size: 13px;
+          line-height: 20px;
           color: var(--devui-primary-text);
         }
 
         &:last-of-type {
+          font-size: 12px;
+          line-height: 16px;
           color: var(--devui-secondary-text);
+          margin-top: 1px;
         }
       }
     }
