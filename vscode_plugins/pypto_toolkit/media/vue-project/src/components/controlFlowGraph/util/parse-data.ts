@@ -16,26 +16,13 @@ export function transformData(rootNodes: GroupNode): {
   let lastPathBottomCount = 0;
 
   function traverse(node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number) {
+    let comboWidth = 0;
     const id = node.magicName.substring('TENSOR_'.length);
     if (node.nodeType === 'LOOP') {
       deepRankSep++;
       loopTopCount++;
     }
-    if (parentType === 'LOOP' && node.nodeType === 'LOOP') {
-      // 生成combs父子节点记录
-      const combosRecord: CombsType = {
-        id,
-        ...(parentId ? { combo: parentId } : {}),
-        data: {
-          nodeType: node.nodeType,
-          magic: node.magic,
-          magicName: node.magicName,
-          hash: node.hash,
-          sourceCode: node.sourceCode,
-        },
-      };
-      combos.push(combosRecord);
-    }
+
     //  如果是常规Path节点
     if (node.nodeType === 'PATH' && parentType === 'LOOP') {
       const pathWidth = 200;
@@ -76,7 +63,7 @@ export function transformData(rootNodes: GroupNode): {
           // errorStats,
         },
         style: {
-          x: 30 * deepRankSep,
+          x: 45 * (deepRankSep - 1) + 30,
           y: lastNodeY,
         },
       };
@@ -149,12 +136,8 @@ export function transformData(rootNodes: GroupNode): {
 
     function drawNode(root: GroupNode) {
       const verticalSpacing = -40;
-      const horizontalSpacing = 0;
-      const nodeWidth = 200;
       const nodeHeight = 220;
-      const { levelWidths, maxLever } = calculateIfNode(node);
-      const maxLevelWidth = Math.max(...levelWidths);
-      const maxLevelPixelWidth = maxLevelWidth * (nodeWidth + horizontalSpacing) - horizontalSpacing;
+      const { maxLever } = calculateIfNode(node);
       const starY = lastNodeY + loopTopCount * 40 + loopLastPathCount * 25 + 30;
       const maxWidth = Math.pow(2, maxLever) * 200 + Math.pow(2, maxLever) * 50;
       const leverEdgeWidth = [maxWidth / 4];
@@ -198,7 +181,7 @@ export function transformData(rootNodes: GroupNode): {
               errorStats,
             },
             style: {
-              x: startX + 30 * deepRankSep,
+              x: startX + (45 * (deepRankSep - 1) + 20) / 2,
               y: starY + root.y * (nodeHeight + verticalSpacing),
             },
           };
@@ -219,23 +202,27 @@ export function transformData(rootNodes: GroupNode): {
           nodes.push(newNode);
         }
       }
-      layoutTree(root, 0, maxLevelPixelWidth / 2);
+
+      layoutTree(root, 0, maxWidth / 2);
+      return maxWidth - 50;
     }
     //  如果是if嵌套节点
     if (node.nodeType === 'IF' || (node.nodeType === 'PATH' && parentType === 'IF')) {
       if (isFirstNode) {
-        drawNode(node);
+        const ifWidth = drawNode(node);
         lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
         loopTopCount = 0;
         lastPathBottomCount = loopLastPathCount;
         loopLastPathCount = deepRankSep;
         isFirstNode = false;
+        return ifWidth;
       } else if (parentType === 'LOOP') {
-        drawNode(node);
+        const ifWidth = drawNode(node);
         lastNodeY += loopTopCount * 40 + loopLastPathCount * 25 + 30;
         loopTopCount = 0;
         lastPathBottomCount = loopLastPathCount;
         loopLastPathCount = deepRankSep;
+        return ifWidth;
       }
     }
 
@@ -244,9 +231,27 @@ export function transformData(rootNodes: GroupNode): {
     // 递归子节点
     if (node.children) {
       for (const child of node.children) {
-        traverse(child, node.nodeType === 'IF' ? parentId : id, parentType, deepRankSep);
+        const childWidth = traverse(child, node.nodeType === 'IF' ? parentId : id, parentType, deepRankSep);
+        comboWidth = Math.max(comboWidth, childWidth + 60);//padding 30，左右两侧60
       }
     }
+    if (parentType === 'LOOP' && node.nodeType === 'LOOP') {
+      // 生成combs父子节点记录
+      const combosRecord: CombsType = {
+        id,
+        ...(parentId ? { combo: parentId } : {}),
+        data: {
+          nodeType: node.nodeType,
+          magic: node.magic,
+          magicName: node.magicName,
+          hash: node.hash,
+          sourceCode: node.sourceCode,
+        },
+        comboWidth,
+      };
+      combos.push(combosRecord);
+    }
+    return comboWidth + 30;
   }
 
   // 遍历所有根节点

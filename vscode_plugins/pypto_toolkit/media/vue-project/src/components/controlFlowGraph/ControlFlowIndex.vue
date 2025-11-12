@@ -70,6 +70,8 @@ import { useIfCardNodes } from '@/components/controlFlowGraph/hooks/useIfCardNod
 import { useComboCardNodes } from '@/components/controlFlowGraph/hooks/useComboNode';
 import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
 import { useMinimap } from './hooks/use-minimap';
+import { useLevelOfDetail } from './hooks/useZoomLevel';
+import { CombsType, ControlFlowNodesType, EdgesType, SearchSelectItem } from './type/node-detail-types';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -88,22 +90,33 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
-const { PathCardNodes, LevelOfDetail } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
+const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
+const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme);
 const clearAllNodeState = {};
 
-// 工具栏缩放
-function onInput(e) {
+/**
+ * 工具栏输入缩放正则匹配
+ * @param e 工具栏输入框事件
+ */
+function onInput(e: InputEvent) {
   let val = e.target.value.replace(/[^0-9]/g, '');
   zoom.value = val;
 }
 
+/**
+ * 工具栏点击缩放
+ */
 async function inputZoomTo() {
   await graph.zoomTo(zoom.value / 100);
   isActive.value = false;
 }
 
+/**
+ * 工具栏输入缩放
+ * @param size 缩放大小
+ */
 async function graphZoomTo(size: number) {
   if (zoom.value + size > 0) {
     zoom.value += size;
@@ -112,7 +125,9 @@ async function graphZoomTo(size: number) {
   isActive.value = false;
 }
 
-//工具栏恢复初始位置
+/**
+ * 工具栏恢复初始位置
+ */
 async function graphFitView() {
   await graph.fitCenter(true, {
     duration: 100,
@@ -126,9 +141,11 @@ async function graphFitView() {
 const matchedResults = ref([]); // 匹配结果
 const selectedValue = ref(null); // 选中项
 
-// 处理子组件事件
-// 过滤类型高亮
-const handleMatchedResults = async (results) => {
+/**
+ * 将搜索模糊匹配到的数据进行高亮
+ * @param results 模糊匹配列表
+ */
+const handleMatchedResults = (results: SearchSelectItem[]) => {
   matchedResults.value = results;
   if (matchedResults.value.length > 0) {
     graph.setElementState(clearAllNodeState);
@@ -141,8 +158,11 @@ const handleMatchedResults = async (results) => {
   }
 };
 
-//鼠标选中以及enter按下类型高亮
-const handleSelectedValue = (value) => {
+/**
+ * 鼠标选中以及enter按下类型高亮
+ * @param value 搜索下拉面版选中的数据
+ */
+const handleSelectedValue = (value: SearchSelectItem) => {
   selectedValue.value = value;
   graph.setElementState(clearAllNodeState);
 
@@ -153,13 +173,22 @@ const handleSelectedValue = (value) => {
   }
 };
 
-// 鼠标hover以及键盘上下高亮
-const handHoverEvent = (value) => {
+/**
+ * 鼠标hover以及键盘上下高亮
+ * @param id hover节点的id值
+ */
+const handHoverEvent = (id: string) => {
   handleMatchedResults(matchedResults.value);
-  graph.setElementState(value, 'selected');
+  graph.setElementState(id, 'selected');
+  if (zoom.value < 50) {
+    graph.setElementZIndex(zIndex.value);
+    graph.setElementZIndex(id, Infinity);
+  }
 };
 
-// 更新画布大小
+/**
+ * 更新画布大小
+ */
 async function updateGraphSize() {
   await graph.layout();
   await graph.resize();
@@ -167,10 +196,16 @@ async function updateGraphSize() {
   await graph.draw();
 }
 
-//  初始化 G6 图表（
 const graphRef = ref<Graph>();
 const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef);
-const initG6Graph = async (nodes, edges, combos) => {
+
+/**
+ * 初始化 G6 图表
+ * @param nodes 传入node节点数据
+ * @param edges 传入边导向数据
+ * @param combos 传入组合数据
+ */
+const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], combos: CombsType[]) => {
   register(ExtensionCategory.NODE, 'path-card-node', PathCardNodes);
   register(ExtensionCategory.NODE, 'if-card-node', IfCardNode);
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
@@ -183,9 +218,19 @@ const initG6Graph = async (nodes, edges, combos) => {
   await graph.render();
   // 更新小地图缩放值
   graph.on(GraphEvent.AFTER_TRANSFORM, async () => {
-    zoom.value = Math.round((await graph.getZoom()) * 100);
+    const zoomNow = await graph?.getZoom();
+    zoom.value = Math.round(zoomNow * 100);
+    if (zoomNow < 0.5) {
+      // 保持缩放过程中，已选中的层级处于最高层级
+      graph.setElementZIndex(zIndex.value);
+      const nodes = await graph.getElementDataByState('combo', 'selected');
+      if (nodes.length > 0) await graph.setElementZIndex(nodes[0].id, Infinity);
+    }
   });
 
+  /**
+   * 当画布缩放或发生平移时，自适应图标置灰
+   */
   function fitActive() {
     isActive.value = false;
   }
@@ -194,12 +239,49 @@ const initG6Graph = async (nodes, edges, combos) => {
   graph.on(CommonEvent.WHEEL, fitActive);
   graph.on(CommonEvent.DRAG, fitActive);
 
-  function clickFun(event) {
+  /**
+   * 点击子combo时，最外层父combo隐藏
+   * @param id 初始传入当前点击的节点id
+   */
+  async function setCombParentHidden(id: string) {
+    const elementData = await graph.getElementData(id);
+    // 仅当节点类型为 LOOP 时才执行后续逻辑
+    if (elementData.data.nodeType === 'LOOP') {
+      // 有组合父级：递归处理
+      if (elementData.combo) {
+        await setCombParentHidden(elementData.combo);
+      }
+      // 无组合父级：设置隐藏状态
+      else {
+        await graph.setElementState(id, 'comboHidden');
+      }
+    }
+  }
+
+  /**
+   * 监听画布点击事件，
+   * 点击任意时，清空所有元素附加状态，
+   * 点击画布时，重置搜索框初始状态，
+   * 点击节点时，节点附加选中状态，
+   * 点击combo时，给当前combo层级置顶，恢复其他节点初始层级
+   * @param event 点击事件CommonEvent.CLICK默认事件参数由graph.on自动传入。
+   */
+  async function clickFun(event: PointerEvent) {
+    await graph.setElementZIndex(zIndex.value);
+    graph.setElementState(clearAllNodeState);
+
     if (matchedResults.value.length > 0) {
       searchSelectRef.value.clear();
     }
     if (event.target.id) {
-      graph.setElementState(event.target.id, 'selected');
+      await graph.setElementState(event.target.id, 'selected');
+      const targetData = await graph.getElementData(event.target.id);
+      if (targetData.data.nodeType === 'LOOP' && targetData.combo) {
+        await setCombParentHidden(event.target.id);
+      }
+      await graph.setElementZIndex(zIndex.value);
+      // 已选中的层级处于最高层级
+      await graph.setElementZIndex(event.target.id, Infinity);
     }
   }
 
@@ -226,6 +308,7 @@ const initG6Graph = async (nodes, edges, combos) => {
 };
 
 const dataParseError = ref(false);
+const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
   const res = await getQuery();
   outPutPath.value = res.url;
@@ -248,14 +331,19 @@ onMounted(async () => {
   await initG6Graph(nodes, edges, combos);
   combosNode.value.forEach((item) => (clearAllNodeState[item.id] = []));
   // 初始化搜索组件数据源
-  combos.forEach((item) => {
+  combos.forEach((item, index) => {
     options.value.push({
       label: item.id,
       value: item.id,
       data: item,
     });
+    if (item.combo) {
+      zIndex.value[item.id] = index;
+    } else {
+      zIndex.value[item.id] = Number.MAX_VALUE; //最外层loop层级，仅次于选中层级Infinity的值
+    }
   });
-  nodes.forEach((item) => {
+  nodes.forEach(async (item) => {
     if (item.type !== 'if-card-node') {
       options.value.push({
         label: item.data.source.magicName,
@@ -263,9 +351,15 @@ onMounted(async () => {
         data: item,
       });
     }
+    zIndex.value[item.id] = -1; //path节点处于最低层级
   });
+  await graph.setElementZIndex(zIndex.value);
   updateGraphSize();
   window.addEventListener('resize', updateGraphSize);
+  // 禁用原生右键菜单
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // 阻止原生菜单弹出
+  });
 });
 
 onUnmounted(() => {
@@ -286,7 +380,7 @@ onUnmounted(() => {
   position: absolute !important;
   z-index: 10;
   width: 100%;
-  height: 150px;
+  height: 140px;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -351,7 +445,7 @@ onUnmounted(() => {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .tool-bar {
-  position: fixed;
+  position: absolute;
   right: 16px;
   bottom: 15px;
   display: flex;

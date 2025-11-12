@@ -95,11 +95,7 @@
             <div class="content-args">
               <div class="content-args-head">
                 <div class="main-text">
-                  <div class="buttonG">
-                    <d-button variant="text" @click="selectView('args')">{{$t('args')}}</d-button>
-                    <d-button variant="text" @click="selectView('pipeStat')">{{$t('pipeStat')}}</d-button>
-                  </div>
-                  <div class="underline" :class="{ 'left-active': selectedView === 'args', 'right-active': selectedView === 'pipeStat'}"></div>
+                  Args
                 </div>
                 <div class="bindbox">
                   <d-tooltip position="bottom" :content=bindToolTip>
