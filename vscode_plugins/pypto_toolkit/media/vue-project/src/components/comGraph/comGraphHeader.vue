@@ -108,7 +108,7 @@
                 </svg>
               </div>
             </d-tooltip>
-            <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom', 'top-end', 'bottom-end']">
+            <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom']">
               <div
                 class="rect-reg has-tooltip"
                 :class="{active: regActive}"
