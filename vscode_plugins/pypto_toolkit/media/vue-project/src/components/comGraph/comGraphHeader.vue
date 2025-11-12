@@ -96,7 +96,7 @@
           @selectedTagsChange="onSelectedChange"
         >
           <template #operation>
-            <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')" :position="['top', 'bottom']">
+            <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')" :position="['top', 'bottom', 'left', 'right']">
               <div
                 class="rect-upper-lower has-tooltip"
                 :class="{active: upperActive}"
@@ -108,7 +108,7 @@
                 </svg>
               </div>
             </d-tooltip>
-            <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom']">
+            <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom', 'left', 'right']">
               <div
                 class="rect-reg has-tooltip"
                 :class="{active: regActive}"
@@ -394,12 +394,6 @@ watch(currentSelect, (newVal) => {
     category.value = categoryCurrent;
   }
   onSelectedTagsChange({ selectedTags: [] });
-});
-
-watch(() => comGraphStore.data.comGraphConfig.isSimple, (val) => {
-  if (val) {
-    allOptions.value = [searchOptions[0]]
-  }
 });
 
 const onSelectedChange = (e) => {
@@ -780,11 +774,18 @@ window.addEventListener('message', (event) => {
 
 function jumpSearchSubgraph(calleehash, funcMagicName) {
   //let shortestPath = generateShortestPath(calleehash, funcTree);
-  let newPath = JSON.stringify([calleehash]);
-  (window as any).vscode.postMessage({
-    command: 'getSubgraph',
-    paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}
+  if (comGraphStore.data.comGraphConfig.isSimple) {
+    (window as any).vscode.postMessage({
+      command: 'innerGetSubgraph',
+      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName },
     });
+  } else {
+    let newPath = JSON.stringify([calleehash]);
+    (window as any).vscode.postMessage({
+      command: 'getSubgraph',
+      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}
+      });
+  }
 }
 
 function generateShortestPath(funchash, funcTree) {
