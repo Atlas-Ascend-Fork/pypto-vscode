@@ -16,6 +16,7 @@ export function initView(
 }
 
 export function useView(): { editorView: EditorView } {
+  if (!editorView) throw new Error('EditorView 还未初始化，请先调用 initView()');
   return { editorView };
 }
 

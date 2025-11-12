@@ -21,36 +21,35 @@ export interface AbstractGraphData {
   outputDirPath?: string;
   pathName?: string;
   calleeOpAttrMap: Record<string, string>;
+  curPath?: string;
+  magicName?: string;
   readFileAndSetCache(fsPath: string, panel: any): Promise<readFileResult>;
   getCompleteData(fsPath: string): Promise<any>;
 }
 
 export abstract class GraphData {
-  fsPath: string;
-  funcHash?: string;
   funcHashMap: Record<string, any> = {};
   dataMap: Record<string, string> = {};
   callHashArrMap: Record<string, string> = {};
   calleeOpAttrMap: Record<string, string> = {};
   isUsedDB = false;
-  calleeOpMagic?: string;
-  calleeOpSubgraphId?: string;
-  outputDirPath?: string;
-  pathName?: string;
+
   /** 外部可 await 的“写入+提交”完成信号 */
   public writeDone!: Promise<void>;
 
-  constructor(fsPath: string, funcHash: string | undefined, calleeOpMagic?: string, calleeOpSubgraphId?: string, outputDirPath?: string, pathName?: string) {
-    this.fsPath = fsPath;
-    this.funcHash = funcHash;
-    this.calleeOpMagic = calleeOpMagic;
-    this.calleeOpSubgraphId = calleeOpSubgraphId;
-    this.outputDirPath = outputDirPath;
-    this.pathName = pathName;
-  }
+  constructor(
+    public fsPath: string,
+    public funcHash: string | undefined,
+    public calleeOpMagic?: string,
+    public calleeOpSubgraphId?: string,
+    public outputDirPath?: string,
+    public pathName?: string,
+    public curPath?: string,
+    public magicName?: string,
+  ) {}
 
   // 读取json文件并存入缓存 并返回大小文件判断
-  async readFileAndSetCache(fsPath: string, panel: any): Promise<readFileResult> {
+  async readFileAndSetCache(fsPath: string, server: any): Promise<readFileResult> {
     const fileStream = createReadStream(fsPath);
     const pipeline = fileStream.pipe(parser()).pipe(streamValues());
     const result: readFileResult = { isBigFile: false };
@@ -61,7 +60,7 @@ export abstract class GraphData {
           // 处理数据
           const value = ele.value;
           if (!value.functions) return;
-          await this.processFunctions(fsPath, value, result, panel);
+          await this.processFunctions(fsPath, value, result, server);
         })
         .on('end', () => {
           resolve(result);
@@ -96,7 +95,7 @@ export abstract class GraphData {
     });
   }
 
-  private async processFunctions(fsPath: string, value: any, result: readFileResult, panel: any): Promise<void> {
+  private async processFunctions(fsPath: string, value: any, result: readFileResult, server: any): Promise<void> {
     try {
       const sqlJobs: (() => Promise<void>)[] = [];
       /* 1. 汇总 funcHashMap */
@@ -153,14 +152,14 @@ export abstract class GraphData {
         }
         if (data.length >= DATA_LENGTH_LIMIT) {
           result.isBigFile = true;
-          const bigPath = await SQLiteCache.getInstance().createBigDataFile(funcItem.hash, data);
+          const bigFilePath = await SQLiteCache.getInstance().createBigDataFile(funcItem.hash, data);
           sqlJobs.push(() =>
             SQLiteCache.getInstance().comGraphFuncDataSet(
               fsPath,
               String(funcItem.hash),
               callHashArr.toString(),
               '',
-              bigPath,
+              bigFilePath,
               lastChangeTime,
             ),
           );
@@ -180,12 +179,9 @@ export abstract class GraphData {
       if (this.isUsedDB) {
         this.isUsedDB = false;
         // 立即重新走内存分支
-        return await this.processFunctions(fsPath, value, result, panel);
+        return await this.processFunctions(fsPath, value, result, server);
       } else {
-        panel.webview.postMessage({
-          command: 'returnError',
-          data: t('pypto.readFileDataErrorOnOpenComGraph'),
-        });
+        server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') });
       }
     }
   }

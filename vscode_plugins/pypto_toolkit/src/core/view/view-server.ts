@@ -13,8 +13,8 @@ export class ViewServer<Apis extends string, Refs extends string> implements Dis
   static _refs: string[] = [];
 
   // static属性无法使用泛型，此处用于解析Apis和Refs，运行代码无作用
-  public _allowedApi: Apis;
-  public _allowedRef: Refs;
+  public _allowedApi: () => Apis;
+  public _allowedRef: () => Refs;
 
   private _refMap = new Map<string, unknown>();
 

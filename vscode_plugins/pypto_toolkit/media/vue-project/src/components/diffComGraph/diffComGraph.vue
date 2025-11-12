@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, inject, ref, onBeforeMount, onMounted } from 'vue';
+import { watch, computed, inject, ref, onBeforeMount, onMounted, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSprottyLoad } from '../../sprotty-graph/main';
 import DiffHeader from './diffHeader.vue';
@@ -50,7 +50,10 @@ import DiffList from './diffList.vue';
 import type { DiffListItem } from './type';
 import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 
+const { server } = useViewServer<IComViewServer>();
 const props = defineProps({
   afterJson: Object,
   afterFileName: String,
@@ -58,7 +61,7 @@ const props = defineProps({
   beforeFileName: String,
   loadingStep: { type: String, default: '' },
 });
-const { isDarkTheme } = inject('root');
+const { isDarkTheme } = inject('root')  as {isDarkTheme:Ref<boolean>};
 const { t } = useI18n();
 const svgPath = computed(() => `"${(window as any).staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const syncOperate = ref(true);
@@ -76,7 +79,7 @@ let expandTimer: ReturnType<typeof setTimeout>;
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
   const { diffList: list, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
-  diffList.value = list;
+  diffList.value = list as any;
   showDiffList.value = showDiff;
   const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
   beforeIns = useSprottyLoad(`sprotty-before`, 'before');
@@ -121,7 +124,7 @@ watch(
 watch([() => props.afterJson, () => props.beforeJson], () => {
   if (props.beforeJson && props.afterJson) {
     const { diffList: list, showDiffList: showDiff } = compareJsonData(props.beforeJson, props.afterJson);
-    diffList.value = list;
+    diffList.value = list as any;
     showDiffList.value = showDiff;
   }
   if (props.beforeJson) {
@@ -137,7 +140,7 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
   }
 });
 
-let isDragging = false;
+let isDragging: boolean = false;
 function onSyncOperateChange(e) {
   if (e) {
     afterIns?.fitToScreenAction();
@@ -233,12 +236,11 @@ onBeforeMount(() => {
   (window as any).ascEventBus.on(`after_view_zoom`, onAfterMinimapZoomChange);
   (window as any).ascEventBus.on(`before_view_zoom`, onBeforeMinimapZoomChange);
   (window as any).ascEventBus.on('selected_node_change', onSelectedNodeChange);
-  window.addEventListener('message', (event) => {
-    if (event.data.type === 'postLayoutResult') {
-      isLoading.value = false;
-      loadingText.value = '';
-    }
+  watch(server.LayoutResult, (newValue) => {
+    isLoading.value = false;
+    loadingText.value = '';
   });
+
   (window as any).ascEventBus.on('message_notice', (tips) => {
     if (tips === 'compareLargerTips') {
       syncOperate.value = false;

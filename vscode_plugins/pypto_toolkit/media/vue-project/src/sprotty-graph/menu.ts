@@ -15,7 +15,10 @@ import {
 import { Action, Point, SetPopupModelAction } from 'sprotty-protocol';
 import { setFixedComGraphFlow } from '../utils/operation';
 import { comGraphStore } from '../service/com-graph-store';
+import { useViewServer } from '../core/use-view-server';
+import type { IComViewServer } from '../../../../src/core/view/view-server-interface';
 
+const { server } = useViewServer<IComViewServer>();
 @injectable()
 export class AstgrContextMenuService implements IContextMenuService {
   @inject(TYPES.IActionDispatcher) readonly actionDispatcher: IActionDispatcher;
@@ -80,10 +83,7 @@ export class AstgrContextMenuService implements IContextMenuService {
           if (cb) {
             // ← 命中就走捷径
             if (cb.goToCodeLine) {
-              vscode.postMessage({
-                command:'jumpToCodeLine',
-                paramObj: {file: cb.codePath, line: cb.codeLine},
-              });
+              server.jumpToCodeLine({paramObj: {file: cb.codePath, line: cb.codeLine}});
               return;
             }
             setFixedComGraphFlow(cb.fixedFlag, cb.visibleFlag, cb?.selectedNodeId);

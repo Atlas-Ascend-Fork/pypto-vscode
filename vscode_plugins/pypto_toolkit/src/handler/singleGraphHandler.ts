@@ -1,31 +1,39 @@
 import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { SingleGraphData, AbstractGraphData } from '../core/graphData';
-import { getIDETheme } from '../theme';
-import { getIDELang } from '../lang';
-import { SQLiteCache, getMTime } from '../core/sqliteCache';
+import { SQLiteCache } from '../core/sqliteCache';
 
 export class SingleGraphHandler extends BaseGraphMsgHandler {
-  protected static override async loadMainData(panel: any): Promise<void> {
-    if (!panel.comGraphData) {
-      panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId, panel.outputDirPath, panel.pathName);
+  protected static override async loadMainData(server: any): Promise<void> {
+    if (!server.comGraphData) {
+      server.comGraphData = new SingleGraphData(
+        server.query._path,
+        server.query.funcHash,
+        server.query.calleeOpMagic,
+        server.query.calleeOpSubgraphId,
+        server.query.outputDirPath,
+        server.query.pathName,
+        server.query.curPath,
+        server.query.magicName
+      );
     }
 
-    const gd = panel.comGraphData as SingleGraphData;
+    const gd = server.comGraphData as SingleGraphData;
+    if (!server.entryHash) {
+      server.entryHash = await SingleGraphData.getEntryHash(gd.fsPath);
+    }
     if (!gd.funcHash) {
-      gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+      gd.funcHash = server.entryHash;
     }
   }
 
-  protected static override getGraphData(panel: any): AbstractGraphData {
-    return panel.comGraphData as SingleGraphData;
+  protected static override getGraphData(server: any): AbstractGraphData {
+    return server.comGraphData as SingleGraphData;
   }
   /** 重写 基类方法 */
-  protected static override async postInitMessages(panel: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
+  protected static override async postInitMessages(server: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
-    panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
-    panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
-    /* 设置state 让 VS Code 下次能反序列化 */
-    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname, outputDirPath: gd.outputDirPath, pathName: panel.pathName });
+    this.initTheme(server);
+    
 
     if (!isDiff && gd.calleeOpMagic && gd.calleeOpSubgraphId) {
       let opAttrData;
@@ -41,43 +49,14 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         ioperands = JSON.parse(opAttrData.ioperands);
       }
       if (calleeOpAttr) {
-        panel.webview.postMessage({
-          command: 'returnCalleeOpAttrMap',
-          data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] },
-        });
+        server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
       }
     }
-
+    await SingleGraphHandler.returnFuncTree(server, gd);
+  }
+  private static async returnFuncTree(server: any, gd: AbstractGraphData) {
     const funcTree: any = {};
     funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
-    panel.webview.postMessage({
-      command: 'returnFuncTree',
-      entry: gd.funcHash,
-      fsPath: gd.fsPath,
-      curPath: (panel as any).curPath ?? [gd.funcHash],
-      data: funcTree,
-    });
-  }
-  protected static override onDidReceiveMessage(panel: any) {
-    panel.webview.onDidReceiveMessage(
-      async (message) => {
-        console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type}`);
-        this.CommonMessageActions(message, panel);
-        const gd = panel.comGraphData;
-        const funcTree: any = {};
-        funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
-        if (message.type === 'getFuncTree') {
-          panel.webview.postMessage({
-            command: 'returnFuncTree',
-            entry: gd.funcHash,
-            fsPath: gd.fsPath,
-            curPath: (panel as any).curPath ?? [gd.funcHash],
-            data: funcTree,
-          });
-        }
-      },
-      undefined,
-      panel._disposables ?? [],
-    );
+    server.setRef('FuncTree', { entry: gd.funcHash, fsPath: gd.fsPath, curPath: gd.curPath ?? [gd.funcHash], data: funcTree });
   }
 }

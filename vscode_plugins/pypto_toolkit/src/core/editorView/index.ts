@@ -22,7 +22,7 @@ export interface EditorViewRaw {
   title: string | ((uri: vscode.Uri) => string);
 
   /** 页面服务端，每个webview使用独立的实例 */
-  viewServer?: typeof ViewServer;
+  viewServer?: typeof ViewServer<string, string>;
 }
 
 interface EditorViewOptions {
@@ -137,13 +137,12 @@ export class EditorView {
     viewPanel.webview.html = htmlTemplateText;
 
     // 视图服务
-    let server: ViewServer<'', ''>;
+    let server: ViewServer<string, string>;
     if (viewServer) {
-      const ctx = makeViewServerContext(viewPanel, uriQuery._viewType, vscode.Uri.file(uriQuery._path));
+      const ctx = makeViewServerContext(viewPanel, uriQuery._viewType, uri);
       server = new viewServer(ctx);
       server.created(ctx);
     }
-
     // hook
     this.onViewActivated?.(viewPanel);
 
@@ -186,3 +185,17 @@ function getWebviewEntryCode(viewPanel: vscode.WebviewPanel): string {
     .replace(/{{ascLang}}/g, getIDELang());
   return htmlCode;
 }
+
+export interface GraphViewOptions {
+  /** 面板类型标识，对应 package.json contributes.views */
+  viewType: string;
+  /** 显示标题 */
+  title: string;
+  /** 列区域 */
+  column?: vscode.ViewColumn;
+  /** 额外图标（可选） */
+  iconPath?: vscode.Uri;
+  calleeOpMagic?: string;
+  calleeOpSubgraphId?: string;
+}
+
