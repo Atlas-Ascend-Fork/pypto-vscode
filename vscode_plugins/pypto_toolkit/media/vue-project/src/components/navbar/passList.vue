@@ -45,7 +45,7 @@
           >
             <span>{{ pass.passIndex }}</span>
             <span :title="pass.passName">{{ parsePassName(pass.passName) }}</span>
-            <d-icon v-if="pass.hasHealthReport" name="icon-line-chart" color="var(--devui-status-success-text)" size="14px"></d-icon>
+            <HealthReportIcon v-if="pass.hasHealthReport" />
           </div>
         </div>
         <div v-if="!Object.keys(renderPassList).length" class="search-no-res">{{ t('noDataMatched') }}</div>
@@ -58,6 +58,7 @@
 import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ThreeDot from './threeDot.vue';
+import HealthReportIcon from './icons/health-report-icon.vue';
 import { transformPassList, UpperFirstStr, parsePassName } from './util';
 import { NavbarContext, NavbarProvideKey } from './navbar-types';
 import { PassStage } from '../../../../../src/types/workspace/pass';
