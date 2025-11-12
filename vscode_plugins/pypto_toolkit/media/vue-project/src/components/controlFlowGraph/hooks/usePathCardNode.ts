@@ -1,4 +1,4 @@
-import { BaseBehavior, CanvasEvent, GraphEvent, Rect, type RectStyleProps } from '@antv/g6';
+import { Rect, type RectStyleProps } from '@antv/g6';
 import type { BaseCustomElementStyleProps, Group } from '@antv/g-lite';
 import { PathCardData } from '@/components/controlFlowGraph/type/node-detail-types';
 import { inject, ref } from 'vue';
@@ -29,14 +29,14 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
     }
 
     get level() {
-      return this.data.level || DEFAULT_LEVEL;
+      return this.data?.level || DEFAULT_LEVEL;
     }
 
     /**
      * 2. 处理数据默认值
      */
     get cardData(): Required<PathCardData> {
-      const rawData = this.nodeData.data || {};
+      const rawData = this.nodeData.data;
       return {
         name: rawData.name || 'PATH', // 默认名
         functionStats: {
@@ -91,8 +91,8 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
       if (this.level === 'overview') return false;
       if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const [width] = this.getSize(attributes);
-      const fillColor = getThemeColorTool('devui-category-search-dropdown-item-bg', isDarkTheme.value);
-      const topY = -this.getSize(attributes)[1] / 2 + 25; // 顶部 Y 坐标（基于节点中心）
+      const fillColor = getThemeColorTool('control-flow-sidebar-tree-main-label', isDarkTheme.value);
+      const topY = -this.getSize(attributes)[1] / 2 + 21; // 顶部 Y 坐标（基于节点中心）
       const states = this.nodeData.states;
       let opacity = 0;
       if (states && (states.includes('path-label') || states.includes('path-icon-left'))) {
@@ -418,57 +418,7 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
       this.drawErrorStats(mergedAttrs, container); // 错误统计项
     }
   }
-
-  // 计算缩放等级用于隐藏细节
-  class LevelOfDetail extends BaseBehavior {
-    prevLevel = DEFAULT_LEVEL;
-    levels = {
-      ['overview']: [0, 0.3],
-      ['detailed']: [0.3, Infinity],
-    };
-
-    constructor(context, options) {
-      super(context, options);
-      this.bindEvents();
-    }
-
-    update(options) {
-      this.unbindEvents();
-      super.update(options);
-      this.bindEvents();
-    }
-
-    updateZoomLevel = async (e) => {
-      const { graph } = this.context;
-      if (e.data && 'scale' in e.data) {
-        const scale = e.data.scale;
-        const level = Object.entries(this.levels).find(([key, [min, max]]) => scale > min && scale <= max)?.[0];
-        if (level && this.prevLevel !== level) {
-          graph.updateNodeData((prev) => prev.map((node) => ({ ...node, data: { ...node.data, level } })));
-          this.prevLevel = level;
-        }
-        await graph.draw();
-      }
-    };
-
-    bindEvents() {
-      const { graph } = this.context;
-      graph.on(GraphEvent.AFTER_TRANSFORM, this.updateZoomLevel);
-    }
-
-    unbindEvents() {
-      const { graph } = this.context;
-      graph.off(CanvasEvent.WHEEL, this.updateZoomLevel);
-    }
-
-    destroy() {
-      this.unbindEvents();
-      super.destroy();
-    }
-  }
-
   return {
     PathCardNodes,
-    LevelOfDetail,
   };
 }

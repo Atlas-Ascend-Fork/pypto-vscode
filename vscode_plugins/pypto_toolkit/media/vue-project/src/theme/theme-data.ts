@@ -107,7 +107,7 @@ export const ideLightTheme = new Theme({
     'devui-in-wave-fill2': 'rgba(200, 221, 189, 1)',
     'devui-out-wave-fill1': '#d2333c',
     'devui-out-wave-fill2': '#e6c6c7',
-    'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(250, 250, 250, 1), rgba(250, 250, 250, 0) 100%)',
+    'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(243, 243, 243, 1), rgba(243, 243, 243, 0) 100%)',
     'devui-header-label': 'rgba(242,242,242,1)',
     'devui-swim-global-bg': '#ffffff',
     'devui-swim-detail-bg': '#ffffff',
