@@ -12,7 +12,7 @@
       <div :class="['pass-type', currentData?.passStage]">{{ currentData?.passStage ? UpperFirstStr(currentData?.passStage) : '' }}</div>
       <div>
         <div class="pass-content" :title="`${currentData?.passIndex} ${currentData?.passName}`">
-          {{ currentData?.passIndex }} {{ currentData?.passName }}
+          {{ currentData?.passIndex }} {{ currentData ? parsePassName(currentData.passName) : '' }}
         </div>
         <div class="dot-step">
           <ThreeDot :dot-color="isMiddleGraph(PassStage.TENSOR_GRAPH) ? '#fde55c' : 'var(--devui-split-line)'" />
@@ -44,7 +44,7 @@
             @click="() => selectPass(pass)"
           >
             <span>{{ pass.passIndex }}</span>
-            <span :title="pass.passName">{{ pass.passName }}</span>
+            <span :title="pass.passName">{{ parsePassName(pass.passName) }}</span>
             <d-icon v-if="pass.hasHealthReport" name="icon-line-chart" color="var(--devui-status-success-text)" size="14px"></d-icon>
           </div>
         </div>
@@ -58,7 +58,7 @@
 import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ThreeDot from './threeDot.vue';
-import { transformPassList, UpperFirstStr } from './util';
+import { transformPassList, UpperFirstStr, parsePassName } from './util';
 import { NavbarContext, NavbarProvideKey } from './navbar-types';
 import { PassStage } from '../../../../../src/types/workspace/pass';
 import type { PathInPass } from '../../../../../src/types/control-flow';
@@ -191,7 +191,6 @@ defineExpose({ getCurrentPass: () => currentData.value });
     font-size: 10px;
     color: var(--devui-title-text);
     margin-bottom: 2px;
-    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -73,3 +73,10 @@ export function findFirstPath(controlFlowList: ControlFlowData[]) {
     }
   }
 }
+
+const passDirectoryRegExp = /^Pass_(\d+)_(\w+)/;
+export function parsePassName(passName: string) {
+  const [_, __, newPassName] = passName.match(passDirectoryRegExp) ?? [];
+
+  return newPassName;
+}
