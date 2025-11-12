@@ -16,11 +16,13 @@
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
+      
+      <!-- 入口暂时关闭，非废弃代码， 请勿删除
       <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]" @click="debounceSvgOutput">
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
-      </d-tooltip>
+      </d-tooltip> -->
     </div>
 
     <div v-if="!inNavbar" class="module-row" ref="module_row">
