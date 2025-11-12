@@ -183,19 +183,18 @@ function onNodeClick(node: PathTreeData) {
 
 <style lang="scss">
 .devui-flexible-overlay:has(.path-list-menu-wrap) {
+  border-radius: 8px;
   box-shadow: var(--devui-select-shadow);
 }
 
 .path-list-menu-wrap {
   width: 400px;
-  padding: 12px 4px;
+  padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
 
   .path-list-search {
-    margin-left: 8px;
-    margin-right: 8px;
     margin-bottom: 16px;
 
     &:not(.devui-search--focus):hover {
@@ -233,7 +232,6 @@ function onNodeClick(node: PathTreeData) {
   }
 
   .path-list-tree {
-    padding: 0 8px;
     max-height: 400px;
     overflow: auto;
   }

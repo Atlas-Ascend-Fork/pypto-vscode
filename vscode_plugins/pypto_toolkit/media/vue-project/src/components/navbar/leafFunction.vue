@@ -1,7 +1,7 @@
 <template>
   <d-dropdown :position="['bottom-start']" :offset="18" class="leaf-function-menu-wrap" @toggle="onToggle">
     <div :class="['leaf-function-container', isOpen && 'is-open']">
-      <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ currentLeaf.leafName }}</div>
+      <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ `leaf_${currentLeaf.programId}` }}</div>
       <div v-else class="please-select-placeholder">{{ t('pleaseSelect') }}</div>
       <i class="icon-chevron-down-2"></i>
     </div>
@@ -26,7 +26,7 @@
           :class="['not-owned-list-item', item.leafName === currentLeaf.leafName && 'active']"
         >
           <div>
-            <div :title="item.leafName" @click="() => jumpOwn(item)">{{ item.leafName }}</div>
+            <div :title="item.leafName" @click="() => jumpOwn(item)">{{ `leaf_${item.programId}` }}</div>
             <div :title="item.rootPathName">{{ item.rootPathName }}</div>
           </div>
           <i class="icon-share-one" @click="() => jumpNotOwn(item)"></i>
@@ -149,9 +149,9 @@ function jumpNotOwn(item: LeafInPass) {
 }
 
 .leaf-function-list {
+  min-width: 84px;
   max-width: 300px;
   max-height: 400px;
-  padding: 0 8px;
   overflow: auto;
 
   .owned-title,
@@ -171,10 +171,10 @@ function jumpNotOwn(item: LeafInPass) {
 
   .list-item {
     max-width: 100%;
-    height: 28px;
+    height: 36px;
     line-height: 20px;
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 8px;
     color: var(--devui-primary-text);
     border-radius: 4px;
     box-sizing: border-box;
@@ -202,7 +202,8 @@ function jumpNotOwn(item: LeafInPass) {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding: 5px 8px;
+    padding: 8px;
+    border-radius: 4px;
     transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
 
     &:not(:last-of-type) {
@@ -210,13 +211,11 @@ function jumpNotOwn(item: LeafInPass) {
     }
 
     &:not(.active):hover {
-      border-radius: 4px;
       background-color: var(--devui-input-hover-bg);
       cursor: pointer;
     }
 
     &.active {
-      border-radius: 4px;
       background-color: var(--devui-input-active-bg);
       cursor: pointer;
 
@@ -258,10 +257,11 @@ function jumpNotOwn(item: LeafInPass) {
 
 <style lang="scss">
 .devui-flexible-overlay:has(.leaf-function-menu-wrap) {
+  border-radius: 8px;
   box-shadow: var(--devui-select-shadow);
 }
 .leaf-function-menu-wrap {
-  padding: 12px 4px;
+  padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;

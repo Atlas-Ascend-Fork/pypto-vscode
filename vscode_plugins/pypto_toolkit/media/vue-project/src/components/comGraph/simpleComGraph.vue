@@ -162,6 +162,7 @@ function onMessageFromSwim(args) {
   }
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
+  prevent = false;
   comGraphStore.data.isNodeRectLock = false;
   hoverFeedbackAction();
   generateHashList();
