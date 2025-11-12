@@ -29,7 +29,9 @@
         :disabled="currentStep === 'comGraph'"
       >
         <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
-          <ComGraphIcon />
+          <div class="com-graph-icon-wrap">
+            <ComGraphIcon />
+          </div>
           <div v-if="getControlFlowError" class="com-graph-error" :title="comGraphName">{{ comGraphName }}</div>
           <template v-else>
             <PathList v-if="currentStep === 'comGraph'" />
@@ -243,6 +245,11 @@ function jumpComGraph(filePath: string, pathName?: string) {
       pointer-events: all;
     }
 
+    .com-graph-icon-wrap {
+      width: 24px;
+      height: 24px;
+    }
+
     .swim-graph {
       cursor: pointer;
     }
@@ -256,8 +263,7 @@ function jumpComGraph(filePath: string, pathName?: string) {
 
     .navbar-control-flow,
     .com-graph {
-      &:hover,
-      &.active {
+      &:hover {
         border-color: var(--devui-primary-text);
 
         svg {
@@ -287,12 +293,20 @@ function jumpComGraph(filePath: string, pathName?: string) {
       width: auto;
       padding: 0 8px;
       gap: 4px;
-      border-color: 1px solid var(--devui-primary-text);
+      border-color: var(--devui-primary-text);
 
       span {
         font-size: 12px;
         color: var(--devui-primary-text);
         line-height: 18px;
+      }
+
+      svg {
+        :deep() {
+          path {
+            fill: var(--devui-primary-text);
+          }
+        }
       }
     }
 
@@ -314,6 +328,23 @@ function jumpComGraph(filePath: string, pathName?: string) {
         box-sizing: border-box;
         padding: 8px;
         border-radius: 40px;
+      }
+
+      .com-graph-icon-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid var(--devui-primary-text);
+        border-radius: 24px;
+        box-sizing: border-box;
+      }
+
+      svg {
+        :deep() {
+          path {
+            fill: var(--devui-primary-text);
+          }
+        }
       }
     }
 
