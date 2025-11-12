@@ -198,6 +198,7 @@ const handleCanvasClick = (e) => {
     } else {
       isHoverLockStatus = false;
       clearSelectionCanvas('data-three-column-process-key');
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
       toggleLock();
     }
   }
