@@ -14,6 +14,7 @@ export function transformAndFlatTreeData(
       id: item.magic,
       label: item.magicName,
       parentNode: parent,
+      magicName: item.nodeType === 'IF' ? parseIfMagicName(item.magicName) : item.magicName,
     };
     TreeDataMap[item.magicName] = itemData;
     res.push(itemData);
@@ -26,6 +27,14 @@ export function transformAndFlatTreeData(
   }
 
   return res;
+}
+
+function parseIfMagicName(magicName: string) {
+  const index = magicName.indexOf('(');
+  if (index !== -1) {
+    return magicName.substring(0, index);
+  }
+  return magicName;
 }
 
 export function transformPassList(list: PathInPass[]) {
@@ -79,4 +88,8 @@ export function parsePassName(passName: string) {
   const [_, __, newPassName] = passName.match(passDirectoryRegExp) ?? [];
 
   return newPassName;
+}
+
+export function parsePathMagicName(magicName: string) {
+  return magicName.substring(magicName.indexOf('PATH'));
 }
