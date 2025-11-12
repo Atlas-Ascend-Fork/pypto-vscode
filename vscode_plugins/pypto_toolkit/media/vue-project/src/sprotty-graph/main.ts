@@ -284,6 +284,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const svgElement =  document.getElementById('sprotty').querySelector('svg');
 
     createSvg(svgElement, copyStyles);
+
+    await modelSource.actionDispatcher.dispatch(SetViewportAction.create(modelSource.model.id, originViewInfo, viewOptions));
   }
 
   /* 手动触发原生update用于更新视图 */

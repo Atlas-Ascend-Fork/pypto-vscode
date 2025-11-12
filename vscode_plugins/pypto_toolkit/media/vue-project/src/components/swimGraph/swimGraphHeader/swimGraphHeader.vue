@@ -45,7 +45,10 @@
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
-      <d-drawer v-model="reportVisible" style="width: 500px">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
+        <div class="close-container">
+          <d-icon name="close" operable @click="closeDrawer"></d-icon>
+        </div>
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
           <div class="task-item-container">
@@ -78,7 +81,7 @@
               <div class="task-data">{{aicoreRate}}%</div>
             </div>
           </div>
-          <div class="aicore-container-column"> 
+          <div class="aicore-container-column" style="height: 46px; margin-top: 8px"> 
             <div class="task-item-container">
               <div class='task-title-container'>
                 <div class='task-title'>Cube Cycles</div>
@@ -187,6 +190,10 @@ const reportVisible = ref(false);
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
+};
+
+const closeDrawer = () => {
+  reportVisible.value = false;
 };
 
 const showDrawer = () => {
@@ -548,7 +555,7 @@ watch(isDarkTheme, () => {
   updateTheme();
 });
 watch(isLockStatus, () => {
-  if (!isLockStatus.value) {
+  if (!isLockStatus.value && !searchQuery.value) {
     return;
   }
   searchQuery.value = '';
@@ -556,14 +563,17 @@ watch(isLockStatus, () => {
   currentResultIndex.value = 0;
   isSearchActive.value = false;
   detailsPanelExpanded.value = false;
-  selectedEvent.value = null;
-  clearSearchData();
+  sendMsg('clearSearchEvent');
 });
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
 };
-
+const sendMsg = (command, param) => {
+  Promise.resolve().then(() => {
+    window.ascEventBus.emit(command, param);
+  });
+};
 onMounted(() => {
   updateTheme();
 });
