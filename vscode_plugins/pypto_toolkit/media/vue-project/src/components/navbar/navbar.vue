@@ -2,7 +2,8 @@
   <div class="navbar-container">
     <div class="history-wrap">
       <div class="history-icon">
-        <HistoryIcon />
+        <HistoryNpuIcon v-if="isNpu" />
+        <HistoryIcon v-else />
       </div>
       <HistoryList ref="historyListEl" @record-change="onRecordChange" />
     </div>
@@ -51,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { navbarProps } from './navbar-types';
 import PathList from './pathList.vue';
@@ -64,6 +65,7 @@ import CodeIcon from './icons/code-icon.vue';
 import ComGraphIcon from './icons/com-graph-icon.vue';
 import SwimIcon from './icons/swim-icon.vue';
 import ControlFlowIcon from './icons/control-flow-icon.vue';
+import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
@@ -86,6 +88,7 @@ const currentRecord = ref<HistoryData>();
 const showSwim = ref(true);
 const lastPass = ref<PathInPass>();
 const getControlFlowError = ref(false);
+const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
 
 provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
 
