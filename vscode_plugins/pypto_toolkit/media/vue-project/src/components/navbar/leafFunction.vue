@@ -1,7 +1,7 @@
 <template>
   <d-dropdown :position="['bottom-start']" :offset="18" class="leaf-function-menu-wrap" @toggle="onToggle">
     <div :class="['leaf-function-container', isOpen && 'is-open']">
-      <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ currentLeaf.leafName }}</div>
+      <div v-if="currentLeaf.leafName" class="select-val" :title="currentLeaf.leafName">{{ `leaf_${currentLeaf.programId}` }}</div>
       <div v-else class="please-select-placeholder">{{ t('pleaseSelect') }}</div>
       <i class="icon-chevron-down-2"></i>
     </div>
@@ -26,7 +26,7 @@
           :class="['not-owned-list-item', item.leafName === currentLeaf.leafName && 'active']"
         >
           <div>
-            <div :title="item.leafName" @click="() => jumpOwn(item)">{{ item.leafName }}</div>
+            <div :title="item.leafName" @click="() => jumpOwn(item)">{{ `leaf_${item.programId}` }}</div>
             <div :title="item.rootPathName">{{ item.rootPathName }}</div>
           </div>
           <i class="icon-share-one" @click="() => jumpNotOwn(item)"></i>
