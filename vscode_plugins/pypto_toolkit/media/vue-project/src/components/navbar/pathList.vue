@@ -139,6 +139,12 @@ function onNodeClick(node: PathTreeData) {
   margin-right: 8px;
   cursor: pointer;
 
+  &:hover {
+    .path-parent {
+      color: var(--devui-operation-text-hover);
+    }
+  }
+
   .path-parent {
     color: var(--devui-primary-text);
     font-size: 12px;
@@ -148,6 +154,7 @@ function onNodeClick(node: PathTreeData) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .path-current {
@@ -191,13 +198,27 @@ function onNodeClick(node: PathTreeData) {
     margin-right: 8px;
     margin-bottom: 16px;
 
+    &:not(.devui-search--focus):hover {
+      .devui-input {
+        border-color: var(--devui-primary-button-hover-bg) !important;
+      }
+    }
+
+    &.devui-search--focus {
+      .devui-input {
+        border-color: var(--devui-primary-button-active-bg);
+      }
+    }
+
     .devui-search__icon {
+      height: 28px;
       svg path {
         fill: var(--devui-placeholder-text);
       }
     }
     .devui-input {
-      border: none;
+      height: 28px;
+      border-color: transparent;
       background-color: var(--devui-input-bg);
 
       .devui-input__wrapper,

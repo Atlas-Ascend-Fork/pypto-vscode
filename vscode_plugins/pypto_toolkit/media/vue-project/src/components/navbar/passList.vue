@@ -150,10 +150,18 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </script>
 
 <style scoped lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+
 .pass-list-container {
   display: flex;
   gap: 4px;
   cursor: pointer;
+
+  &:hover {
+    .pass-content {
+      color: var(--devui-operation-text-hover);
+    }
+  }
 
   .pass-type {
     height: 16px;
@@ -187,6 +195,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .dot-step {
@@ -233,13 +242,27 @@ defineExpose({ getCurrentPass: () => currentData.value });
     margin-right: 8px;
     margin-bottom: 16px;
 
+    &:not(.devui-search--focus):hover {
+      .devui-input {
+        border-color: var(--devui-primary-button-hover-bg) !important;
+      }
+    }
+
+    &.devui-search--focus {
+      .devui-input {
+        border-color: var(--devui-primary-button-active-bg);
+      }
+    }
+
     .devui-search__icon {
+      height: 28px;
       svg path {
         fill: var(--devui-placeholder-text);
       }
     }
     .devui-input {
-      border: none;
+      height: 28px;
+      border-color: transparent;
       background-color: var(--devui-input-bg);
 
       .devui-input__wrapper,
