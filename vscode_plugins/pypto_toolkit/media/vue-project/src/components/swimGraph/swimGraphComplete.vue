@@ -309,9 +309,7 @@ let ERROR_MESSAGES = {
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
 
-window.ascEventBus.on('threeColumnSizeChange', () => {
-  console.log('size change');
-});
+window.ascEventBus.on('threeColumnSizeChange', () => {});
 
 const validData = (dataStr) => {
   let data = {};
