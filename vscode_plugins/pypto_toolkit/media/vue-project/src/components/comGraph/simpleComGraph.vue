@@ -1,5 +1,8 @@
 <template>
-  <div class="simple-com-graph-container" @mouseleave="() => (isExpandSearch = false)">
+  <div
+    :class="['simple-com-graph-container', currentActive === 'comGraph' && 'show-sticky-block']"
+    @mouseleave="() => (isExpandSearch = false)"
+  >
     <div class="sticky-block">
       <d-select
         v-model="rootHash"
@@ -17,9 +20,9 @@
       </d-select>
 
       <div class="sticky-block-right">
-        <i v-if="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
+        <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
         <ComGraphHeader
-          v-else
+          v-show="isExpandSearch"
           :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
           @onLocate="onLocate"
           :openMode="props.openMode"
@@ -76,7 +79,7 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
-const { isComGraphFullscreen, onToggleComGraphFullscreen } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
+const { isComGraphFullscreen, currentActive, onToggleComGraphFullscreen } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
@@ -177,6 +180,11 @@ function onMessageFromSwim(args) {
   comGraphStore.data.isNodeRectLock = false;
   hoverFeedbackAction();
   generateHashList();
+});
+(window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
+  if (comGraphVisible) {
+    window.dispatchEvent(new Event('resize'));
+  }
 });
 
 let timer: ReturnType<typeof setTimeout>;
@@ -355,7 +363,7 @@ onMounted(() => {
   position: relative;
   background-color: var(--devui-global-bg);
 
-  &:hover {
+  &.show-sticky-block {
     .sticky-block {
       display: flex;
     }
@@ -365,7 +373,7 @@ onMounted(() => {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 100;
+    z-index: 15;
     display: none;
     align-items: center;
     justify-content: space-between;

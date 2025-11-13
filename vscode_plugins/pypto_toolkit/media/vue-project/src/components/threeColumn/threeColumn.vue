@@ -1,44 +1,65 @@
 <template>
   <div class="three-column-header">
-    <span class="title">{{ t('layout') }}</span>
-    <div :class="['triangular', modelValue === 'triangular' && 'active']" @click="() => emits('update:modelValue', 'triangular')">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <d-tooltip :content="t('threeColumnTips')" position="bottom-start" overlay-class="three-column-design-tips">
-      <div :class="['three-column', 'disabled', modelValue === 'threeColumn' && 'active']">
+    <div class="three-column-header-left">
+      <span class="title">{{ t('layout') }}</span>
+      <div :class="['triangular', modelValue === 'triangular' && 'active']" @click="() => emits('update:modelValue', 'triangular')">
         <span></span>
         <span></span>
         <span></span>
       </div>
-    </d-tooltip>
-    <d-button size="sm" @click="resetLayout">重置</d-button>
+      <d-tooltip :content="t('threeColumnTips')" position="bottom-start" overlay-class="three-column-design-tips">
+        <div :class="['three-column', 'disabled', modelValue === 'threeColumn' && 'active']">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </d-tooltip>
+    </div>
+    <div>
+      <d-tooltip :content="t('reset')" position="bottom-end">
+        <i class="icon-reset" @click="resetLayout"></i>
+      </d-tooltip>
+    </div>
   </div>
   <div ref="containerEl" :class="['three-column-content', modelValue, resizing && 'resizing']">
     <div
-      v-show="showLeft"
-      :class="['editor-block', 'three-column-item', showRight && 'has-right', showBottom && 'has-bottom']"
+      v-show="showEditor"
+      :class="[
+        'editor-block',
+        'three-column-item',
+        currentActive === 'editor' && 'active',
+        showComGraph && 'has-right',
+        showSwim && 'has-bottom',
+      ]"
       :style="{ width: currentWidth, height: currentHeight }"
+      @mouseenter="() => (currentActive = 'editor')"
+      @mouseleave="() => (currentActive = '')"
     >
       <div class="sticky-block">
         <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
       </div>
       <editor />
+      <div v-if="currentActive === 'editor'" class="active-border"></div>
     </div>
     <div
-      v-show="showRight"
-      :class="['three-column-item', showLeft && 'has-left', showBottom && 'has-bottom']"
+      v-show="showComGraph"
+      :class="['three-column-item', currentActive === 'comGraph' && 'active', showEditor && 'has-left', showSwim && 'has-bottom']"
       :style="{ width: `calc(100% - ${currentWidth})`, height: currentHeight }"
+      @mouseenter="() => (currentActive = 'comGraph')"
+      @mouseleave="() => (currentActive = '')"
     >
       <slot name="comGraph" />
+      <div v-if="currentActive === 'comGraph'" class="active-border"></div>
     </div>
     <div
-      v-show="showBottom"
-      :class="['three-column-item', (showLeft || showRight) && 'has-top']"
+      v-show="showSwim"
+      :class="['three-column-item', currentActive === 'swim' && 'active', (showEditor || showComGraph) && 'has-top']"
       :style="{ height: `calc(100% - ${currentHeight})` }"
+      @mouseenter="() => (currentActive = 'swim')"
+      @mouseleave="() => (currentActive = '')"
     >
       <slot name="swimGraph" />
+      <div v-if="currentActive === 'swim'" class="active-border"></div>
     </div>
     <div
       v-show="showHResizeBar"
@@ -56,7 +77,7 @@ import type { PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
-import type { ILayoutInfo } from './types';
+import type { ILayoutInfo, ActiveType } from './types';
 
 const { isDarkTheme } = inject('root');
 
@@ -74,100 +95,119 @@ const VResizeBarTop = ref('');
 const currentWidth = ref('50%');
 const currentHeight = ref('50%');
 const resizing = ref(false);
-const showLeft = ref(true);
-const showRight = ref(true);
-const showBottom = ref(true);
+const showEditor = ref(true);
+const showComGraph = ref(true);
+const showSwim = ref(true);
 const showHResizeBar = ref(true);
 const showVResizeBar = ref(true);
 const containerEl = ref<HTMLElement>();
 const isEditorFullscreen = ref(false);
 const isComGraphFullscreen = ref(false);
 const isSwimFullscreen = ref(false);
+const currentActive = ref<ActiveType>('');
 let containerWidth = 0;
 let containerHeight = 0;
 let prevLayoutInfo: ILayoutInfo = {};
 
-provide(ThreeColumnProvideKey, { isComGraphFullscreen, isSwimFullscreen, onToggleComGraphFullscreen, onToggleSwimFullscreen });
+provide(ThreeColumnProvideKey, {
+  currentActive,
+  isComGraphFullscreen,
+  isSwimFullscreen,
+  onToggleComGraphFullscreen,
+  onToggleSwimFullscreen,
+});
 
 function onToggleEditorFullscreen() {
   if (isEditorFullscreen.value) {
-    showRight.value = prevLayoutInfo.showRight;
-    showBottom.value = prevLayoutInfo.showBottom;
+    showComGraph.value = prevLayoutInfo.showComGraph;
+    showSwim.value = prevLayoutInfo.showSwim;
     showHResizeBar.value = prevLayoutInfo.showHResizeBar;
     showVResizeBar.value = prevLayoutInfo.showVResizeBar;
     currentWidth.value = prevLayoutInfo.currentWidth;
     currentHeight.value = prevLayoutInfo.currentHeight;
   } else {
     prevLayoutInfo = {
-      showRight: showRight.value,
-      showBottom: showBottom.value,
+      showComGraph: showComGraph.value,
+      showSwim: showSwim.value,
       showHResizeBar: showHResizeBar.value,
       showVResizeBar: showVResizeBar.value,
       currentWidth: currentWidth.value,
       currentHeight: currentHeight.value,
     };
-    showRight.value = false;
-    showBottom.value = false;
+    showComGraph.value = false;
+    showSwim.value = false;
     showHResizeBar.value = false;
     showVResizeBar.value = false;
     currentWidth.value = '100%';
     currentHeight.value = '100%';
   }
   isEditorFullscreen.value = !isEditorFullscreen.value;
-  (window as any).ascEventBus.emit('threeColumnHeightChange');
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 function onToggleComGraphFullscreen() {
   if (isComGraphFullscreen.value) {
-    showLeft.value = prevLayoutInfo.showLeft;
-    showBottom.value = prevLayoutInfo.showBottom;
+    showEditor.value = prevLayoutInfo.showEditor;
+    showSwim.value = prevLayoutInfo.showSwim;
     showHResizeBar.value = prevLayoutInfo.showHResizeBar;
     showVResizeBar.value = prevLayoutInfo.showVResizeBar;
     currentWidth.value = prevLayoutInfo.currentWidth;
     currentHeight.value = prevLayoutInfo.currentHeight;
   } else {
     prevLayoutInfo = {
-      showLeft: showLeft.value,
-      showBottom: showBottom.value,
+      showEditor: showEditor.value,
+      showSwim: showSwim.value,
       showHResizeBar: showHResizeBar.value,
       showVResizeBar: showVResizeBar.value,
       currentWidth: currentWidth.value,
       currentHeight: currentHeight.value,
     };
-    showLeft.value = false;
-    showBottom.value = false;
+    showEditor.value = false;
+    showSwim.value = false;
     showHResizeBar.value = false;
     showVResizeBar.value = false;
     currentWidth.value = '0%';
     currentHeight.value = '100%';
   }
   isComGraphFullscreen.value = !isComGraphFullscreen.value;
-  (window as any).ascEventBus.emit('threeColumnHeightChange');
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 function onToggleSwimFullscreen() {
   if (isSwimFullscreen.value) {
-    showLeft.value = prevLayoutInfo.showLeft;
-    showRight.value = prevLayoutInfo.showRight;
+    showEditor.value = prevLayoutInfo.showEditor;
+    showComGraph.value = prevLayoutInfo.showComGraph;
     showHResizeBar.value = prevLayoutInfo.showHResizeBar;
     showVResizeBar.value = prevLayoutInfo.showVResizeBar;
     currentHeight.value = prevLayoutInfo.currentHeight;
   } else {
     prevLayoutInfo = {
-      showLeft: showLeft.value,
-      showRight: showRight.value,
+      showEditor: showEditor.value,
+      showComGraph: showComGraph.value,
       showHResizeBar: showHResizeBar.value,
       showVResizeBar: showVResizeBar.value,
       currentHeight: currentHeight.value,
     };
-    showLeft.value = false;
-    showRight.value = false;
+    showEditor.value = false;
+    showComGraph.value = false;
     showHResizeBar.value = false;
     showVResizeBar.value = false;
     currentHeight.value = '0%';
   }
   isSwimFullscreen.value = !isSwimFullscreen.value;
-  (window as any).ascEventBus.emit('threeColumnHeightChange');
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 function onHMousemove(e: MouseEvent) {
@@ -179,11 +219,16 @@ function onHMouseup(e: MouseEvent) {
   resizing.value = false;
   const finalWidth = Math.min(Math.max(e.pageX, 0), containerWidth);
   currentWidth.value = `${(finalWidth / containerWidth) * 100}%`;
-  showLeft.value = finalWidth !== 0;
-  showRight.value = finalWidth !== containerWidth - 1 && finalWidth !== containerWidth;
-  showHResizeBar.value = showLeft.value && showRight.value;
+  showEditor.value = finalWidth !== 0;
+  showComGraph.value = finalWidth !== containerWidth - 1 && finalWidth !== containerWidth;
+  showHResizeBar.value = showEditor.value && showComGraph.value;
   document.removeEventListener('mousemove', onHMousemove);
   document.removeEventListener('mouseup', onHMouseup);
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 function onHResizeMousedown(e: MouseEvent) {
@@ -201,13 +246,17 @@ function onVMouseup(e: MouseEvent) {
   resizing.value = false;
   const finalHeight = Math.min(Math.max(e.pageY - 40, 0), containerHeight);
   currentHeight.value = `${(finalHeight / containerHeight) * 100}%`;
-  showLeft.value = finalHeight !== 0;
-  showRight.value = finalHeight !== 0;
-  showBottom.value = finalHeight !== containerHeight;
-  showVResizeBar.value = (showLeft.value || showRight.value) && showBottom.value;
+  showEditor.value = finalHeight !== 0;
+  showComGraph.value = finalHeight !== 0;
+  showSwim.value = finalHeight !== containerHeight;
+  showVResizeBar.value = (showEditor.value || showComGraph.value) && showSwim.value;
   document.removeEventListener('mousemove', onVMousemove);
   document.removeEventListener('mouseup', onVMouseup);
-  (window as any).ascEventBus.emit('threeColumnHeightChange');
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 function onVResizeMousedown(e: MouseEvent) {
@@ -232,10 +281,14 @@ function resetLayout() {
   VResizeBarTop.value = `calc(50% - 1px)`;
   currentWidth.value = '50%';
   currentHeight.value = '50%';
-  showLeft.value = true;
-  showRight.value = true;
-  showBottom.value = true;
-  (window as any).ascEventBus.emit('threeColumnHeightChange');
+  showEditor.value = true;
+  showComGraph.value = true;
+  showSwim.value = true;
+  (window as any).ascEventBus.emit('threeColumnSizeChange', {
+    editorVisible: showEditor.value,
+    comGraphVisible: showComGraph.value,
+    swimVisible: showSwim.value,
+  });
 }
 
 onMounted(() => {
@@ -255,14 +308,25 @@ provide('threeColumnState', { isDarkTheme });
 <style scoped lang="scss">
 .three-column-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
   width: 100%;
   height: 40px;
   padding: 10px;
   border-bottom: 1px solid var(--devui-split-line);
   background-color: var(--devui-page-bg);
   box-sizing: border-box;
+
+  .three-column-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-reset {
+    font-size: 14px;
+    cursor: pointer;
+  }
 
   .title {
     font-size: 14px;
@@ -364,17 +428,11 @@ provide('threeColumnState', { isDarkTheme });
     flex-wrap: wrap;
 
     .editor-block {
-      &:hover {
-        .sticky-block {
-          display: flex;
-        }
-      }
-
       .sticky-block {
         position: absolute;
         top: 0;
         left: 0;
-        z-index: 100;
+        z-index: 15;
         display: none;
         align-items: center;
         justify-content: flex-end;
@@ -397,6 +455,22 @@ provide('threeColumnState', { isDarkTheme });
       width: 50%;
       height: 50%;
       box-sizing: border-box;
+
+      &.active {
+        .sticky-block {
+          display: flex;
+        }
+        .active-border {
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 20;
+          width: 100%;
+          height: 100%;
+          box-shadow: inset 0 0 0 2px var(--devui-active-icon);
+          pointer-events: none;
+        }
+      }
 
       &.has-left {
         border-left: 1px solid var(--devui-border-line-deep);
