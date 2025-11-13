@@ -11,13 +11,9 @@ export const VIRTUAL_SCHEME = 'PyPTO';
  * @param query 文件副标题
  * @returns 虚拟uri
  */
-export function toVirtualUri(uri: vscode.Uri, viewType: string, subTitle: string, query?: Record<string, unknown>): vscode.Uri {
-  let virtualPath = subTitle || viewType;
-  if (!virtualPath.startsWith('/')) {
-    virtualPath = `/${virtualPath}`;
-  }
+export function toVirtualUri(uri: vscode.Uri, viewType: string, query?: Record<string, unknown>): vscode.Uri {
   const uriQuery: UriQuery = { ...query, _path: uri.fsPath, _viewType: viewType };
-  return uri.with({ scheme: VIRTUAL_SCHEME, path: virtualPath, query: JSON.stringify(uriQuery) });
+  return uri.with({ scheme: VIRTUAL_SCHEME, query: JSON.stringify(uriQuery) });
 }
 
 /**
