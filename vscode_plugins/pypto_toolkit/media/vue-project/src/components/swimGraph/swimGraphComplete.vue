@@ -87,6 +87,11 @@ import {
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
+
+import { useViewServer } from '../../core/use-view-server';
+
+const { server } = useViewServer();
+
 const props = defineProps({
   isThreeColumn: {
     type: Boolean,
@@ -246,9 +251,39 @@ const pmuTotal = ref({});
 
 // 方法
 const initEventListeners = () => {
-  window.addEventListener('message', handleMessage);
   window.addEventListener('resize', onWindowResize);
 };
+
+function setupSwimWatchers() {
+  watch(server.returnSwimData, (newValue) => {
+      const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+      let newMessage = (oldMessage && oldMessage.message) || newValue;
+      vscode.setState({ message: newValue });
+      setPageState(newValue);
+      loadTraceData(JSON.parse(JSON.stringify(newMessage.data)));
+  });
+  watch(server.bindResult, (newValue) => {
+      if (newValue.success) {
+        bindFile.value = newValue.comGraphPath;
+        bindButton.value = $t("unbindComGraph");
+      } else {
+        bindFile.value = false;
+        bindButton.value = $t("bindComGraphJson");
+      }
+  });
+  watch(server.unbindResult, (newValue) => {
+      if (newValue.success) {
+        bindFile.value = false;
+        bindButton.value = $t("bindComGraphJson");
+      } else {
+        bindFile.value = newValue.comGraphPath;
+        bindButton.value = $t("unbindComGraph");
+      }
+  });
+  watch(server.noSwimFile, (newValue) => {
+    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`);
+  });
+}
 
 const handleMessage = (event) => {
   const message = event.data;
@@ -1686,6 +1721,7 @@ const setPageState = (message) => {
 
 // 生命周期钩子
 onMounted(() => {
+  setupSwimWatchers();
   initEventListeners();
   const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
   if (oldMessage && oldMessage.message.data) {
@@ -1693,7 +1729,7 @@ onMounted(() => {
     loadTraceData(oldMessage.message.data);
   } else {
     loading.value = true;
-    postMessage({ command: 'getSwimData' });
+    server.getSwimData();
   }
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });

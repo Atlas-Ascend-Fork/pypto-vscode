@@ -28,13 +28,6 @@ const errorListener = (args) => {
 
 (window as any).ascEventBus.on('jsonParseError', errorListener);
 
-const returnSwim = (message) => {
-  if (graphType.value !== 'threeColumn') {
-    graphType.value = 'returnSwim';
-  }
-  jsonContent.value = message.data;
-};
-
 const returnSidBar = (message) => {
   graphType.value = 'returnSidBar';
   jsonContent.value = message.data;
@@ -49,7 +42,6 @@ const updateJsonContent = (message) => {
 }
 
 const CommandCallbackMap = {
-  returnSwim,
   returnSidBar,
   updateJsonContent,
   returnTheme,
@@ -80,7 +72,6 @@ const layout = ref('triangular');
     
     <MiddleLayer v-if="graphType" :graphType="graphType" ></MiddleLayer>
     <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
-    <SwimGraph v-if="graphType === 'returnSwim'" :is-three-column="false"/>
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph
       v-if="graphType === 'returnDiffCom'"

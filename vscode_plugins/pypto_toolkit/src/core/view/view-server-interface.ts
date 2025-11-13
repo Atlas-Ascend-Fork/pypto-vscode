@@ -88,6 +88,37 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   getHealthyReport: () => Promise<void>;
 }
 
+export type ISwimApis =
+  | 'getInitialData'
+  | 'getSwimData'
+  | 'bindComGraphJson'
+  | 'unbindComGraph'
+  | 'jumpToComGraph'
+  | 'openBoundComGraph'
+  | 'jumpRawMagic'
+  | 'showMessage'
+  | 'saveRendingMode'
+  | 'changeUserCfgConnection';
+export type ISwimRefs =
+  | 'returnSwim'
+  | 'returnTheme'
+  | 'noSwimFile'
+  | 'returnSwimData'
+  | 'bindResult'
+  | 'unbindResult'
+export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
+  getInitialData: () => Promise<void>;
+  getSwimData: () => Promise<void>;
+  bindComGraphJson: () => Promise<void>;
+  unbindComGraph: () => Promise<void>;
+  jumpToComGraph: (message: { paramObj: any }) => Promise<void>;
+  openBoundComGraph: () => Promise<void>;
+  jumpRawMagic: (message: { paramObj: any }) => Promise<void>;
+  showMessage: (message: { paramObj: any }) => Promise<void>;
+  saveRendingMode: (message: { paramObj: any }) => Promise<void>;
+  changeUserCfgConnection: (message: { paramObj: any }) => Promise<void>;
+}
+
 export type ICommonApis = 'getInitialData';
 export type ICommonRefs = '';
 export interface ICommonViewServer extends ViewServer<ICommonApis, ICommonRefs> {

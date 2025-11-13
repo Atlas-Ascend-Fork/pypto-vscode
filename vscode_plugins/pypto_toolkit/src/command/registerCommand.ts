@@ -71,14 +71,14 @@ export class RegisterCommand {
 
   async openView(routeName: string, uri: Uri, funcHash?: string) {
     const content = ((await this.readFirstNLines(uri.fsPath, 10)) as string[]).join('');
+    const { editorView } = useView();
     if (content.includes('entryhash')) {
-      const { editorView } = useView();
       const finalQuery = {
         funcHash: funcHash,
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), { query: finalQuery });
     } else if (content.includes('traceEvents')) {
-      SwimGraphView.createPanel(uri);
+      await editorView.open('swimGraph', (uri));
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }

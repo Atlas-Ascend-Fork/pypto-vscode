@@ -263,6 +263,9 @@ import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
 import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
 import { getSubGraphId } from '../swimGraphProcesses/processInfo';
+import { useViewServer } from '../../core/use-view-server';
+
+const { server } = useViewServer();
 const { t: $t } = useI18n();
 const useDynamicWidth = ref(true);
 const detailsContent = ref(null);
@@ -390,17 +393,17 @@ const dynamicWidthStyle = (event) => {
 
 function bindFilePath() {
   if (bindFile.value) {
-    return postMessage({ command: 'unbindComGraph' });
+    return server.unbindComGraph();
   }
-  return postMessage({ command: 'bindComGraphJson' });
+  server.bindComGraphJson();
 }
 
 function openBoundComGraph() {
-  postMessage({ command: 'openBoundComGraph' });
+  server.openBoundComGraph();
 }
 
 function jumpToComGraph(value) {
-  postMessage({ command: 'jumpToComGraph', paramObj: { hash: value } }); 
+  server.jumpToComGraph({paramObj: { hash: value }});
 }
 
 function splitValue(value) {
@@ -459,7 +462,7 @@ const getEventTruncateText = (event) => {
   return truncatedText;
 };
 window.jumpRawMagic = (value, hintValue) => {
-  postMessage({ command: 'jumpRawMagic', paramObj: { rawmagic: value, ascendHint: hintValue}});
+  server.jumpRawMagic({paramObj: { rawmagic: value, ascendHint: hintValue}});
 }
 
 const createHint = (event, operate) => {

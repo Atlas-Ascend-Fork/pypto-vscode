@@ -9,10 +9,11 @@ import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useTheme } from '../../theme/use-theme';
 import { useViewServer } from '../../core/use-view-server';
+import swimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { ComputeGraphServer } from '../../../../../src/core/view/com-graph-server';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 import { ICommonViewServer } from '../../../../../src/core/view/view-server-interface';
-const jsonContent = ref({});
+const jsonContent = ref();
 const errorMessage = ref('');
 const loadingStep = ref('');
 const outputDirPath = ref('');
@@ -41,6 +42,10 @@ if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph' || gra
 }
 if (graphType.value === 'threeColumnGraph' ) {
   setupThreeWatchers(server);
+}
+
+if (graphType.value === 'swimGraph' ) {
+  setupSwimWatchers(server);
 }
 
 function setupComWatchers(server: any) {
@@ -105,8 +110,20 @@ function setupThreeWatchers(server: any) {
   });
 }
 
+function setupSwimWatchers(server: any) {
+  watch(server.returnSwim, (newValue) => {
+    jsonContent.value = newValue.data;
+  });
+  watch(server.returnTheme, (newValue) => {
+    updateTheme(newValue.data);
+  });
+}
+
 onMounted(async () => {
   if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph') {
+    await server.getInitialData();
+  }
+  if (graphType.value === 'swimGraph') {
     await server.getInitialData();
   }
   (window as any).ascEventBus.on('comGraphRendering', (args) => {
@@ -177,6 +194,7 @@ function onFullRender() {
     :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
   <SearchEntry v-if="graphType === 'comGraphFullSearchEntry'" :disabled-search-mode="disabledSearchMode"
     @full-render="onFullRender" @search-mode="() => (graphType = 'comGraphSearchMode')" />
+  <swimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
 </template>
 <style scoped>
