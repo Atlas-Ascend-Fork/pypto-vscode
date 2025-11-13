@@ -14,6 +14,7 @@ import SideBarView from './components/sideBar/SideBarView.vue';
 import ControlFlowIndex from "./components/controlFlowGraph/ControlFlowIndex.vue";
 import ThreeColumn from './components/threeColumn/threeColumn.vue';
 import SimpleComGraph from './components/comGraph/simpleComGraph.vue';
+import { pushState } from './core/state';
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -59,7 +60,7 @@ const returnCom = (message) => {
 };
 
 const returnInitData = (message) => {
-  vscode.value.setState({
+  pushState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,

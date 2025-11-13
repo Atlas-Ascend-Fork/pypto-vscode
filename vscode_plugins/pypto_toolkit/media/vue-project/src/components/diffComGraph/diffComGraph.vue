@@ -2,10 +2,11 @@
   <div class="diff-com-graph">
     <div class="diff-com-graph-header">
       <d-checkbox v-model="syncOperate" :label="t('syncOperate')" :is-show-title="false" @change="onSyncOperateChange" />
+      <DiffLayout :layout="currentLayout" @layout-change="onLayoutChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
       <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
-      <div class="diff-wrap">
+      <div :class="['diff-wrap', `diff-layout-${currentLayout}`]">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="beforeFileName" />
           <div id="sprotty-before"></div>
@@ -41,9 +42,10 @@ import { watch, computed, inject, ref, onBeforeMount, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSprottyLoad } from '../../sprotty-graph/main';
 import DiffHeader from './diffHeader.vue';
+import DiffLayout from './diffLayout.vue';
 import SelectFile from './select-file.vue';
 import Loading from '../comGraph/loading.vue';
-import type { SelectFileChangeEventParam } from './type';
+import type { SelectFileChangeEventParam, TDiffLayout } from './type';
 import { compareJsonData } from '../../utils';
 import MiniMap from '../comGraph/comGraphMinimap.vue';
 import DiffList from './diffList.vue';
@@ -69,9 +71,25 @@ const beforeMinimapEl = ref();
 const afterMinimapEl = ref();
 const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
+const currentLayout = ref<TDiffLayout>('horizontal');
 let beforeIns;
 let afterIns;
 let expandTimer: ReturnType<typeof setTimeout>;
+
+function onLayoutChange(e) {
+  currentLayout.value = e;
+  const resizeTimer = setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+    beforeMinimapEl.value.updateScaleRation();
+    afterMinimapEl.value.updateScaleRation();
+    resizeTimer && clearTimeout(resizeTimer);
+  });
+  const fitTimer = setTimeout(() => {
+    beforeIns.fitToScreenAction();
+    afterIns.fitToScreenAction();
+    fitTimer && clearTimeout(fitTimer);
+  });
+}
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
@@ -288,6 +306,15 @@ onMounted(() => {
     display: flex;
     flex: 1;
     height: 100%;
+
+    &.diff-layout-vertical {
+      flex-direction: column;
+
+      .diff-before-wrap {
+        border-right: none;
+        border-bottom: 1px solid var(--devui-split-line);
+      }
+    }
 
     .diff-after-wrap,
     .diff-before-wrap {

@@ -147,7 +147,7 @@ const onExpandChange = () => {
     position: absolute;
     right: -17px;
     top: calc(50% - 20px);
-    z-index: 1;
+    z-index: 15;
     display: flex;
     align-items: center;
     justify-content: center;
