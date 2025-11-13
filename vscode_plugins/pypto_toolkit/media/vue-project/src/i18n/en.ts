@@ -195,7 +195,6 @@ export default {
         dataParseError: 'Unable to open Control Flow, data parsing exception.',
         leafName: 'leaf function',
         openSourceCode: 'Open Source Code',
-        openComputationalGraph: 'Open Computational Graph',
         openSwimlane: 'Open Swimlane',
     }
 }

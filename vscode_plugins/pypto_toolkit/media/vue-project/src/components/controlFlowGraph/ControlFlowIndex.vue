@@ -24,7 +24,7 @@
       }"
     ></div>
     <template v-if="dataError">
-      <DataError class="error-message" :message="dataErrorMessage"></DataError>
+      <DataError class="error-message" :message="dataErrorMessage" :output-path="outPutPath"></DataError>
     </template>
     <template v-else>
       <MinimapContainer class="minimap-type"></MinimapContainer>
@@ -326,7 +326,6 @@ onMounted(async () => {
     );
     rootData.value = data.data;
   } catch (e: any) {
-    console.log('getControlFlow - error:', JSON.stringify(e));
     rootData.value = [];
     dataError.value = true;
     dataErrorMessage.value = e.name.includes('EntryNotFound') ? t('controlFlows.fileNotFoundError') : t('controlFlows.dataParseError');
