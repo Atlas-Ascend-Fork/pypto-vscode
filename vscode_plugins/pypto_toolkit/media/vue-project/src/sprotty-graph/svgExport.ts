@@ -1,5 +1,6 @@
 import { SModelRootImpl} from 'sprotty';
 import { comGraphStore } from '../service/com-graph-store';
+import cssraw from './style/diagram.css?raw';
 
 const moreBorder = 50;
 
@@ -17,30 +18,28 @@ function downloadSvgFile(svgString: string, fileName: string = 'diagram.svg') {
     (window as any).ascEventBus.emit(`svgExportingOver`);
 }
 
-function copyStyles(originElem: Element, targetElem: Element, skippedProperties: string[]) {
-    const originElemStyle = getComputedStyle(originElem);
-    const targetElemStyle = getComputedStyle(targetElem);
-    let difference = '';
-    for (let i = 0; i < originElemStyle.length; i++) {
-        const key = originElemStyle[i];
-        if (skippedProperties.indexOf(key) === -1) {
-            const value = originElemStyle.getPropertyValue(key);
-            if (targetElem.id === 'sprotty_root' && key === 'block-size') {
-                continue;
-            }
-            if (targetElemStyle.getPropertyValue(key) !== value) {
-                difference += key + ':' + value + ';';
-            }
-        }
-    }
-    if (difference !== '')
-        targetElem.setAttribute('style', difference);
+function copyAttr(originElem: Element, targetElem: Element) {
+    const attrList = originElem.attributes ? Array.from(originElem.attributes) : undefined;
+    attrList.forEach(attr => {
+        targetElem.setAttribute(attr.name, attr.value);
+    });
+
     for (let i = 0; i < originElem.childNodes.length; ++i) {
         const originElemChild = originElem.childNodes[i];
         const targetElemChild = targetElem.childNodes[i];
         if (originElemChild instanceof Element)
-            copyStyles(originElemChild, targetElemChild as Element, []);
+            copyAttr(originElemChild, targetElemChild as Element);
     }
+}
+
+async function addStyles(targetElem: Element)  {
+    let newStyle = document.createElement('style');
+    newStyle.textContent = document.querySelector('#devuiThemeVariables').textContent;
+    targetElem.insertBefore(newStyle, targetElem.firstChild);
+
+    let secStyle = document.createElement('style');
+    secStyle.textContent = copyCss();
+    targetElem.insertBefore(secStyle, targetElem.firstChild);
 }
 
 function createDocMid(iframeMid: HTMLIFrameElement): Document {
@@ -52,8 +51,6 @@ function createDocMid(iframeMid: HTMLIFrameElement): Document {
 }
 
 export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolean) {
-    const svgTheme = document.body?.dataset?.vscodeThemeId;
-
     const midSerializer = new XMLSerializer();
     const svgMid = midSerializer.serializeToString(svgElementOrig);
     const iframeMid: HTMLIFrameElement = document.createElement('iframe');
@@ -65,6 +62,11 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
 
     svgElementNew.removeAttribute('opacity');
     if (skipCopyStyles === false) {
+
+        copyAttr(svgElementOrig, svgElementNew);
+
+        addStyles(svgElementNew);
+
         const g = svgElementNew.querySelector('g');
 
         const gWidth = (g.getBoundingClientRect().width) + moreBorder;
@@ -77,20 +79,12 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
         resizeTransform = resizeTransform.replace(/translate\([^)]*\)/g, 'translate(0, 0)');
         svgElementNew.querySelector('g').setAttribute('transform', resizeTransform);
 
-        copyStyles(svgElementOrig, svgElementNew, ['width', 'height', 'opacity', 'inline-size']);
-
-        let gStyle = svgElementNew.querySelector('g').getAttribute('style');
-        gStyle = gStyle.replace(/transform:[^;]*;?/g, '');
-        svgElementNew.querySelector('g').setAttribute('style', gStyle);
-
         const parentNode = svgElementNew.querySelector('g');
         parentNode.querySelectorAll('g[id*="operation"] image').forEach(img => img.remove());
-        const newBackground = svgTheme?.toLowerCase()?.includes('dark') ? 'black' : undefined;
-        if (newBackground) {
-            let svgElementNewStyle = svgElementNew.getAttribute('style');
-            svgElementNewStyle += `background:${newBackground}`
-            svgElementNew.setAttribute('style', svgElementNewStyle);
-        }
+
+        let svgElementNewStyle = svgElementNew?.getAttribute('style') || '';
+        svgElementNewStyle += `background:var(--devui-global-bg)`
+        svgElementNew.setAttribute('style', svgElementNewStyle);
 
         parentNode.querySelectorAll('image')?.forEach(g_image => g_image.remove());
 
@@ -104,3 +98,11 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
     const fileName = `${originFileName}.svg`;
     downloadSvgFile(svgCode, fileName);
 }
+
+
+function copyCss(): string {
+    let rawStr = '\n\n' + cssraw + '\n';
+    rawStr = rawStr.replace(/svg\.sprotty-graph\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
+
+    return rawStr;
+ }
