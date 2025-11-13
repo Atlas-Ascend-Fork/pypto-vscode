@@ -33,7 +33,6 @@
       ]"
       :style="{ width: currentWidth, height: currentHeight }"
       @mouseenter="() => (currentActive = 'editor')"
-      @mouseleave="() => (currentActive = '')"
     >
       <div class="sticky-block">
         <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
@@ -46,7 +45,6 @@
       :class="['three-column-item', currentActive === 'comGraph' && 'active', showEditor && 'has-left', showSwim && 'has-bottom']"
       :style="{ width: `calc(100% - ${currentWidth})`, height: currentHeight }"
       @mouseenter="() => (currentActive = 'comGraph')"
-      @mouseleave="() => (currentActive = '')"
     >
       <slot name="comGraph" />
       <div v-if="currentActive === 'comGraph'" class="active-border"></div>
@@ -56,7 +54,6 @@
       :class="['three-column-item', currentActive === 'swim' && 'active', (showEditor || showComGraph) && 'has-top']"
       :style="{ height: `calc(100% - ${currentHeight})` }"
       @mouseenter="() => (currentActive = 'swim')"
-      @mouseleave="() => (currentActive = '')"
     >
       <slot name="swimGraph" />
       <div v-if="currentActive === 'swim'" class="active-border"></div>

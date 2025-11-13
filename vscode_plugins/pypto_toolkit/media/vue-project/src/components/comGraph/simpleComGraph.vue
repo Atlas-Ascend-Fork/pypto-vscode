@@ -1,16 +1,14 @@
 <template>
-  <div
-    :class="['simple-com-graph-container', currentActive === 'comGraph' && 'show-sticky-block']"
-    @mouseleave="() => (isExpandSearch = false)"
-  >
+  <div :class="['simple-com-graph-container', currentActive === 'comGraph' && 'show-sticky-block']">
     <div class="sticky-block">
       <d-select
+        ref="rootHashEl"
         v-model="rootHash"
         :options="rootHashList"
         :placeholder="t('comGraph.pleaseSelect')"
         :position="['bottom-start']"
         :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
-        menu-class="simple-com-root-hash-list-menu"
+        :menu-class="['simple-com-root-hash-list-menu', currentActive !== 'comGraph' && 'hide-root-hash-list']"
         @value-change="onHashChange"
         @toggle-change="onHashMenuToggleChange"
       >
@@ -22,6 +20,7 @@
       <div class="sticky-block-right">
         <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
         <ComGraphHeader
+          ref="comGraphHeaderEl"
           v-show="isExpandSearch"
           :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
           @onLocate="onLocate"
@@ -47,7 +46,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, inject, computed, nextTick } from 'vue';
+import { onMounted, watch, defineProps, ref, inject, computed, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -98,6 +97,16 @@ const showNodeDetail = ref(false);
 const nodeId = ref('');
 const containerHeight = ref(0);
 const isExpandSearch = ref(false);
+const comGraphHeaderEl = ref();
+const rootHashEl = ref();
+
+watch(currentActive, (val) => {
+  if (val !== 'comGraph') {
+    isExpandSearch.value = false;
+    comGraphHeaderEl.value.hideDropdown();
+    rootHashEl.value.toggleChange(false);
+  }
+});
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -332,6 +341,22 @@ watch(
   { immediate: true },
 );
 
+function onDocumentClick(e: MouseEvent) {
+  const composedPath = e.composedPath();
+  const index = composedPath.findIndex(
+    (item: HTMLElement) =>
+      item.classList?.contains('com-graph-header') ||
+      item.classList?.contains('dp-category-search-dropdown') ||
+      item.classList?.contains('com-graph-header-search-dropdown') ||
+      item.classList?.contains('com-graph-global-select') ||
+      item.classList?.contains('icon-search-new'),
+  );
+  if (index !== -1) {
+    return;
+  }
+  isExpandSearch.value = false;
+}
+
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {
     if (node.type === 'graph' || node.id.startsWith('parent')) {
@@ -351,6 +376,10 @@ onMounted(() => {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
+  document.addEventListener('click', onDocumentClick);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick);
 });
 </script>
 
@@ -444,5 +473,9 @@ onMounted(() => {
 
 .simple-com-root-hash-list-menu {
   width: 300px !important;
+
+  &.hide-root-hash-list {
+    display: none !important;
+  }
 }
 </style>
