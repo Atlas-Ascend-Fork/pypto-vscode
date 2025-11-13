@@ -166,6 +166,7 @@ onMounted(() => {
   position: absolute;
   left: 100px;
   top: 100px;
+  z-index: 20;
   width: 100px;
   height: 100px;
   background-color: var(--devui-node-bg);

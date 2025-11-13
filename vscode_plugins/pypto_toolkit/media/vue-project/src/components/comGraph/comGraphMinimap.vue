@@ -291,6 +291,22 @@ function calcRectTop(minimapY) {
   }
 }
 
+function updateScaleRation() {
+  const sprottyRoot = document.getElementById(`sprotty${props.type ? '-' + props.type : ''}_root`);
+  const minimap = document.getElementById(`${props.type}_minimap_root`);
+  const children = minimap?.firstElementChild;
+  const rect = children?.getBoundingClientRect();
+  if (sprottyRoot.clientHeight > sprottyRoot.clientWidth) {
+    scaleRation = (sprottyRoot.clientHeight / originalHeight);
+    rectInitHeight = rect.height;
+    rectInitWidth = Math.min(minimapWidth, (rect.height / sprottyRoot.clientHeight) * sprottyRoot.clientWidth);
+  } else {
+    scaleRation = (sprottyRoot.clientWidth / originalWidth);
+    rectInitWidth = rect.width;
+    rectInitHeight = Math.min(minimapHeight, (rect.width / sprottyRoot.clientWidth) * sprottyRoot.clientHeight);
+  }
+}
+
 const zoomListener = (args) => {
   if (args[4] !== undefined && args[4] !== props.type) {
     return;
@@ -355,7 +371,7 @@ function syncZoomChange(args) {
   isActive.value = args[3];
 }
 
-defineExpose({ updateRectPosition, syncZoomChange, getCurrentScale: () => mainmapScale.value });
+defineExpose({ updateRectPosition, syncZoomChange, updateScaleRation, getCurrentScale: () => mainmapScale.value });
 
 onMounted(() => {
   (window as any).ascEventBus.on(`${props.type}_render-over`, renderListener);
