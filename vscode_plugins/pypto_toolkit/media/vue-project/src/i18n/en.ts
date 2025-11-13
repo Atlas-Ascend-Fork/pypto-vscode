@@ -191,7 +191,11 @@ export default {
         leafFunctionTableValue: 'callee frequency',
         detailTitle: 'Called functions and call counts',
         tableSearch: 'Search',
+        fileNotFoundError: 'Can not find Result Overview',
         dataParseError: 'Unable to open Control Flow, data parsing exception.',
         leafName: 'leaf function',
+        openSourceCode: 'Open Source Code',
+        openComputationalGraph: 'Open Computational Graph',
+        openSwimlane: 'Open Swimlane',
     }
 }

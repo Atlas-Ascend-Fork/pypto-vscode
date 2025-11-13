@@ -1,0 +1,50 @@
+type Theme = Record<string, [string, string]>;
+
+const ptoTextTheme: Theme = {
+  // 标题文字
+  'pto-font-color-title': ['#000000', '#FFFFFF'],
+  // 主要文字
+  'pto-font-color-main': ['#191919', '#E6E6E6'],
+  // 次要文字
+  'pto-font-color-sub': ['#777777', '#B3B3B3'],
+  // 占位符
+  'pto-font-color-placeholder': ['#AEAEAE', '#999999'],
+  // 禁用文字
+  'pto-font-color-disabled': ['#C9C9C9', '#666666'],
+};
+
+const ptoButtonTheme: Theme = {
+  // 【次要按钮】【背景】默认
+  'pto-button-background': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
+  // 【次要按钮】【背景】悬浮
+  'pto-button-background-hover': ['rgba(0, 0, 0, 0.13)', 'rgba(255, 255, 255, 0.13)'],
+  // 【次要按钮】【背景】按下
+  'pto-button-background-active': ['#C9C9C9', '#333333'],
+  // 【次要按钮】【背景】禁用
+  'pto-button-background-disabled': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.05)'],
+  // 【次要按钮】【边框】默认
+  'pto-button-border-color': ['rgba(0, 0, 0, 0.2)', 'transparent'],
+  // 【次要按钮】【边框】悬浮
+  'pto-button-border-hover': ['rgba(0, 0, 0, 0.2)', 'transparent'],
+
+  // 【主要按钮】【背景】默认
+  'pto-button-primary-background': ['#0A59F7', '#317AF7'],
+  // 【主要按钮】【背景】悬浮
+  'pto-button-primary-background-hover': ['#3979F9', '#5291FF'],
+  // 【主要按钮】【背景】按下
+  'pto-button-primary-background-active': ['#0950DE', '#317AF7'],
+  // 【主要按钮】【背景】禁用
+  'pto-button-primary-background-disabled': ['#9DBDFC', '#003D83'],
+};
+
+/**
+ * 插件通用主题（左侧light，右侧dark）
+ */
+const ptoTheme: Theme = {
+  ...ptoTextTheme,
+  ...ptoButtonTheme,
+};
+
+export const ptoLightTheme = Object.fromEntries(Object.entries(ptoTheme).map(([key, [light]]) => [key, light]));
+
+export const ptoDarkTheme = Object.fromEntries(Object.entries(ptoTheme).map(([key, [_, dark]]) => [key, dark]));

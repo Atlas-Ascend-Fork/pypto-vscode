@@ -191,7 +191,11 @@ export default {
         leafFunctionTableValue: 'callee次数',
         detailTitle: '被调用函数及调用次数',
         tableSearch: '搜索',
+        fileNotFoundError: '找不到结果总览',
         dataParseError: '无法打开控制流，解析数据异常。',
         leafName: 'leaf 函数',
+        openSourceCode: '打开源码',
+        openComputationalGraph: '打开计算图',
+        openSwimlane: '打开泳道图',
     }
 }

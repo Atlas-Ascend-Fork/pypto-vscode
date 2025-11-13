@@ -1,6 +1,6 @@
 import { CombsType, ControlFlowNodesType, EdgesType, GroupNode } from '../type/node-detail-types';
 
-export function transformData(rootNodes: GroupNode): {
+export function transformData(rootNodes: GroupNode[]): {
   nodes: ControlFlowNodesType[];
   edges: EdgesType[];
   combos: CombsType[];
@@ -60,7 +60,6 @@ export function transformData(rootNodes: GroupNode): {
           source: node,
           name,
           functionStats,
-          // errorStats,
         },
         style: {
           x: 45 * (deepRankSep - 1) + 30,

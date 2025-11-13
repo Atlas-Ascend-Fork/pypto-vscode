@@ -1,4 +1,5 @@
 import { Theme, infinityTheme, galaxyTheme } from 'devui-theme';
+import { ptoDarkTheme, ptoLightTheme } from './pto-ui';
 
 export const ideLightTheme = new Theme({
   id: 'ide-light-theme',
@@ -6,6 +7,7 @@ export const ideLightTheme = new Theme({
   cnName: 'IDE浅色主题',
   data: {
     ...infinityTheme.data,
+    ...ptoLightTheme,
     'devui-global-bg': '#f3f3f3', // 全局背景
     'devui-node-badge-bg': 'rgba(0,0,0,0.1)', // 节点右上角徽标背景色
     'devui-node-badge-text': '#595959', // 节点右上角徽标文字
@@ -177,6 +179,7 @@ export const ideDarkTheme = new Theme({
   cnName: 'IDE深色主题',
   data: {
     ...galaxyTheme.data,
+    ...ptoDarkTheme,
     'devui-global-bg': '#1e1e1e', // 全局背景
     'devui-node-badge-bg': 'rgba(53,53,55,0.5)', // 节点右上角徽标背景色
     'devui-node-badge-text': '#ced1db', // 节点右上角徽标文字
