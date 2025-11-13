@@ -148,6 +148,21 @@
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
 
+## 三栏联动视图
+
+三栏联动视图指的是在一个页面视图里同时展示代码、计算图和泳道图，三者通过语义标签关联，可以通过在任一视图点击，联动高亮显示三栏视图的对应内容，帮助开发者快速理解从代码实现到对应的计算图表达，再到上板泳道图最终的性能表现的整个过程。
+
+  - **打开三栏联动视图**
+
+  在 cpp/python 文件右键，选择 “PyPTO Toolkit: 开启联动模式” 即可打开三栏联动视图
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeView.gif)
+
+  - **锁定模式**
+
+  在三栏视图中的任一视图点击锁定按钮，即可开启锁定模式，在该模式下，高亮效果不会改变。在任一视图点击解锁按钮，即可退出该模式。
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
 ## 反馈渠道
 

@@ -150,6 +150,22 @@
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
 
+## Three-Panel Linked View
+
+The three-panel linked view simultaneously displays code, a computational graph, and a swimlane diagram within a single page. These three panels are linked through semantic tags, allowing users to click on any panel to synchronously highlight corresponding content across all three views. This helps developers quickly understand the entire process—from the code implementation, to its representation in the computational graph, and finally to its performance characteristics as shown in the on-board swimlane diagram.
+
+  - **Opening the Three-Panel Linked View**
+
+  Right-click on a C++ or Python file and select "PyPTO Toolkit: Open linkage mode" to open the three-panel linked view.
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeView.gif)
+
+  - **Lock Mode**
+
+  Click the lock button in any of the three panels to enable Lock Mode. In this mode, the highlighting state remains fixed and will not change. To exit Lock Mode, click the unlock button in any panel.
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
+
 ## Feedback Channel
 
   If you have any questions or suggestions, please provide feedback in the user support group. Group ID: 866394745314853397
