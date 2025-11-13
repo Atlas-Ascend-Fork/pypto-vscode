@@ -1,24 +1,32 @@
 <template>
-  <div class="simple-com-graph-container">
-    <ComGraphHeader
-      :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
-      @onLocate="onLocate"
-      :openMode="props.openMode"
-    ></ComGraphHeader>
-    <d-select
-      v-model="rootHash"
-      :options="rootHashList"
-      :placeholder="t('comGraph.pleaseSelect')"
-      :position="['bottom-start']"
-      :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
-      menu-class="simple-com-root-hash-list-menu"
-      @value-change="onHashChange"
-      @toggle-change="onHashMenuToggleChange"
-    >
-      <template #empty>
-        <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
-      </template>
-    </d-select>
+  <div class="simple-com-graph-container" @mouseleave="() => (isExpandSearch = false)">
+    <div class="sticky-block">
+      <d-select
+        v-model="rootHash"
+        :options="rootHashList"
+        :placeholder="t('comGraph.pleaseSelect')"
+        :position="['bottom-start']"
+        :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
+        menu-class="simple-com-root-hash-list-menu"
+        @value-change="onHashChange"
+        @toggle-change="onHashMenuToggleChange"
+      >
+        <template #empty>
+          <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
+        </template>
+      </d-select>
+
+      <div class="sticky-block-right">
+        <i v-if="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
+        <ComGraphHeader
+          v-else
+          :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
+          @onLocate="onLocate"
+          :openMode="props.openMode"
+        ></ComGraphHeader>
+        <i :class="[isComGraphFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="() => onToggleComGraphFullscreen()"></i>
+      </div>
+    </div>
     <div
       :style="{
         backgroundImage: 'url(' + svgPath + ')',
@@ -45,6 +53,7 @@ import { comGraphStore } from '../../service/com-graph-store';
 import { vscode } from '../../core/vscode';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import { debounce } from 'lodash-es';
+import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -67,6 +76,7 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
+const { isComGraphFullscreen, onToggleComGraphFullscreen } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
@@ -84,6 +94,7 @@ let resetModelSource;
 const showNodeDetail = ref(false);
 const nodeId = ref('');
 const containerHeight = ref(0);
+const isExpandSearch = ref(false);
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -344,20 +355,48 @@ onMounted(() => {
   position: relative;
   background-color: var(--devui-global-bg);
 
-  .com-graph-header {
+  &:hover {
+    .sticky-block {
+      display: flex;
+    }
+  }
+
+  .sticky-block {
     position: absolute;
-    height: 82px;
-    width: 100%;
     top: 0;
-    z-index: 10;
+    left: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 40px;
+    padding: 4px 16px;
+    border-bottom: 1px solid var(--devui-split-line);
+    background-color: var(--devui-card-bg);
+    box-sizing: border-box;
+
+    i {
+      font-size: 14px;
+      cursor: pointer;
+    }
+  }
+
+  .sticky-block-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .com-graph-header {
+    height: 30px;
 
     &.with-extend-btn {
       height: 150px;
     }
 
     .toolbar-row {
-      left: calc(100% - 418px - var(--select-width));
-      margin-top: 16px;
+      left: 0;
     }
 
     .module-row {
@@ -366,11 +405,11 @@ onMounted(() => {
   }
 
   .simple-com-root-hash-list {
-    position: absolute;
-    left: 16px;
-    top: 16px;
-    z-index: 12;
     width: 140px;
+
+    .devui-select__input {
+      height: 28px;
+    }
 
     &.not-allow-expand {
       pointer-events: none;

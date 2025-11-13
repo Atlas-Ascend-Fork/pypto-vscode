@@ -206,7 +206,6 @@ const layout = ref('triangular');
 <template>
   <header :class="[outputDirPath && 'com-graph-with-navbar']">
     <ThreeColumn v-model="layout" v-if="graphType === 'threeColumn'">
-      <template #code>code</template>
       <template #comGraph>
         <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
