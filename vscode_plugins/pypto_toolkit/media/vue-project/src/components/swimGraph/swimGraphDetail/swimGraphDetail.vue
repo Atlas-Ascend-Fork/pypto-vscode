@@ -10,55 +10,6 @@
         <div class="details-title" v-if="!selectedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
           <div class="detail-content">
-            <div class="content-one" v-if="selectedView === 'args'">
-              <div class="content-title">
-                <div class="title">
-                  <img class="picture" :src="tPath" alt="picture">
-                  <div>
-                    <div class="Title">Title</div>
-                    <d-tooltip :content="getEventDisplayName(selectedEvent)">
-                      <div :class="['Title-value', { 'dynamic-width': useDynamicWidth }]"
-                        :style="{...dynamicWidthStyle(selectedEvent)}">{{ getEventTruncateText(selectedEvent) }}</div>
-                    </d-tooltip>
-                  </div>
-                </div>
-                <div class="cate">
-                  <div class="cat">Category</div>
-                  <div class="cat-value">{{ selectedEvent.cat }}</div>
-                  <div class="ufcat">User Friendly Category</div>
-                  <div class="cat-value">{{ selectedEvent.cat }}</div>
-                </div>
-              </div>
-              <div class="content-stat">
-                <div class="content-border">
-                  <div class="start">Start</div>
-                    <d-tooltip :content="startTimeInfoAll" v-if="startTimeInfo.includes('...')">
-                      <div class="start-value">
-                          <span class="start-value-key">{{ startTimeInfo }}</span>
-                          <span class="ml5">{{ startTimeUnitInfo }}</span>
-                      </div>
-                    </d-tooltip>
-                    <div class="start-value" v-else>
-                          <span class="start-value-key">{{ startTimeInfo }}</span>
-                          <span class="ml5">{{ startTimeUnitInfo }}</span>
-                    </div>
-                </div>
-                <div class="content-border">
-                  <div class="duration">Wall Duration</div>
-                  <d-tooltip :content="durationInfoAll"  v-if="durationInfo.includes('...')">
-                    <div class="start-value">
-                      <span class="start-value-key">{{ durationInfo }}</span>
-                      <span class="ml5">{{ durationUnitInfo }}</span>
-                    </div>
-                  </d-tooltip>
-                  <div class="start-value" v-else>
-                    <span class="start-value-key">{{ durationInfo }}</span>
-                    <span class="ml5">{{ durationUnitInfo }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <template v-else>
               <div class="content-one-pipe">
                 <div class="pipe-content-title">
                   <div class="pipe-title">
@@ -73,29 +24,32 @@
                 </div>
                 <div class="pipe-content-stat">
                   <div class="pipe-start">
-                    <span>
+                    <span class="pipe-start-up">
                       <span>Start</span><span class="ml5">({{ startTimeUnitInfo }})</span>
                       <span class="arrow-right-top"><d-icon name="icon-arrow-right-l" class="right-button"></d-icon></span>
                       <span>Duration</span><span class="ml5">({{ durationUnitInfo }})</span>
                     </span>
-                    <span>{{ $t('hitRate')}}</span>
-                  </div>
-                  <div class="pipe-time">
-                    <span>
+                    <span class="pipe-start-down">
                       <span class="start-value-key">{{ startTimeInfo }}</span>
                       <span class="arrow-right"><d-icon name="icon-arrow-right-l" class="right-button"></d-icon></span>
                       <span class="start-value-key">{{ durationInfo }}</span>
                     </span>
+                  </div>
+                  <div class="pipe-line"></div>
+                  <div class="pipe-hit">
+                    <span>{{ $t('hitRate')}}</span>
                     <span class="start-value-key">{{ getEventCacheHit(selectedEvent)}}</span>
                   </div>
                 </div>
               </div>
-            </template>
             <div class="detail-main-container">
             <div class="content-args">
               <div class="content-args-head">
                 <div class="main-text">
-                  Args
+                  <d-tabs v-model="selectedView" class="argsTabs" show-content="false" @active-tab-change="selectView">
+                    <d-tab id="args" :title="$t('args')"></d-tab>
+                    <d-tab id="pipeStat" :title="$t('pipeStat')"></d-tab>
+                  </d-tabs>
                 </div>
                 <div class="bindbox">
                   <d-tooltip position="bottom" :content=bindToolTip>
@@ -339,10 +293,12 @@ const selectView = (view) => {
 };
 const getEventCacheHit = (event) => {
   if (event.pmu_calc_info) {
-    return (event.pmu_calc_info.icache_hit * 100).toFixed(2) + '%';
+    let hitRate = event.pmu_calc_info.icache_hit * 100;
+    return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
   }
   if (event.pmu_info) {
-    return (event.pmu_info.icache_hit * 100).toFixed(2) + '%';
+    let hitRate = event.pmu_info.icache_hit * 100;
+    return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
   }
   return '/';
 };
@@ -383,8 +339,8 @@ const dynamicWidthStyle = (event) => {
   const width = eventName.length * 7 + 4 + 'px';
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-  let fillColor = eventColor ? eventColor.light : 'rgba(10, 89, 247, 0.3)';
-  const fontColor = colorCfg.eventFontHighLight;
+  let fillColor = eventColor ? eventColor.base : 'rgba(10, 89, 247, 0.3)';
+  const fontColor = colorCfg.eventFont;
   return {width, background:fillColor, color: fontColor};
 }
 
@@ -489,17 +445,9 @@ watch(selectedEvent, (newEvent) => {
     startTimeInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).value;
     startTimeUnitInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).unit;
     startTimeInfoAll.value = startTimeInfo.value + startTimeUnitInfo.value;
-    if(startTimeInfo.value.length  > 5 && selectedView === 'args' ){
-      startTimeInfo.value = startTimeInfo.value.slice(0, 5) + '...';
-      startTimeUnitInfo.value = '';
-    }
     durationInfo.value = formatTimeWithUnit(selectedEvent.value.duration).value;
     durationUnitInfo.value = formatTimeWithUnit(selectedEvent.value.duration).unit;
     durationInfoAll.value = durationInfo.value + durationUnitInfo.value;
-    if(durationInfo.value.length  > 5 && selectedView === 'args'){
-      durationInfo.value = durationInfo.value.slice(0, 5) + '...';
-      durationUnitInfo.value = '';
-    }
     nextTick(() => {
       createHint(newEvent, 'ioperand-hint');
       createHint(newEvent, 'ooperand-hint');
@@ -515,6 +463,13 @@ watch(isDarkTheme, () => {
 const updateTheme = () => {
   tPath.value =  isDarkTheme.value ?`${window.staticPath}/static-assets/circle.svg`: `${window.staticPath}/static-assets/circle_light.svg`;
   aPath.value = isDarkTheme.value ? `${window.staticPath}/static-assets/swim_all.svg` : `${window.staticPath}/static-assets/swim_all_light.svg`;
+  if (isDarkTheme.value) {
+    pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
+                            'rgba(70, 94, 184, 1)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
+  } else {
+    pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
+                            'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
+  }
 }
 const onInputChange = (newValue, oldValue) => {
   userConfig.value.connectionLevel = newValue;
@@ -584,6 +539,21 @@ defineExpose({
   
   .input-number-container .devui-input-number__control-buttons .control-button.control-inc svg {
     top: 0;
+  }
+  .argsTabs {
+    .devui-tabs__nav--tabs {
+      border-bottom: 1px var(--devui-swim-border-color) solid;
+    }
+    .devui-tabs__nav--tabs li.active a, .devui-tabs__nav--tabs li:hover:not(.disabled) a, .devui-tabs__nav--pills li.active a, .devui-tabs__nav--pills li:hover:not(.disabled) a {
+      color: var(--devui-title-text);
+    }
+    .devui-tabs__nav--tabs li.active:after, .devui-tabs__nav--pills li.active:after {
+      background: var(--devui-slider-bar);
+    }
+    .devui-tab__content {
+      margin-top: 0;
+      padding: 0;
+    }
   }
 }
 </style>
