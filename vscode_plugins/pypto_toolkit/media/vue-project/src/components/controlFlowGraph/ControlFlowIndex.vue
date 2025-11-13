@@ -1,6 +1,5 @@
 <template>
-  <ErrorView v-if="dataParseError" :jsonContent="t('controlFlows.dataParseError')" />
-  <div v-else class="g6-flow-chart">
+  <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
       <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath" />
@@ -24,31 +23,36 @@
         height: '100%',
       }"
     ></div>
-    <MinimapContainer class="minimap-type"></MinimapContainer>
-    <div class="tool-bar">
-      <button
-        class="icon-minus"
-        style="width: 16px; height: 16px; left: 32px; color: var(--devui-text)"
-        :title="t('zoomOut')"
-        @click="graphZoomTo(-10)"
-      ></button>
-      <input type="text" :value="zoom" class="zoom-value" @blur="inputZoomTo" @keydown.enter="$event.target.blur()" @input="onInput" />
-      <span class="text-value">%</span>
-      <button
-        class="icon-op-add"
-        style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px"
-        :title="t('zoomIn')"
-        @click="graphZoomTo(10)"
-      ></button>
-      <div class="empty-rect"></div>
-      <button
-        class="icon-location-new location-icon"
-        :class="{ active: isActive }"
-        style="width: 16px; height: 16px; margin-left: 8px"
-        :title="t('resizeWindow')"
-        @click="graphFitView"
-      ></button>
-    </div>
+    <template v-if="dataError">
+      <DataError class="error-message" :message="dataErrorMessage" :output-path="outPutPath"></DataError>
+    </template>
+    <template v-else>
+      <MinimapContainer class="minimap-type"></MinimapContainer>
+      <div class="tool-bar">
+        <button
+          class="icon-minus"
+          style="width: 16px; height: 16px; left: 32px; color: var(--devui-text)"
+          :title="t('zoomOut')"
+          @click="graphZoomTo(-10)"
+        ></button>
+        <input type="text" :value="zoom" class="zoom-value" @blur="inputZoomTo" @keydown.enter="$event.target.blur()" @input="onInput" />
+        <span class="text-value">%</span>
+        <button
+          class="icon-op-add"
+          style="width: 16px; height: 16px; color: var(--devui-text); margin-right: 8px"
+          :title="t('zoomIn')"
+          @click="graphZoomTo(10)"
+        ></button>
+        <div class="empty-rect"></div>
+        <button
+          class="icon-location-new location-icon"
+          :class="{ active: isActive }"
+          style="width: 16px; height: 16px; margin-left: 8px"
+          :title="t('resizeWindow')"
+          @click="graphFitView"
+        ></button>
+      </div>
+    </template>
   </div>
   <Loading v-if="isLoading" :loadingText="'loading'" />
 </template>
@@ -62,13 +66,14 @@ import { transformData } from '@/components/controlFlowGraph/util/parse-data';
 import { getQuery } from '@/core/query';
 import { getControlFlow } from '@/apis/control-flow';
 import Navbar from '@/components/navbar/navbar.vue';
-import ErrorView from '@/components/comGraph/error.vue';
 import SearchSelect from '@/components/controlFlowGraph/components/SearchSelect.vue';
 import Loading from '@/components/comGraph/loading.vue';
 import { usePathCardNodes } from '@/components/controlFlowGraph/hooks/usePathCardNode';
 import { useIfCardNodes } from '@/components/controlFlowGraph/hooks/useIfCardNode';
 import { useComboCardNodes } from '@/components/controlFlowGraph/hooks/useComboNode';
 import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
+
+import DataError from './components/DataError.vue';
 import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
 import { CombsType, ControlFlowNodesType, EdgesType, SearchSelectItem } from './type/node-detail-types';
@@ -307,7 +312,8 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
   isLoading.value = false;
 };
 
-const dataParseError = ref(false);
+const dataError = ref(false);
+const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
   const res = await getQuery();
@@ -320,9 +326,9 @@ onMounted(async () => {
     );
     rootData.value = data.data;
   } catch (e: any) {
-    dataParseError.value = true;
-    isLoading.value = false;
-    return;
+    rootData.value = [];
+    dataError.value = true;
+    dataErrorMessage.value = e.name.includes('EntryNotFound') ? t('controlFlows.fileNotFoundError') : t('controlFlows.dataParseError');
   }
 
   const { nodes, edges, combos } = transformData(rootData.value);
@@ -399,6 +405,12 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.error-message {
+  position: absolute;
+  align-self: center;
+  width: 100%;
 }
 
 .init-graph {
