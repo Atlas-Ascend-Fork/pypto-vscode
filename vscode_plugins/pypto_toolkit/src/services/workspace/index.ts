@@ -114,7 +114,7 @@ async function isOutputDirectory(uri: vscode.Uri): Promise<boolean> {
 /**
  * 获取output记录
  */
-function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
+export function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
   const directoryPath = outputUri.path;
   const sourceFilePath = runData.pto_src_file || null;
   const controlFlowFilePath = runData.program_file || null;

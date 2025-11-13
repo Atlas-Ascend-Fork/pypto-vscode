@@ -5,7 +5,7 @@ import { getIDELang } from '../lang';
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 
 export class SingleGraphHandler extends BaseGraphMsgHandler {
-  protected static async loadMainData(panel: any): Promise<void> {
+  protected static override async loadMainData(panel: any): Promise<void> {
     if (!panel.comGraphData) {
       panel.comGraphData = new SingleGraphData(panel.fsPath, panel.funcHash, panel.calleeOpMagic, panel.calleeOpSubgraphId, panel.outputDirPath, panel.pathName);
     }
@@ -16,11 +16,11 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     }
   }
 
-  protected static getGraphData(panel: any): AbstractGraphData {
+  protected static override getGraphData(panel: any): AbstractGraphData {
     return panel.comGraphData as SingleGraphData;
   }
   /** 重写 基类方法 */
-  protected static async postInitMessages(panel: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
+  protected static override async postInitMessages(panel: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
     panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
     panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
@@ -58,7 +58,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
       data: funcTree,
     });
   }
-  protected static onDidReceiveMessage(panel: any) {
+  protected static override onDidReceiveMessage(panel: any) {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type}`);

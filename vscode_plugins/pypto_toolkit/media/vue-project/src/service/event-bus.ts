@@ -37,7 +37,11 @@ class EventBus {
   emit = (key: string, args: any) => {
     if (this._eventBus.has(key)) {
       this._eventBus.get(key).forEach((fn) => {
-        fn.call(this, args);
+        let timer: ReturnType<typeof setTimeout>;
+        timer = setTimeout(() => {
+          fn.call(this, args);
+          timer && clearTimeout(timer);
+        });
       });
     }
   };

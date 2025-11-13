@@ -201,7 +201,12 @@ const onInputChange = (newValue) => {
         }
     }
 }
-
+.connection-level-input .devui-input-number__control-buttons .control-button.control-dec svg {
+    bottom: 0;
+}
+.connection-level-input .devui-input-number__control-buttons .control-button.control-inc svg {
+    top: 0;
+}
 .singleOption a {
     pointer-events: none;
 }

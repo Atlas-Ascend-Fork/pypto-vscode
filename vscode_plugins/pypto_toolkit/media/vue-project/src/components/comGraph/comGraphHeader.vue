@@ -1,19 +1,14 @@
 <template>
   <div class="com-graph-header">
-    <div class="corner-container">
+    <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
       <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="openHealthReport">
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
-      <!-- <d-tooltip :content="t('comGraph.operationLog')" :mouse-enter-delay="100"  position="left" overlay-class="corner-tips">
-        <div class="corner-icon-container">
-          <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
-        </div>
-      </d-tooltip> -->
       <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
-        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="onShowLayerControl">
-          <LayerControlIcon :active="showLayerControl" />
+        <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="changeLayer">
+          <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl.value)" />
         </div>
       </d-tooltip>
       <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
@@ -21,6 +16,13 @@
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
+      
+      <!-- 入口暂时关闭，非废弃代码， 请勿删除
+      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]" @click="debounceSvgOutput">
+          <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
+        </div>
+      </d-tooltip> -->
     </div>
 
     <div class="module-toolbar-container">
@@ -87,7 +89,7 @@
             @selectedTagsChange="onSelectedChange"
           >
             <template #operation>
-              <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')" :position="['top', 'bottom']">
+              <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')" :position="['top', 'bottom', 'left', 'right']">
                 <div
                   class="rect-upper-lower has-tooltip"
                   :class="{active: upperActive}"
@@ -99,7 +101,7 @@
                   </svg>
                 </div>
               </d-tooltip>
-              <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom']">
+              <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom', 'left', 'right']">
                 <div
                   class="rect-reg has-tooltip"
                   :class="{active: regActive}"
@@ -210,7 +212,7 @@ const backwards = () => {
 }
 
 const { t } = useI18n();
-const { toggleHealthReport, showLayerControl } = inject('comGraph') as ComGraphContext;
+const comGraphCtx = inject('comGraph', undefined) as ComGraphContext | undefined;
 const searchEl = ref();
 let passName = 'Loading';
 let curPath = ref([]);
@@ -359,6 +361,8 @@ let isSelectedMagic = false;
 const isSearchFocus = ref(false);
 const upperActive = ref(false);
 const regActive = ref(false);
+const onlySvgOutputOnce = ref(false);
+const isExporting = ref(false);
 
 const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -569,14 +573,13 @@ const openHealthReport = () => {
   if (props.isLoading) {
     return;
   }
-  toggleHealthReport(true);
+  comGraphCtx?.toggleHealthReport(true);
 };
 
-const onShowLayerControl = () => {
-  if (props.isLoading) {
-    return;
+const changeLayer = () => {
+  if (!props.isLoading && comGraphCtx) {
+    comGraphCtx.showLayerControl.value = true
   }
-  showLayerControl.value = true;
 }
 
 function jumpToGraph(funcHash) {
@@ -589,6 +592,26 @@ function jumpSubgraph(calleehash, funcMagicName, curPath) {
     command: 'getSubgraph',
     paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}
     });
+}
+
+function svgOutput() {
+  if (props.isLoading) {
+    return;
+  }
+
+  const copyStyles = false;
+  comGraphStore.data.svgExportMode = true;
+  (window as any).ascEventBus.emit('svgOutput', copyStyles);
+}
+
+const debounceSvgOutput = () => {
+  if (isExporting.value) {
+    return;
+  }
+
+  isExporting.value = true;
+  svgOutput();
+
 }
 
 function openDiffViewer() {
@@ -625,11 +648,18 @@ window.addEventListener('message', (event) => {
 });
 
 function jumpSearchSubgraph(calleehash, funcMagicName) {
-  let newPath = JSON.stringify([calleehash]);
-  (window as any).vscode.postMessage({
-    command: 'getSubgraph',
-    paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}
+  if (comGraphStore.data.comGraphConfig.isSimple) {
+    (window as any).vscode.postMessage({
+      command: 'innerGetSubgraph',
+      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName },
     });
+  } else {
+    let newPath = JSON.stringify([calleehash]);
+    (window as any).vscode.postMessage({
+      command: 'getSubgraph',
+      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}
+      });
+  }
 }
 
 window.addEventListener('message', (event) => {
@@ -703,6 +733,12 @@ onMounted(() => {
   (window as any).vscode.postMessage({
     type: 'getFuncTree',
   });
+
+  (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
+    isExporting.value = false;
+    comGraphStore.data.svgExportMode = false;
+  });
+
 });
 </script>
 
@@ -855,7 +891,7 @@ onMounted(() => {
 }
 
 .res-it {
-  width: 447px;
+  width: calc(var(--dropdown-width) - 15px);
   height: 28px;
   padding: 4px;
   border-radius: 4px;
@@ -875,7 +911,10 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding-right: 26px;
+    
+    &:has(.res-it-icon) {
+      padding-right: 26px;
+    }
   }
 
   .res-it-icon {

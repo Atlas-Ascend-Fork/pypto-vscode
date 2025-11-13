@@ -67,6 +67,11 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     line-height: 22px;
     color: var(--devui-primary-text);
     pointer-events: all;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
+
+    &:hover {
+      color: var(--devui-operation-text-hover);
+    }
 
     span {
       max-width: 160px;
@@ -79,7 +84,7 @@ defineExpose({ getCurrentRecord: () => currentData.value });
     i {
       font-size: 16px;
       font-weight: bold;
-      color: var(--devui-primary-text);
+      color: var(--devui-placeholder-text);
       transition: transform $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
     }
 
@@ -100,12 +105,11 @@ defineExpose({ getCurrentRecord: () => currentData.value });
 .navbar-history-list {
   max-width: 300px;
   max-height: 400px;
-  padding: 0 8px;
   overflow: auto;
 
   .list-item {
-    height: 50px;
-    padding: 4px 8px;
+    height: 58px;
+    padding: 8px;
     border-radius: 4px;
     box-sizing: border-box;
     cursor: pointer;
@@ -144,10 +148,11 @@ defineExpose({ getCurrentRecord: () => currentData.value });
 
 <style lang="scss">
 .devui-flexible-overlay:has(.history-list-menu-wrap) {
+  border-radius: 8px;
   box-shadow: var(--devui-select-shadow);
 }
 .history-list-menu-wrap {
-  padding: 12px 4px;
+  padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;

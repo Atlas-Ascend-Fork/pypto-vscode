@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
+    "target": "ES2022",
+    "moduleResolution": "node",
     "experimentalDecorators": true,
+    "noImplicitOverride": true,
     "paths": {
       "@/*": ["./src/*"],
       "ext:/*": ["../../src/*"]

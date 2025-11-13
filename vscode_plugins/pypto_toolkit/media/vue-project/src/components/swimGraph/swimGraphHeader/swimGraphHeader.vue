@@ -2,15 +2,12 @@
   <div class="zoom-controls">
     <div class="left-container">
       <div class="search-container">
-        <d-search
-          class="swim-search"
-          v-model="searchQuery"
-          icon-position="left"
-          :placeholder="searchPlaceholder"
-          :show-glow-style="false"
-          size="sm"
-          @search="onSearch"
-        />
+        <d-tooltip :content="$t('interlockModeSearchTip')" position="right" v-if="isLockStatus">
+          <d-search class="swim-search" :disabled="isLockStatus"  v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+            :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
+        </d-tooltip>
+        <d-search v-else class="swim-search" v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+            :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
         <d-tooltip :content="$t('caseSensitive')" v-if="searchQuery" position="bottom">
           <button class="case-sensitive" @click="toggleCaseSensitivity" :class="{'case-dark': isCaseSensitive}">
             <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
@@ -48,7 +45,10 @@
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
-      <d-drawer v-model="reportVisible" style="width: 500px">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
+        <div class="close-container">
+          <d-icon name="close" operable @click="closeDrawer"></d-icon>
+        </div>
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
           <div class="task-item-container">
@@ -81,7 +81,7 @@
               <div class="task-data">{{aicoreRate}}%</div>
             </div>
           </div>
-          <div class="aicore-container-column"> 
+          <div class="aicore-container-column" style="height: 46px; margin-top: 8px"> 
             <div class="task-item-container">
               <div class='task-title-container'>
                 <div class='task-title'>Cube Cycles</div>
@@ -150,6 +150,7 @@ const {
   measureDragEndX,
   isDarkTheme,
   mulDetailsExpanded,
+  isLockStatus,
   isCfgEditing,
 } = inject('swimGraphState');
 
@@ -189,6 +190,10 @@ const reportVisible = ref(false);
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
+};
+
+const closeDrawer = () => {
+  reportVisible.value = false;
 };
 
 const showDrawer = () => {
@@ -327,6 +332,9 @@ const mte3RatePercentage = ref(0);
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
 const onSearch = (term) => {
+  if (isLockStatus.value) {
+    return;
+  }
   searchQuery.value = term;
   let termL = term.toLowerCase();
   searchResult.value = [];
@@ -546,12 +554,26 @@ const isCfgDisabled = computed(() => {
 watch(isDarkTheme, () => {
   updateTheme();
 });
-
+watch(isLockStatus, () => {
+  if (!isLockStatus.value && !searchQuery.value) {
+    return;
+  }
+  searchQuery.value = '';
+  searchResultCount.value = 0;
+  currentResultIndex.value = 0;
+  isSearchActive.value = false;
+  detailsPanelExpanded.value = false;
+  sendMsg('clearSearchEvent');
+});
 const updateTheme = () => {
   backgroundColor.value = isDarkTheme.value ? `#606061` : `rgba(0, 0, 0, 0)`;
   document.documentElement.style.setProperty('--backgroundcolor', `${backgroundColor.value}`);
 };
-
+const sendMsg = (command, param) => {
+  Promise.resolve().then(() => {
+    window.ascEventBus.emit(command, param);
+  });
+};
 onMounted(() => {
   updateTheme();
 });

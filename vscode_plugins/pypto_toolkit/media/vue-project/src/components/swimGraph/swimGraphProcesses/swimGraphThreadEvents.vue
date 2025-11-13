@@ -1,5 +1,29 @@
 <template>
   <div class="thread-events" :data-process-container="process.key" tabindex="0">
+    <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
+         class="lock-indicator"
+         @click="lockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+         }">
+      <d-icon name="lock-open"></d-icon>
+    </div>
+    <div v-if="isThreeColumn && isLockStatus && lockPosition" 
+         class="lock-indicator"
+         @click="unLockClick"
+         :style="{
+           top: lockPosition.top + 'px',
+           left: lockPosition.left + 'px',
+           'background-color': 'var(--devui-tooltip-bg)',
+           'border-radius': '6px',
+           'padding': '4px 6px',
+         }">
+      <d-icon name="icon-lock-private"></d-icon>
+    </div>
     <canvas 
       class="events-canvas" 
       :data-process-key="processKey"
@@ -16,6 +40,7 @@
     <canvas class="background-events-canvas" :data-background-process-key="process.key"></canvas>
     <canvas class="line-events-canvas" :data-line-process-key="process.key"></canvas>
     <canvas class="selection-events-canvas" :data-selection-process-key="process.key"></canvas>
+    <canvas class="three-column-events-canvas" :data-three-column-process-key="process.key"></canvas>
   </div>
 </template>
   
@@ -31,12 +56,18 @@ const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
+const lockPosition = ref(null);
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-
+let points = [];
+let boundaries = [];
+let preLabel = '';
+let lockedLabel = '';
+let drawColorDatas = {};
+const spaceInThreeCol = 2;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
-
+let isHoverLockStatus = false; // 选定状态
 // 注入父组件提供的状态和方法
 const {
   layout,
@@ -62,7 +93,9 @@ const {
   rootHashes,
   leafHashes,
   leafHashMap,
-  dependencyLinesInfo
+  isLockStatus,
+  dependencyLinesInfo,
+  isThreeColumn,
 } = inject('swimGraphState');
 
 const {
@@ -78,7 +111,9 @@ const {
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
-  getDisplayName
+  getDisplayName,
+  changeScale,
+  resetState,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -130,6 +165,9 @@ const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
   }
+  if (isLockStatus.value) {
+    return;
+  }
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     console.warn(`Canvas for process ${props.processKey} not found during click handling`);
@@ -141,7 +179,7 @@ const handleCanvasClick = (e) => {
     return;
   }
   if(!isDragging.value){
-    clearSelectionCanvas();
+    clearSelectionCanvas('data-selection-process-key');
   } 
   const rect = canvasRef.getBoundingClientRect();
   const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
@@ -150,6 +188,20 @@ const handleCanvasClick = (e) => {
   // 检查是否点击了事件
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
   canvasclickedEvent.value = clickedEvent;
+  if (isThreeColumn) {
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (isPointInPolygon) {
+      if (!clickedEvent) {
+        isHoverLockStatus = true;
+        return;
+      }
+    } else {
+      isHoverLockStatus = false;
+      clearSelectionCanvas('data-three-column-process-key');
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+      toggleLock();
+    }
+  }
   if (clickedEvent) {
     if(e.altKey){
       // 清空hover画布 
@@ -341,6 +393,8 @@ function getCanvasRefs(processKey) {
   if (!lineCanvasRef) { return null };
   const selectionCanvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
   if (!selectionCanvasRef) { return null };
+  const threeColumnCanvasRef = document.querySelector(`[data-three-column-process-key="${processKey}"]`);
+  if (!threeColumnCanvasRef) { return null };
   return {
     canvasRef,
     uiCanvasRef,
@@ -349,7 +403,8 @@ function getCanvasRefs(processKey) {
     backgroundCanvasRef,
     backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
     lineCanvasRef,
-    selectionCanvasRef
+    selectionCanvasRef,
+    threeColumnCanvasRef
   };
 }
 
@@ -439,7 +494,7 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
 
 const findLineAtPoint = (ctx, point) => {
   // 还原传入坐标为绘制算法
-  const pointX = (point.x * viewState.scale * viewState.scale) + viewState.offsetX;
+  const pointX = ((point.x * viewState.scale * viewState.scale) + viewState.pixelOffsetX) * devicePixelRatio;
   for (const line of dependencyLinesInfo.value) {
     if (ctx.isPointInStroke(line.linePath, pointX, point.y)) {
       return { fromEvent: line.fromEvent, toEvent: line.toEvent };
@@ -502,56 +557,122 @@ function handleCtrlDragPan(e, canvasRef) {
   return cursor;
 }
 
+const handleAltMove = (e, hoverInfo, refs) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { uiCtx } = refs;
+  handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx);
+};
+
+const handlePureMove = (hoverInfo, refs, localPosition) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { preData, lastData, nodeSpacingX } = hoverInfo?.altClickData || {};
+  const { uiCtx, canvasRef } = refs;
+  const eventCtx = canvasRef.getContext('2d');
+  const { x, y } = localPosition;
+  if (!isLockStatus.value) {
+    onHoverEvent(hoveredEvent);
+    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+    if (isDragging.value) {
+      selection.endLocalX = x;
+      selection.endY = y;
+      // 绘制框选
+      drawSelectionBox();
+      mulDetailsExpanded.value = false;
+    }
+  }
+  if (isThreeColumn) {
+    handle3PureMove(hoverInfo, localPosition, eventCtx);
+  }
+};
+
+const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
+  const hoveredEvent = hoverInfo?.event;
+  const { x, y } = localPosition;
+  const hasHnadleHover = handleHoverEvent(hoveredEvent);
+  if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus) {
+    const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
+    if (!isPointInPolygon && preLabel) {
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+      preLabel = '';
+      clearSelectionCanvas('data-three-column-process-key');
+      changeNodeColor(props.processKey, false);
+      drawThreadSeparators(eventCtx, props.process, props.processKey);
+    }
+  }
+};
+
 const handleMouseMove = throttle((e) => {
   const refs = getCanvasRefs(props.processKey);
-  if (!refs) return;
-  const { canvasRef, uiCanvasRef, uiCtx, hoverCanvasRef, backgroundCanvasRef, backgroundCanvasCtx } = refs;
+  if (!refs) { return };
+  const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
 
   if (altClickData.preData && altClickData.lastData && !e.altKey && !isMeasureFixed.value) {
     clearDrawConnector(uiCtx, props.processKey);
   }
 
   updateMousePos(e);
-  const { x, y } = computeLocalXY(canvasRef);
-
+  const localPosition = computeLocalXY(canvasRef);
+  const { x, y } = localPosition;
   const info = findEventAtPosition(x, y, props.processKey);
   const hoveredEvent = info?.event;
-  const { preData, lastData, nodeSpacingX } = info?.altClickData || {};
 
   highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
-
-  if (!e.altKey) {
+  
+  if (e.altKey) {
+    handleAltMove(e, info, refs);
+  } else if (e.ctrlKey) {
     isMeasureFirst.value = false;
+  } else {
+    isMeasureFirst.value = false;
+    handlePureMove(info, refs, localPosition);
   }
 
-  if (handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx)) {
-    return;
+  updateCursorState(e, hoveredEvent, x, y, canvasRef);
+}, 16);
+const handleHoverEvent = (hoveredEvent) => {
+  if (!hoveredEvent) {
+    return false;
   }
-
-  if (!e.altKey) {
-    onHoverEvent(hoveredEvent);
-    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+  const { args } = hoveredEvent ?? {};
+  const { color } = args ?? {};
+  const eventHintStr = args?.['event-hint'] ?? '';
+  const rootHashList = [getRootHashList(eventHintStr)];
+  // 使用可选链和空值合并确保安全
+  if (shouldUpdateOutline(color)) {
+    handleOutline(color, false);
+    sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
   }
-
+  preLabel = color;
+  return true;
+};
+const shouldUpdateOutline = (color) => {
+  return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus;
+};
+const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
   let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
-
   cursor = handleLineTooltipAndCursor(e, x, y) || '';
-
   const dragCursor = handleCtrlDragPan(e, canvasRef);
   if (dragCursor) {
     cursor = dragCursor;
   }
-
   canvasRef.style.cursor = cursor;
-  if (!isDragging.value) return;
-  if (!e.altKey && !e.ctrlKey) {
-    selection.endLocalX = x;
-    selection.endY = y;
-    // 绘制框选
-    drawSelectionBox();
-    mulDetailsExpanded.value = false;
+};
+const getRootHashList = (eventHintStr) => {
+  // 添加输入验证
+  if (typeof eventHintStr !== 'string') {
+    return [];
   }
-}, 16);
+
+  // 使用全局匹配和命名捕获组，支持匹配多个根哈希
+  const rootHashRegex = /rootHash:(?<hash>\d+)/g;
+  const matches = [...eventHintStr.matchAll(rootHashRegex)];
+
+  // 使用可选链和空值合并确保安全提取
+  const hashArray = matches
+    .map(match => match?.groups?.hash)
+    .filter(hash => hash != null);
+  return hashArray.join(',');
+};
 const drawSelectionBox = () => {
   const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   const uiCtx = uiCanvasRef.getContext('2d');
@@ -573,14 +694,272 @@ const handleSelection = () => {
   checkInSelection();
   if (!selectionEvents.length) {
     mulDetailsExpanded.value = false;
-    clearSelectionCanvas();
+    clearSelectionCanvas('data-selection-process-key');
     return;
   }
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const ctx = canvasRef.getContext('2d');
   selectionEvents.forEach(eventItem => {
-    onSelectionEvent(eventItem);
+    onSelectionEvent(eventItem, ctx, props.processKey, true);
   });
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
+};
+// 按y坐标分组，计算每行的左右边界
+const calcRowBoundaries = (nodes) => {
+  const rows = {};
+  nodes.forEach(([x, y, w, h]) => {
+    // 按y坐标分组(假设每行高度固定)
+    const rowKey = `${y}`;
+    if (!rows[rowKey]) {
+      rows[rowKey] = { left: x, right: x + w, top: y, bottom: y + h };
+    } else {
+      rows[rowKey].left = Math.min(rows[rowKey].left, x);
+      rows[rowKey].right = Math.max(rows[rowKey].right, x + w);
+      rows[rowKey].bottom = y + h; // 更新行高(取最大)
+    }
+  });
+  const sortedRows = Object.values(rows).sort((a, b) => a.top - b.top);
+  if (!sortedRows.length) {
+    return [];
+  }
+  // 分割为连续区域
+  const regions = [];
+  let currentRegion = [sortedRows[0]];
+  for (let i = 1; i < sortedRows.length; i++) {
+    const prevRow = sortedRows[i - 1];
+    const currentRow = sortedRows[i];
+    const gap = currentRow.top - prevRow.bottom;
+    const threshold = 2 * (currentRow.bottom - currentRow.top); // 阈值：行高的两倍
+    if (gap > threshold) {
+      regions.push(currentRegion);
+      currentRegion = [currentRow];
+    } else {
+      currentRegion.push(currentRow);
+    }
+  }
+  if (currentRegion.length > 0) {
+    regions.push(currentRegion);
+  }
+
+  // 返回每个区域的行对象数组
+  return regions.map(region => {
+    return region.map(row => ({
+      leftTop: [row.left, row.top],
+      leftBottom: [row.left, row.bottom],
+      rightTop: [row.right, row.top],
+      rightBottom: [row.right, row.bottom],
+    }));
+  });
+};
+
+const drawPath = (ctx, tempRegions, lineArray) => {
+  tempRegions.forEach((region, index) => {
+    ctx.beginPath();
+    const [firstRow] = region;
+    const lastRow = region[region.length - 1];
+    if (index === 0 || index === tempRegions.length - 1) {
+      lineArray.push(index === 0 ? lastRow : firstRow);
+    } else {
+      lineArray.push(firstRow);
+      if (region.length > 1) {
+        lineArray.push(lastRow);
+      }
+    }
+    // 起点：首行左上
+    ctx.moveTo(...firstRow.leftTop);
+    // 绘制左边界
+    for (let i = 0; i < region.length; i++) {
+      const currentRow = region[i];
+      if (i === 0) {
+        // 首行：直接左上 -> 左下
+        ctx.lineTo(...currentRow.leftBottom);
+      } else {
+        const preRow = region[i - 1];
+        // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
+        if ((Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) - currentRow.width) !== (Math.abs(preRow.rightBottom[0] - currentRow.rightBottom[0]) - preRow.width)) {
+          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+        } else if (Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) < currentRow.width) {
+          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
+        }
+        ctx.lineTo(...currentRow.leftTop);  // 垂直上升
+        ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
+      }
+    }
+    // 绘制右边界
+    // 从最下行左下 -> 右下
+    ctx.lineTo(...lastRow.rightBottom);
+    for (let i = region.length - 1; i >= 0; i--) {
+      const currentRow = region[i];
+      if (i === region.length - 1) {
+        // 最下行： 直接右下 -> 右上
+        ctx.lineTo(...currentRow.rightTop);
+      } else {
+        const nextRow = region[i + 1];
+        // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
+        if ((Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) - nextRow.width) !== (Math.abs(currentRow.rightBottom[0] - nextRow.rightBottom[0]) - currentRow.width)) {
+          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+        } else if (Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) < nextRow.width) {
+          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
+        }
+        ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
+        ctx.lineTo(...currentRow.rightTop);  // 垂直下降
+      }
+    }
+    // 闭合路径: 首行右上 -> 左下
+    ctx.lineTo(...firstRow.rightTop);
+    ctx.lineTo(...firstRow.leftTop);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+};
+
+// 绘制边界路径
+const drawBoundary = () => {
+  const uiCanvasRef = document.querySelector(`[data-three-column-process-key="${props.processKey}"]`);
+  const ctx = uiCanvasRef.getContext('2d');
+  if (!ctx) {
+    return;
+  }
+  ctx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+  if (!boundaries.length) {
+    return;
+  }
+  const space = spaceInThreeCol;
+  const xSpace = space / viewState.scale;
+  const { minLeft, maxRight } = boundaries.reduce((acc, group) => {
+    return group.reduce((groupAcc, item) => {
+      const [left] = item.leftTop;
+      const [right] = item.rightTop;
+      return {
+        minLeft: Math.min(groupAcc.minLeft, left),
+        maxRight: Math.max(groupAcc.maxRight, right)
+      };
+    }, acc);
+  }, { minLeft: Infinity, maxRight: -Infinity });
+  const isAtLeftEdge = viewState.offsetX === 0 && minLeft <= xSpace;
+  const isAtRightEdge = viewState.offsetX === 0 && maxRight >= viewState.canvasWidth;
+  // 计算每个区域的左右边界范围
+  const tempRegions = boundaries.map(region => {
+    return region.map(row => {
+      const leftX = isAtLeftEdge ? row.leftTop[0] : row.leftTop[0] - xSpace;
+      const rightX = isAtRightEdge ? row.rightTop[0] : row.rightTop[0] + xSpace;
+      const topY = row.leftTop[1] - space;
+      const bottomY = row.leftBottom[1] + space;
+      return {
+        leftTop: [leftX, topY],
+        leftBottom: [leftX, bottomY],
+        rightTop: [rightX, topY],
+        rightBottom: [rightX, bottomY],
+        width: rightX - leftX
+      };
+    });
+  });
+  ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
+  ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
+  ctx.lineWidth = 1 / viewState.scale;
+  // 遍历每个区域并绘制路径
+  let lineArray = [];
+  drawPath(ctx, tempRegions, lineArray);
+  // 绘制不同区域的连线
+  drawConnectLines(lineArray, ctx);
+};
+const drawConnectLines = (lineArray, ctx) => {
+  if (!lineArray.length || lineArray.length < 2 || !ctx) {
+    return;
+  }
+  lineArray.slice(0, -1).forEach((current, i) => {
+    const next = lineArray[i + 1];
+    const [cp1, cp2] = calculateControlPoints(current.rightBottom, next.leftTop);
+    ctx.beginPath();
+    ctx.moveTo(...current.rightBottom);
+    ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], ...next.leftTop);
+    ctx.stroke();
+  });
+};
+const calculateControlPoints = (start, end) => {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  // 根据目标点在上方调整控制点逻辑
+  const isAbove = end[1] < start[1];  // 判断是否在上方
+  return [
+    // 第一个控制点： 向右下方偏移
+    [start[0] + (absDx * 0.3), start[1] + (absDy * (isAbove ? 0.2 : 0.4))],
+    // 第二个控制点： 向左上方偏移
+    [end[0] - (absDx * 0.3), end[1] - (absDy * (isAbove ? 0.4 : 0.2))]
+  ];
+};
+const lockClick = (e) => {
+  lockedLabel = preLabel;
+  e.stopPropagation();
+  isLockStatus.value = true;
+  sendMsg('activeLock', { label: preLabel });
+  let rootHashArray = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    process.threads.forEach((thread, threadKey) => {
+      if (thread.isCounter) {
+        return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
+      }
+      const { events } = thread;
+      events.forEach((event, eventKey) => {
+        const { args } = event;
+        const { color } = args;
+        if (color === preLabel) {
+          const eventHintStr = args?.['event-hint'] ?? '';
+          const rootHashStr = getRootHashList(eventHintStr);
+          rootHashArray.push(rootHashStr);
+        }
+      });
+    });
+  });
+  const rootHashList = [...new Set(rootHashArray)];
+  sendMsg('sendHashList', { rootHashList });
+};
+
+const unLockClick = (e) => {
+  lockedLabel = '';
+  e.stopPropagation();
+  isLockStatus.value = false;
+  sendMsg('deactivateLock');
+};
+const toggleLock = () => {
+  if (!boundaries.length) {
+    lockPosition.value = null;
+    return;
+  }
+  let [x, y]= boundaries[0][0].leftTop;
+  x = (x * viewState.scale) + viewState.offsetX + spaceInThreeCol;
+  if (x < 0) {
+    lockPosition.value = null;
+    return;
+  }
+  lockPosition.value = {
+    top: y,
+    left: x,
+  };
+};
+const resizeDrawBoundary = () => {
+  processes.forEach((process, processKey) => {
+    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+      return;
+    }
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    drawThreadSeparators(eventCtx, process, processKey);
+    if (!drawColorDatas[processKey]) {
+      return;
+    }
+    drawColorDatas[processKey].forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey, false);
+    });
+  });
+  drawBoundary();
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -672,21 +1051,22 @@ function onHoverEvent(hoveredEvent) {
     highlightEvent(ctx, hoveredEvent, props.processKey, false);
   }
 }
-const clearSelectionCanvas = () => {
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+const clearSelectionCanvas = (key) => {
+  const canvasRef = document.querySelector(`[${key}="${props.processKey}"]`);
   if (!canvasRef) {
     return;
   }
   const ctx = canvasRef.getContext('2d');
   ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
-};
-function onSelectionEvent(hoveredEvent) {
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
-  if (!canvasRef) {
+  if (key !== 'data-three-column-process-key') {
     return;
   }
-  const ctx = canvasRef.getContext('2d');
-  highlightEvent(ctx, hoveredEvent, props.processKey, false);
+  points = [];
+  boundaries = [];
+  lockPosition.value = isLockStatus.value ? lockPosition.value : false;
+};
+function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
+  highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
 }
 const handleMouseDown = (e) => {
   hideLineTooltip();
@@ -694,20 +1074,24 @@ const handleMouseDown = (e) => {
   if (!canvasRef) {
     return;
   }
-  // 获取鼠标按下时的坐标
-  const rect = canvasRef.getBoundingClientRect();
-  if (!e.ctrlKey) {
-    selection.startX = e.clientX - rect.left;
-    selection.startY = e.clientY - rect.top;
-    const { x } = computeLocalXY(canvasRef);
-    selection.startLocalX = x;
+  if (!isLockStatus.value) {
+    // 获取鼠标按下时的坐标
+    const rect = canvasRef.getBoundingClientRect();
+    if (!e.ctrlKey) {
+      selection.startX = e.clientX - rect.left;
+      selection.startY = e.clientY - rect.top;
+      const { x } = computeLocalXY(canvasRef);
+      selection.startLocalX = x;
+    }
+
+    isClick.value = true;
+    isDragging.value = true;
+
+    measureDetailsData.value = [];
+    rootHashes.value = [];
+    leafHashes.value = [];
+    leafHashMap.value.clear();
   }
-  isClick.value = true;
-  isDragging.value = true;
-  measureDetailsData.value = [];
-  rootHashes.value = [];
-  leafHashes.value = [];
-  leafHashMap.value.clear();
   if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };
@@ -722,6 +1106,9 @@ const handleMouseLeave = throttle((e) => {
   }
 }, 16);
 const selectionFinished = (e) => {
+  if(isLockStatus.value) {
+    return;
+  }
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     return;
@@ -783,7 +1170,7 @@ const transformEvents = (process, processKey) => {
 
       eventCtx.stroke();
       eventCtx.closePath();
-    } else if (!selectedEvent.value) {
+    } else if (!selectedEvent.value && !drawColorDatas.length) {
       let eventDatas = [];
       for (const event of thread.events) {
         const { drawData } = event;
@@ -801,7 +1188,7 @@ const transformEvents = (process, processKey) => {
     }
   }
 
-  if (selectedEvent.value) {
+  if (selectedEvent.value && !drawColorDatas.length) {
     changeNodeColor(processKey, true, false);
   }
 
@@ -909,7 +1296,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
     }
   }
 
-  eventCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 0.5);
   drawEvent(drawDatas, eventCtx, isDimmed);
   if (needText) drawEventText(drawDatas, eventCtx, isDimmed);
 };
@@ -1041,7 +1428,7 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
   drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
 
-const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true) => {
+const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => {
   if (!event || !event.renderInfo) {
     return;
   }
@@ -1049,7 +1436,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
     return;
   }
   const renderInfo = event.renderInfo;
-  const { fillColor, fontColor } = getEventColor(event, true, stroke);
+  const { fillColor, fontColor } = getEventColor(event, highlight, stroke);
   const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
@@ -1068,7 +1455,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, isTextXChange=true)
   };
   drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
-  fillTextInfo(event, ctx, width, drawData, isTextXChange);
+  fillTextInfo(event, ctx, width, drawData, true);
   if (!drawData.text) { return };
   drawEventText([drawData], ctx);
 };
@@ -1096,6 +1483,9 @@ const drawThreadSeparators = (ctx, process, processKey) => {
   for (let i = 0; i < threadKeys.length; i++) {
     const threadKey = threadKeys[i];
     const thread = process.threads.get(threadKey);
+    if (thread.isCounter) {
+      break;
+    }
     ctx.beginPath();
     ctx.moveTo(0, thread.bottomY);
     ctx.lineTo(viewState.canvasCssWidth, thread.bottomY);
@@ -1506,7 +1896,7 @@ const lineShowTooltip = (e, startEvent, endEvent) => {
   let lineTooltipContent = `<div class="linetooltip-container">`;
   for (const [key, value] of interSectionMap) {
     const { shape, dtype, rawmagic, mem_usage } = value[key];
-    const valueString = `shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}`;
+    const valueString = `{${key}: {shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}}}`;
     lineTooltipContent += `<div class="linetooltip-item"><span class="linetooltip-value">${valueString}</span></div>`;
   }
   lineTooltipContent += '</div>';
@@ -1931,6 +2321,231 @@ const eraseEventLine = (flag) => {
   }
 }
 
+const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
+  const xRange = (maxX - minX) * viewState.pixelScale;
+  const targetWidth = viewState.canvasCssWidth * 0.8;
+  const widthValid = Math.abs(xRange - targetWidth) < viewState.canvasCssWidth * 0.1;
+  const viewValid = startT >= timelineState.startTime && endT <= timelineState.endTime;
+  if (widthValid && viewValid) {
+    swimlaneContainer.value.scrollTo({
+      top: minY,
+      behavior: 'smooth',
+    });
+    return;
+  }
+  let needRender = true;
+  const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
+  changeScale(zoomFactor, 0, false, false);
+  const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
+  if (eventLeftX < 0) {
+    rightmove(0 - eventLeftX);
+    needRender = false;
+  }
+  const eventRightX = (maxX * viewState.scale) + viewState.offsetX;
+  const divElement = document.getElementsByClassName('swimlane-container');
+  const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth; // 滚动条的宽度
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  const actualMaxX = canvasCSSWidth - scrollWidth; // 视口最右x坐标
+  if (eventLeftX < actualMaxX && eventRightX > actualMaxX) {
+    // 一半被隐藏在视口之外
+    const hiddenWidth = eventRightX - canvasCSSWidth;
+    leftmove(hiddenWidth + scrollWidth);
+    needRender = false;
+  } else if (eventLeftX > actualMaxX) {
+    // 整个被隐藏在视口之外
+    leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
+    needRender = false;
+  }
+  if (needRender) {
+    transform();
+  }
+  swimlaneContainer.value.scrollTo({
+    top: minY,
+    behavior: 'auto',
+  });
+};
+
+const setSelectedData = (boundRange, label) => {
+  points = [];
+  drawColorDatas = {};
+  processes.forEach((process, processKey) => {
+    if (!process.expanded) {
+      return;
+    }
+    highlightedPaths.clear();
+    detailsPanelExpanded.value = false;
+    drawColorDatas[processKey] = [];
+    // 遍历线程
+    process.threads.forEach((thread, threadKey) => {
+      if (thread.isCounter) {
+        return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
+      }
+      const { events } = thread;
+      events.forEach((event, eventKey) => {
+        const { args } = event;
+        const { color } = args;
+        if (color === label) {
+          const { x, y, width, height } = event.renderInfo;
+          boundRange.minX = Math.min(boundRange.minX, x);
+          boundRange.maxX = Math.max(boundRange.maxX, x + width);
+          boundRange.startT = Math.min(boundRange.startT, event.startTime);
+          boundRange.endT = Math.max(boundRange.endT, event.endTime);
+          boundRange.minY = Math.min(boundRange.minY, y);
+          boundRange.maxY = Math.max(boundRange.maxX, y + height);
+          points.push([x, y, width, height]);
+          drawColorDatas[processKey].push(event);
+        }
+      });
+    });
+  });
+};
+
+const drawSelection = (label, needSendCom, isLock) => {
+  let rootHashArray = [];
+  processes.forEach((process, processKey) => {
+    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+      return;
+    }
+    changeNodeColor(processKey, true);
+    const { eventCtx } = ctxs[processKey];
+    drawThreadSeparators(eventCtx, process, processKey);
+    drawColorDatas[processKey].forEach((event, eventKey) => {
+      onSelectionEvent(event, eventCtx, processKey, false);
+      const { args } = event ?? {};
+      const eventHintStr = args?.['event-hint'] ?? '';
+      const rootHashStr = getRootHashList(eventHintStr);
+      rootHashArray.push(rootHashStr);
+    });
+    if (!isLockStatus.value && drawColorDatas[processKey].length) {
+      const rootHashList = [...new Set(rootHashArray)];
+      if (needSendCom) {
+        sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
+      if (isLock) {
+        sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
+    }
+  });
+}; 
+
+const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
+  if (!label) {
+    clearSelectionCanvas('data-three-column-process-key');
+    changeNodeColor(props.processKey, false);
+    const { eventCtx } = ctxs[props.processKey];
+    drawThreadSeparators(eventCtx, props.process, props.processKey);
+    return;
+  }
+  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
+  setSelectedData(boundRange, label);
+  boundaries = calcRowBoundaries(points);
+  if (boundaries.length) {
+    if (needTransform) {
+      transformCanvas(boundRange);
+    }
+    drawSelection(label, needSendCom, isLock);
+    drawBoundary();
+    toggleLock();
+  } else {
+    clearSelectionCanvas('data-three-column-process-key');
+    selectEvent(null, props.processKey);
+    if (isLockStatus.value) {
+      return;
+    }
+    if (needSendCom) {
+      sendMsg('returnSemanticLabelFromSwimToCom', { label, rootHashList: [] });
+    }
+    if (isLock) {
+      sendMsg('sendHashList', { rootHashList: [] });
+    }
+  }
+};
+window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
+  handleOutline(label);
+});
+window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
+  handleOutline(label, true, false);
+});
+window.ascEventBus.on('activeLock', ({ label }) => {
+  lockedLabel = label;
+  handleOutline(label, false, true, true);
+  isLockStatus.value = true;
+});
+window.ascEventBus.on('deactivateLock', () => {
+  lockedLabel = '';
+  isLockStatus.value = false;
+});
+window.ascEventBus.on('clearSearchEvent', () => {
+  let { eventCtx } = ctxs[props.processKey];
+  if (!selectedEvent.value) {
+    return;
+  }
+  const { color } = selectedEvent.value.args;
+  const isDimmed = lockedLabel !== color;
+  drawEvent([selectedEvent.value.drawData], eventCtx, isDimmed);
+  selectedEvent.value = null;
+});
+const sendMsg = (command, param) => {
+  Promise.resolve().then(() => {
+    window.ascEventBus.emit(command, param);
+  });
+};
+const isPointInPolygonFun = (point, polygonBoundaries) => {
+  if (!polygonBoundaries || polygonBoundaries.length === 0) {
+    return false;
+  }
+
+  const [x, y] = point;
+
+  // 构建边界多边形的所有顶点
+  const polygonPoints = [];
+
+  // 收集左边界点（从上到下）
+  for (let i = 0; i < polygonBoundaries.length; i++) {
+    for (let j = 0; j < polygonBoundaries[i].length; j++) {
+      polygonPoints.push(polygonBoundaries[i][j].leftTop);
+    }
+  }
+  polygonPoints.push(polygonBoundaries[polygonBoundaries.length - 1][polygonBoundaries[polygonBoundaries.length - 1].length - 1].leftBottom);
+
+  // 收集右边界点（从下到上）
+  for (let i = polygonBoundaries.length - 1; i >= 0; i--) {
+    for (let j = polygonBoundaries[i].length - 1; j >= 0; j--) {
+      polygonPoints.push(polygonBoundaries[i][j].rightBottom);
+      polygonPoints.push(polygonBoundaries[i][j].rightTop);
+    }
+  }
+
+  // 使用射线法判断点是否在多边形内
+  let inside = false;
+  for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+    const [xi, yi] = polygonPoints[i];
+    const [xj, yj] = polygonPoints[j];
+
+    // 检查点是否在多边形边界上
+    const pointsObj = {
+      p1: { x: xi, y: yi },
+      p2: { x: xj, y: yj },
+      point: { x, y }
+    };
+    if (isPointOnVertex(pointsObj)) {
+      return true;
+    }
+
+    // 射线法核心判断
+    const intersect = ((yi > y) !== (yj > y)) && 
+      (x < (((xj - xi) * (y - yi)) / (yj - yi)) + xi);
+    if (intersect) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
+};
+
+const isPointOnVertex = ({ p1, p2, point }) => {
+  return (p1.x === point.x && p1.y === point.y) || (p2.x === point.x && p2.y === point.y);
+};
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
@@ -1947,7 +2562,10 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
-  getEventColor
+  toggleLock,
+  resizeDrawBoundary,
+  getEventColor,
+  drawBoundary
 });
 
 // 每个事件画布都会走一遍

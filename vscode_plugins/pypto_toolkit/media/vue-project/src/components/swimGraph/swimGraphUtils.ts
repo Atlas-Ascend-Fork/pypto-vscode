@@ -518,6 +518,7 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
     backgroundCtx: document.querySelector(`[data-background-process-key="${processKey}"]`),
     lineCanvasCtx:  document.querySelector(`[data-line-process-key="${processKey}"]`),
     selectionCanvasCtx:  document.querySelector(`[data-selection-process-key="${processKey}"]`),
+    threeColumnCanvasCtx:  document.querySelector(`[data-three-column-process-key="${processKey}"]`),
   };
   const processCtxs = ctxs[processKey];
   const availableWidth = containerRect.width;

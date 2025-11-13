@@ -151,7 +151,7 @@ function parseExpr(expr: string): string {
 
     const [, opType, insideArgStr] = opMatch;
     const args = splitArgs(insideArgStr).map(parseExpr);
-    const argStr = splitArgs(args);
+    const argStr = splitArgs(args as unknown as string);
     if (argStr.length === 0){
         return '()';
     } 
@@ -222,7 +222,7 @@ function parseArgs(argsStr: string): string | string[] {
 /**
  * 分割参数（不解析，仅按逗号分割，考虑括号嵌套）
  */
-function splitArgs(argsStr: string): string[] {
+function splitArgs(argsStr): string[] {
     const args: string[] = [];
     let cur = '';
     let depth = 0;

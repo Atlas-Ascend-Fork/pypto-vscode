@@ -100,6 +100,7 @@ let updateGraph;
 let centerNodeAction;
 let selectAction;
 let getSelectedNodeId;
+let resetModelSource;
 let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
@@ -167,6 +168,12 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+    if (initComDocText){
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      comGraphStore.setData('jsonData', jsonValue);
+      resetModelSource();
+      return;
+    }
     const sprottyLoadResult = useSprottyLoad();
     fitToScreenAction = sprottyLoadResult.fitToScreenAction;
     initComDocText = sprottyLoadResult.initComDocText;
@@ -175,6 +182,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     centerNodeAction = sprottyLoadResult.centerNodeAction;
     selectAction = sprottyLoadResult.selectAction;
     getSelectedNodeId = sprottyLoadResult.getSelectedNodeId;
+    resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
     initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
     comGraphStore.setData('jsonData', jsonValue);

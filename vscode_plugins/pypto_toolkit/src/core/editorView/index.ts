@@ -10,8 +10,8 @@ import { ViewQuery, ViewQueryConnector } from '../view/view-query';
 import { makeViewServerConfig, ViewServer } from '../view/view-server';
 import { makeViewServerContext } from '../view/view-server-context';
 
-import { EditorViewFileSystemProvider } from './fileSystemProvider';
 import { fromVirtualUri, toVirtualUri } from './virtualUri';
+import { OpenedViews } from './openedViews';
 
 /** 页面配置 */
 export interface EditorViewRaw {
@@ -19,10 +19,16 @@ export interface EditorViewRaw {
   viewType: string;
 
   /** 页面标题 */
-  title: string;
+  title: string | ((uri: vscode.Uri) => string);
 
   /** 页面服务端，每个webview使用独立的实例 */
   viewServer?: typeof ViewServer;
+}
+
+export interface EditorViewState {
+  _viewType: string;
+  _uri: vscode.Uri;
+  [key: string]: unknown;
 }
 
 interface EditorViewOptions {
@@ -31,6 +37,9 @@ interface EditorViewOptions {
 
   /** 打开的窗口区域 */
   viewColumn?: vscode.ViewColumn;
+
+  /** 自定义标题 */
+  title?: string;
 }
 
 const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.editorView';
@@ -45,8 +54,8 @@ export class EditorView {
   /** 页面参数通信器 */
   private queryConnector: ViewQueryConnector;
 
-  /** 正在开启的view */
-  private pendingViewPanel: Map<string, (panel: vscode.WebviewPanel) => void> = new Map();
+  /** 已开启的页面 */
+  private openedViews: OpenedViews;
 
   /**
    * @param onViewActivated 显示页面hook
@@ -57,7 +66,8 @@ export class EditorView {
     private onViewDisposed?: (viewType: string, uri: vscode.Uri) => void,
   ) {
     this.queryConnector = new ViewQueryConnector();
-    this.registerEditorProvider();
+    this.openedViews = new OpenedViews();
+    this.registerSerializer();
   }
 
   public registerViews(views: EditorViewRaw[]): void {
@@ -72,43 +82,30 @@ export class EditorView {
    * @param uri 文件路径
    * @param column 渲染的窗口分栏
    */
-  public open(viewType: string, uri: vscode.Uri, options: EditorViewOptions = {}): Promise<vscode.WebviewPanel> {
-    const { viewColumn = vscode.ViewColumn.Active, query } = options;
+  public open(viewType: string, uri: vscode.Uri, options: EditorViewOptions = {}): void {
+    const { viewColumn = vscode.ViewColumn.Active, query, title } = options;
     const viewRaw = this.viewRawMap.get(viewType);
     if (!viewRaw) {
       throw new Error(`Webview - ${viewType} 不存在`);
     }
 
-    const virtualUri = toVirtualUri(uri, viewType, viewRaw.title, query);
-    vscode.commands.executeCommand('vscode.open', virtualUri, { preview: false, viewColumn }, viewRaw.title);
+    const rawTitle: string = viewRaw.title instanceof Function ? viewRaw.title(uri) : viewRaw.title;
+    const staticTitle = title ?? rawTitle;
+    const virtualUri = toVirtualUri(uri, viewType, query);
 
-    return new Promise((resolve) => {
-      this.pendingViewPanel.set(virtualUri.path, resolve);
-    });
-  }
+    // 避免重复开启
+    if (this.openedViews.has(viewType, virtualUri)) {
+      this.openedViews.reveal(viewType, virtualUri, viewColumn);
+      return;
+    }
 
-  private registerEditorProvider() {
-    // 监听虚拟uri，提供document对象
-    new EditorViewFileSystemProvider();
-
-    // 监听文件ext，提供webview编辑器
-    vscode.window.registerCustomEditorProvider(
+    const webviewPanel = vscode.window.createWebviewPanel(
       CUSTOM_EDITOR_VIEW_TYPE,
-      {
-        resolveCustomTextEditor: (document, webviewPanel) => {
-          webviewPanel.webview.options = { enableScripts: true };
-          this.activeViewPanel(webviewPanel, document.uri);
-
-          // 提供open方法返回的WebviewPanel
-          this.pendingViewPanel.get(document.uri.path)?.(webviewPanel);
-          this.pendingViewPanel.delete(document.uri.path);
-        },
-      },
-      {
-        // 切换至其他tab时保留webview
-        webviewOptions: { retainContextWhenHidden: true },
-      },
+      staticTitle,
+      { viewColumn },
+      { retainContextWhenHidden: true, enableScripts: true },
     );
+    this.activeViewPanel(webviewPanel, viewType, virtualUri);
   }
 
   /**
@@ -121,28 +118,51 @@ export class EditorView {
   }
 
   /**
+   * 注册页面重启序列化
+   */
+  private registerSerializer() {
+    vscode.window.registerWebviewPanelSerializer(CUSTOM_EDITOR_VIEW_TYPE, {
+      deserializeWebviewPanel: async (webviewPanel: vscode.WebviewPanel, { _viewType, _uri }: EditorViewState) => {
+        // 避免重复开启
+        if (this.openedViews.has(_viewType, _uri)) {
+          // 增加延迟让切换过程可被人眼感知，避免闪烁效果
+          setTimeout(() => {
+            this.openedViews.reveal(_viewType, _uri);
+            setTimeout(() => {
+              webviewPanel.dispose();
+            }, 200);
+          }, 800);
+          return;
+        }
+        this.activeViewPanel(webviewPanel, _viewType, _uri);
+      },
+    });
+  }
+
+  /**
    * 激活页面
    */
-  private activeViewPanel(viewPanel: vscode.WebviewPanel, uri: vscode.Uri): void {
-    const uriQuery = fromVirtualUri(uri);
-    const { viewServer } = this.viewRawMap.get(uriQuery._viewType) ?? {};
+  private activeViewPanel(viewPanel: vscode.WebviewPanel, viewType: string, uri: vscode.Uri): void {
+    this.openedViews.set(viewType, uri, viewPanel);
 
     // 加载html
     const htmlTemplateText = getWebviewEntryCode(viewPanel);
     viewPanel.webview.html = htmlTemplateText;
 
     // 视图服务
+    const { viewServer } = this.viewRawMap.get(viewType) ?? {};
     let server: ViewServer<'', ''>;
     if (viewServer) {
-      const ctx = makeViewServerContext(viewPanel, vscode.Uri.file(uriQuery._path));
+      const ctx = makeViewServerContext(viewPanel, viewType, uri);
       server = new viewServer(ctx);
       server.created(ctx);
     }
 
-    // hook
+    // 【hook】页面激活
     this.onViewActivated?.(viewPanel);
 
     // 设置页面参数
+    const uriQuery = fromVirtualUri(uri);
     const viewQuery: ViewQuery = {
       ...uriQuery,
       _uri: uri,
@@ -160,8 +180,9 @@ export class EditorView {
     viewPanel.onDidDispose(() => {
       themeListener.dispose();
       server?.disposed();
-      // hook
-      this.onViewDisposed?.(uriQuery._viewType, uri);
+      this.openedViews.delete(viewType, uri);
+      // 【hook】页面销毁
+      this.onViewDisposed?.(viewType, uri);
     });
   }
 }

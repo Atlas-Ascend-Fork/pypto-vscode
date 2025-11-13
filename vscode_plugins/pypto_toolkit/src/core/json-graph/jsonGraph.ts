@@ -104,7 +104,7 @@ interface Tensor {
     kind: number;
     validshape?: number[];
     dynvalidshape?: number[];
-    semanticlabel?: string;
+    semantic_label: string[];
     mem_type?: {[key: string]: number};
     subgraphid?: number;
     compareType?: string
@@ -1095,6 +1095,7 @@ export class AscppDagBuilder {
                 type: 'node:tensor',
                 role: 'tensor',
                 compareType: tensor.compareType!,
+                semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
                 id: nodeId,
                 magic: `${tensor.magic}`,
                 subgraphId: graphId,
@@ -1272,7 +1273,6 @@ export class AscppDagBuilder {
             if (nodeMagic) {
                 // check duplicate Nodes in single path
                 if (this.singlePathNodeSet.has(nodeId)) {
-                    console.log("dxl test createTensorNode singlePathNodeSet", this.singlePathNodeSet);
                     const new_graphId = -2;
                     nodeId = `tensor-${tensorMagic}-${new_graphId}`;
                     this.singlePathNodeSet.add(nodeId);
@@ -1287,6 +1287,7 @@ export class AscppDagBuilder {
                     type: 'node:tensor',
                     role: 'tensor',
                     compareType: tensor.compareType,
+                    semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
                     id: nodeId,
                     magic: `${tensor.magic}`,
                     subgraphId: graphId,
@@ -1403,6 +1404,7 @@ export class AscppDagBuilder {
             type: 'node:tensor',
             id: nodeId,
             compareType: tensor.compareType!,
+            semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
             // compareType: compareType,
             magic: `${tensorMagic}`,
             role: nodeRole,
@@ -2259,7 +2261,6 @@ export class AscppDagBuilder {
         this.createInputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
         // Create output ports
         this.createOutputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, showTensorNodes, nodeMagic);
-
         const node: AstgrNode = {
             type: 'node',
             role: 'operation',
@@ -2267,6 +2268,7 @@ export class AscppDagBuilder {
             magic: opmagic,
             hasAttr: hasAttrValue,
             compareType: op.compareType,
+            semanticLabel: op.semantic_label?.length > 0 ? op.semantic_label[0]: '',
             baseColor: baseColor,
             lightColor: lightColor,
             codePath: codePath,

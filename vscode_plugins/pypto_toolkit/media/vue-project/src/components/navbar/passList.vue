@@ -150,10 +150,18 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </script>
 
 <style scoped lang="scss">
+@import 'devui-theme/styles-var/devui-var.scss';
+
 .pass-list-container {
   display: flex;
   gap: 4px;
   cursor: pointer;
+
+  &:hover {
+    .pass-content {
+      color: var(--devui-operation-text-hover);
+    }
+  }
 
   .pass-type {
     height: 16px;
@@ -187,6 +195,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
   }
 
   .dot-step {
@@ -218,28 +227,41 @@ defineExpose({ getCurrentPass: () => currentData.value });
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .devui-flexible-overlay:has(.pass-list-menu-wrap) {
+  border-radius: 8px;
   box-shadow: var(--devui-select-shadow);
 }
 
 .pass-list-menu-wrap {
   width: 240px;
-  padding: 12px 4px;
+  padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);
   box-sizing: border-box;
 
   .pass-list-search {
-    margin-left: 8px;
-    margin-right: 8px;
     margin-bottom: 16px;
 
+    &:not(.devui-search--focus):hover {
+      .devui-input {
+        border-color: var(--devui-primary-button-hover-bg) !important;
+      }
+    }
+
+    &.devui-search--focus {
+      .devui-input {
+        border-color: var(--devui-primary-button-active-bg);
+      }
+    }
+
     .devui-search__icon {
+      height: 28px;
       svg path {
         fill: var(--devui-placeholder-text);
       }
     }
     .devui-input {
-      border: none;
+      height: 28px;
+      border-color: transparent;
       background-color: var(--devui-input-bg);
 
       .devui-input__wrapper,
@@ -255,7 +277,6 @@ defineExpose({ getCurrentPass: () => currentData.value });
 
   .scroll-container {
     max-height: 400px;
-    padding: 0 8px;
     overflow: auto;
   }
 
@@ -289,7 +310,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
+    padding: 8px;
     font-size: 14px;
     color: var(--devui-primary-text);
     line-height: 20px;

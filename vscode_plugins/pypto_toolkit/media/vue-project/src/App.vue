@@ -12,6 +12,9 @@ import {getQuery} from './core/query';
 import {vscode} from './core/vscode';
 import SideBarView from './components/sideBar/SideBarView.vue';
 import ControlFlowIndex from "./components/controlFlowGraph/ControlFlowIndex.vue";
+import ThreeColumn from './components/threeColumn/threeColumn.vue';
+import SimpleComGraph from './components/comGraph/simpleComGraph.vue';
+import { pushState } from './core/state';
 
 const graphType = ref('');
 const jsonContent = ref({});
@@ -26,6 +29,7 @@ const openMode = ref('all');
 const nodeMagic = ref(0);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 const {updateTheme} = useTheme();
+let inThreeColumnMode = false;
 
 getQuery().then((query) => {
   graphType.value = query._viewType;
@@ -56,7 +60,7 @@ const returnCom = (message) => {
 };
 
 const returnInitData = (message) => {
-  vscode.value.setState({
+  pushState({
     fsPath: message.fsPath,
     funcHash: message.funcHash,
     magicName: message.magicName,
@@ -66,19 +70,22 @@ const returnInitData = (message) => {
 };
 
 const readJsonWarning = (message) => {
-  graphType.value = 'comGraphFullSearchEntry';
-  loadingStep.value = message.command;
+  if (!inThreeColumnMode) {
+    graphType.value = 'comGraphFullSearchEntry';
+    loadingStep.value = message.command;
+  }
 };
 
 const returnSwim = (message) => {
-  graphType.value = 'returnSwim';
+  if (graphType.value !== 'threeColumn') {
+    graphType.value = 'returnSwim';
+  }
   jsonContent.value = message.data;
 };
 
 const returnSidBar = (message) => {
   graphType.value = 'returnSidBar';
   jsonContent.value = message.data;
-  console.log(message.data)
 };
 
 const returnError = (message) => {
@@ -104,7 +111,9 @@ const returnPathNodesSet = (message) => {
 };
 
 const initComGraph = (message) => {
-  graphType.value = 'returnCom';
+  if (graphType.value !== 'threeColumn') {
+    graphType.value = 'returnCom';
+  }
   loadingStep.value = message.step;
   dealConfig(message.configration);
 };
@@ -120,6 +129,15 @@ const returnDiffCom = (message) => {
   loadingStep.value = message.step;
 };
 
+const setThreeColumnMode = (message) => {
+  graphType.value = 'threeColumn';
+  inThreeColumnMode = true;
+}
+
+const updateJsonContent = (message) => {
+  jsonContent.value = message.data;
+}
+
 const CommandCallbackMap = {
   returnCom,
   returnSwim,
@@ -134,6 +152,8 @@ const CommandCallbackMap = {
   initDiffComGraph,
   returnDiffCom,
   returnSidBar,
+  setThreeColumnMode,
+  updateJsonContent
 };
 
 function dealConfig(config) {
@@ -178,12 +198,23 @@ onMounted(() => {
   });
   (window as any).ascEventBus.on('comGraphRendering', (args) => {
     loadingStep.value = args;
-  })
+  });
 });
+
+const layout = ref('triangular');
 </script>
 
 <template>
   <header :class="[outputDirPath && 'com-graph-with-navbar']">
+    <ThreeColumn v-model="layout" v-if="graphType === 'threeColumn'">
+      <template #code>code</template>
+      <template #comGraph>
+        <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
+      </template>
+      <template #swimGraph>
+        <SwimGraph style="height: 100%" :is-three-column="true"/>
+      </template>
+    </ThreeColumn>
     <ComGraph
       v-if="graphType === 'returnCom'"
       :outputDirPath="outputDirPath"
@@ -202,7 +233,7 @@ onMounted(() => {
       @search-mode="() => (graphType = 'comGraphSearchMode')"
     />
     <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
-    <SwimGraph v-if="graphType === 'returnSwim'" />
+    <SwimGraph v-if="graphType === 'returnSwim'" :is-three-column="false"/>
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <DiffComGraph
       v-if="graphType === 'returnDiffCom'"
@@ -212,10 +243,10 @@ onMounted(() => {
       :beforeFileName="diffInfo.beforeFileName"
       :loadingStep="loadingStep"
     />
-    <div class="parent-container" v-if="graphType === 'controlFlow'">
-      <ControlFlowIndex></ControlFlowIndex>
-    </div>
   </header>
+  <div class="parent-container" v-if="graphType === 'controlFlow'">
+    <ControlFlowIndex></ControlFlowIndex>
+  </div>
   <!-- 导航栏 -->
   <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
 </template>

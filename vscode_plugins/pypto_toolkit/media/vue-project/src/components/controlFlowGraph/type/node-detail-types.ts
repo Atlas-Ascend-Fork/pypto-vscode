@@ -1,186 +1,181 @@
 // 定义自定义PATH节点数据类型
 export interface PassesType {
-    passName: string;
-    passIndex: string; // 序号由数据源提供
-    hasHealthReport: boolean;
-    graphFilePath: string;
-    leafFunctions?: LeafFunctionType[];
-    passStage: string;
+  passName: string;
+  passIndex: string; // 序号由数据源提供
+  hasHealthReport: boolean;
+  graphFilePath: string;
+  leafFunctions?: LeafFunctionType[];
+  passStage: string;
 }
 
 interface Meta {
-    leafFunctions?: LeafFunctionType[];
-    calledRecords?: CalledRecordsType[];
-    calleeRecords?: CalleeRecordsType[];
-    passes?: PassesType[];
+  leafFunctions?: LeafFunctionType[];
+  calledRecords?: CalledRecordsType[];
+  calleeRecords?: CalleeRecordsType[];
+  passes?: PassesType[];
 }
 
 export interface LeafFunctionType {
-    magic: number;
-    magicName: string;
-    hash: string;
+  magic: number;
+  magicName: string;
+  hash: string;
 }
-
 
 export interface CalledRecordsType {
-    callerHash: string;
-    callerFunction: LeafFunctionType;
-    calleeHash: string;
-    calleeFunction: LeafFunctionType;
+  callerHash: string;
+  callerFunction: LeafFunctionType;
+  calleeHash: string;
+  calleeFunction: LeafFunctionType;
 }
 
-export interface CalleeRecordsType extends CalledRecordsType {
-
-}
+export interface CalleeRecordsType extends CalledRecordsType {}
 
 /**
  * 控制流节点类型
  */
 export interface GroupNode {
+  nodeType: string;
+  magic: number;
+  magicName: string;
+  hash: string;
+  sourceCode?: {
+    filePath: string;
+    startLine: number;
+    endLine: number;
+  };
+  children?: GroupNode[];
+  meta?: Meta;
+  x?: number;
+  y?: number;
+}
+
+export interface ControlFlowNodesType {
+  id: string;
+  combo: string | null;
+  type: string;
+  data: {
+    source: GroupNode;
+    name: string;
+    leafFunctions?: {
+      leafFunction: number;
+      called: number;
+      callee: number;
+    };
+    errorStats?: {
+      NullPointer: number;
+      Exception: number;
+    };
+    type?: string;
+    deepRankSep?: number;
+  };
+  style: {
+    x: number;
+    y: number;
+  };
+}
+
+export interface EdgesType {
+  source: string;
+  target: string;
+  style?: {
+    lineWidth: number;
+    opacity: number;
+    radius?: number;
+    stroke?: string;
+    controlPoints?: [[number, number]];
+    endArrow?: boolean;
+    router: {
+      type: string;
+    };
+  };
+}
+
+export interface CombsType {
+  id: string;
+  combo?: string;
+  data: {
     nodeType: string;
     magic: number;
     magicName: string;
     hash: string;
     sourceCode?: {
-        filePath: string;
-        startLine: number;
-        endLine: number;
+      filePath: string;
+      startLine: number;
+      endLine: number;
     };
-    children?: GroupNode[];
-    meta?: Meta;
-    x?: number;
-    y?: number;
+  };
+  comboWidth: number; //记录loop宽度
 }
-
-export interface ControlFlowNodesType {
-    id: string;
-    combo: string | null;
-    type: string;
-    data: {
-        source: GroupNode;
-        name: string;
-        leafFunctions?: {
-            leafFunction: number;
-            called: number;
-            callee: number;
-        },
-        errorStats?: {
-            NullPointer: number;
-            Exception: number;
-        },
-        type?: string;
-        deepRankSep?: number;
-    };
-    style: {
-        x: number;
-        y: number;
-    }
-}
-
-export interface EdgesType {
-    source: string;
-    target: string;
-    style?: {
-        lineWidth: number;
-        opacity: number;
-        radius?: number;
-        stroke?: string;
-        controlPoints?: [[number, number]]
-        endArrow?: boolean;
-        router: {
-            type: string;
-        }
-    }
-}
-
-export interface CombsType {
-    id: string;
-    combo?: string;
-    data: {
-        nodeType: string;
-        magic: number;
-        magicName: string;
-        hash: string;
-        sourceCode?: {
-            filePath: string;
-            startLine: number;
-            endLine: number;
-        };
-    }
-}
-
 
 /**
  * 右侧panel类型
  */
 // 详情项类型：表格展开行的字段-值映射
 export interface DetailItem {
-    label: string; // 字段名称
-    value: string | number; // 字段值
-    ext1?: string; // 可选补充信息
+  label: string; // 字段名称
+  value: string | number; // 字段值
+  ext1?: string; // 可选补充信息
 }
 
 // 表格title类型
 export interface TableTitleType {
-    name: string;
-    value: string;
-    detailTitle: string;
+  name: string;
+  value: string;
+  detailTitle: string;
 }
 
 // 表格列类型：定义表格列的配置
 export interface TableColumn {
-    field: string; // 字段名（对应数据key）
-    label: string; // 列标题
-    sortable?: boolean; // 是否支持排序
-    sortDirection?: 'ASC' | 'DESC' | null; // 初始排序方向
-    width?: number; // 列宽度
+  field: string; // 字段名（对应数据key）
+  label: string; // 列标题
+  sortable?: boolean; // 是否支持排序
+  sortDirection?: 'ASC' | 'DESC' | null; // 初始排序方向
+  width?: number; // 列宽度
 }
 
 // 排序信息类型：存储当前排序状态
 export interface SortInfo {
-    field: string; // 排序字段
-    direction: 'ASC' | 'DESC' | null; // 排序方向
+  field: string; // 排序字段
+  direction: 'ASC' | 'DESC' | null; // 排序方向
 }
 
 // 表格行数据类型：表格每一行的具体数据
 export interface TableRowData {
-    id: string; // 唯一标识（字符串类型，符合DevUI表格规范）
-    name?: string; // 名称（可选）
-    frequency?: number;
-    detail?: DetailItem[]; // 展开详情数据（可选）
-    [key: string]: any; // 动态字段（适配不同表格需求）
+  id: string; // 唯一标识（字符串类型，符合DevUI表格规范）
+  name?: string; // 名称（可选）
+  frequency?: number;
+  detail?: DetailItem[]; // 展开详情数据（可选）
+  [key: string]: any; // 动态字段（适配不同表格需求）
 }
 
 // 页签数据类型：每个页签包含的列配置和表格数据
 export interface TabData {
-    name: string; // 页签名称
-    columns: TableColumn[]; // 列配置
-    data: TableRowData[]; // 表格数据
+  name: string; // 页签名称
+  columns: TableColumn[]; // 列配置
+  data: TableRowData[]; // 表格数据
 }
 
 // 按钮数据类型：触发按钮对应的抽屉配置
 export interface PanelData {
-    title: string; // 抽屉标题
-    tabs: TabData[]; // 抽屉内页签数据
+  title: string; // 抽屉标题
+  tabs: TabData[]; // 抽屉内页签数据
 }
 
 // 排序配置类型：兼容旧状态，可后续统一为SortInfo
 export interface SortOption {
-    sortField: string;
-    sortDirection: 'asc' | 'desc' | null;
+  sortField: string;
+  sortDirection: 'asc' | 'desc' | null;
 }
-
 
 export interface GroupItem {
-    name: string;
-    icon?: string; // 图标使用DevUI的类名
-    members: MemberItem[];
+  name: string;
+  icon?: string; // 图标使用DevUI的类名
+  members: MemberItem[];
 }
 
-
 export interface MemberItem extends PassesType {
-    type: 'warning' | 'err' | 'success' | string;
-    icon?: string; // 图标使用DevUI的类名
+  type: 'warning' | 'err' | 'success' | string;
+  icon?: string; // 图标使用DevUI的类名
 }
 
 /**
@@ -189,16 +184,26 @@ export interface MemberItem extends PassesType {
 
 // 定义自定义PATH节点数据类型
 export interface PathCardData {
-    name?: string;
-    functionStats?: {
-        leafFunctions?: number;
-        called?: number;
-        callee?: number;
-    };
-    errorStats?: Record<string, number>;
+  level?: string;
+  scale?: number;
+  name?: string;
+  functionStats?: {
+    leafFunction?: number;
+    called?: number;
+    callee?: number;
+  };
+  errorStats?: Record<string, number>;
+  source: GroupNode;
 }
 
 // 定义自定义IF节点数据类型
 export interface IfCardData {
-    name?: string;
+  name?: string;
+}
+
+// 控制流搜索模糊匹配列表item类型
+export interface SearchSelectItem {
+  data: CombsType;
+  label: string;
+  value: string;
 }
