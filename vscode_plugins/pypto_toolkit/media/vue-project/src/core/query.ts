@@ -1,6 +1,7 @@
 import type { ViewQuery } from 'ext:/core/view/view-query';
 
 import { ExtensionConnector } from './connector';
+import { pushState } from './state';
 
 let resolveQuery: (value: ViewQuery) => void;
 let thenableQuery: Promise<ViewQuery> = new Promise((resolve) => {
@@ -17,6 +18,8 @@ export function initExtensionQuery() {
   queryConnector.send(null);
 
   queryConnector.receive((query) => {
+    const { _viewType, _uri } = query;
+    pushState({ _viewType, _uri });
     resolveQuery(query);
   });
 }
