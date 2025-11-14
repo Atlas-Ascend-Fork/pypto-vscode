@@ -50,7 +50,7 @@ import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swim
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
-import { useViewServer } from '../../core/use-view-server';
+import { useViewServer } from '../../../core/use-view-server';
 
 const { server } = useViewServer();
 
