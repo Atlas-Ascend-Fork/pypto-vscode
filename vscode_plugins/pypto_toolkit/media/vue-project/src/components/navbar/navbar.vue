@@ -14,8 +14,8 @@
           <CodeIcon />
         </div>
       </d-tooltip>
-      <ThreeDot v-if="!getControlFlowError" dot-color="var(--devui-placeholder-icon)" />
-      <d-tooltip v-if="!getControlFlowError" :content="t('controlFlow')" position="bottom" :disabled="currentStep === 'controlFlow'">
+      <ThreeDot v-if="showControlFlow" dot-color="var(--devui-placeholder-icon)" />
+      <d-tooltip v-if="showControlFlow" :content="t('controlFlow')" position="bottom" :disabled="currentStep === 'controlFlow'">
         <div :class="['navbar-control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
           <ControlFlowIcon />
           <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
@@ -63,19 +63,20 @@ import PassList from './passList.vue';
 import HistoryList from './historyList.vue';
 import ThreeDot from './threeDot.vue';
 import HistoryIcon from './icons/history-icon.vue';
-import CodeIcon from './icons/code-icon.vue';
-import ComGraphIcon from './icons/com-graph-icon.vue';
-import SwimIcon from './icons/swim-icon.vue';
+import CodeIcon from '@/components/icons/source-code-icon.vue';
+import ComGraphIcon from '@/components/icons/com-graph-icon.vue';
+import SwimIcon from '@/components/icons/swimlane-icon.vue';
 import ControlFlowIcon from './icons/control-flow-icon.vue';
 import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
-import { getOutputRecords, getOutputDetail } from '../../apis/workspace';
+import { getOutputRecords } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
 import { useNavbar } from './hooks/use-navbar';
+import { useOutputNav } from '@/hooks/use-output-nav';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -87,7 +88,6 @@ const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
 const currentRecord = ref<HistoryData>();
-const showSwim = ref(true);
 const lastPass = ref<PathInPass>();
 const getControlFlowError = ref(false);
 const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
@@ -100,17 +100,14 @@ getOutputRecords({}, { timeout: 600000 }).then((res) => {
   historyList.value = res.data;
 });
 
+const currentOutputPath = computed(() => currentRecord.value?.directoryPath);
+const { controlFlowFile, swimlaneFile } = useOutputNav(currentOutputPath);
+const showControlFlow = computed(() => Boolean(controlFlowFile.value));
+const showSwim = computed(() => Boolean(swimlaneFile.value));
+
 watch(
   [() => props.currentRecordDirectoryPath, currentRecord],
   ([outputDirPath, record]) => {
-    if (record) {
-      getOutputDetail(record.directoryPath).then((res) => {
-        const children = res?.data.directoryTree.children;
-        if (children?.length) {
-          showSwim.value = children.some((item) => item.fileType === 'swimlaneGraph');
-        }
-      });
-    }
     if (outputDirPath && record && props.currentStep !== 'controlFlow') {
       getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000, useCustomErrorHandler: true })
         .then((res) => {
@@ -162,20 +159,14 @@ function onJumpCom() {
 }
 
 function jumpControlFlow() {
-  if (historyListEl.value) {
-    const record = historyListEl.value.getCurrentRecord() as HistoryData;
-    if (record.directoryPath) {
-      openControlFlow({ outputPath: record.directoryPath, controlFlowPath: record.controlFlowFilePath });
-    }
+  if (controlFlowFile.value) {
+    openControlFlow({ outputPath: currentOutputPath.value, controlFlowPath: controlFlowFile.value });
   }
 }
 
 function jumpSwim() {
-  if (historyListEl.value) {
-    const record = historyListEl.value.getCurrentRecord() as HistoryData;
-    if (record.directoryPath) {
-      openSwimlaneGraph({ swimlaneGraphPath: record.swimlaneGraphFilePath });
-    }
+  if (swimlaneFile.value) {
+    openSwimlaneGraph({ swimlaneGraphPath: swimlaneFile.value });
   }
 }
 

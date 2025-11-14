@@ -10,6 +10,7 @@ import { comGraphStore } from '../../service/com-graph-store';
 import { useTheme } from '../../theme/use-theme';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
+import { pushState } from '../../core/state';
 
 import { ICommonViewServer } from '../../../../../src/core/view/view-server-interface';
 const jsonContent = ref({});
@@ -61,6 +62,7 @@ function setupComWatchers(server: any) {
   });
 
   watch(server.ComData, (newValue) => {
+    
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
     outputDirPath.value = newValue.outputDirPath;
@@ -102,7 +104,15 @@ function setupComWatchers(server: any) {
   watch(server.JsonContent, (newValue) => {
     jsonContent.value = newValue.data;
   });
-
+  watch(server.InitData, (newValue) => {
+    pushState({
+      fsPath: newValue.fsPath,
+      funcHash: newValue.funcHash,
+      magicName: newValue.magicName,
+      outputDirPath: newValue.outputDirPath,
+      pathName: newValue.pathName,
+    });
+  });
 }
 
 function setupThreeWatchers(server: any) {

@@ -35,6 +35,9 @@ export const getDevicePixelRatio = () => { return window.devicePixelRatio || 1; 
 export let devicePixelRatio = getDevicePixelRatio();
 export let eventTextSize = 12 * devicePixelRatio;
 export let meaureTextSize = 12 * devicePixelRatio;
+// 测距的最小距离，若小于这个距离，不显示左右箭头
+export const nodeSpaceMin = 58;
+
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
 
