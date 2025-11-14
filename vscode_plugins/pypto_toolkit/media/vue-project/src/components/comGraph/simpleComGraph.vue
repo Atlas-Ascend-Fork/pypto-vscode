@@ -41,7 +41,7 @@
       <div id="sprotty"></div>
     </div>
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
-    <ComGraphMinimap v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
+    <ComGraphMinimap ref="minimapEl" v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
@@ -98,6 +98,7 @@ let createSelectNodesRect;
 let removeSelectNodesRect;
 let initComDocText;
 let resetModelSource;
+let fitToScreenAction;
 const showNodeDetail = ref(false);
 const nodeId = ref('');
 const containerHeight = ref(0);
@@ -105,6 +106,7 @@ const isExpandSearch = ref(false);
 const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
+const minimapEl = ref();
 
 watch(currentActiveBlock, (val) => {
   if (val) {
@@ -202,6 +204,11 @@ function onMessageFromSwim(args) {
 (window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
   if (comGraphVisible) {
     window.dispatchEvent(new Event('resize'));
+    minimapEl.value.updateScaleRation();
+    const fitTimer = setTimeout(() => {
+      fitToScreenAction();
+      fitTimer && clearTimeout(fitTimer);
+    });
   }
 });
 
@@ -332,6 +339,7 @@ watch(
       removeSelectNodesRect = sprottyLoadResult.removeSelectNodesRect;
       hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
       resetModelSource = sprottyLoadResult.resetModelSource;
+      fitToScreenAction = sprottyLoadResult.fitToScreenAction;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
