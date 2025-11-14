@@ -7,7 +7,7 @@ import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer,ICommonViewServer,IComApis,IComRefs } from './view-server-interface';
 
 
-export class ComputeGraphServer extends ViewServer<IComApis, IComRefs> implements IComViewServer,ICommonViewServer {
+export class ComputeGraphServer extends ViewServer<any, any> implements IComViewServer,ICommonViewServer {
   /** 客户端可以访问的方法名 */
   static override _apis: string[] = [
     'askLayout',

@@ -263,7 +263,7 @@ import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
 import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
 import { getSubGraphId } from '../swimGraphProcesses/processInfo';
-import { useViewServer } from '../../core/use-view-server';
+import { useViewServer } from '../../../core/use-view-server';
 
 const { server } = useViewServer();
 const { t: $t } = useI18n();

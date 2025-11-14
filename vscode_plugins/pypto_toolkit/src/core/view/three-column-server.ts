@@ -9,7 +9,7 @@ import { SingleGraphData } from '../graphData';
 import * as vscode from 'vscode';
 import { ICommonViewServer,IComViewServer,IThreeViewServer,IThreeApis,IThreeRefs } from './view-server-interface';
 
-export class ThreeColumnServer extends ViewServer<IThreeApis, IThreeRefs> implements ICommonViewServer,IComViewServer,IThreeViewServer {
+export class ThreeColumnServer extends ViewServer<any, any> implements ICommonViewServer,IComViewServer,IThreeViewServer {
   /** 客户端可以访问的方法名 */
   static override _apis: string[] = [
     'getPyCode',

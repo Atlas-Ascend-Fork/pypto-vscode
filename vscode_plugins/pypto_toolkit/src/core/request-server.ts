@@ -69,7 +69,7 @@ class ExtensionApiServer {
     this.connector = new WebviewConnector('request');
     this.connector.receive(async (requestMessage, webview) => {
       const { api: apiPath, data } = requestMessage;
-      const obj = JSON.parse(data);
+      const obj = JSON.parse(data as string);
       const currentApi = this.getApi(apiPath);
       if (!currentApi) {
         this.resNotFoundError(webview, requestMessage);
