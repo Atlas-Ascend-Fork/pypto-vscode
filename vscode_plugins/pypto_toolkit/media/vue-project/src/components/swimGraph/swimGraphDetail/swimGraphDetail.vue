@@ -541,6 +541,9 @@ defineExpose({
     top: 0;
   }
   .argsTabs {
+    .devui-tabs__nav--tabs li {
+      margin-bottom: 0px;
+    }
     .devui-tabs__nav--tabs {
       border-bottom: 1px var(--devui-swim-border-color) solid;
     }
