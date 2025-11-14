@@ -200,13 +200,11 @@ onMounted(() => {
     loadingStep.value = args;
   });
 });
-
-const layout = ref('triangular');
 </script>
 
 <template>
   <header :class="[outputDirPath && 'com-graph-with-navbar']">
-    <ThreeColumn v-model="layout" v-if="graphType === 'threeColumn'">
+    <ThreeColumn v-if="graphType === 'threeColumn'">
       <template #comGraph>
         <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>

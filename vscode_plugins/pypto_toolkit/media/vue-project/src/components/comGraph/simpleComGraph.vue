@@ -1,5 +1,5 @@
 <template>
-  <div :class="['simple-com-graph-container', currentActive === 'comGraph' && 'show-sticky-block']">
+  <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
       <d-select
         ref="rootHashEl"
@@ -8,7 +8,7 @@
         :placeholder="t('comGraph.pleaseSelect')"
         :position="['bottom-start']"
         :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
-        :menu-class="['simple-com-root-hash-list-menu', currentActive !== 'comGraph' && 'hide-root-hash-list']"
+        :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
         @value-change="onHashChange"
         @toggle-change="onHashMenuToggleChange"
       >
@@ -16,6 +16,8 @@
           <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
         </template>
       </d-select>
+
+      <DragIcon />
 
       <div class="sticky-block-right">
         <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
@@ -56,6 +58,7 @@ import { vscode } from '../../core/vscode';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import { debounce } from 'lodash-es';
 import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
+import DragIcon from '../threeColumn/drag-icon.vue';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -78,7 +81,9 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
-const { isComGraphFullscreen, currentActive, onToggleComGraphFullscreen } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
+const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGraphFullscreen } = inject(
+  ThreeColumnProvideKey,
+) as IThreeColumnCtx;
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
@@ -99,12 +104,16 @@ const containerHeight = ref(0);
 const isExpandSearch = ref(false);
 const comGraphHeaderEl = ref();
 const rootHashEl = ref();
+const isComGraphActive = ref(false);
 
-watch(currentActive, (val) => {
-  if (val !== 'comGraph') {
-    isExpandSearch.value = false;
-    comGraphHeaderEl.value.hideDropdown();
-    rootHashEl.value.toggleChange(false);
+watch(currentActiveBlock, (val) => {
+  if (val) {
+    isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
+    if (!isComGraphActive.value) {
+      isExpandSearch.value = false;
+      comGraphHeaderEl.value.hideDropdown();
+      rootHashEl.value.toggleChange(false);
+    }
   }
 });
 
@@ -412,17 +421,17 @@ onBeforeUnmount(() => {
     border-bottom: 1px solid var(--devui-split-line);
     background-color: var(--devui-card-bg);
     box-sizing: border-box;
-
-    i {
-      font-size: 14px;
-      cursor: pointer;
-    }
   }
 
   .sticky-block-right {
     display: flex;
     align-items: center;
     gap: 8px;
+
+    i {
+      font-size: 14px;
+      cursor: pointer;
+    }
   }
 
   .com-graph-header {
@@ -434,6 +443,10 @@ onBeforeUnmount(() => {
 
     .toolbar-row {
       left: 0;
+    }
+
+    .module-toolbar-container {
+      padding: 0;
     }
 
     .module-row {
