@@ -8,7 +8,6 @@ export type ControlFlowData = ControlFlowPath | ControlFlowIf | ControlFlowLoop;
 
 export interface PathTreeData {
   controlFlowData: ControlFlowData;
-  id: number;
   label: string;
   parentNode?: PathTreeData;
   expanded?: boolean;
