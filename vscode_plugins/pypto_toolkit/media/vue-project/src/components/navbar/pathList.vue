@@ -11,7 +11,7 @@
     <div :class="['path-list-container', isOpen && 'is-open']" @click="() => (isOpen = !isOpen)">
       <div class="selected-path">
         <div class="path-parent" :title="parentData">{{ parentData }}</div>
-        <div class="path-current" :title="currentData?.label">{{ currentData?.label }}</div>
+        <div class="path-current" :title="currentData?.label">{{ currentData ? parsePathMagicName(currentData?.label) : '' }}</div>
       </div>
       <i class="icon-chevron-down-2"></i>
     </div>
@@ -27,9 +27,12 @@
       ></d-search>
       <d-tree ref="treeEl" :data="treeData" class="path-list-tree pypto-scrollbar" @node-click="onNodeClick">
         <template #content="{ nodeData }">
-          <PathIcon v-if="nodeData.isLeaf" />
-          <LoopIcon v-else />
-          <span class="path-list-tree-node-content" :title="nodeData.label">{{ nodeData.label }}</span>
+          <PathIcon v-if="nodeData.controlFlowData.nodeType === 'PATH'" />
+          <LoopIcon v-if="nodeData.controlFlowData.nodeType === 'LOOP'" />
+          <IfIcon v-if="nodeData.controlFlowData.nodeType === 'IF'" />
+          <span class="path-list-tree-node-content" :title="nodeData.label">
+            {{ nodeData.controlFlowData.nodeType === 'PATH' ? parsePathMagicName(nodeData.label) : nodeData.label }}
+          </span>
         </template>
       </d-tree>
       <div v-if="searchNoRes" class="search-no-res">{{ t('noDataMatched') }}</div>
@@ -43,9 +46,10 @@ import { useI18n } from 'vue-i18n';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
-import { transformAndFlatTreeData } from './util';
+import { transformAndFlatTreeData, parsePathMagicName } from './util';
 import LoopIcon from './icons/loop-icon.vue';
 import PathIcon from './icons/path-icon.vue';
+import IfIcon from './icons/if-icon.vue';
 
 const { t } = useI18n();
 const { rootProps, controlFlowList, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
@@ -109,7 +113,7 @@ const onToggle = (val) => {
 };
 
 function onSearch(val: string) {
-  treeEl.value.treeFactory.searchTree(val, { isFilter: true });
+  treeEl.value.treeFactory.searchTree(val, { isFilter: true, matchKey: 'magicName' });
   searchNoRes.value = treeEl.value.treeFactory.treeData.value.every((item) => item.isHide);
 }
 
