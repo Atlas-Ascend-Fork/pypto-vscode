@@ -37,13 +37,10 @@ const returnTheme = (message) => {
   updateTheme(message.data);
 };
 
-const updateJsonContent = (message) => {
-  jsonContent.value = message.data;
-}
+
 
 const CommandCallbackMap = {
   returnSidBar,
-  updateJsonContent,
   returnTheme,
 };
 
@@ -73,14 +70,6 @@ const layout = ref('triangular');
     <MiddleLayer v-if="graphType" :graphType="graphType" ></MiddleLayer>
     <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
-    <DiffComGraph
-      v-if="graphType === 'returnDiffCom'"
-      :afterJson="diffInfo.afterJson"
-      :afterFileName="diffInfo.afterFileName"
-      :beforeJson="diffInfo.beforeJson"
-      :beforeFileName="diffInfo.beforeFileName"
-      :loadingStep="loadingStep"
-    />
   </header>
   <div class="parent-container" v-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>

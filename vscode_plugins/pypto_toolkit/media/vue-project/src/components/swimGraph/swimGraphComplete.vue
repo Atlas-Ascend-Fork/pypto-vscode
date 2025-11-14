@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject } from 'vue';
+import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject,toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
@@ -96,8 +96,9 @@ const props = defineProps({
   isThreeColumn: {
     type: Boolean,
     default: false
-  }
+  },
 });
+
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const titlePath = ref(`${window.staticPath}/static-assets/title_40px.svg`);
@@ -285,48 +286,7 @@ function setupSwimWatchers() {
   });
 }
 
-const handleMessage = (event) => {
-  const message = event.data;
-  switch (message.command) {
-    case 'returnSwimData':
-      const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-      let newMessage = (oldMessage && oldMessage.message) || message;
-      vscode.setState({ message: message });
-      setPageState(message);
-      loadTraceData(newMessage.data);
-      break;
-    case 'bindResult':
-      if (message.success) {
-        bindFile.value = message.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
-      } else {
-        bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
-      }
-      break;
-    case 'unbindResult':
-      if (message.success) {
-        bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
-      } else {
-        bindFile.value = message.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
-      }
-      break;
-    case 'noSwimFile':
-      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
-      break;
-    case 'validateSwimFile':
-      validData(message.content);
-      break;
-  }
-};
 
-const postMessage = (message) => {
-  if (window.vscode) {
-    window.vscode.postMessage(message);
-  }
-};
 
 let ERROR_MESSAGES = {
   INVALID_FILE: $t("swimErroMsgINVALID_FILE"),
@@ -342,76 +302,6 @@ let ERROR_MESSAGES = {
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
 
-const validData = (dataStr) => {
-  let data = {};
-  try {
-    data = JSON.parse(dataStr);
-  } catch (error) {
-    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.NOT_JSON}`);
-    return;
-  }
-  if (!data || !data.traceEvents || !Array.isArray(data.traceEvents)) {
-    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_FILE}`);
-    return;
-  }
-
-  let hasProcessName = false;
-  let countThread = 0;
-
-  const eventMap = new Map();
-  data.traceEvents.forEach(event => {
-    const key = `${event.name}-${event.id}`;
-    if (!eventMap.has(key)) {
-      eventMap.set(key, []);
-    }
-    eventMap.get(key).push(event);
-  });
-
-  data.traceEvents.forEach(event => {
-    if (event.cat === 'event' && (typeof event.id === "undefined" || !event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
-      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`);
-    }
-
-    if (event.ph === 'B') {
-      const key = `${event.name}-${event.id}`;
-      const endEvent = eventMap.get(key) || [];
-      const hasE = endEvent.some(e => e.ph === 'E');
-      if (!hasE) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_END_EVENT}: ["${event.name}"]`);
-      }
-    } else if (event.ph === 'X') {
-      if (!event.dur) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`);
-      }
-    } else if (event.ph === 'C') {
-      if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number" )) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`);
-      }
-    } 
-
-    if (event.name === "process_name") {
-      hasProcessName = true;
-      if (typeof event.pid === "undefined" || !event.args || !event.args.name) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_PROCESS_NAME}: ["${event.args.name}"]`);
-      }
-    }
-
-    if (event.name.includes("thread")) {
-      countThread += 1;
-      if (typeof event.pid === "undefined" || typeof event.tid === "undefined" || !event.args || !event.args.name) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_THREADS_FIELDS}: ["${event.args.name}"]`);
-      }
-    }
-  });
-
-  if (countThread === 0) {
-    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_THREADS);
-  }
-
-  if (!hasProcessName) {
-    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_PROCESS_NAME);
-  }
-};
 
 const loadTraceData = (data) => {
   try {
@@ -1723,14 +1613,17 @@ const setPageState = (message) => {
 onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
-  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-  if (oldMessage && oldMessage.message.data) {
-    setPageState(oldMessage.message);
-    loadTraceData(oldMessage.message.data);
-  } else {
-    loading.value = true;
-    server.getSwimData();
+  if (!props.isThreeColumn) {
+    const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+    if (oldMessage && oldMessage.message.data) {
+      setPageState(oldMessage.message);
+      loadTraceData(oldMessage.message.data);
+    } else {
+      loading.value = true;
+      server.getSwimData();
+    }
   }
+  
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 

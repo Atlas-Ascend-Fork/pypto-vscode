@@ -283,8 +283,8 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
-  static async innerGetSubgraph(panel: any, data: any) {
-    const gd = this.getGraphData(panel);
+  static async innerGetSubgraph(server: any, data: any) {
+    const gd = this.getGraphData(server);
     gd.funcHash = data.calleehash;
 
     let ret: string | null = null;
@@ -308,14 +308,11 @@ export abstract class BaseGraphMsgHandler {
       ret = gd.dataMap[gd.funcHash!] ?? null;
     }
     if (!ret) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
     const json = JSON.parse(ret);
-    panel.webview.postMessage({
-      command: 'updateJsonContent',
-      data: json,
-    });
+    server.setRef('updateJsonContent', { data: json });
   }
 
   static async jumpToCodeLine(data: any) {

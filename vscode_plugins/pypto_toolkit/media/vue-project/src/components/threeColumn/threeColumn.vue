@@ -23,9 +23,10 @@
 
 <script setup lang="ts">
 import { inject, provide } from 'vue';
-import type { PropType, Ref } from 'vue';
+import type { PropType,Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import editor from './editor.vue';
+
 
 const { isDarkTheme } = inject('root') as {isDarkTheme:Ref<boolean>};
 

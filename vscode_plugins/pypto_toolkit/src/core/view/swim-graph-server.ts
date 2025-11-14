@@ -1,8 +1,7 @@
 import { ViewServer } from './view-server';
 import { ViewServerContext } from './view-server-context';
-import { swimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
+import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { ISwimViewServer,ICommonViewServer,ISwimApis,ISwimRefs } from './view-server-interface';
-import { AbstractGraphData } from '../../core/graphData';
 
 export class SwimGraphServer extends ViewServer<any, any> implements ICommonViewServer, ISwimViewServer {
   /** 客户端可以访问的方法名 */
@@ -37,7 +36,7 @@ export class SwimGraphServer extends ViewServer<any, any> implements ICommonView
     entryHash: string;
     viewType?: string;
 
-    handler: typeof swimGraphMsgHandler;
+    handler: typeof SwimGraphMsgHandler;
     query?: any;
   
     constructor(ctx: ViewServerContext) {
@@ -48,12 +47,12 @@ export class SwimGraphServer extends ViewServer<any, any> implements ICommonView
       this.viewType = ctx.viewType;
       this.query = typeof ctx.fileUri?.query === 'string' ? this.safeParse(ctx.fileUri?.query) : ctx.fileUri?.query ?? {};
       this.swimDataPath = this.query._path;
-      this.handler = swimGraphMsgHandler;
+      this.handler = SwimGraphMsgHandler;
     }
     public override created(ctx: ViewServerContext): void {}
   
     public getInitialData = async () => {
-      await this.handler.getSwimInitData(this);
+      await this.handler.getInitialData(this);
     };
     public getSwimData = async () => {
       await this.handler.getSwimData(this);

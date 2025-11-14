@@ -2,14 +2,18 @@ import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vsco
 import { ViewServer } from './view-server';
 import { ViewServerContext } from './view-server-context';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
-import { MsgHandler, SwimData } from '../../view/swimGraphView';
+import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
+import { SwimData } from '../../view/swimGraphView';
 import { Fider } from '../../view/threeColumnEntry';
 import { readFileSync, writeFileSync } from 'fs';
 import { SingleGraphData } from '../graphData';
 import * as vscode from 'vscode';
-import { ICommonViewServer,IComViewServer,IThreeViewServer,IThreeApis,IThreeRefs } from './view-server-interface';
+import { ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer } from './view-server-interface';
 
-export class ThreeColumnServer extends ViewServer<any, any> implements ICommonViewServer,IComViewServer,IThreeViewServer {
+export class ThreeColumnServer
+  extends ViewServer<any, any>
+  implements ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer
+{
   /** 客户端可以访问的方法名 */
   static override _apis: string[] = [
     'getPyCode',
@@ -23,6 +27,15 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
     'openDiffViewer',
     'setFinalResult',
     'searchAllFunc',
+    'getSwimData',
+    'bindComGraphJson',
+    'unbindComGraph',
+    'jumpToComGraph',
+    'openBoundComGraph',
+    'jumpRawMagic',
+    'showMessage',
+    'saveRendingMode',
+    'changeUserCfgConnection',
   ];
 
   /** 客户端可以使用的响应式对象名 */
@@ -50,19 +63,23 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
     'LayoutResult',
     'PathNodesSet',
     'ReadJsonWarning',
-
+    'returnSwim',
+    'returnTheme',
+    'noSwimFile',
+    'returnSwimData',
+    'bindResult',
+    'unbindResult',
   ];
   public title: string;
   public isReveal: boolean;
   public msgHandler: any;
   public _disposables: any[];
   codePath: string;
-  swimPath?: string;
+  swimDataPath?: string;
   comPath?: string;
   swimData?: SwimData;
   codeMsgHandler?: any;
-  comgraphHanlder?: SingleGraphHandler;
-  swimgraphHandler?: MsgHandler;
+
   query?: {};
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -72,7 +89,6 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
     const oldQuery = typeof ctx.fileUri.query === 'string' ? JSON.parse(ctx.fileUri.query) : ctx.fileUri.query ?? {};
     this.codePath = removeSuffix(oldQuery._path);
 
-    // this.viewType = ctx.viewType;
     // 设置视图标题
     const titleNameMatch = ctx.fileUri.path.match(/\/([^\/]+)\.py$/);
     let titleName = 'linkage mode default';
@@ -84,22 +100,15 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
     this.isReveal = false;
     this._disposables = [];
 
-    // this.swimPath = swimUri?.fsPath;
-    // this.comPath = comgraphUri?.fsPath;
-
-    // this.codeMsgHandler = codeMsgHandler;
-    // this.comgraphHanlder = comGraphHandler;
-    // this.swimgraphHandler = swimGrapHandler;
-    // this.codePath = this.codePath;
     this.initWebViewPanel();
   }
   public override created(ctx: ViewServerContext): void {}
 
   public getInitialData = async () => {
-    // await waitForVariableWhileLoop(() => this.comPath);
     this.setRef('SetThreeColumnMode', '');
-    await comGraphHandler.getInitialData(this);
-    // await swimGrapHandler.getInitialData(this);
+    await ComGraphHandler.getInitialData(this);
+    await SwimGraphMsgHandler.getInitialData(this);
+    await SwimGraphMsgHandler.getSwimData(this);
   };
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
@@ -109,29 +118,57 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
   };
 
   public askLayout = async (message) => {
-    await comGraphHandler.elkLayout(message.data, this);
+    await ComGraphHandler.elkLayout(message.data, this);
   };
   public getJsonGraphData = async (message) => {
-    await comGraphHandler.getJsonGraphData(message, this);
+    await ComGraphHandler.getJsonGraphData(message, this);
   };
   public setFinalResult = async (message) => {
-    await comGraphHandler.setFinalResult(message, this);
+    await ComGraphHandler.setFinalResult(message, this);
   };
   public openDiffViewer = async () => {
-    await comGraphHandler.openDiffViewer(this, this.query);
+    await ComGraphHandler.openDiffViewer(this, this.query);
   };
   public getSubgraph = async (message: any) => {
-    await comGraphHandler.getSubgraph(this, message.paramObj, this.query);
+    await ComGraphHandler.getSubgraph(this, message.paramObj, this.query);
   };
   public searchAllFunc = async (message) => {
-    await comGraphHandler.searchAllFunc(this, message);
+    await ComGraphHandler.searchAllFunc(this, message);
   };
   public jumpToCodeLine = async (message) => {
-    await comGraphHandler.jumpToCodeLine(message);
+    await ComGraphHandler.jumpToCodeLine(message);
   };
   public getHealthyReport = async () => {
-    await comGraphHandler.getHealthyReport(this);
+    await ComGraphHandler.getHealthyReport(this);
   };
+  public getSwimData = async () => {
+    await SwimGraphMsgHandler.getSwimData(this);
+  };
+  public bindComGraphJson = async () => {
+    await SwimGraphMsgHandler.bindComGraphJson(this);
+  };
+  public unbindComGraph = async () => {
+    await SwimGraphMsgHandler.unbindComGraph(this);
+  };
+  public jumpToComGraph = async (message: any) => {
+    await SwimGraphMsgHandler.jumpToComGraph(this, message.paramObj);
+  };
+  public openBoundComGraph = async () => {
+    await SwimGraphMsgHandler.openBoundComGraph(this);
+  };
+  public jumpRawMagic = async (message: any) => {
+    await SwimGraphMsgHandler.jumpRawMagic(this, message.paramObj);
+  };
+  public showMessage = async (message: any) => {
+    await SwimGraphMsgHandler.showMessage(this, message.paramObj);
+  };
+  public saveRendingMode = async (message: any) => {
+    await SwimGraphMsgHandler.saveRendingMode(this, message.paramObj);
+  };
+  public changeUserCfgConnection = async (message: any) => {
+    await SwimGraphMsgHandler.changeUserCfgConnection(this, message.paramObj);
+  };
+
   // 初始化自动关联路径
   async initRelativePath(
     codePath: string,
@@ -143,21 +180,20 @@ export class ThreeColumnServer extends ViewServer<any, any> implements ICommonVi
   }
 
   async initWebViewPanel() {
-    if (!this.swimPath || !this.comPath) {
-      const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimPath, this.comPath);
+    if (!this.swimDataPath || !this.comPath) {
+      const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
       if (!swimPath || !comPath) {
         // this.server.dispose();
         return;
       }
-      this.swimPath = swimPath;
+      this.swimDataPath = swimPath;
       this.comPath = comPath;
       this.swimData = new SwimData(Uri.file(swimPath), swimPath);
       this.query = {
         fsPath: comPath,
       };
-      this.setRef('InitFlag','true');
+      this.setRef('InitFlag', 'true');
     }
-
   }
 
   safeParse(str) {
@@ -174,27 +210,6 @@ function removeSuffix(input: string): string {
     return input.substring(0, pos);
   } else {
     return input;
-  }
-}
-async function waitForVariableWhileLoop<T>(
-  checkCondition: () => T | null | undefined,
-  interval: number = 100,
-  timeout: number = 50000,
-): Promise<T> {
-  const startTime = Date.now();
-  let i = 0;
-  while (true) {
-    const result = checkCondition();
-    if (result !== null && result !== undefined) {
-      return result;
-    }
-    console.debug(`等待:第`, i++,`次`);
-    if (Date.now() - startTime > timeout) {
-      throw new Error('等待超时');
-    }
-
-    // 等待指定时间后继续检查
-    await new Promise((resolve) => setTimeout(resolve, interval));
   }
 }
 
@@ -230,7 +245,7 @@ class codeMsgHandler {
   }
 }
 
-class comGraphHandler extends SingleGraphHandler {
+class ComGraphHandler extends SingleGraphHandler {
   static searchFuncHashInProject(server, funcHash: string) {
     vscode.workspace.findFiles(`**/*${funcHash}*.json`).then((fileList) => {
       const res = fileList.map((uri) => uri.fsPath);
@@ -255,5 +270,3 @@ class comGraphHandler extends SingleGraphHandler {
     server.setRef('CompleteData', { data: fullData });
   }
 }
-
-class swimGrapHandler extends MsgHandler {}

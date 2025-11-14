@@ -9,7 +9,7 @@ import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo } from '../process';
 import { GraphView } from '../view/graphView';
 
-export abstract class swimGraphMsgHandler {
+export abstract class SwimGraphMsgHandler {
     static cachePath: string;
 
     public static readonly WHITE_COMMANDS = new Set([
@@ -24,7 +24,7 @@ export abstract class swimGraphMsgHandler {
         'changeUserCfgConnection',
     ]);
 
-    static async getSwimInitData(server: any) {
+    static async getInitialData(server: any) {
         server.setRef('returnSwim', { data: {} });
         server.setRef('returnTheme', { data: getIDETheme() });
     }

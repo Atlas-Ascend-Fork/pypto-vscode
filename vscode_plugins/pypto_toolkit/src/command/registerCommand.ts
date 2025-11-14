@@ -1,12 +1,10 @@
-import { ExtensionContext, Uri, ViewColumn, commands, window } from 'vscode';
+import { ExtensionContext, Uri, commands, window } from 'vscode';
 import { t as _ } from 'i18next';
-import { SwimGraphView } from '../view/swimGraphView';
 const fs = require('fs');
 const readline = require('readline');
 
 import { useView } from '../view';
 import * as vscode from 'vscode';
-import { ThreeColumnGraphView } from '../view/threeColumnView';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -78,7 +76,7 @@ export class RegisterCommand {
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), { query: finalQuery });
     } else if (content.includes('traceEvents')) {
-      await editorView.open('swimGraph', (uri));
+      await editorView.open('swimGraph', uri);
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }

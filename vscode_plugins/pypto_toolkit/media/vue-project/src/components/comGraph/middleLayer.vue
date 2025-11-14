@@ -9,11 +9,10 @@ import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useTheme } from '../../theme/use-theme';
 import { useViewServer } from '../../core/use-view-server';
-import swimGraph from '../../components/swimGraph/swimGraphComplete.vue';
-import { ComputeGraphServer } from '../../../../../src/core/view/com-graph-server';
-import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
+
 import { ICommonViewServer } from '../../../../../src/core/view/view-server-interface';
-const jsonContent = ref();
+const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
 const outputDirPath = ref('');
@@ -100,7 +99,12 @@ function setupComWatchers(server: any) {
   watch(server.SetThreeColumnMode, () => {
     inThreeColumnMode = true;
   });
+  watch(server.JsonContent, (newValue) => {
+    jsonContent.value = newValue.data;
+  });
+
 }
+
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag,async () => {
     await server.getInitialData();
@@ -178,13 +182,13 @@ function onFullRender() {
 </script>
 
 <template>
-  <ThreeColumn v-model="layout" v-if="graphType === 'threeColumnGraph'">
+  <ThreeColumn v-model="layout" v-if="graphType === 'threeColumnGraph'" >
     <template #code>code</template>
     <template #comGraph>
       <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
     </template>
     <template #swimGraph>
-      <SwimGraph style="height: 100%" :is-three-column="true" />
+      <SwimGraph style="height: 100%" :is-three-column="true" :graphType="graphType"/>
     </template>
   </ThreeColumn>
   <ComGraph v-if="graphType === 'computeGraph'" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
