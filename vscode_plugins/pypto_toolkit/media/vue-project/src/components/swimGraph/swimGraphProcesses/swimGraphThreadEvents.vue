@@ -1741,35 +1741,31 @@ const drawEventLine = (x, color, flag) => {
   const devicePixelRatioValue = window.devicePixelRatio !== undefined ? window.devicePixelRatio : 1;
   const drawX = x * devicePixelRatioValue;
   for (const processx of processes.entries()) {
-    if (processx[1].expanded) {
-      let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
-      if (flag === "over") {
-        canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
-      }
-      let ctx = canvasRef.getContext('2d');
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(drawX, 0);
-      ctx.lineTo(drawX, canvasRef.height);
-      ctx.stroke();
-      ctx.restore();
+    let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
+    if (flag === "over") {
+      canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
     }
+    let ctx = canvasRef.getContext('2d');
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(drawX, 0);
+    ctx.lineTo(drawX, canvasRef.height);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
 const eraseEventLine = (flag) => {
   for (const processx of processes.entries()) {
-    if (processx[1].expanded) {
-      let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
-      if (flag === "over") {
-        canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
-      }
-      const ctx = canvasRef.getContext('2d');
-      ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
+    if (flag === "over") {
+      canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
     }
+    const ctx = canvasRef.getContext('2d');
+    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
   }
 }
 
