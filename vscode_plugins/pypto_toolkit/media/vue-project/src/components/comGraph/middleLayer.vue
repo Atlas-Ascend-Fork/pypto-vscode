@@ -130,6 +130,9 @@ onMounted(async () => {
   if (graphType.value === 'swimGraph') {
     await server.getInitialData();
   }
+  if (graphType.value === 'threeColumnGraph') {
+    await server.pageInit();
+  }
   (window as any).ascEventBus.on('comGraphRendering', (args) => {
     loadingStep.value = args;
   });

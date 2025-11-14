@@ -284,6 +284,9 @@ function setupSwimWatchers() {
   watch(server.noSwimFile, (newValue) => {
     window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`);
   });
+  watch(server.validateSwimFile, (newValue) => {
+    validData(newValue.content);
+  });
 }
 
 
@@ -301,6 +304,77 @@ let ERROR_MESSAGES = {
   FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
+
+const validData = (dataStr) => {
+  let data = {};
+  try {
+    data = JSON.parse(dataStr);
+  } catch (error) {
+    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.NOT_JSON}`);
+    return;
+  }
+  if (!data || !data.traceEvents || !Array.isArray(data.traceEvents)) {
+    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_FILE}`);
+    return;
+  }
+
+  let hasProcessName = false;
+  let countThread = 0;
+
+  const eventMap = new Map();
+  data.traceEvents.forEach(event => {
+    const key = `${event.name}-${event.id}`;
+    if (!eventMap.has(key)) {
+      eventMap.set(key, []);
+    }
+    eventMap.get(key).push(event);
+  });
+
+  data.traceEvents.forEach(event => {
+    if (event.cat === 'event' && (typeof event.id === "undefined" || !event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
+      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`);
+    }
+
+    if (event.ph === 'B') {
+      const key = `${event.name}-${event.id}`;
+      const endEvent = eventMap.get(key) || [];
+      const hasE = endEvent.some(e => e.ph === 'E');
+      if (!hasE) {
+        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_END_EVENT}: ["${event.name}"]`);
+      }
+    } else if (event.ph === 'X') {
+      if (!event.dur) {
+        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`);
+      }
+    } else if (event.ph === 'C') {
+      if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number" )) {
+        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`);
+      }
+    } 
+
+    if (event.name === "process_name") {
+      hasProcessName = true;
+      if (typeof event.pid === "undefined" || !event.args || !event.args.name) {
+        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_PROCESS_NAME}: ["${event.args.name}"]`);
+      }
+    }
+
+    if (event.name.includes("thread")) {
+      countThread += 1;
+      if (typeof event.pid === "undefined" || typeof event.tid === "undefined" || !event.args || !event.args.name) {
+        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_THREADS_FIELDS}: ["${event.args.name}"]`);
+      }
+    }
+  });
+
+  if (countThread === 0) {
+    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_THREADS);
+  }
+
+  if (!hasProcessName) {
+    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_PROCESS_NAME);
+  }
+};
 
 
 const loadTraceData = (data) => {
@@ -1613,17 +1687,14 @@ const setPageState = (message) => {
 onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
-  if (!props.isThreeColumn) {
-    const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-    if (oldMessage && oldMessage.message.data) {
-      setPageState(oldMessage.message);
-      loadTraceData(oldMessage.message.data);
-    } else {
-      loading.value = true;
-      server.getSwimData();
-    }
+  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+  if (oldMessage && oldMessage.message.data) {
+    setPageState(oldMessage.message);
+    loadTraceData(oldMessage.message.data);
+  } else {
+    loading.value = true;
+    server.getSwimData();
   }
-  
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 

@@ -16,6 +16,7 @@ export class ThreeColumnServer
 {
   /** 客户端可以访问的方法名 */
   static override _apis: string[] = [
+    'pageInit',
     'getPyCode',
     'savePyCode',
     'getInitialData',
@@ -66,6 +67,7 @@ export class ThreeColumnServer
     'returnSwim',
     'returnTheme',
     'noSwimFile',
+    'validateSwimFile',
     'returnSwimData',
     'bindResult',
     'unbindResult',
@@ -79,6 +81,7 @@ export class ThreeColumnServer
   comPath?: string;
   swimData?: SwimData;
   codeMsgHandler?: any;
+  sendFlag = false;
 
   query?: {};
   constructor(ctx: ViewServerContext) {
@@ -192,7 +195,16 @@ export class ThreeColumnServer
       this.query = {
         fsPath: comPath,
       };
+      if (!this.sendFlag) {
+        this.setRef('InitFlag', 'true');
+      }
+    }
+  }
+
+  public pageInit() {
+    if (!this.sendFlag && this.swimDataPath && this.comPath) {
       this.setRef('InitFlag', 'true');
+      this.sendFlag = true;
     }
   }
 

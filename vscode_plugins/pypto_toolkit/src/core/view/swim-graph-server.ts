@@ -23,6 +23,7 @@ export class SwimGraphServer extends ViewServer<any, any> implements ICommonView
     'returnSwim',
     'returnTheme',
     'noSwimFile',
+    'validateSwimFile',
     'returnSwimData',
     'bindResult',
     'unbindResult',

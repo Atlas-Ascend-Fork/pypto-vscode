@@ -61,6 +61,7 @@ export abstract class SwimGraphMsgHandler {
         let swimStr = '';
         try {
             swimStr = readFileSync(swimPath, 'utf8');
+            this.validateFile(server, swimPath);
             console.log('读取merged_swimlane.json文件');
 
         } catch (err) {
@@ -105,6 +106,12 @@ export abstract class SwimGraphMsgHandler {
         console.log('returnSwimData message send');
     }
 
+    static async validateFile(server: any, content: string) {
+        server.setRef('validateSwimFile', {
+            content,
+        });
+    };
+    
     // 绑定计算图文件
     static async bindComGraphJson(server: any) {
         const swimPath = server.swimDataPath;

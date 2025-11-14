@@ -54,9 +54,6 @@ onMounted(() => {
   document.addEventListener('contextmenu',(e) =>{
     e.preventDefault();//阻止原生菜单弹出
   });
-  vscode.value.postMessage({
-      command: 'getInitialData',
-    });
 });
 
 const layout = ref('triangular');
