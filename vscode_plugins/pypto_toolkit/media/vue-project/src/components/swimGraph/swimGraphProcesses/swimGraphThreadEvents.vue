@@ -48,9 +48,13 @@
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
-  getThreadHeight, getThreadStartY, eventTextSize, meaureTextSize
+  getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX } from './render/utils';
+import { EventRender } from './render/eventRender';
+import { altClickData, measureState, MeatureRender } from './render/meatureRender';
+import { ThreeRender, spaceInThreeCol } from './render/threeRender';
 
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -63,12 +67,12 @@ let boundaries = [];
 let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
-const spaceInThreeCol = 2;
 const getActiveEventCanvas = (processKey) => {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 };
 let isHoverLockStatus = false; // 选定状态
 // 注入父组件提供的状态和方法
+const swimGraphState = inject('swimGraphState');
 const {
   layout,
   selectedEvent,
@@ -96,7 +100,7 @@ const {
   isLockStatus,
   dependencyLinesInfo,
   isThreeColumn,
-} = inject('swimGraphState');
+} = swimGraphState;
 
 const {
   findEventAtPosition,
@@ -119,8 +123,11 @@ const {
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
 const { isSearchActive } = inject('swimGraphSearch');
-// 测距的最小距离，若小于这个距离，不显示左右箭头
-const nodeSpaceMin = 58;
+
+// 创建渲染实例
+const eventRenderer = new EventRender({...swimGraphState, colorCfg});
+const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
+const threeRender = new ThreeRender(swimGraphState);
 // 定义props
 const props = defineProps({
   processKey: {
@@ -133,11 +140,7 @@ const props = defineProps({
   }
 });
 let lastMoveX;
-let altClickData = {
-    preData: null,
-    lastData: null,
-    largeSpacing: false
-};
+
 // 框选的起点和终点坐标
 let selection = {
   startX : 0,
@@ -149,12 +152,6 @@ let selection = {
 };
 let isDragging = ref(false);
 let isClick = ref(false);
-// 手动测距，点击第一个节点
-let isMeasureFirst = ref(false);
-// 手动测距，点击第二个节点 ，此时的测距需要保留
-let isMeasureFixed = ref(false);
-// 手动测距，是否交换
-let isMeasureChange = ref(false);
 let wheelDebounceTimer;
 let AICCount = 0;
 let AIVCount = 0;
@@ -208,13 +205,13 @@ const handleCanvasClick = (e) => {
       onHoverEvent();
       measureDistance(clickedEvent, props.processKey);
     } else {
-      isMeasureFirst.value = false;
-      isMeasureFixed.value = false;
+      measureState.isMeasureFirst = false;
+      measureState.isMeasureFixed = false;
       !e.ctrlKey && selectEvent(clickedEvent, props.processKey);
     }
   } else {
-    isMeasureFirst.value = false;
-    isMeasureFixed.value = false;
+    measureState.isMeasureFirst = false;
+    measureState.isMeasureFixed = false;
     highlightedPaths.clear();
     detailsPanelExpanded.value = false;
     selectEvent(null, props.processKey);
@@ -352,14 +349,14 @@ const handlekeydown = (event) => {
     case matchKey(key, userConfig?.value.ZoomInShortcut):
       scaleCanvas(mouseX, 1 + scaleStep);
       scaleStep += scaleStepIncrement;
-      if (isMeasureFixed.value) {
+      if (measureState.isMeasureFixed) {
         measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
       }
       break;
     case matchKey(key, userConfig?.value.ZoomOutShortcut):
       scaleCanvas(mouseX, 1 - scaleStep);
       scaleStep += scaleStepIncrement;
-      if (isMeasureFixed.value) {
+      if (measureState.isMeasureFixed) {
         measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
       }
       break;
@@ -408,17 +405,6 @@ function getCanvasRefs(processKey) {
   };
 }
 
-function updateMousePos(e) {
-  mousePosition = { x: e.clientX, y: e.clientY };
-}
-
-function computeLocalXY(canvasRef) {
-  const rect = canvasRef.getBoundingClientRect();
-  const x = (mousePosition.x - rect.left - viewState.offsetX) / viewState.scale;
-  const y = mousePosition.y - rect.top;
-  return { x, y };
-}
-
 function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
   if (!(y > 0 && y < backgroundCanvasRef.offsetHeight - 1)) { return };
   let threadId = 0;
@@ -447,37 +433,39 @@ function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
 }
 
 function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
-  const manual = altClickData.preData && isMeasureFirst.value && !isMeasureFixed.value;
+  const manual = altClickData.preData && measureState.isMeasureFirst && !measureState.isMeasureFixed;
   if (!(hoveredEvent && e.altKey && manual)) {
     return false;
   }
-  if (isMeasureChange.value && altClickData.lastData) {
+  if (measureState.isMeasureChange && altClickData.lastData) {
     let temp = altClickData.preData;
     altClickData.preData = altClickData.lastData;
     altClickData.lastData = temp;
-    isMeasureChange.value = false;
+    measureState.isMeasureChange = false;
   }
   if (isEqual(altClickData.preData, hoveredEvent)) {
     return true; // consumed
   }
   altClickData.lastData = hoveredEvent;
-  clearDrawConnectorHover(uiCtx, props.processKey);
-  measureDistanceHover(hoveredEvent, props.processKey);
+  measureRenderer.clearDrawConnectorHover(uiCtx, props.processKey);
+  measureRenderer.measureDistanceHover(uiCtx);
   return false;
 }
 
 function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
-  if (!preData || !lastData || isMeasureFixed.value) { return };
+  if (!preData || !lastData || measureState.isMeasureFixed) { return };
   const divElement = document.getElementsByClassName('swimlane-container');
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth;
   const actSpacingX = nodeSpacingX * viewState.scale;
   if (actSpacingX <= 3) { return };
   const { canvasWidth } = viewState;
-  const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x);
-  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x) + (preData?.renderInfo?.width * viewState.scale);
+  const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x, viewState);
+  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x, viewState) + (preData?.renderInfo?.width * viewState.scale);
   if (noZoomLastX < (canvasWidth - scrollWidth) && noZoomPreX > 0 ) {
-    altClickData = { preData, lastData, largeSpacing: actSpacingX > nodeSpaceMin };
-    drawConnector(uiCtx, altClickData.largeSpacing);
+    altClickData.preData = preData;
+    altClickData.lastData = lastData;
+    altClickData.largeSpacing = actSpacingX > nodeSpaceMin;
+    measureRenderer.drawConnector(uiCtx, altClickData.largeSpacing);
   }
 }
 
@@ -606,12 +594,12 @@ const handleMouseMove = throttle((e) => {
   if (!refs) { return };
   const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
 
-  if (altClickData.preData && altClickData.lastData && !e.altKey && !isMeasureFixed.value) {
-    clearDrawConnector(uiCtx, props.processKey);
+  if (altClickData.preData && altClickData.lastData && !e.altKey && !measureState.isMeasureFixed) {
+    measureRenderer.clearDrawConnector(uiCtx, props.processKey);
   }
 
-  updateMousePos(e);
-  const localPosition = computeLocalXY(canvasRef);
+  mousePosition = { x: e.clientX, y: e.clientY };
+  const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
   const info = findEventAtPosition(x, y, props.processKey);
   const hoveredEvent = info?.event;
@@ -621,9 +609,9 @@ const handleMouseMove = throttle((e) => {
   if (e.altKey) {
     handleAltMove(e, info, refs);
   } else if (e.ctrlKey) {
-    isMeasureFirst.value = false;
+    measureState.isMeasureFirst = false;
   } else {
-    isMeasureFirst.value = false;
+    measureState.isMeasureFirst = false;
     handlePureMove(info, refs, localPosition);
   }
 
@@ -649,13 +637,10 @@ const shouldUpdateOutline = (color) => {
   return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus;
 };
 const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
-  let cursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
-  cursor = handleLineTooltipAndCursor(e, x, y) || '';
-  const dragCursor = handleCtrlDragPan(e, canvasRef);
-  if (dragCursor) {
-    cursor = dragCursor;
-  }
-  canvasRef.style.cursor = cursor;
+  const taskCursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
+  const lineCursor = handleLineTooltipAndCursor(e, x, y) || '';
+  const dragCursor = handleCtrlDragPan(e, canvasRef) || '';
+  canvasRef.style.cursor = taskCursor || lineCursor || dragCursor;
 };
 const getRootHashList = (eventHintStr) => {
   // 添加输入验证
@@ -753,145 +738,6 @@ const calcRowBoundaries = (nodes) => {
   });
 };
 
-const drawPath = (ctx, tempRegions, lineArray) => {
-  tempRegions.forEach((region, index) => {
-    ctx.beginPath();
-    const [firstRow] = region;
-    const lastRow = region[region.length - 1];
-    if (index === 0 || index === tempRegions.length - 1) {
-      lineArray.push(index === 0 ? lastRow : firstRow);
-    } else {
-      lineArray.push(firstRow);
-      if (region.length > 1) {
-        lineArray.push(lastRow);
-      }
-    }
-    // 起点：首行左上
-    ctx.moveTo(...firstRow.leftTop);
-    // 绘制左边界
-    for (let i = 0; i < region.length; i++) {
-      const currentRow = region[i];
-      if (i === 0) {
-        // 首行：直接左上 -> 左下
-        ctx.lineTo(...currentRow.leftBottom);
-      } else {
-        const preRow = region[i - 1];
-        // 从上一行左下 -> 水平移动到当前行X坐标 -> 垂直上升到当前行左上
-        if ((Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) - currentRow.width) !== (Math.abs(preRow.rightBottom[0] - currentRow.rightBottom[0]) - preRow.width)) {
-          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
-        } else if (Math.abs(preRow.leftBottom[0] - currentRow.leftBottom[0]) < currentRow.width) {
-          ctx.lineTo(preRow.leftBottom[0], currentRow.leftTop[1]);  // 水平过渡
-        }
-        ctx.lineTo(...currentRow.leftTop);  // 垂直上升
-        ctx.lineTo(...currentRow.leftBottom);  // 垂直上升
-      }
-    }
-    // 绘制右边界
-    // 从最下行左下 -> 右下
-    ctx.lineTo(...lastRow.rightBottom);
-    for (let i = region.length - 1; i >= 0; i--) {
-      const currentRow = region[i];
-      if (i === region.length - 1) {
-        // 最下行： 直接右下 -> 右上
-        ctx.lineTo(...currentRow.rightTop);
-      } else {
-        const nextRow = region[i + 1];
-        // 从下一行右上 -> 水平移动到当前行X坐标 -> 垂直下降到当前行右下
-        if ((Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) - nextRow.width) !== (Math.abs(currentRow.rightBottom[0] - nextRow.rightBottom[0]) - currentRow.width)) {
-          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
-        } else if (Math.abs(currentRow.leftBottom[0] - nextRow.leftBottom[0]) < nextRow.width) {
-          ctx.lineTo(nextRow.rightTop[0], currentRow.rightBottom[1]);  // 水平过渡
-        }
-        ctx.lineTo(...currentRow.rightBottom);  // 垂直上升
-        ctx.lineTo(...currentRow.rightTop);  // 垂直下降
-      }
-    }
-    // 闭合路径: 首行右上 -> 左下
-    ctx.lineTo(...firstRow.rightTop);
-    ctx.lineTo(...firstRow.leftTop);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  });
-};
-
-// 绘制边界路径
-const drawBoundary = () => {
-  const uiCanvasRef = document.querySelector(`[data-three-column-process-key="${props.processKey}"]`);
-  const ctx = uiCanvasRef.getContext('2d');
-  if (!ctx) {
-    return;
-  }
-  ctx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
-  if (!boundaries.length) {
-    return;
-  }
-  const space = spaceInThreeCol;
-  const xSpace = space / viewState.scale;
-  const { minLeft, maxRight } = boundaries.reduce((acc, group) => {
-    return group.reduce((groupAcc, item) => {
-      const [left] = item.leftTop;
-      const [right] = item.rightTop;
-      return {
-        minLeft: Math.min(groupAcc.minLeft, left),
-        maxRight: Math.max(groupAcc.maxRight, right)
-      };
-    }, acc);
-  }, { minLeft: Infinity, maxRight: -Infinity });
-  const isAtLeftEdge = viewState.offsetX === 0 && minLeft <= xSpace;
-  const isAtRightEdge = viewState.offsetX === 0 && maxRight >= viewState.canvasWidth;
-  // 计算每个区域的左右边界范围
-  const tempRegions = boundaries.map(region => {
-    return region.map(row => {
-      const leftX = isAtLeftEdge ? row.leftTop[0] : row.leftTop[0] - xSpace;
-      const rightX = isAtRightEdge ? row.rightTop[0] : row.rightTop[0] + xSpace;
-      const topY = row.leftTop[1] - space;
-      const bottomY = row.leftBottom[1] + space;
-      return {
-        leftTop: [leftX, topY],
-        leftBottom: [leftX, bottomY],
-        rightTop: [rightX, topY],
-        rightBottom: [rightX, bottomY],
-        width: rightX - leftX
-      };
-    });
-  });
-  ctx.fillStyle = isDarkTheme.value ? 'rgba(49, 127, 255, 0.2)' : 'rgba(10, 89, 247, 0.2)';
-  ctx.strokeStyle = isDarkTheme.value ? '#317AF7' : '#0A59F7';
-  ctx.lineWidth = 1 / viewState.scale;
-  // 遍历每个区域并绘制路径
-  let lineArray = [];
-  drawPath(ctx, tempRegions, lineArray);
-  // 绘制不同区域的连线
-  drawConnectLines(lineArray, ctx);
-};
-const drawConnectLines = (lineArray, ctx) => {
-  if (!lineArray.length || lineArray.length < 2 || !ctx) {
-    return;
-  }
-  lineArray.slice(0, -1).forEach((current, i) => {
-    const next = lineArray[i + 1];
-    const [cp1, cp2] = calculateControlPoints(current.rightBottom, next.leftTop);
-    ctx.beginPath();
-    ctx.moveTo(...current.rightBottom);
-    ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], ...next.leftTop);
-    ctx.stroke();
-  });
-};
-const calculateControlPoints = (start, end) => {
-  const dx = end[0] - start[0];
-  const dy = end[1] - start[1];
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-  // 根据目标点在上方调整控制点逻辑
-  const isAbove = end[1] < start[1];  // 判断是否在上方
-  return [
-    // 第一个控制点： 向右下方偏移
-    [start[0] + (absDx * 0.3), start[1] + (absDy * (isAbove ? 0.2 : 0.4))],
-    // 第二个控制点： 向左上方偏移
-    [end[0] - (absDx * 0.3), end[1] - (absDy * (isAbove ? 0.4 : 0.2))]
-  ];
-};
 const lockClick = (e) => {
   lockedLabel = preLabel;
   e.stopPropagation();
@@ -959,7 +805,7 @@ const resizeDrawBoundary = () => {
       onSelectionEvent(event, eventCtx, processKey, false);
     });
   });
-  drawBoundary();
+  threeRender.drawBoundary(boundaries, props.processKey);
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -1080,7 +926,7 @@ const handleMouseDown = (e) => {
     if (!e.ctrlKey) {
       selection.startX = e.clientX - rect.left;
       selection.startY = e.clientY - rect.top;
-      const { x } = computeLocalXY(canvasRef);
+      const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
       selection.startLocalX = x;
     }
 
@@ -1117,7 +963,7 @@ const selectionFinished = (e) => {
   if (!e.ctrlKey) {
     selection.endX = e.clientX - rect.left;
     selection.endY = e.clientY - rect.top;
-    const { x } = computeLocalXY(canvasRef);
+    const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
     selection.endLocalX = x;
   }
   const dx = Math.abs(selection.endX - selection.startX);
@@ -1184,7 +1030,7 @@ const transformEvents = (process, processKey) => {
         drawData.show = true;
         eventDatas.push(drawData);
       }
-      drawEvent(eventDatas, eventCtx, false);
+      eventRenderer.drawEvent(eventDatas, eventCtx, false);
     }
   }
 
@@ -1286,7 +1132,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
       }
       if (event.drawData) {
         if (!isDimmed) {
-          const { fillColor, fontColor, strokeColor } = getEventColor(event, false, false);
+          const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
           event.drawData.rectColor = fillColor;
           event.drawData.strokeColor = strokeColor;
           event.drawData.fontColor = fontColor;
@@ -1297,8 +1143,10 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
   }
 
   eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 0.5);
-  drawEvent(drawDatas, eventCtx, isDimmed);
-  if (needText) drawEventText(drawDatas, eventCtx, isDimmed);
+  eventRenderer.drawEvent(drawDatas, eventCtx, isDimmed);
+  if (needText) {
+    eventRenderer.drawEventText(drawDatas, eventCtx, isDimmed);
+  }
 };
 
 const clearDependencyLines = (processKey) => {
@@ -1424,8 +1272,8 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
   const linePath = drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
 
   dependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
-  drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
-  drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
+  eventRenderer.drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
+  eventRenderer.drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
 
 const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => {
@@ -1436,7 +1284,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
     return;
   }
   const renderInfo = event.renderInfo;
-  const { fillColor, fontColor } = getEventColor(event, highlight, stroke);
+  const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
   const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
@@ -1453,11 +1301,11 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
     fontColor: fontColor,
     show: true,
   };
-  drawEvent([drawData], ctx);
+  eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
   fillTextInfo(event, ctx, width, drawData, true);
   if (!drawData.text) { return };
-  drawEventText([drawData], ctx);
+  eventRenderer.drawEventText([drawData], ctx);
 };
 
 const drawThreadSeparators = (ctx, process, processKey) => {
@@ -1599,7 +1447,7 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     }
     previousEventData = event;
   });
-  drawEvent(eventDatas, ctx);
+  eventRenderer.drawEvent(eventDatas, ctx);
 };
 const getDependentEvents = (successors) => {
   const dependentEvents = [];
@@ -1618,30 +1466,6 @@ const getDependentEvents = (successors) => {
     });
   });
   return dependentEvents;
-};
-const getEventColor = (event, highlight=false, stroke=true) => {
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
-  let fillColor = eventColor ? eventColor.base : '';
-  let fontColor = colorCfg.eventFont;
-  let strokeColor = '';
-
-  if (event.renderInfo.processKey === props.processKey) {
-    const isSelf = selectedEvent.value && selectedEvent.value.id === event.id;
-    const selectedDep = selectedEvent.value ? [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors] : [];
-    if (highlightedPaths.size > 0 && !isSelf && !highlightedPaths.has(event.id) && !selectedDep.includes(event.id)) {
-      fillColor = colorCfg.eventRectNoColor;
-      fontColor = colorCfg.eventFontNoColor;
-    }
-  }
-
-  if (highlight) {
-    fillColor = eventColor.light;
-    fontColor = colorCfg.eventFontHighLight;
-    if (stroke) strokeColor = colorCfg.eventHighLightStroke;
-  }
-
-  const colors = { fillColor, fontColor, strokeColor };
-  return colors;
 };
 
 // 全部的节点数据包括坐标和初始颜色
@@ -1668,7 +1492,7 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     processKey: processKey,
   };
 
-  const colors = getEventColor(event);
+  const colors = getEventColor(event, eventRenderer.deps, processKey);
   const { fillColor, fontColor, strokeColor } = colors;
 
   // 直接赋值，避免重复访问
@@ -1695,7 +1519,7 @@ const updateProcessDrawData = (process, processKey) => {
         continue;
       }
       const { drawData } = event;
-      const colors = getEventColor(event);
+      const colors = getEventColor(event, eventRenderer.deps, processKey);
       const { fillColor, fontColor, strokeColor } = colors;
       drawData.rectColor = fillColor;
       drawData.strokeColor = strokeColor;
@@ -1755,42 +1579,6 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   drawData.textX = isTextXChange ? textStartX : event.drawData.textX;
   drawData.textY = drawData.rectPixelY + eventTextSize;
   return true;
-};
-
-const drawEvent = (eventDatas, ctx, isDimmed=false) => {
-  for (const drawData of eventDatas) {
-    if (!drawData) {
-      continue;
-    }
-    let width;
-    if (drawData.eventWidth < viewState.minWidth) {
-      width = viewState.minWidth;
-    } else {
-      width = drawData.eventWidth;
-    }
-    ctx.fillStyle = isDimmed ? colorCfg.eventRectNoColor : drawData.rectColor;
-    ctx.strokeStyle = drawData.strokeColor;
-    ctx.beginPath();
-    ctx.rect(drawData.rectX, drawData.rectY, width, drawData.height);
-    ctx.fill();
-    if (drawData.strokeColor && width * viewState.scale > 10) {
-      ctx.stroke();
-    }
-  }
-};
-
-const drawEventText = (drawDatas, ctx, isDimmed=false) => {
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  for (const { show, text, textX, textY, fontColor } of drawDatas) {
-    if (!show || !text) { continue };
-    ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : fontColor;
-    ctx.font = getFontStyle(eventTextSize);
-    ctx.textRenderingOptimization = 'optimizeLegibility';
-    ctx.fillText(text, textX, textY);
-  }
-
-  ctx.restore();
 };
 
 const renderProcessText = (process, ctx) => {
@@ -1918,356 +1706,20 @@ const hideTooltip = () => {
 const hideLineTooltip = () => {
   lineTooltipStyle.display = 'none';
 };
-const clearDrawConnector = (ctx, processKey) => {
-    const canvasRef = getActiveEventCanvas(processKey);
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
-    altClickData = {
-      preData: null,
-      lastData: null,
-      largeSpacing: false
-    };
-  }
-  const clearDrawConnectorHover = (ctx, processKey) => {
-    //先清空画布
-    const canvasRef = getActiveEventCanvas(processKey);
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
-    // 补画第一个手动测距的节点
-    const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
-    const uiCtx = uiCanvasRef.getContext('2d');
-    uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
-    uiCtx.lineWidth = 2 / viewState.scale;
-    strokeRoundRect(uiCtx, altClickData.preData, processKey);
-  }
 
-  const getNoZoomX = (x) => { return viewState.pixelOffsetX + (x * viewState.pixelScale) };
-
-  const drawConnector = (ctx, largeSpacing) => {
-    const rect = calculateRect(ctx, largeSpacing);
-    // 填充矩形
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-    ctx.beginPath();
-    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(meaureTextSize);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, centerX, centerY);
-    // 绘制双向箭头
-    if (largeSpacing){
-      drawDoubleArrow(rect, ctx);
-    } else {
-      drawDistanceSelectionBox(ctx);
-    }
-    ctx.restore();
-  };
-  const drawDiffConnector = (ctx, largeSpacing) => {
-    const rect = calculateDiffRect(largeSpacing);
-    // 填充矩形
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-    ctx.beginPath();
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(meaureTextSize);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, centerX, centerY);
-    if(!largeSpacing){
-      return;
-    }
-    // 绘制线水平实线部分
-    ctx.beginPath();
-    let {x: preX, y: preY, width: preWidth, height: preHeight} = renderInfo2pixelData(altClickData.preData.renderInfo);
-    let {x: lastX, y: lastY} = renderInfo2pixelData(altClickData.lastData.renderInfo);
-    const arrowLeftStartX = preX + preWidth;
-    const leftLineWidth = lastX;
-    const leftLineHeight = preY + preHeight / 2;
-    ctx.moveTo(arrowLeftStartX, leftLineHeight ); 
-    ctx.lineTo(leftLineWidth, leftLineHeight);
-    ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // 左侧箭头头部
-    const arrowSize = 8;
-    ctx.beginPath();
-    ctx.moveTo(arrowLeftStartX, preY + preHeight /2);
-    ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight - arrowSize / 2);
-    ctx.lineTo(arrowLeftStartX + arrowSize, leftLineHeight + arrowSize / 2);
-    ctx.closePath();
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.fill();
-    // 垂直虚线部分（从水平线末端垂直延伸到第二个节点）
-    ctx.beginPath();
-    ctx.setLineDash([5, 3]);
-    ctx.moveTo(leftLineWidth, preY + preHeight /2);
-    ctx.lineTo(leftLineWidth, lastY + preHeight /2);
-    ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // 右侧箭头头部
-    ctx.beginPath();
-    const arrowRightStartX = leftLineWidth;
-    ctx.moveTo(arrowRightStartX, preY + preHeight /2);
-    ctx.lineTo(arrowRightStartX - arrowSize, leftLineHeight - arrowSize / 2);
-    ctx.lineTo(arrowRightStartX - arrowSize, leftLineHeight + arrowSize / 2);
-    ctx.closePath();
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.fill();
-    ctx.restore();
-  };
-  const drawDistanceSelectionBox = (ctx) =>{
-    const {x: preX, y: preY, width: preWidth, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo);
-    const {x: lastX} = renderInfo2pixelData(altClickData.lastData.renderInfo);
-    // 填充矩形
-    ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
-    ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.roundRect(preX + preWidth + 1, preY - 2, lastX - (preX + preWidth), preHeight + 4, 4);
-    ctx.fill();
-    ctx.stroke();
-  };
-  // 绘制双箭头
-  const drawDoubleArrow = (rect, ctx) => {
-    const arrowSize = 8;
-  
-    // 左侧箭头（指向左边）
-    const actLeft = rect.leftX;
-    const leftLineWidth = actLeft + arrowSize - 2;
-    const { centerY } = rect;
-    ctx.beginPath();
-    ctx.moveTo(rect.x, centerY); 
-    ctx.lineTo(leftLineWidth, centerY);
-    ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  
-    // 左侧箭头头部
-    ctx.beginPath();
-    ctx.moveTo(leftLineWidth - arrowSize / 2, centerY);
-    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY - arrowSize / 2);
-    ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY + arrowSize / 2);
-    ctx.closePath();
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.fill();
-  
-    // 右侧箭头（指向右边）
-    const rightLineWidth = rect.rightX - arrowSize + 2;
-    ctx.beginPath();
-    ctx.moveTo(rect.x + rect.width, centerY);
-    ctx.lineTo(rightLineWidth, centerY);
-    ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  
-    // 右侧箭头头部
-    ctx.beginPath();
-    ctx.moveTo(rightLineWidth + arrowSize / 2, centerY);
-    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY - arrowSize / 2);
-    ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY + arrowSize / 2);
-    ctx.closePath();
-    ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-    ctx.fill();
-  };
-
-
-  // 计算矩形位置
-  const calculateRect = (ctx, largeSpacing) => {
-    let { x: preX, width: preWidth, y: preY, height: preHeight } = altClickData.preData.renderInfo;
-    if(!largeSpacing){
-      preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
-      }
-    let { x: lastX } = altClickData.lastData.renderInfo;
-    lastX = getNoZoomX(lastX);
-    const width = 40 * devicePixelRatio;
-    const height = preHeight;
-    const centerY = preY + height / 2;
-    const text = getMeasureDistance(altClickData);
-    const leftX = getNoZoomX(preX + preWidth);  // 连线左端点
-    const rectX = leftX + (lastX - leftX - width) / 2;
-    return {
-      leftX: leftX,
-      rightX: lastX,
-      x: rectX,
-      y: preY * devicePixelRatio,
-      width: width,
-      height: height * devicePixelRatio,
-      centerX: rectX + (width / 2 - text.length) / 2,
-      centerY: centerY * devicePixelRatio,
-      textX: rectX + (width / 2 - text.length) / 2,
-      textY: centerY * devicePixelRatio + 3,
-      text: text,
-      arrowWidth: (lastX - leftX - width - 6) / 2
-    };
-  };
-
-const renderInfo2pixelData = (renderInfo) => {
-  const {x, width, y, height} = renderInfo;
-  return {
-    x: getNoZoomX(x),
-    width: width * viewState.pixelScale,
-    y: y * devicePixelRatio,
-    height: height * devicePixelRatio,
-  };
+const measureDistance = (event, processKey) => {
+  const uiCtx = getUIContext(processKey);
+  measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey);
+}
+const measureDistanceZoom = (event, processKey) => {
+  const uiCtx = getUIContext(processKey);
+  measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey, true);
 };
-  
-  const calculateDiffRect = (largeSpacing) => {
-    let { x: preX, width: preWidth, y: preY, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo);
-    if (!largeSpacing) {
-      preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
-    }
-    let { x: lastX} = altClickData.lastData.renderInfo;
-    lastX = getNoZoomX(lastX);
-    const width = 40 * devicePixelRatio;
-    const height = preHeight;
-    const centerY = preY + height / 2;
-    const text = getMeasureDistance(altClickData);
-    return {
-      x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
-      y: preY + height,
-      width: width,
-      height: height,
-      textX: preX + preWidth + (lastX- (preX + preWidth)) / 2 + (width / 2 - text.length) / 2,
-      textY: centerY + height + 3,
-      text: text,
-    };
-  };
-  const getMeasureDistance = (altClickData) => {
-    const time = Math.abs(altClickData.lastData.startTime - altClickData.preData.endTime);
-    const timeInfo = formatTimeWithUnit(time);
-    if(Number(timeInfo.value) === 0){
-      return $t("lessThan0");
-    }
-    return timeInfo.value + timeInfo.unit;
-  };
-  const measureDistance = (event, processKey) => {
-    handleDistanceMeasurement(event, processKey);
-  }
-  const measureDistanceZoom = (event, processKey) => {
-    handleDistanceMeasurement(event, processKey, true);
-  };
-  const handleDistanceMeasurement = (event, processKey, isZoomMode = false) => {
-    const uiCtx = getUIContext(processKey);
-    const shouldClearDrawConnector = !isZoomMode && altClickData.preData && altClickData.lastData && (isMeasureFixed.value || !isMeasureFirst.value);
-    if (shouldClearDrawConnector) {
-      clearDrawConnector(uiCtx, processKey);
-    }
-    if (!isZoomMode) {
-      if (!altClickData.preData) {
-        altClickData.preData = event;
-        isMeasureFirst.value = true;
-      } else {
-        if (isEqual(altClickData.preData, event) && !altClickData.lastData) { 
-          return;
-        }
-        isMeasureFixed.value = true;
-        altClickData.lastData = event;
-      }
-    }
-    drawRoundedRect(uiCtx, event, processKey);
-    if (isZoomMode && altClickData.preData) {
-      drawRoundedRect(uiCtx, altClickData.preData, processKey);
-    }
-    calculateAndDrawConnection(uiCtx);
-  };
-  const getUIContext = (processKey) => {
-    const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
-    return uiCanvasRef.getContext('2d');
-  };
-  const drawRoundedRect = (ctx, event, processKey) => {
-    ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
-    ctx.lineWidth = 2 / viewState.scale;
-    strokeRoundRect(ctx, event, processKey);
-  };
-  const calculateAndDrawConnection = (uiCtx) => {
-    if (!altClickData.preData || !altClickData.lastData) {
-      return;
-    }
-    const { renderInfo: preRenderInfo } = altClickData.preData;
-    const { renderInfo: lastRenderInfo } = altClickData.lastData;
-    const { x: preX, y: preY, width: preWidth} = preRenderInfo;
-    const { x: lastDataX, y: lastDataY} = lastRenderInfo;
-    const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX)) * viewState.scale;
-    if (nodeSpacingX < 3) {
-      return;
-    }
-    let largeSpacing = nodeSpacingX > nodeSpaceMin;
-    if (lastDataX < preX) {
-      let temp = altClickData.preData;
-      altClickData.preData = altClickData.lastData;
-      altClickData.lastData = temp;
-    }
-    // 同泳道
-    if (lastDataY === preY) {
-      drawConnector(uiCtx, largeSpacing);
-    } else {
-      largeSpacing = nodeSpacingX > 60;
-      drawDiffConnector(uiCtx, largeSpacing);
-    }
-  };
-  const measureDistanceHover = (event, processKey) => {
-    const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
-    const uiCtx = uiCanvasRef.getContext('2d');
-    if(altClickData.preData && altClickData.lastData){
-      const { renderInfo: preRenderInfo } = altClickData.preData;
-      const { renderInfo: lastRenderInfo } = altClickData.lastData;
-      const { x: preX, y: preY, width: perWidth} = preRenderInfo;
-      const { x: lastX, y: lastY} = lastRenderInfo;
-      const nodeSpacingX = Math.min(Math.abs(lastX - (preX + perWidth)), Math.abs(lastX - preX)) * viewState.scale;
-      if(nodeSpacingX < 3) return;
-      let largeSpacing = nodeSpacingX > nodeSpaceMin;
-      if(lastX < preX){
-          let temp = altClickData.preData;
-          altClickData.preData = altClickData.lastData;
-          altClickData.lastData = temp;
-          isMeasureChange.value = true;
-      } else {
-        isMeasureChange.value = false;
-      }
-      // 同泳道
-      if(lastY === preY){
-        drawConnector(uiCtx, largeSpacing);
-      } else {
-        largeSpacing = nodeSpacingX > 60;
-        drawDiffConnector(uiCtx, largeSpacing);
-      }
-    }
-  }
-  const strokeRoundRect = (ctx, event, processKey) => {
-    const { x, y, width, height } = event.renderInfo;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.beginPath();
-    ctx.rect(getNoZoomX(x), y, width * viewState.scale, height);
-    const temp = JSON.parse(JSON.stringify(event));
-    const { fillColor, fontColor, strokeColor } = getEventColor(temp, true, true);
-    temp.drawData.rectColor = fillColor;
-    temp.drawData.strokeColor = strokeColor;
-    temp.drawData.fontColor = fontColor;
-    const { eventCtx } = ctxs[processKey];
-    eventCtx.lineWidth = ctx.lineWidth;
-    drawEvent([temp.drawData], eventCtx, false);
-    drawEventText([temp.drawData], eventCtx, false);
-    ctx.restore();
-  }
+const getUIContext = (processKey) => {
+  const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
+  return uiCanvasRef.getContext('2d');
+};
+
 const renderEvents = () => {
   renderProcessEvents(props.process, props.processKey);
 };
@@ -2444,7 +1896,7 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
       transformCanvas(boundRange);
     }
     drawSelection(label, needSendCom, isLock);
-    drawBoundary();
+    threeRender.drawBoundary(boundaries, props.processKey);
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
@@ -2490,62 +1942,7 @@ const sendMsg = (command, param) => {
     window.ascEventBus.emit(command, param);
   });
 };
-const isPointInPolygonFun = (point, polygonBoundaries) => {
-  if (!polygonBoundaries || polygonBoundaries.length === 0) {
-    return false;
-  }
 
-  const [x, y] = point;
-
-  // 构建边界多边形的所有顶点
-  const polygonPoints = [];
-
-  // 收集左边界点（从上到下）
-  for (let i = 0; i < polygonBoundaries.length; i++) {
-    for (let j = 0; j < polygonBoundaries[i].length; j++) {
-      polygonPoints.push(polygonBoundaries[i][j].leftTop);
-    }
-  }
-  polygonPoints.push(polygonBoundaries[polygonBoundaries.length - 1][polygonBoundaries[polygonBoundaries.length - 1].length - 1].leftBottom);
-
-  // 收集右边界点（从下到上）
-  for (let i = polygonBoundaries.length - 1; i >= 0; i--) {
-    for (let j = polygonBoundaries[i].length - 1; j >= 0; j--) {
-      polygonPoints.push(polygonBoundaries[i][j].rightBottom);
-      polygonPoints.push(polygonBoundaries[i][j].rightTop);
-    }
-  }
-
-  // 使用射线法判断点是否在多边形内
-  let inside = false;
-  for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
-    const [xi, yi] = polygonPoints[i];
-    const [xj, yj] = polygonPoints[j];
-
-    // 检查点是否在多边形边界上
-    const pointsObj = {
-      p1: { x: xi, y: yi },
-      p2: { x: xj, y: yj },
-      point: { x, y }
-    };
-    if (isPointOnVertex(pointsObj)) {
-      return true;
-    }
-
-    // 射线法核心判断
-    const intersect = ((yi > y) !== (yj > y)) && 
-      (x < (((xj - xi) * (y - yi)) / (yj - yi)) + xi);
-    if (intersect) {
-      inside = !inside;
-    }
-  }
-
-  return inside;
-};
-
-const isPointOnVertex = ({ p1, p2, point }) => {
-  return (p1.x === point.x && p1.y === point.y) || (p2.x === point.x && p2.y === point.y);
-};
 addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
@@ -2565,7 +1962,7 @@ addChildContext('threadEvent', {
   toggleLock,
   resizeDrawBoundary,
   getEventColor,
-  drawBoundary
+  drawBoundary: threeRender.drawBoundary,
 });
 
 // 每个事件画布都会走一遍
