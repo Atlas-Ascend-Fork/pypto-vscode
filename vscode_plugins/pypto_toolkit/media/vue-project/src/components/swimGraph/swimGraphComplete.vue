@@ -1687,14 +1687,16 @@ const setPageState = (message) => {
 onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
-  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-  if (oldMessage && oldMessage.message.data) {
-    setPageState(oldMessage.message);
-    loadTraceData(oldMessage.message.data);
-  } else {
-    loading.value = true;
-    server.getSwimData();
-  }
+  loading.value = true;
+  if (!props.isThreeColumn) {
+    const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+    if (oldMessage && oldMessage.message && oldMessage.message.data) {
+      setPageState(oldMessage.message);
+      loadTraceData(oldMessage.message.data);
+    } else {  
+      server.getSwimData();
+    }
+}
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 

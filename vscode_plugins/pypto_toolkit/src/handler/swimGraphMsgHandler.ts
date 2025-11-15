@@ -61,7 +61,7 @@ export abstract class SwimGraphMsgHandler {
         let swimStr = '';
         try {
             swimStr = readFileSync(swimPath, 'utf8');
-            this.validateFile(server, swimPath);
+            this.validateFile(server, swimStr);
             console.log('读取merged_swimlane.json文件');
 
         } catch (err) {
