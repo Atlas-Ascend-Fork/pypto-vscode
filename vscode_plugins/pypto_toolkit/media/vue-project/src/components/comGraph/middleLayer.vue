@@ -17,8 +17,7 @@ import { ICommonViewServer } from '../../../../../src/core/view/view-server-inte
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
-const isSearchModeEntry = ref(0);
-const isSearchMode = ref(0);
+const searchMode = ref(0);
 const subGraphType = ref('');
 const outputDirPath = ref('');
 const passIndex = ref('');
@@ -62,7 +61,7 @@ function setupComWatchers(server: any) {
   watch(server.ReadJsonWarning, (newValue) => {
     if (!inThreeColumnMode) {
       loadingStep.value = 'readJsonWarning';
-      isSearchModeEntry.value = 1;
+      searchMode.value = 1;
     }
   });
 
@@ -209,14 +208,14 @@ function onFullRender() {
       <SwimGraph style="height: 100%" :is-three-column="true" :graphType="graphType"/>
     </template>
   </ThreeColumn>
-  <ComGraph v-if="graphType === 'computeGraph'" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
+  <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
     :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic" :pass-index="passIndex" :path-name="pathName"
     :file-name="fileName" />
   <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
     :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
-  <SearchEntry v-if="graphType === 'computeGraph' && isSearchModeEntry === 1" :disabled-search-mode="disabledSearchMode"
-    @full-render="onFullRender" @search-mode="() => (isSearchMode = 1)" />
-  <SearchMode v-if="graphType === 'computeGraph' && isSearchMode === 1" :jsonContent="jsonContent" />
+  <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
+    @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
+  <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent" @searchMode="searchMode = 0" />
   <swimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
 </template>
