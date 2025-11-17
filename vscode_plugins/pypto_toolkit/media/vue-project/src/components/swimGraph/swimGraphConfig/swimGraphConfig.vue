@@ -27,7 +27,7 @@
 <script setup>
 import { ref, inject, watch, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getEventColor } from '../swimGraphProcesses/processInfo';
+import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -109,9 +109,9 @@ const OnTextChange = (value) => {
 
 const OnModeChange = () => {
     const updateEventColor = (event, mode) => {
-        const color = getEventColor(event, mode);
+        const color = getEventColorByMode(event, mode);
         event.color = color;
-        const { fillColor, fontColor, strokeColor } = childContextMap.threadEvent.getEventColor(event);
+        const { fillColor, fontColor, strokeColor } = childContextMap.threadEvent.getEventColor(event, event.renderInfo.processKey);
         event.drawData.rectColor = fillColor;
         event.drawData.strokeColor = strokeColor;
         event.drawData.fontColor = fontColor;

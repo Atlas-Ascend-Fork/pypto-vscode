@@ -1,5 +1,5 @@
 // 工具函数和共享方法
-import { getEventColor } from './swimGraphProcesses/processInfo';
+import { getEventColorByMode } from './swimGraphProcesses/processInfo';
 
 export const COLOR_CFG = {
   dark: {
@@ -373,7 +373,7 @@ export const mkTraceData = (processedEvents, processes, processExpanded, traceDa
         }
         counterEvents.value.push({ ...event, isCounter: true });
       } else {
-        const color = getEventColor(event, 'subGraph');
+        const color = getEventColorByMode(event, 'subGraph');
         const threadName =  threadNames.get(`${event.pid}-${event.tid}`);
         eventTasks.push({ ...event, originalIndex: index, color, threadName});
       }
