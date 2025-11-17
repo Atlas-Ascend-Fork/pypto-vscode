@@ -266,19 +266,19 @@ function setupSwimWatchers() {
   watch(server.bindResult, (newValue) => {
       if (newValue.success) {
         bindFile.value = newValue.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
+        bindButton.value = $t('unbindComGraph');
       } else {
         bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
+        bindButton.value = $t('bindComGraphJson');
       }
   });
   watch(server.unbindResult, (newValue) => {
       if (newValue.success) {
         bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
+        bindButton.value = $t('bindComGraphJson');
       } else {
         bindFile.value = newValue.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
+        bindButton.value = $t('unbindComGraph');
       }
   });
   watch(server.noSwimFile, (newValue) => {
@@ -288,8 +288,6 @@ function setupSwimWatchers() {
     validData(newValue.content);
   });
 }
-
-
 
 let ERROR_MESSAGES = {
   INVALID_FILE: $t("swimErroMsgINVALID_FILE"),

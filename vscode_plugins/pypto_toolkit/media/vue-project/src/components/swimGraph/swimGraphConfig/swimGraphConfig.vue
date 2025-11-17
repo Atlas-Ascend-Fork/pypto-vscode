@@ -79,13 +79,11 @@ const togglecfgEditModel = () => {
 
 function saveRendingMode(colorRenderMode, textRenderMode) {
     server.saveRendingMode({paramObj: JSON.stringify({ colorRending: colorRenderMode, textRending: textRenderMode})});
-}
+};
 
 function changeUserCfgConnection(connectionLevel) {
-
     server.changeUserCfgConnection({paramObj: {level: connectionLevel}});
-}
-
+};
 
 const OnTextChange = (value) => {
     const updateEventText = (mode) => {
