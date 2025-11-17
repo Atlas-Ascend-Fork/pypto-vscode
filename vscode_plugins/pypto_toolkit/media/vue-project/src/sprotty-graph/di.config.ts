@@ -20,7 +20,6 @@ import {
   UpdateModelCommand,
   ViewportAnimation,
   SCompartmentImpl,
-  SCompartmentView,
   MouseListener,
   SModelElementImpl,
   findParentByFeature
@@ -45,6 +44,7 @@ import {
   AstgrPortView,
   AstgrTensorView,
   InputOutputNodeView,
+  CustomCompartmentView,
 } from "./views";
 import { AstgrNode, AstgrPort } from "./graph.types";
 import { AstgrContextMenuItemProvider, AstgrContextMenuService } from "./menu";
@@ -184,7 +184,7 @@ export function createDiContainer(sprottyContainerId: string) {
         disable: [editFeature],
       });
 
-      configureModelElement(context, 'compartment', SCompartmentImpl, SCompartmentView);
+      configureModelElement(context, 'compartment', SCompartmentImpl, CustomCompartmentView);
 
       configureModelElement(
         context,

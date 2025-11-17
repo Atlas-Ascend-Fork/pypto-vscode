@@ -17,7 +17,9 @@ import {
   SChildElementImpl,
   SLabelImpl,
   SLabelView,
-  ViewportRootElementImpl
+  ViewportRootElementImpl,
+  SCompartmentImpl,
+  SCompartmentView
 } from 'sprotty';
 import { injectable } from 'inversify';
 import { VNode } from 'snabbdom';
@@ -1378,5 +1380,61 @@ export class AstgrPortView extends ShapeView {
 export class emptyPortView extends ShapeView {
   render(node: Readonly<SPortImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     return undefined;
+  }
+}
+
+@injectable()
+export class CustomCompartmentView extends SCompartmentView {
+  render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
+    const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
+    const isMetadataCompartment = compartment.id.includes("metadata-compartment");
+
+    const selIndexes = comGraphStore.data.selectCustom;
+    const selSet = new Set(selIndexes);
+
+    const isMeta = (c: SChildElement) => c.cssClasses?.[0] === "tensor-meta-label";
+    const stepY = 15;
+    const tensorBaseY = 4;
+
+    const updateChildElement = (child: SChildElement, idx: number, runningY: number): VNode | undefined => {
+      const rawVNode = context.renderElement(child);
+      if(!rawVNode){
+        return undefined;
+      };
+
+      const innerTransY = (isMeta(child) ? tensorBaseY + idx * stepY : idx * stepY);
+      const textNode = rawVNode.data;
+      if(textNode) {
+        textNode.attrs ||= {};
+        textNode.attrs.transform = `translate(0, ${innerTransY}) translate(-20, 9)`;
+      }
+      const childTranslate = `translate(0, ${runningY})`;
+      const childTranslateform = <g transform={childTranslate}> {rawVNode}</g>;
+      return  childTranslateform;
+    }
+
+    let vnode: VNode;
+    if (isMetadataCompartment && selIndexes.length > 0) {
+      const children: VNode[] = [];
+      let runningY = 0;
+
+      const filterMetadataCompartments = compartment.children.filter((_, idx) => selSet.has(idx));
+      filterMetadataCompartments.forEach((element, index) => {
+        const ele = updateChildElement(element, index, runningY);
+        if (ele) {
+          children.push(ele);
+        }
+      });
+
+      vnode = <g transform={translate} class-sprotty-comp>{children}</g>;
+    } else {
+      vnode = <g transform={translate} class-sprotty-comp>{context.renderChildren(compartment)}</g>;
+    }
+
+    const subType = getSubType(compartment);
+    if(subType) {
+      setAttr(vnode, "class", subType);
+    }
+    return vnode;
   }
 }
