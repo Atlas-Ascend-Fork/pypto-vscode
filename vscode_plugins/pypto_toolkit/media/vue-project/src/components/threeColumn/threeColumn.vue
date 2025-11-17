@@ -48,10 +48,11 @@
 import { computed, inject, onBeforeUnmount, onMounted, provide, ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
-import type { ILayoutInfo, BlockType, LayoutMode, IBlockToGraphMap } from './types';
+import type { ILayoutInfo, BlockType, LayoutMode, IBlockToGraphMap, IShowBlockMap } from './types';
 import ItemBlock from './itemBlock.vue';
 import ThreeColumnHeader from './threeColumnHeader.vue';
 import DragIcon from './drag-icon.vue';
+import { findKeyByValue } from './utils';
 
 const { isDarkTheme } = inject('root');
 
@@ -75,6 +76,11 @@ const BlockToGraphMap: IBlockToGraphMap = {
   left: 'editor',
   right: 'comGraph',
   bottom: 'swimGraph',
+};
+const ShowBlockMap: IShowBlockMap = {
+  left: showLeft,
+  right: showRight,
+  bottom: showBottom,
 };
 let containerWidth = 0;
 let containerHeight = 0;
@@ -182,9 +188,9 @@ function onToggleSwimFullscreen() {
 
 function emitSizeChange() {
   (window as any).ascEventBus.emit('threeColumnSizeChange', {
-    editorVisible: showLeft.value,
-    comGraphVisible: showRight.value,
-    swimVisible: showBottom.value,
+    editorVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'editor')].value,
+    comGraphVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'comGraph')].value,
+    swimVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'swimGraph')].value,
   });
 }
 
