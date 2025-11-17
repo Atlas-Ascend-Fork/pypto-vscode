@@ -40,7 +40,10 @@ import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 
+const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
 const props = defineProps({
   jsonContent: {
@@ -132,13 +135,11 @@ const colorSubgraph = (isColor: boolean) => {
 const toggleHealthReport = (status: boolean) => {
   showHealthReport.value = status;
 }
-
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'postLayoutResult') {
-    isLoading.value = false;
-    loadingText.value = '';
-  }
+watch(server.LayoutResult, (newValue) => {
+  isLoading.value = false;
+  loadingText.value = '';
 });
+
 
 provide('comGraph', { toggleHealthReport, showLayerControl });
 
@@ -151,7 +152,7 @@ const LoadingStatusMap = {
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'rendering' || val === 'convertData') {
+    if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
     if (val === 'readJsonWarning') {

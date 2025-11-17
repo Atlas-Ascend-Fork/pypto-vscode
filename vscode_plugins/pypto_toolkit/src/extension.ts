@@ -12,10 +12,6 @@ import {hismartliteEx} from './hismarliteEx';
 import {services} from './services';
 import {initView} from './view';
 import {SwimGraphView} from './view/swimGraphView.js';
-import {GraphView} from './view/graphView';
-import {SingleGraphData,  DiffGraphData} from './core/graphData';
-import {SingleGraphHandler} from './handler/singleGraphHandler';
-import {DiffGraphHandler} from './handler/diffGraphHandler';
 import {loadMaterialColorUtilities} from './color-list';
 import {SidebarViewProvider} from './view/SidebarViewProvider';
 
@@ -73,7 +69,7 @@ export async function activate(context: ExtensionContext) {
     if (config.IS_USE_DB) {
         await initDB(context);
     }
-
+    await loadMaterialColorUtilities();
     // 启动接口服务
     const server = initServer(services);
 
@@ -95,42 +91,6 @@ export async function activate(context: ExtensionContext) {
             async deserializeWebviewPanel(webviewPanel: WebviewPanel, state: unknown) {
                 await loadMaterialColorUtilities();
                 SwimGraphView.revive(webviewPanel, context.extensionUri);
-            },
-        });
-
-        window.registerWebviewPanelSerializer('comItemDetailView', {
-            async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
-                await loadMaterialColorUtilities();
-                const {fsPath, funcHash, magicName, curPath, calleeOpMagic, calleeOpSubgraphId, outputDirPath, pathName} = (state as any) || {};
-                GraphView.revive(
-                    webviewPanel,
-                    SingleGraphData,
-                    SingleGraphHandler,
-                    fsPath,
-                    funcHash,
-                    magicName,
-                    curPath,
-                    calleeOpMagic,
-                    calleeOpSubgraphId,
-                    outputDirPath,
-                    pathName,
-                );
-            },
-        });
-
-        window.registerWebviewPanelSerializer('itemDetailView', {
-            async deserializeWebviewPanel(webviewPanel: WebviewPanel, state) {
-                await loadMaterialColorUtilities();
-                const {fsPath, funcHash, magicName, curPath} = (state as any) || {};
-                GraphView.reviveDiffGraph(
-                    webviewPanel,
-                    DiffGraphData,
-                    DiffGraphHandler,
-                    fsPath,
-                    funcHash,
-                    magicName,
-                    curPath,
-                );
             },
         });
     }

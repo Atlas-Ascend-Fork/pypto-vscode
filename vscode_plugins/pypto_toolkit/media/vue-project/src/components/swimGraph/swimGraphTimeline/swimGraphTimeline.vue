@@ -50,6 +50,9 @@ import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swim
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
+import { useViewServer } from '../../../core/use-view-server';
+
+const { server } = useViewServer();
 
 const { t: $t } = useI18n();
 
@@ -357,7 +360,7 @@ const handleWheel = (e) => {
 };
 const postMessage = (message) => {
   if (window.vscode) {
-    window.vscode.postMessage({ command: 'showMessage' , paramObj: { text: message}});
+    server.showMessage({paramObj: { text: message}});
   }
 };
 const checkIfInInterval = (x) => {

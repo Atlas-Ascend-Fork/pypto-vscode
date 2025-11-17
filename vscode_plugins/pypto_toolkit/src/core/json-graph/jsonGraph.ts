@@ -2,6 +2,7 @@ import { SEdge, SLabel, SModelRoot, SNode, SPort, SCompartment } from 'sprotty-p
 import { AttrReader, parseSymbolicOrIntList, parseExprList } from './parseSymbolicAttr';
 import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { getIDELang } from '../../lang';
+import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 
 /**
  * Extended SModelRoot with custom properties
@@ -232,7 +233,7 @@ export class AscppDagBuilder {
     nodeSet = new Set<string> ();
     isErrorReport = false;
     comGraphData;
-    panel;
+    server;
     callInOutTensorMap: ((data) => any) | undefined;
     callInOutMap = new Map<string, CallInOutItems>();
     /*
@@ -247,10 +248,10 @@ export class AscppDagBuilder {
     singlePathNodeSet = new Set<string> ();
     pathNodesSet = new Set<string> ();
 
-    constructor(comGraphData: any, panel: any, callInOutTensorMap?: (data) => any) {
+    constructor(comGraphData: any, server: any, callInOutTensorMap?: (data) => any) {
         this.comGraphData = comGraphData;
         this.callInOutTensorMap = callInOutTensorMap
-        this.panel = panel;
+        this.server = server;
     }
 
     /**
@@ -336,10 +337,7 @@ export class AscppDagBuilder {
                                           tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                           magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
-            this.panel.webview.postMessage({
-                command: 'returnPathNodesSet',
-                data: Array.from(this.pathNodesSet),
-            });
+            this.server.setRef('returnPathNodesSet', { data: Array.from(this.pathNodesSet) });
         } else {
             // Create tensor nodes if enabled
             if (showTensorNodes) {
@@ -614,20 +612,14 @@ export class AscppDagBuilder {
             const shapeStr = `[${tensor.shape.join(',')}]`;
             labelAttr.push(`shape: ${shapeStr}`);
         } else {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get tensor (${tensor.magic}) shape information.` : `无法获取tensor (${tensor.magic}) 的shape信息`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get tensor (${tensor.magic}) shape information.` : `无法获取tensor (${tensor.magic}) 的shape信息`)
         }
 
         if (rawTensor?.rawshape) {
             const rawShapeStr = `[${rawTensor.rawshape.join(',')}]`;
             labelAttr.push(`rawshape: ${rawShapeStr}`);
         } else {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) raw shape information.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的raw shape信息`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) raw shape information.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的raw shape信息`)
         }
 
         // Add offset information if available
@@ -635,10 +627,7 @@ export class AscppDagBuilder {
             const offsetStr = `[${tensor.offset.join(',')}]`;
             labelAttr.push(`offset: ${offsetStr}`);
         } else {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get tensor (${tensor.magic}) offset.` : `无法获取tensor (${tensor.magic}) 的offset信息`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get tensor (${tensor.magic}) offset.` : `无法获取tensor (${tensor.magic}) 的offset信息`)
         }
 
         if (tensor?.mem_type) {
@@ -656,10 +645,7 @@ export class AscppDagBuilder {
             const datatypeStr = DATATYPE_MAP[rawTensor.datatype] || `dt${rawTensor.datatype}`;
             labelAttr.push(`datatype: ${datatypeStr}`);
         } else {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) data type.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的data type信息`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor (${rawTensor.rawmagic}) data type.` : `无法获取raw tensor (${rawTensor.rawmagic}) 的data type信息`)
         }
     }
 
@@ -788,10 +774,7 @@ export class AscppDagBuilder {
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取raw tensor magic.`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取raw tensor magic.`)
         }
 
         const graphId = tensor?.subgraphid ?? -1;
@@ -871,10 +854,7 @@ export class AscppDagBuilder {
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : `无法获取 raw tensor magic.`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.` : `无法获取 raw tensor magic.`)
         }
 
         let graphId = tensor?.subgraphid ?? -1;
@@ -1015,19 +995,13 @@ export class AscppDagBuilder {
         }
 
         if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get tensor magic.`: `无法获取 tensor magic.`,
-            });
+            BaseGraphMsgHandler.returnError(this.server, getIDELang() === 'en' ? `Can not get tensor magic.`: `无法获取 tensor magic.`)
         }
 
         const tensorMagic = String(tensor.magic);
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取 raw tensor magic.`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.`: `无法获取 raw tensor magic.`)
         }
 
         let symbol = rawTensor?.symbol || "Tensor";
@@ -1206,19 +1180,13 @@ export class AscppDagBuilder {
 
         for (const tensor of actualData.tensors) {
             if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
-                this.panel.webview.postMessage({
-                    command: 'returnError',
-                    data: getIDELang() === 'en' ? `Can not get tensor magic.` : `无法获取tensor magic`,
-                });
+                BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get tensor magic.` : `无法获取tensor magic`)
             }
 
             const tensorMagic = String(tensor.magic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                this.panel.webview.postMessage({
-                    command: 'returnError',
-                    data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
-                });
+                BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic')
             }
 
             let symbol = rawTensor?.symbol || "Tensor";
@@ -1526,10 +1494,7 @@ export class AscppDagBuilder {
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                this.panel.webview.postMessage({
-                    command: 'returnError',
-                    data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
-                });
+                BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic')
             }
             let tensorName = rawTensor?.symbol || "In";
             
@@ -1691,10 +1656,7 @@ export class AscppDagBuilder {
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                this.panel.webview.postMessage({
-                    command: 'returnError',
-                    data: getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic',
-                });
+                BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get raw tensor magic.` : '无法获取raw tensor magic')
             }
             let tensorName = rawTensor?.symbol || "Out";
 
@@ -2007,10 +1969,7 @@ export class AscppDagBuilder {
         const opcodeStr = op.opcode.toLowerCase();
     
         if (!Array.isArray(attr) || attr.length < 1) {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `The attribution of operation ${op.opcode} is invalid.` : `op节点${op.opcode}的attr信息无效`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `The attribution of operation ${op.opcode} is invalid.` : `op节点${op.opcode}的attr信息无效`)
         }
     
         const reader = new AttrReader(attr!);
@@ -2055,10 +2014,7 @@ export class AscppDagBuilder {
         // Extract additional information from the operation
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
         if (op.opmagic === undefined || typeof op.opmagic !== 'number') {
-            this.panel.webview.postMessage({
-                command: 'returnError',
-                data: getIDELang() === 'en' ? `Can not get operation ${op.opcode} magic.` : `无法获取op节点${op.opcode}的magic`,
-            });
+            BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `Can not get operation ${op.opcode} magic.` : `无法获取op节点${op.opcode}的magic`)
         }
 
         const opmagic = String(op.opmagic);

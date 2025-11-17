@@ -35,17 +35,21 @@
 </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch, inject } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, nextTick, watch, inject, Ref } from 'vue';
 import * as monaco from 'monaco-editor';
 import { generateColorList, getColorByString } from '../../utils/color-list';
 import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
 import { useI18n } from 'vue-i18n';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
+import { useViewServer } from '../../core/use-view-server';
+import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t: $t } = useI18n();
-const { isDarkTheme } = inject('threeColumnState');
+const { isDarkTheme } = inject('threeColumnState') as {isDarkTheme:Ref<boolean>};
+
 
 const darkThemeColors = generateColorList(360);
 const lithtThemeColors = generateColorList(360, false);
@@ -221,7 +225,7 @@ const getLineDomElement = (lineNumber) => {
     return null;
   }
 
-  const sortedElements = Array.from(viewLineElements).sort((a, b) => {
+  const sortedElements = Array.from(viewLineElements).sort((a:HTMLElement, b:HTMLElement) => {
     const topA = parseInt(a.style.top) || 0;
     const topB = parseInt(b.style.top) || 0;
     return topA - topB;
@@ -249,7 +253,7 @@ const updateLockPosition = (label) => {
   const displayLine = label.startLine;
   
   // 获取对应的DOM元素
-  const domElement = getLineDomElement(displayLine);
+  const domElement = getLineDomElement(displayLine) as HTMLElement;
   if (domElement) {
     const rect = domElement.getBoundingClientRect();
     const editorRect = editor.getDomNode().getBoundingClientRect();
@@ -275,7 +279,7 @@ const deactivateLock = () => {
   isLocked.value = false;
   lockedLabel = null;
   
-  sendMsg('deactivateLock');
+  sendMsg('deactivateLock','');
 };
 
 const lockClick = (e) => {
@@ -476,10 +480,11 @@ const saveCodeToFile = () => {
   }
   
   const currentCode = editor.getValue();
-  postMessage({ 
-    command: 'savePyCode', 
-    paramObj: currentCode 
-  });
+  threeColumnServer.savePyCode({paramObj: currentCode});
+  // postMessage({ 
+  //   command: 'savePyCode', 
+  //   paramObj: currentCode 
+  // });
 };
 
 // 防抖保存
@@ -550,19 +555,19 @@ const updateTheme = () => {
   }
 };
 
-const postMessage = (message) => {
-  if (window.vscode) {
-    window.vscode.postMessage(message);
-  }
-};
+// const postMessage = (message) => {
+//   if ((window as any).vscode) {
+//     (window as any).vscode.postMessage(message);
+//   }
+// };
 
-window.ascEventBus.on('returnSemanticLabelFromCom', (args) => {
+(window as any).ascEventBus.on('returnSemanticLabelFromCom', (args) => {
   updateHoverDecorationBySemanticLabel(args.label);
 });
-window.ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
+(window as any).ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
   updateHoverDecorationBySemanticLabel(args.label);
 });
-window.ascEventBus.on('activeLock', ({ label }) => {
+(window as any).ascEventBus.on('activeLock', ({ label }) => {
   if (lastMoveLabel !== label) {
     updateHoverDecorationBySemanticLabel(label);
   }
@@ -570,48 +575,64 @@ window.ascEventBus.on('activeLock', ({ label }) => {
   const targetLabel = labels.find(l => l.name === label);
   lockedLabel = targetLabel;
 });
-window.ascEventBus.on('deactivateLock', () => {
+(window as any).ascEventBus.on('deactivateLock', () => {
   deactivateLock();
 });
 
-const initEventListeners = () => {
-  window.addEventListener('message', handleMessage);
-};
+// const initEventListeners = () => {
+//   window.addEventListener('message', handleMessage);
+// };
 
 const sendMsg = (command, param) => {
   Promise.resolve().then(() => {
-    window.ascEventBus.emit(command, param);
+    (window as any).ascEventBus.emit(command, param);
   });
 };
 
-const handleMessage = (event) => {
-  const message = event.data;
-  switch (message.command) {
-    case 'returnPyCode': {
-      const { codePath, code } = message.data;
-      initCodePath = codePath;
-      initTotalLine = code.split('\n').length;
-      loading.value = false;
-      nextTick(() => initEditor(code));
-      break;
-    }
-    case 'returnCompleteData':
-      mkSemanticLabel(message.data, initCodePath);
-      parseSemanticLabels(initTotalLine);
-      applySemanticDecorations();
-      break;
-    default:
-      break;
-  }
-};
+// const handleMessage = (event) => {
+//   const message = event.data;
+//   switch (message.command) {
+//     case 'returnPyCode': {
+//       const { codePath, code } = message.data;
+//       initCodePath = codePath;
+//       initTotalLine = code.split('\n').length;
+//       loading.value = false;
+//       nextTick(() => initEditor(code));
+//       break;
+//     }
+//     case 'returnCompleteData':
+//       mkSemanticLabel(message.data, initCodePath);
+//       parseSemanticLabels(initTotalLine);
+//       applySemanticDecorations();
+//       break;
+//     default:
+//       break;
+//   }
+// };
+
+
+watch(threeColumnServer.CompleteData, (newValue) => {
+  mkSemanticLabel(newValue.data, initCodePath);
+  parseSemanticLabels(initTotalLine);
+  applySemanticDecorations();
+});
+watch(threeColumnServer.PyCode, (newValue) => {
+  const { codePath, code } = newValue.data;
+  initCodePath = codePath;
+  initTotalLine = code.split('\n').length;
+  loading.value = false;
+  nextTick(() => initEditor(code));
+});
+
 
 // 在组件挂载前配置 Monaco
 configureMonaco();
 
 onMounted(() => {
-  initEventListeners();
+  // initEventListeners();
   nextTick(() => {
-    postMessage({ command: 'getPyCode' });
+  threeColumnServer.getPyCode();
+    // postMessage({ command: 'getPyCode' });
   });
 });
 
