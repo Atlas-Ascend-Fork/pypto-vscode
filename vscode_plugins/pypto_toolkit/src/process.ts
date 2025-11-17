@@ -192,6 +192,42 @@ export function parsePmuInfo(csvData: string) {
   return pmuInfo;
 }
 
+const calculateDependenciesBytopo = (events, task2topo) => {
+  const predecessors: Record<string, string[]> = Object.fromEntries(Object.keys(task2topo).map(taskId => [taskId, []]));
+  for (const taskId in task2topo) {
+    const taskInfo = task2topo[taskId];
+    for (const successor of taskInfo.successors) {
+      predecessors[successor] = [...(predecessors[successor] || []), taskId];
+    }
+  }
+  const topoDependencies: Record<string, { predecessors: string[]; successors: string[]}> = Object.fromEntries(
+    Object.keys(task2topo).map(taskId => [
+      taskId,
+      {
+        predecessors: predecessors[taskId],
+        successors: task2topo[taskId].successors
+      }
+    ])
+  );
+  const taskMap = new Map<string, any>();
+  for (const event of events) {
+    const taskId = `${event.args.seqNo}-${event.args.taskId}`;
+    if (taskMap.has(taskId)) {
+      return false;
+    }
+    taskMap.set(taskId, event);
+  }
+  for (const taskId of Object.keys(topoDependencies)) {
+    const taskDependencies = topoDependencies[taskId];
+    const event = taskMap.get(taskId);
+    if (event) {
+      event.dependencies.predecessors = taskDependencies.predecessors.map(predecessor => taskMap.get(predecessor)?.id || '');
+      event.dependencies.successors = taskDependencies.successors.map(successor => taskMap.get(successor)?.id || '');
+    }
+  }
+  return true;
+};
+
 const calculateDependencies = (events, connections) => {
     // 构建索引：以 (tid, startTime, endTime) 为键，事件对象为值
     // 由于 startTime 和 endTime 是范围，我们可以使用 Map 存储每个 tid 的事件列表，并按 startTime 排序
@@ -383,8 +419,11 @@ const calculateDependencies = (events, connections) => {
     }
   
     // 计算依赖关系
-    calculateDependencies(processedTasks, connections);
-  
+    const hasTopo = Object.keys(task2topo).length > 0;
+    const status = hasTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
+    if (!status) {
+      calculateDependencies(processedTasks, connections);
+    }
     let firstExpanded = false;
     // 组织数据结构
     [...processedTasks, ...counterEvents].forEach((event: any) => {
