@@ -351,7 +351,7 @@ function bindFilePath() {
   if (bindFile.value) {
     return server.unbindComGraph();
   }
-  server.bindComGraphJson();
+  return server.bindComGraphJson();
 }
 
 function openBoundComGraph() {
