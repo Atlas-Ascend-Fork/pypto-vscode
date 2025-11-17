@@ -61,7 +61,6 @@ onMounted(() => {
   <header :class="[outputDirPath && 'com-graph-with-navbar']">
     
     <MiddleLayer v-if="graphType" :graphType="graphType" ></MiddleLayer>
-    <SearchMode v-if="graphType === 'comGraphSearchMode'" :jsonContent="jsonContent" />
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
   </header>
   <div class="parent-container" v-if="graphType === 'controlFlow'">

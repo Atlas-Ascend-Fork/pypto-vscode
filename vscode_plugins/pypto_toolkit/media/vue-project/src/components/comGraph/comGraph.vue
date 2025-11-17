@@ -152,6 +152,7 @@ const LoadingStatusMap = {
 watch(
   () => props.loadingStep,
   (val) => {
+    if (!val) {return;}
     if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }

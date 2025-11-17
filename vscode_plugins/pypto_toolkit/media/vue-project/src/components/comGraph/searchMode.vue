@@ -110,7 +110,6 @@
 import { ref, defineEmits, onMounted, reactive, watch, capitalize} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { comGraphStore } from '../../service/com-graph-store';
-import { getCurFunctionDynamicAttr } from '../../sprotty-graph/parseSymbolicAttr';
 import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import { extractIncasts,
@@ -132,6 +131,8 @@ const props = defineProps({
     default: {}
   },
 })
+
+const emits = defineEmits(['searchMode']);
 
 const { t } = useI18n();
 const searchEl = ref();
@@ -521,6 +522,7 @@ const onLocate = (it) => {
   if (it.node_type === 'function') {
     return;
   }
+  emits('searchMode');
   (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
 }
 

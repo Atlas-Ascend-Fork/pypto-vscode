@@ -4,6 +4,7 @@ import ComGraph from '../../components/comGraph/comGraph.vue';
 import DiffComGraph from '../../components/diffComGraph/diffComGraph.vue';
 import ErrorView from '../../components/comGraph/error.vue';
 import SearchEntry from '../../components/comGraph/searchEntry.vue';
+import SearchMode from '../../components/comGraph/searchMode.vue';
 import SimpleComGraph from '../../components/comGraph/simpleComGraph.vue';
 import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
@@ -16,6 +17,8 @@ import { ICommonViewServer } from '../../../../../src/core/view/view-server-inte
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
+const searchMode = ref(0);
+const subGraphType = ref('');
 const outputDirPath = ref('');
 const passIndex = ref('');
 const pathName = ref('');
@@ -57,7 +60,8 @@ function setupComWatchers(server: any) {
   });
   watch(server.ReadJsonWarning, (newValue) => {
     if (!inThreeColumnMode) {
-      loadingStep.value = newValue.data;
+      loadingStep.value = 'readJsonWarning';
+      searchMode.value = 1;
     }
   });
 
@@ -204,14 +208,15 @@ function onFullRender() {
       <SwimGraph style="height: 100%" :is-three-column="true" :graphType="graphType"/>
     </template>
   </ThreeColumn>
-  <ComGraph v-if="graphType === 'computeGraph'" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
+  <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
     :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic" :pass-index="passIndex" :path-name="pathName"
     :file-name="fileName" />
   <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
     :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
-  <SearchEntry v-if="graphType === 'comGraphFullSearchEntry'" :disabled-search-mode="disabledSearchMode"
-    @full-render="onFullRender" @search-mode="() => (graphType = 'comGraphSearchMode')" />
-  <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
+  <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
+    @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
+  <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent" @searchMode="searchMode = 0" />
+  <swimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
 </template>
 <style scoped>
