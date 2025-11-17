@@ -209,7 +209,6 @@ const threadsArray = computed(() => {
   display: flex;
   width: 240px;
   height: 24px;
-  color: var(--devui-thread-text);
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
@@ -227,7 +226,7 @@ const threadsArray = computed(() => {
     135deg,
     transparent,
     transparent 1px,
-    var(--devui-slider-container-bg) 4px
+    var(--devui-timebar-bg) 4px
   );
   z-index: 0;
 }
