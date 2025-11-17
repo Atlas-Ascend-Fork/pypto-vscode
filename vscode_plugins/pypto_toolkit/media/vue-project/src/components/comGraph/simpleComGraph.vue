@@ -54,11 +54,12 @@ import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
 import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
-import { vscode } from '../../core/vscode';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import { debounce } from 'lodash-es';
 import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -84,6 +85,7 @@ const { isDarkTheme } = inject('root');
 const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGraphFullscreen } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx;
+const { server } = useViewServer<IComViewServer>();
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
@@ -128,7 +130,7 @@ window.addEventListener('message', (event) => {
 
 (window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
   if (!args.label) {
-    removeSelectNodesRect();
+    removeSelectNodesRect?.();
     lockIcon?.removeEventListener('click', onLockClick);
   }
 });
@@ -261,10 +263,7 @@ function onHashMenuToggleChange() {
 }
 
 const onHashChange = (val) => {
-  vscode.value.postMessage({
-    command: 'innerGetSubgraph',
-    paramObj: { calleehash: val.value, subFuncmagicname: val.name },
-  });
+  server.innerGetSubgraph({paramObj: { calleehash: val.value, subFuncmagicname: val.name}});
 };
 
 const onLocate = (id) => {
@@ -314,9 +313,7 @@ watch(
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
         comGraphStore.setData('jsonData', jsonValue);
         resetModelSource();
-        (window as any).vscode.postMessage({
-          type: 'getFuncTree',
-        });
+        server.returnFuncTree();
         let shouldListenViewZoom = true;
         if (comGraphStore.data.isNodeRectLock && currentLockLabel) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {

@@ -118,6 +118,7 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag,async () => {
     await server.getInitialData();
+    server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
     inThreeColumnMode = true;

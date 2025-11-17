@@ -734,10 +734,6 @@ onMounted(() => {
     icon?.click();
   });
 
-  (window as any).vscode.postMessage({
-    type: 'getFuncTree',
-  });
-
   (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
     isExporting.value = false;
     comGraphStore.data.svgExportMode = false;
