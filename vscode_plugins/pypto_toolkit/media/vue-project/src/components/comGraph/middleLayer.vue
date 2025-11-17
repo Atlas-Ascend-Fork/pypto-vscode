@@ -118,6 +118,7 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag,async () => {
     await server.getInitialData();
+    server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
     inThreeColumnMode = true;
@@ -195,8 +196,7 @@ function onFullRender() {
 </script>
 
 <template>
-  <ThreeColumn v-model="layout" v-if="graphType === 'threeColumnGraph'" >
-    <template #code>code</template>
+  <ThreeColumn v-if="graphType === 'threeColumnGraph'" >
     <template #comGraph>
       <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
     </template>
@@ -211,7 +211,7 @@ function onFullRender() {
     :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
   <SearchEntry v-if="graphType === 'comGraphFullSearchEntry'" :disabled-search-mode="disabledSearchMode"
     @full-render="onFullRender" @search-mode="() => (graphType = 'comGraphSearchMode')" />
-  <swimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
+  <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
 </template>
 <style scoped>

@@ -119,6 +119,7 @@ export default {
     'vectorTimeTIP': 'Sum of the task vec_busy_cycles within the selected range',
     layout: 'Layout',
     interlockModeSearchTip: 'In linkage mode, after locking the semantic tags, the search function is not supported.',
+    reset: 'Reset width and height',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
