@@ -30,7 +30,7 @@ export const getSubGraphId = (event, mode) => {
 };
 
 
-export const getEventColor = (event, mode) => {
+export const getEventColorByMode = (event, mode) => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
   if (mode !== "label") {
     const subGraphId = getSubGraphId(event, mode);

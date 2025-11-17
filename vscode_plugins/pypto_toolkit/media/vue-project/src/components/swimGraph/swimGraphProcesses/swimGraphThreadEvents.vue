@@ -1005,7 +1005,7 @@ const transformEvents = (process, processKey) => {
   for (const [threadKey, thread] of process.threads.entries()) {
     if (thread.isCounter) {
       eventCtx.save();
-      eventCtx.setTransform(1, 0, 0, 1, 0, 0);
+      eventCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
       eventCtx.beginPath();
       eventCtx.strokeStyle = '#4aaad6ff';
       eventCtx.lineWidth = 1;
@@ -1960,7 +1960,9 @@ addChildContext('threadEvent', {
   drawSelectionBox,
   toggleLock,
   resizeDrawBoundary,
-  getEventColor,
+  getEventColor: (event, processKey, highlight = false, stroke = true) => {
+    return getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
+  },
   drawBoundary: threeRender.drawBoundary,
 });
 
