@@ -34,7 +34,7 @@ type ExposeViewServer<Server extends ViewServer<string, string>> = {
     ...args: Parameters<ViewServerApi<Server, key>>
   ) => Promise<Awaited<ReturnType<ViewServerApi<Server, key>>>>;
 } & {
-  [key2 in Server['_allowedRef']]: Readonly<Ref<unknown>>;
+  [key2 in Server['_allowedRef']]: Readonly<Ref<any>>;
 };
 
 export function useViewServer<ServerInstance extends ViewServer<string, string>>() {

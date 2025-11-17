@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject } from 'vue';
+import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject,toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
@@ -88,12 +88,17 @@ import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey } from '../threeColumn/types';
+import { useViewServer } from '../../core/use-view-server';
+
+const { server } = useViewServer();
+
 const props = defineProps({
   isThreeColumn: {
     type: Boolean,
     default: false
-  }
+  },
 });
+
 const { isDarkTheme } = inject('root');
 const threeColumnCtx = inject(ThreeColumnProvideKey, undefined);
 const { t: $t } = useI18n();
@@ -248,52 +253,42 @@ const pmuTotal = ref({});
 
 // 方法
 const initEventListeners = () => {
-  window.addEventListener('message', handleMessage);
   window.addEventListener('resize', onWindowResize);
 };
 
-const handleMessage = (event) => {
-  const message = event.data;
-  switch (message.command) {
-    case 'returnSwimData':
+function setupSwimWatchers() {
+  watch(server.returnSwimData, (newValue) => {
       const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-      let newMessage = (oldMessage && oldMessage.message) || message;
-      vscode.setState({ message: message });
-      setPageState(message);
-      loadTraceData(newMessage.data);
-      break;
-    case 'bindResult':
-      if (message.success) {
-        bindFile.value = message.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
+      let newMessage = (oldMessage && oldMessage.message) || newValue;
+      vscode.setState({ message: newValue });
+      setPageState(newValue);
+      loadTraceData(JSON.parse(JSON.stringify(newMessage.data)));
+  });
+  watch(server.bindResult, (newValue) => {
+      if (newValue.success) {
+        bindFile.value = newValue.comGraphPath;
+        bindButton.value = $t('unbindComGraph');
       } else {
         bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
+        bindButton.value = $t('bindComGraphJson');
       }
-      break;
-    case 'unbindResult':
-      if (message.success) {
+  });
+  watch(server.unbindResult, (newValue) => {
+      if (newValue.success) {
         bindFile.value = false;
-        bindButton.value = $t("bindComGraphJson");
+        bindButton.value = $t('bindComGraphJson');
       } else {
-        bindFile.value = message.comGraphPath;
-        bindButton.value = $t("unbindComGraph");
+        bindFile.value = newValue.comGraphPath;
+        bindButton.value = $t('unbindComGraph');
       }
-      break;
-    case 'noSwimFile':
-      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${message.swimPath}"`);
-      break;
-    case 'validateSwimFile':
-      validData(message.content);
-      break;
-  }
-};
-
-const postMessage = (message) => {
-  if (window.vscode) {
-    window.vscode.postMessage(message);
-  }
-};
+  });
+  watch(server.noSwimFile, (newValue) => {
+    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`);
+  });
+  watch(server.validateSwimFile, (newValue) => {
+    validData(newValue.content);
+  });
+}
 
 let ERROR_MESSAGES = {
   INVALID_FILE: $t("swimErroMsgINVALID_FILE"),
@@ -381,6 +376,7 @@ const validData = (dataStr) => {
     window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_PROCESS_NAME);
   }
 };
+
 
 const loadTraceData = (data) => {
   try {
@@ -481,7 +477,7 @@ const renderTwoTimeline = () => {
 }
 
 const renderEvent = () => {
-  if (!processedEvents.value.length && !counterEvents.value.length) return;
+  if (!processedEvents.value.length) return;
   // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
@@ -513,7 +509,7 @@ const clearDependencyLines = (processKey) => {
 };
 
 const render = () => {
-  if (!processedEvents.value.length && !counterEvents.value.length) return;
+  if (!processedEvents.value.length) return;
   renderTwoTimeline();
   renderEvent();
   renderDependencyLines();
@@ -1690,15 +1686,18 @@ const setPageState = (message) => {
 
 // 生命周期钩子
 onMounted(() => {
+  setupSwimWatchers();
   initEventListeners();
-  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-  if (oldMessage && oldMessage.message.data) {
-    setPageState(oldMessage.message);
-    loadTraceData(oldMessage.message.data);
-  } else {
-    loading.value = true;
-    postMessage({ command: 'getSwimData' });
-  }
+  loading.value = true;
+  if (!props.isThreeColumn) {
+    const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+    if (oldMessage && oldMessage.message && oldMessage.message.data) {
+      setPageState(oldMessage.message);
+      loadTraceData(oldMessage.message.data);
+    } else {  
+      server.getSwimData();
+    }
+}
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 

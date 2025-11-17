@@ -28,7 +28,10 @@ import KernelGraph from './kernelGraph.vue';
 import ExecuteGraph from './executeGraph.vue';
 import { comGraphStore } from '../../../service/com-graph-store';
 import { useClickOutside } from '../hooks/use-click-outside';
+import { useViewServer } from '../../../core/use-view-server';
+import type { IComViewServer } from '../../../../../../src/core/view/view-server-interface';
 
+const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
 const props = defineProps({
   modelValue: Boolean,
@@ -49,18 +52,16 @@ let OpMap: Record<number, string> = {};
 let TensorMap: Record<number, string> = {};
 let OpSubgraphMap: Record<number, any> = {};
 let TensorSubgraphMap: Record<number, any> = {};
-
-window.addEventListener('message', (event) => {
-  if (event.data.command === 'returnHealthyReport') {
-    Object.keys(event.data.data).forEach((key) => {
-      if (event.data.data[key]) {
-        graphName.value = key;
-        jsonData.value = event.data.data[key];
-        emits('open', key);
-      }
-    });
-  }
+watch(server.HealthyReport, (newValue) => {
+  Object.keys(newValue.data).forEach((key) => {
+    if (newValue.data[key]) {
+      graphName.value = key;
+      jsonData.value = newValue.data[key];
+      emits('open', key);
+    }
+  });
 });
+
 
 const generateOpMap = (operations: Array<Record<string, any>>) => {
   if (!Array.isArray(operations)) {
@@ -96,9 +97,7 @@ watch(
   () => props.modelValue,
   (val) => {
     if (val) {
-      (window as any).vscode.postMessage({
-        command: 'getHealthyReport',
-      });
+      server.getHealthyReport();
       const jsonData: any = comGraphStore.data.jsonData;
       generateOpMap(jsonData.operations);
       generateTensorMap(jsonData);

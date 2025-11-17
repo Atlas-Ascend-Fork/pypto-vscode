@@ -7,118 +7,112 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   /**
    * 1. 把两份图数据挂到面板
    */
-  protected static override async loadMainData(panel: any): Promise<void> {
+  protected static override async loadMainData(server: any): Promise<void> {
+    const fsPath = server.query._path;
     // 原图
-    await DiffGraphHandler.loadGraphData(panel, panel.fsPath, 'comGraphData');
+    await DiffGraphHandler.loadGraphData(server, server.query, fsPath, 'comGraphData');
     // 对比图
-    panel.otherFsPath = getOtherFilePath(panel.fsPath);
-    await DiffGraphHandler.loadGraphData(panel, panel.otherFsPath, 'diffGraphData');
+    server.query.otherFsPath = getOtherFilePath(fsPath);
+    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData');
   }
 
   /**
    * 2. 获取comGraphData
    */
-  protected static override getGraphData(panel: any): AbstractGraphData {
-    return panel.comGraphData as DiffGraphData;
+  protected static override getGraphData(server: any): AbstractGraphData {
+    return server.comGraphData as DiffGraphData;
   }
-  protected static getDiffGraphData(panel: any): AbstractGraphData {
-    return panel.diffGraphData as DiffGraphData;
+  protected static getDiffGraphData(server: any): AbstractGraphData {
+    return server.diffGraphData as DiffGraphData;
   }
 
   /** 3. 重写 render()，一次性把两份 JSON 都发给前端 */
-  protected static override async render(panel: any) {
+  protected static override async render(server: any) {
     console.debug('DiffGraphHandler render 【开始】');
-    const gd = this.getGraphData(panel);
-    const diffgd = this.getDiffGraphData(panel);
+    const gd = this.getGraphData(server);
+    const diffgd = this.getDiffGraphData(server);
     // 1. 取数据
-    const { json } = await this.fetchGraphJson(gd, panel);
+    const { json } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
       return;
     }
-    const { json: diffJson } = await this.fetchGraphJson(diffgd, panel);
+    const { json: diffJson } = await this.fetchGraphJson(diffgd, server);
     // 组合数据
     const postInfo = getDiffInfo(gd.fsPath, json);
-    if (panel.otherFsPath) {
-      const otherFileName = basename(panel.otherFsPath).replace('.json', '');
+    if (server.diffGraphData) {
+      const otherFileName = basename(server.diffGraphData.fsPath).replace('.json', '');
       postInfo.afterFileName = otherFileName;
       postInfo.afterJson = diffJson;
     }
     // 2. 发送初始化消息
-    await this.postInitMessages(panel, gd, json, true);
+    await this.postInitMessages(server, gd, json, true);
 
     // 3. 发图包
-    await this.postRenderJson(panel, postInfo, 'returnDiffCom');
+    await this.postRenderJson(server, postInfo, 'returnDiffCom');
 
     console.debug('DiffGraphHandler render 【结束】');
   }
 
   /** 4. 重写 getInitialData() */
-  public static override async getInitialData(panel: any): Promise<void> {
+  public static override async getInitialData(server: any): Promise<void> {
     // 1. 初始化
-    this.postForReadJson(panel, 'initDiffComGraph');
-    await this.initTheme(panel);
-    await this.loadMainData(panel);
+    this.postForReadJson(server, 'InitDiffComGraph');
+    await this.initTheme(server);
+    await this.loadMainData(server);
 
     // 2. 校验
-    const gd = this.getGraphData(panel);
-    if (!this.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
-    const diffgd = this.getDiffGraphData(panel);
+    const gd = this.getGraphData(server);
+    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
+    const diffgd = this.getDiffGraphData(server);
     if (diffgd) {
-      if (!this.checkFuncHash(panel, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) return;
+      if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) return;
     }
 
     // 3. 缓存判断&读取文件数据
     console.debug('DiffGraphHandler getInitialData 开始读json数据');
     let originIsBigFile = false;
     let diffIsBigFile = false;
-    originIsBigFile = await this.getJsonData(gd, panel, originIsBigFile);
+    originIsBigFile = await this.getJsonData(gd, server, originIsBigFile);
     if (diffgd) {
-      diffIsBigFile = await this.getJsonData(diffgd, panel, diffIsBigFile);
+      diffIsBigFile = await this.getJsonData(diffgd, server, diffIsBigFile);
     }
     // 4. 加载FuncHashMap
-    await this.loadFuncHashMap(panel, gd);
+    await this.loadFuncHashMap(server, gd);
     if (diffgd) {
-      await this.loadFuncHashMap(panel, gd);
+      await this.loadFuncHashMap(server, gd);
     }
     // 5. 同步渲染
-    await this.render(panel);
-    // 6. 监听前端消息
-    this.onDidReceiveMessage(panel);
+    await this.render(server);
   }
 
   /** 5. 获取comGraphData和EntryHash 并挂到面板上 */
-  private static async loadGraphData(panel: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData') {
+  private static async loadGraphData(server: any, query: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData') {
     if (!fsPath) return;
-    if (!panel[prop]) {
-      panel[prop] = new DiffGraphData(fsPath, panel.funcHash);
+    if (!server[prop]) {
+      server[prop] = new DiffGraphData(fsPath, query.funcHash);
     }
-    const gd = panel[prop] as DiffGraphData;
+    const gd = server[prop] as DiffGraphData;
     if (!gd.funcHash) {
       gd.funcHash = await DiffGraphData.getEntryHash(gd.fsPath);
     }
   }
 
   /** 6. 重写一些小的父类方法 */
-  static override getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
+  static override getElkLayoutComGraghData(server: any, graphData: any, elkFactory: any) {
     if (graphData.layoutOptions['PyPTO.filePath'] === 'before') {
-      return panel.comGraphData;
+      return server.comGraphData;
     } else {
-      return panel.diffGraphData;
+      return server.diffGraphData;
     }
   }
 
-  protected static override postLayoutResult(panel: any, jsonStr: string, filePath?: string) {
-    panel.webview.postMessage({
-      type: 'postLayoutResult',
-      data: JSON.parse(jsonStr),
-      filePath,
-    });
+  protected static override postLayoutResult(server: any, jsonStr: string, filePath?: string) {
+    server.setRef('LayoutResult', { data: JSON.parse(jsonStr), filePath });
   }
 
-  static override postJsonGraphData(panel: any, message: any, data: any, isCached: boolean) {
-    panel.webview.postMessage({
-      type: 'postJsonGraphData',
+  static override postJsonGraphData(server: any, message: any, data: any, isCached: boolean) {
+    server.setRef('JsonGraphData', {
       data: {
         ...data,
         filePath: message.data.filePath,

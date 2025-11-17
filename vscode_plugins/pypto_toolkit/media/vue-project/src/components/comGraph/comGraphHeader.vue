@@ -185,7 +185,10 @@ import { extractIncasts,
   searchByRawTensorMagic,
   searchBySubgraphid,
   searchByOperationMagic } from '../../utils/search';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 
+const { server } = useViewServer<IComViewServer>();
 const props = defineProps({
   showType: {
     type: String,
@@ -594,10 +597,7 @@ function jumpToGraph(funcHash) {
 }
 
 function jumpSubgraph(calleehash, funcMagicName, curPath) {
-  (window as any).vscode.postMessage({
-    command: 'getSubgraph',
-    paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}
-    });
+  server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}});
 }
 
 function svgOutput() {
@@ -624,22 +624,15 @@ function openDiffViewer() {
   if (props.isLoading || props.openMode !== 'all') {
     return;
   }
-  (window as any).vscode.postMessage({
-    type: 'openDiffViewer'
-  });
+  server.openDiffViewer();
 }
 
 function globalSearch(event) {
-  (window as any).vscode.postMessage({
-    command: 'searchAllFunc',
-    paramObj: JSON.parse(JSON.stringify(event))
-  })
+  server.searchAllFunc({paramObj: JSON.parse(JSON.stringify(event))});
 }
-
-window.addEventListener('message', (event) => {
-  if (event.data.command === 'globalSearchResult') {
-    res.value = [];
-    for (const[k, v] of Object.entries(event.data.data)) {
+watch(server.CalleeOpAttrMap, (newValue) => {
+  res.value = [];
+    for (const[k, v] of Object.entries(newValue.data)) {
       v.forEach(item => {
         const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
         if (k == currentFuncHash) {
@@ -650,34 +643,26 @@ window.addEventListener('message', (event) => {
       });
     }
     resSize.value = res.value.length;
-  }
 });
+
 
 function jumpSearchSubgraph(calleehash, funcMagicName) {
   if (comGraphStore.data.comGraphConfig.isSimple) {
-    (window as any).vscode.postMessage({
-      command: 'innerGetSubgraph',
-      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName },
-    });
+    server.innerGetSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName}});
   } else {
     let newPath = JSON.stringify([calleehash]);
-    (window as any).vscode.postMessage({
-      command: 'getSubgraph',
-      paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}
-      });
+    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}});
   }
 }
 
-window.addEventListener('message', (event) => {
-  const message = event.data;
-  if (message.command == 'returnFuncTree') {
-    funcTree = message.data;
-    passName = message.fsPath.split('\\').pop();
-    curPath.value = typeof message.curPath === 'string' ? JSON.parse(message.curPath) : message.curPath;
-    entry.value = message.entry;
-    comGraphStore.setData('curPath', message.curPath);
-  }
+watch(server.FuncTree, (newValue) => {
+  funcTree = newValue.data;
+  passName = newValue.fsPath.split('\\').pop();
+  curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
+  entry.value = newValue.entry;
+  comGraphStore.setData('curPath', newValue.curPath);
 });
+
 
 function calcNodeSize(map) {
   let cnt = 0;

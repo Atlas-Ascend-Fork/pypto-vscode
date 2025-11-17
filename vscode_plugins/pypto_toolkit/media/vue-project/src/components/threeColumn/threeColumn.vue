@@ -46,6 +46,7 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, provide, ref } from 'vue';
+import type { Ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
 import type { ILayoutInfo, BlockType, LayoutMode, IBlockToGraphMap, IShowBlockMap } from './types';
@@ -54,7 +55,7 @@ import ThreeColumnHeader from './threeColumnHeader.vue';
 import DragIcon from './drag-icon.vue';
 import { findKeyByValue } from './utils';
 
-const { isDarkTheme } = inject('root');
+const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 
 const currentLayoutMode = ref<LayoutMode>('triangular');
 const HResizeBarLeft = ref('');

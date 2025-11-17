@@ -1,5 +1,6 @@
 import { generateColorList, getColorByString } from './color-list';
 import BigNumber from 'bignumber.js'
+import { getMTime, SQLiteCache } from './core/sqliteCache';
 
 // 异步初始化颜色列表
 let darkThemeColors: any = null;
@@ -171,16 +172,61 @@ export function parsePmuInfo(csvData: string) {
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
     
-    const TaskInfo = {};
+    const taskInfo: { [key: string]: any } = {};
     const curLine = lines[i].split(',');
 
     for (let j = 0; j < headers.length; j++) {
-      TaskInfo[headers[j]] = curLine[j] ? curLine[j].trim() : ''; 
+      taskInfo[headers[j]] = curLine[j] ? curLine[j].trim() : ''; 
     }
-    pmuInfo[String(TaskInfo['seqNo']) + '-' + String(TaskInfo['sub task id'])] = TaskInfo; 
+    const uid = String(taskInfo['seqNo']) + '-' + String(taskInfo['sub task id']);
+    pmuInfo[uid] = taskInfo; 
+    pmuInfo[uid]['vec_ratio'] = taskInfo.vec_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['cube_ratio'] = taskInfo.cube_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['scalar_ratio'] = taskInfo.scalar_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['mte1_ratio'] = taskInfo.mte1_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['mte2_ratio'] = taskInfo.mte2_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['mte3_ratio'] = taskInfo.mte3_busy_cycles / taskInfo['total cycle'];
+    pmuInfo[uid]['icache_hit'] = 1 - taskInfo.icache_miss / taskInfo.icache_req;
+    
   }
   return pmuInfo;
 }
+
+const calculateDependenciesBytopo = (events, task2topo) => {
+  const predecessors: Record<string, string[]> = Object.fromEntries(Object.keys(task2topo).map(taskId => [taskId, []]));
+  for (const taskId in task2topo) {
+    const taskInfo = task2topo[taskId];
+    for (const successor of taskInfo.successors) {
+      predecessors[successor] = [...(predecessors[successor] || []), taskId];
+    }
+  }
+  const topoDependencies: Record<string, { predecessors: string[]; successors: string[]}> = Object.fromEntries(
+    Object.keys(task2topo).map(taskId => [
+      taskId,
+      {
+        predecessors: predecessors[taskId],
+        successors: task2topo[taskId].successors
+      }
+    ])
+  );
+  const taskMap = new Map<string, any>();
+  for (const event of events) {
+    const taskId = `${event.args.seqNo}-${event.args.taskId}`;
+    if (taskMap.has(taskId)) {
+      return false;
+    }
+    taskMap.set(taskId, event);
+  }
+  for (const taskId of Object.keys(topoDependencies)) {
+    const taskDependencies = topoDependencies[taskId];
+    const event = taskMap.get(taskId);
+    if (event) {
+      event.dependencies.predecessors = taskDependencies.predecessors.map(predecessor => taskMap.get(predecessor)?.id || '');
+      event.dependencies.successors = taskDependencies.successors.map(successor => taskMap.get(successor)?.id || '');
+    }
+  }
+  return true;
+};
 
 const calculateDependencies = (events, connections) => {
     // 构建索引：以 (tid, startTime, endTime) 为键，事件对象为值
@@ -245,7 +291,7 @@ const calculateDependencies = (events, connections) => {
     return null;
   }
 
-  function processTaskPmuCalc(event: any, pmuTotal: any, pmuInfo: any) {
+  function processTaskPmuCalc(event: any, pmuInfo: any) {
     const taskPmuKey = String(event['args']['seqNo']) + '-' + String(event['args']['taskId']);
     const taskPmuInfo = pmuInfo[taskPmuKey];
     if(event.threadName.includes(FAKE_CORE_KEYWORD) == true) {
@@ -264,40 +310,30 @@ const calculateDependencies = (events, connections) => {
     event['pmu_calc_info']['mte2_ratio'] = taskPmuInfo.mte2_busy_cycles / taskPmuInfo['total cycle'];
     event['pmu_calc_info']['mte3_ratio'] = taskPmuInfo.mte3_busy_cycles / taskPmuInfo['total cycle'];
     event['pmu_calc_info']['icache_hit'] = 1 - taskPmuInfo.icache_miss / taskPmuInfo.icache_req;
-    
-    pmuTotal['total cycle'] += BigInt(taskPmuInfo['total cycle']);
-    pmuTotal.cube_busy_cycles += BigInt(taskPmuInfo.cube_busy_cycles);
-    pmuTotal.vec_busy_cycles += BigInt(taskPmuInfo.vec_busy_cycles);
-    pmuTotal.scalar_busy_cycles += BigInt(taskPmuInfo.scalar_busy_cycles);
-    pmuTotal.mte1_busy_cycles += BigInt(taskPmuInfo.mte1_busy_cycles);
-    pmuTotal.mte2_busy_cycles += BigInt(taskPmuInfo.mte2_busy_cycles);
-    pmuTotal.mte3_busy_cycles += BigInt(taskPmuInfo.mte3_busy_cycles);
-    pmuTotal.icache_miss += BigInt(taskPmuInfo.icache_miss);
-    pmuTotal.icache_req += BigInt(taskPmuInfo.icache_req);
   }
 
-  function processTotalPmuCalc(pmuTotal :any) {
+  export function processTotalPmuCalc(pmuTotal :any) {
     pmuTotal['vec_ratio'] = ((new BigNumber(pmuTotal.vec_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['cube_ratio'] = ((new BigNumber(pmuTotal.cube_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['scalar_ratio'] = ((new BigNumber(pmuTotal.scalar_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['mte1_ratio'] = ((new BigNumber(pmuTotal.mte1_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['mte2_ratio'] = ((new BigNumber(pmuTotal.mte2_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['mte3_ratio'] = ((new BigNumber(pmuTotal.mte3_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-      pmuTotal['icache_hit'] = new BigNumber(1)
-        .minus(
-          (new BigNumber(pmuTotal.icache_miss))
-            .dividedBy(new BigNumber(pmuTotal.icache_req))
-          ).toString();
-  
-      pmuTotal['total cycle'] = pmuTotal['total cycle'].toString();
-      pmuTotal.vec_busy_cycles = pmuTotal.vec_busy_cycles.toString();
-      pmuTotal.cube_busy_cycles = pmuTotal.cube_busy_cycles.toString();
-      pmuTotal.scalar_busy_cycles = pmuTotal.scalar_busy_cycles.toString();
-      pmuTotal.mte1_busy_cycles = pmuTotal.mte1_busy_cycles.toString();
-      pmuTotal.mte2_busy_cycles = pmuTotal.mte2_busy_cycles.toString();
-      pmuTotal.mte3_busy_cycles = pmuTotal.mte3_busy_cycles.toString();
-      pmuTotal.icache_miss = pmuTotal.icache_miss.toString();
-      pmuTotal.icache_req = pmuTotal.icache_req.toString();
+    pmuTotal['cube_ratio'] = ((new BigNumber(pmuTotal.cube_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
+    pmuTotal['scalar_ratio'] = ((new BigNumber(pmuTotal.scalar_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
+    pmuTotal['mte1_ratio'] = ((new BigNumber(pmuTotal.mte1_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
+    pmuTotal['mte2_ratio'] = ((new BigNumber(pmuTotal.mte2_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
+    pmuTotal['mte3_ratio'] = ((new BigNumber(pmuTotal.mte3_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
+    pmuTotal['icache_hit'] = new BigNumber(1)
+      .minus(
+        (new BigNumber(pmuTotal.icache_miss))
+          .dividedBy(new BigNumber(pmuTotal.icache_req))
+        ).toString();
+
+    pmuTotal['total cycle'] = pmuTotal['total cycle'].toString();
+    pmuTotal.vec_busy_cycles = pmuTotal.vec_busy_cycles.toString();
+    pmuTotal.cube_busy_cycles = pmuTotal.cube_busy_cycles.toString();
+    pmuTotal.scalar_busy_cycles = pmuTotal.scalar_busy_cycles.toString();
+    pmuTotal.mte1_busy_cycles = pmuTotal.mte1_busy_cycles.toString();
+    pmuTotal.mte2_busy_cycles = pmuTotal.mte2_busy_cycles.toString();
+    pmuTotal.mte3_busy_cycles = pmuTotal.mte3_busy_cycles.toString();
+    pmuTotal.icache_miss = pmuTotal.icache_miss.toString();
+    pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
   
   export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, mode: string) {
@@ -370,20 +406,6 @@ const calculateDependencies = (events, connections) => {
   
     processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
     const lable2lines = {};
-    let pmuTotal: any = {};
-    if (Object.keys(pmuInfo).length > 0) {
-      pmuTotal = {
-        'total cycle': 0n,
-        vec_busy_cycles: 0n,
-        cube_busy_cycles: 0n,
-        scalar_busy_cycles: 0n,
-        mte1_busy_cycles: 0n,
-        mte2_busy_cycles: 0n,
-        mte3_busy_cycles: 0n,
-        icache_miss: 0n,
-        icache_req: 0n
-      };
-    }
     for (const event of processedTasks) {
       //处理带dur的event
       const isFakeCore = event.threadName.includes(FAKE_CORE_KEYWORD);
@@ -392,17 +414,16 @@ const calculateDependencies = (events, connections) => {
       
       //pmu info process
       if (Object.keys(pmuInfo).length > 0) {
-        processTaskPmuCalc(event, pmuTotal, pmuInfo);
+        processTaskPmuCalc(event, pmuInfo);
       }
     }
   
-    if (Object.keys(pmuInfo).length > 0) {
-      processTotalPmuCalc(pmuTotal);
-    }
-  
     // 计算依赖关系
-    calculateDependencies(processedTasks, connections);
-  
+    const hasTopo = Object.keys(task2topo).length > 0;
+    const status = hasTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
+    if (!status) {
+      calculateDependencies(processedTasks, connections);
+    }
     let firstExpanded = false;
     // 组织数据结构
     [...processedTasks, ...counterEvents].forEach((event: any) => {
@@ -460,6 +481,230 @@ const calculateDependencies = (events, connections) => {
     data['processes'] = processes;
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
-    data['pmu_total'] = pmuTotal;
     return data;
   };
+
+  export async function refreshSwimGraphDB(swimPath: string, swimData: any, swimLastChangeTime: string, colorRendering: string) {
+    await SQLiteCache.getInstance().swimGraphProcessDel(swimPath);
+    await SQLiteCache.getInstance().swimGraphThreadDel(swimPath);
+    await SQLiteCache.getInstance().swimGraphEventDel(swimPath);
+    await SQLiteCache.getInstance().swimGraphLane2lineDel(swimPath);
+    saveLane2LineToDB(swimPath, swimData.lane2line, swimLastChangeTime);
+    saveProcessesToDB(swimPath, swimData.processes, swimLastChangeTime, colorRendering);
+  }
+
+  export async function saveProcessesToDB(swimPath: string, processes: Object, lastChangeTime: string, colorRendering: string) {
+    for (const processKey in processes) {
+      const process = processes[processKey];
+      await SQLiteCache.getInstance().swimGraphProcessSet(swimPath, lastChangeTime, process.pid, process.processName, colorRendering);
+      console.log('insert to db Process', processKey);
+      let threadId = 1;
+      for (const threadKey in process.threads) {
+        const thread = process.threads[threadKey];
+        thread.pid = process.pid;
+        await SQLiteCache.getInstance().swimGraphThreadSet(swimPath, thread.tid, lastChangeTime, thread.threadName, JSON.stringify(thread.argKey), 
+          thread.isCounter, thread.isFakeCore, thread.maxCount, thread.pid, threadId);
+        for (const eventKey in thread.events) {
+          const event = thread.events[eventKey];
+          if (!event.id) {
+            event.id = 'C_' + event.name + '_' + eventKey; 
+          }
+          const seqNo = event.args?.seqNo;
+          const taskId = event.args?.taskId;
+          const uid = String(event.args?.seqNo) && String(event.args?.taskId) 
+            ? `${event.args.seqNo}-${event.args.taskId}`: '';
+          let eventType = 'Task';
+            if (event.isCounter) {
+            eventType = 'Counter';
+          }
+          
+          await SQLiteCache.getInstance().swimGraphEventSet(
+            swimPath, 
+            lastChangeTime, 
+            event.id,
+            threadId,
+            eventType,
+            JSON.stringify(event.args ?? {}), 
+            JSON.stringify(event.dependencies?.predecessors ?? []), 
+            JSON.stringify(event.dependencies?.successors ?? []), 
+            event.duration ?? 0, 
+            event.endTime ?? 0, 
+            event.pid ?? 0, 
+            event.tid ?? 0, 
+            event.line ?? 0, 
+            event.isCounter ? 1 : 0, 
+            event.isFakeCore ? 1 : 0, 
+            event.name ?? '', 
+            uid,
+            event.renderEndTime ?? 0, 
+            event.renderStartTime ?? 0, 
+            event.startTime ?? 0, 
+            event.threadName ?? '', 
+            event.ts ?? 0, 
+            event.leafIndex ?? '',
+            seqNo ?? 0,
+            taskId ?? 0,
+            JSON.stringify(event.color ?? {})
+          );
+        }
+        threadId++;
+      }
+    }
+    console.log('insert process done');
+  }
+
+  export async function saveLane2LineToDB(swimPath: string, lane2line: Object, lastChangeTime: string) {
+    for (const key in lane2line) {
+      await SQLiteCache.getInstance().swimGraphLane2lineSet(swimPath, lastChangeTime, key, lane2line[key]);
+    }
+  }
+
+  export async function savePmuToDB(pmuPath: string, pmuInfo: Object, lastChangeTime: string) {
+    for (const uid in pmuInfo) {
+      const taskInfo = pmuInfo[uid];
+      await SQLiteCache.getInstance().swimGraphPmuSet(pmuPath, lastChangeTime, uid, taskInfo['sub task id'], 
+        taskInfo.seqNo, taskInfo['thread id'], taskInfo['task id'], taskInfo['core id'], taskInfo['total cycle'],
+        taskInfo.vec_busy_cycles, taskInfo.cube_busy_cycles, taskInfo.scalar_busy_cycles, taskInfo.mte1_busy_cycles, 
+        taskInfo.mte2_busy_cycles, taskInfo.mte3_busy_cycles, taskInfo.icache_miss, taskInfo.icache_req, 
+        taskInfo.cube_ratio, taskInfo.vec_ratio, taskInfo.scalar_ratio, taskInfo.mte1_ratio, taskInfo.mte2_ratio, 
+        taskInfo.mte3_ratio, taskInfo.icache_hit);
+    }
+  }
+
+  export async function convertSwimInfo(swimPath: string, dbProcessInfo: any, pmuInfo: any, newColorRendering: string) {
+    const processes = {};
+    const processedEvents: any = [];
+    const processExpanded: any = {};
+    
+    for(const [index, processRow] of dbProcessInfo.entries()) {
+      processes[processRow.pid] = {};
+      processes[processRow.pid].expanded = false;
+      processes[processRow.pid].pid = processRow.pid;
+      processes[processRow.pid].processName = processRow.process_name;
+      processes[processRow.pid].threads = {};
+      if (index == 0) {
+        processExpanded[processRow.pid] = true;
+      } else {
+        processExpanded[processRow.pid] = false;
+      }
+      
+      const dbThreadInfo = await SQLiteCache.getInstance().swimGraphThreadGetByFilePathPid(swimPath, processRow.pid);
+      
+      const threadPromises = dbThreadInfo.map(async (threadRow) => {
+        let threadKey = '';
+        if (!threadRow.is_counter) {
+          threadKey = processRow.pid + '-' + threadRow.tid;
+        } else {
+          threadKey = threadRow.thread_name;
+        }
+        
+        const threadData: any = {
+          argKey: JSON.parse(threadRow.arg_key),
+          isCounter: Boolean(threadRow.is_counter),
+          isFakeCore: Boolean(threadRow.is_fake_core),
+          maxCount: threadRow.max_count,
+          tid: threadRow.tid,
+          threadName: threadRow.thread_name,
+          threadId: threadRow.thread_id,
+          events: []
+        };
+        
+        let dbEventInfo: any[];
+        if (threadRow.is_counter) {
+          dbEventInfo = await SQLiteCache.getInstance().swimGraphEventGetByFilePathPidTidOrderByTsAsc(swimPath, processRow.pid, threadRow.thread_id);
+        } else {
+          dbEventInfo = await SQLiteCache.getInstance().swimGraphEventGetByFilePathPidTid(swimPath, processRow.pid, threadRow.thread_id);
+        }
+        
+        const eventPromises = dbEventInfo.map(async (eventRow) => {
+          const event: any = {};
+          event.args = JSON.parse(eventRow.args);
+          event.isCounter = Boolean(eventRow.is_counter);
+          event.isFakeCore = Boolean(eventRow.is_fake_core);
+          event.name = eventRow.name;
+          event.pid = eventRow.pid;
+          event.tid = eventRow.tid;
+          event.ts = eventRow.ts;
+          event.id = eventRow.id;
+          event.eventTpe = eventRow.event_type;
+          if (!eventRow.is_counter) {
+            const predecessors = JSON.parse(eventRow.predecessors);
+            const successors = JSON.parse(eventRow.successors);
+            event.dependencies = {};
+            event.dependencies.predecessors = predecessors;
+            event.dependencies.successors = successors;
+            event.duration = eventRow.duration;
+            event.endTime = eventRow.end_time;
+            event.renderEndTime = eventRow.render_end_time;
+            event.renderStartTime = eventRow.render_start_time;
+            event.startTime = eventRow.start_time;
+            event.threadName = eventRow.thread_name;
+            event.threadId = eventRow.thread_id;
+            event.pmu_info = pmuInfo[eventRow.uid];
+            event.color = JSON.parse(eventRow.color);
+            event.leafIndex = eventRow.leaf_index;
+            if (processRow.colorRendering != newColorRendering) {
+              event.color = await getEventColor(event, newColorRendering);
+            }
+            processedEvents.push(event);
+          }
+          return event;
+        });
+        
+        threadData.events = await Promise.all(eventPromises);
+        return { threadKey, threadData };
+      });
+      
+      const threadResults = await Promise.all(threadPromises);
+      
+      threadResults.forEach(({ threadKey, threadData }) => {
+        processes[processRow.pid].threads[threadKey] = threadData;
+      });
+    }
+    
+    return [processes, processedEvents, processExpanded];
+}
+
+
+
+  export async function convertPmuInfo(dbPmuInfo: any) {
+    const pmuInfo: any = {};
+    for (const pmuRow of dbPmuInfo) {
+      const uid = pmuRow.uid;
+      const pmu: any = {};
+      pmu['core id'] = pmuRow.core_id;
+      pmu.cube_busy_cycles = pmuRow.cube_busy_cycles;
+      pmu.vec_busy_cycles = pmuRow.vec_busy_cycles;
+      pmu['sub task id'] = pmuRow.sub_task_id;
+      pmu.seqNo = pmuRow.seq_no;
+      pmu['thread id'] = pmuRow.thread_id;
+      pmu['task id'] = pmuRow.task_id;
+      pmu['core id'] = pmuRow.core_id;
+      pmu['total cycle'] = pmuRow.total_cycle;
+      pmu.scalar_busy_cycles = pmuRow.scalar_busy_cycles;
+      pmu.mte1_busy_cycles = pmuRow.mte1_busy_cycles;
+      pmu.mte2_busy_cycles = pmuRow.mte2_busy_cycles;
+      pmu.mte3_busy_cycles = pmuRow.mte3_busy_cycles;
+      pmu.icache_miss = pmuRow.icache_miss;
+      pmu.icache_req = pmuRow.icache_req;
+      pmu.cube_ratio = pmuRow.cube_ratio;
+      pmu.vec_ratio = pmuRow.vec_ratio;
+      pmu.scalar_ratio = pmuRow.scalar_ratio;
+      pmu.mte1_ratio = pmuRow.mte1_ratio;
+      pmu.mte2_ratio = pmuRow.mte2_ratio;
+      pmu.mte3_ratio = pmuRow.mte3_ratio;
+      pmu.icache_hit = pmuRow.icache_hit;
+      pmuInfo[uid] = pmu;
+    }
+    return pmuInfo;
+  }
+
+  
+
+  export async function convertLane2LineInfo(dbLane2LineInfo: any) {
+    const lane2line: any = {};
+    for (const l2lRow of dbLane2LineInfo) {
+      lane2line[l2lRow.name] = l2lRow.value;
+    }
+    return lane2line;
+  }

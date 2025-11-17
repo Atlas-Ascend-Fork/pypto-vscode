@@ -202,3 +202,17 @@ function getWebviewEntryCode(viewPanel: vscode.WebviewPanel): string {
     .replace(/{{ascLang}}/g, getIDELang());
   return htmlCode;
 }
+
+export interface GraphViewOptions {
+  /** 面板类型标识，对应 package.json contributes.views */
+  viewType: string;
+  /** 显示标题 */
+  title: string;
+  /** 列区域 */
+  column?: vscode.ViewColumn;
+  /** 额外图标（可选） */
+  iconPath?: vscode.Uri;
+  calleeOpMagic?: string;
+  calleeOpSubgraphId?: string;
+}
+

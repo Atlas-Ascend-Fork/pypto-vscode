@@ -63,9 +63,9 @@ async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Pro
     return [];
   }
   const swimlaneFileUri = vscode.Uri.file(record.swimlaneGraphFilePath);
-  if (!(await isFileExist(swimlaneFileUri))) {
-    return [];
-  }
+  // if (!(await isFileExist(swimlaneFileUri))) {
+  //   return [];
+  // }
   return [
     {
       type: 'file',

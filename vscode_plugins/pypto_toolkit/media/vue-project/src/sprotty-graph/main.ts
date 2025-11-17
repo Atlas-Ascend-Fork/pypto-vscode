@@ -3,20 +3,17 @@ import { LocalModelSource, SModelRootImpl, TYPES } from 'sprotty';
 import { createDiContainer, Rect } from './di.config';
 import { createSvg } from './svgExport';
 
-import {
-  FitToScreenAction,
-  SNode,
-  SelectAction,
-  CenterAction,
-  SetViewportAction,
-  UpdateModelAction,
-  HoverFeedbackAction
-} from 'sprotty-protocol';
+import { FitToScreenAction, SNode, SelectAction, CenterAction, SetViewportAction, UpdateModelAction,
+  HoverFeedbackAction } from 'sprotty-protocol';
 import { createMiniMapDiContainer } from './minimap-di.config';
 import { comGraphStore } from '../service/com-graph-store';
 import { ILayoutConfigurator } from 'sprotty-elk';
 import { findNodeIdsBySemanticLabel } from '../utils/search';
+import { useViewServer } from '../core/use-view-server';
+import type { IComViewServer } from '../../../../src/core/view/view-server-interface';
+import { watch } from 'vue';
 
+const { server } = useViewServer<IComViewServer>();
 declare const vscode: any;
 const MAINMAP_TYPE = 1;
 const MINIMAP_TYPE = 2;
@@ -37,7 +34,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     direction: 'RIGHT',
     showTensor: true,
     filePath: filePath ?? '',
-  }
+  };
   if (filePath) {
     resetModelSource();
   }
@@ -107,10 +104,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
 
   function resetModelSource() {
     container = createDiContainer(SPROTTY_CONTAINER_ID);
-    modelSource = container.get<LocalModelSource>(TYPES.ModelSource)
-    const layoutConfigurator = container.get(
-      ILayoutConfigurator
-    ) as import("./di.config").AstgrLayoutConfigurator;
+    modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
+    const layoutConfigurator = container.get(ILayoutConfigurator) as import('./di.config').AstgrLayoutConfigurator;
     comGraphStore.setData('layoutDirection', currentLayoutConfig.direction);
     layoutConfigurator.setLayoutDirection(currentLayoutConfig.direction);
     layoutConfigurator.setShowTensor(currentLayoutConfig.showTensor);
@@ -143,20 +138,17 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       colorBySubgraph,
       isDark,
       selectedSubgraphId,
-      nodeMagic
+      nodeMagic,
     };
-    (window as any).vscode.postMessage({
-      type: 'getJsonGraphData',
-      data
-    });
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'postJsonGraphData' && (!filePath || filePath === event.data.data.filePath)) {
+    server.getJsonGraphData({ data: data });
+    watch(server.JsonGraphData, (newValue) => {
+      if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
-        const sprottyGraph = event.data.data;
+        const sprottyGraph = newValue.data;
         sprottyGraph['renderMode'] = option?.openMode || 'all';
 
         originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
-    
+
         const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
         const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
         console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
@@ -166,14 +158,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
-                (window as any).vscode.postMessage({
-                  type: 'setFinalResult',
-                  data: modelSource.model,
-                  layout: currentLayoutConfig
-                });
-              } else {
-                (window as any).ascEventBus.emit('layoutEnding', true);
+                server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig });
               }
+              (window as any).ascEventBus.emit('layoutEnding', true);
               renderMinimap(modelSource.model);
             }
             if (!sprottyGraph.children) return;
@@ -332,7 +319,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number) => {
     try {
       currentData = jsonData; // Store the data
-      updateGraph(isDark, {openMode, nodeMagic}); // Use the updateGraph function
+      updateGraph(isDark, { openMode, nodeMagic }); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?
@@ -365,9 +352,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       modelSource.setModel(originSprottyGraph).then(() => {
         fitGraphToScreen();
         renderMinimap(modelSource.model);
-      })
+      });
     }
-  }
+  };
   // Signal to VS Code that the webview is ready to receive data
   vscode.postMessage({ type: 'webviewReady' });
 
@@ -378,7 +365,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   // 同步diff双图移动
   const syncDiffView = (args) => {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
-  }
+  };
 
   const createSelectNodesRect = async (semantic_lable : string, isLocate: boolean) => {
     const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);

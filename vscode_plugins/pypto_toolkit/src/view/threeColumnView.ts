@@ -20,6 +20,7 @@ class codeMsgHandler {
     } catch (err) {
       console.error(`${codePath}读取 py 文件时发生错误:`, err);
     }
+    // server.setRef('returnPyCode', {data: { code, codePath } });
     panel.webview.postMessage({
       command: 'returnPyCode',
       data: { code, codePath },
@@ -34,6 +35,7 @@ class codeMsgHandler {
       writeFileSync(codePath, code, 'utf8');
       
       // 通知前端保存成功
+      // server.setRef('saveSuccess', {data: 'Code saved successfully' });
       panel.webview.postMessage({
         command: 'saveSuccess',
         data: 'Code saved successfully'
@@ -56,6 +58,7 @@ class comGraphHandler extends SingleGraphHandler {
   static searchFuncHashInProject(panel, funcHash: string) {
     vscode.workspace.findFiles(`**/*${funcHash}*.json`).then(fileList => {
       const res = fileList.map(uri => uri.fsPath);
+      // server.setRef('getFuncHashFileList', {data: res });
       panel.webview.postMessage({
         type: 'getFuncHashFileList',
         data: res,
@@ -77,7 +80,7 @@ class comGraphHandler extends SingleGraphHandler {
     await super.getInitialData(panel);
     const graphData = this.getGraphData(panel);
     const fullData = await graphData.getCompleteData(graphData.fsPath);
-
+    // server.setRef('returnCompleteData', {data: fullData });
     panel.webview.postMessage({
       command: 'returnCompleteData',
       data: fullData
@@ -127,6 +130,7 @@ export class ThreeColumnGraphView {
       (message: any) => {
         const panel: any = this.panel;
         if (message.command === 'getInitialData') {
+          // server.setRef('SetThreeColumnMode');
           panel.webview.postMessage({
             command: 'setThreeColumnMode'
           });
@@ -174,6 +178,7 @@ export class ThreeColumnGraphView {
     new ThreeColumnGraphView(panel, ucodeUri, swimUri, comgraphUri);
 
     window.onDidChangeActiveColorTheme(() => {
+      // server.setRef('returnTheme', {data: getIDETheme() });
        panel.webview.postMessage({
         command: 'returnTheme',
         data: getIDETheme(),

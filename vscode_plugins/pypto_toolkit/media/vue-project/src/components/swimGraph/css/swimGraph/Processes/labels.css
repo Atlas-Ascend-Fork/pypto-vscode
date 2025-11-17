@@ -10,14 +10,14 @@
   justify-content: space-between;
   align-items: center;
   position: relative;
+  color: var(--devui-thread-text);
 }
 .thread-labels-loop.active {
   background-color: var(--devui-font-badge-bg);
 }
 .thread-labels-loop.activeS {
   background: var(--devui-search-active-bg);
-  opacity: 0.7;
-  color: var(--devui-swim-global-bg);
+  color: var(--devui-title-text) !important;
   width: 250px;
 }
 .thread-labels-loop::after {
@@ -45,7 +45,6 @@
   box-sizing: border-box;
   border: 1px solid var(--devui-nest-bg);
   border-radius: 4px;
-  color: var(--devui-thread-text);
   font-size: 12px;
   font-weight: 400;
   line-height: 20px;

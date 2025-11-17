@@ -12,11 +12,12 @@ import { Util } from '../util';
 import { graphFileHashMap } from '../common/graphFileHashMap';
 import * as Extractor from '../utils/graphExtractor';
 import { AbstractGraphData, SingleGraphData, DiffGraphData } from '../core/graphData';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { GraphView } from '../view/graphView';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
+import * as vscode from 'vscode';
 
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
@@ -41,113 +42,83 @@ export abstract class BaseGraphMsgHandler {
     // 以后扩展再往里加
   ]);
 
-  static async initTheme(panel: any) {
-    panel.webview.postMessage({
-      command: 'returnTheme',
-      data: getIDETheme(),
-    });
-    panel.webview.postMessage({
-      command: 'returnLang',
-      data: getIDELang(),
-    });
+  static async initTheme(server: any) {
+    server.setRef('IDETheme', { data: getIDETheme() });
+    server.setRef('IDELang', { data: getIDELang() });
   }
 
   /* ===================================================
    * 1. 总入口：子类可重写
    * =================================================== */
-  static async getInitialData(panel: any) {
+  static async getInitialData(server: any) {
     // 1. 初始化
-    await this.initTheme(panel);
-    await this.loadMainData(panel);
+    await this.initTheme(server);
+    await this.loadMainData(server);
 
     // 2. 校验
-    const gd = this.getGraphData(panel);
-    if (!this.checkFuncHash(panel, gd, 'pypto.canNotGetFuncHashOnOpenGraph')) return;
+    const gd = this.getGraphData(server);
+    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenGraph')) return;
 
     // 3. 缓存判断&读取文件数据
-    this.postForReadJson(panel, 'initComGraph');
+    this.postForReadJson(server, 'InitComGraph');
     let isBigFile = false;
-    isBigFile = await this.getJsonData(gd, panel, isBigFile);
+    isBigFile = await this.getJsonData(gd, server, isBigFile);
 
     // 4. 加载FuncHashMap
-    await this.loadFuncHashMap(panel, gd);
+    await this.loadFuncHashMap(server, gd);
 
     // 5. 同步渲染
-    await this.render(panel);
-
-    // 6. 监听前端消息
-    this.onDidReceiveMessage(panel);
+    await this.render(server);
   }
 
-  protected static onDidReceiveMessage(panel: any) {
-    panel.webview.onDidReceiveMessage(
-      async (message) => {
-        console.log(`[GraphView Handler] business command: ${message.command} type: ${message.type}`);
-        await this.CommonMessageActions(message, panel);
-      },
-      undefined,
-      panel._disposables ?? [],
-    );
+  static async setFinalResult(message: any, server: any) {
+    const filePath = message.data.filePath === 'after' ? server.diffGraphData?.fsPath : server.comGraphData.fsPath;
+    let funcHash = message.data.filePath === 'after' ? server.diffGraphData?.funcHash : server.comGraphData.funcHash;
+    if (!filePath) {
+      return;
+    }
+    const layout = message.layout;
+    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+      funcHash = funcHash + '_hasParent';
+    }
+    if (layout.direction === 'DOWN') funcHash += '_down';
+    if (!layout.showTensor) funcHash += '_notshowtensor';
+    funcHash += message.data.filePath || '';
+    const lastChangeTime = await getMTime(filePath);
+    const result = JSON.stringify(message.data);
+    await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
   }
 
-  static async CommonMessageActions(message: any, panel: any) {
-    if (message.type === 'askLayout') {
-      void this.elkLayout(message.data, panel);
+  static async getJsonGraphData(message: any, server: any) {
+    const filePath = message.data.filePath === 'after' ? server.diffGraphData?.fsPath : server.comGraphData.fsPath;
+    let funcHash = message.data.filePath === 'after' ? server.diffGraphData?.funcHash : server.comGraphData.funcHash;
+    let finalResult: any;
+    let data: any;
+    let isCached = false;
+    const layout = message.data.layout;
+    // 构造缓存 key
+    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+      funcHash = funcHash + '_hasParent';
     }
-    if (message.type === 'getJsonGraphData') {
-      // 判断是否有最终结果
-      const filePath = message.data.filePath === 'after' ? panel.diffGraphData?.fsPath : panel.comGraphData.fsPath;
-      let funcHash = message.data.filePath === 'after' ? panel.diffGraphData?.funcHash : panel.comGraphData.funcHash;
-      let finalResult: any;
-      let data: any;
-      let isCached = false;
-      const layout = message.data.layout;
-      // 构造缓存 key
-      if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-        funcHash = funcHash + '_hasParent';
-      }
-      if (layout.direction === 'DOWN') funcHash += '_down';
-      if (!layout.showTensor) funcHash += '_notshowtensor';
-      funcHash += message.data.filePath || '';
-      if (panel.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
-        finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
-      }
-      if (finalResult) {
-        data = JSON.parse(finalResult.final_result); // 如果有缓存则发送最终数据
-        data['isFinial'] = true;
-        isCached = true;
-      } else {
-        data = this.getJsonGraphData(message.data, panel);
-      }
-      this.postJsonGraphData(panel, message, data, isCached);
+    if (layout.direction === 'DOWN') funcHash += '_down';
+    if (!layout.showTensor) funcHash += '_notshowtensor';
+    funcHash += message.data.filePath || '';
+    if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
+      finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
-    if (message.type === 'setFinalResult') {
-      // 插入sql
-      const filePath = message.data.filePath === 'after' ? panel.diffGraphData?.fsPath : panel.comGraphData.fsPath;
-      let funcHash = message.data.filePath === 'after' ? panel.diffGraphData?.funcHash : panel.comGraphData.funcHash;
-      if (!filePath) {
-        return;
-      }
-       const layout = message.layout;
-      if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-        funcHash = funcHash + '_hasParent';
-      }
-      if (layout.direction === 'DOWN') funcHash += '_down';
-      if (!layout.showTensor) funcHash += '_notshowtensor';
-      funcHash += message.data.filePath || '';
-      const lastChangeTime = await getMTime(filePath);
-      const result = JSON.stringify(message.data);
-      await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
+    if (finalResult) {
+      data = JSON.parse(finalResult.final_result); // 如果有缓存则发送最终数据
+      data['isFinial'] = true;
+      isCached = true;
+    } else {
+      data = this.createJsonGraphData(message.data, server);
     }
-
-    if (message.type === "openDiffViewer") {
-      this.openDiffViewer(panel);
-    }
+    this.postJsonGraphData(server, message, data, isCached);
   }
 
-  static getJsonGraphData(data, panel) {
+  static createJsonGraphData(data, server) {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic } = data;
-    const dagBuilder = new AscppDagBuilder(comGraphData, panel, this.callInOutTensorMap);
+    const dagBuilder = new AscppDagBuilder(comGraphData, server, this.callInOutTensorMap);
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
       currentData,
@@ -162,27 +133,23 @@ export abstract class BaseGraphMsgHandler {
     return sprottyGraph;
   }
 
-  protected static postForReadJson(panel: any, cmd: string) {
+  protected static postForReadJson(server: any, cmd: string) {
     const config = Util.getComGraphCustomCfg();
-    panel.webview.postMessage({
-      command: cmd,
-      step: 'readJson',
-      configration: config,
-    });
+    server.setRef(cmd, { step: 'readJson', configration: config });
   }
 
-  protected static async getJsonData(graphData: AbstractGraphData, panel: any, isBigFile: boolean) {
-    graphData.isUsedDB = globalConfig.IS_USE_DB;
-    if (graphData.isUsedDB) {
-      const hit = await SQLiteCache.getInstance().comGraphFuncDataGetCount(graphData.fsPath);
+  protected static async getJsonData(gd: AbstractGraphData, server: any, isBigFile: boolean) {
+    gd.isUsedDB = globalConfig.IS_USE_DB;
+    if (gd.isUsedDB) {
+      const hit = await SQLiteCache.getInstance().comGraphFuncDataGetCount(gd.fsPath);
       if (hit === 0) {
-        const ret = await graphData.readFileAndSetCache(graphData.fsPath, panel);
+        const ret = await gd.readFileAndSetCache(gd.fsPath, server);
         isBigFile = ret.isBigFile;
       } else {
         console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
       }
     } else {
-      await graphData.readFileAndSetCache(graphData.fsPath, panel);
+      await gd.readFileAndSetCache(gd.fsPath, server);
     }
     return isBigFile;
   }
@@ -190,27 +157,27 @@ export abstract class BaseGraphMsgHandler {
   /* ===================================================
    * 2. 抽象：子类必须实现
    * =================================================== */
-  protected static async loadMainData(panel: any): Promise<void> {
+  protected static async loadMainData(server: any): Promise<void> {
     throw new Error('子类必须覆盖 loadMainData 方法');
   }
 
-  protected static getGraphData(panel: any): AbstractGraphData {
+  protected static getGraphData(server: any): AbstractGraphData {
     throw new Error(`子类必须覆盖 getGraphData 方法`);
   }
 
   /* ===================================================
    * 3. 公共能力：elk 布局
    * =================================================== */
-  static async elkLayout(graphData: any, panel: any) {
+  static async elkLayout(gd: any, server: any) {
     const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
 
     let comGraphData;
-    comGraphData = this.getElkLayoutComGraghData(panel, graphData, elkFactory);
+    comGraphData = this.getElkLayoutComGraghData(server, gd, elkFactory);
 
-    const layoutDirection = graphData.layoutOptions['elk.direction'];
-    const showtensor = graphData.layoutOptions['PyPTO.showTensor'];
+    const layoutDirection = gd.layoutOptions['elk.direction'];
+    const showtensor = gd.layoutOptions['PyPTO.showTensor'];
     const filePath = comGraphData?.fsPath;
-    const renderMode = graphData.layoutOptions['PyPTO.renderMode'];
+    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
     let funcHash = comGraphData?.funcHash!;
 
     // 构造缓存 key
@@ -219,26 +186,26 @@ export abstract class BaseGraphMsgHandler {
     }
     if (layoutDirection === 'DOWN') funcHash += '_down';
     if (showtensor !== 'true') funcHash += '_notshowtensor';
-    funcHash += graphData.layoutOptions['PyPTO.filePath'] || '';
+    funcHash += gd.layoutOptions['PyPTO.filePath'] || '';
     let lastChangeTime;
-    if(filePath) {
+    if (filePath) {
       lastChangeTime = await getMTime(filePath);
     }
-    
+
     let cache: any;
     if (comGraphData?.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
     if (renderMode === 'path' || !cache) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
-      child.send({ type: 'layout', graphData });
+      child.send({ type: 'layout', graphData: gd });
       child.on('message', async (res: { type: string; data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
           if (comGraphData?.isUsedDB && renderMode !== 'path') {
             await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
           }
-          this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['PyPTO.filePath']);
+          this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
           child.kill();
         }
       });
@@ -246,12 +213,12 @@ export abstract class BaseGraphMsgHandler {
     } else {
       if (lastChangeTime !== cache.last_change_time) {
         await SQLiteCache.getInstance().comGraphLayoutDel(filePath);
-        const result = await elkFactory.layout(graphData);
+        const result = await elkFactory.layout(gd);
         const layoutJsonStr = JSON.stringify(result);
         await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
-        this.postLayoutResult(panel, layoutJsonStr, graphData.layoutOptions['PyPTO.filePath']);
+        this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
       } else {
-        this.postLayoutResult(panel, cache.layout_result, graphData.layoutOptions['PyPTO.filePath']);
+        this.postLayoutResult(server, cache.layout_result, gd.layoutOptions['PyPTO.filePath']);
       }
     }
   }
@@ -260,74 +227,80 @@ export abstract class BaseGraphMsgHandler {
    * 4. 公共能力
    * =================================================== */
   static async getSubgraph(
-    panel: any,
+    server: any,
     subInfo: { calleehash: string; subFuncmagicname: string; curPath: string; calleeOpMagic?: string; calleeOpSubgraphId?: string },
+    query: any,
   ) {
     const { calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId } = subInfo;
     const webviews: any = hismartliteEx.webviews;
-    const comGraphData = panel.comGraphData;
+    const gd = server.comGraphData;
     let existPanel;
-    if (panel.entryHash == calleehash) {
-      const title = basename(comGraphData.fsPath);
+    if (server.entryHash == gd.calleehash) {
+      const title = basename(gd.fsPath);
       existPanel = webviews[title];
       existPanel.reveal(existPanel.ViewColumn);
       return;
     }
-    if (Object.keys(webviews).includes(subFuncmagicname)) {
-      existPanel = webviews[subFuncmagicname];
+    if (Object.keys(webviews).includes(gd.subFuncmagicname)) {
+      existPanel = webviews[gd.subFuncmagicname];
       existPanel.reveal(existPanel.ViewColumn);
       return;
     }
-    const { SingleGraphHandler } = await import('../handler/singleGraphHandler');
 
-    let targetPath = comGraphData.fsPath;
+    let targetPath = gd.fsPath;
     let targetCurPath = JSON.parse(curPath);
-    const rootFilePath = comGraphData.fsPath;
+    const rootFilePath = gd.fsPath;
     const extName = path.extname(rootFilePath);
     const rootBaseName = path.basename(rootFilePath, extName);
     if (rootBaseName.endsWith('ROOT')) {
       const splitIdx = rootBaseName.indexOf('_');
       const filePrefix = rootBaseName.slice(0, splitIdx);
 
-      const fileDir =  path.dirname(rootFilePath);
+      const fileDir = path.dirname(rootFilePath);
       const fileList = fs.readdirSync(fileDir);
       for (let matchedFile of fileList) {
         if (matchedFile.endsWith(extName) && matchedFile.includes(calleehash) && matchedFile.startsWith(filePrefix)) {
           targetPath = path.join(fileDir, matchedFile);
-          targetCurPath = targetCurPath.filter(func => func === calleehash);
+          targetCurPath = targetCurPath.filter((func) => func === calleehash);
           break;
         }
       }
       targetCurPath = JSON.stringify(targetCurPath);
       commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath));
     } else {
-      new GraphView({ viewType: 'comItemDetailView', title: basename(comGraphData.fsPath) }, SingleGraphData, SingleGraphHandler).createPanel(
-        comGraphData.fsPath,
-        calleehash,
-        curPath,
-        undefined,
-      );
+      const { useView } = await import('../view');
+      const { editorView } = useView();
+      const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
+      const finalQuery = {
+        ...oldQuery,
+        funcHash: calleehash,
+        subFuncmagicname: subFuncmagicname,
+        curPath: curPath,
+        calleeOpMagic: calleeOpMagic,
+        calleeOpSubgraphId: calleeOpSubgraphId,
+      };
+      await editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
     }
-
   }
 
-  static async innerGetSubgraph(panel: any, data: any) {
-    const gd = this.getGraphData(panel);
+  static async innerGetSubgraph(server: any, data: any) {
+    const gd = this.getGraphData(server);
     gd.funcHash = data.calleehash;
 
     let ret: string | null = null;
     if (gd.isUsedDB) {
       const maxRetry = 5;
-      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+      const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
       for (let i = 0; i < maxRetry; i++) {
         const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
-        ret = row?.big_data_file_path
-          ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path)
-          : row?.data ?? null;
+        ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
 
-        if (ret) {console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`); break;}
-        console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i+1}次`);
+        if (ret) {
+          console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`);
+          break;
+        }
+        console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
         await delay(100);
       }
     } else {
@@ -335,17 +308,14 @@ export abstract class BaseGraphMsgHandler {
       ret = gd.dataMap[gd.funcHash!] ?? null;
     }
     if (!ret) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
     const json = JSON.parse(ret);
-    panel.webview.postMessage({
-      command: 'updateJsonContent',
-      data: json,
-    });
+    server.setRef('updateJsonContent', { data: json });
   }
 
-  static async jumpToCodeLine(_panel: any, data: any) {
+  static async jumpToCodeLine(data: any) {
     try {
       const doc = await workspace.openTextDocument(Uri.file(data.file));
       const editor = await window.showTextDocument(doc);
@@ -359,17 +329,19 @@ export abstract class BaseGraphMsgHandler {
 
   /**
    * 全局搜索入口
-   * @param panel        当前 webview 面板
+   * @param server        当前 webview 面板
    * @param criteria     来自前端的发送体
    */
-  static async searchAllFunc(panel: any, criteria: any) {
-    const gd = this.getGraphData(panel);
+  static async searchAllFunc(server: any, criteria: any) {
+    const gd = this.getGraphData(server);
     const fsPath = gd.fsPath;
     const isUsedDB = gd.isUsedDB;
 
     const funcHashMap = graphFileHashMap[fsPath] as Record<string, { func_magicname: string }>;
-    if (!funcHashMap) return panel.webview.postMessage({ command: 'globalSearchResult', data: {} });
-
+    if (!funcHashMap) {
+      server.setRef('GlobalSearchResult', { data: {} });
+      return;
+    }
     const resultMap: Record<string, any[]> = {};
     for (const [funcHash, funcMeta] of Object.entries(funcHashMap)) {
       let jsonData: any;
@@ -402,14 +374,13 @@ export abstract class BaseGraphMsgHandler {
       const funcHits = Extractor.searchFunc({ ...criteria, category: 'Function' }, {}, {}, {}, Extractor.extractFuncMap(funcHashMap));
       if (funcHits.length) resultMap['totalFunction'] = funcHits;
     }
-
-    panel.webview.postMessage({ command: 'globalSearchResult', data: resultMap });
+    server.setRef('GlobalSearchResult', { data: resultMap });
   }
 
-  static async getHealthyReport(panel: any) {
-    const graphData = panel.comGraphData;
+  static async getHealthyReport(server: any) {
+    const graphData = server.comGraphData;
     const reports = await getHealthReport(graphData.fsPath);
-    panel.webview.postMessage({ command: 'returnHealthyReport', data: reports });
+    server.setRef('HealthyReport', { data: reports });
   }
 
   /* ===================================================
@@ -417,7 +388,7 @@ export abstract class BaseGraphMsgHandler {
    * =================================================== */
   protected static async fetchGraphJson(
     gd: AbstractGraphData,
-    panel: any,
+    server: any,
   ): Promise<{
     json: any;
     io?: any;
@@ -428,42 +399,44 @@ export abstract class BaseGraphMsgHandler {
     /* 1️⃣ 数据库模式：带延迟重试 */
     if (gd.isUsedDB) {
       const maxRetry = 5;
-      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+      const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
       for (let i = 0; i < maxRetry; i++) {
         const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
-        ret = row?.big_data_file_path
-          ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path)
-          : row?.data ?? null;
+        ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
 
-        if (ret) {console.debug(`fetchGraphJson comGraphFuncDataGet 拿到数据`); break;}
-        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i+1}次`);
-        await delay(100);      
+        if (ret) {
+          console.debug(`fetchGraphJson comGraphFuncDataGet 拿到数据`);
+          break;
+        }
+        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
+        await delay(100);
       }
     } else {
       /* 2️⃣ 内存模式：一次拿完 */
       ret = gd.dataMap[gd.funcHash!] ?? null;
     }
-    
+
     if (!ret) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
       return { json: undefined };
     }
 
     const json = JSON.parse(ret);
-    await this.returnCalleeMap(gd, panel, json);
+    await this.returnCalleeMap(gd, server, json);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
 
     return { json, io };
   }
 
-  private static searchSubFunc(funcHash: string, filePrefix: string, dirName: string, 
-                                tempCalleemap: Record<string, { functype: string, func_magicname: string }>) : Record<string, { functype: string, func_magicname: string }> {
+  private static searchSubFunc(
+    funcHash: string,
+    filePrefix: string,
+    dirName: string,
+    tempCalleemap: Record<string, { functype: string; func_magicname: string }>,
+  ): Record<string, { functype: string; func_magicname: string }> {
     const fileList = fs.readdirSync(dirName);
-    const matchedFiles = fileList.filter(
-      f => 
-        f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix)
-    );
+    const matchedFiles = fileList.filter((f) => f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix));
 
     for (const matchedFile of matchedFiles) {
       const targetPath = path.join(dirName, matchedFile);
@@ -471,12 +444,16 @@ export abstract class BaseGraphMsgHandler {
       const targetJson = JSON.parse(targetFile);
       const targetFunctype = targetJson.functions?.[0]?.functype;
       const targetFuncMagicname = targetJson.functions?.[0]?.func_magicname;
-      tempCalleemap[funcHash] = {functype: targetFunctype, func_magicname: targetFuncMagicname};
+      tempCalleemap[funcHash] = { functype: targetFunctype, func_magicname: targetFuncMagicname };
     }
     return tempCalleemap;
   }
 
-  private static subGraphFileSearch(fileJson: any, gd: AbstractGraphData, calleeMap: any) : Record<string, { functype: string, func_magicname: string }> {
+  private static subGraphFileSearch(
+    fileJson: any,
+    gd: AbstractGraphData,
+    calleeMap: any,
+  ): Record<string, { functype: string; func_magicname: string }> {
     const filePath = gd.fsPath;
     const extName = path.extname(filePath);
     const baseName = path.basename(filePath, extName);
@@ -484,8 +461,8 @@ export abstract class BaseGraphMsgHandler {
     const splitIdx = baseName.indexOf('_');
     const filePrefix = baseName.slice(0, splitIdx);
     const isRoot: boolean = baseName.endsWith('ROOT');
-    const tempCalleemap: Record<string, { functype: string, func_magicname: string }> = {};
-    if(!isRoot) {
+    const tempCalleemap: Record<string, { functype: string; func_magicname: string }> = {};
+    if (!isRoot) {
       return calleeMap;
     } else {
       Object.assign(tempCalleemap, calleeMap);
@@ -497,44 +474,39 @@ export abstract class BaseGraphMsgHandler {
     return tempCalleemap;
   }
 
-  private static async returnCalleeMap(gd: AbstractGraphData, panel: any, filejson: any) {
+  private static async returnCalleeMap(gd: AbstractGraphData, server: any, filejson: any) {
     let calleeMap = gd.isUsedDB
       ? JSON.parse(await SQLiteCache.getInstance().comGraphFileHashMapGet(gd.fsPath))
       : graphFileHashMap[gd.fsPath];
     calleeMap = this.subGraphFileSearch(filejson, gd, calleeMap);
     graphFileHashMap[gd.fsPath] = calleeMap;
-    panel.webview.postMessage({ command: 'returnCalleeMap', data: graphFileHashMap[gd.fsPath] || {} });
+    server.setRef('CalleeMap', { data: graphFileHashMap[gd.fsPath] || {} });
     return calleeMap;
   }
 
-  protected static async postRenderJson(panel: any, json: any, cmd: 'returnCom' | 'returnDiffCom' = 'returnCom'): Promise<void> {
+  protected static async postRenderJson(server: any, json: any, cmd: 'returnCom' | 'returnDiffCom' = 'returnCom'): Promise<void> {
     if (cmd == 'returnCom') {
       const nodeCount = json.operations.length + json.rawtensors.length + json.tensors.length;
       if (nodeCount > NODE_COUNT_LIMIT) {
-        panel.webview.postMessage({ command: 'readJsonWarning' });
+        server.setRef('ReadJsonWarning', true);
       }
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
-      const [_, passIndex, __] = panel.fsPath?.match(passDirectoryRegExp) ?? [];
-      panel.webview.postMessage({
-        command: cmd,
-        step: 'convertData',
+      const [_, passIndex, __] = server.comGraphData.fsPath?.match(passDirectoryRegExp) ?? [];
+      server.setRef('ComData', {
         data: json,
-        outputDirPath: panel.outputDirPath,
+        step: 'convertData',
+        outputDirPath: server.comGraphData.outputDirPath,
         passIndex,
-        pathName: panel.pathName,
-        fileName: basename(panel.fsPath || panel.comPath)
+        pathName: server.comGraphData.pathName,
+        fileName: basename(server.comGraphData.fsPath || server.comGraphData.comPath),
       });
     } else if (cmd == 'returnDiffCom') {
-      panel.webview.postMessage({
-        command: cmd,
-        step: 'convertData',
-        diffInfo: json,
-      });
+      server.setRef('DiffComData', { step: 'convertData', diffInfo: json });
     }
   }
 
-  protected static async loadFuncHashMap(panel: any, gd: AbstractGraphData) {
+  protected static async loadFuncHashMap(server: any, gd: AbstractGraphData) {
     gd.isUsedDB = globalConfig.IS_USE_DB;
 
     if (!graphFileHashMap[gd.fsPath] && gd.funcHashMap && Object.keys(gd.funcHashMap).length > 0) {
@@ -542,41 +514,33 @@ export abstract class BaseGraphMsgHandler {
     } else {
       graphFileHashMap[gd.fsPath] = JSON.parse(await SQLiteCache.getInstance().comGraphFileHashMapGet(gd.fsPath));
     }
-    if (!gd.funcHash) {
-      gd.funcHash = panel.entryHash;
-    }
   }
 
-  static async openDiffViewer(panel: any) {
-    const { DiffGraphHandler } = await import('../handler/diffGraphHandler');
-    new GraphView(
-      { viewType: 'itemDetailView', title: 'Computation Graph Diff', column: ViewColumn.One },
-      DiffGraphData,
-      DiffGraphHandler,
-    ).createPanel(panel.comGraphData.fsPath, panel.comGraphData?.funcHash);
+  static async openDiffViewer(server: any, query: any) {
+    const { useView } = await import('../view');
+    const { editorView } = useView();
+    const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
+    const finalQuery = {
+      ...oldQuery,
+      funcHash: server.comGraphData?.funcHash,
+    };
+    await editorView.open('diffGraph', vscode.Uri.file(server.comGraphData.fsPath), { query: finalQuery });
   }
 
-  protected static async postInitMessages(panel: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
+  protected static async postInitMessages(server: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */
-    panel.webview.postMessage({ command: 'returnTheme', data: getIDETheme() });
-    panel.webview.postMessage({ command: 'returnLang', data: getIDELang() });
-    /* 设置state 让 VS Code 下次能反序列化 */
-    panel.webview.postMessage({ command: 'returnInitData', fsPath: gd.fsPath, funcHash: gd.funcHash, magicName: json.func_magicname });
-
+    this.initTheme(server);
   }
 
-  protected static checkFuncHash(panel: any, gd: AbstractGraphData, cmd: string): boolean {
+  protected static checkFuncHash(server: any, gd: AbstractGraphData, cmd: string): boolean {
     if (gd && !gd.funcHash) {
-      this.returnError(panel, cmd);
+      this.returnError(server, cmd);
       return false;
     }
     return true;
   }
-  protected static returnError(panel: any, cmd: string) {
-    panel.webview.postMessage({
-      command: 'returnError',
-      data: t(cmd),
-    });
+  public static returnError(server: any, cmd: string) {
+    server.setRef('ErrorMessage', { data: t(cmd) });
   }
 
   /** 前端一次性把整图的张量输入输出关系推过来 */
@@ -615,41 +579,34 @@ export abstract class BaseGraphMsgHandler {
   /* ===================================================
    * 6. 子类会重写的方法：
    * =================================================== */
-  protected static async render(panel: any) {
-    const gd = this.getGraphData(panel);
+  protected static async render(server: any) {
+    const gd = this.getGraphData(server);
     // 1. 取数据
-    const { json, io } = await this.fetchGraphJson(gd, panel);
+    const { json, io } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(panel, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
       return;
     }
     // 挂 inouttensors
     if (io) json.inouttensors = io;
     // 2. 发送初始化消息
-    await this.postInitMessages(panel, gd, json, false);
+    await this.postInitMessages(server, gd, json, false);
 
     // 3. 发图包
-    await this.postRenderJson(panel, json, 'returnCom');
+    await this.postRenderJson(server, json, 'returnCom');
   }
 
   // filePath 给子类重写预留
-  protected static postLayoutResult(panel: any, jsonStr: string, filePath?: string) {
-    panel.webview.postMessage({
-      type: 'postLayoutResult',
-      data: JSON.parse(jsonStr),
-    });
+  protected static postLayoutResult(server: any, jsonStr: string, filePath?: string) {
+    server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
   }
 
-  static postJsonGraphData(panel: any, message: any, data: any, isCached: boolean) {
-    panel.webview.postMessage({
-      type: 'postJsonGraphData',
-      data,
-      isCached,
-    });
+  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean) {
+    server.setRef('JsonGraphData', { data, isCached });
   }
 
   // graphData elkFactory 给子类重写预留
-  static getElkLayoutComGraghData(panel: any, graphData: any, elkFactory: any) {
-    return panel.comGraphData;
+  static getElkLayoutComGraghData(server: any, graphData: any, elkFactory: any) {
+    return server.comGraphData;
   }
 }

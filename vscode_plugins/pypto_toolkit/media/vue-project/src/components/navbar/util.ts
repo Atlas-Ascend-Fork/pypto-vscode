@@ -11,9 +11,9 @@ export function transformAndFlatTreeData(
     const item = treeData[i];
     const itemData: PathTreeData = {
       controlFlowData: item,
-      id: item.magic,
       label: item.magicName,
       parentNode: parent,
+      magicName: parseMagicName(item),
     };
     TreeDataMap[item.magicName] = itemData;
     res.push(itemData);
@@ -26,6 +26,24 @@ export function transformAndFlatTreeData(
   }
 
   return res;
+}
+
+function parseIfMagicName(magicName: string) {
+  const index = magicName.indexOf('(');
+  if (index !== -1) {
+    return magicName.substring(0, index);
+  }
+  return magicName;
+}
+
+function parseMagicName(item: ControlFlowData) {
+  if (item.nodeType === 'IF') {
+    return parseIfMagicName(item.magicName);
+  } else if (item.nodeType === 'PATH') {
+    return item.magicName.substring(item.magicName.indexOf('PATH'));
+  } else {
+    return item.magicName;
+  }
 }
 
 export function transformPassList(list: PathInPass[]) {
@@ -72,4 +90,15 @@ export function findFirstPath(controlFlowList: ControlFlowData[]) {
       return findFirstPath(item.children);
     }
   }
+}
+
+const passDirectoryRegExp = /^Pass_(\d+)_(\w+)/;
+export function parsePassName(passName: string) {
+  const [_, __, newPassName] = passName.match(passDirectoryRegExp) ?? [];
+
+  return newPassName;
+}
+
+export function parsePathMagicName(magicName: string) {
+  return magicName.substring(magicName.indexOf('PATH'));
 }

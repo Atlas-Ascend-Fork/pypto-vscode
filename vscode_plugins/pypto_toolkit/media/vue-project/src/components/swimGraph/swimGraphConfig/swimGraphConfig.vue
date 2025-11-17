@@ -28,6 +28,9 @@
 import { ref, inject, watch, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getEventColor } from '../swimGraphProcesses/processInfo';
+import { useViewServer } from '../../../core/use-view-server';
+
+const { server } = useViewServer();
 const { t: $t } = useI18n();
 const {
     processes,
@@ -75,13 +78,12 @@ const togglecfgEditModel = () => {
 };
 
 function saveRendingMode(colorRenderMode, textRenderMode) {
-    postMessage({ command: 'saveRendingMode', paramObj: JSON.stringify({ colorRending: colorRenderMode, textRending: textRenderMode})});
-}
+    server.saveRendingMode({paramObj: JSON.stringify({ colorRending: colorRenderMode, textRending: textRenderMode})});
+};
 
 function changeUserCfgConnection(connectionLevel) {
-    postMessage({ command: 'changeUserCfgConnection', paramObj: {level: connectionLevel}});
-}
-
+    server.changeUserCfgConnection({paramObj: {level: connectionLevel}});
+};
 
 const OnTextChange = (value) => {
     const updateEventText = (mode) => {

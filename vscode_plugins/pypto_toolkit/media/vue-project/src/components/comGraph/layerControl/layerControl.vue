@@ -46,6 +46,10 @@
             <d-tab id="op" title="OP" :disabled="tabDisable"></d-tab>
           </d-tabs>
         </div>
+        <div class="node-display-mode node_cont">
+          <div class="title mb-8">节点控制</div>
+          <d-select class="mb-2" style="height: 48px; max-height: 48px; overflow-y: auto;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" placeholder="全部展示"/>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -56,6 +60,27 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMoveable } from './use-moveable';
 import { comGraphStore } from '../../../service/com-graph-store';
+import { vscode } from '../../../core/vscode';
+
+const textOptions = ref([
+  "shape",
+  "rawshape",
+  "offset",
+  "asis",
+  "tobe",
+  "datatype",
+]);
+
+const selectedValues = ref([]);
+const selectedIndexes = computed(()=>{
+  return selectedValues.value.map(value =>{
+    return textOptions.value.indexOf(value);
+  });
+});
+
+const OnTextChange = (val) => {
+  comGraphStore.setData("selectCustom", selectedIndexes.value);
+}
 
 const tabDisable = computed(() => {
   return comGraphStore.data.inFixedComGraphFlow;
@@ -81,7 +106,7 @@ const nodeDisplayMode = ref('all');
 .layer-control-container {
   position: fixed;
   z-index: 1040;
-  min-width: 240px;
+  width: 260px;
   color: var(--devui-primary-text);
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -191,5 +216,13 @@ const nodeDisplayMode = ref('all');
 }
 .ml-4 {
   margin-left: 4px;
+}
+.node_cont {
+  margin-top: 16px;
+}
+:deep(.devui-select__selection) {
+  max-height: 48px;
+  overflow-y: auto;
+  align-items: stretch !important;
 }
 </style>
