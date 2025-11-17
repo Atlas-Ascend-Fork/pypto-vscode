@@ -122,6 +122,7 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag,async () => {
     await server.getInitialData();
+    server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
     inThreeColumnMode = true;
@@ -199,8 +200,7 @@ function onFullRender() {
 </script>
 
 <template>
-  <ThreeColumn v-model="layout" v-if="graphType === 'threeColumnGraph'" >
-    <template #code>code</template>
+  <ThreeColumn v-if="graphType === 'threeColumnGraph'" >
     <template #comGraph>
       <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
     </template>

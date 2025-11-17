@@ -1,24 +1,36 @@
 <template>
-  <div class="simple-com-graph-container">
-    <ComGraphHeader
-      :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
-      @onLocate="onLocate"
-      :openMode="props.openMode"
-    ></ComGraphHeader>
-    <d-select
-      v-model="rootHash"
-      :options="rootHashList"
-      :placeholder="t('comGraph.pleaseSelect')"
-      :position="['bottom-start']"
-      :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
-      menu-class="simple-com-root-hash-list-menu"
-      @value-change="onHashChange"
-      @toggle-change="onHashMenuToggleChange"
-    >
-      <template #empty>
-        <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
-      </template>
-    </d-select>
+  <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
+    <div class="sticky-block">
+      <d-select
+        ref="rootHashEl"
+        v-model="rootHash"
+        :options="rootHashList"
+        :placeholder="t('comGraph.pleaseSelect')"
+        :position="['bottom-start']"
+        :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
+        :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
+        @value-change="onHashChange"
+        @toggle-change="onHashMenuToggleChange"
+      >
+        <template #empty>
+          <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
+        </template>
+      </d-select>
+
+      <DragIcon />
+
+      <div class="sticky-block-right">
+        <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
+        <ComGraphHeader
+          ref="comGraphHeaderEl"
+          v-show="isExpandSearch"
+          :class="[comGraphStore.data.comGraphConfig.showExtendBtn && 'with-extend-btn']"
+          @onLocate="onLocate"
+          :openMode="props.openMode"
+        ></ComGraphHeader>
+        <i :class="[isComGraphFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="() => onToggleComGraphFullscreen()"></i>
+      </div>
+    </div>
     <div
       :style="{
         backgroundImage: 'url(' + svgPath + ')',
@@ -29,22 +41,25 @@
       <div id="sprotty"></div>
     </div>
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
-    <ComGraphMinimap v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
+    <ComGraphMinimap ref="minimapEl" v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, inject, computed, nextTick } from 'vue';
+import { onMounted, watch, defineProps, ref, inject, computed, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
 import Loading from './loading.vue';
 import { comGraphStore } from '../../service/com-graph-store';
-import { vscode } from '../../core/vscode';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import { debounce } from 'lodash-es';
+import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
+import DragIcon from '../threeColumn/drag-icon.vue';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -67,6 +82,10 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
+const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGraphFullscreen } = inject(
+  ThreeColumnProvideKey,
+) as IThreeColumnCtx;
+const { server } = useViewServer<IComViewServer>();
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
@@ -81,9 +100,26 @@ let createSelectNodesRect;
 let removeSelectNodesRect;
 let initComDocText;
 let resetModelSource;
+let fitToScreenAction;
 const showNodeDetail = ref(false);
 const nodeId = ref('');
 const containerHeight = ref(0);
+const isExpandSearch = ref(false);
+const comGraphHeaderEl = ref();
+const rootHashEl = ref();
+const isComGraphActive = ref(false);
+const minimapEl = ref();
+
+watch(currentActiveBlock, (val) => {
+  if (val) {
+    isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
+    if (!isComGraphActive.value) {
+      isExpandSearch.value = false;
+      comGraphHeaderEl.value.hideDropdown();
+      rootHashEl.value.toggleChange(false);
+    }
+  }
+});
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -94,7 +130,7 @@ window.addEventListener('message', (event) => {
 
 (window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
   if (!args.label) {
-    removeSelectNodesRect();
+    removeSelectNodesRect?.();
     lockIcon?.removeEventListener('click', onLockClick);
   }
 });
@@ -167,6 +203,16 @@ function onMessageFromSwim(args) {
   hoverFeedbackAction();
   generateHashList();
 });
+(window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
+  if (comGraphVisible) {
+    window.dispatchEvent(new Event('resize'));
+    minimapEl.value.updateScaleRation();
+    const fitTimer = setTimeout(() => {
+      fitToScreenAction();
+      fitTimer && clearTimeout(fitTimer);
+    });
+  }
+});
 
 let timer: ReturnType<typeof setTimeout>;
 let lockIcon: HTMLElement | null;
@@ -217,10 +263,7 @@ function onHashMenuToggleChange() {
 }
 
 const onHashChange = (val) => {
-  vscode.value.postMessage({
-    command: 'innerGetSubgraph',
-    paramObj: { calleehash: val.value, subFuncmagicname: val.name },
-  });
+  server.innerGetSubgraph({paramObj: { calleehash: val.value, subFuncmagicname: val.name}});
 };
 
 const onLocate = (id) => {
@@ -270,9 +313,7 @@ watch(
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
         comGraphStore.setData('jsonData', jsonValue);
         resetModelSource();
-        (window as any).vscode.postMessage({
-          type: 'getFuncTree',
-        });
+        server.returnFuncTree();
         let shouldListenViewZoom = true;
         if (comGraphStore.data.isNodeRectLock && currentLockLabel) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
@@ -295,6 +336,7 @@ watch(
       removeSelectNodesRect = sprottyLoadResult.removeSelectNodesRect;
       hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
       resetModelSource = sprottyLoadResult.resetModelSource;
+      fitToScreenAction = sprottyLoadResult.fitToScreenAction;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {
         isSimple: true,
@@ -312,6 +354,22 @@ watch(
   },
   { immediate: true },
 );
+
+function onDocumentClick(e: MouseEvent) {
+  const composedPath = e.composedPath();
+  const index = composedPath.findIndex(
+    (item: HTMLElement) =>
+      item.classList?.contains('com-graph-header') ||
+      item.classList?.contains('dp-category-search-dropdown') ||
+      item.classList?.contains('com-graph-header-search-dropdown') ||
+      item.classList?.contains('com-graph-global-select') ||
+      item.classList?.contains('icon-search-new'),
+  );
+  if (index !== -1) {
+    return;
+  }
+  isExpandSearch.value = false;
+}
 
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', (node) => {
@@ -332,6 +390,10 @@ onMounted(() => {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
+  document.addEventListener('click', onDocumentClick);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick);
 });
 </script>
 
@@ -344,20 +406,52 @@ onMounted(() => {
   position: relative;
   background-color: var(--devui-global-bg);
 
-  .com-graph-header {
+  &.show-sticky-block {
+    .sticky-block {
+      display: flex;
+    }
+  }
+
+  .sticky-block {
     position: absolute;
-    height: 82px;
-    width: 100%;
     top: 0;
-    z-index: 10;
+    left: 0;
+    z-index: 15;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 40px;
+    padding: 4px 16px;
+    border-bottom: 1px solid var(--devui-split-line);
+    background-color: var(--devui-card-bg);
+    box-sizing: border-box;
+  }
+
+  .sticky-block-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 14px;
+      cursor: pointer;
+    }
+  }
+
+  .com-graph-header {
+    height: 30px;
 
     &.with-extend-btn {
       height: 150px;
     }
 
     .toolbar-row {
-      left: calc(100% - 418px - var(--select-width));
-      margin-top: 16px;
+      left: 0;
+    }
+
+    .module-toolbar-container {
+      padding: 0;
     }
 
     .module-row {
@@ -366,11 +460,11 @@ onMounted(() => {
   }
 
   .simple-com-root-hash-list {
-    position: absolute;
-    left: 16px;
-    top: 16px;
-    z-index: 12;
     width: 140px;
+
+    .devui-select__input {
+      height: 28px;
+    }
 
     &.not-allow-expand {
       pointer-events: none;
@@ -397,5 +491,9 @@ onMounted(() => {
 
 .simple-com-root-hash-list-menu {
   width: 300px !important;
+
+  &.hide-root-hash-list {
+    display: none !important;
+  }
 }
 </style>

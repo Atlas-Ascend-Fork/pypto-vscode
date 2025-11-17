@@ -37,6 +37,8 @@ export class ThreeColumnServer
     'showMessage',
     'saveRendingMode',
     'changeUserCfgConnection',
+    'innerGetSubgraph',
+    'returnFuncTree',
   ];
 
   /** 客户端可以使用的响应式对象名 */
@@ -71,6 +73,7 @@ export class ThreeColumnServer
     'returnSwimData',
     'bindResult',
     'unbindResult',
+    'JsonContent'
   ];
   public title: string;
   public isReveal: boolean;
@@ -143,6 +146,12 @@ export class ThreeColumnServer
   };
   public getHealthyReport = async () => {
     await ComGraphHandler.getHealthyReport(this);
+  };
+  public innerGetSubgraph = async (message) => {
+    await ComGraphHandler.innerGetSubgraph(this, message.paramObj);
+  };
+  public returnFuncTree = async () => {
+    await ComGraphHandler.returnFuncTree(this);
   };
   public getSwimData = async () => {
     await SwimGraphMsgHandler.getSwimData(this);

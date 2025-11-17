@@ -312,7 +312,7 @@ export abstract class BaseGraphMsgHandler {
       return { json: undefined };
     }
     const json = JSON.parse(ret);
-    server.setRef('updateJsonContent', { data: json });
+    server.setRef('JsonContent', { data: json });
   }
 
   static async jumpToCodeLine(data: any) {

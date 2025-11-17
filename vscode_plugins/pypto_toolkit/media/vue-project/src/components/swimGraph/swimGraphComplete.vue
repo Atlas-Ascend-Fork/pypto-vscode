@@ -87,7 +87,7 @@ import {
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
-
+import { ThreeColumnProvideKey } from '../threeColumn/types';
 import { useViewServer } from '../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -100,6 +100,7 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
+const threeColumnCtx = inject(ThreeColumnProvideKey, undefined);
 const { t: $t } = useI18n();
 const titlePath = ref(`${window.staticPath}/static-assets/title_40px.svg`);
 const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_1.svg`);
@@ -302,6 +303,8 @@ let ERROR_MESSAGES = {
   FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
+
+window.ascEventBus.on('threeColumnSizeChange', () => {});
 
 const validData = (dataStr) => {
   let data = {};

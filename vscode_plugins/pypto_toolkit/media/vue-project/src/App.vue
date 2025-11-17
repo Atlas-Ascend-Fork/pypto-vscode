@@ -55,10 +55,6 @@ onMounted(() => {
     e.preventDefault();//阻止原生菜单弹出
   });
 });
-
-const layout = ref('triangular');
-
-
 </script>
 
 <template>

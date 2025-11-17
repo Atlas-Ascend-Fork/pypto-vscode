@@ -52,11 +52,11 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
       }
     }
-    await SingleGraphHandler.returnFuncTree(server, gd);
+    await SingleGraphHandler.returnFuncTree(server);
   }
-  private static async returnFuncTree(server: any, gd: AbstractGraphData) {
+  public static async returnFuncTree(server: any) {
     const funcTree: any = {};
-    funcTree[gd.funcHash!] = await this.generateFucTree(gd.funcHash!, gd);
-    server.setRef('FuncTree', { entry: gd.funcHash, fsPath: gd.fsPath, curPath: gd.curPath ?? [gd.funcHash], data: funcTree });
+    funcTree[server.comGraphData.funcHash!] = await this.generateFucTree(server.comGraphData.funcHash!, server.comGraphData);
+    server.setRef('FuncTree', { entry: server.comGraphData.funcHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [server.comGraphData.funcHash], data: funcTree });
   }
 }

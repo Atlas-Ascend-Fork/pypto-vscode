@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch, type Ref } from 'vue';
 
 export function useHeader(isVisible: Ref<boolean>) {
   let selectedTags = [];
@@ -43,7 +43,7 @@ export function useHeader(isVisible: Ref<boolean>) {
   };
 
   watch(isVisible, () => {
-    updateDropdownWidth();
+    nextTick(updateDropdownWidth);
   });
 
   onMounted(() => {
@@ -54,5 +54,5 @@ export function useHeader(isVisible: Ref<boolean>) {
     window.removeEventListener('resize', updateDropdownWidth);
   });
 
-  return { dropdownEl, toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick };
+  return { dropdownEl, toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown };
 }

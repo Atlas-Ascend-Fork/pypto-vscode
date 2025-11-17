@@ -408,10 +408,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const removeSelectNodesRect = async () => {
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
-    const index = modelSource.currentRoot.children.findIndex((t, i) => {
+    const index = modelSource.currentRoot.children?.findIndex((t, i) => {
         return t.type.includes('node');
     })
-    await modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
+    if (typeof index !== 'undefined') {
+      await modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
+    }
   }
 
   return {

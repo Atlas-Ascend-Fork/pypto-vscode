@@ -63,7 +63,8 @@
         :style="{maxWidth: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px' }"
         >
           <d-select
-            menu-class="globalSelect"
+            ref="globalSelectEl"
+            menu-class="com-graph-global-select"
             :options="allOptions"
             v-model="currentSelect"
             :placeholder="t('comGraph.currentGraph')"
@@ -75,6 +76,8 @@
           <d-category-search
             ref="searchEl"
             :category="category"
+            :selected-tags="selectedTags"
+            :search-key="categorySearchKey"
             :text-config="textConfig"
             :show-search-category="searchConfig"
             :extend-config="{show:true, clear: { show: false}, save: {show: false}, more: {show: false}}"
@@ -160,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, inject, onMounted, reactive, watch} from 'vue';
+import { ref, defineEmits, inject, onMounted, reactive, watch, nextTick} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { GraphType } from './type';
 import type { ComGraphContext } from './type';
@@ -217,6 +220,9 @@ const backwards = () => {
 const { t } = useI18n();
 const comGraphCtx = inject('comGraph', undefined) as ComGraphContext | undefined;
 const searchEl = ref();
+const globalSelectEl = ref();
+const selectedTags = ref([]);
+const categorySearchKey = ref('');
 let passName = 'Loading';
 let curPath = ref([]);
 let module_row = ref();
@@ -367,7 +373,7 @@ const regActive = ref(false);
 const onlySvgOutputOnce = ref(false);
 const isExporting = ref(false);
 
-const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
+const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown } = useHeader(isVisible);
 
 watch(currentSelect, (newVal) => {
   if (newVal === 'global') {
@@ -667,6 +673,19 @@ function calcNodeSize(map) {
   return cnt;
 }
 
+defineExpose({
+  hideDropdown: () => {
+    isVisible.value = false;
+    hideCategorySearchDropdown();
+    globalSelectEl.value.toggleChange(false);
+    selectedTags.value = [];
+    categorySearchKey.value = ' ';
+    nextTick(() => {
+      categorySearchKey.value = '';
+    });
+  }
+})
+
 watch(
   () => comGraphStore.data.jsonData,
   (val) => {
@@ -713,10 +732,6 @@ onMounted(() => {
     e.preventDefault();
     const icon = searchEl.value.$el.querySelector('.dp-category-search-icon') as HTMLElement;
     icon?.click();
-  });
-
-  (window as any).vscode.postMessage({
-    type: 'getFuncTree',
   });
 
   (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
@@ -1238,7 +1253,7 @@ onMounted(() => {
   z-index: 1030;
 }
 
-.globalSelect .devui-select__item  {
+.com-graph-global-select .devui-select__item  {
   padding: 8px;
   font-size: 13px !important;
 }
