@@ -1004,18 +1004,21 @@ const transformEvents = (process, processKey) => {
   
   for (const [threadKey, thread] of process.threads.entries()) {
     if (thread.isCounter) {
+      eventCtx.save();
+      eventCtx.setTransform(1, 0, 0, 1, 0, 0);
       eventCtx.beginPath();
       eventCtx.strokeStyle = '#4aaad6ff';
-      eventCtx.lineWidth = 1 / viewState.scale;
+      eventCtx.lineWidth = 1;
 
       const { drawData } = thread;
       for (const element of drawData) {
         const [x, y] = element;
-        eventCtx.lineTo(x, y);
+        eventCtx.lineTo(getNoZoomX(x, viewState), y);
       }
 
       eventCtx.stroke();
       eventCtx.closePath();
+      eventCtx.restore();
     } else if (!selectedEvent.value && !drawColorDatas.length) {
       let eventDatas = [];
       for (const event of thread.events) {
