@@ -5,7 +5,8 @@ export const spaceInThreeCol = 4;
 let isAnimation = true;
 let traveledHead = 0;
 let lastTime = performance.now();
-const speed = 0.2;
+const BASE_SPEED = 0.2;
+const MIN_PERIMETER = 500;
 let LINE_LENGTH = 60;
 let edges = [];
 let edgeStartDistances = [];
@@ -22,6 +23,7 @@ interface Point {
 }
 
 export class ThreeRender extends EventRender {
+  private perimeterMap = new Map<string, number>();
   declare deps: Dependencies;
 
   constructor(dependencies: Dependencies) {
@@ -167,7 +169,8 @@ export class ThreeRender extends EventRender {
         cumulativeLength += len;
       }
       totalPathLength = cumulativeLength;
-      LINE_LENGTH = cumulativeLength / 4;
+      this.perimeterMap.set(currentProcessKey, totalPathLength);
+      LINE_LENGTH = Math.max(60, Math.min(200, totalPathLength / 7));
       const secondLinePosition = (traveledHead + totalPathLength / 2) % totalPathLength;
       const lineSegs1 = this.getLineSegments(traveledHead);
       const lineSegs2 = this.getLineSegments(secondLinePosition);
@@ -338,7 +341,10 @@ export class ThreeRender extends EventRender {
     const timestamp = now ?? performance.now();
     const dt = timestamp - lastTime;
     lastTime = timestamp;
-    traveledHead -= speed * dt;
+    const perimeter = this.perimeterMap.get(currentProcessKey) || MIN_PERIMETER;
+    const speedFactor = Math.log(perimeter / MIN_PERIMETER + 1);
+    const dynamicSpeed = BASE_SPEED * speedFactor;
+    traveledHead -= dynamicSpeed * dt;
     this.drawBoundary(currentBoundaries, currentProcessKey);
     requestAnimationFrame(this.animate);
   };
@@ -436,7 +442,6 @@ export class ThreeRender extends EventRender {
     // 遍历从 startEdgeIndex 到 endEdgeIndex
     for (let i = startEdgeIndex; i <= endEdgeIndex; i++) {
       const edge = edges[i];
-      const sDist = edgeStartDistances[i];
       let segLocalStart, segLocalEnd;
       if (i === startEdgeIndex && i === endEdgeIndex) {
         // 同一条边
