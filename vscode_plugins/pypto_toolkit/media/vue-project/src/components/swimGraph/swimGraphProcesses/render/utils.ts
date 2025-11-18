@@ -117,3 +117,83 @@ export function renderInfo2pixelData(renderInfo: any, viewState: any) {
     height: height * devicePixelRatio,
   };
 }
+
+export function getOffset(deltaX: number, scale: number) {
+  if (scale <= 10) {
+    return deltaX / scale;
+  }
+  if (scale <= 100) {
+    return (deltaX / scale) * 10;
+  }
+  if (scale <= 1000) {
+    return deltaX * (1 / Math.log2(scale));
+  }
+  return deltaX * (1.25 / Math.log2(scale));
+}
+
+export function getRootHashList(eventHintStr: string) {
+  // 添加输入验证
+  if (typeof eventHintStr !== 'string') {
+    return [];
+  }
+
+  // 使用全局匹配和命名捕获组，支持匹配多个根哈希
+  const rootHashRegex = /rootHash:(?<hash>\d+)/g;
+  const matches = [...eventHintStr.matchAll(rootHashRegex)];
+
+  // 使用可选链和空值合并确保安全提取
+  const hashArray = matches.map((match) => match?.groups?.hash).filter((hash) => hash != null);
+  return hashArray.join(',');
+}
+export function getActiveEventCanvas(processKey: string) {
+  return document.querySelector(`[data-process-key="${processKey}"]`);
+}
+export function buildEventMap(process: any)  {
+  const eventMap = new Map();
+  for (const [, thread] of process.threads) {
+    for (const event of thread.events) {
+      eventMap.set(event.id, event);
+    }
+  }
+  return eventMap;
+}
+
+export function matchKey (key: string, configKey: string) {
+  if (configKey === undefined || configKey === null) {
+    return false;
+  } 
+  return key === configKey || key === configKey.toLowerCase();
+}
+
+export function getCanvasRefs(processKey: string) {
+  const canvasRef = getActiveEventCanvas(processKey);
+  if (!canvasRef) { return null };
+  const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
+  if (!uiCanvasRef) { return null };
+  const hoverCanvasRef = document.querySelector(`[data-hover-process-key="${processKey}"]`);
+  if (!hoverCanvasRef) { return null };
+  const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${processKey}"]`);
+  if (!backgroundCanvasRef) { return null };
+  const lineCanvasRef = document.querySelector(`[data-line-process-key="${processKey}"]`);
+  if (!lineCanvasRef) { return null };
+  const selectionCanvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
+  if (!selectionCanvasRef) { return null };
+  const threeColumnCanvasRef = document.querySelector(`[data-three-column-process-key="${processKey}"]`);
+  if (!threeColumnCanvasRef) { return null };
+  return {
+    canvasRef,
+    uiCanvasRef,
+    uiCtx: uiCanvasRef.getContext('2d'),
+    hoverCanvasRef,
+    backgroundCanvasRef,
+    backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
+    lineCanvasRef,
+    selectionCanvasRef,
+    threeColumnCanvasRef
+  };
+}
+
+export function getUIContext(processKey: string)  {
+  const uiCanvasRef = document.querySelector(`[data-ui-process-key="${processKey}"]`);
+  return uiCanvasRef.getContext('2d');
+}
