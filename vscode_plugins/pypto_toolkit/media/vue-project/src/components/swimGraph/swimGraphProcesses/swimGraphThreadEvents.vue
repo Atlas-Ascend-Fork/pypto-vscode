@@ -309,8 +309,6 @@ const onKeyUp = (e) => {
   }
 };
 
-
-
 const handlekeydown = (event) => {
   clearTimeout(wheelDebounceTimer);
   const key = event.key.toLowerCase();
