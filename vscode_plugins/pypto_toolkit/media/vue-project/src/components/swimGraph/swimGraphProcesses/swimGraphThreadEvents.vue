@@ -806,6 +806,7 @@ const resizeDrawBoundary = () => {
     });
   });
   threeRender.drawBoundary(boundaries, props.processKey);
+  threeRender.animate();
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -910,6 +911,7 @@ const clearSelectionCanvas = (key) => {
   points = [];
   boundaries = [];
   lockPosition.value = isLockStatus.value ? lockPosition.value : false;
+  threeRender.stopAnimate();
 };
 function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
   highlightEvent(ctx, hoveredEvent, processKey, false, highlight);
@@ -1896,6 +1898,7 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     }
     drawSelection(label, needSendCom, isLock);
     threeRender.drawBoundary(boundaries, props.processKey);
+    threeRender.animate();
     toggleLock();
   } else {
     clearSelectionCanvas('data-three-column-process-key');
@@ -1964,6 +1967,8 @@ addChildContext('threadEvent', {
     return getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
   },
   drawBoundary: threeRender.drawBoundary,
+  animate: threeRender.animate,
+  stopAnimate: threeRender.stopAnimate,
 });
 
 // 每个事件画布都会走一遍
@@ -1987,6 +1992,7 @@ watch(isDarkTheme, () => {
 
 onUnmounted(() => {
   throttledRender.cancel();
+  threeRender.stopAnimate();
 });
 </script>
 
