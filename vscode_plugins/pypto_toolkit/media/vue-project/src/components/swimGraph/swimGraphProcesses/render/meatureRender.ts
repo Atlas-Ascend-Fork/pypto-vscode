@@ -1,4 +1,4 @@
-import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio } from '../../swimGraphUtils';
+import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio, clearWholeProcess } from '../../swimGraphUtils';
 import { Dependencies, getEventColor, getNoZoomX, renderInfo2pixelData } from './utils';
 import { isEqual } from 'lodash-es';
 import { EventRender } from './eventRender';
@@ -30,7 +30,7 @@ export class MeatureRender extends EventRender {
     const { viewState } = this.deps;
     ctx.lineWidth = 2;
     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(ctx, viewState, processKey);
     altClickData = {
       preData: null,
       lastData: null,
@@ -43,7 +43,7 @@ export class MeatureRender extends EventRender {
     //先清空画布
     uiCtx.lineWidth = 2;
     uiCtx.fillStyle = 'rgba(0, 0, 0, 0)';
-    uiCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(uiCtx, viewState, processKey);
     // 补画第一个手动测距的节点
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
     uiCtx.lineWidth = 2 / viewState.scale;

@@ -1,3 +1,4 @@
+import { clearWholeProcess } from '../../swimGraphUtils';
 import { EventRender } from './eventRender';
 import { Dependencies } from './utils';
 
@@ -39,7 +40,7 @@ export class ThreeRender extends EventRender {
     if (!boundaryCanvas) return;
     const boundaryCtx = boundaryCanvas.getContext('2d');
     if (!boundaryCtx) return;
-    boundaryCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(boundaryCtx, viewState, processKey);
     this.stopAnimate();
     this.enableAnimate();
     if (!boundaries) return;

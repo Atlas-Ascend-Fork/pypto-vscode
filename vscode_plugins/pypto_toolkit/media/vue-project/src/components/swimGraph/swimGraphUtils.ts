@@ -538,6 +538,16 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
   const currentDevicePixelRatio = getDevicePixelRatio();
   viewState.canvasCssWidth = canvasWidth;
   viewState.canvasWidth = processCtxs.eventCtx.canvas.width;
-  viewState.clearWidth = Math.max(viewState.canvasCssWidth, viewState.canvasWidth);
-  viewState.clearHeight = Math.max(canvasHeight, canvasHeight * currentDevicePixelRatio);
+  
+  if (!viewState.clearInfo[processKey]) {
+    viewState.clearInfo[processKey] = {};
+  }
+  const clearInfo = viewState.clearInfo[processKey];
+  clearInfo.clearWidth = Math.max(viewState.canvasCssWidth, viewState.canvasWidth);
+  clearInfo.clearHeight = Math.max(canvasHeight, canvasHeight * currentDevicePixelRatio);
 };
+
+export const clearWholeProcess = (ctx: any, viewState: any, processKey: string) => {
+  const { clearWidth, clearHeight } = viewState.clearInfo[processKey];
+  ctx.clearRect(0, 0, clearWidth, clearHeight);
+}
