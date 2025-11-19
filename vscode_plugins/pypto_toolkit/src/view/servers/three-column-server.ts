@@ -1,80 +1,69 @@
-import { Uri, ViewColumn, commands, window, WebviewPanel, workspace } from 'vscode';
-import { ViewServer } from './view-server';
-import { ViewServerContext } from './view-server-context';
+import { Uri } from 'vscode';
+import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
+import { ViewServerContext } from '../../core/view/view-server-context';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
-import { SwimData } from '../../view/swimGraphView';
-import { Fider } from '../../view/threeColumnEntry';
+import { SwimData } from '../swimGraphView';
+import { Fider } from '../threeColumnEntry';
 import { readFileSync, writeFileSync } from 'fs';
-import { SingleGraphData } from '../graphData';
+import { SingleGraphData } from '../../core/graphData';
 import * as vscode from 'vscode';
-import { ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer } from './view-server-interface';
+import {
+  ICommonViewServer,
+  IComViewServer,
+  IThreeViewServer,
+  ISwimViewServer,
+  IComApis,
+  IComRefs,
+  ICommonApis,
+  ICommonRefs,
+  IThreeApis,
+  IThreeRefs,
+  ISwimApis,
+  ISwimRefs,
+} from './view-server-interface';
 
+type Apis = IComApis | ICommonApis | IThreeApis | ISwimApis;
+
+type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
+
+@viewRefs([
+  'InitFlag',
+  'SetThreeColumnMode',
+  'FuncHashFileList',
+  'CompleteData',
+  'PyCode',
+  'SaveSuccess',
+  'SaveError',
+  'CalleeMap',
+  'CalleeOpAttrMap',
+  'ComData',
+  'DiffComData',
+  'ErrorMessage',
+  'FuncTree',
+  'GlobalSearchResult',
+  'HealthyReport',
+  'InitComGraph',
+  'InitDiffComGraph',
+  'IDELang',
+  'IDETheme',
+  'JsonGraphData',
+  'LayoutResult',
+  'PathNodesSet',
+  'ReadJsonWarning',
+  'returnSwim',
+  'returnTheme',
+  'noSwimFile',
+  'validateSwimFile',
+  'returnSwimData',
+  'bindResult',
+  'unbindResult',
+  'JsonContent',
+])
 export class ThreeColumnServer
-  extends ViewServer<any, any>
+  extends ViewServer<Apis, Refs>
   implements ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer
 {
-  /** 客户端可以访问的方法名 */
-  static override _apis: string[] = [
-    'pageInit',
-    'getPyCode',
-    'savePyCode',
-    'getInitialData',
-    'askLayout',
-    'getJsonGraphData',
-    'getHealthyReport',
-    'getSubgraph',
-    'jumpToCodeLine',
-    'openDiffViewer',
-    'setFinalResult',
-    'searchAllFunc',
-    'getSwimData',
-    'bindComGraphJson',
-    'unbindComGraph',
-    'jumpToComGraph',
-    'openBoundComGraph',
-    'jumpRawMagic',
-    'showMessage',
-    'saveRendingMode',
-    'changeUserCfgConnection',
-    'innerGetSubgraph',
-    'returnFuncTree',
-  ];
-
-  /** 客户端可以使用的响应式对象名 */
-  static override _refs: string[] = [
-    'InitFlag',
-    'SetThreeColumnMode',
-    'FuncHashFileList',
-    'CompleteData',
-    'PyCode',
-    'SaveSuccess',
-    'SaveError',
-    'CalleeMap',
-    'CalleeOpAttrMap',
-    'ComData',
-    'DiffComData',
-    'ErrorMessage',
-    'FuncTree',
-    'GlobalSearchResult',
-    'HealthyReport',
-    'InitComGraph',
-    'InitDiffComGraph',
-    'IDELang',
-    'IDETheme',
-    'JsonGraphData',
-    'LayoutResult',
-    'PathNodesSet',
-    'ReadJsonWarning',
-    'returnSwim',
-    'returnTheme',
-    'noSwimFile',
-    'validateSwimFile',
-    'returnSwimData',
-    'bindResult',
-    'unbindResult',
-    'JsonContent'
-  ];
   public title: string;
   public isReveal: boolean;
   public msgHandler: any;
@@ -110,73 +99,94 @@ export class ThreeColumnServer
   }
   public override created(ctx: ViewServerContext): void {}
 
+  @viewApi()
   public getInitialData = async () => {
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
     await SwimGraphMsgHandler.getInitialData(this);
     await SwimGraphMsgHandler.getSwimData(this);
   };
+  @viewApi()
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
   };
+  @viewApi()
   public savePyCode = async (message) => {
     await codeMsgHandler.savePyCode(this, message);
   };
-
+  @viewApi()
   public askLayout = async (message) => {
     await ComGraphHandler.elkLayout(message.data, this);
   };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await ComGraphHandler.getJsonGraphData(message, this);
   };
+  @viewApi()
   public setFinalResult = async (message) => {
     await ComGraphHandler.setFinalResult(message, this);
   };
+  @viewApi()
   public openDiffViewer = async () => {
     await ComGraphHandler.openDiffViewer(this, this.query);
   };
+  @viewApi()
   public getSubgraph = async (message: any) => {
     await ComGraphHandler.getSubgraph(this, message.paramObj, this.query);
   };
+  @viewApi()
   public searchAllFunc = async (message) => {
     await ComGraphHandler.searchAllFunc(this, message);
   };
+  @viewApi()
   public jumpToCodeLine = async (message) => {
     await ComGraphHandler.jumpToCodeLine(message);
   };
+  @viewApi()
   public getHealthyReport = async () => {
     await ComGraphHandler.getHealthyReport(this);
   };
+  @viewApi()
   public innerGetSubgraph = async (message) => {
     await ComGraphHandler.innerGetSubgraph(this, message.paramObj);
   };
+  @viewApi()
   public returnFuncTree = async () => {
     await ComGraphHandler.returnFuncTree(this);
   };
+  @viewApi()
   public getSwimData = async () => {
     await SwimGraphMsgHandler.getSwimData(this);
   };
+  @viewApi()
   public bindComGraphJson = async () => {
     await SwimGraphMsgHandler.bindComGraphJson(this);
   };
+  @viewApi()
   public unbindComGraph = async () => {
     await SwimGraphMsgHandler.unbindComGraph(this);
   };
+  @viewApi()
   public jumpToComGraph = async (message: any) => {
     await SwimGraphMsgHandler.jumpToComGraph(this, message.paramObj);
   };
+  @viewApi()
   public openBoundComGraph = async () => {
     await SwimGraphMsgHandler.openBoundComGraph(this);
   };
+  @viewApi()
   public jumpRawMagic = async (message: any) => {
     await SwimGraphMsgHandler.jumpRawMagic(this, message.paramObj);
   };
+  @viewApi()
   public showMessage = async (message: any) => {
     await SwimGraphMsgHandler.showMessage(this, message.paramObj);
   };
+  @viewApi()
   public saveRendingMode = async (message: any) => {
     await SwimGraphMsgHandler.saveRendingMode(this, message.paramObj);
   };
+  @viewApi()
   public changeUserCfgConnection = async (message: any) => {
     await SwimGraphMsgHandler.changeUserCfgConnection(this, message.paramObj);
   };
@@ -210,6 +220,7 @@ export class ThreeColumnServer
     }
   }
 
+  @viewApi()
   public pageInit() {
     if (!this.sendFlag && this.swimDataPath && this.comPath) {
       this.setRef('InitFlag', 'true');

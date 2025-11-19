@@ -20,24 +20,27 @@ getQuery().then(({ _server }) => {
 /**
  * 视图服务内的Api方法
  */
-type ViewServerApi<Server extends ViewServer<string, string>, ApiKey extends string> = ApiKey extends keyof Server
+type ViewServerApi<Server extends ViewServer<never, {}>, ApiKey> = ApiKey extends keyof Server
   ? Server[ApiKey] extends (...args: any[]) => any
     ? Server[ApiKey]
     : never
   : never;
 
+type Promised<T> = T extends Promise<unknown> ? T : Promise<T>;
+
+/** 转为异步函数 */
+type Async<T extends (...args: any[]) => any> = (...args: Parameters<T>) => Promised<ReturnType<T>>;
+
 /**
  * 视图服务暴露给UI层的api和ref
  */
-type ExposeViewServer<Server extends ViewServer<string, string>> = {
-  [key in Server['_allowedApi']]: (
-    ...args: Parameters<ViewServerApi<Server, key>>
-  ) => Promise<Awaited<ReturnType<ViewServerApi<Server, key>>>>;
+type ExposeViewServer<Server extends ViewServer<never, {}>> = {
+  [apiKey in keyof Server['_allowedApis']]: Async<ViewServerApi<Server, apiKey>>;
 } & {
-  [key2 in Server['_allowedRef']]: Readonly<Ref<any>>;
+  [refKey in keyof Server['_allowedRefs']]: Readonly<Ref<Server['_allowedRefs'][refKey]>>;
 };
 
-export function useViewServer<ServerInstance extends ViewServer<string, string>>() {
+export function useViewServer<ServerInstance extends ViewServer<never, {}>>() {
   const server: ExposeViewServer<ServerInstance> = new Proxy<any>(
     {},
     {

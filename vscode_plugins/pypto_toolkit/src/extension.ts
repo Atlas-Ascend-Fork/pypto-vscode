@@ -78,7 +78,7 @@ export async function activate(context: ExtensionContext) {
         server.addWebview(viewPanel.webview);
     });
 
-    const sidebarViewProvider = new SidebarViewProvider(context.extensionUri);
+    const sidebarViewProvider = new SidebarViewProvider();
 
     vscode.window.registerWebviewViewProvider(
         SidebarViewProvider.viewType, // 页面 ID

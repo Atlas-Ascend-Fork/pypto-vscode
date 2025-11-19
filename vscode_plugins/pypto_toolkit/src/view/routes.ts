@@ -1,9 +1,9 @@
 import { t } from 'i18next';
 import { EditorViewRaw } from '../core/editorView';
-import { ComputeGraphServer } from '../core/view/com-graph-server';
-import { ThreeColumnServer } from '../core/view/three-column-server';
+import { ComputeGraphServer } from './servers/com-graph-server';
+import { ThreeColumnServer } from './servers/three-column-server';
 import { SwimGraphMsgHandler } from '../handler/swimGraphMsgHandler';
-import { SwimGraphServer } from '../core/view/swim-graph-server';
+import { SwimGraphServer } from './servers/swim-graph-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
   // 控制流

@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
-import SwimGraph from './components/swimGraph/swimGraphComplete.vue';
+import { onMounted, ref } from 'vue';
 import ErrorView from './components/comGraph/error.vue';
-import SearchMode from './components/comGraph/searchMode.vue';
-import {getQuery} from './core/query';
-import {vscode} from './core/vscode';
-import {useTheme} from './theme/use-theme';
+import { getQuery } from './core/query';
+import { useTheme } from './theme/use-theme';
 import SideBarView from './components/sideBar/SideBarView.vue';
-import ControlFlowIndex from "./components/controlFlowGraph/ControlFlowIndex.vue";
+import ControlFlowIndex from './components/controlFlowGraph/ControlFlowIndex.vue';
 import MiddleLayer from './components/comGraph/middleLayer.vue';
 
 const graphType = ref('');
-const jsonContent = ref({});
 const errorMessage = ref('');
 const outputDirPath = ref('');
-const {updateTheme} = useTheme();
+const { updateTheme } = useTheme();
 
 getQuery().then((query) => {
   graphType.value = query._viewType;
@@ -25,22 +21,13 @@ const errorListener = (args) => {
   errorMessage.value = args;
 };
 
-
 (window as any).ascEventBus.on('jsonParseError', errorListener);
-
-const returnSidBar = (message) => {
-  graphType.value = 'returnSidBar';
-  jsonContent.value = message.data;
-};
 
 const returnTheme = (message) => {
   updateTheme(message.data);
 };
 
-
-
 const CommandCallbackMap = {
-  returnSidBar,
   returnTheme,
 };
 
@@ -49,25 +36,24 @@ window.addEventListener('message', (event) => {
   CommandCallbackMap[message.command]?.(message);
 });
 
-
 onMounted(() => {
-  document.addEventListener('contextmenu',(e) =>{
-    e.preventDefault();//阻止原生菜单弹出
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); //阻止原生菜单弹出
   });
 });
 </script>
 
 <template>
-  <header :class="[outputDirPath && 'com-graph-with-navbar']">
-    
-    <MiddleLayer v-if="graphType" :graphType="graphType" ></MiddleLayer>
-    <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
-  </header>
-  <div class="parent-container" v-if="graphType === 'controlFlow'">
-    <ControlFlowIndex></ControlFlowIndex>
-  </div>
   <!-- 导航栏 -->
   <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
+  <!-- 控制流 -->
+  <div class="parent-container" v-else-if="graphType === 'controlFlow'">
+    <ControlFlowIndex></ControlFlowIndex>
+  </div>
+  <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
+    <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
+    <MiddleLayer v-else :graphType="graphType"></MiddleLayer>
+  </header>
 </template>
 <style scoped>
 .parent-container {

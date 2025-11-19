@@ -1,46 +1,34 @@
-import { ViewServer } from './view-server';
-import { ViewServerContext } from './view-server-context';
+import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
+import { ViewServerContext } from '../../core/view/view-server-context';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 import { AbstractGraphData } from '../../core/graphData';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { DiffGraphHandler } from '../../handler/diffGraphHandler';
-import { IComViewServer,ICommonViewServer,IComApis,IComRefs } from './view-server-interface';
+import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 
+type Apis = IComApis | ICommonApis;
 
-export class ComputeGraphServer extends ViewServer<any, any> implements IComViewServer,ICommonViewServer {
-  /** 客户端可以访问的方法名 */
-  static override _apis: string[] = [
-    'askLayout',
-    'getJsonGraphData',
-    'getHealthyReport',
-    'getInitialData',
-    'getSubgraph',
-    'jumpToCodeLine',
-    'openDiffViewer',
-    'setFinalResult',
-    'searchAllFunc',
-    'innerGetSubgraph',
-  ];
+type Refs = IComRefs & ICommonRefs;
 
-  /** 客户端可以使用的响应式对象名 */
-  static override _refs: string[] = [
-    'CalleeMap',
-    'CalleeOpAttrMap',
-    'ComData',
-    'DiffComData',
-    'ErrorMessage',
-    'FuncTree',
-    'GlobalSearchResult',
-    'HealthyReport',
-    'InitComGraph',
-    'InitDiffComGraph',
-    'IDELang',
-    'IDETheme',
-    'JsonGraphData',
-    'LayoutResult',
-    'PathNodesSet',
-    'ReadJsonWarning',
-  ];
+@viewRefs([
+  'CalleeMap',
+  'CalleeOpAttrMap',
+  'ComData',
+  'DiffComData',
+  'ErrorMessage',
+  'FuncTree',
+  'GlobalSearchResult',
+  'HealthyReport',
+  'InitComGraph',
+  'InitDiffComGraph',
+  'IDELang',
+  'IDETheme',
+  'JsonGraphData',
+  'LayoutResult',
+  'PathNodesSet',
+  'ReadJsonWarning',
+])
+export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
   entryHash: string;
   viewType?: string;
@@ -57,8 +45,7 @@ export class ComputeGraphServer extends ViewServer<any, any> implements IComView
   handler: typeof BaseGraphMsgHandler;
   query?: string;
 
-  constructor(ctx: ViewServerContext) {
-    super(ctx);
+  public override created(ctx: ViewServerContext): void {
     this.viewType = ctx.viewType;
     this.query = typeof ctx.fileUri?.query === 'string' ? this.safeParse(ctx.fileUri?.query) : ctx.fileUri?.query ?? {};
     if (this.viewType === 'computeGraph') {
@@ -67,37 +54,46 @@ export class ComputeGraphServer extends ViewServer<any, any> implements IComView
       this.handler = DiffGraphHandler;
     }
   }
-  public override created(ctx: ViewServerContext): void {}
 
+  @viewApi()
   public getInitialData = async () => {
     await this.handler.getInitialData(this);
   };
+  @viewApi()
   public askLayout = async (message) => {
     await this.handler.elkLayout(message.data, this);
   };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await this.handler.getJsonGraphData(message, this);
   };
+  @viewApi()
   public setFinalResult = async (message) => {
     await this.handler.setFinalResult(message, this);
   };
+  @viewApi()
   public openDiffViewer = async () => {
     await this.handler.openDiffViewer(this, this.query);
   };
+  @viewApi()
   public getSubgraph = async (message: any) => {
     await this.handler.getSubgraph(this, message.paramObj, this.query);
   };
+  @viewApi()
   public searchAllFunc = async (message) => {
     await this.handler.searchAllFunc(this, message);
   };
+  @viewApi()
   public jumpToCodeLine = async (message) => {
     await this.handler.jumpToCodeLine(message);
   };
+  @viewApi()
   public getHealthyReport = async () => {
     await this.handler.getHealthyReport(this);
   };
+  @viewApi()
   public innerGetSubgraph = async (message) => {
-    await this.handler.innerGetSubgraph(this,message);
+    await this.handler.innerGetSubgraph(this, message);
   };
 
   safeParse(str) {
@@ -108,4 +104,3 @@ export class ComputeGraphServer extends ViewServer<any, any> implements IComView
     }
   }
 }
-

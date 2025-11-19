@@ -88,6 +88,7 @@ import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey } from '../threeColumn/types';
+import { pushState } from '@/core/state';
 import { useViewServer } from '../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -259,7 +260,7 @@ function setupSwimWatchers() {
   watch(server.returnSwimData, (newValue) => {
       const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
       let newMessage = (oldMessage && oldMessage.message) || newValue;
-      vscode.setState({ message: newValue });
+      pushState({ message: newValue });
       setPageState(newValue);
       loadTraceData(JSON.parse(JSON.stringify(newMessage.data)));
   });
