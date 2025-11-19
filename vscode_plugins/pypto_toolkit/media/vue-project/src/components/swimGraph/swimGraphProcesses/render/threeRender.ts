@@ -170,7 +170,8 @@ export class ThreeRender extends EventRender {
       }
       totalPathLength = cumulativeLength;
       this.perimeterMap.set(currentProcessKey, totalPathLength);
-      LINE_LENGTH = Math.max(60, Math.min(200, totalPathLength / 7));
+      const targetLength = this.getLineLength();
+      LINE_LENGTH = Math.max(60, Math.min(400, targetLength));
       const secondLinePosition = (traveledHead + totalPathLength / 2) % totalPathLength;
       const lineSegs1 = this.getLineSegments(traveledHead);
       const lineSegs2 = this.getLineSegments(secondLinePosition);
@@ -190,7 +191,20 @@ export class ThreeRender extends EventRender {
       ctx.restore();
     });
   }
-
+  
+  private getLineLength() {
+    let targetLength: number;
+    if (totalPathLength < 600) {
+      targetLength = totalPathLength / 8;
+    } else if (totalPathLength < 1500) {
+      targetLength = totalPathLength / 6;
+    } else {
+      // 对数增长：平滑拉长，避免过长
+      targetLength = 100 + Math.log(totalPathLength / 100) * 80;
+    }
+    return targetLength;
+  }
+  
   private drawConnectLines(lineArray: Point[], ctx: CanvasRenderingContext2D) {
     if (!lineArray.length || lineArray.length < 2 || !ctx) {
       return;
