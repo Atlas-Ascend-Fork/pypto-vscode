@@ -4,11 +4,6 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 
 import { useView } from '../../view';
-import { GraphView } from '../../view/graphView';
-import { SingleGraphData } from '../../core/graphData';
-import { SingleGraphHandler } from '../../handler/singleGraphHandler';
-import { SwimGraphView } from '../../view/swimGraphView';
-import { loadMaterialColorUtilities } from '../../color-list';
 import { readOutputRunData } from '../workspace/rundata';
 import { getOutputRecord } from '../workspace';
 import { t } from 'i18next';
@@ -33,22 +28,17 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
  * 打开计算图
  */
 export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string }) {
-  await loadMaterialColorUtilities();
   const uri = vscode.Uri.file(params.computeGraphPath);
-  new GraphView(
-    { viewType: 'comItemDetailView', title: path.basename(params.computeGraphPath) },
-    SingleGraphData,
-    SingleGraphHandler,
-  ).createPanel(uri.fsPath, undefined, undefined, undefined, undefined, undefined, undefined, params.outputPath, params.pathName);
+  const query = { outputDirPath: params.outputPath, pathName: params.pathName };
+  useView().editorView.open('computeGraph', uri, { query, title: path.basename(params.computeGraphPath) });
 }
 
 /**
  * 打开泳道图
  */
 export async function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
-  await loadMaterialColorUtilities();
   const uri = vscode.Uri.file(params.swimlaneGraphPath);
-  SwimGraphView.createPanel(uri);
+  useView().editorView.open('swimGraph', uri);
 }
 
 /**
