@@ -12,7 +12,7 @@
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
-                <div class="data-value">{{ AICoreUsage }}%</div>
+                <div class="data-value">{{ AICoreUsage }}</div>
               </div>
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
@@ -21,7 +21,7 @@
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
-                <div class="data-value">{{ AICUsage }}%</div>
+                <div class="data-value">{{ AICUsage }}</div>
               </div>
               <div class="measure-detail-data-item">
                 <div class="data-title-row">
@@ -30,7 +30,7 @@
                     <d-icon name="helping" size="16px"></d-icon>
                   </d-tooltip>
                 </div>
-                <div class="data-value">{{ AIVUsage }}%</div>
+                <div class="data-value">{{ AIVUsage }}</div>
               </div>
             </div>
             <div class="measure-detail-data-downarea">
@@ -195,9 +195,18 @@ const initDatas = () => {
   const handleNaN = (value) => {
     return isNaN(value) ? '/' : value;
   };
-  AICoreUsage.value = handleNaN(data.AICoreusage);
-  AICUsage.value = handleNaN(data.AICusage);
-  AIVUsage.value = handleNaN(data.AIVusage);
+
+  const usageValue = (value) => {
+    if (value === '/') {
+      return value;
+    } else {
+      return value + '%';
+    }
+  };
+
+  AICoreUsage.value = usageValue(handleNaN(data.AICoreusage));
+  AICUsage.value = usageValue(handleNaN(data.AICusage));
+  AIVUsage.value = usageValue(handleNaN(data.AIVusage));
   eventNum.value = handleNaN(data.eventnum);
 
   const processCycleValue = (value) => {

@@ -38,7 +38,7 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   };
   @viewApi()
   public getSwimData = async () => {
-    await this.handler.getSwimData(this);
+    return await this.handler.getSwimData(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {
