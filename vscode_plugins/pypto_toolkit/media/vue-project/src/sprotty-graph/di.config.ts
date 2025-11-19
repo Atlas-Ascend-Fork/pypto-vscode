@@ -61,7 +61,7 @@ import { getCurrentArea, isNode } from '../utils/index';
 import { useViewServer } from '../core/use-view-server';
 import { watch } from 'vue';
 
-import type { IComViewServer } from '../../../../src/core/view/view-server-interface';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
 const { server } = useViewServer<IComViewServer>();
 

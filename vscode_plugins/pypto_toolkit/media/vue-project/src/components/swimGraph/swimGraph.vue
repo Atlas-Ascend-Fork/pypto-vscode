@@ -225,6 +225,7 @@ import { useI18n } from 'vue-i18n';
 import { generateColorList } from '../../utils/color-list';
 import { getTextWidth } from '../../utils/index';
 import { throttle } from 'lodash-es';
+import { pushState } from '@/core/state';
 const { t: $t } = useI18n();
 // 响应式状态
 const fixedtimelineCanvas = ref(null);
@@ -404,7 +405,7 @@ const handleMessage = (event) => {
       }
       const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
       let newMessage = (oldMessage && oldMessage.message) || message;
-      vscode.setState({ message: message });
+      pushState({ message: message });
 
       loading.value = true;
       fetch(newMessage.data)

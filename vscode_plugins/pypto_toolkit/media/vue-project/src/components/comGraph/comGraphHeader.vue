@@ -185,7 +185,7 @@ import { extractIncasts,
   searchBySubgraphid,
   searchByOperationMagic } from '../../utils/search';
 import { useViewServer } from '../../core/use-view-server';
-import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
 const { server } = useViewServer<IComViewServer>();
 const props = defineProps({

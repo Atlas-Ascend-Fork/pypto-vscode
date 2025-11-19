@@ -13,7 +13,7 @@ import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { pushState } from '../../core/state';
 
-import { ICommonViewServer } from '../../../../../src/core/view/view-server-interface';
+import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');

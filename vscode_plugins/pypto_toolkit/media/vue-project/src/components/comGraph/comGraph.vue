@@ -41,7 +41,7 @@ import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
-import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();

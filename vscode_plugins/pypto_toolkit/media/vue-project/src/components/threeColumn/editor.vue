@@ -44,7 +44,7 @@ import { useI18n } from 'vue-i18n';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import { useViewServer } from '../../core/use-view-server';
-import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+import { ThreeColumnServer } from 'ext:/view/servers/three-column-server';
 const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t: $t } = useI18n();

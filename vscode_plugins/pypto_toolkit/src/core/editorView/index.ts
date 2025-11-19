@@ -22,7 +22,7 @@ export interface EditorViewRaw {
   title: string | ((uri: vscode.Uri) => string);
 
   /** 页面服务端，每个webview使用独立的实例 */
-  viewServer?: typeof ViewServer;
+  viewServer?: typeof ViewServer<never, {}>;
 }
 
 export interface EditorViewState {
@@ -146,12 +146,12 @@ export class EditorView {
     this.openedViews.set(viewType, uri, viewPanel);
 
     // 加载html
-    const htmlTemplateText = getWebviewEntryCode(viewPanel);
+    const htmlTemplateText = getWebviewEntryCode(viewPanel.webview);
     viewPanel.webview.html = htmlTemplateText;
 
     // 视图服务
     const { viewServer } = this.viewRawMap.get(viewType) ?? {};
-    let server: ViewServer<'', ''>;
+    let server: ViewServer<never, {}>;
     if (viewServer) {
       const ctx = makeViewServerContext(viewPanel, viewType, uri);
       server = new viewServer(ctx);
@@ -190,9 +190,9 @@ export class EditorView {
 /**
  * 获取webview入口html文件代码
  */
-function getWebviewEntryCode(viewPanel: vscode.WebviewPanel): string {
+export function getWebviewEntryCode(webview: vscode.Webview): string {
   /** 扩展根目录相对webview入口的路径 */
-  const base = viewPanel.webview.asWebviewUri(vscode.Uri.file(hismartliteEx.extensionPath)).toString();
+  const base = webview.asWebviewUri(vscode.Uri.file(hismartliteEx.extensionPath)).toString();
   const htmlPath = path.join(hismartliteEx.extensionPath, 'webview-dist', 'index.html');
   const htmlCode = fs
     .readFileSync(htmlPath, 'utf-8')
@@ -202,17 +202,3 @@ function getWebviewEntryCode(viewPanel: vscode.WebviewPanel): string {
     .replace(/{{ascLang}}/g, getIDELang());
   return htmlCode;
 }
-
-export interface GraphViewOptions {
-  /** 面板类型标识，对应 package.json contributes.views */
-  viewType: string;
-  /** 显示标题 */
-  title: string;
-  /** 列区域 */
-  column?: vscode.ViewColumn;
-  /** 额外图标（可选） */
-  iconPath?: vscode.Uri;
-  calleeOpMagic?: string;
-  calleeOpSubgraphId?: string;
-}
-

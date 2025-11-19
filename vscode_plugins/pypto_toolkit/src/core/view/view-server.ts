@@ -3,18 +3,42 @@ import { Disposable } from 'vscode';
 import { ViewServerContext } from './view-server-context';
 
 /**
+ * 【装饰器】客户端可以访问的方法
+ */
+export function viewApi<Apis extends string>() {
+  return (target: ViewServer<Apis, {}>, targetKey: Apis): void => {
+    if (!(target.constructor as any)._viewConfig) {
+      (target.constructor as any)._viewConfig = { apis: [], refs: [] };
+    }
+    (target.constructor as any)._viewConfig.apis.push(targetKey);
+  };
+}
+
+/**
+ * 【装饰器】客户端可以访问的属性（一次定义全部属性）
+ * @param refKeys
+ * @returns
+ */
+export function viewRefs<Refs extends object>(refKeys: (keyof Refs)[]) {
+  return (target: new (...args: any[]) => ViewServer<never, Refs>): void => {
+    if (!(target as any)._viewConfig) {
+      (target as any)._viewConfig = { apis: [], refs: [] };
+    }
+    (target as any)._viewConfig.refs.push(...refKeys);
+  };
+}
+
+// static属性无法使用泛型，此处用于解析Apis和Refs，运行代码不包含下列属性
+export interface ViewServer<Apis extends string, Refs extends object> {
+  _allowedApis: Record<Apis, unknown>;
+  _allowedRefs: Refs;
+}
+
+/**
  * 视图服务端，用来提供数据、同vscode交互
  */
-export class ViewServer<Apis extends string, Refs extends string> implements Disposable {
-  /** 客户端可以访问的方法名 */
-  static _apis: string[] = [];
-
-  /** 客户端可以使用的响应式对象名 */
-  static _refs: string[] = [];
-
-  // static属性无法使用泛型，此处用于解析Apis和Refs，运行代码无作用
-  public _allowedApi: () => Apis;
-  public _allowedRef: () => Refs;
+export class ViewServer<Apis extends string, Refs extends object> implements Disposable {
+  static _viewConfig: ViewServerConfig;
 
   private _refMap = new Map<string, unknown>();
 
@@ -61,16 +85,16 @@ export class ViewServer<Apis extends string, Refs extends string> implements Dis
 /** 传给webview的视图服务端配置 */
 export interface ViewServerConfig {
   /** 客户端可以访问的方法名 */
-  apis: (typeof ViewServer)['_apis'];
+  apis: string[];
 
   /** 客户端可以使用的响应式对象名 */
-  refs: (typeof ViewServer)['_refs'];
+  refs: string[];
 }
 
 /**
  * 生成视图服务端配置
  * @param serverPrototype ViewServer类原型
  */
-export function makeViewServerConfig(serverPrototype: typeof ViewServer<string, string> | undefined): ViewServerConfig | undefined {
-  return serverPrototype ? { apis: serverPrototype._apis, refs: serverPrototype._refs } : undefined;
+export function makeViewServerConfig(serverPrototype: typeof ViewServer<never, {}> | undefined): ViewServerConfig | undefined {
+  return serverPrototype ? serverPrototype._viewConfig : undefined;
 }

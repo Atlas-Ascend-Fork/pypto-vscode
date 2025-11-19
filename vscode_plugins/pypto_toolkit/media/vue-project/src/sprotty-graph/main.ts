@@ -10,7 +10,7 @@ import { comGraphStore } from '../service/com-graph-store';
 import { ILayoutConfigurator } from 'sprotty-elk';
 import { findNodeIdsBySemanticLabel } from '../utils/search';
 import { useViewServer } from '../core/use-view-server';
-import type { IComViewServer } from '../../../../src/core/view/view-server-interface';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { watch } from 'vue';
 
 const { server } = useViewServer<IComViewServer>();

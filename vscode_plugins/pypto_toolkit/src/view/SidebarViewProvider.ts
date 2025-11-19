@@ -1,76 +1,36 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import {hismartliteEx} from '../hismarliteEx';
-import {getIDETheme} from '../theme';
-import {getIDELang} from '../lang';
-import {Util} from '../util';
-import {useView} from './index';
-import {useServer} from '../core/request-server';
+
+import { getIDETheme } from '../theme';
+import { useServer } from '../core/request-server';
+import { ViewQuery, ViewQueryConnector } from '../core/view/view-query';
+import { getWebviewEntryCode } from '../core/editorView';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
-    public websidePanel: vscode.Webview;
-    private extensionUri: string;
-    private servers: ReturnType<typeof useServer>;
+  public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
 
-    constructor(
-        private readonly _extensionUri: vscode.Uri,// 插件所在路径
-    ) {
-        this.extensionUri = _extensionUri.toString();
-        this.servers = useServer();
-    }
+  private servers: ReturnType<typeof useServer>;
+  /** 页面参数通信器 */
+  private queryConnector: ViewQueryConnector;
 
-    public resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        _context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
-    ) {
-        webviewView.webview.options = {
-            enableScripts: true, // 允许脚本
-            localResourceRoots: [this._extensionUri] // 允许加载本地资源的路径
-        };
+  constructor() {
+    this.servers = useServer();
+    this.queryConnector = new ViewQueryConnector();
+  }
 
-        this.websidePanel = webviewView.webview;
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+  public resolveWebviewView(webviewView: vscode.WebviewView) {
+    webviewView.webview.options = { enableScripts: true };
 
-        this.servers.addWebview(webviewView.webview);
-        webviewView.webview.onDidReceiveMessage(async (message) => {
-            if (message.command === 'getInitialData') {
-                webviewView.webview.postMessage({
-                    command: 'returnSidBar',
-                })
-            }
-        })
+    webviewView.webview.html = getWebviewEntryCode(webviewView.webview);
 
-        //  主题变化自动刷新
-        vscode.window.onDidChangeActiveColorTheme(
-            () => webviewView.webview.postMessage({command: 'returnTheme', data: getIDETheme()}),
-            null,
-        );
+    this.servers.addWebview(webviewView.webview);
+    const viewQuery: ViewQuery = {
+      _viewType: 'returnSidBar',
+      _path: '',
+      _uri: vscode.Uri.parse(''),
+    };
+    this.queryConnector.setQuery(webviewView.webview, viewQuery);
 
-    }
-
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        let replaceParams: any[] = [];
-        // 打包的前端页面资源的路径
-        const guiSidebarPath = vscode.Uri.joinPath(this._extensionUri, '/webview-dist');
-
-        // 前端页面的入口文件
-        const indexPath = vscode.Uri.joinPath(guiSidebarPath, '/index.html');
-
-        let indexHtml = fs.readFileSync(indexPath.fsPath, 'utf-8');
-        let webviewText = webview.asWebviewUri(vscode.Uri.file(path.join(hismartliteEx.extensionPath)));
-
-        let html = indexHtml.toString()
-            .replace(/{{root}}/g, `${webviewText}`)
-            .replace(/{{staticPath}}/g, `${webviewText}/webview-dist`)
-            .replace(/{{ascTheme}}/g, getIDETheme())
-            .replace(/{{ascLang}}/g, getIDELang());
-        const sideHtml = new Util().replaceHtmlFromData(replaceParams, html);
-        // 将本地资源路径替换成 webview 可以加载的资源路径
-        return sideHtml
-
-    }
-
+    //  主题变化自动刷新
+    vscode.window.onDidChangeActiveColorTheme(() => webviewView.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }), null);
+  }
 }
