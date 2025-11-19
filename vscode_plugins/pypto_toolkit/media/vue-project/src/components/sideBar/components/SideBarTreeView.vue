@@ -5,14 +5,17 @@
       <div class="name">
         {{ t('sideBar.title') }}
       </div>
-      <div class="refresh" @click="getAllRecords">
+      <div class="expand" @click="treeExpand">
+        <d-icon :name="isExpanded ? 'icon-chevron-up-2' : 'icon-chevron-down-2'"></d-icon>
+      </div>
+      <div class="refresh" :class="{ hidden: isExpanded }" @click="getAllRecords">
         <d-icon name="refresh"></d-icon>
       </div>
-      <div class="flex1"></div>
-      <SideBarSearch @search="updateKeyword"></SideBarSearch>
+      <div :class="{ hidden: isExpanded }" class="flex1"></div>
+      <SideBarSearch :class="{ hidden: isExpanded }" @search="updateKeyword"></SideBarSearch>
     </div>
     <!-- 筛选区 -->
-    <div class="filters">
+    <div class="filters" :class="{ hidden: isExpanded }">
       <div class="sort" operable @click="sortOption = !sortOption">
         <span class="sort-name">{{ t('sideBar.sortName') }}</span>
         <div class="sort-group">
@@ -22,7 +25,7 @@
       </div>
     </div>
     <!-- 树组件：双插槽用法 -->
-    <div class="tree-container" v-loading="isLoading">
+    <div class="tree-container" :class="{ hidden: isExpanded }" v-loading="isLoading">
       <d-tree
         ref="treeRef"
         :data="visibleTreeData"
@@ -83,9 +86,9 @@ import { getOutputDetail, getOutputRecords } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
-import SideBarSearch from './SideBarSearch.vue';
-import { useSearchingHighlight } from './hooks/use-searching-highlight';
+import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
+import SideBarSearch from './SideBarSearch.vue';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -94,6 +97,13 @@ const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_so
 const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
 const { updateKeyword, textToHighlightHtml } = useSearchingHighlight();
+
+const isExpanded = ref(false);
+const emit = defineEmits<{ (e: 'tree-expand', value: boolean) }>();
+function treeExpand() {
+  isExpanded.value = !isExpanded.value;
+  emit('tree-expand', isExpanded.value);
+}
 
 /**
  * 树节点数据
@@ -219,24 +229,25 @@ watch(sortOption, () => {
 });
 </script>
 
-<style scoped lang="less">
-@import url('@devui-design/icons/icomoon/devui-icon.css');
-
+<style>
 /**
  * 基础样式
  */
 .sidebar-container {
   background: var(--devui-card-bg);
   color: var(--control-flow-sidebar-search-icon);
-  min-height: 100vh;
+  min-height: 100%;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   gap: 11px;
   padding: 8px 0;
 }
+</style>
+<style scoped lang="less">
+@import url('@devui-design/icons/icomoon/devui-icon.css');
 
 .header {
   display: flex;
@@ -251,7 +262,16 @@ watch(sortOption, () => {
     font-size: 14px;
     line-height: 27px;
   }
-
+  .expand {
+    width: 28px;
+    height: 28px;
+    padding: 7px;
+    font-size: 14px;
+    cursor: pointer;
+    :deep(*) {
+      color: var(--control-flow-sidebar-search-icon);
+    }
+  }
   .refresh {
     width: 28px;
     height: 28px;

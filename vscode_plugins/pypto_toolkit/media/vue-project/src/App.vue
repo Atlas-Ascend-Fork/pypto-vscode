@@ -3,9 +3,10 @@ import { onMounted, ref } from 'vue';
 import ErrorView from './components/comGraph/error.vue';
 import { getQuery } from './core/query';
 import { useTheme } from './theme/use-theme';
-import SideBarView from './components/sideBar/SideBarView.vue';
 import ControlFlowIndex from './components/controlFlowGraph/ControlFlowIndex.vue';
 import MiddleLayer from './components/comGraph/middleLayer.vue';
+import PtoConfigIndex from './components/titleFwkConfig/PtoConfigIndex.vue';
+import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 
 const graphType = ref('');
 const errorMessage = ref('');
@@ -45,7 +46,7 @@ onMounted(() => {
 
 <template>
   <!-- 导航栏 -->
-  <SideBarView v-if="graphType === 'returnSidBar'"></SideBarView>
+  <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
   <!-- 控制流 -->
   <div class="parent-container" v-else-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>
@@ -53,6 +54,7 @@ onMounted(() => {
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
     <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
     <MiddleLayer v-else :graphType="graphType"></MiddleLayer>
+    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>
   </header>
 </template>
 <style scoped>

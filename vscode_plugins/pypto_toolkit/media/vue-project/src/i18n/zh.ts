@@ -179,6 +179,11 @@ export default {
         title: '运行结果',
         sortName: '执行时间',
         searchPlaceholder: '搜索运行结果',
+        config: {
+            configTitle: '运行配置',
+            viewSchemaFile: '查看Schema文件',
+            addConfigFile: '添加Config文件',
+        },
     },
     controlFlows: {
         searchPlaceholder: '搜索',

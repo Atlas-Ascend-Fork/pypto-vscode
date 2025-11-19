@@ -15,8 +15,8 @@ import CategorySearch from 'vue-devui/category-search';
 import 'vue-devui/category-search/style.css';
 import Tabs from 'vue-devui/tabs';
 import 'vue-devui/tabs/style.css';
-import Drawer from 'vue-devui/drawer'
-import 'vue-devui/drawer/style.css'
+import Drawer from 'vue-devui/drawer';
+import 'vue-devui/drawer/style.css';
 import Alert from 'vue-devui/alert';
 import 'vue-devui/alert/style.css';
 import Search from 'vue-devui/search';
@@ -42,6 +42,14 @@ import 'vue-devui/tree/style.css';
 import i18n from './i18n';
 import EventBus from './service/event-bus';
 import './style.scss';
+import Form from 'vue-devui/form';
+import 'vue-devui/form/style.css';
+import Textarea from 'vue-devui/textarea';
+import 'vue-devui/textarea/style.css';
+import Grid from 'vue-devui/grid';
+import 'vue-devui/grid/style.css';
+import Popover from 'vue-devui/popover';
+import 'vue-devui/popover/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -93,4 +101,8 @@ createApp(App)
   .use(i18n)
   .use(Drawer)
   .use(Tree)
+  .use(Form)
+  .use(Textarea)
+  .use(Grid)
+  .use(Popover)
   .mount('#app');

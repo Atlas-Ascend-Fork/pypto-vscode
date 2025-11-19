@@ -179,6 +179,11 @@ export default {
         title: 'Compilation result',
         sortName: 'Execution time',
         searchPlaceholder: 'Search from compilation result',
+        config: {
+            configTitle: 'Run configuration',
+            viewSchemaFile: 'View schema file',
+            addConfigFile: 'Add Config file',
+        },
     },
     controlFlows: {
         searchPlaceholder: 'Search',
