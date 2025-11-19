@@ -48,7 +48,7 @@
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
-  getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin
+  getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX } from './render/utils';
@@ -426,7 +426,7 @@ function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
   let hoverId = `${props.processKey}-${curId}`;
   if (hoverId != curThread.value) {
     curThread.value = hoverId;
-    backgroundCanvasCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(backgroundCanvasCtx, viewState, props.processKey);
     backgroundCanvasCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
     backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
   }
@@ -661,10 +661,10 @@ const getRootHashList = (eventHintStr) => {
 const drawSelectionBox = () => {
   const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
   const uiCtx = uiCanvasRef.getContext('2d');
-  if(!uiCtx) {
+  if (!uiCtx) {
     return;
   }
-  uiCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  clearWholeProcess(uiCtx, viewState, props.processKey);
   const {startLocalX, startY, endLocalX, endY} = selection;
   // 填充矩形
   uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
@@ -893,7 +893,7 @@ function onHoverEvent(hoveredEvent) {
     return;
   }
   const ctx = canvasRef.getContext('2d');
-  ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  clearWholeProcess(ctx, viewState, props.processKey);
   if (hoveredEvent) {
     highlightEvent(ctx, hoveredEvent, props.processKey, false);
   }
@@ -904,7 +904,7 @@ const clearSelectionCanvas = (key) => {
     return;
   }
   const ctx = canvasRef.getContext('2d');
-  ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  clearWholeProcess(ctx, viewState, props.processKey);
   if (key !== 'data-three-column-process-key') {
     return;
   }
@@ -1001,7 +1001,7 @@ const transformEvents = (process, processKey) => {
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
   for (const ctx of Object.values(ctxs[processKey])) {
-    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(ctx, viewState, processKey);
   }
   
   for (const [threadKey, thread] of process.threads.entries()) {
@@ -1064,7 +1064,7 @@ const renderProcessEvents = (process, processKey) => {
 
   for (const ctx of Object.values(ctxs[processKey])) {
     if (ctx) {
-      ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+      clearWholeProcess(ctx, viewState, processKey);
     }
   }
 
@@ -1092,7 +1092,7 @@ const highlightThread = (process, processKey, backgroundCtx) => {
         if (index >= curLane) { break };
         curY += curHeight;
       }
-      backgroundCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+      clearWholeProcess(backgroundCtx, viewState, processKey);
       backgroundCtx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
       backgroundCtx.fillRect(0, curY, viewState.clearWidth, curHeight);
     }
@@ -1160,7 +1160,7 @@ const clearDependencyLines = (processKey) => {
   if (!dependencyCanvasRef) return false;
   
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
-  dependencyCtx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+  clearWholeProcess(dependencyCtx, viewState, processKey);
   return dependencyCtx;
 };
 
@@ -1764,13 +1764,16 @@ const drawEventLine = (x, color, flag) => {
 }
 
 const eraseEventLine = (flag) => {
-  for (const processx of processes.entries()) {
-    let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
+  for (const [processKey] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
+      continue;
+    }
+    let canvasRef = document.querySelector(`[data-line-process-key="${processKey}"]`);
     if (flag === "over") {
-      canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
+      canvasRef = document.querySelector(`[data-hover-process-key="${processKey}"]`);
     }
     const ctx = canvasRef.getContext('2d');
-    ctx.clearRect(0, 0, viewState.clearWidth, viewState.clearHeight);
+    clearWholeProcess(ctx, viewState, processKey);
   }
 }
 

@@ -36,6 +36,7 @@ const {
     processes,
     isCfgEditing,
     childContextMap,
+    timelineState,
 } = inject('swimGraphState');
 
 const {
@@ -120,7 +121,7 @@ const OnModeChange = () => {
         for (const process of processes.values()) {
             for (const thread of process.threads.values()) {
                 for (const event of thread.events) {
-                    if (!event.isCounter) {
+                    if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
                         updateEventColor(event, mode);
                     }
                 }
