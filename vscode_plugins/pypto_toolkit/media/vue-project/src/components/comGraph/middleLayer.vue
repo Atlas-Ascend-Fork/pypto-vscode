@@ -28,6 +28,7 @@ const openMode = ref('all');
 const nodeMagic = ref(0);
 const { updateTheme } = useTheme();
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
+const swimInitFlag = ref(false);
 let inThreeColumnMode = false;
 
 //
@@ -122,6 +123,7 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag,async () => {
     await server.getInitialData();
+    swimInitFlag.value = true;
     server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
@@ -154,17 +156,11 @@ onMounted(async () => {
   (window as any).ascEventBus.on('searchNode', searchNodeListener);
 });
 
-
-
-
-
 const searchNodeListener = (args) => {
   openMode.value = 'path';
   nodeMagic.value = args;
   loadingStep.value = 'convertData';
 };
-
-
 
 function dealConfig(config) {
   if (!config) {
@@ -204,7 +200,7 @@ function onFullRender() {
     <template #comGraph>
       <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
     </template>
-    <template #swimGraph>
+    <template v-if="swimInitFlag" #swimGraph>
       <SwimGraph style="height: 100%" :is-three-column="true" :graphType="graphType"/>
     </template>
   </ThreeColumn>

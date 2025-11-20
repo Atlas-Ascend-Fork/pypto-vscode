@@ -592,7 +592,7 @@ const onSaturationChange = () => {
 }
 
 const clearLabel = (ctx, x, y, labelW) => {
-  let flagWidth = 12;
+  let flagWidth = 9;
   ctx.clearRect(x + flagWidth, y - 10, labelW, 20);
 }
 

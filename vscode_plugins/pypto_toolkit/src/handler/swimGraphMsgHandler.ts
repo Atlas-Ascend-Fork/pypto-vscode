@@ -6,7 +6,9 @@ import { createReadStream, existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
-import { parsePmuInfo, parseSwimLaneInfo } from '../process';
+import { convertPmuInfo, parsePmuInfo, parseSwimLaneInfo, savePmuToDB, processTotalPmuCalc, saveLane2LineToDB, saveProcessesToDB, convertSwimInfo, convertLane2LineInfo, refreshSwimGraphDB } from '../process';
+import fs from 'fs';
+import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import { GraphView } from '../view/graphView';
 
 export abstract class SwimGraphMsgHandler {
@@ -44,66 +46,192 @@ export abstract class SwimGraphMsgHandler {
         config['colorRending'] = colorRending;
         config['textRending'] = textRending;
 
+        //处理tilefwk_prof_pmu.csv
         const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
-        let pmuData = '';
-        try {
-            pmuData = readFileSync(pmuPath, 'utf8');
-            console.log('读取pmu文件');
-
-        } catch (err) {
-            console.error('读取pmu文件时发生错误:', err);
-        }
         let pmuInfo = {};
-        if (pmuData != '') {
-            pmuInfo = parsePmuInfo(pmuData);
-        }
+        let pmuExist = false;
+        let pmuTotal: any = {};
+        if (fs.existsSync(pmuPath)) {
+            //tilefwk_prof_pmu.csv文件存在
+            pmuExist = true;
+            const pmuLastChangeTime = await getMTime(pmuPath);
+            const pmuInfoFromDB = await SQLiteCache.getInstance().swimGraphPmuGetByFilePath(pmuPath);
+            if (pmuInfoFromDB.length == 0) {
+                //数据库内没有该路径的pmu信息，插入pmu信息
+                let pmuData = '';
+                try {
+                    pmuData = readFileSync(pmuPath, 'utf8');
+                    console.log('读取pmu文件');
 
-        let swimStr = '';
-        try {
-            swimStr = readFileSync(swimPath, 'utf8');
-            this.validateFile(server, swimStr);
-            console.log('读取merged_swimlane.json文件');
+                } catch (err) {
+                    console.error('读取pmu文件时发生错误:', err);
+                }
+                if (pmuData != '') {
+                    pmuInfo = parsePmuInfo(pmuData);
+                }
+                savePmuToDB(pmuPath, pmuInfo, pmuLastChangeTime);
+            } else {
+                //数据库内已有信息，校验文件修改时间
+                const exLastChangeTime = pmuInfoFromDB[0].last_change_time;
+                if (exLastChangeTime == pmuLastChangeTime) {
+                    //修改时间相同，从数据库读取数据
+                    pmuInfo = await convertPmuInfo(pmuInfoFromDB);
+                } else {
+                    //文件已被修改，删除原有数据，重新插入
+                    await SQLiteCache.getInstance().swimGraphPmuDel(pmuPath);
+                    let pmuData = '';
+                    try {
+                        pmuData = readFileSync(pmuPath, 'utf8');
+                        console.log('读取pmu文件');
 
-        } catch (err) {
-            console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
-        }
-        const task2topo = {};
-        const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
-        try {
-            const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
-            const dynTopoLines = dynTopoContent.split('\n').slice(1);
-            for (const line of dynTopoLines) {
-                const curLine = line.split(',');
-                if (curLine.length >= 10) {
-                    const seqNo = curLine[0];
-                    const taskId = curLine[1];
-                    const leafIndex = curLine[5];
-                    const successors = curLine.slice(9)
-                        .map(item => item.trim())
-                        .filter(item => item !== '')
-                        .map(item => `${seqNo}-${item}`);
-                    task2topo[`${seqNo}-${taskId}`] = { leafIndex, successors };
+                    } catch (err) {
+                        console.error('读取pmu文件时发生错误:', err);
+                    }
+                    if (pmuData != '') {
+                        pmuInfo = parsePmuInfo(pmuData);
+                    }
+                    savePmuToDB(pmuPath, pmuInfo, pmuLastChangeTime);
                 }
             }
-        } catch (error) {
-            console.log('读取dyn_topo.txt发生错误', error);
-        }
-        const swimDataObj = JSON.parse(swimStr);
-        const swimData: any = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
-        swimData.lane2line = Object.fromEntries(swimData.lane2line);
-        swimData.processes = Object.fromEntries(swimData.processes);
-        swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
 
-        for (const key in swimData.processes) {
-            swimData.processes[key].threads = Object.fromEntries(swimData.processes[key].threads);
+            //计算pmu Total
+            pmuTotal = {
+                'total cycle': 0n,
+                vec_busy_cycles: 0n,
+                cube_busy_cycles: 0n,
+                scalar_busy_cycles: 0n,
+                mte1_busy_cycles: 0n,
+                mte2_busy_cycles: 0n,
+                mte3_busy_cycles: 0n,
+                icache_miss: 0n,
+                icache_req: 0n
+            };
+            for (const uniqueKey in pmuInfo) {
+                pmuTotal['total cycle'] += BigInt(pmuInfo[uniqueKey]['total cycle']);
+                pmuTotal.cube_busy_cycles += BigInt(pmuInfo[uniqueKey].cube_busy_cycles);
+                pmuTotal.vec_busy_cycles += BigInt(pmuInfo[uniqueKey].vec_busy_cycles);
+                pmuTotal.scalar_busy_cycles += BigInt(pmuInfo[uniqueKey].scalar_busy_cycles);
+                pmuTotal.mte1_busy_cycles += BigInt(pmuInfo[uniqueKey].mte1_busy_cycles);
+                pmuTotal.mte2_busy_cycles += BigInt(pmuInfo[uniqueKey].mte2_busy_cycles);
+                pmuTotal.mte3_busy_cycles += BigInt(pmuInfo[uniqueKey].mte3_busy_cycles);
+                pmuTotal.icache_miss += BigInt(pmuInfo[uniqueKey].icache_miss);
+                pmuTotal.icache_req += BigInt(pmuInfo[uniqueKey].icache_req);
+            }
+            processTotalPmuCalc(pmuTotal);
         }
-        server.setRef('returnSwimData', {
+
+
+        //处理merged_swimlane.json
+        const swimLastChangeTime = await getMTime(swimPath);
+        const swimDataFromDB = await SQLiteCache.getInstance().swimGraphProcessGetByFilePath(swimPath);
+        const lane2lineFromDB = await SQLiteCache.getInstance().swimGraphLane2lineGetByFilePath(swimPath);
+        let swimStr = '';
+
+        let swimData: any = {};
+        if (swimDataFromDB.length == 0) {
+            //数据库无数据，插入数据
+            try {
+                swimStr = readFileSync(swimPath, 'utf8');
+                this.validateFile(server, swimStr);
+                console.log('读取merged_swimlane.json文件');
+
+            } catch (err) {
+                console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+            }
+
+            //处理dyn_topo
+            const task2topo = {};
+            const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
+            try {
+                const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
+                const dynTopoLines = dynTopoContent.split('\n').slice(1);
+                for (const line of dynTopoLines) {
+                    const curLine = line.split(',');
+                    if (curLine.length >= 10) {
+                        const seqNo = curLine[0];
+                        const taskId = curLine[1];
+                        const leafIndex = curLine[5];
+                        const successors = curLine.slice(9)
+                            .map(item => item.trim())
+                            .filter(item => item !== '')
+                            .map(item => `${seqNo}-${item}`);
+                        task2topo[`${seqNo}-${taskId}`] = { leafIndex, successors };
+                    }
+                }
+            } catch (error) {
+                console.log('读取dyn_topo.txt发生错误', error);
+            }
+
+            const swimDataObj = JSON.parse(swimStr);
+            swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
+            swimData.lane2line = Object.fromEntries(swimData.lane2line);
+            swimData.processes = Object.fromEntries(swimData.processes);
+            swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
+            for (const key in swimData.processes) {
+                swimData.processes[key].threads = Object.fromEntries(swimData.processes[key].threads);
+            }
+            saveLane2LineToDB(swimPath, swimData.lane2line, swimLastChangeTime);
+            saveProcessesToDB(swimPath, swimData.processes, swimLastChangeTime, colorRending);
+        } else {
+            //数据库内已有数据，校验文件修改时间
+            const exLastChangeTime = swimDataFromDB[0].last_change_time;
+            if (exLastChangeTime == swimLastChangeTime) {
+                //修改时间相同，从数据库读取数据
+                [swimData.processes, swimData.processedEvents, swimData.processExpanded] = await convertSwimInfo(swimPath, swimDataFromDB, pmuInfo, colorRending);
+                swimData.lane2line = await convertLane2LineInfo(lane2lineFromDB);
+            } else {
+                //文件已被修改，删除原有数据，重新插入
+                try {
+                    swimStr = readFileSync(swimPath, 'utf8');
+                    this.validateFile(server, swimStr);
+                    console.log('读取merged_swimlane.json文件');
+
+                } catch (err) {
+                    console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+                }
+                const task2topo = {};
+                const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
+                try {
+                    const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
+                    const dynTopoLines = dynTopoContent.split('\n').slice(1);
+                    for (const line of dynTopoLines) {
+                        const curLine = line.split(',');
+                        if (curLine.length >= 10) {
+                            const seqNo = curLine[0];
+                            const taskId = curLine[1];
+                            const leafIndex = curLine[5];
+                            const successors = curLine.slice(9)
+                                .map(item => item.trim())
+                                .filter(item => item !== '')
+                                .map(item => `${seqNo}-${item}`);
+                            task2topo[`${seqNo}-${taskId}`] = { leafIndex, successors };
+                        }
+                    }
+                } catch (error) {
+                    console.log('读取dyn_topo.txt发生错误', error);
+                }
+                const swimDataObj = JSON.parse(swimStr);
+                swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
+                swimData.lane2line = Object.fromEntries(swimData.lane2line);
+                swimData.processes = Object.fromEntries(swimData.processes);
+                swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
+                for (const key in swimData.processes) {
+                    swimData.processes[key].threads = Object.fromEntries(swimData.processes[key].threads);
+                }
+                refreshSwimGraphDB(swimPath, swimData, swimLastChangeTime, colorRending);
+            }
+        }
+        if (pmuExist) {
+            swimData.pmu_total = pmuTotal;
+        }
+        swimData.counterEvents = [];
+        console.log('returnSwimData message send');
+        return {
             data: swimData,
             configration: config,
             comGraphPath,
             swimPath,
-        });
-        console.log('returnSwimData message send');
+        };
     }
 
     static async validateFile(server: any, content: string) {
@@ -111,7 +239,7 @@ export abstract class SwimGraphMsgHandler {
             content,
         });
     };
-    
+
     // 绑定计算图文件
     static async bindComGraphJson(server: any) {
         const swimPath = server.swimDataPath;

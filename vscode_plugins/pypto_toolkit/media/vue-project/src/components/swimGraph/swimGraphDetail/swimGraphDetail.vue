@@ -16,7 +16,9 @@
                     <img class="picture" :src="tPath" alt="picture">
                   </div>
                   <div class="pipe-name">
-                    <div>{{ getEventDisplayName(selectedEvent) }}</div>
+                    <d-tooltip :content="getEventDisplayName(selectedEvent)">
+                      <div>{{ getEventTruncateText(selectedEvent) }}</div>
+                    </d-tooltip>
                     <div class="pipe-subgraph">
                       <span :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(selectedEvent, 'subGraph') }}</span>
                     </div>
@@ -411,7 +413,7 @@ const getEventDisplayName = (event) => {
 };
 const getEventTruncateText = (event) => {
   const eventName = getEventDisplayName(event);
-  const maxLength = 16;
+  const maxLength = 22;
   let truncatedText = eventName.length > maxLength 
                 ? eventName.substring(0, maxLength) + '...' 
                 : eventName;

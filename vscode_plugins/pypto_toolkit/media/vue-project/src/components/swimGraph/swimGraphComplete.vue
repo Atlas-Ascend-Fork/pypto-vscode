@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject,toRef } from 'vue';
+import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject, toRef, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
@@ -88,7 +88,6 @@ import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey } from '../threeColumn/types';
-import { pushState } from '@/core/state';
 import { useViewServer } from '../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -257,13 +256,6 @@ const initEventListeners = () => {
 };
 
 function setupSwimWatchers() {
-  watch(server.returnSwimData, (newValue) => {
-      const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-      let newMessage = (oldMessage && oldMessage.message) || newValue;
-      pushState({ message: newValue });
-      setPageState(newValue);
-      loadTraceData(JSON.parse(JSON.stringify(newMessage.data)));
-  });
   watch(server.bindResult, (newValue) => {
       if (newValue.success) {
         bindFile.value = newValue.comGraphPath;
@@ -1673,7 +1665,7 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 }
 
 const setPageState = (message) => {
-  userConfig.value = message.configration;
+  userConfig.value = toRaw(message.configration);
   modeOption.value = userConfig.value.colorRending;
   textOption.value = userConfig.value.textRending;
   connectionLevelCfg.value = userConfig.value.connectionLevel;
@@ -1689,15 +1681,19 @@ onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
   loading.value = true;
-  if (!props.isThreeColumn) {
-    const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-    if (oldMessage && oldMessage.message && oldMessage.message.data) {
-      setPageState(oldMessage.message);
-      loadTraceData(oldMessage.message.data);
-    } else {  
-      server.getSwimData();
-    }
-}
+  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
+  if (oldMessage && oldMessage.message && oldMessage.message.data) {
+    setPageState(oldMessage.message);
+    loadTraceData(oldMessage.message.data);
+  } else {  
+    server.getSwimData().then((newValue) => {
+      const oldData = /** @type { { message: object } | undefined } */ (vscode.getState());
+      let newMessage = (oldData && oldData.message) || newValue;
+      vscode.setState({ message: newValue });
+      setPageState(newValue);
+      loadTraceData(newMessage.data);
+    });
+  }
 });
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 
