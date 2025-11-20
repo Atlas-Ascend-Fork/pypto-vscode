@@ -43,6 +43,8 @@ import Table from 'vue-devui/table';
 import 'vue-devui/table/style.css';
 import Tree from 'vue-devui/tree';
 import 'vue-devui/tree/style.css';
+import Modal from 'vue-devui/modal';
+import 'vue-devui/modal/style.css';
 import i18n from './i18n';
 import EventBus from './service/event-bus';
 import './style.scss';
@@ -107,6 +109,7 @@ createApp(App)
   .use(i18n)
   .use(Drawer)
   .use(Tree)
+  .use(Modal)
   .use(Skeleton)
   .use(SkeletonItem)
   .use(Form)

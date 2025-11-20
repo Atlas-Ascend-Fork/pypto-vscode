@@ -1,22 +1,20 @@
 <template>
   <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
-      <d-select
-        ref="rootHashEl"
-        v-model="rootHash"
-        :options="rootHashList"
-        :placeholder="t('comGraph.pleaseSelect')"
-        :position="['bottom-start']"
-        :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand']"
-        :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
-        @value-change="onHashChange"
-        @toggle-change="onHashMenuToggleChange"
-      >
-        <template #empty>
-          <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
-        </template>
-      </d-select>
-
+      <div class="simple-layout">
+        <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{display: 'none'}">
+          <div class="simple-com-file-name">Program.json</div>
+          <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
+        </div>
+        <d-select ref="rootHashEl" v-model="rootHash" :options="rootHashList" :placeholder="t('comGraph.pleaseSelect')"
+          :position="['bottom-start']" :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
+          :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
+          @value-change="onHashChange" @toggle-change="onHashMenuToggleChange">
+          <template #empty>
+            <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
+          </template>
+        </d-select>
+      </div>
       <DragIcon />
 
       <div :class="['sticky-block-right', isExpandSearch && 'expand-search']">
@@ -111,7 +109,6 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
-
 watch(currentActiveBlock, (val) => {
   if (val) {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
@@ -271,6 +268,7 @@ const LoadingStatusMap = {
   convertData: 'comGraph.convertData',
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
+  loading: 'loadTraceData'
 };
 
 watch(rootHash, () => {
@@ -364,8 +362,12 @@ function onDocumentClick(e: MouseEvent) {
   }
   isExpandSearch.value = false;
 }
-
+function openSelectedFileWindow() {
+  console.log(11);
+}
 onMounted(() => {
+  loadingText.value = t(LoadingStatusMap['loading']);
+  isLoading.value = true;
   (window as any).ascEventBus.on('view_mouseup', (node) => {
     if (node.type === 'graph' || node.id.startsWith('parent')) {
       showNodeDetail.value = false;
@@ -481,6 +483,30 @@ onBeforeUnmount(() => {
 
   #sprotty {
     height: 100%;
+  }
+  .simple-layout {
+    display: flex;
+  }
+  .simple-containner {
+    display: flex;
+    cursor: pointer;
+  }
+  .simple-com-file-name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 28px;
+  }
+  .ml20 {
+    margin-left: 20px;
+  }
+  .simple-com-file-name-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--devui-primary-text);
+  }
+  .icon-line-height {
+    line-height: 30px;
+    margin-left: 6px;
   }
 }
 

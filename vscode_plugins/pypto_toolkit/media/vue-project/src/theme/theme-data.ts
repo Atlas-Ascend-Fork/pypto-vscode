@@ -116,6 +116,7 @@ export const ideLightTheme = new Theme({
     'devui-search-container': '#f2f2f2',
     'devui-swim-split-line': 'rgba(0,0,0,0.05)', // 分割线
     'devui-swim-text-title': 'rgba(25,25,25,1)',
+    'devui-primary-tooltip-text':'rgba(255,255,255,1)',
     'devui-font-badge-bg': 'rgba(0,0,0,0.1)', // 节点右上角徽标背景色
     'devui-slider-runway': 'rgba(223,223,223,1)',
     'devui-slider-bar': 'rgba(25,25,25,1)',
@@ -289,6 +290,7 @@ export const ideDarkTheme = new Theme({
     'devui-search-container': 'rgba(42,42,42,1)',
     'devui-swim-split-line': 'rgba(255,255,255,0.05)', // 分割线
     'devui-swim-text-title': 'rgba(230,230,230,1)',
+    'devui-primary-tooltip-text': 'rgba(230,230,230,1)',
     'devui-font-badge-bg': 'rgba(255,255,255,0.1)', // 节点右上角徽标背景色
     'devui-slider-runway': 'rgba(24,24,24,1)',
     'devui-slider-bar': 'rgba(255,255,255,1)',

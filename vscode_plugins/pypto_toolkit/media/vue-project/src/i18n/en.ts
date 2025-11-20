@@ -129,6 +129,12 @@ export default {
         loading: 'Loading...',
         allLoaded: 'No more content'
     },
+    openFile: 'Open file',
+    noJsonFile: 'The plugin did not detect an associated {graphName}.',
+    yes: 'Confirm',
+    no: 'Cancel',
+    confirm: 'Please confirm',
+    replaceFileInfo: 'A {graphName} diagram file was found in the same directory as your {graphNameTemp}. Would you like to replace it?',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

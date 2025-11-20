@@ -198,3 +198,31 @@
   position: absolute;
   z-index: 7;
 }
+.simple-file-containner {
+  display: flex;
+  cursor: pointer;
+  height:40px;
+  border-bottom:1px solid var(--devui-split-line);
+  background-color: var(--devui-card-bg);
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: 14px;
+}
+.simple-com-file-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 40px;
+}
+.simple-com-file-name-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--devui-primary-text);
+}
+.icon-line-height {
+  line-height: 40px;
+  margin-left: 6px;
+}
+.simple-containner {
+  display: flex;
+  cursor: pointer;
+}
