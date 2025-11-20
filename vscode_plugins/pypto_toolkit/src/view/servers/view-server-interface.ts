@@ -119,7 +119,7 @@ export type ISwimRefs = {
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
-  getSwimData: () => Promise<void>;
+  getSwimData: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;
   jumpToComGraph: (message: { paramObj: any }) => Promise<void>;
