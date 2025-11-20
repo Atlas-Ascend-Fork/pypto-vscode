@@ -1,14 +1,12 @@
-import path from 'node:path';
-
 import * as vscode from 'vscode';
-import { CustomConfigItem, PtoConfigSchemaModel, TileFWKConfig } from '../../types/workspace/config-schema';
+import { CustomConfigItemVo, PtoConfigSchemaResponseDto, TileFWKConfigResponseDto } from '../../types/config-schema/config-schema';
 
 const CONFIG_SCHEMA_FILE_NAME = 'pto-config-schema.json';
 
 /**
  * 读取Schema_fwk_config文件
  */
-export async function readSchemaData(baseUri: vscode.Uri): Promise<PtoConfigSchemaModel> {
+export async function readSchemaData(baseUri: vscode.Uri): Promise<PtoConfigSchemaResponseDto> {
   const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(baseUri, CONFIG_SCHEMA_FILE_NAME));
   return JSON.parse(fileContent.toString());
 }
@@ -16,7 +14,7 @@ export async function readSchemaData(baseUri: vscode.Uri): Promise<PtoConfigSche
 /**
  * 读取tile_fwk_config文件
  */
-export async function readFwkData(fileUri: vscode.Uri): Promise<TileFWKConfig> {
+export async function readFwkData(fileUri: vscode.Uri): Promise<TileFWKConfigResponseDto> {
   const fileContent = await vscode.workspace.fs.readFile(fileUri);
   return JSON.parse(fileContent.toString());
 }
@@ -26,7 +24,7 @@ export async function readFwkData(fileUri: vscode.Uri): Promise<TileFWKConfig> {
  * @param baseUri 文件路径
  * @param targetObj 数据对象
  */
-export async function writeSchemaData(baseUri: vscode.Uri, targetObj: TileFWKConfig) {
+export async function writeSchemaData(baseUri: vscode.Uri, targetObj: TileFWKConfigResponseDto) {
   const jsonContent = JSON.stringify(targetObj, null, 2);
   const content = new TextEncoder().encode(jsonContent);
 
@@ -56,7 +54,7 @@ export async function addNewFile(baseUri: vscode.Uri) {
  * @param baseUri 目标目录的 URI（vscode.Uri 类型）
  * @returns 结构化 JSON 文件列表
  */
-export async function getJsonFileList(baseUri: vscode.Uri): Promise<CustomConfigItem[]> {
+export async function getJsonFileList(baseUri: vscode.Uri): Promise<CustomConfigItemVo[]> {
   try {
     const stats = await vscode.workspace.fs.stat(baseUri);
     if (stats.type !== vscode.FileType.Directory) {
@@ -64,7 +62,7 @@ export async function getJsonFileList(baseUri: vscode.Uri): Promise<CustomConfig
       return [];
     }
     const dirEntries = await vscode.workspace.fs.readDirectory(baseUri);
-    const jsonFileList: CustomConfigItem[] = [];
+    const jsonFileList: CustomConfigItemVo[] = [];
     for (const [entryName, entryType] of dirEntries) {
       if (entryType === vscode.FileType.File && entryName.toLowerCase().endsWith('.json')) {
         const fileUri = vscode.Uri.joinPath(baseUri, entryName);

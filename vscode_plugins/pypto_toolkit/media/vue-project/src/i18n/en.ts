@@ -202,5 +202,10 @@ export default {
         leafName: 'leaf function',
         openSourceCode: 'Open Source Code',
         openSwimlane: 'Open Swimlane',
+    },
+    schemaConfig:{
+        title:'Add new running configuration',
+        detail:'Select system template reuse configuration',
+        defaultConfiguration:'Default configuration',
     }
 }

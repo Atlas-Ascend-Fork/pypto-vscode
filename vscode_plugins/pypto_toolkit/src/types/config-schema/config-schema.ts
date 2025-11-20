@@ -1,19 +1,23 @@
-interface SchemaItemModel {
-  description: string;
+interface SchemaItem {
+  description?: string;
   type: string;
   properties?: {
-    [key: string]: SchemaItemModel;
+    [key: string]: SchemaItem;
   };
 }
 
-export interface PtoConfigSchemaModel {
-  $schema: string;
-  $id: string;
-  title: string;
-  description: string;
+/**
+ * 读取的Schema文件返回数据类型
+ */
+export interface PtoConfigSchemaResponseDto {
+  additionalProperties: boolean;
   type: string;
+  $schema?: string;
+  $id?: string;
+  title?: string;
+  description?: string;
   properties: {
-    [key: string]: SchemaItemModel;
+    [key: string]: SchemaItem;
   };
   required: string[];
   $comment: string;
@@ -93,7 +97,10 @@ interface GlobalConfigs {
   distributed_configs: DistributedConfigs;
 }
 
-export interface DefaultPassConfigs {
+/**
+ * 默认pass渲染的格式化数据
+ */
+export interface DefaultPassConfigsVo {
   PRINT_FUNCTION: boolean;
   PRINT_PROGRAM: boolean;
   DUMP_TENSOR_GRAPH: boolean;
@@ -114,7 +121,7 @@ interface PassGlobalConfigs {
   enabled_last_pass_type: string;
   enable_cv_fuse: boolean;
   pass_thread_num: number;
-  default_pass_configs: DefaultPassConfigs;
+  default_pass_configs: DefaultPassConfigsVo;
 }
 
 interface PVC2_OOOConfig {
@@ -129,7 +136,7 @@ interface PVC2_OOOConfig {
 }
 
 interface Strategies {
-  Readme: {
+  Readme?: {
     [key: string]: {
       [key: string]: any;
     };
@@ -137,28 +144,37 @@ interface Strategies {
   PVC2_OOO: PVC2_OOOConfig;
 }
 
-export interface TileFWKConfig {
-  version: string;
-  nbuffer_num: number;
-  l1_reuse_num: number;
-  cube_nbuffer_num: number;
-  cycle_upper_bound: number;
-  cycle_lower_bound: number;
-  parallel_threshold: number;
+/**
+ * 读取的config文件返回数据类型
+ */
+export interface TileFWKConfigResponseDto {
+  version?: string;
+  nbuffer_num?: number;
+  l1_reuse_num?: number;
+  cube_nbuffer_num?: number;
+  cycle_upper_bound?: number;
+  cycle_lower_bound?: number;
+  parallel_threshold?: number;
   copyin_threshold: number;
-  db_type: number;
+  db_type?: number;
   global_configs: GlobalConfigs;
   pass_global_configs: PassGlobalConfigs;
   strategies: Strategies;
-  $schema: string;
+  $schema?: string;
 }
 
-export interface updateTitleFWKConfigParams {
+/**
+ * 更新自定义配置文件请求接口入参
+ */
+export interface updateTitleFWKConfigRequestDto {
   filePath: string;
-  data: TileFWKConfig;
+  data: TileFWKConfigResponseDto;
 }
 
-export interface CustomConfigItem {
+/**
+ * 自定义配置列表渲染的格式化数据
+ */
+export interface CustomConfigItemVo {
   configName: string;
   configBaseName: string;
   configPath: string;

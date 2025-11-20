@@ -39,8 +39,8 @@
 
 <script setup lang="ts">
 import { openPtoConfig } from '@/apis/opener';
-import { addCustomFile, delCustomFile, getCustomFileList } from '@/apis/workspace';
-import { CustomConfigItem } from 'ext:/types/workspace/config-schema';
+import { addCustomFile, delCustomFile, getCustomFileList } from '@/apis/schema-config';
+import { CustomConfigItemVo } from 'ext:/types/config-schema/config-schema';
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -49,24 +49,23 @@ const { t } = useI18n();
 const isExpanded = ref(false);
 const emit = defineEmits<{ (e: 'tree-expand', value: boolean) }>();
 const isLoading = ref(false);
-const customConfigList = ref<CustomConfigItem[]>();
+const customConfigList = ref<CustomConfigItemVo[]>();
 function configExpand() {
   isExpanded.value = !isExpanded.value;
   emit('tree-expand', isExpanded.value);
 }
 
-async function delConfig(item: CustomConfigItem) {
+async function delConfig(item: CustomConfigItemVo) {
   await delCustomFile(item.configPath);
   getFileList();
 }
 
 /**
  * 根据现有文件名列表生成新文件名(中文+数字格式：自定义配置N）
- * @param fileNames - 现有文件名数组（格式：自定义配置1、自定义配置2...）
+ * @param fileNames - 现有文件名数组（格式：自定义配置1、自定义配置2...todo：待高保真确认名称是否可自定义）
  * @returns 新增文件的文件名
- * @throws 当最后一个文件格式不符合规则时抛出错误
  */
-function generateNewConfigFileName(fileNames: CustomConfigItem[]): string {
+function generateNewConfigFileName(fileNames: CustomConfigItemVo[]): string {
   // 定义固定前缀和匹配正则（前缀+纯数字）
   const FILE_PREFIX = '自定义配置';
   const FILE_NAME_REGEX = new RegExp(`^${FILE_PREFIX}(\\d+)$`);
@@ -100,7 +99,7 @@ async function addNewCustomConfig() {
   }
 }
 
-async function openConfigVIew(config: CustomConfigItem) {
+async function openConfigVIew(config: CustomConfigItemVo) {
   await openPtoConfig({ configPath: config.configPath, pathName: config.configBaseName });
 }
 

@@ -202,5 +202,10 @@ export default {
         leafName: 'leaf 函数',
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
+    },
+    schemaConfig:{
+        title:'新增运行配置',
+        detail:'选择系统模板复用配置',
+        defaultConfiguration:'默认配置',
     }
 }

@@ -1,15 +1,14 @@
 import { getControlFlow } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } from './tmp-view-opener';
+import { getOutputRecords, getOutputDetail } from './workspace';
 import {
-  getOutputRecords,
-  getOutputDetail,
   getSchemaData,
   getTileFwkConfigData,
   updateFwkConfigData,
   getCustomFileList,
   delCustomFile,
   addNewFwkConfigFile,
-} from './workspace';
+} from './schema-config';
 
 export const services = {
   // 控制流

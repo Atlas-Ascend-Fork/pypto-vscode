@@ -3,7 +3,7 @@
   <!-- 隐藏侧边栏两栏布局入口 -->
   <div class="full-screen-layout" v-if="false">
     <!-- 上方面板 -->
-    <div class="panel panel--top" :class="{ 'panel--dragging': isDragging }" :style="{ '--panel-height': topHeight + 'px' }">
+    <div class="panel is-output-panel" :class="{ 'panel--dragging': isDragging }" :style="{ 'height': topHeight + 'px' }">
       <SideBarTreeView :isExpandable="topCollapsed" @tree-expand="toggleTopCollapse"></SideBarTreeView>
     </div>
 
@@ -14,11 +14,10 @@
       @mousedown="startDrag"
       @selectstart.prevent="false"
       @touchstart.prevent="startDragTouch"
-      :title="topCollapsed || bottomCollapsed ? '请先展开所有面板再拖拽' : '拖拽调整高度'"
     ></div>
 
     <!-- 下方面板 -->
-    <div class="panel panel--bottom" :class="{ 'panel--dragging': isDragging }" :style="{ '--panel-height': bottomHeight + 'px' }">
+    <div class="panel is-config-panel" :class="{ 'panel--dragging': isDragging }" :style="{ 'height': bottomHeight + 'px' }">
       <SideBarRunConfigView :isExpandable="topCollapsed" @tree-expand="toggleBottomCollapse"></SideBarRunConfigView>
     </div>
   </div>
@@ -45,7 +44,7 @@ const isDragging = ref(false);
 const originTopHeight = ref(INIT_TOP_HEIGHT);
 const originBottomHeight = ref(0);
 let lastDragTime = 0; // 节流时间戳
-let dragRequestId = null; // requestAnimationFrame ID
+let dragRequestId = null; 
 
 // 计算当前面板最小高度
 const currentMinTopHeight = computed(() => (topCollapsed.value ? MIN_COLLAPSE_HEIGHT : MIN_EXPAND_HEIGHT));
@@ -243,7 +242,6 @@ const toggleBottomCollapse = async (value) => {
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  background-color: var(--panel-height);
   margin: 0;
   padding: 0;
 }
@@ -252,7 +250,6 @@ const toggleBottomCollapse = async (value) => {
 .panel {
   display: flex;
   flex-direction: column;
-  background-color: var(--panel-height);
   overflow: hidden;
   transition: height 0.2s ease-out;
 }
@@ -263,15 +260,13 @@ const toggleBottomCollapse = async (value) => {
 }
 
 /* 上方面板 */
-.panel--top {
-  height: var(--panel-height);
+.is-output-panel {
   border-bottom: none;
 }
 
 /* 下方面板 */
-.panel--bottom {
+.is-config-panel {
   border-top: 1px solid var(--vscode-sideBar-border);
-  height: var(--panel-height);
 }
 
 /* 拖拽条：正常状态 */
