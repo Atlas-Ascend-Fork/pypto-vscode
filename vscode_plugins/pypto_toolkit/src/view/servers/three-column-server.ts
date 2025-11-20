@@ -104,7 +104,6 @@ export class ThreeColumnServer
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
     await SwimGraphMsgHandler.getInitialData(this);
-    //await SwimGraphMsgHandler.getSwimData(this);
   };
   @viewApi()
   public getPyCode = async () => {
