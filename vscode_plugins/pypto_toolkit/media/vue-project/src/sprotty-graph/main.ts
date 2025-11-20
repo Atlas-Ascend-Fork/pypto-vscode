@@ -194,6 +194,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     requestExportSvgAction(args);
   };
 
+  const jump2SiblingNodeListener = (args) => {
+    centerNodeAction([args]);
+    selectAction([args]);
+  }
+
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
@@ -203,6 +208,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
 
   (window as any).ascEventBus.on(`svgOutput`, svgExportRequestListener);
+
+  (window as any).ascEventBus.on(`jump2SiblingNode`, jump2SiblingNodeListener);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {
