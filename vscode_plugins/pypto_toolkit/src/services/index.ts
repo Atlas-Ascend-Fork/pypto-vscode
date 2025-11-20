@@ -23,7 +23,9 @@ export const services = {
 
     /** 获取运行结果详情 */
     getOutputDetail,
-
+  },
+  // 配置项管理
+  config: {
     /** 获取配置约束 */
     getSchemaData,
 

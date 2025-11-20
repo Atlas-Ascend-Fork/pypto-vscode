@@ -6,7 +6,7 @@ import type {
   GetOutputRecordsRes,
 } from '../../../../src/services/workspace';
 
-export const WORKSPACE_PREFIX = 'workspace';
+const WORKSPACE_PREFIX = 'workspace';
 
 /**
  * 获取所有运行记录
