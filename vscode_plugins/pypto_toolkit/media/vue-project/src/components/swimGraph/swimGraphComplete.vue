@@ -383,8 +383,11 @@ const loadTraceData = (data) => {
 const processTraceData = (data) => {
   pmuTotal.value = data.pmu_total;
   processedEvents.value = data.processedEvents;
+  let isFirst = true;
   for (const key in data.processes) {
     if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
+      data.processes[key].expanded = isFirst;
+      isFirst = false;
       data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
       processes.set(key, data.processes[key]);
     }

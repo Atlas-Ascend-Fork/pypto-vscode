@@ -204,7 +204,7 @@ export class ThreeColumnServer
     if (!this.swimDataPath || !this.comPath) {
       const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
       if (!swimPath || !comPath) {
-        // this.server.dispose();
+        this.dispose();
         return;
       }
       this.swimDataPath = swimPath;
