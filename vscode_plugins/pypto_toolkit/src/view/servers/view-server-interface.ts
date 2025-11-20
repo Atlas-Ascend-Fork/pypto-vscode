@@ -9,7 +9,8 @@ export type IComApis =
   | 'openDiffViewer'
   | 'setFinalResult'
   | 'searchAllFunc'
-  | 'innerGetSubgraph';
+  | 'innerGetSubgraph'
+  | 'returnFuncTree';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;

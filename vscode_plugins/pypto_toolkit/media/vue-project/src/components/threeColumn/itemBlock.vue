@@ -1,12 +1,20 @@
 <template>
-  <div :class="classes" :style="{ width, height }" @dragover.prevent @drop.prevent="onDrop" @mouseenter="onMouseenter">
+  <div
+    ref="rootEl"
+    :class="classes"
+    :style="{ width, height }"
+    @dragover.prevent
+    @dragend="onDragend"
+    @drop.prevent="onDrop"
+    @mouseenter="onMouseenter"
+  >
     <slot />
     <div v-if="currentActiveBlock === blockName" class="active-border"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, type PropType } from 'vue';
+import { computed, inject, ref, type PropType } from 'vue';
 import type { BlockType, IThreeColumnCtx } from './types';
 import { ThreeColumnProvideKey } from './types';
 
@@ -31,9 +39,27 @@ const classes = computed(() => ({
   'has-border-top': props.hasBorderTop,
   'has-border-bottom': props.hasBorderBottom,
 }));
+const rootEl = ref<HTMLElement>();
+
+function onDragend() {
+  const parentEl = rootEl.value.parentElement;
+  if (parentEl) {
+    const blockEls = parentEl.querySelectorAll('.three-column-block');
+    blockEls.forEach((item) => {
+      (item as HTMLElement).style.pointerEvents = '';
+      const editorEl = item.querySelector('.editor-container');
+      if (editorEl) {
+        (editorEl as HTMLElement).style.pointerEvents = '';
+      }
+    });
+  }
+}
 
 function onDrop(e: DragEvent) {
   const transferData = e.dataTransfer.getData('threeColumnBlock');
+  if (props.blockName === transferData) {
+    return;
+  }
   const dropEl = document.querySelector(`.three-column-item-${props.blockName}`);
   const dragEl = document.querySelector(`.three-column-item-${transferData}`);
   if (dropEl && dragEl) {

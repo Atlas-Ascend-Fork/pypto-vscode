@@ -1,5 +1,5 @@
 <template>
-<div class="container">
+<div class="container editor-container">
   <Loading v-if="loading" :loadingText="loadingText" warningText="" />
   <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
     <!-- 锁图标悬浮框 -->

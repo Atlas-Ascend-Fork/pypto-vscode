@@ -25,7 +25,20 @@ function getCurrentBlock() {
   }
 }
 function onDragstart(e: DragEvent) {
-  e.dataTransfer.setData('threeColumnBlock', getCurrentBlock());
+  const blockName = getCurrentBlock();
+  e.dataTransfer.setData('threeColumnBlock', blockName);
+  const contentEl = document.querySelector('.three-column-content');
+  if (contentEl) {
+    const editorEl = contentEl.querySelector(`.three-column-item.three-column-item-${blockName} .editor-container`);
+    if (editorEl) {
+      (editorEl as HTMLElement).style.pointerEvents = 'none';
+    }
+    const itemEls = contentEl.querySelectorAll(`.three-column-item:not(.three-column-item-${blockName})`);
+    itemEls.forEach((item) => {
+      const blockEl = item.querySelector('.three-column-block');
+      (blockEl as HTMLElement).style.pointerEvents = 'none';
+    });
+  }
 }
 </script>
 

@@ -95,6 +95,10 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   public innerGetSubgraph = async (message) => {
     await this.handler.innerGetSubgraph(this, message);
   };
+  @viewApi()
+  public returnFuncTree = async () => {
+    await SingleGraphHandler.returnFuncTree(this);
+  };
 
   safeParse(str) {
     try {
