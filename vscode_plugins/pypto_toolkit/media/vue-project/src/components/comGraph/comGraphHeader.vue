@@ -627,8 +627,26 @@ function openDiffViewer() {
 }
 
 function globalSearch(event) {
-  server.searchAllFunc({paramObj: JSON.parse(JSON.stringify(event))});
+  if (event.searchKey) {
+    server.searchAllFunc(event);
+  }
 }
+
+watch(server.GlobalSearchResult, (newValue) => {
+  res.value = [];
+    for (const[k, v] of Object.entries(newValue.data)) {
+      v.forEach(item => {
+        const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
+        if (k == currentFuncHash) {
+          res.value.unshift(newItem);
+        } else {
+          res.value.push(newItem);
+        }
+      });
+    }
+    resSize.value = res.value.length;
+});
+
 watch(server.CalleeOpAttrMap, (newValue) => {
   res.value = [];
     for (const[k, v] of Object.entries(newValue.data)) {
