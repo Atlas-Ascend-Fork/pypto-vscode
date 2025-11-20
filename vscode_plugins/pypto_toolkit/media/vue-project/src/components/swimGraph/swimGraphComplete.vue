@@ -1689,7 +1689,6 @@ onMounted(() => {
     server.getSwimData().then((newValue) => {
       const oldData = /** @type { { message: object } | undefined } */ (vscode.getState());
       let newMessage = (oldData && oldData.message) || newValue;
-      vscode.setState({ message: newValue });
       setPageState(newValue);
       loadTraceData(newMessage.data);
     });

@@ -480,11 +480,7 @@ const saveCodeToFile = () => {
   }
   
   const currentCode = editor.getValue();
-  threeColumnServer.savePyCode({paramObj: currentCode});
-  // postMessage({ 
-  //   command: 'savePyCode', 
-  //   paramObj: currentCode 
-  // });
+  threeColumnServer.savePyCode(currentCode);
 };
 
 // 防抖保存
@@ -555,12 +551,6 @@ const updateTheme = () => {
   }
 };
 
-// const postMessage = (message) => {
-//   if ((window as any).vscode) {
-//     (window as any).vscode.postMessage(message);
-//   }
-// };
-
 (window as any).ascEventBus.on('returnSemanticLabelFromCom', (args) => {
   updateHoverDecorationBySemanticLabel(args.label);
 });
@@ -579,37 +569,11 @@ const updateTheme = () => {
   deactivateLock();
 });
 
-// const initEventListeners = () => {
-//   window.addEventListener('message', handleMessage);
-// };
-
 const sendMsg = (command, param) => {
   Promise.resolve().then(() => {
     (window as any).ascEventBus.emit(command, param);
   });
 };
-
-// const handleMessage = (event) => {
-//   const message = event.data;
-//   switch (message.command) {
-//     case 'returnPyCode': {
-//       const { codePath, code } = message.data;
-//       initCodePath = codePath;
-//       initTotalLine = code.split('\n').length;
-//       loading.value = false;
-//       nextTick(() => initEditor(code));
-//       break;
-//     }
-//     case 'returnCompleteData':
-//       mkSemanticLabel(message.data, initCodePath);
-//       parseSemanticLabels(initTotalLine);
-//       applySemanticDecorations();
-//       break;
-//     default:
-//       break;
-//   }
-// };
-
 
 watch(threeColumnServer.CompleteData, (newValue) => {
   mkSemanticLabel(newValue.data, initCodePath);
@@ -629,10 +593,8 @@ watch(threeColumnServer.PyCode, (newValue) => {
 configureMonaco();
 
 onMounted(() => {
-  // initEventListeners();
   nextTick(() => {
   threeColumnServer.getPyCode();
-    // postMessage({ command: 'getPyCode' });
   });
 });
 
