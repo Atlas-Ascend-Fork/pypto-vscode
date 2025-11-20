@@ -138,7 +138,7 @@
       </d-dropdown>
     </div>
 
-    <div class="control-flow" v-if="ctrl_flow.hasDynamic">
+    <div class="control-flow" v-if="!comGraphStore.data.comGraphConfig.isSimple && ctrl_flow.hasDynamic">
       <div class="control-flow-itername control-flow-base" :title="`itername: ${ctrl_flow.itername}`">
         itername: {{ctrl_flow.itername}}
       </div>
@@ -677,6 +677,7 @@ defineExpose({
     isVisible.value = false;
     hideCategorySearchDropdown();
     globalSelectEl.value.toggleChange(false);
+    onSelectedTagsChange({ selectedTags:[] });
     selectedTags.value = [];
     categorySearchKey.value = ' ';
     nextTick(() => {
@@ -737,7 +738,7 @@ onMounted(() => {
     isExporting.value = false;
     comGraphStore.data.svgExportMode = false;
   });
-
+  server.returnFuncTree();
 });
 </script>
 

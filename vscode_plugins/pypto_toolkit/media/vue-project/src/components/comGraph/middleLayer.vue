@@ -190,6 +190,8 @@ function onFullRender() {
   } else {
     loadingStep.value = 'readJson';
   }
+  graphType.value = 'computeGraph';
+  searchMode.value = 0;
 }
 
 

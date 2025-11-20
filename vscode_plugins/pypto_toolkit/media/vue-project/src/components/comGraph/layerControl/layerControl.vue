@@ -106,7 +106,7 @@ const nodeDisplayMode = ref('all');
 .layer-control-container {
   position: fixed;
   z-index: 1040;
-  width: 260px;
+  width: 280px;
   color: var(--devui-primary-text);
   border-radius: 8px;
   background-color: var(--devui-select-bg);
