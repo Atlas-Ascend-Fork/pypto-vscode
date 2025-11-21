@@ -3,7 +3,7 @@
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
-        <div class="title" :style="{'width':layout.processLabelWidth + 'px'}">
+        <div class="title" :style="{ 'width': layout.processLabelWidth + 'px' }">
           <div class="title_up">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic" :src="titlePath" alt="title-picture">
@@ -20,11 +20,12 @@
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture">
             </d-tooltip>
             <div class="dashed-line"></div>
-            <d-tooltip :content="$t('tips2')"><img class="title_icon2" :src="iconPath2" alt="iconPath2-picture"></d-tooltip>
+            <d-tooltip :content="$t('tips2')"><img class="title_icon2" :src="iconPath2"
+                alt="iconPath2-picture"></d-tooltip>
             <div class="dashed-line"></div>
             <div class="title_down3">
               <img class="title_icon3" :src="iconPath3" alt="iconPath3-picture">
-              <div class="title_name">{{ $t('swimGraph')}}</div>
+              <div class="title_name">{{ $t('swimGraph') }}</div>
             </div>
           </div>
         </div>
@@ -36,22 +37,22 @@
             <swim-graph-timeline ref="timelineComponent" />
           </div>
           <swim-graph-config ref="configComponent" />
-        </div>   
+        </div>
       </div>
       <div class="main-view" v-show="!loading">
         <div class="swimlane-container" ref="swimlaneContainer">
           <!-- 进程和线程区域 -->
-          <swim-graph-processes ref="graphProcessesComponent"/>
+          <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->
-          <div class="measure-mask" v-if="isMeasureModel"
-            @mousedown="measureMouseDown($event)" @mousemove="measureMouseMove($event)" @mouseup="measureMouseUp()"
-            @mouseleave="measureMouseLeave($event)" @wheel="measureHandleWheel($event)">
+          <div class="measure-mask" v-if="isMeasureModel" @mousedown="measureMouseDown($event)"
+            @mousemove="measureMouseMove($event)" @mouseup="measureMouseUp()" @mouseleave="measureMouseLeave($event)"
+            @wheel="measureHandleWheel($event)">
             <div class="measure-drag-area" :style="dragAreaStyle()"></div>
           </div>
         </div>
-        <swim-graph-measure-detail ref="measureDetailComponent"/>
+        <swim-graph-measure-detail ref="measureDetailComponent" />
         <!-- 详情区域 -->
-        <swim-graph-detail ref="detailComponent"/>
+        <swim-graph-detail ref="detailComponent" />
       </div>
     </div>
     <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
@@ -144,9 +145,9 @@ const bindButton = ref($t("bindComGraphJson"));
 const cycleDisplay = ref('none');
 const selectedOption = ref('clockCycle');
 const selectOptions = [
-  {name: $t('clockCycle'), value: 'clockCycle', disabled: false},
-  {name: $t('cacheHit'), value: 'cacheHit', disabled: false},
-  {name: $t('task'), value: 'task', disabled: false},
+  { name: $t('clockCycle'), value: 'clockCycle', disabled: false },
+  { name: $t('cacheHit'), value: 'cacheHit', disabled: false },
+  { name: $t('task'), value: 'task', disabled: false },
 ];
 const options = reactive(selectOptions);
 
@@ -246,7 +247,7 @@ const searchResult = ref([]);
 const currentResultIndex = ref(0);
 const isSearchActive = ref(false);
 const searchQuery = ref('');
-const isCaseSensitive= ref(false);
+const isCaseSensitive = ref(false);
 
 const pmuTotal = ref({});
 
@@ -257,22 +258,22 @@ const initEventListeners = () => {
 
 function setupSwimWatchers() {
   watch(server.bindResult, (newValue) => {
-      if (newValue.success) {
-        bindFile.value = newValue.comGraphPath;
-        bindButton.value = $t('unbindComGraph');
-      } else {
-        bindFile.value = false;
-        bindButton.value = $t('bindComGraphJson');
-      }
+    if (newValue.success) {
+      bindFile.value = newValue.comGraphPath;
+      bindButton.value = $t('unbindComGraph');
+    } else {
+      bindFile.value = false;
+      bindButton.value = $t('bindComGraphJson');
+    }
   });
   watch(server.unbindResult, (newValue) => {
-      if (newValue.success) {
-        bindFile.value = false;
-        bindButton.value = $t('bindComGraphJson');
-      } else {
-        bindFile.value = newValue.comGraphPath;
-        bindButton.value = $t('unbindComGraph');
-      }
+    if (newValue.success) {
+      bindFile.value = false;
+      bindButton.value = $t('bindComGraphJson');
+    } else {
+      bindFile.value = newValue.comGraphPath;
+      bindButton.value = $t('unbindComGraph');
+    }
   });
   watch(server.noSwimFile, (newValue) => {
     window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`);
@@ -296,7 +297,7 @@ let ERROR_MESSAGES = {
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
 
-window.ascEventBus.on('threeColumnSizeChange', () => {});
+window.ascEventBus.on('threeColumnSizeChange', () => { });
 
 const validData = (dataStr) => {
   let data = {};
@@ -340,10 +341,10 @@ const validData = (dataStr) => {
         window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`);
       }
     } else if (event.ph === 'C') {
-      if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number" )) {
+      if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number")) {
         window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`);
       }
-    } 
+    }
 
     if (event.name === "process_name") {
       hasProcessName = true;
@@ -508,7 +509,7 @@ const render = () => {
   renderTwoTimeline();
   renderEvent();
   renderDependencyLines();
-  if(detailsPanelExpanded.value) {
+  if (detailsPanelExpanded.value) {
     showDependencies(selectedEvent.value, "both");
   }
   timelineComponent.value.flagRender();
@@ -529,9 +530,9 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   if (endx > viewState.canvasCssWidth || endx === viewState.canvasCssWidth) {
     endx = viewState.canvasCssWidth;
   }
-  
+
   const canvasCSSHeight = getCanvasCSSHeight(canvas);
-  
+
   ctx.beginPath();
   ctx.moveTo(startx, 0);
   ctx.lineTo(startx, canvasCSSHeight / 3);
@@ -544,7 +545,7 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
 
   ctx.strokeStyle = isDarkTheme.value ? 'rgba(255, 255, 255)' : 'rgba(25, 25, 25)';
   ctx.lineWidth = 2;
-  
+
   ctx.beginPath();
   ctx.moveTo(startx, canvasCSSHeight / 3);
   ctx.lineTo(startx, canvasCSSHeight);
@@ -624,7 +625,7 @@ const renderFixedTimeline = () => {
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
-        ctx.fillStyle = isDarkTheme.value ?  'rgba(102, 102, 102, 0.7)' : '#cccccc';
+        ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.7)' : '#cccccc';
       }
       ctx.fillText(`${value}${unit}`, x + 2, 15);
     }
@@ -633,11 +634,11 @@ const renderFixedTimeline = () => {
 
   // 补齐未绘制的轴线
   for (let i = 1; i < 10; i++) {
-      const segmentx = i * (distance / 10);
-      ctx.beginPath();
-      ctx.moveTo(segmentx, 20);
-      ctx.lineTo(segmentx, 10);
-      ctx.stroke();
+    const segmentx = i * (distance / 10);
+    ctx.beginPath();
+    ctx.moveTo(segmentx, 20);
+    ctx.lineTo(segmentx, 10);
+    ctx.stroke();
   }
   if (isMeasureDragging.value && viewState.scale === 1) {
     const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
@@ -695,7 +696,7 @@ const renderTimeline = () => {
       ctx.fillText(`${timeValue}`, x + 2, 35);
     }
   }
-    if (isMeasureDragging.value) {
+  if (isMeasureDragging.value) {
     const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
     const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
     drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
@@ -823,7 +824,7 @@ const calculateHighlightedPaths = (event) => {
     const queue = [{ id: eventId, depth: 0 }];
 
     while (queue.length > 0) {
-      const { id : currentId, depth} = queue.shift();
+      const { id: currentId, depth } = queue.shift();
 
       if (visited.has(currentId) || (depth > maxDepth && maxDepth != -1)) {
         continue;
@@ -835,7 +836,7 @@ const calculateHighlightedPaths = (event) => {
         highlightedPaths.add(currentEvent.id);
         currentEvent.dependencies.predecessors.forEach(predId => {
           if (!visited.has(predId)) {
-            queue.push({ id: predId, depth: depth + 1});
+            queue.push({ id: predId, depth: depth + 1 });
           }
         });
       }
@@ -847,7 +848,7 @@ const calculateHighlightedPaths = (event) => {
     const queue = [{ id: eventId, depth: 0 }];
 
     while (queue.length > 0) {
-      const { id : currentId, depth} = queue.shift();
+      const { id: currentId, depth } = queue.shift();
 
       if (visited.has(currentId) || (depth > maxDepth && maxDepth != -1)) {
         continue;
@@ -859,7 +860,7 @@ const calculateHighlightedPaths = (event) => {
         highlightedPaths.add(currentEvent.id);
         currentEvent.dependencies.successors.forEach(succId => {
           if (!visited.has(succId)) {
-            queue.push({ id: succId, depth: depth + 1});
+            queue.push({ id: succId, depth: depth + 1 });
           }
         });
       }
@@ -876,13 +877,13 @@ const calculateHighlightedPaths = (event) => {
 
 const findEventAtPosition = (x, y, processKey) => {
   let processObj = {
-      event: null,
-      altClickData: {
-        preData: null,
-        lastData: null,
-        nodeSpacingX: 0
-      },
-    };
+    event: null,
+    altClickData: {
+      preData: null,
+      lastData: null,
+      nodeSpacingX: 0
+    },
+  };
   const process = processes.get(processKey);
   if (!process) return null;
 
@@ -908,19 +909,19 @@ const findEventAtPosition = (x, y, processKey) => {
         const eventWidth = event.drawData.eventWidth;
         if (x >= eventX && x <= eventX + eventWidth &&
           y >= eventY && y <= eventY + eventHeight) {
-            processObj.event = event;
-            return processObj;
+          processObj.event = event;
+          return processObj;
         } else {
           const nextEvent = thread.events[index + 1];
-          if(nextEvent){
-              const { x: nextEventX } = nextEvent.renderInfo;
-              if (x >= eventX + eventWidth && x <= nextEventX) {
-                processObj.altClickData.preData = event;
-                processObj.altClickData.lastData = nextEvent;
-                processObj.altClickData.nodeSpacingX = nextEventX - (eventX + eventWidth);
-                return processObj;
-              }
+          if (nextEvent) {
+            const { x: nextEventX } = nextEvent.renderInfo;
+            if (x >= eventX + eventWidth && x <= nextEventX) {
+              processObj.altClickData.preData = event;
+              processObj.altClickData.lastData = nextEvent;
+              processObj.altClickData.nodeSpacingX = nextEventX - (eventX + eventWidth);
+              return processObj;
             }
+          }
         }
       }
     });
@@ -945,10 +946,10 @@ const showDependencies = (event, type) => {
   setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
   ctx.clearRect(0, 0, viewState.canvasWidth, canvas.height);
   const currentNode = {
-      x:canvasWidth / 2 - canvasWidth / 10,
-      y:10,
-      width:actualWidth,
-      height:16,
+    x: canvasWidth / 2 - canvasWidth / 10,
+    y: 10,
+    width: actualWidth,
+    height: 16,
   }
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
@@ -961,82 +962,82 @@ const showDependencies = (event, type) => {
   let [displayText, leftspace] = overflowText(actualWidth, displayName);
   ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
   const depFillColor = colorCfg.lightlyCompareBkgColor;
-  if(type === "forward" || type === "both") {
-      predecessors.forEach((pre, index) => {
-          const preNode = {
-              x:0,
-              y:10 + index * 20,
-              width:actualWidth,
-              height:16,
-          }
-          ctx.beginPath();
-          ctx.fillStyle = depFillColor;
-          ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
-          ctx.fill();
-          ctx.closePath();
-          ctx.fillStyle = colorCfg.eventFontNoColor;
-          ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName:(pre.name || 'Event'));
-          ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
-          ctx.beginPath();
-          ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
-          ctx.bezierCurveTo(currentNode.x + 5, 
-                            currentNode.y + currentNode.height / 2 + 5,
-                            preNode.x + preNode.width, 
-                            preNode.y + preNode.height / 2 + 5,
-                            preNode.x + preNode.width,
-                            preNode.y + preNode.height / 2);
-          var gradient = ctx.createLinearGradient(
-            currentNode.x, currentNode.y + currentNode.height / 2,
-            preNode.x + preNode.width, preNode.y + preNode.height / 2
-          );
-          gradient.addColorStop(0, fillColor);
-          gradient.addColorStop(1, depFillColor);
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = 0.8;
-          ctx.stroke();
-      });
+  if (type === "forward" || type === "both") {
+    predecessors.forEach((pre, index) => {
+      const preNode = {
+        x: 0,
+        y: 10 + index * 20,
+        width: actualWidth,
+        height: 16,
+      }
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : (pre.name || 'Event'));
+      ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
+      ctx.bezierCurveTo(currentNode.x + 5,
+        currentNode.y + currentNode.height / 2 + 5,
+        preNode.x + preNode.width,
+        preNode.y + preNode.height / 2 + 5,
+        preNode.x + preNode.width,
+        preNode.y + preNode.height / 2);
+      var gradient = ctx.createLinearGradient(
+        currentNode.x, currentNode.y + currentNode.height / 2,
+        preNode.x + preNode.width, preNode.y + preNode.height / 2
+      );
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
   }
-  if(type === "backward" || type === "both") {
-      successors.forEach((dep, index) => {
-          const depNode = {
-              x:canvasWidth * 0.8,
-              y:10 + index * 20,
-              width:actualWidth,
-              height:16,
-          };
-          ctx.beginPath();
-          ctx.fillStyle = depFillColor;
-          ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
-          ctx.fill();
-          ctx.closePath();
-          ctx.fillStyle = colorCfg.eventFontNoColor;
-          ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName:(dep.name || 'Event'));
-          ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
-          ctx.beginPath();
-          ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
-          ctx.bezierCurveTo(currentNode.x + currentNode.width, 
-                            currentNode.y + currentNode.height / 2 + 5,
-                            depNode.x, 
-                            depNode.y + depNode.height / 2 + 5,
-                            depNode.x,
-                            depNode.y + depNode.height / 2);
-          var gradient = ctx.createLinearGradient(
-            currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
-            depNode.x, depNode.y + depNode.height / 2
-          );
-          gradient.addColorStop(0, fillColor);
-          gradient.addColorStop(1, depFillColor);
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = 0.8;
-          ctx.stroke();
-      });
+  if (type === "backward" || type === "both") {
+    successors.forEach((dep, index) => {
+      const depNode = {
+        x: canvasWidth * 0.8,
+        y: 10 + index * 20,
+        width: actualWidth,
+        height: 16,
+      };
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : (dep.name || 'Event'));
+      ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
+      ctx.bezierCurveTo(currentNode.x + currentNode.width,
+        currentNode.y + currentNode.height / 2 + 5,
+        depNode.x,
+        depNode.y + depNode.height / 2 + 5,
+        depNode.x,
+        depNode.y + depNode.height / 2);
+      var gradient = ctx.createLinearGradient(
+        currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
+        depNode.x, depNode.y + depNode.height / 2
+      );
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
   }
 };
 
 const getDisplayName = (event) => {
-  let {name: displayName} = event;
+  let { name: displayName } = event;
   if (textOption.value?.length === 1 && textOption.value[0] === 'taskName') {
     displayName = displayName.split('(')[0].trim();
   } else if (textOption.value?.length === 1 && textOption.value[0] === 'taskLabel') {
@@ -1104,32 +1105,32 @@ const resetState = () => {
 const onWindowResize = throttle((event) => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
-  
+
   // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
   if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio) {
     return;
   }
-  
+
   // 更新状态
   setDevicePixelRatio(currentDevicePixelRatio);
   viewState.windowWidth = currentWindowWidth;
 
   resetState();
-  
+
   // 重新计算容器尺寸和canvas尺寸
   resizeCanvases();
-  
+
   // 重新计算时间轴相关参数
   if (timelineComponent.value) {
     timelineComponent.value.resizeCanvases();
   }
-  
+
   // 重新渲染所有内容
   render();
   drawMeasureTime();
 }, 50);
 
-const resizeCanvases = (processKey, needResizeTimeline=true) => {
+const resizeCanvases = (processKey, needResizeTimeline = true) => {
   if (!swimlaneContainer.value) return;
 
   const containerRect = swimlaneContainer.value.getBoundingClientRect();
@@ -1183,7 +1184,7 @@ const measureMouseDown = (e) => {
     return;
   }
 
-  if(e.ctrlKey && e.buttons === 1) {
+  if (e.ctrlKey && e.buttons === 1) {
     measureDragCtrl.value = true;
     measureDragCtrlX.value = e.clientX;
     if (measureDragCtrlX.value - layout.processLabelWidth < 0) {
@@ -1308,7 +1309,7 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
   }
   const range = Math.abs(endx - startx);
   const timerange = Math.abs(xToTime(endx) - xToTime(startx));
-  let {value, unit} = formatTimeWithUnit(timerange);
+  let { value, unit } = formatTimeWithUnit(timerange);
   const RectWidth = 35;
   const RectHigh = 12;
 
@@ -1327,10 +1328,10 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
 
   const distance = (range - RectWidth) / 2;
   let rect = {
-    x:startX + distance,
-    y:15,
-    width:RectWidth,
-    height:RectHigh,
+    x: startX + distance,
+    y: 15,
+    width: RectWidth,
+    height: RectHigh,
   };
   // 绘制长方形
   if (range < RectWidth + 10) {
@@ -1401,7 +1402,7 @@ const measureMouseUp = () => {
     mulDetailsExpanded.value = true;
     measureDetailsExpanded.value = true;
     detailsPanelExpanded.value = false;
-    return; 
+    return;
   }
   return;
 }
@@ -1426,7 +1427,7 @@ const measureMouseLeave = (e) => {
     mulDetailsExpanded.value = true;
     measureDetailsExpanded.value = true;
     detailsPanelExpanded.value = false;
-    return; 
+    return;
   }
   return;
 }
@@ -1517,7 +1518,7 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
 
   const eventNum = matchingAICEvents.length + matchingAIVEvents.length;
 
-  measureDetailsData.value.push({AICoreusage: AICoreUsage.toFixed(2), AICusage: AICUsage.toFixed(2), AIVusage: AIVUsage.toFixed(2), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum});
+  measureDetailsData.value.push({ AICoreusage: AICoreUsage.toFixed(2), AICusage: AICUsage.toFixed(2), AIVusage: AIVUsage.toFixed(2), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum });
 };
 
 const measureDetailSearch = () => {
@@ -1577,17 +1578,17 @@ const intelligentSearch = () => {
   const foundEndTime = measureEventSearch(endlineRange, 'end');
 
   // 更新start和end的值
-  if(foundStartTime !== null) {
+  if (foundStartTime !== null) {
     start = foundStartTime;
     measureDragStartX.value = timeToX(start);
   }
 
-  if(foundEndTime !== null) {
+  if (foundEndTime !== null) {
     end = foundEndTime;
     measureDragEndX.value = timeToX(end);
   }
 
-  if(measureDragStartX.value <= measureDragEndX.value) {
+  if (measureDragStartX.value <= measureDragEndX.value) {
     document.documentElement.style.setProperty('--maskstart', `${measureDragStartX.value}px`);
     document.documentElement.style.setProperty('--maskend', `${measureDragEndX.value}px`);
   } else {
@@ -1688,7 +1689,7 @@ onMounted(() => {
   if (oldMessage && oldMessage.message && oldMessage.message.data) {
     setPageState(oldMessage.message);
     loadTraceData(oldMessage.message.data);
-  } else {  
+  } else {
     server.getSwimData().then((newValue) => {
       const oldData = /** @type { { message: object } | undefined } */ (vscode.getState());
       let newMessage = (oldData && oldData.message) || newValue;
@@ -1697,16 +1698,17 @@ onMounted(() => {
     });
   }
 });
+
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
 
 provide('swimGraphContext', { addChildContext });
 // 提供搜索状态
-provide('swimGraphSearch', {searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive});
+provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive });
 
 provide('swimGraphCfg', { userConfig, textOption, modeOption, connectionLevelCfg });
 
 // provide pmu info
-provide('swimGraphPmuTotal', {pmuTotal});
+provide('swimGraphPmuTotal', { pmuTotal });
 
 // 提供状态给子组件
 provide('swimGraphState', {
@@ -1792,7 +1794,7 @@ watch(isDarkTheme, () => {
 
 const updateTheme = () => {
   iconPath3.value = isDarkTheme.value ? `${window.staticPath}/static-assets/icon_title_3.svg` : `${window.staticPath}/static-assets/icon_title_3_light.svg`;
-  down_16px.value  = isDarkTheme.value ? `${window.staticPath}/static-assets/down_16px.svg` : `${window.staticPath}/static-assets/down_16px_light.svg`;
+  down_16px.value = isDarkTheme.value ? `${window.staticPath}/static-assets/down_16px.svg` : `${window.staticPath}/static-assets/down_16px_light.svg`;
 }
 </script>
 

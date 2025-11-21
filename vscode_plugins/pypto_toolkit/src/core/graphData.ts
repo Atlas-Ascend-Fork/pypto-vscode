@@ -51,10 +51,26 @@ export abstract class GraphData {
   // 读取json文件并存入缓存 并返回大小文件判断
   async readFileAndSetCache(fsPath: string, server: any): Promise<readFileResult> {
     const fileStream = createReadStream(fsPath);
-    const pipeline = fileStream.pipe(parser()).pipe(streamValues());
+    const jsonParser = parser();
+    const valuesStreamer = streamValues();
     const result: readFileResult = { isBigFile: false };
 
     return await new Promise((resolve, reject) => {
+      fileStream.on('error', (err) => {
+        // 文件读取错误（如文件不存在、权限问题）
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+      });
+
+      jsonParser.on('error', (err) => {
+        // JSON 解析错误（如格式无效）
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+      });
+
+      valuesStreamer.on('error', (err) => {
+        // StreamValues 错误（较少见，但保险起见）
+        reject(err);
+      });
+      const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
       pipeline
         .on('data', async (ele) => {
           // 处理数据
