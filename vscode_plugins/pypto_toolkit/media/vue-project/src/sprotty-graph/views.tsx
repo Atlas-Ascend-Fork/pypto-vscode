@@ -802,14 +802,33 @@ export class AstgrRectView extends RectangularNodeView {
 
     return (
       <g>
+        <defs>
+          <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#4e5057"/>
+            <stop offset="25%" stop-color="rgba(120, 140, 255, 0.75)"/>
+            <stop offset="65%" stop-color="rgba(255, 90, 200, 0.65)"/>
+            <stop offset="100%" stop-color="rgba(180, 230, 255, 1)"/>
+          </linearGradient>
+        </defs>
         <rect
           class-op={true}
           class-sprotty-node={true}
           width={node.customSize.width}
           height={node.customSize.height}
           fill="transparent"
-          stroke="#317af7"
+          stroke="#4e5057"
           stroke-width={strokeWidth}
+        ></rect>
+        <rect
+          class-op={true}
+          class-sprotty-node={true}
+          class-sprotty-rect-animate={true}
+          width={node.customSize.width}
+          height={node.customSize.height}
+          fill="transparent"
+          stroke-width={strokeWidth}
+          stroke
+          stroke="url(#rainbow)"
         ></rect>
         <g id='show_node_rect_lock'>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
