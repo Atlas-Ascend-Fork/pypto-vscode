@@ -1,6 +1,6 @@
 <template>
   <div style="height: 100vh;">
-    <div :class="['sticky-block', isSwimGraphActive ? 'visable' : 'hidden']">
+    <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="drag-icon-container">
         <DragIcon />
       </div>
@@ -119,7 +119,7 @@ const {
   currentActiveBlock = ref(''),
   BlockToGraphMap = ref({}),
   onToggleSwimFullscreen = () => {}
-} = inject(ThreeColumnProvideKey, {})
+} = inject(ThreeColumnProvideKey, {});
 // 响应式状态
 const swimlaneContainer = ref(null);
 const timelineComponent = ref(null);
@@ -162,6 +162,7 @@ const selectOptions = [
   {name: $t('task'), value: 'task', disabled: false},
 ];
 const options = reactive(selectOptions);
+const isSwimGraphActive = ref(false);
 
 const textOption = ref([]);
 const modeOption = ref('');
