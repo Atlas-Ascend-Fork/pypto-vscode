@@ -85,7 +85,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   };
   @viewApi()
   public jumpToCodeLine = async (message) => {
-    await this.handler.jumpToCodeLine(message);
+    await this.handler.jumpToCodeLine(message.paramObj);
   };
   @viewApi()
   public getHealthyReport = async () => {

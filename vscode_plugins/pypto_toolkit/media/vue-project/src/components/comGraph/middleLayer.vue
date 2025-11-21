@@ -27,8 +27,9 @@ const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
 const { updateTheme } = useTheme();
+const comLoadFlag = ref(false);
+const swimLoadFlag = ref(false);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
-const swimInitFlag = ref(false);
 let inThreeColumnMode = false;
 
 //
@@ -41,14 +42,14 @@ const graphType = toRef(props, 'graphType');
 const { server } = useViewServer<ICommonViewServer>();
 
 // 控制需要哪些监听器
-if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph' || graphType.value === 'threeColumnGraph' ) {
+if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph' || graphType.value === 'threeColumnGraph') {
   setupComWatchers(server);
 }
-if (graphType.value === 'threeColumnGraph' ) {
+if (graphType.value === 'threeColumnGraph') {
   setupThreeWatchers(server);
 }
 
-if (graphType.value === 'swimGraph' ) {
+if (graphType.value === 'swimGraph') {
   setupSwimWatchers(server);
 }
 
@@ -67,7 +68,7 @@ function setupComWatchers(server: any) {
   });
 
   watch(server.ComData, (newValue) => {
-    
+
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
     outputDirPath.value = newValue.outputDirPath;
@@ -121,9 +122,10 @@ function setupComWatchers(server: any) {
 }
 
 function setupThreeWatchers(server: any) {
-  watch(server.InitFlag,async () => {
-    swimInitFlag.value = true;
+  watch(server.InitFlag, async () => {
+    comLoadFlag.value = true;
     await server.getInitialData();
+    swimLoadFlag.value = true;
     server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
@@ -198,24 +200,30 @@ function onFullRender() {
 </script>
 
 <template>
-  <ThreeColumn v-if="graphType === 'threeColumnGraph'" >
+  <ThreeColumn v-if="graphType === 'threeColumnGraph'">
     <template #comGraph>
-      <SimpleComGraph :jsonContent="jsonContent" :loadingStep="loadingStep" />
+      <d-skeleton v-if="!comLoadFlag">
+      </d-skeleton>
+      <SimpleComGraph v-if="comLoadFlag" :jsonContent="jsonContent" :loadingStep="loadingStep" />
     </template>
-    <template v-if="swimInitFlag" #swimGraph>
-      <SwimGraph style="height: 100%" :is-three-column="true" :graphType="graphType"/>
+    <template #swimGraph>
+      <d-skeleton v-if="!swimLoadFlag">
+
+      </d-skeleton>
+      <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
     </template>
   </ThreeColumn>
-  <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath" :jsonContent="jsonContent"
-    :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic" :pass-index="passIndex" :path-name="pathName"
-    :file-name="fileName" />
+  <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
+    :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
+    :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
   <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
     :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
   <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
     @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
-  <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent" @searchMode="searchMode = 0" />
-  <swimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
-  <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
+  <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
+    @searchMode="searchMode = 0" />
+  <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
+  <ErrorView v-if="errorMessage !== ''" :jsonContent="errorMessage" />
 </template>
 <style scoped>
 .parent-container {
