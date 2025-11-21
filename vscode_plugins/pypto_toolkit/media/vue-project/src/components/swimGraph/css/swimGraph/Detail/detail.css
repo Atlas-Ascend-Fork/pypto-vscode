@@ -20,6 +20,7 @@
   height: 0;
   background: var(--devui-swim-detail-bg);
   transition: height 0.3s ease;
+  overflow: auto;
 }
 
 .details-panel.expanded {
@@ -520,6 +521,8 @@
   border-radius: 4px;
   background: var(--devui-button-group-bg);
   margin: 10px;
+  display: flex;
+  flex-wrap: nowrap;
 }
 
 .button-group>button {
