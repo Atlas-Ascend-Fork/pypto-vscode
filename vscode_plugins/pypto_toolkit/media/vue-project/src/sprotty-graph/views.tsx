@@ -804,10 +804,10 @@ export class AstgrRectView extends RectangularNodeView {
       <g>
         <defs>
           <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"  stop-color="#4e5057"/>
-            <stop offset="25%" stop-color="rgba(120, 140, 255, 0.75)"/>
-            <stop offset="65%" stop-color="rgba(255, 90, 200, 0.65)"/>
-            <stop offset="100%" stop-color="rgba(180, 230, 255, 1)"/>
+            <stop offset="0%"  stop-color="#90b8f9"/>
+            <stop offset="25%" stop-color="#B8ADFD"/>
+            <stop offset="65%" stop-color="#DB95FB"/>
+            <stop offset="100%" stop-color="#ea8ede"/>
           </linearGradient>
         </defs>
         <rect
@@ -815,8 +815,8 @@ export class AstgrRectView extends RectangularNodeView {
           class-sprotty-node={true}
           width={node.customSize.width}
           height={node.customSize.height}
-          fill="transparent"
-          stroke="#4e5057"
+          fill="rgba(144,184,249,0.1)"
+          stroke="rgba(255,255,255,0.2)"
           stroke-width={strokeWidth}
         ></rect>
         <rect
