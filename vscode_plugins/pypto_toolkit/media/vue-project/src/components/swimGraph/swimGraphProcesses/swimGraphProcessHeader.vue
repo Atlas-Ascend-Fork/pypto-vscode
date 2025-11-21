@@ -7,7 +7,7 @@
         <span>{{ process.processName }}</span>
       </div>
       <div class="label_two" v-if="isExpanded">
-        <d-select menu-class="globalSelect" v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm"></d-select>
+        <d-select class="labelSelect" menu-class="globalSelect" v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm" @toggle-change="onMenuChange"></d-select>
       </div>
     </div>
     <div class="process-header-line">
@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch} from 'vue';
+import { ref, computed, inject, onMounted, watch, nextTick} from 'vue';
 import { useI18n } from 'vue-i18n';
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
@@ -50,6 +50,25 @@ const props = defineProps({
     type: Object,
     required: true
   }
+});
+
+function onMenuChange() {
+  nextTick(() => {
+    const menuList = document.querySelectorAll('.globalSelect li');
+    for (let i = 0; i < menuList.length; i++) {
+      const item = menuList[i];
+      item.setAttribute('title', item.innerText);
+    }
+  });
+};
+
+watch(selectedOption, () => {
+  nextTick(() => {
+    const inputDom = document.querySelector('.labelSelect input');
+    if (inputDom) {
+      inputDom.setAttribute('title', inputDom.value);
+    }
+  });
 });
 
 const isExpanded = computed(() => {

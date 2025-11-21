@@ -930,7 +930,7 @@ const findEventAtPosition = (x, y, processKey) => {
 };
 
 const showDependencies = (event, type) => {
-  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
+  const displayName = event.isCounter ? event.displayName : (event.name || 'Event');
   const predecessors = event.dependencies.predecessors.map(id => id2event[id]).filter(e => e);
 
   const successors = event.dependencies.successors.map(id => id2event[id]).filter(e => e);
@@ -976,7 +976,7 @@ const showDependencies = (event, type) => {
           ctx.closePath();
           ctx.fillStyle = colorCfg.eventFontNoColor;
           ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName:(getDisplayName(pre) || 'Event'));
+          let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName:(pre.name || 'Event'));
           ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
           ctx.beginPath();
           ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
@@ -1012,7 +1012,7 @@ const showDependencies = (event, type) => {
           ctx.closePath();
           ctx.fillStyle = colorCfg.eventFontNoColor;
           ctx.font = '12px Arial';
-          let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName:(getDisplayName(dep) || 'Event'));
+          let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName:(dep.name || 'Event'));
           ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
           ctx.beginPath();
           ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
