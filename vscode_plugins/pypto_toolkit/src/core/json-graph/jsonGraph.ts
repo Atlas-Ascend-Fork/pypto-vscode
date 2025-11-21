@@ -96,19 +96,23 @@ interface RawTensor {
  * Tensor data structure
  */
 interface Tensor {
-    magic: number;
-    rawtensor: any;
-    offset: number[];
-    nodetype: number;
-    format: number;
-    shape: number[];
-    kind: number;
-    validshape?: number[];
-    dynvalidshape?: number[];
-    semantic_label: string[];
-    mem_type?: {[key: string]: number};
-    subgraphid?: number;
-    compareType?: string
+  magic: number;
+  rawtensor: any;
+  offset: number[];
+  nodetype: number;
+  format: number;
+  shape: number[];
+  kind: number;
+  validshape?: number[];
+  dynvalidshape?: number[];
+  semantic_label: {
+    filename?: string;
+    label?: string;
+    lineno?: number;
+  };
+  mem_type?: {[key: string]: number};
+  subgraphid?: number;
+  compareType?: string
 }
 
 /**
@@ -128,22 +132,26 @@ interface SyncQueue {
  * Operation data structure
  */
 interface Operation {
-    kind: number;
-    opmagic: number;
-    opcode: string;
-    ioperands: number[];
-    ooperands: number[];
-    semantic_label: string[];
-    subgraphid?: number;
-    calleehash?: string;
-    sync_queue?: SyncQueue;
-    latency?: number;
-    offset?: number[];
-    func_magicname?: string;
-    compareType: any;
-    file?: string;
-    line?: string;
-    attr?: (number | (number | string)[])[];
+  kind: number;
+  opmagic: number;
+  opcode: string;
+  ioperands: number[];
+  ooperands: number[];
+  semantic_label: {
+    filename?: string;
+    label?: string;
+    lineno?: number;
+  };
+  subgraphid?: number;
+  calleehash?: string;
+  sync_queue?: SyncQueue;
+  latency?: number;
+  offset?: number[];
+  func_magicname?: string;
+  compareType: any;
+  file?: string;
+  line?: string;
+  attr?: (number | (number | string)[])[];
 }
 
 /**
@@ -1069,7 +1077,7 @@ export class AscppDagBuilder {
                 type: 'node:tensor',
                 role: 'tensor',
                 compareType: tensor.compareType!,
-                semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+                semanticLabel: tensor.semantic_label?.label ?? '',
                 id: nodeId,
                 magic: `${tensor.magic}`,
                 subgraphId: graphId,
@@ -1255,7 +1263,7 @@ export class AscppDagBuilder {
                     type: 'node:tensor',
                     role: 'tensor',
                     compareType: tensor.compareType,
-                    semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+                    semanticLabel: tensor.semantic_label?.label ?? '',
                     id: nodeId,
                     magic: `${tensor.magic}`,
                     subgraphId: graphId,
@@ -1372,7 +1380,7 @@ export class AscppDagBuilder {
             type: 'node:tensor',
             id: nodeId,
             compareType: tensor.compareType!,
-            semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+            semanticLabel: tensor.semantic_label?.label ?? '',
             // compareType: compareType,
             magic: `${tensorMagic}`,
             role: nodeRole,
@@ -2224,7 +2232,7 @@ export class AscppDagBuilder {
             magic: opmagic,
             hasAttr: hasAttrValue,
             compareType: op.compareType,
-            semanticLabel: op.semantic_label?.length > 0 ? op.semantic_label[0]: '',
+            semanticLabel: op.semantic_label?.label ?? '',
             baseColor: baseColor,
             lightColor: lightColor,
             codePath: codePath,
