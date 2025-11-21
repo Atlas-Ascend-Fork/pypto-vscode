@@ -120,6 +120,8 @@ export default {
     layout: 'Layout',
     interlockModeSearchTip: 'In linkage mode, after locking the semantic tags, the search function is not supported.',
     reset: 'Reset width and height',
+    measureCategoryPlaceholder: 'Click here to add filter criteria',
+    noSearchCondition:'No filter criteria',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
