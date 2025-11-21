@@ -1,5 +1,11 @@
 <template>
   <div style="height: 100vh;">
+    <div :class="['sticky-block', isSwimGraphActive ? 'visable' : 'hidden']">
+      <div class="drag-icon-container">
+        <DragIcon />
+      </div>
+      <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
+    </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
@@ -88,6 +94,7 @@ import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey } from '../threeColumn/types';
+import DragIcon from '../threeColumn/drag-icon.vue';
 import { useViewServer } from '../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -107,6 +114,12 @@ const iconPath1 = ref(`${window.staticPath}/static-assets/icon_title_1.svg`);
 const iconPath2 = ref(`${window.staticPath}/static-assets/icon_title_2.svg`);
 let iconPath3 = ref(`${window.staticPath}/static-assets/icon_title_3.svg`);
 let down_16px = ref(`${window.staticPath}/static-assets/down_16px.svg`);
+const {
+  isSwimFullscreen = ref(false),
+  currentActiveBlock = ref(''),
+  BlockToGraphMap = ref({}),
+  onToggleSwimFullscreen = () => {}
+} = inject(ThreeColumnProvideKey, {})
 // 响应式状态
 const swimlaneContainer = ref(null);
 const timelineComponent = ref(null);
@@ -296,7 +309,9 @@ let ERROR_MESSAGES = {
   NOT_JSON: $t("swimErroMsgNot_JSON"),
 }
 
-window.ascEventBus.on('threeColumnSizeChange', () => {});
+window.ascEventBus.on('threeColumnSizeChange', () => {
+  onWindowResize();
+});
 
 const validData = (dataStr) => {
   let data = {};
@@ -1106,7 +1121,7 @@ const onWindowResize = throttle((event) => {
   const currentWindowWidth = window.innerWidth;
   
   // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
-  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio) {
+  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive) {
     return;
   }
   
@@ -1788,6 +1803,12 @@ provide('swimGraphMethods', {
 watch(isDarkTheme, () => {
   updateTheme();
   transform();
+});
+
+watch(currentActiveBlock, (val) => {
+  if (val) {
+    isSwimGraphActive.value = val && BlockToGraphMap[val] === 'swimGraph';
+  }
 });
 
 const updateTheme = () => {
