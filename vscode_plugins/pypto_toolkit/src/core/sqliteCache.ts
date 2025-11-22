@@ -109,6 +109,14 @@ interface SwimGraphLane2lineRow {
   value: number;
 }
 
+interface SwimGraphParsedInfoRow {
+  file_path: string;
+  last_change_time: string;
+  dyn_topo_last_change_time: string;
+  pmu_last_change_time: string;
+  info: string;
+}
+
 export class SQLiteCache {
   private static _instance: SQLiteCache;
   private db: Database | undefined;
@@ -207,35 +215,69 @@ export class SQLiteCache {
 
 
     //swimGraph Table 
-    //process
+    
+    //parsed swimlane info for each file
     this.db.run(`
-        CREATE TABLE IF NOT EXISTS swimgraph_process (
+        CREATE TABLE IF NOT EXISTS swimgraph_parsed_info (
             file_path TEXT NOT NULL,
             last_change_time TEXT,
-            pid INTEGER NOT NULL,
-            process_name TEXT,
-            color_rendering TEXT,
-            PRIMARY KEY (file_path,pid,last_change_time)
+            dyn_topo_last_change_time TEXT,
+            pmu_last_change_time TEXT,
+            info TEXT,
+            PRIMARY KEY (file_path,last_change_time)
         );
     `);
-    //thread
-    this.db.run(`
-        CREATE TABLE IF NOT EXISTS swimgraph_thread (
-            file_path TEXT NOT NULL,  
-            tid INTEGER NOT NULL,
+  }
+
+  public async creatLane2Line() {
+    //lane2line
+    this.db!.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_lane2line (
+            file_path TEXT NOT NULL,
             last_change_time TEXT,
-            thread_name TEXT,
-            arg_key TEXT,
-            is_counter INTEGER,
-            is_fake_core INTEGER,
-            max_count INTEGER,
-            pid INTEGER,
-            thread_id INTEGER,
-            PRIMARY KEY (file_path,thread_id,pid,last_change_time)
+            name TEXT NOT NULL,
+            value INTEGER,
+            PRIMARY KEY (file_path,name,last_change_time)
         );
     `);
+  }
+
+  public async createPmu() {
+    // pmu信息
+    this.db!.run(`
+      CREATE TABLE IF NOT EXISTS swimgraph_pmu (
+        file_path TEXT NOT NULL,
+        last_change_time TEXT,
+        uid TEXT NOT NULL,  
+        sub_task_id TEXT NOT NULL,
+        seq_no TEXT NOT NULL,
+        thread_id TEXT,
+        task_id TEXT,
+        core_id TEXT,
+        total_cycle TEXT,
+        vec_busy_cycles TEXT,
+        cube_busy_cycles TEXT,
+        scalar_busy_cycles TEXT,
+        mte1_busy_cycles TEXT,
+        mte2_busy_cycles TEXT,
+        mte3_busy_cycles TEXT,
+        icache_miss TEXT,
+        icache_req TEXT,
+        cube_ratio REAL,
+        vec_ratio REAL,
+        scalar_ratio REAL,
+        mte1_ratio REAL,
+        mte2_ratio REAL,
+        mte3_ratio REAL,
+        icache_hit REAL,
+        PRIMARY KEY (file_path,uid,last_change_time)
+        );
+    `);
+  }
+  
+  public async createEvent() {
     //event uid: args.seqNo-args.taskId
-    this.db.run(`
+    this.db!.run(`
         CREATE TABLE IF NOT EXISTS swimgraph_event (
             file_path TEXT NOT NULL,  
             last_change_time TEXT,
@@ -266,47 +308,41 @@ export class SQLiteCache {
             PRIMARY KEY (file_path,pid,thread_id,id,last_change_time)
         );
     `);
-    // pmu信息
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS swimgraph_pmu (
-          file_path TEXT NOT NULL,
-          last_change_time TEXT,
-          uid TEXT NOT NULL,  
-          sub_task_id TEXT NOT NULL,
-          seq_no TEXT NOT NULL,
-          thread_id TEXT,
-          task_id TEXT,
-          core_id TEXT,
-          total_cycle TEXT,
-          vec_busy_cycles TEXT,
-          cube_busy_cycles TEXT,
-          scalar_busy_cycles TEXT,
-          mte1_busy_cycles TEXT,
-          mte2_busy_cycles TEXT,
-          mte3_busy_cycles TEXT,
-          icache_miss TEXT,
-          icache_req TEXT,
-          cube_ratio REAL,
-          vec_ratio REAL,
-          scalar_ratio REAL,
-          mte1_ratio REAL,
-          mte2_ratio REAL,
-          mte3_ratio REAL,
-          icache_hit REAL,
-          PRIMARY KEY (file_path,uid,last_change_time)
-      );
-`);
-    //lane2line
-    this.db.run(`
-        CREATE TABLE IF NOT EXISTS swimgraph_lane2line (
-            file_path TEXT NOT NULL,
+  }
+
+  public async createThread() {
+    //thread
+    this.db!.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_thread (
+            file_path TEXT NOT NULL,  
+            tid INTEGER NOT NULL,
             last_change_time TEXT,
-            name TEXT NOT NULL,
-            value INTEGER,
-            PRIMARY KEY (file_path,name,last_change_time)
+            thread_name TEXT,
+            arg_key TEXT,
+            is_counter INTEGER,
+            is_fake_core INTEGER,
+            max_count INTEGER,
+            pid INTEGER,
+            thread_id INTEGER,
+            PRIMARY KEY (file_path,thread_id,pid,last_change_time)
         );
     `);
   }
+
+  public async createProcess() {
+    //process
+    this.db!.run(`
+        CREATE TABLE IF NOT EXISTS swimgraph_process (
+            file_path TEXT NOT NULL,
+            last_change_time TEXT,
+            pid INTEGER NOT NULL,
+            process_name TEXT,
+            color_rendering TEXT,
+            PRIMARY KEY (file_path,pid,last_change_time)
+        );
+    `);
+  }
+
   /****************** 2️⃣  数据表 ******************/
   /****************** com_graph_layout 表 ******************/
   public async comGraphLayoutSet(filePath: string, funcHash: string, layoutResult: string, lastChangeTime: string): Promise<void> {
@@ -439,6 +475,56 @@ export class SQLiteCache {
     }
     stmt.free();
     return row;
+  }
+
+
+  /****************** swimgraph_parsed_info 表 ******************/
+  public async swimGraphParsedInfoSet(
+    filePath: string, 
+    lastChangeTime: string, 
+    dynTopoLastChangeTime: string, 
+    pmuLastChangeTime: string, 
+    info: string
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO swimgraph_parsed_info(file_path,last_change_time,dyn_topo_last_change_time,pmu_last_change_time,info) VALUES(?,?,?,?,?)', 
+      [filePath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, info]
+    );
+  }
+  
+  public async swimGraphParsedInfoGetAll(): Promise<SwimGraphParsedInfoRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_parsed_info');
+    const rows: SwimGraphParsedInfoRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphParsedInfoRow);
+    }
+    stmt.free();
+    return rows;
+  }
+  
+  public async swimGraphParsedInfoGetByFilePath(filePath: string): Promise<SwimGraphParsedInfoRow[]> {
+    const stmt = this.db!.prepare('SELECT * FROM swimgraph_parsed_info WHERE file_path = ?');
+    stmt.bind([filePath]);
+    const rows: SwimGraphParsedInfoRow[] = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as unknown as SwimGraphParsedInfoRow);
+    }
+    stmt.free();
+    return rows;
+  }
+  
+  
+  public async swimGraphParsedInfoDel(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_parsed_info WHERE file_path = ?', [filePath]);
+  }
+  
+  public async swimGraphParsedInfoDelByFilePath(
+    filePath: string, 
+  ): Promise<void> {
+    this.db!.run(
+      'DELETE FROM swimgraph_parsed_info WHERE file_path = ?', 
+      [filePath]
+    );
   }
 
   /****************** swimgraph_process 表 ******************/
