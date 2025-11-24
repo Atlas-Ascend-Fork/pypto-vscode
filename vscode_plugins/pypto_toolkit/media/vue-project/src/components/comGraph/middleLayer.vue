@@ -124,8 +124,8 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
     comLoadFlag.value = true;
-    await server.getInitialData();
     swimLoadFlag.value = true;
+    await server.getInitialData();
     server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
