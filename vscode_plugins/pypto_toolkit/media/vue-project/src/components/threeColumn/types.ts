@@ -20,6 +20,7 @@ export interface IThreeColumnCtx {
   isComGraphFullscreen: Ref<boolean>;
   isSwimFullscreen: Ref<boolean>;
   BlockToGraphMap: IBlockToGraphMap;
+  dragStartBlock: Ref<BlockType>;
   onToggleComGraphFullscreen: () => void;
   onToggleSwimFullscreen: () => void;
   emitSizeChange(): void;

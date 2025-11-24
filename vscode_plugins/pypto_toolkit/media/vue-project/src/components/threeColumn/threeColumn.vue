@@ -37,10 +37,19 @@
     <div
       v-show="showHResizeBar"
       class="horizontal-resize-bar"
-      :style="{ left: HResizeBarLeft, height: currentHeight }"
+      :style="{ left: HResizeBarLeft, height: currentHeight, '--offset': HResizeBarOffset }"
       @mousedown="onHResizeMousedown"
+      @mouseover="() => (HResizeBarOffset = '2px')"
+      @mouseleave="() => (HResizeBarOffset = '1px')"
     ></div>
-    <div v-show="showVResizeBar" class="vertical-resize-bar" :style="{ top: VResizeBarTop }" @mousedown="onVResizeMousedown"></div>
+    <div
+      v-show="showVResizeBar"
+      class="vertical-resize-bar"
+      :style="{ top: VResizeBarTop, '--offset': VResizeBarOffset }"
+      @mousedown="onVResizeMousedown"
+      @mouseover="() => (VResizeBarOffset = '2px')"
+      @mouseleave="() => (VResizeBarOffset = '1px')"
+    ></div>
   </div>
 </template>
 
@@ -60,6 +69,8 @@ const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 const currentLayoutMode = ref<LayoutMode>('triangular');
 const HResizeBarLeft = ref('');
 const VResizeBarTop = ref('');
+const HResizeBarOffset = ref('1px');
+const VResizeBarOffset = ref('1px');
 const currentWidth = ref('50%');
 const currentHeight = ref('50%');
 const resizing = ref(false);
@@ -71,6 +82,7 @@ const isEditorFullscreen = ref(false);
 const isComGraphFullscreen = ref(false);
 const isSwimFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
+const dragStartBlock = ref<BlockType>('');
 const showHResizeBar = computed(() => showLeft.value && showRight.value);
 const showVResizeBar = computed(() => (showLeft.value || showLeft.value) && showBottom.value);
 const BlockToGraphMap: IBlockToGraphMap = {
@@ -94,6 +106,7 @@ provide(ThreeColumnProvideKey, {
   isComGraphFullscreen,
   isSwimFullscreen,
   BlockToGraphMap,
+  dragStartBlock,
   onToggleComGraphFullscreen,
   onToggleSwimFullscreen,
   emitSizeChange,
@@ -197,7 +210,7 @@ function emitSizeChange() {
 
 function onHMousemove(e: MouseEvent) {
   const percent = (Math.min(Math.max(e.pageX, 0), containerWidth - 2) / containerWidth) * 100;
-  HResizeBarLeft.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - 1px)`;
+  HResizeBarLeft.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - var(--offset))`;
 }
 
 function onHMouseup(e: MouseEvent) {
@@ -219,7 +232,7 @@ function onHResizeMousedown() {
 
 function onVMousemove(e: MouseEvent) {
   const percent = (Math.min(Math.max(e.pageY - 40, 0), containerHeight - 2) / containerHeight) * 100;
-  VResizeBarTop.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - 1px)`;
+  VResizeBarTop.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - var(--offset))`;
 }
 
 function onVMouseup(e: MouseEvent) {
@@ -252,8 +265,8 @@ function resetLayout() {
   if (isEditorFullscreen.value || isComGraphFullscreen.value || isSwimFullscreen.value) {
     return;
   }
-  HResizeBarLeft.value = `calc(50% - 1px)`;
-  VResizeBarTop.value = `calc(50% - 1px)`;
+  HResizeBarLeft.value = `calc(50% - var(--offset))`;
+  VResizeBarTop.value = `calc(50% - var(--offset))`;
   currentWidth.value = '50%';
   currentHeight.value = '50%';
   showLeft.value = true;
@@ -263,8 +276,8 @@ function resetLayout() {
 }
 
 onMounted(() => {
-  HResizeBarLeft.value = `calc(50% - 1px)`;
-  VResizeBarTop.value = `calc(50% - 1px)`;
+  HResizeBarLeft.value = `calc(50% - var(--offset))`;
+  VResizeBarTop.value = `calc(50% - var(--offset))`;
   updateContainerRect();
   window.addEventListener('resize', updateContainerRect);
 });
@@ -296,6 +309,7 @@ provide('threeColumnState', { isDarkTheme });
     background-color: var(--devui-border-line-deep);
 
     &:hover {
+      width: 4px;
       background-color: var(--devui-active-icon);
       cursor: col-resize;
     }
@@ -310,6 +324,7 @@ provide('threeColumnState', { isDarkTheme });
     background-color: var(--devui-border-line-deep);
 
     &:hover {
+      height: 4px;
       background-color: var(--devui-active-icon);
       cursor: row-resize;
     }
