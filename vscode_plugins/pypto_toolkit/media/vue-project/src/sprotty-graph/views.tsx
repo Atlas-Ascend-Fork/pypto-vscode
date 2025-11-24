@@ -749,7 +749,9 @@ export class AstgrRectView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs
   ): VNode | undefined {
-
+    if (!node.selectedNodes.length) {
+      return undefined;
+    }
     if (node.needCalPostion) {
       node.needCalPostion = false;
       const nodeMap = node.parent.index.id2element;
@@ -761,6 +763,9 @@ export class AstgrRectView extends RectangularNodeView {
       
       for (let i = 0; i < node.selectedNodes.length; i++) {
         const tmpNodes = nodeMap.get(node.selectedNodes[i]);
+        if (!tmpNodes.size.width) {
+          return undefined;
+        }
         if (!tmpNodes) {
           continue;
         }
