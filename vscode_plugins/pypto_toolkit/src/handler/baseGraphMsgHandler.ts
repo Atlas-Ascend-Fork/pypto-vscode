@@ -500,6 +500,7 @@ export abstract class BaseGraphMsgHandler {
         passIndex,
         pathName: server.comGraphData.pathName,
         fileName: basename(server.comGraphData.fsPath || server.comGraphData.comPath),
+        version: server.comGraphData.version,
       });
     } else if (cmd == 'returnDiffCom') {
       server.setRef('DiffComData', { step: 'convertData', diffInfo: json });
