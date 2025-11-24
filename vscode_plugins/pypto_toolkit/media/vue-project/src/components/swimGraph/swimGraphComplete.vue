@@ -2,7 +2,7 @@
   <div style="height: 100vh;">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="drag-icon-container">
-        <DragIcon />
+        <DragIcon v-if="isThreeColumn" />
       </div>
       <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
     </div>
