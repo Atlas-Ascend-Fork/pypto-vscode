@@ -54,7 +54,7 @@ import { isEqual, throttle } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext } from './render/utils';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
-import { ThreeRender, spaceInThreeCol } from './render/threeRender';
+import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
 
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -268,7 +268,9 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup', onKeyUp);
   throttledRender.cancel();
-  threeRender.stopAnimate();
+  if (isAnimation) {
+    clearSelectionCanvas('data-three-column-process-key');
+  }
 });
 
 const onKeyDown = (e) => {
@@ -336,6 +338,9 @@ const handlekeydown = (event) => {
       postMessage($t('scaleMinInfo'));
     }, 100);
     return;
+  }
+  if (isAnimation) {
+    clearSelectionCanvas('data-three-column-process-key');
   }
   switch(true) {
     case matchKey(key, userConfig?.value.ZoomInShortcut):
@@ -755,6 +760,9 @@ const resizeDrawBoundary = () => {
       onSelectionEvent(event, eventCtx, processKey, false);
     });
   });
+  if (!boundaries.length) {
+    return;
+  }
   threeRender.drawBoundary(boundaries, props.processKey);
   threeRender.animate();
 };
@@ -889,6 +897,9 @@ const handleMouseLeave = throttle((e) => {
   hideTooltip();
   if (isDragging.value) {
     selectionFinished(e);
+  }
+  if (isAnimation) {
+    clearSelectionCanvas('data-three-column-process-key');
   }
 }, 16);
 const selectionFinished = (e) => {

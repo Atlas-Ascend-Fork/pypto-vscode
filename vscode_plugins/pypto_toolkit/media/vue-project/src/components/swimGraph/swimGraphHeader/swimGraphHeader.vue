@@ -381,6 +381,9 @@ const onSearch = (term) => {
     currentResultIndex.value += 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
+  if (!target) {
+    return;
+  }
   selectEventChild(target.at(0));
   scrollToEvent(target.at(0));
 };

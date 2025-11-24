@@ -120,6 +120,8 @@ export default {
    layout: '布局',
    interlockModeSearchTip: '联动模式下，锁定语义标签后，不支持搜索功能',
    reset: '还原宽高',
+   measureCategoryPlaceholder: '点击此处添加筛选条件',
+   noSearchCondition:'没有筛选条件',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

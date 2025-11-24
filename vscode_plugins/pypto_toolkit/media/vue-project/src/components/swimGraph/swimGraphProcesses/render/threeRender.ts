@@ -3,7 +3,7 @@ import { EventRender } from './eventRender';
 import { Dependencies } from './utils';
 
 export const spaceInThreeCol = 4;
-let isAnimation = true;
+export let isAnimation = true;
 let traveledHead = 0;
 let lastTime = performance.now();
 const BASE_SPEED = 0.2;
