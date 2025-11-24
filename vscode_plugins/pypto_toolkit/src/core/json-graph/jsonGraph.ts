@@ -255,11 +255,13 @@ export class AscppDagBuilder {
     opIdMap = new Map<string, string>();
     singlePathNodeSet = new Set<string> ();
     pathNodesSet = new Set<string> ();
+    version: string = '2.0';
 
-    constructor(comGraphData: any, server: any, callInOutTensorMap?: (data) => any) {
+    constructor(comGraphData: any, server: any, version: string, callInOutTensorMap?: (data) => any) {
         this.comGraphData = comGraphData;
         this.callInOutTensorMap = callInOutTensorMap
         this.server = server;
+        this.version = version;
     }
 
     /**
@@ -1918,8 +1920,8 @@ export class AscppDagBuilder {
         const memTypeStr = MEMTYPE_MAP[memType] || 'MEM_UNKNOWN';
 
         const offsetSize = reader.readNumber();
-        const offset = parseSymbolicOrIntList(reader, offsetSize);
-        const shape = parseSymbolicOrIntList(reader, offsetSize);
+        const offset = parseSymbolicOrIntList(reader, offsetSize, this.version);
+        const shape = parseSymbolicOrIntList(reader, offsetSize, this.version);
 
         labelAttr.push(`shape: [${shape.join(',')}]`);
         if (isCopyOut) {
@@ -1955,10 +1957,10 @@ export class AscppDagBuilder {
         }
 
         const dynOffsetSize = reader.readNumber();
-        const dynOffsetParse = parseExprList(reader, dynOffsetSize);
+        const dynOffsetParse = parseExprList(reader, dynOffsetSize, this.version);
 
         const dynShapeSize = reader.readNumber();
-        const dynShapeParse = parseExprList(reader, dynShapeSize);
+        const dynShapeParse = parseExprList(reader, dynShapeSize, this.version);
 
         labelAttr.push(`shape: [${dynShapeParse.join(',')}]`);
         if (isAssemble) {
