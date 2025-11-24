@@ -1,4 +1,5 @@
-import type { ConnectChannel } from '../../../../src/core/connector';
+import type { ConnectChannel } from 'ext:/core/connector';
+import { CONNECTOR_STATUS_CHANNEL, ConnectorStatus } from 'ext:/core/connector';
 
 import { vscode } from './vscode';
 
@@ -20,6 +21,7 @@ export class ExtensionConnector<T = unknown, R = T> {
         callback(res.data);
       });
     });
+    vscode.value.postMessage({ channel: CONNECTOR_STATUS_CHANNEL, data: ConnectorStatus.WEBVIEW_READY });
   }
 
   public send(message: T): void {
