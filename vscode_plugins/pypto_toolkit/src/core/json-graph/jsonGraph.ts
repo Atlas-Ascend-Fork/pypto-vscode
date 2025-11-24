@@ -1980,7 +1980,7 @@ export class AscppDagBuilder {
             BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `The attribution of operation ${op.opcode} is invalid.` : `op节点${op.opcode}的attr信息无效`)
         }
     
-        const reader = new AttrReader(attr!);
+        const reader = new AttrReader(this.server, attr!);
     
         switch (opcodeStr) {
             case 'copy_in':
