@@ -290,7 +290,9 @@ class ComGraphHandler extends SingleGraphHandler {
 
     const gd = server.comGraphData as SingleGraphData;
     if (!gd.funcHash) {
-      gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+      const {entryhash , version} = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+      gd.funcHash = entryhash;
+      gd.version = version;
     }
   }
 
