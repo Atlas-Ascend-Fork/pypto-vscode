@@ -6,6 +6,7 @@ import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { SwimData } from '../swimGraphView';
 import { Fider } from '../threeColumnEntry';
 import { readFileSync, writeFileSync } from 'fs';
+import { isAbsolute, resolve } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import * as vscode from 'vscode';
 import {
@@ -294,10 +295,67 @@ class ComGraphHandler extends SingleGraphHandler {
     }
   }
 
+  static getSemanticByType(semanticInfo: any, op: any) {
+    let lineno = undefined;
+    let label = undefined;
+    let filename = undefined;
+    if (Array.isArray(semanticInfo)) {
+      if (op.file) {
+        lineno = op.line;
+        filename = op.file;
+        label = semanticInfo.find(label => label && label.trim() !== '');
+        return { lineno, label, filename };
+      }
+    } else if (typeof(semanticInfo) === 'object') {
+      return semanticInfo;
+    }
+  }
+
+  static async getSemanticObj(server: any, jsonData: any) {
+    const semanticObj = {};
+    const workspaces = vscode.workspace.workspaceFolders;
+    if (!workspaces || !workspaces.length) {
+      server.setRef('SemanticObj', { semanticObj });
+      return;
+    }
+    const rootPath = workspaces[0].uri.fsPath;
+    if (jsonData.functions && Array.isArray(jsonData.functions)) {
+      jsonData.functions.forEach((func: any) => {
+        if (func.operations && Array.isArray(func.operations)) {
+          func.operations.forEach((op: any) => {
+            const semanticInfo = op.semantic_label;
+            if (!semanticInfo) {
+              // TODO：抛错
+              return;
+            }
+            const result = ComGraphHandler.getSemanticByType(semanticInfo, op);
+            if (!result) {
+              return;
+            }
+            let { lineno, filename, label } = result;
+            if (!isAbsolute(filename)) {
+              filename = resolve(rootPath, filename);
+            }
+            if (filename.includes('\\')) {
+              const driveLetter = filename[0].toLowerCase();
+              const _path = filename.slice(1);
+              filename = `${driveLetter}${_path}`;
+            }
+            if (!semanticObj[filename]) {
+              semanticObj[filename] = {};
+            }
+            semanticObj[filename][lineno] = label;
+          });
+        }
+      });
+    }
+    server.setRef('CompleteData', { semanticObj });
+  }
+
   static override async getInitialData(server: any) {
     await super.getInitialData(server);
     const graphData = this.getGraphData(server);
     const fullData = await graphData.getCompleteData(graphData.fsPath);
-    server.setRef('CompleteData', { data: fullData });
+    ComGraphHandler.getSemanticObj(server, fullData);
   }
 }

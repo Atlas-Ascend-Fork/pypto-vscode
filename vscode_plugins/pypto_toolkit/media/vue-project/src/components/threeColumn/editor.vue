@@ -576,7 +576,7 @@ const sendMsg = (command, param) => {
 };
 
 watch(threeColumnServer.CompleteData, (newValue) => {
-  mkSemanticLabel(newValue.data, initCodePath);
+  mkSemanticLabel(newValue.semanticObj, initCodePath);
   parseSemanticLabels(initTotalLine);
   applySemanticDecorations();
 });

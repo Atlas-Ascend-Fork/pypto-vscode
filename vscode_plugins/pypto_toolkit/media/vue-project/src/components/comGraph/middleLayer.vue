@@ -124,8 +124,8 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
     comLoadFlag.value = true;
-    await server.getInitialData();
     swimLoadFlag.value = true;
+    await server.getInitialData();
     server.returnFuncTree();
   });
   watch(server.SetThreeColumnMode, () => {
@@ -200,30 +200,34 @@ function onFullRender() {
 </script>
 
 <template>
-  <ThreeColumn v-if="graphType === 'threeColumnGraph'">
-    <template #comGraph>
-      <d-skeleton v-if="!comLoadFlag">
-      </d-skeleton>
-      <SimpleComGraph v-if="comLoadFlag" :jsonContent="jsonContent" :loadingStep="loadingStep" />
-    </template>
-    <template #swimGraph>
-      <d-skeleton v-if="!swimLoadFlag">
+  <template v-if="errorMessage !== ''">
+    <ErrorView :jsonContent="errorMessage" />
+  </template>
+  <template v-else>
+    <ThreeColumn v-if="graphType === 'threeColumnGraph'">
+      <template #comGraph>
+        <d-skeleton v-if="!comLoadFlag">
+        </d-skeleton>
+        <SimpleComGraph v-if="comLoadFlag" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+      </template>
+      <template #swimGraph>
+        <d-skeleton v-if="!swimLoadFlag">
 
-      </d-skeleton>
-      <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
-    </template>
-  </ThreeColumn>
-  <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
-    :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
-    :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
-  <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
-    :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
-  <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
-    @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
-  <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
-    @searchMode="searchMode = 0" />
-  <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
-  <ErrorView v-if="errorMessage !== ''" :jsonContent="errorMessage" />
+        </d-skeleton>
+        <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
+      </template>
+    </ThreeColumn>
+    <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
+      :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
+      :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
+    <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
+      :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
+    <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
+      @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
+    <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
+      @searchMode="searchMode = 0" />
+    <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
+  </template>
 </template>
 <style scoped>
 .parent-container {

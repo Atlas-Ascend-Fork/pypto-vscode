@@ -10,29 +10,16 @@ function normalize(filePath: string) {
   return filePath;
 }
 
-export function mkSemanticLabel(jsonData: any, filePath: string) {
+export function mkSemanticLabel(semanticObj: any, filePath: string) {
   const nfilePath = normalize(filePath);
   lineToSemanticMap.clear();
-  if (jsonData.functions && Array.isArray(jsonData.functions)) {
-    jsonData.functions.forEach((func: any) => {
-      if (func.operations && Array.isArray(func.operations)) {
-        func.operations.forEach((op: any) => {
-          if (op.file && normalize(op.file) === nfilePath) {
-            const line = op.line;
-            const semanticLabels = op.semantic_label || [];
-            
-            const validLabel = semanticLabels.find(label => label && label.trim() !== '');
-            
-            if (validLabel) {
-              if (!lineToSemanticMap.has(line)) {
-                lineToSemanticMap.set(line, validLabel);
-              }
-            }
-          }
-        });
-      }
-    });
+  const line2label = semanticObj[nfilePath];
+  if (!line2label) {
+    return;
   }
+  Object.keys(line2label).forEach((line: any) => {
+    lineToSemanticMap.set(line, line2label[line]);
+  });
 }
 
 export interface SemanticRange {
@@ -58,7 +45,7 @@ export function parseSemanticLabels(totalLines: number): SemanticRange[] {
   }
   
   let currentName = lineToSemanticMap.get(labeledLines[0])!;
-  let startLine = labeledLines[0];
+  let startLine = Number(labeledLines[0]);
   
   for (let i = 1; i < labeledLines.length; i++) {
     const currentLabeledLine = labeledLines[i];
@@ -72,7 +59,7 @@ export function parseSemanticLabels(totalLines: number): SemanticRange[] {
         startLine: startLine,
         endLine: endLine
       });
-      startLine = currentLabeledLine;
+      startLine = Number(currentLabeledLine);
     }
     
     currentName = nextName;
