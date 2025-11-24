@@ -1096,7 +1096,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
     }
   }
 
-  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 0.5);
+  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 1);
   eventRenderer.drawEvent(drawDatas, eventCtx, isDimmed);
   if (needText) {
     eventRenderer.drawEventText(drawDatas, eventCtx, isDimmed);
