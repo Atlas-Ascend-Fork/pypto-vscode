@@ -1407,6 +1407,7 @@ export class CustomCompartmentView extends SCompartmentView {
   render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
     const isMetadataCompartment = compartment.id.includes("metadata-compartment");
+    const lastChirdPosY = compartment.children?.at(-1)?.position?.y > 0;
 
     const selIndexes = comGraphStore.data.selectCustom;
     const selSet = new Set(selIndexes);
@@ -1433,7 +1434,7 @@ export class CustomCompartmentView extends SCompartmentView {
     }
 
     let vnode: VNode;
-    if (isMetadataCompartment && selIndexes.length > 0) {
+    if (isMetadataCompartment && selIndexes.length > 0 && lastChirdPosY) {
       const children: VNode[] = [];
       let runningY = 0;
 
