@@ -81,7 +81,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     });
   };
 
-  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 1, y = 1) {
+  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 0, y = 0) {
     try {
       const viewInfo = await currentModel.getViewport();
       if (type == MINIMAP_TYPE) {
@@ -91,8 +91,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         (window as any).ascEventBus.emit(`${renderType}_master_render_over`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
       }
       if (type == MAINMAP_WHEEL) {
-        setViewportAction(modelSource.model.id, viewInfo.scroll.x, viewInfo.scroll.y, zoom, false);
-        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, viewInfo.scroll.x, viewInfo.scroll.y, false]);
+        if(!x && !y) {
+          x = viewInfo.scroll.x * (viewInfo.zoom / zoom);
+          y = viewInfo.scroll.y * (viewInfo.zoom / zoom);
+        }
+        setViewportAction(modelSource.model.id, x, y, zoom, false);
+        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, x, y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
