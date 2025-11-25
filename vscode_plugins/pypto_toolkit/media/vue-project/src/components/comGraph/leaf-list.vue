@@ -1,8 +1,15 @@
 <template>
-  <d-dropdown trigger="manually" :visible="isVisible" :position="['bottom-start']" :offset="-4" @toggle="(val) => (isVisible = val)">
+  <d-dropdown
+    trigger="manually"
+    :visible="isVisible"
+    :position="['bottom-start']"
+    :offset="-4"
+    class="layer-list-menu-wrap"
+    @toggle="(val) => (isVisible = val)"
+  >
     <span @click="expandList" class="layer-cur">{{ funcMap[curPath[curPath.length - 1]]?.func_magicname }} </span>
     <template #menu>
-      <div class="layer-list">
+      <div class="layer-list pypto-scrollbar">
         <div
           v-for="(it, index) in curList"
           :key="index"
@@ -21,7 +28,6 @@
 import { PropType, ref } from 'vue';
 
 const props = defineProps({
-  showLeafList: { type: Boolean, default: false },
   funcMap: { type: Object, default: () => ({}) },
   curList: { type: Array as PropType<string[]>, default: () => [] },
   curPath: { type: Array, default: () => [] },
@@ -30,8 +36,8 @@ const emits = defineEmits(['change']);
 
 const isVisible = ref(false);
 function expandList() {
-  if (props.showLeafList) {
-    isVisible.value = true;
+  if (props.curList.length > 1) {
+    isVisible.value = !isVisible.value;
   }
 }
 
@@ -56,22 +62,35 @@ const onJump = (it) => {
 }
 
 .layer-list {
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  gap: 4px;
+  max-height: 400px;
+  overflow: auto;
 
   .layer-item {
-    padding: 4px;
+    padding: 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    cursor: pointer;
 
-    &:hover {
-      background: $devui-list-item-active-hover-bg;
-      cursor: pointer;
+    &:not(.active):hover {
+      background-color: var(--devui-input-hover-bg);
     }
 
     &.active {
-      background: $devui-list-item-active-bg;
+      background-color: var(--devui-input-active-bg);
     }
   }
+}
+</style>
+
+<style lang="scss">
+.devui-flexible-overlay:has(.layer-list-menu-wrap) {
+  border-radius: 8px;
+  box-shadow: var(--devui-select-shadow);
+}
+.layer-list-menu-wrap {
+  padding: 8px;
+  border-radius: 8px;
+  background-color: var(--devui-select-bg);
+  box-sizing: border-box;
 }
 </style>

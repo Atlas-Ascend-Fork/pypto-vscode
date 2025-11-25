@@ -31,7 +31,7 @@
         </div>
         <div class="navigation" ref="navigation">
           <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{displayNav(it, index)}}</span>
-          <LeafList :show-leaf-list="showLeafList" :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpSubgraph" />
+          <LeafList :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpBackGraph" />
         </div>
         <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
       </div>
@@ -373,7 +373,6 @@ const upperActive = ref(false);
 const regActive = ref(false);
 const onlySvgOutputOnce = ref(false);
 const isExporting = ref(false);
-const showLeafList = ref(false);
 
 const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown } = useHeader(isVisible);
 
@@ -396,18 +395,6 @@ const onSelectedChange = (e) => {
   } else {
     isSelectedMagic = false;
   }
-}
-
-function getLayerList(curPath, funcTree) {
-  let curNode = funcTree;
-  for (let i = 0; i < curPath.length - 1; i++) {
-    const key = curPath[i];
-    if (curNode[key] === undefined) {
-      return [];
-    }
-    curNode = curNode[key];
-  }
-  return Object.keys(curNode);
 }
 
 function controlOperation(isShow) {
@@ -686,17 +673,27 @@ function jumpSearchSubgraph(calleehash, funcMagicName) {
   }
 }
 
+function getLayerList(curPath, funcTree) {
+  if (!curPath.length) {
+    return [];
+  }
+  let curNode = funcTree;
+  for (let i = 0; i < curPath.length -1; i++) {
+    const key = curPath[i];
+    if (curNode[key]) {
+      curNode = curNode[key];
+    }
+  }
+  return Object.keys(curNode);
+}
+
 watch(server.FuncTree, (newValue:{data:any,fsPath:any,curPath:any,entry:any}) => {
   funcTree = newValue.data;
   passName = newValue.fsPath.split('\\').pop();
   curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
   entry.value = newValue.entry;
   comGraphStore.setData('curPath', newValue.curPath);
-  curList.value = [curPath.value[curPath.value.length - 1]];
-  if (curPath.value[0] === newValue.entry) {
-    curList.value = getLayerList(curPath.value, funcTree);
-    showLeafList.value = true;
-  }
+  curList.value = getLayerList(curPath.value.slice(1), funcTree[newValue.entry]);
 });
 
 
