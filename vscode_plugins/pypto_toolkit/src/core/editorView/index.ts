@@ -109,6 +109,18 @@ export class EditorView {
   }
 
   /**
+   * 关闭所有打开的页面
+   */
+  public closeAll(): void {
+    // 获取所有打开的页面
+    const openedViews = this.openedViews.getAll();
+    // 关闭所有当前打开的页面
+    for (const view of openedViews) {
+      view.viewPanel.dispose();
+    }
+  }
+
+  /**
    * 注册页面配置
    * @param viewRaw 页面配置
    */

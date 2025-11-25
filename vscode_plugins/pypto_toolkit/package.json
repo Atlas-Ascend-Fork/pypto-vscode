@@ -36,6 +36,11 @@
         "category": "PyPTO.OpenLinkageMode",
         "command": "PyPTO.OpenLinkageMode",
         "title": "%PyPTO.OpenLinkageMode%"
+      },
+      {
+        "category": "PyPTO.CloseAllToolPages",
+        "command": "PyPTO.CloseAllToolPages",
+        "title": "%PyPTO.CloseAllToolPages%"
       }
     ],
     "menus": {
@@ -60,6 +65,12 @@
         {
           "command": "PyPTO.OpenLinkageMode",
           "when": "resourceExtname == .py || resourceExtname == .cpp",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "PyPTO.CloseAllToolPages",
           "group": "navigation"
         }
       ]

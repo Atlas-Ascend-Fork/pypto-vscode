@@ -64,6 +64,9 @@ export class RegisterCommand {
         const { editorView } = useView();
         await editorView.open('threeColumnGraph', uri);
       }),
+      commands.registerCommand('PyPTO.CloseAllToolPages', () => {
+        this.closeAllToolPages();
+      }),
     ];
   }
 
@@ -80,6 +83,11 @@ export class RegisterCommand {
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }
+  }
+
+  closeAllToolPages() {
+    const { editorView } = useView();
+    editorView.closeAll();
   }
 
   register() {

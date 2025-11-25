@@ -30,6 +30,19 @@ export class OpenedViews {
     return this._openedPanels.delete(key);
   }
 
+  public getAll(): { viewType: string; uri: vscode.Uri; viewPanel: vscode.WebviewPanel }[] {
+    const openedViews: { viewType: string; uri: vscode.Uri; viewPanel: vscode.WebviewPanel }[] = [];
+    
+    for (const [key, viewPanel] of this._openedPanels.entries()) {
+      const [viewType, uriPathQuery] = key.split(':');
+      const [path, query] = uriPathQuery.split('|');
+      const uri = vscode.Uri.parse(`file:${path}?${query}`);
+      openedViews.push({ viewType, uri, viewPanel });
+    }
+
+    return openedViews;
+  }
+
   private _toSavingKey(viewType: string, uri: vscode.Uri): string {
     return `${viewType}:${uri.path}|${uri.query}`;
   }
