@@ -3,7 +3,6 @@ import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 
 // 定义 symbol 类型
 type SymType = 0 | 1 | 2;
-type OpType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
 // Symbol 名称映射
 const symsSymNameDict: Record<SymType, string> = {
@@ -13,7 +12,11 @@ const symsSymNameDict: Record<SymType, string> = {
 };
 
 // 操作名称映射
-const symsOpNameDict: Record<OpType, string> = {
+let symsOpNameDict: Record<number, string>;
+let ssopCall = 16;
+let uopArr = [0, 1, 2];
+
+const oldSymsOpNameDict: Record<number, string> = {
   0: 'ssop_pos',
   1: 'ssop_neg',
   2: 'ssop_not',
@@ -33,6 +36,35 @@ const symsOpNameDict: Record<OpType, string> = {
   16: 'ssop_call',
 };
 
+const newSymsOpNameDict: Record<number, string> = {
+  0: 'ssop_call',
+  10: 'ssop_pos',
+  11: 'ssop_neg',
+  12: 'ssop_not',
+  20: 'ssop_add',
+  21: 'ssop_sub',
+  22: 'ssop_mul',
+  23: 'ssop_div',
+  24: 'ssop_mod',
+  25: 'ssop_eq',
+  26: 'ssop_ne',
+  27: 'ssop_lt',
+  28: 'ssop_le',
+  29: 'ssop_gt',
+  30: 'ssop_ge',
+  31: 'ssop_m31',
+  32: 'ssop_max',
+  33: 'ssop_min',
+  34: 'ssop_max',
+};
+
+const oldCallOp = 16;
+const newCallOp = 0;
+
+const oldUOPArr = [0, 1, 2];
+const newUOPArr = [10, 11, 12];
+
+
 // 操作符映射到实际符号
 const opMap: Record<string, string> = {
   ssop_pos: '',
@@ -51,6 +83,8 @@ const opMap: Record<string, string> = {
   ssop_ge: '>=',
   ssop_min: 'min',
   ssop_max: 'max',
+  ssop_and: '&',
+  ssop_or: '|',
   ssop_call: '',
 };
 
@@ -66,12 +100,10 @@ interface OpInfo {
 /**
  * 获取操作所需参数数量和操作名称
  */
-function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[], server?: any): OpInfo | undefined {
-  if ([0, 1, 2].includes(op)) {
+function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], server?: any): OpInfo | undefined {
+  if (uopArr.includes(op)) {
     return { argNum: 1, opName: symsOpNameDict[op] };
-  } else if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(op)) {
-    return { argNum: 2, opName: symsOpNameDict[op] };
-  } else if (op === 16) {
+  } else if (op === ssopCall) {
     const argNumStr = symList.shift();
     if (argNumStr === undefined) {
       if (server)
@@ -88,7 +120,7 @@ function symsOpGetInfo(op: OpType, symList: string[], symListReadable: any[], se
     symListReadable.push(argNum);
     return { argNum, opName: symsOpNameDict[op] };
   } else {
-    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid op value: ${op}` : `op值无效: ${op}`);
+    return { argNum: 2, opName: symsOpNameDict[op] };
   }
 }
 
@@ -126,7 +158,7 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     return argStr;
   } else if (sym === 2) {
     // S_EXPR: 表达式
-    const op = parseInt(argStr, 10) as OpType;
+    const op = parseInt(argStr, 10);
     if (!(op in symsOpNameDict)) {
       if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid op value: ${op}` : `无效的op值: ${op}`);
     }
@@ -309,8 +341,26 @@ export class AttrReader {
   }
 }
 
-export function parseSymbolicOrIntList(reader: AttrReader, size: number): string[] {
+function getVersionNum(version: string): number {
+  let versionNumber = 0;
+  version.split('.').forEach((t, index) => {
+    versionNumber += Number(t) * (index ? 1 : 10);
+  })
+
+  return versionNumber || 20;
+}
+
+export function parseSymbolicOrIntList(reader: AttrReader, size: number, version = '2.0'): string[] {
   const result: string[] = [];
+  if (getVersionNum(version) > 20) {
+    symsOpNameDict = newSymsOpNameDict;
+    ssopCall = newCallOp;
+    uopArr = newUOPArr;
+  } else {
+    symsOpNameDict = oldSymsOpNameDict;
+    ssopCall = oldCallOp;
+    uopArr = oldUOPArr;
+  }
   for (let i = 0; i < size; i++) {
     const kind = reader.readNumber();
     if (kind === 1) {
@@ -333,8 +383,17 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number): string
   return result;
 }
 
-export function parseExprList(reader: AttrReader, size: number): string[] {
+export function parseExprList(reader: AttrReader, size: number, version = '2.0'): string[] {
   const result: string[] = [];
+  if (getVersionNum(version) > 20) {
+    symsOpNameDict = newSymsOpNameDict;
+    ssopCall = newCallOp;
+    uopArr = newUOPArr;
+  } else {
+    symsOpNameDict = oldSymsOpNameDict;
+    ssopCall = oldCallOp;
+    uopArr = oldUOPArr;
+  }
   for (let i = 0; i < size; i++) {
     const expr = reader.readStringOrNumberArray(); // 直接读取表达式数组
     result.push(genMathScalarExpr(expr, reader.server)!);

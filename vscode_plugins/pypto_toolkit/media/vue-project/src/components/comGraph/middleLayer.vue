@@ -69,7 +69,7 @@ function setupComWatchers(server: any) {
   });
 
   watch(server.ComData, (newValue) => {
-
+    comGraphStore.setData('version', newValue.version || '2.0')
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
     outputDirPath.value = newValue.outputDirPath;

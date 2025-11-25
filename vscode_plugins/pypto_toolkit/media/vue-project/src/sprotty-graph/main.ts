@@ -143,6 +143,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      version: comGraphStore.data.version
     };
     server.getJsonGraphData({ data: data });
     watch(server.JsonGraphData, (newValue) => {

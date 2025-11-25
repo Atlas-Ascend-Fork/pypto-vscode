@@ -756,7 +756,13 @@ onMounted(() => {
     isExporting.value = false;
     comGraphStore.data.svgExportMode = false;
   });
-  server.returnFuncTree();
+  watch(server.InitComFlag, () => {
+    if(server.InitComFlag && server.InitComFlag.value === 'true'){
+      server.returnFuncTree();
+    }
+    
+  },{immediate:true});
+
 });
 </script>
 

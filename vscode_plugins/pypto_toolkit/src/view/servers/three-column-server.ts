@@ -226,7 +226,7 @@ export class ThreeColumnServer
   }
 
   @viewApi()
-  public pageInit() {
+  public pageInit() { // 预防initWebViewPanel执行在前端页面接收之前 再次设置InitFlag
     if (!this.sendFlag && this.swimDataPath && this.comPath) {
       this.setRef('InitFlag', 'true');
       this.sendFlag = true;
@@ -296,7 +296,9 @@ class ComGraphHandler extends SingleGraphHandler {
 
     const gd = server.comGraphData as SingleGraphData;
     if (!gd.funcHash) {
-      gd.funcHash = await SingleGraphData.getEntryHash(gd.fsPath);
+      const {entryhash , version} = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+      gd.funcHash = entryhash;
+      gd.version = version;
     }
   }
 

@@ -27,6 +27,7 @@ type Refs = IComRefs & ICommonRefs;
   'LayoutResult',
   'PathNodesSet',
   'ReadJsonWarning',
+  'InitComFlag',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -58,6 +59,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getInitialData = async () => {
     await this.handler.getInitialData(this);
+    this.setRef('InitComFlag', 'true');
   };
   @viewApi()
   public askLayout = async (message) => {

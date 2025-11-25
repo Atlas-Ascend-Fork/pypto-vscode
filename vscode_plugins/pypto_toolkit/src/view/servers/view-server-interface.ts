@@ -28,6 +28,7 @@ export type IComRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  InitComFlag: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
@@ -41,6 +42,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
+  returnFuncTree: () => Promise<void>;
 }
 
 export type IThreeApis =

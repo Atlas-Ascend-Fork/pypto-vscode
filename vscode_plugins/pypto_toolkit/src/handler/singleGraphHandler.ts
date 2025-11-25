@@ -19,7 +19,9 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
 
     const gd = server.comGraphData as SingleGraphData;
     if (!server.entryHash) {
-      server.entryHash = await SingleGraphData.getEntryHash(gd.fsPath);
+      const {entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+      server.entryHash  = entryhash;
+      gd.version = version;
     }
     if (!gd.funcHash) {
       gd.funcHash = server.entryHash;
