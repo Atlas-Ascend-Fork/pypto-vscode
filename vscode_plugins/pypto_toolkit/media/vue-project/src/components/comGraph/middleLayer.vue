@@ -159,6 +159,7 @@ onMounted(async () => {
 });
 
 const searchNodeListener = (args) => {
+  searchMode.value = 0;
   openMode.value = 'path';
   nodeMagic.value = args;
   loadingStep.value = 'convertData';
@@ -197,6 +198,17 @@ function onFullRender() {
 }
 
 
+function modeSearchModeSet() {
+  if (openMode.value !== 'path') {
+    searchMode.value = 0;
+  }
+}
+
+function entrySearchModeSet() {
+  searchMode.value = 2;
+  openMode.value = 'path';
+}
+
 </script>
 
 <template>
@@ -212,7 +224,6 @@ function onFullRender() {
       </template>
       <template #swimGraph>
         <d-skeleton v-if="!swimLoadFlag">
-
         </d-skeleton>
         <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
       </template>
@@ -223,9 +234,9 @@ function onFullRender() {
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
       :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
     <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
-      @full-render="onFullRender" @search-mode="() => (searchMode = 2)" />
+      @full-render="onFullRender" @search-mode="entrySearchModeSet" />
     <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
-      @searchMode="searchMode = 0" />
+      @searchMode="modeSearchModeSet" />
     <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   </template>
 </template>
