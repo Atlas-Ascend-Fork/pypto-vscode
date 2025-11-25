@@ -809,10 +809,10 @@ export class AstgrRectView extends RectangularNodeView {
       <g>
         <defs>
           <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"  stop-color="#90b8f9"/>
-            <stop offset="25%" stop-color="#B8ADFD"/>
-            <stop offset="65%" stop-color="#DB95FB"/>
-            <stop offset="100%" stop-color="#ea8ede"/>
+            <stop offset="0%"  stop-color="rgba(255,255,255,0)"/>
+            <stop offset="40%" stop-color="rgba(255,255,255,0.5)"/>
+            <stop offset="80%" stop-color="#b8adfd"/>
+            <stop offset="100%" stop-color="#db95fb"/>
           </linearGradient>
         </defs>
         <rect
