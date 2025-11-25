@@ -147,6 +147,8 @@ export default {
       layerControl: '图层控制',
       graphLayout: '图布局',
       nodeDisplayMode: '节点显示模式',
+      nodesControl: '节点控制',
+      'nodeShowAll': '全部展示',
       leftRight: '左右',
       topBottom: '上下',
       openDiffViewer: '查看差异对比',

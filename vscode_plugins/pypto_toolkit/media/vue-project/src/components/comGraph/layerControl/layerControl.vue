@@ -47,8 +47,8 @@
           </d-tabs>
         </div>
         <div class="node-display-mode node_cont">
-          <div class="title mb-8">节点控制</div>
-          <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" placeholder="全部展示"/>
+          <div class="title mb-8">{{ t('comGraph.nodesControl') }}</div>
+          <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" :placeholder="t('comGraph.nodeShowAll')"/>
         </div>
       </div>
     </div>
@@ -71,6 +71,8 @@ const textOptions = ref([
   "datatype",
 ]);
 
+const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange', 'selectNodesChange']);
+
 const selectedValues = ref([]);
 const selectedIndexes = computed(()=>{
   return selectedValues.value.map(value =>{
@@ -80,6 +82,7 @@ const selectedIndexes = computed(()=>{
 
 const OnTextChange = (val) => {
   comGraphStore.setData("selectCustom", selectedIndexes.value);
+  emits('selectNodesChange', val);
 }
 
 const tabDisable = computed(() => {
@@ -92,7 +95,6 @@ const props = defineProps({
     default: false,
   },
 });
-const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange']);
 
 const { t } = useI18n();
 const { dragEl, rootEl, styles } = useMoveable(props);
