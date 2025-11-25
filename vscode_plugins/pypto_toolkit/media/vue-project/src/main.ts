@@ -1,6 +1,8 @@
 import { createApp } from 'vue';
 import App from './App.vue';
-
+import Skeleton from 'vue-devui/skeleton';
+import SkeletonItem from 'vue-devui/skeleton';
+import 'vue-devui/skeleton/style.css';
 import Message from 'vue-devui/message';
 import 'vue-devui/message/style.css';
 import Tooltip from 'vue-devui/tooltip';
@@ -93,4 +95,6 @@ createApp(App)
   .use(i18n)
   .use(Drawer)
   .use(Tree)
+  .use(Skeleton)
+  .use(SkeletonItem)
   .mount('#app');

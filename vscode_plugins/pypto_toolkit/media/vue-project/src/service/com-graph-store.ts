@@ -29,6 +29,8 @@ interface ComGraphData {
   layoutDirection: string;
   svgExportMode: boolean;
   selectedNodeSemanticLabel: string;
+  traceTensors: any[];
+  traceOperations: any[];
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;

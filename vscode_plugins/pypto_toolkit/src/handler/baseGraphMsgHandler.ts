@@ -271,15 +271,28 @@ export abstract class BaseGraphMsgHandler {
       const { useView } = await import('../view');
       const { editorView } = useView();
       const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
-      const finalQuery = {
-        ...oldQuery,
-        funcHash: calleehash,
-        subFuncmagicname: subFuncmagicname,
-        curPath: curPath,
-        calleeOpMagic: calleeOpMagic,
-        calleeOpSubgraphId: calleeOpSubgraphId,
-      };
-      await editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
+      if(server.comGraphData.entryHash == calleehash){
+        const finalQuery = {
+          ...oldQuery,
+          funcHash: calleehash,
+          subFuncmagicname: undefined,
+          curPath: undefined,
+          calleeOpMagic: undefined,
+          calleeOpSubgraphId: undefined,
+        };
+        editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
+      }else{
+        const finalQuery = {
+          ...oldQuery,
+          funcHash: calleehash,
+          subFuncmagicname: subFuncmagicname,
+          curPath: curPath,
+          calleeOpMagic: calleeOpMagic,
+          calleeOpSubgraphId: calleeOpSubgraphId,
+        };
+        editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
+      }
+      
     }
   }
 
@@ -550,7 +563,7 @@ export abstract class BaseGraphMsgHandler {
       ...oldQuery,
       funcHash: server.comGraphData?.funcHash,
     };
-    await editorView.open('diffGraph', vscode.Uri.file(server.comGraphData.fsPath), { query: finalQuery });
+    editorView.open('diffGraph', vscode.Uri.file(server.comGraphData.fsPath), { query: finalQuery });
   }
 
   protected static async postInitMessages(server: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {

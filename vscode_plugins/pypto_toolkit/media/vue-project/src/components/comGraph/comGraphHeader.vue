@@ -213,7 +213,7 @@ const backwards = () => {
   }
   const newPath = [...curPath.value.slice(0, -1)];
   const lastHash = newPath[newPath.length - 1];
-  jumpSubgraph(lastHash, funcMap.value[lastHash].func_magicname, JSON.stringify(newPath));
+  jumpBackGraph(lastHash, funcMap.value[lastHash].func_magicname, JSON.stringify(newPath));
 }
 
 const { t } = useI18n();
@@ -595,7 +595,7 @@ function jumpToGraph(funcHash) {
   jumpSearchSubgraph(funcHash, funcMagicName)
 }
 
-function jumpSubgraph(calleehash, funcMagicName, curPath) {
+function jumpBackGraph(calleehash, funcMagicName, curPath) {
   server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}});
 }
 
@@ -647,10 +647,10 @@ watch(server.GlobalSearchResult, (newValue) => {
     resSize.value = res.value.length;
 });
 
-watch(server.CalleeOpAttrMap, (newValue) => {
+watch(server.CalleeOpAttrMap, (newValue:{data:any}) => {
   res.value = [];
     for (const[k, v] of Object.entries(newValue.data)) {
-      v.forEach(item => {
+      (v as any[]).forEach(item => {
         const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
         if (k == currentFuncHash) {
           res.value.unshift(newItem);
@@ -672,7 +672,7 @@ function jumpSearchSubgraph(calleehash, funcMagicName) {
   }
 }
 
-watch(server.FuncTree, (newValue) => {
+watch(server.FuncTree, (newValue:{data:any,fsPath:any,curPath:any,entry:any}) => {
   funcTree = newValue.data;
   passName = newValue.fsPath.split('\\').pop();
   curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
