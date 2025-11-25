@@ -10,7 +10,7 @@
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ 'width': layout.processLabelWidth + 'px' }">
-          <div class="title_up">
+          <div class="title_up" v-show="!isSwimGraphActive">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic" :src="titlePath" alt="title-picture">
             <div class="title_up_r">
@@ -21,7 +21,7 @@
               <div class="title_time"> {{ formattedTime }} </div>
             </div>
           </div>
-          <div class="title_down">
+          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '0px' }">
             <d-tooltip :content="$t('tips1')">
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture">
             </d-tooltip>
