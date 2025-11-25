@@ -283,29 +283,55 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
+  static async loadEntryFunction(filePath: string, server: any): Promise<void> {
+    try {
+      const text = await SQLiteCache.getInstance().readJsonFile(filePath);
+
+      const json = JSON.parse(text) as {
+        functions: Array<{ hash: string }>;
+        entryhash: string;
+      };
+
+      const entryFunc = json.functions.find(f => f.hash === json.entryhash);
+      if (!entryFunc) {
+        throw new Error(`Entry function(${json.entryhash}) not found`);
+      }
+      server.setRef('JsonContent', { data: entryFunc });
+    } catch (err) {
+      console.error('[loadEntryFunction] failed, path=', filePath, err);
+      throw err;
+    }
+  }
+
   static async innerGetSubgraph(server: any, data: any) {
     const gd = this.getGraphData(server);
+    const isCalleeHash = /^\d+$/.test(data.calleehash);
     gd.funcHash = data.calleehash;
-
+    
     let ret: string | null = null;
-    if (gd.isUsedDB) {
-      const maxRetry = 5;
-      const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-      for (let i = 0; i < maxRetry; i++) {
-        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
-        ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
-
-        if (ret) {
-          console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`);
-          break;
-        }
-        console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
-        await delay(100);
-      }
+    if (!isCalleeHash) {
+      await this.loadEntryFunction(data.calleehash, server);
+      return;
     } else {
-      /* 2️⃣ 内存模式：一次拿完 */
-      ret = gd.dataMap[gd.funcHash!] ?? null;
+      if (gd.isUsedDB) {
+        const maxRetry = 5;
+        const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  
+        for (let i = 0; i < maxRetry; i++) {
+          const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+          ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
+  
+          if (ret) {
+            console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`);
+            break;
+          }
+          console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
+          await delay(100);
+        }
+      } else {
+        /* 2️⃣ 内存模式：一次拿完 */
+        ret = gd.dataMap[gd.funcHash!] ?? null;
+      }
     }
     if (!ret) {
       this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');

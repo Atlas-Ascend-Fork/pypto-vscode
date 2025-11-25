@@ -56,6 +56,7 @@ export type IThreeApis =
   | 'setFinalResult'
   | 'searchAllFunc'
   | 'pageInit'
+  | 'selectPassPath'
   | 'returnFuncTree';
 export type IThreeRefs = {
   InitFlag: unknown;
@@ -83,6 +84,7 @@ export type IThreeRefs = {
   ReadJsonWarning: unknown;
   validateSwimFile: unknown;
   JsonContent: unknown;
+  GetPassPath: unknown;
 };
 
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
