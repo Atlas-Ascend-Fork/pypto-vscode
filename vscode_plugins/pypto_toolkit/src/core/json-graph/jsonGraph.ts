@@ -347,7 +347,7 @@ export class AscppDagBuilder {
                                           tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                           magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
-            this.server.setRef('returnPathNodesSet', { data: Array.from(this.pathNodesSet) });
+            this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
         } else {
             // Create tensor nodes if enabled
             if (showTensorNodes) {

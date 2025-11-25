@@ -100,20 +100,22 @@ interface OpInfo {
 /**
  * 获取操作所需参数数量和操作名称
  */
-function symsOpGetInfo(server: any, op: number, symList: string[], symListReadable: any[]): OpInfo | undefined {
+function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], server?: any): OpInfo | undefined {
   if (uopArr.includes(op)) {
     return { argNum: 1, opName: symsOpNameDict[op] };
   } else if (op === ssopCall) {
     const argNumStr = symList.shift();
     if (argNumStr === undefined) {
-      BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument count for ssop_call' : '缺少ssop_call的参数数量');
+      if (server)
+        BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument count for ssop_call' : '缺少ssop_call的参数数量');
     }
     const argNum = parseInt(argNumStr!, 10);
     if (isNaN(argNum)) {
-      BaseGraphMsgHandler.returnError(
-        server,
-        getIDELang() === 'en' ? `Invalid argument count: ${argNumStr}` : `参数数量无效: ${argNumStr}`,
-      );
+      if (server)
+        BaseGraphMsgHandler.returnError(
+          server,
+          getIDELang() === 'en' ? `Invalid argument count: ${argNumStr}` : `参数数量无效: ${argNumStr}`,
+        );
     }
     symListReadable.push(argNum);
     return { argNum, opName: symsOpNameDict[op] };
@@ -125,27 +127,28 @@ function symsOpGetInfo(server: any, op: number, symList: string[], symListReadab
 /**
  * 递归解析符号列表，生成表达式字符串
  */
-function symsGetExpr(server: any, symList: any[], symListReadable: any[]): string | undefined {
+function symsGetExpr(symList: any[], symListReadable: any[], server?: any): string | undefined {
   const symStr = symList.shift();
   if (symStr === undefined) {
-    BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Unexpected end of symbol list' : '符号列表意外结束');
+    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Unexpected end of symbol list' : '符号列表意外结束');
   }
   const sym = parseInt(symStr, 10) as SymType;
   if (!(sym in symsSymNameDict)) {
-    BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
+    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
   }
   symListReadable.push(symsSymNameDict[sym]);
 
   const argStr = symList.shift();
   if (argStr === undefined) {
-    BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument for symbol' : '符合列表缺少参数');
+    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument for symbol' : '符合列表缺少参数');
   }
 
   if (sym === 0) {
     // S_IMM: 立即数
     const val = parseInt(argStr, 10);
     if (isNaN(val)) {
-      BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid immediate value: ${argStr}` : `无效的立即数: ${argStr}`);
+      if (server)
+        BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid immediate value: ${argStr}` : `无效的立即数: ${argStr}`);
     }
     symListReadable.push(val);
     return val.toString();
@@ -157,18 +160,18 @@ function symsGetExpr(server: any, symList: any[], symListReadable: any[]): strin
     // S_EXPR: 表达式
     const op = parseInt(argStr, 10);
     if (!(op in symsOpNameDict)) {
-      BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid op value: ${op}` : `无效的op值: ${op}`);
+      if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid op value: ${op}` : `无效的op值: ${op}`);
     }
     symListReadable.push(symsOpNameDict[op]);
 
-    const { argNum, opName } = symsOpGetInfo(server, op, symList, symListReadable)!;
+    const { argNum, opName } = symsOpGetInfo(op, symList, symListReadable, server)!;
     const args: string[] = [];
     for (let i = 0; i < argNum; i++) {
-      args.push(symsGetExpr(server, symList, symListReadable)!);
+      args.push(symsGetExpr(symList, symListReadable, server)!);
     }
     return `${opName}(${args.join(',')})`;
   } else {
-    BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
+    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
   }
 }
 
@@ -288,7 +291,7 @@ function splitArgs(argsStr): string[] {
 /**
  * 主函数：从 lineInfo 生成数学表达式
  */
-export function genMathScalarExpr(server: any, lineInfo: (string | number)[] | undefined): string | undefined {
+export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, server?: any): string | undefined {
   if (lineInfo === undefined) {
     return '';
   }
@@ -296,13 +299,14 @@ export function genMathScalarExpr(server: any, lineInfo: (string | number)[] | u
   const symList = [...lineInfo];
   const symListReadable: any[] = [];
   try {
-    const expr = symsGetExpr(server, symList, symListReadable);
+    const expr = symsGetExpr(symList, symListReadable, server);
     return parseExpr(expr!);
   } catch (error) {
-    BaseGraphMsgHandler.returnError(
-      server,
-      getIDELang() === 'en' ? `Can not generating math expression. ${error}` : `无法生成数学表达式，${error}`,
-    );
+    if (server)
+      BaseGraphMsgHandler.returnError(
+        server,
+        getIDELang() === 'en' ? `Can not generating math expression. ${error}` : `无法生成数学表达式，${error}`,
+      );
   }
 }
 
@@ -362,7 +366,7 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number, version
     if (kind === 1) {
       // symbolicScalar
       const expr = reader.readStringOrNumberArray();
-      result.push(genMathScalarExpr(reader.server, expr)!);
+      result.push(genMathScalarExpr(expr, reader.server)!);
     } else if (kind === 2) {
       // integer
       const value = reader.readNumber();
@@ -392,7 +396,7 @@ export function parseExprList(reader: AttrReader, size: number, version = '2.0')
   }
   for (let i = 0; i < size; i++) {
     const expr = reader.readStringOrNumberArray(); // 直接读取表达式数组
-    result.push(genMathScalarExpr(reader.server, expr)!);
+    result.push(genMathScalarExpr(expr, reader.server)!);
   }
   return result;
 }

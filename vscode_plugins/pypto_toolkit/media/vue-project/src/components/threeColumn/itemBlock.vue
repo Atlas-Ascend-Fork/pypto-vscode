@@ -109,7 +109,7 @@ function onMouseenter() {
       z-index: 20;
       width: 100%;
       height: 100%;
-      box-shadow: inset 0 0 0 2px var(--devui-active-icon);
+      box-shadow: inset 0 0 0 2px rgba(49, 122, 247, 0.5);
       pointer-events: none;
     }
   }

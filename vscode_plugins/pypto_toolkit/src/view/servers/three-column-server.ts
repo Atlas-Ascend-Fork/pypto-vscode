@@ -5,8 +5,8 @@ import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { SwimData } from '../swimGraphView';
 import { Fider } from '../threeColumnEntry';
-import { readFileSync, writeFileSync } from 'fs';
-import { isAbsolute, resolve } from 'path';
+import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { isAbsolute, resolve, dirname, extname } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import * as vscode from 'vscode';
 import {
@@ -60,6 +60,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'bindResult',
   'unbindResult',
   'JsonContent',
+  'GetPassPath',
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
@@ -189,6 +190,10 @@ export class ThreeColumnServer
   @viewApi()
   public changeUserCfgConnection = async (message: any) => {
     await SwimGraphMsgHandler.changeUserCfgConnection(this, message.paramObj);
+  };
+  @viewApi()
+  public selectPassPath = async (message: any) => {
+    await ComGraphHandler.getFuncHashFileList(this, message.paramObj);
   };
 
   // 初始化自动关联路径
@@ -359,5 +364,30 @@ class ComGraphHandler extends SingleGraphHandler {
     const graphData = this.getGraphData(server);
     const fullData = await graphData.getCompleteData(graphData.fsPath);
     ComGraphHandler.getSemanticObj(server, fullData);
+  }
+
+  static findSubDir(targetHash: string, curPath: string, extName:string, res:string[]) {
+    const entryList = readdirSync(curPath, {withFileTypes:true});
+    for(const entry of entryList) {
+      const fullPath = resolve(curPath,  entry.name);
+      const isTargetFile = (entry.isFile() && entry.name.toLowerCase().endsWith(extName) && entry.name.includes(targetHash)) ? true : false;
+      if (entry.isDirectory()) {
+        this.findSubDir(targetHash, fullPath, extName, res);
+      } else if (isTargetFile) {
+        res.push(fullPath);
+      }
+    }
+  }
+
+  static async getFuncHashFileList (server: any, data: any) {
+    const targetHash = data.calleehash;
+    const graphData = this.getGraphData(server);
+    let originPath = graphData.fsPath;
+    const extName = extname(originPath);
+    const dirName = dirname(originPath);
+
+    const matchedFileList: string[] = [];
+    this.findSubDir(targetHash, dirName, extName, matchedFileList);
+    server.setRef('GetPassPath', {data: matchedFileList});
   }
 }

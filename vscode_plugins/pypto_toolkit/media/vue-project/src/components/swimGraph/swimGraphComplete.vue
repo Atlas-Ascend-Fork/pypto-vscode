@@ -2,7 +2,7 @@
   <div style="height: 100vh;">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="drag-icon-container">
-        <DragIcon />
+        <DragIcon v-if="isThreeColumn" />
       </div>
       <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
     </div>
@@ -167,7 +167,6 @@ const isSwimGraphActive = ref(false);
 
 const textOption = ref([]);
 const modeOption = ref('');
-const connectionLevelCfg = ref(-1);
 const isCfgEditing = ref(false);
 
 const isMeasureModel = ref(false);
@@ -1688,8 +1687,8 @@ const setPageState = (message) => {
   userConfig.value = toRaw(message.configration);
   modeOption.value = userConfig.value.colorRending;
   textOption.value = userConfig.value.textRending;
-  connectionLevelCfg.value = userConfig.value.connectionLevel;
-  detailComponent.value.refLabel = userConfig.value.connectionLevel;
+  configComponent.value.connectionLevel = userConfig.value.connectionLevel;
+  detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
   if (message.comGraphPath) {
     bindFile.value = message.comGraphPath;
     bindButton.value = $t('unbindComGraph');
@@ -1721,7 +1720,7 @@ provide('swimGraphContext', { addChildContext });
 // 提供搜索状态
 provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive });
 
-provide('swimGraphCfg', { userConfig, textOption, modeOption, connectionLevelCfg });
+provide('swimGraphCfg', { userConfig, textOption, modeOption});
 
 // provide pmu info
 provide('swimGraphPmuTotal', { pmuTotal });

@@ -105,7 +105,6 @@ export default {
    pleaseSelect: '请选择',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
-   'hierarchy': '层级: ',
    'totalEvents': '共{eventNum}个事件',
    'AICore':'AICore利用率',
    'CubeUtilization':'Cube利用率',

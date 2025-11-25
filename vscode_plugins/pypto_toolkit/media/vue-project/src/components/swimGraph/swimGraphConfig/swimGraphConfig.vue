@@ -17,15 +17,19 @@
         </div>
         <div class="cfg-line"></div>
         <div class="task-connection-level">
-            <div class="task-connection-level-t">{{ $t('taskConnectionLevel') }}</div>
-            <div class="task-connection-level-tip"> {{ $t('connectionLevel') }}</div>
-            <d-input-number class="connection-level-input" v-model="connectionLevelCfg" :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
+            <div class="cfg-head">
+                <div class="task-connection-level-t mb6">{{ $t('taskConnectionLevel') }}</div>
+                <d-tooltip :content="$t('connectionLevel')">
+                    <d-icon name="icon-helping" class="help-font"></d-icon>
+                </d-tooltip>
+            </div>
+            <d-input-number class="connection-level-input" v-model="connectionLevel" :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
         </div>
     </div>
   </div>
 </template>
 <script setup>
-import { ref, inject, watch, reactive } from 'vue';
+import { ref, inject, watch, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
@@ -49,8 +53,14 @@ const {
   userConfig,
   textOption,
   modeOption,
-  connectionLevelCfg
 } = inject('swimGraphCfg');
+
+const connectionLevel = computed({
+  get: () => userConfig.get('connectionLevel') ?? -1,
+  set: (value) => {
+    userConfig.set('connectionLevel', value);
+  }
+});
 
 const shadingOp = [
     {name: $t('colorRendering'), value: 'colorRendering', disabled: true},
@@ -82,8 +92,8 @@ function saveRendingMode(colorRenderMode, textRenderMode) {
     server.saveRendingMode({paramObj: JSON.stringify({ colorRending: colorRenderMode, textRending: textRenderMode})});
 };
 
-function changeUserCfgConnection(connectionLevel) {
-    server.changeUserCfgConnection({paramObj: {level: connectionLevel}});
+function changeUserCfgConnection(connectionLevelInfo) {
+    server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
 
 const OnTextChange = (value) => {
@@ -142,11 +152,15 @@ const OnModeChange = () => {
 };
 
 const onInputChange = (newValue) => {
-    connectionLevelCfg.value = newValue;
     userConfig.value.connectionLevel = newValue;
     transform();
     changeUserCfgConnection(newValue);
 };
+// 暴露方法给父组件
+defineExpose({
+  connectionLevel
+});
+
 </script>
 
 <style lang="scss">

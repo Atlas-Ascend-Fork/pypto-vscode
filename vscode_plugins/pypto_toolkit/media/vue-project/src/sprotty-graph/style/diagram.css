@@ -417,14 +417,14 @@ circle {
 }
 
 .sprotty-rect-animate {
-  stroke-dasharray: 260 1800;
+  stroke-dasharray: 160 1200;
   stroke-dashoffset: 0;
-  animation: 300s linear infinite flow;
+  animation: 600s linear infinite flow;
 }
 
 @keyframes flow {
   from {
-    stroke-dashoffset: 0;
+    stroke-dashoffset: 160;
   }
 
   to {

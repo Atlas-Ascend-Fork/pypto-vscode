@@ -443,10 +443,10 @@ const setupHoverListeners = () => {
 };
 
 const handleMouseLeave = () => {
+  updateHoverDecoration(null);
   lastMoveLabel = null;
   lastSentLabel = 'Mouse Leave';
   isMouseLeaved = true;
-  updateHoverDecoration(null);
 };
 
 const handleMouseEnter = () => {
