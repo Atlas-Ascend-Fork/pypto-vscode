@@ -31,7 +31,7 @@
         </div>
         <div class="navigation" ref="navigation">
           <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{displayNav(it, index)}}</span>
-          <span class="layer-cur">{{funcMap[curPath[curPath.length - 1]]?.func_magicname}} </span>
+          <LeafList :show-leaf-list="showLeafList" :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpSubgraph" />
         </div>
         <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
       </div>
@@ -172,6 +172,7 @@ import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import LayerControlIcon from './layerControl/layerControlIcon.vue';
 import Navbar from '../navbar/navbar.vue';
+import LeafList from './leaf-list.vue';
 import { extractIncasts,
   extractOutcasts,
   extractRawTensors,
@@ -224,6 +225,7 @@ const selectedTags = ref([]);
 const categorySearchKey = ref('');
 let passName = 'Loading';
 let curPath = ref([]);
+const curList = ref(getLayerList(curPath.value, funcTree));
 let module_row = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
@@ -371,6 +373,7 @@ const upperActive = ref(false);
 const regActive = ref(false);
 const onlySvgOutputOnce = ref(false);
 const isExporting = ref(false);
+const showLeafList = ref(false);
 
 const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown } = useHeader(isVisible);
 
@@ -395,6 +398,17 @@ const onSelectedChange = (e) => {
   }
 }
 
+function getLayerList(curPath, funcTree) {
+  let curNode = funcTree;
+  for (let i = 0; i < curPath.length - 1; i++) {
+    const key = curPath[i];
+    if (curNode[key] === undefined) {
+      return [];
+    }
+    curNode = curNode[key];
+  }
+  return Object.keys(curNode);
+}
 
 function controlOperation(isShow) {
   if (isShow && !isSelectedMagic) {
@@ -678,6 +692,11 @@ watch(server.FuncTree, (newValue:{data:any,fsPath:any,curPath:any,entry:any}) =>
   curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
   entry.value = newValue.entry;
   comGraphStore.setData('curPath', newValue.curPath);
+  curList.value = [curPath.value[curPath.value.length - 1]];
+  if (curPath.value[0] === newValue.entry) {
+    curList.value = getLayerList(curPath.value, funcTree);
+    showLeafList.value = true;
+  }
 });
 
 
@@ -1239,15 +1258,6 @@ onMounted(() => {
       color: rgba(99, 213, 168, 1);
     }
 }
-
-.layer-cur {
-    font-weight: bold;
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-
 </style>
 
 <style lang='scss'>
