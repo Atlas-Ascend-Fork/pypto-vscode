@@ -60,6 +60,8 @@ import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/type
 import DragIcon from '../threeColumn/drag-icon.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
 const props = defineProps({
@@ -196,7 +198,17 @@ function onMessageFromSwim(args) {
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
+  threeColumnServer.selectPassPath({paramObj: {calleehash: currentHash}});
 });
+
+watch(threeColumnServer.GetPassPath, (newValue) => {
+  if (!newValue.data) return;
+  newValue.data.forEach((fullPath: string) => {
+    const fileName = fullPath.replace(/^.*[\\/]/, '');
+    rootHashList.value.push({ name: fileName, value: fullPath });
+  });
+});
+
 (window as any).ascEventBus.on('deactivateLock', () => {
   prevent = false;
   comGraphStore.data.isNodeRectLock = false;
