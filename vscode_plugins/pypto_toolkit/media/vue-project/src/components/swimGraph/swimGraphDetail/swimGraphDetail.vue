@@ -187,8 +187,8 @@
                     <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}"><img class="right" :src="rPath" alt="right"/></button> 
                   </div>
                   <div class="detail-level display-containner">
-                    <div class="input-number-border" :style="{width: inputNumberWidth + 'px'}" :class="{ 'focusable': isFocused}" tabindex="0" @focus="handleFocus" @blur="handleBlur">{{$t('hierarchy')}}</div>
-                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="refLabel" :step="1" :precision="0" :min="-1" @change="onInputChange" @focus="onInputFocus" @blur="onInputBlur"></d-input-number> 
+                    <div class="input-number-border" :style="{width: inputNumberWidth + 'px'}" :class="{ 'focusable': isFocused}" tabindex="0" @focus="handleFocus" @blur="handleBlur">{{$t('taskConnectionLevel') + ':'}}</div>
+                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="connectionLevel" :step="1" :precision="0" :min="-1" @change="onInputChange" @focus="onInputFocus" @blur="onInputBlur"></d-input-number> 
                     <d-tooltip :content="$t('connectionLevel')">
                       <d-icon name="icon-helping" class="help-font"></d-icon>
                     </d-tooltip>
@@ -251,15 +251,20 @@ const {
   selectEvent,
 } = inject('swimGraphMethods');
 const { userConfig } = inject('swimGraphCfg');
+const connectionLevel = computed({
+  get: () => userConfig.get('connectionLevel') ?? -1,
+  set: (value) => {
+    userConfig.set('connectionLevel', value);
+  }
+});
 let startTimeInfo = ref('0');
 let startTimeInfoAll = ref('');
 let startTimeUnitInfo = ref('us');
 let durationInfo = ref('0');
 let durationInfoAll = ref('');
 let durationUnitInfo = ref('us');
-const refLabel = ref(-1);
 let isFocused = ref(false);
-const inputNumberWidth = ref(window.ascLang === 'zh' ? 50 : 80);
+const inputNumberWidth = ref(window.ascLang === 'zh' ? 108 : 160);
 const inputNumberRef = ref(null);
 const rowCoordLoc = ref(['0%', '18%', '36%', '54%', '72%', '88%']);
 const backLineLoc = ref(['20%', '40%', '60%', '80%']);
@@ -482,8 +487,12 @@ const onInputChange = (newValue, oldValue) => {
   highlightedPaths.clear();
   const processKey = String(selectedEventTemp.value.pid);
   selectEvent(null, processKey);
-  selectEvent(selectedEventTemp.value, processKey)
+  selectEvent(selectedEventTemp.value, processKey);
+  changeUserCfgConnection(newValue);
 }
+function changeUserCfgConnection(connectionLevelInfo) {
+    server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
+};
 const onInputFocus = (event) => {
   isFocused.value = true;
 };
@@ -502,7 +511,7 @@ const handleBlur = (event) => {
 };
 // 暴露方法给父组件
 defineExpose({
-  refLabel
+  connectionLevel
 });
 </script>
 

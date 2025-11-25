@@ -79,20 +79,19 @@
     text-align: left;
 }
 
-.task-connection-level-tip {
-    color: var(--devui-secondary-text);
-    margin-bottom: 6px;
-    margin-top: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-    letter-spacing: 0px;
-    text-align: left;
-}
-
 .cfg-line {
     width: 262px;
     height: 0;
     border: 1px solid var(--devui-slider-container-bg);
     margin-top: 16px;
+}
+
+.help-font{
+    font-size: 15px;
+    margin-left: 6px !important;
+    line-height: 20px !important;
+  }
+
+.mb6{
+    margin-bottom: 6px;
 }

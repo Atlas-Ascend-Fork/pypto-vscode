@@ -105,7 +105,6 @@ export default {
     pleaseSelect: 'Please select',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
-    'hierarchy': 'Hierarchy: ',
     'totalEvents': 'There are {eventNum} events in total.',
     'AICore':'AICore Utilization',
     'CubeUtilization':'Cube Utilization',
