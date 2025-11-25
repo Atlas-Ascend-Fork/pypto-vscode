@@ -11,7 +11,7 @@ import { ILayoutConfigurator } from 'sprotty-elk';
 import { findNodeIdsBySemanticLabel } from '../utils/search';
 import { useViewServer } from '../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
-import { watch } from 'vue';
+import { toRaw, watch } from 'vue';
 
 const { server } = useViewServer<IComViewServer>();
 declare const vscode: any;
@@ -146,10 +146,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       version: comGraphStore.data.version
     };
     server.getJsonGraphData({ data: data });
-    watch(server.JsonGraphData, (newValue) => {
+    watch(server.JsonGraphData, (newValue: any) => {
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
-        const sprottyGraph = newValue.data;
+        const sprottyGraph = toRaw(newValue.data) ;
         sprottyGraph['renderMode'] = option?.openMode || 'all';
 
         originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
