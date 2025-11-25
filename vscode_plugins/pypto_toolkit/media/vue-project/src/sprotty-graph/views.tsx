@@ -742,6 +742,10 @@ export class AstgrOpMinimapView extends RectangularNodeView {
   }
 }
 
+const handleLockToggle = () => {
+  (window as any).ascEventBus.emit('lockToggleChange', true);
+}
+
 @injectable()
 export class AstgrRectView extends RectangularNodeView {
   override render(
@@ -835,7 +839,7 @@ export class AstgrRectView extends RectangularNodeView {
           stroke
           stroke="url(#rainbow)"
         ></rect>
-        <g id='show_node_rect_lock'>
+        <g id='show_node_rect_lock' on-click={handleLockToggle}>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
           <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
         </g>
