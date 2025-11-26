@@ -13,11 +13,7 @@ export type ConnectMessage = { channel: ConnectChannel; data: any };
 
 type ExtensionListener<T> = (message: T, webview: Webview) => void;
 
-export const CONNECTOR_STATUS_CHANNEL: ConnectChannel = '__connector__';
-
-export const enum ConnectorStatus {
-  WEBVIEW_READY = 'webview-ready',
-}
+export const CONNECTOR_READY_CHANNEL: ConnectChannel = '__connector__';
 
 /**
  * 多webview通信器（extension端使用）
@@ -53,7 +49,7 @@ export class WebviewConnector<T = unknown, R = T> {
     this.pendingDataList.set(webview, []);
     webview.onDidReceiveMessage((res) => {
       // 客户端初始化
-      if (isWebviewReadyMessage(res)) {
+      if (isWebviewReadyMessage(res, this.channel)) {
         this.startConnector(webview);
         return;
       }
@@ -90,7 +86,7 @@ export class SingleWebviewConnector<T = unknown, R = T> {
   constructor(private channel: ConnectChannel, private webview: Webview, callback?: (res: R) => void) {
     webview.onDidReceiveMessage((res) => {
       // 客户端初始化
-      if (isWebviewReadyMessage(res)) {
+      if (isWebviewReadyMessage(res, this.channel)) {
         this.startConnector();
         return;
       }
@@ -116,6 +112,6 @@ export class SingleWebviewConnector<T = unknown, R = T> {
   }
 }
 
-function isWebviewReadyMessage(message: ConnectMessage): boolean {
-  return message.channel === CONNECTOR_STATUS_CHANNEL && message.data === ConnectorStatus.WEBVIEW_READY;
+function isWebviewReadyMessage(message: ConnectMessage, channel: ConnectChannel): boolean {
+  return message.channel === CONNECTOR_READY_CHANNEL && message.data === channel;
 }

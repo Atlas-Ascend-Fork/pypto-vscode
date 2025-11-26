@@ -39,6 +39,7 @@ export interface ViewServerContext {
  */
 export function makeViewServerContext(webviewPanel: WebviewPanel, viewType: string, uri?: Uri): ViewServerContext {
   const { webview, dispose } = webviewPanel;
+  refConnector.addWebview(webview);
   return {
     viewType,
     fileUri: uri,
