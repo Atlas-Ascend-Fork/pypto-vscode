@@ -58,7 +58,13 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
   }
   public static async returnFuncTree(server: any) {
     const funcTree: any = {};
-    funcTree[server.comGraphData.funcHash!] = await this.generateFucTree(server.comGraphData.funcHash!, server.comGraphData);
+    let hash;
+    if (server.entryHash) {
+      hash = server.entryHash;
+    } else {
+      hash = server.comGraphData.funcHash;
+    };
+    funcTree[server.comGraphData.funcHash!] = await this.generateFucTree(hash!, server.comGraphData);
     server.setRef('FuncTree', { entry: server.comGraphData.funcHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [server.comGraphData.funcHash], data: funcTree });
   }
 }
