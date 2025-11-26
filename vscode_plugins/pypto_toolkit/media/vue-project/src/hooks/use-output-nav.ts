@@ -34,9 +34,9 @@ export function useOutputNav(outputPath: Ref<string>) {
   }
 
   function getOutputNavFromApi(newPath: string): void {
-    getOutputDetail(newPath).then(({ data: { directoryTree } }) => {
+    getOutputDetail(newPath).then(({ data }) => {
       const nav: OutputNav = { sourceCodeFile: null, controlFlowFile: null, swimlaneFile: null };
-      for (const childDirectory of directoryTree.children) {
+      for (const childDirectory of data?.directoryTree.children ?? []) {
         if (childDirectory.type === 'file' && childDirectory.fileType === 'controlFlow') {
           nav.controlFlowFile = childDirectory.absolutePath;
           controlFlowFile.value = childDirectory.absolutePath;

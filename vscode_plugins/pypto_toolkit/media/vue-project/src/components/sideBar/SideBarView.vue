@@ -133,9 +133,9 @@ function toggleNode(node: DevUITreeNode): void {
   treeRef.value.treeFactory.toggleNode(node);
 }
 
-const nodeChildrenMap = new Map();
+const nodeChildrenMap = new Map<string, Promise<DevUITreeNode[]>>();
 
-async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]> {
+function transformData(outputData: OutputRecords): DevUITreeNode[] {
   nodeChildrenMap.clear();
 
   function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
@@ -152,7 +152,7 @@ async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]
       };
       children.push(child);
       if (dirOrFile.type === 'dir' && !child.isLeaf) {
-        nodeChildrenMap.set(child.id, transformChild(dirOrFile.children as unknown as DirectoryTree['children']));
+        nodeChildrenMap.set(child.id, Promise.resolve(transformChild(dirOrFile.children as unknown as DirectoryTree['children'])));
       }
     }
     return children;
@@ -171,8 +171,9 @@ async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]
     };
 
     // 记录子节点
-    const detail = await getOutputDetail(record.directoryPath);
-    const child = transformChild(detail.data.directoryTree.children);
+    const child = getOutputDetail(record.directoryPath).then((detail) => {
+      return transformChild(detail.data?.directoryTree.children ?? []);
+    });
     nodeChildrenMap.set(rootNode.id, child);
 
     records.push(rootNode);
@@ -180,8 +181,9 @@ async function transformData(outputData: OutputRecords): Promise<DevUITreeNode[]
   return records;
 }
 
-function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
-  callback({ treeItems: nodeChildrenMap.get(parentNode.id), node: parentNode });
+async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
+  const treeItems = await nodeChildrenMap.get(parentNode.id);
+  callback({ treeItems, node: parentNode });
 }
 
 onMounted(() => {
@@ -195,12 +197,11 @@ onMounted(() => {
 const isLoading = ref(false);
 
 async function getAllRecords(): Promise<void> {
-  const snapshot = sortOption.value;
   isLoading.value = true;
   treeData.value = [];
   try {
     const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
-    treeData.value = await transformData(data);
+    treeData.value = transformData(data);
   } catch (e: unknown) {
     isLoading.value = false;
     if (e instanceof Error) {

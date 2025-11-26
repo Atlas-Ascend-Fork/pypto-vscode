@@ -42,7 +42,7 @@ function createExtensionRequest(): ExtensionRequest {
   return {
     post: <Data, Res>(api: string, params: Data, options?: RequestOptions): Promise<Res> => {
       const optionsWithDefault = getOptionsWithDefault(options);
-      const requestId = `${api}-${Date.now()}`;
+      const requestId = `${api}-${window.crypto.randomUUID()}`;
       connector.send({ api, requestId, data: deepToRaw(params), options: optionsWithDefault });
 
       return new Promise((resolve, reject) => {

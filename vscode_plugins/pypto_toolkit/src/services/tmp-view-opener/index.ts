@@ -2,23 +2,21 @@
 import path from 'node:path';
 
 import * as vscode from 'vscode';
+import { t } from 'i18next';
 
 import { useView } from '../../view';
-import { readOutputRunData } from '../workspace/rundata';
-import { getOutputRecord } from '../workspace';
-import { t } from 'i18next';
+import { useService } from '..';
 
 /**
  * 打开控制流
  */
 export async function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
   const { outputPath, controlFlowPath } = params;
-  const outputUri = vscode.Uri.file(outputPath);
   const controlFlowUri = vscode.Uri.file(controlFlowPath);
 
   // 标题使用output名称+图类型
-  const runData = await readOutputRunData(outputUri);
-  const record = getOutputRecord(outputUri, runData);
+  const runDataService = useService('runData');
+  const [record] = await runDataService.query().filter({ directoryPath: outputPath }).exec();
   const customTitle = `${record.title} - ${t('PyPTOToolkit.workspace.controlFlowName')}`;
 
   useView().editorView.open('controlFlow', controlFlowUri, { query: { url: outputPath }, title: customTitle });

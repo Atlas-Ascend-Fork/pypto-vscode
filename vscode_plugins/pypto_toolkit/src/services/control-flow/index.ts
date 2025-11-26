@@ -36,7 +36,7 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
   }
 
   const outputDetail = (await getOutputDetail({ outputDirPath: params.outputDirPath })).data;
-  const computeDir = outputDetail.directoryTree.children.find((child) => {
+  const computeDir = outputDetail?.directoryTree.children.find((child) => {
     return child.type === 'dir' && child.directoryType === 'compute';
   }) as ComputeDirectory | undefined;
   const passes = computeDir ? computeDir.children : [];

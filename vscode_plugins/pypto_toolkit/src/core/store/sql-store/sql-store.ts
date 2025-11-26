@@ -79,7 +79,7 @@ export class SqlStore<
     const savingFileName = `${crypto.hash('sha1', conditions.join(''))}.json`;
     await this._dataFileController.write(item, savingFileName);
     const columns = this._attributeResolver.toColumnNames();
-    const values = [...this._attributeResolver.itemToSavingValues(item), `'${savingFileName}'`];
+    const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
     await this._runAndSave(`INSERT OR REPLACE INTO ${this.storeName}(${columns.join(',')}) VALUES(${values})`);
     return;
   }
@@ -145,7 +145,7 @@ export class SqlStore<
   /**
    * 从查询结果读取数据对象
    */
-   private async _getItemsFromQueryResult(queryResult: QueryExecResult | undefined): Promise<Item[]> {
+  private async _getItemsFromQueryResult(queryResult: QueryExecResult | undefined): Promise<Item[]> {
     if (!queryResult) {
       return [];
     }

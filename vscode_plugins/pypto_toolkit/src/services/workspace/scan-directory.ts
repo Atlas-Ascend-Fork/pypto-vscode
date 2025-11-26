@@ -18,7 +18,10 @@ import { hasHealthReport, isHealthReport } from '../../utils/health-report';
 /**
  * 运行结果
  */
-export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<OutputDirectory> {
+export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<OutputDirectory | null> {
+  if (!isFileExist(outputUri)) {
+    return null;
+  }
   return {
     type: 'dir',
     directoryType: 'output',
@@ -63,9 +66,9 @@ async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Pro
     return [];
   }
   const swimlaneFileUri = vscode.Uri.file(record.swimlaneGraphFilePath);
-  // if (!(await isFileExist(swimlaneFileUri))) {
-  //   return [];
-  // }
+  if (!(await isFileExist(swimlaneFileUri))) {
+    return [];
+  }
   return [
     {
       type: 'file',
