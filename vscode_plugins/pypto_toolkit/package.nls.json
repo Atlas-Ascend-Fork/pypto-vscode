@@ -50,5 +50,6 @@
   "PyPTO.OpenLinkageMode": "PyPTO Toolkit: Open linkage mode",
   "PyPTOToolkit.workspace.controlFlowName": "Result Overview",
   "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
-  "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph"
+  "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph",
+  "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration"
 }

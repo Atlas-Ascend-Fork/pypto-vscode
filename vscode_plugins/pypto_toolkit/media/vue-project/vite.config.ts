@@ -21,9 +21,6 @@ export default defineConfig({
     }),
     generateDebugHtml(),
     transformIndexHtml(),
-    // Components({
-    //   resolvers: [DevUiResolver()],
-    // }),
   ],
   resolve: {
     alias: {

@@ -50,5 +50,6 @@
   "PyPTO.OpenLinkageMode": "PyPTO Toolkit: 开启联动模式",
   "PyPTOToolkit.workspace.controlFlowName": "结果总览",
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
-  "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图"
+  "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
+  "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置"
 }
