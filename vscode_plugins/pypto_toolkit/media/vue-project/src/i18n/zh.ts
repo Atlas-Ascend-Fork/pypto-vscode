@@ -180,6 +180,11 @@ export default {
         title: '运行结果',
         sortName: '执行时间',
         searchPlaceholder: '搜索运行结果',
+        config: {
+            configTitle: '运行配置',
+            viewSchemaFile: '查看Schema文件',
+            addConfigFile: '添加Config文件',
+        },
     },
     controlFlows: {
         searchPlaceholder: '搜索',
@@ -198,5 +203,10 @@ export default {
         leafName: 'leaf 函数',
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
+    },
+    schemaConfig:{
+        title:'新增运行配置',
+        detail:'选择系统模板复用配置',
+        defaultConfiguration:'默认配置',
     }
 }

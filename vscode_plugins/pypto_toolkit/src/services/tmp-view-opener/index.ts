@@ -38,3 +38,13 @@ export async function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
   const uri = vscode.Uri.file(params.swimlaneGraphPath);
   useView().editorView.open('swimGraph', uri);
 }
+
+/**
+ * 打开自定义配置
+ */
+export async function openPtoConfig(params: { configPath: string; pathName: string }) {
+  const { configPath, pathName } = params;
+  const controlFlowUri = vscode.Uri.file(configPath);
+  const customTitle = pathName ? pathName : `${t('PyPTOToolkit.workspace.ptoNewConfig')}`;
+  useView().editorView.open('ptoNewConfig', controlFlowUri, { query: { url: configPath }, title: customTitle });
+}

@@ -22,3 +22,10 @@ export function openComputeGraph(params: { outputPath?: string; computeGraphPath
 export function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
   request.post(`${OPENER_PREFIX}/openSwimlaneGraph`, params);
 }
+
+/**
+ * 打开配置
+ */
+export function openPtoConfig(params: { configPath: string; pathName: string }) {
+  request.post(`${OPENER_PREFIX}/openPtoConfig`, params);
+}

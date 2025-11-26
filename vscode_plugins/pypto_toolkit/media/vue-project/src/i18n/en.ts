@@ -180,6 +180,11 @@ export default {
         title: 'Compilation result',
         sortName: 'Execution time',
         searchPlaceholder: 'Search from compilation result',
+        config: {
+            configTitle: 'Run configuration',
+            viewSchemaFile: 'View schema file',
+            addConfigFile: 'Add Config file',
+        },
     },
     controlFlows: {
         searchPlaceholder: 'Search',
@@ -198,5 +203,10 @@ export default {
         leafName: 'leaf function',
         openSourceCode: 'Open Source Code',
         openSwimlane: 'Open Swimlane',
+    },
+    schemaConfig:{
+        title:'Add new running configuration',
+        detail:'Select system template reuse configuration',
+        defaultConfiguration:'Default configuration',
     }
 }
