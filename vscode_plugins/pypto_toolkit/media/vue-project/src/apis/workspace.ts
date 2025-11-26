@@ -1,10 +1,5 @@
 import { request, RequestOptions } from '../core/request';
-import type {
-  GetOutputDetailParams,
-  GetOutputDetailRes,
-  GetOutputRecordParams,
-  GetOutputRecordsRes,
-} from '../../../../src/services/workspace';
+import type { GetOutputDetailParams, GetOutputDetailRes, GetOutputRecordParams, GetOutputRecordsRes } from 'ext:/services/workspace';
 
 const WORKSPACE_PREFIX = 'workspace';
 

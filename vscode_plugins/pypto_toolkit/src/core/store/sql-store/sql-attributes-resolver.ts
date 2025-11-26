@@ -1,5 +1,6 @@
 import { QueryExecResult } from 'sql.js';
 import { Data, StoreAttributes } from '../types';
+import dayjs from 'dayjs';
 
 const FILE_PATH_COLUMN_NAME = '__data_file';
 
@@ -102,7 +103,7 @@ export class SqlAttributesResolver<
   /**
    * 转换成写入的sql值
    */
-  public itemToSavingValues(itemObject: Partial<ItemValue>): string[] {
+  public itemToSqlValues(itemObject: Partial<ItemValue>): string[] {
     const queryValues: string[] = [];
     for (const [attr, { type, isQuery }] of this.attributeEntries) {
       const hasValue = itemObject[attr] !== undefined;
@@ -116,7 +117,7 @@ export class SqlAttributesResolver<
   /**
    * 从查询结果获取存储文件名称
    */
-  getFileNamesFromQueryResult(queryResult: QueryExecResult | undefined): string[] {
+  public getFileNamesFromQueryResult(queryResult: QueryExecResult | undefined): string[] {
     if (!queryResult) {
       return [];
     }
@@ -126,7 +127,6 @@ export class SqlAttributesResolver<
 }
 
 function getColumnType(type: unknown): string {
-  // TODO 验证Array、Object
   if (type === String) {
     return 'TEXT';
   }
@@ -162,7 +162,7 @@ function serializeValueByType(value: unknown, type: unknown): string {
     return value ? '1' : '0';
   }
   if (type === Date) {
-    return `'${(value as Date).toString()}'`;
+    return dayjs(value as Date).format('YYYY-MM-DD HH:mm:ss');
   }
   if (type === Array || type === Object) {
     return `'${JSON.stringify(value)}'`;

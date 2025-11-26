@@ -9,7 +9,7 @@ import {globalConfig} from './config/config';
 import {initServer} from './core/request-server';
 import {SQLiteCache} from './core/sqliteCache';
 import {hismartliteEx} from './hismarliteEx';
-import {services} from './services';
+import {services, startAllServices} from './services';
 import {initView} from './view';
 import {SwimGraphView} from './view/swimGraphView.js';
 import {loadMaterialColorUtilities} from './color-list';
@@ -70,14 +70,16 @@ export async function activate(context: ExtensionContext) {
         await initDB(context);
     }
     await loadMaterialColorUtilities();
-    // 启动接口服务
+    // 启动接口
     const server = initServer(services);
+    // 启动服务
+    startAllServices(context);
 
     // 启动编辑区视图
     initView((viewPanel) => {
         server.addWebview(viewPanel.webview);
     });
-
+    
     const sidebarViewProvider = new SidebarViewProvider();
 
     vscode.window.registerWebviewViewProvider(

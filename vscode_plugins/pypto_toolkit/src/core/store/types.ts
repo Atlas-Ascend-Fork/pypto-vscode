@@ -62,7 +62,7 @@ export interface Store<Item extends Data, P extends keyof Item, Q extends keyof 
  */
 export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
   /** 筛选（精确条件） */
-  filter(condition: { [key in Keys]: Item[key] }): this;
+  filter(condition: { [key in Keys]?: Item[key] }): this;
 
   /** 搜索（模糊条件） */
   search(prop: Keys, keyword: string): this;

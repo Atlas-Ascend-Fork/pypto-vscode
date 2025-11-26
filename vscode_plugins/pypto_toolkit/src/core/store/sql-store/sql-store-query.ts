@@ -10,7 +10,7 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
 
   constructor(private _attributeResolver: SqlAttributesResolver<Item>, private _execQuery: (condition: string) => Promise<Item[]>) {}
 
-  public filter(condition: { [key in Keys]: Item[key] }): this {
+  public filter(condition: { [key in Keys]?: Item[key] }): this {
     const conditions = this._attributeResolver.itemToQueryConditions(condition as Partial<Item>);
     this._whereConditions.push(...conditions);
     return this;
@@ -30,7 +30,7 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
   }
 
   public slice(start: number, end: number): this {
-    if (this._orderCondition) {
+    if (this._limitCondition) {
       throw new Error('查询条件中仅能使用一次截取');
     }
     this._limitCondition = `LIMIT ${end - start} OFFSET ${start}`;
