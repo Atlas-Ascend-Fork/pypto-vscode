@@ -12,7 +12,7 @@ import { useService } from '..';
  */
 export async function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
   const { outputPath, controlFlowPath } = params;
-  const controlFlowUri = vscode.Uri.file(controlFlowPath);
+  const controlFlowUri = vscode.Uri.file(controlFlowPath || 'FileIsNull'); //避免空'结果总览'时导致报错,当没有'结果总览'时地址改为'FileIsNull'，跳转至找不到结果总览页面
 
   // 标题使用output名称+图类型
   const runDataService = useService('runData');
