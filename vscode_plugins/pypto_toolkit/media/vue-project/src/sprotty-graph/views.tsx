@@ -794,6 +794,9 @@ export class AstgrRectView extends RectangularNodeView {
     }
     let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
 
+    const gradientList = (window as any).isAscDark ? ['rgba(255,255,255,0)', 'rgba(255,255,255,0.5)'] : ['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)'];
+    const strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
+
     let lockOpenSvgName: string;
     if(comGraphStore.data.isNodeRectLock) {
       if((window as any).isAscDark) {
@@ -813,8 +816,8 @@ export class AstgrRectView extends RectangularNodeView {
       <g>
         <defs>
           <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"  stop-color="rgba(255,255,255,0)"/>
-            <stop offset="40%" stop-color="rgba(255,255,255,0.5)"/>
+            <stop offset="0%"  stop-color={gradientList[0]}/>
+            <stop offset="40%" stop-color={gradientList[1]}/>
             <stop offset="80%" stop-color="#b8adfd"/>
             <stop offset="100%" stop-color="#db95fb"/>
           </linearGradient>
@@ -825,7 +828,7 @@ export class AstgrRectView extends RectangularNodeView {
           width={node.customSize.width}
           height={node.customSize.height}
           fill="rgba(144,184,249,0.1)"
-          stroke="rgba(255,255,255,0.2)"
+          stroke={strokeColor}
           stroke-width={strokeWidth}
         ></rect>
         <rect
