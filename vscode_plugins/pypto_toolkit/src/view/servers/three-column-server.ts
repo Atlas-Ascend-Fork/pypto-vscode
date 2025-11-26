@@ -75,7 +75,6 @@ export class ThreeColumnServer
   comPath?: string;
   swimData?: SwimData;
   codeMsgHandler?: any;
-  sendFlag = false;
 
   query?: {};
   constructor(ctx: ViewServerContext) {
@@ -219,17 +218,7 @@ export class ThreeColumnServer
       this.query = {
         fsPath: comPath,
       };
-      if (!this.sendFlag) {
-        this.setRef('InitFlag', 'true');
-      }
-    }
-  }
-
-  @viewApi()
-  public pageInit() { // 预防initWebViewPanel执行在前端页面接收之前 再次设置InitFlag
-    if (!this.sendFlag && this.swimDataPath && this.comPath) {
       this.setRef('InitFlag', 'true');
-      this.sendFlag = true;
     }
   }
 

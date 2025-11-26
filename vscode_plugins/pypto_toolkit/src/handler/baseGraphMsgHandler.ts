@@ -57,7 +57,7 @@ export abstract class BaseGraphMsgHandler {
 
     // 2. 校验
     const gd = this.getGraphData(server);
-    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenGraph')) return;
+    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
 
     // 3. 缓存判断&读取文件数据
     this.postForReadJson(server, 'InitComGraph');
@@ -231,7 +231,7 @@ export abstract class BaseGraphMsgHandler {
     subInfo: { calleehash: string; subFuncmagicname: string; curPath: string; calleeOpMagic?: string; calleeOpSubgraphId?: string },
     query: any,
   ) {
-    const { calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId } = subInfo;
+    let { calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId } = subInfo;
     const webviews: any = hismartliteEx.webviews;
     const gd = server.comGraphData;
     let existPanel;
@@ -255,7 +255,6 @@ export abstract class BaseGraphMsgHandler {
     if (rootBaseName.endsWith('ROOT')) {
       const splitIdx = rootBaseName.indexOf('_');
       const filePrefix = rootBaseName.slice(0, splitIdx);
-
       const fileDir = path.dirname(rootFilePath);
       const fileList = fs.readdirSync(fileDir);
       for (let matchedFile of fileList) {
@@ -266,32 +265,55 @@ export abstract class BaseGraphMsgHandler {
         }
       }
       targetCurPath = JSON.stringify(targetCurPath);
-      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath));
+      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath),subFuncmagicname);
     } else {
       const { useView } = await import('../view');
       const { editorView } = useView();
+      // 统一处理 query 输入
       const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
-      if(server.comGraphData.entryHash == calleehash){
-        const finalQuery = {
-          ...oldQuery,
-          funcHash: calleehash,
-          subFuncmagicname: undefined,
-          curPath: undefined,
-          calleeOpMagic: undefined,
-          calleeOpSubgraphId: undefined,
-        };
-        editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
-      }else{
-        const finalQuery = {
-          ...oldQuery,
-          funcHash: calleehash,
-          subFuncmagicname: subFuncmagicname,
-          curPath: curPath,
-          calleeOpMagic: calleeOpMagic,
-          calleeOpSubgraphId: calleeOpSubgraphId,
-        };
-        editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery });
+
+      // 初始化 parentInfo：优先使用已有，否则新建 level=0
+      let parentInfo = oldQuery.parentInfo 
+        ? { ...oldQuery.parentInfo } 
+        : { level: 0 };
+
+      // 处理非根节点图的 parentInfo 补全（仅当有 calleeOpMagic + calleeOpSubgraphId）
+      if (oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
+        parentInfo.calleeOpMagic = oldQuery.calleeOpMagic;
+        parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
       }
+
+      // 判断是否为“返回上一级”操作：calleeOpMagic/calleeOpSubgraphId 未传入
+      const isGoBack = !calleeOpMagic && !calleeOpSubgraphId;
+
+      if (isGoBack) {
+        // 返回上一级：使用 parentInfo 中的信息，并减少 level
+        calleeOpMagic = parentInfo.calleeOpMagic;
+        calleeOpSubgraphId = parentInfo.calleeOpSubgraphId;
+        parentInfo.level -= 1;
+
+        // 如果回到第一级（level=1），清空 calleeOp 信息
+        if (parentInfo.level === 1) {
+          delete parentInfo.calleeOpMagic;
+          delete parentInfo.calleeOpSubgraphId;
+        }
+      } else {
+        // 进入下一级：增加 level
+        parentInfo.level += 1;
+      }
+
+      // 构造最终 query
+      const finalQuery = {
+        ...oldQuery,
+        funcHash: server.entryHash === calleehash ? undefined : calleehash,
+        subFuncmagicname: server.entryHash === calleehash ? undefined : subFuncmagicname,
+        curPath: server.entryHash === calleehash ? undefined : curPath,
+        calleeOpMagic: server.entryHash === calleehash ? undefined : calleeOpMagic,
+        calleeOpSubgraphId: server.entryHash === calleehash ? undefined : calleeOpSubgraphId,
+        parentInfo: server.entryHash === calleehash ? undefined : parentInfo,
+      };
+
+      editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery ,title:subFuncmagicname});
       
     }
   }
