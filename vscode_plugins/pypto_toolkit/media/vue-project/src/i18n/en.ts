@@ -147,6 +147,8 @@ export default {
         layerControl: 'Layer Control',
         graphLayout: 'Graph Layout',
         nodeDisplayMode: 'Node Display Mode',
+        nodesControl: 'Nodes control',
+        'nodeShowAll': 'Show all Nodes',
         leftRight: 'Left & Right',
         topBottom: 'Top & Bottom',
         openDiffViewer: 'Open Diff Viewer',
