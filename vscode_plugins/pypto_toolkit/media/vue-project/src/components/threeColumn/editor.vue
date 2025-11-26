@@ -309,7 +309,7 @@ const updateHoverDecoration = (position, emit = true) => {
   
   if (!position) {
     lockPosition.value = null;
-    if (lastSentLabel) {
+    if (lastSentLabel && emit) {
       sendMsg('returnSemanticLabelFromCode', { label: '' });
       lastSentLabel = null;
     }

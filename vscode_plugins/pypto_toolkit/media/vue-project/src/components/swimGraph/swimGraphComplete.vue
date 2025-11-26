@@ -528,6 +528,9 @@ const render = () => {
     showDependencies(selectedEvent.value, "both");
   }
   timelineComponent.value.flagRender();
+  if (props.isThreeColumn) {
+    childContextMap.threadEvent.drawLockedOutline();
+  }
 };
 
 const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
