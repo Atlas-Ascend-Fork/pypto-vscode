@@ -9,7 +9,8 @@ export type IComApis =
   | 'openDiffViewer'
   | 'setFinalResult'
   | 'searchAllFunc'
-  | 'innerGetSubgraph';
+  | 'innerGetSubgraph'
+  | 'returnFuncTree';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -27,6 +28,7 @@ export type IComRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  InitComFlag: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
@@ -40,6 +42,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
+  returnFuncTree: () => Promise<void>;
 }
 
 export type IThreeApis =
@@ -55,6 +58,7 @@ export type IThreeApis =
   | 'setFinalResult'
   | 'searchAllFunc'
   | 'pageInit'
+  | 'selectPassPath'
   | 'returnFuncTree';
 export type IThreeRefs = {
   InitFlag: unknown;
@@ -82,6 +86,7 @@ export type IThreeRefs = {
   ReadJsonWarning: unknown;
   validateSwimFile: unknown;
   JsonContent: unknown;
+  GetPassPath: unknown;
 };
 
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {

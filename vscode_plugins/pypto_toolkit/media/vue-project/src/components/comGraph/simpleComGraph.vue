@@ -60,6 +60,8 @@ import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/type
 import DragIcon from '../threeColumn/drag-icon.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
 const props = defineProps({
@@ -131,7 +133,6 @@ window.addEventListener('message', (event) => {
 (window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
   if (!args.label) {
     removeSelectNodesRect?.();
-    lockIcon?.removeEventListener('click', onLockClick);
   }
 });
 
@@ -145,7 +146,6 @@ function onMessageFromSwim(args) {
   }
   if (args.label) {
     createSelectNodesRect(args.label, true);
-    listenLockClick();
   } else {
     removeSelectNodesRect();
   }
@@ -170,7 +170,6 @@ function onMessageFromSwim(args) {
   }
   if (args.semanticLabel) {
     createSelectNodesRect(args.semanticLabel, false);
-    listenLockClick();
     (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
   }
 });
@@ -179,7 +178,6 @@ function onMessageFromSwim(args) {
     return;
   }
   removeSelectNodesRect();
-  lockIcon?.removeEventListener('click', onLockClick);
   (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: '' });
 });
 
@@ -196,7 +194,17 @@ function onMessageFromSwim(args) {
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
+  threeColumnServer.selectPassPath({paramObj: {calleehash: currentHash}});
 });
+
+watch(threeColumnServer.GetPassPath, (newValue) => {
+  if (!newValue.data) return;
+  newValue.data.forEach((fullPath: string) => {
+    const fileName = fullPath.replace(/^.*[\\/]/, '');
+    rootHashList.value.push({ name: fileName, value: fullPath });
+  });
+});
+
 (window as any).ascEventBus.on('deactivateLock', () => {
   prevent = false;
   comGraphStore.data.isNodeRectLock = false;
@@ -214,8 +222,6 @@ function onMessageFromSwim(args) {
   }
 });
 
-let timer: ReturnType<typeof setTimeout>;
-let lockIcon: HTMLElement | null;
 function onLockClick() {
   comGraphStore.data.isNodeRectLock = !comGraphStore.data.isNodeRectLock;
   if (comGraphStore.data.isNodeRectLock) {
@@ -224,17 +230,6 @@ function onLockClick() {
     (window as any).ascEventBus.emit('deactivateLock');
   }
   comGraphStore.data.stableRect = false;
-}
-function listenLockClick() {
-  timer = setTimeout(() => {
-    lockIcon = document.querySelector('#show_node_rect_lock');
-    if (lockIcon) {
-      lockIcon.addEventListener('click', onLockClick);
-    }
-    if (timer) {
-      clearTimeout(timer);
-    }
-  }, 50);
 }
 
 function generateHashList(hashList?: string[]) {
@@ -320,7 +315,6 @@ watch(
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';
               createSelectNodesRect(currentLockLabel, true);
-              listenLockClick();
               shouldListenViewZoom = false;
             }
           });
@@ -391,9 +385,11 @@ onMounted(() => {
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
   document.addEventListener('click', onDocumentClick);
+  (window as any).ascEventBus.on('lockToggleChange', onLockClick)
 });
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
+  (window as any).ascEventBus.remove('lockToggleChange', onLockClick)
 });
 </script>
 

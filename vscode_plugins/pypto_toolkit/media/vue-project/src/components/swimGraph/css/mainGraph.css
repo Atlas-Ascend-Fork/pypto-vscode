@@ -1,3 +1,39 @@
+.sticky-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  width: 250px;
+  height: 40px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--devui-split-line);
+  background-color: var(--devui-card-bg);
+  box-sizing: border-box;
+
+  .drag-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+  }
+
+  i {
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  &.hidden {
+    display: none;
+  }
+
+  &.visible {
+    display: flex;
+  }
+}
+
 .container {
   height: 100%;
   display: flex;

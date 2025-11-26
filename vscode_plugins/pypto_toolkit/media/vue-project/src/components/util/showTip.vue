@@ -20,6 +20,7 @@
 
 import { onMounted, ref, computed } from 'vue';
 import { debounce } from 'lodash-es';
+import { comGraphStore } from '../../service/com-graph-store';
 
 
 const showNodeTip = ref(false);
@@ -77,7 +78,13 @@ onMounted(() => {
                             target.position.y * target.parent.zoom + initTop - 32 * target.parent.zoom - ((target.size.height) * (scale.value - 1) / 2);
         tipNodeMagic.value = target.magic;
         const targetTitle = target.children?.[0].children?.[0];
-        const targetLabel = target.children?.[0].children?.[1]?.children ?? [];
+        const metaDataId = target.children?.[0].children?.[1]?.id;
+        const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
+        const selSet = new Set(comGraphStore.data.selectCustom);
+
+        const targetLabel = ((!metaDataId.includes('metadata-compartment')) || (!targetLabelAll.length) || (selSet.size === 0))
+                              ? targetLabelAll
+                              : targetLabelAll.filter((_, idx) => selSet.has(idx));
         currentLabels.value = [];
         currentLabels.value.push(targetTitle.text);
         if (target.size.height > 50) {

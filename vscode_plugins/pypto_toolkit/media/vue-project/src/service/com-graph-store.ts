@@ -28,7 +28,10 @@ interface ComGraphData {
   fixedNodeId: string;
   layoutDirection: string;
   svgExportMode: boolean;
+  version: string;
   selectedNodeSemanticLabel: string;
+  traceTensors: any[];
+  traceOperations: any[];
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -54,6 +57,7 @@ export const comGraphStore: DataStore = reactive({
     calleeMap: {},
     CalleeOpAttrMap: {},
     curPath: [],
+    version: '2.0',
     isDiffGraph: false,
     isNodeRectLock: false,
     stableRect: false,

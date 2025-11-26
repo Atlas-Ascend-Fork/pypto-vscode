@@ -94,7 +94,9 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
     const gd = server[prop] as DiffGraphData;
     if (!gd.funcHash) {
-      gd.funcHash = await DiffGraphData.getEntryHash(gd.fsPath);
+      const {entryhash , version} = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
+      gd.funcHash = entryhash;
+      gd.version = version;
     }
   }
 

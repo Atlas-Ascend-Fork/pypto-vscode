@@ -67,7 +67,7 @@
         </div>
         <div class="measure-detail-right-section">
           <div class="measure-detail-search-area">
-            <d-category-search class="measure-detail-category-search" :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch">
+            <d-category-search class="measure-detail-category-search" :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch" :placeholder="$t('measureCategoryPlaceholder')"  :text-config="textConfig">
             </d-category-search>
             <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
           </div>
@@ -92,7 +92,8 @@
 
 <script setup>
 import { ref, inject, watch} from 'vue';
-
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 // 注入父组件提供的状态和方法
 const {
   mulDetailsExpanded,
@@ -143,6 +144,9 @@ let category = [
       options: []
     }
   ];
+const textConfig = {
+  noCategoriesAvailable: t('noSearchCondition')
+};
 const onSearch = (event) => {
   const { searchKey } = event;
   searchKeyInfo = searchKey;

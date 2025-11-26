@@ -11,7 +11,7 @@ import { ILayoutConfigurator } from 'sprotty-elk';
 import { findNodeIdsBySemanticLabel } from '../utils/search';
 import { useViewServer } from '../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
-import { watch } from 'vue';
+import { toRaw, watch } from 'vue';
 
 const { server } = useViewServer<IComViewServer>();
 declare const vscode: any;
@@ -81,7 +81,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     });
   };
 
-  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 1, y = 1) {
+  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 0, y = 0) {
     try {
       const viewInfo = await currentModel.getViewport();
       if (type == MINIMAP_TYPE) {
@@ -91,8 +91,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         (window as any).ascEventBus.emit(`${renderType}_master_render_over`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y]);
       }
       if (type == MAINMAP_WHEEL) {
-        setViewportAction(modelSource.model.id, viewInfo.scroll.x, viewInfo.scroll.y, zoom, false);
-        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, viewInfo.scroll.x, viewInfo.scroll.y, false]);
+        if(!x && !y) {
+          x = viewInfo.scroll.x * (viewInfo.zoom / zoom);
+          y = viewInfo.scroll.y * (viewInfo.zoom / zoom);
+        }
+        setViewportAction(modelSource.model.id, x, y, zoom, false);
+        (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, x, y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
@@ -139,12 +143,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      version: comGraphStore.data.version
     };
     server.getJsonGraphData({ data: data });
-    watch(server.JsonGraphData, (newValue) => {
+    watch(server.JsonGraphData, (newValue: any) => {
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
-        const sprottyGraph = newValue.data;
+        const sprottyGraph = toRaw(newValue.data) ;
         sprottyGraph['renderMode'] = option?.openMode || 'all';
 
         originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
@@ -194,6 +199,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     requestExportSvgAction(args);
   };
 
+  const jump2SiblingNodeListener = (args) => {
+    centerNodeAction([args]);
+    selectAction([args]);
+  }
+
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
@@ -203,6 +213,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
 
   (window as any).ascEventBus.on(`svgOutput`, svgExportRequestListener);
+
+  (window as any).ascEventBus.on(`jump2SiblingNode`, jump2SiblingNodeListener);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {

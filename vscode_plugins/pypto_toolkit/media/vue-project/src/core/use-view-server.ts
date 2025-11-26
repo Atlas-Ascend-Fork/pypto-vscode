@@ -76,7 +76,7 @@ serverApiConnector.receive(({ requestId, response }) => {
  */
 function getViewServerApi(api: string): (...args: unknown[]) => Promise<unknown> {
   return (...params) => {
-    const requestId = `${api}-${Date.now()}`;
+    const requestId = `${api}-${window.crypto.randomUUID()}`;
     serverApiConnector.send({ api: api, requestId, params: deepToRaw(params) });
     return new Promise((resolve) => {
       pendingApis.set(requestId, resolve);

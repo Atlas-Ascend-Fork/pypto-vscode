@@ -105,7 +105,6 @@ export default {
    pleaseSelect: '请选择',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
-   'hierarchy': '层级: ',
    'totalEvents': '共{eventNum}个事件',
    'AICore':'AICore利用率',
    'CubeUtilization':'Cube利用率',
@@ -120,6 +119,8 @@ export default {
    layout: '布局',
    interlockModeSearchTip: '联动模式下，锁定语义标签后，不支持搜索功能',
    reset: '还原宽高',
+   measureCategoryPlaceholder: '点击此处添加筛选条件',
+   noSearchCondition:'没有筛选条件',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

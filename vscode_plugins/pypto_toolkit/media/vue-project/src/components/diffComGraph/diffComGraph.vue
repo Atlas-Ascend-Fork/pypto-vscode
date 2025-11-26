@@ -20,7 +20,7 @@
         </div>
         <div class="diff-after-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="realAfterFileName" />
-          <SelectFile v-if="!realAfterFileName && !isLoading" @change="renderGraph" />
+          <SelectFile v-if="showSelectFile && !isLoading" @change="renderGraph" />
           <div id="sprotty-after"></div>
           <MiniMap
             ref="afterMinimapEl"
@@ -63,11 +63,12 @@ const props = defineProps({
   beforeFileName: String,
   loadingStep: { type: String, default: '' },
 });
-const { isDarkTheme } = inject('root')  as {isDarkTheme:Ref<boolean>};
+const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 const { t } = useI18n();
 const svgPath = computed(() => `"${(window as any).staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const syncOperate = ref(true);
 const isLoading = ref(false);
+const showSelectFile = ref(false);
 const loadingText = ref('');
 const realAfterFileName = ref('');
 const beforeMinimapEl = ref();
@@ -96,6 +97,7 @@ function onLayoutChange(e) {
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
+  showSelectFile.value = false;
   const { diffList: list, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
   diffList.value = list as any;
   showDiffList.value = showDiff;
@@ -156,6 +158,7 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
     afterIns = useSprottyLoad(`sprotty-after`, 'after');
     afterIns.initComDocText(jsonValue, isDarkTheme.value);
   }
+  showSelectFile.value = !realAfterFileName.value;
 });
 
 let isDragging: boolean = false;

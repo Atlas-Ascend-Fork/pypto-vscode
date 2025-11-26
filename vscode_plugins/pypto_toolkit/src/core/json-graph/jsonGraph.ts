@@ -96,19 +96,23 @@ interface RawTensor {
  * Tensor data structure
  */
 interface Tensor {
-    magic: number;
-    rawtensor: any;
-    offset: number[];
-    nodetype: number;
-    format: number;
-    shape: number[];
-    kind: number;
-    validshape?: number[];
-    dynvalidshape?: number[];
-    semantic_label: string[];
-    mem_type?: {[key: string]: number};
-    subgraphid?: number;
-    compareType?: string
+  magic: number;
+  rawtensor: any;
+  offset: number[];
+  nodetype: number;
+  format: number;
+  shape: number[];
+  kind: number;
+  validshape?: number[];
+  dynvalidshape?: number[];
+  semantic_label: {
+    filename?: string;
+    label?: string;
+    lineno?: number;
+  };
+  mem_type?: {[key: string]: number};
+  subgraphid?: number;
+  compareType?: string
 }
 
 /**
@@ -128,22 +132,26 @@ interface SyncQueue {
  * Operation data structure
  */
 interface Operation {
-    kind: number;
-    opmagic: number;
-    opcode: string;
-    ioperands: number[];
-    ooperands: number[];
-    semantic_label: string[];
-    subgraphid?: number;
-    calleehash?: string;
-    sync_queue?: SyncQueue;
-    latency?: number;
-    offset?: number[];
-    func_magicname?: string;
-    compareType: any;
-    file?: string;
-    line?: string;
-    attr?: (number | (number | string)[])[];
+  kind: number;
+  opmagic: number;
+  opcode: string;
+  ioperands: number[];
+  ooperands: number[];
+  semantic_label: {
+    filename?: string;
+    label?: string;
+    lineno?: number;
+  };
+  subgraphid?: number;
+  calleehash?: string;
+  sync_queue?: SyncQueue;
+  latency?: number;
+  offset?: number[];
+  func_magicname?: string;
+  compareType: any;
+  file?: string;
+  line?: string;
+  attr?: (number | (number | string)[])[];
 }
 
 /**
@@ -247,11 +255,13 @@ export class AscppDagBuilder {
     opIdMap = new Map<string, string>();
     singlePathNodeSet = new Set<string> ();
     pathNodesSet = new Set<string> ();
+    version: string = '2.0';
 
-    constructor(comGraphData: any, server: any, callInOutTensorMap?: (data) => any) {
+    constructor(comGraphData: any, server: any, version: string, callInOutTensorMap?: (data) => any) {
         this.comGraphData = comGraphData;
         this.callInOutTensorMap = callInOutTensorMap
         this.server = server;
+        this.version = version;
     }
 
     /**
@@ -337,7 +347,7 @@ export class AscppDagBuilder {
                                           tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
                                           magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
-            this.server.setRef('returnPathNodesSet', { data: Array.from(this.pathNodesSet) });
+            this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
         } else {
             // Create tensor nodes if enabled
             if (showTensorNodes) {
@@ -1069,7 +1079,7 @@ export class AscppDagBuilder {
                 type: 'node:tensor',
                 role: 'tensor',
                 compareType: tensor.compareType!,
-                semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+                semanticLabel: tensor.semantic_label?.label ?? '',
                 id: nodeId,
                 magic: `${tensor.magic}`,
                 subgraphId: graphId,
@@ -1255,7 +1265,7 @@ export class AscppDagBuilder {
                     type: 'node:tensor',
                     role: 'tensor',
                     compareType: tensor.compareType,
-                    semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+                    semanticLabel: tensor.semantic_label?.label ?? '',
                     id: nodeId,
                     magic: `${tensor.magic}`,
                     subgraphId: graphId,
@@ -1372,7 +1382,7 @@ export class AscppDagBuilder {
             type: 'node:tensor',
             id: nodeId,
             compareType: tensor.compareType!,
-            semanticLabel: tensor.semantic_label?.length > 0 ? tensor.semantic_label[0]: '',
+            semanticLabel: tensor.semantic_label?.label ?? '',
             // compareType: compareType,
             magic: `${tensorMagic}`,
             role: nodeRole,
@@ -1910,8 +1920,8 @@ export class AscppDagBuilder {
         const memTypeStr = MEMTYPE_MAP[memType] || 'MEM_UNKNOWN';
 
         const offsetSize = reader.readNumber();
-        const offset = parseSymbolicOrIntList(reader, offsetSize);
-        const shape = parseSymbolicOrIntList(reader, offsetSize);
+        const offset = parseSymbolicOrIntList(reader, offsetSize, this.version);
+        const shape = parseSymbolicOrIntList(reader, offsetSize, this.version);
 
         labelAttr.push(`shape: [${shape.join(',')}]`);
         if (isCopyOut) {
@@ -1947,10 +1957,10 @@ export class AscppDagBuilder {
         }
 
         const dynOffsetSize = reader.readNumber();
-        const dynOffsetParse = parseExprList(reader, dynOffsetSize);
+        const dynOffsetParse = parseExprList(reader, dynOffsetSize, this.version);
 
         const dynShapeSize = reader.readNumber();
-        const dynShapeParse = parseExprList(reader, dynShapeSize);
+        const dynShapeParse = parseExprList(reader, dynShapeSize, this.version);
 
         labelAttr.push(`shape: [${dynShapeParse.join(',')}]`);
         if (isAssemble) {
@@ -1972,7 +1982,7 @@ export class AscppDagBuilder {
             BaseGraphMsgHandler.returnError(this.server,getIDELang() === 'en' ? `The attribution of operation ${op.opcode} is invalid.` : `op节点${op.opcode}的attr信息无效`)
         }
     
-        const reader = new AttrReader(attr!);
+        const reader = new AttrReader(this.server, attr!);
     
         switch (opcodeStr) {
             case 'copy_in':
@@ -2224,7 +2234,7 @@ export class AscppDagBuilder {
             magic: opmagic,
             hasAttr: hasAttrValue,
             compareType: op.compareType,
-            semanticLabel: op.semantic_label?.length > 0 ? op.semantic_label[0]: '',
+            semanticLabel: op.semantic_label?.label ?? '',
             baseColor: baseColor,
             lightColor: lightColor,
             codePath: codePath,

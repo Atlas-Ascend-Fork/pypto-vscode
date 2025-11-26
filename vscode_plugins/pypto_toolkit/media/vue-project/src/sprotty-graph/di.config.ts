@@ -97,7 +97,7 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     server.askLayout({ data: elkGraph });
     return new Promise((resolve, reject) => {
       watch(server.LayoutResult, (newValue) => {
-        if (!newValue.data.filePath || newValue.data.filePath === elkGraph.layoutOptions['PyPTO.filePath']) {
+        if (!newValue.filePath || newValue.filePath === elkGraph.layoutOptions['PyPTO.filePath']) {
           resolve(newValue.data);
         }
       });

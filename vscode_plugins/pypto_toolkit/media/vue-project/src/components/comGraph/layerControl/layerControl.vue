@@ -48,7 +48,7 @@
         </div>
         <div class="node-display-mode node_cont">
           <div class="title mb-8">节点控制</div>
-          <d-select class="mb-2" style="height: 48px; max-height: 48px; overflow-y: auto;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" placeholder="全部展示"/>
+          <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" placeholder="全部展示"/>
         </div>
       </div>
     </div>
@@ -106,7 +106,7 @@ const nodeDisplayMode = ref('all');
 .layer-control-container {
   position: fixed;
   z-index: 1040;
-  width: 260px;
+  width: 280px;
   color: var(--devui-primary-text);
   border-radius: 8px;
   background-color: var(--devui-select-bg);
@@ -223,6 +223,12 @@ const nodeDisplayMode = ref('all');
 :deep(.devui-select__selection) {
   max-height: 48px;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: 0px;
   align-items: stretch !important;
+
+  &::-webkit-scrollbar {
+    width: 0;
+  }
 }
 </style>

@@ -2,9 +2,13 @@ import { SModelRootImpl} from 'sprotty';
 import { comGraphStore } from '../service/com-graph-store';
 import cssraw from './style/diagram.css?raw';
 
-const moreBorder = 50;
+const moreBorder = 100;
+let xBoundary = 0;
+let yBoundary = 0;
 
 function downloadSvgFile(svgString: string, fileName: string = 'diagram.svg') {
+    xBoundary = 0;
+    yBoundary = 0;
     const blob = new Blob([svgString], {type: 'image/svf+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -23,6 +27,18 @@ function copyAttr(originElem: Element, targetElem: Element) {
     attrList.forEach(attr => {
         targetElem.setAttribute(attr.name, attr.value);
     });
+
+    const isTarget = originElem.tagName === 'g';
+    if (isTarget) {
+        const originViewInfo = originElem.getBoundingClientRect();
+        const originTranslate = originElem.getAttribute('transform')?.match(/-?\d+(?:\.\d+)?/g);
+
+        if (originTranslate) {
+            const [xBlankOffset, yBlankOffset] = [originTranslate.at(-2), originTranslate.at(-1)];
+            xBoundary = Math.max(Number(xBlankOffset) + originViewInfo.width, xBoundary);
+            yBoundary = Math.max(Number(yBlankOffset) + originViewInfo.height, yBoundary);
+        }
+    }
 
     for (let i = 0; i < originElem.childNodes.length; ++i) {
         const originElemChild = originElem.childNodes[i];
@@ -68,14 +84,12 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
         addStyles(svgElementNew);
 
         const g = svgElementNew.querySelector('g');
+        const width = xBoundary + moreBorder;
+        const height = yBoundary + moreBorder;
+        svgElementNew.setAttribute('width', width?.toString());
+        svgElementNew.setAttribute('height', height?.toString());
 
-        const gWidth = (g.getBoundingClientRect().width) + moreBorder;
-        const gHeight = (g.getBoundingClientRect().height) + moreBorder;
-
-        svgElementNew.setAttribute('width', gWidth?.toString());
-        svgElementNew.setAttribute('height', gHeight?.toString());
-
-        let resizeTransform = svgElementNew.querySelector('g').getAttribute('transform');
+        let resizeTransform = g.getAttribute('transform');
         resizeTransform = resizeTransform.replace(/translate\([^)]*\)/g, 'translate(0, 0)');
         svgElementNew.querySelector('g').setAttribute('transform', resizeTransform);
 
@@ -87,7 +101,6 @@ export function createSvg(svgElementOrig: SVGSVGElement, skipCopyStyles?: boolea
         svgElementNew.setAttribute('style', svgElementNewStyle);
 
         parentNode.querySelectorAll('image')?.forEach(g_image => g_image.remove());
-
     }
 
     const svgCode = midSerializer.serializeToString(svgElementNew);

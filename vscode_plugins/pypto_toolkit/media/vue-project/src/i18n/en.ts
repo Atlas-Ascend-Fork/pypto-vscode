@@ -105,7 +105,6 @@ export default {
     pleaseSelect: 'Please select',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
-    'hierarchy': 'Hierarchy: ',
     'totalEvents': 'There are {eventNum} events in total.',
     'AICore':'AICore Utilization',
     'CubeUtilization':'Cube Utilization',
@@ -120,6 +119,8 @@ export default {
     layout: 'Layout',
     interlockModeSearchTip: 'In linkage mode, after locking the semantic tags, the search function is not supported.',
     reset: 'Reset width and height',
+    measureCategoryPlaceholder: 'Click here to add filter criteria',
+    noSearchCondition:'No filter criteria',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

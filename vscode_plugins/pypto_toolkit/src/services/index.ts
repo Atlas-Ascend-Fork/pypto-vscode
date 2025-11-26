@@ -1,6 +1,9 @@
+import * as vscode from 'vscode';
+
 import { getControlFlow } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } from './tmp-view-opener';
 import { getOutputRecords, getOutputDetail } from './workspace';
+import { RunDataService } from './run-data';
 import {
   getSchemaData,
   getTileFwkConfigData,
@@ -53,3 +56,13 @@ export const services = {
     getTileFwkConfigData,
   },
 };
+
+let singletonServices: { runData: RunDataService };
+
+export function startAllServices(context: vscode.ExtensionContext) {
+  singletonServices = { runData: new RunDataService(context) };
+}
+
+export function useService(name: keyof typeof singletonServices) {
+  return singletonServices[name];
+}

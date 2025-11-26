@@ -1,6 +1,10 @@
 import { generateColorList, getColorByString } from './color-list';
 import BigNumber from 'bignumber.js'
 import { getMTime, SQLiteCache } from './core/sqliteCache';
+import { dirname, join, extname, resolve } from 'path';
+import * as vscode from 'vscode';
+import { createReadStream, existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
+import { hismartliteEx } from './hismarliteEx';
 
 // 异步初始化颜色列表
 let darkThemeColors: any = null;
@@ -558,6 +562,19 @@ const calculateDependencies = (events, connections) => {
       await SQLiteCache.getInstance().swimGraphLane2lineSet(swimPath, lastChangeTime, key, lane2line[key]);
     }
   }
+
+  export async function saveParsedInfoToDB(swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: string) {
+    const sanitizedTime = lastChangeTime.replace(/[:<>"|?*]/g, '-');
+    const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
+    const fileName = `${sanitizedPath}-${sanitizedTime}.json`;
+    const dbSwimStore = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', fileName);
+    const fileUri = vscode.Uri.file(dbSwimStore);
+    const data = new TextEncoder().encode(info);
+    await vscode.workspace.fs.writeFile(fileUri, data);
+    await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
+    await SQLiteCache.getInstance().save();
+  }
+
 
   export async function savePmuToDB(pmuPath: string, pmuInfo: Object, lastChangeTime: string) {
     for (const uid in pmuInfo) {

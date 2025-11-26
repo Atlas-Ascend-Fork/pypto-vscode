@@ -1,5 +1,5 @@
 <template>
-  <div class="thread-events" :data-process-container="process.key" tabindex="0">
+  <div class="thread-events" :data-process-container="process.key" tabindex="0" @mouseleave="divMouseLeave">
     <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
          class="lock-indicator"
          @click="lockClick"
@@ -54,7 +54,7 @@ import { isEqual, throttle } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext } from './render/utils';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
-import { ThreeRender, spaceInThreeCol } from './render/threeRender';
+import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
 
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -268,7 +268,9 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown);
   document.removeEventListener('keyup', onKeyUp);
   throttledRender.cancel();
-  threeRender.stopAnimate();
+  if (isAnimation) {
+    clearSelectionCanvas('data-three-column-process-key');
+  }
 });
 
 const onKeyDown = (e) => {
@@ -336,6 +338,9 @@ const handlekeydown = (event) => {
       postMessage($t('scaleMinInfo'));
     }, 100);
     return;
+  }
+  if (isAnimation && !isLockStatus.value) {
+    clearSelectionCanvas('data-three-column-process-key');
   }
   switch(true) {
     case matchKey(key, userConfig?.value.ZoomInShortcut):
@@ -755,6 +760,9 @@ const resizeDrawBoundary = () => {
       onSelectionEvent(event, eventCtx, processKey, false);
     });
   });
+  if (!boundaries.length) {
+    return;
+  }
   threeRender.drawBoundary(boundaries, props.processKey);
   threeRender.animate();
 };
@@ -848,7 +856,7 @@ const clearSelectionCanvas = (key) => {
   }
   points = [];
   boundaries = [];
-  lockPosition.value = isLockStatus.value ? lockPosition.value : false;
+  lockPosition.value = isLockStatus.value ? lockPosition.value : null;
   threeRender.stopAnimate();
 };
 function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
@@ -885,11 +893,18 @@ const handleMouseUp = throttle((e) => {
   selectionFinished(e);
 }, 16);
 
+const divMouseLeave = throttle((e) => {
+  if (isAnimation && !isLockStatus.value) {
+    clearSelectionCanvas('data-three-column-process-key');
+  }
+}, 16);
+
 const handleMouseLeave = throttle((e) => {
   hideTooltip();
   if (isDragging.value) {
     selectionFinished(e);
   }
+  e.stopPropagation();
 }, 16);
 const selectionFinished = (e) => {
   if(isLockStatus.value) {
@@ -1085,7 +1100,7 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
     }
   }
 
-  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 0.5);
+  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 1);
   eventRenderer.drawEvent(drawDatas, eventCtx, isDimmed);
   if (needText) {
     eventRenderer.drawEventText(drawDatas, eventCtx, isDimmed);
@@ -1733,6 +1748,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 整个被隐藏在视口之外
+    let eventWidth = maxX - minX;
     leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
     needRender = false;
   }

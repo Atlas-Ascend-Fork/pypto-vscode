@@ -357,11 +357,11 @@ const onSearch = (term) => {
     for (const [threadKey, thread] of process.threads.entries()) {
       thread.events.forEach(event => {
         if (isCaseSensitive.value) {
-          if (getDisplayName(event).includes(term)) {
+          if (event.name.includes(term)) {
             searchResult.value.push([event, thread.threadName, processkey]);
           }
         } else {
-          if (getDisplayName(event).toLowerCase().includes(termL)) {
+          if (event.name.toLowerCase().includes(termL)) {
             searchResult.value.push([event, thread.threadName, processkey]);
           }
         }
@@ -381,6 +381,9 @@ const onSearch = (term) => {
     currentResultIndex.value += 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
+  if (!target) {
+    return;
+  }
   selectEventChild(target.at(0));
   scrollToEvent(target.at(0));
 };

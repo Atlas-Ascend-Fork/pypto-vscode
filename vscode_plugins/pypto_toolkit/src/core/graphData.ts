@@ -33,6 +33,7 @@ export abstract class GraphData {
   callHashArrMap: Record<string, string> = {};
   calleeOpAttrMap: Record<string, string> = {};
   isUsedDB = false;
+  version?: string;
 
   /** 外部可 await 的“写入+提交”完成信号 */
   public writeDone!: Promise<void>;
@@ -51,10 +52,26 @@ export abstract class GraphData {
   // 读取json文件并存入缓存 并返回大小文件判断
   async readFileAndSetCache(fsPath: string, server: any): Promise<readFileResult> {
     const fileStream = createReadStream(fsPath);
-    const pipeline = fileStream.pipe(parser()).pipe(streamValues());
+    const jsonParser = parser();
+    const valuesStreamer = streamValues();
     const result: readFileResult = { isBigFile: false };
 
     return await new Promise((resolve, reject) => {
+      fileStream.on('error', (err) => {
+        // 文件读取错误（如文件不存在、权限问题）
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+      });
+
+      jsonParser.on('error', (err) => {
+        // JSON 解析错误（如格式无效）
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+      });
+
+      valuesStreamer.on('error', (err) => {
+        // StreamValues 错误（较少见，但保险起见）
+        reject(err);
+      });
+      const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
       pipeline
         .on('data', async (ele) => {
           // 处理数据
@@ -186,21 +203,31 @@ export abstract class GraphData {
     }
   }
 
-  static async getEntryHash(fsPath: string): Promise<string | undefined> {
+  static async getEntryHashAndVersion(fsPath: string): Promise<EntryInfo> {
     return new Promise((resolve, reject) => {
-      const pipeline = createReadStream(fsPath).pipe(parser());
-      const picked = pipeline.pipe(pick({ filter: 'entryhash' }));
-      picked.on('data', (chunk: any) => {
-        if (chunk.name === 'stringValue') {
-          resolve(chunk.value);
-          picked.destroy();
-        }
-      });
-      picked.on('end', () => {
-        resolve(undefined);
-      });
+      const pipeline = createReadStream(fsPath).pipe(parser()).pipe(streamValues());
+
+      pipeline
+        .on('data', (data: any) => {
+          const obj = data.value;
+          if (obj && typeof obj === 'object') {
+            const result: EntryInfo = {
+              entryhash: typeof obj.entryhash === 'string' ? obj.entryhash : undefined,
+              version: typeof obj.version === 'string' ? obj.version : undefined,
+            };
+            pipeline.destroy();
+            resolve(result);
+          }
+        })
+        .on('end', () => resolve({}))
+        .on('error', reject);
     });
   }
+}
+
+interface EntryInfo {
+  entryhash?: string;
+  version?: string;
 }
 
 export class SingleGraphData extends GraphData {

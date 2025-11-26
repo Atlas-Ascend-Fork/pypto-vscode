@@ -6,8 +6,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, inject } from 'vue';
+import type { IThreeColumnCtx, BlockType } from './types';
+import { ThreeColumnProvideKey } from './types';
 
+const { dragStartBlock } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
 const dragEl = ref<HTMLElement>();
 
 function getCurrentBlock() {
@@ -25,7 +28,21 @@ function getCurrentBlock() {
   }
 }
 function onDragstart(e: DragEvent) {
-  e.dataTransfer.setData('threeColumnBlock', getCurrentBlock());
+  const blockName = getCurrentBlock() as BlockType;
+  e.dataTransfer.setData('threeColumnBlock', blockName);
+  dragStartBlock.value = blockName;
+  const contentEl = document.querySelector('.three-column-content');
+  if (contentEl) {
+    const editorEl = contentEl.querySelector(`.three-column-item.three-column-item-${blockName} .editor-container`);
+    if (editorEl) {
+      (editorEl as HTMLElement).style.pointerEvents = 'none';
+    }
+    const itemEls = contentEl.querySelectorAll(`.three-column-item:not(.three-column-item-${blockName})`);
+    itemEls.forEach((item) => {
+      const blockEl = item.querySelector('.three-column-block');
+      (blockEl as HTMLElement).style.pointerEvents = 'none';
+    });
+  }
 }
 </script>
 

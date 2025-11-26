@@ -8,7 +8,11 @@ export interface TensorNode {
   magic: string;
   subgraphid: number;
   rawtensor?: string;
-  semantic_label?: string;
+  semantic_label?: {
+    filename?: string;
+    label?: string;
+    lineno?: number;
+  };
   [key: string]: any;
 }
 
@@ -193,7 +197,7 @@ export function searchFunc(
       if (option === 'semantic_label')
         return Object.values(tensorMap)
           .flatMap((m) => Object.values(m))
-          .filter((n) => n.semantic_label === searchKey);
+          .filter((n) => n.semantic_label?.label === searchKey);
       // 默认模糊
       return Object.values(tensorMap)
         .flatMap((m) => Object.values(m))

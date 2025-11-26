@@ -742,6 +742,10 @@ export class AstgrOpMinimapView extends RectangularNodeView {
   }
 }
 
+const handleLockToggle = () => {
+  (window as any).ascEventBus.emit('lockToggleChange', true);
+}
+
 @injectable()
 export class AstgrRectView extends RectangularNodeView {
   override render(
@@ -749,7 +753,9 @@ export class AstgrRectView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs
   ): VNode | undefined {
-
+    if (!node.selectedNodes.length) {
+      return undefined;
+    }
     if (node.needCalPostion) {
       node.needCalPostion = false;
       const nodeMap = node.parent.index.id2element;
@@ -761,6 +767,9 @@ export class AstgrRectView extends RectangularNodeView {
       
       for (let i = 0; i < node.selectedNodes.length; i++) {
         const tmpNodes = nodeMap.get(node.selectedNodes[i]);
+        if (!tmpNodes.size.width) {
+          return undefined;
+        }
         if (!tmpNodes) {
           continue;
         }
@@ -802,16 +811,35 @@ export class AstgrRectView extends RectangularNodeView {
 
     return (
       <g>
+        <defs>
+          <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="rgba(255,255,255,0)"/>
+            <stop offset="40%" stop-color="rgba(255,255,255,0.5)"/>
+            <stop offset="80%" stop-color="#b8adfd"/>
+            <stop offset="100%" stop-color="#db95fb"/>
+          </linearGradient>
+        </defs>
         <rect
           class-op={true}
           class-sprotty-node={true}
           width={node.customSize.width}
           height={node.customSize.height}
-          fill="transparent"
-          stroke="#317af7"
+          fill="rgba(144,184,249,0.1)"
+          stroke="rgba(255,255,255,0.2)"
           stroke-width={strokeWidth}
         ></rect>
-        <g id='show_node_rect_lock'>
+        <rect
+          class-op={true}
+          class-sprotty-node={true}
+          class-sprotty-rect-animate={true}
+          width={node.customSize.width}
+          height={node.customSize.height}
+          fill="transparent"
+          stroke-width={strokeWidth}
+          stroke
+          stroke="url(#rainbow)"
+        ></rect>
+        <g id='show_node_rect_lock' on-click={handleLockToggle}>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
           <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
         </g>
@@ -1388,6 +1416,7 @@ export class CustomCompartmentView extends SCompartmentView {
   render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
     const isMetadataCompartment = compartment.id.includes("metadata-compartment");
+    const lastChirdPosY = compartment.children?.at(-1)?.position?.y > 0;
 
     const selIndexes = comGraphStore.data.selectCustom;
     const selSet = new Set(selIndexes);
@@ -1414,7 +1443,7 @@ export class CustomCompartmentView extends SCompartmentView {
     }
 
     let vnode: VNode;
-    if (isMetadataCompartment && selIndexes.length > 0) {
+    if (isMetadataCompartment && selIndexes.length > 0 && lastChirdPosY) {
       const children: VNode[] = [];
       let runningY = 0;
 
