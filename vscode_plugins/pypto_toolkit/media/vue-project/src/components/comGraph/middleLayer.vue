@@ -124,11 +124,13 @@ function setupComWatchers(server: any) {
 
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
-    comLoadFlag.value = true;
-    swimLoadFlag.value = true;
-    await server.getInitialData();
-    server.returnFuncTree();
-  });
+    if (server.InitFlag.value == 'true') {
+      comLoadFlag.value = true;
+      swimLoadFlag.value = true;
+      await server.getInitialData();
+      server.returnFuncTree();
+    }
+  }, { immediate: true });
   watch(server.SetThreeColumnMode, () => {
     inThreeColumnMode = true;
   });
@@ -150,9 +152,9 @@ onMounted(async () => {
   if (graphType.value === 'swimGraph') {
     await server.getInitialData();
   }
-  if (graphType.value === 'threeColumnGraph') {
-    await server.pageInit();
-  }
+  // if (graphType.value === 'threeColumnGraph') {
+  //   await server.pageInit();
+  // }
   (window as any).ascEventBus.on('comGraphRendering', (args) => {
     loadingStep.value = args;
   });
@@ -219,123 +221,124 @@ function entrySearchModeSet() {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <d-skeleton v-if="!comLoadFlag" :round="round">
-        <template #placeholder>
-          <div style="position:absolute; top: 40%; left: 20%;">
-            <div class="com-skeleton-line">
-              <div>
-                <d-skeleton-item class="com-skeleton-item" style="height: 52px;"></d-skeleton-item>
-              </div>
-              <div>
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
-              </div>
-              <div style="">
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
-                <d-skeleton-item class="com-skeleton-item align-center"></d-skeleton-item>
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
-              </div>
-              <div>
-                <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+        <d-skeleton v-if="!comLoadFlag" :round=true>
+          <template #placeholder>
+            <div style="position:absolute; top: 40%; left: 20%;">
+              <div class="com-skeleton-line">
+                <div>
+                  <d-skeleton-item class="com-skeleton-item" style="height: 52px;"></d-skeleton-item>
+                </div>
+                <div>
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                </div>
+                <div style="">
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                  <d-skeleton-item class="com-skeleton-item align-center"></d-skeleton-item>
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                </div>
+                <div>
+                  <d-skeleton-item class="com-skeleton-item"></d-skeleton-item>
+                </div>
               </div>
             </div>
-          </div>
-          
-        </template>
-        
+
+          </template>
+
 
         </d-skeleton>
         <SimpleComGraph v-if="comLoadFlag" :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
       <template #swimGraph>
-        <d-skeleton v-if="!swimLoadFlag" :round="round">
-        <template #placeholder>
-          <div class="swim-skeleton-line">
-            <div class="swim-skeleton-grid">
-              <d-skeleton-item class="swim-skeleton-item"
-                style="margin-top: 22px;margin-bottom: 22px;"></d-skeleton-item>
-            </div>
-            <div class="swim-skeleton-grid" style="width: 87%;">
-            </div>
-          </div>
-          <div class="swim-skeleton-line">
-            <div class="swim-skeleton-grid">
-              <d-skeleton-item class="swim-skeleton-item"
-                style="margin-top: 12px;margin-bottom: 12px;"></d-skeleton-item>
-            </div>
-            <div class="swim-skeleton-grid" style="width: 87%;">
-            </div>
-          </div>
-          <div class="swim-skeleton-line" style="height: 79%; ">
-            <div class="swim-skeleton-grid">
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-              <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
-            </div>
-            <div class="swim-skeleton-grid" style="width: 87%;">
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 320px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 240px;"></d-skeleton-item>
+        <d-skeleton v-if="!swimLoadFlag" :round=true>
+          <template #placeholder>
+            <div class="swim-skeleton-line">
+              <div class="swim-skeleton-grid">
+                <d-skeleton-item class="swim-skeleton-item"
+                  style="margin-top: 22px;margin-bottom: 22px;"></d-skeleton-item>
               </div>
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-              </div>
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-              </div>
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 320px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 240px;"></d-skeleton-item>
-              </div>
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 160px;"></d-skeleton-item>
-              </div>
-              <div class="swim-skeleton-item-3-2-line">
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
-                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
-                  style="width: 120px;"></d-skeleton-item>
+              <div class="swim-skeleton-grid" style="width: 87%;">
               </div>
             </div>
-          </div>
-        </template>        </d-skeleton>
+            <div class="swim-skeleton-line">
+              <div class="swim-skeleton-grid">
+                <d-skeleton-item class="swim-skeleton-item"
+                  style="margin-top: 12px;margin-bottom: 12px;"></d-skeleton-item>
+              </div>
+              <div class="swim-skeleton-grid" style="width: 87%;">
+              </div>
+            </div>
+            <div class="swim-skeleton-line" style="height: 79%; ">
+              <div class="swim-skeleton-grid">
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+                <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-1"></d-skeleton-item>
+              </div>
+              <div class="swim-skeleton-grid" style="width: 87%;">
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 320px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 240px;"></d-skeleton-item>
+                </div>
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                </div>
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                </div>
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 320px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 240px;"></d-skeleton-item>
+                </div>
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 160px;"></d-skeleton-item>
+                </div>
+                <div class="swim-skeleton-item-3-2-line">
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                  <d-skeleton-item class="swim-skeleton-item swim-skeleton-item-3-2"
+                    style="width: 120px;"></d-skeleton-item>
+                </div>
+              </div>
+            </div>
+          </template> </d-skeleton>
         <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
       :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
-    <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson" :afterFileName="diffInfo.afterFileName"
-      :beforeJson="diffInfo.beforeJson" :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
+    <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
+      :afterFileName="diffInfo.afterFileName" :beforeJson="diffInfo.beforeJson"
+      :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
     <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
       @full-render="onFullRender" @search-mode="entrySearchModeSet" />
     <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
@@ -353,11 +356,13 @@ function entrySearchModeSet() {
 .com-skeleton-line {
   display: flex;
 }
+
 .com-skeleton-item {
   width: 80px;
   height: 24px;
   margin: 8px 16px 8px 16px;
 }
+
 .swim-skeleton-grid {
   border-right: 1px solid var(--devui-split-line);
 }

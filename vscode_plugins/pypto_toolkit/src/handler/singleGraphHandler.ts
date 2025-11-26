@@ -13,7 +13,8 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         server.query.outputDirPath,
         server.query.pathName,
         server.query.curPath,
-        server.query.magicName
+        server.query.magicName,
+        server.query.parentInfo
       );
     }
 

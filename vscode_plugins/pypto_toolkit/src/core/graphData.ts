@@ -47,6 +47,7 @@ export abstract class GraphData {
     public pathName?: string,
     public curPath?: string,
     public magicName?: string,
+    public parentInfo?: any,
   ) {}
 
   // 读取json文件并存入缓存 并返回大小文件判断
