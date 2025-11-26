@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { getControlFlow } from './control-flow';
+import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } from './tmp-view-opener';
 import { getOutputRecords, getOutputDetail } from './workspace';
 import { RunDataService } from './run-data';
@@ -18,6 +18,10 @@ export const services = {
   controlFlow: {
     /** 获取控制流 */
     getControlFlow,
+    /** 获取控制流代码片段 */
+    getSnippetCodeText,
+    /** 打开代码片段源代码文件 */
+    openControlFlowTargetFile,
   },
   // 工作区
   workspace: {

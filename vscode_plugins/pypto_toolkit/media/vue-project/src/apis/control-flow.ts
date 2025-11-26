@@ -1,6 +1,7 @@
 import { request, RequestOptions } from '@/core/request';
 
 import type { GetControlFlowParams, GetControlFlowRes } from '../../../../src/services/control-flow';
+import { SourceCodeRequestDto } from 'ext:/types/control-flow/basic-node';
 
 const CONTROL_FLOW_PREFIX = 'controlFlow';
 
@@ -9,4 +10,18 @@ const CONTROL_FLOW_PREFIX = 'controlFlow';
  */
 export function getControlFlow(params: GetControlFlowParams, options?: RequestOptions): Promise<GetControlFlowRes> {
   return request.post(`${CONTROL_FLOW_PREFIX}/getControlFlow`, params, options);
+}
+
+/**
+ * 获取控制流代码片段
+ */
+export function getSnippetCodeText(params: SourceCodeRequestDto): Promise<string> {
+  return request.post(`${CONTROL_FLOW_PREFIX}/getSnippetCodeText`, params);
+}
+
+/**
+ * 打开代码片段源代码文件
+ */
+export function openControlFlowTargetFile(params: SourceCodeRequestDto): Promise<string> {
+  return request.post(`${CONTROL_FLOW_PREFIX}/openControlFlowTargetFile`, params);
 }

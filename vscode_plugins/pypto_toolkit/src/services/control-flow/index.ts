@@ -5,6 +5,8 @@ import { ComputeDirectory } from '../../types/workspace';
 import { getOutputDetail } from '../workspace';
 
 import { FlowTreeAnalyzer } from './flow-tree';
+import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';
+import { SourceCodeRequestDto } from '../../types/control-flow/basic-node';
 
 export interface GetControlFlowParams {
   /** 编译结果文件夹路径 */
@@ -43,4 +45,24 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
 
   const analyzer = new FlowTreeAnalyzer(program, passes);
   return { data: analyzer.getControlFlow() };
+}
+
+/**
+ * 获取代码预览信息
+ * @param params 控制流节点读取源码字段
+ * @returns 返回指定行代码片段
+ */
+export async function getSnippetCodeText(params: SourceCodeRequestDto): Promise<string> {
+  const sourceCodeUri = vscode.Uri.file(params.filePath);
+  const codeTextDocument = await readLinesByTextDocument(sourceCodeUri, params.startLine, params.endLine);
+  return codeTextDocument;
+}
+
+/**
+ * 分屏打开源代码指定行
+ * @param params 控制流节点读取源码字段
+ */
+export async function openControlFlowTargetFile(params: SourceCodeRequestDto) {
+  const fileUri = vscode.Uri.file(params.filePath);
+  openTargetFileInSplit(fileUri, params.line);
 }

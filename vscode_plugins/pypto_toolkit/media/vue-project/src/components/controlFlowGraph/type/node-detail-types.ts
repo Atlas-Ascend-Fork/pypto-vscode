@@ -98,13 +98,18 @@ export interface CombsType {
     magic: number;
     magicName: string;
     hash: string;
-    sourceCode?: {
+    level: string;
+    scale: number;
+    sourceCode: {
       filePath: string;
       startLine: number;
       endLine: number;
+      line: number;
+      language: string;
     };
   };
   comboWidth: number; //记录loop宽度
+  states: string[];
 }
 
 /**
@@ -206,4 +211,22 @@ export interface SearchSelectItem {
   data: CombsType;
   label: string;
   value: string;
+}
+
+// 定义预览状态接口
+export interface PreviewState {
+  isVisible: boolean;
+  x: number;
+  y: number;
+  fileDir: string;
+  codeStartLine: number;
+  codeEndLine: number;
+  language: string;
+  line: number;
+}
+
+// 定义预览组件接受内容接口
+export interface CodePreviewProps {
+  config: PreviewState;
+  theme: 'vs' | 'vs-dark';
 }

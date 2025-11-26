@@ -1,4 +1,8 @@
 <template>
+  <div>
+    <!-- 代码预览组件 -->
+    <CodeSnippetPreview :config="codePreviewState" :theme="isDarkTheme ? 'vs-dark' : 'vs'" @close="codePreviewState.isVisible = false" />
+  </div>
   <div class="g6-flow-chart">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
@@ -58,7 +62,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CommonEvent, ExtensionCategory, Graph, GraphEvent, register } from '@antv/g6';
 import RightPanel from '@/components/controlFlowGraph/components/RightPanel.vue';
@@ -76,7 +80,8 @@ import { useInitGraph } from '@/components/controlFlowGraph/hooks/useInitGraph';
 import DataError from './components/DataError.vue';
 import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
-import { CombsType, ControlFlowNodesType, EdgesType, SearchSelectItem } from './type/node-detail-types';
+import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectItem } from './type/node-detail-types';
+import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -95,10 +100,21 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
+// 有预览相关状态
+const codePreviewState = reactive<PreviewState>({
+  isVisible: false,
+  x: 0,
+  y: 0,
+  fileDir: '',
+  codeStartLine: 0,
+  codeEndLine: 0,
+  line: 0,
+  language: '',
+});
 const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
 const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
-const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme);
+const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme, codePreviewState);
 const clearAllNodeState = {};
 
 /**
@@ -216,7 +232,7 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
   register(ExtensionCategory.COMBO, 'combo-with-extra-button', LogoWithRectCombo);
   register(ExtensionCategory.BEHAVIOR, 'level-of-detail', LevelOfDetail);
   const container = chartContainer.value as HTMLDivElement;
-  const { g6Graph } = useInitGraph(container, minimapPluginOptions, nodes, edges, combos, isDarkTheme, combosNode);
+  const { g6Graph } = useInitGraph(container, minimapPluginOptions, nodes, edges, combos, isDarkTheme, combosNode, codePreviewState);
   graph = g6Graph;
   graphRef.value = g6Graph;
   // 绘制

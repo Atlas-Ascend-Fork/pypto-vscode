@@ -1,23 +1,40 @@
 import { Ref, ref } from 'vue';
 import { RectCombo, RectComboStyleProps, subStyleProps } from '@antv/g6';
-import { PathCardData } from '@/components/controlFlowGraph/type/node-detail-types';
+import { CombsType, PreviewState } from '@/components/controlFlowGraph/type/node-detail-types';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
 
 /**
  * 自定义组合节点hook函数
+ * @param isDarkTheme 主题
+ * @param codePreviewState  代码片段预览状态控制
+ * @returns
  */
-export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
+export function useComboCardNodes(isDarkTheme: Ref<boolean>, codePreviewState: PreviewState) {
   const loopLeftSvg = ref(`${window.staticPath}/static-assets/loop.svg`);
   const loopLeftSvgLight = ref(`${window.staticPath}/static-assets/loop-light.svg`);
+  const codeViewIconSvg = ref(`${window.staticPath}/static-assets/control_flow_code.svg`);
+  const codeViewIconSvgLight = ref(`${window.staticPath}/static-assets/control_flow_code-light.svg`);
+  const codeViewIconSvgHover = ref(`${window.staticPath}/static-assets/control_flow_code-hover.svg`);
   const DEFAULT_LEVEL = 'detailed';
-
+  // 显示预览窗口
+  const handleShowPreview = (e, nodeData: CombsType) => {
+    const data = nodeData.data;
+    codePreviewState.x = e.viewport.x;
+    codePreviewState.y = e.viewport.y;
+    codePreviewState.isVisible = true;
+    codePreviewState.fileDir = data.sourceCode.filePath ? data.sourceCode.filePath : '';
+    codePreviewState.codeStartLine = data.sourceCode.startLine;
+    codePreviewState.codeEndLine = data.sourceCode.endLine;
+    codePreviewState.language = data.sourceCode.language;
+    codePreviewState.line = data.sourceCode.line;
+  };
   // 自定义组合
   class LogoWithRectCombo extends RectCombo {
     /**
      *  获取节点原始数据
      */
     get nodeData() {
-      return this.context.graph.getNodeData(this.id) as { data?: PathCardData };
+      return this.context.graph.getNodeData(this.id) as CombsType;
     }
 
     get level() {
@@ -27,14 +44,15 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
       return Math.round(this.data.scale * 100) / 100 || 0.3;
     }
     get data() {
-      return this.nodeData.data || {};
+      return this.nodeData.data;
     }
 
-    getSmallLoopTitleBG(x, y, isSelectedHitAreaColor, isShowAll, scalingFactor) {
+    getSmallLoopTitleBG(x, y, isSelectedHitAreaColor, isShowAll, scalingFactor, isHasTargetFile) {
+      const baseWidth = isHasTargetFile ? 50 + this.id.length * 10.3 : 20 + this.id.length * 10.3;
       return {
         y: y - 15,
         x,
-        width: isShowAll ? (20 + this.id.length * 10.3) * scalingFactor : 40 * scalingFactor,
+        width: isShowAll ? baseWidth * scalingFactor : 40 * scalingFactor,
         height: 32 * scalingFactor,
         radius: 8,
         fill: isSelectedHitAreaColor,
@@ -49,9 +67,18 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
         src: loopLeftIcon,
       };
     }
+    getSmallLoopRightIcon(x, y, loopRightIcon, scalingFactor, isNotShow) {
+      if (!isNotShow) return false;
+      return {
+        y: y - 20 * this.scales + (this.scales < 0.04 ? 100 : 20 * (0.5 - this.scales)),
+        x: x + (50 + this.id.length * 10.3) * scalingFactor - 30 * scalingFactor,
+        width: 20 * scalingFactor,
+        height: 20 * scalingFactor,
+        src: loopRightIcon,
+      };
+    }
     getSmallLoopText(x, y, isActivedTextColor, isNotShow, scalingFactor) {
       if (!isNotShow) return false;
-
       return {
         y: y + 12 * ((1 - this.scales) / this.scales),
         x: x + 35 * scalingFactor,
@@ -60,6 +87,7 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
         fontSize: 16 * scalingFactor,
       };
     }
+
     async drawButton(attributes) {
       const [width, height] = this.getKeySize(attributes);
       const y = -height / 2;
@@ -68,10 +96,12 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
       let isSelected = false;
       let isActived = false;
       let isHidden = false;
+      let isCodeViewHover = false;
       if (states && states.length > 0) {
-        isSelected = states.includes('selected');
-        isActived = states.includes('active');
-        isHidden = states.includes('comboHidden');
+        isSelected = states.includes('selected');//是否被选中
+        isHidden = states.includes('comboHidden');//是否隐藏
+        isCodeViewHover = states.includes('code-view-svg');//鼠标悬浮右侧图标
+        isActived = states.includes('active') && !isCodeViewHover;//鼠标悬浮右侧图标的时候文字不变色
       }
 
       const buttonBlue = getThemeColorTool('control-flow-loop-title-bg-active', isDarkTheme.value);
@@ -80,14 +110,22 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
       const textWeak = getThemeColorTool('control-flow-loop-title-text', isDarkTheme.value);
 
       let loopLeftIcon = isDarkTheme.value ? loopLeftSvg.value : loopLeftSvgLight.value;
+      let codeViewIcon = isDarkTheme.value ? codeViewIconSvg.value : codeViewIconSvgLight.value;
       let isActivedTextColor = isActived ? textBlue : textWeak;
       let isSelectedHitAreaColor = isSelected ? buttonBlue : buttonWeak;
+      const isHasTargetFile = this.nodeData.data.sourceCode.filePath !== '';
+
       if (isSelected) {
         isActivedTextColor = '#FFFFFF'; //深色、浅色，loop选中时title颜色一致
         loopLeftIcon = loopLeftSvg.value;
+        codeViewIcon = codeViewIconSvg.value;
+      }
+      if (isCodeViewHover) {
+        codeViewIcon = codeViewIconSvgHover.value;
       }
       const isSmall = this.scales < 0.5;
       let isShowAll = this.nodeData?.combo === undefined;
+      let rightIcon;
       if (isSmall) {
         if (isSelected) {
           isShowAll = true;
@@ -96,26 +134,21 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
         // 缩放计算系数
         const scalingFactor = 0.5 / this.scales;
         // loop标签背景色板
-        this.upsert('hit-area', 'rect', this.getSmallLoopTitleBG(x, y, isSelectedHitAreaColor, isShowAll, scalingFactor), this);
+        this.upsert(
+          'hit-area',
+          'rect',
+          this.getSmallLoopTitleBG(x, y, isSelectedHitAreaColor, isShowAll, scalingFactor, isHasTargetFile),
+          this,
+        );
         // loop标签左图片
         this.upsert('left-svg', 'image', this.getSmallLoopLeftIcon(x, y, loopLeftIcon, scalingFactor), this);
         // loop标签文本
         this.upsert('loop-text', 'text', this.getSmallLoopText(x, y, isActivedTextColor, isShowAll, scalingFactor), this);
+        if (this.nodeData.data.sourceCode.filePath !== '') {
+          // loop标签右图片打开代码预览
+          rightIcon = this.upsert('code-view-svg', 'image', this.getSmallLoopRightIcon(x, y, codeViewIcon, scalingFactor, isShowAll), this);
+        }
       } else {
-        // loop标签背景色板
-        this.upsert(
-          'hit-area',
-          'rect',
-          {
-            y: y - 15,
-            x,
-            width: 20 + this.id.length * 10.3,
-            height: 35,
-            radius: 8,
-            fill: isSelectedHitAreaColor,
-          },
-          this,
-        );
         // loop标签左图片
         this.upsert(
           'left-svg',
@@ -130,7 +163,7 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
           this,
         );
         // loop标签文本
-        this.upsert(
+        const text = this.upsert(
           'loop-text',
           'text',
           {
@@ -142,13 +175,56 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>) {
           },
           this,
         );
+        const { width: textWidth } = text?.getBBox(); // 获取文本宽度
+        if (isHasTargetFile) {
+          // loop标签右图片打开代码预览
+          rightIcon = this.upsert(
+            'code-view-svg',
+            'image',
+            {
+              y: y - 8,
+              x: x + 50 + textWidth,
+              width: 20,
+              height: 20,
+              src: codeViewIcon,
+            },
+            this,
+          );
+        }
+        // loop标签背景色板
+        this.upsert(
+          'hit-area',
+          'rect',
+          {
+            y: y - 15,
+            x,
+            width: textWidth + (isHasTargetFile ? 80 : 50),
+            height: 35,
+            radius: 8,
+            fill: isSelectedHitAreaColor,
+          },
+          this,
+        );
+      }
+
+      if (rightIcon && !rightIcon.__clickBound) {
+        // 绘制下划线
+        rightIcon.addEventListener('click', (e) => {
+          // 阻止事件冒泡，避免触发节点的点击事件
+          e.stopPropagation();
+          handleShowPreview(e, this.nodeData);
+          // 如果数据中有回调函数，则调用
+          if (typeof attributes.onButtonClick === 'function') {
+            attributes.onButtonClick(this.id, this.data);
+          }
+        });
+        rightIcon.__clickBound = true; // 标记已绑定事件，避免重复绑定
       }
     }
 
     // 覆盖默认样式
     protected getKeyStyle(attributes: Required<RectComboStyleProps>) {
       const keyStyle = super.getKeyStyle(attributes);
-      const portxy = super.getSize(attributes);
       let [width, height] = this.getKeySize(attributes);
 
       if (keyStyle.childrenData[0].type !== 'path-card-node') width = width + 30;

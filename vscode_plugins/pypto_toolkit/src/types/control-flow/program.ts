@@ -48,6 +48,12 @@ export interface FunctionNode {
     /** 条件路径 [operation.opmagic， [[条件, 是否满足条件], ...]] */
     paths?: [number, DynamicCondition[]][];
   };
+
+  /** 源文件地址 */
+  file: string;
+
+  /** 源代码起始行 */
+  line: number;
 }
 
 /** 条件分支 [条件(波兰式), 是否满足] */

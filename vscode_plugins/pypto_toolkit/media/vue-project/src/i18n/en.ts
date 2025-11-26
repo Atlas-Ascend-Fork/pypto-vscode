@@ -203,6 +203,8 @@ export default {
         leafName: 'leaf function',
         openSourceCode: 'Open Source Code',
         openSwimlane: 'Open Swimlane',
+        codeSnippet:'code snippet',
+        splitScreenView:'Split screen viewing'
     },
     schemaConfig:{
         title:'Add new running configuration',
