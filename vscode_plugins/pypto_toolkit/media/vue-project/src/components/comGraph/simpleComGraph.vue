@@ -19,7 +19,7 @@
 
       <DragIcon />
 
-      <div class="sticky-block-right">
+      <div :class="['sticky-block-right', isExpandSearch && 'expand-search']">
         <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
         <ComGraphHeader
           ref="comGraphHeaderEl"
@@ -61,7 +61,7 @@ import DragIcon from '../threeColumn/drag-icon.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
-const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
+const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
 const props = defineProps({
@@ -194,7 +194,7 @@ function onMessageFromSwim(args) {
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
-  threeColumnServer.selectPassPath({paramObj: {calleehash: currentHash}});
+  threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
 });
 
 watch(threeColumnServer.GetPassPath, (newValue) => {
@@ -258,7 +258,7 @@ function onHashMenuToggleChange() {
 }
 
 const onHashChange = (val) => {
-  server.innerGetSubgraph({paramObj: { calleehash: val.value, subFuncmagicname: val.name}});
+  server.innerGetSubgraph({ paramObj: { calleehash: val.value, subFuncmagicname: val.name } });
 };
 
 const onLocate = (id) => {
@@ -427,7 +427,12 @@ onBeforeUnmount(() => {
   .sticky-block-right {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+
+    &.expand-search {
+      flex-basis: 33.33%;
+    }
 
     i {
       font-size: 14px;
@@ -436,6 +441,7 @@ onBeforeUnmount(() => {
   }
 
   .com-graph-header {
+    width: 100%;
     height: 30px;
 
     &.with-extend-btn {
@@ -443,11 +449,13 @@ onBeforeUnmount(() => {
     }
 
     .toolbar-row {
+      min-width: 170px;
       left: 0;
     }
 
     .module-toolbar-container {
       padding: 0;
+      justify-content: flex-end;
     }
 
     .module-row {
@@ -457,9 +465,13 @@ onBeforeUnmount(() => {
 
   .simple-com-root-hash-list {
     width: 140px;
+    min-width: 100px;
 
     .devui-select__input {
       height: 28px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &.not-allow-expand {

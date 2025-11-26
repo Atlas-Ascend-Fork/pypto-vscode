@@ -31,7 +31,7 @@
         </div>
         <div class="navigation" ref="navigation">
           <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{displayNav(it, index)}}</span>
-          <span class="layer-cur">{{funcMap[curPath[curPath.length - 1]]?.func_magicname}} </span>
+          <LeafList :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpBackGraph" />
         </div>
         <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
       </div>
@@ -172,6 +172,7 @@ import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import LayerControlIcon from './layerControl/layerControlIcon.vue';
 import Navbar from '../navbar/navbar.vue';
+import LeafList from './leaf-list.vue';
 import { extractIncasts,
   extractOutcasts,
   extractRawTensors,
@@ -224,6 +225,7 @@ const selectedTags = ref([]);
 const categorySearchKey = ref('');
 let passName = 'Loading';
 let curPath = ref([]);
+const curList = ref([]);
 let module_row = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
@@ -394,7 +396,6 @@ const onSelectedChange = (e) => {
     isSelectedMagic = false;
   }
 }
-
 
 function controlOperation(isShow) {
   if (isShow && !isSelectedMagic) {
@@ -672,12 +673,27 @@ function jumpSearchSubgraph(calleehash, funcMagicName) {
   }
 }
 
+function getLayerList(curPath, funcTree) {
+  if (!curPath.length) {
+    return [];
+  }
+  let curNode = funcTree;
+  for (let i = 0; i < curPath.length -1; i++) {
+    const key = curPath[i];
+    if (curNode[key]) {
+      curNode = curNode[key];
+    }
+  }
+  return Object.keys(curNode);
+}
+
 watch(server.FuncTree, (newValue:{data:any,fsPath:any,curPath:any,entry:any}) => {
   funcTree = newValue.data;
   passName = newValue.fsPath.split('\\').pop();
   curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
   entry.value = newValue.entry;
   comGraphStore.setData('curPath', newValue.curPath);
+  curList.value = getLayerList(curPath.value.slice(1), funcTree[newValue.entry]);
 });
 
 
@@ -1245,15 +1261,6 @@ onMounted(() => {
       color: rgba(99, 213, 168, 1);
     }
 }
-
-.layer-cur {
-    font-weight: bold;
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-
 </style>
 
 <style lang='scss'>

@@ -78,25 +78,16 @@ export class ThreeRender extends EventRender {
     boundaryCtx.strokeStyle = isDarkTheme.value ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
     boundaryCtx.lineWidth = 1 / viewState.scale;
     // 遍历每个区域并绘制路径
-    let lineArray: Point[] = [];
-    this.drawPath(boundaryCtx, tempRegions, lineArray);
+    this.drawPath(boundaryCtx, tempRegions);
     // 绘制不同区域的连线
-    this.drawConnectLines(lineArray, boundaryCtx);
+    this.drawConnectLines(tempRegions, boundaryCtx);
   }
 
-  private drawPath(ctx: CanvasRenderingContext2D, tempRegions: Point[][], lineArray: any) {
+  private drawPath(ctx: CanvasRenderingContext2D, tempRegions: Point[][]) {
     tempRegions.forEach((region, index) => {
       ctx.beginPath();
       const [ firstRow ] = region;
       const lastRow = region[region.length - 1];
-      if (index === 0 || index === tempRegions.length - 1) {
-        lineArray.push(index === 0 ? lastRow : firstRow);
-      } else {
-        lineArray.push(firstRow);
-        if (region.length > 1) {
-          lineArray.push(lastRow);
-        }
-      }
       // 起点：首行左上
       ctx.moveTo(...firstRow.leftTop);
       // 绘制左边界
@@ -206,34 +197,39 @@ export class ThreeRender extends EventRender {
     return targetLength;
   }
   
-  private drawConnectLines(lineArray: Point[], ctx: CanvasRenderingContext2D) {
-    if (!lineArray.length || lineArray.length < 2 || !ctx) {
-      return;
-    }
-    // 定义渐变颜色
+  private drawConnectLines(tempRegions: Point[][], ctx: CanvasRenderingContext2D) {
+    if (tempRegions.length < 2 || !ctx) return;
+  
     const gradientColors = ['#90b8f9', '#b8adfd', '#db95fb', '#ea8ede'];
-    // 计算渐变位置（假设均等分布）
     const colorStops = gradientColors.map((color, index, arr) => ({
-      color: color,
+      color,
       position: index / (arr.length - 1),
     }));
-    // 绘制每一条线段
-    lineArray.slice(0, -1).forEach((current, i) => {
-      const next = lineArray[i + 1];
-      const [cp1, cp2] = this.calculateControlPoints(current.rightBottom, next.leftTop);
+  
+    // 遍历相邻区域对
+    for (let i = 0; i < tempRegions.length - 1; i++) {
+      const currentRegion = tempRegions[i];
+      const nextRegion = tempRegions[i + 1];
+  
+      // 当前区域的出口：最后一行
+      const fromRow = currentRegion[currentRegion.length - 1];
+      // 下一区域的入口：第一行
+      const toRow = nextRegion[0];
+  
+      const [cp1, cp2] = this.calculateControlPoints(fromRow.rightBottom, toRow.leftTop);
+  
       ctx.beginPath();
-      ctx.moveTo(...current.rightBottom);
-      ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], ...next.leftTop);
-      // 创建线性渐变
-      const gradient = ctx.createLinearGradient(current.rightBottom[0], current.rightBottom[1], next.leftTop[0], next.leftTop[1]);
-      // 添加颜色停止点到渐变对象
-      colorStops.forEach((stop) => {
-        gradient.addColorStop(stop.position, stop.color);
-      });
-      // 设置线条样式为渐变
+      ctx.moveTo(...fromRow.rightBottom);
+      ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], ...toRow.leftTop);
+  
+      const gradient = ctx.createLinearGradient(
+        fromRow.rightBottom[0], fromRow.rightBottom[1],
+        toRow.leftTop[0], toRow.leftTop[1]
+      );
+      colorStops.forEach(stop => gradient.addColorStop(stop.position, stop.color));
       ctx.strokeStyle = gradient;
       ctx.stroke();
-    });
+    }
   }
 
   private calculateControlPoints(start: [number, number], end: [number, number]) {
