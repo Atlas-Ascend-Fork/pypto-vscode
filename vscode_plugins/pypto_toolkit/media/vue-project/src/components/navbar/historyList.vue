@@ -16,6 +16,7 @@
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
           </div>
+          <LoadMoreTrigger :all-loaded="allLoaded" @load-more="emits('loadMore')" />
         </div>
       </template>
     </d-dropdown>
@@ -28,8 +29,17 @@ import { computed, inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
+import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
+import { OutputRecord } from 'ext:/types/workspace';
 
-const emits = defineEmits(['recordChange']);
+defineProps<{
+  allLoaded: boolean;
+}>();
+
+const emits = defineEmits<{
+  (e: 'recordChange', item: OutputRecord): void;
+  (e: 'loadMore'): void;
+}>();
 
 const { rootProps, historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);

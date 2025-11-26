@@ -32,9 +32,6 @@ export class ViewQueryConnector {
   /** 页面参数通信器 */
   private queryConnector: WebviewConnector<ViewQuery, null>;
 
-  /** 等待传输的页面参数 */
-  private pendingQuery: WeakMap<vscode.Webview, () => void> = new WeakMap();
-
   constructor() {
     this.initQueryConnector();
   }
@@ -44,9 +41,7 @@ export class ViewQueryConnector {
    */
   public setQuery(webview: vscode.Webview, query: ViewQuery): void {
     this.queryConnector.addWebview(webview);
-    this.pendingQuery.set(webview, () => {
-      this.queryConnector.send(webview, query);
-    });
+    this.queryConnector.send(webview, query);
   }
 
   /**
@@ -54,8 +49,5 @@ export class ViewQueryConnector {
    */
   private initQueryConnector(): void {
     this.queryConnector = new WebviewConnector('viewQuery');
-    this.queryConnector.receive((_, webview) => {
-      this.pendingQuery.get(webview)?.();
-    });
   }
 }

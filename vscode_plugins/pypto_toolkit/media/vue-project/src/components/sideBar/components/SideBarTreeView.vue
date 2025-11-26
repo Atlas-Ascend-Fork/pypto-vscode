@@ -8,7 +8,7 @@
       <div class="expand" @click="treeExpand">
         <d-icon :name="isExpanded ? 'icon-chevron-up-2' : 'icon-chevron-down-2'"></d-icon>
       </div>
-      <div class="refresh" :class="{ hidden: isExpanded }" @click="getAllRecords">
+      <div class="refresh" :class="{ hidden: isExpanded }" @click="handleReload">
         <d-icon name="refresh"></d-icon>
       </div>
       <div :class="{ hidden: isExpanded }" class="flex1"></div>
@@ -75,6 +75,7 @@
           </div>
         </template>
       </d-tree>
+      <LoadMoreTrigger :all-loaded="allLoaded" @load-more="handleLoadMore" />
     </div>
   </div>
 </template>
@@ -89,6 +90,7 @@ import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/ope
 import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
 import SideBarSearch from './SideBarSearch.vue';
+import LoadMoreTrigger from '../../util/LoadMoreTrigger.vue';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -197,7 +199,7 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
 }
 
 onMounted(() => {
-  getAllRecords();
+  getOutputs();
   // 禁用原生右键菜单
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止原生菜单弹出
@@ -205,13 +207,40 @@ onMounted(() => {
 });
 
 const isLoading = ref(false);
+let page = 1;
+const pageSize = 50;
+const allLoaded = ref(false);
 
-async function getAllRecords(): Promise<void> {
+/**
+ * 刷新、修改筛选条件
+ */
+function handleReload() {
+  page = 1;
+  getOutputs();
+}
+
+/**
+ * 加载更多
+ */
+function handleLoadMore() {
+  if (isLoading.value) {
+    return;
+  }
+  page += 1;
+  getOutputs();
+}
+
+async function getOutputs(): Promise<void> {
   isLoading.value = true;
-  treeData.value = [];
   try {
-    const { data } = await getOutputRecords({ sortOrder: sortOption.value ? 'asc' : 'desc' });
-    treeData.value = transformData(data);
+    const { data } = await getOutputRecords({ page, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
+    if (page === 1) {
+      treeData.value = [];
+    }
+    if (data.length < pageSize) {
+      allLoaded.value = true;
+    }
+    treeData.value.push(...transformData(data));
   } catch (e: unknown) {
     isLoading.value = false;
     if (e instanceof Error) {
@@ -221,7 +250,7 @@ async function getAllRecords(): Promise<void> {
   isLoading.value = false;
 }
 
-const debouncedGetRecords = debounce(getAllRecords, 500);
+const debouncedGetRecords = debounce(handleReload, 500);
 
 const sortOption = ref(false);
 
@@ -244,7 +273,7 @@ watch(sortOption, () => {
   flex-direction: column;
   box-sizing: border-box;
   gap: 11px;
-  padding: 8px 0;
+  padding-top: 8px;
 }
 </style>
 <style scoped lang="less">
