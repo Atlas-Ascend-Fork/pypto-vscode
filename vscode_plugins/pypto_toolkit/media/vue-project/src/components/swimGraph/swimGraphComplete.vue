@@ -1796,6 +1796,7 @@ provide('swimGraphMethods', {
   processThreadEventSearch,
   getDisplayName,
   resetState,
+  overflowText,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   flagRender: () => { timelineComponent?.value.flagRender() },
