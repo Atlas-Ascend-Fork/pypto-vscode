@@ -52,8 +52,8 @@ const newSymsOpNameDict: Record<number, string> = {
   28: 'ssop_le',
   29: 'ssop_gt',
   30: 'ssop_ge',
-  31: 'ssop_m31',
-  32: 'ssop_max',
+  31: 'ssop_and',
+  32: 'ssop_or',
   33: 'ssop_min',
   34: 'ssop_max',
 };
@@ -291,7 +291,16 @@ function splitArgs(argsStr): string[] {
 /**
  * 主函数：从 lineInfo 生成数学表达式
  */
-export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, server?: any): string | undefined {
+export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, version: string, server?: any): string | undefined {
+  if (getVersionNum(version) > 20) {
+    symsOpNameDict = newSymsOpNameDict;
+    ssopCall = newCallOp;
+    uopArr = newUOPArr;
+  } else {
+    symsOpNameDict = oldSymsOpNameDict;
+    ssopCall = oldCallOp;
+    uopArr = oldUOPArr;
+  }
   if (lineInfo === undefined) {
     return '';
   }
@@ -352,21 +361,12 @@ function getVersionNum(version: string): number {
 
 export function parseSymbolicOrIntList(reader: AttrReader, size: number, version = '2.0'): string[] {
   const result: string[] = [];
-  if (getVersionNum(version) > 20) {
-    symsOpNameDict = newSymsOpNameDict;
-    ssopCall = newCallOp;
-    uopArr = newUOPArr;
-  } else {
-    symsOpNameDict = oldSymsOpNameDict;
-    ssopCall = oldCallOp;
-    uopArr = oldUOPArr;
-  }
   for (let i = 0; i < size; i++) {
     const kind = reader.readNumber();
     if (kind === 1) {
       // symbolicScalar
       const expr = reader.readStringOrNumberArray();
-      result.push(genMathScalarExpr(expr, reader.server)!);
+      result.push(genMathScalarExpr(expr, version, reader.server)!);
     } else if (kind === 2) {
       // integer
       const value = reader.readNumber();
@@ -385,18 +385,9 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number, version
 
 export function parseExprList(reader: AttrReader, size: number, version = '2.0'): string[] {
   const result: string[] = [];
-  if (getVersionNum(version) > 20) {
-    symsOpNameDict = newSymsOpNameDict;
-    ssopCall = newCallOp;
-    uopArr = newUOPArr;
-  } else {
-    symsOpNameDict = oldSymsOpNameDict;
-    ssopCall = oldCallOp;
-    uopArr = oldUOPArr;
-  }
   for (let i = 0; i < size; i++) {
     const expr = reader.readStringOrNumberArray(); // 直接读取表达式数组
-    result.push(genMathScalarExpr(expr, reader.server)!);
+    result.push(genMathScalarExpr(expr, version, reader.server)!);
   }
   return result;
 }
