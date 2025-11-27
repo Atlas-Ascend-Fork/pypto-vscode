@@ -21,7 +21,7 @@ export class FlowTreeAnalyzer {
 
   constructor(private program: ProgramOutput, passes: PassDirectory[]) {
     this.allFunctionsToMap(program.functions);
-    this.conditionAnalyzer = new ConditionAnalyzer();
+    this.conditionAnalyzer = new ConditionAnalyzer(program.version);
     this.pathLeafAnalyzer = new PathLeafAnalyzer(this.functionHashMap, this.functionMagicMap, passes);
   }
 

@@ -7,6 +7,9 @@ export interface ProgramOutput {
 
   /** 所有函数 */
   functions: FunctionNode[];
+
+  /** program版本 */
+  version: string;
 }
 
 /** 函数类型 */

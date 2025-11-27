@@ -19,6 +19,7 @@ export interface LeafFunctionType {
   magic: number;
   magicName: string;
   hash: string;
+  programId?: string;
 }
 
 export interface CalledRecordsType {
