@@ -282,6 +282,9 @@ const onKeyDown = (e) => {
     handlekeydown(e);
   }
   isKeyPressed = true;
+  if(isAnimation){
+    threeRender.stopAnimate();
+  }
   if (!keyTimeOut) {
     keyTimeOut = setTimeout(() => {
       keyInterval = setInterval(() => {
@@ -298,6 +301,9 @@ const onKeyUp = (e) => {
   }
   if (isKeyPressed) {
     isKeyPressed = false;
+    threeRender.enableAnimate();
+    threeRender.drawBoundary(boundaries, props.processKey);
+    threeRender.animate();
     if (keyInterval) {
       clearInterval(keyInterval);
       keyInterval = null;
@@ -764,7 +770,10 @@ const resizeDrawBoundary = () => {
     return;
   }
   threeRender.drawBoundary(boundaries, props.processKey);
-  threeRender.animate();
+  if (!isKeyPressed) {
+    threeRender.enableAnimate();
+    threeRender.animate();
+  }
 };
 const checkInSelection = () => {
   // 初始化计数器
@@ -1843,6 +1852,7 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
       transformCanvas(boundRange);
     }
     drawSelection(label, needSendCom, isLock);
+    threeRender.enableAnimate();
     threeRender.drawBoundary(boundaries, props.processKey);
     threeRender.animate();
     toggleLock();

@@ -41,8 +41,6 @@ export class ThreeRender extends EventRender {
     const boundaryCtx = boundaryCanvas.getContext('2d');
     if (!boundaryCtx) return;
     clearWholeProcess(boundaryCtx, viewState, processKey);
-    this.stopAnimate();
-    this.enableAnimate();
     if (!boundaries) return;
 
     const space = spaceInThreeCol;
@@ -346,7 +344,7 @@ export class ThreeRender extends EventRender {
     }
   };
   private animate = (now?: number) => {
-    if (!currentBoundaries || !currentProcessKey || !isAnimation ) {
+    if (!currentBoundaries || !currentProcessKey) {
       return;
     }
     const timestamp = now ?? performance.now();
@@ -357,7 +355,9 @@ export class ThreeRender extends EventRender {
     const dynamicSpeed = BASE_SPEED * speedFactor;
     traveledHead -= dynamicSpeed * dt;
     this.drawBoundary(currentBoundaries, currentProcessKey);
-    requestAnimationFrame(this.animate);
+    if (isAnimation) {
+      requestAnimationFrame(this.animate);
+    }
   };
   public stopAnimate = () =>{
     isAnimation = false;
