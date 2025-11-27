@@ -1832,6 +1832,9 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     drawThreadSeparators(eventCtx, props.process, props.processKey);
     return;
   }
+  if (!viewState.canvasCssWidth) {
+    return;
+  }
   const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
   setSelectedData(boundRange, label);
   boundaries = calcRowBoundaries(points);
@@ -1887,8 +1890,12 @@ const sendMsg = (command, param) => {
     window.ascEventBus.emit(command, param);
   });
 };
+const drawLockedOutline = () => {
+  handleOutline(lockedLabel, true, true, true);
+};
 
 addChildContext('threadEvent', {
+  drawLockedOutline,
   getCanvasHeight,
   renderProcessEvents,
   renderProcessText,
