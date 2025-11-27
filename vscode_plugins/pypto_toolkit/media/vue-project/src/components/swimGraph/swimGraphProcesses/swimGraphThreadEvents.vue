@@ -282,7 +282,7 @@ const onKeyDown = (e) => {
     handlekeydown(e);
   }
   isKeyPressed = true;
-  if(isAnimation){
+  if (isAnimation) {
     threeRender.stopAnimate();
   }
   if (!keyTimeOut) {
