@@ -63,6 +63,12 @@ export function startAllServices(context: vscode.ExtensionContext) {
   singletonServices = { runData: new RunDataService(context) };
 }
 
+export function closeAllServices() {
+  Object.values(singletonServices).forEach((service) => {
+    service.dispose();
+  });
+}
+
 export function useService(name: keyof typeof singletonServices) {
   return singletonServices[name];
 }

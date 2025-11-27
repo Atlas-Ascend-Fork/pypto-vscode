@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 export type Data = Record<string, unknown>;
 
 /**
@@ -22,7 +24,7 @@ export type StoreAttributes<Item extends Data = Data> = {
 /**
  * 存储库
  */
-export interface Store<Item extends Data, P extends keyof Item, Q extends keyof Item> {
+export interface Store<Item extends Data, P extends keyof Item, Q extends keyof Item> extends vscode.Disposable {
   readonly storeName: string;
 
   readonly attributes: StoreAttributes<Item>;
@@ -41,7 +43,7 @@ export interface Store<Item extends Data, P extends keyof Item, Q extends keyof 
 
   /**
    * 创建或更新
-   * @param item 
+   * @param item
    */
   set(item: Item): Promise<void>;
 
@@ -75,28 +77,37 @@ export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
 
   /** 执行查询 */
   exec(): Promise<Item[]>;
+
+  /** 执行删除 */
+  delete(): Promise<number>;
 }
 
 /**
  * 属性配置转换为存储对象类型
  */
-export type ExtractItem<T extends StoreAttributes> = {
-  [K in keyof T]: AttributeType<T[K]>;
-};
+export type ExtractItem<T extends StoreAttributes> = T extends any
+  ? any
+  : {
+      [K in keyof T]: AttributeType<T[K]>;
+    };
 
 /**
  * 从属性配置提取主键类型
  */
-export type PrimaryKeys<T> = {
-  [K in keyof T]: T[K] extends { isPrimary: true } ? K : never;
-}[keyof T];
+export type PrimaryKeys<T> = T extends any
+  ? any
+  : {
+      [K in keyof T]: T[K] extends { isPrimary: true } ? K : never;
+    }[keyof T];
 
 /**
  * 从属性配置提取其他查询索引类型
  */
-export type QueryKeys<T> = {
-  [K in keyof T]: T[K] extends { isQuery: true; isPrimary?: false } ? K : never;
-}[keyof T];
+export type QueryKeys<T> = T extends any
+  ? any
+  : {
+      [K in keyof T]: T[K] extends { isQuery: true; isPrimary?: false } ? K : never;
+    }[keyof T];
 
 type Constructor<T> = T extends boolean
   ? BooleanConstructor
