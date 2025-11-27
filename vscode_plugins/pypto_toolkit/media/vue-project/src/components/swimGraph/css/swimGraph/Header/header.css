@@ -15,6 +15,7 @@
   align-items: center;
   gap: 4px;
   margin-left: 16px;
+  min-width: 440px;
 }
 
 .search-container {
@@ -52,6 +53,10 @@
 .case-sensitive.case-dark {
   border-color: rgba(49, 122, 247, 1);
   color: rgba(49, 122, 247, 1);
+}
+
+.result-count {
+  flex-shrink: 0;
 }
 
 .search-res {
