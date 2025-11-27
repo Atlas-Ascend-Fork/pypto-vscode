@@ -121,6 +121,10 @@ export default {
    reset: '还原宽高',
    measureCategoryPlaceholder: '点击此处添加筛选条件',
    noSearchCondition:'没有筛选条件',
+    public: {
+        loading: '加载中...',
+        allLoaded: '没有更多了'
+    },
    comGraph: {
       copy: '复制',
       copied: '复制成功',

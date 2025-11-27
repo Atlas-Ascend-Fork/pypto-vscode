@@ -5,7 +5,7 @@
         <HistoryNpuIcon v-if="isNpu" />
         <HistoryIcon v-else />
       </div>
-      <HistoryList ref="historyListEl" @record-change="onRecordChange" />
+      <HistoryList ref="historyListEl" :all-loaded="allLoaded" @record-change="onRecordChange" @load-more="handleLoadMore" />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -96,9 +96,28 @@ provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, pass
 
 const { comGraphName } = useNavbar();
 
-getOutputRecords({}, { timeout: 600000 }).then((res) => {
-  historyList.value = res.data;
-});
+let page = 1;
+const pageSize = 50;
+const allLoaded = ref(false);
+let isPending = false;
+function handleLoadMore() {
+  if (isPending === true) {
+    return;
+  }
+  page += 1;
+  getHistoryList();
+}
+function getHistoryList() {
+  isPending = true;
+  getOutputRecords({ page, pageSize }, { timeout: 600000 }).then(({ data }) => {
+    if (data.length < pageSize) {
+      allLoaded.value = true;
+    }
+    historyList.value.push(...data);
+    isPending = false;
+  });
+}
+getHistoryList();
 
 const currentOutputPath = computed(() => currentRecord.value?.directoryPath);
 const { controlFlowFile, swimlaneFile } = useOutputNav(currentOutputPath);

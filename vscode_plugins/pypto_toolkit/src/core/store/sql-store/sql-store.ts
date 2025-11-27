@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import { debounce } from 'lodash-es';
+import { debounce } from 'lodash';
 import initSqlJs, { Database, QueryExecResult } from 'sql.js';
 import * as vscode from 'vscode';
 

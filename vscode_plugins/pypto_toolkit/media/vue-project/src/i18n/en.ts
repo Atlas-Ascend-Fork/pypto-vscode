@@ -121,6 +121,10 @@ export default {
     reset: 'Reset width and height',
     measureCategoryPlaceholder: 'Click here to add filter criteria',
     noSearchCondition:'No filter criteria',
+    public: {
+        loading: 'Loading...',
+        allLoaded: 'No more content'
+    },
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
