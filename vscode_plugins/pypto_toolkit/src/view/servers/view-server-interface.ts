@@ -57,7 +57,6 @@ export type IThreeApis =
   | 'openDiffViewer'
   | 'setFinalResult'
   | 'searchAllFunc'
-  | 'pageInit'
   | 'selectPassPath'
   | 'returnFuncTree';
 export type IThreeRefs = {
@@ -99,7 +98,6 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   searchAllFunc: (message: { data: any }) => Promise<void>;
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
-  pageInit: () => void;
   returnFuncTree: () => Promise<void>;
 }
 
