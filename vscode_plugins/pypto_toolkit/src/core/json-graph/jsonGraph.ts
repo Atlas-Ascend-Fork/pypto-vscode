@@ -513,11 +513,14 @@ export class AscppDagBuilder {
                 return sourceRelevant && targetRelevant;
             });
         }
-
+        const bottomNode: SEdge = {
+            type: 'bottom',
+            id: 'node-bottom-edge',
+        };
         return {
             type: 'graph',
             id: 'root',
-            children: [...filteredEdges, ...filteredNodes],
+            children: [bottomNode, ...filteredEdges, ...filteredNodes],
             colorBySubgraph, // Add the flag to the root model
             filterSubgraphId // Add the filter setting to the root model
         };
