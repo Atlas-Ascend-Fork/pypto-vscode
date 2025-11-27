@@ -5,8 +5,11 @@ import { getOutputDirectory } from './scan-directory';
 import { useService } from '..';
 
 export interface GetOutputRecordParams {
-  /** 算子源文件 */
-  operatorSourceFile?: string;
+  /** 页码 */
+  page: number;
+
+  /** 分页数量，默认20 */
+  pageSize?: number;
 
   /** 排序属性 */
   sortBy?: 'executeTime';
@@ -23,9 +26,13 @@ export interface GetOutputRecordsRes {
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  const { sortBy = 'executeTime', sortOrder = 'desc' } = params;
+  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc' } = params;
   const runDataService = useService('runData');
-  const records = await runDataService.query().sort(sortBy, sortOrder).exec();
+  const records = await runDataService
+    .query()
+    .sort(sortBy, sortOrder)
+    .slice(pageSize * (page - 1), pageSize * page)
+    .exec();
   return { data: records };
 }
 

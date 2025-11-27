@@ -121,6 +121,10 @@ export default {
    reset: '还原宽高',
    measureCategoryPlaceholder: '点击此处添加筛选条件',
    noSearchCondition:'没有筛选条件',
+    public: {
+        loading: '加载中...',
+        allLoaded: '没有更多了'
+    },
    comGraph: {
       copy: '复制',
       copied: '复制成功',
@@ -147,6 +151,8 @@ export default {
       layerControl: '图层控制',
       graphLayout: '图布局',
       nodeDisplayMode: '节点显示模式',
+      nodesControl: '节点控制',
+      'nodeShowAll': '全部展示',
       leftRight: '左右',
       topBottom: '上下',
       openDiffViewer: '查看差异对比',

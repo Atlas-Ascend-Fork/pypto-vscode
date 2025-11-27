@@ -22,7 +22,7 @@
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
-    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" />
+    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
   </div>
 </template>
 
@@ -104,6 +104,7 @@ let centerNodeAction;
 let selectAction;
 let getSelectedNodeId;
 let resetModelSource;
+let hoverFeedbackAction;
 let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
@@ -186,6 +187,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     getSelectedNodeId = sprottyLoadResult.getSelectedNodeId;
     resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
+    hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
     initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
     comGraphStore.setData('jsonData', jsonValue);
   }

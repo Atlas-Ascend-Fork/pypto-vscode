@@ -72,13 +72,64 @@ onMounted(() => {
         nodeTipWidth.value = target.size.width;
         nodeTipHeight.value = target.size.height + 4;
         // left 定位到中间计算 positionX +  x / 2 - x * zoom / 2
-        nodeTipLeft.value = -target.parent.scroll.x * target.parent.zoom +
+        let tipLeft = -target.parent.scroll.x * target.parent.zoom +
                             target.position.x * target.parent.zoom - ((target.size.width * (1 - target.parent.zoom)) / 2) + initLeft;
-        nodeTipTop.value = -target.parent.scroll.y * target.parent.zoom - target.size.height +
+        let tipTop = -target.parent.scroll.y * target.parent.zoom - target.size.height +
                             target.position.y * target.parent.zoom + initTop - 32 * target.parent.zoom - ((target.size.height) * (scale.value - 1) / 2);
+
+        const containerEl = document.querySelector('.com-graph-container');
+        if (containerEl) {
+          const cRect = containerEl.getBoundingClientRect();
+          const cLeft   = cRect.left;
+          const cRight  = cRect.right;
+          const cTop    = cRect.top;
+          const cBottom = cRect.bottom;
+
+          const tipW = nodeTipWidth.value  * scale.value;
+          const tipH = nodeTipHeight.value * scale.value;
+
+          /* 1. 顶部溢出 → 放目标下方 */
+          if (tipTop < cTop) {
+            const targetTop = -target.parent.scroll.y * target.parent.zoom
+                              + target.position.y * target.parent.zoom + initTop;
+            const targetBottom = targetTop + target.size.height * target.parent.zoom;
+            tipTop = targetBottom + target.size.height * target.parent.zoom / 2; 
+          }
+
+          /* 2. 左侧溢出 → 放目标正右边 */
+          if (tipLeft < cLeft) {
+            const targetLeft  = -target.parent.scroll.x * target.parent.zoom
+                              + target.position.x * target.parent.zoom + initLeft;
+            const targetRight = targetLeft + target.size.width * target.parent.zoom;
+
+            tipLeft = targetRight + target.size.width * target.parent.zoom / 2;
+            const targetCenterY = -target.parent.scroll.y * target.parent.zoom
+                                + target.position.y * target.parent.zoom
+                                + initTop
+                                + (target.size.width * target.parent.zoom) / 2;
+            tipTop = targetCenterY - tipH / 2;
+          }
+          
+          /* 3. 右侧溢出 → 放目标正左边 */
+          if (tipLeft + tipW > cRight) {
+            const targetLeft = -target.parent.scroll.x * target.parent.zoom
+                            + target.position.x * target.parent.zoom + initLeft;
+            tipLeft = targetLeft - tipW;
+
+            const targetCenterY = -target.parent.scroll.y * target.parent.zoom
+                                + target.position.y * target.parent.zoom
+                                + initTop
+                                + (target.size.height * target.parent.zoom) / 2;
+            tipTop = targetCenterY - tipH / 2;
+          }
+        }
+        
+        nodeTipLeft.value = tipLeft;
+        nodeTipTop.value  = tipTop;
+
         tipNodeMagic.value = target.magic;
         const targetTitle = target.children?.[0].children?.[0];
-        const metaDataId = target.children?.[0].children?.[1]?.id;
+        const metaDataId = target.children?.[0].children?.[1]?.id ?? '';
         const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
         const selSet = new Set(comGraphStore.data.selectCustom);
 

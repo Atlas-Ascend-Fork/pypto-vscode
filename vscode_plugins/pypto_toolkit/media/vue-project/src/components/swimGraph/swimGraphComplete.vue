@@ -528,6 +528,9 @@ const render = () => {
     showDependencies(selectedEvent.value, "both");
   }
   timelineComponent.value.flagRender();
+  if (props.isThreeColumn) {
+    childContextMap.threadEvent.drawLockedOutline();
+  }
 };
 
 const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
@@ -1793,6 +1796,7 @@ provide('swimGraphMethods', {
   processThreadEventSearch,
   getDisplayName,
   resetState,
+  overflowText,
   getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
   handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
   flagRender: () => { timelineComponent?.value.flagRender() },

@@ -5,6 +5,7 @@ const readline = require('readline');
 
 import { useView } from '../view';
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -42,10 +43,10 @@ export class RegisterCommand {
 
   getCommands() {
     return [
-      commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+      commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
-        await this.openView('computeGraph', uri);
+        await this.openView('computeGraph', uri, undefined);
       }),
       commands.registerCommand('PyPTO.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
         if (!uri) return;
@@ -74,9 +75,12 @@ export class RegisterCommand {
       const finalQuery = {
         funcHash: funcHash,
       };
-      await editorView.open(routeName, vscode.Uri.file(uri.fsPath), { query: finalQuery });
+      await editorView.open(routeName, vscode.Uri.file(uri.fsPath), {
+        query: finalQuery,
+        title:  getBasenameWithoutExt(uri.fsPath),
+      });
     } else if (content.includes('traceEvents')) {
-      await editorView.open('swimGraph', uri);
+      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath) });
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }
@@ -85,4 +89,9 @@ export class RegisterCommand {
   register() {
     this.context.subscriptions.push(...this.getCommands());
   }
+}
+
+function getBasenameWithoutExt(filePath: string): string {
+  const basename = path.basename(filePath); // 获取带扩展名的文件名，如 'file.txt'
+  return path.parse(basename).name; // 提取不带扩展名的部分，如 'file'
 }
