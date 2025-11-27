@@ -9,6 +9,7 @@ export interface Dependencies {
   highlightedPaths: any;
   devicePixelRatio: number;
   layout: any;
+  isKeyPressed: any;
 }
 
 export function isPointInPolygonFun(point: any, polygonBoundaries: any): boolean {

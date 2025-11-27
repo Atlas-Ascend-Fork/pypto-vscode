@@ -120,11 +120,18 @@ const {
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
 const { isSearchActive } = inject('swimGraphSearch');
-
+let mousePosition = null;
+let isKeyPressed = ref(false);
+let keyTimeOut;
+let keyInterval;
+let scaleStep = 0.1;
+let moveStep = 30;
+let scaleStepIncrement = 0.05;
+let moveStepIncrement = 30;
 // 创建渲染实例
 const eventRenderer = new EventRender({...swimGraphState, colorCfg});
 const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
-const threeRender = new ThreeRender(swimGraphState);
+const threeRender = new ThreeRender({...swimGraphState, isKeyPressed});
 // 定义props
 const props = defineProps({
   processKey: {
@@ -250,15 +257,6 @@ const scaleCanvas = (mouseX, scale) => {
   throttledRender();
 };
 
-let mousePosition = null;
-let isKeyPressed = false;
-let keyTimeOut;
-let keyInterval;
-let scaleStep = 0.1;
-let moveStep = 30;
-let scaleStepIncrement = 0.05;
-let moveStepIncrement = 30;
-
 onMounted(() => {
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('keyup', onKeyUp);
@@ -278,10 +276,10 @@ const onKeyDown = (e) => {
   if (activeElement.nodeName === 'INPUT') {
     return;
   }
-  if (!isKeyPressed) {
+  if (!isKeyPressed.value) {
     handlekeydown(e);
   }
-  isKeyPressed = true;
+  isKeyPressed.value = true;
   if (isAnimation) {
     threeRender.stopAnimate();
   }
@@ -299,8 +297,8 @@ const onKeyUp = (e) => {
   if (activeElement.nodeName === 'INPUT') {
     return;
   }
-  if (isKeyPressed) {
-    isKeyPressed = false;
+  if (isKeyPressed.value) {
+    isKeyPressed.value = false;
     threeRender.enableAnimate();
     threeRender.drawBoundary(boundaries, props.processKey);
     threeRender.animate();
@@ -770,7 +768,7 @@ const resizeDrawBoundary = () => {
     return;
   }
   threeRender.drawBoundary(boundaries, props.processKey);
-  if (!isKeyPressed) {
+  if (!isKeyPressed.value) {
     threeRender.enableAnimate();
     threeRender.animate();
   }

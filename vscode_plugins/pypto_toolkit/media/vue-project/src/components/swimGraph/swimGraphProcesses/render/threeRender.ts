@@ -355,8 +355,15 @@ export class ThreeRender extends EventRender {
     const dynamicSpeed = BASE_SPEED * speedFactor;
     traveledHead -= dynamicSpeed * dt;
     this.drawBoundary(currentBoundaries, currentProcessKey);
+    const { viewState, isKeyPressed} = this.deps;
     if (isAnimation) {
       requestAnimationFrame(this.animate);
+    } else if (!isKeyPressed.value) {
+      const boundaryCanvas: HTMLCanvasElement = document.querySelector(`[data-three-column-process-key="${currentProcessKey}"]`);
+      if (!boundaryCanvas) return;
+      const boundaryCtx = boundaryCanvas.getContext('2d');
+      if (!boundaryCtx) return;
+      clearWholeProcess(boundaryCtx, viewState, currentProcessKey);
     }
   };
   public stopAnimate = () =>{
