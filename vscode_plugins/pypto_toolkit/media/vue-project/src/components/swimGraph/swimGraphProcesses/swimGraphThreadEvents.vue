@@ -1717,7 +1717,7 @@ const eraseEventLine = (flag) => {
 }
 
 const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
-  const xRange = (maxX - minX) * viewState.pixelScale;
+  let xRange = (maxX - minX) * viewState.pixelScale;
   const targetWidth = viewState.canvasCssWidth * 0.8;
   const widthValid = Math.abs(xRange - targetWidth) < viewState.canvasCssWidth * 0.1;
   const viewValid = startT >= timelineState.startTime && endT <= timelineState.endTime;
@@ -1748,8 +1748,8 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
     needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 整个被隐藏在视口之外
-    let eventWidth = maxX - minX;
-    leftmove((eventLeftX - canvasCSSWidth + eventWidth) + scrollWidth);
+    xRange = (maxX - minX) * viewState.pixelScale;
+    leftmove((eventLeftX - canvasCSSWidth + xRange) + scrollWidth);
     needRender = false;
   }
   if (needRender) {
