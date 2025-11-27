@@ -249,6 +249,7 @@ const {
   renderDependencyLines,
   postMessage,
   selectEvent,
+  overflowText
 } = inject('swimGraphMethods');
 const { userConfig } = inject('swimGraphCfg');
 const connectionLevel = computed({
@@ -418,10 +419,8 @@ const getEventDisplayName = (event) => {
 };
 const getEventTruncateText = (event) => {
   const eventName = getEventDisplayName(event);
-  const maxLength = 22;
-  let truncatedText = eventName.length > maxLength 
-                ? eventName.substring(0, maxLength) + '...' 
-                : eventName;
+  let actualWidth = 140;
+  const [truncatedText] = overflowText(actualWidth, eventName);
   return truncatedText;
 };
 window.jumpRawMagic = (value, hintValue) => {
