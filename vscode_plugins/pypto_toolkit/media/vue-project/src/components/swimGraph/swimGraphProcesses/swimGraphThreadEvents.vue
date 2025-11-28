@@ -747,6 +747,9 @@ const toggleLock = () => {
   };
 };
 const resizeDrawBoundary = () => {
+  if (!boundaries.length) {
+    return;
+  }
   processes.forEach((process, processKey) => {
     if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
@@ -761,9 +764,6 @@ const resizeDrawBoundary = () => {
       onSelectionEvent(event, eventCtx, processKey, false);
     });
   });
-  if (!boundaries.length) {
-    return;
-  }
   threeRender.drawBoundary(boundaries, props.processKey);
   if (!isKeyPressed.value) {
     threeRender.enableAnimate();
