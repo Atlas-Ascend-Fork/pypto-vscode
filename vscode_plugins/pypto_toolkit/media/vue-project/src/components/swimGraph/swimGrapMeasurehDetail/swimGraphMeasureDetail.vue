@@ -152,7 +152,7 @@ const searchConfig = {
   keywordDescription: (key) => t('swimGraphkeywordDesc', { key }),
   fieldDescription: (label) => t('swimGraphfieldDesc', { label }),
   categoryDescription: t('swimGraphcategoryDesc')
-}
+};
 const onSearch = (event) => {
   const { searchKey } = event;
   searchKeyInfo = searchKey;
