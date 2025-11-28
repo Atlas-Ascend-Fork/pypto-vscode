@@ -297,13 +297,23 @@ const transformToOptions = (source) =>
     border: 1px solid var(--devui-category-search-hover-border);
   }
 
-  .measure-detail-category-search.dp-category-search-container .dp-category-search-toggle {
-    color: var(--devui-category-search-font-color);
-    caret-color: var(--devui-search-active-bg);
+  .measure-detail-category-search.dp-category-search-container {
+    .dp-category-search-line-container {
+      height: 30px;
 
-    &::placeholder {
-      color: var(--devui-category-search-placeholder);
-      font-size: 13px;
+      &:hover {
+        overflow-y: hidden;
+      }
+    }
+
+    .dp-category-search-toggle {
+      color: var(--devui-category-search-font-color);
+      caret-color: var(--devui-search-active-bg);
+
+      &::placeholder {
+        color: var(--devui-category-search-placeholder);
+        font-size: 13px;
+      }
     }
   }
 

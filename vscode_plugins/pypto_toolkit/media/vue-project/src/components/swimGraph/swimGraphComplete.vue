@@ -1715,6 +1715,9 @@ onMounted(() => {
       loadTraceData(newMessage.data);
     });
   }
+  if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
+    isSwimGraphActive.value = true;
+  }
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
