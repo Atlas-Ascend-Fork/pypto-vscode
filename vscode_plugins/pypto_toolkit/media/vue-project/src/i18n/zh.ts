@@ -121,6 +121,10 @@ export default {
    reset: '还原宽高',
    measureCategoryPlaceholder: '点击此处添加筛选条件',
    noSearchCondition:'没有筛选条件',
+   noSearchMeasureDetaildata:'没有数据',
+   swimGraphkeywordDesc: `仅搜索关键字 '{key}'`,
+   swimGraphfieldDesc:`在 '{label}' 中查找`,
+   swimGraphcategoryDesc:'请选择筛选条件：',
     public: {
         loading: '加载中...',
         allLoaded: '没有更多了'

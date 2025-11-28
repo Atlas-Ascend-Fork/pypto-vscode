@@ -121,6 +121,10 @@ export default {
     reset: 'Reset width and height',
     measureCategoryPlaceholder: 'Click here to add filter criteria',
     noSearchCondition:'No filter criteria',
+    noSearchMeasureDetaildata:'No search data',
+    swimGraphkeywordDesc: `Only search by keyword '{key}'`,
+    swimGraphfieldDesc:`Search in '{label}'`,
+    swimGraphcategoryDesc:'Please select the filter criteria: ',
     public: {
         loading: 'Loading...',
         allLoaded: 'No more content'
