@@ -98,10 +98,10 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>, codePreviewState: P
       let isHidden = false;
       let isCodeViewHover = false;
       if (states && states.length > 0) {
-        isSelected = states.includes('selected');//是否被选中
-        isHidden = states.includes('comboHidden');//是否隐藏
-        isCodeViewHover = states.includes('code-view-svg');//鼠标悬浮右侧图标
-        isActived = states.includes('active') && !isCodeViewHover;//鼠标悬浮右侧图标的时候文字不变色
+        isSelected = states.includes('selected'); //是否被选中
+        isHidden = states.includes('comboHidden'); //是否隐藏
+        isCodeViewHover = states.includes('code-view-svg'); //鼠标悬浮右侧图标
+        isActived = states.includes('active') && !isCodeViewHover; //鼠标悬浮右侧图标的时候文字不变色
       }
 
       const buttonBlue = getThemeColorTool('control-flow-loop-title-bg-active', isDarkTheme.value);
@@ -113,7 +113,8 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>, codePreviewState: P
       let codeViewIcon = isDarkTheme.value ? codeViewIconSvg.value : codeViewIconSvgLight.value;
       let isActivedTextColor = isActived ? textBlue : textWeak;
       let isSelectedHitAreaColor = isSelected ? buttonBlue : buttonWeak;
-      const isHasTargetFile = this.nodeData.data.sourceCode.filePath !== '';
+      let isHasTargetFile = this.nodeData.data.sourceCode.filePath !== '';
+      isHasTargetFile = false; //todo:暂时隐藏代码预览入口，待下版本
 
       if (isSelected) {
         isActivedTextColor = '#FFFFFF'; //深色、浅色，loop选中时title颜色一致
@@ -144,7 +145,7 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>, codePreviewState: P
         this.upsert('left-svg', 'image', this.getSmallLoopLeftIcon(x, y, loopLeftIcon, scalingFactor), this);
         // loop标签文本
         this.upsert('loop-text', 'text', this.getSmallLoopText(x, y, isActivedTextColor, isShowAll, scalingFactor), this);
-        if (this.nodeData.data.sourceCode.filePath !== '') {
+        if (isHasTargetFile) {
           // loop标签右图片打开代码预览
           rightIcon = this.upsert('code-view-svg', 'image', this.getSmallLoopRightIcon(x, y, codeViewIcon, scalingFactor, isShowAll), this);
         }
