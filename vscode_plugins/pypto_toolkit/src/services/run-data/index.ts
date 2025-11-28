@@ -33,9 +33,11 @@ export class RunDataService extends BasicService {
   private store: RunDataStore;
 
   constructor(context: vscode.ExtensionContext) {
-    super(() => {});
+    super();
     this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES, context);
+    this._disposables.push(this.store);
     this.scanDirectory();
+    this.watchFileChange();
   }
 
   public query(): ReturnType<RunDataStore['query']> {
@@ -46,45 +48,73 @@ export class RunDataService extends BasicService {
     return this.store.delete(output);
   }
 
+  /**
+   * 扫描目录
+   */
   private async scanDirectory(): Promise<void> {
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
+    const subList = await this.readRunDataList(runDataCollectionUri);
+
     const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
-    const outputList = await getRecordsFromDirectory(runDataCollectionUri, latestRecord?.executeTime);
-    for (const outputRecord of outputList) {
-      this.store.set(outputRecord);
+    for (const [subPath, fileType] of subList) {
+      // 非目录无需扫描
+      if (fileType !== vscode.FileType.Directory) {
+        continue;
+      }
+
+      // 最新记录之前的目录无需扫描
+      const { datetimeFormat } = resolveExecuteTime(subPath);
+      if (!datetimeFormat || datetimeFormat <= (latestRecord?.executeTime ?? '')) {
+        continue;
+      }
+      const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, subPath);
+      this.setOutputToStore(rootDirUri);
     }
   }
-}
 
-async function getRecordsFromDirectory(directoryUri: vscode.Uri, startFrom: string | undefined): Promise<OutputRecord[]> {
-  let subList: [string, vscode.FileType][];
-  try {
-    subList = await vscode.workspace.fs.readDirectory(directoryUri);
-  } catch {
-    // 文件夹不存在
-    subList = [];
+  /**
+   * 读取所有rundata目录
+   */
+  private async readRunDataList(parentUri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    try {
+      return await vscode.workspace.fs.readDirectory(parentUri);
+    } catch {
+      return [];
+    }
   }
-  const records: OutputRecord[] = [];
-  for (const [subPath, fileType] of subList) {
-    // 非目录无需扫描
-    if (fileType !== vscode.FileType.Directory) {
-      continue;
-    }
 
-    // 最新记录之前的目录无需扫描
-    const { datetimeFormat } = resolveExecuteTime(subPath);
-    if (!datetimeFormat || datetimeFormat <= (startFrom ?? '')) {
-      continue;
-    }
-    const rootDirUri = vscode.Uri.joinPath(directoryUri, subPath);
-    const runData = await readOutputRunData(rootDirUri);
+  /**
+   * 监听文件变化
+   */
+  private watchFileChange() {
+    const pattern = new vscode.RelativePattern(vscode.Uri.file(RUN_DATA_HOME), '{rundata_*/,rundata_*/rundata.json}');
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+    this._disposables.push(watcher);
+    watcher.onDidCreate(async (uri) => {
+      const outputUri = this.getOutputUri(uri);
+      this.setOutputToStore(outputUri);
+    });
+    watcher.onDidChange((uri) => {
+      const outputUri = this.getOutputUri(uri);
+      this.setOutputToStore(outputUri);
+    });
+    watcher.onDidDelete((uri) => {
+      const outputUri = this.getOutputUri(uri);
+      this.store.query().filter({ directoryPath: outputUri.fsPath }).slice(0, 1).delete();
+    });
+  }
+
+  private getOutputUri(uri: vscode.Uri): vscode.Uri {
+    return uri.fsPath.endsWith('rundata.json') ? vscode.Uri.joinPath(uri, '..') : uri;
+  }
+
+  private async setOutputToStore(runDataUri: vscode.Uri) {
+    const runData = await readOutputRunData(runDataUri);
     if (runData) {
-      const record = getOutputRecord(rootDirUri, runData);
-      records.push(record);
+      const record = getOutputRecord(runDataUri, runData);
+      this.store.set(record);
     }
   }
-
-  return records;
 }
 
 const RUNDATA_FILE_NAME = 'rundata.json';
@@ -105,13 +135,13 @@ async function readOutputRunData(outputUri: vscode.Uri): Promise<RunDataManifest
  * 获取output记录
  */
 function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
-  const directoryPath = outputUri.path;
+  const directoryPath = outputUri.fsPath;
   const sourceFilePath = runData.pto_src_file || null;
   const controlFlowFilePath = runData.program_file || null;
   const swimlaneGraphFilePath = runData.swim_graph_path || null;
   const computeGraphDirPath = runData.compute_graph_path || null;
 
-  const directoryName = path.posix.basename(directoryPath);
+  const directoryName = path.posix.basename(outputUri.path);
   const executeTime = resolveExecuteTime(directoryName)!;
   const title = `${runData.runtype}_${executeTime.titleFormat}`;
   return {

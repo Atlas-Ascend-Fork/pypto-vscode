@@ -6,8 +6,10 @@ export abstract class BasicService extends vscode.Disposable {
   /** 服务名称，全局唯一 */
   public abstract name: string;
 
-  constructor(callOnDispose: () => any) {
-    super(callOnDispose);
+  protected _disposables: vscode.Disposable[] = [];
+
+  constructor() {
+    super(() => this._disposables.forEach((item) => item.dispose()));
     if (this.isStartedService()) {
       this.multiInstantiateError();
     }
