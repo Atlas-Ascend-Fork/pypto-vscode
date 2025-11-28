@@ -5,7 +5,7 @@
         <HistoryNpuIcon v-if="isNpu" />
         <HistoryIcon v-else />
       </div>
-      <HistoryList ref="historyListEl" :all-loaded="allLoaded" @record-change="onRecordChange" @load-more="handleLoadMore" />
+      <HistoryList ref="historyListEl" :current-record="currentRecord" :page="page" :all-loaded="allLoaded" @load-more="handleLoadMore" />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -71,7 +71,7 @@ import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
-import { getOutputRecords } from '../../apis/workspace';
+import { getOutputRecords, getOutputDetail } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
@@ -96,7 +96,7 @@ provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, pass
 
 const { comGraphName } = useNavbar();
 
-let page = 1;
+const page = ref(1);
 const pageSize = 50;
 const allLoaded = ref(false);
 let isPending = false;
@@ -104,12 +104,12 @@ function handleLoadMore() {
   if (isPending === true) {
     return;
   }
-  page += 1;
+  page.value += 1;
   getHistoryList();
 }
 function getHistoryList() {
   isPending = true;
-  getOutputRecords({ page, pageSize }, { timeout: 600000 }).then(({ data }) => {
+  getOutputRecords({ page: page.value, pageSize }, { timeout: 600000 }).then(({ data }) => {
     if (data.length < pageSize) {
       allLoaded.value = true;
     }
@@ -125,10 +125,17 @@ const showControlFlow = computed(() => Boolean(controlFlowFile.value));
 const showSwim = computed(() => Boolean(swimlaneFile.value));
 
 watch(
-  [() => props.currentRecordDirectoryPath, currentRecord],
-  ([outputDirPath, record]) => {
-    if (outputDirPath && record && props.currentStep !== 'controlFlow') {
-      getControlFlow({ outputDirPath, controlFlowFilePath: record.controlFlowFilePath }, { timeout: 600000, useCustomErrorHandler: true })
+  () => props.currentRecordDirectoryPath,
+  async (outputDirPath) => {
+    if (!outputDirPath) {
+      return;
+    }
+    currentRecord.value = (await getOutputDetail(outputDirPath)).data;
+    if (currentRecord.value && props.currentStep !== 'controlFlow') {
+      getControlFlow(
+        { outputDirPath, controlFlowFilePath: currentRecord.value.controlFlowFilePath },
+        { timeout: 600000, useCustomErrorHandler: true },
+      )
         .then((res) => {
           controlFlowList.value = res.data;
         })
@@ -155,10 +162,6 @@ watch(
 
 function emitLeafChange(leafName: string) {
   emits('leafChange', leafName);
-}
-
-function onRecordChange(record: HistoryData) {
-  currentRecord.value = record;
 }
 
 function findLastPass() {
@@ -191,12 +194,11 @@ function jumpSwim() {
 
 function jumpComGraph(filePath: string, pathName?: string) {
   if (historyListEl.value) {
-    const record = historyListEl.value.getCurrentRecord() as HistoryData;
     if (!pathName) {
       pathName = (passEl.value?.getCurrentPass() as PathInPass | undefined)?.pathName ?? '';
     }
-    if (record.directoryPath) {
-      openComputeGraph({ outputPath: record.directoryPath, computeGraphPath: filePath, pathName });
+    if (currentRecord.value?.directoryPath) {
+      openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName });
     }
   }
 }
