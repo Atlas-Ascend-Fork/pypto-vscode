@@ -665,8 +665,12 @@ defineExpose({
 #swimSlider .devui-slider__runway .devui-slider__button {
   background-color: #CED1DB;
   border: none;
+  margin-left: 0px  !important;
 }
-#swim-header-decrease,
+#swim-header-decrease{
+  padding: 3px 0 ;
+  margin-left: 4px;
+}
 #swim-header-increase {
   padding: 3px 0 ;
 }

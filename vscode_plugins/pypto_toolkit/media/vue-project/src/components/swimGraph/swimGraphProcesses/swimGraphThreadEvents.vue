@@ -343,9 +343,6 @@ const handlekeydown = (event) => {
     }, 100);
     return;
   }
-  if (isAnimation && !isLockStatus.value) {
-    clearSelectionCanvas('data-three-column-process-key');
-  }
   switch(true) {
     case matchKey(key, userConfig?.value.ZoomInShortcut):
       scaleCanvas(mouseX, 1 + scaleStep);
