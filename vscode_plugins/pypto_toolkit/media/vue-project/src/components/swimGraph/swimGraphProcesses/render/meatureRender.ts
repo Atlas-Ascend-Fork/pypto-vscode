@@ -17,6 +17,8 @@ export let measureState = {
   isMeasureChange: false,
 }
 
+const boxWidth = 45;
+
 export class MeatureRender extends EventRender {
   declare deps: Dependencies;
   private lessThan0usMsg: string;
@@ -102,6 +104,27 @@ export class MeatureRender extends EventRender {
     }
   }
 
+  private fillText(ctx: CanvasRenderingContext2D, rect: any) {
+    ctx.font = getFontStyle(meaureTextSize);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+    const metrics = ctx.measureText(rect.text);
+    let ascent = metrics.actualBoundingBoxAscent;
+    let descent = metrics.actualBoundingBoxDescent;
+
+    // 如果浏览器不支持 actualBoundingBox...，回退到估算
+    if (ascent === undefined || descent === undefined) {
+      const fontSize = parseFloat(ctx.font);
+      ascent = fontSize * 0.8;
+      descent = fontSize * 0.2;
+    }
+    const textHeight = ascent + descent;
+    const textY = centerY + (ascent - textHeight / 2);
+    ctx.fillText(rect.text, centerX, textY);
+  }
+
   drawConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean) {
     const { isDarkTheme } = this.deps;
     const rect = this.calculateRect(largeSpacing);
@@ -115,12 +138,7 @@ export class MeatureRender extends EventRender {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(meaureTextSize);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, centerX, centerY);
+    this.fillText(ctx, rect);
     // 绘制双向箭头
     if (largeSpacing){
       this.drawDoubleArrow(rect, ctx);
@@ -178,12 +196,7 @@ export class MeatureRender extends EventRender {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFontStyle(meaureTextSize);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
-    ctx.fillText(rect.text, centerX, centerY);
+    this.fillText(ctx, rect);
     if(!largeSpacing){
       return;
     }
@@ -237,17 +250,14 @@ export class MeatureRender extends EventRender {
     }
     let { x: lastX} = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX, viewState);
-    const width = 40 * devicePixelRatio;
+    const width = boxWidth * devicePixelRatio;
     const height = preHeight;
-    const centerY = preY + height / 2;
     const text = this.getMeasureDistance(altClickData);
     return {
       x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
       y: preY + height,
       width: width,
       height: height,
-      textX: preX + preWidth + (lastX- (preX + preWidth)) / 2 + (width / 2 - text.length) / 2,
-      textY: centerY + height + 3,
       text: text,
     };
   }
@@ -259,12 +269,12 @@ export class MeatureRender extends EventRender {
     const { threadName } = preData;
     const isFakeCore = threadName?.includes(FAKE_CORE_KEYWORD);
     let { x: preX, width: preWidth, y: preY, height: preHeight } = preData.renderInfo;
-    if(!largeSpacing){
+    if (!largeSpacing) {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
-      }
+    }
     let { x: lastX } = altClickData.lastData.renderInfo;
     lastX = getNoZoomX(lastX, viewState);
-    const width = 40 * devicePixelRatio;
+    const width = boxWidth * devicePixelRatio;
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = this.getMeasureDistance(altClickData);
@@ -280,8 +290,6 @@ export class MeatureRender extends EventRender {
       height: height * devicePixelRatio,
       centerX: rectX + (width / 2 - text.length) / 2,
       centerY: centerY * devicePixelRatio,
-      textX: rectX + (width / 2 - text.length) / 2,
-      textY: centerY * devicePixelRatio + 3,
       text: text,
       arrowWidth: (lastX - leftX - width - 6) / 2
     };

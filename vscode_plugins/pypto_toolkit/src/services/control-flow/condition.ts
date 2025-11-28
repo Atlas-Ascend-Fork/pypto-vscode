@@ -8,6 +8,12 @@ type PendingChildrenNode = Omit<ControlFlowIf, 'children'> & { children: Pending
  * @description 条件分支一定是平衡二叉树
  */
 export class ConditionAnalyzer {
+  private version: string;
+
+  constructor(version: string) {
+    this.version = version;
+  }
+
   /**
    * 函数是否包含条件分支
    */
@@ -44,7 +50,7 @@ export class ConditionAnalyzer {
     const conditions = conditionPaths[0][1].map((item) => item[0]);
 
     // 根节点
-    const rootExpression = genMathScalarExpr(conditions[0]) ?? '';
+    const rootExpression = genMathScalarExpr(conditions[0], this.version) ?? '';
     let rootNode: PendingChildrenNode = this.makePendingChildrenNode(rootExpression);
     let leafNodes: PendingChildrenNode[] = [rootNode];
 
@@ -53,7 +59,7 @@ export class ConditionAnalyzer {
       const parentNodes = leafNodes;
       leafNodes = [];
       for (const parentNode of parentNodes) {
-        const conditionExpression = genMathScalarExpr(conditions[level]) ?? '';
+        const conditionExpression = genMathScalarExpr(conditions[level], this.version) ?? '';
         const left: PendingChildrenNode = this.makePendingChildrenNode(conditionExpression);
         const right: PendingChildrenNode = this.makePendingChildrenNode(conditionExpression);
         parentNode.children = [left, right];

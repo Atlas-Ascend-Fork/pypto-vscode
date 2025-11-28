@@ -121,6 +121,10 @@ export default {
    reset: '还原宽高',
    measureCategoryPlaceholder: '点击此处添加筛选条件',
    noSearchCondition:'没有筛选条件',
+   noSearchMeasureDetaildata:'没有数据',
+   swimGraphkeywordDesc: `仅搜索关键字 '{key}'`,
+   swimGraphfieldDesc:`在 '{label}' 中查找`,
+   swimGraphcategoryDesc:'请选择筛选条件：',
     public: {
         loading: '加载中...',
         allLoaded: '没有更多了'
@@ -209,6 +213,8 @@ export default {
         leafName: 'leaf 函数',
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
+        codeSnippet:'代码片段',
+        splitScreenView:'分屏查看'
     },
     schemaConfig:{
         title:'新增运行配置',

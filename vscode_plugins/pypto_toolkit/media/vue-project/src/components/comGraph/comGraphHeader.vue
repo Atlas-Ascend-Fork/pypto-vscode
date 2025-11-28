@@ -527,6 +527,13 @@ watch(() => comGraphStore.data.inFixedComGraphFlow, (val) => {
   }
 });
 
+watch(() => props.outputDirPath, (val) => {
+  if (val) {
+    allOptions.value = [searchOptions[0]];
+    currentSelect.value = 'current';
+  }
+}, { immediate: true });
+
 const displayNav = (it, index) => {
   if (curPath.value.length == 2) {
     return `${funcMap.value[it].func_magicname} / `;

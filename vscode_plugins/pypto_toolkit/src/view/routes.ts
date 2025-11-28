@@ -29,7 +29,7 @@ export const routes: EditorViewRoutes = {
     viewServer: SwimGraphServer,
   },
 
-  // 控制流
+  // 编辑配置
   ptoNewConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
   },

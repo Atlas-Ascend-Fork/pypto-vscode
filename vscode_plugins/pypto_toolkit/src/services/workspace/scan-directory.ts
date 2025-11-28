@@ -19,14 +19,11 @@ import { hasHealthReport, isHealthReport } from '../../utils/health-report';
  * 运行结果
  */
 export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<OutputDirectory | null> {
-  if (!isFileExist(outputUri)) {
-    return null;
-  }
   return {
     type: 'dir',
     directoryType: 'output',
     name: path.basename(outputUri.path),
-    absolutePath: outputUri.path,
+    absolutePath: outputUri.fsPath,
     children: [
       ...(await getControlFlowFile(outputUri, record)),
       ...(await getSwimlaneFile(outputUri, record)),
@@ -51,9 +48,9 @@ async function getControlFlowFile(outputUri: vscode.Uri, record: OutputRecord): 
       type: 'file',
       fileType: 'controlFlow',
       name: t('PyPTOToolkit.workspace.controlFlowName'),
-      absolutePath: controlFlowUri.path,
+      absolutePath: controlFlowUri.fsPath,
       extname: 'json',
-      outputPath: outputUri.path,
+      outputPath: outputUri.fsPath,
     },
   ];
 }
@@ -74,9 +71,9 @@ async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Pro
       type: 'file',
       fileType: 'swimlaneGraph',
       name: t('PyPTOToolkit.workspace.swimlaneGraphName'),
-      absolutePath: swimlaneFileUri.path,
+      absolutePath: swimlaneFileUri.fsPath,
       extname: 'json',
-      outputPath: outputUri.path,
+      outputPath: outputUri.fsPath,
     },
   ];
 }
@@ -97,7 +94,7 @@ async function getComputeGraphDirectory(outputUri: vscode.Uri, record: OutputRec
           type: 'dir',
           directoryType: 'compute',
           name: t('PyPTOToolkit.workspace.computeGraphName'),
-          absolutePath: computeDirectoryUri.path,
+          absolutePath: computeDirectoryUri.fsPath,
           children: passDirectories,
         },
       ]
@@ -136,7 +133,7 @@ async function getPassDirectories(parentDirUri: vscode.Uri, outputUri: vscode.Ur
         passStage: passStage,
         passIndex: passIndex,
         name: subPath,
-        absolutePath: passUri.path,
+        absolutePath: passUri.fsPath,
         children: computeGraphList,
       });
 
@@ -172,8 +169,8 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
         fileType: 'computeGraph',
         extname: '.json',
         name: subPath,
-        absolutePath: computeGraphUri.path,
-        outputPath: outputUri.path,
+        absolutePath: computeGraphUri.fsPath,
+        outputPath: outputUri.fsPath,
         passIndex,
         pathName,
         hasHealthReport: hasHealthReport(computeGraphUri.fsPath),

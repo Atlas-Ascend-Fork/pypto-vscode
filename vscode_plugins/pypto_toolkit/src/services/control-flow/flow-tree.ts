@@ -3,7 +3,7 @@ import { PassDirectory } from '../../types/workspace';
 
 import { ConditionAnalyzer } from './condition';
 import { PathLeafAnalyzer } from './path-leaf';
-import { functionNodeToExecuteFunction } from './utils';
+import { functionNodeToExecuteFunction, getLanguageIdByFilePath } from './utils';
 
 /**
  * 解析控制流树
@@ -21,7 +21,7 @@ export class FlowTreeAnalyzer {
 
   constructor(private program: ProgramOutput, passes: PassDirectory[]) {
     this.allFunctionsToMap(program.functions);
-    this.conditionAnalyzer = new ConditionAnalyzer();
+    this.conditionAnalyzer = new ConditionAnalyzer(program.version);
     this.pathLeafAnalyzer = new PathLeafAnalyzer(this.functionHashMap, this.functionMagicMap, passes);
   }
 
@@ -52,7 +52,6 @@ export class FlowTreeAnalyzer {
   /**
    * 读取 循环 or 循环+条件 节点
    * @param functionNode
-   * @param context
    * @returns
    */
   private readDynamicFunction(functionNode: FunctionNode): ControlFlowLoop {
@@ -60,9 +59,11 @@ export class FlowTreeAnalyzer {
       nodeType: 'LOOP',
       ...functionNodeToExecuteFunction(functionNode),
       sourceCode: {
-        filePath: '',
-        startLine: 0,
-        endLine: 0,
+        filePath: functionNode.file ? functionNode.file : '',
+        startLine: functionNode.file ? (functionNode.line - 5 > 0 ? functionNode.line - 5 : 0) : 0,
+        endLine: functionNode.file ? functionNode.line + 5 : 0,
+        line: functionNode.file ? functionNode.line : 0,
+        language: functionNode.file ? getLanguageIdByFilePath(functionNode.file) : '',
       },
       children: [],
     };

@@ -75,7 +75,7 @@
           </div>
         </template>
       </d-tree>
-      <LoadMoreTrigger :all-loaded="allLoaded" @load-more="handleLoadMore" />
+      <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="handleLoadMore" />
     </div>
   </div>
 </template>
@@ -207,7 +207,7 @@ onMounted(() => {
 });
 
 const isLoading = ref(false);
-let page = 1;
+const page = ref(1);
 const pageSize = 50;
 const allLoaded = ref(false);
 
@@ -215,7 +215,9 @@ const allLoaded = ref(false);
  * 刷新、修改筛选条件
  */
 function handleReload() {
-  page = 1;
+  treeData.value = [];
+  allLoaded.value = false;
+  page.value = 1;
   getOutputs();
 }
 
@@ -226,15 +228,15 @@ function handleLoadMore() {
   if (isLoading.value) {
     return;
   }
-  page += 1;
+  page.value += 1;
   getOutputs();
 }
 
 async function getOutputs(): Promise<void> {
   isLoading.value = true;
   try {
-    const { data } = await getOutputRecords({ page, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
-    if (page === 1) {
+    const { data } = await getOutputRecords({ page: page.value, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
+    if (page.value === 1) {
       treeData.value = [];
     }
     if (data.length < pageSize) {

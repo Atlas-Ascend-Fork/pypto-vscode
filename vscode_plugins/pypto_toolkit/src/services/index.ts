@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { getControlFlow } from './control-flow';
+import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } from './tmp-view-opener';
 import { getOutputRecords, getOutputDetail } from './workspace';
 import { RunDataService } from './run-data';
@@ -18,6 +18,10 @@ export const services = {
   controlFlow: {
     /** 获取控制流 */
     getControlFlow,
+    /** 获取控制流代码片段 */
+    getSnippetCodeText,
+    /** 打开代码片段源代码文件 */
+    openControlFlowTargetFile,
   },
   // 工作区
   workspace: {
@@ -61,6 +65,12 @@ let singletonServices: { runData: RunDataService };
 
 export function startAllServices(context: vscode.ExtensionContext) {
   singletonServices = { runData: new RunDataService(context) };
+}
+
+export function closeAllServices() {
+  Object.values(singletonServices).forEach((service) => {
+    service.dispose();
+  });
 }
 
 export function useService(name: keyof typeof singletonServices) {

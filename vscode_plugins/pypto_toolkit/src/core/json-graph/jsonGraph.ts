@@ -516,6 +516,8 @@ export class AscppDagBuilder {
         const bottomNode: SEdge = {
             type: 'bottom',
             id: 'node-bottom-edge',
+            sourceId: '',
+            targetId: ''
         };
         return {
             type: 'graph',

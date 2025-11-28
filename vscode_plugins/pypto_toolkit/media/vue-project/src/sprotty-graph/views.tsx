@@ -839,7 +839,6 @@ export class AstgrRectView extends RectangularNodeView {
           height={node.customSize.height}
           fill="transparent"
           stroke-width={strokeWidth}
-          stroke
           stroke="url(#rainbow)"
         ></rect>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>

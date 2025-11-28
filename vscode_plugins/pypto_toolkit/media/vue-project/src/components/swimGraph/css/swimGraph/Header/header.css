@@ -15,6 +15,7 @@
   align-items: center;
   gap: 4px;
   margin-left: 16px;
+  min-width: 440px;
 }
 
 .search-container {
@@ -54,6 +55,10 @@
   color: rgba(49, 122, 247, 1);
 }
 
+.result-count {
+  flex-shrink: 0;
+}
+
 .search-res {
   display: flex;
   gap: 8px;
@@ -82,7 +87,6 @@
   width: 184px;
   height: 28px;
   display: flex;
-  gap: 5px;
   align-items: center;
   background: var(--devui-slider-container-bg);
   border-radius: 6px;

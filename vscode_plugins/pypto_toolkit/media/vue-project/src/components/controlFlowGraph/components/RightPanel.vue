@@ -252,7 +252,7 @@ const openDrawer = (tabIndex: number) => {
     // 初始化每个页签的状态
     panelData.value.tabs.forEach((_, tabIndex) => {
       searchKeywords.value[tabIndex] = ''; // 清空搜索
-      sortOptions.value[tabIndex] = { sortField: 'frequency', sortDirection: 'DESC' }; // 清空旧排序
+      sortOptions.value[tabIndex] = { sortField: 'frequency', sortDirection: 'desc' }; // 清空旧排序
       sortStates.value[tabIndex] = { field: '', direction: null }; // 清空新排序
       defaultExpandedRowKeys.value[tabIndex] = []; // 清空展开行
       tableRefs.value[tabIndex] = null; // 清空表格引用
@@ -306,7 +306,7 @@ function openGraph(item) {
   });
 }
 
-const sortFrequencyType = ref<SortInfo>({ field: 'frequency', direction: 'ASC' });
+const sortFrequencyType = ref<SortInfo>({ field: 'frequency', direction: 'DESC' });
 
 function sortFrequency(tabIndex: number) {
   sortFrequencyType.value.direction = sortFrequencyType.value.direction === 'ASC' ? 'DESC' : 'ASC';
@@ -602,8 +602,8 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabInd
   } else {
     calleeMaxFrequency.value = calledMaxFrequency.value;
   }
-  
-  if((calleeList.length===0||calledList.length===0)&&tabIndex!==2)tabIndex = 0;
+
+  if ((calleeList.length === 0 || calledList.length === 0) && tabIndex !== 2) tabIndex = 0;
 
   if (nodeData.data.source.meta?.passes) {
     passList.value = getPassList(nodeData.data.source.meta?.passes);
@@ -651,6 +651,14 @@ defineExpose({
 .drawer-container {
   overflow: hidden;
   box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.16);
+}
+.devui-drawer--right {
+  overflow: hidden !important;
+  background-color: var(--devui-card-bg) !important;
+  width: 480px !important;
+  padding: 20px !important;
+  height: 100vh;
+  box-sizing: border-box;
 }
 </style>
 
@@ -1051,14 +1059,5 @@ defineExpose({
     width: 0px !important;
     display: none;
   }
-}
-</style>
-<style lang="less">
-.devui-drawer--right {
-  background-color: var(--devui-card-bg) !important;
-  width: 480px !important;
-  padding: 20px !important;
-  height: 100vh;
-  box-sizing: border-box;
 }
 </style>

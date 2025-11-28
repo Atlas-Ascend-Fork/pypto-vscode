@@ -37,6 +37,8 @@ import Checkbox from 'vue-devui/checkbox';
 import 'vue-devui/checkbox/style.css';
 import InputNumber from 'vue-devui/input-number';
 import 'vue-devui/input-number/style.css';
+import Loading from 'vue-devui/loading';
+import 'vue-devui/loading/style.css';
 import Table from 'vue-devui/table';
 import 'vue-devui/table/style.css';
 import Tree from 'vue-devui/tree';
@@ -52,6 +54,8 @@ import Grid from 'vue-devui/grid';
 import 'vue-devui/grid/style.css';
 import Popover from 'vue-devui/popover';
 import 'vue-devui/popover/style.css';
+import Progress from 'vue-devui/progress';
+import 'vue-devui/progress/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -109,4 +113,6 @@ createApp(App)
   .use(Textarea)
   .use(Grid)
   .use(Popover)
+  .use(Progress)
+  .use(Loading)
   .mount('#app');
