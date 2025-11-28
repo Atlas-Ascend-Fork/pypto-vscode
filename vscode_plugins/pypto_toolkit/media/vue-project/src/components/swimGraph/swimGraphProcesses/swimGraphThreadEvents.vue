@@ -1,5 +1,5 @@
 <template>
-  <div class="thread-events" :data-process-container="process.key" tabindex="0" @mouseleave="divMouseLeave">
+  <div class="thread-events" :data-process-container="process.key" tabindex="0">
     <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
          class="lock-indicator"
          @click="lockClick"
@@ -51,7 +51,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithU
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext } from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey } from './render/utils';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
@@ -258,13 +258,23 @@ const scaleCanvas = (mouseX, scale) => {
 };
 
 onMounted(() => {
-  document.addEventListener('keydown', onKeyDown);
-  document.addEventListener('keyup', onKeyUp);
+  document.addEventListener('keydown', (e) => {
+    if (!handleMatchKey(e.key, userConfig)) {
+      return;
+    }
+    onKeyDown(e);
+  });
+  document.addEventListener('keyup', (e) => {
+    if (!handleMatchKey(e.key, userConfig)) {
+      return;
+    }
+    onKeyUp(e);
+  });
 });
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', onKeyDown);
-  document.removeEventListener('keyup', onKeyUp);
+  document.removeEventListener('keydown');
+  document.removeEventListener('keyup');
   throttledRender.cancel();
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
@@ -291,7 +301,7 @@ const onKeyDown = (e) => {
     }, 500); //500毫秒后开始加速
   }
 };
-
+ 
 const onKeyUp = (e) => {
   const activeElement = document.activeElement;
   if (activeElement.nodeName === 'INPUT') {
@@ -893,14 +903,9 @@ const handleMouseDown = (e) => {
   if (!e.ctrlKey) return;
   lastMoveX = e.clientX;
 };
+
 const handleMouseUp = throttle((e) => {
   selectionFinished(e);
-}, 16);
-
-const divMouseLeave = throttle((e) => {
-  if (isAnimation && !isLockStatus.value) {
-    clearSelectionCanvas('data-three-column-process-key');
-  }
 }, 16);
 
 const handleMouseLeave = throttle((e) => {
