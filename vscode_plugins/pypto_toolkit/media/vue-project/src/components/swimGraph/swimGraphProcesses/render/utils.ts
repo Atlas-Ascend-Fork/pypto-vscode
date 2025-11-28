@@ -166,6 +166,15 @@ export function matchKey (key: string, configKey: string) {
   return key === configKey || key === configKey.toLowerCase();
 }
 
+export function handleMatchKey(key: string, config: any) {
+  return (
+    matchKey(key, config?.value.ZoomInShortcut) ||
+    matchKey(key, config?.value.ZoomOutShortcut) ||
+    matchKey(key, config?.value.leftmoveShortcut) ||
+    matchKey(key, config?.value.rightmoveShortcut)
+  );
+}
+
 export function getCanvasRefs(processKey: string) {
   const canvasRef = getActiveEventCanvas(processKey);
   if (!canvasRef) { return null };
