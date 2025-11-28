@@ -113,6 +113,7 @@ function treeExpand() {
  * - 文件节点：type='file', isLeaf=true, 无children
  */
 const treeData = ref<DevUITreeNode[]>([]);
+const nodeChildrenMap = new Map<string, Promise<DevUITreeNode[]>>();
 const visibleTreeData = computed(() => [...treeData.value]);
 
 function nodeClick(node: DevUITreeNode): void {
@@ -145,11 +146,7 @@ function toggleNode(node: DevUITreeNode): void {
   treeRef.value.treeFactory.toggleNode(node);
 }
 
-const nodeChildrenMap = new Map<string, Promise<DevUITreeNode[]>>();
-
 function transformData(outputData: OutputRecords): DevUITreeNode[] {
-  nodeChildrenMap.clear();
-
   function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
     const children: DevUITreeNode[] = [];
     for (const dirOrFile of subDirOrFile) {
@@ -211,12 +208,17 @@ const page = ref(1);
 const pageSize = 50;
 const allLoaded = ref(false);
 
+function clearList() {
+  treeData.value = [];
+  nodeChildrenMap.clear();
+  allLoaded.value = false;
+}
+
 /**
  * 刷新、修改筛选条件
  */
 function handleReload() {
-  treeData.value = [];
-  allLoaded.value = false;
+  clearList();
   page.value = 1;
   getOutputs();
 }
@@ -236,8 +238,9 @@ async function getOutputs(): Promise<void> {
   isLoading.value = true;
   try {
     const { data } = await getOutputRecords({ page: page.value, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
+    // 再次清空列表，避免并发请求导致数据异常
     if (page.value === 1) {
-      treeData.value = [];
+      clearList();
     }
     if (data.length < pageSize) {
       allLoaded.value = true;

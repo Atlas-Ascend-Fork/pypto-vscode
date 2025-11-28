@@ -256,6 +256,22 @@ const updateLockPosition = (label) => {
   const domElement = getLineDomElement(displayLine) as HTMLElement;
   if (domElement) {
     const rect = domElement.getBoundingClientRect();
+    const stickyBlocks = document.querySelectorAll('.sticky-block');
+    let hasOverlap = false;
+
+    for (const block of stickyBlocks) {
+      const blockRect = block.getBoundingClientRect();
+      // 判断垂直方向是否重叠
+      const isOverlapping = rect.bottom > blockRect.top && rect.top < blockRect.bottom;
+      if (isOverlapping) {
+        hasOverlap = true;
+        break;
+      }
+    }
+    if (hasOverlap) {
+      lockPosition.value = null;
+      return;
+    }
     const editorRect = editor.getDomNode().getBoundingClientRect();
     
     lockPosition.value = {
@@ -520,7 +536,10 @@ const initEditor = (code) => {
       vertical: 'visible',
       horizontal: 'visible',
       useShadows: false
-    }
+    },
+    stickyScroll: {
+      enabled: false,
+    },
   });
   
   // 设置悬停样式
