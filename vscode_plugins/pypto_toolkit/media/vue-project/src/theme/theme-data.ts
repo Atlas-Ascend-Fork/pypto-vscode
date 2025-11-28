@@ -169,6 +169,7 @@ export const ideLightTheme = new Theme({
     'control-flow-path-hover': 'rgba(0,0,0,0.5)',
     'control-flow-loop-stroke': '#aeaeae',
     'control-flow-path-card-active': 'rgba(255, 255, 255, 1)',
+    'control-flow-code-preview': 'rgb(230, 230, 230)', // 代码片段预览背景颜色
   },
   isDark: false,
 });
@@ -341,6 +342,7 @@ export const ideDarkTheme = new Theme({
     'control-flow-path-hover': '#e6e6e6',
     'control-flow-loop-stroke': '#666666',
     'control-flow-path-card-active': 'rgba(77,77,77,1)',
+    'control-flow-code-preview': '#363636', // 代码片段预览背景颜色
   },
   isDark: true,
 });

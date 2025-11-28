@@ -52,6 +52,8 @@ import Grid from 'vue-devui/grid';
 import 'vue-devui/grid/style.css';
 import Popover from 'vue-devui/popover';
 import 'vue-devui/popover/style.css';
+import Progress from 'vue-devui/progress';
+import 'vue-devui/progress/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -109,4 +111,5 @@ createApp(App)
   .use(Textarea)
   .use(Grid)
   .use(Popover)
+  .use(Progress)
   .mount('#app');

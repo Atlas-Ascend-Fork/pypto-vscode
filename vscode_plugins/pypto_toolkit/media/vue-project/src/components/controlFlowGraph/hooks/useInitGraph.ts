@@ -1,8 +1,8 @@
 import { Ref, watch } from 'vue';
-import { Graph, MinimapOptions, NodeEvent } from '@antv/g6';
+import { ComboEvent, Graph, MinimapOptions, NodeEvent } from '@antv/g6';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
 import { useComboCardNodes } from './useComboNode';
-import { ControlFlowNodesType, EdgesType, CombsType } from '../type/node-detail-types';
+import { ControlFlowNodesType, EdgesType, CombsType, PreviewState } from '../type/node-detail-types';
 
 /**
  * 初始化绘图
@@ -13,6 +13,7 @@ import { ControlFlowNodesType, EdgesType, CombsType } from '../type/node-detail-
  * @param combos 组合数据
  * @param isDarkTheme 当前主题
  * @param combosNode 组合记录
+ * @param codePreviewState 代码片段预览状态控制
  * @returns 返回graph实例
  */
 export function useInitGraph(
@@ -23,8 +24,9 @@ export function useInitGraph(
   combos: CombsType[],
   isDarkTheme: Ref<boolean>,
   combosNode: Ref<CombsType[]>,
+  codePreviewState: PreviewState,
 ) {
-  const { comboInitConfig } = useComboCardNodes(isDarkTheme);
+  const { comboInitConfig } = useComboCardNodes(isDarkTheme, codePreviewState);
 
   const PATH_CARD_NODE_TYPE = 'path-card-node';
   const g6Graph = new Graph({
@@ -139,6 +141,25 @@ export function useInitGraph(
     const { target } = event;
     const currentStates = g6Graph.getElementState(target.id);
     const newStates = currentStates.filter((state) => !lineHoverClass.includes(state));
+    g6Graph.setElementState(target.id, newStates);
+  });
+
+  const comboHoverClass = ['left-svg', 'hit-area', 'code-view-svg'];
+  g6Graph.on(ComboEvent.POINTER_OVER, async (event) => {
+    const { target, originalTarget } = event;
+    if (comboHoverClass.includes(originalTarget.className)) {
+      const currentStates = g6Graph.getElementState(target.id);
+      await g6Graph.setElementState(target.id, [originalTarget.className, ...currentStates]);
+    } else {
+      const currentStates = g6Graph.getElementState(target.id);
+      const newStates = currentStates.filter((state) => !comboHoverClass.includes(state));
+      g6Graph.setElementState(target.id, newStates);
+    }
+  });
+  g6Graph.on(ComboEvent.POINTER_LEAVE, async (event) => {
+    const { target } = event;
+    const currentStates = g6Graph.getElementState(target.id);
+    const newStates = currentStates.filter((state) => !comboHoverClass.includes(state));
     g6Graph.setElementState(target.id, newStates);
   });
 

@@ -209,6 +209,8 @@ export default {
         leafName: 'leaf 函数',
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
+        codeSnippet:'代码片段',
+        splitScreenView:'分屏查看'
     },
     schemaConfig:{
         title:'新增运行配置',

@@ -14,6 +14,7 @@
     "@antv/g6": "^5.0.49",
     "@devui-design/icons": "^1.4.0",
     "@material/material-color-utilities": "^0.3.0",
+    "@monaco-editor/loader": "^1.6.1",
     "bignumber.js": "9.3.1",
     "decimal.js": "10.6.0",
     "devui-theme": "^0.1.0",
