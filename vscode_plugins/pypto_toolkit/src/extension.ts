@@ -8,8 +8,9 @@ import {RegisterCommand} from './command/registerCommand';
 import {globalConfig} from './config/config';
 import {initServer} from './core/request-server';
 import {SQLiteCache} from './core/sqliteCache';
+import { clearAllStores } from './core/store';
 import {hismartliteEx} from './hismarliteEx';
-import {services, startAllServices} from './services';
+import { closeAllServices, services, startAllServices } from './services';
 import {initView} from './view';
 import {SwimGraphView} from './view/swimGraphView.js';
 import {loadMaterialColorUtilities} from './color-list';
@@ -106,8 +107,11 @@ async function initDB(context: ExtensionContext) {
     watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
     watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
     // 2. 注册命令
-
-    vscode.commands.registerCommand('PyPTO.deletePersistFile', () => SQLiteCache.getInstance().deleteForCommand());
+    vscode.commands.registerCommand('PyPTO.deletePersistFile', () => {
+        SQLiteCache.getInstance().deleteForCommand();
+        clearAllStores(context);
+    });
+    
     // 3. 监听停用
     context.subscriptions.push(watcher, {
         dispose: () => SQLiteCache.getInstance().clearCache(),
@@ -128,4 +132,5 @@ async function initDB(context: ExtensionContext) {
 }
 
 export async function deactivate() {
+    closeAllServices()
 }

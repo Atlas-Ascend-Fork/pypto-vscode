@@ -4,11 +4,19 @@ import { SqlAttributesResolver } from './sql-attributes-resolver';
 export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implements StoreQuery<Item, Keys> {
   private _whereConditions: string[] = [];
 
+  private get _whereCondition(): string {
+    return this._whereConditions.length > 0 ? `WHERE ${this._whereConditions.join(' AND ')}` : '';
+  }
+
   private _orderCondition: string = '';
 
   private _limitCondition: string = '';
 
-  constructor(private _attributeResolver: SqlAttributesResolver<Item>, private _execQuery: (condition: string) => Promise<Item[]>) {}
+  constructor(
+    private _attributeResolver: SqlAttributesResolver<Item>,
+    private _execQuery: (condition: string) => Promise<Item[]>,
+    private _execDelete: (condition: string) => Promise<number>,
+  ) {}
 
   public filter(condition: { [key in Keys]?: Item[key] }): this {
     const conditions = this._attributeResolver.itemToQueryConditions(condition as Partial<Item>);
@@ -38,7 +46,10 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
   }
 
   public exec(): Promise<Item[]> {
-    const whereCondition = this._whereConditions.length > 0 ? `WHERE ${this._whereConditions.join(' AND ')}` : '';
-    return this._execQuery(`${whereCondition} ${this._orderCondition} ${this._limitCondition}`);
+    return this._execQuery(`${this._whereCondition} ${this._orderCondition} ${this._limitCondition}`);
+  }
+
+  public delete(): Promise<number> {
+    return this._execDelete(`${this._whereCondition} ${this._orderCondition} ${this._limitCondition}`);
   }
 }

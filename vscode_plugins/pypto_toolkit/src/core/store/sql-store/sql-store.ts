@@ -14,12 +14,30 @@ const SQL = initSqlJs(); // TODO 未指定wasm构建后是否有效
 
 const SQL_DATABASE_NAME = 'sql-store';
 
+const openedStore = new Set<SqlStore<any>>();
+
+/**
+ * 清除所有sqlite缓存
+ */
+export async function clearAllSqlStores(extensionContext: vscode.ExtensionContext): Promise<void> {
+  const sqlStoreUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
+  await vscode.workspace.fs.delete(sqlStoreUri, { recursive: true });
+  for (const store of openedStore) {
+    store.initializeDb();
+  }
+}
+
+/**
+ * Sqlite缓存
+ */
 export class SqlStore<
-  Attr extends StoreAttributes<any>,
-  Item extends ExtractItem<Attr> = ExtractItem<Attr>,
-  P extends keyof Item = PrimaryKeys<Attr>,
-  Q extends keyof Item = QueryKeys<Attr>,
-> implements Store<Item, P, Q>
+    Attr extends StoreAttributes<any>,
+    Item extends ExtractItem<Attr> = ExtractItem<Attr>,
+    P extends keyof Item = PrimaryKeys<Attr>,
+    Q extends keyof Item = QueryKeys<Attr>,
+  >
+  extends vscode.Disposable
+  implements Store<Item, P, Q>
 {
   protected _dbDirUri: vscode.Uri;
 
@@ -39,19 +57,31 @@ export class SqlStore<
    * @param extensionContext vscode扩展运行环境
    */
   constructor(public readonly storeName: string, public readonly attributes: Attr, extensionContext: vscode.ExtensionContext) {
+    super(() => this._onDispose());
+    openedStore.add(this);
     if (Object.values(attributes).every((item) => !item.isPrimary)) {
       throw new Error(`store ${storeName}未设置主键，请选取合适的属性设置isPrimary:true`);
     }
     this._dbDirUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
     this._tableFileUri = vscode.Uri.joinPath(this._dbDirUri, `${storeName}.db`);
+    this.initializeDb();
+    this._attributeResolver = new SqlAttributesResolver<Item>(attributes);
+    this._tableController = new SqlTableController<Item>(storeName, this._attributeResolver);
+    this._dataFileController = new DataFileController<Item>(vscode.Uri.joinPath(this._dbDirUri, this.storeName));
+  }
+
+  /**
+   * 初始化DB
+   */
+  public async initializeDb(): Promise<void> {
+    if (this._db) {
+      (await this._db).close();
+    }
     this._db = Promise.all([SQL, this._readFromDbFile()]).then(([sqlInstance, data]) => {
       const db = new sqlInstance.Database(data);
       this._initializeTable(db);
       return db;
     });
-    this._attributeResolver = new SqlAttributesResolver<Item>(attributes);
-    this._tableController = new SqlTableController<Item>(storeName, this._attributeResolver);
-    this._dataFileController = new DataFileController<Item>(vscode.Uri.joinPath(this._dbDirUri, this.storeName));
   }
 
   public async find(primaryConditions: { [key in P]: Item[key] }): Promise<Item | undefined> {
@@ -70,8 +100,22 @@ export class SqlStore<
     return this._getItemsFromQueryResult(queryResult);
   };
 
+  /**
+   * 执行删除
+   * @param conditions
+   * @returns 删除的行数
+   */
+  private _execDelete = async (conditions: string): Promise<number> => {
+    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
+    const items = await this._getItemsFromQueryResult(queryResult);
+    for (const item of items) {
+      this.delete(item);
+    }
+    return items.length ?? 0;
+  };
+
   public query(): StoreQuery<Item, P | Q> {
-    return new SqlStoreQuery<Item, P | Q>(this._attributeResolver, this._execQuery);
+    return new SqlStoreQuery<Item, P | Q>(this._attributeResolver, this._execQuery, this._execDelete);
   }
 
   public async set(item: Item): Promise<void> {
@@ -123,6 +167,10 @@ export class SqlStore<
       this._tableController.createTable(db);
       return;
     }
+  }
+
+  private _onDispose() {
+    openedStore.delete(this);
   }
 
   /**
