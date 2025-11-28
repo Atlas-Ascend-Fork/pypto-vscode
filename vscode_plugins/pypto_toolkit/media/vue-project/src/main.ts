@@ -37,6 +37,8 @@ import Checkbox from 'vue-devui/checkbox';
 import 'vue-devui/checkbox/style.css';
 import InputNumber from 'vue-devui/input-number';
 import 'vue-devui/input-number/style.css';
+import Loading from 'vue-devui/loading';
+import 'vue-devui/loading/style.css';
 import Table from 'vue-devui/table';
 import 'vue-devui/table/style.css';
 import Tree from 'vue-devui/tree';
@@ -112,4 +114,5 @@ createApp(App)
   .use(Grid)
   .use(Popover)
   .use(Progress)
+  .use(Loading)
   .mount('#app');
