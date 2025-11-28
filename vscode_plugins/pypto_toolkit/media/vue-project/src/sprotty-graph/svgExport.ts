@@ -2,7 +2,7 @@ import { SModelRootImpl} from 'sprotty';
 import { comGraphStore } from '../service/com-graph-store';
 import cssraw from './style/diagram.css?raw';
 
-const moreBorder = 100;
+const moreBorder = 200;
 let xBoundary = 0;
 let yBoundary = 0;
 

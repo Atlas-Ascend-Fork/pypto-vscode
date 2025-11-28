@@ -2,7 +2,7 @@
   <div class="selected-history">
     <d-dropdown :position="['bottom-start']" :offset="20" class="history-list-menu-wrap" @toggle="(val) => (isOpen = val)">
       <div :class="['selected-history-title', isOpen && 'is-open']">
-        <span :title="currentData.title">{{ currentData.title }}</span>
+        <span :title="currentRecord.title">{{ currentRecord.title }}</span>
         <i class="icon-chevron-down-2"></i>
       </div>
       <template #menu>
@@ -10,58 +10,47 @@
           <div
             v-for="item in historyList"
             :key="item.title"
-            :class="['list-item', item.title === currentData.title && 'active']"
+            :class="['list-item', item.title === currentRecord.title && 'active']"
             @click="() => onClick(item)"
           >
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
           </div>
-          <LoadMoreTrigger :all-loaded="allLoaded" @load-more="emits('loadMore')" />
+          <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="emits('loadMore')" />
         </div>
       </template>
     </d-dropdown>
-    <div class="selected-history-date">{{ currentData.executeTime }}</div>
+    <div class="selected-history-date">{{ currentRecord.executeTime }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue';
+import { inject, ref, withDefaults } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
 import { OutputRecord } from 'ext:/types/workspace';
 
-defineProps<{
-  allLoaded: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    currentRecord?: Pick<OutputRecord, 'title' | 'executeTime'>;
+    page: number;
+    allLoaded: boolean;
+  }>(),
+  { currentRecord: () => ({ title: '', executeTime: '' }) },
+);
 
 const emits = defineEmits<{
-  (e: 'recordChange', item: OutputRecord): void;
   (e: 'loadMore'): void;
 }>();
 
-const { rootProps, historyList } = inject(NavbarProvideKey) as NavbarContext;
+const { historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
-
-const currentData = computed<Partial<HistoryData>>(() => {
-  if (rootProps.currentRecordDirectoryPath) {
-    for (let i = 0; i < historyList.value.length; i++) {
-      const item = historyList.value[i];
-      if (item.directoryPath === rootProps.currentRecordDirectoryPath) {
-        emits('recordChange', item);
-        return item;
-      }
-    }
-  }
-  return {};
-});
 
 function onClick(item: HistoryData) {
   openControlFlow({ outputPath: item.directoryPath, controlFlowPath: item.controlFlowFilePath });
 }
-
-defineExpose({ getCurrentRecord: () => currentData.value });
 </script>
 
 <style scoped lang="scss">

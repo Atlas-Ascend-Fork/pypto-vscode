@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -32,14 +32,16 @@ const observer = new IntersectionObserver(([entry]) => {
     emit('loadMore');
   }
 });
-onMounted(() => {
-  observer.observe(triggerRef.value);
-});
 watch(
-  () => props.allLoaded,
-  (isAllLoaded) => {
+  [() => props.allLoaded, triggerRef],
+  ([isAllLoaded, target]) => {
+    if (!target) {
+      return;
+    }
     if (isAllLoaded) {
-      observer.disconnect();
+      observer.unobserve(target);
+    } else {
+      observer.observe(target);
     }
   },
   { immediate: true },
