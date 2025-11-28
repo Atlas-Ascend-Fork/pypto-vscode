@@ -53,6 +53,7 @@ import {
   AstgrTensorView,
   InputOutputNodeView,
   CustomCompartmentView,
+  BootomAstgrEdge,
 } from './views';
 import { AstgrNode, AstgrPort } from './graph.types';
 import { AstgrContextMenuItemProvider, AstgrContextMenuService } from './menu';
@@ -180,6 +181,10 @@ export function createDiContainer(sprottyContainerId: string) {
 
     configureModelElement(context, 'rect', RectangularNode, AstgrRectView, {
       disable: [moveFeature],
+    });
+
+    configureModelElement(context, 'bottom', SEdgeImpl, BootomAstgrEdge, {
+      disable: [editFeature],
     });
 
     configureModelElement(context, 'edge', SEdgeImpl, AstgrEdge, {

@@ -1373,6 +1373,16 @@ export class AstgrEdge extends PolylineEdgeView {
 }
 
 @injectable()
+export class BootomAstgrEdge extends PolylineEdgeView {
+  override render(edge: Readonly<SEdgeImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
+    const route = this.edgeRouterRegistry.route(edge, args);
+    return (<g id="node-bottom-edge">
+      {context.renderChildren(edge, { route, ...args })}
+      </g>);
+  }
+}
+
+@injectable()
 export class AstgrPortView extends ShapeView {
   render(node: Readonly<SPortImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     if ((!this.isVisible(node, context)) && (!comGraphStore.data.svgExportMode)) {

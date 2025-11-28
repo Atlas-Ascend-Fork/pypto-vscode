@@ -391,9 +391,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         return t.type.includes('node');
       })
       modelSource.model.notNeedLayout = true;
-      const firstEdge = modelSource.currentRoot.children.find((t: any) => {
-        return t.sourceId.includes(firstNode.id)
-      })
+      const firstEdge = modelSource.currentRoot.children.find(
+        (t: any) => t.id === 'node-bottom-edge'
+      );
+
       modelSource.removeElements([{elementId:'show-node-rect', parentId: firstEdge.id}]);
       comGraphStore.data.selectedNodeSemanticLabel = semantic_lable;
       const newRect = new Rect();
