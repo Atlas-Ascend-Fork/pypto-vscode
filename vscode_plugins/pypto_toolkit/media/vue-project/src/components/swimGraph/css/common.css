@@ -88,3 +88,6 @@
   color: var(--devui-category-search-dropdown-item-color);
   background-color: var(--devui-category-search-dropdown-item-bg);
 }
+.dp-no-data-tip {
+  padding: 10px;
+}

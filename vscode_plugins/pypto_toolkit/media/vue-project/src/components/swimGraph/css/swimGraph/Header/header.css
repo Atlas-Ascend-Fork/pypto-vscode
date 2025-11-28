@@ -87,7 +87,6 @@
   width: 184px;
   height: 28px;
   display: flex;
-  gap: 5px;
   align-items: center;
   background: var(--devui-slider-container-bg);
   border-radius: 6px;

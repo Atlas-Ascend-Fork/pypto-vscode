@@ -359,7 +359,6 @@ const updateHoverDecorationBySemanticLabel = (label) => {
   const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
   editor.revealPositionInCenter(startPosition);
   editor.setPosition(startPosition);
-  editor.focus();
   if (!isLocked.value) {
     enableLock(targetLabel);
   }
