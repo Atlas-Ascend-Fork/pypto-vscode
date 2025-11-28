@@ -48,8 +48,10 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
           gd.calleeOpMagic.toString(),
           gd.calleeOpSubgraphId.toString(),
         );
-        calleeOpAttr = opAttrData.op_attr;
-        ioperands = JSON.parse(opAttrData.ioperands);
+        if (opAttrData) {
+          calleeOpAttr = opAttrData.op_attr;
+          ioperands = JSON.parse(opAttrData.ioperands);
+        }
       }
       if (calleeOpAttr) {
         server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
