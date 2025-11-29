@@ -812,6 +812,9 @@ export class AstgrRectView extends RectangularNodeView {
       }
     }
 
+    const dashArrayWidth = (node.customSize.width + node.customSize.height) / 5;
+    const duration = Math.floor(200000 / dashArrayWidth) + 's';
+
     return (
       <g>
         <defs>
@@ -838,8 +841,12 @@ export class AstgrRectView extends RectangularNodeView {
           width={node.customSize.width}
           height={node.customSize.height}
           fill="transparent"
-          stroke-width={strokeWidth}
+          stroke-width={strokeWidth / 2}
           stroke="url(#rainbow)"
+          stroke-dasharray={`${dashArrayWidth} ${dashArrayWidth * 4}`}
+          style={{
+            animationDuration: duration
+          }}
         ></rect>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
