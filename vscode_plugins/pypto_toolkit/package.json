@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "icon": "media/images/logo.png",
   "engines": {
     "vscode": "^1.45.2"
