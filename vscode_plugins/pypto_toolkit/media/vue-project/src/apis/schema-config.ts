@@ -51,3 +51,7 @@ export function delCustomFile(configDirPath: string) {
 export function addCustomFile(configName: string): Promise<boolean> {
   return request.post(`${CONFIG}/addNewFwkConfigFile`, configName);
 }
+
+export function getDidFindConfigFiles(): Promise<boolean> {
+  return request.post(`${CONFIG}/getDidFindConfigFiles`, null);
+}

@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import {
+  ConfigFileInfo,
   PtoConfigSchemaResponseDto,
+  ScanStatus,
   TileFWKConfigResponseDto,
   updateTitleFWKConfigRequestDto,
 } from '../../types/config-schema/config-schema';
 import { readSchemaData, readFwkData, writeSchemaData, getJsonFileList, delFile } from './configdata';
 import path from 'node:path';
+import { useService } from '..';
 
 /** PYPTO配置文件目录文件夹名 */
 const CONFIG_PATH = 'config';
@@ -93,4 +96,10 @@ export async function addNewFwkConfigFile(fileName: string) {
     vscode.window.showErrorMessage(`${(err as Error).message}`);
     return false;
   }
+}
+
+export async function getDidFindConfigFiles() {
+  const configService = useService('configData');
+  // 「扫描状态变更」事件:前端订阅通讯预留
+  configService.onDidUpdateConfigData((data: { files: ConfigFileInfo[]; status: ScanStatus }) => {});
 }

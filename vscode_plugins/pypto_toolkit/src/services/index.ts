@@ -11,7 +11,9 @@ import {
   getCustomFileList,
   delCustomFile,
   addNewFwkConfigFile,
+  getDidFindConfigFiles,
 } from './schema-config';
+import { ConfigDataService } from './schema-config/configdata';
 
 export const services = {
   // 控制流
@@ -50,6 +52,9 @@ export const services = {
 
     /** 添加自定义配置 */
     addNewFwkConfigFile,
+
+    /** 扫描工作区本地配置文件 */
+    getDidFindConfigFiles,
   },
   //【临时】开启webview
   tmpViewOpener: {
@@ -61,10 +66,10 @@ export const services = {
   },
 };
 
-let singletonServices: { runData: RunDataService };
+let singletonServices: { runData: RunDataService; configData: ConfigDataService };
 
 export function startAllServices(context: vscode.ExtensionContext) {
-  singletonServices = { runData: new RunDataService(context) };
+  singletonServices = { runData: new RunDataService(context), configData: new ConfigDataService() };
 }
 
 export function closeAllServices() {

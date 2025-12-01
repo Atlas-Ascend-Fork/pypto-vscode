@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 interface SchemaItem {
   description?: string;
   type: string;
@@ -179,3 +181,26 @@ export interface CustomConfigItemVo {
   configBaseName: string;
   configPath: string;
 }
+
+/**
+ * 配置文件信息类型
+ */
+export interface ConfigFileInfo {
+  /** 文件唯一URI */
+  uri: vscode.Uri;
+  /** 文件绝对路径 */
+  path: string;
+  /** 文件名 */
+  fileName: string;
+  /** 所在工作区名称 */
+  workspaceName: string;
+  /** 最后修改时间 */
+  lastModified: Date;
+  /** 文件大小（字节） */
+  size: number;
+}
+
+/**
+ * 扫描状态类型
+ */
+export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
