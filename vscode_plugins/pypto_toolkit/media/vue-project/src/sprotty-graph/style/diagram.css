@@ -417,7 +417,6 @@ circle {
 }
 
 .sprotty-rect-animate {
-  stroke-dasharray: 160 1200;
   stroke-dashoffset: 0;
   animation: 600s linear infinite flow;
 }
