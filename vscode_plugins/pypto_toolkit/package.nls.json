@@ -1,6 +1,7 @@
 {
   "pypto.OpenRenderGraphForCurrent": "PyPTO Toolkit: Open file",
   "pypto.OpenDiffComGraphForCurrent": "PyPTO Toolkit: Open Compute Graph differences comparison",
+  "PyPTO.CloseAllToolPages": "PyPTO Toolkit: Close all tool pages",
   "PyPTOToolkit.tensorAttr.description": "JS code to get the tensor attribute from json. eg: (tensor) => [`magic: ${tensor.magic}`, `shape: ${JSON.stringify(tensor.shape)}`]",
   "PyPTOToolkit.operationAttr.description": "JS code to get the operation attribute from json. eg: (operation) => [`opcode: ${operation.opcode}`]",
   "PyPTOToolkit.tensorColor.description": "JS code to get the tensor color from json. eg: (tensor) => { return '#f50' }",
