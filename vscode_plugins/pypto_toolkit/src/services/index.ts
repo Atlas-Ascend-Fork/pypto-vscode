@@ -11,7 +11,6 @@ import {
   getCustomFileList,
   delCustomFile,
   addNewFwkConfigFile,
-  getDidFindConfigFiles,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
 
@@ -52,9 +51,6 @@ export const services = {
 
     /** 添加自定义配置 */
     addNewFwkConfigFile,
-
-    /** 扫描工作区本地配置文件 */
-    getDidFindConfigFiles,
   },
   //【临时】开启webview
   tmpViewOpener: {
