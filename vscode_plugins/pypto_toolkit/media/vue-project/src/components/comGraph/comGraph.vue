@@ -126,7 +126,7 @@ function isNodeInTrace(nodeId: string): boolean {
   let nodesList;
 
   if (!fixedNodeId) {
-    nodesList = [...comGraphStore.data.pathNodesSet];
+    nodesList = [...comGraphStore.data.pathNodesSet].map(item => Number(item));
   } else {
     const tracedTensors = comGraphStore.data.traceTensors?.[1];
     const tracedOperations  = comGraphStore.data.traceOperations?.[1];
@@ -145,10 +145,7 @@ function isNodeInTrace(nodeId: string): boolean {
   } else if (nodeId.includes(TensorNodeIdPrefix)) {
     nodeMagic = parseInt(nodeId.split(TensorNodeIdPrefix)[1]);
   }
-  if (nodeMagic && nodesList.indexOf(nodeMagic) != -1) {
-    return true;
-  }
-  return false;
+  return nodeMagic && nodesList.indexOf(nodeMagic) !== -1;
 }
 
 const onLocate = (id) => {
