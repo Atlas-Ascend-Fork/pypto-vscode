@@ -31,12 +31,12 @@ const props = defineProps({
 <style lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
 .com-graph-error-container {
-  position: fixed;
-  inset: 0;
   display: flex;
   flex-direction:column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
   background: $devui-base-bg;
   gap: 32px;
 

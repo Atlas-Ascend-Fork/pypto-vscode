@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import ErrorView from './components/comGraph/error.vue';
 import { getQuery } from './core/query';
 import { useTheme } from './theme/use-theme';
 import ControlFlowIndex from './components/controlFlowGraph/ControlFlowIndex.vue';
@@ -9,20 +8,12 @@ import PtoConfigIndex from './components/titleFwkConfig/PtoConfigIndex.vue';
 import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 
 const graphType = ref('');
-const errorMessage = ref('');
 const outputDirPath = ref('');
 const { updateTheme } = useTheme();
 
 getQuery().then((query) => {
   graphType.value = query._viewType;
 });
-
-const errorListener = (args) => {
-  graphType.value = 'returnError';
-  errorMessage.value = args;
-};
-
-(window as any).ascEventBus.on('jsonParseError', errorListener);
 
 const returnTheme = (message) => {
   updateTheme(message.data);
@@ -52,9 +43,8 @@ onMounted(() => {
     <ControlFlowIndex></ControlFlowIndex>
   </div>
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
-    <ErrorView v-if="graphType === 'returnError'" :jsonContent="errorMessage" />
+    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>    
     <MiddleLayer v-else :graphType="graphType"></MiddleLayer>
-    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>
   </header>
 </template>
 <style scoped>
