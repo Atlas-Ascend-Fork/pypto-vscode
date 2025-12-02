@@ -34,7 +34,7 @@ export class RunDataService extends BasicService {
 
   constructor(context: vscode.ExtensionContext) {
     super();
-    this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES, context);
+    this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES);
     this._disposables.push(this.store);
     this.scanDirectory();
     this.watchFileChange();

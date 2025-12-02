@@ -1,13 +1,17 @@
 import * as vscode from 'vscode';
 
-import { clearAllSqlStores } from './sql-store/sql-store';
+import { SqlStoreManager } from './sql-store/sql-store-manager';
 import type { StoreAttributes } from './types';
 
 export { SqlStore } from './sql-store/sql-store';
 export type { Store, StoreQuery } from './types';
 
-export function clearAllStores(extensionContext: vscode.ExtensionContext) {
-  clearAllSqlStores(extensionContext);
+export function initStores(extensionContext: vscode.ExtensionContext) {
+  new SqlStoreManager(extensionContext);
+}
+
+export function clearAllStores() {
+  SqlStoreManager.getInstance().clearAllSqlStore();
 }
 
 /**

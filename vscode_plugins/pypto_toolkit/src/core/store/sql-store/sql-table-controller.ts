@@ -16,8 +16,8 @@ export class SqlTableController<Item extends Data> {
       const notNullSql = notNull ? ' NOT NULL' : '';
       const primaryKeySql = isPrimary ? ' PRIMARY KEY' : '';
       const defaultSql = defaultValue ? ` DEFAULT ${defaultValue}` : '';
-      return `${name} ${type}${notNullSql}${primaryKeySql}${defaultSql}`;
-    });
+      return `\`${name}\` ${type}${notNullSql}${primaryKeySql}${defaultSql}`;
+    }).join(',');
     const indexes = this._attributeResolver.toIndexColumnNames();
     db.run(`CREATE TABLE IF NOT EXISTS ${this._storeName} (${columns});`);
     for (const attr of indexes) {
