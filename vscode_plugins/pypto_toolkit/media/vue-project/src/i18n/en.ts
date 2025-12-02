@@ -173,6 +173,7 @@ export default {
         pathLocked: 'Path Locked',
         singlePathMode: 'Single Path Mode',
         pressEscExit: 'Press ESC to exit',
+        searchingNodeUntraced: 'searching Node is not in current path',
         nodeCountTips: 'The current number of layout nodes has exceeded 10,000',
         renderTimeoutTips: 'Which may lead to excessively long rendering times and even cause application lag or crashes',
         fullRenderComGraph: 'Full Rendering Computational Graph',
