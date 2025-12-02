@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 
-import { debounce } from 'lodash';
 import initSqlJs, { Database, QueryExecResult } from 'sql.js';
 import * as vscode from 'vscode';
 
@@ -9,23 +8,9 @@ import { SqlAttributesResolver } from './sql-attributes-resolver';
 import { SqlStoreQuery } from './sql-store-query';
 import { SqlTableController } from './sql-table-controller';
 import { DataFileController } from './data-file-controller';
+import { SqlStoreDatabase, SqlStoreManager } from './sql-store-manager';
 
-const SQL = initSqlJs(); // TODO 未指定wasm构建后是否有效
-
-const SQL_DATABASE_NAME = 'sql-store';
-
-const openedStore = new Set<SqlStore<any>>();
-
-/**
- * 清除所有sqlite缓存
- */
-export async function clearAllSqlStores(extensionContext: vscode.ExtensionContext): Promise<void> {
-  const sqlStoreUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
-  await vscode.workspace.fs.delete(sqlStoreUri, { recursive: true });
-  for (const store of openedStore) {
-    store.initializeDb();
-  }
-}
+const SQL = initSqlJs();
 
 /**
  * Sqlite缓存
@@ -39,35 +24,32 @@ export class SqlStore<
   extends vscode.Disposable
   implements Store<Item, P, Q>
 {
-  protected _dbDirUri: vscode.Uri;
+  private _db: Promise<SqlStoreDatabase>;
 
-  protected _tableFileUri: vscode.Uri;
+  private _attributeResolver: SqlAttributesResolver<Item>;
 
-  protected _db: Promise<Database>;
+  private _tableController: SqlTableController<Item>;
 
-  protected _attributeResolver: SqlAttributesResolver<Item>;
+  private _dataFileController: DataFileController<Item>;
 
-  protected _tableController: SqlTableController<Item>;
-
-  protected _dataFileController: DataFileController<Item>;
+  private _manager: SqlStoreManager;
 
   /**
    * @param storeName 数据表名
    * @param attributes 字段
    * @param extensionContext vscode扩展运行环境
+   * @param version 数据库版本，需要清空sql时指定更大的值强制升版
    */
-  constructor(public readonly storeName: string, public readonly attributes: Attr, extensionContext: vscode.ExtensionContext) {
+  constructor(public readonly storeName: string, public readonly attributes: Attr, public readonly version = 0) {
     super(() => this._onDispose());
-    openedStore.add(this);
     if (Object.values(attributes).every((item) => !item.isPrimary)) {
       throw new Error(`store ${storeName}未设置主键，请选取合适的属性设置isPrimary:true`);
     }
-    this._dbDirUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
-    this._tableFileUri = vscode.Uri.joinPath(this._dbDirUri, `${storeName}.db`);
-    this.initializeDb();
+    this._manager = SqlStoreManager.getInstance();
     this._attributeResolver = new SqlAttributesResolver<Item>(attributes);
     this._tableController = new SqlTableController<Item>(storeName, this._attributeResolver);
-    this._dataFileController = new DataFileController<Item>(vscode.Uri.joinPath(this._dbDirUri, this.storeName));
+    this._dataFileController = new DataFileController<Item>(storeName);
+    this.initializeDb();
   }
 
   /**
@@ -77,11 +59,8 @@ export class SqlStore<
     if (this._db) {
       (await this._db).close();
     }
-    this._db = Promise.all([SQL, this._readFromDbFile()]).then(([sqlInstance, data]) => {
-      const db = new sqlInstance.Database(data);
-      this._initializeTable(db);
-      return db;
-    });
+    this._db = this._manager.openDatabase(this);
+    this._initializeTable(await this._db);
   }
 
   public async find(primaryConditions: { [key in P]: Item[key] }): Promise<Item | undefined> {
@@ -89,30 +68,6 @@ export class SqlStore<
     const result = await this._execOneSelect(`SELECT * FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);
     return (await this._getItemsFromQueryResult(result))[0];
   }
-
-  /**
-   * 执行query
-   * @param conditions
-   * @returns
-   */
-  private _execQuery = async (conditions: string): Promise<Item[]> => {
-    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
-    return this._getItemsFromQueryResult(queryResult);
-  };
-
-  /**
-   * 执行删除
-   * @param conditions
-   * @returns 删除的行数
-   */
-  private _execDelete = async (conditions: string): Promise<number> => {
-    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
-    const items = await this._getItemsFromQueryResult(queryResult);
-    for (const item of items) {
-      this.delete(item);
-    }
-    return items.length ?? 0;
-  };
 
   public query(): StoreQuery<Item, P | Q> {
     return new SqlStoreQuery<Item, P | Q>(this._attributeResolver, this._execQuery, this._execDelete);
@@ -170,8 +125,32 @@ export class SqlStore<
   }
 
   private _onDispose() {
-    openedStore.delete(this);
+    this._manager.closeDatabase(this);
   }
+
+  /**
+   * 执行query
+   * @param conditions
+   * @returns
+   */
+  private _execQuery = async (conditions: string): Promise<Item[]> => {
+    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
+    return this._getItemsFromQueryResult(queryResult);
+  };
+
+  /**
+   * 执行删除
+   * @param conditions
+   * @returns 删除的行数
+   */
+  private _execDelete = async (conditions: string): Promise<number> => {
+    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
+    const items = await this._getItemsFromQueryResult(queryResult);
+    for (const item of items) {
+      this.delete(item);
+    }
+    return items.length ?? 0;
+  };
 
   /**
    * 执行一条查询语句
@@ -185,8 +164,9 @@ export class SqlStore<
    * 执行SQL并保存至数据文件
    */
   private async _runAndSave(sql: string): Promise<void> {
-    (await this._db).run(sql);
-    this._debouncedWriteToDbFile();
+    const db = await this._db;
+    db.run(sql);
+    db.save();
     return;
   }
 
@@ -200,28 +180,5 @@ export class SqlStore<
     const savingFileNames = this._attributeResolver.getFileNamesFromQueryResult(queryResult);
     const readingPromises = savingFileNames.map((fileName) => this._dataFileController.read(fileName));
     return await Promise.all(readingPromises);
-  }
-
-  /**
-   * 读取数据库文件
-   */
-  private async _readFromDbFile(): Promise<Uint8Array> {
-    await vscode.workspace.fs.createDirectory(this._dbDirUri);
-    let fileContent: Uint8Array = new Uint8Array();
-    try {
-      fileContent = await vscode.workspace.fs.readFile(this._tableFileUri);
-    } catch {
-      // do nothing
-    }
-    return fileContent;
-  }
-
-  /**
-   * 写入数据库文件（防抖）
-   */
-  private _debouncedWriteToDbFile = debounce(this._writeToDbFile, 100);
-  private async _writeToDbFile(): Promise<void> {
-    await vscode.workspace.fs.writeFile(this._tableFileUri, (await this._db).export());
-    return;
   }
 }

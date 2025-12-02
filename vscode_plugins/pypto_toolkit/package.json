@@ -191,7 +191,6 @@
     "i18next": "^22.4.14",
     "jquery": "^3.7.1",
     "jquery.json-viewer": "^1.5.0",
-    "lodash": "^4.17.21",
     "sprotty-elk": "^1.4.0",
     "sprotty-protocol": "^1.4.0",
     "sql.js": "^1.13.0",
@@ -202,7 +201,6 @@
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
-    "@types/lodash": "^4.17.21",
     "@types/node": "^24.5.2",
     "@types/sql.js": "^1.4.4",
     "concurrently": "^9.2.1",

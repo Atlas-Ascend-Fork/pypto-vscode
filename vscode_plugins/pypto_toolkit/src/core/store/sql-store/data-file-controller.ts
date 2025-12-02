@@ -1,9 +1,16 @@
 import * as vscode from 'vscode';
 
-import { Data } from '../types';
+import type { Data } from '../types';
+
+import { SqlStoreManager } from './sql-store-manager';
 
 export class DataFileController<Item extends Data> {
-  constructor(private _storeDirUri: vscode.Uri) {}
+  private _storeDirUri: vscode.Uri;
+
+  constructor(storeName: string) {
+    this._storeDirUri = SqlStoreManager.getInstance().toUri(storeName);
+    vscode.workspace.fs.createDirectory(this._storeDirUri);
+  }
 
   public async read(fileName: string): Promise<Item> {
     const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
@@ -12,7 +19,6 @@ export class DataFileController<Item extends Data> {
   }
 
   public async write(item: Item, fileName: string): Promise<void> {
-    await vscode.workspace.fs.createDirectory(this._storeDirUri);
     const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
     await vscode.workspace.fs.writeFile(fileUri, Buffer.from(JSON.stringify(item), 'utf8'));
   }
