@@ -46,7 +46,7 @@
         </div>
       </div>
       <div class="main-view" v-show="!loading">
-        <div class="swimlane-container" ref="swimlaneContainer">
+        <div class="swimlane-container scroller-container" ref="swimlaneContainer">
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->

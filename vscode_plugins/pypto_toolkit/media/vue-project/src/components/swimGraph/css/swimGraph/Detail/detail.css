@@ -666,17 +666,6 @@
   font-size: 20px;
   margin-left: 8px !important;
 }
-.input-number-border {
-  height: 28px;
-  font-size: 14px;
-  line-height: 28px;
-  padding-left:10px;
-  transition: border 0.3s ease;
-  background-color: var(--devui-base-bg);
-  border-right: none;
-  border-radius: var(--devui-border-radius) 0 0 var(--devui-border-radius); 
-  border: 1px solid var(--devui-form-control-line);
-}
 
 .focusable {
   border: 1px solid var(--devui-form-control-line-active);
