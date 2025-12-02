@@ -96,6 +96,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           y = viewInfo.scroll.y * (viewInfo.zoom / zoom);
         }
         setViewportAction(modelSource.model.id, x, y, zoom, false);
+        (window as any).ascEventBus.emit('minimap-wheel', [zoom, x, y, renderType]);
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, x, y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
@@ -379,6 +380,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   };
 
+  // diff拖拽同步结束后，更新双图当前坐标
+  const updateDiffViewport = () => {
+    getViewport(modelSource, MAINMAP_FIT_SCREEN);
+  }
+
   const createSelectNodesRect = async (semantic_lable : string, isLocate: boolean) => {
     const selectedNodes =  findNodeIdsBySemanticLabel(currentData, semantic_lable);
     if (selectedNodes.length <= 0) {
@@ -443,6 +449,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     createSelectNodesRect,
     removeSelectNodesRect,
     resetModelSource,
-    hoverFeedbackAction
+    hoverFeedbackAction,
+    updateDiffViewport
   };
 }

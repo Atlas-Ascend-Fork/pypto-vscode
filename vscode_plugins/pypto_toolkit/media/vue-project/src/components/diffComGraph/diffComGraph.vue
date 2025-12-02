@@ -116,6 +116,7 @@ const onExpandChange = () => {
 };
 
 const onDiffItemClick = (data: DiffListItem) => {
+  isBothSelected = data.changeType === 'change';
   if (data.changeType === 'add' || data.changeType === 'change') {
     afterIns.centerNodeAction([data.nodeId]);
     afterIns.selectAction([data.nodeId]);
@@ -162,6 +163,11 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
 });
 
 let isDragging: boolean = false;
+let beforeCurrentX;
+let beforeCurrentY;
+let afterCurrentX;
+let afterCurrentY;
+let isBothSelected: boolean = false; // 是否before和after均有节点选中
 function onSyncOperateChange(e) {
   if (e) {
     afterIns?.fitToScreenAction();
@@ -173,32 +179,93 @@ function onMinimapMove(args, type: 'before' | 'after') {
 }
 function onMouseMove(args) {
   if (syncOperate.value && isDragging) {
+    let x = args[0];
+    let y = args[1];
+    if (isBothSelected) {
+      if (args[3] === 'after') {
+        x = beforeCurrentX + (args[0] - afterCurrentX);
+        y = beforeCurrentY + (args[1] - afterCurrentY);
+      }
+      if (args[3] === 'before') {
+        x = afterCurrentX + (args[0] - beforeCurrentX);
+        y = afterCurrentY + (args[1] - beforeCurrentY);
+      }
+    }
     if (args[3] === 'after') {
-      beforeIns?.syncDiffView([args[0], args[1], args[2]]);
-      beforeMinimapEl.value?.updateRectPosition([args[0], args[1]]);
+      beforeIns?.syncDiffView([x, y, args[2]]);
+      beforeMinimapEl.value?.updateRectPosition([x, y]);
     }
     if (args[3] === 'before') {
-      afterIns?.syncDiffView([args[0], args[1], args[2]]);
-      afterMinimapEl.value?.updateRectPosition([args[0], args[1]]);
+      afterIns?.syncDiffView([x, y, args[2]]);
+      afterMinimapEl.value?.updateRectPosition([x, y]);
     }
   }
 }
+function onMouseup() {
+  isDragging = false;
+  beforeIns?.updateDiffViewport();
+  afterIns?.updateDiffViewport();
+}
 
 function onZoomChange(args) {
-  if (args[4] === 'after') {
-    if (syncOperate.value) {
+  if (syncOperate.value) {
+    if (isBothSelected) {
+      if (args[4] === 'after') {
+        args[1] = beforeCurrentX + (args[1] - afterCurrentX);
+        args[2] = beforeCurrentY + (args[2] - afterCurrentY);
+      }
+      if (args[4] === 'before') {
+        args[1] = afterCurrentX + (args[1] - beforeCurrentX);
+        args[2] = afterCurrentY + (args[2] - beforeCurrentY);
+      }
+    }
+    if (args[4] === 'after') {
       beforeIns?.syncDiffView([args[1], args[2], args[0]]);
       beforeMinimapEl.value?.syncZoomChange(args);
     }
+    if (args[4] === 'before') {
+      afterIns?.syncDiffView([args[1], args[2], args[0]]);
+      afterMinimapEl.value?.syncZoomChange(args);
+    }
   }
-  if (args[4] === 'before') {
-    if (syncOperate.value) {
+}
+let preventZoonChange = false; // 点击小地图加减号缩放时，是否阻止xx_view_zoom事件回调
+function onMinimapWheel(args) {
+  if (syncOperate.value && isBothSelected) {
+    preventZoonChange = true;
+    if (args[3] === 'after') {
+      const offsetX = args[1] - afterCurrentX;
+      const offsetY = args[2] - afterCurrentY;
+      afterCurrentX = args[1];
+      afterCurrentY = args[2];
+      args[1] = beforeCurrentX + offsetX;
+      args[2] = beforeCurrentY + offsetY;
+      beforeCurrentX = args[1];
+      beforeCurrentY = args[2];
+      beforeIns?.syncDiffView([args[1], args[2], args[0]]);
+      beforeMinimapEl.value?.syncZoomChange(args);
+    }
+    if (args[3] === 'before') {
+      const offsetX = args[1] - beforeCurrentX;
+      const offsetY = args[2] - beforeCurrentY;
+      beforeCurrentX = args[1];
+      beforeCurrentY = args[2];
+      args[1] = afterCurrentX + offsetX;
+      args[2] = afterCurrentY + offsetY;
+      afterCurrentX = args[1];
+      afterCurrentY = args[2];
       afterIns?.syncDiffView([args[1], args[2], args[0]]);
       afterMinimapEl.value?.syncZoomChange(args);
     }
   }
 }
 function onAfterMinimapZoomChange(args) {
+  if (preventZoonChange) {
+    preventZoonChange = false;
+    return;
+  }
+  afterCurrentX = args[1];
+  afterCurrentY = args[2];
   if (beforeMinimapEl.value.getCurrentScale() === args[0]) {
     return;
   }
@@ -208,6 +275,12 @@ function onAfterMinimapZoomChange(args) {
   }
 }
 function onBeforeMinimapZoomChange(args) {
+  if (preventZoonChange) {
+    preventZoonChange = false;
+    return;
+  }
+  beforeCurrentX = args[1];
+  beforeCurrentY = args[2];
   if (afterMinimapEl.value.getCurrentScale() === args[0]) {
     return;
   }
@@ -231,16 +304,19 @@ function onMouseover() {
 }
 
 function onSelectedNodeChange(args) {
+  isBothSelected = false;
   if (syncOperate.value) {
     if (args[1] === 'after') {
       beforeIns?.selectAction(args[0] ? [args[0].id] : []);
       if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+        isBothSelected = true;
         beforeIns?.centerNodeAction([args[0].id], undefined, undefined, beforeMinimapEl.value.getCurrentScale());
       }
     }
     if (args[1] === 'before') {
       afterIns?.selectAction(args[0] ? [args[0].id] : []);
       if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+        isBothSelected = true;
         args[0] && afterIns?.centerNodeAction([args[0].id], undefined, undefined, afterMinimapEl.value.getCurrentScale());
       }
     }
@@ -250,13 +326,14 @@ function onSelectedNodeChange(args) {
 onBeforeMount(() => {
   (window as any).ascEventBus.on('view_mousedown', () => (isDragging = true));
   (window as any).ascEventBus.on('view_mousemove', onMouseMove);
-  (window as any).ascEventBus.on('view_mouseup', () => (isDragging = false));
+  (window as any).ascEventBus.on('view_mouseup', onMouseup);
   (window as any).ascEventBus.on('view_mouseleave', onMouseleave);
   (window as any).ascEventBus.on('view_mouseover', onMouseover);
   (window as any).ascEventBus.on('view_zoom', onZoomChange);
   (window as any).ascEventBus.on(`after_view_zoom`, onAfterMinimapZoomChange);
   (window as any).ascEventBus.on(`before_view_zoom`, onBeforeMinimapZoomChange);
   (window as any).ascEventBus.on('selected_node_change', onSelectedNodeChange);
+  (window as any).ascEventBus.on('minimap-wheel', onMinimapWheel);
   watch(server.LayoutResult, (newValue) => {
     isLoading.value = false;
     loadingText.value = '';
