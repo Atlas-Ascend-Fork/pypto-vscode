@@ -122,26 +122,27 @@ const toggleShortcutKeyDescriptionModel = () => {
 };
 
 const judgmentShortcutKey = () => {
-  if (zoomInShortcutKey.value !== 'w' || zoomOutShortcutKey.value !== 's' || leftmoveShortcutKey.value !== 'a' || rightmoveShortcutkey.value !== 'd') {
+  newShortcutkey.value.clear();
+  if (zoomInShortcutKey.value !== 'w') {
     isWarningNoteShow.value = true;
-    newShortcutkey.value.clear();
-    if (zoomInShortcutKey.value !== 'w') {
-      newShortcutkey.value.set('zoomInShortcutKey', zoomInShortcutKey.value);
-    }
-    if (zoomOutShortcutKey.value !== 's') {
-      newShortcutkey.value.set('zoomOutShortcutKey', zoomOutShortcutKey.value);
-    }
-    if (leftmoveShortcutKey.value !== 'a') {
-      newShortcutkey.value.set('leftmoveShortcutKey', leftmoveShortcutKey.value);
-    }
-    if (rightmoveShortcutkey.value !== 'd') {
-      newShortcutkey.value.set('rightmoveShortcutkey', rightmoveShortcutkey.value);
-    }
+    newShortcutkey.value.set('zoomInShortcutKey', zoomInShortcutKey.value);
+  }
+  if (zoomOutShortcutKey.value !== 's') {
+    isWarningNoteShow.value = true;
+    newShortcutkey.value.set('zoomOutShortcutKey', zoomOutShortcutKey.value);
+  }
+  if (leftmoveShortcutKey.value !== 'a') {
+    isWarningNoteShow.value = true;
+    newShortcutkey.value.set('leftmoveShortcutKey', leftmoveShortcutKey.value);
+  }
+  if (rightmoveShortcutkey.value !== 'd') {
+    isWarningNoteShow.value = true;
+    newShortcutkey.value.set('rightmoveShortcutkey', rightmoveShortcutkey.value);
   }
 };
 
 const generateWarningText = () => {
-  if (newShortcutkey.value.size === 0){
+  if ( newShortcutkey.value.size === 0 ) {
     return $t('ShortcutKeyNote');
   }
   let warningText = `${$t('ShortcutKeyNote')}: `;
@@ -149,21 +150,23 @@ const generateWarningText = () => {
     switch (key) {
       case 'zoomInShortcutKey':
         warningText += `${$t('zoomIn')}: ${value}; `;
-        break
+        break;
       case 'zoomOutShortcutKey':
         warningText += `${$t('zoomOut')}: ${value}; `;
-        break
+        break;
       case 'leftmoveShortcutKey':
         warningText += `${$t('LeftShifting')}: ${value}; `;
-        break  
+        break; 
       case 'rightmoveShortcutkey':
         warningText += `${$t('RightShifting')}: ${value}; `;
-        break
+        break;
+      default:
+        break;
     }
   });
 
   return warningText.trim().replace(/;+$/, '');
-}
+};
 
 const distanceSet = () => {
   document.documentElement.style.setProperty('--verticalmovementDistance', `${verticalmovementDistance.value}px`);
@@ -175,7 +178,7 @@ const distanceSet = () => {
   document.documentElement.style.setProperty('--zoomOutDistance', `${zoomOutDistance.value}px`);
   document.documentElement.style.setProperty('--leftshiftingDistance', `${leftshiftingDistance.value}px`);
   document.documentElement.style.setProperty('--rightshiftingDistance', `${rightshiftingDistance.value}px`);
-}
+};
 
 watch(isDarkTheme, () => {
   updateTheme();

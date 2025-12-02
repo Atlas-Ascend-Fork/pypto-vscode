@@ -536,7 +536,7 @@ const scrollToEventByDom = (event) => {
 
 const ShortcutKeyShow = () => {
   isShortcutKeyShow.value = !isShortcutKeyShow.value;
-}
+};
 
 const measureModel = () => {
   isMeasureModel.value = !isMeasureModel.value;
