@@ -23,6 +23,11 @@
       </div>
     </div>
     <div class="right-container">
+      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
+        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
+          <img class="shortcut-keys-picture" :src="kPath" alt="shortcut-keys-picture">
+        </d-button>
+      </d-tooltip>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
         <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
@@ -152,6 +157,7 @@ const {
   mulDetailsExpanded,
   isLockStatus,
   isCfgEditing,
+  isShortcutKeyShow,
 } = inject('swimGraphState');
 
 const {
@@ -178,6 +184,7 @@ const {
 const mPath = ref(`${window.staticPath}/static-assets/measure.svg`);
 const caseSensitivePathNoActive = `${window.staticPath}/static-assets/upper_lower.svg`;
 const caseSensitivePathActive = `${window.staticPath}/static-assets/upper_blue.svg`;
+const kPath = `${window.staticPath}/static-assets/键盘_16px.svg`;
 const backgroundColor = ref('#606061');
 
 const caseSensitivePath = computed(() => isCaseSensitive.value ? caseSensitivePathActive : caseSensitivePathNoActive);
@@ -527,6 +534,10 @@ const scrollToEventByDom = (event) => {
   })
 };
 
+const ShortcutKeyShow = () => {
+  isShortcutKeyShow.value = !isShortcutKeyShow.value;
+}
+
 const measureModel = () => {
   isMeasureModel.value = !isMeasureModel.value;
   if (mPath.value.includes('measure.svg')) {
@@ -674,4 +685,5 @@ defineExpose({
 #swim-header-increase {
   padding: 3px 0 ;
 }
+
 </style>
