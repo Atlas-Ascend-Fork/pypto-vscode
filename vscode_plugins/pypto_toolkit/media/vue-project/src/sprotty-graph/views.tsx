@@ -28,6 +28,7 @@ import { Point, Selectable, Hoverable, Dimension, getSubType } from 'sprotty-pro
 import { AstgrNode, MetadataLabel } from './graph.types';
 import { getTextWidth } from '../utils';
 import { comGraphStore } from '../service/com-graph-store';
+import { getRectPath } from './animation';
 
 // Extend global window interface to include our coloring flag
 declare global {
@@ -749,7 +750,7 @@ const handleLockToggle = () => {
 @injectable()
 export class AstgrRectView extends RectangularNodeView {
   override render(
-    node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
+    node: any,
     context: RenderingContext,
     args?: IViewArgs
   ): VNode | undefined {
@@ -794,7 +795,6 @@ export class AstgrRectView extends RectangularNodeView {
     }
     let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
 
-    const gradientList = (window as any).isAscDark ? ['rgba(255,255,255,0)', 'rgba(255,255,255,0.5)'] : ['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)'];
     const strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
 
     let lockOpenSvgName: string;
@@ -811,22 +811,18 @@ export class AstgrRectView extends RectangularNodeView {
         lockOpenSvgName = 'lock-open-light';
       }
     }
-
-    const dashArrayWidth = (node.customSize.width + node.customSize.height) / 5;
-    const duration = Math.floor(200000 / dashArrayWidth) + 's';
-
+    const location = (node.location || 0) % 100;
+    const {path, v} = getRectPath(node.customSize.width, node.customSize.height, location, location + 10);
     return (
       <g>
         <defs>
-          <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"  stop-color={gradientList[0]}/>
-            <stop offset="40%" stop-color={gradientList[1]}/>
-            <stop offset="80%" stop-color="#b8adfd"/>
-            <stop offset="100%" stop-color="#db95fb"/>
+          <linearGradient id="rainbow" gradientUnits="userSpaceOnUse" x1={v[0][0]} y1={v[0][1]} x2={v[1][0]} y2={v[1][1]}>
+            <stop offset="0%"  stop-color="rgba(164, 179, 251, 0.2)"/>
+            <stop offset="50%" stop-color="rgba(164, 179, 251, 0.9)"/>
+            <stop offset="100%" stop-color="rgba(164, 179, 251, 0.2)"/>
           </linearGradient>
         </defs>
         <rect
-          class-op={true}
           class-sprotty-node={true}
           width={node.customSize.width}
           height={node.customSize.height}
@@ -834,20 +830,12 @@ export class AstgrRectView extends RectangularNodeView {
           stroke={strokeColor}
           stroke-width={strokeWidth}
         ></rect>
-        <rect
-          class-op={true}
-          class-sprotty-node={true}
-          class-sprotty-rect-animate={true}
-          width={node.customSize.width}
-          height={node.customSize.height}
-          fill="transparent"
-          stroke-width={strokeWidth / 2}
+        <path
+          d={path}
+          stroke-width={strokeWidth}
           stroke="url(#rainbow)"
-          stroke-dasharray={`${dashArrayWidth} ${dashArrayWidth * 4}`}
-          style={{
-            animationDuration: duration
-          }}
-        ></rect>
+          fill="transparent"
+        ></path>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
           <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
           <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />

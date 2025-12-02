@@ -31,6 +31,8 @@ import {
   MouseListener,
   SModelElementImpl,
   findParentByFeature,
+  configureCommand,
+  configureActionHandler,
 } from 'sprotty';
 import {
   DefaultElementFilter,
@@ -63,6 +65,7 @@ import { useViewServer } from '../core/use-view-server';
 import { watch } from 'vue';
 
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { RectAnimateActionHandler, RectAnimateCommand } from './animation';
 
 const { server } = useViewServer<IComViewServer>();
 
@@ -152,10 +155,11 @@ export function createDiContainer(sprottyContainerId: string) {
     bind(TYPES.IContextMenuService).to(AstgrContextMenuService);
     bind(TYPES.IContextMenuItemProvider).to(AstgrContextMenuItemProvider);
     bind(TYPES.MouseListener).to(CustomMouseListener).inSingletonScope();
-
     const context = { bind, unbind, isBound, rebind };
-    configureModelElement(context, 'graph', SGraphImpl, AstgrGraphView);
+    configureCommand(context, RectAnimateCommand);
+    configureActionHandler(context, 'rectAnimateAction', RectAnimateActionHandler);
 
+    configureModelElement(context, 'graph', SGraphImpl, AstgrGraphView);
     configureModelElement(context, 'node:input', RectangularNode, InputOutputNodeView, {
       disable: [moveFeature],
     });
@@ -215,12 +219,6 @@ export function createDiContainer(sprottyContainerId: string) {
   container.load(randomGraphModule); // Your custom module
 
   return container;
-}
-
-export class Rect extends RectangularNode {
-  type = 'rect';
-  position = { x: 100, y: 100 };
-  size = { width: 120, height: 80 };
 }
 
 export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
