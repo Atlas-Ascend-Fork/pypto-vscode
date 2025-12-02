@@ -300,7 +300,7 @@ export const ideDarkTheme = new Theme({
     'devui-button-group-hover': 'rgba(255, 255, 255, 0.3)',
     'devui-detail-text': 'rgba(153,153,153,1)',
     'devui-detail-boxshadow': '0px 10px 70px 0px rgba(0, 0, 0 ,0.5)',
-    'devui-warning-bg': 'rgba(246,158,57,0.2)',
+    'devui-warning-bg': 'rgba(119,92,60,1)',
     'devui-timebar-bg': 'rgba(255,255,255,0.08)',
     'devui-timefull-bg': 'rgba(118,46,39,1)',
     'devui-search-active-bg': 'rgba(49, 122, 247, 0.2)',

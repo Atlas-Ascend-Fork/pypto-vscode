@@ -14,6 +14,7 @@
     <div class="lock-information" v-if="switchLockInformationFlag">
       <div class="lock-information-item">{{lockText}}，{{ t('comGraph.pressEscExit') }}</div>
     </div>
+
     <ShowTip></ShowTip>
     <ComGraphMinimap
       v-if="!isLoading"
@@ -120,7 +121,41 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
   showType.value = type;
 }
 
+function isNodeInTrace(nodeId: string): boolean {
+  const fixedNodeId = comGraphStore.data.fixedNodeId;
+  let nodesList;
+
+  if (!fixedNodeId) {
+    nodesList = [...comGraphStore.data.pathNodesSet];
+  } else {
+    const tracedTensors = comGraphStore.data.traceTensors?.[1];
+    const tracedOperations  = comGraphStore.data.traceOperations?.[1];
+    const tracedNodes = [...(tracedTensors || []),...(tracedOperations || [])];
+    nodesList = tracedNodes;
+  }
+  if (!nodesList) {
+    return true;
+  }
+
+  const TensorNodeIdPrefix = 'tensor-';
+  const OperationNodeIdPrefix = 'operation-magic-';
+  let nodeMagic;
+  if (nodeId.includes(OperationNodeIdPrefix)) {
+    nodeMagic = parseInt(nodeId.split(OperationNodeIdPrefix)[1]);
+  } else if (nodeId.includes(TensorNodeIdPrefix)) {
+    nodeMagic = parseInt(nodeId.split(TensorNodeIdPrefix)[1]);
+  }
+  if (nodeMagic && nodesList.indexOf(nodeMagic) != -1) {
+    return true;
+  }
+  return false;
+}
+
 const onLocate = (id) => {
+  if (!isNodeInTrace(id)) {
+    (window as any).ascEventBus.emit('message_notice', t('comGraph.searchingNodeUntraced'));
+    return;
+  }
   centerNodeAction([id]);
   selectAction([id]);
 }
