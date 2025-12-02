@@ -7,7 +7,7 @@ type Apis = ISwimApis | ICommonApis;
 
 type Refs = ISwimRefs & ICommonRefs & { validateSwimFile: unknown };
 
-@viewRefs(['returnSwim', 'returnTheme', 'noSwimFile', 'validateSwimFile', 'returnSwimData', 'bindResult', 'unbindResult'])
+@viewRefs(['returnSwim', 'noSwimFile', 'validateSwimFile', 'returnSwimData', 'bindResult', 'unbindResult'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;

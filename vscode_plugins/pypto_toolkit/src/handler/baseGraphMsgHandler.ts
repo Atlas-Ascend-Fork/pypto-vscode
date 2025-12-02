@@ -43,7 +43,6 @@ export abstract class BaseGraphMsgHandler {
   ]);
 
   static async initTheme(server: any) {
-    server.setRef('IDETheme', { data: getIDETheme() });
     server.setRef('IDELang', { data: getIDELang() });
   }
 

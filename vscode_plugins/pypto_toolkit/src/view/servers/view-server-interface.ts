@@ -23,7 +23,6 @@ export type IComRefs = {
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
-  IDETheme: unknown;
   JsonGraphData: unknown;
   LayoutResult: unknown;
   PathNodesSet: unknown;
@@ -78,7 +77,6 @@ export type IThreeRefs = {
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
-  IDETheme: unknown;
   JsonGraphData: unknown;
   LayoutResult: unknown;
   PathNodesSet: unknown;
@@ -114,7 +112,6 @@ export type ISwimApis =
   | 'changeUserCfgConnection';
 export type ISwimRefs = {
   returnSwim: unknown;
-  returnTheme: unknown;
   noSwimFile: unknown;
   returnSwimData: unknown;
   bindResult: unknown;

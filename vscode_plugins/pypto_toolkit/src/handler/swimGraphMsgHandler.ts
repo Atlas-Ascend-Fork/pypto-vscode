@@ -29,7 +29,6 @@ export abstract class SwimGraphMsgHandler {
 
     static async getInitialData(server: any) {
         server.setRef('returnSwim', { data: {} });
-        server.setRef('returnTheme', { data: getIDETheme() });
     }
 
     static async getSwimData(server: any) {
