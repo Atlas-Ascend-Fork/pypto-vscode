@@ -9,7 +9,7 @@
         <div :class="['health-report-content', !graphName && 'no-report']">
           <TensorGraph v-if="graphName === 'TensorGraph'" />
           <TileGraph v-if="graphName === 'TileGraph'" />
-          <KernelGraph v-if="graphName === 'KernelGraph'" />
+          <BlockGraph v-if="graphName === 'BlockGraph'" />
           <ExecuteGraph v-if="graphName === 'ExecuteGraph'" />
           <div v-if="!graphName" class="no-data">{{ t('comGraph.noHealthReport') }}</div>
         </div>
@@ -24,7 +24,7 @@ import { useI18n } from 'vue-i18n';
 import { HealthReportProvideKey } from './types';
 import TensorGraph from './tensorGraph.vue';
 import TileGraph from './tileGraph.vue';
-import KernelGraph from './kernelGraph.vue';
+import BlockGraph from './blockGraph.vue';
 import ExecuteGraph from './executeGraph.vue';
 import { comGraphStore } from '../../../service/com-graph-store';
 import { useClickOutside } from '../hooks/use-click-outside';
@@ -46,7 +46,7 @@ const GraphMap = {
   TensorGraph: 'Tensor Graph',
   TileGraph: 'Tile Graph',
   ExecuteGraph: 'Execute Graph',
-  KernelGraph: 'OoOSchedule',
+  BlockGraph: 'Block Graph',
 };
 let OpMap: Record<number, string> = {};
 let TensorMap: Record<number, string> = {};
@@ -159,7 +159,7 @@ provide(HealthReportProvideKey, { jsonData, locateNode });
   box-shadow: -1px 0 0 0 var(--devui-split-line);
   box-sizing: border-box;
 
-  &.KernelGraph {
+  &.BlockGraph {
     width: 488px;
   }
 

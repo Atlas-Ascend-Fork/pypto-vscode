@@ -18,7 +18,7 @@
     <ShowTip></ShowTip>
     <ComGraphMinimap
       v-if="!isLoading"
-      :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'KernelGraph' ? 488 : 400) : 0"
+      :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'BlockGraph' ? 488 : 400) : 0"
     ></ComGraphMinimap>
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
