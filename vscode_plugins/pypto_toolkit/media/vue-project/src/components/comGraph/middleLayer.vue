@@ -14,7 +14,6 @@ import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { pushState } from '../../core/state';
 
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
-import { round } from 'lodash-es';
 const jsonContent = ref({});
 const errorMessage = ref('');
 const loadingStep = ref('');
@@ -30,6 +29,7 @@ const nodeMagic = ref(0);
 const { updateTheme } = useTheme();
 const comLoadFlag = ref(false);
 const swimLoadFlag = ref(false);
+const errorGraphType = ref('');
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 let inThreeColumnMode = false;
 
@@ -54,12 +54,18 @@ if (graphType.value === 'swimGraph') {
   setupSwimWatchers(server);
 }
 
+(window as any).ascEventBus.on('jsonParseError', (args) => {
+  errorMessage.value = args.msg;
+  errorGraphType.value = args.graphType;
+});
+
 function setupComWatchers(server: any) {
   watch(server.IDETheme, (newValue) => {
     updateTheme(newValue.data);
   });
   watch(server.ErrorMessage, (newValue) => {
     errorMessage.value = newValue.data;
+    errorGraphType.value = newValue.graphType;
   });
   watch(server.ReadJsonWarning, (newValue) => {
     if (!inThreeColumnMode) {
@@ -212,13 +218,14 @@ function entrySearchModeSet() {
 </script>
 
 <template>
-  <template v-if="errorMessage !== ''">
-    <ErrorView :jsonContent="errorMessage" />
+  <template v-if="graphType !== 'threeColumnGraph' && errorMessage !== ''">
+    <ErrorView style="height: 100vh" :jsonContent="errorMessage" />
   </template>
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <d-skeleton v-if="!comLoadFlag" :round=true>
+        <ErrorView v-if="errorMessage && errorGraphType === 'comGraph'" :jsonContent="errorMessage" />
+        <d-skeleton v-else-if="!comLoadFlag" round>
           <template #placeholder>
             <div style="position:absolute; top: 40%; left: 20%;">
               <div class="com-skeleton-line">
@@ -245,10 +252,11 @@ function entrySearchModeSet() {
 
 
         </d-skeleton>
-        <SimpleComGraph v-if="comLoadFlag" :jsonContent="jsonContent" :loadingStep="loadingStep" />
+        <SimpleComGraph v-else :jsonContent="jsonContent" :loadingStep="loadingStep" />
       </template>
       <template #swimGraph>
-        <d-skeleton v-if="!swimLoadFlag" :round=true>
+        <ErrorView v-if="errorMessage && errorGraphType === 'swimGraph'" :jsonContent="errorMessage" />
+        <d-skeleton v-else-if="!swimLoadFlag" round>
           <template #placeholder>
             <div class="swim-skeleton-line">
               <div class="swim-skeleton-grid">
@@ -327,7 +335,7 @@ function entrySearchModeSet() {
               </div>
             </div>
           </template> </d-skeleton>
-        <SwimGraph v-if="swimLoadFlag" style="height: 100%" :is-three-column="true" :graphType="graphType" />
+        <SwimGraph v-else style="height: 100%" :is-three-column="true" :graphType="graphType" />
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"

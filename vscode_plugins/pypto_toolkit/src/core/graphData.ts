@@ -60,12 +60,12 @@ export abstract class GraphData {
     return await new Promise((resolve, reject) => {
       fileStream.on('error', (err) => {
         // 文件读取错误（如文件不存在、权限问题）
-        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph'), graphType: 'comGraph' }));
       });
 
       jsonParser.on('error', (err) => {
         // JSON 解析错误（如格式无效）
-        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph'), graphType: 'comGraph' }));
       });
 
       valuesStreamer.on('error', (err) => {
@@ -199,7 +199,7 @@ export abstract class GraphData {
         // 立即重新走内存分支
         return await this.processFunctions(fsPath, value, result, server);
       } else {
-        server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') });
+        server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph'), graphType: 'comGraph' });
       }
     }
   }
