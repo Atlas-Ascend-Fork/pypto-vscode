@@ -8,7 +8,6 @@ import SearchMode from '../../components/comGraph/searchMode.vue';
 import SimpleComGraph from '../../components/comGraph/simpleComGraph.vue';
 import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
-import { useTheme } from '../../theme/use-theme';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { pushState } from '../../core/state';
@@ -26,7 +25,6 @@ const fileName = ref('');
 const diffInfo = ref({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
-const { updateTheme } = useTheme();
 const comLoadFlag = ref(false);
 const swimLoadFlag = ref(false);
 const errorGraphType = ref('');
@@ -60,9 +58,6 @@ if (graphType.value === 'swimGraph') {
 });
 
 function setupComWatchers(server: any) {
-  watch(server.IDETheme, (newValue) => {
-    updateTheme(newValue.data);
-  });
   watch(server.ErrorMessage, (newValue) => {
     errorMessage.value = newValue.data;
     errorGraphType.value = newValue.graphType;
@@ -145,9 +140,6 @@ function setupThreeWatchers(server: any) {
 function setupSwimWatchers(server: any) {
   watch(server.returnSwim, (newValue) => {
     jsonContent.value = newValue.data;
-  });
-  watch(server.returnTheme, (newValue) => {
-    updateTheme(newValue.data);
   });
 }
 
