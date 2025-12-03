@@ -46,7 +46,7 @@ export default {
     'jumpToComGraph': 'jumpToComGraph',
     'openComputationalGraphJsonFile': 'open Computational Graph Json File',
     'swimErroMsgINVALID_FILE': 'swimGraphJson: File must contain a traceEvents array.',
-    'swimErroMsgMISSING_EVENT_FIELDS': 'swimGraphJson: Event object is missing required fields: id, name, ph, pid, tid, ts.',
+    'swimErroMsgMISSING_EVENT_FIELDS': 'swimGraphJson: Event object is missing required fields: name, ph, pid, tid, ts.',
     'swimErroMsgMISSING_END_EVENT': 'swimGraphJson: Event with ph B must have a corresponding event with ph E.',
     'swimErroMsgMISSING_DUR': 'swimGraphJson: Event with ph X must include a dur field.',
     'swimErroMsgINVALID_ARGS': 'swimGraphJson: Event with ph C requires args.size or args["/byte"] to be a number.',

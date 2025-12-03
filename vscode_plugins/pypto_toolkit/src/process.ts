@@ -266,8 +266,12 @@ const calculateDependencies = (events, connections) => {
       const child = childEvents ? findEvent(childEvents, end.ts) : null;
   
       if (parent && child && start.ts <= end.ts) {
-        parent.dependencies.successors.push(child.id);
-        child.dependencies.predecessors.push(parent.id);
+        if (!parent.dependencies.successors.includes(child.id)) {
+          parent.dependencies.successors.push(child.id);
+        }
+        if (!child.dependencies.predecessors.includes(parent.id)) {
+          child.dependencies.predecessors.push(parent.id);
+        }
       }
   
       cIndex += 2;
