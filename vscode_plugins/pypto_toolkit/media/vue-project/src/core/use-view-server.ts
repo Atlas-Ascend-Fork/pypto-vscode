@@ -1,7 +1,12 @@
 import { readonly, Ref, ref } from 'vue';
 
 import type { ViewServer, ViewServerConfig } from 'ext:/core/view/view-server';
-import type { ViewServerApiMessage, ViewServerApiResponse, ViewServerUpdateRefMessage } from 'ext:/core/view/view-server-context';
+import type {
+  ViewServerApiMessage,
+  ViewServerApiResponse,
+  ViewServerApiStreamResponse,
+  ViewServerUpdateRefMessage,
+} from 'ext:/core/view/view-server-context';
 
 import { deepToRaw } from '@/utils/reactive';
 
@@ -61,13 +66,49 @@ export function useViewServer<ServerInstance extends ViewServer<never, {}>>() {
 
 /** api */
 const serverApiConnector = new ExtensionConnector<ViewServerApiMessage, ViewServerApiResponse>('viewServerApi');
-const pendingApis = new Map();
-serverApiConnector.receive(({ requestId, response }) => {
+const pendingApis = new Map<string, (value: unknown) => void>();
+serverApiConnector.receive((message) => {
+  const { requestId } = message;
   if (!pendingApis.has(requestId)) {
     return;
   }
-  pendingApis.get(requestId)(response);
+  if (isStreamResponse(message)) {
+    handleStreamResponse(requestId, message);
+  } else {
+    pendingApis.get(requestId)(message.response);
+    pendingApis.delete(requestId);
+  }
 });
+
+/**
+ * 是否为流式传输
+ */
+function isStreamResponse(message: ViewServerApiResponse): message is ViewServerApiStreamResponse {
+  return Reflect.has(message, 'streamResponse');
+}
+
+const pendingStreams = new Map<string, ReadableStreamDefaultController<any>>();
+/**
+ * 流式传输返回
+ * @description 先返回一个ReadableStream，后续消息写入ReadableStream
+ */
+function handleStreamResponse(requestId: string, message: ViewServerApiStreamResponse): void {
+  if (!pendingStreams.has(requestId)) {
+    const stream = new ReadableStream({
+      start(controller) {
+        pendingStreams.set(requestId, controller);
+      },
+    });
+    pendingApis.get(requestId)(stream);
+  }
+  if (message.streamDone) {
+    pendingStreams.get(requestId).close();
+    pendingStreams.delete(requestId);
+    pendingApis.delete(requestId);
+  } else {
+    pendingStreams.get(requestId).enqueue(message.streamResponse);
+  }
+}
 
 /**
  * 获取api属性

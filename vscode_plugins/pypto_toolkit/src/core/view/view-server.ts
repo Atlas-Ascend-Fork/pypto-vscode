@@ -98,3 +98,15 @@ export interface ViewServerConfig {
 export function makeViewServerConfig(serverPrototype: typeof ViewServer<never, {}> | undefined): ViewServerConfig | undefined {
   return serverPrototype ? serverPrototype._viewConfig : undefined;
 }
+
+export function serverHasApi(instance: ViewServer<never, {}>, api: string): boolean {
+  return getStaticClass(instance)._viewConfig.apis.includes(api);
+}
+
+export function serverHasRef(instance: ViewServer<never, {}>, ref: string): boolean {
+  return getStaticClass(instance)._viewConfig.refs.includes(ref);
+}
+
+function getStaticClass(instance: ViewServer<never, {}>): typeof ViewServer<never, {}> {
+  return Object.getPrototypeOf(instance).constructor;
+}

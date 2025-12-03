@@ -2,7 +2,7 @@ import { Uri, Webview, WebviewPanel } from 'vscode';
 
 import { SingleWebviewConnector, WebviewConnector } from '../connector';
 
-import { ViewServer } from './view-server';
+import { serverHasApi, serverHasRef, ViewServer } from './view-server';
 
 /**
  * 视图服务运行环境
@@ -37,7 +37,11 @@ export interface ViewServerContext {
  * @param webviewPanel
  * @returns
  */
-export function makeViewServerContext(webviewPanel: WebviewPanel, viewType: string, uri?: Uri): ViewServerContext {
+export function makeViewServerContext(
+  webviewPanel: Pick<WebviewPanel, 'webview' | 'dispose'>,
+  viewType: string,
+  uri?: Uri,
+): ViewServerContext {
   const { webview, dispose } = webviewPanel;
   refConnector.addWebview(webview);
   return {
@@ -47,8 +51,7 @@ export function makeViewServerContext(webviewPanel: WebviewPanel, viewType: stri
       initApiConnector(webview, this);
     },
     setRef(key, value) {
-      const staticThis = getStaticClass(this);
-      if (!staticThis._viewConfig.refs.includes(key)) {
+      if (!serverHasRef(this, key)) {
         throw new Error(`视图类${this.constructor.name}中未声明变量${key}，请使用 @viewRefs() 补充声明`);
       }
       refConnector.send(webview, { key, value });
@@ -62,11 +65,27 @@ export function makeViewServerContext(webviewPanel: WebviewPanel, viewType: stri
 /**
  * 【消息】视图服务API响应
  */
-export interface ViewServerApiResponse {
-  api: string;
+export type ViewServerApiResponse = ViewServerApiCommonResponse | ViewServerApiStreamResponse;
+
+/**
+ * 视图服务API响应（一般）
+ */
+interface ViewServerApiCommonResponse {
   requestId: string;
   response: unknown;
 }
+
+/**
+ * 视图服务API响应（流传输）
+ */
+export interface ViewServerApiStreamResponse extends Omit<ViewServerApiCommonResponse, 'response'> {
+  /** 流传输是否完成 */
+  streamDone: boolean;
+
+  /** 流传输返回值 */
+  streamResponse: unknown;
+}
+
 /**
  * 【消息】视图服务API请求
  */
@@ -83,18 +102,45 @@ export interface ViewServerApiMessage {
  */
 function initApiConnector(webview: Webview, instance: ViewServer<never, {}>) {
   const apiConnector = new SingleWebviewConnector<ViewServerApiResponse, ViewServerApiMessage>('viewServerApi', webview, receive);
-  async function receive({ api, requestId, params }) {
-    const staticThis = getStaticClass(instance);
-    if (!staticThis._viewConfig.apis.includes(api)) {
+  async function receive({ api, requestId, params }): Promise<void> {
+    if (!serverHasApi(instance, api)) {
       throw new Error(`视图类${instance.constructor.name}中未声明接口${api}，请使用 @viewApi 补充声明`);
     }
     const response = await instance[api].call(instance, ...params);
-    apiConnector.send({ api, requestId, response });
+    sendResponse(requestId, response);
+  }
+
+  /**
+   * API响应
+   */
+  function sendResponse(requestId: string, response: unknown): void {
+    if (response instanceof ReadableStream) {
+      readFromStream(response, ({ done, value }) => {
+        apiConnector.send({ requestId, streamDone: done, streamResponse: value });
+      });
+    } else {
+      apiConnector.send({ requestId, response });
+    }
   }
 }
 
-function getStaticClass(instance: ViewServer<never, {}>): typeof ViewServer<never, {}> {
-  return Object.getPrototypeOf(instance).constructor;
+/**
+ * 遍历数据流
+ * @param steam
+ * @param callback
+ * @returns
+ */
+function readFromStream(steam: ReadableStream, callback: (res: ReadableStreamReadResult<unknown>) => void): void {
+  const reader = steam.getReader();
+  function readByChunk() {
+    reader.read().then(({ done, value }) => {
+      callback({ done, value });
+      if (!done) {
+        readByChunk();
+      }
+    });
+  }
+  return readByChunk();
 }
 
 /**
