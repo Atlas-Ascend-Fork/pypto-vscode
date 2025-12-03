@@ -133,8 +133,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
   protected static postForReadJson(server: any, cmd: string) {
-    const config = Util.getComGraphCustomCfg();
-    server.setRef(cmd, { step: 'readJson', configration: config });
+    server.setRef(cmd, { step: 'readJson'});
   }
 
   protected static async getJsonData(gd: AbstractGraphData, server: any, isBigFile: boolean) {
