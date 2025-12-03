@@ -7,7 +7,7 @@ const HEALTH_REPORT_SUFFIX = [
   ['TensorGraph', '_TensorGraphHealthReport.json'],
   ['TileGraph', '_TileGraphHealthReport.json'],
   ['ExecuteGraph', '_ExecuteGraph_Health_Report.json'],
-  ['KernelGraph', '_Kernel_Graph_Health_Report.json'],
+  ['BlockGraph', '_Block_Graph_Health_Report.json'],
 ];
 
 /**

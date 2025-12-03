@@ -104,12 +104,13 @@ export class MeatureRender extends EventRender {
     }
   }
 
-  private fillText(ctx: CanvasRenderingContext2D, rect: any) {
+  private fillText(ctx: CanvasRenderingContext2D, rect: any, scrollY = 0) {
+    const measureY = scrollY === 0 ? rect.y : scrollY;
     ctx.font = getFontStyle(meaureTextSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const centerX = rect.x + rect.width / 2;
-    const centerY = rect.y + rect.height / 2;
+    const centerY = measureY + rect.height / 2;
     const metrics = ctx.measureText(rect.text);
     let ascent = metrics.actualBoundingBoxAscent;
     let descent = metrics.actualBoundingBoxDescent;
@@ -126,6 +127,11 @@ export class MeatureRender extends EventRender {
   }
 
   drawConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean) {
+    let scrollTop = 0;
+    const scrollableDiv = document.querySelector('.scroller-container');
+    if (scrollableDiv) {
+      scrollTop = scrollableDiv.scrollTop;
+    }
     const { isDarkTheme } = this.deps;
     const rect = this.calculateRect(largeSpacing);
     // 填充矩形
@@ -134,11 +140,13 @@ export class MeatureRender extends EventRender {
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
     ctx.beginPath();
-    ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+    const { layout } = this.deps;
+    const scrollY = scrollTop > 0 && scrollTop - rect.y > layout.threadHeight && !largeSpacing ? rect.y + layout.threadHeight * 2 : rect.y;
+    ctx.roundRect(rect.x, scrollY, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    this.fillText(ctx, rect);
+    this.fillText(ctx, rect, scrollY);
     // 绘制双向箭头
     if (largeSpacing){
       this.drawDoubleArrow(rect, ctx);

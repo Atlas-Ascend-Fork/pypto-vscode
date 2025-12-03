@@ -107,14 +107,15 @@ function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], se
     const argNumStr = symList.shift();
     if (argNumStr === undefined) {
       if (server)
-        BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument count for ssop_call' : '缺少ssop_call的参数数量');
+        BaseGraphMsgHandler.returnError(server, 'pypto.missArgumentForSsopCall');
     }
     const argNum = parseInt(argNumStr!, 10);
     if (isNaN(argNum)) {
       if (server)
         BaseGraphMsgHandler.returnError(
           server,
-          getIDELang() === 'en' ? `Invalid argument count: ${argNumStr}` : `参数数量无效: ${argNumStr}`,
+          'pypto.invalidArgumentCount',
+          { argCount: argNumStr }
         );
     }
     symListReadable.push(argNum);
@@ -130,17 +131,17 @@ function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], se
 function symsGetExpr(symList: any[], symListReadable: any[], server?: any): string | undefined {
   const symStr = symList.shift();
   if (symStr === undefined) {
-    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Unexpected end of symbol list' : '符号列表意外结束');
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.unexpectedEndOfSymbolList');
   }
   const sym = parseInt(symStr, 10) as SymType;
   if (!(sym in symsSymNameDict)) {
-    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidSymValue', { sym });
   }
   symListReadable.push(symsSymNameDict[sym]);
 
   const argStr = symList.shift();
   if (argStr === undefined) {
-    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? 'Missing argument for symbol' : '符合列表缺少参数');
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.missArgumentForSymbol');
   }
 
   if (sym === 0) {
@@ -148,7 +149,7 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     const val = parseInt(argStr, 10);
     if (isNaN(val)) {
       if (server)
-        BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid immediate value: ${argStr}` : `无效的立即数: ${argStr}`);
+        BaseGraphMsgHandler.returnError(server, 'pypto.invalidImmediateValue', { immValue: argStr });
     }
     symListReadable.push(val);
     return val.toString();
@@ -160,7 +161,7 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     // S_EXPR: 表达式
     const op = parseInt(argStr, 10);
     if (!(op in symsOpNameDict)) {
-      if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid op value: ${op}` : `无效的op值: ${op}`);
+      if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidOpValue', { opValue: op });
     }
     symListReadable.push(symsOpNameDict[op]);
 
@@ -171,7 +172,7 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     }
     return `${opName}(${args.join(',')})`;
   } else {
-    if (server) BaseGraphMsgHandler.returnError(server, getIDELang() === 'en' ? `Invalid sym value: ${sym}` : `无效的sym值: ${sym}`);
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidSymValue', { sym });
   }
 }
 
@@ -314,7 +315,8 @@ export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, ver
     if (server)
       BaseGraphMsgHandler.returnError(
         server,
-        getIDELang() === 'en' ? `Can not generating math expression. ${error}` : `无法生成数学表达式，${error}`,
+        'pypto.canNotGenerateMathExp',
+        { error }
       );
   }
 }
@@ -333,16 +335,16 @@ export class AttrReader {
 
   readNumber(): number {
     if (!this.hasNext())
-      BaseGraphMsgHandler.returnError(this.server, getIDELang() === 'en' ? 'Unexpected end of attributes.' : '属性意外结束');
+      BaseGraphMsgHandler.returnError(this.server, 'pypto.unexpectedEndOfAttr');
     return this.attr[this.index++] as number;
   }
 
   readStringOrNumberArray(): (string | number)[] | undefined {
     if (!this.hasNext())
-      BaseGraphMsgHandler.returnError(this.server, getIDELang() === 'en' ? 'Unexpected end of attributes.' : '属性意外结束');
+      BaseGraphMsgHandler.returnError(this.server, 'pypto.unexpectedEndOfAttr');
     const val = this.attr[this.index++];
     if (Array.isArray(val)) return val;
-    BaseGraphMsgHandler.returnError(this.server, getIDELang() === 'en' ? 'Expected array for expression.' : '希望表达式是数组类型');
+    BaseGraphMsgHandler.returnError(this.server, 'pypto.expectedArrayForExpression');
   }
 
   readOptionalNumber(): number | null {
@@ -374,9 +376,8 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number, version
     } else {
       BaseGraphMsgHandler.returnError(
         reader.server,
-        getIDELang() === 'en'
-          ? `Invalid kind type: ${kind}. Expected 1 (symbolic) or 2 (integer).`
-          : `无效的kind类型: ${kind}，预期是1 (symbolic) 或者 2 (integer)`,
+        'pypto.invalidKindType',
+        { kind }
       );
     }
   }

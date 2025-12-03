@@ -1,6 +1,10 @@
 <template>
   <div style="height: 100vh;">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
+      <div class="simple-containner" :style="{display: 'none'}">
+            <div class="simple-com-file-name">Program.json</div>
+            <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
+          </div>
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
@@ -21,7 +25,13 @@
               <div class="title_time"> {{ formattedTime }} </div>
             </div>
           </div>
-          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '0px' }">
+          <div class="title_up" v-show="!isSwimGraphActive">
+            <div class="simple-file-containner" :style="{display: 'none'}">
+              <div class="simple-com-file-name">Program.json</div>
+              <div class="icon-line-height"><img :src="iconPath" alt="" class="simple-com-file-name-icon" /></div>
+            </div>
+          </div>
+          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '-20px' }">
             <d-tooltip :content="$t('tips1')">
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture">
             </d-tooltip>
@@ -46,7 +56,7 @@
         </div>
       </div>
       <div class="main-view" v-show="!loading">
-        <div class="swimlane-container" ref="swimlaneContainer">
+        <div class="swimlane-container scroller-container" ref="swimlaneContainer">
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->
@@ -269,6 +279,10 @@ const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
 };
 
+function generateErrorMsg(msg) {
+  return { msg, graphType: 'swimGraph' };
+}
+
 function setupSwimWatchers() {
   watch(server.bindResult, (newValue) => {
     if (newValue.success) {
@@ -289,7 +303,7 @@ function setupSwimWatchers() {
     }
   });
   watch(server.noSwimFile, (newValue) => {
-    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`);
+    window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
   });
   watch(server.validateSwimFile, (newValue) => {
     validData(newValue.content);
@@ -319,11 +333,11 @@ const validData = (dataStr) => {
   try {
     data = JSON.parse(dataStr);
   } catch (error) {
-    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.NOT_JSON}`);
+    window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.NOT_JSON}`));
     return;
   }
   if (!data || !data.traceEvents || !Array.isArray(data.traceEvents)) {
-    window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_FILE}`);
+    window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.INVALID_FILE}`));
     return;
   }
 
@@ -341,7 +355,7 @@ const validData = (dataStr) => {
 
   data.traceEvents.forEach(event => {
     if (event.cat === 'event' && (typeof event.id === "undefined" || !event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
-      window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`);
+      window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`));
     }
 
     if (event.ph === 'B') {
@@ -349,39 +363,39 @@ const validData = (dataStr) => {
       const endEvent = eventMap.get(key) || [];
       const hasE = endEvent.some(e => e.ph === 'E');
       if (!hasE) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_END_EVENT}: ["${event.name}"]`);
+        window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_END_EVENT}: ["${event.name}"]`));
       }
     } else if (event.ph === 'X') {
       if (!event.dur) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`);
+        window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`));
       }
     } else if (event.ph === 'C') {
       if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number")) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`);
+        window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`));
       }
     }
 
     if (event.name === "process_name") {
       hasProcessName = true;
       if (typeof event.pid === "undefined" || !event.args || !event.args.name) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_PROCESS_NAME}: ["${event.args.name}"]`);
+        window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_PROCESS_NAME}: ["${event.args.name}"]`));
       }
     }
 
     if (event.name.includes("thread")) {
       countThread += 1;
       if (typeof event.pid === "undefined" || typeof event.tid === "undefined" || !event.args || !event.args.name) {
-        window.ascEventBus.emit('jsonParseError', `${ERROR_MESSAGES.MISSING_THREADS_FIELDS}: ["${event.args.name}"]`);
+        window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_THREADS_FIELDS}: ["${event.args.name}"]`));
       }
     }
   });
 
   if (countThread === 0) {
-    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_THREADS);
+    window.ascEventBus.emit('jsonParseError', generateErrorMsg(ERROR_MESSAGES.NO_THREADS));
   }
 
   if (!hasProcessName) {
-    window.ascEventBus.emit('jsonParseError', ERROR_MESSAGES.NO_PROCESS_NAME);
+    window.ascEventBus.emit('jsonParseError', generateErrorMsg(ERROR_MESSAGES.NO_PROCESS_NAME));
   }
 };
 
@@ -1718,6 +1732,10 @@ onMounted(() => {
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
+});
+
+defineExpose({
+  setPageState, loadTraceData, loading
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });

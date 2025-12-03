@@ -8,7 +8,7 @@ import {RegisterCommand} from './command/registerCommand';
 import {globalConfig} from './config/config';
 import {initServer} from './core/request-server';
 import {SQLiteCache} from './core/sqliteCache';
-import { clearAllStores } from './core/store';
+import { clearAllStores, initStores } from './core/store';
 import {hismartliteEx} from './hismarliteEx';
 import { closeAllServices, services, startAllServices } from './services';
 import {initView} from './view';
@@ -71,6 +71,8 @@ export async function activate(context: ExtensionContext) {
         await initDB(context);
     }
     await loadMaterialColorUtilities();
+    // 启动存储
+    initStores(context);
     // 启动接口
     const server = initServer(services);
     // 启动服务
@@ -109,7 +111,7 @@ async function initDB(context: ExtensionContext) {
     // 2. 注册命令
     vscode.commands.registerCommand('PyPTO.deletePersistFile', () => {
         SQLiteCache.getInstance().deleteForCommand();
-        clearAllStores(context);
+        clearAllStores();
     });
     
     // 3. 监听停用

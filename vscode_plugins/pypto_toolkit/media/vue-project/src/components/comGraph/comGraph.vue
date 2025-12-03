@@ -14,10 +14,11 @@
     <div class="lock-information" v-if="switchLockInformationFlag">
       <div class="lock-information-item">{{lockText}}，{{ t('comGraph.pressEscExit') }}</div>
     </div>
+
     <ShowTip></ShowTip>
     <ComGraphMinimap
       v-if="!isLoading"
-      :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'KernelGraph' ? 488 : 400) : 0"
+      :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'BlockGraph' ? 488 : 400) : 0"
     ></ComGraphMinimap>
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
@@ -28,7 +29,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, provide, inject, computed } from 'vue';
+import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -120,7 +121,38 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
   showType.value = type;
 }
 
+function isNodeInTrace(nodeId: string): boolean {
+  const fixedNodeId = comGraphStore.data.fixedNodeId;
+  let nodesList;
+
+  if (!fixedNodeId) {
+    nodesList = [...comGraphStore.data.pathNodesSet].map(item => Number(item));
+  } else {
+    const tracedTensors = comGraphStore.data.traceTensors?.[1];
+    const tracedOperations  = comGraphStore.data.traceOperations?.[1];
+    const tracedNodes = [...(tracedTensors || []),...(tracedOperations || [])];
+    nodesList = tracedNodes;
+  }
+  if (!nodesList) {
+    return true;
+  }
+
+  const TensorNodeIdPrefix = 'tensor-';
+  const OperationNodeIdPrefix = 'operation-magic-';
+  let nodeMagic;
+  if (nodeId.includes(OperationNodeIdPrefix)) {
+    nodeMagic = parseInt(nodeId.split(OperationNodeIdPrefix)[1]);
+  } else if (nodeId.includes(TensorNodeIdPrefix)) {
+    nodeMagic = parseInt(nodeId.split(TensorNodeIdPrefix)[1]);
+  }
+  return nodeMagic && nodesList.indexOf(nodeMagic) !== -1;
+}
+
 const onLocate = (id) => {
+  if (!isNodeInTrace(id)) {
+    (window as any).ascEventBus.emit('message_notice', t('comGraph.searchingNodeUntraced'));
+    return;
+  }
   centerNodeAction([id]);
   selectAction([id]);
 }
@@ -193,44 +225,58 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   }
 }, { immediate: true });
 
+function onMessageNotice(text) {
+  Message({
+    type:'warning',
+    message:text
+  });
+}
+function onViewMouseUp(node) {
+  if (node.type === 'graph' || node.id.startsWith('parent')) {
+    showNodeDetail.value = false;
+  } else if (node.id.endsWith('label-main')) {
+    nodeId.value = node.id;
+    showNodeDetail.value = true;
+  }
+}
+function onSwitchLockInfo(attr) {
+  switchLockInformationFlag.value = attr[0];
+  if(attr[1]){
+    lockText = t('comGraph.singlePathMode');
+  }else{
+    lockText = t('comGraph.pathLocked');
+  }
+}
+function onLayoutEnding() {
+  isLoading.value = false;
+  loadingText.value = '';
+}
+function onViewMouseDown() {
+  isDragging.value = true;
+}
+function onMouseup() {
+  isDragging.value = false;
+}
 onMounted(() => {
-  (window as any).ascEventBus.on('view_mouseup', (node) => {
-    if (node.type === 'graph' || node.id.startsWith('parent')) {
-      showNodeDetail.value = false;
-    } else if (node.id.endsWith('label-main')) {
-      nodeId.value = node.id;
-      showNodeDetail.value = true;
-    }
-  });
-  (window as any).ascEventBus.on('message_notice', (text) => {
-    Message({
-      type:'warning',
-      message:text
-    });
-  });
-  (window as any).ascEventBus.on('switchLockInformation', (attr) => {
-    switchLockInformationFlag.value = attr[0];
-    if(attr[1]){
-      lockText = t('comGraph.singlePathMode');
-    }else{
-      lockText = t('comGraph.pathLocked');
-    }
-  });
-  (window as any).ascEventBus.on('layoutEnding', (args) => {
-    isLoading.value = false;
-    loadingText.value = '';
-  })
+  (window as any).ascEventBus.on('view_mouseup', onViewMouseUp);
+  (window as any).ascEventBus.on('message_notice', onMessageNotice);
+  (window as any).ascEventBus.on('switchLockInformation', onSwitchLockInfo);
+  (window as any).ascEventBus.on('layoutEnding', onLayoutEnding);
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
-  (window as any).ascEventBus.on('view_mousedown', (args) => {
-    isDragging.value = true;
-  });
-  document.addEventListener('mouseup', function() {
-    isDragging.value = false;
-  });
+  (window as any).ascEventBus.on('view_mousedown', onViewMouseDown);
+  document.addEventListener('mouseup', onMouseup);
+});
 
+onBeforeUnmount(() => {
+  (window as any).ascEventBus.remove('view_mouseup', onViewMouseUp);
+  (window as any).ascEventBus.remove('message_notice', onMessageNotice);
+  (window as any).ascEventBus.remove('switchLockInformation', onSwitchLockInfo);
+  (window as any).ascEventBus.remove('layoutEnding', onLayoutEnding);
+  (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
+  document.removeEventListener('mouseup', onMouseup);
 });
 
 // 统一出口：解除固定

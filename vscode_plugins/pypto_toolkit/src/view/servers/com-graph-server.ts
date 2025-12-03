@@ -22,7 +22,6 @@ type Refs = IComRefs & ICommonRefs;
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
-  'IDETheme',
   'JsonGraphData',
   'LayoutResult',
   'PathNodesSet',

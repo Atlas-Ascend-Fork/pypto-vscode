@@ -23,7 +23,6 @@ export type IComRefs = {
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
-  IDETheme: unknown;
   JsonGraphData: unknown;
   LayoutResult: unknown;
   PathNodesSet: unknown;
@@ -58,7 +57,12 @@ export type IThreeApis =
   | 'setFinalResult'
   | 'searchAllFunc'
   | 'selectPassPath'
-  | 'returnFuncTree';
+  | 'returnFuncTree'
+  | 'replaceFile'
+  | 'getInitialComData'
+  | 'getInitialSwimData'
+  | 'resetSwimData'
+  | 'selectFile';
 export type IThreeRefs = {
   InitFlag: unknown;
   SetThreeColumnMode: unknown;
@@ -78,7 +82,6 @@ export type IThreeRefs = {
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
-  IDETheme: unknown;
   JsonGraphData: unknown;
   LayoutResult: unknown;
   PathNodesSet: unknown;
@@ -86,6 +89,9 @@ export type IThreeRefs = {
   validateSwimFile: unknown;
   JsonContent: unknown;
   GetPassPath: unknown;
+  returnInitPath: unknown;
+  returnReplace: unknown;
+  returnSearchPath: unknown;
 };
 
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
@@ -114,7 +120,6 @@ export type ISwimApis =
   | 'changeUserCfgConnection';
 export type ISwimRefs = {
   returnSwim: unknown;
-  returnTheme: unknown;
   noSwimFile: unknown;
   returnSwimData: unknown;
   bindResult: unknown;

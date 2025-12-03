@@ -28,29 +28,11 @@ export class Fider {
     // 情况2: 两个路径都未提供 - 自动查找最新输出目录
     if (!swimPath && !comPath) {
       const autoPaths = await this.tryFindLatestOutputPaths();
-      const { swimPath: foundSwim, comPath: foundCom } = autoPaths;
-      if (foundSwim && foundCom) {
-        return autoPaths;
-      }
-      // 如果没有目录或者目录里既没有泳道也没有计算，回退到手动选择
-      if (!foundSwim && !foundCom) {
-        return await this.handleNoPathsProvided(this.codePath);
-      }
-      // 任意一个没有，说明用户取消了，直接返回
-      return { swimPath: undefined, comPath: undefined };
+      const { swimPath: autoSwimPath, comPath: autoComPath } = autoPaths;
+      return {swimPath: autoSwimPath, comPath: autoComPath};
     }
-  
-    // 情况3: 只有泳道图路径
-    if (swimPath) {
-      return await this.handleOnlySwimPathProvided(this.codePath, swimPath);
-    }
-  
-    // 情况4: 只有计算图路径
-    if (comPath) {
-      return await this.handleOnlyComPathProvided(this.codePath, comPath);
-    }
-  
-    return { swimPath, comPath };
+    // 任意一个没有，说明用户取消了，直接返回
+    return { swimPath: swimPath || undefined, comPath: comPath || undefined };
   }
 
   private async tryFindLatestOutputPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
@@ -93,23 +75,10 @@ export class Fider {
   
       const comPathExists = existsSync(possibleComPath);
       const swimPathExists = existsSync(possibleSwimPath);
-  
-      if (comPathExists && swimPathExists) {
-        window.showInformationMessage(`${t('pypto.useLatest')}${basename(latestDir)}`);
-        return {
-          swimPath: possibleSwimPath,
-          comPath: possibleComPath
-        };
-      }
-      if (comPathExists) {
-        this.comPath = possibleComPath;
-        return this.handleOnlyComPathProvided(this.codePath, possibleComPath);
-      }
-      if (swimPathExists) {
-        this.swimPath = possibleSwimPath;
-        return await this.handleOnlySwimPathProvided(this.codePath, possibleSwimPath);
-      }
-  
+      return {
+        swimPath: swimPathExists ? possibleSwimPath : undefined,
+        comPath: comPathExists ? possibleComPath : undefined
+      };
     } catch (error) {
       console.error('自动查找输出目录时出错:', error);
     }
@@ -117,56 +86,39 @@ export class Fider {
     return { swimPath: undefined, comPath: undefined };
   }
 
-  private async handleNoPathsProvided(codePath: string) {
-    // 第一步：选择泳道图路径
-    const swimPath = await this.selectFile(t('pypto.selectSwimFile'));
-  
-    if (!swimPath) {
-      window.showWarningMessage(t('pypto.noSwimFileSelect'));
-      return { codePath, swimPath: undefined, comPath: undefined };
+  async handleUserSelect(graphType: string): Promise<{ swimPath: string | undefined; comPath: string | undefined }>  {
+    if (graphType === "swimGraph") {
+      const swimPath = await this.selectFile(t('pypto.selectSwimFile'));
+      if (!swimPath) {
+        window.showWarningMessage(t('pypto.noSwimFileSelect'));
+        return {swimPath: undefined, comPath: undefined };
+      }
+      const res = await this.handleOnlySwimPathProvided(swimPath);
+      return res;
+    } else if (graphType === "computeGraph") {
+      const comPath = await this.selectFile(t('pypto.selectComFile'));
+      if (!comPath) {
+        window.showWarningMessage(t('pypto.noComFileSelect'));
+        return {swimPath: undefined, comPath: undefined };
+      }
+      const res = await this.handleOnlyComPathProvided(comPath);
+      return res;
     }
-  
-    // 第二步：尝试自动查找同目录的计算图文件
-    return this.handleOnlySwimPathProvided(codePath, swimPath);
+    return {swimPath: undefined, comPath: undefined };
   }
 
-  private async handleOnlySwimPathProvided(codePath: string, swimPath: string) {
+
+  private async handleOnlySwimPathProvided(swimPath: string) {
     // 尝试自动查找同目录的计算图文件
     let comPath = await this.findComPathBySwimPath(swimPath);
-  
-    if (!comPath) {
-      // 如果没找到，让用户选择计算图路径
-      comPath = await this.selectFile(t('pypto.selectComFile'));
-      if (comPath) {
-        // 如果用户选择的计算图同目录有配套的泳道图文件，则使用配套的
-        const autoSwimPath = await this.findSwimPathByComPath(comPath);
-        if (autoSwimPath) {
-          return { codePath, swimPath: autoSwimPath, comPath };
-        }
-      }
-    }
-  
-    return { codePath, swimPath, comPath };
+    return {swimPath, comPath };
   }
   
 
-  private async handleOnlyComPathProvided(codePath: string, comPath: string) {
+  private async handleOnlyComPathProvided(comPath: string) {
     // 尝试自动查找同目录的泳道图文件
     let swimPath = await this.findSwimPathByComPath(comPath);
-  
-    if (!swimPath) {
-      // 如果没找到，让用户选择泳道图路径
-      swimPath = await this.selectFile(t('pypto.selectSwimFile'));
-      if (swimPath) {
-        // 如果用户选择的泳道图同目录有配套的计算图文件，则使用配套的
-        const autoComPath = await this.findComPathBySwimPath(swimPath);
-        if (autoComPath) {
-          return { codePath, swimPath, comPath: autoComPath };
-        }
-      }
-    }
-  
-    return { codePath, swimPath, comPath };
+    return { swimPath, comPath };
   }
 
   private async findComPathBySwimPath(swimPath: string): Promise<string | undefined> {

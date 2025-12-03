@@ -129,6 +129,12 @@ export default {
         loading: 'Loading...',
         allLoaded: 'No more content'
     },
+    openFile: 'Open file',
+    noJsonFile: 'The plugin did not detect an associated {graphName}.',
+    yes: 'Confirm',
+    no: 'Cancel',
+    confirm: 'Please confirm',
+    replaceFileInfo: 'A {graphName} diagram file was found in the same directory as your {graphNameTemp}. Would you like to replace it?',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
@@ -173,6 +179,7 @@ export default {
         pathLocked: 'Path Locked',
         singlePathMode: 'Single Path Mode',
         pressEscExit: 'Press ESC to exit',
+        searchingNodeUntraced: 'searching Node is not in current path',
         nodeCountTips: 'The current number of layout nodes has exceeded 10,000',
         renderTimeoutTips: 'Which may lead to excessively long rendering times and even cause application lag or crashes',
         fullRenderComGraph: 'Full Rendering Computational Graph',

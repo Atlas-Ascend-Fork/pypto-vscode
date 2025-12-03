@@ -43,7 +43,6 @@ export abstract class BaseGraphMsgHandler {
   ]);
 
   static async initTheme(server: any) {
-    server.setRef('IDETheme', { data: getIDETheme() });
     server.setRef('IDELang', { data: getIDELang() });
   }
 
@@ -601,8 +600,8 @@ export abstract class BaseGraphMsgHandler {
     }
     return true;
   }
-  public static returnError(server: any, cmd: string) {
-    server.setRef('ErrorMessage', { data: t(cmd) });
+  public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>) {
+    server.setRef('ErrorMessage', { data: cmdArgs ? t(cmd, cmdArgs) : t(cmd), graphType: 'comGraph' });
   }
 
   /** 前端一次性把整图的张量输入输出关系推过来 */

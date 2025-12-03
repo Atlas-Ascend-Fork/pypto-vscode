@@ -47,13 +47,11 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
-  'IDETheme',
   'JsonGraphData',
   'LayoutResult',
   'PathNodesSet',
   'ReadJsonWarning',
   'returnSwim',
-  'returnTheme',
   'noSwimFile',
   'validateSwimFile',
   'returnSwimData',
@@ -61,6 +59,9 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'unbindResult',
   'JsonContent',
   'GetPassPath',
+  'returnInitPath',
+  'returnSearchPath',
+  'returnReplace'
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
@@ -106,6 +107,21 @@ export class ThreeColumnServer
     await ComGraphHandler.getInitialData(this);
     await SwimGraphMsgHandler.getInitialData(this);
   };
+  @viewApi()
+  public getInitialComData = async () => {
+    this.setRef('SetThreeColumnMode', '');
+    await ComGraphHandler.getInitialData(this);
+  };
+  @viewApi()
+  public getInitialSwimData = async () => {
+    this.setRef('SetThreeColumnMode', '');
+    await SwimGraphMsgHandler.getInitialData(this);
+  };
+  @viewApi()
+  public resetSwimData = async () => {
+    const swimData =  await SwimGraphMsgHandler.getSwimData(this);
+    return swimData;
+  };      
   @viewApi()
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
@@ -208,18 +224,90 @@ export class ThreeColumnServer
   async initWebViewPanel() {
     if (!this.swimDataPath || !this.comPath) {
       const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
-      if (!swimPath || !comPath) {
-        this.dispose();
-        return;
+      if (swimPath) {
+        this.swimDataPath = swimPath;
+        this.swimData = new SwimData(Uri.file(swimPath), swimPath);
       }
+      if (comPath) {
+        this.comPath = comPath;
+        this.query = {
+          fsPath: comPath,
+        };
+      }
+      if (this.swimDataPath && this.comPath) {
+        this.setRef('InitFlag', 'true');
+      }
+      if (!this.swimDataPath || !this.comPath) {
+        const pathMsg = {swimPath: this.swimDataPath || "", comPath: this.comPath || ""};
+        this.setRef('returnInitPath', {data: pathMsg});
+      }
+    }
+  }
+
+  @viewApi()
+  public selectFile = async (message: any) => {
+    const graphType = message.graphType;
+    const options = message.options
+    const { swimPath, comPath } = await new Fider(this.codePath).handleUserSelect(graphType);
+    const handlePaths = (initPath: string, selectPath: string, graphType: string) => {
+      const paths = graphType === "swimGraph" ? { swimPath, comPath: initPath} : { swimPath: initPath, comPath };
+      const replaceMsg = {graphType, paths, selectPath};
+      this.setRef('returnReplace', { data : replaceMsg});
+    };
+
+    const updatePaths = (swimPath: string | undefined, comPath: string | undefined) => {
+      if (swimPath) {
+        this.swimDataPath = swimPath;
+        this.swimData = new SwimData(Uri.file(swimPath), swimPath);
+      }
+      if (comPath) {
+        this.comPath = comPath;
+        this.query = {
+          fsPath: comPath,
+        };
+      }
+      const pathMsg = {swimPath: swimPath || "", comPath: comPath || ""};
+      this.setRef('returnSearchPath', {data: pathMsg});
+    };
+
+    if (graphType === "swimGraph") {
+      if (options.comPath && comPath && options.comPath !== comPath) {
+        handlePaths(options.comPath, comPath, graphType);
+      } else {
+        if (options.comPath) {
+          updatePaths(swimPath, undefined);
+        } else {
+          updatePaths(swimPath, comPath);
+        }
+      }
+    } else if (graphType === "computeGraph") {
+      if (options.swimPath && swimPath && options.swimPath !== swimPath) {
+        handlePaths(options.swimPath, swimPath, graphType);
+      } else {
+        if (options.swimData) {
+          updatePaths(undefined, comPath);
+        } else {
+          updatePaths(swimPath, comPath);
+        }
+      }
+    }
+  }
+  @viewApi()
+  public replaceFile = async (message: any) => {
+    const options = message.options;
+    const { swimPath, comPath } = options;
+    if (swimPath) {
       this.swimDataPath = swimPath;
-      this.comPath = comPath;
       this.swimData = new SwimData(Uri.file(swimPath), swimPath);
+    }
+    if (comPath) {
+      this.comPath = comPath;
       this.query = {
         fsPath: comPath,
       };
-      this.setRef('InitFlag', 'true');
     }
+    const pathMsg = {swimPath: swimPath || "", comPath: comPath || ""};
+    this.setRef('returnSearchPath', {data: pathMsg});
   }
 
   safeParse(str) {
@@ -279,16 +367,12 @@ class ComGraphHandler extends SingleGraphHandler {
     });
   }
   static override async loadMainData(server: any): Promise<void> {
-    if (!server.comGraphData) {
-      server.comGraphData = new SingleGraphData(server.comPath, undefined);
-    }
-
+    server.comGraphData = new SingleGraphData(server.comPath, undefined);
     const gd = server.comGraphData as SingleGraphData;
-    if (!gd.funcHash) {
-      const {entryhash , version} = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
-      gd.funcHash = entryhash;
-      gd.version = version;
-    }
+
+    const {entryhash , version} = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+    gd.funcHash = entryhash;
+    gd.version = version;
   }
 
   static getSemanticByType(semanticInfo: any, op: any) {

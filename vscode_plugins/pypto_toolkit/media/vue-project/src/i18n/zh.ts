@@ -129,6 +129,12 @@ export default {
         loading: '加载中...',
         allLoaded: '没有更多了'
     },
+   openFile: '打开文件',
+   noJsonFile: '插件未识别到相关联的{graphName}',
+   yes: '确认',
+   no: '取消',
+   confirm: '请确认',
+   replaceFileInfo: '检测到您选择的{graphNameTemp}路径同目录下有配套的{graphName}文件，是否需要替换？',
    comGraph: {
       copy: '复制',
       copied: '复制成功',
@@ -173,6 +179,7 @@ export default {
       pathLocked: '通路锁定中',
       singlePathMode: '单通路模式',
       pressEscExit: '按[ESC]退出',
+      searchingNodeUntraced: '搜索节点不在当前通路内',
       nodeCountTips: '当前布局节点数已超过1万个',
       renderTimeoutTips: '这会导致渲染时间过长，甚至造成应用卡顿或崩溃',
       fullRenderComGraph: '全量渲染计算图',

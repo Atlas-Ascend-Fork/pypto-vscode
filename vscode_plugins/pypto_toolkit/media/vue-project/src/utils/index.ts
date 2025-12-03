@@ -138,7 +138,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
     }
   }
   let changeRate = diffList.length / (curOpMap.size + curTensorMap.size);
-  if (changeRate > 0.5) {
+  if (changeRate > 0.5 && diffList.length >= 400) {
     beforeData.tensors = originBefore.tensors;
     beforeData.operations = originBefore.operations;
     currentData.tensors = originCurrent.tensors;
