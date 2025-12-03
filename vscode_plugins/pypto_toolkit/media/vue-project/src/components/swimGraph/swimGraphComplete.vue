@@ -1,6 +1,10 @@
 <template>
   <div style="height: 100vh;">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
+      <div class="simple-containner" :style="{display: 'none'}">
+            <div class="simple-com-file-name">Program.json</div>
+            <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
+          </div>
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
@@ -21,7 +25,13 @@
               <div class="title_time"> {{ formattedTime }} </div>
             </div>
           </div>
-          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '0px' }">
+          <div class="title_up" v-show="!isSwimGraphActive">
+            <div class="simple-file-containner" :style="{display: 'none'}">
+              <div class="simple-com-file-name">Program.json</div>
+              <div class="icon-line-height"><img :src="iconPath" alt="" class="simple-com-file-name-icon" /></div>
+            </div>
+          </div>
+          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '-20px' }">
             <d-tooltip :content="$t('tips1')">
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture">
             </d-tooltip>
@@ -1722,6 +1732,10 @@ onMounted(() => {
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
+});
+
+defineExpose({
+  setPageState, loadTraceData, loading
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });

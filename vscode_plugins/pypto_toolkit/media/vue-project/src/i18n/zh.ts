@@ -129,6 +129,12 @@ export default {
         loading: '加载中...',
         allLoaded: '没有更多了'
     },
+   openFile: '打开文件',
+   noJsonFile: '插件未识别到相关联的{graphName}',
+   yes: '确认',
+   no: '取消',
+   confirm: '请确认',
+   replaceFileInfo: '检测到您选择的{graphNameTemp}路径同目录下有配套的{graphName}文件，是否需要替换？',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

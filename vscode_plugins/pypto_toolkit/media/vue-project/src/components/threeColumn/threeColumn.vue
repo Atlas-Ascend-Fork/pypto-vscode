@@ -11,6 +11,10 @@
     >
       <div class="three-column-block editor-block">
         <div class="sticky-block">
+          <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{display: 'none'}">
+            <div class="simple-com-file-name">Program.json</div>
+            <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
+          </div>
           <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
           <DragIcon />
         </div>
@@ -98,7 +102,6 @@ const ShowBlockMap: IShowBlockMap = {
 let containerWidth = 0;
 let containerHeight = 0;
 let prevLayoutInfo: ILayoutInfo = {};
-
 provide(ThreeColumnProvideKey, {
   resizing,
   currentLayoutMode,
@@ -274,7 +277,9 @@ function resetLayout() {
   showBottom.value = true;
   emitSizeChange();
 }
-
+function openSelectedFileWindow() {
+  console.log(11);
+}
 onMounted(() => {
   HResizeBarLeft.value = `calc(50% - var(--offset))`;
   VResizeBarTop.value = `calc(50% - var(--offset))`;
@@ -346,7 +351,7 @@ provide('threeColumnState', { isDarkTheme });
         z-index: 15;
         display: none;
         align-items: center;
-        justify-content: flex-end;
+        justify-content: space-between;
         width: 100%;
         height: 40px;
         padding: 4px 16px;
@@ -401,6 +406,24 @@ provide('threeColumnState', { isDarkTheme });
         position: relative;
       }
     }
+  }
+  .simple-containner {
+    display: flex;
+    cursor: pointer;
+  }
+  .simple-com-file-name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 28px;
+  }
+  .simple-com-file-name-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--devui-primary-text);
+  }
+  .icon-line-height {
+    line-height: 30px;
+    margin-left: 6px;
   }
 }
 </style>
