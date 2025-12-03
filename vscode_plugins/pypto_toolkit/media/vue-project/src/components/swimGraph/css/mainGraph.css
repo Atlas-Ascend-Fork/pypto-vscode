@@ -66,6 +66,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--devui-swim-global-bg);
+  scrollbar-gutter: stable;
 }
 .mr16 {
   margin-right: 16px;

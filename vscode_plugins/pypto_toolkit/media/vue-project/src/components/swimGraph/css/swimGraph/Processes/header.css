@@ -21,7 +21,7 @@
 }
 
 .process-header-label:hover {
-  background-color: var(--devui-highlight-overlay);
+  background-color: var(--devui-input-hover-bg);
 }
 
 .label_one {
@@ -41,6 +41,10 @@
   position: relative;
   background: var(--devui-header-label);
   border-bottom: 1px solid var(--devui-swim-split-line);
+}
+
+.process-header-line:hover {
+  background-color: var(--devui-input-hover-bg);
 }
 
 .expand-icon {
