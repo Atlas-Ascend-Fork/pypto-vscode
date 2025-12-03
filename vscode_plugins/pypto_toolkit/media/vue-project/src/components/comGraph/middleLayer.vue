@@ -96,7 +96,6 @@ function setupComWatchers(server: any) {
 
   watch(server.InitComGraph, (newValue) => {
     loadingStep.value = newValue.step;
-    dealConfig(newValue.configration);
   });
 
   watch(server.InitDiffComGraph, (newValue) => {

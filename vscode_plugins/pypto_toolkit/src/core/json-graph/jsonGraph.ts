@@ -3,6 +3,7 @@ import { AttrReader, parseSymbolicOrIntList, parseExprList } from './parseSymbol
 import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { getIDELang } from '../../lang';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
+import { Util } from '../../util';
 
 /**
  * Extended SModelRoot with custom properties
@@ -255,6 +256,7 @@ export class AscppDagBuilder {
     opIdMap = new Map<string, string>();
     singlePathNodeSet = new Set<string> ();
     pathNodesSet = new Set<string> ();
+    vscodeConfig: any;
     version: string = '2.0';
 
     constructor(comGraphData: any, server: any, version: string, callInOutTensorMap?: (data) => any) {
@@ -318,6 +320,7 @@ export class AscppDagBuilder {
         const colorList = generateColorList(360, isDark);
         this.baseColorList = colorList.baseColorList;
         this.lightColorList = colorList.lightColorList;
+        this.vscodeConfig = Util.getComGraphCustomCfg();
         // Check if the data might be nested under a property
         if (!this.hasValidStructure(funcData)) {
             actualData = this.extractNestedData(funcData);
@@ -1027,7 +1030,7 @@ export class AscppDagBuilder {
         let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;
 
         try {
-            const userColor = this.comGraphData.tensorColorFunc && this.comGraphData.tensorColorFunc(tensor, this.baseColorList);
+            const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
             if (userColor) {
                 baseColor = userColor;
                 lightColor = getLighterColorByHex(baseColor);
@@ -1052,7 +1055,7 @@ export class AscppDagBuilder {
         try {
             const evalTensor = {...tensor};
             evalTensor.rawtensor = rawTensor;
-            const result = this.comGraphData.tensorAttrFunc && this.comGraphData.tensorAttrFunc(evalTensor);
+            const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
             if (result) {
                 labelParts.push(...result);
             } else {
@@ -1212,7 +1215,7 @@ export class AscppDagBuilder {
             try {
                 const evalTensor = {...tensor};
                 evalTensor.rawtensor = rawTensor;
-                const result = this.comGraphData.tensorAttrFunc && this.comGraphData.tensorAttrFunc(evalTensor);
+                const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
                 if (result) {
                     labelParts.push(...result);
                 } else {
@@ -1226,7 +1229,7 @@ export class AscppDagBuilder {
             let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;
 
             try {
-                const userColor = this.comGraphData.tensorColorFunc && this.comGraphData.tensorColorFunc(tensor, this.baseColorList);
+                const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
                 if (userColor) {
                     baseColor = userColor;
                     lightColor = getLighterColorByHex(baseColor);
@@ -1374,7 +1377,7 @@ export class AscppDagBuilder {
         try {
             const evalTensor = {...tensor};
             evalTensor.rawtensor = rawTensor;
-            const result = this.comGraphData.tensorAttrFunc(evalTensor);
+            const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
             if (result) {
                 metadataParts.push(...result);
             } else {
@@ -2070,7 +2073,7 @@ export class AscppDagBuilder {
         let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
         try {
-            const userColor = this.comGraphData.operationColorFunc && this.comGraphData.operationColorFunc(op, this.baseColorList);
+            const userColor = this.vscodeConfig?.operationColorFunc && this.vscodeConfig.operationColorFunc(op, this.baseColorList);
             if (userColor) {
                 baseColor = userColor;
                 lightColor = getLighterColorByHex(baseColor);
@@ -2081,7 +2084,7 @@ export class AscppDagBuilder {
         
         const labelParts: string[] = [];
         try {
-            const result = this.comGraphData.operationAttrFunc && this.comGraphData.operationAttrFunc(op);
+            const result = this.vscodeConfig?.operationAttrFunc && this.vscodeConfig.operationAttrFunc(op);
             if (result) {
                 labelParts.push(...result);
             }

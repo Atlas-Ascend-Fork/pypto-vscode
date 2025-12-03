@@ -25,12 +25,19 @@ export class Util {
 
   static getComGraphCustomCfg() {
     const config = workspace.getConfiguration('PyPTOToolkit');
-    return {
-      tensorAttr: config.get('tensorAttr'),
-      tensorColor: config.get('tensorColor'),
-      operationAttr: config.get('operationAttr'),
-      operationColor: config.get('operationColor'),
+    const vscodeConfig = {
+      tensorAttr: config.get('tensorAttr') as string,
+      tensorColor: config.get('tensorColor') as string,
+      operationAttr: config.get('operationAttr') as string,
+      operationColor: config.get('operationColor') as string,
     };
+
+    return {
+      tensorAttrFunc: eval(vscodeConfig.tensorAttr),
+      tensorColorFunc: eval(vscodeConfig.tensorColor),
+      operationAttrFunc: eval(vscodeConfig.operationAttr),
+      operationColorFunc: eval(vscodeConfig.operationColor)
+    }
   }
 
   static getSwimGraphCustomCfg() {
