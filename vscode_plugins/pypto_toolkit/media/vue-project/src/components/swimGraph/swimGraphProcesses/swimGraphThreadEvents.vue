@@ -991,9 +991,6 @@ const transformEvents = (process, processKey) => {
           drawData.show = false;
           continue;
         }
-        if (event.isFakeCore) {
-          drawData.eventWidth = event.renderInfo.width / viewState.scale;
-        }
         drawData.show = true;
         eventDatas.push(drawData);
       }
@@ -1093,9 +1090,6 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
         continue;
       } else {
         event.drawData.show = true;
-      }
-      if (event.isFakeCore) {
-        event.drawData.eventWidth = event.renderInfo.width / viewState.scale;
       }
       if (event.drawData) {
         if (!isDimmed) {
@@ -1242,7 +1236,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
   }
   const renderInfo = event.renderInfo;
   const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
-  const width = event.isFakeCore ? renderInfo.width / viewState.scale : renderInfo.width;
+  const width = renderInfo.width;
   const drawData = {
     rectX: renderInfo.x,
     rectY: renderInfo.y,
@@ -1487,8 +1481,6 @@ const updateProcessDrawData = (process, processKey) => {
 
 // 调用之前需确认画布已还原成初始状态
 const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
-  if (event.isFakeCore) return false;
-  
   // 预计算常量，避免重复计算
   const { scale, offsetX } = viewState;
   const absOffsetX = Math.abs(offsetX);
