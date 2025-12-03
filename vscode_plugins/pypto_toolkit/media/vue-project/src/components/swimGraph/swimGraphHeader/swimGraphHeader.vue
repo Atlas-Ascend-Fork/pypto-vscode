@@ -25,7 +25,7 @@
     <div class="right-container">
       <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
         <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
-          <img class="shortcut-keys-picture" :src="kPath" alt="shortcut-keys-picture">
+          <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
@@ -128,6 +128,7 @@ import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
+import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
 
@@ -184,7 +185,6 @@ const {
 const mPath = ref(`${window.staticPath}/static-assets/measure.svg`);
 const caseSensitivePathNoActive = `${window.staticPath}/static-assets/upper_lower.svg`;
 const caseSensitivePathActive = `${window.staticPath}/static-assets/upper_blue.svg`;
-const kPath = `${window.staticPath}/static-assets/keyboard_16px.svg`;
 const backgroundColor = ref('#606061');
 
 const caseSensitivePath = computed(() => isCaseSensitive.value ? caseSensitivePathActive : caseSensitivePathNoActive);
