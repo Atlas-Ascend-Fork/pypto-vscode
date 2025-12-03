@@ -137,8 +137,8 @@
 }
 
 .measure-detail-right-section {
-  width: calc(100% - 464px);
-  margin: 16px 8px 16px 8px;
+  width: calc(100% - 432px);
+  margin: 16px 16px 16px 8px;
   display: flex;
   flex-direction: column;
 }
@@ -167,7 +167,7 @@
   width: 16px;
   height: 16px;
   margin-top: 8px;
-  right: 20px;
+  right: 16px;
   margin-right: auto;
   cursor: pointer;
   font-size: 16px;

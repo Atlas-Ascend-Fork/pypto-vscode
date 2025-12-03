@@ -187,8 +187,8 @@
                     <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}"><img class="right" :src="rPath" alt="right"/></button> 
                   </div>
                   <div class="detail-level display-containner">
-                    <div class="input-number-border" :style="{width: inputNumberWidth + 'px'}" :class="{ 'focusable': isFocused}" tabindex="0" @focus="handleFocus" @blur="handleBlur">{{$t('taskConnectionLevel') + ':'}}</div>
-                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="connectionLevel" :step="1" :precision="0" :min="-1" @change="onInputChange" @focus="onInputFocus" @blur="onInputBlur"></d-input-number> 
+                    <div>{{$t('taskConnectionLevel') + ':'}}</div>
+                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="connectionLevel" :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number> 
                     <d-tooltip :content="$t('connectionLevel')">
                       <d-icon name="icon-helping" class="help-font"></d-icon>
                     </d-tooltip>
@@ -264,8 +264,6 @@ let startTimeUnitInfo = ref('us');
 let durationInfo = ref('0');
 let durationInfoAll = ref('');
 let durationUnitInfo = ref('us');
-let isFocused = ref(false);
-const inputNumberWidth = ref(window.ascLang === 'zh' ? 108 : 160);
 const inputNumberRef = ref(null);
 const rowCoordLoc = ref(['0%', '18%', '36%', '54%', '72%', '88%']);
 const backLineLoc = ref(['20%', '40%', '60%', '80%']);
@@ -492,22 +490,6 @@ const onInputChange = (newValue, oldValue) => {
 function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
-const onInputFocus = (event) => {
-  isFocused.value = true;
-};
-const onInputBlur = (event) => {
-  isFocused.value = false;
-};
-const handleFocus = (event) => {
-  if (inputNumberRef.value && inputNumberRef.value.focus) {
-    inputNumberRef.value.focus();
-  }
-};
-const handleBlur = (event) => {
-  if (inputNumberRef.value && inputNumberRef.value.blur) {
-    inputNumberRef.value.blur();
-  }
-};
 // 暴露方法给父组件
 defineExpose({
   connectionLevel
@@ -518,34 +500,18 @@ defineExpose({
 @import url("../css/swimGraph/Detail/detail.css");
 :deep() {
   .input-number-container {
-    margin-left: -6px;
-
+    margin-left: 10px;
     :deep() {
       .devui-input-number__input-box {
         border-radius: 0 var(--devui-border-radius) var(--devui-border-radius) 0;
-        border-left: none !important;
-      }
-
-      .devui-input-number__input-box:not(.disabled) {
-        box-shadow: none !important;
       }
     }
-  }
-
-  .input-number-container.devui-input-number {
-    width: 54px;
   }
 
   .input-number-container.devui-input-number--md {
     height: 28px;
   }
 
-  .input-number-container .devui-input-number__input-box:not(.disabled) {
-    border-left: none;
-    box-shadow: none !important;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
   .input-number-container .devui-input-number__control-buttons .control-button.control-dec svg {
     bottom: 0;
   }
