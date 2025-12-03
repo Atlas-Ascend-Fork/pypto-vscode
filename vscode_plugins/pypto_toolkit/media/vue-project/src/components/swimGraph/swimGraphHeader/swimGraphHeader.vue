@@ -184,7 +184,7 @@ const {
 const mPath = ref(`${window.staticPath}/static-assets/measure.svg`);
 const caseSensitivePathNoActive = `${window.staticPath}/static-assets/upper_lower.svg`;
 const caseSensitivePathActive = `${window.staticPath}/static-assets/upper_blue.svg`;
-const kPath = `${window.staticPath}/static-assets/键盘_16px.svg`;
+const kPath = `${window.staticPath}/static-assets/keyboard_16px.svg`;
 const backgroundColor = ref('#606061');
 
 const caseSensitivePath = computed(() => isCaseSensitive.value ? caseSensitivePathActive : caseSensitivePathNoActive);
