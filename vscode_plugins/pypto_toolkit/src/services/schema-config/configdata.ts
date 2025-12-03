@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
-import { CustomConfigItemVo, PtoConfigSchemaResponseDto, TileFWKConfigResponseDto } from '../../types/config-schema/config-schema';
-
-const CONFIG_SCHEMA_FILE_NAME = 'pto-config-schema.json';
+import { CustomConfigItemVo, TileFWKConfigResponseDto } from '../../types/config-schema/config-schema';
 
 import { BasicService } from '../basic-service';
 import { ConfigFileInfo, ScanStatus } from '../../types/config-schema/config-schema';
@@ -184,14 +182,6 @@ export class ConfigDataService extends BasicService {
     this._scanStatus = 'idle';
     super.dispose();
   }
-}
-
-/**
- * 读取Schema_fwk_config文件
- */
-export async function readSchemaData(baseUri: vscode.Uri): Promise<PtoConfigSchemaResponseDto> {
-  const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(baseUri, CONFIG_SCHEMA_FILE_NAME));
-  return JSON.parse(fileContent.toString());
 }
 
 /**

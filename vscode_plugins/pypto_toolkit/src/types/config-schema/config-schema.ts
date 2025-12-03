@@ -204,3 +204,70 @@ export interface ConfigFileInfo {
  * 扫描状态类型
  */
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
+
+/**
+ * schema仿真数据结构类型
+ */
+export type RunConfigAttributeType = 'boolean' | 'number' | 'string' | 'enum' | 'array';
+
+export type ValueType<T extends RunConfigAttributeType> = T extends 'boolean'
+  ? boolean
+  : T extends 'number'
+  ? number
+  : T extends 'string'
+  ? string
+  : T extends 'enum'
+  ? string | number | undefined
+  : T extends 'array'
+  ? boolean | string | number[]
+  : never;
+
+export type OptionsType<T extends RunConfigAttributeType> = T extends 'enum'
+  ? { value: ValueType<T>; label: { zh: string; en: string } }[]
+  : undefined;
+
+/**
+ * schema转换后的数据结构
+ */
+export interface RunConfigAttribute<T extends RunConfigAttributeType> {
+  type: T;
+  label: { zh: string; en: string };
+  defaultValue: ValueType<T>;
+  options?: OptionsType<T>;
+}
+export interface SchemaProperty {
+  type: string;
+  defaultValue?: boolean | string | number;
+  description?: { zh: string; en: string };
+  options?: { value: boolean | string | number; description?: { zh: string; en: string } }[];
+  properties?: Record<string, SchemaProperty>;
+  items?: { type: string };
+}
+
+export interface SchemaType {
+  additionalProperties: boolean;
+  type: 'object';
+  properties: {
+    global_configs?: SchemaProperty;
+    pass_global_configs?: SchemaProperty;
+    strategies?: SchemaProperty;
+  };
+}
+
+/**
+ * schema Pass表格表单数据结构类型
+ */
+export interface TablePass {
+  key: string;
+  index: number;
+}
+
+export interface TableGlobalConfigs {
+  key: string;
+  label: { zh: string; en: string };
+}
+
+export interface PassFormTableaTemplate {
+  pass: TablePass[];
+  global_configs: TableGlobalConfigs[];
+}
