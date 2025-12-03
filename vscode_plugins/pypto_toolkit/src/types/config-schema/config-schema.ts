@@ -1,29 +1,8 @@
 import * as vscode from 'vscode';
 
-interface SchemaItem {
-  description?: string;
-  type: string;
-  properties?: {
-    [key: string]: SchemaItem;
-  };
-}
-
 /**
  * 读取的Schema文件返回数据类型
  */
-export interface PtoConfigSchemaResponseDto {
-  additionalProperties: boolean;
-  type: string;
-  $schema?: string;
-  $id?: string;
-  title?: string;
-  description?: string;
-  properties: {
-    [key: string]: SchemaItem;
-  };
-  required: string[];
-  $comment: string;
-}
 
 interface PlatformConfigs {
   USE_SSA: boolean;

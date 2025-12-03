@@ -15,7 +15,7 @@ import { getConfigAttributes } from './utils';
 export function generatePassStrategyTemplate(schema: SchemaType): PassFormTableaTemplate {
   // 提取global_configs数据
   const passGlobalConfigs = schema.properties?.pass_global_configs;
-  const defaultValuePassConfigs = passGlobalConfigs?.properties?.defaultValue_pass_configs;
+  const defaultValuePassConfigs = passGlobalConfigs?.properties?.default_pass_configs;
   const defaultPassConfigsProps = defaultValuePassConfigs?.properties || {};
   const defaultPassConfigs = getConfigAttributes(defaultPassConfigsProps);
 
@@ -63,7 +63,8 @@ export function generateSimulatorConfigsArray(schema: SchemaType): Array<RunConf
   return result;
 }
 
-const CONFIG_SCHEMA_FILE_NAME = 'schema.json';
+/** schema文件名称，todo schema文件读取路径 */
+const CONFIG_SCHEMA_FILE_NAME = 'tile_fwk_config_schema.json';
 
 /**
  * 读取Schema_fwk_config文件
