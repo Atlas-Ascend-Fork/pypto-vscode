@@ -58,6 +58,7 @@ import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/type
 import DragIcon from '../threeColumn/drag-icon.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import { findNodeIdsBySemanticLabel } from '../../utils/search';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
@@ -188,6 +189,12 @@ function onMessageFromSwim(args) {
 (window as any).ascEventBus.on('sendHashList', (args) => {
   generateHashList(args.rootHashList ?? []);
   const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
+  const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, currentLockLabel);
+  if (selectedNodes.length <= 0) {
+    rootHash.value = rootHashList.value[0].value;
+    onHashChange(rootHashList.value[0]);
+    return;
+  }
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
