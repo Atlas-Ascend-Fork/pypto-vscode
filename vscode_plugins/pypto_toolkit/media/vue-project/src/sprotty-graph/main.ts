@@ -1,6 +1,6 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, SModelRootImpl, TYPES } from 'sprotty';
-import { createDiContainer, Rect } from './di.config';
+import { createDiContainer } from './di.config';
 import { createSvg } from './svgExport';
 
 import { FitToScreenAction, SNode, SelectAction, CenterAction, SetViewportAction, UpdateModelAction,
@@ -12,6 +12,7 @@ import { findNodeIdsBySemanticLabel } from '../utils/search';
 import { useViewServer } from '../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { toRaw, watch } from 'vue';
+import { cancelRectAnimation, startRectAnimation } from './animation';
 
 const { server } = useViewServer<IComViewServer>();
 declare const vscode: any;
@@ -403,13 +404,15 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
 
       modelSource.removeElements([{elementId:'show-node-rect', parentId: firstEdge.id}]);
       comGraphStore.data.selectedNodeSemanticLabel = semantic_lable;
-      const newRect = new Rect();
-      newRect.id = 'show-node-rect';
-      newRect.customSize = {width: 0, height: 0};
-      newRect.position = {x: 0, y: 0};
-      newRect.selectedNodes = selectedNodes;
-      newRect.needCalPostion = true;
-  
+      const newRect = {
+        id: 'show-node-rect',
+        type: 'rect',
+        position: {x: 0, y: 0},
+        size: { width: 120, height: 80 },
+        customSize: {width: 0, height: 0},
+        selectedNodes,
+        needCalPostion: true
+      };
       await modelSource.addElements([{element: newRect, parentId: firstEdge.id}]);
     }
     const fitAction: FitToScreenAction = {
@@ -421,10 +424,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     };
     isLocate && modelSource.actionDispatcher.dispatch(fitAction).then(() => {
       getViewport(modelSource, MAINMAP_FIT_SCREEN);
-    }); 
+    });
+
+    startRectAnimation(modelSource);
   }
 
   const removeSelectNodesRect = async () => {
+    cancelRectAnimation();
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
     const index = modelSource.currentRoot.children?.findIndex((t, i) => {
