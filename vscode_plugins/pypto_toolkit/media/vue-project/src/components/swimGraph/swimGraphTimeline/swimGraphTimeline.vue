@@ -152,13 +152,13 @@ const timelineMouseDown = (e) => {
   timelineInitEndX = timelineState.endTimeX;
 
   if (Math.abs(mouseX - timelineInitStartX) < 5){
-    mouseStyleChange('move');
+    mouseStyleChange('col-resize');
     timelineState.isInLeftTag = true;
     return;
   }
 
   if (Math.abs(mouseX - timelineInitEndX) < 5){
-    mouseStyleChange('move');
+    mouseStyleChange('col-resize');
     timelineState.isInRightTag = true;
     return;
   }
@@ -170,7 +170,7 @@ const timelineMouseDown = (e) => {
   }
 
   if (mouseX < timelineInitStartX || mouseX > timelineInitEndX) {
-    mouseStyleChange('s-resize');
+    mouseStyleChange('text');
     timelineState.isOutTag = true;
     return;
   }
