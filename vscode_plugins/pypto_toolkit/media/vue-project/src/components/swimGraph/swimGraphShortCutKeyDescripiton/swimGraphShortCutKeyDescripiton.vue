@@ -1,21 +1,21 @@
 <template>
-  <div v-if="isShortcutKeyShow" class="ShortcutKeyDescriptionEdit">
-    <div class="ShortcutKey-content">
-      <div class="ShortcutKey-head">
-        <div class="ShortcutKey-title"> {{ $t('ShortcutKeyDescription')}} </div>
-        <div class="ShortcutKey-close-button">
+  <div v-if="isShortcutKeyShow" class="shortCutKeyDescriptionEdit">
+    <div class="shortCutKey-content">
+      <div class="shortCutKey-head">
+        <div class="shortCutKey-title"> {{ $t('ShortcutKeyDescription')}} </div>
+        <div class="shortCutKey-close-button">
           <d-button icon="icon-close" style="width: 16px; font-size: 16px; border:none; background-color: transparent" @click="toggleShortcutKeyDescriptionModel"></d-button>
         </div>
       </div>
-      <div v-if="isWarningNoteShow" class="ShortcutKey-note">
-        <div class="ShortcutKey-note-content">
+      <div v-if="isWarningNoteShow" class="shortCutKey-note">
+        <div class="shortCutKey-note-content">
           <d-icon name="warning-triangle" size="16px" color="orange"></d-icon>
           <span class="warning-text">{{ generateWarningText() }}</span>
         </div>
       </div>
-      <div class="ShortcutKey-information">
-        <div class="ShortcutKey-mouse-key">
-          <div class="ShortcutKey-mouseContorl">
+      <div class="shortCutKey-information">
+        <div class="shortCutKey-mouse-key">
+          <div class="shortCutKey-mouseContorl">
             <div class="mousecontorl"> {{ $t('MouseControl') }} </div>
             <div class="verticalmovement">
               <span class="verticalmovement-text">{{ $t('VerticalMovement') }}</span>
@@ -26,7 +26,7 @@
               <img class="singleandboxselection-img" :src="mouse_scrollwheel_Imgpath" alt="verticalmovement-img"> 
             </div>
           </div>
-          <div class="ShortcutKey-composeContorl">
+          <div class="shortCutKey-composeContorl">
             <div class="combinedcontrol"> {{ $t('CombinedControl') }} </div>
             <div class="lateralmovement">
               <span class="lateralmovement-text">{{ $t('LateralMovement') }}</span>
@@ -45,8 +45,8 @@
             </div>
           </div>
         </div>
-        <div class="ShortcutKey-key">
-          <div class="ShortcutKey-keyboardContorl">
+        <div class="shortCutKey-key">
+          <div class="shortCutKey-keyboardContorl">
             <div class="keyboardcontrol"> {{ $t('KeyboardControl') }} </div>
             <div class="zoomin">
               <span class="zoomin-text">{{ $t('zoomIn') }}</span>
@@ -212,6 +212,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-@import url("../css/swimGraph/ShortCutKeyDescription/shortcutkeydescription.css");
+@import url("../css/swimGraph/ShortCutKeyDescription/shortCutKeyDescriptions.css");
 
 </style>
