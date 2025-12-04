@@ -63,7 +63,8 @@ const {
   leafHashMap,
   dependencyLinesInfo,
   isThreeColumn,
-  searchedEvent
+  searchedEvent,
+  colorRending,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -98,7 +99,8 @@ provide('swimGraphState', {
   isLockStatus,
   dependencyLinesInfo,
   isThreeColumn,
-  searchedEvent
+  searchedEvent,
+  colorRending,
 });
 
 const {

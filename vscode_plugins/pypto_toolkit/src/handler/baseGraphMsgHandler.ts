@@ -626,7 +626,7 @@ export abstract class BaseGraphMsgHandler {
   public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>) {
     const data = cmdArgs ? t(cmd, cmdArgs) : t(cmd);
     const log = logCmd ? (logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd)) : null;
-    server.setRef('ErrorMessage', { data: data, log: log, graphType: 'comGraph' });
+    server.setRef('ErrorMessage', { data: data, log: log });
   }
 
   /** 前端一次性把整图的张量输入输出关系推过来 */

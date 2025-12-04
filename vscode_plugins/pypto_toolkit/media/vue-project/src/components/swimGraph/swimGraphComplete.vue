@@ -285,7 +285,7 @@ const initEventListeners = () => {
 };
 
 function generateErrorMsg(msg) {
-  return { msg, graphType: 'swimGraph' };
+  return { msg };
 }
 
 function setupSwimWatchers() {
@@ -1797,7 +1797,8 @@ provide('swimGraphState', {
   isCfgEditing,
   isShortcutKeyShow,
   isThreeColumn: props.isThreeColumn,
-  searchedEvent
+  searchedEvent,
+  colorRending: modeOption,
 });
 
 // 提供方法给子组件

@@ -285,7 +285,7 @@ export class ThreeColumnServer
       if (options.swimPath && swimPath && options.swimPath !== swimPath) {
         handlePaths(options.swimPath, swimPath, graphType);
       } else {
-        if (options.swimData) {
+        if (options.swimPath) {
           updatePaths(undefined, comPath);
         } else {
           updatePaths(swimPath, comPath);

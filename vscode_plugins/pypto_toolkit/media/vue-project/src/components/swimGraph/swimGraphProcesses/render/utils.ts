@@ -1,4 +1,5 @@
 import { devicePixelRatio } from '../../swimGraphUtils';
+import { getEventColorByMode } from '../processInfo';
 
 export interface Dependencies {
   viewState: any;
@@ -11,6 +12,7 @@ export interface Dependencies {
   layout: any;
   isKeyPressed: any;
   searchedEvent: any;
+  colorRending: any;
 }
 
 export function isPointInPolygonFun(point: any, polygonBoundaries: any): boolean {
@@ -82,7 +84,9 @@ export function getNoZoomX(x: number, viewState: any) {
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent } = deps;
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, colorRending } = deps;
+  const color = getEventColorByMode(event, colorRending.value);
+  event.color = color;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
   let fontColor = colorCfg.eventFont;
