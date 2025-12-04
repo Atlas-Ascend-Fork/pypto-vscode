@@ -350,6 +350,29 @@ const handleWheel = (e) => {
   if (!timelineCanvas.value) return;
 
   const rect = timelineCanvas.value.getBoundingClientRect();
+
+  const isHorizontalDominant = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+  if (isHorizontalDominant && Math.abs(e.deltaX) > 0) {
+    e.preventDefault();
+    // 触控板左右移动，为拖拽
+    if (viewState.scale === 1) {
+      return;
+    }
+    const canvasMoveLeft = e.deltaX > 0;
+    const timeLineEndX = Math.abs(timeLineX.value);
+    const cssWidth = viewState.canvasCssWidth;
+    if (canvasMoveLeft && cssWidth > timeLineEndX) {
+      return;
+    }
+    viewState.offsetX -= childContextMap.threadEvent.getOffset(e.deltaX, viewState.scale);
+    if (!canvasMoveLeft && viewState.offsetX > 0) {
+      viewState.offsetX = 0;
+    }
+    viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+    transform();
+    return;
+  }
+
   const mouseX = e.clientX - rect.left;
   // 如果没有按住 ctrl 键，则允许默认滚动行为（不阻止事件）
   if (!isZooming) {
@@ -357,6 +380,7 @@ const handleWheel = (e) => {
   }
   const zoomFactor = e.deltaY > 0 ? 0.8 : 1.25;
   changeScale(zoomFactor, mouseX);
+  e.preventDefault();
 };
 const postMessage = (message) => {
   if (window.vscode) {
