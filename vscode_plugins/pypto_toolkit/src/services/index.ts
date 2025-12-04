@@ -11,8 +11,9 @@ import {
   delCustomFile,
   addNewFwkConfigFile,
   getSchemaData,
-  getPassTableTemplate,
-  getSimulatorConfigsTemplate,
+  getConfigsTemplate,
+  getConfigsForRevise,
+  updateConfigsFile,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
 
@@ -54,11 +55,14 @@ export const services = {
     /** 添加自定义配置 */
     addNewFwkConfigFile,
 
-    /** 获取Pass表格的二维数组模板 */
-    getPassTableTemplate,
-
     /** 获取Simulator的数组模板 */
-    getSimulatorConfigsTemplate,
+    getConfigsTemplate,
+
+    /** 获取用户config文件中仿真与Pass数据 */
+    getConfigsForRevise,
+
+    /** 更新用户config文件中仿真与Pass数据 */
+    updateConfigs: updateConfigsFile,
   },
   //【临时】开启webview
   tmpViewOpener: {

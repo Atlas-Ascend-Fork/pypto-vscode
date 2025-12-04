@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
-import { SchemaType, TileFWKConfigResponseDto, updateTitleFWKConfigRequestDto } from '../../types/config-schema/config-schema';
-import { readFwkData, writeSchemaData, getJsonFileList, delFile } from './configdata';
+import {
+  ConfigsForRevise,
+  ConfigsTemplate,
+  SchemaType,
+  TileFWKConfigResponseDto,
+  updateTitleFWKConfigRequestDto,
+} from '../../types/config-schema/config-schema';
+import { readFwkData, writeFileData, getJsonFileList, delFile } from './configdata';
 import path from 'node:path';
 import { generatePassStrategyTemplate, generateSimulatorConfigsArray, readSchemaData } from './schemadata';
 
@@ -53,7 +59,7 @@ export async function getTileFwkConfigData(configPath: string) {
 export async function updateFwkConfigData(params: updateTitleFWKConfigRequestDto) {
   const { filePath, data } = params;
   const outputCollectionUri = vscode.Uri.file(filePath);
-  await writeSchemaData(outputCollectionUri, data);
+  await writeFileData(outputCollectionUri, data);
 }
 
 /**
@@ -84,7 +90,7 @@ export async function addNewFwkConfigFile(fileName: string) {
     const newFwkConfigFileUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, CUSTOM_CONFIG_PATH, `${fileName}.json`);
     const defaultFwkConfigUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, TILE_FWK_FILE_NAME);
     const defaultFwkConfigData = await readFwkData(defaultFwkConfigUri);
-    await writeSchemaData(newFwkConfigFileUri, defaultFwkConfigData);
+    await writeFileData(newFwkConfigFileUri, defaultFwkConfigData);
     return true;
   } catch (err) {
     vscode.window.showErrorMessage(`${(err as Error).message}`);
@@ -93,27 +99,85 @@ export async function addNewFwkConfigFile(fileName: string) {
 }
 
 /**
- * 从schema文件中解析出生成Pass表格的二维数组模板
+ * 从schema文件中解析出数组模板
  */
-export async function getPassTableTemplate() {
+export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
   const configUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH);
   if (!configUri) {
-    return { data: [] };
-  }
-  const schemaData = await readSchemaData(configUri);
-  const passTableTemplate = await generatePassStrategyTemplate(schemaData);
-  return passTableTemplate;
-}
-
-/**
- * 从schema文件中解析出生成Simulator的数组模板
- */
-export async function getSimulatorConfigsTemplate() {
-  const configUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH);
-  if (!configUri) {
-    return { data: [] };
+    return {
+      simulationTemplate: [],
+      passTemplate: {},
+    };
   }
   const schemaData = await readSchemaData(configUri);
   const simulatorConfigsTemplate = await generateSimulatorConfigsArray(schemaData);
-  return simulatorConfigsTemplate;
+  const passTableTemplate = await generatePassStrategyTemplate(schemaData);
+  return {
+    simulationTemplate: simulatorConfigsTemplate,
+    passTemplate: passTableTemplate,
+  };
+}
+
+/**
+ * 获取指定Config仿真与Pass数据
+ * @param string 文件路径
+ */
+export async function getConfigsForRevise(path: string): Promise<ConfigsForRevise> {
+  const configUri = vscode.Uri.file(path);
+  const configData = await readFwkData(configUri);
+  if (!configUri) {
+    return {
+      simulationConfig: {},
+      passConfig: {},
+    };
+  }
+  // 提取config文件中default_pass_configs对象
+  const PassGlobalConfigs = configData?.pass_global_configs;
+  const defaultPassConfigs = PassGlobalConfigs?.default_pass_configs;
+  // 提取config文件中simulation_configs对象
+  const globalConfigs = configData?.global_configs;
+  const simulationConfig = globalConfigs?.simulation_configs;
+
+  return {
+    simulationConfig: simulationConfig,
+    passConfig: defaultPassConfigs,
+  };
+}
+
+/**
+ * 更新指定Config仿真与Pass数据
+ * @param modifiedConfigData
+ * @returns
+ */
+export async function updateConfigsFile(modifiedConfigData: ConfigsForRevise) {
+  try {
+    const { simulationConfig, passConfig, path } = modifiedConfigData;
+    const configUri = vscode.Uri.file((path as string) ?? '');
+    const configData = await readFwkData(configUri);
+    if (!configUri) {
+      return {
+        simulationConfig: {},
+        passConfig: {},
+      };
+    }
+
+    // 提取config文件中原始simulation_configs对象
+    const globalConfigs = configData?.global_configs;
+    const simulation = globalConfigs?.simulation_configs;
+    const newSimulation = { ...simulation, ...simulationConfig };
+
+    // 提取config文件中原始default_pass_configs对象
+    const PassGlobalConfigs = configData?.pass_global_configs;
+    let defaultPass = PassGlobalConfigs?.default_pass_configs;
+    const newDefaultPass = { ...defaultPass, ...passConfig };
+
+    configData.global_configs.simulation_configs = newSimulation;
+    configData.pass_global_configs.default_pass_configs = newDefaultPass;
+
+    await writeFileData(configUri, configData);
+    return true;
+  } catch (error) {
+    console.warn(`更新文件信息失败：${path}`, error);
+    return false;
+  }
 }

@@ -21,7 +21,11 @@ export function getConfigAttributes(properties: Record<string, SchemaProperty> =
     if (prop.type === 'enum') {
       type = 'enum';
     } else if (prop.type === 'array') {
-      type = 'array';
+      if (prop.items?.type) {
+        type = `${prop.type}:${prop.items?.type}` as 'array:string'; //暂时只有'array:string'数组
+      } else {
+        type = 'array';
+      }
     } else if (['boolean', 'number', 'string', 'integer'].includes(prop.type)) {
       type = prop.type === 'integer' ? 'number' : (prop.type as RunConfigAttributeType);
     } else {

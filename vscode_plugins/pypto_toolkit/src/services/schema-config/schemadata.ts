@@ -49,9 +49,9 @@ export function generatePassStrategyTemplate(schema: SchemaType): PassFormTablea
  * 生成 simulator_configs 的数组结构数据
  * @param schema 传入schema 对象
  */
-export function generateSimulatorConfigsArray(schema: SchemaType): Array<RunConfigAttribute<any> & { key: string }> {
+export function generateSimulatorConfigsArray(schema: SchemaType): Array<RunConfigAttribute<any>> {
   const globalConfigs = schema.properties?.global_configs;
-  const simulatorConfigs = globalConfigs?.properties?.simulator_configs;
+  const simulatorConfigs = globalConfigs?.properties?.simulation_configs;
   const simulatorConfigsProps = simulatorConfigs?.properties || {};
 
   const simulatorConfigsMap = getConfigAttributes(simulatorConfigsProps);

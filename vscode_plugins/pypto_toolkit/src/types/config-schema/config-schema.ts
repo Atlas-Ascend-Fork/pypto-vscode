@@ -136,7 +136,7 @@ export interface TileFWKConfigResponseDto {
   cycle_upper_bound?: number;
   cycle_lower_bound?: number;
   parallel_threshold?: number;
-  copyin_threshold: number;
+  copyin_threshold?: number;
   db_type?: number;
   global_configs: GlobalConfigs;
   pass_global_configs: PassGlobalConfigs;
@@ -187,7 +187,7 @@ export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
 /**
  * schema仿真数据结构类型
  */
-export type RunConfigAttributeType = 'boolean' | 'number' | 'string' | 'enum' | 'array';
+export type RunConfigAttributeType = 'boolean' | 'number' | 'string' | 'enum' | 'array' | 'array:string' | 'array:number';
 
 export type ValueType<T extends RunConfigAttributeType> = T extends 'boolean'
   ? boolean
@@ -209,6 +209,7 @@ export type OptionsType<T extends RunConfigAttributeType> = T extends 'enum'
  * schema转换后的数据结构
  */
 export interface RunConfigAttribute<T extends RunConfigAttributeType> {
+  key?: string;
   type: T;
   label: { zh: string; en: string };
   defaultValue: ValueType<T>;
@@ -249,4 +250,15 @@ export interface TableGlobalConfigs {
 export interface PassFormTableaTemplate {
   pass: TablePass[];
   global_configs: TableGlobalConfigs[];
+}
+
+export interface ConfigsTemplate {
+  simulationTemplate: RunConfigAttribute<any>[];
+  passTemplate: PassFormTableaTemplate | {};
+}
+
+export interface ConfigsForRevise {
+  simulationConfig: object;
+  passConfig: object;
+  path?: string;
 }

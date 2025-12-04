@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CustomConfigItemVo, TileFWKConfigResponseDto } from '../../types/config-schema/config-schema';
+import { CustomConfigItemVo } from '../../types/config-schema/config-schema';
 
 import { BasicService } from '../basic-service';
 import { ConfigFileInfo, ScanStatus } from '../../types/config-schema/config-schema';
@@ -187,17 +187,17 @@ export class ConfigDataService extends BasicService {
 /**
  * 读取tile_fwk_config文件
  */
-export async function readFwkData(fileUri: vscode.Uri): Promise<TileFWKConfigResponseDto> {
+export async function readFwkData(fileUri: vscode.Uri) {
   const fileContent = await vscode.workspace.fs.readFile(fileUri);
   return JSON.parse(fileContent.toString());
 }
 
 /**
- * 写入tile_fwk_config文件
+ * 写入文件
  * @param baseUri 文件路径
  * @param targetObj 数据对象
  */
-export async function writeSchemaData(baseUri: vscode.Uri, targetObj: TileFWKConfigResponseDto) {
+export async function writeFileData(baseUri: vscode.Uri, targetObj: object) {
   const jsonContent = JSON.stringify(targetObj, null, 2);
   const content = new TextEncoder().encode(jsonContent);
 
