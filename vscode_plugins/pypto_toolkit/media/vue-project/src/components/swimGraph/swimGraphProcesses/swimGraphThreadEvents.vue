@@ -1209,10 +1209,6 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
   const targetColor = selectedEvent.value.id === toEvent.id ? toColor.light : toColor.base;
 
   let fromWidth = fromEvent.renderInfo.width;
-  if (fromEvent.isFakeCore) {
-    fromWidth /= viewState.scale;
-  }
-
   const pos = {
     startX: (fromEvent.renderInfo.x + fromWidth) * devicePixelRatio,
     startY: (fromEvent.renderInfo.y + (fromEvent.renderInfo.height / 2)) * devicePixelRatio,

@@ -362,8 +362,4 @@ const transformToOptions = (source) =>
     border-color: var(--devui-form-control-line-active);
   }
 }
-.measure-detail-data-table::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
 </style>
