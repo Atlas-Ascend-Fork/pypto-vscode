@@ -148,9 +148,7 @@ const {
   detailsPanelExpanded,
   selectedEvent,
   highlightedPaths,
-  childContextMap,
   swimlaneContainer,
-  layout,
   isMeasureModel,
   measureDragStartX,
   measureDragEndX,
@@ -158,7 +156,11 @@ const {
   mulDetailsExpanded,
   isLockStatus,
   isCfgEditing,
+<<<<<<< Updated upstream
   isShortcutKeyShow,
+=======
+  searchedEvent
+>>>>>>> Stashed changes
 } = inject('swimGraphState');
 
 const {
@@ -353,7 +355,7 @@ const onSearch = (term) => {
     currentResultIndex.value = 0;
     isSearchActive.value = false;
     detailsPanelExpanded.value = false;
-    selectedEvent.value = null;
+    searchedEvent.value = null;
     clearSearchData();
     return;
   }
@@ -428,7 +430,8 @@ const navigateResults = (direction) => {
 };
 
 const selectEventChild = (event) => {
-  selectedEvent.value = event;
+  searchedEvent.value = event;
+  selectedEvent.value = null;
   highlightedPaths.clear();
   highlightedPaths.add(event.id);
 };
