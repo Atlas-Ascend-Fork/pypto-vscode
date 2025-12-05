@@ -433,10 +433,6 @@ const onSearch = (e) => {
   e.isUpper = upperActive.value;
   e.isReg = regActive.value;
   isVisible.value = Boolean(e.searchKey);
-  if (isVisible.value) {
-    showOperation.value = true;
-    showSearchIcon.value = 0;
-  }
   if (currentSelect.value === 'global') {
     globalSearch(e);
     return;
@@ -1205,12 +1201,6 @@ onMounted(() => {
 
 .toolbar-row.search-focusd {
   border-color: rgba(49, 122, 247, 1);
-
-  :deep() {
-    .dp-category-search-icon {
-      display: none;
-    }
-  }
 }
 
 .control-flow {

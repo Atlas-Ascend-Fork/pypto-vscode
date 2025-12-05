@@ -76,6 +76,10 @@
   z-index: 2;
 }
 
+.thread-labels-loop.activeS .threads-box .threads-fill {
+  background: var(--devui-modal-line) !important;
+}
+
 .threads-fill:hover + .thread-text {
   color: #e6e6e6;
 }

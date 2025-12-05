@@ -183,7 +183,7 @@ export const ideDarkTheme = new Theme({
     ...galaxyTheme.data,
     ...ptoDarkTheme,
     'devui-global-bg': '#1e1e1e', // 全局背景
-    'devui-node-badge-bg': 'rgba(53,53,55,0.5)', // 节点右上角徽标背景色
+    'devui-node-badge-bg': 'rgba(255,255,255,0.1)', // 节点右上角徽标背景色
     'devui-node-badge-text': '#ced1db', // 节点右上角徽标文字
     'devui-op-node-badge-focus-bg': 'rgba(0,0,0,0.2)', // op节点右上角徽标背景色
     'devui-op-node-badge-focus-text': '#191919', // op节点右上角徽标文字

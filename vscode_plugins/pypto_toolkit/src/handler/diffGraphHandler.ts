@@ -34,7 +34,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     // 1. 取数据
     const { json } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
       return;
     }
     const { json: diffJson } = await this.fetchGraphJson(diffgd, server);
@@ -94,7 +94,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
     const gd = server[prop] as DiffGraphData;
     if (!gd.funcHash) {
-      const {entryhash , version} = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
+      const { entryhash, version } = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
       gd.funcHash = entryhash;
       gd.version = version;
     }

@@ -1,4 +1,4 @@
-import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio, clearWholeProcess, FAKE_CORE_KEYWORD } from '../../swimGraphUtils';
+import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio, clearWholeProcess } from '../../swimGraphUtils';
 import { Dependencies, getEventColor, getNoZoomX, renderInfo2pixelData } from './utils';
 import { isEqual } from 'lodash-es';
 import { EventRender } from './eventRender';
@@ -273,10 +273,7 @@ export class MeatureRender extends EventRender {
   // 计算矩形位置
   private calculateRect(largeSpacing: boolean) {
     const { viewState, layout } = this.deps;
-    const { preData } = altClickData;
-    const { threadName } = preData;
-    const isFakeCore = threadName?.includes(FAKE_CORE_KEYWORD);
-    let { x: preX, width: preWidth, y: preY, height: preHeight } = preData.renderInfo;
+    let { x: preX, width: preWidth, y: preY, height: preHeight } = altClickData.preData.renderInfo;
     if (!largeSpacing) {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
     }
@@ -286,8 +283,7 @@ export class MeatureRender extends EventRender {
     const height = preHeight;
     const centerY = preY + height / 2;
     const text = this.getMeasureDistance(altClickData);
-    const preWidthInfo = isFakeCore ? preWidth / viewState.scale : preWidth;
-    const leftX = getNoZoomX(preX + preWidthInfo , viewState) ;  // 连线左端点
+    const leftX = getNoZoomX(preX + preWidth, viewState);  // 连线左端点
     const rectX = leftX + (lastX - leftX - width) / 2;
     return {
       leftX: leftX,
@@ -379,15 +375,12 @@ export class MeatureRender extends EventRender {
     const { isDarkTheme, viewState } = this.deps;
     const {x: preX, y: preY, width: preWidth, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
     const {x: lastX} = renderInfo2pixelData(altClickData.lastData.renderInfo, viewState);
-    const { threadName } = altClickData.preData;
-    const isFakeCore = threadName?.includes(FAKE_CORE_KEYWORD);
-    const preWidthInfo = isFakeCore ? preWidth / viewState.scale : preWidth;
     // 填充矩形
     ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
     ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.beginPath();
     ctx.lineWidth = 1;
-    ctx.roundRect(preX + preWidthInfo + 1, preY - 2, lastX - (preX + preWidthInfo), preHeight + 4, 4);
+    ctx.roundRect(preX + preWidth + 1, preY - 2, lastX - (preX + preWidth), preHeight + 4, 4);
     ctx.fill();
     ctx.stroke();
   }

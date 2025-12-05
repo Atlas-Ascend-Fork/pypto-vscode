@@ -195,7 +195,7 @@ export function createDiContainer(sprottyContainerId: string) {
       disable: [editFeature],
     });
 
-      configureModelElement(context, 'compartment', SCompartmentImpl, CustomCompartmentView);
+    configureModelElement(context, 'compartment', SCompartmentImpl, CustomCompartmentView);
 
     configureModelElement(context, 'routing-point', SRoutingHandleImpl, SRoutingHandleView, {
       disable: [moveFeature],
@@ -208,8 +208,8 @@ export function createDiContainer(sprottyContainerId: string) {
       needsClientLayout: true,
       baseDiv: sprottyContainerId,
       zoomLimits: { min: 0.0001, max: 10 },
-      horizontalScrollLimits: { min: -400000, max: 400000 },
-      verticalScrollLimits: { min: -400000, max: 400000 },
+      horizontalScrollLimits: { min: -800000, max: 800000 },
+      verticalScrollLimits: { min: -800000, max: 800000 },
     });
   });
 

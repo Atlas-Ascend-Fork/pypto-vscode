@@ -53,6 +53,7 @@
             <swim-graph-timeline ref="timelineComponent" />
           </div>
           <swim-graph-config ref="configComponent" />
+          <swim-graph-shortCutKey-descrition ref="shortCutKeyDescritionComponent" />
         </div>
       </div>
       <div class="main-view" v-show="!loading">
@@ -85,6 +86,7 @@ import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
 import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
 import SwimGraphConfig from './swimGraphConfig/swimGraphConfig.vue';
+import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/swimGraphShortCutKeyDescripiton.vue'
 import { getTextWidth } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -139,6 +141,7 @@ const measureDetailComponent = ref(null);
 const graphProcessesComponent = ref(null);
 const swimgraphHeaderComponent = ref(null);
 const configComponent = ref(null);
+const shortCutKeyDescritionComponent = ref(null);
 const timeLineX = ref(null);
 const traceData = ref(null);
 const processedEvents = ref([]);
@@ -178,6 +181,7 @@ const isSwimGraphActive = ref(false);
 const textOption = ref([]);
 const modeOption = ref('');
 const isCfgEditing = ref(false);
+const isShortcutKeyShow = ref(false);
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -354,7 +358,7 @@ const validData = (dataStr) => {
   });
 
   data.traceEvents.forEach(event => {
-    if (event.cat === 'event' && (typeof event.id === "undefined" || !event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
+    if (event.cat === 'event' && (!event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
       window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`));
     }
 
@@ -1790,6 +1794,7 @@ provide('swimGraphState', {
   isLockStatus,
   dependencyLinesInfo,
   isCfgEditing,
+  isShortcutKeyShow,
   isThreeColumn: props.isThreeColumn,
 });
 
