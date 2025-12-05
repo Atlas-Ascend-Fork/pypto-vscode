@@ -147,6 +147,7 @@ let category = [
 const textConfig = {
   noCategoriesAvailable: t('noSearchCondition'),
   tagMenuEmpty: t('noSearchMeasureDetaildata'),
+  keywordName: t('comGraph.keyword')
 };
 const searchConfig = {
   keywordDescription: (key) => t('swimGraphkeywordDesc', { key }),
@@ -287,7 +288,7 @@ const transformToOptions = (source) =>
 @import url("../css/swimGraph/MeasureDetail/measureDetail.css");
 :deep() {
   .measure-detail-category-search.dp-category-search-container {
-    border: none;
+    border: 1px solid transparent;
     background: var(--devui-category-search-bg);
   }
 
@@ -361,5 +362,9 @@ const transformToOptions = (source) =>
     border-color: #5e7cc0;
     border-color: var(--devui-form-control-line-active);
   }
+}
+.measure-detail-data-table::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 </style>
