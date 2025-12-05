@@ -143,9 +143,9 @@ function onMessageFromSwim(args) {
     return;
   }
   if (args.label) {
-    createSelectNodesRect(args.label, true);
+    createSelectNodesRect?.(args.label, true);
   } else {
-    removeSelectNodesRect();
+    removeSelectNodesRect?.();
   }
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
@@ -167,7 +167,7 @@ function onMessageFromSwim(args) {
     return;
   }
   if (args.semanticLabel) {
-    createSelectNodesRect(args.semanticLabel, false);
+    createSelectNodesRect?.(args.semanticLabel, false);
     (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
   }
 });
@@ -175,7 +175,7 @@ function onMessageFromSwim(args) {
   if (comGraphStore.data.isNodeRectLock) {
     return;
   }
-  removeSelectNodesRect();
+  removeSelectNodesRect?.();
   (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: '' });
 });
 
@@ -183,8 +183,8 @@ function onMessageFromSwim(args) {
   prevent = true;
   currentLockLabel = args.label;
   comGraphStore.data.isNodeRectLock = true;
-  createSelectNodesRect(args.label, true);
-  hoverFeedbackAction();
+  createSelectNodesRect?.(args.label, true);
+  hoverFeedbackAction?.();
 });
 (window as any).ascEventBus.on('sendHashList', (args) => {
   generateHashList(args.rootHashList ?? []);
@@ -212,7 +212,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
 (window as any).ascEventBus.on('deactivateLock', () => {
   prevent = false;
   comGraphStore.data.isNodeRectLock = false;
-  hoverFeedbackAction();
+  hoverFeedbackAction?.();
   generateHashList();
 });
 (window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
@@ -220,7 +220,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
     window.dispatchEvent(new Event('resize'));
     minimapEl.value.updateScaleRation();
     const fitTimer = setTimeout(() => {
-      fitToScreenAction();
+      fitToScreenAction?.();
       fitTimer && clearTimeout(fitTimer);
     });
   }
@@ -266,8 +266,8 @@ const onHashChange = (val) => {
 };
 
 const onLocate = (id) => {
-  centerNodeAction([id]);
-  selectAction([id]);
+  centerNodeAction?.([id]);
+  selectAction?.([id]);
 };
 
 const LoadingStatusMap = {
@@ -319,7 +319,7 @@ watch(
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';
-              createSelectNodesRect(currentLockLabel, true);
+              createSelectNodesRect?.(currentLockLabel, true);
               shouldListenViewZoom = false;
             }
           });
