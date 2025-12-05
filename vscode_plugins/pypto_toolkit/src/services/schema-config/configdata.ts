@@ -188,8 +188,13 @@ export class ConfigDataService extends BasicService {
  * 读取tile_fwk_config文件
  */
 export async function readFwkData(fileUri: vscode.Uri) {
-  const fileContent = await vscode.workspace.fs.readFile(fileUri);
-  return JSON.parse(fileContent.toString());
+  try {
+    const fileContent = await vscode.workspace.fs.readFile(fileUri);
+    return JSON.parse(fileContent.toString());
+  } catch (err) {
+    vscode.window.showErrorMessage(`${(err as Error).message}`);
+    return '';
+  }
 }
 
 /**

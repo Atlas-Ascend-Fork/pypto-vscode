@@ -252,12 +252,19 @@ export interface PassFormTableaTemplate {
 }
 
 export interface ConfigsTemplate {
+  tag: boolean;
   simulationTemplate: RunConfigAttribute<any>[];
   passTemplate: PassFormTableaTemplate | {};
 }
 
 export interface ConfigsForRevise {
+  tag: boolean;
   simulationConfig: object;
   passConfig: object;
   path?: string;
+}
+
+export interface ReadSchemaData {
+  schemaData?: SchemaType;
+  tag: boolean;
 }

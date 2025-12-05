@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   ConfigsForRevise,
   ConfigsTemplate,
+  ReadSchemaData,
   SchemaType,
   TileFWKConfigResponseDto,
   updateTitleFWKConfigRequestDto,
@@ -34,8 +35,8 @@ export async function getSchemaData() {
   if (!outputCollectionUri) {
     return { data: [] };
   }
-  const schemaData: SchemaType = await readSchemaData(outputCollectionUri);
-  return schemaData;
+  const res: ReadSchemaData = await readSchemaData(outputCollectionUri);
+  return res;
 }
 
 /**
@@ -105,17 +106,27 @@ export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
   const configUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH);
   if (!configUri) {
     return {
+      tag: false,
       simulationTemplate: [],
       passTemplate: {},
     };
   }
-  const schemaData = await readSchemaData(configUri);
-  const simulatorConfigsTemplate = await generateSimulatorConfigsArray(schemaData);
-  const passTableTemplate = await generatePassStrategyTemplate(schemaData);
-  return {
-    simulationTemplate: simulatorConfigsTemplate,
-    passTemplate: passTableTemplate,
-  };
+  const res = await readSchemaData(configUri);
+  if (res.tag) {
+    const simulatorConfigsTemplate = await generateSimulatorConfigsArray(res.schemaData as SchemaType);
+    const passTableTemplate = await generatePassStrategyTemplate(res.schemaData as SchemaType);
+    return {
+      tag: true,
+      simulationTemplate: simulatorConfigsTemplate,
+      passTemplate: passTableTemplate,
+    };
+  } else {
+    return {
+      tag: false,
+      simulationTemplate: [],
+      passTemplate: {},
+    };
+  }
 }
 
 /**
@@ -124,24 +135,35 @@ export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
  */
 export async function getConfigsForRevise(path: string): Promise<ConfigsForRevise> {
   const configUri = vscode.Uri.file(path);
-  const configData = await readFwkData(configUri);
   if (!configUri) {
     return {
+      tag: false,
       simulationConfig: {},
       passConfig: {},
     };
   }
-  // 提取config文件中default_pass_configs对象
-  const PassGlobalConfigs = configData?.pass_global_configs;
-  const defaultPassConfigs = PassGlobalConfigs?.default_pass_configs;
-  // 提取config文件中simulation_configs对象
-  const globalConfigs = configData?.global_configs;
-  const simulationConfig = globalConfigs?.simulation_configs;
+  const configData = await readFwkData(configUri);
+  try {
+    // 提取config文件中default_pass_configs对象
+    const PassGlobalConfigs = configData?.pass_global_configs;
+    const defaultPassConfigs = PassGlobalConfigs?.default_pass_configs;
+    // 提取config文件中simulation_configs对象
+    const globalConfigs = configData?.global_configs;
+    const simulationConfig = globalConfigs?.simulation_configs;
 
-  return {
-    simulationConfig: simulationConfig,
-    passConfig: defaultPassConfigs,
-  };
+    return {
+      tag: true,
+      simulationConfig: simulationConfig,
+      passConfig: defaultPassConfigs,
+    };
+  } catch (error) {
+    vscode.window.showErrorMessage(`${(error as Error).message}`);
+    return {
+      tag: false,
+      simulationConfig: {},
+      passConfig: {},
+    };
+  }
 }
 
 /**
@@ -174,7 +196,7 @@ export async function updateConfigsFile(modifiedConfigData: ConfigsForRevise) {
     await writeFileData(configUri, configData);
     return true;
   } catch (error) {
-    console.warn(`更新文件信息失败：${path}`, error);
+    vscode.window.showErrorMessage(`${(error as Error).message}`);
     return false;
   }
 }

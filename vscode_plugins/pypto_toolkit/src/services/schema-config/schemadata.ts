@@ -1,4 +1,4 @@
-import { SchemaType, PassFormTableaTemplate, TablePass, RunConfigAttribute } from '../../types/config-schema/config-schema';
+import { SchemaType, PassFormTableaTemplate, TablePass, RunConfigAttribute, ReadSchemaData } from '../../types/config-schema/config-schema';
 import * as vscode from 'vscode';
 import { getConfigAttributes } from './utils';
 
@@ -58,7 +58,17 @@ const CONFIG_SCHEMA_FILE_NAME = 'tile_fwk_config_schema.json';
 /**
  * 读取Schema_fwk_config文件
  */
-export async function readSchemaData(baseUri: vscode.Uri): Promise<SchemaType> {
-  const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(baseUri, CONFIG_SCHEMA_FILE_NAME));
-  return JSON.parse(fileContent.toString());
+export async function readSchemaData(baseUri: vscode.Uri): Promise<ReadSchemaData> {
+  try {
+    const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(baseUri, CONFIG_SCHEMA_FILE_NAME));
+    return {
+      tag: true,
+      schemaData: JSON.parse(fileContent.toString()),
+    };
+  } catch (error) {
+    vscode.window.showErrorMessage(`${(error as Error).message}`);
+    return {
+      tag: false,
+    };
+  }
 }
