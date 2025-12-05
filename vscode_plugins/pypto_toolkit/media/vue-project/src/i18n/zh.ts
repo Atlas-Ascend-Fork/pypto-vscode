@@ -58,7 +58,7 @@ export default {
    'jumpToComGraph': '跳转计算图',
    'openComputationalGraphJsonFile': '打开计算图文件',
    'swimErroMsgINVALID_FILE': '泳道图文件：必须包含traceEvents数组.',
-   'swimErroMsgMISSING_EVENT_FIELDS': '泳道图文件：event对象缺少必需字段：id, name, ph, pid, tid, ts.',
+   'swimErroMsgMISSING_EVENT_FIELDS': '泳道图文件：event对象缺少必需字段：name, ph, pid, tid, ts.',
    'swimErroMsgMISSING_END_EVENT': '泳道图文件：ph为B的事件需对应ph为E的结束事件.',
    'swimErroMsgMISSING_DUR': '泳道图文件：ph为X的事件需包含dur字段.',
    'swimErroMsgINVALID_ARGS': '泳道图文件：ph为C的事件args.size或args["/byte"]必须为数字.',
