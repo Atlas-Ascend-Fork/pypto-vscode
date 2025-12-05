@@ -198,6 +198,7 @@ export abstract class BaseGraphMsgHandler {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({ type: 'layout', graphData: gd });
       child.on('message', async (res: { type: string; message?: any, data?: any }) => {
+      child.on('message', async (res: { type: string; message?: any, data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
           if (comGraphData?.isUsedDB && renderMode !== 'path') {
