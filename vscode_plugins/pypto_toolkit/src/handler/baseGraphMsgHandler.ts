@@ -19,6 +19,12 @@ import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
 import * as vscode from 'vscode';
 
+enum RequestSourceType{
+  NodeOverLimit  = 1,
+  SearchNoMagic  = 2,
+  SearchMagic    = 3,
+}
+
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
 export interface readFileResult {
@@ -559,8 +565,14 @@ export abstract class BaseGraphMsgHandler {
   protected static async postRenderJson(server: any, json: any, cmd: 'returnCom' | 'returnDiffCom' = 'returnCom'): Promise<void> {
     if (cmd == 'returnCom') {
       const nodeCount = json.operations.length + json.rawtensors.length + json.tensors.length;
-      if (nodeCount > NODE_COUNT_LIMIT) {
-        server.setRef('ReadJsonWarning', true);
+      const isNodeSearch = server.query?.isSearch === true;
+      const nodesMagic = server.query?.nodeMagic;
+      if (nodeCount > NODE_COUNT_LIMIT || isNodeSearch || nodesMagic != null) {
+        const mode = isNodeSearch
+          ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
+          : RequestSourceType.NodeOverLimit;
+  
+        server.setRef('PathOriginMode', { data: mode });
       }
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
