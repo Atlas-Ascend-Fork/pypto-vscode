@@ -1,14 +1,7 @@
-// ../core/layoutWork.js 子线程代码
-const ELK = require('elkjs');
+import ElkConstructor from "elkjs";
 
 function calculateLayout(graphData) {
-  const timeoutMs = 30_000; // 30秒超时
-  const layoutPromise = new ELK().layout(graphData);
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('ELK layout timeout')), timeoutMs)
-  );
-  
-  Promise.race([layoutPromise, timeoutPromise])
+  new ElkConstructor().layout(graphData)
     .then(result => {
       if (process.send) {
         process.send({ type: 'result', data: result });
@@ -18,6 +11,7 @@ function calculateLayout(graphData) {
       if (process.send) {
         process.send({
           type: 'error',
+          message: 'ELK 布局计算失败',
           data: error.message || error
         });
       }
@@ -34,23 +28,3 @@ process.on('message', (data: { type?: any; graphData?: any; }) => {
   }
 });
 
-// 添加对进程错误的监听，防止进程崩溃
-process.on('uncaughtException', (error) => {
-  if (process.send) {
-    process.send({
-      type: 'error',
-      message: '未捕获的异常',
-      data: error.message || error
-    });
-  }
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  if (process.send) {
-    process.send({
-      type: 'error',
-      message: '未处理的Promise拒绝',
-      data: reason
-    });
-  }
-});
