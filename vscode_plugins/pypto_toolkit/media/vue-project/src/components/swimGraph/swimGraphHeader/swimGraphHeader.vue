@@ -156,11 +156,8 @@ const {
   mulDetailsExpanded,
   isLockStatus,
   isCfgEditing,
-<<<<<<< Updated upstream
   isShortcutKeyShow,
-=======
   searchedEvent
->>>>>>> Stashed changes
 } = inject('swimGraphState');
 
 const {
@@ -432,6 +429,7 @@ const navigateResults = (direction) => {
 const selectEventChild = (event) => {
   searchedEvent.value = event;
   selectedEvent.value = null;
+  detailsPanelExpanded.value = false;
   highlightedPaths.clear();
   highlightedPaths.add(event.id);
 };
