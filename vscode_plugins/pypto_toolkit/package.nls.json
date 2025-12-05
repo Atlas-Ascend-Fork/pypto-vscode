@@ -34,6 +34,7 @@
   "pypto.selectSwimFile": "Please select swimlane file",
   "pypto.noSwimFileSelect": "No swimlane file selected",
   "pypto.selectComFile": "Please select computation graph file",
+  "pypto.noComFileSelect": "No computation graph file selected",
   "pypto.jsonFile": "JSON File",
   "pypto.allFile": "All File",
   "PyPTOToolkit.request.statusNotFound": "Api {{apiName}} not found.",
