@@ -125,6 +125,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const showTensorNodes = option?.showTensorNodes ?? true;
     const showSyncNodes = option?.showSyncNodes ?? false;
     const selectedSubgraphId = option?.subgraphFilterSelect;
+    const isThreeMode = option?.isThreeMode ?? false;
     if (option?.showTensorNodes !== undefined) {
       currentLayoutConfig.showTensor = showTensorNodes;
       resetModelSource();
@@ -145,7 +146,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic,
-      version: comGraphStore.data.version
+      version: comGraphStore.data.version,
+      threeMode: isThreeMode
     };
     server.getJsonGraphData({ data: data });
     watch(server.JsonGraphData, (newValue: any) => {
@@ -330,10 +332,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, isThreeMode=false) => {
     try {
       currentData = jsonData; // Store the data
-      updateGraph(isDark, { openMode, nodeMagic }); // Use the updateGraph function
+      updateGraph(isDark, { openMode, nodeMagic, isThreeMode }); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?

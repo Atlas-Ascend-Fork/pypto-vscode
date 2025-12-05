@@ -60,6 +60,14 @@ const getSubGraphId = (event, mode) => {
   return Number(subGraphId) || 15;
 };
 
+export function getSemanticColor(event: any, baseColorslist:any, lightColorslist:any): { dark: { base: string; light: string } } {
+  let dBaseColor: string, dLightColor: string;
+  const label = event?.color || '';
+  const dres = getColorByString(label, baseColorslist, lightColorslist);
+  dBaseColor = dres.baseColor ?? '#666666';
+  dLightColor = dres.lightColor ?? '#666666';
+  return { dark: { base: dBaseColor, light: dLightColor }};
+}
 
 async function getEventColor(event: any, mode: string): Promise<{ dark: { base: string, light: string }, light: { base: string, light: string } }> {
   // 确保颜色已初始化

@@ -542,6 +542,61 @@ function showDetail(vp: ViewportRootElementImpl, zoomLevel: number): boolean {
   return vp.zoom >= zoomLevel;
 }
 
+function getBadgeDom(node) {
+  let radius = 8;
+  /* 右上角角标文字的宽度 */
+  const badgeTextWidth = getTextWidth(node.magic, 10);
+  /* 右上角角标左右padding和 */
+  const badgePadding = 8;
+  /* 右上角角标区域的宽高 */
+  const badgeWidth = badgeTextWidth + badgePadding;
+  const badgeHeight = 20;
+  let magicIdBgFillColor =  'var(--devui-node-badge-bg)';
+  let magicIdTextFillColor = 'var(--devui-node-badge-text)';
+  let badgeX = 5;
+  let badgeY = 13;
+  let badgePaddingTop = 0;
+  let badgePaddingRight = 0;
+  if (node.selected) {
+    if ((node.role !== 'input') && (node.role !== 'output')) {
+      badgePaddingTop = 0.5;
+      badgePaddingRight = 0.5;
+      radius = 8;
+      badgeX = 4.5;
+      badgeY = 14.5;
+      magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
+      magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
+    } else {
+      badgePaddingTop = 1;
+      badgePaddingRight = 1;
+      radius = 4;
+      badgeX = 4;
+      badgeY = 14;
+    }
+    
+  }
+
+  return (
+  <g transform={`translate(${node.size.width - badgeWidth}, 0)`}>
+    <path
+      d={`M -${badgePaddingRight} ${badgePaddingTop} L -${badgePaddingRight} ${
+        badgeHeight + badgePaddingTop - radius
+      } Q -${badgePaddingRight} ${badgeHeight + badgePaddingTop} ${radius - badgePaddingRight} ${badgeHeight + badgePaddingTop} L ${
+        badgeWidth - badgePaddingRight
+      } ${badgeHeight + badgePaddingTop} L ${badgeWidth - badgePaddingRight} ${radius + badgePaddingTop} Q ${
+        badgeWidth - badgePaddingRight
+      } ${badgePaddingTop} ${
+        badgeWidth - badgePaddingRight - radius
+      } ${badgePaddingTop} L -${badgePaddingRight} ${badgePaddingTop} Z`}
+      class-magicId-background-label={true}
+      fill={magicIdBgFillColor}
+    ></path>
+    <text x={badgeX} y={badgeY} font-size="10px" line-height="12px" font-weight="400" fill={magicIdTextFillColor}>
+      {node.magic}
+    </text>
+  </g>)
+}
+
 @injectable()
 export class AstgrOpView extends RectangularNodeView {
   override render(
@@ -552,6 +607,8 @@ export class AstgrOpView extends RectangularNodeView {
     if (!this.isVisible(node, context) && (!comGraphStore.data.svgExportMode)) {
       return undefined;
     }
+
+    const isMiniType = node.root.zoom < 0.04;
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
@@ -577,12 +634,6 @@ export class AstgrOpView extends RectangularNodeView {
     const astgrNode = node as unknown as AstgrNode;
     const isCallOperation = astgrNode.opcode === 'CALL';
 
-    // Get subgraph color based on subgraphId (only if enabled)
-    const subgraphId = astgrNode.subgraphId;
-    // Check if subgraph coloring is enabled via the global flag instead of the model
-    const coloringEnabled = window.colorBySubgraph || false;
-    const fillColor = coloringEnabled && subgraphId !== undefined && subgraphId !== -1 ? SubgraphColor.getColor(subgraphId) : null; // Use null instead of undefined so CSS can take over
-
     // Debug logging
     if (isCallOperation) {
       console.log('CALL operation detected:', {
@@ -594,7 +645,6 @@ export class AstgrOpView extends RectangularNodeView {
 
     // Double-click handler for CALL operations
     const handleDoubleClick = () => {
-      console.log('Double-click detected on CALL operation:', astgrNode.calleehash);
       if (isCallOperation && astgrNode.calleehash && window.vsCodeApi) {
         window.vsCodeApi.postMessage({
           type: 'openSubgraph',
@@ -602,39 +652,18 @@ export class AstgrOpView extends RectangularNodeView {
         });
       }
     };
+
+    let badgeDom = isMiniType ? null : getBadgeDom(node);
     /* 矩形圆角 */
-    let radius = 8;
     const rectWidth = Math.max(node.size.width, 0);
     const rectHeight = Math.min(node.size.height, 150);
-    /* 右上角角标文字的宽度 */
-    const badgeTextWidth = getTextWidth(node.magic, 10);
-    /* 右上角角标左右padding和 */
-    const badgePadding = 8;
-    /* 右上角角标区域的宽高 */
-    const badgeWidth = badgeTextWidth + badgePadding;
-    const badgeHeight = 20;
-    let badgeX = 5;
-    let badgeY = 13;
-    let badgePaddingTop = 0;
-    let badgePaddingRight = 0;
-    if (node.selected) {
-      badgePaddingTop = 1;
-      badgePaddingRight = 1;
-      radius = 6;
-      badgeX = 4;
-      badgeY = 14;
-    }
 
     /* root节点的类型判断 是否使用亮色 */
     let backgroundFillColor = node.baseColor;
     let backgroundFilter = '';
-    let magicIdBgFillColor = 'var(--devui-node-badge-bg)';
-    let magicIdTextFillColor = 'var(--devui-node-badge-text)';
     if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
       if (node.selected) {
         backgroundFillColor = node.lightColor;
-        magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
-        magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
       }
       if (!incoming && !outgoing) {
         backgroundFilter = 'grayscale(1)';
@@ -680,28 +709,10 @@ export class AstgrOpView extends RectangularNodeView {
           class-op-diff-add={node.compareType === 'add'}
           class-op-diff-delete={node.compareType === 'delete'}
           class-op-diff-change={node.compareType === 'change'}
-          // {...(fillColor && { fill: backgroundFillColor })} // Only set fill attribute when we have a color
         ></rect>
-        {opSign}
-        {context.renderChildren(node, args)}
-        <g transform={`translate(${node.size.width - badgeWidth}, 0)`}>
-          <path
-            d={`M -${badgePaddingRight} ${badgePaddingTop} L -${badgePaddingRight} ${
-              badgeHeight + badgePaddingTop - radius
-            } Q -${badgePaddingRight} ${badgeHeight + badgePaddingTop} ${radius - badgePaddingRight} ${badgeHeight + badgePaddingTop} L ${
-              badgeWidth - badgePaddingRight
-            } ${badgeHeight + badgePaddingTop} L ${badgeWidth - badgePaddingRight} ${radius + badgePaddingTop} Q ${
-              badgeWidth - badgePaddingRight
-            } ${badgePaddingTop} ${
-              badgeWidth - badgePaddingRight - radius
-            } ${badgePaddingTop} L -${badgePaddingRight} ${badgePaddingTop} Z`}
-            class-magicId-background-label={true}
-            fill={magicIdBgFillColor}
-          ></path>
-          <text x={badgeX} y={badgeY} font-size="10px" line-height="12px" font-weight="400" fill={magicIdTextFillColor}>
-            {node.magic}
-          </text>
-        </g>
+        {!isMiniType && opSign}
+        {!isMiniType && context.renderChildren(node, args)}
+        {!isMiniType && badgeDom}
       </g>
     );
   }
@@ -811,7 +822,7 @@ export class AstgrRectView extends RectangularNodeView {
         lockOpenSvgName = 'lock-open-light';
       }
     }
-    const location = (node.location || 0) % 100;
+    const location = ((node.location || 0) % 200) / 2;
     const {path, v} = getRectPath(node.customSize.width, node.customSize.height, location, location + 10);
     return (
       <g>
@@ -856,6 +867,8 @@ export class AstgrTensorView extends RectangularNodeView {
       return undefined;
     }
 
+    const isMiniType = node.root.zoom < 0.04;
+
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
       incomingNodes: new Set<string>(),
@@ -882,38 +895,20 @@ export class AstgrTensorView extends RectangularNodeView {
     /* 带波浪线的矩形宽高 */
     const width = Math.max(node.size.width, 0);
     const height = Math.max(node.size.height, 0);
-    /* 右上角角标文字的宽度 */
-    const badgeTextWidth = getTextWidth(node.magic, 10);
-    /* 右上角角标左右padding和 */
-    const badgePadding = 8;
-    /* 右上角角标区域的宽高 */
-    const badgeWidth = badgeTextWidth + badgePadding;
-    const badgeHeight = 20;
+    const badgeDom = isMiniType ? null : getBadgeDom(node);
     /* 蓝色标题区域的宽高 */
     const blueBgRectWidth = node.size.width;
     let blueBgRectPaddingLeft = 0;
     let blueBgRectPaddingTop = 0;
-    let badgePaddingTop = 0;
-    let badgePaddingRight = 0;
-    let badgeX = 5;
-    let badgeY = 13;
     let correctHeight = 9;
     let selectedWaveMargin = 0;
     if (node.selected) {
       if ((node.role !== 'input') && (node.role !== 'output')) {
         blueBgRectPaddingLeft = 0.5;
         blueBgRectPaddingTop = 0.5;
-        badgePaddingTop = 0.5;
-        badgePaddingRight = 0.5;
         radius = 8;
-        badgeX = 4.5;
-        badgeY = 14.5;
       } else {
-        badgePaddingTop = 1;
-        badgePaddingRight = 1;
         radius = 4;
-        badgeX = 4;
-        badgeY = 14;
         correctHeight = 10;
         selectedWaveMargin = 0.6;
       }
@@ -924,7 +919,6 @@ export class AstgrTensorView extends RectangularNodeView {
     /* root节点的类型判断，是否使用亮色 */
     let titleBackgroundFillColor = node.baseColor;
     let inoutBackgroundFillColor = 'var(--devui-node-bg)';
-    let magicIdTextFillColor = 'var(--devui-text)';
     let backgroundFilter = '';
     // 亮色逻辑判断 
     if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
@@ -1041,25 +1035,8 @@ export class AstgrTensorView extends RectangularNodeView {
         class-tensor-diff-normal={node.compareType === 'normal'}
       >
         {rectNode}
-        {context.renderChildren(node, args)}
-        <g transform={`translate(${node.size.width - badgeWidth}, 0)`}>
-          <path
-            d={`M -${badgePaddingRight} ${badgePaddingTop} L -${badgePaddingRight} ${
-              badgeHeight + badgePaddingTop - radius
-            } Q -${badgePaddingRight} ${badgeHeight + badgePaddingTop} ${radius - badgePaddingRight} ${badgeHeight + badgePaddingTop} L ${
-              badgeWidth - badgePaddingRight
-            } ${badgeHeight + badgePaddingTop} L ${badgeWidth - badgePaddingRight} ${radius + badgePaddingTop} Q ${
-              badgeWidth - badgePaddingRight
-            } ${badgePaddingTop} ${
-              badgeWidth - badgePaddingRight - radius
-            } ${badgePaddingTop} L -${badgePaddingRight} ${badgePaddingTop} Z`}
-            class-magicId-background-label={true}
-            fill='var(--devui-node-badge-bg)'
-          ></path>
-          <text x={badgeX} y={badgeY} font-size="10px" fill={magicIdTextFillColor} class-magicId-text={true}>
-            {node.magic}
-          </text>
-        </g>
+        {!isMiniType && context.renderChildren(node, args)}
+        {!isMiniType && badgeDom}
       </g>
     );
   }

@@ -80,6 +80,10 @@ const props = defineProps({
     type: Number,
     default: -1,
   },
+  isThreeMode: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const { isDarkTheme } = inject('root');
@@ -310,7 +314,7 @@ watch(
       graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
       if (initComDocText) {
-        initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+        initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
         comGraphStore.setData('jsonData', jsonValue);
         resetModelSource();
         server.returnFuncTree();
@@ -328,7 +332,7 @@ watch(
       }
       const sprottyLoadResult = useSprottyLoad();
       initComDocText = sprottyLoadResult.initComDocText;
-      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
       createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;

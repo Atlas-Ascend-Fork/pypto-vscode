@@ -116,7 +116,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
   static createJsonGraphData(data, server) {
-    const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, version } = data;
+    const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap);
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
@@ -127,6 +127,7 @@ export abstract class BaseGraphMsgHandler {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      threeMode,
     );
 
     return sprottyGraph;

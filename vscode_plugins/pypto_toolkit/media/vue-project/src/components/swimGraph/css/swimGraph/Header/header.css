@@ -122,6 +122,23 @@
   box-shadow: none;
 }
 
+.shortcut-keys-button {
+  background-color: var(--devui-secondary-button-bg);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.shortcut-keys-button .button-content{
+  color: var(--devui-overlay-icon);
+  display: flex;
+}
+.shortcut-keys-button.devui-button.devui-button--outline{
+  background-color: var(--devui-secondary-button-bg);
+  outline: none;
+  box-shadow: none;
+}
+
 .hidden {
   display: none !important;
 }
@@ -497,4 +514,9 @@
   right: 8px;
   top: 4px;
   z-index: 3;
+}
+
+.shortcut-keys-picture{
+  width: 16px;
+  height: 16px;
 }
