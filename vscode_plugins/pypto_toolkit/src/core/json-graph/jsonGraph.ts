@@ -4,6 +4,7 @@ import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { getIDELang } from '../../lang';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 import { Util } from '../../util';
+import { getSemanticColor } from '../../process';
 
 /**
  * Extended SModelRoot with custom properties
@@ -129,6 +130,12 @@ interface SyncQueue {
     offset?: number[];
 }
 
+/**
+ * SemanticLab configuration
+ */
+interface SemanticLab {
+    color: string; 
+}
 /**
  * Operation data structure
  */
@@ -314,7 +321,7 @@ export class AscppDagBuilder {
      * @returns The Sprotty graph model
      */
     public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
-                              filterSubgraphId?: number, nodeMagic?: string): ExtendedSModelRoot {
+                              filterSubgraphId?: number, nodeMagic?: string, threeMode: boolean = false): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
         const colorList = generateColorList(360, isDark);
@@ -362,7 +369,7 @@ export class AscppDagBuilder {
             this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes);
 
             // Create operation nodes
-            this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes);
+            this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode);
         }
 
         //record call input output nodes
@@ -698,7 +705,7 @@ export class AscppDagBuilder {
         const opId = `operation-magic-${opmagic}`;
 
         if (this.opIdMap.get(opmagic) !== `${opId}-${graphId}`) {
-            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, startNode);
+            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, false, startNode);
         }
 
         const ioperands = [...new Set(op.ioperands)];
@@ -744,7 +751,7 @@ export class AscppDagBuilder {
         const opId = `operation-magic-${opmagic}`;
 
         if (this.opIdMap.get(opmagic) !== `${opId}-${graphId}`) {
-            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, startNode);
+            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, false, startNode);
         }
 
         const ooperands = [...new Set(op.ooperands)];
@@ -1738,7 +1745,8 @@ export class AscppDagBuilder {
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
-        showSyncNodes: boolean
+        showSyncNodes: boolean,
+        threeMode: boolean
     ): void {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
@@ -1759,7 +1767,7 @@ export class AscppDagBuilder {
             }
             
             // Create regular operation node
-            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes);
+            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, threeMode);
         }
     }
 
@@ -2027,6 +2035,7 @@ export class AscppDagBuilder {
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
+        threeMode: boolean,
         nodeMagic?: string
     ): void {
         // Extract additional information from the operation
@@ -2072,6 +2081,13 @@ export class AscppDagBuilder {
 
         let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
+        if(threeMode) {
+            const semanticColor: SemanticLab = {
+                color: op.semantic_label?.label ?? ''
+            };
+            baseColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.base;
+            lightColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
+        }
         try {
             const userColor = this.vscodeConfig?.operationColorFunc && this.vscodeConfig.operationColorFunc(op, this.baseColorList);
             if (userColor) {
