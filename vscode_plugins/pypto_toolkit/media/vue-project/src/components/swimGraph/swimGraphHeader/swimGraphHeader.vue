@@ -23,6 +23,11 @@
       </div>
     </div>
     <div class="right-container">
+      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
+        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
+          <KeyboradIcon :active="isShortcutKeyShow"/>
+        </d-button>
+      </d-tooltip>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
         <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
@@ -123,6 +128,7 @@ import { useI18n } from 'vue-i18n';
 import { devicePixelRatio } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
+import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
 
@@ -152,6 +158,7 @@ const {
   mulDetailsExpanded,
   isLockStatus,
   isCfgEditing,
+  isShortcutKeyShow,
 } = inject('swimGraphState');
 
 const {
@@ -527,6 +534,10 @@ const scrollToEventByDom = (event) => {
   })
 };
 
+const ShortcutKeyShow = () => {
+  isShortcutKeyShow.value = !isShortcutKeyShow.value;
+};
+
 const measureModel = () => {
   isMeasureModel.value = !isMeasureModel.value;
   if (mPath.value.includes('measure.svg')) {
@@ -674,4 +685,5 @@ defineExpose({
 #swim-header-increase {
   padding: 3px 0 ;
 }
+
 </style>
