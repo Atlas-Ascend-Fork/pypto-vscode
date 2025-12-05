@@ -57,11 +57,11 @@
               <img class="zoomout-img" :src="s_key_Imgpath" alt="zoomout-img">
             </div>
             <div class="leftshifting">
-              <span class="leftshifting-text">{{ $t('LeftShifting') }}</span>
+              <span class="leftshifting-text">{{ $t('LeftMove') }}</span>
               <img class="leftshifting-img" :src="a_key_Imgpath" alt="leftshifting-img">
             </div>
             <div class="rightshifting">
-              <span class="rightshifting-text">{{ $t('RightShifting') }}</span>
+              <span class="rightshifting-text">{{ $t('RightMove') }}</span>
               <img class="rightshifting-img" :src="d_key_Imgpath" alt="rightshifting-img">
             </div>
           </div>
@@ -155,10 +155,10 @@ const generateWarningText = () => {
         warningText += `${$t('zoomOut')}: ${value}; `;
         break;
       case 'leftmoveShortcutKey':
-        warningText += `${$t('LeftShifting')}: ${value}; `;
+        warningText += `${$t('LeftMove')}: ${value}; `;
         break; 
       case 'rightmoveShortcutkey':
-        warningText += `${$t('RightShifting')}: ${value}; `;
+        warningText += `${$t('RightMove')}: ${value}; `;
         break;
       default:
         break;
