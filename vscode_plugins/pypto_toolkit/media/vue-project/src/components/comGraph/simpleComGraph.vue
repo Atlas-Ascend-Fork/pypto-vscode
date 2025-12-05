@@ -110,6 +110,7 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
+let isComGraphVisible = false;
 watch(currentActiveBlock, (val) => {
   if (val) {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
@@ -190,7 +191,7 @@ function onMessageFromSwim(args) {
   generateHashList(args.rootHashList ?? []);
   const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, currentLockLabel);
-  if (selectedNodes.length <= 0) {
+  if (isComGraphVisible && selectedNodes.length <= 0) {
     rootHash.value = rootHashList.value[0].value;
     onHashChange(rootHashList.value[0]);
     return;
@@ -216,7 +217,8 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
   generateHashList();
 });
 (window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
-  if (comGraphVisible) {
+  isComGraphVisible = comGraphVisible;
+  if (isComGraphVisible) {
     window.dispatchEvent(new Event('resize'));
     minimapEl.value.updateScaleRation();
     const fitTimer = setTimeout(() => {
