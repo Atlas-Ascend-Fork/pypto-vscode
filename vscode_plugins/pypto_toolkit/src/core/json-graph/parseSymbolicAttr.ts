@@ -107,16 +107,14 @@ function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], se
     const argNumStr = symList.shift();
     if (argNumStr === undefined) {
       if (server)
-        BaseGraphMsgHandler.returnError(server, 'pypto.missArgumentForSsopCall');
+        BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsOpGetInfo', {},
+          'pypto.comGraph.errorLogMessage.funcHash.emptyList', { funcHash: server.comGraphData.funcHash });
     }
     const argNum = parseInt(argNumStr!, 10);
     if (isNaN(argNum)) {
       if (server)
-        BaseGraphMsgHandler.returnError(
-          server,
-          'pypto.invalidArgumentCount',
-          { argCount: argNumStr }
-        );
+        BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsOpGetInfo', {},
+          'pypto.comGraph.errorLogMessage.symsOpGetInfo', { funcHash: server.comGraphData.funcHash, message: argNumStr });
     }
     symListReadable.push(argNum);
     return { argNum, opName: symsOpNameDict[op] };
@@ -131,17 +129,20 @@ function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], se
 function symsGetExpr(symList: any[], symListReadable: any[], server?: any): string | undefined {
   const symStr = symList.shift();
   if (symStr === undefined) {
-    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.unexpectedEndOfSymbolList');
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+      'pypto.comGraph.errorLogMessage.funcHash.emptyList', { funcHash: server.comGraphData.funcHash });
   }
   const sym = parseInt(symStr, 10) as SymType;
   if (!(sym in symsSymNameDict)) {
-    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidSymValue', { sym });
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+      'pypto.comGraph.errorLogMessage.invalidSymValue', { funcHash: server.comGraphData.funcHash, message: sym });
   }
   symListReadable.push(symsSymNameDict[sym]);
 
   const argStr = symList.shift();
   if (argStr === undefined) {
-    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.missArgumentForSymbol');
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+      'pypto.comGraph.errorLogMessage.missArgumentForSymbol', { funcHash: server.comGraphData.funcHash });
   }
 
   if (sym === 0) {
@@ -149,7 +150,8 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     const val = parseInt(argStr, 10);
     if (isNaN(val)) {
       if (server)
-        BaseGraphMsgHandler.returnError(server, 'pypto.invalidImmediateValue', { immValue: argStr });
+        BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+          'pypto.comGraph.errorLogMessage.invalidImmediateValue', { funcHash: server.comGraphData.funcHash, message: argStr });
     }
     symListReadable.push(val);
     return val.toString();
@@ -161,7 +163,9 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     // S_EXPR: 表达式
     const op = parseInt(argStr, 10);
     if (!(op in symsOpNameDict)) {
-      if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidOpValue', { opValue: op });
+      if (server)
+        BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+          'pypto.comGraph.errorLogMessage.invalidOpValue', { funcHash: server.comGraphData.funcHash, message: op });
     }
     symListReadable.push(symsOpNameDict[op]);
 
@@ -172,7 +176,8 @@ function symsGetExpr(symList: any[], symListReadable: any[], server?: any): stri
     }
     return `${opName}(${args.join(',')})`;
   } else {
-    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.invalidSymValue', { sym });
+    if (server) BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.symsGetExpr', {},
+      'pypto.comGraph.errorLogMessage.invalidSymValue', { funcHash: server.comGraphData.funcHash, message: sym });
   }
 }
 
@@ -313,17 +318,14 @@ export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, ver
     return parseExpr(expr!);
   } catch (error) {
     if (server)
-      BaseGraphMsgHandler.returnError(
-        server,
-        'pypto.canNotGenerateMathExp',
-        { error }
-      );
+      BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.error', { processName: "genMathScalarExpr" },
+        'pypto.comGraph.errorLogMessage.error', { logText: error });
   }
 }
 
 export class AttrReader {
   private index = 0;
-  constructor(public server: any, private attr: Array<string | number | (string | number)[]>) {}
+  constructor(public server: any, private attr: Array<string | number | (string | number)[]>) { }
 
   hasNext(): boolean {
     return this.index < this.attr.length;
@@ -335,16 +337,19 @@ export class AttrReader {
 
   readNumber(): number {
     if (!this.hasNext())
-      BaseGraphMsgHandler.returnError(this.server, 'pypto.unexpectedEndOfAttr');
+      BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.attrReader', {},
+        'pypto.comGraph.errorLogMessage.unexpectedEndOfAttr', { funcHash: this.server.comGraphData.funcHash });
     return this.attr[this.index++] as number;
   }
 
   readStringOrNumberArray(): (string | number)[] | undefined {
     if (!this.hasNext())
-      BaseGraphMsgHandler.returnError(this.server, 'pypto.unexpectedEndOfAttr');
+      BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.attrReader', {},
+        'pypto.comGraph.errorLogMessage.unexpectedEndOfAttr', { funcHash: this.server.comGraphData.funcHash });
     const val = this.attr[this.index++];
     if (Array.isArray(val)) return val;
-    BaseGraphMsgHandler.returnError(this.server, 'pypto.expectedArrayForExpression');
+    BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.attrReader', {},
+      'pypto.comGraph.errorLogMessage.expectedArrayForExpression', { funcHash: this.server.comGraphData.funcHash, message: val });
   }
 
   readOptionalNumber(): number | null {
@@ -374,11 +379,8 @@ export function parseSymbolicOrIntList(reader: AttrReader, size: number, version
       const value = reader.readNumber();
       result.push(value.toString());
     } else {
-      BaseGraphMsgHandler.returnError(
-        reader.server,
-        'pypto.invalidKindType',
-        { kind }
-      );
+      BaseGraphMsgHandler.returnError(reader.server, 'pypto.comGraph.errorMessage.parseSymbolicOrIntList', {},
+        'pypto.comGraph.errorLogMessage.invalidKindType', { funcHash: reader.server.comGraphData.funcHash, message: kind });
     }
   }
   return result;
