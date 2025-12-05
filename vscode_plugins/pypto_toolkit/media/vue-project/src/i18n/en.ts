@@ -139,7 +139,10 @@ export default {
     swimGraphcategoryDesc:'Please select the filter criteria: ',
     public: {
         loading: 'Loading...',
-        allLoaded: 'No more content'
+        allLoaded: 'No more content',
+        inputPlaceholder: 'Please enter',
+        save: 'Save',
+        cancel: 'Cancel'
     },
     openFile: 'Open file',
     noJsonFile: 'The plugin did not detect an associated {graphName}.',
@@ -241,9 +244,10 @@ export default {
         snippetErrNoFileTitle: 'Unable to read the following file:',
         snippetErrNoLineContent: 'The source code has been modified; the corresponding line of code cannot be found.',
     },
-    schemaConfig:{
-        title:'Add new running configuration',
-        detail:'Select system template reuse configuration',
-        defaultConfiguration:'Default configuration',
+    runConfig:{
+        scanning:'Scanning...',
+        filepathLabel: 'Filepath:',
+        viewSourceFile: 'View source file',
+        unknownDataType: 'Unknown data type'
     }
 }

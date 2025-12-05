@@ -37,7 +37,7 @@ export interface ViewServer<Apis extends string, Refs extends object> {
 /**
  * 视图服务端，用来提供数据、同vscode交互
  */
-export class ViewServer<Apis extends string, Refs extends object> implements Disposable {
+export class ViewServer<Apis extends string, Refs extends object> extends Disposable {
   static _viewConfig: ViewServerConfig;
 
   private _refMap = new Map<string, unknown>();
@@ -46,14 +46,11 @@ export class ViewServer<Apis extends string, Refs extends object> implements Dis
    * @param ctx 运行环境
    */
   constructor(private _ctx: ViewServerContext) {
+    super(() => {
+      this.onDisposed();
+      this.closeWebview();
+    });
     _ctx.init.call(this);
-  }
-
-  /**
-   * 销毁
-   */
-  public dispose() {
-    this._ctx.closeWebview();
   }
 
   /**
@@ -64,7 +61,7 @@ export class ViewServer<Apis extends string, Refs extends object> implements Dis
   /**
    * 销毁视图hook（继承类覆盖）
    */
-  public disposed() {}
+  protected onDisposed() {}
 
   /**
    * 设置响应式对象的值
@@ -79,6 +76,13 @@ export class ViewServer<Apis extends string, Refs extends object> implements Dis
    */
   protected getRef(key: string): any {
     return this._refMap.get(key);
+  }
+
+  /**
+   * 关闭视图
+   */
+  protected closeWebview() {
+    this._ctx.closeWebview();
   }
 }
 

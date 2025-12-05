@@ -139,7 +139,10 @@ export default {
    swimGraphcategoryDesc:'请选择筛选条件：',
     public: {
         loading: '加载中...',
-        allLoaded: '没有更多了'
+        allLoaded: '没有更多了',
+        inputPlaceholder: '请输入',
+        save: '保存',
+        cancel: '取消'
     },
    openFile: '打开文件',
    noJsonFile: '插件未识别到相关联的{graphName}',
@@ -241,9 +244,10 @@ export default {
         snippetErrNoFileTitle: '无法读取以下文件:',
         snippetErrNoLineContent: '源码已修改，找不到对应代码行',
 },
-    schemaConfig:{
-        title:'新增运行配置',
-        detail:'选择系统模板复用配置',
-        defaultConfiguration:'默认配置',
+    runConfig:{
+        scanning:'扫描中...',
+        filepathLabel: '文件路径：',
+        viewSourceFile: '查看源文件',
+        unknownDataType: '未知的数据类型'
     }
 }

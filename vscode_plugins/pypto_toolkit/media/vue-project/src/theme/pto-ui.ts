@@ -1,3 +1,7 @@
+/**
+ * 主题配置
+ * @description [浅色，深色]
+ */
 type Theme = Record<string, [string, string]>;
 
 const ptoTextTheme: Theme = {
@@ -11,6 +15,22 @@ const ptoTextTheme: Theme = {
   'pto-font-color-placeholder': ['#AEAEAE', '#999999'],
   // 禁用文字
   'pto-font-color-disabled': ['#C9C9C9', '#666666'],
+  // 文字链接
+  'pto-font-color-link': ['#0A59F7', '#317AF7'],
+  // 文字链接 - 悬浮
+  'pto-font-color-link-hover': ['#3979F9', '#5291FF'],
+};
+
+const ptoBorderTheme: Theme = {
+  // 分割线-浅
+  'pto-border-default': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
+  // 分割线-深
+  'pto-border-deep': ['#DFDFDF', 'rgba(255, 255, 255, 0.1)'],
+};
+
+const ptoBackgroundTheme: Theme = {
+  // 悬浮背景
+  'pto-background-hover': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
 };
 
 const ptoButtonTheme: Theme = {
@@ -42,6 +62,8 @@ const ptoButtonTheme: Theme = {
  */
 const ptoTheme: Theme = {
   ...ptoTextTheme,
+  ...ptoBorderTheme,
+  ...ptoBackgroundTheme,
   ...ptoButtonTheme,
 };
 
