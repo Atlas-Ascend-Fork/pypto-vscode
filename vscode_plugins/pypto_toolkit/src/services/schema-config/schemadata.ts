@@ -1,10 +1,4 @@
-import {
-  SchemaType,
-  PassFormTableaTemplate,
-  TablePass,
-  RunConfigAttribute,
-  TableGlobalConfigs,
-} from '../../types/config-schema/config-schema';
+import { SchemaType, PassFormTableaTemplate, TablePass, RunConfigAttribute } from '../../types/config-schema/config-schema';
 import * as vscode from 'vscode';
 import { getConfigAttributes } from './utils';
 
@@ -29,9 +23,11 @@ export function generatePassStrategyTemplate(schema: SchemaType): PassFormTablea
   passDefault.forEach((key, index) => pass.push({ key, index }));
 
   // 构建global_configs数据
-  const global_configs: TableGlobalConfigs[] = Object.entries(defaultPassConfigs).map(([key, config]) => ({
+  const global_configs: RunConfigAttribute<any>[] = Object.entries(defaultPassConfigs).map(([key, config]) => ({
     key,
     label: config.label,
+    defaultValue: config.defaultValue,
+    type: config.type,
   }));
 
   const result = { pass, global_configs };

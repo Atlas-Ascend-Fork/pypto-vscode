@@ -246,14 +246,9 @@ export interface TablePass {
   index: number;
 }
 
-export interface TableGlobalConfigs {
-  key: string;
-  label: { zh: string; en: string };
-}
-
 export interface PassFormTableaTemplate {
   pass: TablePass[];
-  global_configs: TableGlobalConfigs[];
+  global_configs: RunConfigAttribute<any>[];
 }
 
 export interface ConfigsTemplate {
