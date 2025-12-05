@@ -56,7 +56,7 @@ export abstract class BaseGraphMsgHandler {
 
     // 2. 校验
     const gd = this.getGraphData(server);
-    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
+    if (!this.checkFuncHash(server, gd, 'pypto.comGraph.errorMessage.canNotGetFuncHashOnOpenOriginGraph')) return;
 
     // 3. 缓存判断&读取文件数据
     this.postForReadJson(server, 'InitComGraph');
@@ -133,7 +133,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
   protected static postForReadJson(server: any, cmd: string) {
-    server.setRef(cmd, { step: 'readJson'});
+    server.setRef(cmd, { step: 'readJson' });
   }
 
   protected static async getJsonData(gd: AbstractGraphData, server: any, isBigFile: boolean) {
@@ -263,7 +263,7 @@ export abstract class BaseGraphMsgHandler {
         }
       }
       targetCurPath = JSON.stringify(targetCurPath);
-      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath),subFuncmagicname);
+      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath), subFuncmagicname);
     } else {
       const { useView } = await import('../view');
       const { editorView } = useView();
@@ -271,8 +271,8 @@ export abstract class BaseGraphMsgHandler {
       const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
 
       // 初始化 parentInfo：优先使用已有，否则新建 level=0
-      let parentInfo = oldQuery.parentInfo 
-        ? { ...oldQuery.parentInfo } 
+      let parentInfo = oldQuery.parentInfo
+        ? { ...oldQuery.parentInfo }
         : { level: 0 };
 
       // 处理非根节点图的 parentInfo 补全（仅当有 calleeOpMagic + calleeOpSubgraphId）
@@ -311,8 +311,8 @@ export abstract class BaseGraphMsgHandler {
         parentInfo: server.entryHash === calleehash ? undefined : parentInfo,
       };
 
-      editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery ,title:subFuncmagicname});
-      
+      editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery, title: subFuncmagicname });
+
     }
   }
 
@@ -340,7 +340,7 @@ export abstract class BaseGraphMsgHandler {
     const gd = this.getGraphData(server);
     const isCalleeHash = /^\d+$/.test(data.calleehash);
     gd.funcHash = data.calleehash;
-    
+
     let ret: string | null = null;
     if (!isCalleeHash) {
       await this.loadEntryFunction(data.calleehash, server);
@@ -349,17 +349,15 @@ export abstract class BaseGraphMsgHandler {
       if (gd.isUsedDB) {
         const maxRetry = 5;
         const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-  
+
         for (let i = 0; i < maxRetry; i++) {
           const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
           ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
-  
+
           if (ret) {
-            console.debug(`innerGetSubgraph comGraphFuncDataGet 拿到数据`);
             break;
           }
-          console.debug(`innerGetSubgraph comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
-          await delay(100);
+          await delay(100);  // 未拿到数据 重试
         }
       } else {
         /* 2️⃣ 内存模式：一次拿完 */
@@ -367,7 +365,8 @@ export abstract class BaseGraphMsgHandler {
       }
     }
     if (!ret) {
-      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
+
       return { json: undefined };
     }
     const json = JSON.parse(ret);
@@ -465,7 +464,6 @@ export abstract class BaseGraphMsgHandler {
         ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
 
         if (ret) {
-          console.debug(`fetchGraphJson comGraphFuncDataGet 拿到数据`);
           break;
         }
         console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
@@ -477,7 +475,8 @@ export abstract class BaseGraphMsgHandler {
     }
 
     if (!ret) {
-      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
+
       return { json: undefined };
     }
 
@@ -594,13 +593,15 @@ export abstract class BaseGraphMsgHandler {
 
   protected static checkFuncHash(server: any, gd: AbstractGraphData, cmd: string): boolean {
     if (gd && !gd.funcHash) {
-      this.returnError(server, cmd);
+      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
       return false;
     }
     return true;
   }
-  public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>) {
-    server.setRef('ErrorMessage', { data: cmdArgs ? t(cmd, cmdArgs) : t(cmd), graphType: 'comGraph' });
+  public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>) {
+    const data = cmdArgs ? t(cmd, cmdArgs) : t(cmd);
+    const log = logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd);
+    server.setRef('ErrorMessage', { data: data, log: log, graphType: 'comGraph' });
   }
 
   /** 前端一次性把整图的张量输入输出关系推过来 */
@@ -644,7 +645,7 @@ export abstract class BaseGraphMsgHandler {
     // 1. 取数据
     const { json, io } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(server, 'pypto.parseDataErrorOnOpenComGraph');
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
       return;
     }
     // 挂 inouttensors

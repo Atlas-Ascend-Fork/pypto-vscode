@@ -21,6 +21,7 @@ const isHovered = ref(false);
 const graphNameTemp = ref('');
 const jsonContent = ref({});
 const errorMessage = ref('');
+const errorLog = ref('');
 const swimGrahRef = ref();
 const loadingStep = ref('');
 const searchMode = ref(0);
@@ -40,7 +41,7 @@ const noSwimFile = ref(false);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 let inThreeColumnMode = false;
 const modalVisible = ref(false);
-const replaceMsg = ref({graphType:"", paths:{swimPath: "", comPath: ""}, selectPath:""});
+const replaceMsg = ref({ graphType: "", paths: { swimPath: "", comPath: "" }, selectPath: "" });
 //
 const props = defineProps({
   graphType: {
@@ -48,7 +49,7 @@ const props = defineProps({
   },
 });
 const graphType = toRef(props, 'graphType');
-const filePaths = ref({swimPath: '', comPath: ''});
+const filePaths = ref({ swimPath: '', comPath: '' });
 const { server } = useViewServer<ICommonViewServer>();
 
 // 控制需要哪些监听器
@@ -72,8 +73,9 @@ function setupComWatchers(server: any) {
   watch(server.ErrorMessage, (newValue) => {
     errorMessage.value = newValue.data;
     errorGraphType.value = newValue.graphType;
+    errorLog.value = newValue.log;
   });
-  watch(server.ReadJsonWarning, (newValue) => {
+  watch(server.ReadJsonWarning, () => {
     if (!inThreeColumnMode) {
       loadingStep.value = 'readJsonWarning';
       searchMode.value = 1;
@@ -145,7 +147,7 @@ function setupThreeWatchers(server: any) {
   });
   watch(server.returnInitPath, async (path) => {
     if (server.returnInitPath.value) {
-      const {swimPath, comPath} = path.data;
+      const { swimPath, comPath } = path.data;
       filePaths.value = { swimPath, comPath };
       if (swimPath) {
         noSwimFile.value = false;
@@ -163,7 +165,7 @@ function setupThreeWatchers(server: any) {
     }
   }, { immediate: true });
   watch(server.returnSearchPath, async (path) => {
-    const {swimPath, comPath} = path.data;
+    const { swimPath, comPath } = path.data;
     filePaths.value = { swimPath, comPath };
     const promises = [];
     if (swimPath) {
@@ -175,13 +177,13 @@ function setupThreeWatchers(server: any) {
       promises.push(server.getInitialComData());
     }
     await Promise.all(promises);
-  }); 
+  });
   watch(server.returnReplace, async (path) => {
     modalVisible.value = true;
     replaceMsg.value = path.data;
     graphName.value = replaceMsg.value.graphType === 'swimGraph' ? $t('comGraphName') : $t('swimGraph');
-    graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ?  $t('swimGraph') : $t('comGraphName');
-  });      
+    graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
+  });
 }
 
 function setupSwimWatchers(server: any) {
@@ -260,13 +262,13 @@ const modelConfirm = async () => {
   if (replaceMsg.value.graphType === "swimGraph") {
     const swimPath = replaceMsg.value.paths.swimPath;
     const comPath = selectPath;
-    await server.innerGetSubgraph({ paramObj: { calleehash: comPath, subFuncmagicname: comPath}});
-    await server.replaceFile({options: {swimPath, comPath: ""}});
+    await server.innerGetSubgraph({ paramObj: { calleehash: comPath, subFuncmagicname: comPath } });
+    await server.replaceFile({ options: { swimPath, comPath: "" } });
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
     swimGrahRef.value.loading = true;
-    await server.replaceFile({options: {swimPath, comPath}});
+    await server.replaceFile({ options: { swimPath, comPath } });
     await server.resetSwimData().then((newValue) => {
       swimGrahRef.value.setPageState(newValue);
       swimGrahRef.value.loadTraceData(newValue.data);
@@ -279,11 +281,11 @@ const modelCancel = async () => {
   if (replaceMsg.value.graphType === "swimGraph") {
     const swimPath = replaceMsg.value.paths.swimPath;
     const comPath = "";
-    await server.replaceFile({options: {swimPath, comPath}});
+    await server.replaceFile({ options: { swimPath, comPath } });
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = "";
-    await server.replaceFile({options: {swimPath, comPath}});
+    await server.replaceFile({ options: { swimPath, comPath } });
   }
 };
 
@@ -299,19 +301,20 @@ const onInputLeave = (event) => {
 
 <template>
   <template v-if="graphType !== 'threeColumnGraph' && errorMessage !== ''">
-    <ErrorView style="height: 100vh" :jsonContent="errorMessage" />
+    <ErrorView style="height: 100vh" :jsonContent="errorMessage" :errorLog="errorLog" />
   </template>
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
         <ErrorView v-if="errorMessage && errorGraphType === 'comGraph'" :jsonContent="errorMessage" />
         <SimpleComGraph v-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
-        <NoDataFile v-if="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
+        <NoDataFile v-if="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
       </template>
       <template #swimGraph>
         <ErrorView v-if="errorMessage && errorGraphType === 'swimGraph'" :jsonContent="errorMessage" />
-        <SwimGraph v-if="!noSwimFile"  ref="swimGrahRef" style="height: 100%" :is-three-column="true" :graphType="graphType" />
-        <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths"/>
+        <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
+          :graphType="graphType" />
+        <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
@@ -328,10 +331,11 @@ const onInputLeave = (event) => {
   </template>
   <template>
     <d-modal v-model="modalVisible" :title="$t('confirm')" class="modal-containner">
-      <div class="modal-background">{{ $t('replaceFileInfo', { graphName, graphNameTemp } ) }}</div>
+      <div class="modal-background">{{ $t('replaceFileInfo', { graphName, graphNameTemp }) }}</div>
       <template #footer>
         <d-modal-footer class="modal-button">
-          <d-button variant="solid" color='secondary' @click="modelCancel" @mouseenter="onInputFocus" @mouseleave="onInputLeave">{{ $t('no') }}</d-button>
+          <d-button variant="solid" color='secondary' @click="modelCancel" @mouseenter="onInputFocus"
+            @mouseleave="onInputLeave">{{ $t('no') }}</d-button>
           <d-button variant="solid" color='primary' @click="modelConfirm">{{ $t('yes') }}</d-button>
         </d-modal-footer>
       </template>
@@ -394,10 +398,12 @@ header {
     min-width: 1076px;
   }
 }
+
 .modal-background {
   background-color: var(--devui-swim-split-line);
   padding: 10px;
 }
+
 .modal-containner.devui-modal {
   width: 402px;
   height: 199px;
@@ -410,7 +416,7 @@ header {
 }
 
 .modal-button.devui-modal__footer {
-  text-align: right; 
+  text-align: right;
   padding-right: 20px;
 }
 
@@ -419,26 +425,31 @@ header {
     height: 28px;
     border-radius: 8px;
   }
+
   .devui-button--solid--secondary {
     color: var(--devui-secondary-text);
     background: var(--devui-input-hover-bg);
   }
+
   .devui-button--solid--secondary:hover {
     background: var(--devui-secondary-button-hover-bg);
   }
+
   .devui-button--solid--secondary:active {
     background: var(--devui-input-hover-bg);
   }
+
   .devui-button--solid--primary {
     color: var(--devui-primary-tooltip-text);
     background: var(--devui-primary-button-bg);
   }
+
   .devui-button--solid--primary:hover {
     background: var(--devui-primary-button-hover-bg);
-  }  
+  }
+
   .devui-button--solid--primary:active {
     background: var(--devui-primary-button-active-bg);
-  }  
+  }
 }
-
 </style>

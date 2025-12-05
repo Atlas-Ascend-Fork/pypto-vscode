@@ -43,7 +43,7 @@ onMounted(() => {
     <ControlFlowIndex></ControlFlowIndex>
   </div>
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
-    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>    
+    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>
     <MiddleLayer v-else :graphType="graphType"></MiddleLayer>
   </header>
 </template>

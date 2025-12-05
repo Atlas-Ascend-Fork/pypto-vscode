@@ -97,23 +97,23 @@ interface RawTensor {
  * Tensor data structure
  */
 interface Tensor {
-  magic: number;
-  rawtensor: any;
-  offset: number[];
-  nodetype: number;
-  format: number;
-  shape: number[];
-  kind: number;
-  validshape?: number[];
-  dynvalidshape?: number[];
-  semantic_label: {
-    filename?: string;
-    label?: string;
-    lineno?: number;
-  };
-  mem_type?: {[key: string]: number};
-  subgraphid?: number;
-  compareType?: string
+    magic: number;
+    rawtensor: any;
+    offset: number[];
+    nodetype: number;
+    format: number;
+    shape: number[];
+    kind: number;
+    validshape?: number[];
+    dynvalidshape?: number[];
+    semantic_label: {
+        filename?: string;
+        label?: string;
+        lineno?: number;
+    };
+    mem_type?: { [key: string]: number };
+    subgraphid?: number;
+    compareType?: string
 }
 
 /**
@@ -133,26 +133,26 @@ interface SyncQueue {
  * Operation data structure
  */
 interface Operation {
-  kind: number;
-  opmagic: number;
-  opcode: string;
-  ioperands: number[];
-  ooperands: number[];
-  semantic_label: {
-    filename?: string;
-    label?: string;
-    lineno?: number;
-  };
-  subgraphid?: number;
-  calleehash?: string;
-  sync_queue?: SyncQueue;
-  latency?: number;
-  offset?: number[];
-  func_magicname?: string;
-  compareType: any;
-  file?: string;
-  line?: string;
-  attr?: (number | (number | string)[])[];
+    kind: number;
+    opmagic: number;
+    opcode: string;
+    ioperands: number[];
+    ooperands: number[];
+    semantic_label: {
+        filename?: string;
+        label?: string;
+        lineno?: number;
+    };
+    subgraphid?: number;
+    calleehash?: string;
+    sync_queue?: SyncQueue;
+    latency?: number;
+    offset?: number[];
+    func_magicname?: string;
+    compareType: any;
+    file?: string;
+    line?: string;
+    attr?: (number | (number | string)[])[];
 }
 
 /**
@@ -211,7 +211,7 @@ export const MEMTYPE_MAP: { [key: number]: string } = {
  * Global mapping of datatype enum values to string representations
  */
 const DATATYPE_MAP: { [key: number]: string } = {
-    0: 'int4', 1: 'int8', 2: 'int16', 3: 'int32', 
+    0: 'int4', 1: 'int8', 2: 'int16', 3: 'int32',
     4: 'int64', 5: 'fp8', 6: 'fp16', 7: 'fp32',
     8: 'bf16', 9: 'hf4', 10: 'hf8', 11: 'uint8',
     12: 'uint16', 13: 'uint32', 14: 'uint64', 15: 'bool',
@@ -239,7 +239,7 @@ export class AscppDagBuilder {
     */
     baseColorList: string[];
     lightColorList: string[];
-    nodeSet = new Set<string> ();
+    nodeSet = new Set<string>();
     isErrorReport = false;
     comGraphData;
     server;
@@ -251,11 +251,11 @@ export class AscppDagBuilder {
     opListMap = new Map<string, number>();
     tensorListMap = new Map<string, number>();
     op2CastMap = new Map<string, Map<string, number[]>>(); // opMagic, incast: tensorMagic, outcast: tensorMagic
-    tensor2opMap = new Map<string, {inOp: Set<string>; outOp: Set<string>}>(); // opMagic, incast: tensorMagic, outcast: tensorMagic
+    tensor2opMap = new Map<string, { inOp: Set<string>; outOp: Set<string> }>(); // opMagic, incast: tensorMagic, outcast: tensorMagic
     tensorNodeMap = new Map<string, { nodeId: string }>();
     opIdMap = new Map<string, string>();
-    singlePathNodeSet = new Set<string> ();
-    pathNodesSet = new Set<string> ();
+    singlePathNodeSet = new Set<string>();
+    pathNodesSet = new Set<string>();
     vscodeConfig: any;
     version: string = '2.0';
 
@@ -280,7 +280,7 @@ export class AscppDagBuilder {
         }
 
         const subgraphs = new Set<number>();
-        
+
         // Extract subgraph IDs from operations
         if (actualData.operations && Array.isArray(actualData.operations)) {
             for (const op of actualData.operations) {
@@ -289,7 +289,7 @@ export class AscppDagBuilder {
                 }
             }
         }
-        
+
         return Array.from(subgraphs).sort((a, b) => a - b);
     }
 
@@ -313,8 +313,8 @@ export class AscppDagBuilder {
      * @param nodeMagic - Whether to show single node and its relative nodes in the graph (undefined = show all)
      * @returns The Sprotty graph model
      */
-    public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
-                              filterSubgraphId?: number, nodeMagic?: string): ExtendedSModelRoot {
+    public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true,
+        filterSubgraphId?: number, nodeMagic?: string): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
         const colorList = generateColorList(360, isDark);
@@ -331,24 +331,24 @@ export class AscppDagBuilder {
         const { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap } = this.createTensorMaps(actualData);
 
         if (nodeMagic) {
-            const startNode  = nodeMagic.toString();
+            const startNode = nodeMagic.toString();
             this.createNodeListMap(actualData);
-            if(this.opListMap.has(startNode)) {
+            if (this.opListMap.has(startNode)) {
                 // tensorType = 'operation';
-                this.opSearchForward(startNode, actualData, nodes, edges, portMap, 
-                                     tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                     magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-                this.opSearchBackward(startNode, actualData, nodes, edges, portMap, 
-                                      tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                      magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                this.opSearchForward(startNode, actualData, nodes, edges, portMap,
+                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                this.opSearchBackward(startNode, actualData, nodes, edges, portMap,
+                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             } else {
                 // tensorType = 'tensor';
-                this.tensorSearchForward(startNode, actualData, nodes, edges, portMap, 
-                                         tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                         magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-                this.tensorSearchBackward(startNode, actualData, nodes, edges, portMap, 
-                                          tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                          magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                this.tensorSearchForward(startNode, actualData, nodes, edges, portMap,
+                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                this.tensorSearchBackward(startNode, actualData, nodes, edges, portMap,
+                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
             }
             this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
         } else {
@@ -372,7 +372,7 @@ export class AscppDagBuilder {
         if (!showTensorNodes) {
             for (const [rawTensorId, producers] of rawTensorProducers.entries()) {
                 const consumers = rawTensorConsumers.get(rawTensorId) || [];
-                
+
                 // Connect each producer to each consumer (fan-out)
                 for (let prodIndex = 0; prodIndex < producers.length; prodIndex++) {
                     const producer = producers[prodIndex];
@@ -400,27 +400,27 @@ export class AscppDagBuilder {
         // Apply subgraph filtering if specified
         let filteredNodes = nodes;
         let filteredEdges = edges;
-        
+
         if (filterSubgraphId !== undefined) {
             // First, find operation nodes that belong to the specified subgraph
             const subgraphOperationIds = new Set<string>();
-            
+
             for (const node of nodes) {
                 const astgrNode = node as AstgrNode;
-                
+
                 // Include nodes that belong to the specified subgraph
                 if (astgrNode.role === 'operation' && astgrNode.subgraphId === filterSubgraphId) {
                     subgraphOperationIds.add(node.id);
                 }
             }
-            
+
             // Find all tensors that are connected to these subgraph operations
             const connectedTensorIds = new Set<string>();
             const connectedInputOutputIds = new Set<string>();
-            
+
             for (const edge of edges) {
                 let isConnectedToSubgraphOp = false;
-                
+
                 // Check if edge is connected to a subgraph operation
                 for (const opId of subgraphOperationIds) {
                     if (edge.sourceId?.includes(opId) || edge.targetId?.includes(opId)) {
@@ -428,7 +428,7 @@ export class AscppDagBuilder {
                         break;
                     }
                 }
-                
+
                 if (isConnectedToSubgraphOp) {
                     // Extract tensor IDs from ports
                     if (edge.sourceId?.includes('tensor-')) {
@@ -439,7 +439,7 @@ export class AscppDagBuilder {
                         const match = edge.targetId.match(/tensor-(\d+)/);
                         if (match) connectedTensorIds.add(`tensor-${match[1]}`);
                     }
-                    
+
                     // Extract input/output node IDs from ports
                     if (edge.sourceId?.includes('incast-')) {
                         const match = edge.sourceId.match(/(incast-\d+-tensor-\d+)/);
@@ -451,7 +451,7 @@ export class AscppDagBuilder {
                     }
                 }
             }
-            
+
             // Now find which input/output nodes are actually connected to the subgraph
             // by checking if they connect to the identified tensors
             for (const edge of edges) {
@@ -463,7 +463,7 @@ export class AscppDagBuilder {
                         connectedInputOutputIds.add(incastMatch[1]);
                     }
                 }
-                
+
                 if (edge.sourceId?.includes('tensor-') && edge.targetId?.includes('outcast-')) {
                     const tensorMatch = edge.sourceId.match(/(tensor-\d+)/);
                     const outcastMatch = edge.targetId.match(/(outcast-\d+-tensor-\d+)/);
@@ -472,27 +472,27 @@ export class AscppDagBuilder {
                     }
                 }
             }
-            
+
             // Build the final set of relevant node IDs
             const relevantNodeIds = new Set<string>();
-            
+
             // Add subgraph operations
             subgraphOperationIds.forEach(id => relevantNodeIds.add(id));
-            
+
             // Add connected tensors
             connectedTensorIds.forEach(id => relevantNodeIds.add(id));
-            
+
             // Add only connected input/output nodes
             connectedInputOutputIds.forEach(id => relevantNodeIds.add(id));
-            
+
             // Filter nodes
             filteredNodes = nodes.filter(node => relevantNodeIds.has(node.id));
-            
+
             // Filter edges to only include those where both source and target nodes are relevant
             filteredEdges = edges.filter(edge => {
                 let sourceRelevant = false;
                 let targetRelevant = false;
-                
+
                 // Check if source port belongs to a relevant node
                 if (edge.sourceId) {
                     for (const nodeId of relevantNodeIds) {
@@ -502,7 +502,7 @@ export class AscppDagBuilder {
                         }
                     }
                 }
-                
+
                 // Check if target port belongs to a relevant node
                 if (edge.targetId) {
                     for (const nodeId of relevantNodeIds) {
@@ -512,7 +512,7 @@ export class AscppDagBuilder {
                         }
                     }
                 }
-                
+
                 return sourceRelevant && targetRelevant;
             });
         }
@@ -597,8 +597,8 @@ export class AscppDagBuilder {
             let nodeId = `tensor-${tensormagic}-${graphId}`;
             this.tensorNodeMap.set(tensormagic, { nodeId });
 
-            if(this.tensor2opMap.get(tensormagic)){
-                this.tensor2opMap.set(tensormagic, {inOp: new Set<string>(), outOp: new Set<string>()});
+            if (this.tensor2opMap.get(tensormagic)) {
+                this.tensor2opMap.set(tensormagic, { inOp: new Set<string>(), outOp: new Set<string>() });
             }
         }
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
@@ -606,18 +606,18 @@ export class AscppDagBuilder {
             const ioperands = actualData.operations[opIndex].ioperands;
             const ooperands = actualData.operations[opIndex].ooperands;
             this.opListMap.set(opmagic, opIndex);
-            if(!this.op2CastMap.has(opmagic)) {
+            if (!this.op2CastMap.has(opmagic)) {
                 this.op2CastMap.set(opmagic, new Map([['incast', [...ioperands]], ['outcast', [...ooperands]]]));
             }
-            for( let node of ioperands) {
-                if(!this.tensor2opMap.has(node.toString())) {
-                    this.tensor2opMap.set(node.toString(), {inOp: new Set<string>(), outOp: new Set<string>()}); 
+            for (let node of ioperands) {
+                if (!this.tensor2opMap.has(node.toString())) {
+                    this.tensor2opMap.set(node.toString(), { inOp: new Set<string>(), outOp: new Set<string>() });
                 }
                 this.tensor2opMap.get(node.toString())!.outOp.add(opmagic);
             }
-            for( let node of ooperands) {
-                if(!this.tensor2opMap.has(node.toString())) {
-                    this.tensor2opMap.set(node.toString(), {inOp: new Set<string>(), outOp: new Set<string>()});
+            for (let node of ooperands) {
+                if (!this.tensor2opMap.has(node.toString())) {
+                    this.tensor2opMap.set(node.toString(), { inOp: new Set<string>(), outOp: new Set<string>() });
                 }
                 this.tensor2opMap.get(node.toString())!.inOp.add(opmagic);
             }
@@ -630,14 +630,14 @@ export class AscppDagBuilder {
             const shapeStr = `[${tensor.shape.join(',')}]`;
             labelAttr.push(`shape: ${shapeStr}`);
         } else {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetTensorShapeInfo', { tensor: tensor.magic })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.shape' })
         }
 
         if (rawTensor?.rawshape) {
             const rawShapeStr = `[${rawTensor.rawshape.join(',')}]`;
             labelAttr.push(`rawshape: ${rawShapeStr}`);
         } else {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorRawShapeInfo', { rawTensor: rawTensor.rawmagic })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.rawshape' })
         }
 
         // Add offset information if available
@@ -645,7 +645,7 @@ export class AscppDagBuilder {
             const offsetStr = `[${tensor.offset.join(',')}]`;
             labelAttr.push(`offset: ${offsetStr}`);
         } else {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetTensorOffset', { tensor: tensor.magic })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.offset' })
         }
 
         if (tensor?.mem_type) {
@@ -663,7 +663,7 @@ export class AscppDagBuilder {
             const datatypeStr = DATATYPE_MAP[rawTensor.datatype] || `dt${rawTensor.datatype}`;
             labelAttr.push(`datatype: ${datatypeStr}`);
         } else {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorDataType', { rawTensor: rawTensor.rawmagic })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.datatype' })
         }
     }
 
@@ -671,11 +671,11 @@ export class AscppDagBuilder {
      * Creates an op node and search forward
      */
     public opSearchForward(
-        startNode: string, 
-        actualData: FunctionData, 
-        nodes: SNode[], 
-        edges: SEdge[], 
-        portMap: Map<string, PortReference>, 
+        startNode: string,
+        actualData: FunctionData,
+        nodes: SNode[],
+        edges: SEdge[],
+        portMap: Map<string, PortReference>,
         tensorToRawTensorMap: Map<string, string>,
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
@@ -692,7 +692,7 @@ export class AscppDagBuilder {
         const opIndex = this.opListMap.get(startNode);
         const op = actualData.operations[opIndex!];
         const opmagic = op.opmagic.toString();
-        
+
         // DONE : 保证全图去重set
         const graphId = op?.subgraphid ?? -1;
         const opId = `operation-magic-${opmagic}`;
@@ -707,21 +707,21 @@ export class AscppDagBuilder {
             if (this.singlePathNodeSet.has(tensorNodeId!)) {
                 continue;
             }
-            this.tensorSearchForward(String(incastNode), actualData, nodes, edges, portMap, 
-                                     tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                     magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+            this.tensorSearchForward(String(incastNode), actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
         }
     }
-    
+
     /**
      * Creates an op node and search backward
      */
-    public opSearchBackward(        
-        startNode: string, 
-        actualData: FunctionData, 
-        nodes: SNode[], 
-        edges: SEdge[], 
-        portMap: Map<string, PortReference>, 
+    public opSearchBackward(
+        startNode: string,
+        actualData: FunctionData,
+        nodes: SNode[],
+        edges: SEdge[],
+        portMap: Map<string, PortReference>,
         tensorToRawTensorMap: Map<string, string>,
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
@@ -738,7 +738,7 @@ export class AscppDagBuilder {
         const opIndex = (this.opListMap.get(startNode)) as unknown as number;
         const op = actualData.operations[opIndex];
         const opmagic = op.opmagic.toString();
-        
+
         // DONE : 保证全图去重set
         const graphId = op?.subgraphid ?? -1;
         const opId = `operation-magic-${opmagic}`;
@@ -753,9 +753,9 @@ export class AscppDagBuilder {
             if (this.singlePathNodeSet.has(tensorNodeId!)) {
                 continue;
             }
-            this.tensorSearchBackward(String(outcastNode), actualData, nodes, edges, portMap, 
-                                      tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                      magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+            this.tensorSearchBackward(String(outcastNode), actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
         }
     }
 
@@ -792,7 +792,7 @@ export class AscppDagBuilder {
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'rawTensor.rawmagic' })
         }
 
         const graphId = tensor?.subgraphid ?? -1;
@@ -810,9 +810,9 @@ export class AscppDagBuilder {
         tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-out`;
         const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
-        const inPort: AstgrPort = {type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8}};
-        
-        const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
+        const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
+
+        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
 
         node.children!.push(inPort);
         this.singlePathNodeSet.add(nodeId);
@@ -821,7 +821,7 @@ export class AscppDagBuilder {
             nodes.push(node);
             this.createParentIncastNodes(actualData, nodes, edges, incastIndex, portIdIn);
         } else {
-        nodes.push(node);
+            nodes.push(node);
         }
         if (showTensorNodes) {
             portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
@@ -830,7 +830,7 @@ export class AscppDagBuilder {
             const rawTensorId = `${rawTensor!.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId });
-                
+
                 if (!rawTensorProducers.has(rawTensorId)) {
                     rawTensorProducers.set(rawTensorId, []);
                 }
@@ -872,7 +872,7 @@ export class AscppDagBuilder {
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOutcastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'rawTensor.rawmagic' });
         }
 
         let graphId = tensor?.subgraphid ?? -1;
@@ -889,13 +889,13 @@ export class AscppDagBuilder {
         tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-in`;
         const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
-        const outPort: AstgrPort = {type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8}};
+        const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
         const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
         node.children!.push(outPort);
         this.singlePathNodeSet.add(nodeId);
         this.pathNodesSet.add(tensorMagic);
-        
+
         if (actualData.inouttensors) {
             nodes.push(node);
             this.createParentOutCastNodes(actualData, nodes, edges, outcastIndex, outPortId);
@@ -909,7 +909,7 @@ export class AscppDagBuilder {
             const rawTensorId = `${rawTensor!.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId });
-                
+
                 if (!rawTensorConsumers.has(rawTensorId)) {
                     rawTensorConsumers.set(rawTensorId, []);
                 }
@@ -921,12 +921,12 @@ export class AscppDagBuilder {
     /**
      * Creates an tensor node and search forward
      */
-    private tensorSearchForward(        
-        startNode: string, 
-        actualData: FunctionData, 
-        nodes: SNode[], 
-        edges: SEdge[], 
-        portMap: Map<string, PortReference>, 
+    private tensorSearchForward(
+        startNode: string,
+        actualData: FunctionData,
+        nodes: SNode[],
+        edges: SEdge[],
+        portMap: Map<string, PortReference>,
         tensorToRawTensorMap: Map<string, string>,
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
@@ -934,11 +934,10 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean) 
-    {
+        showTensorNodes: boolean) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
-        if(tensor.nodetype === 1) {
+        if (tensor.nodetype === 1) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         } else if (tensor.nodetype === 2) {
             this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
@@ -946,27 +945,27 @@ export class AscppDagBuilder {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
         }
 
-        if(!this.tensor2opMap.get(startNode.toString())){
+        if (!this.tensor2opMap.get(startNode.toString())) {
             return;
         }
         const inOpList = this.tensor2opMap.get(startNode.toString())?.inOp;
 
-        for(let op of inOpList!) {
-            this.opSearchForward(op.toString(), actualData, nodes, edges, portMap, 
-                                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                 magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+        for (let op of inOpList!) {
+            this.opSearchForward(op.toString(), actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
         }
     }
 
     /**
      * Creates an tensor node and search backward
      */
-    private tensorSearchBackward(        
-        startNode: string, 
-        actualData: FunctionData, 
-        nodes: SNode[], 
-        edges: SEdge[], 
-        portMap: Map<string, PortReference>, 
+    private tensorSearchBackward(
+        startNode: string,
+        actualData: FunctionData,
+        nodes: SNode[],
+        edges: SEdge[],
+        portMap: Map<string, PortReference>,
         tensorToRawTensorMap: Map<string, string>,
         rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>,
@@ -974,11 +973,10 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean) 
-    {
+        showTensorNodes: boolean) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
-        if (actualData.outcasts?.some(([n]) => n === Number(startNode)) ) {
+        if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
             this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         } else if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
@@ -986,16 +984,16 @@ export class AscppDagBuilder {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
         }
 
-        if(!this.tensor2opMap.get(startNode.toString())){
+        if (!this.tensor2opMap.get(startNode.toString())) {
             return;
         }
 
         const outOpList = this.tensor2opMap.get(startNode.toString())?.outOp;
 
-        for(let op of outOpList!) {
-            this.opSearchBackward(op.toString(), actualData, nodes, edges, portMap, 
-                                  tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap, 
-                                  magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+        for (let op of outOpList!) {
+            this.opSearchBackward(op.toString(), actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
         }
     }
 
@@ -1013,13 +1011,13 @@ export class AscppDagBuilder {
         }
 
         if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetTensorMagic')
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.magic' });
         }
 
         const tensorMagic = String(tensor.magic);
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'rawTensor.rawmagic' });
         }
 
         let symbol = rawTensor?.symbol || "Tensor";
@@ -1047,13 +1045,13 @@ export class AscppDagBuilder {
             this.singlePathNodeSet.add(nodeId);
             return;
         }
-        
+
         this.tensorNodeMap.set(tensorMagic, { nodeId });
 
         // Create more detailed label information
         const labelParts: string[] = [];
         try {
-            const evalTensor = {...tensor};
+            const evalTensor = { ...tensor };
             evalTensor.rawtensor = rawTensor;
             const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
             if (result) {
@@ -1145,7 +1143,7 @@ export class AscppDagBuilder {
                                 cssClasses: ['tensor-metadata-compartment'],
                                 children: labelParts.map((part, index) => {
                                     const splitedStr = part.split(':');
-                                    let value  = splitedStr[1];
+                                    let value = splitedStr[1];
                                     if (value.length > 32) {
                                         value = value.slice(0, 32) + '...';
                                     }
@@ -1173,7 +1171,7 @@ export class AscppDagBuilder {
         // Register ports in portMap
         portMap.set(`producer-${tensorMagic}`, { nodeId, portId: outputPort.id });
         portMap.set(`consumer-${tensorMagic}`, { nodeId, portId: inputPort.id });
-        
+
         // Also register by rawtensor ID for consistency
         const rawTensorId = String(tensor.rawtensor);
         portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId: outputPort.id });
@@ -1198,22 +1196,22 @@ export class AscppDagBuilder {
 
         for (const tensor of actualData.tensors) {
             if (tensor.magic === undefined || typeof tensor.magic !== 'number') {
-                BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetTensorMagic')
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseTensorNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'Tensor.magic' });
             }
 
             const tensorMagic = String(tensor.magic);
             const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseTensorNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'rawTensor.rawmagic' });
             }
 
             let symbol = rawTensor?.symbol || "Tensor";
             symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
-            
+
             // Create more detailed label information
             const labelParts: string[] = [];
             try {
-                const evalTensor = {...tensor};
+                const evalTensor = { ...tensor };
                 evalTensor.rawtensor = rawTensor;
                 const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
                 if (result) {
@@ -1331,7 +1329,7 @@ export class AscppDagBuilder {
                                     cssClasses: ['tensor-metadata-compartment'],
                                     children: labelParts.map((part, index) => {
                                         const splitedStr = part.split(':');
-                                        let value  = splitedStr[1];
+                                        let value = splitedStr[1];
                                         if (value.length > 32) {
                                             value = value.slice(0, 32) + '...';
                                         }
@@ -1358,7 +1356,7 @@ export class AscppDagBuilder {
             // Register ports in portMap
             portMap.set(`producer-${tensorMagic}`, { nodeId, portId: outputPort.id });
             portMap.set(`consumer-${tensorMagic}`, { nodeId, portId: inputPort.id });
-            
+
             // Also register by rawtensor ID for consistency
             const rawTensorId = String(tensor.rawtensor);
             portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId: outputPort.id });
@@ -1369,13 +1367,13 @@ export class AscppDagBuilder {
     /**
      * Create a cast Node
      */
-    private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined, 
-                            nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[], 
-                            nodeRole: "operation" | "tensor" | "input" | "output" | "sync") : AstgrTensorNode {
+    private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined,
+        nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[],
+        nodeRole: "operation" | "tensor" | "input" | "output" | "sync"): AstgrTensorNode {
         // Create metadata parts for the tensor
         const metadataParts: string[] = [];
         try {
-            const evalTensor = {...tensor};
+            const evalTensor = { ...tensor };
             evalTensor.rawtensor = rawTensor;
             const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
             if (result) {
@@ -1464,7 +1462,7 @@ export class AscppDagBuilder {
                 {
                     type: 'port',
                     id: portId,
-                    role:  (nodeRole === "input") ? 'output' : 'input',
+                    role: (nodeRole === "input") ? 'output' : 'input',
                     size: { width: 8, height: 8 }
                 } as AstgrPort
             ]
@@ -1489,7 +1487,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        const incastUnique : Set<string> = new Set<string>();
+        const incastUnique: Set<string> = new Set<string>();
         for (let incastIndex = 0; incastIndex < actualData.incasts.length; incastIndex++) {
             const incast = actualData.incasts[incastIndex];
             const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
@@ -1507,23 +1505,23 @@ export class AscppDagBuilder {
             } else {
                 incastUnique.add(uniqueKey);
             }
-            
+
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'rawTensor.rawmagic' });
             }
             let tensorName = rawTensor?.symbol || "In";
-            
+
             tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
             const graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
             const portId = `tensor-${tensorMagic}-${graphId}-out`;
             const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
 
-            const inPort: AstgrPort = {type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8}};
-            
+            const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
+
             const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
 
             node.children!.push(inPort);
@@ -1546,7 +1544,7 @@ export class AscppDagBuilder {
                 const rawTensorId = `${rawTensor!.rawmagic}`;
                 if (rawTensorId) {
                     portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId });
-                    
+
                     if (!rawTensorProducers.has(rawTensorId)) {
                         rawTensorProducers.set(rawTensorId, []);
                     }
@@ -1597,7 +1595,7 @@ export class AscppDagBuilder {
         edges: any[],
         index,
         outPortId
-    ): void{
+    ): void {
         const tensor = actualData.inouttensors!.outTensors[index].tensor;
         const rawTensor = actualData.inouttensors!.outTensors[index].rawTensor;
         if (!tensor || !rawTensor) {
@@ -1616,7 +1614,7 @@ export class AscppDagBuilder {
         const graphId = -1;
         const nodeId = `parent-outcast-${index}-tensor-${index}-${graphId}`;
         const portId = `${nodeId}-in`;
-        const node: AstgrTensorNode = this.createCastNode (tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
+        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
 
         nodes.push(node);
 
@@ -1646,7 +1644,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        const outcastUnique : Set<string> = new Set<string>();
+        const outcastUnique: Set<string> = new Set<string>();
         for (let outcastIndex = 0; outcastIndex < actualData.outcasts.length; outcastIndex++) {
             const outcast = actualData.outcasts[outcastIndex];
             const tensorMagic = String(Array.isArray(outcast) ? outcast[0] : outcast);
@@ -1669,12 +1667,12 @@ export class AscppDagBuilder {
             } else {
                 outcastUnique.add(uniqueKey);
             }
-            
+
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
-                BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetRawTensorMagic')
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOutcastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'rawTensor.rawmagic' });
             }
             let tensorName = rawTensor?.symbol || "Out";
 
@@ -1693,7 +1691,7 @@ export class AscppDagBuilder {
             }
             const portId = `tensor-${tensorMagic}-${graphId}-in`;
             const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
-            const outPort: AstgrPort = {type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8}};
+            const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
             const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
             node.children!.push(outPort);
@@ -1716,7 +1714,7 @@ export class AscppDagBuilder {
                 const rawTensorId = `${rawTensor!.rawmagic}`;
                 if (rawTensorId) {
                     portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId });
-                    
+
                     if (!rawTensorConsumers.has(rawTensorId)) {
                         rawTensorConsumers.set(rawTensorId, []);
                     }
@@ -1747,17 +1745,17 @@ export class AscppDagBuilder {
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
             const opId = `operation-magic-${op.opmagic}`;
-            
+
             // Check if this is a synchronization operation
             const isSyncOp = ['SYNC_SRC', 'SYNC_DST', 'BAR.V', 'PHASE1', 'PHASE2'].includes(op.opcode);
-            
+
             if (isSyncOp) {
                 if (showSyncNodes) {
                     this.createSyncNode(op, opId, nodes);
                 }
                 continue;
             }
-            
+
             // Create regular operation node
             this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes);
         }
@@ -1767,7 +1765,7 @@ export class AscppDagBuilder {
         actualData: FunctionData,
         rawTensorMap: Map<string, RawTensor>,
         magicToTensorMap: Map<string, Tensor>,
-    ):void {
+    ): void {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
         }
@@ -1785,7 +1783,7 @@ export class AscppDagBuilder {
                         continue;
                     }
                     const rawTensor = rawTensorMap.get(String(tensor.rawtensor))!;
-                    callInOutTensor.inTensors.push({tensor, rawTensor});
+                    callInOutTensor.inTensors.push({ tensor, rawTensor });
                 }
                 for (const v of op.ooperands) {
                     const tensor = magicToTensorMap.get(String(v));
@@ -1793,7 +1791,7 @@ export class AscppDagBuilder {
                         continue;
                     }
                     const rawTensor = rawTensorMap.get(String(tensor.rawtensor))!;
-                    callInOutTensor.outTensors.push({tensor, rawTensor});
+                    callInOutTensor.outTensors.push({ tensor, rawTensor });
                 }
                 this.callInOutMap.set(op.calleehash!, callInOutTensor);
             }
@@ -1810,9 +1808,9 @@ export class AscppDagBuilder {
      */
     private createSyncNode(op: Operation, opId: string, nodes: SNode[]): void {
         const syncQueue = op.sync_queue || {};
-        
+
         const labelParts: string[] = [];
-        
+
         if (op.opcode === 'PHASE1' || op.opcode === 'PHASE2') {
             // Phase operations are phase markers
             if (op.latency && op.latency > 0) {
@@ -1837,12 +1835,12 @@ export class AscppDagBuilder {
                 labelParts.push(`gm: ${syncQueue.gm_buf_id}`);
             }
         }
-        
+
         // Add operation magic for identification
         if (op.opmagic) {
             labelParts.push(`#${op.opmagic}`);
         }
-        
+
         const syncNode: AstgrSyncNode = {
             type: 'node:sync',
             role: 'sync',
@@ -1917,7 +1915,7 @@ export class AscppDagBuilder {
                 } as SCompartment
             ]
         };
-        
+
         nodes.push(syncNode);
     }
 
@@ -1985,13 +1983,13 @@ export class AscppDagBuilder {
     private parseOperationAttr(labelAttr: string[], op: Operation): void {
         const attr = op.attr;
         const opcodeStr = op.opcode.toLowerCase();
-    
+
         if (!Array.isArray(attr) || attr.length < 1) {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.invalidOpAttr', { opcode: op.opcode })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOperationAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: op.opmagic, argName: 'op.attr' });
         }
-    
+
         const reader = new AttrReader(this.server, attr!);
-    
+
         switch (opcodeStr) {
             case 'copy_in':
                 this.parseCopyOp(labelAttr, reader, opcodeStr === 'copy_in');
@@ -2032,12 +2030,12 @@ export class AscppDagBuilder {
         // Extract additional information from the operation
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
         if (op.opmagic === undefined || typeof op.opmagic !== 'number') {
-            BaseGraphMsgHandler.returnError(this.server, 'pypto.canNotGetOpMagic', { opcode: op.opcode })
+            BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseRegularOperationNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'opcode', value: op.opcode, argName: 'op.opmagic' });
         }
 
         const opmagic = String(op.opmagic);
-        const hasAttrValue = op.attr !== undefined && (Array.isArray(op.attr) && op.attr.length > 0)? true : false;
-        let opName = op.opcode === 'CALL'? 'CALL: ' : `TILE_${op.opcode}`;
+        const hasAttrValue = op.attr !== undefined && (Array.isArray(op.attr) && op.attr.length > 0) ? true : false;
+        let opName = op.opcode === 'CALL' ? 'CALL: ' : `TILE_${op.opcode}`;
         const children: (SCompartment | AstgrPort)[] = [];
         opId = opId + `-${subgraphId}`;
         if (op.opcode === 'CALL') {
@@ -2081,7 +2079,7 @@ export class AscppDagBuilder {
         } catch (error) {
             console.error(`Need to use default color, because ${error}`);
         }
-        
+
         const labelParts: string[] = [];
         try {
             const result = this.vscodeConfig?.operationAttrFunc && this.vscodeConfig.operationAttrFunc(op);
@@ -2253,12 +2251,12 @@ export class AscppDagBuilder {
                 hAlign: 'center',
                 vAlign: 'top'
             },
-            ...(op.opcode === 'CALL' && op.calleehash && { 
+            ...(op.opcode === 'CALL' && op.calleehash && {
                 calleehash: String(op.calleehash)
             })
         };
         nodes.push(node);
-        if(nodeMagic) {
+        if (nodeMagic) {
             this.opIdMap.set(opmagic, opId);
             this.pathNodesSet.add(opmagic);
         }
@@ -2390,7 +2388,7 @@ export class AscppDagBuilder {
                 const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
                 if (rawTensorId) {
                     portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId: opId, portId });
-                    
+
                     if (!rawTensorProducers.has(rawTensorId)) {
                         rawTensorProducers.set(rawTensorId, []);
                     }
@@ -2412,7 +2410,7 @@ export class AscppDagBuilder {
         const syncOps: { [key: string]: OpReference[] } = {};
         const phaseOps: OpReference[] = [];
         const computationalOps: OpReference[] = [];
-        
+
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
             if (['SYNC_SRC', 'SYNC_DST', 'BAR.V'].includes(op.opcode)) {
@@ -2420,7 +2418,7 @@ export class AscppDagBuilder {
                 const pipeId = syncQueue.pipe_id || 0;
                 const trigPipe = syncQueue.trig_pipe || 0;
                 const key = `pipe-${pipeId}-trig-${trigPipe}`;
-                
+
                 if (!syncOps[key]) {
                     syncOps[key] = [];
                 }
@@ -2439,15 +2437,15 @@ export class AscppDagBuilder {
             if (ops.length >= 2) {
                 // Sort by operation index to get execution order
                 ops.sort((a, b) => a.index - b.index);
-                
+
                 // Create edges between consecutive sync operations in the same pipeline
                 for (let i = 0; i < ops.length - 1; i++) {
                     const srcOp = ops[i];
                     const tgtOp = ops[i + 1];
-                    
+
                     const srcId = `operation-${srcOp.index}-magic-${srcOp.op.opmagic}`;
                     const tgtId = `operation-${tgtOp.index}-magic-${tgtOp.op.opmagic}`;
-                    
+
                     edges.push({
                         type: 'edge:control',
                         id: `control-flow-${key}-${srcOp.index}-to-${tgtOp.index}`,
@@ -2462,15 +2460,15 @@ export class AscppDagBuilder {
         if (phaseOps.length >= 2) {
             // Sort phase operations by index to get execution order
             phaseOps.sort((a, b) => a.index - b.index);
-            
+
             // Create edges between consecutive phase operations
             for (let i = 0; i < phaseOps.length - 1; i++) {
                 const srcPhase = phaseOps[i];
                 const tgtPhase = phaseOps[i + 1];
-                
+
                 const srcId = `operation-${srcPhase.index}-magic-${srcPhase.op.opmagic}`;
                 const tgtId = `operation-${tgtPhase.index}-magic-${tgtPhase.op.opmagic}`;
-                
+
                 edges.push({
                     type: 'edge:control',
                     id: `phase-flow-${srcPhase.index}-to-${tgtPhase.index}`,
@@ -2491,7 +2489,7 @@ export class AscppDagBuilder {
      * Creates coordination edges between sync operations and computational operations
      */
     private createSyncCoordinationEdges(
-        actualData: FunctionData, 
+        actualData: FunctionData,
         syncOps: { [key: string]: OpReference[] },
         computationalOps: OpReference[],
         edges: SEdge[]
@@ -2499,16 +2497,16 @@ export class AscppDagBuilder {
         // For each computational operation, find nearby sync operations that coordinate it
         for (const compOp of computationalOps) {
             const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-            
+
             // Find sync operations that occur just before and after this computational operation
             const beforeSyncOps: OpReference[] = [];
             const afterSyncOps: OpReference[] = [];
-            
+
             // Look for sync operations in a reasonable range before and after this operation
             for (const syncOpList of Object.values(syncOps)) {
                 for (const syncOp of syncOpList) {
                     const distance = Math.abs(syncOp.index - compOp.index);
-                    
+
                     // Only consider sync operations that are close to this computational operation
                     if (distance <= 5) { // Adjust this threshold as needed
                         if (syncOp.index < compOp.index) {
@@ -2519,14 +2517,14 @@ export class AscppDagBuilder {
                     }
                 }
             }
-            
+
             // Connect the closest preceding sync operation to this computational operation
             if (beforeSyncOps.length > 0) {
-                const closestBefore = beforeSyncOps.reduce((closest, current) => 
+                const closestBefore = beforeSyncOps.reduce((closest, current) =>
                     (compOp.index - current.index) < (compOp.index - closest.index) ? current : closest
                 );
                 const beforeSyncId = `operation-${closestBefore.index}-magic-${closestBefore.op.opmagic}`;
-                
+
                 edges.push({
                     type: 'edge:control',
                     id: `sync-coord-before-${closestBefore.index}-to-${compOp.index}`,
@@ -2534,14 +2532,14 @@ export class AscppDagBuilder {
                     targetId: compOpId
                 });
             }
-            
+
             // Connect this computational operation to the closest following sync operation
             if (afterSyncOps.length > 0) {
-                const closestAfter = afterSyncOps.reduce((closest, current) => 
+                const closestAfter = afterSyncOps.reduce((closest, current) =>
                     (current.index - compOp.index) < (closest.index - compOp.index) ? current : closest
                 );
                 const afterSyncId = `operation-${closestAfter.index}-magic-${closestAfter.op.opmagic}`;
-                
+
                 edges.push({
                     type: 'edge:control',
                     id: `sync-coord-after-${compOp.index}-to-${closestAfter.index}`,
@@ -2571,14 +2569,14 @@ export class AscppDagBuilder {
         for (let i = 0; i < phaseOps.length; i++) {
             const phaseOp = phaseOps[i];
             const phaseOpId = `operation-${phaseOp.index}-magic-${phaseOp.op.opmagic}`;
-            
+
             // Find computational operations that occur after this phase marker
             // and before the next phase marker (if any)
             const nextPhaseIndex = i + 1 < phaseOps.length ? phaseOps[i + 1].index : Number.MAX_SAFE_INTEGER;
-            
+
             // Since PHASE operators are global coordination points (subgraphid: -1),
             // they coordinate with computational operations across all subgraphs
-            const associatedCompOps = computationalOps.filter(compOp => 
+            const associatedCompOps = computationalOps.filter(compOp =>
                 compOp.index > phaseOp.index && compOp.index < nextPhaseIndex &&
                 this.hasSameCoordinationScope(phaseOp.op, compOp.op)
             );
@@ -2591,7 +2589,7 @@ export class AscppDagBuilder {
 
             for (const compOp of firstCompOps) {
                 const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-                
+
                 edges.push({
                     type: 'edge:control',
                     id: `phase-coord-${phaseOp.index}-to-${compOp.index}`,
@@ -2603,7 +2601,7 @@ export class AscppDagBuilder {
             // Also connect from the last computational operations in the previous phase to this phase marker
             if (i > 0) {
                 const prevPhaseIndex = phaseOps[i - 1].index;
-                const prevPhaseCompOps = computationalOps.filter(compOp => 
+                const prevPhaseCompOps = computationalOps.filter(compOp =>
                     compOp.index > prevPhaseIndex && compOp.index < phaseOp.index &&
                     this.hasSameCoordinationScope(phaseOp.op, compOp.op)
                 );
@@ -2615,7 +2613,7 @@ export class AscppDagBuilder {
 
                 for (const compOp of lastCompOps) {
                     const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-                    
+
                     edges.push({
                         type: 'edge:control',
                         id: `phase-coord-${compOp.index}-to-${phaseOp.index}`,
@@ -2634,7 +2632,7 @@ export class AscppDagBuilder {
         // PHASE operators (subgraphid: -1) coordinate with computational operations based on pipe_id
         const phasePipeId = phaseOp.sync_queue?.pipe_id ?? 0;
         const compPipeId = compOp.sync_queue?.pipe_id ?? 0;
-        
+
         // PHASE operators with pipe_id 0 coordinate with computational operations with pipe_id 0
         return phasePipeId === compPipeId;
     }
@@ -2648,24 +2646,24 @@ export class AscppDagBuilder {
         }
 
         let currentPhase = 0;
-        
+
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
             const nodeId = `operation-magic-${op.opmagic}`;
-            
+
             // Track phase transitions
             if (op.opcode === 'PHASE1') {
                 currentPhase = 1;
             } else if (op.opcode === 'PHASE2') {
                 currentPhase = 2;
             }
-            
+
             // Find the corresponding node and add phase info
             const node = nodes.find(n => n.id === nodeId) as AstgrNode;
             if (node) {
                 // Add phase information to node for potential layout grouping
                 node.phase = currentPhase;
-                
+
                 // Add subgraph information for computational operations
                 if (op.subgraphid && op.subgraphid !== -1) {
                     node.subgraphId = op.subgraphid;
@@ -2689,7 +2687,7 @@ export class AscppDagBuilder {
         if (funcData.functions && Array.isArray(funcData.functions) && funcData.functions.length > 0) {
             return funcData.functions[0];
         }
-        
+
         // Try to find a property that contains the expected structure
         const keys = Object.keys(funcData) as (keyof FunctionData)[];
         for (const key of keys) {
@@ -2701,7 +2699,7 @@ export class AscppDagBuilder {
                 }
             }
         }
-        
+
         return funcData;
     }
 }
