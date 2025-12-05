@@ -155,10 +155,7 @@ export async function updateConfigsFile(modifiedConfigData: ConfigsForRevise) {
     const configUri = vscode.Uri.file((path as string) ?? '');
     const configData = await readFwkData(configUri);
     if (!configUri) {
-      return {
-        simulationConfig: {},
-        passConfig: {},
-      };
+      return false;
     }
 
     // 提取config文件中原始simulation_configs对象
