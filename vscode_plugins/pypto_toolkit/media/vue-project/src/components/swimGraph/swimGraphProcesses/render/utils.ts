@@ -167,6 +167,10 @@ export function matchKey (key: string, configKey: string) {
 }
 
 export function handleMatchKey(key: string, config: any) {
+  config?.value && (config.value.ZoomInShortcut ||= 'w');
+  config?.value && (config.value.ZoomOutShortcut ||= 's');
+  config?.value && (config.value.leftmoveShortcut ||= 'a');
+  config?.value && (config.value.rightmoveShortcut ||= 'd');
   return (
     matchKey(key, config?.value.ZoomInShortcut) ||
     matchKey(key, config?.value.ZoomOutShortcut) ||

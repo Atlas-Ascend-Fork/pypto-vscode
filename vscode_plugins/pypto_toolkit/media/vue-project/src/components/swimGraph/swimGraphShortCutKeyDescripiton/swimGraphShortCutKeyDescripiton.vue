@@ -19,11 +19,11 @@
             <div class="mousecontorl"> {{ $t('MouseControl') }} </div>
             <div class="verticalmovement">
               <span class="verticalmovement-text">{{ $t('VerticalMovement') }}</span>
-              <img class="verticalmovement-img" :src="mouse_leftclick_Imgpath" alt="verticalmovement-img"> 
+              <img class="verticalmovement-img" :src="mouse_scrollwheel_Imgpath" alt="verticalmovement-img"> 
             </div>
             <div class="singleandboxselection">
               <span class="singleandboxselection-text">{{ $t('Single/BoxSelection') }}</span>
-              <img class="singleandboxselection-img" :src="mouse_scrollwheel_Imgpath" alt="verticalmovement-img"> 
+              <img class="singleandboxselection-img" :src="mouse_leftclick_Imgpath" alt="verticalmovement-img"> 
             </div>
           </div>
           <div class="shortCutKey-composeContorl">
@@ -112,8 +112,8 @@ const scalingDistance = ref(window.ascLang === 'zh' ? 68 : 106);
 const timemeasurementDistance = ref(window.ascLang === 'zh' ? 40 : 31);
 const zoomInDistance = ref(window.ascLang === 'zh' ? 40 : 60);
 const zoomOutDistance = ref(window.ascLang === 'zh' ? 40 : 49);
-const leftshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 38);
-const rightshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 28);
+const leftshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 50);
+const rightshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 41);
 
 const toggleShortcutKeyDescriptionModel = () => {
     if (isShortcutKeyShow.value) {
@@ -123,19 +123,19 @@ const toggleShortcutKeyDescriptionModel = () => {
 
 const judgmentShortcutKey = () => {
   newShortcutkey.value.clear();
-  if (zoomInShortcutKey.value !== 'w') {
+  if (zoomInShortcutKey.value && zoomInShortcutKey.value.toLowerCase() !== 'w') {
     isWarningNoteShow.value = true;
     newShortcutkey.value.set('zoomInShortcutKey', zoomInShortcutKey.value);
   }
-  if (zoomOutShortcutKey.value !== 's') {
+  if (zoomOutShortcutKey.value && zoomOutShortcutKey.value.toLowerCase() !== 's') {
     isWarningNoteShow.value = true;
     newShortcutkey.value.set('zoomOutShortcutKey', zoomOutShortcutKey.value);
   }
-  if (leftmoveShortcutKey.value !== 'a') {
+  if (leftmoveShortcutKey.value && leftmoveShortcutKey.value.toLowerCase() !== 'a') {
     isWarningNoteShow.value = true;
     newShortcutkey.value.set('leftmoveShortcutKey', leftmoveShortcutKey.value);
   }
-  if (rightmoveShortcutkey.value !== 'd') {
+  if (rightmoveShortcutkey.value && rightmoveShortcutkey.value.toLowerCase() !== 'd') {
     isWarningNoteShow.value = true;
     newShortcutkey.value.set('rightmoveShortcutkey', rightmoveShortcutkey.value);
   }
