@@ -1508,6 +1508,9 @@ export class AscppDagBuilder {
 
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
+            if (!tensor) {
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'tensor.magic' });
+            }
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
                 BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'rawTensor.rawmagic' });
@@ -1670,6 +1673,9 @@ export class AscppDagBuilder {
 
             // Get the raw tensor ID and then lookup the tensor name
             const tensor = magicToTensorMap.get(tensorMagic);
+            if (!tensor) {
+                BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOutcastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'tensor.magic' });
+            }
             const rawTensor = rawTensorMap.get(String(tensor!.rawtensor));
             if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
                 BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOutcastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'rawTensor.rawmagic' });

@@ -318,8 +318,8 @@ export function genMathScalarExpr(lineInfo: (string | number)[] | undefined, ver
     return parseExpr(expr!);
   } catch (error) {
     if (server)
-      BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.unKnown', { processName: "genMathScalarExpr" },
-        'pypto.comGraph.errorLogMessage.unKnown', { logText: error });
+      BaseGraphMsgHandler.returnError(server, 'pypto.comGraph.errorMessage.error', { processName: "genMathScalarExpr" },
+        'pypto.comGraph.errorLogMessage.error', { logText: error });
   }
 }
 

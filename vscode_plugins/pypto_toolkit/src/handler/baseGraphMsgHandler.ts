@@ -197,7 +197,7 @@ export abstract class BaseGraphMsgHandler {
     if (renderMode === 'path' || !cache) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({ type: 'layout', graphData: gd });
-      child.on('message', async (res: { type: string; data?: any }) => {
+      child.on('message', async (res: { type: string; message?: any, data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
           if (comGraphData?.isUsedDB && renderMode !== 'path') {
@@ -206,8 +206,20 @@ export abstract class BaseGraphMsgHandler {
           this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
           child.kill();
         }
+        if (res.type === 'error') {
+          this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data });
+        }
       });
-      child.on('error', (_err) => child.kill());
+      // 添加对子进程异常的监听
+      child.on('error', (err) => {
+        console.error('子进程发生错误:', err);
+        child.kill();
+      });
+
+      // 监听子进程退出事件
+      child.on('exit', (code, signal) => {
+        console.log(`子进程退出，退出码: ${code}, 信号: ${signal}`);
+      });
     } else {
       if (lastChangeTime !== cache.last_change_time) {
         await SQLiteCache.getInstance().comGraphLayoutDel(filePath);
@@ -600,7 +612,7 @@ export abstract class BaseGraphMsgHandler {
   }
   public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>) {
     const data = cmdArgs ? t(cmd, cmdArgs) : t(cmd);
-    const log = logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd);
+    const log = logCmd ? (logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd)) : null;
     server.setRef('ErrorMessage', { data: data, log: log, graphType: 'comGraph' });
   }
 
