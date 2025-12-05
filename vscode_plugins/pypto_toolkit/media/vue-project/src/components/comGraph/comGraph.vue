@@ -21,7 +21,7 @@
     ></ComGraphMinimap>
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
-    <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
+    <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
     <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
     <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
@@ -94,6 +94,7 @@ const nodeId = ref('');
 const isLoading = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
+const waitingFlag = ref(false);
 const healthReportGraphName = ref('');
 const showType = ref('all');
 const graphType = ref('');
@@ -196,6 +197,7 @@ const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
 }
 watch(server.LayoutResult, (newValue) => {
   isLoading.value = false;
+  waitingFlag.value = false;
   loadingText.value = '';
 });
 
@@ -218,6 +220,7 @@ watch(
     if (!val) {return;}
     if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
+      waitingFlag.value = (comGraphStore.data?.nodeCount !== undefined && comGraphStore.data.nodeCount >= 5000) && (comGraphStore.data.isCached === false);
     }
     if (val === 'readJsonWarning') {
       isLoading.value = true;

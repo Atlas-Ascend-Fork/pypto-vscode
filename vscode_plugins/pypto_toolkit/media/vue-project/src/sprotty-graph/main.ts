@@ -174,6 +174,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     };
     server.getJsonGraphData({ data: data });
     watch(server.JsonGraphData, (newValue: any) => {
+      comGraphStore.setData("isCached", newValue.isCached);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = toRaw(newValue.data) ;
