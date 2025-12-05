@@ -27,6 +27,7 @@ export type IComRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  PathOriginMode: unknown;
   InitComFlag: unknown;
 };
 
@@ -86,6 +87,7 @@ export type IThreeRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  PathOriginMode: unknown;
   validateSwimFile: unknown;
   JsonContent: unknown;
   GetPassPath: unknown;
