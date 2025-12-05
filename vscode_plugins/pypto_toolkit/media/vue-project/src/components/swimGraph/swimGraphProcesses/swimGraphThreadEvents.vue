@@ -1428,8 +1428,8 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     x = viewState.canvasCssWidth - 1;
   }
   const width = durationToWidth(event.duration);
-  const eventWidth = event.isFakeCore ? 1 : width;
-  
+  const eventWidth = event.isFakeCore ? Math.min(width, 1) : width;
+
   // 存储事件的位置信息，用于点击检测
   event.renderInfo = {
     x: x,
