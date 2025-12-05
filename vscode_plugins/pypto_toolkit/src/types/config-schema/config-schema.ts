@@ -231,6 +231,10 @@ export interface SchemaType {
     global_configs?: SchemaProperty;
     pass_global_configs?: SchemaProperty;
     strategies?: SchemaProperty;
+    pass_execution_order: {
+      type: string;
+      default: string[];
+    };
   };
 }
 

@@ -20,20 +20,13 @@ export function generatePassStrategyTemplate(schema: SchemaType): PassFormTablea
   const defaultPassConfigs = getConfigAttributes(defaultPassConfigsProps);
 
   // 提取pass阶段数据（PVC2_OOO）
-  const strategies = schema.properties?.strategies;
-  const pvc2OOO = strategies?.properties?.PVC2_OOO;
-  const pvc2OOOProps = pvc2OOO?.properties || {};
-  const pvc2OOOConfigs = getConfigAttributes(pvc2OOOProps);
+  const properties = schema.properties;
+  const passExecutionOrder = properties.pass_execution_order;
+  const passDefault = passExecutionOrder.default;
 
   // 构建表格pass阶段数据
-  const pass: TablePass[] = [
-    ...Object.entries(pvc2OOOConfigs).map(([colKey], index) => {
-      return {
-        index,
-        key: colKey,
-      };
-    }),
-  ];
+  const pass: TablePass[] = [];
+  passDefault.forEach((key, index) => pass.push({ key, index }));
 
   // 构建global_configs数据
   const global_configs: TableGlobalConfigs[] = Object.entries(defaultPassConfigs).map(([key, config]) => ({
