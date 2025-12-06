@@ -10,6 +10,7 @@ export interface Dependencies {
   devicePixelRatio: number;
   layout: any;
   isKeyPressed: any;
+  searchedEvent: any;
 }
 
 export function isPointInPolygonFun(point: any, polygonBoundaries: any): boolean {
@@ -81,14 +82,16 @@ export function getNoZoomX(x: number, viewState: any) {
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths } = deps;
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent } = deps;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
   let fontColor = colorCfg.eventFont;
   let strokeColor = '';
 
   if (event.renderInfo.processKey === processKey) {
-    const isSelf = selectedEvent.value && selectedEvent.value.id === event.id;
+    const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
+    const issearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
+    const isSelf = isSelectedValue || issearchedEvent;
     let selectedDep: any[] = [];
     if (selectedEvent.value) {
       selectedDep = [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors];
