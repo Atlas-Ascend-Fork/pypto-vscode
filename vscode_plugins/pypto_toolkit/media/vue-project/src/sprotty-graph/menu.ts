@@ -107,6 +107,18 @@ export class AstgrContextMenuService implements IContextMenuService {
     menuNode.appendChild(menuItem);
   }
 
+  extractNodeMagic(nodeId: string): number {
+    const TensorNodeIdPrefix = 'tensor-';
+    const OperationNodeIdPrefix = 'operation-magic-';
+    let nodeMagic;
+    if (nodeId.includes(OperationNodeIdPrefix)) {
+      nodeMagic = parseInt(nodeId.split(OperationNodeIdPrefix)[1]);
+    } else if (nodeId.includes(TensorNodeIdPrefix)) {
+      nodeMagic = parseInt(nodeId.split(TensorNodeIdPrefix)[1]);
+    }
+    return nodeMagic;
+  }
+
   protected createMenu(items: MenuItem[], closeCallback: () => void): HTMLDivElement {
     const menuNode = document.createElement('div');
     menuNode.id = 'astgr-context-menu';
@@ -124,6 +136,24 @@ export class AstgrContextMenuService implements IContextMenuService {
           // 快捷键处理
           const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
           this.findNeighbor(menuNode, menuItem, index, selectedNodeId);
+        } else if (item.id === 'NewTabForCurPath') {
+          const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
+          const nodeMagic = this.extractNodeMagic(selectedNodeId);
+
+          const textSpan = document.createElement('span');
+          textSpan.textContent = text;
+          textSpan.className = 'menu-text';
+
+          if (!nodeMagic) {
+            textSpan.style.cursor = 'not-allowed';
+          } else {
+            textSpan.onclick = () => {
+              (window as any).ascEventBus.emit('SearchModeOpen', nodeMagic);
+            };
+          }
+
+          menuItem.appendChild(textSpan);
+
         } else {
           /* 文字 span */
           const textSpan = document.createElement('span');
@@ -149,7 +179,7 @@ export class AstgrContextMenuService implements IContextMenuService {
         if (item.actions.length > 0) {
           // 自己识别“回调型”Action
           const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
-          if (item.id === 'JumpToSibling') {
+          if (item.id === 'JumpToSibling' || item.id === 'NewTabForCurPath') {
             return;
           }
 
@@ -316,6 +346,11 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
         id: 'FocusOnCurrent',
         label: `${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`,
         actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
+      },
+      {
+        id: 'NewTabForCurPath',
+        label: `${(window as any).ascLang === 'en' ? 'View current path in new tab' : '在新标签查看当前通路'}`,
+        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'View current path in new tab' : '在新标签查看当前通路'}`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
       },
       {
         id: 'JumpToSibling',

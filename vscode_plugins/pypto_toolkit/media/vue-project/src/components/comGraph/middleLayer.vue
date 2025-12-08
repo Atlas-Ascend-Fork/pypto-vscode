@@ -105,6 +105,8 @@ function setupComWatchers(server: any) {
         openMode.value = 'path';
         break;
       case RequestType.SearchMagic:
+        nodeMagic.value = server.PathOriginMode.value?.nodeMagic;
+        openMode.value = 'path';
         searchMode.value = 0;
         break;
       default:
