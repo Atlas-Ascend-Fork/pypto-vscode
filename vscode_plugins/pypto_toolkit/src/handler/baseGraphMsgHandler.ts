@@ -159,6 +159,12 @@ export abstract class BaseGraphMsgHandler {
     return isBigFile;
   }
 
+  static async openSearchMode(message: any, server: any) {
+    const nodeMagic: number = message.data;
+    const gd = server.comGraphData;
+    commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), undefined, false, nodeMagic);
+  }
+
   /* ===================================================
    * 2. 抽象：子类必须实现
    * =================================================== */
@@ -571,7 +577,7 @@ export abstract class BaseGraphMsgHandler {
           ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
   
-        server.setRef('PathOriginMode', { data: mode });
+          server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
       }
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;

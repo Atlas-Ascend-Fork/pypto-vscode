@@ -70,6 +70,10 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     await this.handler.getJsonGraphData(message, this);
   };
   @viewApi()
+  public openSearchMode = async (message) => {
+    await this.handler.openSearchMode(message, this);
+  };
+  @viewApi()
   public setFinalResult = async (message) => {
     await this.handler.setFinalResult(message, this);
   };

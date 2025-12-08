@@ -208,6 +208,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     selectAction([args]);
   }
 
+  const SearchModeOpenListener = (args) => {
+    server.openSearchMode({data: args});
+  }
+
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
@@ -219,6 +223,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`svgOutput`, svgExportRequestListener);
 
   (window as any).ascEventBus.on(`jump2SiblingNode`, jump2SiblingNodeListener);
+
+  (window as any).ascEventBus.on('SearchModeOpen', SearchModeOpenListener);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph) => {
