@@ -206,7 +206,8 @@ export default {
       noData: '无数据',
       leafCalledRecord: 'Leaf 被调用记录',
       calledFunctionName: '被调用函数名',
-      callNumber: '调用次数'
+      callNumber: '调用次数',
+      autoLineWrap: '自动换行'
    },
     sideBar: {
         title: '运行结果',

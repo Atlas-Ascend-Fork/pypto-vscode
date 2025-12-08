@@ -1,22 +1,30 @@
 <template>
   <Teleport to="body">
     <Transition name="drawer-fade">
-      <div v-if="modelValue" ref="drawerEl" :style="{
-        height: height ? height + 40 + 'px' : 'auto'
-      }" class="node-detail-drawer">
+      <div
+        v-if="modelValue"
+        ref="drawerEl"
+        :style="{
+          height: height ? height + 40 + 'px' : 'auto',
+        }"
+        class="node-detail-drawer"
+      >
         <div class="header">
           <span class="title">Magic: {{ magicId }}</span>
           <em class="icon icon-close" @click="() => emits('update:modelValue', false)"></em>
         </div>
-        <d-search
-          icon-position="left"
-          :placeholder="t('comGraph.searchPlaceholder')"
-          :show-glow-style="false"
-          :delay="200"
-          is-keyup-search
-          class="search-box"
-          @search="onSearch"
-        />
+        <div class="operate-wrap">
+          <d-search
+            icon-position="left"
+            :placeholder="t('comGraph.searchPlaceholder')"
+            :show-glow-style="false"
+            :delay="200"
+            is-keyup-search
+            class="search-box"
+            @search="onSearch"
+          />
+          <d-checkbox v-model="autoLineWrap" :label="t('comGraph.autoLineWrap')" :is-show-title="false" @change="onLineWrapChange" />
+        </div>
         <div class="editor-box">
           <div class="copy-wrap">
             <div class="copy-box" @click="onCopy">
@@ -50,6 +58,7 @@ const magicId = ref();
 const editorRef = ref();
 const nodeContent = ref();
 const copied = ref(false);
+const autoLineWrap = ref(false);
 const TensorNodeIdPrefix = 'tensor-';
 const OperationNodeIdPrefix = 'operation-';
 const MagicPrefix = 'magic-';
@@ -131,6 +140,10 @@ function initEditor() {
     editorFindInput = editorRef.value.querySelector('.monaco-findInput textarea.input');
     updateTheme();
   }
+}
+
+function onLineWrapChange(e: boolean) {
+  editorIns.updateOptions({ wordWrap: e ? 'on' : 'off' });
 }
 
 function updateTheme() {
@@ -217,7 +230,14 @@ const onCopy = () => {
     }
   }
 
+  .operate-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .search-box {
+    flex: 1;
     height: 28px;
     .devui-search__icon {
       width: 28px;

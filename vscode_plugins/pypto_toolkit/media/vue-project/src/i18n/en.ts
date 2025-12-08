@@ -206,7 +206,8 @@ export default {
         noData: 'No data',
         leafCalledRecord: 'Leaf called record',
         calledFunctionName: 'Name of the called function',
-        callNumber: 'Number of calls'
+        callNumber: 'Number of calls',
+        autoLineWrap: 'Auto line wrap'
     },
     sideBar: {
         title: 'Compilation result',
