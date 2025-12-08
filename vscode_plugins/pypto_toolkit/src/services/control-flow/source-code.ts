@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { CodeSnippetDocument, GetSnippetDocumentTag } from '../../types/control-flow/source-code';
 
 /**
  * 获取代码片段
@@ -7,7 +8,7 @@ import * as vscode from 'vscode';
  * @param endLine 源代码终止行
  * @returns 代码片段
  */
-export async function readLinesByTextDocument(programUri: vscode.Uri, startLine: number, endLine: number): Promise<string> {
+export async function readLinesByTextDocument(programUri: vscode.Uri, startLine: number, endLine: number): Promise<CodeSnippetDocument> {
   try {
     // 1. 后台打开文件处理编码
     const document = await vscode.workspace.openTextDocument(programUri);
@@ -17,8 +18,10 @@ export async function readLinesByTextDocument(programUri: vscode.Uri, startLine:
     const endIdx = Math.min(document.lineCount - 1, endLine - 1);
 
     if (startIdx > endIdx) {
-      vscode.window.showWarningMessage(`文件仅 ${document.lineCount} 行，不足 ${startLine} 行`);
-      return `文件仅 ${document.lineCount} 行，不足 ${startLine} 行,建议手动跳转源码查看`;
+      return {
+        isSuccessful: GetSnippetDocumentTag.IS_NO_LINE,
+        document: '读取失败：源码已修改，找不到对应代码行', //国际化在前端适配
+      };
     }
 
     // 3. 提取指定行
@@ -29,10 +32,15 @@ export async function readLinesByTextDocument(programUri: vscode.Uri, startLine:
 
     // 4. 用文件原始换行符拼接（document.eol 自动识别换行类型）
     const lineSeparator = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-    return targetLines.join(lineSeparator);
+    return {
+      isSuccessful: GetSnippetDocumentTag.IS_SUCCESSFUL,
+      document: targetLines.join(lineSeparator),
+    };
   } catch (error) {
-    vscode.window.showErrorMessage(`读取失败：${(error as Error).message}`);
-    return '';
+    return {
+      isSuccessful: GetSnippetDocumentTag.IS_NO_FILE,
+      document: programUri.path,
+    };
   }
 }
 

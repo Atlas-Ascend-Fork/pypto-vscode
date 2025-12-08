@@ -236,8 +236,11 @@ export default {
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
         codeSnippet:'代码片段',
-        splitScreenView:'分屏查看'
-    },
+        splitScreenView:'分屏查看',
+        snippetErrNoLineTitle: '读取失败:',
+        snippetErrNoFileTitle: '无法读取以下文件:',
+        snippetErrNoLineContent: '源码已修改，找不到对应代码行',
+},
     schemaConfig:{
         title:'新增运行配置',
         detail:'选择系统模板复用配置',
