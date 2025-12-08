@@ -236,7 +236,10 @@ export default {
         openSourceCode: 'Open Source Code',
         openSwimlane: 'Open Swimlane',
         codeSnippet:'code snippet',
-        splitScreenView:'Split screen viewing'
+        splitScreenView:'Split screen viewing',
+        snippetErrNoLineTitle: 'Read failed:',
+        snippetErrNoFileTitle: 'Unable to read the following file:',
+        snippetErrNoLineContent: 'The source code has been modified; the corresponding line of code cannot be found.',
     },
     schemaConfig:{
         title:'Add new running configuration',

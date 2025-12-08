@@ -7,6 +7,7 @@ import { getOutputDetail } from '../workspace';
 import { FlowTreeAnalyzer } from './flow-tree';
 import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';
 import { SourceCodeRequestDto } from '../../types/control-flow/basic-node';
+import { CodeSnippetDocument } from '../../types/control-flow/source-code';
 
 export interface GetControlFlowParams {
   /** 编译结果文件夹路径 */
@@ -52,7 +53,7 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
  * @param params 控制流节点读取源码字段
  * @returns 返回指定行代码片段
  */
-export async function getSnippetCodeText(params: SourceCodeRequestDto): Promise<string> {
+export async function getSnippetCodeText(params: SourceCodeRequestDto): Promise<CodeSnippetDocument> {
   const sourceCodeUri = vscode.Uri.file(params.filePath);
   const codeTextDocument = await readLinesByTextDocument(sourceCodeUri, params.startLine, params.endLine);
   return codeTextDocument;
