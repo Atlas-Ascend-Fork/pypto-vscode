@@ -61,7 +61,7 @@ export class RegisterCommand {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
         nodeMagic ??= -1;
-        await this.openView('computeGraph', uri, funcHash, true, nodeMagic);
+        await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
       }),
 
       commands.registerCommand('PyPTO.OpenLinkageMode', async (uri: Uri | undefined) => {
