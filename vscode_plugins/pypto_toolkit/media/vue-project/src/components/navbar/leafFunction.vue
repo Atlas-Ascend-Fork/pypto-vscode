@@ -45,7 +45,7 @@ import type { LeafInPass } from 'ext:/types/control-flow';
 import { transformLeafFunctionList } from './util';
 
 const { t } = useI18n();
-const { rootProps, leafFunctions, jumpComGraph, emitLeafChange } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, leafFunctions, currentLeafData, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 const ownedList = ref<LeafInPass[]>([]);
 const notOwnedList = ref<LeafInPass[]>([]);
@@ -55,7 +55,7 @@ const currentLeaf = computed<Partial<LeafInPass>>(() => {
     for (let i = 0; i < leafFunctions.value.length; i++) {
       const item = leafFunctions.value[i];
       if (item.leafFileName === rootProps.currentLeafName) {
-        emitLeafChange(item.leafFileName);
+        currentLeafData.value = item;
         return item;
       }
     }

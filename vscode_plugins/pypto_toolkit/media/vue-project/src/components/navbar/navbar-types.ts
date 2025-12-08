@@ -1,6 +1,6 @@
 import type { PropType, InjectionKey, ExtractPropTypes, Ref } from 'vue';
 import type { OutputRecord } from '../../../../../src/types/workspace/output';
-import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafInPass } from '../../../../../src/types/control-flow';
+import type { ControlFlowPath, ControlFlowIf, ControlFlowLoop, PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow';
 
 export type HistoryData = OutputRecord;
 
@@ -53,7 +53,8 @@ export interface NavbarContext {
   controlFlowList: Ref<ControlFlowData[]>;
   passList: Ref<PathInPass[]>;
   leafFunctions: Ref<LeafInPass[]>;
+  currentPathCalledLeafRecord: Ref<CallLeafRecord[]>;
+  currentLeafData: Ref<LeafInPass>;
   jumpComGraph: (filePath: string, pathName?: string) => void;
-  emitLeafChange: (leafName: string) => void;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

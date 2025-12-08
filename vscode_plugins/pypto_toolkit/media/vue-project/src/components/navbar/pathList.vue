@@ -52,7 +52,7 @@ import PathIcon from './icons/path-icon.vue';
 import IfIcon from './icons/if-icon.vue';
 
 const { t } = useI18n();
-const { rootProps, controlFlowList, passList, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
+const { rootProps, controlFlowList, passList, currentPathCalledLeafRecord, jumpComGraph } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
 const treeEl = ref();
 const TreeDataMap: Record<PathTreeData['label'], PathTreeData> = {};
@@ -84,6 +84,7 @@ watch(
       for (let i = 0; i < keys.length; i++) {
         if (keys[i].startsWith(rootProps.currentPathMagicName)) {
           currentData.value = TreeDataMap[keys[i]];
+          currentPathCalledLeafRecord.value = (currentData.value.controlFlowData as ControlFlowPath).meta?.calledRecords ?? [];
           passList.value = (currentData.value?.controlFlowData as ControlFlowPath).meta?.passes ?? [];
         }
       }

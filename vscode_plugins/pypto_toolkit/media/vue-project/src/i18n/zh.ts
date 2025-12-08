@@ -203,7 +203,10 @@ export default {
       searchPageTips: '界面说明',
       searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图',
       pleaseSelect: '请选择',
-      noData: '无数据'
+      noData: '无数据',
+      leafCalledRecord: 'Leaf 被调用记录',
+      calledFunctionName: '被调用函数名',
+      callNumber: '调用次数'
    },
     sideBar: {
         title: '运行结果',

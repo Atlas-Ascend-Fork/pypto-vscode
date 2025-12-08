@@ -203,7 +203,10 @@ export default {
         searchPageTips: 'Page Instruction',
         searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
         pleaseSelect: 'Please select',
-        noData: 'No data'
+        noData: 'No data',
+        leafCalledRecord: 'Leaf called record',
+        calledFunctionName: 'Name of the called function',
+        callNumber: 'Number of calls'
     },
     sideBar: {
         title: 'Compilation result',
