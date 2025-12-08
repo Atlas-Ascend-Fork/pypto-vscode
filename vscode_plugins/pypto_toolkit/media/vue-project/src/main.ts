@@ -1,7 +1,6 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import Skeleton from 'vue-devui/skeleton';
-import SkeletonItem from 'vue-devui/skeleton';
 import 'vue-devui/skeleton/style.css';
 import Message from 'vue-devui/message';
 import 'vue-devui/message/style.css';
@@ -43,6 +42,8 @@ import Table from 'vue-devui/table';
 import 'vue-devui/table/style.css';
 import Tree from 'vue-devui/tree';
 import 'vue-devui/tree/style.css';
+import Progress from 'vue-devui/progress';
+import 'vue-devui/progress/style.css';
 import Modal from 'vue-devui/modal';
 import 'vue-devui/modal/style.css';
 import i18n from './i18n';
@@ -56,8 +57,6 @@ import Grid from 'vue-devui/grid';
 import 'vue-devui/grid/style.css';
 import Popover from 'vue-devui/popover';
 import 'vue-devui/popover/style.css';
-import Progress from 'vue-devui/progress';
-import 'vue-devui/progress/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -109,13 +108,12 @@ createApp(App)
   .use(i18n)
   .use(Drawer)
   .use(Tree)
+  .use(Progress)
   .use(Modal)
   .use(Skeleton)
-  .use(SkeletonItem)
   .use(Form)
   .use(Textarea)
   .use(Grid)
   .use(Popover)
-  .use(Progress)
   .use(Loading)
   .mount('#app');
