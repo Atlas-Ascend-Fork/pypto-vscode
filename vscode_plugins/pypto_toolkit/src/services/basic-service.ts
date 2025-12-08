@@ -2,21 +2,22 @@ import * as vscode from 'vscode';
 
 const startedServices = new Set<string>();
 
-export abstract class BasicService extends vscode.Disposable {
-  /** 服务名称，全局唯一 */
-  public abstract name: string;
-
+export class BasicService extends vscode.Disposable {
   protected _disposables: vscode.Disposable[] = [];
 
-  constructor() {
-    super(() => this._disposables.forEach((item) => item.dispose()));
+  constructor(public name: string) {
+    super(() =>
+      this._disposables.forEach((item) => {
+        return item.dispose();
+      }),
+    );
     if (this.isStartedService()) {
       this.multiInstantiateError();
     }
     this.recordStartedService();
   }
 
-  private isStartedService(): boolean {
+  protected isStartedService(): boolean {
     return startedServices.has(this.name);
   }
 

@@ -28,12 +28,10 @@ const RUN_DATA_ATTRIBUTES = defineAttributes({
 });
 
 export class RunDataService extends BasicService {
-  public name = 'runData';
-
   private store: RunDataStore;
 
-  constructor(context: vscode.ExtensionContext) {
-    super();
+  constructor() {
+    super('runData');
     this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES);
     this._disposables.push(this.store);
     this.scanDirectory();

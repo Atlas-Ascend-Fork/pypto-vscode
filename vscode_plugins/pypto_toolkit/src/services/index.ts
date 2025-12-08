@@ -5,13 +5,17 @@ import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } f
 import { getOutputRecords, getOutputDetail } from './workspace';
 import { RunDataService } from './run-data';
 import {
-  getSchemaData,
   getTileFwkConfigData,
   updateFwkConfigData,
   getCustomFileList,
   delCustomFile,
   addNewFwkConfigFile,
+  getSchemaData,
+  getConfigsTemplate,
+  getConfigsForRevise,
+  updateConfigsFile,
 } from './schema-config';
+import { ConfigDataService } from './schema-config/configdata';
 
 export const services = {
   // 控制流
@@ -50,6 +54,15 @@ export const services = {
 
     /** 添加自定义配置 */
     addNewFwkConfigFile,
+
+    /** 获取Simulator的数组模板 */
+    getConfigsTemplate,
+
+    /** 获取用户config文件中仿真与Pass数据 */
+    getConfigsForRevise,
+
+    /** 更新用户config文件中仿真与Pass数据 */
+    updateConfigs: updateConfigsFile,
   },
   //【临时】开启webview
   tmpViewOpener: {
@@ -61,10 +74,10 @@ export const services = {
   },
 };
 
-let singletonServices: { runData: RunDataService };
+let singletonServices: { runData: RunDataService; configData: ConfigDataService };
 
-export function startAllServices(context: vscode.ExtensionContext) {
-  singletonServices = { runData: new RunDataService(context) };
+export function startAllServices() {
+  singletonServices = { runData: new RunDataService(), configData: new ConfigDataService() };
 }
 
 export function closeAllServices() {
