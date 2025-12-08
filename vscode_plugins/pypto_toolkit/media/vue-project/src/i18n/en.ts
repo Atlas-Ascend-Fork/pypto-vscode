@@ -38,8 +38,8 @@ export default {
     "Scaling": 'Scaling',
     "TimeMeasurement": 'Time Measurement',
     "KeyboardControl": 'Keyboard Control',
-    "LeftShifting": 'Left Shifting',
-    "RightShifting": 'Right Shifting',
+    "LeftMove": 'Left Move',
+    "RightMove": 'Right Move',
     'Measure': 'measure',
     'ReportTitle' : 'Overall Performance Statistics',
     'ICacheHitRate' : 'iCache Hit Rate',
@@ -203,7 +203,10 @@ export default {
         searchPageTips: 'Page Instruction',
         searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
         pleaseSelect: 'Please select',
-        noData: 'No data'
+        noData: 'No data',
+        leafCalledRecord: 'Leaf called record',
+        calledFunctionName: 'Name of the called function',
+        callNumber: 'Number of calls'
     },
     sideBar: {
         title: 'Compilation result',
@@ -233,7 +236,10 @@ export default {
         openSourceCode: 'Open Source Code',
         openSwimlane: 'Open Swimlane',
         codeSnippet:'code snippet',
-        splitScreenView:'Split screen viewing'
+        splitScreenView:'Split screen viewing',
+        snippetErrNoLineTitle: 'Read failed:',
+        snippetErrNoFileTitle: 'Unable to read the following file:',
+        snippetErrNoLineContent: 'The source code has been modified; the corresponding line of code cannot be found.',
     },
     schemaConfig:{
         title:'Add new running configuration',

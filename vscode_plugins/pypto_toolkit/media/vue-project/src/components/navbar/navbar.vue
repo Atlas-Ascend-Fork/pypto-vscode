@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue';
+import { computed, inject, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { navbarProps } from './navbar-types';
 import PathList from './pathList.vue';
@@ -70,17 +70,20 @@ import ControlFlowIcon from './icons/control-flow-icon.vue';
 import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
-import type { PathInPass, LeafInPass } from '../../../../../src/types/control-flow/path';
+import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
 import { getOutputRecords, getOutputDetail } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
 import { useNavbar } from './hooks/use-navbar';
 import { useOutputNav } from '@/hooks/use-output-nav';
+import { ComGraphProvideKey } from '../comGraph/type';
+import type { ComGraphContext } from '../comGraph/type';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
 const emits = defineEmits(['leafChange']);
+const comGraphCtx = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
 const historyListEl = ref();
 const passEl = ref();
 const historyList = ref<HistoryData[]>([]);
@@ -89,10 +92,21 @@ const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
 const currentRecord = ref<HistoryData>();
 const lastPass = ref<PathInPass>();
+const currentPathCalledLeafRecord = ref<CallLeafRecord[]>([]);
+const currentLeafData = ref<LeafInPass>();
 const getControlFlowError = ref(false);
 const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
 
-provide(NavbarProvideKey, { rootProps: props, historyList, controlFlowList, passList, leafFunctions, jumpComGraph, emitLeafChange });
+provide(NavbarProvideKey, {
+  rootProps: props,
+  historyList,
+  controlFlowList,
+  passList,
+  leafFunctions,
+  currentPathCalledLeafRecord,
+  currentLeafData,
+  jumpComGraph,
+});
 
 const { comGraphName } = useNavbar();
 
@@ -160,9 +174,28 @@ watch(
   { immediate: true },
 );
 
-function emitLeafChange(leafName: string) {
-  emits('leafChange', leafName);
-}
+watch([currentPathCalledLeafRecord, currentLeafData], () => {
+  const map: Record<string, number> = {};
+  if (currentLeafData.value) {
+    const leafName = currentLeafData.value.leafName;
+    emits('leafChange', leafName);
+
+    if (currentPathCalledLeafRecord.value.length) {
+      for (const item of currentPathCalledLeafRecord.value) {
+        const calleeMagicName = item.calleeFunction.magicName;
+        const callerMagicName = item.callerFunction.magicName;
+        if (calleeMagicName === leafName) {
+          if (!map[callerMagicName]) {
+            map[callerMagicName] = 1;
+          } else {
+            map[callerMagicName]++;
+          }
+        }
+      }
+    }
+  }
+  comGraphCtx.leafCalledRecordMap.value = map;
+});
 
 function findLastPass() {
   if (controlFlowList.value.length) {

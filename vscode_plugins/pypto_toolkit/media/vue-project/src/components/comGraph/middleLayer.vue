@@ -48,6 +48,11 @@ const props = defineProps({
     type: String,
   },
 });
+enum RequestType{
+  NodeOverLimit  = 1,
+  SearchNoMagic  = 2,
+  SearchMagic    = 3,
+}
 const graphType = toRef(props, 'graphType');
 const filePaths = ref({ swimPath: '', comPath: '' });
 const { server } = useViewServer<ICommonViewServer>();
@@ -75,12 +80,6 @@ function setupComWatchers(server: any) {
     errorGraphType.value = newValue.graphType;
     errorLog.value = newValue.log;
   });
-  watch(server.ReadJsonWarning, () => {
-    if (!inThreeColumnMode) {
-      loadingStep.value = 'readJsonWarning';
-      searchMode.value = 1;
-    }
-  });
 
   watch(server.ComData, (newValue) => {
     comGraphStore.setData('version', newValue.version || '2.0')
@@ -90,6 +89,29 @@ function setupComWatchers(server: any) {
     passIndex.value = newValue.passIndex;
     pathName.value = newValue.pathName;
     fileName.value = newValue.fileName;
+  }, {});
+
+  const canLoadComData = computed(() =>
+    server.PathOriginMode.value?.data
+  );
+  watch(canLoadComData, (modeType) => {
+    switch (modeType) {
+      case RequestType.NodeOverLimit:
+        loadingStep.value = 'readJsonWarning';
+        searchMode.value = 1;
+        break;
+      case RequestType.SearchNoMagic:
+        searchMode.value = 2;
+        openMode.value = 'path';
+        break;
+      case RequestType.SearchMagic:
+        nodeMagic.value = server.PathOriginMode.value?.nodeMagic;
+        openMode.value = 'path';
+        searchMode.value = 0;
+        break;
+      default:
+        break;
+    }
   });
   watch(server.DiffComData, (newValue) => {
     diffInfo.value = newValue.diffInfo;
@@ -325,7 +347,7 @@ const onInputLeave = (event) => {
       :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
     <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
       @full-render="onFullRender" @search-mode="entrySearchModeSet" />
-    <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2" :jsonContent="jsonContent"
+    <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2 && jsonContent.hash" :jsonContent="jsonContent"
       @searchMode="modeSearchModeSet" />
     <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   </template>

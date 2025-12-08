@@ -2,6 +2,7 @@ import { ViewServer } from '../../core/view/view-server';
 export type IComApis =
   | 'askLayout'
   | 'getJsonGraphData'
+  | 'openSearchMode'
   | 'getHealthyReport'
   | 'getInitialData'
   | 'getSubgraph'
@@ -27,6 +28,7 @@ export type IComRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  PathOriginMode: unknown;
   InitComFlag: unknown;
 };
 
@@ -34,6 +36,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
+  openSearchMode: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;
@@ -50,6 +53,7 @@ export type IThreeApis =
   | 'getInitialData'
   | 'askLayout'
   | 'getJsonGraphData'
+  | 'openSearchMode'
   | 'getHealthyReport'
   | 'getSubgraph'
   | 'jumpToCodeLine'
@@ -86,6 +90,7 @@ export type IThreeRefs = {
   LayoutResult: unknown;
   PathNodesSet: unknown;
   ReadJsonWarning: unknown;
+  PathOriginMode: unknown;
   validateSwimFile: unknown;
   JsonContent: unknown;
   GetPassPath: unknown;
@@ -98,6 +103,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
+  openSearchMode: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;

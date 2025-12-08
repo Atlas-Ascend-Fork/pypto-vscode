@@ -19,6 +19,12 @@ import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
 import * as vscode from 'vscode';
 
+enum RequestSourceType{
+  NodeOverLimit  = 1,
+  SearchNoMagic  = 2,
+  SearchMagic    = 3,
+}
+
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
 export interface readFileResult {
@@ -153,6 +159,13 @@ export abstract class BaseGraphMsgHandler {
     return isBigFile;
   }
 
+  static async openSearchMode(message: any, server: any) {
+    const nodeMagic: number = message.data?.nodeMagic;
+    const funcHash = message.data?.funcHash;
+    const gd = server.comGraphData;
+    commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
+  }
+
   /* ===================================================
    * 2. 抽象：子类必须实现
    * =================================================== */
@@ -198,7 +211,6 @@ export abstract class BaseGraphMsgHandler {
     if (renderMode === 'path' || !cache) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({ type: 'layout', graphData: gd });
-      child.on('message', async (res: { type: string; message?: any, data?: any }) => {
       child.on('message', async (res: { type: string; message?: any, data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
@@ -559,9 +571,17 @@ export abstract class BaseGraphMsgHandler {
   protected static async postRenderJson(server: any, json: any, cmd: 'returnCom' | 'returnDiffCom' = 'returnCom'): Promise<void> {
     if (cmd == 'returnCom') {
       const nodeCount = json.operations.length + json.rawtensors.length + json.tensors.length;
-      if (nodeCount > NODE_COUNT_LIMIT) {
-        server.setRef('ReadJsonWarning', true);
+      const isNodeSearch = server.query?.isSearch === true;
+      const nodesMagic = server.query?.nodeMagic;
+      if (nodeCount > NODE_COUNT_LIMIT || isNodeSearch || nodesMagic != null) {
+        const mode = isNodeSearch
+          ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
+          : RequestSourceType.NodeOverLimit;
+  
+          server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
       }
+      server.query.isSearch = false;
+      server.query.nodeMagic = undefined;
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
       const [_, passIndex, __] = server.comGraphData.fsPath?.match(passDirectoryRegExp) ?? [];

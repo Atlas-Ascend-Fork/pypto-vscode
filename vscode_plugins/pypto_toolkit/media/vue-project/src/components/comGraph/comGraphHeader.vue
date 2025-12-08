@@ -22,6 +22,11 @@
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
+      <d-tooltip v-if="currentLeafName" :content="t('comGraph.leafCalledRecord')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': isLoading }]" @click="openLeafCalledRecord">
+          <CalledRecordIcon />
+        </div>
+      </d-tooltip>
     </div>
 
     <div class="module-toolbar-container">
@@ -43,6 +48,7 @@
         :current-path-magic-name="pathName"
         :current-pass-index="passIndex"
         :current-leaf-name="fileName"
+        @leaf-change="(e) => (currentLeafName = e)"
       />
 
       <d-dropdown
@@ -164,13 +170,14 @@
 <script setup lang="ts">
 import { ref, defineEmits, inject, onMounted, reactive, watch, nextTick} from 'vue';
 import { useI18n } from 'vue-i18n';
-import { GraphType } from './type';
+import { GraphType, ComGraphProvideKey } from './type';
 import type { ComGraphContext } from './type';
 import { comGraphStore } from '../../service/com-graph-store';
 import { getCurFunctionDynamicAttr } from '../../sprotty-graph/parseSymbolicAttr';
 import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import LayerControlIcon from './layerControl/layerControlIcon.vue';
+import CalledRecordIcon from './icons/called-record-icon.vue';
 import Navbar from '../navbar/navbar.vue';
 import LeafList from './leaf-list.vue';
 import { extractIncasts,
@@ -218,11 +225,12 @@ const backwards = () => {
 }
 
 const { t } = useI18n();
-const comGraphCtx = inject('comGraph', undefined) as ComGraphContext | undefined;
+const comGraphCtx = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
 const searchEl = ref();
 const globalSelectEl = ref();
 const selectedTags = ref([]);
 const categorySearchKey = ref('');
+const currentLeafName = ref('');
 let passName = 'Loading';
 let curPath = ref([]);
 const curList = ref([]);
@@ -587,6 +595,13 @@ const openHealthReport = () => {
   }
   comGraphCtx?.toggleHealthReport(true);
 };
+
+const openLeafCalledRecord = () => {
+  if (props.isLoading) {
+    return;
+  }
+  comGraphCtx?.toggleLeafCalledRecord(true, currentLeafName.value);
+}
 
 const changeLayer = () => {
   if (!props.isLoading && comGraphCtx) {

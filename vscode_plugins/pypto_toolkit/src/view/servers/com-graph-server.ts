@@ -27,6 +27,7 @@ type Refs = IComRefs & ICommonRefs;
   'PathNodesSet',
   'ReadJsonWarning',
   'InitComFlag',
+  'PathOriginMode',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -67,6 +68,10 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getJsonGraphData = async (message) => {
     await this.handler.getJsonGraphData(message, this);
+  };
+  @viewApi()
+  public openSearchMode = async (message) => {
+    await this.handler.openSearchMode(message, this);
   };
   @viewApi()
   public setFinalResult = async (message) => {

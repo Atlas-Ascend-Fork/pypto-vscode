@@ -97,6 +97,7 @@ const {
   isLockStatus,
   dependencyLinesInfo,
   isThreeColumn,
+  searchedEvent
 } = swimGraphState;
 
 const {
@@ -124,7 +125,7 @@ let mousePosition = null;
 let isKeyPressed = ref(false);
 let keyTimeOut;
 let keyInterval;
-let scaleStep = 0.1;
+let scaleStep = 0.1; 
 let moveStep = 30;
 let scaleStepIncrement = 0.05;
 let moveStepIncrement = 30;
@@ -219,6 +220,8 @@ const handleCanvasClick = (e) => {
     highlightedPaths.clear();
     detailsPanelExpanded.value = false;
     selectEvent(null, props.processKey);
+    const ctx = clearDependencyLines(props.processKey);
+    highlightEvent(ctx, searchedEvent.value, props.processKey, true);
   }
 };
 
@@ -998,7 +1001,7 @@ const transformEvents = (process, processKey) => {
     }
   }
 
-  if (selectedEvent.value && !drawColorDatas.length) {
+  if ((selectedEvent.value || searchedEvent.value) && !drawColorDatas.length) {
     changeNodeColor(processKey, true, false);
   }
 
@@ -1123,20 +1126,21 @@ const clearDependencyLines = (processKey) => {
 // 在依赖线画布上绘制依赖连接线
 const drawDependencyLines = (process, processKey, mode) => {
   const ctx = clearDependencyLines(processKey);
-  if (!ctx || !selectedEvent.value) return;
+  if (!ctx || !(selectedEvent.value || searchedEvent.value)) return;
   ctx.lineWidth = 1;
-
-  const eventMap = buildEventMap(process);
-  let level = isSearchActive.value ? 0 : userConfig.value.connectionLevel;
-  const edgesToDraw = collectRelevantEdges(
-    selectedEvent.value.id,
-    eventMap,
-    mode,
-    level
-  );
-
-  renderDependencyEdges(edgesToDraw, eventMap, ctx);
-  highlightEvent(ctx, selectedEvent.value, processKey, true);
+  if (selectedEvent.value) {
+    const eventMap = buildEventMap(process);
+    let level = userConfig.value.connectionLevel;
+    const edgesToDraw = collectRelevantEdges(
+      selectedEvent.value.id,
+      eventMap,
+      mode,
+      level
+    );
+    renderDependencyEdges(edgesToDraw, eventMap, ctx);
+    highlightEvent(ctx, selectedEvent.value, processKey, true);
+  }
+  highlightEvent(ctx, searchedEvent.value, processKey, true);
 };
 
 const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
@@ -1847,6 +1851,8 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
   } else {
     clearSelectionCanvas('data-three-column-process-key');
     selectEvent(null, props.processKey);
+    const ctx = clearDependencyLines(props.processKey);
+    highlightEvent(ctx, searchedEvent.value, props.processKey, true);
     if (isLockStatus.value) {
       return;
     }

@@ -18,12 +18,13 @@
     <ShowTip></ShowTip>
     <ComGraphMinimap
       v-if="!isLoading"
-      :offset-right="showNodeDetail ? 480 : showHealthReport ? (healthReportGraphName === 'BlockGraph' ? 488 : 400) : 0"
+      :offset-right="minimapOffsetRight"
     ></ComGraphMinimap>
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
     <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
+    <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
   </div>
 </template>
 
@@ -37,12 +38,14 @@ import HealthReport from './healthReport/healthReport.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
+import LeafCalledRecord from './leafCalledRecord.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { setFixedComGraphFlow } from '../../utils/operation';
 import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { ComGraphProvideKey } from './type';
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
@@ -85,6 +88,7 @@ const { isDarkTheme } = inject('root');
 const showHealthReport = ref(false);
 const showNodeDetail = ref(false);
 const showLayerControl = ref(false);
+const showLeafCalledRecord = ref(false);
 const nodeId = ref('');
 const isLoading = ref(false);
 const loadingText = ref('');
@@ -95,6 +99,17 @@ const graphType = ref('');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 const isDragging = ref(false);
 const switchLockInformationFlag = ref(false);
+const leafCalledRecordMap = ref<Record<string, number>>({});
+const currentLeafName = ref('');
+const minimapOffsetRight = computed(() => {
+  if (showNodeDetail.value || showLeafCalledRecord.value) {
+    return 480;
+  } else if (showHealthReport.value) {
+    return healthReportGraphName.value === 'BlockGraph' ? 488 : 400;
+  } else {
+    return 0;
+  }
+})
 let lockText= '';
 
 let fitToScreenAction;
@@ -168,13 +183,17 @@ const colorSubgraph = (isColor: boolean) => {
 const toggleHealthReport = (status: boolean) => {
   showHealthReport.value = status;
 }
+const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
+  showLeafCalledRecord.value = status;
+  currentLeafName.value = leafName;
+}
 watch(server.LayoutResult, (newValue) => {
   isLoading.value = false;
   loadingText.value = '';
 });
 
 
-provide('comGraph', { toggleHealthReport, showLayerControl });
+provide(ComGraphProvideKey, { toggleHealthReport, showLayerControl, leafCalledRecordMap, toggleLeafCalledRecord });
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',

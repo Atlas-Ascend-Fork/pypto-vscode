@@ -1,6 +1,8 @@
 {
   "pypto.OpenRenderGraphForCurrent": "PyPTO Toolkit: 打开文件",
   "pypto.OpenDiffComGraphForCurrent": "PyPTO Toolkit: 打开计算图差异对比",
+  "pypto.OpenComGraphForNodeSearch": "PyPTO Toolkit: 按节点搜索打开计算图",
+  "pypto.OpenGraphForAdvanceFeatures": "PyPTO Toolkit: 高级操作",
   "PyPTO.CloseAllToolPages": "PyPTO Toolkit: 关闭所有工具页面",
   "PyPTOToolkit.tensorAttr.description": "从 JSON 中获取 tensor 节点展示字段的 JS 代码。示例：(tensor) => [`magic: ${tensor.magic}`, `shape: ${JSON.stringify(tensor.shape)}`]。注意：修改后,需要通过 ctrl+shift+p 调用命令Delete Cache DB File,再重新打开计算图才能生效",
   "PyPTOToolkit.operationAttr.description": "从 JSON 中获取 operation 节点展示字段的 JS 代码。示例：(operation) => [`opcode: ${operation.opcode}`]。注意：修改后,需要通过 ctrl+shift+p 调用命令Delete Cache DB File,再重新打开计算图才能生效",

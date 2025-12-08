@@ -114,7 +114,6 @@ export function useComboCardNodes(isDarkTheme: Ref<boolean>, codePreviewState: P
       let isActivedTextColor = isActived ? textBlue : textWeak;
       let isSelectedHitAreaColor = isSelected ? buttonBlue : buttonWeak;
       let isHasTargetFile = this.nodeData.data.sourceCode.filePath !== '';
-      isHasTargetFile = false; //todo:暂时隐藏代码预览入口，待下版本
 
       if (isSelected) {
         isActivedTextColor = '#FFFFFF'; //深色、浅色，loop选中时title颜色一致

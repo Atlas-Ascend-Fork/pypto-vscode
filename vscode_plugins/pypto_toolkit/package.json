@@ -16,6 +16,12 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "submenus": [
+      {
+        "id": "pypto.graph.advan",
+        "label": "%pypto.OpenGraphForAdvanceFeatures%"
+      }
+    ],
     "commands": [
       {
         "category": "PyPTO.renderGraph",
@@ -33,6 +39,11 @@
         "title": "%pypto.OpenDiffComGraphForCurrent%"
       },
       {
+        "category": "PyPTO.renderNodeSearch",
+        "command": "PyPTO.OpenComGraphForNodeSearch",
+        "title": "%pypto.OpenComGraphForNodeSearch%"
+      },
+      {
         "category": "PyPTO.OpenLinkageMode",
         "command": "PyPTO.OpenLinkageMode",
         "title": "%PyPTO.OpenLinkageMode%"
@@ -46,12 +57,12 @@
     "menus": {
       "explorer/context": [
         {
-          "command": "PyPTO.OpenRenderGraphForCurrent",
+          "submenu": "pypto.graph.advan",
           "when": "resourceExtname == .json",
           "group": "navigation"
         },
         {
-          "command": "PyPTO.OpenDiffComGraphForCurrent",
+          "command": "PyPTO.OpenRenderGraphForCurrent",
           "when": "resourceExtname == .json",
           "group": "navigation"
         },
@@ -59,6 +70,18 @@
           "command": "PyPTO.OpenLinkageMode",
           "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
+        }
+      ],
+      "pypto.graph.advan":[
+        {
+          "command": "PyPTO.OpenDiffComGraphForCurrent",
+          "when": "resourceExtname == .json",
+          "group": "1_graph@1"
+        },
+        {
+          "command": "PyPTO.OpenComGraphForNodeSearch",
+          "when": "resourceExtname == .json",
+          "group": "1_graph@2"
         }
       ],
       "editor/context": [

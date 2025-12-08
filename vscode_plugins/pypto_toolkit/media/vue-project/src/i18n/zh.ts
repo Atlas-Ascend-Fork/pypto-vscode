@@ -38,8 +38,8 @@ export default {
    "Scaling": '缩放',
    "TimeMeasurement": '时间度量',
    "KeyboardControl": '键盘控制',
-   "LeftShifting": '左移',
-   "RightShifting": '右移',
+   "LeftMove": '左移',
+   "RightMove": '右移',
    'Measure': '度量',
    'ReportTitle' : '总体性能统计',
    'ICacheHitRate' : 'iCache命中率',
@@ -203,7 +203,10 @@ export default {
       searchPageTips: '界面说明',
       searchPageTipsContent: '在搜索框内键入渲染文件的任意节点magic或者子图id进行搜索, 将获得包含搜索节点及所有相关节点在内的渲染图',
       pleaseSelect: '请选择',
-      noData: '无数据'
+      noData: '无数据',
+      leafCalledRecord: 'Leaf 被调用记录',
+      calledFunctionName: '被调用函数名',
+      callNumber: '调用次数'
    },
     sideBar: {
         title: '运行结果',
@@ -233,8 +236,11 @@ export default {
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
         codeSnippet:'代码片段',
-        splitScreenView:'分屏查看'
-    },
+        splitScreenView:'分屏查看',
+        snippetErrNoLineTitle: '读取失败:',
+        snippetErrNoFileTitle: '无法读取以下文件:',
+        snippetErrNoLineContent: '源码已修改，找不到对应代码行',
+},
     schemaConfig:{
         title:'新增运行配置',
         detail:'选择系统模板复用配置',

@@ -273,6 +273,7 @@ const addChildContext = (childName, ctx) => {
 const searchResult = ref([]);
 const currentResultIndex = ref(0);
 const isSearchActive = ref(false);
+const searchedEvent = ref(null);
 const searchQuery = ref('');
 const isCaseSensitive = ref(false);
 
@@ -837,7 +838,7 @@ const selectEvent = (event, processKey) => {
     childContextMap.threadEvent.changeNodeColor(processKey, true);
     renderDependencyLines(processKey);
   } else {
-    childContextMap.threadEvent.changeNodeColor(processKey, false);
+    childContextMap.threadEvent.changeNodeColor(processKey, searchedEvent.value);
     clearDependencyLines(processKey);
     detailsPanelExpanded.value = false;
   }
@@ -1796,6 +1797,7 @@ provide('swimGraphState', {
   isCfgEditing,
   isShortcutKeyShow,
   isThreeColumn: props.isThreeColumn,
+  searchedEvent
 });
 
 // 提供方法给子组件

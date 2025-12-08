@@ -9,20 +9,22 @@
       top: `${props.config.y}px`,
     }"
   >
-    <div class="code-preview__header" @click="openFile">
-      <span class="header__title">{{ t('controlFlows.codeSnippet') }}</span>
-      <div class="header__open-source">
+    <div class="code-preview__header">
+      <span v-if="isOpenFile" class="header__title">{{ t('controlFlows.codeSnippet') }}</span>
+      <div v-else class="header__error__group">
+        <i class="icon icon-warning-triangle error__icon"></i>
+        <span class="header__title">{{ errTitle }}</span>
+      </div>
+      <div v-if="isOpenFile" class="header__open-source" @click="openFile">
         <img :src="svgPath" />
         <span class="open-source__text">{{ t('controlFlows.splitScreenView') }}</span>
       </div>
     </div>
-    <div
-      class="code-preview__container"
-      @mousedown.stop
-    >
+    <div v-if="isOpenFile" class="code-preview__container" @mousedown.stop>
       <!-- Monaco Editor 容器 -->
-      <div ref="editorContainer" class="code-preview-editor" />
+      <div ref="editorContainer" class="code-preview-editor"></div>
     </div>
+    <div v-else class="code-preview-err">{{ errContent }}</div>
   </div>
 </template>
 
@@ -32,6 +34,8 @@ import { useI18n } from 'vue-i18n';
 import * as monaco from 'monaco-editor';
 import { getSnippetCodeText, openControlFlowTargetFile } from '@/apis/control-flow';
 import { CodePreviewProps } from '../type/node-detail-types';
+import { GetSnippetDocumentTag } from 'ext:/types/control-flow/source-code';
+
 const { isDarkTheme } = inject('root');
 const svgPath = computed(
   () => `${(window as any).staticPath}/static-assets/control_flow_code_snippet${isDarkTheme.value ? '' : '-light'}.svg`,
@@ -50,14 +54,31 @@ const emit = defineEmits<{
 const previewContainer = ref<HTMLDivElement | null>(null);
 const editorContainer = ref<HTMLDivElement | null>(null);
 let monacoEditor = null;
-const previewCode = ref('cese');
+const previewCode = ref('');
 const previewOpacity = ref(0);
+const isOpenFile = ref(true);
+const errTitle = ref('')
+const errContent=ref('')
 
 /** 打开代码片段源代码文件 */
 function openFile() {
   const { fileDir, codeStartLine, codeEndLine, line } = props.config;
   openControlFlowTargetFile({ filePath: fileDir, startLine: codeStartLine, endLine: codeEndLine, line: line });
 }
+
+//配置 Monaco Worker 环境
+const configureMonacoWorker = () => {
+  // 覆盖 Monaco 的 Worker 加载规则
+  (self as any).MonacoEnvironment = {
+    getWorkerUrl: () => {
+      // 创建空的内联 Worker（只读预览无需 Worker 处理逻辑）
+      const blob = new Blob(['self.onmessage = () => {};'], {
+        type: 'application/javascript',
+      });
+      return URL.createObjectURL(blob);
+    },
+  };
+};
 
 // 初始化 Monaco Editor
 const initEditor = async () => {
@@ -69,20 +90,31 @@ const initEditor = async () => {
     document.addEventListener('keydown', handleKeyDown);
     // 监听窗口大小变化，重新处理边界
     window.addEventListener('resize', handleBoundaryCheck);
-    // 监听 Electron 窗口失焦事件（VSCode 切换到其他窗口时触发）
-    window.addEventListener('blur', handleClickVsCodeBlur);
-    previewCode.value = JSON.stringify(props);
     const { config } = props;
-    const code = await getSnippetCodeText({
+    //获取代码片段
+    const res = await getSnippetCodeText({
       filePath: config.fileDir,
       startLine: config.codeStartLine,
       endLine: config.codeEndLine,
       line: config.line,
     });
+
+    previewCode.value = res.document;
+
+    if (res.isSuccessful === GetSnippetDocumentTag.IS_SUCCESSFUL) {
+      isOpenFile.value=true
+    } else {
+      isOpenFile.value = false
+      errTitle.value=res.isSuccessful===GetSnippetDocumentTag.IS_NO_LINE?t('controlFlows.snippetErrNoLineTitle'):t('controlFlows.snippetErrNoFileTitle')
+      errContent.value=res.isSuccessful===GetSnippetDocumentTag.IS_NO_LINE?t('controlFlows.snippetErrNoLineContent'):props.config.fileDir
+      return;      
+    }
+    // 配置 Worker 环境
+    configureMonacoWorker();
     // 创建编辑器实例
     monacoEditor = monaco.editor.create(editorContainer.value, {
-      value: code,
-      language: config.language || 'auto', // 识别语言
+      value: previewCode.value,
+      language: config.language || 'plaintext', // 识别语言
       theme: props.theme, // 主题
       readOnly: true, // 只读模式（预览用）
       minimap: { enabled: false }, // 隐藏迷你地图
@@ -117,12 +149,6 @@ const initEditor = async () => {
         horizontalHasArrows: false, // 隐藏水平滚动条箭头
       },
     });
-
-    // 监听编辑器失去焦点事件
-    monacoEditor.onDidBlurEditorWidget(() => {
-      monacoEditor.dispose();
-      monacoEditor = null;
-    });
   } catch (error) {
     console.error('Monaco Editor 初始化失败:', error);
   }
@@ -134,11 +160,11 @@ const disposeEditor = () => {
     if (monacoEditor) {
       monacoEditor.dispose();
       monacoEditor = null;
+      previewCode.value = '';
       // 移除事件监听
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', handleBoundaryCheck);
-      window.removeEventListener('blur', handleClickVsCodeBlur);
       previewOpacity.value = 0;
     }
   } catch (error) {
@@ -190,15 +216,11 @@ const handleClose = () => {
   emit('close');
 };
 
-// 点击外部区域关闭（除了编辑器内部）
+// 点击外部区域关闭（编辑器内部）
 const handleClickOutside = (e: MouseEvent) => {
   if (previewContainer.value && !previewContainer.value.contains(e.target as Node)) {
     handleClose();
   }
-};
-// 点击外部区域关闭（除了编辑器内部）
-const handleClickVsCodeBlur = (e: MouseEvent) => {
-  handleClose();
 };
 
 // 监听键盘键关闭
@@ -218,9 +240,9 @@ onMounted(() => {
         await nextTick();
         if (newVal && editorContainer.value) {
           await initEditor();
-          // 处理边界，避免窗口超出视口
-          handleBoundaryCheck();
         }
+        // 处理边界，避免窗口超出视口
+        handleBoundaryCheck();
       },
       { immediate: true },
     );
@@ -245,16 +267,27 @@ onUnmounted(() => {
   transition: opacity 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   z-index: 100;
 
   .code-preview__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 28px;
+    height: 24px;
     font-size: 13px;
     line-height: 20px;
+
+    .header__error__group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .error__icon {
+        font-size: 13px;
+        color: rgb(240, 166, 7);
+      }
+    }
 
     .header__title {
       font-weight: 700;
@@ -282,6 +315,19 @@ onUnmounted(() => {
   max-height: 400px;
   border-radius: 4px;
   overflow: hidden;
+}
+
+.code-preview-err {
+  width: 600px;
+  box-sizing: border-box;
+  height: auto;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .code-preview-editor {

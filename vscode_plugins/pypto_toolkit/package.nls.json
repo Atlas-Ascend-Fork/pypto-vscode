@@ -1,6 +1,8 @@
 {
   "pypto.OpenRenderGraphForCurrent": "PyPTO Toolkit: Open file",
   "pypto.OpenDiffComGraphForCurrent": "PyPTO Toolkit: Open Compute Graph differences comparison",
+  "pypto.OpenComGraphForNodeSearch": "Search and open the computation graph by node",
+  "pypto.OpenGraphForAdvanceFeatures": "PyPTO Toolkit: Advanced features",
   "PyPTO.CloseAllToolPages": "PyPTO Toolkit: Close all tool pages",
   "PyPTOToolkit.tensorAttr.description": "JS code to get the tensor attribute from json. eg: (tensor) => [`magic: ${tensor.magic}`, `shape: ${JSON.stringify(tensor.shape)}`]. Tips: After making changes, please use the ctrl+shift+p to call the command 'Delete Cache Db File', and then reopen the computation graph to take effect",
   "PyPTOToolkit.operationAttr.description": "JS code to get the operation attribute from json. eg: (operation) => [`opcode: ${operation.opcode}`]. Tips: After making changes, please use the ctrl+shift+p to call the command 'Delete Cache Db File', and then reopen the computation graph to take effect",
