@@ -160,9 +160,10 @@ export abstract class BaseGraphMsgHandler {
   }
 
   static async openSearchMode(message: any, server: any) {
-    const nodeMagic: number = message.data;
+    const nodeMagic: number = message.data?.nodeMagic;
+    const funcHash = message.data?.funcHash;
     const gd = server.comGraphData;
-    commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), undefined, false, nodeMagic);
+    commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
   }
 
   /* ===================================================
@@ -579,6 +580,8 @@ export abstract class BaseGraphMsgHandler {
   
           server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
       }
+      server.query.isSearch = false;
+      server.query.nodeMagic = undefined;
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
       const [_, passIndex, __] = server.comGraphData.fsPath?.match(passDirectoryRegExp) ?? [];
