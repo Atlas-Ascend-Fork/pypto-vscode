@@ -209,7 +209,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   const SearchModeOpenListener = (args) => {
-    server.openSearchMode({data: args});
+    const data = {
+      nodeMagic: args,
+      funcHash: typeof comGraphStore.data.curPath === "string" ? JSON.parse(comGraphStore.data.curPath).at(-1) : comGraphStore.data.curPath[0]
+    };
+    server.openSearchMode({data});
   }
 
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
