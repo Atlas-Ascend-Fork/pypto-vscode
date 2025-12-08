@@ -102,6 +102,9 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   diffList.value = list as any;
   showDiffList.value = showDiff;
   const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
+  if (beforeIns) {
+    beforeIns.resetModelSource();
+  }
   beforeIns = useSprottyLoad(`sprotty-before`, 'before');
   beforeIns.initComDocText(jsonValue, isDarkTheme.value);
   afterIns = useSprottyLoad(`sprotty-after`, 'after');
