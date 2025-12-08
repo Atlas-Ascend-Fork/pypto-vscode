@@ -36,7 +36,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
-  openSearchMode: (message: { data: any }) => Promise<void>;
+  openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;
@@ -103,7 +103,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
-  openSearchMode: (message: { data: any }) => Promise<void>;
+  openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;
