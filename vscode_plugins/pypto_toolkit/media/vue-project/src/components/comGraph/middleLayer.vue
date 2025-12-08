@@ -20,7 +20,8 @@ const graphName = ref('');
 const isHovered = ref(false);
 const graphNameTemp = ref('');
 const jsonContent = ref({});
-const errorMessage = ref('');
+const comErrorMessage = ref('');
+const swimErrorMessage = ref('');
 const errorLog = ref('');
 const swimGrahRef = ref();
 const loadingStep = ref('');
@@ -35,7 +36,6 @@ const openMode = ref('all');
 const nodeMagic = ref(0);
 const comLoadFlag = ref(false);
 const swimLoadFlag = ref(false);
-const errorGraphType = ref('');
 const noComFile = ref(false);
 const noSwimFile = ref(false);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
@@ -70,14 +70,12 @@ if (graphType.value === 'swimGraph') {
 }
 
 (window as any).ascEventBus.on('jsonParseError', (args) => {
-  errorMessage.value = args.msg;
-  errorGraphType.value = args.graphType;
+  swimErrorMessage.value = args.msg;
 });
 
 function setupComWatchers(server: any) {
   watch(server.ErrorMessage, (newValue) => {
-    errorMessage.value = newValue.data;
-    errorGraphType.value = newValue.graphType;
+    comErrorMessage.value = newValue.data;
     errorLog.value = newValue.log;
   });
 
@@ -284,14 +282,20 @@ const modelConfirm = async () => {
   if (replaceMsg.value.graphType === "swimGraph") {
     const swimPath = replaceMsg.value.paths.swimPath;
     const comPath = selectPath;
+    if (comErrorMessage.value) {
+      comErrorMessage.value = '';
+    }
     await server.innerGetSubgraph({ paramObj: { calleehash: comPath, subFuncmagicname: comPath } });
     await server.replaceFile({ options: { swimPath, comPath: "" } });
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
     swimGrahRef.value.loading = true;
+    if (swimErrorMessage.value) {
+      swimErrorMessage.value = '';
+    }
     await server.replaceFile({ options: { swimPath, comPath } });
-    await server.resetSwimData().then((newValue) => {
+    server.resetSwimData().then((newValue) => {
       swimGrahRef.value.setPageState(newValue);
       swimGrahRef.value.loadTraceData(newValue.data);
     });
@@ -322,18 +326,18 @@ const onInputLeave = (event) => {
 </script>
 
 <template>
-  <template v-if="graphType !== 'threeColumnGraph' && errorMessage !== ''">
-    <ErrorView style="height: 100vh" :jsonContent="errorMessage" :errorLog="errorLog" />
+  <template v-if="graphType !== 'threeColumnGraph' && (comErrorMessage || swimErrorMessage)">
+    <ErrorView style="height: 100vh" :jsonContent="(comErrorMessage || swimErrorMessage)" :errorLog="errorLog" />
   </template>
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="errorMessage && errorGraphType === 'comGraph'" :jsonContent="errorMessage" />
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
         <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
       </template>
       <template #swimGraph>
-        <ErrorView v-if="errorMessage && errorGraphType === 'swimGraph'" :jsonContent="errorMessage" />
+        <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />
         <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
           :graphType="graphType" />
         <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />
@@ -352,7 +356,7 @@ const onInputLeave = (event) => {
     <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
   </template>
   <template>
-    <d-modal v-model="modalVisible" :title="$t('confirm')" class="modal-containner">
+    <d-modal v-model="modalVisible" :title="$t('confirm')" class="modal-containner" :close-on-click-overlay="false">
       <div class="modal-background">{{ $t('replaceFileInfo', { graphName, graphNameTemp }) }}</div>
       <template #footer>
         <d-modal-footer class="modal-button">

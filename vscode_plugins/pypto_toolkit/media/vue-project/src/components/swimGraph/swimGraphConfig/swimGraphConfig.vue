@@ -9,7 +9,7 @@
         </div>
         <div class="cfg-Shading-mode">
             <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
-            <d-select v-model="modeOption" :options="modeOptions" size="sm" @update:modelValue="OnModeChange"></d-select>
+            <d-select v-model="modeOption" :options="modeOptions" size="sm" @update:modelValue="OnModeChange" :disabled=isThreeColumn></d-select>
         </div>
         <div class="task-content">
             <div class="task-content-t">{{ $t('eventTask') }} </div>
@@ -41,6 +41,7 @@ const {
     isCfgEditing,
     childContextMap,
     timelineState,
+    isThreeColumn,
 } = inject('swimGraphState');
 
 const {
@@ -175,12 +176,16 @@ defineExpose({
 
     .devui-select__selection {
         height: 28px;
-        background-color: var(--devui-input-bg) !important;
+        background-color: var(--devui-input-bg);
         border-color: transparent;
         input {
             display:flex;
             align-items: center;
         }
+    }
+    .devui-select--disabled .devui-select__selection {
+        background-color: var(--devui-input-disabled-bg);
+        border-color: transparent;
     }
 }
 

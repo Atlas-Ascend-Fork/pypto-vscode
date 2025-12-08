@@ -97,7 +97,8 @@ const {
   isLockStatus,
   dependencyLinesInfo,
   isThreeColumn,
-  searchedEvent
+  searchedEvent,
+  colorRending
 } = swimGraphState;
 
 const {
