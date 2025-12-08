@@ -332,7 +332,7 @@ const onInputLeave = (event) => {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" />
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog"/>
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
         <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
       </template>
