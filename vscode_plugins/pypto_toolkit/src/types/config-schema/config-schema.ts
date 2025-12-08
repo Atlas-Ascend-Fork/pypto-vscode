@@ -1,27 +1,8 @@
-interface SchemaItem {
-  description?: string;
-  type: string;
-  properties?: {
-    [key: string]: SchemaItem;
-  };
-}
+import * as vscode from 'vscode';
 
 /**
  * 读取的Schema文件返回数据类型
  */
-export interface PtoConfigSchemaResponseDto {
-  additionalProperties: boolean;
-  type: string;
-  $schema?: string;
-  $id?: string;
-  title?: string;
-  description?: string;
-  properties: {
-    [key: string]: SchemaItem;
-  };
-  required: string[];
-  $comment: string;
-}
 
 interface PlatformConfigs {
   USE_SSA: boolean;
@@ -155,7 +136,7 @@ export interface TileFWKConfigResponseDto {
   cycle_upper_bound?: number;
   cycle_lower_bound?: number;
   parallel_threshold?: number;
-  copyin_threshold: number;
+  copyin_threshold?: number;
   db_type?: number;
   global_configs: GlobalConfigs;
   pass_global_configs: PassGlobalConfigs;
@@ -178,4 +159,112 @@ export interface CustomConfigItemVo {
   configName: string;
   configBaseName: string;
   configPath: string;
+}
+
+/**
+ * 配置文件信息类型
+ */
+export interface ConfigFileInfo {
+  /** 文件唯一URI */
+  uri: vscode.Uri;
+  /** 文件绝对路径 */
+  path: string;
+  /** 文件名 */
+  fileName: string;
+  /** 所在工作区名称 */
+  workspaceName: string;
+  /** 最后修改时间 */
+  lastModified: Date;
+  /** 文件大小（字节） */
+  size: number;
+}
+
+/**
+ * 扫描状态类型
+ */
+export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
+
+/**
+ * schema仿真数据结构类型
+ */
+export type RunConfigAttributeType = 'boolean' | 'number' | 'string' | 'enum' | 'array' | 'array:string' | 'array:number';
+
+export type ValueType<T extends RunConfigAttributeType> = T extends 'boolean'
+  ? boolean
+  : T extends 'number'
+  ? number
+  : T extends 'string'
+  ? string
+  : T extends 'enum'
+  ? string | number | undefined
+  : T extends 'array'
+  ? boolean | string | number[]
+  : never;
+
+export type OptionsType<T extends RunConfigAttributeType> = T extends 'enum'
+  ? { value: ValueType<T>; label: { zh: string; en: string } }[]
+  : undefined;
+
+/**
+ * schema转换后的数据结构
+ */
+export interface RunConfigAttribute<T extends RunConfigAttributeType> {
+  key?: string;
+  type: T;
+  label: { zh: string; en: string };
+  defaultValue: ValueType<T>;
+  options?: OptionsType<T>;
+}
+export interface SchemaProperty {
+  type: string;
+  defaultValue?: boolean | string | number;
+  description?: { zh: string; en: string };
+  options?: { value: boolean | string | number; description?: { zh: string; en: string } }[];
+  properties?: Record<string, SchemaProperty>;
+  items?: { type: string };
+}
+
+export interface SchemaType {
+  additionalProperties: boolean;
+  type: 'object';
+  properties: {
+    global_configs?: SchemaProperty;
+    pass_global_configs?: SchemaProperty;
+    strategies?: SchemaProperty;
+    pass_execution_order: {
+      type: string;
+      default: string[];
+    };
+  };
+}
+
+/**
+ * schema Pass表格表单数据结构类型
+ */
+export interface TablePass {
+  key: string;
+  index: number;
+}
+
+export interface PassFormTableaTemplate {
+  pass: TablePass[];
+  global_configs: RunConfigAttribute<any>[];
+}
+
+export interface ConfigsTemplate {
+  tag: boolean;
+  simulationTemplate: RunConfigAttribute<any>[];
+  passTemplate: PassFormTableaTemplate | {};
+}
+
+export interface ConfigsForRevise {
+  tag: boolean;
+  simulationConfig: object;
+  passConfig: object;
+  path?: string;
+}
+
+export interface ReadSchemaData {
+  schemaData?: SchemaType;
+  tag: boolean;
 }

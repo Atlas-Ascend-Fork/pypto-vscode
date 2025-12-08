@@ -1,7 +1,7 @@
 import { request } from '@/core/request';
 import {
   CustomConfigItemVo,
-  PtoConfigSchemaResponseDto,
+  SchemaType,
   TileFWKConfigResponseDto,
   updateTitleFWKConfigRequestDto,
 } from 'ext:/types/config-schema/config-schema';
@@ -18,7 +18,7 @@ export function getCustomFileList(): Promise<CustomConfigItemVo[]> {
 /**
  * 获取配置schema
  */
-export function getSchemaData(): Promise<PtoConfigSchemaResponseDto> {
+export function getSchemaData(): Promise<SchemaType> {
   return request.post(`${CONFIG}/getSchemaData`, null);
 }
 
