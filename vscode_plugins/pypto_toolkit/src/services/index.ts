@@ -75,7 +75,7 @@ export const services = {
 };
 
 let singletonServices: { runData: RunDataService; configData: ConfigDataService };
-
+type Services = typeof singletonServices;
 export function startAllServices() {
   singletonServices = { runData: new RunDataService(), configData: new ConfigDataService() };
 }
@@ -86,6 +86,6 @@ export function closeAllServices() {
   });
 }
 
-export function useService(name: keyof typeof singletonServices) {
+export function useService<T extends keyof Services>(name: T): Services[T] {
   return singletonServices[name];
 }
