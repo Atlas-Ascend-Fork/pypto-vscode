@@ -1,6 +1,7 @@
 import type { Database, SqlJsStatic } from 'sql.js';
 import initSqlJs from 'sql.js';
 import * as vscode from 'vscode';
+import { existsSync } from 'fs';
 
 import type { SqlStore } from './sql-store';
 
@@ -28,7 +29,7 @@ export class SqlStoreManager extends vscode.Disposable {
   private _openedDatabases = new WeakMap<SqlStore<any>, Database>();
 
   constructor(extensionContext: vscode.ExtensionContext) {
-    super(() => {});
+    super(() => { });
     SqlStoreManager.instance = this;
     this._dbDirUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
     this._initializeSqlStore();
@@ -38,7 +39,9 @@ export class SqlStoreManager extends vscode.Disposable {
    * 清空所有sql-store存储
    */
   public async clearAllSqlStore(): Promise<void> {
-    await vscode.workspace.fs.delete(this._dbDirUri, { recursive: true });
+    if (existsSync(this._dbDirUri.fsPath)) {
+      await vscode.workspace.fs.delete(this._dbDirUri, { recursive: true });
+    }
     for (const store of this._openedStores) {
       store.initializeDb();
     }

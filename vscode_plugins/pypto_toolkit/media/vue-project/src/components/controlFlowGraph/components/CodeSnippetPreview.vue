@@ -157,6 +157,7 @@ const initEditor = async () => {
 // 销毁编辑器实例
 const disposeEditor = () => {
   try {
+      isOpenFile.value = true;
     if (monacoEditor) {
       monacoEditor.dispose();
       monacoEditor = null;
@@ -238,7 +239,7 @@ onMounted(() => {
       () => props.config.isVisible,
       async (newVal) => {
         await nextTick();
-        if (newVal && editorContainer.value) {
+        if (newVal) {
           await initEditor();
         }
         // 处理边界，避免窗口超出视口

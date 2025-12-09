@@ -2,18 +2,20 @@ import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { DiffGraphData, AbstractGraphData } from '../core/graphData'; // 具体实现类，非抽象
 import { getDiffInfo, getOtherFilePath } from '../util';
 import { basename } from 'path';
+import { t } from 'i18next';
 
 export class DiffGraphHandler extends BaseGraphMsgHandler {
   /**
    * 1. 把两份图数据挂到面板
    */
-  protected static override async loadMainData(server: any): Promise<void> {
+  protected static override async loadMainData(server: any): Promise<boolean> {
     const fsPath = server.query._path;
     // 原图
     await DiffGraphHandler.loadGraphData(server, server.query, fsPath, 'comGraphData');
     // 对比图
     server.query.otherFsPath = getOtherFilePath(fsPath);
     await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData');
+    return true;
   }
 
   /**
@@ -34,7 +36,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     // 1. 取数据
     const { json } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash, message: '' });
       return;
     }
     const { json: diffJson } = await this.fetchGraphJson(diffgd, server);
@@ -71,11 +73,11 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
 
     // 3. 缓存判断&读取文件数据
     console.debug('DiffGraphHandler getInitialData 开始读json数据');
-    let originIsBigFile = false;
-    let diffIsBigFile = false;
-    originIsBigFile = await this.getJsonData(gd, server, originIsBigFile);
+    const oriJsonDataResult = await this.getJsonData(gd, server);
+    if (!oriJsonDataResult) return;
     if (diffgd) {
-      diffIsBigFile = await this.getJsonData(diffgd, server, diffIsBigFile);
+      const diffJsonDataResult = await this.getJsonData(diffgd, server);
+      if (!diffJsonDataResult) return;
     }
     // 4. 加载FuncHashMap
     await this.loadFuncHashMap(server, gd);
@@ -94,10 +96,24 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
     const gd = server[prop] as DiffGraphData;
     if (!gd.funcHash) {
-      const { entryhash, version } = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
-      gd.funcHash = entryhash;
-      gd.version = version;
+      try {
+        const { entryhash, version } = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
+        gd.funcHash = entryhash;
+        gd.version = version;
+      } catch (err: any) {
+        if (err.code === 'FILE_READ_ERROR') {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          return false;
+        } else if (err.code === 'JSON_PARSE_ERROR') {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          return false;
+        } else {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          return false;
+        }
+      }
     }
+
   }
 
   /** 6. 重写一些小的父类方法 */

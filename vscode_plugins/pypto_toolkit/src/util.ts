@@ -48,7 +48,7 @@ export class Util {
     const result = {};
     for (const key of configKeys) {
       const value = config.get(key);
-      if (value !== undefined && value !== null) {
+      if (value) {
         const lowerCaseValue = value.toString().toLowerCase();
         if (seenShortCut.has(lowerCaseValue)) {
           window.showWarningMessage(t('pypto.configWarning'), t('pypto.configImprove')).then((selection) => {

@@ -285,8 +285,7 @@ const modelConfirm = async () => {
     if (comErrorMessage.value) {
       comErrorMessage.value = '';
     }
-    await server.innerGetSubgraph({ paramObj: { calleehash: comPath, subFuncmagicname: comPath } });
-    await server.replaceFile({ options: { swimPath, comPath: "" } });
+    await server.replaceFile({ options: { swimPath, comPath: comPath } });
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
@@ -332,7 +331,7 @@ const onInputLeave = (event) => {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" />
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog"/>
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
         <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
       </template>

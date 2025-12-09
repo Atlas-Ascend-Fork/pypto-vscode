@@ -3,6 +3,7 @@ import { EditorViewRaw } from '../core/editorView';
 import { ComputeGraphServer } from './servers/com-graph-server';
 import { ThreeColumnServer } from './servers/three-column-server';
 import { SwimGraphServer } from './servers/swim-graph-server';
+import { RunConfigViewServer } from './servers/run-config-view-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
   // 控制流
@@ -29,8 +30,9 @@ export const routes: EditorViewRoutes = {
     viewServer: SwimGraphServer,
   },
 
-  // 编辑配置
-  ptoNewConfig: {
+  // 编辑运行配置
+  editRunConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
+    viewServer: RunConfigViewServer,
   },
 };

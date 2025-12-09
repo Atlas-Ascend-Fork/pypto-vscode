@@ -36,7 +36,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
-  openSearchMode: (message: { data: any }) => Promise<void>;
+  openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;
@@ -103,7 +103,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
-  openSearchMode: (message: { data: any }) => Promise<void>;
+  openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any }) => Promise<void>;
@@ -116,6 +116,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
 export type ISwimApis =
   | 'getInitialData'
   | 'getSwimData'
+  | 'validateSwimFile'
   | 'bindComGraphJson'
   | 'unbindComGraph'
   | 'jumpToComGraph'
@@ -123,7 +124,8 @@ export type ISwimApis =
   | 'jumpRawMagic'
   | 'showMessage'
   | 'saveRendingMode'
-  | 'changeUserCfgConnection';
+  | 'changeUserCfgConnection'
+  | 'getShortCutKeyCfg';
 export type ISwimRefs = {
   returnSwim: unknown;
   noSwimFile: unknown;
@@ -134,6 +136,7 @@ export type ISwimRefs = {
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
   getSwimData: () => Promise<any>;
+  validateSwimFile: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;
   jumpToComGraph: (message: { paramObj: any }) => Promise<void>;
@@ -142,6 +145,7 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   showMessage: (message: { paramObj: any }) => Promise<void>;
   saveRendingMode: (message: { paramObj: any }) => Promise<void>;
   changeUserCfgConnection: (message: { paramObj: any }) => Promise<void>;
+  getShortCutKeyCfg: () => Promise<any>;
 }
 
 export type ICommonApis = 'getInitialData';

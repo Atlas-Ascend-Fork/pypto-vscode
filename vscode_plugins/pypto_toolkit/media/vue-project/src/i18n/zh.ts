@@ -34,8 +34,10 @@ export default {
    "VerticalMovement": '纵向移动',
    "Single/BoxSelection": '单选/框选',
    "CombinedControl": '组合控制',
-   "LateralMovement": '横向移动',
+   "DragAndDrop": '拖拽',
    "Scaling": '缩放',
+   "BoxSelect": '框选',
+   "BoxSelectContent": '单指按下触控板滑动',
    "TimeMeasurement": '时间度量',
    "KeyboardControl": '键盘控制',
    "LeftMove": '左移',
@@ -139,7 +141,10 @@ export default {
    swimGraphcategoryDesc:'请选择筛选条件：',
     public: {
         loading: '加载中...',
-        allLoaded: '没有更多了'
+        allLoaded: '没有更多了',
+        inputPlaceholder: '请输入',
+        save: '保存',
+        cancel: '取消'
     },
    openFile: '打开文件',
    noJsonFile: '插件未识别到相关联的{graphName}',
@@ -206,7 +211,8 @@ export default {
       noData: '无数据',
       leafCalledRecord: 'Leaf 被调用记录',
       calledFunctionName: '被调用函数名',
-      callNumber: '调用次数'
+      callNumber: '调用次数',
+      autoLineWrap: '自动换行'
    },
     sideBar: {
         title: '运行结果',
@@ -241,9 +247,10 @@ export default {
         snippetErrNoFileTitle: '无法读取以下文件:',
         snippetErrNoLineContent: '源码已修改，找不到对应代码行',
 },
-    schemaConfig:{
-        title:'新增运行配置',
-        detail:'选择系统模板复用配置',
-        defaultConfiguration:'默认配置',
+    runConfig:{
+        scanning:'扫描中...',
+        filepathLabel: '文件路径：',
+        viewSourceFile: '查看源文件',
+        unknownDataType: '未知的数据类型'
     }
 }

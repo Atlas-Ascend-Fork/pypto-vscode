@@ -1,25 +1,20 @@
 <template>
-    <div class="node-rect" v-if="showNodeTip" :style="nodeTipStyle">
-        <div class="title-rect" :style="{backgroundColor: titleRectColor, height: titleRectHeight + 'px'}">
-        <div class="label-title" >{{ currentLabels[0] }} </div>
-        <div class="sub-title">{{ currentLabels[1] }} </div>
-        <div class="label-magic">{{ tipNodeMagic }} </div>
-      </div>
-      <div
-        v-for="(lbl, idx) in currentLabels.slice(2)"
-        :key="idx"
-        class="label-line"
-        >
-        <span class="key">{{ lbl.split(':')[0] }}:</span>
-        <span class="val">{{ lbl.split(':').slice(1).join(':') }}</span>
-      </div>
+  <div class="node-rect" v-if="showNodeTip" :style="nodeTipStyle">
+    <div class="title-rect" :style="{ backgroundColor: titleRectColor, height: titleRectHeight + 'px' }">
+      <div class="label-title">{{ currentLabels[0] }} </div>
+      <div class="sub-title">{{ currentLabels[1] }} </div>
+      <div class="label-magic">{{ tipNodeMagic }} </div>
     </div>
+    <div v-for="(lbl, idx) in currentLabels.slice(2)" :key="idx" class="label-line">
+      <span class="key">{{ lbl.split(':')[0] }}:</span>
+      <span class="val">{{ lbl.split(':').slice(1).join(':') }}</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 
 import { onMounted, ref, computed } from 'vue';
-import { debounce } from 'lodash-es';
 import { comGraphStore } from '../../service/com-graph-store';
 
 
@@ -34,6 +29,7 @@ const tipNodeMagic = ref('0');
 const titleRectColor = ref('');
 const titleRectHeight = ref(48);
 const scale = ref(1);
+let timer;
 
 const nodeTipStyle = computed(() => ({
   left: `${nodeTipLeft.value}px`,
@@ -44,130 +40,138 @@ const nodeTipStyle = computed(() => ({
   transform: `scale(${scale.value})`,
 }));
 
+const showTip = (target) => {
+  const screenZoom = window.devicePixelRatio;
+  if (screenZoom < 1.25) {
+    scale.value = 1.25 / screenZoom;
+  }
+  let initLeft = 0;
+  let initTop = 0;
+  if (target.parent.filePath) {
+    if (target.parent.filePath == 'after') {
+      const rect = document.querySelector('.diff-after-wrap')!.getBoundingClientRect();
+      initLeft = rect?.left;
+      initTop = rect?.top;
+    }
+    if (target.parent.filePath == 'before') {
+      const rect = document.querySelector('.diff-before-wrap')!.getBoundingClientRect();
+      initLeft = rect?.left;
+      initTop = rect?.top;
+    }
+  }
+  showNodeTip.value = true;
+  nodeTipWidth.value = target.size.width;
+  nodeTipHeight.value = target.size.height + 4;
+  // left 定位到中间计算 positionX +  x / 2 - x * zoom / 2
+  let tipLeft = -target.parent.scroll.x * target.parent.zoom +
+    target.position.x * target.parent.zoom - ((target.size.width * (1 - target.parent.zoom)) / 2) + initLeft;
+  let tipTop = -target.parent.scroll.y * target.parent.zoom - target.size.height +
+    target.position.y * target.parent.zoom + initTop - 32 * target.parent.zoom - ((target.size.height) * (scale.value - 1) / 2);
+
+  const containerEl = document.querySelector('.com-graph-container');
+  if (containerEl) {
+    const cRect = containerEl.getBoundingClientRect();
+    const cLeft = cRect.left;
+    const cRight = cRect.right;
+    const cTop = cRect.top;
+    const cBottom = cRect.bottom;
+
+    const tipW = nodeTipWidth.value * scale.value;
+    const tipH = nodeTipHeight.value * scale.value;
+
+    /* 1. 顶部溢出 → 放目标下方 */
+    if (tipTop < cTop) {
+      const targetTop = -target.parent.scroll.y * target.parent.zoom
+        + target.position.y * target.parent.zoom + initTop;
+      const targetBottom = targetTop + target.size.height * target.parent.zoom;
+      tipTop = targetBottom + target.size.height * target.parent.zoom / 2;
+    }
+
+    /* 2. 左侧溢出 → 放目标正右边 */
+    if (tipLeft < cLeft) {
+      const targetLeft = -target.parent.scroll.x * target.parent.zoom
+        + target.position.x * target.parent.zoom + initLeft;
+      const targetRight = targetLeft + target.size.width * target.parent.zoom;
+
+      tipLeft = targetRight + target.size.width * target.parent.zoom / 2;
+      const targetCenterY = -target.parent.scroll.y * target.parent.zoom
+        + target.position.y * target.parent.zoom
+        + initTop
+        + (target.size.width * target.parent.zoom) / 2;
+      tipTop = targetCenterY - tipH / 2;
+    }
+
+    /* 3. 右侧溢出 → 放目标正左边 */
+    if (tipLeft + tipW > cRight) {
+      const targetLeft = -target.parent.scroll.x * target.parent.zoom
+        + target.position.x * target.parent.zoom + initLeft;
+      tipLeft = targetLeft - tipW;
+
+      const targetCenterY = -target.parent.scroll.y * target.parent.zoom
+        + target.position.y * target.parent.zoom
+        + initTop
+        + (target.size.height * target.parent.zoom) / 2;
+      tipTop = targetCenterY - tipH / 2;
+    }
+  }
+
+  nodeTipLeft.value = tipLeft;
+  nodeTipTop.value = tipTop;
+
+  tipNodeMagic.value = target.magic;
+  const targetTitle = target.children?.[0].children?.[0];
+  const metaDataId = target.children?.[0].children?.[1]?.id ?? '';
+  const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
+  const selSet = new Set(comGraphStore.data.selectCustom);
+
+  const targetLabel = ((!metaDataId.includes('metadata-compartment')) || (!targetLabelAll.length) || (selSet.size === 0))
+    ? targetLabelAll
+    : targetLabelAll.filter((_, idx) => selSet.has(idx));
+  currentLabels.value = [];
+  currentLabels.value.push(targetTitle.text);
+  if (target.size.height > 50) {
+    titleRectHeight.value = 48;
+  } else {
+    titleRectHeight.value = 0;
+  }
+  if (target.role == 'input' || target.role == 'output') {
+    const slotStr = `Slot ID:    ${JSON.stringify(targetTitle.slotId)}`;
+    currentLabels.value.push(slotStr);
+    tipColor.value = 'var(--devui-node-bg)';
+    titleRectColor.value = 'var(--devui-node-bg)';
+  } else {
+    const subgraphidStr = `Subgraph ID:    ${JSON.stringify(targetTitle.subgraphId)}`;
+    currentLabels.value.push(subgraphidStr);
+    if (target.role == 'tensor') {
+      tipColor.value = 'var(--devui-node-bg)';
+    } else {
+      tipColor.value = target.baseColor;
+    }
+    titleRectColor.value = target.baseColor;
+  }
+  for (const label of targetLabel) {
+    currentLabels.value.push(label?.text);
+  }
+}
+
 onMounted(() => {
-    
-    (window as any).ascEventBus.on('closeNodeTip', (flag) => {
-        showNodeTip.value = false;
-    });
-    (window as any).ascEventBus.on('showNodeTip', debounce((target) => {
-        const screenZoom = window.devicePixelRatio;
-        if (screenZoom < 1.25) {
-            scale.value = 1.25 / screenZoom;
-        }
-        let initLeft = 0;
-        let initTop = 0;
-        if (target.parent.filePath) {
-            if (target.parent.filePath == 'after') {
-                const rect = document.querySelector('.diff-after-wrap')!.getBoundingClientRect();
-                initLeft = rect?.left;
-                initTop = rect?.top;
-            }
-            if (target.parent.filePath == 'before') {
-                const rect = document.querySelector('.diff-before-wrap')!.getBoundingClientRect();
-                initLeft = rect?.left;
-                initTop = rect?.top;
-            }
-        }
-        showNodeTip.value = true;
-        nodeTipWidth.value = target.size.width;
-        nodeTipHeight.value = target.size.height + 4;
-        // left 定位到中间计算 positionX +  x / 2 - x * zoom / 2
-        let tipLeft = -target.parent.scroll.x * target.parent.zoom +
-                            target.position.x * target.parent.zoom - ((target.size.width * (1 - target.parent.zoom)) / 2) + initLeft;
-        let tipTop = -target.parent.scroll.y * target.parent.zoom - target.size.height +
-                            target.position.y * target.parent.zoom + initTop - 32 * target.parent.zoom - ((target.size.height) * (scale.value - 1) / 2);
-
-        const containerEl = document.querySelector('.com-graph-container');
-        if (containerEl) {
-          const cRect = containerEl.getBoundingClientRect();
-          const cLeft   = cRect.left;
-          const cRight  = cRect.right;
-          const cTop    = cRect.top;
-          const cBottom = cRect.bottom;
-
-          const tipW = nodeTipWidth.value  * scale.value;
-          const tipH = nodeTipHeight.value * scale.value;
-
-          /* 1. 顶部溢出 → 放目标下方 */
-          if (tipTop < cTop) {
-            const targetTop = -target.parent.scroll.y * target.parent.zoom
-                              + target.position.y * target.parent.zoom + initTop;
-            const targetBottom = targetTop + target.size.height * target.parent.zoom;
-            tipTop = targetBottom + target.size.height * target.parent.zoom / 2; 
-          }
-
-          /* 2. 左侧溢出 → 放目标正右边 */
-          if (tipLeft < cLeft) {
-            const targetLeft  = -target.parent.scroll.x * target.parent.zoom
-                              + target.position.x * target.parent.zoom + initLeft;
-            const targetRight = targetLeft + target.size.width * target.parent.zoom;
-
-            tipLeft = targetRight + target.size.width * target.parent.zoom / 2;
-            const targetCenterY = -target.parent.scroll.y * target.parent.zoom
-                                + target.position.y * target.parent.zoom
-                                + initTop
-                                + (target.size.width * target.parent.zoom) / 2;
-            tipTop = targetCenterY - tipH / 2;
-          }
-          
-          /* 3. 右侧溢出 → 放目标正左边 */
-          if (tipLeft + tipW > cRight) {
-            const targetLeft = -target.parent.scroll.x * target.parent.zoom
-                            + target.position.x * target.parent.zoom + initLeft;
-            tipLeft = targetLeft - tipW;
-
-            const targetCenterY = -target.parent.scroll.y * target.parent.zoom
-                                + target.position.y * target.parent.zoom
-                                + initTop
-                                + (target.size.height * target.parent.zoom) / 2;
-            tipTop = targetCenterY - tipH / 2;
-          }
-        }
-        
-        nodeTipLeft.value = tipLeft;
-        nodeTipTop.value  = tipTop;
-
-        tipNodeMagic.value = target.magic;
-        const targetTitle = target.children?.[0].children?.[0];
-        const metaDataId = target.children?.[0].children?.[1]?.id ?? '';
-        const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
-        const selSet = new Set(comGraphStore.data.selectCustom);
-
-        const targetLabel = ((!metaDataId.includes('metadata-compartment')) || (!targetLabelAll.length) || (selSet.size === 0))
-                              ? targetLabelAll
-                              : targetLabelAll.filter((_, idx) => selSet.has(idx));
-        currentLabels.value = [];
-        currentLabels.value.push(targetTitle.text);
-        if (target.size.height > 50) {
-          titleRectHeight.value = 48;
-        } else {
-          titleRectHeight.value = 0;
-        }
-        if (target.role == 'input' || target.role == 'output') {
-          const slotStr = `Slot ID:    ${JSON.stringify(targetTitle.slotId)}`;
-          currentLabels.value.push(slotStr);
-          tipColor.value = 'var(--devui-node-bg)';
-          titleRectColor.value = 'var(--devui-node-bg)';
-        } else {
-          const subgraphidStr = `Subgraph ID:    ${JSON.stringify(targetTitle.subgraphId)}`;
-          currentLabels.value.push(subgraphidStr);
-          if (target.role == 'tensor') {
-            tipColor.value = 'var(--devui-node-bg)';
-          } else {
-            tipColor.value = target.baseColor;
-          }
-          titleRectColor.value = target.baseColor;
-        }
-        for (const label of targetLabel) {
-          currentLabels.value.push(label?.text);
-        }
-    }), 200);
+  (window as any).ascEventBus.on('closeNodeTip', (flag) => {
+    clearTimeout(timer);
+    showNodeTip.value = false;
+  });
+  (window as any).ascEventBus.on('showNodeTip', (target) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      showTip(target);
+    }, 250);
+  });
 });
 
 </script>
 
 <style lang="scss">
 @import '../../sprotty-graph/style/diagram.css';
+
 .label-title {
   color: var(--devui-primary-text);
   display: flex;
@@ -215,7 +219,7 @@ onMounted(() => {
 .title-rect {
   width: 100%;
   height: 48px;
-  border-radius: 8px 8px  0 0;
+  border-radius: 8px 8px 0 0;
   top: 0;
   position: relative;
 }
@@ -244,5 +248,4 @@ onMounted(() => {
   padding-left: 4px;
   font-weight: 400;
 }
-
 </style>

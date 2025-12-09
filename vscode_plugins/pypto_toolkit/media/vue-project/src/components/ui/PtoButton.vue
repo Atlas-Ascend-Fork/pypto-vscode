@@ -2,7 +2,7 @@
 import { Component } from 'vue';
 
 defineProps<{
-  type?: 'primary';
+  type?: 'primary' | 'text';
   icon?: Component;
 }>();
 
@@ -12,7 +12,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <button :class="`pto-button ${type ? `pto-button--primary` : ''}`" @click="emit('click')">
+  <button :class="`pto-button ${type ? `pto-button--${type}` : ''}`" @click="emit('click')">
     <div class="pto-button-inner">
       <icon class="pto-button-icon"></icon>
       <slot></slot>
@@ -29,8 +29,9 @@ const emit = defineEmits<{
   border-style: solid;
   border-width: 1px;
   height: 28px;
+  min-width: 74px;
   border-radius: 8px;
-  padding: 8px;
+  padding: 4px 8px;
   cursor: pointer;
 
   .pto-button-inner {
@@ -39,6 +40,7 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 13px;
 
     .pto-button-icon {
       width: 16px;
@@ -51,32 +53,47 @@ const emit = defineEmits<{
     }
   }
 
-  & + .pto-button {
-    margin-left: 20px;
-  }
-}
-
-// 次要按钮悬浮
-.pto-button:hover {
-  color: var(--pto-font-color-title);
-  background-color: var(--pto-button-background-hover);
-  border-color: var(--pto-button-border-hover);
-  .pto-button-inner {
-    .pto-button-icon {
-      :deep(path) {
-        fill: var(--pto-font-color-title);
-        stroke: var(--pto-font-color-title);
+  // 悬浮
+  &:hover {
+    color: var(--pto-font-color-title);
+    background-color: var(--pto-button-background-hover);
+    border-color: var(--pto-button-border-hover);
+    .pto-button-inner {
+      .pto-button-icon {
+        :deep(path) {
+          fill: var(--pto-font-color-title);
+          stroke: var(--pto-font-color-title);
+        }
       }
     }
   }
-}
 
-// 主要按钮
-.pto-button--primary {
-  background-color: var(--pto-button-primary-background);
+  & + .pto-button {
+    margin-left: 16px;
+  }
 
-  &:hover {
-    background-color: var(--pto-button-background-hover);
+  // 主要按钮
+  &--primary {
+    background-color: var(--pto-button-primary-background);
+    border-color: var(--pto-button-primary-background);
+
+    &:hover {
+      background-color: var(--pto-button-primary-background-hover);
+      border-color: var(--pto-button-primary-background-hover);
+    }
+  }
+
+  // 文本按钮
+  &--text {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--pto-font-color-link);
+
+    &:hover {
+      background-color: transparent;
+      border-color: transparent;
+      color: var(--pto-font-color-link-hover);
+    }
   }
 }
 </style>

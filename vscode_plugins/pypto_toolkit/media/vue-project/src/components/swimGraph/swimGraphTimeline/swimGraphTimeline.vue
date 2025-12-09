@@ -343,11 +343,13 @@ const changeScale = (zoomFactor, centerPositionX, needRender = true, isManual = 
   }
 };
 
-const handleWheel = (e) => {
+const handleWheel = throttle((e) => {
   clearTimeout(wheelDebounceTimer);
   const isZooming = e.ctrlKey;
 
-  if (!timelineCanvas.value) return;
+  if (!timelineCanvas.value) {
+    return;
+  }
 
   const rect = timelineCanvas.value.getBoundingClientRect();
 
@@ -381,7 +383,7 @@ const handleWheel = (e) => {
   const zoomFactor = e.deltaY > 0 ? 0.8 : 1.25;
   changeScale(zoomFactor, mouseX);
   e.preventDefault();
-};
+}, 80);
 const postMessage = (message) => {
   if (window.vscode) {
     server.showMessage({paramObj: { text: message}});

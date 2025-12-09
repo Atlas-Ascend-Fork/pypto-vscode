@@ -39,7 +39,7 @@
       <div id="sprotty"></div>
     </div>
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
-    <ComGraphMinimap ref="minimapEl" v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
+    <ComGraphMinimap ref="minimapEl" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
@@ -114,7 +114,7 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
-let isComGraphVisible = false;
+let isComGraphVisible = true;
 watch(currentActiveBlock, (val) => {
   if (val) {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';

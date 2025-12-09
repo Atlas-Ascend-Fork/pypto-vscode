@@ -310,9 +310,6 @@ function setupSwimWatchers() {
   watch(server.noSwimFile, (newValue) => {
     window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
   });
-  watch(server.validateSwimFile, (newValue) => {
-    validData(newValue.content);
-  });
 }
 
 let ERROR_MESSAGES = {
@@ -360,7 +357,7 @@ const validData = (dataStr) => {
 
   data.traceEvents.forEach(event => {
     if (event.cat === 'event' && (!event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
-      window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`));
+      window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name || event.id}"]`));
     }
 
     if (event.ph === 'B') {
@@ -982,6 +979,7 @@ const showDependencies = (event, type) => {
   let actualWidth = canvasWidth / 5;
   setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
   ctx.clearRect(0, 0, viewState.canvasWidth, canvas.height);
+  const nodesInfo = [];
   const currentNode = {
     x: canvasWidth / 2 - canvasWidth / 10,
     y: 10,
@@ -998,6 +996,12 @@ const showDependencies = (event, type) => {
   ctx.font = '12px Arial';
   let [displayText, leftspace] = overflowText(actualWidth, displayName);
   ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
+  nodesInfo.push({
+    node: currentNode,
+    type: 'current',
+    displayName: displayText,
+    fullDisplayName: displayName,
+  });
   const depFillColor = colorCfg.lightlyCompareBkgColor;
   if (type === "forward" || type === "both") {
     predecessors.forEach((pre, index) => {
@@ -1016,6 +1020,12 @@ const showDependencies = (event, type) => {
       ctx.font = '12px Arial';
       let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : (pre.name || 'Event'));
       ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
+      nodesInfo.push({
+        node: preNode,
+        type: 'predecessor',
+        displayName: displayText,
+        fullDisplayName:  pre.isCounter ? pre.displayName : (pre.name || 'Event'),
+      });
       ctx.beginPath();
       ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
       ctx.bezierCurveTo(currentNode.x + 5,
@@ -1052,6 +1062,12 @@ const showDependencies = (event, type) => {
       ctx.font = '12px Arial';
       let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : (dep.name || 'Event'));
       ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
+      nodesInfo.push({
+        node: depNode,
+        type: 'successor',
+        displayName: displayText,
+        fullDisplayName: dep.isCounter ? dep.displayName : (dep.name || 'Event'),
+      });      
       ctx.beginPath();
       ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
       ctx.bezierCurveTo(currentNode.x + currentNode.width,
@@ -1071,6 +1087,64 @@ const showDependencies = (event, type) => {
       ctx.stroke();
     });
   }
+  canvas.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    let hoveredNode = null;
+    for (let i = nodesInfo.length - 1; i >= 0; i--) {
+      const nodeInfo = nodesInfo[i];
+      const { node } = nodeInfo;
+      const isXInRange = mouseX >= node.x && mouseX <= node.x + node.width;
+      const isYInRange = mouseY >= node.y && mouseY <= node.y + node.height;
+      if (isXInRange && isYInRange) {
+        hoveredNode = nodeInfo;
+        break;
+      }
+    }
+    if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
+      showTooltip(event, hoveredNode.fullDisplayName);
+      canvas.style.cursor = 'pointer';
+    } else {
+      hideTooltip();
+      canvas.style.cursor = 'default';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => {
+    hideTooltip();
+  });
+  const showTooltip = (event, text) => {
+    let tooltip = document.getElementById('dependency-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'dependency-tooltip';
+      tooltip.style.cssText = `
+      position: absolute;
+      background: var(--devui-tooltip-bg);
+      color: var(--devui-primary-text);
+      padding: 4px 8px;
+      boder-radius: 4px;
+      font-size: 12px;
+      z-index: 1000;
+      pointer-events: none;`;
+      document.body.appendChild(tooltip);
+    }
+    tooltip.textContent = text;
+    const { canvasCssWidth } = viewState;
+    if (event.clientX + 100 > canvasCssWidth) {
+      tooltip.style.left = (event.clientX - 100) + 'px';
+    } else {
+      tooltip.style.left = (event.clientX + 10) + 'px';
+    }
+    tooltip.style.top = (event.clientY + 10) + 'px';
+    tooltip.style.display = 'block'; 
+  };
+  const hideTooltip = () => {
+    const tooltip = document.getElementById('dependency-tooltip');
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
+  };
 };
 
 const getDisplayName = (event) => {
@@ -1722,18 +1796,14 @@ onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
   loading.value = true;
-  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-  if (oldMessage && oldMessage.message && oldMessage.message.data) {
-    setPageState(oldMessage.message);
-    loadTraceData(oldMessage.message.data);
-  } else {
-    server.getSwimData().then((newValue) => {
-      const oldData = /** @type { { message: object } | undefined } */ (vscode.getState());
-      let newMessage = (oldData && oldData.message) || newValue;
-      setPageState(newValue);
-      loadTraceData(newMessage.data);
-    });
-  }
+  server.validateSwimFile().then((content) => {
+    validData(content);
+  });
+  server.getSwimData().then((newValue) => {
+    setPageState(newValue);
+    loadTraceData(newValue.data);
+  });
+  
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }

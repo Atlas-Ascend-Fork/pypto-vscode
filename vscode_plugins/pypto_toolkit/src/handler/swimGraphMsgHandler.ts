@@ -1,15 +1,11 @@
-import { Uri, ViewColumn, commands, window, WebviewPanel, workspace, ConfigurationTarget } from 'vscode';
-import { hismartliteEx } from '../hismarliteEx';
+import { Uri, commands, window, workspace, ConfigurationTarget } from 'vscode';
 import { Util } from '../util';
 import { dirname, join, extname, resolve } from 'path';
-import { createReadStream, existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
-import { getIDETheme } from '../theme';
-import Filter from 'stream-json/filters/Filter';
-import { convertPmuInfo, parsePmuInfo, parseSwimLaneInfo, savePmuToDB, processTotalPmuCalc, saveParsedInfoToDB, saveLane2LineToDB, saveProcessesToDB, convertSwimInfo, convertLane2LineInfo, refreshSwimGraphDB } from '../process';
+import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB } from '../process';
 import fs from 'fs';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
-import { GraphView } from '../view/graphView';
 import * as vscode from 'vscode';
 
 export abstract class SwimGraphMsgHandler {
@@ -25,6 +21,7 @@ export abstract class SwimGraphMsgHandler {
         'showMessage',
         'saveRendingMode',
         'changeUserCfgConnection',
+        'getShortCutKeyCfg',
     ]);
 
     static async getInitialData(server: any) {
@@ -131,7 +128,6 @@ export abstract class SwimGraphMsgHandler {
     
           try {
             swimStr = readFileSync(swimPath, 'utf8');
-            this.validateFile(server, swimStr);
             console.log('读取merged_swimlane.json文件');
     
           } catch (err) {
@@ -194,10 +190,9 @@ export abstract class SwimGraphMsgHandler {
         };
       }
     
-    static async validateFile(server: any, content: string) {
-        server.setRef('validateSwimFile', {
-            content,
-        });
+    static async validateFile(server: any) {
+      const content = readFileSync(server.swimDataPath, 'utf8');
+      return content;
     };
 
     // 绑定计算图文件
@@ -388,4 +383,10 @@ export abstract class SwimGraphMsgHandler {
         const config = workspace.getConfiguration('PyPTOToolkit');
         config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
     }
+    static async getShortCutKeyCfg(server: any) {
+      const config = Util.getSwimGraphCustomCfg();
+      return {
+        configration: config,
+      };
+    };
 }

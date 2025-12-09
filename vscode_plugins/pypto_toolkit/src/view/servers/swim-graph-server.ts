@@ -41,6 +41,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     return await this.handler.getSwimData(this);
   };
   @viewApi()
+  public validateSwimFile = async () => {
+    return await this.handler.validateFile(this);
+  };
+  @viewApi()
   public bindComGraphJson = async () => {
     await this.handler.bindComGraphJson(this);
   };
@@ -71,6 +75,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public changeUserCfgConnection = async (message: any) => {
     await this.handler.changeUserCfgConnection(this, message.paramObj);
+  };
+  @viewApi()
+  public getShortCutKeyCfg = async () => {
+    return await this.handler.getShortCutKeyCfg(this);
   };
 
   safeParse(str) {

@@ -103,30 +103,126 @@ async function getEventColor(event: any, mode: string): Promise<{ dark: { base: 
 };
 
 const FAKE_CORE_KEYWORD = 'Fake Core';
-function calculateLine(event, lable2lines) {
-  const isFakeCore = event.threadName.includes(FAKE_CORE_KEYWORD);
-  const label = `${event.pid}@${event.tid}`;
-  let lines = lable2lines[label];
-  if (!lines) {
-    lable2lines[label] = [];
-    lines = lable2lines[label];
-  }
-  let placed = false;
 
-  for (let i = 0; i < lines.length; i++) {
-    if (event.startTime >= lines[i]) {
-      event.line = isFakeCore ? 0 : i;
-      lines[i] = Math.max(lines[i], event.endTime);
-      placed = true;
-      break;
+function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
+  const originalDuration = event.endTime - event.startTime;
+
+  // --- Step 1: 计算合法窗口 [minStart, maxEnd] ---
+  let minStart = event.startTime;
+  let maxEnd = event.endTime;
+
+  // 前驱约束
+  if (event.dependencies?.predecessors?.length) {
+    const latestPredEnd = Math.max(
+      ...event.dependencies.predecessors.map(id => {
+        const pred = allEventsMap.get(id);
+        return pred ? pred.endTime : -Infinity;
+      }).filter(v => v !== -Infinity)
+    );
+    if (latestPredEnd !== -Infinity) {
+      minStart = Math.min(minStart, latestPredEnd);
     }
   }
-  if (!placed) {
-    event.line = isFakeCore ? 0 : lines.length;
-    lines.push(event.endTime);
+
+  // 后继约束
+  if (event.dependencies?.successors?.length) {
+    const earliestSuccStart = Math.min(
+      ...event.dependencies.successors.map(id => {
+        const succ = allEventsMap.get(id);
+        return succ ? succ.startTime : Infinity;
+      }).filter(v => v !== Infinity)
+    );
+    if (earliestSuccStart !== Infinity) {
+      maxEnd = Math.max(maxEnd, earliestSuccStart);
+    }
   }
-  return lines.length;
-};
+
+  // --- Step 2: 尝试放入已有行 ---
+  for (let i = 0; i < lines.length; i++) {
+    const rowLastEnd = lines[i];
+    const renderStart = Math.max(minStart, rowLastEnd); // 不重叠 + 满足前驱
+
+    if (renderStart >= maxEnd) {
+      continue; // 该行没空间了
+    }
+
+    // 策略：尽可能保持原始 duration，但不超过可用空间
+    const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
+
+    // 即使 available 很小（如 0.0001ms），也允许放置！
+    // UI 层负责确保 canvas 上至少画 1~2px
+    event.renderStartTime = renderStart;
+    event.renderDuration = (renderEnd - renderStart) / 10;
+    event.renderEndTime = event.renderStartTime + event.renderDuration;
+    event.line = i;
+    lines[i] = event.renderEndTime;
+    applyGlobalClip();
+    return;
+  }
+
+  // --- Step 3: 新开一行 ---
+  const renderStart = minStart;
+  const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
+  event.renderStartTime = renderStart;
+  event.renderDuration = (renderEnd - renderStart) / 10;
+  event.renderEndTime = event.renderStartTime + event.renderDuration;
+  event.line = lines.length;
+  lines.push(event.renderEndTime);
+
+  applyGlobalClip();
+
+  function applyGlobalClip() {
+    if (event.renderEndTime > globalMaxTime) {
+      event.renderEndTime = globalMaxTime;
+      event.renderStartTime = Math.max(event.renderStartTime, globalMaxTime - originalDuration);
+      // 如果 originalDuration 很大，可能仍超出，那就紧贴结尾
+      if (event.renderStartTime >= event.renderEndTime) {
+        event.renderStartTime = globalMaxTime - 0.00001;
+        event.renderEndTime = globalMaxTime;
+      }
+      event.renderDuration = event.renderEndTime - event.renderStartTime;
+    }
+  }
+}
+
+// --- 工厂函数：生成 calculateLine ---
+function createCalculateLine(allEventsMap, globalMaxTime) {
+
+  return function calculateLine(event, label2lines) {
+    const isFakeCore = event.threadName?.includes?.(FAKE_CORE_KEYWORD);
+    const label = `${event.pid}@${event.tid}`;
+
+    let lines = label2lines[label];
+    if (!lines) {
+      label2lines[label] = lines = [];
+    }
+
+    if (isFakeCore) {
+      layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime);
+    } else {
+      // 普通线程：固定 renderTime，传统不重叠布局
+      event.renderStartTime = event.startTime;
+      event.renderEndTime = event.endTime;
+      event.renderDuration = event.duration;
+
+      let placed = false;
+      for (let i = 0; i < lines.length; i++) {
+        if (event.startTime >= lines[i]) {
+          event.line = i;
+          lines[i] = event.endTime;
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        event.line = lines.length;
+        lines.push(event.endTime);
+      }
+    }
+
+    return lines.length;
+  };
+}
 
 function calculateDuration (eventTasks, processedTasks) {
   let taskIndex = 0;
@@ -140,6 +236,7 @@ function calculateDuration (eventTasks, processedTasks) {
         endTime: tStart.ts + tStart.dur,
         renderStartTime: tStart.ts,
         renderEndTime: tStart.ts + tStart.dur,
+        renderDuration: tStart.dur,
         duration: tStart.dur,
         isCounter: false,
         dependencies: {
@@ -421,24 +518,30 @@ const calculateDependencies = (events, connections) => {
     calculateDuration(eventTasks, processedTasks);
   
     processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
-    const lable2lines = {};
-    for (const event of processedTasks) {
-      //处理带dur的event
-      const isFakeCore = event.threadName.includes(FAKE_CORE_KEYWORD);
-      const lineCount = isFakeCore ? 1 : calculateLine(event, lable2lines);
-      lane2line.set(`${event.pid}@${event.tid}`, lineCount);
-      
-      //pmu info process
-      if (Object.keys(pmuInfo).length > 0) {
-        processTaskPmuCalc(event, pmuInfo);
-      }
-    }
   
     // 计算依赖关系
     const hasTopo = Object.keys(task2topo).length > 0;
     const status = hasTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
     if (!status) {
       calculateDependencies(processedTasks, connections);
+    }
+
+    const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
+    const globalMaxTime = processedTasks.reduce((max, e) => 
+      e.endTime > max ? e.endTime : max, 
+      -Infinity
+    );
+    const calculateLine = createCalculateLine(allEventsMap, globalMaxTime);
+    const lable2lines = {};
+    for (const event of processedTasks) {
+      //处理带dur的event
+      const lineCount = calculateLine(event, lable2lines);
+      lane2line.set(`${event.pid}@${event.tid}`, lineCount);
+      
+      //pmu info process
+      if (Object.keys(pmuInfo).length > 0) {
+        processTaskPmuCalc(event, pmuInfo);
+      }
     }
     let firstExpanded = false;
     // 组织数据结构
@@ -554,6 +657,7 @@ const calculateDependencies = (events, connections) => {
             uid,
             event.renderEndTime ?? 0, 
             event.renderStartTime ?? 0, 
+            event.renderDuration ?? 0,
             event.startTime ?? 0, 
             event.threadName ?? '', 
             event.ts ?? 0, 

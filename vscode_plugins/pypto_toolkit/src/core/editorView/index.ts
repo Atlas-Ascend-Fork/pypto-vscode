@@ -191,7 +191,7 @@ export class EditorView {
     // 监听销毁
     viewPanel.onDidDispose(() => {
       themeListener.dispose();
-      server?.disposed();
+      server?.dispose();
       this.openedViews.delete(viewType, uri);
       // 【hook】页面销毁
       this.onViewDisposed?.(viewType, uri);

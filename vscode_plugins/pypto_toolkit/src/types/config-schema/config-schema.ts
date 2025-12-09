@@ -247,14 +247,14 @@ export interface TablePass {
 }
 
 export interface PassFormTableaTemplate {
-  pass: TablePass[];
-  global_configs: RunConfigAttribute<any>[];
+  pass?: TablePass[];
+  global_configs?: RunConfigAttribute<any>[];
 }
 
 export interface ConfigsTemplate {
   tag: boolean;
   simulationTemplate: RunConfigAttribute<any>[];
-  passTemplate: PassFormTableaTemplate | {};
+  passTemplate: PassFormTableaTemplate;
 }
 
 export interface ConfigsForRevise {

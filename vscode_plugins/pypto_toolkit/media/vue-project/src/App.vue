@@ -4,7 +4,7 @@ import { getQuery } from './core/query';
 import { useTheme } from './theme/use-theme';
 import ControlFlowIndex from './components/controlFlowGraph/ControlFlowIndex.vue';
 import MiddleLayer from './components/comGraph/middleLayer.vue';
-import PtoConfigIndex from './components/titleFwkConfig/PtoConfigIndex.vue';
+import RunConfig from './components/runConfig/RunConfig.vue';
 import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 
 const graphType = ref('');
@@ -42,9 +42,10 @@ onMounted(() => {
   <div class="parent-container" v-else-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>
   </div>
+  <!-- 运行配置 -->
+  <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
-    <PtoConfigIndex v-if="graphType === 'ptoNewConfig'"></PtoConfigIndex>
-    <MiddleLayer v-else :graphType="graphType"></MiddleLayer>
+    <MiddleLayer :graphType="graphType"></MiddleLayer>
   </header>
 </template>
 <style scoped>

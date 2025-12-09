@@ -29,13 +29,15 @@ export default {
     'healthReport': 'Health Report',
     'searchKeyword': 'Keyword search',
     'ShortcutKeyDescription': 'Shortcut Key Description',
-    "ShortcutKeyNote": 'The system has detected that you have customizer key board shortcut configuration',
+    "ShortcutKeyNote": 'System detected customizer key board shortcut',
     "MouseControl": 'Mouse Control',
     "VerticalMovement": 'Vertical Movement',
     "Single/BoxSelection": 'Single/Box Selection',
     "CombinedControl": 'Combined Control',
-    "LateralMovement": 'Lateral Movement',
+    "DragAndDrop": 'Drag Drop',
     "Scaling": 'Scaling',
+    "BoxSelect": 'BoxSelect',
+    "BoxSelectContent": 'single finger swipe on touchpad',
     "TimeMeasurement": 'Time Measurement',
     "KeyboardControl": 'Keyboard Control',
     "LeftMove": 'Left Move',
@@ -139,7 +141,10 @@ export default {
     swimGraphcategoryDesc:'Please select the filter criteria: ',
     public: {
         loading: 'Loading...',
-        allLoaded: 'No more content'
+        allLoaded: 'No more content',
+        inputPlaceholder: 'Please enter',
+        save: 'Save',
+        cancel: 'Cancel'
     },
     openFile: 'Open file',
     noJsonFile: 'The plugin did not detect an associated {graphName}.',
@@ -201,12 +206,13 @@ export default {
         locateNodeError:'Current node not found, location failed',
         searchHistoryTips: 'History',
         searchPageTips: 'Page Instruction',
-        searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
+        searchPageTipsContent: 'Enter the node magic or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
         pleaseSelect: 'Please select',
         noData: 'No data',
         leafCalledRecord: 'Leaf called record',
         calledFunctionName: 'Name of the called function',
-        callNumber: 'Number of calls'
+        callNumber: 'Number of calls',
+        autoLineWrap: 'Auto line wrap'
     },
     sideBar: {
         title: 'Compilation result',
@@ -241,9 +247,10 @@ export default {
         snippetErrNoFileTitle: 'Unable to read the following file:',
         snippetErrNoLineContent: 'The source code has been modified; the corresponding line of code cannot be found.',
     },
-    schemaConfig:{
-        title:'Add new running configuration',
-        detail:'Select system template reuse configuration',
-        defaultConfiguration:'Default configuration',
+    runConfig:{
+        scanning:'Scanning...',
+        filepathLabel: 'Filepath:',
+        viewSourceFile: 'View source file',
+        unknownDataType: 'Unknown data type'
     }
 }

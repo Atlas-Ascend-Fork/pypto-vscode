@@ -46,5 +46,5 @@ export async function openPtoConfig(params: { configPath: string; pathName: stri
   const { configPath, pathName } = params;
   const controlFlowUri = vscode.Uri.file(configPath);
   const customTitle = pathName ? pathName : `${t('PyPTOToolkit.workspace.ptoNewConfig')}`;
-  useView().editorView.open('ptoNewConfig', controlFlowUri, { query: { url: configPath }, title: customTitle });
+  useView().editorView.open('editRunConfig', controlFlowUri, { query: { url: configPath }, title: customTitle });
 }
