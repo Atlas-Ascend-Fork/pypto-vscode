@@ -231,10 +231,6 @@ function execSort(data: LeafCalledRowData[]) {
     border-radius: 12px 12px 0 0;
 
     :deep() {
-      .devui-table--header-bg thead.devui-table__thead tr {
-        background-color: var(--devui-nest-bg);
-      }
-
       .devui-table__thead tr th {
         border-bottom: none;
       }

@@ -2,14 +2,21 @@
   <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
       <div class="simple-layout">
-        <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{display: 'none'}">
+        <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{ display: 'none' }">
           <div class="simple-com-file-name">Program.json</div>
           <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
         </div>
-        <d-select ref="rootHashEl" v-model="rootHash" :options="rootHashList" :placeholder="t('comGraph.pleaseSelect')"
-          :position="['bottom-start']" :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
+        <d-select
+          ref="rootHashEl"
+          v-model="rootHash"
+          :options="rootHashList"
+          :placeholder="t('comGraph.pleaseSelect')"
+          :position="['bottom-start']"
+          :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
           :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
-          @value-change="onHashChange" @toggle-change="onHashMenuToggleChange">
+          @value-change="onHashChange"
+          @toggle-change="onHashMenuToggleChange"
+        >
           <template #empty>
             <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
           </template>
@@ -114,7 +121,6 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
-let isComGraphVisible = true;
 watch(currentActiveBlock, (val) => {
   if (val) {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
@@ -195,7 +201,7 @@ function onMessageFromSwim(args) {
   generateHashList(args.rootHashList ?? []);
   const currentHash = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, currentLockLabel);
-  if (isComGraphVisible && selectedNodes.length <= 0) {
+  if (selectedNodes.length <= 0 && rootHashList.value.length) {
     rootHash.value = rootHashList.value[0].value;
     onHashChange(rootHashList.value[0]);
     return;
@@ -221,8 +227,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
   generateHashList();
 });
 (window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
-  isComGraphVisible = comGraphVisible;
-  if (isComGraphVisible) {
+  if (comGraphVisible) {
     window.dispatchEvent(new Event('resize'));
     minimapEl.value.updateScaleRation();
     const fitTimer = setTimeout(() => {
@@ -281,7 +286,7 @@ const LoadingStatusMap = {
   convertData: 'comGraph.convertData',
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
-  loading: 'loadTraceData'
+  loading: 'loadTraceData',
 };
 
 watch(rootHash, () => {
@@ -400,11 +405,11 @@ onMounted(() => {
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
   }
   document.addEventListener('click', onDocumentClick);
-  (window as any).ascEventBus.on('lockToggleChange', onLockClick)
+  (window as any).ascEventBus.on('lockToggleChange', onLockClick);
 });
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
-  (window as any).ascEventBus.remove('lockToggleChange', onLockClick)
+  (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
 });
 </script>
 

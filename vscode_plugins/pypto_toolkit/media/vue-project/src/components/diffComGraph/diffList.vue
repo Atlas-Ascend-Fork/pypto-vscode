@@ -6,7 +6,7 @@
     </div>
     <VirtualScroll :data="list" style="height: calc(100% - 40px)">
       <template #default="scope">
-        <div class="diff-list-item" @click="() => onItemClick(scope.data)">
+        <div :class="['diff-list-item', isLoading && 'diff-list-item-disabled']" @click="() => onItemClick(scope.data)">
           <span class="item-index">{{ scope.index + 1 }}</span>
           <span class="item-title">{{ scope.data.nodeType }} : {{ scope.data.magic }}</span>
           <i :class="['item-icon', scope.data.changeType, IconMap[scope.data.changeType]]"></i>
@@ -26,11 +26,12 @@ import { useI18n } from 'vue-i18n';
 import VirtualScroll from './virtualScroll/virtualScroll.vue';
 import type { DiffListItem } from './type';
 
-defineProps({
+const props = defineProps({
   list: {
     type: Array as PropType<DiffListItem[]>,
     default: () => [],
   },
+  isLoading: { type: Boolean, default: false },
 });
 const emits = defineEmits(['click', 'expandChange']);
 
@@ -42,12 +43,15 @@ const IconMap = {
   change: 'icon-switch',
 };
 const onItemClick = (data: DiffListItem) => {
+  if (props.isLoading) {
+    return;
+  }
   emits('click', data);
 };
 const onExpandChange = () => {
-  isExpand.value= !isExpand.value;
+  isExpand.value = !isExpand.value;
   emits('expandChange', isExpand.value);
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -102,7 +106,16 @@ const onExpandChange = () => {
     padding-right: 24px;
     box-sizing: border-box;
 
-    &:hover {
+    &.diff-list-item-disabled {
+      cursor: not-allowed;
+
+      .item-index,
+      .item-title {
+        color: var(--devui-disabled-text);
+      }
+    }
+
+    &:not(.diff-list-item-disabled):hover {
       border-radius: 4px;
       background-color: var(--devui-input-hover-bg);
       cursor: pointer;

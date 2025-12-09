@@ -80,12 +80,22 @@ watch(
   [treeData, () => rootProps.currentPathMagicName],
   () => {
     if (treeData.value.length && rootProps.currentPathMagicName) {
+      const fileNameRegExp = new RegExp(
+        `^After_0${rootProps.currentPassIndex}_[a-z0-9A-Z]*(?:_\\d+)?_(\\w+_PATH\\d+)_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
+      );
+      const [_, pathName] = rootProps.currentLeafName.match(fileNameRegExp) ?? [];
+      let magicName = rootProps.currentPathMagicName;
+      if (rootProps.currentPathMagicName !== pathName) {
+        magicName = pathName;
+      }
       const keys = Object.keys(TreeDataMap);
       for (let i = 0; i < keys.length; i++) {
         if (keys[i].startsWith(rootProps.currentPathMagicName)) {
           currentData.value = TreeDataMap[keys[i]];
-          currentPathCalledLeafRecord.value = (currentData.value.controlFlowData as ControlFlowPath).meta?.calledRecords ?? [];
           passList.value = (currentData.value?.controlFlowData as ControlFlowPath).meta?.passes ?? [];
+        }
+        if (keys[i].startsWith(magicName)) {
+          currentPathCalledLeafRecord.value = (TreeDataMap[keys[i]].controlFlowData as ControlFlowPath).meta?.calledRecords ?? [];
         }
       }
     }

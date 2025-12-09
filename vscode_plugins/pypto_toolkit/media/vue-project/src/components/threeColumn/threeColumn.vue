@@ -2,16 +2,16 @@
   <ThreeColumnHeader />
   <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']">
     <ItemBlock
-      v-show="showLeft"
       block-name="left"
       :width="currentWidth"
       :height="currentHeight"
       :has-border-right="showRight"
       :has-border-bottom="showBottom"
+      :is-fullscreen="currentFullscreenBlock === 'left'"
     >
       <div class="three-column-block editor-block">
         <div class="sticky-block">
-          <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{display: 'none'}">
+          <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{ display: 'none' }">
             <div class="simple-com-file-name">Program.json</div>
             <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
           </div>
@@ -22,18 +22,23 @@
       </div>
     </ItemBlock>
     <ItemBlock
-      v-show="showRight"
       block-name="right"
       :width="`calc(100% - ${currentWidth})`"
       :height="currentHeight"
       :has-border-left="showLeft"
       :has-border-bottom="showBottom"
+      :is-fullscreen="currentFullscreenBlock === 'right'"
     >
       <div class="three-column-block">
         <slot name="comGraph" />
       </div>
     </ItemBlock>
-    <ItemBlock v-show="showBottom" block-name="bottom" :height="`calc(100% - ${currentHeight})`" :has-border-top="showLeft || showRight">
+    <ItemBlock
+      block-name="bottom"
+      :height="`calc(100% - ${currentHeight})`"
+      :has-border-top="showLeft || showRight"
+      :is-fullscreen="currentFullscreenBlock === 'bottom'"
+    >
       <div class="three-column-block swim-block">
         <slot name="swimGraph" />
       </div>
@@ -86,6 +91,7 @@ const isEditorFullscreen = ref(false);
 const isComGraphFullscreen = ref(false);
 const isSwimFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
+const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
 const showHResizeBar = computed(() => showLeft.value && showRight.value);
 const showVResizeBar = computed(() => (showLeft.value || showLeft.value) && showBottom.value);
@@ -120,52 +126,37 @@ function zoomInLeft() {
   prevLayoutInfo = {
     showRight: showRight.value,
     showBottom: showBottom.value,
-    currentWidth: currentWidth.value,
-    currentHeight: currentHeight.value,
   };
   showRight.value = false;
   showBottom.value = false;
-  currentWidth.value = '100%';
-  currentHeight.value = '100%';
 }
 function resetLeft() {
   showRight.value = prevLayoutInfo.showRight;
   showBottom.value = prevLayoutInfo.showBottom;
-  currentWidth.value = prevLayoutInfo.currentWidth;
-  currentHeight.value = prevLayoutInfo.currentHeight;
 }
 function zoomInRight() {
   prevLayoutInfo = {
     showLeft: showLeft.value,
     showBottom: showBottom.value,
-    currentWidth: currentWidth.value,
-    currentHeight: currentHeight.value,
   };
   showLeft.value = false;
   showBottom.value = false;
-  currentWidth.value = '0%';
-  currentHeight.value = '100%';
 }
 function resetRight() {
   showLeft.value = prevLayoutInfo.showLeft;
   showBottom.value = prevLayoutInfo.showBottom;
-  currentWidth.value = prevLayoutInfo.currentWidth;
-  currentHeight.value = prevLayoutInfo.currentHeight;
 }
 function zoomInBottom() {
   prevLayoutInfo = {
     showLeft: showLeft.value,
     showRight: showRight.value,
-    currentHeight: currentHeight.value,
   };
   showLeft.value = false;
   showRight.value = false;
-  currentHeight.value = '0%';
 }
 function resetBottom() {
   showLeft.value = prevLayoutInfo.showLeft;
   showRight.value = prevLayoutInfo.showRight;
-  currentHeight.value = prevLayoutInfo.currentHeight;
 }
 const ZoomInMap: Record<Exclude<BlockType, ''>, () => void> = {
   left: zoomInLeft,
@@ -180,8 +171,10 @@ const ResetMap: Record<Exclude<BlockType, ''>, () => void> = {
 function toggleFullscreen(isFullscreen: boolean) {
   if (isFullscreen) {
     ResetMap[currentActiveBlock.value]();
+    currentFullscreenBlock.value = '';
   } else {
     ZoomInMap[currentActiveBlock.value]();
+    currentFullscreenBlock.value = currentActiveBlock.value;
   }
 }
 

@@ -17,7 +17,6 @@
 
     <ShowTip></ShowTip>
     <ComGraphMinimap
-      v-if="!isLoading"
       :offset-right="minimapOffsetRight"
     ></ComGraphMinimap>
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
