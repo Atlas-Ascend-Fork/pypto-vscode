@@ -9,6 +9,8 @@ import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { isAbsolute, resolve, dirname, extname } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import * as vscode from 'vscode';
+import { t } from 'i18next';
+
 import {
   ICommonViewServer,
   IComViewServer,
@@ -66,8 +68,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
-  implements ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer
-{
+  implements ICommonViewServer, IComViewServer, IThreeViewServer, ISwimViewServer {
   public title: string;
   public isReveal: boolean;
   public msgHandler: any;
@@ -100,7 +101,7 @@ export class ThreeColumnServer
 
     this.initWebViewPanel();
   }
-  public override created(ctx: ViewServerContext): void {}
+  public override created(ctx: ViewServerContext): void { }
 
   @viewApi()
   public getInitialData = async () => {
@@ -120,9 +121,9 @@ export class ThreeColumnServer
   };
   @viewApi()
   public resetSwimData = async () => {
-    const swimData =  await SwimGraphMsgHandler.getSwimData(this);
+    const swimData = await SwimGraphMsgHandler.getSwimData(this);
     return swimData;
-  };      
+  };
   @viewApi()
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
@@ -215,7 +216,10 @@ export class ThreeColumnServer
   public selectPassPath = async (message: any) => {
     await ComGraphHandler.getFuncHashFileList(this, message.paramObj);
   };
-
+  @viewApi()
+  public openSearchMode = async (message) => {
+    await ComGraphHandler.openSearchMode(message, this);
+  };
   // 初始化自动关联路径
   async initRelativePath(
     codePath: string,
@@ -243,8 +247,8 @@ export class ThreeColumnServer
         this.setRef('InitFlag', 'true');
       }
       if (!this.swimDataPath || !this.comPath) {
-        const pathMsg = {swimPath: this.swimDataPath || "", comPath: this.comPath || ""};
-        this.setRef('returnInitPath', {data: pathMsg});
+        const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
+        this.setRef('returnInitPath', { data: pathMsg });
       }
     }
   }
@@ -255,9 +259,9 @@ export class ThreeColumnServer
     const options = message.options
     const { swimPath, comPath } = await new Fider(this.codePath).handleUserSelect(graphType);
     const handlePaths = (initPath: string, selectPath: string, graphType: string) => {
-      const paths = graphType === "swimGraph" ? { swimPath, comPath: initPath} : { swimPath: initPath, comPath };
-      const replaceMsg = {graphType, paths, selectPath};
-      this.setRef('returnReplace', { data : replaceMsg});
+      const paths = graphType === "swimGraph" ? { swimPath, comPath: initPath } : { swimPath: initPath, comPath };
+      const replaceMsg = { graphType, paths, selectPath };
+      this.setRef('returnReplace', { data: replaceMsg });
     };
 
     const updatePaths = (swimPath: string | undefined, comPath: string | undefined) => {
@@ -271,8 +275,8 @@ export class ThreeColumnServer
           fsPath: comPath,
         };
       }
-      const pathMsg = {swimPath: swimPath || "", comPath: comPath || ""};
-      this.setRef('returnSearchPath', {data: pathMsg});
+      const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
+      this.setRef('returnSearchPath', { data: pathMsg });
     };
 
     if (graphType === "swimGraph") {
@@ -311,8 +315,8 @@ export class ThreeColumnServer
         fsPath: comPath,
       };
     }
-    const pathMsg = {swimPath: swimPath || "", comPath: comPath || ""};
-    this.setRef('returnSearchPath', {data: pathMsg});
+    const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
+    this.setRef('returnSearchPath', { data: pathMsg });
   }
 
   safeParse(str) {
@@ -365,19 +369,33 @@ class codeMsgHandler {
 }
 
 class ComGraphHandler extends SingleGraphHandler {
-  static searchFuncHashInProject(server, funcHash: string) {
+  static searchFuncHashInProject(server: any, funcHash: string) {
     vscode.workspace.findFiles(`**/*${funcHash}*.json`).then((fileList) => {
       const res = fileList.map((uri) => uri.fsPath);
       server.setRef('FuncHashFileList', { data: res });
     });
   }
-  static override async loadMainData(server: any): Promise<void> {
+  static override async loadMainData(server: any): Promise<boolean> {
     server.comGraphData = new SingleGraphData(server.comPath, undefined);
     const gd = server.comGraphData as SingleGraphData;
 
-    const {entryhash , version} = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
-    gd.funcHash = entryhash;
-    gd.version = version;
+    try {
+        const { entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+        server.entryHash = entryhash;
+        gd.funcHash = entryhash;
+        gd.version = version;
+      } catch (err: any) {
+        if (err.code === 'FILE_READ_ERROR') {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
+        }else if (err.code === 'JSON_PARSE_ERROR') {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
+        }else if (err.code === 'STREAM_PROCESSING_ERROR') {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
+        }else {
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
+        }
+      }
+    return true
   }
 
   static getSemanticByType(semanticInfo: any, op: any) {
@@ -391,7 +409,7 @@ class ComGraphHandler extends SingleGraphHandler {
         label = semanticInfo.find(label => label && label.trim() !== '');
         return { lineno, label, filename };
       }
-    } else if (typeof(semanticInfo) === 'object') {
+    } else if (typeof (semanticInfo) === 'object') {
       return semanticInfo;
     }
   }
@@ -444,10 +462,10 @@ class ComGraphHandler extends SingleGraphHandler {
     ComGraphHandler.getSemanticObj(server, fullData);
   }
 
-  static findSubDir(targetHash: string, curPath: string, extName:string, res:string[]) {
-    const entryList = readdirSync(curPath, {withFileTypes:true});
-    for(const entry of entryList) {
-      const fullPath = resolve(curPath,  entry.name);
+  static findSubDir(targetHash: string, curPath: string, extName: string, res: string[]) {
+    const entryList = readdirSync(curPath, { withFileTypes: true });
+    for (const entry of entryList) {
+      const fullPath = resolve(curPath, entry.name);
       const isTargetFile = (entry.isFile() && entry.name.toLowerCase().endsWith(extName) && entry.name.includes(targetHash)) ? true : false;
       if (entry.isDirectory()) {
         this.findSubDir(targetHash, fullPath, extName, res);
@@ -457,7 +475,7 @@ class ComGraphHandler extends SingleGraphHandler {
     }
   }
 
-  static async getFuncHashFileList (server: any, data: any) {
+  static async getFuncHashFileList(server: any, data: any) {
     const targetHash = data.calleehash;
     const graphData = this.getGraphData(server);
     let originPath = graphData.fsPath;
@@ -466,6 +484,6 @@ class ComGraphHandler extends SingleGraphHandler {
 
     const matchedFileList: string[] = [];
     this.findSubDir(targetHash, dirName, extName, matchedFileList);
-    server.setRef('GetPassPath', {data: matchedFileList});
+    server.setRef('GetPassPath', { data: matchedFileList });
   }
 }

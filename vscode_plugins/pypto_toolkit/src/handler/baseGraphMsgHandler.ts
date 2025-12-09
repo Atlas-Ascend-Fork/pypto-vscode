@@ -19,10 +19,10 @@ import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
 import * as vscode from 'vscode';
 
-enum RequestSourceType{
-  NodeOverLimit  = 1,
-  SearchNoMagic  = 2,
-  SearchMagic    = 3,
+enum RequestSourceType {
+  NodeOverLimit = 1,
+  SearchNoMagic = 2,
+  SearchMagic = 3,
 }
 
 const NODE_COUNT_LIMIT = 10000;
@@ -58,17 +58,16 @@ export abstract class BaseGraphMsgHandler {
   static async getInitialData(server: any) {
     // 1. 初始化
     await this.initTheme(server);
-    await this.loadMainData(server);
-
+    const result = await this.loadMainData(server);
+    if (!result) return;
     // 2. 校验
     const gd = this.getGraphData(server);
     if (!this.checkFuncHash(server, gd, 'pypto.comGraph.errorMessage.canNotGetFuncHashOnOpenOriginGraph')) return;
 
     // 3. 缓存判断&读取文件数据
     this.postForReadJson(server, 'InitComGraph');
-    let isBigFile = false;
-    isBigFile = await this.getJsonData(gd, server, isBigFile);
-
+    const jsonDataResult = await this.getJsonData(gd, server);
+    if (!jsonDataResult) return;
     // 4. 加载FuncHashMap
     await this.loadFuncHashMap(server, gd);
 
@@ -143,21 +142,40 @@ export abstract class BaseGraphMsgHandler {
     server.setRef(cmd, { step: 'readJson' });
   }
 
-  protected static async getJsonData(gd: AbstractGraphData, server: any, isBigFile: boolean) {
+  protected static async getJsonData(gd: AbstractGraphData, server: any) {
     gd.isUsedDB = globalConfig.IS_USE_DB;
-    if (gd.isUsedDB) {
-      const hit = await SQLiteCache.getInstance().comGraphFuncDataGetCount(gd.fsPath);
-      if (hit === 0) {
-        const ret = await gd.readFileAndSetCache(gd.fsPath, server);
-        isBigFile = ret.isBigFile;
+    try {
+      if (gd.isUsedDB) {
+        const hit = await SQLiteCache.getInstance().comGraphFuncDataGetCount(gd.fsPath);
+        if (hit === 0) {
+          await gd.readFileAndSetCache(gd.fsPath);
+        } else {
+          console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
+        }
       } else {
-        console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
+        await gd.readFileAndSetCache(gd.fsPath);
       }
-    } else {
-      await gd.readFileAndSetCache(gd.fsPath, server);
+    } catch (err: any) {
+      if (err.code === 'FILE_READ_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' });
+        return;
+      } else if (err.code === 'JSON_PARSE_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        return;
+      } else if (err.code === 'STREAM_PROCESSING_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        return;
+      } else if (err.code === 'PURE_MEMORY') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.pureMemory'), graphType: 'comGraph' })
+        return;
+      } else {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        return;
+      }
     }
-    return isBigFile;
+    return true;
   }
+
 
   static async openSearchMode(message: any, server: any) {
     const nodeMagic: number = message.data?.nodeMagic;
@@ -169,7 +187,7 @@ export abstract class BaseGraphMsgHandler {
   /* ===================================================
    * 2. 抽象：子类必须实现
    * =================================================== */
-  protected static async loadMainData(server: any): Promise<void> {
+  protected static async loadMainData(server: any): Promise<boolean> {
     throw new Error('子类必须覆盖 loadMainData 方法');
   }
 
@@ -222,6 +240,7 @@ export abstract class BaseGraphMsgHandler {
         }
         if (res.type === 'error') {
           this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data });
+          return;
         }
       });
       // 添加对子进程异常的监听
@@ -231,9 +250,7 @@ export abstract class BaseGraphMsgHandler {
       });
 
       // 监听子进程退出事件
-      child.on('exit', (code, signal) => {
-        console.log(`子进程退出，退出码: ${code}, 信号: ${signal}`);
-      });
+      child.on('exit', () => {});
     } else {
       if (lastChangeTime !== cache.last_change_time) {
         await SQLiteCache.getInstance().comGraphLayoutDel(filePath);
@@ -391,8 +408,7 @@ export abstract class BaseGraphMsgHandler {
       }
     }
     if (!ret) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
-
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
       return { json: undefined };
     }
     const json = JSON.parse(ret);
@@ -501,8 +517,7 @@ export abstract class BaseGraphMsgHandler {
     }
 
     if (!ret) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
-
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
       return { json: undefined };
     }
 
@@ -577,8 +592,8 @@ export abstract class BaseGraphMsgHandler {
         const mode = isNodeSearch
           ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
-  
-          server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
+
+        server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
       }
       server.query.isSearch = false;
       server.query.nodeMagic = undefined;
@@ -627,7 +642,7 @@ export abstract class BaseGraphMsgHandler {
 
   protected static checkFuncHash(server: any, gd: AbstractGraphData, cmd: string): boolean {
     if (gd && !gd.funcHash) {
-      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
+      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: 'not found', message: '' });
       return false;
     }
     return true;
@@ -679,7 +694,7 @@ export abstract class BaseGraphMsgHandler {
     // 1. 取数据
     const { json, io } = await this.fetchGraphJson(gd, server);
     if (!json) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash });
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
       return;
     }
     // 挂 inouttensors

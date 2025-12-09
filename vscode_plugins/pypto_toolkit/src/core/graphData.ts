@@ -23,7 +23,7 @@ export interface AbstractGraphData {
   calleeOpAttrMap: Record<string, string>;
   curPath?: string;
   magicName?: string;
-  readFileAndSetCache(fsPath: string, panel: any): Promise<readFileResult>;
+  readFileAndSetCache(fsPath: string): Promise<readFileResult>;
   getCompleteData(fsPath: string): Promise<any>;
 }
 
@@ -48,29 +48,29 @@ export abstract class GraphData {
     public curPath?: string,
     public magicName?: string,
     public parentInfo?: any,
-  ) {}
+  ) { }
 
   // 读取json文件并存入缓存 并返回大小文件判断
-  async readFileAndSetCache(fsPath: string, server: any): Promise<readFileResult> {
+  async readFileAndSetCache(fsPath: string): Promise<readFileResult> {
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser();
     const valuesStreamer = streamValues();
     const result: readFileResult = { isBigFile: false };
 
     return await new Promise((resolve, reject) => {
-      fileStream.on('error', (err) => {
+      fileStream.on('error', (err: any) => {
         // 文件读取错误（如文件不存在、权限问题）
-        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+        reject(Object.assign(err, { code: 'FILE_READ_ERROR' }));
       });
 
-      jsonParser.on('error', (err) => {
+      jsonParser.on('error', (err: any) => {
         // JSON 解析错误（如格式无效）
-        reject(server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') }));
+        reject(Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
       });
 
-      valuesStreamer.on('error', (err) => {
+      valuesStreamer.on('error', (err: any) => {
         // StreamValues 错误（较少见，但保险起见）
-        reject(err);
+        reject(Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
       });
       const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
       pipeline
@@ -78,7 +78,11 @@ export abstract class GraphData {
           // 处理数据
           const value = ele.value;
           if (!value.functions) return;
-          await this.processFunctions(fsPath, value, result, server);
+          try {
+            await this.processFunctions(fsPath, value, result);
+          } catch (error) {
+            reject(error);
+          }
         })
         .on('end', () => {
           resolve(result);
@@ -113,7 +117,7 @@ export abstract class GraphData {
     });
   }
 
-  private async processFunctions(fsPath: string, value: any, result: readFileResult, server: any): Promise<void> {
+  private async processFunctions(fsPath: string, value: any, result: readFileResult): Promise<void> {
     try {
       const sqlJobs: (() => Promise<void>)[] = [];
       /* 1. 汇总 funcHashMap */
@@ -193,25 +197,46 @@ export abstract class GraphData {
       }
       await SQLiteCache.getInstance().save();
     } catch (e) {
-      console.warn('[DB] 数据库操作失败，自动降级 >>>', e);
       if (this.isUsedDB) {
+        console.warn('[DB] 数据库操作失败，自动降级 >>>', e);
         this.isUsedDB = false;
         // 立即重新走内存分支
-        return await this.processFunctions(fsPath, value, result, server);
+        return await this.processFunctions(fsPath, value, result);
       } else {
-        server.setRef('ErrorMessage', { data: t('pypto.readFileDataErrorOnOpenComGraph') });
+        console.error('纯内存操作失败，数据可能有误', e);
+        throw Object.assign(new Error(), { code: 'PURE_MEMORY' });
       }
     }
   }
 
   static async getEntryHashAndVersion(fsPath: string): Promise<EntryInfo> {
+    const fileStream = createReadStream(fsPath);
+    const jsonParser = parser();
+    const valuesStreamer = streamValues();
+
     return new Promise((resolve, reject) => {
-      const pipeline = createReadStream(fsPath).pipe(parser()).pipe(streamValues());
+      fileStream.on('error', (err: any) => {
+        // 文件读取错误（如文件不存在、权限问题）
+        reject(Object.assign(err, { code: 'FILE_READ_ERROR' }));
+      });
+
+      jsonParser.on('error', (err: any) => {
+        // JSON 解析错误（如格式无效）
+        reject(Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
+      });
+
+      valuesStreamer.on('error', (err: any) => {
+        // StreamValues 错误（较少见，但保险起见）
+        reject(Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
+      });
+
+      const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
+      // const pipeline = createReadStream(fsPath).pipe(parser()).pipe(streamValues());
 
       pipeline
         .on('data', (data: any) => {
           const obj = data.value;
-          if (obj && typeof obj === 'object') {
+          if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
             const result: EntryInfo = {
               entryhash: typeof obj.entryhash === 'string' ? obj.entryhash : undefined,
               version: typeof obj.version === 'string' ? obj.version : undefined,
@@ -221,7 +246,10 @@ export abstract class GraphData {
           }
         })
         .on('end', () => resolve({}))
-        .on('error', reject);
+        .on('error', (err: any) => {
+          // 错误处理
+          reject(err);
+        });
     });
   }
 }

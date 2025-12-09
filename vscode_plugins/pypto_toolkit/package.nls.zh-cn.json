@@ -67,6 +67,13 @@
   "pypto.funcHashUndefinedOnOpenSubGraph": "无法打开子图,function hash未定义",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "无法打开原图,该文件未找到正确function hash",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图,该文件未找到正确function hash",
+
+  "pypto.comGraph.errorMessage.fileRead": "读json文件时报错：文件读取错误（如文件不存在、权限问题）",
+  "pypto.comGraph.errorMessage.jsonParse": "读json文件时报错：JSON 解析错误（如格式无效）",
+  "pypto.comGraph.errorMessage.streaValues": "读json文件时报错：StreamValues 错误",
+  "pypto.comGraph.errorMessage.readJsonUnknown": "读json文件时报错：未知错误",
+  "pypto.comGraph.errorMessage.pureMemory": "读json文件时报错：纯内存通路出现异常",
+
   "pypto.comGraph.errorMessage.parseAttr": "attr无法生成数学表达式",
   "pypto.comGraph.errorMessage.parseIncastNode": "无法创建输入节点",
   "pypto.comGraph.errorMessage.parseOutcastNode": "无法创建输出节点",
@@ -80,7 +87,7 @@
   "pypto.comGraph.errorLogMessage.parseFail": "FuncHash: {{funcHash}},  {{key}}: {{value}}, 属性{{argName}}解析失败",
   "pypto.comGraph.errorLogMessage.funcHash": "FuncHash: {{funcHash}} {{message}}",
   "pypto.comGraph.errorLogMessage.funcHash.emptyList.": "FuncHash: {{funcHash}} ,列表为空",
-  "pypto.comGraph.errorLogMessage.symsOpGetInfo": "FuncHash: {{funcHash}} symList中存在非数字：{{message}}",
+  "pypto.comGraph.errorLogMessage.symsOpGetInfo": "FuncHash: {{funcHash}} symList中存在非数字: {{message}}",
   "pypto.comGraph.errorLogMessage.invalidSymValue": "FuncHash: {{funcHash}} ,无效的sym值: {{message}}",
   "pypto.comGraph.errorLogMessage.missArgumentForSymbol": "FuncHash: {{funcHash}} ,符号列表缺少参数",
   "pypto.comGraph.errorLogMessage.invalidImmediateValue": "FuncHash: {{funcHash}} ,无效的立即数: {{message}}",
