@@ -29,6 +29,7 @@ const props = defineProps({
   hasBorderLeft: { type: Boolean, default: false },
   hasBorderTop: { type: Boolean, default: false },
   hasBorderBottom: { type: Boolean, default: false },
+  isFullscreen: { type: Boolean, default: false },
 });
 
 const { currentActiveBlock, resizing, BlockToGraphMap, dragStartBlock, emitSizeChange } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
@@ -41,6 +42,7 @@ const classes = computed(() => ({
   'has-border-left': props.hasBorderLeft,
   'has-border-top': props.hasBorderTop,
   'has-border-bottom': props.hasBorderBottom,
+  'is-fullscreen': props.isFullscreen,
 }));
 const rootEl = ref<HTMLElement>();
 const showDropArea = ref(false);
@@ -100,6 +102,15 @@ function onMouseenter() {
 .three-column-item {
   position: relative;
   box-sizing: border-box;
+  z-index: 1;
+
+  &.is-fullscreen {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: unset !important;
+    height: unset !important;
+  }
 
   &.active {
     .active-border {
