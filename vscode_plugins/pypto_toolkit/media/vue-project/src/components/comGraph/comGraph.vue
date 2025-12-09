@@ -148,7 +148,8 @@ function isNodeInTrace(nodeId: string): boolean {
     const tracedNodes = [...(tracedTensors || []),...(tracedOperations || [])];
     nodesList = tracedNodes;
   }
-  if (!nodesList) {
+
+  if (!nodesList?.length) {
     return true;
   }
 
