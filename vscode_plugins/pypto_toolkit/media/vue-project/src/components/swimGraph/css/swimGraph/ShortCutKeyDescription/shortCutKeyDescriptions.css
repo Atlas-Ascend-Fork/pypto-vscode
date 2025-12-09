@@ -1,6 +1,6 @@
 .shortCutKeyDescriptionEdit {
-    width: 500px;
-    height: 420px;
+    width: 400px;
+    height: 390px;
     border-radius: 16px;
     position: absolute;
     background: var(--devui-select-bg);
@@ -11,7 +11,7 @@
     top: 60px;
     right: 300px;
     display: flex;
-    padding: 20px;
+    padding: 16px 20px 20px 20px;
 }
 
 .shortCutKey-content {
@@ -21,7 +21,7 @@
 }
 
 .shortCutKey-head {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -29,14 +29,14 @@
 }
 
 .shortCutKey-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1;
     text-align: left;
 }
 
 .shortCutKey-note {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     font-size: 13px;
     font-weight: 400;
     background-color: rgba(246, 158, 57, 0.2);
@@ -56,41 +56,41 @@
 
 .shortCutKey-information {
     display: flex;
-    flex-direction: row;
-    gap: 80px;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .shortCutKey-mouse-key {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 40px;
 }
 
 .shortCutKey-mouseContorl {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     color: var(--devui-secondary-text);
     font-weight: 400;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .shortCutKey-composeContorl {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     color: var(--devui-secondary-text);
     font-weight: 400;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .shortCutKey-keyboardContorl {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     color: var(--devui-secondary-text);
     font-weight: 400;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .mousecontorl {
@@ -126,17 +126,21 @@
     margin-right: var(--singleandboxselectionDistance);
 }
 
-.lateralmovement {
+.dragAndDrop {
     display: flex;
     align-items: center;
 }
 
-.lateralmovement-text {
-    margin-right: var(--lateralmovementDistance);
+.dragAndDrop-text {
+    margin-right: var(--dragAndDropDistance);
 }
 
-.LateralMovement-img1 {
+.dragAndDrop-img1 {
     margin-right: 8px;
+}
+
+.dragAndDrop-space {
+    margin: 0 8px;
 }
 
 .scaling {
@@ -152,6 +156,10 @@
     margin-right: 8px;
 }
 
+.scaling-space {
+    margin: 0 8px;
+}
+
 .timemeasurement {
     display: flex;
     align-items: center;
@@ -163,6 +171,24 @@
 
 .timemeasurement-img1 {
     margin-right: 8px;
+}
+
+.boxSelect {
+    display: flex;
+    align-items: center;
+}
+
+.boxSelect-text {
+    margin-right: var(--boxSelectDistance);
+}
+
+.boxSelect-space {
+    margin: 0 8px;
+}
+
+.scalingKeyboard {
+    display: flex;
+    gap: 16px;
 }
 
 .zoomin {
@@ -181,6 +207,11 @@
 
 .zoomout-text {
     margin-right: var(--zoomOutDistance);
+}
+
+.moveKeyboard {
+    display: flex;
+    gap: 16px;
 }
 
 .leftshifting {

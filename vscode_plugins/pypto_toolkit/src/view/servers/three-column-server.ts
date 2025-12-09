@@ -208,6 +208,10 @@ export class ThreeColumnServer
     await SwimGraphMsgHandler.changeUserCfgConnection(this, message.paramObj);
   };
   @viewApi()
+  public getShortCutKeyCfg = async () => {
+    return await SwimGraphMsgHandler.getShortCutKeyCfg(this);
+  };
+  @viewApi()
   public selectPassPath = async (message: any) => {
     await ComGraphHandler.getFuncHashFileList(this, message.paramObj);
   };

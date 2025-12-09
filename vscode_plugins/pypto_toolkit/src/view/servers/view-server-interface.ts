@@ -123,7 +123,8 @@ export type ISwimApis =
   | 'jumpRawMagic'
   | 'showMessage'
   | 'saveRendingMode'
-  | 'changeUserCfgConnection';
+  | 'changeUserCfgConnection'
+  | 'getShortCutKeyCfg';
 export type ISwimRefs = {
   returnSwim: unknown;
   noSwimFile: unknown;
@@ -142,6 +143,7 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   showMessage: (message: { paramObj: any }) => Promise<void>;
   saveRendingMode: (message: { paramObj: any }) => Promise<void>;
   changeUserCfgConnection: (message: { paramObj: any }) => Promise<void>;
+  getShortCutKeyCfg: () => Promise<any>;
 }
 
 export type ICommonApis = 'getInitialData';

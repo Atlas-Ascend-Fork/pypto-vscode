@@ -25,6 +25,7 @@ export abstract class SwimGraphMsgHandler {
         'showMessage',
         'saveRendingMode',
         'changeUserCfgConnection',
+        'getShortCutKeyCfg',
     ]);
 
     static async getInitialData(server: any) {
@@ -388,4 +389,10 @@ export abstract class SwimGraphMsgHandler {
         const config = workspace.getConfiguration('PyPTOToolkit');
         config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
     }
+    static async getShortCutKeyCfg(server: any) {
+      const config = Util.getSwimGraphCustomCfg();
+      return {
+        configration: config,
+      };
+    };
 }

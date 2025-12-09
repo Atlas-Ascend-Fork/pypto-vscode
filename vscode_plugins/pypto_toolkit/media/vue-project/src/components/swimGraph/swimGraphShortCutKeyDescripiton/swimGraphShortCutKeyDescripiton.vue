@@ -26,44 +26,58 @@
               <img class="singleandboxselection-img" :src="mouse_leftclick_Imgpath" alt="verticalmovement-img"> 
             </div>
           </div>
-          <div class="shortCutKey-composeContorl">
-            <div class="combinedcontrol"> {{ $t('CombinedControl') }} </div>
-            <div class="lateralmovement">
-              <span class="lateralmovement-text">{{ $t('LateralMovement') }}</span>
-              <img class="LateralMovement-img1" :src="mouse_leftclick_Imgpath" alt="verticalmovement-img1">
-              <img class="LateralMovement-img2" :src="ctrl_key_Imgpath" alt="verticalmovement-img2">  
-            </div>
-            <div class="scaling">
-              <span class="scaling-text">{{ $t('Scaling') }}</span>
-              <img class="scaling-img1" :src="mouse_scrollwheel_Imgpath" alt="scaling-img1">
-              <img class="scaling-img2" :src="ctrl_key_Imgpath" alt="scaling-img2">
-            </div>
-            <div class="timemeasurement">
-              <span class="timemeasurement-text">{{ $t('TimeMeasurement') }}</span>
-              <img class="timemeasurement-img1" :src="mouse_leftclick_Imgpath" alt="timemeasurement-img1">
-              <img class="timemeasurement-img2" :src="alt_key_Imgpath" alt="timemeasurement-img2">
-            </div>
-          </div>
+          <div class="shortCutKey-key">
+            <div class="shortCutKey-keyboardContorl">
+              <div class="keyboardcontrol"> {{ $t('KeyboardControl') }} </div>
+              <div class="scalingKeyboard">
+                <div class="zoomin">
+                  <span class="zoomin-text">{{ $t('zoomIn') }}</span>
+                  <img class="zoomin-img" :src="w_key_Imgpath" alt="zoomin-img">
+                </div>
+                <div class="zoomout">
+                  <span class="zoomout-text">{{ $t('zoomOut') }}</span>
+                  <img class="zoomout-img" :src="s_key_Imgpath" alt="zoomout-img">
+                </div>
+              </div>
+              <div class="moveKeyboard">
+                <div class="leftshifting">
+                  <span class="leftshifting-text">{{ $t('LeftMove') }}</span>
+                  <img class="leftshifting-img" :src="a_key_Imgpath" alt="leftshifting-img">
+                </div>
+                <div class="rightshifting">
+                  <span class="rightshifting-text">{{ $t('RightMove') }}</span>
+                  <img class="rightshifting-img" :src="d_key_Imgpath" alt="rightshifting-img">
+                </div>
+              </div>
+           </div>
         </div>
-        <div class="shortCutKey-key">
-          <div class="shortCutKey-keyboardContorl">
-            <div class="keyboardcontrol"> {{ $t('KeyboardControl') }} </div>
-            <div class="zoomin">
-              <span class="zoomin-text">{{ $t('zoomIn') }}</span>
-              <img class="zoomin-img" :src="w_key_Imgpath" alt="zoomin-img">
-            </div>
-            <div class="zoomout">
-              <span class="zoomout-text">{{ $t('zoomOut') }}</span>
-              <img class="zoomout-img" :src="s_key_Imgpath" alt="zoomout-img">
-            </div>
-            <div class="leftshifting">
-              <span class="leftshifting-text">{{ $t('LeftMove') }}</span>
-              <img class="leftshifting-img" :src="a_key_Imgpath" alt="leftshifting-img">
-            </div>
-            <div class="rightshifting">
-              <span class="rightshifting-text">{{ $t('RightMove') }}</span>
-              <img class="rightshifting-img" :src="d_key_Imgpath" alt="rightshifting-img">
-            </div>
+        </div>
+        <div class="shortCutKey-composeContorl">
+          <div class="combinedcontrol"> {{ $t('CombinedControl') }} </div>
+          <div class="scaling">
+            <span class="scaling-text">{{ $t('Scaling') }}</span>
+            <img class="scaling-img1" :src="mouse_scrollwheel_Imgpath" alt="scaling-img1">
+            <img class="scaling-img2" :src="ctrl_key_Imgpath" alt="scaling-img2">
+            <span class="scaling-space">/</span>
+            <img class="scaling-img3" :src="singleFinger_Imgpath" alt="scaling-img3"></img>
+          </div>
+          <div class="dragAndDrop">
+            <span class="dragAndDrop-text">{{ $t('DragAndDrop') }}</span>
+            <img class="dragAndDrop-img1" :src="mouse_leftclick_Imgpath" alt="dragAndDrop-img1">
+            <img class="dragAndDrop-img2" :src="ctrl_key_Imgpath" alt="dragAndDrop-img2">
+            <span class="dragAndDrop-space">/</span>
+            <img class="dragAndDrop-img3" :src="doubleFinger_Imgpath" alt="dragAndDrop-img3"></img>  
+          </div>
+          <div class="boxSelect">
+            <span class="boxSelect-text">{{ $t('BoxSelect') }}</span>
+            <img class="boxSelect-img1" :src="mouse_leftclick_Imgpath" alt="boxSelect-img1">
+            <span class="boxSelect-space">/</span>
+            <img class="boxSelect-img2" :src="threeFinger_Imgpath" alt="boxSelect-img2">
+          </div>
+          <div class="timemeasurement">
+            <span class="timemeasurement-text">{{ $t('TimeMeasurement') }}</span>
+            <img class="timemeasurement-img1" :src="mouse_leftclick_Imgpath" alt="timemeasurement-img1">
+            <img class="timemeasurement-img2" :src="alt_key_Imgpath" alt="timemeasurement-img2">
           </div>
         </div>
       </div>
@@ -98,6 +112,10 @@ const a_key_Imgpath = ref(`${window.staticPath}/static-assets/A-dark-key.svg`);
 const s_key_Imgpath = ref(`${window.staticPath}/static-assets/S-dark-key.svg`);
 const d_key_Imgpath = ref(`${window.staticPath}/static-assets/D-dark-key.svg`);
 
+const singleFinger_Imgpath = ref(`${window.staticPath}/static-assets/single-finger-dark.svg`);
+const doubleFinger_Imgpath = ref(`${window.staticPath}/static-assets/double-finger-dark.svg`);
+const threeFinger_Imgpath = ref(`${window.staticPath}/static-assets/three-finger-dark.svg`);
+
 const isWarningNoteShow = ref(false);
 const zoomInShortcutKey = ref('');
 const zoomOutShortcutKey = ref('');
@@ -105,15 +123,16 @@ const leftmoveShortcutKey = ref('');
 const rightmoveShortcutkey = ref('');
 const newShortcutkey = ref(new Map());
 
-const verticalmovementDistance = ref(window.ascLang === 'zh' ? 72 : 68);
-const singleandboxselectionDistance = ref(window.ascLang === 'zh' ? 67 : 58);
-const lateralmovementDistance = ref(window.ascLang === 'zh' ? 40 : 38);
-const scalingDistance = ref(window.ascLang === 'zh' ? 68 : 106);
-const timemeasurementDistance = ref(window.ascLang === 'zh' ? 40 : 31);
-const zoomInDistance = ref(window.ascLang === 'zh' ? 40 : 60);
-const zoomOutDistance = ref(window.ascLang === 'zh' ? 40 : 49);
-const leftshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 50);
-const rightshiftingDistance = ref(window.ascLang === 'zh' ? 40 : 41);
+const verticalmovementDistance = ref(window.ascLang === 'zh' ? 14 : 17);
+const singleandboxselectionDistance = ref(window.ascLang === 'zh' ? 8 : 8);
+const scalingDistance = ref(window.ascLang === 'zh' ? 40 : 84);
+const dragAndDropDistance = ref(window.ascLang === 'zh' ? 40: 64);
+const boxSelectDistance = ref(window.ascLang === 'zh' ? 40: 69);
+const timemeasurementDistance = ref(window.ascLang === 'zh' ? 14 : 12);
+const zoomInDistance = ref(window.ascLang === 'zh' ? 8 : 19);
+const zoomOutDistance = ref(window.ascLang === 'zh' ? 8 : 15);
+const leftshiftingDistance = ref(window.ascLang === 'zh' ? 8 : 10);
+const rightshiftingDistance = ref(window.ascLang === 'zh' ? 8 : 8);
 
 const toggleShortcutKeyDescriptionModel = () => {
     if (isShortcutKeyShow.value) {
@@ -171,8 +190,9 @@ const generateWarningText = () => {
 const distanceSet = () => {
   document.documentElement.style.setProperty('--verticalmovementDistance', `${verticalmovementDistance.value}px`);
   document.documentElement.style.setProperty('--singleandboxselectionDistance', `${singleandboxselectionDistance.value}px`);
-  document.documentElement.style.setProperty('--lateralmovementDistance', `${lateralmovementDistance.value}px`);
+  document.documentElement.style.setProperty('--dragAndDropDistance', `${dragAndDropDistance.value}px`);
   document.documentElement.style.setProperty('--scalingDistance', `${scalingDistance.value}px`);
+  document.documentElement.style.setProperty('--boxSelectDistance', `${boxSelectDistance.value}px`);
   document.documentElement.style.setProperty('--timemeasurementDistance', `${timemeasurementDistance.value}px`);
   document.documentElement.style.setProperty('--zoomInDistance', `${zoomInDistance.value}px`);
   document.documentElement.style.setProperty('--zoomOutDistance', `${zoomOutDistance.value}px`);
@@ -195,10 +215,14 @@ const updateTheme = () => {
   a_key_Imgpath.value = `${window.staticPath}/static-assets/A-${theme}-key.svg`;
   s_key_Imgpath.value = `${window.staticPath}/static-assets/S-${theme}-key.svg`;
   d_key_Imgpath.value = `${window.staticPath}/static-assets/D-${theme}-key.svg`;
+
+  singleFinger_Imgpath.value = `${window.staticPath}/static-assets/single-finger-${theme}.svg`;
+  doubleFinger_Imgpath.value = `${window.staticPath}/static-assets/double-finger-${theme}.svg`;
+  threeFinger_Imgpath.value = `${window.staticPath}/static-assets/three-finger-${theme}.svg`;
 };
 
 onMounted(() => {
-  server.getSwimData().then((newValue) =>{
+  server.getShortCutKeyCfg().then((newValue) =>{
     zoomInShortcutKey.value = newValue.configration['ZoomInShortcut'];
     zoomOutShortcutKey.value = newValue.configration['ZoomOutShortcut'];
     leftmoveShortcutKey.value = newValue.configration['leftmoveShortcut'];

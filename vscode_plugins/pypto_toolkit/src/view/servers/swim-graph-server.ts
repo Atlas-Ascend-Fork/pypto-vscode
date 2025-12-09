@@ -72,6 +72,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   public changeUserCfgConnection = async (message: any) => {
     await this.handler.changeUserCfgConnection(this, message.paramObj);
   };
+  @viewApi()
+  public getShortCutKeyCfg = async () => {
+    return await this.handler.getShortCutKeyCfg(this);
+  };
 
   safeParse(str) {
     try {
