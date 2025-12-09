@@ -351,6 +351,7 @@ export abstract class BaseGraphMsgHandler {
         curPath: server.entryHash === calleehash ? undefined : curPath,
         calleeOpMagic: server.entryHash === calleehash ? undefined : calleeOpMagic,
         calleeOpSubgraphId: server.entryHash === calleehash ? undefined : calleeOpSubgraphId,
+        isSearch: server.entryHash === calleehash ? undefined : oldQuery.isSearch,
         parentInfo: server.entryHash === calleehash ? undefined : parentInfo,
       };
 
@@ -517,7 +518,11 @@ export abstract class BaseGraphMsgHandler {
     }
 
     if (!ret) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
+      if (gd.isUsedDB) {
+        this.returnError(server, 'pypto.comGraph.errorMessage.dbQueryError', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
+      } else {
+        this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
+      }
       return { json: undefined };
     }
 
@@ -693,10 +698,7 @@ export abstract class BaseGraphMsgHandler {
     const gd = this.getGraphData(server);
     // 1. 取数据
     const { json, io } = await this.fetchGraphJson(gd, server);
-    if (!json) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
-      return;
-    }
+    if (!json) return;
     // 挂 inouttensors
     if (io) json.inouttensors = io;
     // 2. 发送初始化消息
