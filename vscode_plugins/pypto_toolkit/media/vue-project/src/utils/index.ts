@@ -146,7 +146,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   for (const bop of beforeOpMap.values()) {
     const cop = curOpMap.get(bop.opmagic);
     if (!cop) {
-      addDiffDetail(undefined, bop, diffDetail, cop.opcode);
+      addDiffDetail(undefined, bop, diffDetail, bop.opcode);
       bop.compareType = 'delete';
       addDiffElements('delete', 'op', bop.opmagic, BeforeOpMagicMap[bop.opmagic], diffList, bop.opcode);
     }

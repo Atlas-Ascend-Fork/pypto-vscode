@@ -7,8 +7,7 @@
     :close-on-click-overlay="false"
     class="diff-modal-container"
   >
-    <d-code-review :diff="diff" :expand-threshold="8" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side">
-    </d-code-review>
+    <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side"> </d-code-review>
   </d-modal>
 </template>
 
@@ -20,42 +19,17 @@ const props = defineProps({ diffDetail: Array as PropType<Record<'new' | 'old', 
 
 const visible = ref(false);
 const title = ref('');
-const diff = ref(`--- a/src/diff2html.json
-+++ b/src/diff2html.json
-@@ -7,7 +7,7 @@
- 
- (function() {
-   var diffParser = require('./diff-parser.js').DiffParser;
--  var fileLister = require('./file-list-printer.js').FileListPrinter;
-   var htmlPrinter = require('./html-printer.js').HtmlPrinter;
- 
-   function Diff2Html() {
- 
-     var fileList = '';
-     if (configOrEmpty.showFiles === true) {
--      fileList = fileLister.generateFileList(diffJson, configOrEmpty);
-+      fileList = htmlPrinter.generateFileListSummary(diffJson, configOrEmpty);
-     }
- 
-     var diffOutput = '';
-`);
+const diff = ref(``);
+let allStr = [];
 
 const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
-  if (lStart >= 60) {
+  if (lStart >= allStr.length) {
     return update('');
   }
-  const code = [
-    "var diffParser = require('./diff-parser.js').DiffParser;\n",
-    "var htmlPrinter = require('./html-printer.js').HtmlPrinter;\n",
-    "var diffParser = require('./diff-parser.js').DiffParser;\n",
-    "var htmlPrinter = require('./html-printer.js').HtmlPrinter;\n",
-    "var diffParser = require('./diff-parser.js').DiffParser;\n",
-    "var htmlPrinter = require('./html-printer.js').HtmlPrinter;\n",
-    "var diffParser = require('./diff-parser.js').DiffParser;\n",
-    "var htmlPrinter = require('./html-printer.js').HtmlPrinter;\n",
-  ];
+  let sliceStart = lStart - 1;
+  let sliceEnd = lEnd - 1;
   const content =
-    '--- a/src/diff2html.js\n+++ b/src/diff2html.js\n@@ -' +
+    '--- old.json\n+++ new.json\n@@ -' +
     Math.min(lStart, lEnd) +
     ',' +
     Math.abs(lStart - lEnd - 1) +
@@ -64,8 +38,11 @@ const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
     ',' +
     Math.abs(rStart - rEnd - 1) +
     ' @@\n ' +
-    code.slice(0, Math.min(Math.abs(lStart - lEnd - 1), 10)).join(' ');
+    allStr.slice(sliceStart, sliceEnd).join(' ');
   update(content);
+  if (sliceEnd >= allStr.length) {
+    update('');
+  }
 };
 
 function getCompareTypeNode(node) {
@@ -79,7 +56,13 @@ function getCompareTypeNode(node) {
 }
 
 function getNodeDetail(node) {
-  return props.diffDetail?.find((item) => item.new?.magic === Number(node.magic) || item.old?.magic === Number(node.magic));
+  return props.diffDetail?.find(
+    (item) =>
+      item.new?.magic === Number(node.magic) ||
+      item.new?.opmagic === Number(node.magic) ||
+      item.old?.magic === Number(node.magic) ||
+      item.old?.opmagic === Number(node.magic),
+  );
 }
 
 function onViewMouseUp(node) {
@@ -89,11 +72,20 @@ function onViewMouseUp(node) {
       visible.value = true;
       title.value = node.text;
       const nodeDetail = getNodeDetail(node);
+      if (nodeDetail.old) {
+        allStr = JSON.stringify(nodeDetail.old, null, 2)
+          .split('\n')
+          .map((item) => `${item}\n`);
+      } else if (nodeDetail.new) {
+        allStr = JSON.stringify(nodeDetail.new, null, 2)
+          .split('\n')
+          .map((item) => `${item}\n`);
+      }
       diff.value = createTwoFilesPatch(
-        'a/src/diff2html.json',
-        'b/src/diff2html.json',
-        JSON.stringify(nodeDetail.old, null, 2),
-        JSON.stringify(nodeDetail.new, null, 2),
+        'old.json',
+        'new.json',
+        nodeDetail.old ? JSON.stringify(nodeDetail.old, null, 2) : '',
+        nodeDetail.new ? JSON.stringify(nodeDetail.new, null, 2) : '',
       );
     }
   }
@@ -131,7 +123,8 @@ onBeforeUnmount(() => {
       .hljs-attr,
       .hljs-number,
       .hljs-keyword,
-      .hljs-literal {
+      .hljs-literal,
+      .hljs-string {
         color: unset;
       }
 
