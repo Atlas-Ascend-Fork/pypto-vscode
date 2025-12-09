@@ -285,8 +285,7 @@ const modelConfirm = async () => {
     if (comErrorMessage.value) {
       comErrorMessage.value = '';
     }
-    await server.innerGetSubgraph({ paramObj: { calleehash: comPath, subFuncmagicname: comPath } });
-    await server.replaceFile({ options: { swimPath, comPath: "" } });
+    await server.replaceFile({ options: { swimPath, comPath: comPath } });
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
