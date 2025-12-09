@@ -46,7 +46,7 @@
       <div id="sprotty"></div>
     </div>
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
-    <ComGraphMinimap ref="minimapEl" v-if="!isLoading" :width="200" :height="124"></ComGraphMinimap>
+    <ComGraphMinimap ref="minimapEl" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
   </div>
 </template>
