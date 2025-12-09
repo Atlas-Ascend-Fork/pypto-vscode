@@ -8,7 +8,7 @@
       <template #default="scope">
         <div class="diff-list-item" @click="() => onItemClick(scope.data)">
           <span class="item-index">{{ scope.index + 1 }}</span>
-          <span class="item-title">{{ scope.data.nodeType }}: {{ scope.data.magic }}</span>
+          <span class="item-title">{{ scope.data.nodeType }} : {{ scope.data.magic }}</span>
           <i :class="['item-icon', scope.data.changeType, IconMap[scope.data.changeType]]"></i>
         </div>
       </template>
@@ -120,8 +120,8 @@ const onExpandChange = () => {
     }
 
     .item-index {
-      width: 18px;
-      margin-right: 4px;
+      margin-right: 8px;
+      font-weight: bolder;
     }
 
     .item-title {
