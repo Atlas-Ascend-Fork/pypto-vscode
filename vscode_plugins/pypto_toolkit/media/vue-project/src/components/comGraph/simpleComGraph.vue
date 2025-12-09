@@ -114,7 +114,7 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
-let isComGraphVisible = false;
+let isComGraphVisible = true;
 watch(currentActiveBlock, (val) => {
   if (val) {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
