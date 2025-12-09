@@ -88,6 +88,9 @@ export abstract class BaseGraphMsgHandler {
     if (layout.direction === 'DOWN') funcHash += '_down';
     if (!layout.showTensor) funcHash += '_notshowtensor';
     funcHash += message.data.filePath || '';
+    if (message.threeMode) {
+      funcHash = funcHash + '_threeMode';
+    }
     const lastChangeTime = await getMTime(filePath);
     const result = JSON.stringify(message.data);
     await SQLiteCache.getInstance().comGraphFinalResultSet(filePath, funcHash, result, lastChangeTime);
@@ -107,6 +110,9 @@ export abstract class BaseGraphMsgHandler {
     if (layout.direction === 'DOWN') funcHash += '_down';
     if (!layout.showTensor) funcHash += '_notshowtensor';
     funcHash += message.data.filePath || '';
+    if (message.data.threeMode) {
+      funcHash = funcHash + '_threeMode';
+    }
     if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }

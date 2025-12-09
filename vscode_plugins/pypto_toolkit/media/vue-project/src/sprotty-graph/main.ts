@@ -167,7 +167,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
-                server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig });
+                server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig, threeMode: isThreeMode });
               }
               (window as any).ascEventBus.emit('layoutEnding', true);
               renderMinimap(modelSource.model);
