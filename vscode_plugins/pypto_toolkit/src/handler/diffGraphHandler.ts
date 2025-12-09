@@ -76,7 +76,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     const oriJsonDataResult = await this.getJsonData(gd, server);
     if (!oriJsonDataResult) return;
     if (diffgd) {
-      const diffJsonDataResult = await this.getJsonData(gd, server);
+      const diffJsonDataResult = await this.getJsonData(diffgd, server);
       if (!diffJsonDataResult) return;
     }
     // 4. 加载FuncHashMap
@@ -106,9 +106,6 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
           return false;
         } else if (err.code === 'JSON_PARSE_ERROR') {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
-          return false;
-        } else if (err.code === 'STREAM_PROCESSING_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
           return false;
         } else {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })

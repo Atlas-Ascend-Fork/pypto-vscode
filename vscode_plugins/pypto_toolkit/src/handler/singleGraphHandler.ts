@@ -32,9 +32,6 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         } else if (err.code === 'JSON_PARSE_ERROR') {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
           return false;
-        } else if (err.code === 'STREAM_PROCESSING_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
-          return false;
         } else {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
           return false;
