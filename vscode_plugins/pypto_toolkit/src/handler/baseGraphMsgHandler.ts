@@ -162,12 +162,6 @@ export abstract class BaseGraphMsgHandler {
       } else if (err.code === 'JSON_PARSE_ERROR') {
         server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
         return;
-      } else if (err.code === 'STREAM_PROCESSING_ERROR') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
-        return;
-      } else if (err.code === 'PURE_MEMORY') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.pureMemory'), graphType: 'comGraph' })
-        return;
       } else {
         server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
         return;
@@ -250,7 +244,7 @@ export abstract class BaseGraphMsgHandler {
       });
 
       // 监听子进程退出事件
-      child.on('exit', () => {});
+      child.on('exit', () => { });
     } else {
       if (lastChangeTime !== cache.last_change_time) {
         await SQLiteCache.getInstance().comGraphLayoutDel(filePath);
