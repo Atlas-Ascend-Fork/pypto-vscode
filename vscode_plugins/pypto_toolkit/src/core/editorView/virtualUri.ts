@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { UriQuery } from '../view/view-query';
 
-export const VIRTUAL_SCHEME = 'PyPTO';
-
 /**
  * 生成虚拟uri
  * @param uri 原始文件uri
@@ -13,7 +11,7 @@ export const VIRTUAL_SCHEME = 'PyPTO';
  */
 export function toVirtualUri(uri: vscode.Uri, viewType: string, query?: Record<string, unknown>): vscode.Uri {
   const uriQuery: UriQuery = { ...query, _path: uri.fsPath, _viewType: viewType };
-  return uri.with({ scheme: VIRTUAL_SCHEME, query: JSON.stringify(uriQuery) });
+  return uri.with({ query: JSON.stringify(uriQuery) });
 }
 
 /**

@@ -264,13 +264,14 @@ watch(sortOption, () => {
 });
 </script>
 
-<style>
+<style scoped lang="less">
+@import url('@devui-design/icons/icomoon/devui-icon.css');
+
 /**
  * 基础样式
  */
 .sidebar-container {
-  background: var(--devui-card-bg);
-  color: var(--control-flow-sidebar-search-icon);
+  color: var(--pto-font-color-title);
   min-height: 100%;
   width: 100%;
   height: 100%;
@@ -280,9 +281,6 @@ watch(sortOption, () => {
   gap: 11px;
   padding-top: 8px;
 }
-</style>
-<style scoped lang="less">
-@import url('@devui-design/icons/icomoon/devui-icon.css');
 
 .header {
   display: flex;
@@ -304,7 +302,7 @@ watch(sortOption, () => {
     font-size: 14px;
     cursor: pointer;
     :deep(*) {
-      color: var(--control-flow-sidebar-search-icon);
+      color: var(--pto-font-color-title);
     }
   }
   .refresh {
@@ -321,7 +319,7 @@ watch(sortOption, () => {
     }
 
     :deep(*) {
-      color: var(--control-flow-sidebar-search-icon);
+      color: var(--pto-font-color-title);
     }
   }
 
@@ -418,7 +416,7 @@ watch(sortOption, () => {
 
       &:has(+ .devui-tree__node[style*='padding-left: 0px']),
       &:last-of-type {
-        border-bottom-color: var(--vscode-sideBar-border);
+        border-bottom-color: var(--pto-border-default);
       }
 
       &.active {
@@ -430,7 +428,7 @@ watch(sortOption, () => {
       }
 
       &:hover {
-        background-color: var(--devui-input-hover-bg);
+        background-color: var(--pto-background-hover);
         .node-label {
           color: var(--control-flow-sidebar-tree-label) !important;
         }
