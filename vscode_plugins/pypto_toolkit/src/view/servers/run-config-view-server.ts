@@ -12,8 +12,6 @@ type Refs = { filename: string; filepath: string };
 
 export type RunConfigSchema = Record<string, { label: { zh: string; en: string }; attributes: RunConfigAttribute<any>[] }>;
 
-type RunConfigData = object;
-
 @viewRefs(['filename', 'filepath'])
 export class RunConfigViewServer extends ViewServer<Apis, Refs> {
   private fileUri: vscode.Uri;
@@ -33,7 +31,7 @@ export class RunConfigViewServer extends ViewServer<Apis, Refs> {
     return {
       pass_global_configs: {
         label: { zh: 'PASS', en: 'PASS' },
-        attributes: global_configs,
+        attributes: global_configs as RunConfigAttribute<any>[],
       },
       simulation: {
         label: { zh: '仿真', en: 'simulation' },
