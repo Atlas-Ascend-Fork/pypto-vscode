@@ -72,7 +72,7 @@
             <span class="boxSelect-text">{{ $t('BoxSelect') }}</span>
             <img class="boxSelect-img1" :src="mouse_leftclick_Imgpath" alt="boxSelect-img1">
             <span class="boxSelect-space">/</span>
-            <img class="boxSelect-img2" :src="threeFinger_Imgpath" alt="boxSelect-img2">
+            <span class="boxSelect-text1">{{ $t('BoxSelectContent') }}</span>
           </div>
           <div class="timemeasurement">
             <span class="timemeasurement-text">{{ $t('TimeMeasurement') }}</span>
@@ -114,7 +114,6 @@ const d_key_Imgpath = ref(`${window.staticPath}/static-assets/D-dark-key.svg`);
 
 const singleFinger_Imgpath = ref(`${window.staticPath}/static-assets/single-finger-dark.svg`);
 const doubleFinger_Imgpath = ref(`${window.staticPath}/static-assets/double-finger-dark.svg`);
-const threeFinger_Imgpath = ref(`${window.staticPath}/static-assets/three-finger-dark.svg`);
 
 const isWarningNoteShow = ref(false);
 const zoomInShortcutKey = ref('');
@@ -218,7 +217,6 @@ const updateTheme = () => {
 
   singleFinger_Imgpath.value = `${window.staticPath}/static-assets/single-finger-${theme}.svg`;
   doubleFinger_Imgpath.value = `${window.staticPath}/static-assets/double-finger-${theme}.svg`;
-  threeFinger_Imgpath.value = `${window.staticPath}/static-assets/three-finger-${theme}.svg`;
 };
 
 onMounted(() => {
