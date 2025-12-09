@@ -5,7 +5,7 @@
       <DiffLayout :layout="currentLayout" @layout-change="onLayoutChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
-      <DiffList v-if="showDiffList" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
+      <DiffList v-if="showDiffList" :is-loading="isLoading" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
       <div :class="['diff-wrap', `diff-layout-${currentLayout}`]">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="beforeFileName" />
