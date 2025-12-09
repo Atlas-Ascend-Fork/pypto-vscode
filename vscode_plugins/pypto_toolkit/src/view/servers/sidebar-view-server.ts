@@ -11,7 +11,7 @@ type Refs = {
 @viewRefs(['isScanning', 'configFiles'])
 export class SidebarViewServer extends ViewServer<Apis, Refs> {
   public override created(): void {
-    const configService = useService('config');
+    const configService = useService('configData');
     // 监听文件更新
     configService.onDidUpdateConfigData(({ status, files }) => this.handleUpdateConfigFiles({ status, files }));
   }
