@@ -34,6 +34,7 @@
       </div>
     </div>
     <ShowTip></ShowTip>
+    <DiffModal :diff-detail="diffDetail" />
   </div>
 </template>
 
@@ -54,6 +55,7 @@ import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import DiffModal from './diffModal.vue';
 
 const { server } = useViewServer<IComViewServer>();
 const props = defineProps({
@@ -76,6 +78,7 @@ const afterMinimapEl = ref();
 const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
 const currentLayout = ref<TDiffLayout>('horizontal');
+const diffDetail = ref([]);
 let beforeIns;
 let afterIns;
 let expandTimer: ReturnType<typeof setTimeout>;
@@ -98,7 +101,8 @@ function onLayoutChange(e) {
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
   showSelectFile.value = false;
-  const { diffList: list, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
+  const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
+  diffDetail.value = detail;
   diffList.value = list as any;
   showDiffList.value = showDiff;
   const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
@@ -144,7 +148,8 @@ watch(
 
 watch([() => props.afterJson, () => props.beforeJson], () => {
   if (props.beforeJson && props.afterJson) {
-    const { diffList: list, showDiffList: showDiff } = compareJsonData(props.beforeJson, props.afterJson);
+    const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(props.beforeJson, props.afterJson);
+    diffDetail.value = detail;
     diffList.value = list as any;
     showDiffList.value = showDiff;
   }
