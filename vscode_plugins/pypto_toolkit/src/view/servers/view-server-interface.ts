@@ -116,6 +116,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
 export type ISwimApis =
   | 'getInitialData'
   | 'getSwimData'
+  | 'validateSwimFile'
   | 'bindComGraphJson'
   | 'unbindComGraph'
   | 'jumpToComGraph'
@@ -134,6 +135,7 @@ export type ISwimRefs = {
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
   getSwimData: () => Promise<any>;
+  validateSwimFile: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;
   jumpToComGraph: (message: { paramObj: any }) => Promise<void>;

@@ -310,9 +310,6 @@ function setupSwimWatchers() {
   watch(server.noSwimFile, (newValue) => {
     window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
   });
-  watch(server.validateSwimFile, (newValue) => {
-    validData(newValue.content);
-  });
 }
 
 let ERROR_MESSAGES = {
@@ -360,7 +357,7 @@ const validData = (dataStr) => {
 
   data.traceEvents.forEach(event => {
     if (event.cat === 'event' && (!event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
-      window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name}"]`));
+      window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name || event.id}"]`));
     }
 
     if (event.ph === 'B') {
@@ -1722,18 +1719,14 @@ onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
   loading.value = true;
-  const oldMessage = /** @type { { message: object } | undefined } */ (vscode.getState());
-  if (oldMessage && oldMessage.message && oldMessage.message.data) {
-    setPageState(oldMessage.message);
-    loadTraceData(oldMessage.message.data);
-  } else {
-    server.getSwimData().then((newValue) => {
-      const oldData = /** @type { { message: object } | undefined } */ (vscode.getState());
-      let newMessage = (oldData && oldData.message) || newValue;
-      setPageState(newValue);
-      loadTraceData(newMessage.data);
-    });
-  }
+  server.validateSwimFile().then((content) => {
+    validData(content);
+  });
+  server.getSwimData().then((newValue) => {
+    setPageState(newValue);
+    loadTraceData(newValue.data);
+  });
+  
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }

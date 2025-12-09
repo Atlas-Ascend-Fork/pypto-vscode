@@ -176,6 +176,10 @@ export class ThreeColumnServer
     return await SwimGraphMsgHandler.getSwimData(this);
   };
   @viewApi()
+  public validateSwimFile = async () => {
+    return await SwimGraphMsgHandler.validateFile(this);
+  };
+  @viewApi()
   public bindComGraphJson = async () => {
     await SwimGraphMsgHandler.bindComGraphJson(this);
   };
