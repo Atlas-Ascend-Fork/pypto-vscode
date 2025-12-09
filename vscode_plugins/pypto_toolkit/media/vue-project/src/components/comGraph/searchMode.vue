@@ -380,10 +380,6 @@ const onSearch = (e) => {
   e.isUpper = upperActive.value;
   e.isReg = regActive.value;
   isVisible.value = Boolean(e.searchKey);
-  if (isVisible.value) {
-    showOperation.value = true;
-    showSearchIcon.value = 0;
-  }
   if (!(e.category) || e.category === '') {
     res.value = searchFuzzy(tensorMap, opMap, rawTensorMap, funcMap.value, e.searchKey, '', e.isUpper, e.isReg);
   } else {

@@ -76,6 +76,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           requestAnimationFrame(() => {
             getViewport(modelSource, MAINMAP_TYPE);
             getViewport(miniMapModelSource, MINIMAP_TYPE);
+            (window as any).ascEventBus.emit('layoutEnding', true);
           });
         });
       }); // Use dispatch instead of dispatchAll
@@ -169,7 +170,6 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
                 server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig });
               }
-              (window as any).ascEventBus.emit('layoutEnding', true);
               renderMinimap(modelSource.model);
             }
             if (!sprottyGraph.children) return;
