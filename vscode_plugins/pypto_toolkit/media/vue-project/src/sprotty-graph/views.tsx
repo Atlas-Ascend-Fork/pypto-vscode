@@ -1266,9 +1266,6 @@ export class AstgrEdge extends PolylineEdgeView {
     }
 
     const route = this.edgeRouterRegistry.route(edge, args);
-    if (route.length === 0) {
-      return this.renderDanglingEdge('Cannot compute route', edge, context);
-    }
     if ((!this.isVisible(edge, route, context)) && (!comGraphStore.data.svgExportMode)) {
       if (edge.children.length === 0) {
         return undefined;
