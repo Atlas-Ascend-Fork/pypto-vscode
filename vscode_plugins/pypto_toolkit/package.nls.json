@@ -97,6 +97,7 @@
   "pypto.comGraph.errorLogMessage.unexpectedEndOfAttr": "FuncHash: {{funcHash}} , unexpected end of attribute",
   "pypto.comGraph.errorLogMessage.expectedArrayForExpression": "FuncHash: {{funcHash}} , expected expression  {{message}} to be of array type",
   "pypto.comGraph.errorLogMessage.invalidKindType": "FuncHash: {{funcHash}} ,invalid kind type: {{message}},expected 1 (symbolic) or 2 (integer)",
+  "pypto.comGraph.errorMessage.dbQueryError": "Failed to open the computation graph; No data found in DB（possibly entryHash did not match）",
   "pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph": "Failed to open the computation graph; an exception occurred while reading data",
   "pypto.comGraph.errorMessage.canNotGetFuncHashOnOpenOriginGraph": "Failed to open the original graph; the file does not contain the correct function hash",
   "pypto.clearAllCache": "Are you sure you want to clear all cached(memory + disk)?",
