@@ -201,7 +201,7 @@ export default {
         locateNodeError:'Current node not found, location failed',
         searchHistoryTips: 'History',
         searchPageTips: 'Page Instruction',
-        searchPageTipsContent: 'Enter the node magic(e.g. \'10086\') or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
+        searchPageTipsContent: 'Enter the node magic or subgraph-id of the file into the search box to search for it, and get a new render graph containing the searched node and all the related nodes',
         pleaseSelect: 'Please select',
         noData: 'No data',
         leafCalledRecord: 'Leaf called record',
