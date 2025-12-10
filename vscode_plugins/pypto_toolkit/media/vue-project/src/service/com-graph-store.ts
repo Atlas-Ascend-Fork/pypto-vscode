@@ -22,7 +22,7 @@ interface ComGraphData {
   comGraphConfig: ComGraphConfig;
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
-  visibleOtherNodes: boolean;
+  unVisibleOtherNodes: boolean;
   isNodeRectLock: boolean;
   stableRect:boolean;
   fixedNodeId: string;
@@ -71,7 +71,7 @@ export const comGraphStore: DataStore = reactive({
     },
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,
-    visibleOtherNodes:false,
+    unVisibleOtherNodes:false,
     layoutDirection: 'RIGHT',
     svgExportMode: false,
   },
