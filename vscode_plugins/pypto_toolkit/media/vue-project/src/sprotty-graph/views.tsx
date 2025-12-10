@@ -804,7 +804,8 @@ export class AstgrRectView extends RectangularNodeView {
       node.customSize.width = endX - startX + 80;
       node.customSize.height = endY - startY + 80;
     }
-    let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
+    let strokeWidth = node.root.zoom >= 1 ? 1 : (1 / node.root.zoom);
+    let imgSize = node.root.zoom >= 1 ? 12 : node.root.zoom < 0.45 ? (12 / 0.45): (12 / node.root.zoom);
 
     const strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
 
@@ -848,8 +849,8 @@ export class AstgrRectView extends RectangularNodeView {
           fill="transparent"
         ></path>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
-          <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
-          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
+          <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill='var(--devui-tooltip-bg)'></rect>
+          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={3 + imgSize / 2}  y={3 + imgSize / 2} width={imgSize} height={imgSize} />
         </g>
       </g>
     );
