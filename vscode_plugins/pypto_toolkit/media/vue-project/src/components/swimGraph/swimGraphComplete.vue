@@ -1,20 +1,27 @@
 <template>
   <div style="height: 100vh;" class="swim-global-container">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
-      <div class="simple-containner" :style="{ display: 'none' }">
-        <div class="simple-com-file-name">Program.json</div>
-        <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
-      </div>
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
+      <swim-graph-header ref="swimgraphHeaderComponent" />
       <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
     </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
-        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }">
-          <div class="title_up" v-show="!isSwimGraphActive">
+        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
+          <div class="title_up_threecolum" v-show="isThreeColumn">
+            <!-- <div class="title_pic"></div> -->
+            <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
+            <div class="title_up_r_threecolum">
+              <div class="title_up_threecolum_filename">
+                <fileSelect v-if="isThreeColumn" :file-name="swimFileName" />
+                <div class="title_time">{{ formattedTime }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="title_up" v-show="!isThreeColumn">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic" :src="titlePath" alt="title-picture" />
             <div class="title_up_r">
@@ -25,13 +32,9 @@
               <div class="title_time">{{ formattedTime }}</div>
             </div>
           </div>
-          <div class="title_up" v-show="!isSwimGraphActive">
-            <div class="simple-file-containner" :style="{ display: 'none' }">
-              <div class="simple-com-file-name">Program.json</div>
-              <div class="icon-line-height"><img :src="iconPath" alt="" class="simple-com-file-name-icon" /></div>
-            </div>
+          <div class="title_up" v-show="!isThreeColumn">
           </div>
-          <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '-20px' }">
+          <div class="title_down" v-if="!isThreeColumn">
             <d-tooltip :content="$t('tips1')">
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture" />
             </d-tooltip>
@@ -46,7 +49,7 @@
         </div>
         <div class="right-header-content" style="width: calc(100% - 250px)">
           <!-- 按钮操作区 -->
-          <swim-graph-header ref="swimgraphHeaderComponent" />
+          <swim-graph-header v-if="!isThreeColumn" ref="swimgraphHeaderComponent" />
           <div class="swimlane-container mr16" ref="swimlaneContainer">
             <!-- 时间轴区域 -->
             <swim-graph-timeline ref="timelineComponent" />
@@ -114,6 +117,7 @@ import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
+import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
 
 const { server } = useViewServer();
@@ -122,6 +126,10 @@ const props = defineProps({
   isThreeColumn: {
     type: Boolean,
     default: false,
+  },
+  swimFileName: {
+    type: String,
+    default: ''
   },
 });
 
@@ -1913,7 +1921,8 @@ provide('swimGraphState', {
   searchedEvent,
   colorRending: modeOption,
   labelRender,
-  fileName
+  fileName,
+  isSwimGraphActive,
 });
 
 // 提供方法给子组件

@@ -49,7 +49,7 @@ const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t: $t } = useI18n();
 const { isDarkTheme } = inject('threeColumnState') as {isDarkTheme:Ref<boolean>};
-
+const { editorFileName } = inject('threeColumnState');
 
 const darkThemeColors = generateColorList(360);
 const lithtThemeColors = generateColorList(360, false);
@@ -71,7 +71,6 @@ let currentHoverDecoration = null; // 悬停的背景装饰
 let labelInfoDecorations = []; // 存储标签信息装饰
 let initCodePath = '';
 let initTotalLine = 0;
-
 const isLocked = ref(false);
 const lockPosition = ref(null);
 
@@ -601,11 +600,11 @@ watch(threeColumnServer.CompleteData, (newValue) => {
 watch(threeColumnServer.PyCode, (newValue) => {
   const { codePath, code } = newValue.data;
   initCodePath = codePath;
+  editorFileName.value = initCodePath.split(/[\/\\]/).pop();
   initTotalLine = code.split('\n').length;
   loading.value = false;
   nextTick(() => initEditor(code));
 });
-
 
 // 在组件挂载前配置 Monaco
 configureMonaco();
