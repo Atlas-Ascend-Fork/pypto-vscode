@@ -175,6 +175,10 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
     cp2x = endX - 0.03 * canvasCSSWidth;
   }
 
+  if (cp2x < cp1x && cp1y === cp2y) {
+    cp2x = cp1x;
+  }
+
   const gradient = ctx.createLinearGradient(startX, startY, endXLine, endY);
   gradient.addColorStop(0, startColor);
   gradient.addColorStop(1, endColor);
