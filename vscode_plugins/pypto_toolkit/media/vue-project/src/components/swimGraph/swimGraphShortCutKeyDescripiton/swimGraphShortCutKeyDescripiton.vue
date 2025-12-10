@@ -219,7 +219,6 @@ const updateTheme = () => {
   singleFinger_Imgpath.value = `${window.staticPath}/static-assets/single-finger-${theme}.svg`;
   doubleFinger_Imgpath.value = `${window.staticPath}/static-assets/double-finger-${theme}.svg`;
   boxSelectSign_Imgpath.value = `${window.staticPath}/static-assets/boxselect-sign-${theme}.svg`;
-  console.log(boxSelectSign_Imgpath.value)
 };
 
 onMounted(() => {
