@@ -76,7 +76,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           requestAnimationFrame(() => {
             getViewport(modelSource, MAINMAP_TYPE);
             getViewport(miniMapModelSource, MINIMAP_TYPE);
-            (window as any).ascEventBus.emit('layoutEnding', true);
+            (window as any).ascEventBus.emit('layoutEnding', filePath);
           });
         });
       }); // Use dispatch instead of dispatchAll
