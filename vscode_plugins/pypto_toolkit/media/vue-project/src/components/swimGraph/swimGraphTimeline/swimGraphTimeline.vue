@@ -361,14 +361,22 @@ const handleWheel = throttle((e) => {
       return;
     }
     const canvasMoveLeft = e.deltaX > 0;
+    const deltaX = e.deltaX * 10;
     const timeLineEndX = Math.abs(timeLineX.value);
     const cssWidth = viewState.canvasCssWidth;
-    if (canvasMoveLeft && cssWidth > timeLineEndX) {
+    const minOffset = cssWidth - (cssWidth * viewState.scale);
+    const leftLimit = canvasMoveLeft && viewState.offsetX === minOffset;
+    const rightLimit = !canvasMoveLeft && viewState.offsetX === 0;
+    if (leftLimit || rightLimit) {
       return;
     }
-    viewState.offsetX -= childContextMap.threadEvent.getOffset(e.deltaX, viewState.scale);
-    if (!canvasMoveLeft && viewState.offsetX > 0) {
-      viewState.offsetX = 0;
+    if (canvasMoveLeft && cssWidth > timeLineEndX) {
+      viewState.offsetX = minOffset;
+    } else {
+      viewState.offsetX -= childContextMap.threadEvent.getOffset(deltaX, viewState.scale);
+      if (!canvasMoveLeft && viewState.offsetX > 0) {
+        viewState.offsetX = 0;
+      }
     }
     viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
     transform();
