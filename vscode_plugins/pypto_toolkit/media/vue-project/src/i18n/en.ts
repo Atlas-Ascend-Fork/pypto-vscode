@@ -37,7 +37,6 @@ export default {
     "DragAndDrop": 'Lateral Movement',
     "Scaling": 'Lateral Scaling',
     "BoxSelect": 'BoxSelect',
-    "BoxSelectContent": 'single finger swipe on touchpad',
     "TimeMeasurement": 'Time Measurement',
     "KeyboardControl": 'Keyboard Control',
     "LeftMove": 'Left Move',

@@ -37,7 +37,6 @@ export default {
    "DragAndDrop": '横向移动',
    "Scaling": '横向缩放',
    "BoxSelect": '框选',
-   "BoxSelectContent": '单指按下触控板滑动',
    "TimeMeasurement": '时间度量',
    "KeyboardControl": '键盘控制',
    "LeftMove": '左移',
