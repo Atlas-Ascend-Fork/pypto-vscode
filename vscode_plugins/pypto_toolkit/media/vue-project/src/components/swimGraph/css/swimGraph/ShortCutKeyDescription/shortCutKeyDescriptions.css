@@ -9,7 +9,7 @@
     word-wrap: break-word;
     color: var(--devui-tooltip-text);
     top: 60px;
-    right: 300px;
+    right: 120px;
     display: flex;
     padding: 16px 20px 20px 20px;
 }

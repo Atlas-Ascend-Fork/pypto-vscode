@@ -72,7 +72,7 @@
             <span class="boxSelect-text">{{ $t('BoxSelect') }}</span>
             <img class="boxSelect-img1" :src="mouse_leftclick_Imgpath" alt="boxSelect-img1">
             <span class="boxSelect-space">/</span>
-            <span class="boxSelect-text1">{{ $t('BoxSelectContent') }}</span>
+            <img class="boxSelect-img2" :src="boxSelectSign_Imgpath" alt="boxSelect-img2"></img>
           </div>
           <div class="timemeasurement">
             <span class="timemeasurement-text">{{ $t('TimeMeasurement') }}</span>
@@ -114,6 +114,7 @@ const d_key_Imgpath = ref(`${window.staticPath}/static-assets/D-dark-key.svg`);
 
 const singleFinger_Imgpath = ref(`${window.staticPath}/static-assets/single-finger-dark.svg`);
 const doubleFinger_Imgpath = ref(`${window.staticPath}/static-assets/double-finger-dark.svg`);
+const boxSelectSign_Imgpath = ref(`${window.staticPath}/static-assets/boxselect-sign-dark.svg`);
 
 const isWarningNoteShow = ref(false);
 const zoomInShortcutKey = ref('');
@@ -124,8 +125,8 @@ const newShortcutkey = ref(new Map());
 
 const verticalmovementDistance = ref(window.ascLang === 'zh' ? 14 : 17);
 const singleandboxselectionDistance = ref(window.ascLang === 'zh' ? 8 : 8);
-const scalingDistance = ref(window.ascLang === 'zh' ? 40 : 84);
-const dragAndDropDistance = ref(window.ascLang === 'zh' ? 40: 64);
+const scalingDistance = ref(window.ascLang === 'zh' ? 14 : 42);
+const dragAndDropDistance = ref(window.ascLang === 'zh' ? 14: 20);
 const boxSelectDistance = ref(window.ascLang === 'zh' ? 40: 69);
 const timemeasurementDistance = ref(window.ascLang === 'zh' ? 14 : 12);
 const zoomInDistance = ref(window.ascLang === 'zh' ? 8 : 19);
@@ -217,6 +218,7 @@ const updateTheme = () => {
 
   singleFinger_Imgpath.value = `${window.staticPath}/static-assets/single-finger-${theme}.svg`;
   doubleFinger_Imgpath.value = `${window.staticPath}/static-assets/double-finger-${theme}.svg`;
+  boxSelectSign_Imgpath.value = `${window.staticPath}/static-assets/boxselect-sign-${theme}.svg`;
 };
 
 onMounted(() => {

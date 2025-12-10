@@ -23,11 +23,6 @@
       </div>
     </div>
     <div class="right-container">
-      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
-        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
-          <KeyboradIcon :active="isShortcutKeyShow"/>
-        </d-button>
-      </d-tooltip>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
         <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
@@ -35,6 +30,11 @@
         </div>
         <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
       </div>
+      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
+        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
+          <KeyboradIcon :active="isShortcutKeyShow"/>
+        </d-button>
+      </d-tooltip>
       <d-tooltip :content="isCfgDisabled ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
         <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isCfgDisabled">
           <LayerControlIcon :active="isCfgEditing"/>
