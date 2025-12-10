@@ -19,7 +19,12 @@ import { SidebarViewProvider } from './view/SidebarViewProvider';
 const i18next = require('i18next');
 const config = globalConfig;
 
+// 导出模块级变量，供其他文件访问
+export let extensionContext: vscode.ExtensionContext | undefined;
+
 export async function activate(context: ExtensionContext) {
+  extensionContext = context;
+
   const resources = {
     en: {
       translation: translationEN,
