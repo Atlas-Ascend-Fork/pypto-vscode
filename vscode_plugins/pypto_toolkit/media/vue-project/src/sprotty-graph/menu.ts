@@ -339,8 +339,8 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
     ]
 
     const nodeInfo = root.children.filter(e => (e as SNodeImpl).selected);
-    if (nodeInfo.length > 0 && !nodeInfo[0].calleehash && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
-      const codeLineItem =         
+    if (nodeInfo.length > 0 && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
+      const codeLineItem =
         {
           id: 'JumpToCodeLine',
           label: `${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`,
