@@ -136,6 +136,10 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
 }
 
 function isNodeInTrace(nodeId: string): boolean {
+  if (!comGraphStore.data.inFixedComGraphFlow && !comGraphStore.data.unVisibleOtherNodes) {
+    return true;
+  }
+
   const fixedNodeId = comGraphStore.data.fixedNodeId;
   let nodesList;
 

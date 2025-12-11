@@ -624,7 +624,7 @@ export class AstgrOpView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     // Selected nodes should never be dimmed
@@ -737,7 +737,7 @@ export class AstgrOpMinimapView extends RectangularNodeView {
 
     const traceResult = isNodeTraced(node.id, trace);
     const isTraced = traceResult.incoming || traceResult.outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     return (
@@ -884,7 +884,7 @@ export class AstgrTensorView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     // Selected nodes should never be dimmed
@@ -1068,7 +1068,7 @@ export class  AstgrTensorMinimapView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     const isInput = node.role === 'input';
@@ -1258,7 +1258,7 @@ export class AstgrEdge extends PolylineEdgeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     let isParent = false;

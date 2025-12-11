@@ -10,16 +10,16 @@ export function setFixedComGraphFlow(fixedFlag: boolean, visibleFlag: boolean, s
     if (fixedFlag != comGraphStore.data.inFixedComGraphFlow) {
       comGraphStore.setData('inFixedComGraphFlow', fixedFlag);
     }
-    if (visibleFlag != comGraphStore.data.visibleOtherNodes) {
-      comGraphStore.setData('visibleOtherNodes', visibleFlag);
+    if (visibleFlag != comGraphStore.data.unVisibleOtherNodes) {
+      comGraphStore.setData('unVisibleOtherNodes', visibleFlag);
     }
   } else {
     // 取消锁定
     if (fixedFlag != comGraphStore.data.inFixedComGraphFlow) {
       comGraphStore.setData('inFixedComGraphFlow', fixedFlag);
     }
-    if (visibleFlag != comGraphStore.data.visibleOtherNodes) {
-      comGraphStore.setData('visibleOtherNodes', visibleFlag);
+    if (visibleFlag != comGraphStore.data.unVisibleOtherNodes) {
+      comGraphStore.setData('unVisibleOtherNodes', visibleFlag);
     }
   }
   if (comGraphStore.data.updateModelActionFunc) comGraphStore.data.updateModelActionFunc();
