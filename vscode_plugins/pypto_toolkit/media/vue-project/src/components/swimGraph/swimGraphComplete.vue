@@ -418,7 +418,7 @@ const processTraceData = (data) => {
   let isFirst = true;
   for (const key in data.processes) {
     if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
-      data.processes[key].expanded = isFirst;
+      data.processes[key].isRendered = isFirst;
       isFirst = false;
       data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
       processes.set(key, data.processes[key]);
@@ -806,10 +806,10 @@ const toggleProcess = (processKey) => {
 
   // 如果曾经打开过，则展开即可，就不需要重新渲染了
   const process = processes.get(processKey);
-  if (process.expanded) {
+  if (process.isRendered) {
     return;
   }
-  process.expanded = true;
+  process.isRendered = true;
 
   nextTick(() => {
     resizeCanvases(processKey, false);
@@ -1655,7 +1655,7 @@ const measureDetailSearch = () => {
   let AIVCount = 0;
 
   for (const [processKey, process] of processes.entries()) {
-    if (process.expanded === false) {
+    if (!processExpanded.get(processKey)) {
       continue;
     }
     const { threads } = process;
@@ -1729,7 +1729,7 @@ const measureEventSearch = (lineRange, type) => {
     yLayer = result.realY;
   }
   for (const [processKey, process] of processes.entries()) {
-    if (result.processkey && process.expanded === false && processKey !== result.processkey) {
+    if (result.processkey && processExpanded.get(processKey) && processKey !== result.processkey) {
       continue;
     }
     const threads = process.threads;
