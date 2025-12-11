@@ -144,11 +144,11 @@ export class AstgrContextMenuService implements IContextMenuService {
           textSpan.textContent = text;
           textSpan.className = 'menu-text';
 
-          if (!nodeMagic) {
+          if (nodeMagic === undefined) {
             textSpan.style.cursor = 'not-allowed';
           } else {
             textSpan.onclick = () => {
-              (window as any).ascEventBus.emit('SearchModeOpen', nodeMagic);
+              (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
             };
           }
 
@@ -339,8 +339,8 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
     ]
 
     const nodeInfo = root.children.filter(e => (e as SNodeImpl).selected);
-    if (nodeInfo.length > 0 && !nodeInfo[0].calleehash && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
-      const codeLineItem =         
+    if (nodeInfo.length > 0 && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
+      const codeLineItem =
         {
           id: 'JumpToCodeLine',
           label: `${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`,
