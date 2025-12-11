@@ -144,11 +144,11 @@ export class AstgrContextMenuService implements IContextMenuService {
           textSpan.textContent = text;
           textSpan.className = 'menu-text';
 
-          if (!nodeMagic) {
+          if (nodeMagic === undefined) {
             textSpan.style.cursor = 'not-allowed';
           } else {
             textSpan.onclick = () => {
-              (window as any).ascEventBus.emit('SearchModeOpen', nodeMagic);
+              (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
             };
           }
 

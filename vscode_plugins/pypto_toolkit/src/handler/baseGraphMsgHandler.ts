@@ -178,7 +178,7 @@ export abstract class BaseGraphMsgHandler {
 
 
   static async openSearchMode(message: any, server: any) {
-    const nodeMagic: number = message.data?.nodeMagic;
+    const nodeMagic: string = message.data?.nodeMagic;
     const funcHash = message.data?.funcHash;
     const gd = server.comGraphData;
     commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
