@@ -2084,8 +2084,11 @@ export class AscppDagBuilder {
             }
             opName += funcName ?? op.func_magicname ?? "Not found function";
         }
-        const codePath = op.file;
-        const codeLine = op.line;
+
+        const codePath = (op.file && op.file !== "" ? op.file : undefined) ?? 
+                         (op.semantic_label?.filename && op.semantic_label?.filename !== "" ? op.semantic_label?.filename : undefined);
+        const codeLine = (op.line && op.line !== "" ? op.line : undefined) ?? 
+                         (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
 
         // Create labels compartment containing main and metadata labels
         const labelChildren: SLabel[] = [
