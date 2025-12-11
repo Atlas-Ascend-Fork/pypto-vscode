@@ -95,7 +95,7 @@ function jumpOwn(item: LeafInPass) {
 }
 
 function jumpNotOwn(item: LeafInPass) {
-  jumpComGraph(item.rootFilePath, item.rootPathName);
+  jumpComGraph(item.leafFilePath, item.rootPathName);
 }
 </script>
 

@@ -5,7 +5,13 @@
       <DiffLayout :layout="currentLayout" @layout-change="onLayoutChange" />
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
-      <DiffList v-if="showDiffList" :is-loading="isLoading" :list="diffList" @click="onDiffItemClick" @expand-change="onExpandChange" />
+      <DiffList
+        v-if="showDiffList"
+        :is-loading="loadedType.size !== 2"
+        :list="diffList"
+        @click="onDiffItemClick"
+        @expand-change="onExpandChange"
+      />
       <div :class="['diff-wrap', `diff-layout-${currentLayout}`]">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="beforeFileName" />
@@ -75,6 +81,7 @@ const beforeMinimapEl = ref();
 const afterMinimapEl = ref();
 const diffList = ref<DiffListItem[]>([]);
 const showDiffList = ref(false);
+const loadedType = ref(new Set());
 const currentLayout = ref<TDiffLayout>('horizontal');
 let beforeIns;
 let afterIns;
@@ -105,6 +112,9 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   if (beforeIns) {
     beforeIns.resetModelSource();
   }
+  isLoading.value = true;
+  loadingText.value = t(LoadingStatusMap.rendering);
+  loadedType.value.clear();
   beforeIns = useSprottyLoad(`sprotty-before`, 'before');
   beforeIns.initComDocText(jsonValue, isDarkTheme.value);
   afterIns = useSprottyLoad(`sprotty-after`, 'after');
@@ -354,6 +364,7 @@ onBeforeMount(() => {
   (window as any).ascEventBus.on('layoutEnding', (args) => {
     isLoading.value = false;
     loadingText.value = '';
+    loadedType.value.add(args);
   });
 });
 onMounted(() => {
