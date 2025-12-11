@@ -196,6 +196,10 @@ watch(server.LayoutResult, (newValue) => {
   loadingText.value = '';
 });
 
+// 获取错误节点信息
+watch(server.nodeErrorList, (newValue) => {
+  console.log(newValue.data);
+});
 
 provide(ComGraphProvideKey, { toggleHealthReport, showLayerControl, leafCalledRecordMap, toggleLeafCalledRecord });
 
