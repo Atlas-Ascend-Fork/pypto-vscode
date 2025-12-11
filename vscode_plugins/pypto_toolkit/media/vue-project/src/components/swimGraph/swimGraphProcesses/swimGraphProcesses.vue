@@ -4,6 +4,7 @@
       <!-- 进程头部 -->
       <span :data-processKey="process.key" :data-process="process.key"></span>
       <swim-graph-process-header 
+        v-if="labelRender"
         :process-key="process.key" 
         :process="process"
       />
@@ -12,6 +13,7 @@
       <div class="threads-container" v-show="processExpanded.get(process.key)">
         <!-- 线程标签区域 -->
         <swim-graph-thread-labels 
+          v-if="labelRender"
           :process-key="process.key" 
           :process="process"
         />
@@ -65,6 +67,7 @@ const {
   isThreeColumn,
   searchedEvent,
   colorRending,
+  labelRender,
 } = inject('swimGraphState');
 
 const curThread = ref('');

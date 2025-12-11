@@ -202,6 +202,7 @@ const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
 let isLockStatus = ref(false);
+const labelRender = ref(false);
 const dependencyLinesInfo = ref([]);
 
 let sliderValue = ref(0);
@@ -1796,6 +1797,7 @@ onMounted(() => {
   setupSwimWatchers();
   initEventListeners();
   loading.value = true;
+  labelRender.value = true;
   server.validateSwimFile().then((content) => {
     validData(content);
   });
@@ -1810,7 +1812,7 @@ onMounted(() => {
 });
 
 defineExpose({
-  setPageState, loadTraceData, loading
+  setPageState, loadTraceData, loading, labelRender
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
@@ -1869,6 +1871,7 @@ provide('swimGraphState', {
   isThreeColumn: props.isThreeColumn,
   searchedEvent,
   colorRending: modeOption,
+  labelRender,
 });
 
 // 提供方法给子组件
