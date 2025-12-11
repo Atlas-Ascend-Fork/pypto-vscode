@@ -5,9 +5,15 @@
     :escapable="false"
     :draggable="false"
     :close-on-click-overlay="false"
-    class="diff-modal-container"
+    :class="['diff-modal-container', isFullscreen && 'diff-modal-fullscreen']"
   >
-    <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side"> </d-code-review>
+    <d-fullscreen v-model="isFullscreen" :z-index="1060">
+      <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side">
+        <template #headOperate>
+          <i :class="isFullscreen ? 'icon-frame-contract' : 'icon icon-frame-expand'" @click="isFullscreen = !isFullscreen"></i>
+        </template>
+      </d-code-review>
+    </d-fullscreen>
   </d-modal>
 </template>
 
@@ -18,6 +24,7 @@ import { createTwoFilesPatch } from 'diff';
 const props = defineProps({ diffDetail: Array as PropType<Record<'new' | 'old', any>[]> });
 
 const visible = ref(false);
+const isFullscreen = ref(false);
 const title = ref('');
 const diff = ref(``);
 let allStr = [];
@@ -107,6 +114,10 @@ onBeforeUnmount(() => {
   box-shadow: var(--devui-modal-shadow);
   background-color: var(--devui-select-bg);
 
+  &.diff-modal-fullscreen {
+    transform: unset !important;
+  }
+
   .btn-close {
     svg g {
       fill: var(--devui-node-edge-active);
@@ -129,7 +140,25 @@ onBeforeUnmount(() => {
       }
 
       .devui-code-review__header {
-        display: none;
+        justify-content: flex-end;
+        height: 36px;
+        padding-right: 0;
+        border-radius: 0;
+        border: none;
+        box-shadow: unset;
+        background-color: unset;
+        pointer-events: none;
+        .diff-type,
+        .file-info {
+          display: none;
+        }
+
+        .operate-area {
+          pointer-events: all;
+          i {
+            font-size: 16px;
+          }
+        }
       }
     }
 

@@ -63,6 +63,8 @@ import Switch from 'vue-devui/switch';
 import 'vue-devui/switch/style.css';
 import Radio from 'vue-devui/radio';
 import 'vue-devui/radio/style.css';
+import Fullscreen from 'vue-devui/fullscreen';
+import 'vue-devui/fullscreen/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -125,4 +127,5 @@ createApp(App)
   .use(CodeReview)
   .use(Switch)
   .use(Radio)
+  .use(Fullscreen)
   .mount('#app');
