@@ -137,6 +137,10 @@ export class ThreeColumnServer
     await ComGraphHandler.elkLayout(message.data, this);
   };
   @viewApi()
+  public renderLayout = async (data) => {
+    await ComGraphHandler.renderLayout(data, this);
+  };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await ComGraphHandler.getJsonGraphData(message, this);
   };

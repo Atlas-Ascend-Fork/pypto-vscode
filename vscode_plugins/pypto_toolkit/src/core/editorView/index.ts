@@ -57,6 +57,8 @@ export class EditorView {
   /** 已开启的页面 */
   private openedViews: OpenedViews;
 
+  public openServer: Map<string, any>;
+
   /**
    * @param onViewActivated 显示页面hook
    * @param onViewDisposed 销毁页面hook
@@ -67,6 +69,7 @@ export class EditorView {
   ) {
     this.queryConnector = new ViewQueryConnector();
     this.openedViews = new OpenedViews();
+    this.openServer = new Map();
     this.registerSerializer();
   }
 
@@ -164,10 +167,13 @@ export class EditorView {
     // 视图服务
     const { viewServer } = this.viewRawMap.get(viewType) ?? {};
     let server: ViewServer<never, {}>;
+    const query = JSON.parse(uri.query);
+    const serverKey = `${uri.fsPath}_${query.funcHash || ''}_${query.nodeMagic || ''}`;
     if (viewServer) {
       const ctx = makeViewServerContext(viewPanel, viewType, uri);
       server = new viewServer(ctx);
       server.created(ctx);
+      this.openServer.set(serverKey, server);
     }
 
     // 【hook】页面激活
@@ -193,6 +199,7 @@ export class EditorView {
       themeListener.dispose();
       server?.dispose();
       this.openedViews.delete(viewType, uri);
+      this.openServer.delete(serverKey);
       // 【hook】页面销毁
       this.onViewDisposed?.(viewType, uri);
     });

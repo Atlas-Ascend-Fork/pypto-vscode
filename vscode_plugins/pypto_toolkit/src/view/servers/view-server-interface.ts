@@ -1,6 +1,7 @@
 import { ViewServer } from '../../core/view/view-server';
 export type IComApis =
   | 'askLayout'
+  | 'renderLayout'
   | 'getJsonGraphData'
   | 'openSearchMode'
   | 'getHealthyReport'
@@ -35,6 +36,7 @@ export type IComRefs = {
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
+  renderLayout?: (data: any) => void;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
   openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
@@ -52,6 +54,7 @@ export type IThreeApis =
   | 'savePyCode'
   | 'getInitialData'
   | 'askLayout'
+  | 'renderLayout'
   | 'getJsonGraphData'
   | 'openSearchMode'
   | 'getHealthyReport'
@@ -102,6 +105,7 @@ export type IThreeRefs = {
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
+  renderLayout?: (data: any) => void;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
   openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
