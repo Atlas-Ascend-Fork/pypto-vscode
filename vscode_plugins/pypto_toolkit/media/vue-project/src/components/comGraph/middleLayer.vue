@@ -13,6 +13,7 @@ import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { pushState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
+import { threadCache } from '../../components/swimGraph/swimGraphUtils';
 import { round } from 'lodash-es';
 import { useI18n } from 'vue-i18n';
 const { t: $t } = useI18n();
@@ -290,11 +291,14 @@ const modelConfirm = async () => {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
     swimGrahRef.value.loading = true;
+    swimGrahRef.value.labelRender = false;
     if (swimErrorMessage.value) {
       swimErrorMessage.value = '';
     }
     await server.replaceFile({ options: { swimPath, comPath } });
     server.resetSwimData().then((newValue) => {
+      threadCache.clear();
+      swimGrahRef.value.labelRender = true;
       swimGrahRef.value.setPageState(newValue);
       swimGrahRef.value.loadTraceData(newValue.data);
     });
