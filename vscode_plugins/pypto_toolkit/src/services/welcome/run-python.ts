@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { extensionContext } from '../../extension';
 import { PythonExecuteResult } from '../../types/welcome/run-pytion';
+import { t } from 'i18next';
 
 let pythonOutputChannel: vscode.OutputChannel | undefined;
 
@@ -14,13 +15,135 @@ let pythonOutputChannel: vscode.OutputChannel | undefined;
  */
 export function getPythonOutputChannel(): vscode.OutputChannel {
   if (!pythonOutputChannel) {
-    pythonOutputChannel = vscode.window.createOutputChannel('PyPTO样例工程输出');
+    pythonOutputChannel = vscode.window.createOutputChannel(`${t('PyPTOToolkit.welcome.runPython.channel')}`);
   }
   return pythonOutputChannel;
 }
 
 /**
- * 封装 exec 为 Promise，便于获取返回值
+ * 检查单个依赖是否已安装（避免重复安装）
+ * @param pkgName 依赖包名
+ */
+async function checkDependencyInstalled(pkgName: string): Promise<boolean> {
+  const isWindows = os.platform() === 'win32';
+  const pythonCmd = isWindows ? 'python' : 'python3';
+  return new Promise((resolve) => {
+    // 用 python -m pip show 检查依赖,避免pip/pip3路径问题
+    exec(`${pythonCmd} -m pip show ${pkgName}`, (error) => {
+      resolve(!error); // 无错误=已安装
+    });
+  });
+}
+
+/**
+ * 流式安装Python依赖
+ * @param dependencies 需安装的依赖列表
+ * @param outputChannel 输出面板
+ * @param address pip镜像地址
+ */
+async function installPythonDependencies(dependencies: string[], outputChannel: vscode.OutputChannel, address: string): Promise<boolean> {
+  // 步骤1:先检查已安装的依赖,只安装缺失的
+  const missingDeps: string[] = [];
+  outputChannel.appendLine(`[${t('PyPTOToolkit.welcome.runPython.install.check')}] ${new Date().toLocaleString()}`);
+  for (const dep of dependencies) {
+    const installed = await checkDependencyInstalled(dep);
+    if (installed) {
+      outputChannel.appendLine(`${dep} Already installed`);
+    } else {
+      outputChannel.appendLine(`${dep} Not installed`);
+      missingDeps.push(dep);
+    }
+  }
+
+  // 无缺失依赖,直接返回成功
+  if (missingDeps.length === 0) {
+    outputChannel.appendLine('======================================================\n');
+    return true;
+  }
+
+  // 步骤2:流式安装缺失的依赖
+  return new Promise((resolve) => {
+    const isWindows = os.platform() === 'win32';
+    const pythonCmd = isWindows ? 'python' : 'python3';
+    // 构建pip安装命令（传入镜像地址）
+    const pipArgs = ['-m', 'pip', 'install', '--user', '--upgrade', '-i', address, ...missingDeps];
+
+    outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.install.start')}:${missingDeps.join(', ')}`);
+    outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.install.command')}:${pythonCmd} ${pipArgs.join(' ')}`);
+
+    // 跨平台spawn配置
+    const spawnOptions = {
+      shell: isWindows,
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+      timeout: 120000, // 总超时120秒（2分钟）
+    };
+
+    // 启动spawn子进程（流式输出）
+    const pipProcess: ChildProcessWithoutNullStreams = spawn(pythonCmd, pipArgs, spawnOptions);
+    let installFailed = false;
+
+    // 超时管控:超过2分钟未完成则终止进程
+    const timeoutTimer = setTimeout(() => {
+      if (!installFailed) {
+        outputChannel.appendLine(`\n${t('PyPTOToolkit.welcome.runPython.install.timeOut')}`);
+        pipProcess.kill(); // 终止安装进程
+        resolve(false);
+      }
+    }, 120000);
+
+    // 实时捕获标准输出（pip的安装日志）
+    pipProcess.stdout.on('data', (data: Buffer | string) => {
+      const log = data.toString('utf8').trim();
+      if (log) {
+        // 过滤空行,优化日志显示
+        outputChannel.appendLine(`[${t('PyPTOToolkit.welcome.runPython.Installation.log')}] ${log}`);
+      }
+    });
+
+    // 实时捕获错误输出（警告/错误信息）
+    pipProcess.stderr.on('data', (data: Buffer | string) => {
+      const log = data.toString('utf8').trim();
+      if (log) {
+        // warning不影响安装,error才是失败
+        if (log.toLowerCase().includes('error')) {
+          outputChannel.appendLine(`[${t('PyPTOToolkit.welcome.runPython.Installation.error')}] ${log}`);
+          installFailed = true;
+        } else {
+          outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.Installation.warning')}${log}`);
+        }
+      }
+    });
+
+    // 进程退出事件（判断安装结果）
+    pipProcess.on('exit', (code) => {
+      clearTimeout(timeoutTimer); // 清除超时定时器
+      outputChannel.appendLine(`\n==================== ${t('PyPTOToolkit.welcome.runPython.Installation.results')} ====================`);
+      if (installFailed || code !== 0) {
+        outputChannel.appendLine(
+          `install err(${code || 'undefined'})\n${t('PyPTOToolkit.welcome.runPython.Installation.solution')}:${pythonCmd} ${pipArgs.join(
+            ' ',
+          )}`,
+        );
+        resolve(false);
+      } else {
+        outputChannel.appendLine(`install ${missingDeps.join(', ')} success`);
+        resolve(true);
+      }
+      outputChannel.appendLine('======================================================\n');
+    });
+
+    // 进程启动失败（如python未安装）
+    pipProcess.on('error', (err) => {
+      clearTimeout(timeoutTimer);
+      outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.Installation.variables')}!${err.message}`);
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * 封装 exec 为 Promise,便于获取返回值
  * @param pythonFilePath 文件地址
  * @param cwd cwd窗口地址
  */
@@ -61,7 +184,7 @@ export async function executePythonFile(pythonFilePath: string, cwd: string): Pr
  * 判断插件当前运行状态（调试/打包）
  */
 export function getExtensionMode() {
-  // 使用官方API（VS Code 1.74+）判断是否打包，低于1.74版本的走路径兼容进行判断
+  // 使用官方API（VS Code 1.74+）判断是否打包,低于1.74版本的走路径兼容进行判断
   const extension = vscode.extensions.getExtension('hismartliteopen.pypto-toolkit');
 
   if (extension && 'isDevelopment' in extension) {
@@ -70,9 +193,9 @@ export function getExtensionMode() {
 
   // 路径特征兼容
   const extensionPath = extensionContext?.extensionPath || '';
-  // 调试态特征：路径包含存在.vscode目录
+  // 调试态特征:路径包含存在.vscode目录
   const isDevPath = fs.existsSync(path.join(extensionPath, '.vscode'));
-  // 打包态特征：路径包含VS Code扩展安装目录
+  // 打包态特征:路径包含VS Code扩展安装目录
   const isProdPath =
     extensionPath.includes('.vscode/extensions/') || // macOS/Linux
     extensionPath.includes('\\.vscode\\extensions\\'); // Windows
@@ -84,7 +207,7 @@ export function getExtensionMode() {
     return 'production';
   }
 
-  // 兜底：默认打包态
+  // 兜底:默认打包态
   return 'production';
 }
 
@@ -94,29 +217,39 @@ export function getExtensionMode() {
  * @param pythonFilePath 需要执行的Python文件地址
  * @param extensionRoot 插件地址
  */
-export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string) {
+export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
-    // 执行 Python 文件，获取输出结果
-    outputChannel.appendLine(`[开始执行] ${new Date().toLocaleString()}`);
+    // 定义需安装的依赖
+    const dependencies = ['numpy', 'torch', 'pypto']; // 注意:pypto若为自定义包需确认pip源可下载
+    outputChannel.clear();
+
+    // 安装依赖,失败则终止执行
+    const installSuccess = await installPythonDependencies(dependencies, outputChannel, address);
+    if (!installSuccess) {
+      vscode.window.showErrorMessage(`Python ${t('PyPTOToolkit.welcome.runPython.installErr')}`);
+      return;
+    }
+
+    // 执行 Python 文件,获取输出结果
+    outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
 
     const result = await executePythonFile(pythonFilePath, extensionRoot);
 
     // 处理输出结果
     if (result.success) {
-      outputChannel.appendLine(`[状态] 执行成功`);
-      outputChannel.appendLine(`[标准输出] ${result.stdout}`);
+      outputChannel.appendLine(`[state] Success`);
+      outputChannel.appendLine(`[result stdout] ${result.stdout}`);
       // 根据Python输出结果判断Python文件最终是否执行成功
       if (result.stdout.includes('Hello World')) {
-        vscode.window.showInformationMessage('Python脚本执行成功!');
+        vscode.window.showInformationMessage('Run Python Success!');
       }
     } else {
-      outputChannel.appendLine(`[状态] 执行失败`);
-      outputChannel.appendLine(`[错误信息] ${result.error?.message || '未知错误'}`);
-      outputChannel.appendLine(`[错误输出] ${result.stderr}`);
-      vscode.window.showErrorMessage('Python脚本执行失败，详见「Python执行输出」面板');
+      outputChannel.appendLine(`[state] error`);
+      outputChannel.appendLine(`[error message] ${result.error?.message || 'undefined'}`);
+      outputChannel.appendLine(`[error stderr] ${result.stderr}`);
     }
   } catch (error) {
     console.log(error);
-    vscode.window.showErrorMessage(`Python脚本执行失败${error}`);
+    vscode.window.showErrorMessage(`Run Python error ${error}`);
   }
 }

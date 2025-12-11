@@ -7,7 +7,7 @@ import { extensionContext } from '../../extension';
 /**
  * 根据插件初始Python文件创建初始工程
  */
-export async function getInitPythonProject() {
+export async function getInitPythonProject(address = 'https://cmc-cd-mirror.rnd.huawei.com/pypi/simple') {
   // 校验前置条件
   if (!extensionContext) {
     vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
@@ -36,5 +36,5 @@ export async function getInitPythonProject() {
     vscode.window.showErrorMessage(errorMsg);
     return;
   }
-  runPythonScript(outputChannel, pythonFilePath, extensionRoot);
+  runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
 }

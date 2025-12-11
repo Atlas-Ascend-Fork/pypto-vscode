@@ -109,5 +109,18 @@
   "PyPTOToolkit.workspace.controlFlowName": "结果总览",
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
-  "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置"
+  "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
+  "PyPTOToolkit.welcome.runPython.state": "状态",
+  "PyPTOToolkit.welcome.runPython.installErr": "依赖安装失败,无法执行脚本!",
+  "PyPTOToolkit.welcome.runPython.channel": "PyPTO样例工程输出",
+  "PyPTOToolkit.welcome.runPython.install.check": "依赖检查",
+  "PyPTOToolkit.welcome.runPython.install.start": "开始安装缺失依赖",
+  "PyPTOToolkit.welcome.runPython.install.command": "安装命令",
+  "PyPTOToolkit.welcome.runPython.install.timeOut": "依赖安装超时(超过2分钟),请检查网络或手动安装!",
+  "PyPTOToolkit.welcome.runPython.Installation.log": "安装日志",
+  "PyPTOToolkit.welcome.runPython.Installation.error": "安装错误",
+  "PyPTOToolkit.welcome.runPython.Installation.warning": "安装警告",
+  "PyPTOToolkit.welcome.runPython.Installation.results": "安装结果",
+  "PyPTOToolkit.welcome.runPython.Installation.solution": "解决方案:\n1.以管理员/root身份运行VS Code;\n2. 检查网络连接(建议使用合适的镜像源);\n3. 手动执行命令",
+  "PyPTOToolkit.welcome.runPython.Installation.variables": "请检查Python是否已添加到系统环境变量"
 }
