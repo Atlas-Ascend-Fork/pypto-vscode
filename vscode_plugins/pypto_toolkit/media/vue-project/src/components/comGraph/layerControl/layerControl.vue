@@ -86,7 +86,9 @@ const OnTextChange = (val) => {
 }
 
 const tabDisable = computed(() => {
-  return comGraphStore.data.inFixedComGraphFlow;
+  const disabledFlag = comGraphStore.data.inFixedComGraphFlow || 
+                       (comGraphStore.data?.pathNodesSet && (comGraphStore.data.pathNodesSet.size > 0));
+  return disabledFlag;
 })
 
 const props = defineProps({
