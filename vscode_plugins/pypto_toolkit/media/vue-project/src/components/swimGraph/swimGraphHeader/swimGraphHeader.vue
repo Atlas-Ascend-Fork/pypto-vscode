@@ -230,7 +230,7 @@ const showDrawer = () => {
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
   aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString();
 
-  if (pmuTotal.value == undefined) {
+  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
     cubeRateCycle.value = '/';
     vectorRateCycle.value = '/';
     cubeTimePercentage.value = '/';

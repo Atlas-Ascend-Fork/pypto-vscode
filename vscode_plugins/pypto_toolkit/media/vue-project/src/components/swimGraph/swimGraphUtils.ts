@@ -276,6 +276,20 @@ export const setupHighDPICanvas = (canvas: any, width: number, height: number) =
   return ctx;
 };
 
+export const processesToMap = (processes: any, id2event: any) => {
+  for (const [processKey, process] of processes.entries()) {
+    const { threads } = process;
+    for (const [threadKey, thread] of threads.entries()) {
+      for (const event of thread.events) {
+        if (event.isCounter) {
+          break;
+        }
+        id2event[event.id] = event;
+      }
+    }
+  }
+};
+
 export const getFontStyle = (fontSize: number) => {
   // fontSize 后面的字体按清晰程度排优先级，如果前面的字体找不到，会用后面的字体
   return `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;

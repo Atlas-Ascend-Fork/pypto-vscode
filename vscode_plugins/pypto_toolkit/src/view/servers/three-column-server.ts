@@ -11,6 +11,8 @@ import { SingleGraphData } from '../../core/graphData';
 import * as vscode from 'vscode';
 import { t } from 'i18next';
 
+import * as fs from 'node:fs';
+import * as stream from 'node:stream';
 import {
   ICommonViewServer,
   IComViewServer,
@@ -174,7 +176,12 @@ export class ThreeColumnServer
   };
   @viewApi()
   public getSwimData = async () => {
-    return await SwimGraphMsgHandler.getSwimData(this);
+    const packages = await SwimGraphMsgHandler.getSwimData(this);
+    return stream.Readable.toWeb(stream.Readable.from(packages!));
+  };
+  @viewApi()
+  public getOtherData = async () => {
+    return await SwimGraphMsgHandler.getOtherData(this);
   };
   @viewApi()
   public validateSwimFile = async () => {
