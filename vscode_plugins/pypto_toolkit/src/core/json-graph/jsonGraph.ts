@@ -39,7 +39,7 @@ export interface AstgrNode extends SNode {
     baseColor?: string;
     lightColor?: string;
     codePath?: string;
-    codeLine?: string;
+    codeLine?: string | number;
 }
 
 /**
