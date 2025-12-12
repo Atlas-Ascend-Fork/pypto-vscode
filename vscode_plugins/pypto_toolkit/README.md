@@ -164,6 +164,10 @@
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
+## 一键关闭所有插件的页面
+
+![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
+
 ## 反馈渠道
 
   如有任何问题和建议，请在用户支撑群反馈，群号：866394745314853397
