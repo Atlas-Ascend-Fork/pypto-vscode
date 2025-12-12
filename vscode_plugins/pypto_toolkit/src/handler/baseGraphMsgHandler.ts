@@ -595,7 +595,7 @@ export abstract class BaseGraphMsgHandler {
       const nodesMagic = server.query?.nodeMagic;
       if (nodeCount > NODE_COUNT_LIMIT || isNodeSearch || nodesMagic != null) {
         const mode = isNodeSearch
-          ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
+          ? (nodesMagic === '-1' ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
 
         server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
