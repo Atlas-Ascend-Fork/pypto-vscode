@@ -218,7 +218,9 @@ function setupSwimWatchers(server: any) {
 
 onMounted(async () => {
   const state = pullState();
-  server.fetchVscodeState(state);
+  if (server.fetchVscodeState) {
+    server.fetchVscodeState(state);
+  }
   if (state.swimDataPath) {
     noSwimFile.value = false;
     await server.getInitialSwimData();
