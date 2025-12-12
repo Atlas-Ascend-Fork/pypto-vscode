@@ -16,7 +16,6 @@
     <DataList :data="maxSubgraphData" :columns="maxSubgraphColumns" class="data-list-box" />
     <DataList :data="peakMemoryData" :columns="peakMemoryColumns" class="data-list-box" />
     <DataList :data="opData" :columns="opColumns" class="data-list-box" />
-    <DataList :data="instanceData" :columns="instanceColumns" />
   </div>
 </template>
 
@@ -52,15 +51,10 @@ const opColumns = ref([
   { field: 'key', header: `OP${t('comGraph.typeDistribution')}` },
   { field: 'value', header: 'value', width: 80, align: ColumnAlign.Right },
 ]);
-const instanceColumns = ref([
-  { field: 'key', header: 'isomorphic group id' },
-  { field: 'value', header: 'instance count', width: 80, align: ColumnAlign.Right },
-]);
 const latencyData = ref<Record<string, any>[]>([]);
 const maxSubgraphData = ref<Record<string, any>[]>([]);
 const peakMemoryData = ref<Record<string, any>[]>([]);
 const opData = ref<Record<string, any>[]>([]);
-const instanceData = ref<Record<string, any>[]>([]);
 const finalJsonData = ref<Record<string, any>>({});
 
 watch(
@@ -113,36 +107,7 @@ watch(
       { key: 'AIV', value: finalJsonData.value.aivSubgraphCount },
       { key: 'AIC', value: finalJsonData.value.aicSubgraphCount },
       { key: 'AICPU', value: finalJsonData.value.aicpuSubgraphCount },
-      { key: 'gm atomic', value: finalJsonData.value.gmatomicSubgraphCount },
-      { key: 'hub', value: finalJsonData.value.hubSubgraphCount },
       { key: 'mix', value: finalJsonData.value.mixSubgraphCount },
-      { key: 'invalid', value: finalJsonData.value.invalidSubgraphCount },
-    ];
-    instanceData.value = [
-      {
-        key: '0',
-        value: formatData(finalJsonData.value.instanceMapping[0]),
-        detail: finalJsonData.value.instanceMapping[0],
-        type: 'subgraph',
-      },
-      {
-        key: '1',
-        value: formatData(finalJsonData.value.instanceMapping[1]),
-        detail: finalJsonData.value.instanceMapping[1],
-        type: 'subgraph',
-      },
-      {
-        key: '2',
-        value: formatData(finalJsonData.value.instanceMapping[2]),
-        detail: finalJsonData.value.instanceMapping[2],
-        type: 'subgraph',
-      },
-      {
-        key: '3',
-        value: formatData(finalJsonData.value.instanceMapping[3]),
-        detail: finalJsonData.value.instanceMapping[3],
-        type: 'subgraph',
-      },
     ];
   },
   { immediate: true },
