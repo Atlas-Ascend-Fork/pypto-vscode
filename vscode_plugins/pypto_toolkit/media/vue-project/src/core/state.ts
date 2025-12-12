@@ -9,3 +9,10 @@ export function pushState(newState: object): void {
   const originalState = vscode.value.getState();
   vscode.value.setState({ ...originalState, ...newState });
 }
+
+/**
+ * 获取state
+ */
+export function pullState(): any {
+  return vscode.value.getState();
+}

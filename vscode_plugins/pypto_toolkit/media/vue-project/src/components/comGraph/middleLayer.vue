@@ -10,7 +10,7 @@ import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
-import { pushState } from '../../core/state';
+import { pushState, pullState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 import { threadCache } from '../../components/swimGraph/swimGraphUtils';
@@ -49,10 +49,10 @@ const props = defineProps({
     type: String,
   },
 });
-enum RequestType{
-  NodeOverLimit  = 1,
-  SearchNoMagic  = 2,
-  SearchMagic    = 3,
+enum RequestType {
+  NodeOverLimit = 1,
+  SearchNoMagic = 2,
+  SearchMagic = 3,
 }
 const graphType = toRef(props, 'graphType');
 const filePaths = ref({ swimPath: '', comPath: '' });
@@ -205,6 +205,9 @@ function setupThreeWatchers(server: any) {
     graphName.value = replaceMsg.value.graphType === 'swimGraph' ? $t('comGraphName') : $t('swimGraph');
     graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
   });
+  watch(server.SetVscodeState, async (newValue) => {
+    pushState({ comPath: newValue.comPath, swimDataPath: newValue.swimDataPath });
+  });
 }
 
 function setupSwimWatchers(server: any) {
@@ -214,6 +217,17 @@ function setupSwimWatchers(server: any) {
 }
 
 onMounted(async () => {
+  const state = pullState();
+  server.fetchVscodeState(state);
+  if (state.swimDataPath) {
+    noSwimFile.value = false;
+    await server.getInitialSwimData();
+  }
+  if (state.comPath) {
+    noComFile.value = false;
+    await server.getInitialComData();
+    server.returnFuncTree();
+  }
   if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph') {
     await server.getInitialData();
   }
@@ -335,9 +349,9 @@ const onInputLeave = (event) => {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog"/>
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
-        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
+        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
       </template>
       <template #swimGraph>
         <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />
