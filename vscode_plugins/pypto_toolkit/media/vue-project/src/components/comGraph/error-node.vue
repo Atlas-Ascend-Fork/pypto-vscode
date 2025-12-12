@@ -1,17 +1,17 @@
 <template>
   <div class="com-graph-error-node"
-    v-for="node in errorNodeList"
+    v-for="node in displayList"
     :style="{
       top: node.y + 'px',
       left: node.x + 'px'
     }"
     v-show="node.show"
   >
-    <div class="error-info">
+    <div class="error-info" :title="node.errorInfo">
       {{ node.errorInfo }}
     </div>
-    <i class="icon-error-o" @click="closeNode(node)"></i>
-    <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100">
+    <i class="icon-error-o"></i>
+    <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100" v-if="node.stackList?.length">
       <template #content>
         <div style="width: auto;font-size: 12px;">
           <p v-for="stack in node.stackList">
@@ -33,8 +33,21 @@ import { comGraphStore } from '@/service/com-graph-store';
 import { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { onMounted, ref } from 'vue';
 
+const props = defineProps({
+  nodeErrorList: {
+    type: Array<any>,
+    default: []
+  },
+  jsonContent: {
+    type: Object,
+    default: {}
+  }
+});
+
+const model = ref();
+
 const { server } = useViewServer<IComViewServer>();
-const errorNodeList = ref([{
+const displayList = ref([{
   x: 100,
   y: 100,
   magic: 1200,
@@ -52,11 +65,21 @@ const jumpTo = (stack) => {
   server.jumpToCodeLine({paramObj: {file, line}});
 }
 
-const updateLocation = () => {
+const updateLocation = (data) => {
+  if (data.model) {
+    model.value = data.model;
+  }
+  const {zoom, scroll} = data;
+  
+  displayList.value.forEach(node => {
+    const target = model.value.children.find(t => t.magic === node.magic);
+    node.x = (target.position.x + target.size.width - scroll.x) * zoom + 4;
+    node.y = (target.position.y - scroll.y) * zoom
+  })
 
 }
 
-const calculateLocation= () => {
+const calculateLocation = () => {
 
 }
 
@@ -64,9 +87,29 @@ const closeNode = (node) => {
   node.show = false;
 }
 
+const initNodeList = () => {
+  displayList.value = props.nodeErrorList.map(node => {
+    const magic = node.magic;
+    const errInfo = node.error;
+    let target = props.jsonContent.operations.find(op => op.opmagic == magic);
+    if(!target) {
+      target = props.jsonContent.tensors.find(tensor => tensor.magic == magic);
+    }
+    const list = target?.backtrace?.split('\n') || [];
+    return {
+      x: -200,
+      y: -200,
+      magic: String(magic),
+      show: true,
+      errorInfo: errInfo,
+      stackList: list
+    }
+  })
+}
+
 onMounted(() => {
-  console.log(comGraphStore.data);
   (window as any).ascEventBus.on('viewer_update', updateLocation);
+  initNodeList();
 })
 
 </script>
@@ -78,14 +121,18 @@ onMounted(() => {
   width: 160px;
   height: auto;
   max-height: 300px;
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(231,67,74,0.2);
   backdrop-filter: blur(20px);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 6px 8px 6px 24px;
-  word-break: break-all;
+  word-break: normal;
 
   .error-info {
     font-size: 14px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
   }
 
   .error-stack {
@@ -99,7 +146,6 @@ onMounted(() => {
   left: 4px;
   top: 10px;
   font-size: 14px;
-  cursor: pointer;
 }
 
 .error-jump {

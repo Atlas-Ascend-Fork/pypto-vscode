@@ -121,9 +121,12 @@ export abstract class BaseGraphMsgHandler {
     if (message.data.threeMode) {
       funcHash = funcHash + '_threeMode';
     }
-    // error info
-    const errTraceList = await this.getErrorMessage(message, server);
-    const errNodeList =  await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
+    // get errorNode info
+    let errNodeList = new Set<number>();
+    if (message.data?.threeMode === false) {
+      const errTraceList = await this.getErrorMessage(message, server);
+      errNodeList =  await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
+    }
     if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
@@ -174,7 +177,6 @@ export abstract class BaseGraphMsgHandler {
     if (logFile) {
       stacks = await this.extractErrorBackTrace(logFile);
     }
-    console.log('=======stacks========', stacks);
     return stacks;
   }
 
@@ -191,7 +193,6 @@ export abstract class BaseGraphMsgHandler {
         errorLines.push(line.trim());
       }
     }
-    console.log('=======errorLines========', errorLines);
     const errorList = await this.parseErrorLogs(errorLines);
     return errorList;
   }

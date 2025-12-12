@@ -24,6 +24,7 @@
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
     <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
+    <ErrorNode v-if="nodeErrorList?.length" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
   </div>
 </template>
 
@@ -45,6 +46,7 @@ import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { ComGraphProvideKey } from './type';
+import  ErrorNode  from './error-node.vue';
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
@@ -100,6 +102,7 @@ const isDragging = ref(false);
 const switchLockInformationFlag = ref(false);
 const leafCalledRecordMap = ref<Record<string, number>>({});
 const currentLeafName = ref('');
+const nodeErrorList = ref([]);
 const minimapOffsetRight = computed(() => {
   if (showNodeDetail.value || showLeafCalledRecord.value) {
     return 480;
@@ -198,7 +201,7 @@ watch(server.LayoutResult, (newValue) => {
 
 // 获取错误节点信息
 watch(server.nodeErrorList, (newValue) => {
-  console.log(newValue.data);
+  nodeErrorList.value = newValue.data;
 });
 
 provide(ComGraphProvideKey, { toggleHealthReport, showLayerControl, leafCalledRecordMap, toggleLeafCalledRecord });
