@@ -66,7 +66,8 @@ export type IThreeApis =
   | 'getInitialComData'
   | 'getInitialSwimData'
   | 'resetSwimData'
-  | 'selectFile';
+  | 'selectFile'
+  | 'fetchVscodeState';
 export type IThreeRefs = {
   InitFlag: unknown;
   SetThreeColumnMode: unknown;
@@ -97,6 +98,7 @@ export type IThreeRefs = {
   returnInitPath: unknown;
   returnReplace: unknown;
   returnSearchPath: unknown;
+  SetVscodeState: unknown;
 };
 
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
@@ -111,6 +113,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
   returnFuncTree: () => Promise<void>;
+  fetchVscodeState: (message: {}) => Promise<void>;
 }
 
 export type ISwimApis =

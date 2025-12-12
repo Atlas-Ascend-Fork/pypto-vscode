@@ -64,7 +64,8 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'GetPassPath',
   'returnInitPath',
   'returnSearchPath',
-  'returnReplace'
+  'returnReplace',
+  'SetVscodeState'
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
@@ -173,6 +174,19 @@ export class ThreeColumnServer
     await ComGraphHandler.returnFuncTree(this);
   };
   @viewApi()
+  public fetchVscodeState = async (message) => {
+    if (message.swimDataPath) {
+      this.swimDataPath = message.swimDataPath;
+      this.swimData = new SwimData(Uri.file(message.swimDataPath), message.swimDataPath);
+    }
+    if (message.comPath) {
+      this.comPath = message.comPath;
+      this.query = {
+        fsPath: message.comPath,
+      };
+    }
+  };
+  @viewApi()
   public getSwimData = async () => {
     return await SwimGraphMsgHandler.getSwimData(this);
   };
@@ -246,14 +260,15 @@ export class ThreeColumnServer
         this.query = {
           fsPath: comPath,
         };
-      }
-      if (this.swimDataPath && this.comPath) {
-        this.setRef('InitFlag', 'true');
-      }
+      }   
       if (!this.swimDataPath || !this.comPath) {
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
         this.setRef('returnInitPath', { data: pathMsg });
       }
+    }
+    if (this.swimDataPath && this.comPath) {
+      this.setRef('InitFlag', 'true');
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
   }
 
@@ -304,7 +319,12 @@ export class ThreeColumnServer
         }
       }
     }
+
+    if (this.swimDataPath && this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    }
   }
+
   @viewApi()
   public replaceFile = async (message: any) => {
     const options = message.options;
@@ -384,21 +404,21 @@ class ComGraphHandler extends SingleGraphHandler {
     const gd = server.comGraphData as SingleGraphData;
 
     try {
-        const { entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
-        server.entryHash = entryhash;
-        gd.funcHash = entryhash;
-        gd.version = version;
-      } catch (err: any) {
-        if (err.code === 'FILE_READ_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
-        }else if (err.code === 'JSON_PARSE_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
-        }else if (err.code === 'STREAM_PROCESSING_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
-        }else {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'),log: t('pypto.comGraph.errorLogMessage.error',{logText:err.message}), graphType: 'comGraph' });return false;
-        }
+      const { entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+      server.entryHash = entryhash;
+      gd.funcHash = entryhash;
+      gd.version = version;
+    } catch (err: any) {
+      if (err.code === 'FILE_READ_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;
+      } else if (err.code === 'JSON_PARSE_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;
+      } else if (err.code === 'STREAM_PROCESSING_ERROR') {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streaValues'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;
+      } else {
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;
       }
+    }
     return true
   }
 
