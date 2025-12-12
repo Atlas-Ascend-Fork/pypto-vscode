@@ -3,8 +3,13 @@ import BigNumber from 'bignumber.js'
 import { getMTime, SQLiteCache } from './core/sqliteCache';
 import { dirname, join, extname, resolve } from 'path';
 import * as vscode from 'vscode';
-import { createReadStream, existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
+import { createReadStream,  createWriteStream } from 'fs';
 import { hismartliteEx } from './hismarliteEx';
+import JSONStream from 'JSONStream';
+import { parser } from 'stream-json';
+import { chain } from 'stream-chain';
+import {pick} from 'stream-json/filters/Pick';
+import {streamObject} from 'stream-json/streamers/StreamObject';
 
 // 异步初始化颜色列表
 let darkThemeColors: any = null;
@@ -226,6 +231,8 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
 
 function calculateDuration (eventTasks, processedTasks) {
   let taskIndex = 0;
+  let minTime = Infinity;
+  let maxTime = 0;
   while (taskIndex <= eventTasks.length - 1) {
     const tStart = eventTasks[taskIndex];
     if (tStart.ph.toUpperCase() === 'X') {
@@ -246,6 +253,8 @@ function calculateDuration (eventTasks, processedTasks) {
       };
       processedTasks.push(event);
       taskIndex += 1;
+      minTime = Math.min(minTime, event.startTime);
+      maxTime = Math.max(maxTime, event.endTime);
       continue;
     }
     const tEnd = eventTasks[taskIndex + 1];
@@ -265,12 +274,15 @@ function calculateDuration (eventTasks, processedTasks) {
           successors: []
         }
       };
+      minTime = Math.min(minTime, processedEvent.startTime);
+      maxTime = Math.max(maxTime, processedEvent.endTime);
       processedTasks.push(processedEvent);
       taskIndex += 2;
     } else {
       taskIndex += 1;
     }
   }
+  return [maxTime, minTime];
 };
 
 export function parsePmuInfo(csvData: string) {
@@ -458,7 +470,9 @@ const calculateDependencies = (events, connections) => {
     if (!traceData || !traceData.traceEvents) {
       return;
     }
-  
+    
+    const errorMsg = {};
+
     const processNames = new Map();
     const threadNames = new Map();
     const eventTasks: any[] = [];
@@ -513,9 +527,12 @@ const calculateDependencies = (events, connections) => {
         });
       }
     });
-  
+    
+    let minTime: number;
+    let maxTime: number;
+
     let processedTasks: any[] = [];
-    calculateDuration(eventTasks, processedTasks);
+    [maxTime, minTime] = calculateDuration(eventTasks, processedTasks);
   
     processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
   
@@ -596,10 +613,10 @@ const calculateDependencies = (events, connections) => {
     processedEvents = processedTasks;
     const data = {};
     data['counterEvents'] = counterEvents;
-    data['processedEvents'] = processedEvents;
     data['processes'] = processes;
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
+    data['timeInfo'] = { maxTime, minTime};
     return data;
   };
 
@@ -679,16 +696,20 @@ const calculateDependencies = (events, connections) => {
     }
   }
 
-  export async function saveParsedInfoToDB(swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: string) {
+  export async function saveParsedInfoToDB(useCache:boolean, swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: any) {
     const sanitizedTime = lastChangeTime.replace(/[:<>"|?*]/g, '-');
     const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
     const fileName = `${sanitizedPath}-${sanitizedTime}.json`;
     const dbSwimStore = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', fileName);
-    const fileUri = vscode.Uri.file(dbSwimStore);
-    const data = new TextEncoder().encode(info);
-    await vscode.workspace.fs.writeFile(fileUri, data);
-    await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
-    await SQLiteCache.getInstance().save();
+    if (!info.pmu_total) {
+      info.pmu_total = {};
+    }
+    if (useCache) {
+      await writeLargeObjectToFileThreadGranular(info, dbSwimStore);
+      await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
+      await SQLiteCache.getInstance().save();
+      console.log(`${dbSwimStore} save done`);
+    }
   }
 
 
@@ -841,3 +862,158 @@ const calculateDependencies = (events, connections) => {
     }
     return lane2line;
   }
+  
+  export async function readSwimlaneFileStream(swimPath: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`开始流式读取 ${swimPath} 文件`);
+        
+        const stream = createReadStream(swimPath, { encoding: 'utf8' });
+        const parser = JSONStream.parse('*'); 
+        
+        let jsonData: any = null;
+        
+        parser.on('data', (data) => {
+          jsonData = data;
+        });
+        
+        parser.on('end', () => {
+          console.log('文件流式读取完成');
+          resolve(jsonData);
+        });
+        
+        parser.on('error', (error) => {
+          console.error('JSON 解析错误:', error);
+          reject(error);
+        });
+        
+        stream.on('error', (error) => {
+          console.error('文件读取错误:', error);
+          reject(error);
+        });
+        
+        stream.pipe(parser);
+        
+      } catch (err) {
+        console.error(`${swimPath} 读取文件时发生错误:`, err);
+        reject(err);
+      }
+    });
+  }
+
+  async function writeLargeObjectToFileThreadGranular(obj: any, filePath: string): Promise<void> {
+    const writeStream = createWriteStream(filePath, { encoding: 'utf8' });
+    
+    try {
+      writeStream.write('{\n');
+      writeStream.write(`"counterEvents": ${JSON.stringify(obj.counterEvents)},\n`);
+
+      
+      // 按process和thread粒度写入
+      writeStream.write('"processes": {\n');
+      
+      const processEntries = Object.entries(obj.processes);
+      for (let i = 0; i < processEntries.length; i++) {
+        const [pid, process] : [any, any] = processEntries[i];
+        const isLastProcess = i === processEntries.length - 1;
+        
+        writeStream.write(`"${pid}": {\n`);
+        writeStream.write(`"pid": ${process.pid},\n`);
+        writeStream.write(`"processName": ${JSON.stringify(process.processName)},\n`);
+        
+        // 按thread粒度写入
+        writeStream.write('"threads": {\n');
+        const threadEntries = Object.entries(process.threads);
+        
+        for (let j = 0; j < threadEntries.length; j++) {
+          const [threadId, thread] = threadEntries[j];
+          const isLastThread = j === threadEntries.length - 1;
+          
+          writeStream.write(`"${threadId}": ${JSON.stringify(thread)}`);
+          if (!isLastThread) {
+            writeStream.write(',\n');
+          }
+        }
+        
+        writeStream.write('\n}\n}');
+        if (!isLastProcess) {
+          writeStream.write(',\n');
+        }
+      }
+      
+      writeStream.write('\n},\n');
+      
+      writeStream.write(`"processExpanded": ${JSON.stringify(obj.processExpanded)},\n`);
+      writeStream.write(`"lane2line": ${JSON.stringify(obj.lane2line)},\n`);
+      writeStream.write(`"pmu_total": ${JSON.stringify(obj.pmu_total)},\n`);
+      writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}\n`);
+      writeStream.write('}');
+      
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+        writeStream.end();
+      });
+      
+    } catch (error) {
+      writeStream.destroy();
+      throw error;
+    }
+  }
+
+export async function getSavedSwimDataFileStreamAll(swimPath: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+      console.log(`开始流式解析整个对象 ${swimPath}`);
+
+      const pipeline = chain([
+          createReadStream(swimPath, { encoding: 'utf8' }),
+          parser(), 
+          streamObject() 
+      ]);
+      
+      let result: any = {};
+      
+      pipeline.on('data', (data) => {
+          result[data.key] = data.value;
+      });
+      
+      pipeline.on('end', () => {
+          console.log(`文件${swimPath} 解析完成`);
+          resolve(result);
+      });
+      
+      pipeline.on('error', (error) => {
+          reject(new Error(`JSON解析失败: ${error.message}`));
+      });
+  });
+}
+
+
+export async function getSavedSwimDataFileStreamByKey(swimPath: string, key: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    console.log(`开始读取缓存文件 ${swimPath}, key ${key}`);
+    
+    const pipeline = chain([
+      createReadStream(swimPath, { encoding: 'utf8' }),
+      parser(),
+      pick({filter:key}),
+      streamObject() 
+    ]);
+    
+    let result: any = {};
+    
+    pipeline.on('data', (data) => {
+      console.log(data);
+      result[data.key] = data.value;
+    });
+    
+    pipeline.on('end', () => {
+      console.log(`解析完成`);
+      resolve(result);
+    });
+    
+    pipeline.on('error', (error) => {
+      reject(new Error(`JSON解析失败: ${error.message}`));
+    });
+  });
+}

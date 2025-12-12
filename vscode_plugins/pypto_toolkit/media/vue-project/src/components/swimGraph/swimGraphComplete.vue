@@ -1,10 +1,10 @@
 <template>
-  <div style="height: 100vh;">
+  <div style="height: 100vh">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
-      <div class="simple-containner" :style="{display: 'none'}">
-            <div class="simple-com-file-name">Program.json</div>
-            <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
-          </div>
+      <div class="simple-containner" :style="{ display: 'none' }">
+        <div class="simple-com-file-name">Program.json</div>
+        <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
+      </div>
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
@@ -13,39 +13,38 @@
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
       <div class="head-container" v-show="!loading">
-        <div class="title" :style="{ 'width': layout.processLabelWidth + 'px' }">
+        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }">
           <div class="title_up" v-show="!isSwimGraphActive">
             <!-- <div class="title_pic"></div> -->
-            <img class="title_pic" :src="titlePath" alt="title-picture">
+            <img class="title_pic" :src="titlePath" alt="title-picture" />
             <div class="title_up_r">
               <div class="workflow-container">
                 <div class="workflow">Workflow</div>
-                <img class="down_16px" :src="down_16px" alt="down_16px">
+                <img class="down_16px" :src="down_16px" alt="down_16px" />
               </div>
-              <div class="title_time"> {{ formattedTime }} </div>
+              <div class="title_time">{{ formattedTime }}</div>
             </div>
           </div>
           <div class="title_up" v-show="!isSwimGraphActive">
-            <div class="simple-file-containner" :style="{display: 'none'}">
+            <div class="simple-file-containner" :style="{ display: 'none' }">
               <div class="simple-com-file-name">Program.json</div>
               <div class="icon-line-height"><img :src="iconPath" alt="" class="simple-com-file-name-icon" /></div>
             </div>
           </div>
           <div class="title_down" :style="{ marginTop: isSwimGraphActive ? '68px' : '-20px' }">
             <d-tooltip :content="$t('tips1')">
-              <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture">
+              <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture" />
             </d-tooltip>
             <div class="dashed-line"></div>
-            <d-tooltip :content="$t('tips2')"><img class="title_icon2" :src="iconPath2"
-                alt="iconPath2-picture"></d-tooltip>
+            <d-tooltip :content="$t('tips2')"><img class="title_icon2" :src="iconPath2" alt="iconPath2-picture" /></d-tooltip>
             <div class="dashed-line"></div>
             <div class="title_down3">
-              <img class="title_icon3" :src="iconPath3" alt="iconPath3-picture">
+              <img class="title_icon3" :src="iconPath3" alt="iconPath3-picture" />
               <div class="title_name">{{ $t('swimGraph') }}</div>
             </div>
           </div>
         </div>
-        <div class="right-header-content" style="width:calc(100% - 250px)">
+        <div class="right-header-content" style="width: calc(100% - 250px)">
           <!-- 按钮操作区 -->
           <swim-graph-header ref="swimgraphHeaderComponent" />
           <div class="swimlane-container mr16" ref="swimlaneContainer">
@@ -61,9 +60,15 @@
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->
-          <div class="measure-mask" v-if="isMeasureModel" @mousedown="measureMouseDown($event)"
-            @mousemove="measureMouseMove($event)" @mouseup="measureMouseUp()" @mouseleave="measureMouseLeave($event)"
-            @wheel="measureHandleWheel($event)">
+          <div
+            class="measure-mask"
+            v-if="isMeasureModel"
+            @mousedown="measureMouseDown($event)"
+            @mousemove="measureMouseMove($event)"
+            @mouseup="measureMouseUp()"
+            @mouseleave="measureMouseLeave($event)"
+            @wheel="measureHandleWheel($event)"
+          >
             <div class="measure-drag-area" :style="dragAreaStyle()"></div>
           </div>
         </div>
@@ -86,7 +91,7 @@ import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
 import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
 import SwimGraphConfig from './swimGraphConfig/swimGraphConfig.vue';
-import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/swimGraphShortCutKeyDescripiton.vue'
+import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/swimGraphShortCutKeyDescripiton.vue';
 import { getTextWidth } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -102,6 +107,7 @@ import {
   getCanvasCSSWidth,
   getDevicePixelRatio,
   COLOR_CFG,
+  processesToMap,
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -115,7 +121,7 @@ const { server } = useViewServer();
 const props = defineProps({
   isThreeColumn: {
     type: Boolean,
-    default: false
+    default: false,
   },
 });
 
@@ -131,7 +137,7 @@ const {
   isSwimFullscreen = ref(false),
   currentActiveBlock = ref(''),
   BlockToGraphMap = ref({}),
-  onToggleSwimFullscreen = () => {}
+  onToggleSwimFullscreen = () => {},
 } = inject(ThreeColumnProvideKey, {});
 // 响应式状态
 const swimlaneContainer = ref(null);
@@ -144,14 +150,13 @@ const configComponent = ref(null);
 const shortCutKeyDescritionComponent = ref(null);
 const timeLineX = ref(null);
 const traceData = ref(null);
-const processedEvents = ref([]);
 const processes = reactive(new Map());
 const counterEvents = ref([]);
 const selectedEvent = ref(null);
 const highlightedPaths = reactive(new Set());
 const processExpanded = reactive(new Map());
 const loading = ref(false);
-const loadingText = ref($t("loadTraceData"));
+const loadingText = ref($t('loadTraceData'));
 const detailsPanelExpanded = ref(false);
 const detailsCoresExpanded = ref(false);
 const tooltip = ref(null);
@@ -159,15 +164,15 @@ const lineTooltip = ref(null);
 const tooltipStyle = reactive({
   display: 'none',
   left: '0px',
-  top: '0px'
+  top: '0px',
 });
 const lineTooltipStyle = reactive({
   display: 'none',
   left: '0px',
-  top: '0px'
+  top: '0px',
 });
 const bindFile = ref(false);
-const bindButton = ref($t("bindComGraphJson"));
+const bindButton = ref($t('bindComGraphJson'));
 const cycleDisplay = ref('none');
 const selectedOption = ref('clockCycle');
 const selectOptions = [
@@ -236,7 +241,7 @@ const layout = reactive({
   counterHeight: 24,
   eventMargin: 2,
   processMargin: 5,
-  marginRight: 10
+  marginRight: 10,
 });
 
 const timelineState = reactive({
@@ -249,7 +254,7 @@ const timelineState = reactive({
   isOnTag: false,
   isOutTag: false,
   startTimeDecimal: new BigNumber(0),
-  endTimeDecimal: new BigNumber(0)
+  endTimeDecimal: new BigNumber(0),
 });
 const formattedTime = computed(() => {
   let date = new Date();
@@ -260,7 +265,7 @@ const formattedTime = computed(() => {
   let minutes = String(date.getMinutes()).padStart(2, '0');
   let seconds = String(date.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-})
+});
 
 const lane2line = reactive(new Map());
 const id2event = {};
@@ -269,7 +274,7 @@ const userConfig = reactive(new Map());
 const childContextMap = {};
 const addChildContext = (childName, ctx) => {
   childContextMap[childName] = ctx;
-}
+};
 
 const searchResult = ref([]);
 const currentResultIndex = ref(0);
@@ -279,6 +284,7 @@ const searchQuery = ref('');
 const isCaseSensitive = ref(false);
 
 const pmuTotal = ref({});
+const timeInfo = ref({});
 
 // 方法
 const initEventListeners = () => {
@@ -314,18 +320,18 @@ function setupSwimWatchers() {
 }
 
 let ERROR_MESSAGES = {
-  INVALID_FILE: $t("swimErroMsgINVALID_FILE"),
-  MISSING_EVENT_FIELDS: $t("swimErroMsgMISSING_EVENT_FIELDS"),
-  MISSING_END_EVENT: $t("swimErroMsgMISSING_END_EVENT"),
-  MISSING_DUR: $t("swimErroMsgMISSING_DUR"),
-  INVALID_ARGS: $t("swimErroMsgINVALID_ARGS"),
-  MISSING_PROCESS_NAME: $t("swimErroMsgMISSING_PROCESS_NAME"),
-  MISSING_THREADS_FIELDS: $t("swimErroMsgMISSING_THREADS_FIELDS"),
-  NO_THREADS: $t("swimErroMsgNO_THREADS"),
-  NO_PROCESS_NAME: $t("swimErroMsgNO_PROCESS_NAME"),
-  FILE_NOT_FOUND: $t("swimErroMsgFILE_NOT_FOUND"),
-  NOT_JSON: $t("swimErroMsgNot_JSON"),
-}
+  INVALID_FILE: $t('swimErroMsgINVALID_FILE'),
+  MISSING_EVENT_FIELDS: $t('swimErroMsgMISSING_EVENT_FIELDS'),
+  MISSING_END_EVENT: $t('swimErroMsgMISSING_END_EVENT'),
+  MISSING_DUR: $t('swimErroMsgMISSING_DUR'),
+  INVALID_ARGS: $t('swimErroMsgINVALID_ARGS'),
+  MISSING_PROCESS_NAME: $t('swimErroMsgMISSING_PROCESS_NAME'),
+  MISSING_THREADS_FIELDS: $t('swimErroMsgMISSING_THREADS_FIELDS'),
+  NO_THREADS: $t('swimErroMsgNO_THREADS'),
+  NO_PROCESS_NAME: $t('swimErroMsgNO_PROCESS_NAME'),
+  FILE_NOT_FOUND: $t('swimErroMsgFILE_NOT_FOUND'),
+  NOT_JSON: $t('swimErroMsgNot_JSON'),
+};
 
 window.ascEventBus.on('threeColumnSizeChange', () => {
   onWindowResize();
@@ -348,7 +354,7 @@ const validData = (dataStr) => {
   let countThread = 0;
 
   const eventMap = new Map();
-  data.traceEvents.forEach(event => {
+  data.traceEvents.forEach((event) => {
     const key = `${event.name}-${event.id}`;
     if (!eventMap.has(key)) {
       eventMap.set(key, []);
@@ -356,15 +362,18 @@ const validData = (dataStr) => {
     eventMap.get(key).push(event);
   });
 
-  data.traceEvents.forEach(event => {
-    if (event.cat === 'event' && (!event.name || !event.ph || typeof event.pid === "undefined" || typeof event.tid === "undefined" || typeof event.ts === "undefined")) {
+  data.traceEvents.forEach((event) => {
+    if (
+      event.cat === 'event' &&
+      (!event.name || !event.ph || typeof event.pid === 'undefined' || typeof event.tid === 'undefined' || typeof event.ts === 'undefined')
+    ) {
       window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name || event.id}"]`));
     }
 
     if (event.ph === 'B') {
       const key = `${event.name}-${event.id}`;
       const endEvent = eventMap.get(key) || [];
-      const hasE = endEvent.some(e => e.ph === 'E');
+      const hasE = endEvent.some((e) => e.ph === 'E');
       if (!hasE) {
         window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_END_EVENT}: ["${event.name}"]`));
       }
@@ -373,21 +382,21 @@ const validData = (dataStr) => {
         window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_DUR}: ["${event.name}"]`));
       }
     } else if (event.ph === 'C') {
-      if (!event.args || (typeof event.args.size !== "number" && typeof event.args['/byte'] !== "number")) {
+      if (!event.args || (typeof event.args.size !== 'number' && typeof event.args['/byte'] !== 'number')) {
         window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.INVALID_ARGS}: ["${event.name}"]`));
       }
     }
 
-    if (event.name === "process_name") {
+    if (event.name === 'process_name') {
       hasProcessName = true;
-      if (typeof event.pid === "undefined" || !event.args || !event.args.name) {
+      if (typeof event.pid === 'undefined' || !event.args || !event.args.name) {
         window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_PROCESS_NAME}: ["${event.args.name}"]`));
       }
     }
 
-    if (event.name.includes("thread")) {
+    if (event.name.includes('thread')) {
       countThread += 1;
-      if (typeof event.pid === "undefined" || typeof event.tid === "undefined" || !event.args || !event.args.name) {
+      if (typeof event.pid === 'undefined' || typeof event.tid === 'undefined' || !event.args || !event.args.name) {
         window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_THREADS_FIELDS}: ["${event.args.name}"]`));
       }
     }
@@ -402,20 +411,19 @@ const validData = (dataStr) => {
   }
 };
 
-
 const loadTraceData = (data) => {
   try {
     processTraceData(data);
     loading.value = false;
   } catch (error) {
-    console.error($t("loadTraceDataError"), error);
+    console.error($t('loadTraceDataError'), error);
     loading.value = true;
   }
 };
 
 const processTraceData = (data) => {
   pmuTotal.value = data.pmu_total;
-  processedEvents.value = data.processedEvents;
+  timeInfo.value = data.timeInfo;
   let isFirst = true;
   for (const key in data.processes) {
     if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
@@ -436,18 +444,15 @@ const processTraceData = (data) => {
       lane2line.set(key, data.lane2line[key]);
     }
   }
-  if (processedEvents.value.length > 0) {
-    const ret = parseTime(processedEvents);
-    viewState.minTime = ret.minTime;
-    viewState.maxTime = ret.maxTime;
+  if (timeInfo.value) {
+    viewState.minTime = timeInfo.value.minTime;
+    viewState.maxTime = timeInfo.value.maxTime;
     viewState.timeRange = viewState.maxTime - viewState.minTime;
   }
 
   // 对线程进行排序
   processes.forEach((value) => {
-    const cThread = new Map([...value.threads.entries()].filter(
-      (item) => item[1].isCounter
-    ).sort());
+    const cThread = new Map([...value.threads.entries()].filter((item) => item[1].isCounter).sort());
     const eThread = new Map([...value.threads.entries()].filter((item) => !item[1].isCounter).sort());
     value.threads = new Map([...eThread.entries(), ...cThread.entries()]);
   });
@@ -488,25 +493,13 @@ const transform = () => {
   }
 };
 
-const parseTime = (processedEvents) => {
-  let minTime = processedEvents.value[0].startTime;
-  let maxTime = 0;
-  for (const event of processedEvents.value) {
-    minTime = Math.min(...[minTime, event.startTime]);
-    maxTime = Math.max(...[maxTime, event.endTime]);
-  }
-  return { minTime, maxTime };
-}
-
 const renderTwoTimeline = () => {
   // 渲染两段时间轴
   renderFixedTimeline();
   renderTimeline();
-}
+};
 
 const renderEvent = () => {
-  if (!processedEvents.value.length) return;
-  // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.renderProcessEvents(process, processKey);
@@ -517,7 +510,6 @@ const renderEvent = () => {
 };
 
 const renderDependencyLines = (processKey) => {
-  if (!processedEvents.value.length) return;
   const mode = viewState.depMode;
   if (processKey) {
     const process = processes.get(processKey);
@@ -537,12 +529,11 @@ const clearDependencyLines = (processKey) => {
 };
 
 const render = () => {
-  if (!processedEvents.value.length) return;
   renderTwoTimeline();
   renderEvent();
   renderDependencyLines();
   if (detailsPanelExpanded.value) {
-    showDependencies(selectedEvent.value, "both");
+    showDependencies(selectedEvent.value, 'both');
   }
   timelineComponent.value.flagRender();
   if (props.isThreeColumn) {
@@ -590,7 +581,7 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   ctx.moveTo(endx, 0);
   ctx.lineTo(endx, canvasCSSHeight);
   ctx.stroke();
-}
+};
 
 const renderFixedTimeline = () => {
   const component = timelineComponent.value;
@@ -625,7 +616,7 @@ const renderFixedTimeline = () => {
   const startTime = viewState.minTime + Math.abs(viewState.offsetX * timelinePerPixel);
   const startTimex = fixedTimeToX(startTime) - layout.processLabelWidth;
 
-  const endTime = startTime + (canvasWidth * timelinePerPixel);
+  const endTime = startTime + canvasWidth * timelinePerPixel;
   const endTimex = fixedTimeToX(endTime) - layout.processLabelWidth;
   const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
 
@@ -681,7 +672,7 @@ const renderFixedTimeline = () => {
     drawFixedTimelineSlider(ctx, canvas, measureStartTimeX, measureEndTimeX);
     return;
   }
-  drawFixedTimelineSlider(ctx, canvas, startTimex, endTimex)
+  drawFixedTimelineSlider(ctx, canvas, startTimex, endTimex);
 };
 
 const renderTimeline = () => {
@@ -739,7 +730,7 @@ const renderTimeline = () => {
 };
 
 const xToTimeValue = (time, isDecimal = false) => {
-  const timeDelta = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : (time - viewState.minTime);
+  const timeDelta = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : time - viewState.minTime;
   const currentTime = Math.round(timeDelta * 1000);
   let truncatedCurrentTime = currentTime;
   if (currentTime.toString().length > 10) {
@@ -748,7 +739,7 @@ const xToTimeValue = (time, isDecimal = false) => {
   let str = truncatedCurrentTime.toString().padStart(9, '0');
   str = str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   return str;
-}
+};
 
 const durationToWidth = (duration) => {
   if (!timelineComponent || !timelineComponent.value?.timelineCanvas) return 0;
@@ -762,11 +753,10 @@ const fixedTimeToX = (time, isDecimal = false) => {
   if (!timelineComponent.value.fixedtimelineCanvas) return 0;
 
   const canvasWidth = viewState.canvasCssWidth;
-  const relativeTime = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : (time - viewState.minTime);
+  const relativeTime = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : time - viewState.minTime;
   const normalizedTime = relativeTime / viewState.timeRange;
   return layout.processLabelWidth + (normalizedTime * canvasWidth);
 };
-
 
 const xToFixedTime = (x) => {
   if (!timelineComponent.value.fixedtimelineCanvas) return null;
@@ -777,12 +767,11 @@ const xToFixedTime = (x) => {
   return viewState.minTime + (normalizedTime * viewState.timeRange);
 };
 
-
 const timeToX = (time, isDecimal = false) => {
   if (!timelineComponent.value?.timelineCanvas) return 0;
 
   const canvasWidth = viewState.canvasCssWidth;
-  const relativeTime = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : (time - viewState.minTime);
+  const relativeTime = isDecimal ? time.minus(new BigNumber(viewState.minTime)) : time - viewState.minTime;
   const normalizedTime = relativeTime / viewState.timeRange;
   return layout.processLabelWidth + (normalizedTime * canvasWidth * viewState.scale) + viewState.offsetX;
 };
@@ -816,7 +805,9 @@ const toggleProcess = (processKey) => {
     resizeCanvases(processKey, false);
     childContextMap.threadEvent.renderProcessEvents(process, processKey);
     const ctxInfo = ctxs[processKey];
-    if (!ctxInfo) { return };
+    if (!ctxInfo) {
+      return;
+    }
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
       ctx.save();
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
@@ -846,9 +837,7 @@ const selectEvent = (event, processKey) => {
 
 const calculateHighlightedPaths = (event) => {
   if (!Object.keys(id2event).length) {
-    processedEvents.value.forEach(element => {
-      id2event[element.id] = element;
-    });
+    processesToMap(processes, id2event);
   }
   highlightedPaths.clear();
   // 获取事件位置的辅助函数
@@ -869,7 +858,7 @@ const calculateHighlightedPaths = (event) => {
       const currentEvent = getEventById(currentId);
       if (currentEvent) {
         highlightedPaths.add(currentEvent.id);
-        currentEvent.dependencies.predecessors.forEach(predId => {
+        currentEvent.dependencies.predecessors.forEach((predId) => {
           if (!visited.has(predId)) {
             queue.push({ id: predId, depth: depth + 1 });
           }
@@ -893,7 +882,7 @@ const calculateHighlightedPaths = (event) => {
       const currentEvent = getEventById(currentId);
       if (currentEvent) {
         highlightedPaths.add(currentEvent.id);
-        currentEvent.dependencies.successors.forEach(succId => {
+        currentEvent.dependencies.successors.forEach((succId) => {
           if (!visited.has(succId)) {
             queue.push({ id: succId, depth: depth + 1 });
           }
@@ -916,7 +905,7 @@ const findEventAtPosition = (x, y, processKey) => {
     altClickData: {
       preData: null,
       lastData: null,
-      nodeSpacingX: 0
+      nodeSpacingX: 0,
     },
   };
   const process = processes.get(processKey);
@@ -942,8 +931,7 @@ const findEventAtPosition = (x, y, processKey) => {
       if (event.renderInfo) {
         const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
         const eventWidth = event.drawData.eventWidth;
-        if (x >= eventX && x <= eventX + eventWidth &&
-          y >= eventY && y <= eventY + eventHeight) {
+        if (x >= eventX && x <= eventX + eventWidth && y >= eventY && y <= eventY + eventHeight) {
           processObj.event = event;
           return processObj;
         } else {
@@ -966,10 +954,10 @@ const findEventAtPosition = (x, y, processKey) => {
 };
 
 const showDependencies = (event, type) => {
-  const displayName = event.isCounter ? event.displayName : (event.name || 'Event');
-  const predecessors = event.dependencies.predecessors.map(id => id2event[id]).filter(e => e);
+  const displayName = event.isCounter ? event.displayName : event.name || 'Event';
+  const predecessors = event.dependencies.predecessors.map((id) => id2event[id]).filter((e) => e);
 
-  const successors = event.dependencies.successors.map(id => id2event[id]).filter(e => e);
+  const successors = event.dependencies.successors.map((id) => id2event[id]).filter((e) => e);
   const canvas = document.getElementById('dependency-canvas');
   const canvasContainer = document.getElementById('canvas-container');
   if (!canvas) return;
@@ -986,7 +974,7 @@ const showDependencies = (event, type) => {
     y: 10,
     width: actualWidth,
     height: 16,
-  }
+  };
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
   let fillColor = eventColor ? eventColor.light : 'rgba(10, 89, 247, 0.3)';
@@ -1004,14 +992,14 @@ const showDependencies = (event, type) => {
     fullDisplayName: displayName,
   });
   const depFillColor = colorCfg.lightlyCompareBkgColor;
-  if (type === "forward" || type === "both") {
+  if (type === 'forward' || type === 'both') {
     predecessors.forEach((pre, index) => {
       const preNode = {
         x: 0,
         y: 10 + index * 20,
         width: actualWidth,
         height: 16,
-      }
+      };
       ctx.beginPath();
       ctx.fillStyle = depFillColor;
       ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
@@ -1019,25 +1007,29 @@ const showDependencies = (event, type) => {
       ctx.closePath();
       ctx.fillStyle = colorCfg.eventFontNoColor;
       ctx.font = '12px Arial';
-      let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : (pre.name || 'Event'));
+      let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : pre.name || 'Event');
       ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
       nodesInfo.push({
         node: preNode,
         type: 'predecessor',
         displayName: displayText,
-        fullDisplayName:  pre.isCounter ? pre.displayName : (pre.name || 'Event'),
+        fullDisplayName: pre.isCounter ? pre.displayName : pre.name || 'Event',
       });
       ctx.beginPath();
       ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
-      ctx.bezierCurveTo(currentNode.x + 5,
+      ctx.bezierCurveTo(
+        currentNode.x + 5,
         currentNode.y + currentNode.height / 2 + 5,
         preNode.x + preNode.width,
         preNode.y + preNode.height / 2 + 5,
         preNode.x + preNode.width,
-        preNode.y + preNode.height / 2);
+        preNode.y + preNode.height / 2,
+      );
       var gradient = ctx.createLinearGradient(
-        currentNode.x, currentNode.y + currentNode.height / 2,
-        preNode.x + preNode.width, preNode.y + preNode.height / 2
+        currentNode.x,
+        currentNode.y + currentNode.height / 2,
+        preNode.x + preNode.width,
+        preNode.y + preNode.height / 2,
       );
       gradient.addColorStop(0, fillColor);
       gradient.addColorStop(1, depFillColor);
@@ -1046,7 +1038,7 @@ const showDependencies = (event, type) => {
       ctx.stroke();
     });
   }
-  if (type === "backward" || type === "both") {
+  if (type === 'backward' || type === 'both') {
     successors.forEach((dep, index) => {
       const depNode = {
         x: canvasWidth * 0.8,
@@ -1061,25 +1053,29 @@ const showDependencies = (event, type) => {
       ctx.closePath();
       ctx.fillStyle = colorCfg.eventFontNoColor;
       ctx.font = '12px Arial';
-      let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : (dep.name || 'Event'));
+      let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : dep.name || 'Event');
       ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
       nodesInfo.push({
         node: depNode,
         type: 'successor',
         displayName: displayText,
-        fullDisplayName: dep.isCounter ? dep.displayName : (dep.name || 'Event'),
-      });      
+        fullDisplayName: dep.isCounter ? dep.displayName : dep.name || 'Event',
+      });
       ctx.beginPath();
       ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
-      ctx.bezierCurveTo(currentNode.x + currentNode.width,
+      ctx.bezierCurveTo(
+        currentNode.x + currentNode.width,
         currentNode.y + currentNode.height / 2 + 5,
         depNode.x,
         depNode.y + depNode.height / 2 + 5,
         depNode.x,
-        depNode.y + depNode.height / 2);
+        depNode.y + depNode.height / 2,
+      );
       var gradient = ctx.createLinearGradient(
-        currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
-        depNode.x, depNode.y + depNode.height / 2
+        currentNode.x + currentNode.width,
+        currentNode.y + currentNode.height / 2,
+        depNode.x,
+        depNode.y + depNode.height / 2,
       );
       gradient.addColorStop(0, fillColor);
       gradient.addColorStop(1, depFillColor);
@@ -1133,12 +1129,12 @@ const showDependencies = (event, type) => {
     tooltip.textContent = text;
     const { canvasCssWidth } = viewState;
     if (event.clientX + 100 > canvasCssWidth) {
-      tooltip.style.left = (event.clientX - 100) + 'px';
+      tooltip.style.left = event.clientX - 100 + 'px';
     } else {
-      tooltip.style.left = (event.clientX + 10) + 'px';
+      tooltip.style.left = event.clientX + 10 + 'px';
     }
-    tooltip.style.top = (event.clientY + 10) + 'px';
-    tooltip.style.display = 'block'; 
+    tooltip.style.top = event.clientY + 10 + 'px';
+    tooltip.style.display = 'block';
   };
   const hideTooltip = () => {
     const tooltip = document.getElementById('dependency-tooltip');
@@ -1194,7 +1190,7 @@ const calculateMaxScale = () => {
   const calculateScale = (viewState.timeRange / canvasWidth) * 1000 * 100;
   const maxScale = Math.floor(calculateScale);
   return maxScale;
-}
+};
 
 const initCanvases = () => {
   // 初始化画布
@@ -1272,7 +1268,7 @@ const resizeMeasure = () => {
   document.documentElement.style.setProperty('--maskstart', `${measureDragStartX.value}px`);
   document.documentElement.style.setProperty('--maskend', `${measureDragEndX.value}px`);
   document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
-}
+};
 
 const dragAreaStyle = () => {
   const width = Math.abs(measureDragEndX.value - measureDragStartX.value);
@@ -1316,7 +1312,7 @@ const measureMouseDown = (e) => {
 
   showDragAreaBorders.value = true;
   return;
-}
+};
 
 const measureHandleWheel = (e) => {
   timelineComponent.value.handleWheel(e);
@@ -1389,7 +1385,7 @@ const drawMeasureArrow = (ctx, startx, endx, distance) => {
   ctx.moveTo(endx, areaMidden);
   ctx.lineTo(endx - baypx, areaMidden + baypx);
   ctx.stroke();
-}
+};
 
 const drawMeasureTimeTip = (ctx, rect, value, unit) => {
   ctx.fillStyle = 'rgba(49, 122, 247, 1)';
@@ -1457,7 +1453,7 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
   drawMeasureTimeTip(ctx, rect, value, unit);
   // 绘制箭头
   drawMeasureArrow(ctx, startX, endX, distance);
-}
+};
 
 const measureMouseMove = (e) => {
   if (e.ctrlKey && e.buttons === 1) {
@@ -1465,7 +1461,7 @@ const measureMouseMove = (e) => {
       return;
     }
     const timeLineEndX = Math.abs(timeLineX.value);
-    const deltaX = (e.clientX - measureDragCtrlX.value);
+    const deltaX = e.clientX - measureDragCtrlX.value;
     const cssWidth = viewState.canvasCssWidth;
     if (deltaX < 0 && cssWidth > timeLineEndX) {
       return;
@@ -1489,7 +1485,7 @@ const measureMouseMove = (e) => {
   document.documentElement.style.setProperty('--maskstart', `${measureDragStartX.value}px`);
   document.documentElement.style.setProperty('--maskend', `${measureDragEndX.value}px`);
   return;
-}
+};
 
 const measureMouseUp = () => {
   if (measureDragCtrl.value) {
@@ -1517,7 +1513,7 @@ const measureMouseUp = () => {
     return;
   }
   return;
-}
+};
 
 const measureMouseLeave = (e) => {
   if (!isMeasureDragging.value) {
@@ -1542,7 +1538,7 @@ const measureMouseLeave = (e) => {
     return;
   }
   return;
-}
+};
 
 const processThreadEventSearch = (thread, startTime, endTime) => {
   const matchedEvents = [];
@@ -1581,7 +1577,7 @@ const hashMatchDataGet = (eventHint, eventTime) => {
           'Wall duration': eventTimeMs,
           'Avg Wall duration': eventTimeMs,
           'root hash': rootHash,
-          'leaf hash': leafHash
+          'leaf hash': leafHash,
         });
       }
     }
@@ -1630,7 +1626,14 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
 
   const eventNum = matchingAICEvents.length + matchingAIVEvents.length;
 
-  measureDetailsData.value.push({ AICoreusage: AICoreUsage.toFixed(2), AICusage: AICUsage.toFixed(2), AIVusage: AIVUsage.toFixed(2), cubecycle: cubeCycle, vectorcycle: vectorCycle, eventnum: eventNum });
+  measureDetailsData.value.push({
+    AICoreusage: AICoreUsage.toFixed(2),
+    AICusage: AICUsage.toFixed(2),
+    AIVusage: AIVUsage.toFixed(2),
+    cubecycle: cubeCycle,
+    vectorcycle: vectorCycle,
+    eventnum: eventNum,
+  });
 };
 
 const measureDetailSearch = () => {
@@ -1713,7 +1716,7 @@ const intelligentSearch = () => {
 
   renderFixedTimeline();
   renderTimeline();
-}
+};
 
 const measureEventSearch = (lineRange, type) => {
   const lineRangeStart = lineRange[0];
@@ -1722,10 +1725,10 @@ const measureEventSearch = (lineRange, type) => {
   let yLayer = 0;
   let result;
 
-  if (type === "start") {
+  if (type === 'start') {
     result = childContextMap.threadEvent.realCoordinateY(measureDragStartY.value);
     yLayer = result.realY;
-  } else if (type === "end") {
+  } else if (type === 'end') {
     result = childContextMap.threadEvent.realCoordinateY(measureDragEndY.value);
     yLayer = result.realY;
   }
@@ -1736,7 +1739,8 @@ const measureEventSearch = (lineRange, type) => {
     const threads = process.threads;
     for (const [threadKey, thread] of threads.entries()) {
       for (const event of thread.events) {
-        if ((event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
+        if (
+          (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
           (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
         ) {
           matchingEvents.push(event);
@@ -1746,7 +1750,7 @@ const measureEventSearch = (lineRange, type) => {
   }
   const measureTime = measureTimeSearch(matchingEvents, lineRange, yLayer, type);
   return measureTime;
-}
+};
 
 const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
   const lineRangeStart = lineRange[0];
@@ -1754,7 +1758,7 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
   const rangeStart = Math.max(0, yLayer - 120);
   const rangeEnd = yLayer + 120;
 
-  const filteredEvents = matchingEvents.filter(event => {
+  const filteredEvents = matchingEvents.filter((event) => {
     return event.renderInfo && event.renderInfo.y >= rangeStart && event.renderInfo.y <= rangeEnd;
   });
 
@@ -1778,10 +1782,10 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
     }
   }
   return null;
-}
+};
 
 const setPageState = (message) => {
-  userConfig.value = toRaw(message.configration);
+  userConfig.value = message.config;
   modeOption.value = userConfig.value.colorRending;
   textOption.value = userConfig.value.textRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
@@ -1793,7 +1797,7 @@ const setPageState = (message) => {
 };
 
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
   setupSwimWatchers();
   initEventListeners();
   loading.value = true;
@@ -1801,18 +1805,50 @@ onMounted(() => {
   server.validateSwimFile().then((content) => {
     validData(content);
   });
-  server.getSwimData().then((newValue) => {
-    setPageState(newValue);
-    loadTraceData(newValue.data);
-  });
-  
+  const {
+    server: { getSwimData, getOtherData },
+  } = useViewServer();
+
+  loading.value = true;
+  let data = {};
+
+  const Reader = await getSwimData();
+  const originalReader = Reader.getReader();
+  let result = await originalReader.read();
+  loadingText.value = $t('receiveTraceData');
+
+  while (!result.done) {
+    const val = result.value;
+    if (val.type == 'first') {
+      data.swimData = val.data;
+    } else {
+      data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
+    }
+    result = await originalReader.read();
+  }
+
+  try {
+    const res = await getOtherData();
+    data.config = res.configuration;
+    data.comGraphPath = res.comGraphPath;
+    data.swimPath = res.swimPath;
+  } catch (err) {
+    console.log('parse other data error:', err);
+  }
+
+  setPageState(data);
+  loadTraceData(data.swimData);
+
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
 });
 
 defineExpose({
-  setPageState, loadTraceData, loading, labelRender
+  setPageState,
+  loadTraceData,
+  loading,
+  labelRender,
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
@@ -1821,7 +1857,7 @@ provide('swimGraphContext', { addChildContext });
 // 提供搜索状态
 provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive });
 
-provide('swimGraphCfg', { userConfig, textOption, modeOption});
+provide('swimGraphCfg', { userConfig, textOption, modeOption });
 
 // provide pmu info
 provide('swimGraphPmuTotal', { pmuTotal });
@@ -1838,7 +1874,6 @@ provide('swimGraphState', {
   initialScale,
   selectedEvent,
   highlightedPaths,
-  processedEvents,
   processes,
   processExpanded,
   loading,
@@ -1846,6 +1881,7 @@ provide('swimGraphState', {
   detailsCoresExpanded,
   swimlaneContainer,
   lane2line,
+  id2event,
   timelineState,
   childContextMap,
   tooltip,
@@ -1899,11 +1935,21 @@ provide('swimGraphMethods', {
   getDisplayName,
   resetState,
   overflowText,
-  getTimelineCanvas: () => { return timelineComponent?.value.timelineCanvas; },
-  handleWheel: (e) => { timelineComponent?.value.handleWheel(e) },
-  flagRender: () => { timelineComponent?.value.flagRender() },
-  leftmove: (step) => { swimgraphHeaderComponent?.value.leftmove(step) },
-  rightmove: (step) => { swimgraphHeaderComponent?.value.rightmove(step) },
+  getTimelineCanvas: () => {
+    return timelineComponent?.value.timelineCanvas;
+  },
+  handleWheel: (e) => {
+    timelineComponent?.value.handleWheel(e);
+  },
+  flagRender: () => {
+    timelineComponent?.value.flagRender();
+  },
+  leftmove: (step) => {
+    swimgraphHeaderComponent?.value.leftmove(step);
+  },
+  rightmove: (step) => {
+    swimgraphHeaderComponent?.value.rightmove(step);
+  },
   changeScale: (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
     timelineComponent?.value.changeScale(zoomFactor, centerPositionX, needRender, isManual);
   },
@@ -1920,14 +1966,18 @@ watch(currentActiveBlock, (val) => {
 });
 
 const updateTheme = () => {
-  iconPath3.value = isDarkTheme.value ? `${window.staticPath}/static-assets/icon_title_3.svg` : `${window.staticPath}/static-assets/icon_title_3_light.svg`;
-  down_16px.value = isDarkTheme.value ? `${window.staticPath}/static-assets/down_16px.svg` : `${window.staticPath}/static-assets/down_16px_light.svg`;
-}
+  iconPath3.value = isDarkTheme.value
+    ? `${window.staticPath}/static-assets/icon_title_3.svg`
+    : `${window.staticPath}/static-assets/icon_title_3_light.svg`;
+  down_16px.value = isDarkTheme.value
+    ? `${window.staticPath}/static-assets/down_16px.svg`
+    : `${window.staticPath}/static-assets/down_16px_light.svg`;
+};
 </script>
 
 <style>
-@import url("css/common.css");
+@import url('css/common.css');
 </style>
 <style scoped>
-@import url("css/mainGraph.css");
+@import url('css/mainGraph.css');
 </style>

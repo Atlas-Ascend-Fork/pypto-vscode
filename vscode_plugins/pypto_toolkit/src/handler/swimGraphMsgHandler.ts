@@ -3,16 +3,21 @@ import { Util } from '../util';
 import { dirname, join, extname, resolve } from 'path';
 import { existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
-import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB } from '../process';
-import fs from 'fs';
+import { getIDETheme } from '../theme';
+import Filter from 'stream-json/filters/Filter';
+import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, getSavedSwimDataFileStreamByKey, getSavedSwimDataFileStreamAll} from '../process';
+import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
+
+const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
     static cachePath: string;
 
     public static readonly WHITE_COMMANDS = new Set([
         'getSwimData',
+        'getOtherData',
         'bindComGraphJson',
         'unbindComGraph',
         'jumpToComGraph',
@@ -28,12 +33,70 @@ export abstract class SwimGraphMsgHandler {
         server.setRef('returnSwim', { data: {} });
     }
 
+    static async getOtherData(server: any) {
+      const swimPath = server.swimDataPath;
+      if (!existsSync(swimPath)) {
+        server.setRef('noSwimFile', swimPath);
+        return;
+      }
+      this.cachePath = Util.getCachePath();
+      const cache = Util.readSwim2ComGraphMap(this.cachePath);
+      const comGraphPath = cache[swimPath];
+      const colorRending = cache['colorRending'] ?? 'subGraph';
+      const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
+      const config = Util.getSwimGraphCustomCfg();
+      config['colorRending'] = colorRending;
+      config['textRending'] = textRending;
+      return {
+        configuration: config,
+        comGraphPath,
+        swimPath,
+      };
+    }
+
+    static async splitJson(swimData: any) {
+      let eventSize = 500;
+      let sendList: any[] = [];
+
+      //发送整体信息
+      let overAllpackage = structuredClone(swimData);
+      for (const processId in overAllpackage.processes) {
+        for (const threadId in overAllpackage.processes[processId].threads) {
+          overAllpackage.processes[processId].threads[threadId].events = [];
+        }
+      }
+      let firstPkacge: any = {};
+      firstPkacge.data = overAllpackage;
+      firstPkacge.type = 'first';
+      sendList.push(firstPkacge);
+      
+      //发送event信息
+      for (const processId in swimData.processes) {
+        for (const threadId in swimData.processes[processId].threads) {
+          const eventsList =  swimData.processes[processId].threads[threadId].events;
+          for (let i = 0; i < eventsList.length; i += eventSize) {
+            let eventPackage: any = {};
+            eventPackage.processId = processId;
+            eventPackage.threadId = threadId;
+            eventPackage.data = eventsList.slice(i, i + eventSize);
+            eventPackage.type = 'events';
+            sendList.push(eventPackage);
+          }
+        }
+      }
+      return sendList;
+    }
+
     static async getSwimData(server: any) {
         const swimPath = server.swimDataPath;
         if (!existsSync(swimPath)) {
             server.setRef('noSwimFile', swimPath);
             return;
         }
+
+        const swimFileStat = await fs.stat(swimPath);
+        const useCacheStream = swimFileStat.size < CACHE_LARGE_FILE_SIZE * 1024 * 1024;
+
         this.cachePath = Util.getCachePath();
         const cache = Util.readSwim2ComGraphMap(this.cachePath);
         const comGraphPath = cache[swimPath];
@@ -44,6 +107,7 @@ export abstract class SwimGraphMsgHandler {
         const config = Util.getSwimGraphCustomCfg();
         config['colorRending'] = colorRending;
         config['textRending'] = textRending;
+        let savedParsedDataPath = '';
     
         const parsedInfoRow = await SQLiteCache.getInstance().swimGraphParsedInfoGetByFilePath(swimPath);
         let swimData: any = {};
@@ -51,12 +115,12 @@ export abstract class SwimGraphMsgHandler {
 
         const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
         let pmuLastChangeTime = '';
-        if (fs.existsSync(pmuPath)) {
+        if (existsSync(pmuPath)) {
           pmuLastChangeTime = await getMTime(pmuPath);
         }
         const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
         let dynTopoLastChangeTime = '';
-        if (fs.existsSync(dynTopoPath)) {
+        if (existsSync(dynTopoPath)) {
           dynTopoLastChangeTime = await getMTime(dynTopoPath);
         }
 
@@ -69,20 +133,26 @@ export abstract class SwimGraphMsgHandler {
           }
         }
     
-        if (parsedInfoRow.length > 0 && !fileChanged) {
+        if (parsedInfoRow.length > 0 && !fileChanged && useCacheStream) {
           //数据库有数据且文件未修改，直接从数据库读取
           console.log(parsedInfoRow[0].info);
-          const fileUri = vscode.Uri.file(parsedInfoRow[0].info);
-          const fileData = await vscode.workspace.fs.readFile(fileUri);
-          const content = new TextDecoder().decode(fileData);
-          swimData = JSON.parse(content);
+          savedParsedDataPath = parsedInfoRow[0].info;
+          if (false) {
+            swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
+          } else {
+            const fileUri = vscode.Uri.file(parsedInfoRow[0].info);
+            const fileData = await vscode.workspace.fs.readFile(fileUri);
+            const content = new TextDecoder().decode(fileData);
+            swimData = JSON.parse(content);
+          }
+          
         } else {
           //解析数据
           //处理tilefwk_prof_pmu.csv
           let pmuInfo = {};
           let pmuExist = false;
           let pmuTotal:any = {};
-          if (fs.existsSync(pmuPath)) {
+          if (existsSync(pmuPath)) {
             //tilefwk_prof_pmu.csv文件存在
             pmuExist = true;
             let pmuData = '';
@@ -124,10 +194,11 @@ export abstract class SwimGraphMsgHandler {
           }
           
           //处理merged_swimlane.json
-          let swimStr = '';
+          let swimlaneData: any = {};
     
           try {
-            swimStr = readFileSync(swimPath, 'utf8');
+
+            swimlaneData.traceEvents = await readSwimlaneFileStream(swimPath);
             console.log('读取merged_swimlane.json文件');
     
           } catch (err) {
@@ -156,7 +227,7 @@ export abstract class SwimGraphMsgHandler {
             console.log('读取dyn_topo.txt发生错误',error);
           } 
     
-          const swimDataObj = JSON.parse(swimStr);
+          const swimDataObj = swimlaneData;
           swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
           swimData.lane2line = Object.fromEntries(swimData.lane2line);
           swimData.processes = Object.fromEntries(swimData.processes);
@@ -177,17 +248,12 @@ export abstract class SwimGraphMsgHandler {
             await SQLiteCache.getInstance().save();
           }
           //插入数据
-          saveParsedInfoToDB(swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime ,JSON.stringify(swimData));
+          saveParsedInfoToDB(useCacheStream, swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, swimData);
         }
         
         console.log('returnSwimData message send');
 
-        return {
-          data: swimData,
-          configration: config,
-          comGraphPath,
-          swimPath,
-        };
+        return await this.splitJson(swimData);
       }
     
     static async validateFile(server: any) {
