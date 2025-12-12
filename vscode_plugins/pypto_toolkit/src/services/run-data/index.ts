@@ -3,9 +3,10 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 
 import { SqlStore } from '../../core/store';
-import { OutputRecord, RunDataManifest } from '../../types/workspace';
+import type { OutputRecord } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
+import { getOutputRecord, readRunDataList } from './file-system-utils';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -30,9 +31,28 @@ const RUN_DATA_ATTRIBUTES = defineAttributes({
 export class RunDataService extends BasicService {
   private store: RunDataStore;
 
+  private scanning = false;
+
+  private get scannedCount(): number {
+    return this._scannedCount;
+  }
+  private set scannedCount(newValue: number) {
+    this._scannedCount = newValue;
+    this.scanListeners.get(newValue)?.();
+  }
+  private _scannedCount: number;
+
+  private scanListeners = new Map<number, () => void>();
+
+  private _stopScanTrigger?: () => void;
+
   constructor() {
     super('runData');
     this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES);
+    this.store.onClear(async () => {
+      await this.stopScan();
+      this.scanDirectory();
+    });
     this._disposables.push(this.store);
     this.scanDirectory();
     this.watchFileChange();
@@ -46,39 +66,69 @@ export class RunDataService extends BasicService {
     return this.store.delete(output);
   }
 
+  public async getRecordByDirectoryPath(directoryPath: string): Promise<OutputRecord | undefined> {
+    const [record] = await this.query().filter({ directoryPath }).exec();
+
+    // 数据库没有记录时，从文件目录读取
+    if (!record) {
+      const runDataUri = vscode.Uri.file(directoryPath);
+      return await getOutputRecord(runDataUri);
+    }
+
+    return record;
+  }
+
+  public async waitForScanning(recordCount: number = Infinity): Promise<void> {
+    if (!this.scanning || this.scannedCount >= recordCount) {
+      return;
+    }
+    return new Promise<void>((resolve) => {
+      this.scanListeners.set(recordCount, () => {
+        resolve();
+      });
+    });
+  }
+
   /**
    * 扫描目录
    */
   private async scanDirectory(): Promise<void> {
+    if (this.scanning) {
+      return;
+    }
+    this.scanning = true;
+    this.scannedCount = 0;
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
-    const subList = await this.readRunDataList(runDataCollectionUri);
+    const runDataList = await readRunDataList(runDataCollectionUri);
 
     const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
-    for (const [subPath, fileType] of subList) {
-      // 非目录无需扫描
-      if (fileType !== vscode.FileType.Directory) {
+    for (const { dirname, executeTime } of runDataList) {
+      if (executeTime <= (latestRecord?.executeTime ?? '')) {
         continue;
       }
-
-      // 最新记录之前的目录无需扫描
-      const { datetimeFormat } = resolveExecuteTime(subPath);
-      if (!datetimeFormat || datetimeFormat <= (latestRecord?.executeTime ?? '')) {
-        continue;
+      const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, dirname);
+      await this.setOutputToStore(rootDirUri);
+      if (this._stopScanTrigger) {
+        this._stopScanTrigger();
+        this.scanning = false;
+        return;
       }
-      const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, subPath);
-      this.setOutputToStore(rootDirUri);
+      this.scannedCount++;
     }
+    this.scanning = false;
+    this.scanListeners.get(Infinity)?.();
   }
 
-  /**
-   * 读取所有rundata目录
-   */
-  private async readRunDataList(parentUri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    try {
-      return await vscode.workspace.fs.readDirectory(parentUri);
-    } catch {
-      return [];
+  private stopScan(): Promise<void> {
+    if (!this.scanning) {
+      return Promise.resolve();
     }
+    return new Promise((resolve) => {
+      this._stopScanTrigger = () => {
+        resolve();
+        delete this._stopScanTrigger;
+      };
+    });
   }
 
   /**
@@ -107,75 +157,9 @@ export class RunDataService extends BasicService {
   }
 
   private async setOutputToStore(runDataUri: vscode.Uri) {
-    const runData = await readOutputRunData(runDataUri);
-    if (runData) {
-      const record = getOutputRecord(runDataUri, runData);
+    const record = await getOutputRecord(runDataUri);
+    if (record) {
       this.store.set(record);
     }
   }
-}
-
-const RUNDATA_FILE_NAME = 'rundata.json';
-
-/**
- * 读取rundata文件
- */
-async function readOutputRunData(outputUri: vscode.Uri): Promise<RunDataManifest | null> {
-  try {
-    const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_FILE_NAME));
-    return JSON.parse(fileContent.toString());
-  } catch {
-    return null;
-  }
-}
-
-/**
- * 获取output记录
- */
-function getOutputRecord(outputUri: vscode.Uri, runData: RunDataManifest): OutputRecord {
-  const directoryPath = outputUri.fsPath;
-  const sourceFilePath = runData.pto_src_file || null;
-  const controlFlowFilePath = runData.program_file || null;
-  const swimlaneGraphFilePath = runData.swim_graph_path || null;
-  const computeGraphDirPath = runData.compute_graph_path || null;
-
-  const directoryName = path.posix.basename(outputUri.path);
-  const executeTime = resolveExecuteTime(directoryName)!;
-  const title = `${runData.runtype}_${executeTime.titleFormat}`;
-  return {
-    title,
-    executeTime: executeTime.datetimeFormat,
-    directoryPath,
-    sourceFilePath,
-    controlFlowFilePath,
-    swimlaneGraphFilePath,
-    computeGraphDirPath,
-  };
-}
-
-interface ResolvedExecuteTime {
-  /** 标题格式（年月日_时分秒） */
-  titleFormat: string;
-
-  /** 日期时间格式（年-月-日 时:分:秒） */
-  datetimeFormat: string;
-}
-
-/** rundata目录名称正则 */
-const RUN_DATA_DIRNAME_REG_EXP = /^rundata_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/;
-
-/**
- * 从rundata目录名解析执行时间
- * @param directoryName 目录名
- */
-function resolveExecuteTime(directoryName: string): ResolvedExecuteTime {
-  const matches = RUN_DATA_DIRNAME_REG_EXP.exec(directoryName);
-  if (!matches) {
-    return { titleFormat: '', datetimeFormat: '' };
-  }
-  const [_, year, month, day, hour, minute, second] = matches;
-  return {
-    titleFormat: `${year}${month}${day}_${hour}${minute}${second}`,
-    datetimeFormat: `${year}-${month}-${day} ${hour}:${minute}:${second}`,
-  };
 }

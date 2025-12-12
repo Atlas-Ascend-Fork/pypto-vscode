@@ -213,9 +213,8 @@ export class SQLiteCache {
         `);
     // 需要添加表就继续 this.db.run();
 
+    //swimGraph Table
 
-    //swimGraph Table 
-    
     //parsed swimlane info for each file
     this.db.run(`
         CREATE TABLE IF NOT EXISTS swimgraph_parsed_info (
@@ -274,7 +273,7 @@ export class SQLiteCache {
         );
     `);
   }
-  
+
   public async createEvent() {
     //event uid: args.seqNo-args.taskId
     this.db!.run(`
@@ -477,21 +476,20 @@ export class SQLiteCache {
     return row;
   }
 
-
   /****************** swimgraph_parsed_info 表 ******************/
   public async swimGraphParsedInfoSet(
-    filePath: string, 
-    lastChangeTime: string, 
-    dynTopoLastChangeTime: string, 
-    pmuLastChangeTime: string, 
-    info: string
+    filePath: string,
+    lastChangeTime: string,
+    dynTopoLastChangeTime: string,
+    pmuLastChangeTime: string,
+    info: string,
   ): Promise<void> {
     this.db!.run(
-      'INSERT OR REPLACE INTO swimgraph_parsed_info(file_path,last_change_time,dyn_topo_last_change_time,pmu_last_change_time,info) VALUES(?,?,?,?,?)', 
-      [filePath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, info]
+      'INSERT OR REPLACE INTO swimgraph_parsed_info(file_path,last_change_time,dyn_topo_last_change_time,pmu_last_change_time,info) VALUES(?,?,?,?,?)',
+      [filePath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, info],
     );
   }
-  
+
   public async swimGraphParsedInfoGetAll(): Promise<SwimGraphParsedInfoRow[]> {
     const stmt = this.db!.prepare('SELECT * FROM swimgraph_parsed_info');
     const rows: SwimGraphParsedInfoRow[] = [];
@@ -501,7 +499,7 @@ export class SQLiteCache {
     stmt.free();
     return rows;
   }
-  
+
   public async swimGraphParsedInfoGetByFilePath(filePath: string): Promise<SwimGraphParsedInfoRow[]> {
     const stmt = this.db!.prepare('SELECT * FROM swimgraph_parsed_info WHERE file_path = ?');
     stmt.bind([filePath]);
@@ -512,36 +510,28 @@ export class SQLiteCache {
     stmt.free();
     return rows;
   }
-  
-  
+
   public async swimGraphParsedInfoDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM swimgraph_parsed_info WHERE file_path = ?', [filePath]);
   }
-  
-  public async swimGraphParsedInfoDelByFilePath(
-    filePath: string, 
-  ): Promise<void> {
-    this.db!.run(
-      'DELETE FROM swimgraph_parsed_info WHERE file_path = ?', 
-      [filePath]
-    );
+
+  public async swimGraphParsedInfoDelByFilePath(filePath: string): Promise<void> {
+    this.db!.run('DELETE FROM swimgraph_parsed_info WHERE file_path = ?', [filePath]);
   }
 
   /****************** swimgraph_process 表 ******************/
 
   public async swimGraphProcessSet(
-    filePath: string, 
-    lastChangeTime: string, 
-    pid: number, 
+    filePath: string,
+    lastChangeTime: string,
+    pid: number,
     processName: string,
-    colorRendering: string): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO swimgraph_process(file_path,last_change_time,pid,process_name,color_rendering) VALUES(?,?,?,?,?)', [
-      filePath,
-      lastChangeTime,
-      pid,
-      processName,
-      colorRendering
-    ]);
+    colorRendering: string,
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO swimgraph_process(file_path,last_change_time,pid,process_name,color_rendering) VALUES(?,?,?,?,?)',
+      [filePath, lastChangeTime, pid, processName, colorRendering],
+    );
   }
 
   public async swimGraphProcessGetAll(): Promise<SwimGraphProcessRow[]> {
@@ -572,28 +562,21 @@ export class SQLiteCache {
   /****************** swimgraph_thread 表 ******************/
 
   public async swimGraphThreadSet(
-    filePath: string, 
-    tid : number,
-    lastChangeTime: string, 
+    filePath: string,
+    tid: number,
+    lastChangeTime: string,
     threadName: string,
     argKey: string,
     isCounter: number,
     isFakeCore: number,
     maxCount: number,
     pid: number,
-    threadId: number): Promise<void> {
-    this.db!.run('INSERT OR REPLACE INTO swimgraph_thread(file_path,tid,last_change_time,thread_name,arg_key,is_counter,is_fake_core,max_count,pid,thread_id) VALUES(?,?,?,?,?,?,?,?,?,?)', [
-      filePath,
-      tid,
-      lastChangeTime,
-      threadName,
-      argKey,
-      isCounter,
-      isFakeCore,
-      maxCount,
-      pid,
-      threadId
-    ]);
+    threadId: number,
+  ): Promise<void> {
+    this.db!.run(
+      'INSERT OR REPLACE INTO swimgraph_thread(file_path,tid,last_change_time,thread_name,arg_key,is_counter,is_fake_core,max_count,pid,thread_id) VALUES(?,?,?,?,?,?,?,?,?,?)',
+      [filePath, tid, lastChangeTime, threadName, argKey, isCounter, isFakeCore, maxCount, pid, threadId],
+    );
   }
 
   public async swimGraphThreadGetAll(): Promise<SwimGraphThreadRow[]> {
@@ -605,7 +588,7 @@ export class SQLiteCache {
     stmt.free();
     return rows;
   }
-  
+
   public async swimGraphThreadGetByFilePath(filePath: string): Promise<SwimGraphThreadRow[]> {
     const stmt = this.db!.prepare('SELECT * FROM swimgraph_thread WHERE file_path = ?');
     stmt.bind([filePath]);
@@ -631,11 +614,11 @@ export class SQLiteCache {
   public async swimGraphThreadDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM swimgraph_thread WHERE file_path=?', [filePath]);
   }
-  
+
   /****************** swimgraph_event 表 ******************/
   public async swimGraphEventSet(
-    filePath: string, 
-    lastChangeTime: string, 
+    filePath: string,
+    lastChangeTime: string,
     id: string,
     threadId: number,
     eventType: string,
@@ -660,15 +643,13 @@ export class SQLiteCache {
     leafIndex?: string,
     seqNo?: number,
     taskId?: number,
-    color?: string
-    ): Promise<void> {
-
-    const sql = 
-    `INSERT OR REPLACE INTO swimgraph_event(file_path,last_change_time,id,args,predecessors,
+    color?: string,
+  ): Promise<void> {
+    const sql = `INSERT OR REPLACE INTO swimgraph_event(file_path,last_change_time,id,args,predecessors,
       successors,duration,end_time,pid,tid,line,is_counter,is_fake_core,name,
       uid,render_end_time,render_start_time,start_time,thread_name,ts,
       leaf_index,thread_id,event_type,seq_no,task_id,color) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-    
+
     const params = [
       filePath,
       lastChangeTime,
@@ -696,11 +677,11 @@ export class SQLiteCache {
       eventType,
       seqNo ?? 0,
       taskId ?? 0,
-      color ?? ''
+      color ?? '',
     ];
-    
+
     this.db!.run(sql, params);
-}
+  }
 
   public async swimGraphEventGetAll(): Promise<SwimGraphEventRow[]> {
     const stmt = this.db!.prepare('SELECT * FROM swimgraph_event');
@@ -734,7 +715,11 @@ export class SQLiteCache {
     return rows;
   }
 
-  public async swimGraphEventGetByFilePathPidTidOrderByTsAsc(filePath: string, pid: number, thread_id: number): Promise<SwimGraphEventRow[]> {
+  public async swimGraphEventGetByFilePathPidTidOrderByTsAsc(
+    filePath: string,
+    pid: number,
+    thread_id: number,
+  ): Promise<SwimGraphEventRow[]> {
     const stmt = this.db!.prepare('SELECT * FROM swimgraph_event WHERE file_path = ? AND pid = ? AND thread_id = ? ORDER BY ts ASC');
     stmt.bind([filePath, pid, thread_id]);
     const rows: SwimGraphEventRow[] = [];
@@ -773,42 +758,39 @@ export class SQLiteCache {
     mte1Ratio: number,
     mte2Ratio: number,
     mte3Ratio: number,
-    icacheHit: number
+    icacheHit: number,
   ): Promise<void> {
-    const sql = 
-      `INSERT OR REPLACE INTO swimgraph_pmu(file_path,last_change_time,uid,sub_task_id,
+    const sql = `INSERT OR REPLACE INTO swimgraph_pmu(file_path,last_change_time,uid,sub_task_id,
         seq_no,thread_id,task_id,core_id,total_cycle,vec_busy_cycles,cube_busy_cycles,scalar_busy_cycles,
         mte1_busy_cycles,mte2_busy_cycles,mte3_busy_cycles,icache_miss,icache_req,cube_ratio,vec_ratio,
         scalar_ratio,mte1_ratio,mte2_ratio,mte3_ratio,
         icache_hit) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-    this.db!.run(
-      sql, [
-        filePath,
-        lastChangeTime,
-        uid,
-        subTaskId,
-        seqNo,
-        threadId,
-        taskId,
-        coreId,
-        totalCycle,
-        vecBusyCycle,
-        cubeBusyCycle,
-        scalarBusyCycle,
-        mte1BusyCycle,
-        mte2BusyCycle,
-        mte3BusyCycle,
-        icacheMiss,
-        icacheReq,
-        cubeRatio,
-        vecRatio,
-        scalarRatio,
-        mte1Ratio,
-        mte2Ratio,
-        mte3Ratio,
-        icacheHit
-      ]
-    );
+    this.db!.run(sql, [
+      filePath,
+      lastChangeTime,
+      uid,
+      subTaskId,
+      seqNo,
+      threadId,
+      taskId,
+      coreId,
+      totalCycle,
+      vecBusyCycle,
+      cubeBusyCycle,
+      scalarBusyCycle,
+      mte1BusyCycle,
+      mte2BusyCycle,
+      mte3BusyCycle,
+      icacheMiss,
+      icacheReq,
+      cubeRatio,
+      vecRatio,
+      scalarRatio,
+      mte1Ratio,
+      mte2Ratio,
+      mte3Ratio,
+      icacheHit,
+    ]);
   }
 
   public async swimGraphPmuGetAll(): Promise<SwimGraphPmuRow[]> {
@@ -837,16 +819,13 @@ export class SQLiteCache {
   }
 
   /****************** swimgraph_lane2line 表 ******************/
-  public async swimGraphLane2lineSet(
-    filePath: string,
-    lastChangeTime: string,
-    name: string,
-    value: number
-  ): Promise<void> {
-    this.db!.run(
-      'INSERT OR REPLACE INTO swimgraph_lane2line(file_path,last_change_time,name,value) VALUES(?,?,?,?)',
-      [filePath, lastChangeTime, name, value]
-    );
+  public async swimGraphLane2lineSet(filePath: string, lastChangeTime: string, name: string, value: number): Promise<void> {
+    this.db!.run('INSERT OR REPLACE INTO swimgraph_lane2line(file_path,last_change_time,name,value) VALUES(?,?,?,?)', [
+      filePath,
+      lastChangeTime,
+      name,
+      value,
+    ]);
   }
 
   public async swimGraphLane2lineGetAll(): Promise<SwimGraphLane2lineRow[]> {
@@ -903,11 +882,7 @@ export class SQLiteCache {
   }
 
   public async deleteForCommand() {
-    const yes = 'Clear';
-    const pick = await vscode.window.showWarningMessage(t('pypto.clearAllCache'), { modal: true }, yes);
-    if (pick !== yes) return;
     await this.clearCache();
-    vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   }
 
   public async createBigDataFile(hash: string, data: string): Promise<string> {
