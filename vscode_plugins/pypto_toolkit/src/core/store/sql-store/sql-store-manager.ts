@@ -29,7 +29,7 @@ export class SqlStoreManager extends vscode.Disposable {
   private _openedDatabases = new WeakMap<SqlStore<any>, Database>();
 
   constructor(extensionContext: vscode.ExtensionContext) {
-    super(() => { });
+    super(() => {});
     SqlStoreManager.instance = this;
     this._dbDirUri = vscode.Uri.joinPath(extensionContext.globalStorageUri, SQL_DATABASE_NAME);
     this._initializeSqlStore();
@@ -116,10 +116,10 @@ export class SqlStoreManager extends vscode.Disposable {
 
     // 比较版本
     const queryResult = db.exec(`SELECT version FROM ${SQL_MANAGER_TABLE} WHERE store='${store.storeName}'`)[0];
-    const savedVersion = queryResult?.values[0][0] ?? -1;
-    const versionChanged = store.version !== savedVersion;
+    const savedVersion = queryResult?.values[0][0];
+    const versionChanged = savedVersion !== undefined && store.version !== savedVersion;
 
-    if (versionChanged) {
+    if (savedVersion === undefined || versionChanged) {
       db.run(`INSERT OR REPLACE INTO ${SQL_MANAGER_TABLE}(store,version) VALUES('${store.storeName}',${store.version})`);
       this._writeToFile(SQL_MANAGER_TABLE, db.export());
     }

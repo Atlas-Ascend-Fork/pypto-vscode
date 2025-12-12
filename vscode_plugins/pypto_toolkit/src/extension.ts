@@ -15,6 +15,7 @@ import { initView } from './view';
 import { SwimGraphView } from './view/swimGraphView.js';
 import { loadMaterialColorUtilities } from './color-list';
 import { SidebarViewProvider } from './view/SidebarViewProvider';
+import { t } from 'i18next';
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -113,9 +114,13 @@ async function initDB(context: ExtensionContext) {
   watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
   watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
   // 2. 注册命令
-  vscode.commands.registerCommand('PyPTO.deletePersistFile', () => {
-    SQLiteCache.getInstance().deleteForCommand();
-    clearAllStores();
+  vscode.commands.registerCommand('PyPTO.deletePersistFile', async () => {
+    const yes = 'Clear';
+    const pick = await vscode.window.showWarningMessage(t('pypto.clearAllCache'), { modal: true }, yes);
+    if (pick !== yes) return;
+    await SQLiteCache.getInstance().deleteForCommand();
+    await clearAllStores();
+    vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   });
 
   // 3. 监听停用

@@ -29,7 +29,7 @@ export interface OutputDetail {
   /** 执行时间 */
   executeTime: string;
 
-  /** output文件夹地址 */
+  /** rundata文件夹地址 */
   directoryPath: string;
 
   /** 文件目录树 */

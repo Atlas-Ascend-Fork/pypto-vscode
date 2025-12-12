@@ -28,6 +28,9 @@ export interface GetOutputRecordsRes {
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
   const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc' } = params;
   const runDataService = useService('runData');
+  const isDefaultSortCondition = sortBy === 'executeTime' && sortOrder === 'desc';
+  const waitingCount = isDefaultSortCondition ? page * pageSize : undefined;
+  await runDataService.waitForScanning(waitingCount);
   const records = await runDataService
     .query()
     .sort(sortBy, sortOrder)
