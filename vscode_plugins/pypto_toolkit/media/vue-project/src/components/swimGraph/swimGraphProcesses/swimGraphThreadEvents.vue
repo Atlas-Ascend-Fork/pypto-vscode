@@ -601,7 +601,7 @@ const handleMouseMove = throttle((e) => {
   }
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
-}, 320);
+}, 80);
 const handleHoverEvent = (hoveredEvent) => {
   if (!hoveredEvent) {
     return false;
