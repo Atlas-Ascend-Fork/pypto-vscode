@@ -715,7 +715,7 @@ const lockClick = (e) => {
   sendMsg('activeLock', { label: preLabel });
   let rootHashArray = [];
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     process.threads.forEach((thread, threadKey) => {
@@ -765,7 +765,7 @@ const resizeDrawBoundary = () => {
     return;
   }
   processes.forEach((process, processKey) => {
-    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+    if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
     changeNodeColor(processKey, true);
@@ -809,7 +809,7 @@ const checkInSelection = () => {
 
   // 遍历进程
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     // 遍历线程
@@ -1732,7 +1732,7 @@ const setSelectedData = (boundRange, label) => {
   points = [];
   drawColorDatas = {};
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     highlightedPaths.clear();
@@ -1766,7 +1766,7 @@ const setSelectedData = (boundRange, label) => {
 const drawSelection = (label, needSendCom, isLock) => {
   let rootHashArray = [];
   processes.forEach((process, processKey) => {
-    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+    if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
     changeNodeColor(processKey, true);
