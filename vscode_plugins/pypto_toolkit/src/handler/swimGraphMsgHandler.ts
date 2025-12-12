@@ -6,9 +6,11 @@ import { t } from 'i18next';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, getSavedSwimDataFileStreamByKey, getSavedSwimDataFileStreamAll} from '../process';
-import fs from 'fs';
+import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
+
+const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
     static cachePath: string;
@@ -91,6 +93,10 @@ export abstract class SwimGraphMsgHandler {
             server.setRef('noSwimFile', swimPath);
             return;
         }
+
+        const swimFileStat = await fs.stat(swimPath);
+        const useCacheStream = swimFileStat.size < CACHE_LARGE_FILE_SIZE * 1024 * 1024;
+
         this.cachePath = Util.getCachePath();
         const cache = Util.readSwim2ComGraphMap(this.cachePath);
         const comGraphPath = cache[swimPath];
@@ -109,12 +115,12 @@ export abstract class SwimGraphMsgHandler {
 
         const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
         let pmuLastChangeTime = '';
-        if (fs.existsSync(pmuPath)) {
+        if (existsSync(pmuPath)) {
           pmuLastChangeTime = await getMTime(pmuPath);
         }
         const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
         let dynTopoLastChangeTime = '';
-        if (fs.existsSync(dynTopoPath)) {
+        if (existsSync(dynTopoPath)) {
           dynTopoLastChangeTime = await getMTime(dynTopoPath);
         }
 
@@ -127,18 +133,26 @@ export abstract class SwimGraphMsgHandler {
           }
         }
     
-        if (parsedInfoRow.length > 0 && !fileChanged) {
+        if (parsedInfoRow.length > 0 && !fileChanged && useCacheStream) {
           //数据库有数据且文件未修改，直接从数据库读取
           console.log(parsedInfoRow[0].info);
           savedParsedDataPath = parsedInfoRow[0].info;
-          swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
+          if (false) {
+            swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
+          } else {
+            const fileUri = vscode.Uri.file(parsedInfoRow[0].info);
+            const fileData = await vscode.workspace.fs.readFile(fileUri);
+            const content = new TextDecoder().decode(fileData);
+            swimData = JSON.parse(content);
+          }
+          
         } else {
           //解析数据
           //处理tilefwk_prof_pmu.csv
           let pmuInfo = {};
           let pmuExist = false;
           let pmuTotal:any = {};
-          if (fs.existsSync(pmuPath)) {
+          if (existsSync(pmuPath)) {
             //tilefwk_prof_pmu.csv文件存在
             pmuExist = true;
             let pmuData = '';
@@ -234,7 +248,7 @@ export abstract class SwimGraphMsgHandler {
             await SQLiteCache.getInstance().save();
           }
           //插入数据
-          saveParsedInfoToDB(swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, swimData);
+          saveParsedInfoToDB(useCacheStream, swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, swimData);
         }
         
         console.log('returnSwimData message send');

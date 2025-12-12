@@ -470,7 +470,9 @@ const calculateDependencies = (events, connections) => {
     if (!traceData || !traceData.traceEvents) {
       return;
     }
-  
+    
+    const errorMsg = {};
+
     const processNames = new Map();
     const threadNames = new Map();
     const eventTasks: any[] = [];
@@ -694,7 +696,7 @@ const calculateDependencies = (events, connections) => {
     }
   }
 
-  export async function saveParsedInfoToDB(swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: any) {
+  export async function saveParsedInfoToDB(useCache:boolean, swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: any) {
     const sanitizedTime = lastChangeTime.replace(/[:<>"|?*]/g, '-');
     const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
     const fileName = `${sanitizedPath}-${sanitizedTime}.json`;
@@ -702,11 +704,12 @@ const calculateDependencies = (events, connections) => {
     if (!info.pmu_total) {
       info.pmu_total = {};
     }
-    await writeLargeObjectToFileThreadGranular(info, dbSwimStore);
-    await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
-    await SQLiteCache.getInstance().save();
-    console.log(`${dbSwimStore} save done`);
-    return dbSwimStore;
+    if (useCache) {
+      await writeLargeObjectToFileThreadGranular(info, dbSwimStore);
+      await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
+      await SQLiteCache.getInstance().save();
+      console.log(`${dbSwimStore} save done`);
+    }
   }
 
 
