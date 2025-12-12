@@ -26,6 +26,7 @@ export const ideLightTheme = new Theme({
     'devui-input-bg': 'rgba(0,0,0,0.05)', // 输入控件背景
     'devui-input-hover-bg': 'rgba(0,0,0,0.10)', // 悬浮背景
     'devui-input-active-bg': 'rgba(10,89,247,0.20)', // 激活选中背景
+    'devui-input-active-bg-4': 'rgba(10,89,247,0.40)', // 激活选中背景
     'devui-input-disabled-bg': 'rgba(0,0,0,0.03)', // 输入控件禁用
     'devui-primary-button-bg': '#0a59f7', // 主要按钮默认
     'devui-primary-button-hover-bg': '#3979f9', // 主要按钮悬浮
@@ -199,6 +200,7 @@ export const ideDarkTheme = new Theme({
     'devui-input-bg': 'rgba(255,255,255,0.05)', // 输入控件背景
     'devui-input-hover-bg': 'rgba(255,255,255,0.10)', // 悬浮背景
     'devui-input-active-bg': 'rgba(49,122,247,0.20)', // 激活选中背景
+    'devui-input-active-bg-4': 'rgba(49,122,247,0.40)', // 激活选中背景
     'devui-input-disabled-bg': 'rgba(255,255,255,0.03)', // 输入控件禁用
     'devui-primary-button-bg': '#317af7', // 主要按钮默认
     'devui-primary-button-hover-bg': '#5291ff', // 主要按钮悬浮
