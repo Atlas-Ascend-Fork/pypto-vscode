@@ -18,7 +18,7 @@ export async function readRunDataList(parentUri: vscode.Uri): Promise<RunDataDir
   try {
     const runDataList = await vscode.workspace.fs.readDirectory(parentUri);
     const sortedRunDataList: RunDataDir[] = [];
-    for (let i = runDataList.length - 1; i > 0; i--) {
+    for (let i = runDataList.length - 1; i >= 0; i--) {
       const [subPath, fileType] = runDataList[i];
       // 非目录无需扫描
       if (fileType !== vscode.FileType.Directory) {
