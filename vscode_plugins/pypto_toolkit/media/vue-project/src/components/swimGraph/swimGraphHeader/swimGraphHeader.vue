@@ -57,7 +57,7 @@
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
           <div class="task-item-container">
-            <div class='task-title'>Task Time</div>
+            <div class='task-title'>Task Time (μs)</div>
             <div class="task-data">{{taskTime}}</div>
           </div>
           <div class="task-item-container">
@@ -69,7 +69,7 @@
           <div class="aicore-container-column"> 
             <div class="task-item-container">
               <div class="task-title-container">
-                <div class='task-title'>AICore Time</div>
+                <div class='task-title'>AICore Time (μs)</div>
                 <d-tooltip :content="$t('AICoreTimeTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>

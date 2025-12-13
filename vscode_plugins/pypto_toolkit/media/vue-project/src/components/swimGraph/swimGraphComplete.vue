@@ -1842,6 +1842,8 @@ onMounted(async () => {
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
+
+  updateTheme();
 });
 
 defineExpose({
