@@ -5,6 +5,11 @@
   position: relative;
 }
 
+.process-header:hover .process-header-label,
+.process-header:hover .process-header-line {
+  background-color: var(--devui-input-hover-bg);
+}
+
 .process-header-label {
   background: var(--devui-header-label);
   display: flex;
@@ -18,10 +23,7 @@
   letter-spacing: 0px;
   text-align: left; 
   width: 250px;
-}
-
-.process-header-label:hover {
-  background-color: var(--devui-input-hover-bg);
+  border-bottom: 1px solid var(--devui-swim-split-line);
 }
 
 .label_one {
@@ -41,10 +43,6 @@
   position: relative;
   background: var(--devui-header-label);
   border-bottom: 1px solid var(--devui-swim-split-line);
-}
-
-.process-header-line:hover {
-  background-color: var(--devui-input-hover-bg);
 }
 
 .expand-icon {

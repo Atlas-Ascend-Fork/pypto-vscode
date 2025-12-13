@@ -1842,6 +1842,8 @@ onMounted(async () => {
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
+
+  updateTheme();
 });
 
 defineExpose({
@@ -1972,6 +1974,7 @@ const updateTheme = () => {
   down_16px.value = isDarkTheme.value
     ? `${window.staticPath}/static-assets/down_16px.svg`
     : `${window.staticPath}/static-assets/down_16px_light.svg`;
+  console.log(iconPath3.value)
 };
 </script>
 
