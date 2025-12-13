@@ -69,6 +69,9 @@ const updateLocation = (data) => {
   
   displayList.value.forEach(node => {
     const target = model.value.children.find(t => t.magic === node.magic);
+    if (!target) {
+      return;
+    }
     if (target.role === 'tensor') {
       node.type = 'tensor'
     }
