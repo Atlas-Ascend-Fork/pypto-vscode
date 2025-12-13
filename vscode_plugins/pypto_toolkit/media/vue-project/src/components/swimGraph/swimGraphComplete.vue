@@ -317,6 +317,9 @@ function setupSwimWatchers() {
   watch(server.noSwimFile, (newValue) => {
     window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
   });
+  watch(server.dataError, (newValue) => {
+    window.ascEventBus.emit('jsonParseError', {msg: newValue});
+  });
 }
 
 let ERROR_MESSAGES = {
@@ -1802,9 +1805,6 @@ onMounted(async () => {
   initEventListeners();
   loading.value = true;
   labelRender.value = true;
-  server.validateSwimFile().then((content) => {
-    validData(content);
-  });
   const {
     server: { getSwimData, getOtherData },
   } = useViewServer();

@@ -144,6 +144,11 @@ export abstract class SwimGraphMsgHandler {
             const fileData = await vscode.workspace.fs.readFile(fileUri);
             const content = new TextDecoder().decode(fileData);
             swimData = JSON.parse(content);
+            if (typeof swimData.processes != 'object' || typeof swimData.lane2line != 'object' || typeof swimData.pmu_total != 'object') {
+              const msg = t('pypto.swimGraph.validate.savedData');
+              server.setRef('dataError', msg);
+              return; 
+            }
           }
           
         } else {
@@ -229,6 +234,13 @@ export abstract class SwimGraphMsgHandler {
     
           const swimDataObj = swimlaneData;
           swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
+
+          if ('errMsg' in swimData) {
+            server.setRef('dataError', swimData.errMsg);
+            console.log('data ERROR:', swimData.errMsg);
+            return;
+          }
+
           swimData.lane2line = Object.fromEntries(swimData.lane2line);
           swimData.processes = Object.fromEntries(swimData.processes);
           swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
