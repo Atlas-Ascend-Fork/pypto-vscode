@@ -57,14 +57,14 @@
     "menus": {
       "explorer/context": [
         {
-          "submenu": "pypto.graph.advan",
-          "when": "resourceExtname == .json",
-          "group": "navigation"
-        },
-        {
           "command": "PyPTO.OpenRenderGraphForCurrent",
           "when": "resourceExtname == .json",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "submenu": "pypto.graph.advan",
+          "when": "resourceExtname == .json",
+          "group": "navigation@2"
         },
         {
           "command": "PyPTO.OpenLinkageMode",

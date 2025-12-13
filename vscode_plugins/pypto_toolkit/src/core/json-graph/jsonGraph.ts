@@ -1247,8 +1247,9 @@ export class AscppDagBuilder {
             let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
             let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;
             // 判断节点是否有错误信息
-            if (errNodeList.has(tensor.magic)) {
+            if (errNodeList?.has(tensor.magic)) {
                 baseColor = '#ff0000';
+                lightColor = '#ff0000';
             }
             try {
                 const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
@@ -2124,7 +2125,7 @@ export class AscppDagBuilder {
             lightColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
         }
 
-        if (errNodeList.has(op.opmagic)) {
+        if (errNodeList?.has(op.opmagic)) {
             baseColor = '#ff0000';
         }
 

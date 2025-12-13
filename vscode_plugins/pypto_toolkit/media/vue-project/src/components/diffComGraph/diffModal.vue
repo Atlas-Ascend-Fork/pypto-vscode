@@ -34,7 +34,7 @@ const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
     return update('');
   }
   let sliceStart = lStart - 1;
-  let sliceEnd = lEnd - 1;
+  let sliceEnd = lEnd;
   const content =
     '--- old.json\n+++ new.json\n@@ -' +
     Math.min(lStart, lEnd) +

@@ -105,12 +105,26 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           x = viewInfo.scroll.x * (viewInfo.zoom / zoom);
           y = viewInfo.scroll.y * (viewInfo.zoom / zoom);
         }
+        (window as any).ascEventBus.emit(`viewer_update`, {
+          zoom, 
+          scroll: {
+            x,
+            y
+          }
+        });
         setViewportAction(modelSource.model.id, x, y, zoom, false);
         (window as any).ascEventBus.emit('minimap-wheel', [zoom, x, y, renderType]);
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, x, y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
+        (window as any).ascEventBus.emit(`viewer_update`, {
+          zoom: viewInfo.zoom, 
+          scroll: {
+            x: viewInfo.scroll.x,
+            y: viewInfo.scroll.y
+          }
+        });
       }
     } catch (error) {
       console.error('get model viewport error');
@@ -336,6 +350,14 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       };
       modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
         getViewport(modelSource, MAINMAP_FIT_SCREEN);
+
+        modelSource.getViewport().then(viewInfo => {
+          (window as any).ascEventBus.emit('viewer_update', {
+            model: modelSource.model,
+            zoom: viewInfo.zoom,
+            scroll: viewInfo.scroll
+          })
+        });
       });
     }
   };

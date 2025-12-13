@@ -24,7 +24,7 @@
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
     <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
-    <ErrorNode v-if="nodeErrorList?.length" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
+    <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
   </div>
 </template>
 
