@@ -56,6 +56,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'PathNodesSet',
   'ReadJsonWarning',
   'PathOriginMode',
+  'nodeErrorList',
   'returnSwim',
   'noSwimFile',
   'validateSwimFile',

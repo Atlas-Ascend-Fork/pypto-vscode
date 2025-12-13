@@ -76,10 +76,18 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           requestAnimationFrame(() => {
             getViewport(modelSource, MAINMAP_TYPE);
             getViewport(miniMapModelSource, MINIMAP_TYPE);
+            modelSource.getViewport().then(viewInfo => {
+              (window as any).ascEventBus.emit('viewer_update', {
+                model: modelSource.model,
+                zoom: viewInfo.zoom,
+                scroll: viewInfo.scroll
+              })
+            });
+            
             (window as any).ascEventBus.emit('layoutEnding', filePath);
           });
         });
-      }); // Use dispatch instead of dispatchAll
+      });
     });
   };
 
@@ -164,7 +172,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
         modelSource
           .setModel(sprottyGraph)
-          .then(() => {
+          .then(async () => {
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
               if (!sprottyGraph.isFinial && !nodeMagic) {

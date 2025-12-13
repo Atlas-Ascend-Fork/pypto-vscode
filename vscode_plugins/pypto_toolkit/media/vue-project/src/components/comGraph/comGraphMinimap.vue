@@ -346,6 +346,13 @@ const mouseDownListener = (args) => {
 
 const mouseMoveListener = (args) => {
   if (mainmapIsDragging && args[3] === props.type) {
+    (window as any).ascEventBus.emit(`viewer_update`, {
+      zoom: args[2], 
+      scroll: {
+        x: args[0],
+        y: args[1]
+      }
+    });
     let x = args[0];
     let y = args[1];
     calcRectLeft(x);

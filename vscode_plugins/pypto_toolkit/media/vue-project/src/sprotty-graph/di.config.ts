@@ -486,6 +486,13 @@ export class CustomMouseListener extends MouseListener {
     (window as any).ascEventBus.emit('closeNodeTip', true);
     setTimeout(() => {
       (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false, moveArea]);
+      (window as any).ascEventBus.emit('viewer_update', {
+        zoom: target.root.zoom, 
+        scroll: {
+          x: target.root.scroll.x,
+          y: target.root.scroll.y
+        }
+      });
     }, 0);
     return [];
   }

@@ -868,6 +868,8 @@ export class AstgrTensorView extends RectangularNodeView {
       return undefined;
     }
 
+    // check node has errinfo
+    const errClass = node.baseColor === '#ff0000' ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
@@ -1034,6 +1036,7 @@ export class AstgrTensorView extends RectangularNodeView {
         class-op-not-traced={shouldDim}
         class-mouseover={node.hoverFeedback}
         class-tensor-diff-normal={node.compareType === 'normal'}
+        class-error-nodes={errClass}
       >
         {rectNode}
         {!isMiniType && context.renderChildren(node, args)}
