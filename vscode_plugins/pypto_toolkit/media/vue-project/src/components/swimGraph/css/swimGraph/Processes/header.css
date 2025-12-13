@@ -5,11 +5,6 @@
   position: relative;
 }
 
-.process-header:hover .process-header-label,
-.process-header:hover .process-header-line {
-  background-color: var(--devui-input-hover-bg);
-}
-
 .process-header-label {
   background: var(--devui-header-label);
   display: flex;
@@ -43,6 +38,11 @@
   position: relative;
   background: var(--devui-header-label);
   border-bottom: 1px solid var(--devui-swim-split-line);
+}
+
+.process-header:hover .process-header-label,
+.process-header:hover .process-header-line {
+  background-color: var(--devui-input-hover-bg);
 }
 
 .expand-icon {
