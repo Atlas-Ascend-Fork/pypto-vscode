@@ -219,14 +219,15 @@
     "sql.js": "^1.13.0",
     "stream-chain": "^2.2.5",
     "stream-json": "^1.9.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "JSONStream": "^1.0.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
     "@types/node": "^24.5.2",
     "@types/sql.js": "^1.4.4",
-    "concurrently": "^9.2.1",
+  "concurrently": "^9.2.1",
     "eslint": "^8.34.0",
     "glob": "^7.1.6",
     "husky": "^4.3.0",
