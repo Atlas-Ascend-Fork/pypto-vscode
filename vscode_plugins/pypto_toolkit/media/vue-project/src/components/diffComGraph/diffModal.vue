@@ -1,32 +1,44 @@
 <template>
   <d-modal
     v-model="visible"
-    :title="title"
     :escapable="false"
     :draggable="false"
     :close-on-click-overlay="false"
     :class="['diff-modal-container', isFullscreen && 'diff-modal-fullscreen']"
   >
-    <d-fullscreen v-model="isFullscreen" :z-index="1060">
-      <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side">
-        <template #headOperate>
-          <i :class="isFullscreen ? 'icon-frame-contract' : 'icon icon-frame-expand'" @click="isFullscreen = !isFullscreen"></i>
-        </template>
-      </d-code-review>
-    </d-fullscreen>
+    <template #header>
+      <d-modal-header class="diff-modal-header">
+        <span>{{ displayTitle }}</span>
+        <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="isFullscreen = !isFullscreen"></i>
+      </d-modal-header>
+    </template>
+    <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side"> </d-code-review>
   </d-modal>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, PropType, ref } from 'vue';
+import { onBeforeUnmount, onMounted, PropType, ref, inject, computed } from 'vue';
 import { createTwoFilesPatch } from 'diff';
+import { DiffComGraphProvideKey, type DiffComGraphContext } from './type';
 
 const props = defineProps({ diffDetail: Array as PropType<Record<'new' | 'old', any>[]> });
+const { getOtherNodeTitle } = inject(DiffComGraphProvideKey) as DiffComGraphContext;
 
 const visible = ref(false);
 const isFullscreen = ref(false);
 const title = ref('');
+const otherTitle = ref('');
 const diff = ref(``);
+const diffType = ref('');
+const displayTitle = computed(() => {
+  if (title.value === otherTitle.value || !otherTitle.value) {
+    return title.value;
+  } else if (diffType.value === 'before') {
+    return `${title.value} -> ${otherTitle.value}`;
+  } else if (diffType.value === 'after') {
+    return `${otherTitle.value} -> ${title.value}`;
+  }
+});
 let allStr = [];
 
 const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
@@ -74,8 +86,16 @@ function getNodeDetail(node) {
 
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main')) {
-    const compareType = getCompareTypeNode(node)?.compareType;
+    const compareTypeNode = getCompareTypeNode(node);
+    const compareType = compareTypeNode?.compareType;
     if (compareType && compareType !== 'normal') {
+      if (compareType === 'change') {
+        diffType.value = node.root.filePath;
+        otherTitle.value = getOtherNodeTitle(compareTypeNode, node.root.filePath) ?? '';
+      } else {
+        diffType.value === '';
+        otherTitle.value = '';
+      }
       visible.value = true;
       title.value = node.text;
       const nodeDetail = getNodeDetail(node);
@@ -115,12 +135,33 @@ onBeforeUnmount(() => {
   background-color: var(--devui-select-bg);
 
   &.diff-modal-fullscreen {
+    inset: 0;
+    width: 100%;
     transform: unset !important;
+    .devui-modal__body {
+      max-height: calc(100vh - 46px);
+    }
   }
 
   .btn-close {
     svg g {
       fill: var(--devui-node-edge-active);
+    }
+  }
+
+  .diff-modal-header.devui-modal__header {
+    display: flex;
+    justify-content: space-between;
+    line-height: 30px;
+    padding-right: 36px !important;
+
+    i {
+      font-size: 14px;
+      margin-top: 2px;
+      margin-right: 8px;
+      color: var(--devui-node-edge-active);
+      cursor: pointer;
+      pointer-events: all;
     }
   }
 
@@ -140,7 +181,7 @@ onBeforeUnmount(() => {
       }
 
       .devui-code-review__header {
-        justify-content: flex-end;
+        display: none;
         height: 36px;
         padding-right: 0;
         border-radius: 0;
@@ -151,13 +192,6 @@ onBeforeUnmount(() => {
         .diff-type,
         .file-info {
           display: none;
-        }
-
-        .operate-area {
-          pointer-events: all;
-          i {
-            font-size: 16px;
-          }
         }
       }
     }
