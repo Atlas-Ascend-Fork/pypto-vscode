@@ -128,8 +128,8 @@ export class AscppDagBuilder {
             }
 
             // Create input and output nodes
-            this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes);
-            this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes);
+            this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, errNodeList);
+            this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList);
 
             // Create operation nodes
             this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
@@ -948,10 +948,12 @@ export class AscppDagBuilder {
             const graphId = tensor?.subgraphid ?? -1;
             let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
             let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;
+            let isError = false;
             // 判断节点是否有错误信息
             if (errNodeList?.has(tensor.magic)) {
-                baseColor = '#ff0000';
-                lightColor = '#ff0000';
+                isError = true;
+                baseColor = 'rgba(231, 67, 74, 1)';
+                lightColor = 'rgba(250, 189, 193, 1)';
             }
             try {
                 const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
@@ -1004,6 +1006,7 @@ export class AscppDagBuilder {
                     subgraphId: graphId,
                     baseColor: baseColor,
                     lightColor: lightColor,
+                    isError: isError,
                     layout: 'vbox',
                     layoutOptions: {
                         hAlign: 'left',
@@ -1096,7 +1099,7 @@ export class AscppDagBuilder {
      */
     private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined,
         nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[],
-        nodeRole: "operation" | "tensor" | "input" | "output" | "sync"): AstgrTensorNode {
+        nodeRole: "operation" | "tensor" | "input" | "output" | "sync", errNodeList?: any): AstgrTensorNode {
         // Create metadata parts for the tensor
         const metadataParts: string[] = [];
         try {
@@ -1111,6 +1114,15 @@ export class AscppDagBuilder {
         } catch (error) {
             this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         }
+        // 判断节点是否有错误信息
+        let isError = false;
+        let baseColor;
+        let lightColor;
+        if (errNodeList?.has(tensor.magic)) {
+            isError = true;
+            baseColor = 'rgba(231, 67, 74, 1)';
+            lightColor = 'rgba(250, 189, 193, 1)';
+        }
         const node: AstgrTensorNode = {
             type: 'node:tensor',
             id: nodeId,
@@ -1119,6 +1131,9 @@ export class AscppDagBuilder {
             // compareType: compareType,
             magic: `${tensorMagic}`,
             role: nodeRole,
+            baseColor: baseColor,
+            lightColor: lightColor,
+            isError: isError,
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',
@@ -1208,7 +1223,8 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         rawTensorMap: Map<string, RawTensor>,
         rawTensorProducers: Map<string, PortReference[]>,
-        showTensorNodes: boolean
+        showTensorNodes: boolean,
+        errNodeList?: any
     ): void {
         if (!actualData.incasts || !Array.isArray(actualData.incasts)) {
             return;
@@ -1258,7 +1274,7 @@ export class AscppDagBuilder {
 
             const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
 
-            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input', errNodeList);
 
             node.children!.push(inPort);
             this.nodeSet.add(nodeId);
@@ -1375,6 +1391,7 @@ export class AscppDagBuilder {
         rawTensorMap: Map<string, RawTensor>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
+        errNodeList?: any
     ): void {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
@@ -1434,7 +1451,7 @@ export class AscppDagBuilder {
             const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
             const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
-            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList);
             node.children!.push(outPort);
             if (actualData.inouttensors) {
                 nodes.push(node);
@@ -1636,6 +1653,7 @@ export class AscppDagBuilder {
 
         let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
+        let isError = false;
         if(threeMode) {
             const semanticColor: SemanticLab = {
                 color: op.semantic_label?.label ?? ''
@@ -1643,9 +1661,10 @@ export class AscppDagBuilder {
             baseColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.base;
             lightColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
         }
-
         if (errNodeList?.has(op.opmagic)) {
-            baseColor = '#ff0000';
+            isError = true;
+            baseColor = 'rgba(231, 67, 74, 1)';
+            lightColor = 'rgba(250, 189, 193, 1)';
         }
 
         try {
@@ -1816,6 +1835,7 @@ export class AscppDagBuilder {
             role: 'operation',
             id: opId,
             magic: opmagic,
+            isError: isError,
             hasAttr: hasAttrValue,
             compareType: op.compareType,
             semanticLabel: op.semantic_label?.label ?? '',

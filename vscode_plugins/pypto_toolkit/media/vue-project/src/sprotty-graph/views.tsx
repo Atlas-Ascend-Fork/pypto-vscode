@@ -609,6 +609,7 @@ export class AstgrOpView extends RectangularNodeView {
     }
 
     const isMiniType = node.root.zoom < 0.04;
+    const errClass = node.isError === true ? 'error-node' : '';
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
@@ -665,7 +666,7 @@ export class AstgrOpView extends RectangularNodeView {
       if (node.selected) {
         backgroundFillColor = node.lightColor;
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -869,7 +870,7 @@ export class AstgrTensorView extends RectangularNodeView {
     }
 
     // check node has errinfo
-    const errClass = node.baseColor === '#ff0000' ? 'error-node' : '';
+    const errClass = node.isError === true ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
@@ -929,7 +930,7 @@ export class AstgrTensorView extends RectangularNodeView {
         titleBackgroundFillColor = node.lightColor;
         inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -990,6 +991,7 @@ export class AstgrTensorView extends RectangularNodeView {
           inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
         }
       }
+      const errorColor = node.selected ? node.lightColor : node.baseColor;
       rectNode = (
         <g>
           <path
@@ -998,7 +1000,7 @@ export class AstgrTensorView extends RectangularNodeView {
             } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
               width / 2
             } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
-            fill={inoutBackgroundFillColor}
+            fill={node.isError ? errorColor: inoutBackgroundFillColor}
             class-tensor-inout-background-label={true}
             filter={backgroundFilter}
             class-tensor-diff-add={node.compareType === 'add'}

@@ -170,8 +170,14 @@ export abstract class BaseGraphMsgHandler {
     const dirName = dirname(gd.fsPath);
     const jsonFile = basename(gd.fsPath);
     let stacks: any[] = [];
-
-    const key = jsonFile.split('_').slice(2).join('_').replace(/\.json$/, '.log');
+    let key: any;
+    
+    const mpath = jsonFile.match(/PATH\d+_[^_]+/);
+    if (mpath) {
+      key = jsonFile.slice(0, jsonFile.indexOf(mpath[0]) + mpath[0].length).replace(/^[^_]+_[^_]+_/, '').replace(/\.json$/, '') + '.log';
+    } else {
+      key = jsonFile.split('_').slice(2).join('_').replace(/\.json$/, '.log');
+    }
     const targetLog = key.replace(/^([^_]*?)\d*_/, '$1');
     const logFile = this.findFileHere(dirName, targetLog);
     if (logFile) {
