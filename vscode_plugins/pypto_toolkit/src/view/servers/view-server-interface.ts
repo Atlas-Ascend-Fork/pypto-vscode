@@ -66,7 +66,6 @@ export type IThreeApis =
   | 'replaceFile'
   | 'getInitialComData'
   | 'getInitialSwimData'
-  | 'resetSwimData'
   | 'selectFile'
   | 'fetchVscodeState';
 export type IThreeRefs = {

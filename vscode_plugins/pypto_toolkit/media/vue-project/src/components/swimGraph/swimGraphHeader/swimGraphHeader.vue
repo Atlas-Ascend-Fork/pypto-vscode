@@ -18,8 +18,8 @@
       </div>
       <span class="result-count" v-if="isSearchActive"> {{ currentResultIndex }} / {{ searchResultCount }} </span>
       <div class="search-res" v-if="isSearchActive">
-        <d-icon name="icon-arrow-left-l" class="pre-button" @click="navigateResults('prev')" style="font-size: 16px;" :disabled="currentResultIndex <= 1"></d-icon>
-        <d-icon name="icon-arrow-right-l" class="right-button" @click="navigateResults('next')" style="font-size: 16px;" :disabled="currentResultIndex === searchResultCount"></d-icon>
+        <d-icon name="icon-arrow-left-l" class="pre-button" @click="navigateResults('prev')" style="font-size: 16px;" ></d-icon>
+        <d-icon name="icon-arrow-right-l" class="right-button" @click="navigateResults('next')" style="font-size: 16px;"></d-icon>
       </div>
     </div>
     <div class="right-container">
@@ -417,9 +417,9 @@ const toggleCaseSensitivity = () => {
 const navigateResults = (direction) => {
   if (searchResultCount.value === 0) return;
   if (direction === 'prev') {
-    currentResultIndex.value = Math.max(1, currentResultIndex.value - 1);
+    currentResultIndex.value = currentResultIndex.value > 1 ? currentResultIndex.value - 1 : searchResultCount.value;
   } else if (direction === "next") {
-    currentResultIndex.value = Math.min(searchResultCount.value, currentResultIndex.value + 1);
+    currentResultIndex.value = currentResultIndex.value < searchResultCount.value ? currentResultIndex.value + 1 : 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
   selectEventChild(target.at(0));

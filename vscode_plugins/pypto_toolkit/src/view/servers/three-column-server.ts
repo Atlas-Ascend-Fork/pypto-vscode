@@ -125,11 +125,6 @@ export class ThreeColumnServer
     await SwimGraphMsgHandler.getInitialData(this);
   };
   @viewApi()
-  public resetSwimData = async () => {
-    const swimData = await SwimGraphMsgHandler.getSwimData(this);
-    return swimData;
-  };
-  @viewApi()
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
   };

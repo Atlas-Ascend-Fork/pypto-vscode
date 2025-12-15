@@ -1851,6 +1851,8 @@ defineExpose({
   loadTraceData,
   loading,
   labelRender,
+  loadingText,
+  validData
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });

@@ -42,7 +42,9 @@ export abstract class SwimGraphMsgHandler {
       this.cachePath = Util.getCachePath();
       const cache = Util.readSwim2ComGraphMap(this.cachePath);
       const comGraphPath = cache[swimPath];
-      const colorRending = cache['colorRending'] ?? 'subGraph';
+      const colorRendingMode = cache['colorRending'] ?? 'subGraph';
+      const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
+      const colorRending = isThreeServer ? 'label' : colorRendingMode;
       const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
       const config = Util.getSwimGraphCustomCfg();
       config['colorRending'] = colorRending;
