@@ -138,6 +138,7 @@ export type ISwimRefs = {
   returnSwimData: unknown;
   bindResult: unknown;
   unbindResult: unknown;
+  dataError: unknown;
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;

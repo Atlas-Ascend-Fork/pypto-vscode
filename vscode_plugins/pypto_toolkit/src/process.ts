@@ -10,6 +10,7 @@ import { parser } from 'stream-json';
 import { chain } from 'stream-chain';
 import {pick} from 'stream-json/filters/Pick';
 import {streamObject} from 'stream-json/streamers/StreamObject';
+import { t } from 'i18next';
 
 // 异步初始化颜色列表
 let darkThemeColors: any = null;
@@ -460,28 +461,124 @@ const calculateDependencies = (events, connections) => {
     pmuTotal.icache_miss = pmuTotal.icache_miss.toString();
     pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
+
+  async function validate(event:any) {
+    const errorMsg: any = {};
+    if (event.name === 'process_name') {
+      if (!('pid' in event) || !('args' in event)) {
+        if (event.pid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
+        }
+        return errorMsg;
+      }
+      if (!('name' in event.args)) {
+        if (event.pid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });;
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
+        }
+        return errorMsg;
+      }
+    } else if (event.name === 'thread_name') {
+      if (!('pid' in event) || !('tid' in event) || !('args' in event)) {
+        if (event.pid && event.tid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
+        }
+        return errorMsg;
+      }
+      if (!('name' in event.args)) {
+        if (event.pid && event.tid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
+        }
+        return errorMsg;
+      }
+    } else if (event.cat === 'event' || event.ph === 'C') {
+      
+      if (event.cat == 'event') {
+        if (!('name' in event) || !('ph' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) ) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+          }
+          return errorMsg;
+        }
+      }
+      if (event.ph === 'C') {
+        if(!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || !('args' in event)) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+          return errorMsg;
+          }
+          if (!('size' in event.args || '/byte' in event.args)) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+            return errorMsg;
+          }
+          if (event.args.size) {
+            if (!(typeof event.args.size === 'number')) {
+              errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+              return errorMsg;
+            }
+          }
+          if (event.args['/byte']) {
+            if (!(typeof event.args['/byte'] === 'number')) {
+              errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+              return errorMsg;
+            }
+          }
+        }
+      }
+      if (event.ph === 'X') {
+        if(!('name' in event) || !('ts' in event) || !('dur' in event)) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+            return errorMsg;
+          }
+        }
+      }
+    }
+    return errorMsg;
+  } 
   
   export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, mode: string) {
     let counterEvents: any[] = [];
-    let processedEvents: any[] = [];
     let processes = new Map();
     let processExpanded = new Map();
     let lane2line = new Map();
+    let hasProcess = false;
     if (!traceData || !traceData.traceEvents) {
       return;
     }
     
-    const errorMsg = {};
 
     const processNames = new Map();
     const threadNames = new Map();
     const eventTasks: any[] = [];
     const connections: any[] = [];
   
+    let errorMsg: any = {};
+
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];
+
+      errorMsg = await validate(event);
+      if ('errMsg' in errorMsg) {
+        return errorMsg;
+      }
+
       if (event.name === 'process_name') {
         processNames.set(event.pid, event.args.name);
+        hasProcess = true;
       } else if (event.name === 'thread_name') {
         threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
       } else if (event.cat === 'event' || event.ph === 'C') {
@@ -609,8 +706,12 @@ const calculateDependencies = (events, connections) => {
         thread.maxCount = Math.max(thread.maxCount, event.args[thread.argKey]);
       }
     });
-  
-    processedEvents = processedTasks;
+
+    if (!hasProcess) {
+      errorMsg.errMsg = t('pypto.swimGraph.validate.noProcess');
+      return errorMsg;
+    }
+
     const data = {};
     data['counterEvents'] = counterEvents;
     data['processes'] = processes;

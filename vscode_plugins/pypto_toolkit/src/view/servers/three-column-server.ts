@@ -59,6 +59,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'nodeErrorList',
   'returnSwim',
   'noSwimFile',
+  'dataError',
   'validateSwimFile',
   'returnSwimData',
   'bindResult',
