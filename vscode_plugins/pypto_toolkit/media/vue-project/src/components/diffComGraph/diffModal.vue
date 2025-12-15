@@ -5,41 +5,63 @@
     :draggable="false"
     :close-on-click-overlay="false"
     :class="['diff-modal-container', isFullscreen && 'diff-modal-fullscreen']"
+    @close="onModalClose"
   >
     <template #header>
       <d-modal-header class="diff-modal-header">
         <span>{{ displayTitle }}</span>
-        <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="isFullscreen = !isFullscreen"></i>
+        <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="toggleFullscreen"></i>
       </d-modal-header>
     </template>
-    <d-code-review :diff="diff" :allow-comment="false" :expand-loader="codeLoader" output-format="side-by-side"> </d-code-review>
+    <d-code-review
+      :diff="diff"
+      :allow-comment="false"
+      :expand-loader="codeLoader"
+      output-format="side-by-side"
+      :class="{ 'expand-all-line': isExpandAllLine }"
+      :style="{ '--operate-area-width': operateAreaWidth }"
+    >
+      <template #headOperate>
+        <div class="toggle-all-line-expand" @click="() => onToggleAllLineExpand()">
+          <i :class="isExpandAllLine ? 'icon-all-collapse' : 'icon-all-open'"></i>
+          <span>{{ isExpandAllLine ? t('allCollapse') : t('allExpand') }}</span>
+        </div>
+      </template>
+    </d-code-review>
   </d-modal>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, PropType, ref, inject, computed } from 'vue';
+import { onBeforeUnmount, onMounted, PropType, ref, inject, computed, nextTick } from 'vue';
 import { createTwoFilesPatch } from 'diff';
+import { useI18n } from 'vue-i18n';
 import { DiffComGraphProvideKey, type DiffComGraphContext } from './type';
 
 const props = defineProps({ diffDetail: Array as PropType<Record<'new' | 'old', any>[]> });
 const { getOtherNodeTitle } = inject(DiffComGraphProvideKey) as DiffComGraphContext;
+const { t } = useI18n();
 
 const visible = ref(false);
 const isFullscreen = ref(false);
+const isExpandAllLine = ref(false);
 const title = ref('');
 const otherTitle = ref('');
 const diff = ref(``);
 const diffType = ref('');
+const operateAreaWidth = ref('');
 const displayTitle = computed(() => {
   if (title.value === otherTitle.value || !otherTitle.value) {
     return title.value;
   } else if (diffType.value === 'before') {
-    return `${title.value} -> ${otherTitle.value}`;
+    return `${title.value} - ${otherTitle.value}`;
   } else if (diffType.value === 'after') {
-    return `${otherTitle.value} -> ${title.value}`;
+    return `${otherTitle.value} - ${title.value}`;
   }
 });
 let allStr = [];
+let oldStr = '';
+let newStr = '';
+let compareType = '';
 
 const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
   if (lStart >= allStr.length) {
@@ -62,7 +84,21 @@ const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
   if (sliceEnd >= allStr.length) {
     update('');
   }
+  isLoadAllLine();
 };
+
+function isLoadAllLine() {
+  const diffTbody = document.querySelector('.devui-code-review .d2h-diff-table > tbody');
+  if (diffTbody) {
+    const trNodes = (diffTbody as HTMLElement).children;
+    isExpandAllLine.value = trNodes.length >= allStr.length;
+  }
+}
+
+function onModalClose() {
+  isFullscreen.value = false;
+  isExpandAllLine.value = false;
+}
 
 function getCompareTypeNode(node) {
   if (node) {
@@ -84,10 +120,41 @@ function getNodeDetail(node) {
   );
 }
 
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value;
+  if (isFullscreen.value && compareType === 'change' && !isExpandAllLine.value) {
+    onToggleAllLineExpand(true);
+  }
+}
+
+function getOperateAreaWidth() {
+  const operateAreaNode = document.querySelector('.devui-code-review .operate-area');
+  if (operateAreaNode) {
+    const { width } = (operateAreaNode as HTMLElement).getBoundingClientRect();
+    operateAreaWidth.value = `${width}px`;
+  }
+}
+
+function onToggleAllLineExpand(status?: boolean) {
+  if (typeof status === 'boolean') {
+    isExpandAllLine.value = status;
+  } else {
+    isExpandAllLine.value = !isExpandAllLine.value;
+  }
+  diff.value = '';
+  nextTick(() => {
+    if (isExpandAllLine.value) {
+      diff.value = createTwoFilesPatch('old.json', t('diff'), oldStr, newStr, undefined, undefined, { context: Infinity });
+    } else {
+      diff.value = createTwoFilesPatch('old.json', t('diff'), oldStr, newStr);
+    }
+  });
+}
+
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main')) {
     const compareTypeNode = getCompareTypeNode(node);
-    const compareType = compareTypeNode?.compareType;
+    compareType = compareTypeNode?.compareType;
     if (compareType && compareType !== 'normal') {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
@@ -97,6 +164,7 @@ function onViewMouseUp(node) {
         otherTitle.value = '';
       }
       visible.value = true;
+      nextTick(getOperateAreaWidth);
       title.value = node.text;
       const nodeDetail = getNodeDetail(node);
       if (nodeDetail.old) {
@@ -108,12 +176,9 @@ function onViewMouseUp(node) {
           .split('\n')
           .map((item) => `${item}\n`);
       }
-      diff.value = createTwoFilesPatch(
-        'old.json',
-        'new.json',
-        nodeDetail.old ? JSON.stringify(nodeDetail.old, null, 2) : '',
-        nodeDetail.new ? JSON.stringify(nodeDetail.new, null, 2) : '',
-      );
+      oldStr = nodeDetail.old ? JSON.stringify(nodeDetail.old, null, 2) : '';
+      newStr = nodeDetail.new ? JSON.stringify(nodeDetail.new, null, 2) : '';
+      diff.value = createTwoFilesPatch('old.json', t('diff'), oldStr, newStr);
     }
   }
 }
@@ -158,7 +223,7 @@ onBeforeUnmount(() => {
     i {
       font-size: 14px;
       margin-top: 2px;
-      margin-right: 8px;
+      margin-right: 16px;
       color: var(--devui-node-edge-active);
       cursor: pointer;
       pointer-events: all;
@@ -171,6 +236,13 @@ onBeforeUnmount(() => {
 
     .devui-code-review {
       box-shadow: unset;
+      &.expand-all-line {
+        .d2h-diff-table {
+          .expand-line {
+            display: none;
+          }
+        }
+      }
 
       .hljs-attr,
       .hljs-number,
@@ -181,7 +253,6 @@ onBeforeUnmount(() => {
       }
 
       .devui-code-review__header {
-        display: none;
         height: 36px;
         padding-right: 0;
         border-radius: 0;
@@ -189,9 +260,41 @@ onBeforeUnmount(() => {
         box-shadow: unset;
         background-color: unset;
         pointer-events: none;
-        .diff-type,
-        .file-info {
+        .diff-type {
           display: none;
+        }
+        .file-info {
+          padding-left: calc(var(--operate-area-width) + 16px);
+          svg {
+            display: none;
+          }
+          .file-name {
+            color: var(--devui-secondary-text);
+            font-weight: normal;
+          }
+          .add-lines {
+            color: var(--devui-status-success);
+          }
+          .delete-lines {
+            color: var(--devui-status-error-text);
+          }
+        }
+        .operate-area {
+          position: absolute;
+          .toggle-all-line-expand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            line-height: 20px;
+            font-weight: normal;
+            color: var(--devui-primary-text);
+            pointer-events: all;
+
+            i {
+              font-size: 16px;
+            }
+          }
         }
       }
     }
