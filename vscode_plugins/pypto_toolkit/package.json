@@ -57,14 +57,14 @@
     "menus": {
       "explorer/context": [
         {
-          "submenu": "pypto.graph.advan",
-          "when": "resourceExtname == .json",
-          "group": "navigation"
-        },
-        {
           "command": "PyPTO.OpenRenderGraphForCurrent",
           "when": "resourceExtname == .json",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "submenu": "pypto.graph.advan",
+          "when": "resourceExtname == .json",
+          "group": "navigation@2"
         },
         {
           "command": "PyPTO.OpenLinkageMode",
@@ -219,7 +219,8 @@
     "sql.js": "^1.13.0",
     "stream-chain": "^2.2.5",
     "stream-json": "^1.9.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "JSONStream": "^1.0.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",

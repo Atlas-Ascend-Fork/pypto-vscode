@@ -31,6 +31,7 @@
 import { useViewServer } from '@/core/use-view-server';
 import { comGraphStore } from '@/service/com-graph-store';
 import { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { watch } from 'vue';
 import { onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -41,27 +42,22 @@ const props = defineProps({
   jsonContent: {
     type: Object,
     default: {}
-  }
+  },
+  showType: {
+    type: String,
+    default: 'all'
+  },
 });
 
 const model = ref();
 
 const { server } = useViewServer<IComViewServer>();
-const displayList = ref([{
-  x: 100,
-  y: 100,
-  magic: 1200,
-  show: true,
-  errorInfo: 'someError 12312312312',
-  stackList: [
-    '/src/components/swimGraph/swimGraphUtils.ts: 100',
-    '/src/components/swimGraph/swimGraphUtils.ts: 100',
-    '/src/components/swimGraph/swimGraphUtils.ts: 100'
-  ]
-}]);
+const displayList = ref([]);
 
 const jumpTo = (stack) => {
-  const [file,  line] = stack.split(':');
+  const list = stack.split(':');
+  const line = list.pop();
+  const file = list.join(':');
   server.jumpToCodeLine({paramObj: {file, line}});
 }
 
@@ -73,19 +69,45 @@ const updateLocation = (data) => {
   
   displayList.value.forEach(node => {
     const target = model.value.children.find(t => t.magic === node.magic);
+    if (!target) {
+      return;
+    }
+    if (target.role === 'tensor') {
+      node.type = 'tensor'
+    }
     node.x = (target.position.x + target.size.width - scroll.x) * zoom + 4;
     node.y = (target.position.y - scroll.y) * zoom
   })
-
 }
 
-const calculateLocation = () => {
+watch(() => comGraphStore.data.inFixedComGraphFlow, (value) => {
+  if (value) {
+    setTimeout(() => {
+      const showMagicList = [
+        ...comGraphStore.data.traceOperations[1],
+        ...comGraphStore.data.traceTensors[1],
+      ]
+      displayList.value.forEach(node => {
+        if (!showMagicList.includes(Number(node.magic))) {
+          node.show = false;
+        }
+      })
+    });
+  } else {
+    displayList.value.forEach(node => {
+      node.show = true
+    })
+  }
+  console.log(value)
+})
 
-}
-
-const closeNode = (node) => {
-  node.show = false;
-}
+watch(() => props.showType, (value) => {
+  displayList.value.forEach(node => {
+    if (node.type === 'tensor') {
+      node.show = (value !== 'op');
+    }
+  })
+})
 
 const initNodeList = () => {
   displayList.value = props.nodeErrorList.map(node => {
@@ -138,14 +160,14 @@ onMounted(() => {
   .error-stack {
     margin-top: 6px;
   }
-}
 
-.icon-error-o {
-  position: absolute;
-  color: $devui-danger;
-  left: 4px;
-  top: 10px;
-  font-size: 14px;
+  .icon-error-o {
+    position: absolute;
+    color: $devui-danger;
+    left: 4px;
+    top: 10px;
+    font-size: 14px;
+  }
 }
 
 .error-jump {

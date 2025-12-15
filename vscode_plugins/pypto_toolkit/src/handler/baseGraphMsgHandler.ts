@@ -127,7 +127,7 @@ export abstract class BaseGraphMsgHandler {
       const errTraceList = await this.getErrorMessage(message, server);
       errNodeList =  await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
     }
-    if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
+    if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath && !message.data.filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
     if (finalResult) {
@@ -312,13 +312,13 @@ export abstract class BaseGraphMsgHandler {
     if (comGraphData?.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
-    if (renderMode === 'path' || !cache) {
+    if (renderMode === 'path' || !cache || gd.layoutOptions['PyPTO.filePath']) {
       const child = fork(path.join(__dirname, '../core/layoutWork.js'));
       child.send({ type: 'layout', graphData: gd });
       child.on('message', async (res: { type: string; message?: any, data?: any }) => {
         if (res.type === 'result') {
           const layoutJsonStr = JSON.stringify(res.data);
-          if (comGraphData?.isUsedDB && renderMode !== 'path') {
+          if (comGraphData?.isUsedDB && renderMode !== 'path' && !gd.layoutOptions['PyPTO.filePath']) {
             await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
           }
           this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
