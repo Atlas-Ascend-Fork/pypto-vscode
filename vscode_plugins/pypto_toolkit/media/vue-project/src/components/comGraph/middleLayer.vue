@@ -306,19 +306,46 @@ const modelConfirm = async () => {
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
-    swimGrahRef.value.loading = true;
-    swimGrahRef.value.labelRender = false;
-    if (swimErrorMessage.value) {
-      swimErrorMessage.value = '';
-    }
     await server.replaceFile({ options: { swimPath, comPath } });
-    server.resetSwimData().then((newValue) => {
-      threadCache.clear();
-      swimGrahRef.value.labelRender = true;
-      swimGrahRef.value.setPageState(newValue);
-      swimGrahRef.value.loadTraceData(newValue.data);
-    });
+    await reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache);
   }
+};
+
+const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCache) => {
+  swimGrahRef.value.loading = true;
+  swimGrahRef.value.labelRender = false;
+  if (swimErrorMessage.value) {
+    swimErrorMessage.value = '';
+  }
+  let data = {};
+  const Reader = await server.getSwimData();
+  const originalReader = Reader.getReader();
+  let result = await originalReader.read();
+  swimGrahRef.value.loadingText = $t('receiveTraceData');
+
+  while (!result.done) {
+    const val = result.value;
+    if (val.type == 'first') {
+      data.swimData = val.data;
+    } else {
+      data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
+    }
+    result = await originalReader.read();
+  }
+
+  try {
+    const res = await server.getOtherData();
+    data.config = res.configuration;
+    data.comGraphPath = res.comGraphPath;
+    data.swimPath = res.swimPath;
+  } catch (err) {
+    console.log('parse other data error:', err);
+  }
+
+  threadCache.clear();
+  swimGrahRef.value.labelRender = true;
+  swimGrahRef.value.setPageState(data);
+  swimGrahRef.value.loadTraceData(data.swimData);
 };
 
 const modelCancel = async () => {
