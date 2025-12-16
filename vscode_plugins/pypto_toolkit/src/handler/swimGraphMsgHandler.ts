@@ -9,7 +9,7 @@ import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToD
 import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
-
+import { getBasenameWithoutExt } from '../command/registerCommand';
 const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
@@ -53,6 +53,7 @@ export abstract class SwimGraphMsgHandler {
         configuration: config,
         comGraphPath,
         swimPath,
+        title: getBasenameWithoutExt(swimPath)
       };
     }
 

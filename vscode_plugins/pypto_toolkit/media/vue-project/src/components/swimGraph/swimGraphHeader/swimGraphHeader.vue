@@ -35,6 +35,11 @@
           <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
+      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+        <d-button class="icon-container" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
+          <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
+        </d-button>
+      </d-tooltip>
       <d-tooltip :content="isCfgDisabled ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
         <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isCfgDisabled">
           <LayerControlIcon :active="isCfgEditing"/>
@@ -131,7 +136,7 @@ import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
-
+import { toPng } from 'dom-to-image-more';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -157,7 +162,9 @@ const {
   isLockStatus,
   isCfgEditing,
   isShortcutKeyShow,
-  searchedEvent
+  searchedEvent,
+  isThreeColumn,
+  fileName
 } = inject('swimGraphState');
 
 const {
@@ -290,6 +297,70 @@ const showDrawer = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
 };
 
+const exportSwimGraph = async () => {
+  const container = document.querySelector('.swim-global-container');
+  const scrollable = container?.querySelector('.swimlane-scroller-container'); // 真正的滚动元素
+  const contentArgsScrollable = container?.querySelector('.content-args');
+  const canvasContainerScrollable = container?.querySelector('#canvas-container');
+  const mulDetailTableScrollable = container?.querySelector('.measure-detail-data-table');
+  if (!container || !scrollable) {
+    return;
+  }
+  // 保存滚动位置！
+  const savedScrollTop = scrollable.scrollTop;
+  // 保存原始样式
+  const origContainerStyles = {
+    height: container.style.height,
+    width: container.style.width,
+    overflow: container.style.overflow,
+  };
+  const origScrollableStyles = {
+    height: scrollable.style.height,
+    overflow: scrollable.style.overflow,
+  };
+ // 展开内容（作用于滚动容器，而不是父容器！）
+  container.style.overflow = 'visible';
+  container.style.width = 'fit-content';
+  container.style.height = 'fit-content';
+  scrollable.style.height = scrollable.scrollHeight + 'px';
+  scrollable.style.overflow = 'visible'; // 隐藏滚动条，避免截图中出现
+  if (contentArgsScrollable) {
+    contentArgsScrollable.style.overflow = 'hidden';
+  }
+  if (canvasContainerScrollable) {
+    canvasContainerScrollable.style.overflow = 'hidden';
+  }
+  if (mulDetailTableScrollable) {
+    mulDetailTableScrollable.style.overflow = 'hidden';
+  }
+  try {
+    const dataUrl = await toPng(container, {
+      backgroundColor: isDarkTheme.value ? '#1F1F1F' : '#ffffff',
+      pixelRatio: Math.min(window.devicePixelRatio, 2),
+    });
+    const link = document.createElement('a');
+    link.download = fileName.value || 'swim-graph-export.png';
+    link.href = dataUrl;
+    link.click();
+  } catch (error) {
+    postMessage($t('swimExportErrorInfo'));
+  } finally {
+   // 恢复所有样式
+    Object.assign(container.style, origContainerStyles);
+    Object.assign(scrollable.style, origScrollableStyles);
+    // 关键：恢复滚动位置！
+    scrollable.scrollTop = savedScrollTop;
+    if (contentArgsScrollable) {
+      contentArgsScrollable.style.overflow = 'auto';
+    }
+    if (canvasContainerScrollable) {
+      canvasContainerScrollable.style.overflow = 'scroll';
+    }
+    if (mulDetailTableScrollable) {
+      mulDetailTableScrollable.style.overflow = 'auto';
+    }
+  }
+};
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
 const pmuRowCoordLoc = ref([]);
@@ -588,6 +659,11 @@ const sendMsg = (command, param) => {
   Promise.resolve().then(() => {
     window.ascEventBus.emit(command, param);
   });
+};
+const postMessage = (message) => {
+  if (window.vscode) {
+    window.vscode.postMessage({ command: 'showMessage', paramObj: { text: message } });
+  }
 };
 onMounted(() => {
   updateTheme();
