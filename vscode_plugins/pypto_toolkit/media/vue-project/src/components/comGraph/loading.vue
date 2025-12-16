@@ -6,7 +6,13 @@
       <div class="bar3"></div>
       <div class="bar4"></div>
     </div>
-    <span v-if="loadingText" class="loading-text">{{ loadingText }}</span>
+    <span v-if="loadingText" class="loading-text">{{ loadingText }}
+      <br />
+        <template v-if="waitingFlag">
+            {{ t('comGraph.currentNodeCounter') }}: {{nodeCount}}，
+            {{ t('comGraph.readJsonWaitingTip') }} {{renderTime}}
+        </template>
+    </span>
     <span v-if="warningText" class="warning-text">{{ warningText }}</span>
   </div>
 </template>
@@ -15,7 +21,37 @@
 defineProps({
   loadingText: String,
   warningText: String,
+  waitingFlag: Boolean
 });
+
+import { useI18n } from 'vue-i18n';
+import { comGraphStore } from '../../service/com-graph-store';
+import { computed } from 'vue';
+
+const { t } = useI18n();
+
+const nodeCount = computed(() => 
+  comGraphStore.data?.nodeCount ?? 0
+);
+
+const LoadingCountMap = {
+  NodesMoreThan5k: 'comGraph.NodesMoreThan5k',
+  NodesMoreThan1w: 'comGraph.NodesMoreThan1w',
+  NodesMoreThan2w: 'comGraph.NodesMoreThan2w',
+};
+const renderTime = computed(() => {
+  const nodesCount = nodeCount.value;
+  let time = '';
+  if (nodesCount >= 5000 && nodesCount < 10000) {
+    time = t(LoadingCountMap.NodesMoreThan5k);
+  } else if (nodesCount >= 10000 && nodesCount < 20000) {
+    time = t(LoadingCountMap.NodesMoreThan1w);
+  } else if (nodesCount >= 20000) {
+    time = t(LoadingCountMap.NodesMoreThan2w);
+  }
+  return time;
+});
+
 </script>
 
 <style lang="scss">

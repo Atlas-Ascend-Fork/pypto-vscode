@@ -683,8 +683,8 @@ export abstract class BaseGraphMsgHandler {
         const mode = isNodeSearch
           ? (nodesMagic === '-1' ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
-
-        server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
+  
+          server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
       }
       server.query.isSearch = false;
       server.query.nodeMagic = undefined;

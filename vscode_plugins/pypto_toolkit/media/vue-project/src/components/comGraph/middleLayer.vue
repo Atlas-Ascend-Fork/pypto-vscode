@@ -98,6 +98,8 @@ function setupComWatchers(server: any) {
       case RequestType.NodeOverLimit:
         loadingStep.value = 'readJsonWarning';
         searchMode.value = 1;
+        const nodeCount = server.PathOriginMode.value?.nodeCount ?? -1;
+        comGraphStore.setData('nodeCount', nodeCount);
         break;
       case RequestType.SearchNoMagic:
         searchMode.value = 2;
