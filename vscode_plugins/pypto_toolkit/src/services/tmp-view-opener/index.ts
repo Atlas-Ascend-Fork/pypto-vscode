@@ -48,3 +48,11 @@ export async function openPtoConfig(params: { configPath: string; pathName: stri
   const customTitle = pathName ? pathName : `${t('PyPTOToolkit.workspace.ptoNewConfig')}`;
   useView().editorView.open('editRunConfig', controlFlowUri, { query: { url: configPath }, title: customTitle });
 }
+
+/**
+ * 打开欢迎页面
+ */
+export async function openPyPTOWelcome() {
+  const uri = vscode.Uri.file('openPyPTOWelcome');
+  useView().editorView.open('welcome', uri);
+}

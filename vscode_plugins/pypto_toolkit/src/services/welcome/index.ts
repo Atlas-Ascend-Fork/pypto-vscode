@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { getExtensionMode, getPythonOutputChannel, runPythonScript } from './run-python';
 import { extensionContext } from '../../extension';
 
@@ -37,4 +38,12 @@ export async function getInitPythonProject(address = 'https://cmc-cd-mirror.rnd.
     return;
   }
   runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
+}
+
+/**
+ * 判断是否为Linux系统环境
+ */
+export async function isLinuxEnvironment() {
+  console.log(os.platform());
+  return os.platform() === 'linux';
 }

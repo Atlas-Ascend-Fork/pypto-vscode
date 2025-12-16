@@ -6,10 +6,15 @@ import ControlFlowIndex from './components/controlFlowGraph/ControlFlowIndex.vue
 import MiddleLayer from './components/comGraph/middleLayer.vue';
 import RunConfig from './components/runConfig/RunConfig.vue';
 import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
+import WelcomeIndex from './components/welcome/WelcomeIndex.vue';
+import BootStepTips from './components/welcome/components/BootStepTips.vue';
+import { guideStepsConfig } from './components/welcome/guideStepsConfig';
+import { getIsCompleteBoot } from './apis/welcome';
 
 const graphType = ref('');
 const outputDirPath = ref('');
 const { updateTheme } = useTheme();
+const showGlobalGuide = ref(false);
 
 getQuery().then((query) => {
   graphType.value = query._viewType;
@@ -28,10 +33,11 @@ window.addEventListener('message', (event) => {
   CommandCallbackMap[message.command]?.(message);
 });
 
-onMounted(() => {
+onMounted( async() => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); //阻止原生菜单弹出
   });
+  showGlobalGuide.value = await getIsCompleteBoot();
 });
 </script>
 
@@ -42,11 +48,15 @@ onMounted(() => {
   <div class="parent-container" v-else-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>
   </div>
+  <!-- 欢迎页面 -->
+  <WelcomeIndex v-else-if="graphType === 'welcome'"></WelcomeIndex>
   <!-- 运行配置 -->
   <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
     <MiddleLayer :graphType="graphType"></MiddleLayer>
   </header>
+  <!-- 全局引导弹窗（也可在各组件内独立显示） -->
+  <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :guideSteps="guideStepsConfig" />
 </template>
 <style scoped>
 .parent-container {

@@ -327,11 +327,38 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
   isGraphVisible.value = true;
   isLoading.value = false;
 };
+const stepOpenSidebaNode=ref()
+function bootStepOpenSideBar() {
+  sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 2);
+}
+// 1. 注册当前WebView的可调用方法（挂载到window）
+const registerWebviewMethods = () => {
+  // 打开侧边栏方法
+  window.bootStepOpenSideBar = () => {
+    // 打开侧边栏
+    bootStepOpenSideBar()
+  };
+};
+// 2. 监听插件主线程的消息
+const listenExtensionMessage = () => {
+  window.addEventListener('message', async (event) => {
+    const message = event.data;
+
+    if (message.type=='callWebviewMethod') {
+      // 执行当前WebView的方法
+      const { methodName, params } = message.data;
+        if (window[methodName] && typeof window[methodName] === 'function') {
+          window[methodName](params); // 调用注册的方法
+        }
+    }
+  });
+};
 
 const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
+  registerWebviewMethods()
   const res = await getQuery();
   outPutPath.value = res.url;
   programPath.value = res._path;
@@ -349,7 +376,7 @@ onMounted(async () => {
 
   const { nodes, edges, combos } = transformData(rootData.value);
   combosNode.value = [...combos, ...nodes];
-
+  stepOpenSidebaNode.value = nodes[0]  
   await initG6Graph(nodes, edges, combos);
   combosNode.value.forEach((item) => (clearAllNodeState[item.id] = []));
   // 初始化搜索组件数据源
@@ -382,6 +409,7 @@ onMounted(async () => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止原生菜单弹出
   });
+  listenExtensionMessage()
 });
 
 onUnmounted(() => {

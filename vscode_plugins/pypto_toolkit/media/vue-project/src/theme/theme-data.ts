@@ -117,7 +117,7 @@ export const ideLightTheme = new Theme({
     'devui-search-container': '#f2f2f2',
     'devui-swim-split-line': 'rgba(0,0,0,0.05)', // 分割线
     'devui-swim-text-title': 'rgba(25,25,25,1)',
-    'devui-primary-tooltip-text':'rgba(255,255,255,1)',
+    'devui-primary-tooltip-text': 'rgba(255,255,255,1)',
     'devui-font-badge-bg': 'rgba(0,0,0,0.1)', // 节点右上角徽标背景色
     'devui-slider-runway': 'rgba(223,223,223,1)',
     'devui-slider-bar': 'rgba(25,25,25,1)',
@@ -171,6 +171,9 @@ export const ideLightTheme = new Theme({
     'control-flow-loop-stroke': '#aeaeae',
     'control-flow-path-card-active': 'rgba(255, 255, 255, 1)',
     'control-flow-code-preview': 'rgb(230, 230, 230)', // 代码片段预览背景颜色
+    'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
+    'welcome-header-right-imge-bg':
+      'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
   },
   isDark: false,
 });
@@ -345,6 +348,9 @@ export const ideDarkTheme = new Theme({
     'control-flow-loop-stroke': '#666666',
     'control-flow-path-card-active': 'rgba(77,77,77,1)',
     'control-flow-code-preview': '#363636', // 代码片段预览背景颜色
+    'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
+    'welcome-header-right-imge-bg':
+      'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
   },
   isDark: true,
 });

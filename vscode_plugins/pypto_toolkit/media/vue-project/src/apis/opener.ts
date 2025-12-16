@@ -6,6 +6,7 @@ const OPENER_PREFIX = 'tmpViewOpener';
  * 打开控制流
  */
 export function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
+  console.log(params);
   request.post(`${OPENER_PREFIX}/openControlFlow`, params);
 }
 
@@ -28,4 +29,11 @@ export function openSwimlaneGraph(params: { swimlaneGraphPath: string }) {
  */
 export function openPtoConfig(params: { configPath: string; pathName: string }) {
   request.post(`${OPENER_PREFIX}/openPtoConfig`, params);
+}
+
+/**
+ * 打开欢迎页面
+ */
+export function openPyPTOWelcome() {
+  request.post(`${OPENER_PREFIX}/openPyPTOWelcome`, null);
 }

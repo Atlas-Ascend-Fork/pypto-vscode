@@ -15,6 +15,7 @@ export default defineConfig({
         { src: './node_modules/@devui-design/icons/icomoon', dest: './src/static-assets/icomoon' },
         { src: './node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon', dest: './src/static-assets/codicon' },
         { src: './src/static-assets', dest: '../../webview-dist/static-assets' },
+        { src: '../../src/python-file', dest: '../../webview-dist/python-file' },
       ],
     }),
     generateDebugHtml(),

@@ -216,11 +216,12 @@ export function getExtensionMode() {
  * @param outputChannel 输出面板单例
  * @param pythonFilePath 需要执行的Python文件地址
  * @param extensionRoot 插件地址
+ * @param address 镜像源
  */
 export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
     // 定义需安装的依赖
-    const dependencies = ['numpy', 'torch', 'pypto']; // 注意:pypto若为自定义包需确认pip源可下载
+    const dependencies = ['argparse', 'numpy', 'torch', 'pypto']; // 注意:pypto若为自定义包需确认pip源可下载
     outputChannel.clear();
 
     // 安装依赖,失败则终止执行
