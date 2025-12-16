@@ -58,7 +58,7 @@ export abstract class SwimGraphMsgHandler {
     }
 
     static async splitJson(swimData: any) {
-      let eventSize = 500;
+      let eventSize = 2000;
       let sendList: any[] = [];
 
       //发送整体信息
@@ -210,7 +210,10 @@ export abstract class SwimGraphMsgHandler {
             console.log('读取merged_swimlane.json文件');
     
           } catch (err) {
+            const msg = t('pypto.swimGraph.validate.swimLaneFileError', {swimPath: swimPath});
+            server.setRef('dataError', msg);
             console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+            return [];
           }
     
           //处理dyn_topo
@@ -241,7 +244,7 @@ export abstract class SwimGraphMsgHandler {
           if ('errMsg' in swimData) {
             server.setRef('dataError', swimData.errMsg);
             console.log('data ERROR:', swimData.errMsg);
-            return;
+            return [];
           }
 
           swimData.lane2line = Object.fromEntries(swimData.lane2line);
