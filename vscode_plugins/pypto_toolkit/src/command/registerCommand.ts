@@ -107,7 +107,7 @@ export class RegisterCommand {
   }
 }
 
-function getBasenameWithoutExt(filePath: string): string {
+export function getBasenameWithoutExt(filePath: string): string {
   const basename = path.basename(filePath); // 获取带扩展名的文件名，如 'file.txt'
   return path.parse(basename).name; // 提取不带扩展名的部分，如 'file'
 }

@@ -152,6 +152,8 @@ export default {
     no: 'Cancel',
     confirm: 'Please confirm',
     replaceFileInfo: 'A {graphName} diagram file was found in the same directory as your {graphNameTemp}. Would you like to replace it?',
+    exportSwimGraph: 'Export',
+    swimExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

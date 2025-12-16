@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 100vh">
+  <div style="height: 100vh;" class="swim-global-container">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="simple-containner" :style="{ display: 'none' }">
         <div class="simple-com-file-name">Program.json</div>
@@ -56,7 +56,7 @@
         </div>
       </div>
       <div class="main-view" v-show="!loading">
-        <div class="swimlane-container scroller-container" ref="swimlaneContainer">
+        <div class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer">
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->
@@ -182,7 +182,7 @@ const selectOptions = [
 ];
 const options = reactive(selectOptions);
 const isSwimGraphActive = ref(false);
-
+const fileName = ref('');
 const textOption = ref([]);
 const modeOption = ref('');
 const isCfgEditing = ref(false);
@@ -1832,6 +1832,7 @@ onMounted(async () => {
     data.config = res.configuration;
     data.comGraphPath = res.comGraphPath;
     data.swimPath = res.swimPath;
+    fileName.value = res.title;
   } catch (err) {
     console.log('parse other data error:', err);
   }
@@ -1912,6 +1913,7 @@ provide('swimGraphState', {
   searchedEvent,
   colorRending: modeOption,
   labelRender,
+  fileName
 });
 
 // 提供方法给子组件
