@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, inject, ref, onBeforeMount, onMounted, Ref } from 'vue';
+import { watch, computed, inject, ref, onBeforeMount, onMounted, Ref, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSprottyLoad } from '../../sprotty-graph/main';
 import DiffHeader from './diffHeader.vue';
@@ -57,6 +57,7 @@ import { compareJsonData } from '../../utils';
 import MiniMap from '../comGraph/comGraphMinimap.vue';
 import DiffList from './diffList.vue';
 import type { DiffListItem } from './type';
+import { DiffComGraphProvideKey } from './type';
 import { Message } from 'vue-devui/message';
 import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
@@ -89,6 +90,8 @@ const diffDetail = ref([]);
 let beforeIns;
 let afterIns;
 let expandTimer: ReturnType<typeof setTimeout>;
+let beforeTensorOpNodeArr = [];
+let afterTensorOpNodeArr = [];
 
 function onLayoutChange(e) {
   currentLayout.value = e;
@@ -179,6 +182,48 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
   }
   showSelectFile.value = !realAfterFileName.value;
 });
+
+function generateTensorOpNodeArr(nodes: Array<any>) {
+  const res = [];
+  for (const item of nodes) {
+    if (item.type === 'node:tensor' || item.type === 'node') {
+      res.push(item);
+    }
+  }
+  return res;
+}
+
+function getLabelNode(children) {
+  const nodeList = [...children];
+  while (nodeList.length) {
+    const node = nodeList.shift();
+    if (node.type === 'label' && node.cssClasses[0].includes('-main-label')) {
+      return node;
+    }
+    if (node.type === 'compartment' && node.children) {
+      nodeList.push(...node.children);
+    }
+  }
+}
+
+// 获取对应节点的标题
+function getOtherNodeTitle(curNode, curType: 'before' | 'after') {
+  let nodeArr = [];
+  if (curType === 'before') {
+    nodeArr = afterTensorOpNodeArr;
+  }
+  if (curType === 'after') {
+    nodeArr = beforeTensorOpNodeArr;
+  }
+  for (const item of nodeArr) {
+    if (item.type === curNode.type && item.id === curNode.id) {
+      const labelNode = getLabelNode(item.children);
+      return labelNode?.text;
+    }
+  }
+}
+
+provide(DiffComGraphProvideKey, { getOtherNodeTitle });
 
 let isDragging: boolean = false;
 let beforeCurrentX;
@@ -370,6 +415,12 @@ onBeforeMount(() => {
     isLoading.value = false;
     loadingText.value = '';
     loadedType.value.add(args);
+    if (args === 'before') {
+      beforeTensorOpNodeArr = generateTensorOpNodeArr(beforeIns.getModelSourceChildren());
+    }
+    if (args === 'after') {
+      afterTensorOpNodeArr = generateTensorOpNodeArr(afterIns.getModelSourceChildren());
+    }
   });
 });
 onMounted(() => {

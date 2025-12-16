@@ -484,6 +484,11 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
   }
 
+  // 获取所有节点
+  const getModelSourceChildren = () => {
+    return modelSource.model.children ?? [];
+  }
+
   return {
     fitToScreenAction,
     initComDocText,
@@ -499,6 +504,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     removeSelectNodesRect,
     resetModelSource,
     hoverFeedbackAction,
-    updateDiffViewport
+    updateDiffViewport,
+    getModelSourceChildren
   };
 }
