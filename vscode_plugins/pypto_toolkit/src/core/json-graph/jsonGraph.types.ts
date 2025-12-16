@@ -34,6 +34,7 @@ export interface AstgrNode extends SNode {
     lightColor?: string;
     codePath?: string;
     codeLine?: string | number;
+    isError?: boolean;
 }
 
 /**
@@ -65,6 +66,7 @@ export interface AstgrTensorNode extends AstgrNode {
     compareType?: string;
     baseColor?: string;
     lightColor?: string;
+    isError?: boolean;
 }
 
 /**
