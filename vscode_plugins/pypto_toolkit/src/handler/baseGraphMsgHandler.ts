@@ -125,7 +125,7 @@ export abstract class BaseGraphMsgHandler {
     let errNodeList = new Set<number>();
     if (message.data?.threeMode === false) {
       const errTraceList = await this.getErrorMessage(message, server);
-      errNodeList =  await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
+      errNodeList = await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
     }
     if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath && !message.data.filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
@@ -149,13 +149,13 @@ export abstract class BaseGraphMsgHandler {
     return null;
   }
 
-  static async collectOpMagic(server:any, errlist: any[], targetFuncMagic: number): Promise<Set<number>> {
+  static async collectOpMagic(server: any, errlist: any[], targetFuncMagic: number): Promise<Set<number>> {
     const magics = new Set<number>();
     const records: { magic: number; error: string }[] = [];
-  
+
     for (const { FuncMagic, OpMagic, error } of errlist) {
       if (OpMagic === null) continue;
-  
+
       if (FuncMagic === null || FuncMagic === targetFuncMagic) {
         magics.add(OpMagic);
         records.push({ magic: OpMagic, error });
@@ -183,10 +183,10 @@ export abstract class BaseGraphMsgHandler {
   static async extractErrorBackTrace(logPath: string): Promise<any[]> {
     const errorLines: string[] = [];
     const rl = readline.createInterface({
-      input: fs.createReadStream(logPath, { encoding: 'utf8'}),
+      input: fs.createReadStream(logPath, { encoding: 'utf8' }),
       crlfDelay: Infinity
     });
-  
+
     const magicRe = /\b(?:magic|opmagic):\s*\d+/i;
     for await (const line of rl) {
       if (line.includes('[ERROR]') && magicRe.test(line)) {
@@ -201,13 +201,13 @@ export abstract class BaseGraphMsgHandler {
     return logs.map(line => {
       const funcMatch = line.match(/FuncMagic:(\d+)/);
       const FuncMagic = funcMatch ? Number(funcMatch[1]) : null;
-  
+
       const magicRe = /\b(?:magic|opmagic):\s*(\d+)/i;
       const m = line.match(magicRe);
       const OpMagic = m ? Number(m[1]) : null;
 
-      const errorText = line.replace(/^.*\[ERROR\]:\s*(.*?)(?:\s*\[FuncMagic:\d+\]\[OpMagic:\d+\]\[Backtrace\].*)?$/,'$1').trim();
-      return { FuncMagic, OpMagic, error: errorText } ;
+      const errorText = line.replace(/^.*\[ERROR\]:\s*(.*?)(?:\s*\[FuncMagic:\d+\]\[OpMagic:\d+\]\[Backtrace\].*)?$/, '$1').trim();
+      return { FuncMagic, OpMagic, error: errorText };
     });
   }
 
@@ -242,7 +242,7 @@ export abstract class BaseGraphMsgHandler {
         if (hit === 0) {
           await gd.readFileAndSetCache(gd.fsPath);
         } else {
-          console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
+          // BaseGraphMsgHandler getInitialData FuncData 命中缓存
         }
       } else {
         await gd.readFileAndSetCache(gd.fsPath);
@@ -582,24 +582,10 @@ export abstract class BaseGraphMsgHandler {
   }> {
     if (!gd) return { json: undefined };
     let ret: string | null = null;
-
-    /* 1️⃣ 数据库模式：带延迟重试 */
     if (gd.isUsedDB) {
-      const maxRetry = 5;
-      const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-      for (let i = 0; i < maxRetry; i++) {
-        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
-        ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
-
-        if (ret) {
-          break;
-        }
-        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
-        await delay(100);
-      }
+      const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+      ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
     } else {
-      /* 2️⃣ 内存模式：一次拿完 */
       ret = gd.dataMap[gd.funcHash!] ?? null;
     }
 
@@ -611,11 +597,9 @@ export abstract class BaseGraphMsgHandler {
       }
       return { json: undefined };
     }
-
     const json = JSON.parse(ret);
     await this.returnCalleeMap(gd, server, json);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
-
     return { json, io };
   }
 
@@ -683,8 +667,8 @@ export abstract class BaseGraphMsgHandler {
         const mode = isNodeSearch
           ? (nodesMagic === '-1' ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
-  
-          server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
+
+        server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
       }
       server.query.isSearch = false;
       server.query.nodeMagic = undefined;

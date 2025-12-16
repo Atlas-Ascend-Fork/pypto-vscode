@@ -353,16 +353,18 @@ export class SQLiteCache {
     ]);
   }
   public async comGraphLayoutGet(filePath: string, funcHash: string): Promise<ComGraphLayoutRow | undefined> {
-    const stmt = this.db!.prepare(
-      'SELECT file_path,layout_result,last_change_time FROM com_graph_layout WHERE file_path=? and func_hash=?',
-    );
-    stmt.bind([filePath, funcHash]);
-    let row: ComGraphLayoutRow | undefined;
-    if (stmt.step()) {
-      row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
-    }
-    stmt.free();
-    return row;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare(
+        'SELECT file_path,layout_result,last_change_time FROM com_graph_layout WHERE file_path=? and func_hash=?',
+      );
+      stmt.bind([filePath, funcHash]);
+      let row: ComGraphLayoutRow | undefined;
+      if (stmt.step()) {
+        row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
+      }
+      stmt.free();
+      return row;
+    }, 1, 100, (result) => !result, "comGraphLayoutGet");
   }
   public async comGraphLayoutDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_layout WHERE file_path=?', [filePath]);
@@ -378,16 +380,18 @@ export class SQLiteCache {
     ]);
   }
   public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphFinalResultRow | undefined> {
-    const stmt = this.db!.prepare(
-      'SELECT file_path,final_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
-    );
-    stmt.bind([filePath, funcHash]);
-    let row: ComGraphFinalResultRow | undefined;
-    if (stmt.step()) {
-      row = stmt.getAsObject() as unknown as ComGraphFinalResultRow;
-    }
-    stmt.free();
-    return row;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare(
+        'SELECT file_path,final_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
+      );
+      stmt.bind([filePath, funcHash]);
+      let row: ComGraphFinalResultRow | undefined;
+      if (stmt.step()) {
+        row = stmt.getAsObject() as unknown as ComGraphFinalResultRow;
+      }
+      stmt.free();
+      return row;
+    }, 1, 100, (result) => !result, "comGraphFinalResultGet");
   }
   public async comGraphFinalResultDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_final_result WHERE file_path=?', [filePath]);
@@ -407,27 +411,31 @@ export class SQLiteCache {
     );
   }
   public async comGraphFuncDataGetCount(filePath: string): Promise<number> {
-    const stmt = this.db!.prepare('SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ');
-    stmt.bind([filePath]);
-    let count = 0;
-    if (stmt.step()) {
-      const row = stmt.getAsObject() as { cnt: string | number };
-      count = Number(row.cnt);
-    }
-    stmt.free();
-    return count;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare('SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ');
+      stmt.bind([filePath]);
+      let count = 0;
+      if (stmt.step()) {
+        const row = stmt.getAsObject() as { cnt: string | number };
+        count = Number(row.cnt);
+      }
+      stmt.free();
+      return count;
+    }, 1, 100, (result) => !result, "comGraphFuncDataGetCount");
   }
   public async comGraphFuncDataGet(filePath: string, funcHash: string): Promise<ComGraphFuncDataRow | undefined> {
-    const stmt = this.db!.prepare(
-      'SELECT file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time FROM com_graph_func_data WHERE file_path=? and func_hash=?',
-    );
-    stmt.bind([filePath, funcHash]);
-    let row: ComGraphFuncDataRow | undefined;
-    if (stmt.step()) {
-      row = stmt.getAsObject() as unknown as ComGraphFuncDataRow;
-    }
-    stmt.free();
-    return row;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare(
+        'SELECT file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time FROM com_graph_func_data WHERE file_path=? and func_hash=?',
+      );
+      stmt.bind([filePath, funcHash]);
+      let row: ComGraphFuncDataRow | undefined;
+      if (stmt.step()) {
+        row = stmt.getAsObject() as unknown as ComGraphFuncDataRow;
+      }
+      stmt.free();
+      return row;
+    }, 5, 100, (result) => !result, "comGraphFuncDataGet");
   }
   public async comGraphFuncDataDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_func_data WHERE file_path=?', [filePath]);
@@ -437,15 +445,17 @@ export class SQLiteCache {
     this.db!.run('INSERT OR REPLACE INTO com_graph_file_hash_map(file_path,data) VALUES(?,?)', [filePath, data]);
   }
   public async comGraphFileHashMapGet(filePath: string): Promise<string> {
-    const stmt = this.db!.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
-    stmt.bind([filePath]);
-    let data = '';
-    if (stmt.step()) {
-      const row = stmt.getAsObject() as { data: string };
-      data = row.data ?? '';
-    }
-    stmt.free();
-    return data;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
+      stmt.bind([filePath]);
+      let data = '';
+      if (stmt.step()) {
+        const row = stmt.getAsObject() as { data: string };
+        data = row.data ?? '';
+      }
+      stmt.free();
+      return data;
+    }, 5, 100, (result) => !result, "comGraphFileHashMapGet");
   }
   public async comGraphFileHashMapDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_file_hash_map WHERE file_path=?', [filePath]);
@@ -464,16 +474,18 @@ export class SQLiteCache {
     );
   }
   public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string[]> {
-    const stmt = this.db!.prepare(
-      'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
-    );
-    stmt.bind([calleehash, opMagic, opSubgraphid]);
-    let row;
-    if (stmt.step()) {
-      row = stmt.getAsObject();
-    }
-    stmt.free();
-    return row;
+    return await this.retryOperation(async () => {
+      const stmt = this.db!.prepare(
+        'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
+      );
+      stmt.bind([calleehash, opMagic, opSubgraphid]);
+      let row;
+      if (stmt.step()) {
+        row = stmt.getAsObject();
+      }
+      stmt.free();
+      return row;
+    }, 5, 100, (result) => !result, "comGraphFileCalleeOpAttrGet");
   }
 
   /****************** swimgraph_parsed_info 表 ******************/
@@ -853,6 +865,49 @@ export class SQLiteCache {
     this.db!.run('DELETE FROM swimgraph_lane2line WHERE file_path=?', [filePath]);
   }
 
+
+  /** 重试机制 **/
+  private async retryOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 5,
+    delayMs: number = 100,
+    shouldRetryCondition?: (result: T) => boolean,
+    operationName?: string
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const result = await operation();
+
+        // 如果提供了条件函数且结果不符合条件，则继续重试
+        if (shouldRetryCondition && shouldRetryCondition(result)) {
+          // `${operationName}操作返回空结果，重试第 ${i + 1} 次`
+          if (i < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+        }
+
+        if (i == maxRetries - 1 && !result) {
+          // `${operationName} 重试了 ${i + 1} 次，取值仍为空`
+        }
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.debug(`${operationName}操作失败，重试第 ${i + 1} 次，错误:`, error);
+
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error('重试次数已达上限');
+  }
   /****************** 4️⃣  生命周期 ******************/
   /** 把内存中的数据持久化到磁盘，在 deactivate() 里调用 **/
   public async save() {
