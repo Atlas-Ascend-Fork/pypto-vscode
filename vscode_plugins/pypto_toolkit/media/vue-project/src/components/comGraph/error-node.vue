@@ -21,7 +21,7 @@
         
       </template>
       <div class="error-stack">
-        查看调用栈 →
+        {{ t('comGraph.viewErrorStack')}} →
       </div>
     </d-popover>
   </div>
@@ -33,6 +33,8 @@ import { comGraphStore } from '@/service/com-graph-store';
 import { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { watch } from 'vue';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 const props = defineProps({
   nodeErrorList: {
@@ -118,13 +120,14 @@ const initNodeList = () => {
       target = props.jsonContent.tensors.find(tensor => tensor.magic == magic);
     }
     const list = target?.backtrace?.split('\n') || [];
+    let isStackListValid = (Array.isArray(list) && list.some(elem => elem !== '')) ? true : false; 
     return {
       x: -200,
       y: -200,
       magic: String(magic),
       show: true,
       errorInfo: errInfo,
-      stackList: list
+      stackList: isStackListValid ? list : undefined
     }
   })
 }

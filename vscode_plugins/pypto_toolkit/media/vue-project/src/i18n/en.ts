@@ -217,7 +217,8 @@ export default {
         leafCalledRecord: 'Leaf called record',
         calledFunctionName: 'Name of the called function',
         callNumber: 'Number of calls',
-        autoLineWrap: 'Auto line wrap'
+        autoLineWrap: 'Auto line wrap',
+        viewErrorStack: 'View call stack',
     },
     sideBar: {
         title: 'Compilation result',
