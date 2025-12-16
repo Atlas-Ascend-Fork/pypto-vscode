@@ -450,7 +450,7 @@ export class AstgrNodeLabelView extends ShapeView {
       const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
-      if ((node.role !== 'input') && (node.role !== 'output')) {
+      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError) {
         // if(label.id.includes("operation")) node = label.parent;
         if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
@@ -485,7 +485,8 @@ export class AstgrNodeLabelView extends ShapeView {
       let keyFillOpacity = '0.6';
       let valueFillColor = 'var(--devui-primary-text)';
       
-      if ((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') {
+      if (((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') 
+        || ((node.role === 'input' || node.role === 'output') && node.isError && node.selected)) {
         keyFillColor = 'var(--devui-op-node-selected-label-text)';
         keyFillOpacity = '1';
         valueFillColor = 'var(--devui-op-node-selected-value-text)';
