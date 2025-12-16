@@ -13,21 +13,23 @@
         <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="toggleFullscreen"></i>
       </d-modal-header>
     </template>
-    <d-code-review
-      :diff="diff"
-      :allow-comment="false"
-      :expand-loader="codeLoader"
-      output-format="side-by-side"
-      :class="{ 'expand-all-line': isExpandAllLine }"
-      :style="{ '--operate-area-width': operateAreaWidth }"
-    >
-      <template #headOperate>
-        <div class="toggle-all-line-expand" @click="() => onToggleAllLineExpand()">
-          <i :class="isExpandAllLine ? 'icon-all-collapse' : 'icon-all-open'"></i>
-          <span>{{ isExpandAllLine ? t('allCollapse') : t('allExpand') }}</span>
-        </div>
-      </template>
-    </d-code-review>
+    <div class="code-review-wrap">
+      <d-code-review
+        :diff="diff"
+        :allow-comment="false"
+        :expand-loader="codeLoader"
+        output-format="side-by-side"
+        :class="{ 'expand-all-line': isExpandAllLine }"
+        :style="{ '--operate-area-width': operateAreaWidth }"
+      >
+        <template #headOperate>
+          <div class="toggle-all-line-expand" @click="() => onToggleAllLineExpand()">
+            <i :class="isExpandAllLine ? 'icon-all-collapse' : 'icon-all-open'"></i>
+            <span>{{ isExpandAllLine ? t('allCollapse') : t('allExpand') }}</span>
+          </div>
+        </template>
+      </d-code-review>
+    </div>
   </d-modal>
 </template>
 
@@ -231,8 +233,12 @@ onBeforeUnmount(() => {
   }
 
   .devui-modal__body {
-    max-height: calc(80vh - 46px);
-    overflow: auto;
+    padding-right: 0;
+    .code-review-wrap {
+      padding-right: 20px;
+      max-height: calc(80vh - 86px);
+      overflow: auto;
+    }
 
     .devui-code-review {
       box-shadow: unset;
@@ -296,6 +302,10 @@ onBeforeUnmount(() => {
             }
           }
         }
+      }
+
+      .d2h-file-wrapper {
+        margin-bottom: 0;
       }
     }
 
