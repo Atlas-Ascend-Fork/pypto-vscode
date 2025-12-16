@@ -21,6 +21,7 @@ export class DataFileController<Item extends Data> {
   public async write(item: Item, fileName: string): Promise<void> {
     const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
     await vscode.workspace.fs.writeFile(fileUri, Buffer.from(JSON.stringify(item), 'utf8'));
+    return;
   }
 
   public async delete(fileName: string): Promise<void> {

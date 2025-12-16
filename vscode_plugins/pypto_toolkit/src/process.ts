@@ -3,8 +3,14 @@ import BigNumber from 'bignumber.js'
 import { getMTime, SQLiteCache } from './core/sqliteCache';
 import { dirname, join, extname, resolve } from 'path';
 import * as vscode from 'vscode';
-import { createReadStream, existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
+import { createReadStream,  createWriteStream } from 'fs';
 import { hismartliteEx } from './hismarliteEx';
+import JSONStream from 'JSONStream';
+import { parser } from 'stream-json';
+import { chain } from 'stream-chain';
+import {pick} from 'stream-json/filters/Pick';
+import {streamObject} from 'stream-json/streamers/StreamObject';
+import { t } from 'i18next';
 
 // 异步初始化颜色列表
 let darkThemeColors: any = null;
@@ -226,6 +232,8 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
 
 function calculateDuration (eventTasks, processedTasks) {
   let taskIndex = 0;
+  let minTime = Infinity;
+  let maxTime = 0;
   while (taskIndex <= eventTasks.length - 1) {
     const tStart = eventTasks[taskIndex];
     if (tStart.ph.toUpperCase() === 'X') {
@@ -246,6 +254,8 @@ function calculateDuration (eventTasks, processedTasks) {
       };
       processedTasks.push(event);
       taskIndex += 1;
+      minTime = Math.min(minTime, event.startTime);
+      maxTime = Math.max(maxTime, event.endTime);
       continue;
     }
     const tEnd = eventTasks[taskIndex + 1];
@@ -265,12 +275,15 @@ function calculateDuration (eventTasks, processedTasks) {
           successors: []
         }
       };
+      minTime = Math.min(minTime, processedEvent.startTime);
+      maxTime = Math.max(maxTime, processedEvent.endTime);
       processedTasks.push(processedEvent);
       taskIndex += 2;
     } else {
       taskIndex += 1;
     }
   }
+  return [maxTime, minTime];
 };
 
 export function parsePmuInfo(csvData: string) {
@@ -448,26 +461,124 @@ const calculateDependencies = (events, connections) => {
     pmuTotal.icache_miss = pmuTotal.icache_miss.toString();
     pmuTotal.icache_req = pmuTotal.icache_req.toString();
   }
+
+  async function validate(event:any) {
+    const errorMsg: any = {};
+    if (event.name === 'process_name') {
+      if (!('pid' in event) || !('args' in event)) {
+        if (event.pid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
+        }
+        return errorMsg;
+      }
+      if (!('name' in event.args)) {
+        if (event.pid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });;
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
+        }
+        return errorMsg;
+      }
+    } else if (event.name === 'thread_name') {
+      if (!('pid' in event) || !('tid' in event) || !('args' in event)) {
+        if (event.pid && event.tid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
+        }
+        return errorMsg;
+      }
+      if (!('name' in event.args)) {
+        if (event.pid && event.tid) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
+        }
+        return errorMsg;
+      }
+    } else if (event.cat === 'event' || event.ph === 'C') {
+      
+      if (event.cat == 'event') {
+        if (!('name' in event) || !('ph' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) ) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+          }
+          return errorMsg;
+        }
+      }
+      if (event.ph === 'C') {
+        if(!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || !('args' in event)) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+          return errorMsg;
+          }
+          if (!('size' in event.args || '/byte' in event.args)) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+            return errorMsg;
+          }
+          if (event.args.size) {
+            if (!(typeof event.args.size === 'number')) {
+              errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+              return errorMsg;
+            }
+          }
+          if (event.args['/byte']) {
+            if (!(typeof event.args['/byte'] === 'number')) {
+              errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+              return errorMsg;
+            }
+          }
+        }
+      }
+      if (event.ph === 'X') {
+        if(!('name' in event) || !('ts' in event) || !('dur' in event)) {
+          if (event.name) {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+          } else {
+            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+            return errorMsg;
+          }
+        }
+      }
+    }
+    return errorMsg;
+  } 
   
   export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, mode: string) {
     let counterEvents: any[] = [];
-    let processedEvents: any[] = [];
     let processes = new Map();
     let processExpanded = new Map();
     let lane2line = new Map();
+    let hasProcess = false;
     if (!traceData || !traceData.traceEvents) {
       return;
     }
-  
+    
+
     const processNames = new Map();
     const threadNames = new Map();
     const eventTasks: any[] = [];
     const connections: any[] = [];
   
+    let errorMsg: any = {};
+
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];
+
+      errorMsg = await validate(event);
+      if ('errMsg' in errorMsg) {
+        return errorMsg;
+      }
+
       if (event.name === 'process_name') {
         processNames.set(event.pid, event.args.name);
+        hasProcess = true;
       } else if (event.name === 'thread_name') {
         threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
       } else if (event.cat === 'event' || event.ph === 'C') {
@@ -513,9 +624,12 @@ const calculateDependencies = (events, connections) => {
         });
       }
     });
-  
+    
+    let minTime: number;
+    let maxTime: number;
+
     let processedTasks: any[] = [];
-    calculateDuration(eventTasks, processedTasks);
+    [maxTime, minTime] = calculateDuration(eventTasks, processedTasks);
   
     processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
   
@@ -592,14 +706,18 @@ const calculateDependencies = (events, connections) => {
         thread.maxCount = Math.max(thread.maxCount, event.args[thread.argKey]);
       }
     });
-  
-    processedEvents = processedTasks;
+
+    if (!hasProcess) {
+      errorMsg.errMsg = t('pypto.swimGraph.validate.noProcess');
+      return errorMsg;
+    }
+
     const data = {};
     data['counterEvents'] = counterEvents;
-    data['processedEvents'] = processedEvents;
     data['processes'] = processes;
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
+    data['timeInfo'] = { maxTime, minTime};
     return data;
   };
 
@@ -679,16 +797,20 @@ const calculateDependencies = (events, connections) => {
     }
   }
 
-  export async function saveParsedInfoToDB(swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: string) {
+  export async function saveParsedInfoToDB(useCache:boolean, swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: any) {
     const sanitizedTime = lastChangeTime.replace(/[:<>"|?*]/g, '-');
     const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
     const fileName = `${sanitizedPath}-${sanitizedTime}.json`;
     const dbSwimStore = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', fileName);
-    const fileUri = vscode.Uri.file(dbSwimStore);
-    const data = new TextEncoder().encode(info);
-    await vscode.workspace.fs.writeFile(fileUri, data);
-    await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
-    await SQLiteCache.getInstance().save();
+    if (!info.pmu_total) {
+      info.pmu_total = {};
+    }
+    if (useCache) {
+      await writeLargeObjectToFileThreadGranular(info, dbSwimStore);
+      await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
+      await SQLiteCache.getInstance().save();
+      console.log(`${dbSwimStore} save done`);
+    }
   }
 
 
@@ -841,3 +963,158 @@ const calculateDependencies = (events, connections) => {
     }
     return lane2line;
   }
+  
+  export async function readSwimlaneFileStream(swimPath: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`开始流式读取 ${swimPath} 文件`);
+        
+        const stream = createReadStream(swimPath, { encoding: 'utf8' });
+        const parser = JSONStream.parse('*'); 
+        
+        let jsonData: any = null;
+        
+        parser.on('data', (data) => {
+          jsonData = data;
+        });
+        
+        parser.on('end', () => {
+          console.log('文件流式读取完成');
+          resolve(jsonData);
+        });
+        
+        parser.on('error', (error) => {
+          console.error('JSON 解析错误:', error);
+          reject(error);
+        });
+        
+        stream.on('error', (error) => {
+          console.error('文件读取错误:', error);
+          reject(error);
+        });
+        
+        stream.pipe(parser);
+        
+      } catch (err) {
+        console.error(`${swimPath} 读取文件时发生错误:`, err);
+        reject(err);
+      }
+    });
+  }
+
+  async function writeLargeObjectToFileThreadGranular(obj: any, filePath: string): Promise<void> {
+    const writeStream = createWriteStream(filePath, { encoding: 'utf8' });
+    
+    try {
+      writeStream.write('{\n');
+      writeStream.write(`"counterEvents": ${JSON.stringify(obj.counterEvents)},\n`);
+
+      
+      // 按process和thread粒度写入
+      writeStream.write('"processes": {\n');
+      
+      const processEntries = Object.entries(obj.processes);
+      for (let i = 0; i < processEntries.length; i++) {
+        const [pid, process] : [any, any] = processEntries[i];
+        const isLastProcess = i === processEntries.length - 1;
+        
+        writeStream.write(`"${pid}": {\n`);
+        writeStream.write(`"pid": ${process.pid},\n`);
+        writeStream.write(`"processName": ${JSON.stringify(process.processName)},\n`);
+        
+        // 按thread粒度写入
+        writeStream.write('"threads": {\n');
+        const threadEntries = Object.entries(process.threads);
+        
+        for (let j = 0; j < threadEntries.length; j++) {
+          const [threadId, thread] = threadEntries[j];
+          const isLastThread = j === threadEntries.length - 1;
+          
+          writeStream.write(`"${threadId}": ${JSON.stringify(thread)}`);
+          if (!isLastThread) {
+            writeStream.write(',\n');
+          }
+        }
+        
+        writeStream.write('\n}\n}');
+        if (!isLastProcess) {
+          writeStream.write(',\n');
+        }
+      }
+      
+      writeStream.write('\n},\n');
+      
+      writeStream.write(`"processExpanded": ${JSON.stringify(obj.processExpanded)},\n`);
+      writeStream.write(`"lane2line": ${JSON.stringify(obj.lane2line)},\n`);
+      writeStream.write(`"pmu_total": ${JSON.stringify(obj.pmu_total)},\n`);
+      writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}\n`);
+      writeStream.write('}');
+      
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+        writeStream.end();
+      });
+      
+    } catch (error) {
+      writeStream.destroy();
+      throw error;
+    }
+  }
+
+export async function getSavedSwimDataFileStreamAll(swimPath: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+      console.log(`开始流式解析整个对象 ${swimPath}`);
+
+      const pipeline = chain([
+          createReadStream(swimPath, { encoding: 'utf8' }),
+          parser(), 
+          streamObject() 
+      ]);
+      
+      let result: any = {};
+      
+      pipeline.on('data', (data) => {
+          result[data.key] = data.value;
+      });
+      
+      pipeline.on('end', () => {
+          console.log(`文件${swimPath} 解析完成`);
+          resolve(result);
+      });
+      
+      pipeline.on('error', (error) => {
+          reject(new Error(`JSON解析失败: ${error.message}`));
+      });
+  });
+}
+
+
+export async function getSavedSwimDataFileStreamByKey(swimPath: string, key: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    console.log(`开始读取缓存文件 ${swimPath}, key ${key}`);
+    
+    const pipeline = chain([
+      createReadStream(swimPath, { encoding: 'utf8' }),
+      parser(),
+      pick({filter:key}),
+      streamObject() 
+    ]);
+    
+    let result: any = {};
+    
+    pipeline.on('data', (data) => {
+      console.log(data);
+      result[data.key] = data.value;
+    });
+    
+    pipeline.on('end', () => {
+      console.log(`解析完成`);
+      resolve(result);
+    });
+    
+    pipeline.on('error', (error) => {
+      reject(new Error(`JSON解析失败: ${error.message}`));
+    });
+  });
+}

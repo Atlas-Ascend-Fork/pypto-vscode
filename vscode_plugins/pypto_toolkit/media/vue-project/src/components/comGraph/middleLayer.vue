@@ -10,9 +10,10 @@ import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
-import { pushState } from '../../core/state';
+import { pushState, pullState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
+import { threadCache } from '../../components/swimGraph/swimGraphUtils';
 import { round } from 'lodash-es';
 import { useI18n } from 'vue-i18n';
 const { t: $t } = useI18n();
@@ -48,10 +49,10 @@ const props = defineProps({
     type: String,
   },
 });
-enum RequestType{
-  NodeOverLimit  = 1,
-  SearchNoMagic  = 2,
-  SearchMagic    = 3,
+enum RequestType {
+  NodeOverLimit = 1,
+  SearchNoMagic = 2,
+  SearchMagic = 3,
 }
 const graphType = toRef(props, 'graphType');
 const filePaths = ref({ swimPath: '', comPath: '' });
@@ -97,6 +98,8 @@ function setupComWatchers(server: any) {
       case RequestType.NodeOverLimit:
         loadingStep.value = 'readJsonWarning';
         searchMode.value = 1;
+        const nodeCount = server.PathOriginMode.value?.nodeCount ?? -1;
+        comGraphStore.setData('nodeCount', nodeCount);
         break;
       case RequestType.SearchNoMagic:
         searchMode.value = 2;
@@ -204,6 +207,9 @@ function setupThreeWatchers(server: any) {
     graphName.value = replaceMsg.value.graphType === 'swimGraph' ? $t('comGraphName') : $t('swimGraph');
     graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
   });
+  watch(server.SetVscodeState, async (newValue) => {
+    pushState({ comPath: newValue.comPath, swimDataPath: newValue.swimDataPath });
+  });
 }
 
 function setupSwimWatchers(server: any) {
@@ -213,6 +219,19 @@ function setupSwimWatchers(server: any) {
 }
 
 onMounted(async () => {
+  const state = pullState();
+  if (server.fetchVscodeState) {
+    server.fetchVscodeState(state);
+  }
+  if (state.swimDataPath) {
+    noSwimFile.value = false;
+    await server.getInitialSwimData();
+  }
+  if (state.comPath) {
+    noComFile.value = false;
+    await server.getInitialComData();
+    server.returnFuncTree();
+  }
   if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph') {
     await server.getInitialData();
   }
@@ -289,16 +308,46 @@ const modelConfirm = async () => {
   } else {
     const comPath = replaceMsg.value.paths.comPath;
     const swimPath = selectPath;
-    swimGrahRef.value.loading = true;
-    if (swimErrorMessage.value) {
-      swimErrorMessage.value = '';
-    }
     await server.replaceFile({ options: { swimPath, comPath } });
-    server.resetSwimData().then((newValue) => {
-      swimGrahRef.value.setPageState(newValue);
-      swimGrahRef.value.loadTraceData(newValue.data);
-    });
+    await reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache);
   }
+};
+
+const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCache) => {
+  swimGrahRef.value.loading = true;
+  swimGrahRef.value.labelRender = false;
+  if (swimErrorMessage.value) {
+    swimErrorMessage.value = '';
+  }
+  let data = {};
+  const Reader = await server.getSwimData();
+  const originalReader = Reader.getReader();
+  let result = await originalReader.read();
+  swimGrahRef.value.loadingText = $t('receiveTraceData');
+
+  while (!result.done) {
+    const val = result.value;
+    if (val.type == 'first') {
+      data.swimData = val.data;
+    } else {
+      data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
+    }
+    result = await originalReader.read();
+  }
+
+  try {
+    const res = await server.getOtherData();
+    data.config = res.configuration;
+    data.comGraphPath = res.comGraphPath;
+    data.swimPath = res.swimPath;
+  } catch (err) {
+    console.log('parse other data error:', err);
+  }
+
+  threadCache.clear();
+  swimGrahRef.value.labelRender = true;
+  swimGrahRef.value.setPageState(data);
+  swimGrahRef.value.loadTraceData(data.swimData);
 };
 
 const modelCancel = async () => {
@@ -331,9 +380,9 @@ const onInputLeave = (event) => {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog"/>
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
-        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
+        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
       </template>
       <template #swimGraph>
         <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />

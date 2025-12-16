@@ -29,7 +29,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
   const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
-  let originSprottyGraph;
+  let originSprottyGraph: { isFinial: boolean; };
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
     direction: 'RIGHT',
@@ -61,7 +61,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }); // Use dispatch instead of dispatchAll
   };
 
-  const renderMinimap = (model?) => {
+  const renderMinimap = (model?: any) => {
     miniMapModelSource.updateModel(model || modelSource.model).then(() => {
       const fitAction: FitToScreenAction = {
         maxZoom: 1.0, // Increased from 0.01 to allow normal zoom levels
@@ -76,14 +76,22 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           requestAnimationFrame(() => {
             getViewport(modelSource, MAINMAP_TYPE);
             getViewport(miniMapModelSource, MINIMAP_TYPE);
+            modelSource.getViewport().then((viewInfo: { zoom: any; scroll: any; }) => {
+              (window as any).ascEventBus.emit('viewer_update', {
+                model: modelSource.model,
+                zoom: viewInfo.zoom,
+                scroll: viewInfo.scroll
+              })
+            });
+            
             (window as any).ascEventBus.emit('layoutEnding', filePath);
           });
         });
-      }); // Use dispatch instead of dispatchAll
+      });
     });
   };
 
-  async function getViewport(currentModel: LocalModelSource, type, zoom = 1, x = 0, y = 0) {
+  async function getViewport(currentModel: LocalModelSource, type: number, zoom = 1, x = 0, y = 0) {
     try {
       const viewInfo = await currentModel.getViewport();
       if (type == MINIMAP_TYPE) {
@@ -97,12 +105,26 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
           x = viewInfo.scroll.x * (viewInfo.zoom / zoom);
           y = viewInfo.scroll.y * (viewInfo.zoom / zoom);
         }
+        (window as any).ascEventBus.emit(`viewer_update`, {
+          zoom, 
+          scroll: {
+            x,
+            y
+          }
+        });
         setViewportAction(modelSource.model.id, x, y, zoom, false);
         (window as any).ascEventBus.emit('minimap-wheel', [zoom, x, y, renderType]);
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [zoom, x, y, false]);
       }
       if (type == MAINMAP_FIT_SCREEN) {
         (window as any).ascEventBus.emit(`${renderType}_view_zoom`, [viewInfo.zoom, viewInfo.scroll.x, viewInfo.scroll.y, true]);
+        (window as any).ascEventBus.emit(`viewer_update`, {
+          zoom: viewInfo.zoom, 
+          scroll: {
+            x: viewInfo.scroll.x,
+            y: viewInfo.scroll.y
+          }
+        });
       }
     } catch (error) {
       console.error('get model viewport error');
@@ -120,7 +142,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   // Function to update the graph with current settings
-  const updateGraph = (isDark, option?) => {
+  const updateGraph = (isDark: boolean, option?: { openMode: any; nodeMagic: any; isThreeMode: any; showTensorNodes?: any; showSyncNodes?: any; subgraphFilterSelect?: any; }) => {
     if (!currentData) return;
 
     const showTensorNodes = option?.showTensorNodes ?? true;
@@ -132,7 +154,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       resetModelSource();
     }
 
-    let nodeMagic;
+    let nodeMagic: any;
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
     }
@@ -152,6 +174,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     };
     server.getJsonGraphData({ data: data });
     watch(server.JsonGraphData, (newValue: any) => {
+      comGraphStore.setData("isCached", newValue.isCached);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = toRaw(newValue.data) ;
@@ -159,12 +182,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
 
         originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
 
-        const nodeCount = sprottyGraph.children?.filter((child) => child.type.includes('node')).length || 0;
-        const edgeCount = sprottyGraph.children?.filter((child) => child.type.includes('edge')).length || 0;
+        const nodeCount = sprottyGraph.children?.filter((child: { type: string | string[]; }) => child.type.includes('node')).length || 0;
+        const edgeCount = sprottyGraph.children?.filter((child: { type: string | string[]; }) => child.type.includes('edge')).length || 0;
         console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
         modelSource
           .setModel(sprottyGraph)
-          .then(() => {
+          .then(async () => {
             //第一个incast节点，聚焦左上方展示
             if (modelSource.model) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
@@ -176,39 +199,39 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
             let node: SNode | undefined;
             fitGraphToScreen();
           })
-          .catch((error) => {
+          .catch((error: any) => {
             console.error('Error setting model:', error);
           });
       }
     });
   };
 
-  const minimapRectMoveListener = (args) => {
+  const minimapRectMoveListener = (args: number[]) => {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   };
 
-  const minimapCenterListener = (args) => {
+  const minimapCenterListener = (args: number[]) => {
     setMinimapViewportAction(args[0], args[1], args[2], false);
   };
 
-  const mainMapWheelListener = (args) => {
+  const mainMapWheelListener = (args: number) => {
     getViewport(modelSource, MAINMAP_WHEEL, args);
   };
 
-  const mainMapFitscreenListener = (args) => {
+  const mainMapFitscreenListener = (args: any) => {
     fitToScreenAction();
   };
 
-  const svgExportRequestListener = (args) => {
+  const svgExportRequestListener = (args: boolean) => {
     requestExportSvgAction(args);
   };
 
-  const jump2SiblingNodeListener = (args) => {
+  const jump2SiblingNodeListener = (args: string) => {
     centerNodeAction([args]);
     selectAction([args]);
   }
 
-  const SearchModeOpenListener = (args) => {
+  const SearchModeOpenListener = (args: any) => {
     const data = {
       nodeMagic: args,
       funcHash: typeof comGraphStore.data.curPath === "string" ? JSON.parse(comGraphStore.data.curPath).at(-1) : comGraphStore.data.curPath[0]
@@ -231,7 +254,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on('SearchModeOpen', SearchModeOpenListener);
 
   // Handle subgraph coloring
-  const colorBySubGraph = (colorBySubgraph) => {
+  const colorBySubGraph = (colorBySubgraph: boolean) => {
     console.log('Subgraph coloring checkbox changed:', colorBySubgraph);
 
     // Store the global flag for views to access
@@ -251,7 +274,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
 
   const fitToScreenAction = async () => {
     // First clear any selections
-    const selectedElements = (await modelSource.getSelection()).map((e) => e.id) as string[];
+    const selectedElements = (await modelSource.getSelection()).map((e: { id: any; }) => e.id) as string[];
     if (selectedElements.length > 0) {
       const selectAction: SelectAction = {
         kind: 'elementSelected',
@@ -319,7 +342,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   };
 
   const centerNodeAction = async (elementIdsPara: string[], animatePara?: boolean, retainZoomPara?: boolean, zoomScalePara?: number) => {
-    const selectedElements = elementIdsPara.length ? elementIdsPara : ((await modelSource.getSelection()).map((e) => e.id) as string[]);
+    const selectedElements = elementIdsPara.length ? elementIdsPara : ((await modelSource.getSelection()).map((e: { id: any; }) => e.id) as string[]);
     if (selectedElements.length > 0) {
       const options = {
         animate: animatePara,
@@ -328,12 +351,20 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       };
       modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
         getViewport(modelSource, MAINMAP_FIT_SCREEN);
+
+        modelSource.getViewport().then((viewInfo: { zoom: any; scroll: any; }) => {
+          (window as any).ascEventBus.emit('viewer_update', {
+            model: modelSource.model,
+            zoom: viewInfo.zoom,
+            scroll: viewInfo.scroll
+          })
+        });
       });
     }
   };
 
   const selectAction = async (elementIdsPara: string[]) => {
-    const selectedIds = (await modelSource.getSelection()).map((e) => e.id) as string[];
+    const selectedIds = (await modelSource.getSelection()).map((e: { id: any; }) => e.id) as string[];
     const selectAction: SelectAction = {
       kind: 'elementSelected',
       selectedElementsIDs: elementIdsPara,
@@ -389,7 +420,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   comGraphStore.setData('updateModelActionFunc', updateModelAction);
 
   // 同步diff双图移动
-  const syncDiffView = (args) => {
+  const syncDiffView = (args: number[]) => {
     setViewportAction(modelSource.model.id, args[0], args[1], args[2], false);
   };
 
@@ -406,7 +437,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
       
     if (comGraphStore.data.selectedNodeSemanticLabel !== semantic_lable) {
-      const firstNode = modelSource.currentRoot.children.find((t, i) => {
+      const firstNode = modelSource.currentRoot.children.find((t: { type: string | string[]; }, i: any) => {
         return t.type.includes('node');
       })
       modelSource.model.notNeedLayout = true;
@@ -445,12 +476,17 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     cancelRectAnimation();
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
-    const index = modelSource.currentRoot.children?.findIndex((t, i) => {
-        return t.type.includes('node');
+    const node = modelSource.currentRoot.children?.find((t: { id: string; }) => {
+        return t.id === 'node-bottom-edge';
     })
-    if (typeof index !== 'undefined') {
-      await modelSource.removeElements([{elementId:'show-node-rect', parentId: modelSource.currentRoot.children[index - 1].id}]);
+    if (node.children?.length) {
+      await modelSource.removeElements([{elementId:'show-node-rect', parentId: node.id}]);
     }
+  }
+
+  // 获取所有节点
+  const getModelSourceChildren = () => {
+    return modelSource.model.children ?? [];
   }
 
   return {
@@ -468,6 +504,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     removeSelectNodesRect,
     resetModelSource,
     hoverFeedbackAction,
-    updateDiffViewport
+    updateDiffViewport,
+    getModelSourceChildren
   };
 }

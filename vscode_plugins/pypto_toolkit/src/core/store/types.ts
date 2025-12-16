@@ -57,6 +57,12 @@ export interface Store<Item extends Data, P extends keyof Item, Q extends keyof 
    * 清空当前存储库
    */
   clear(): Promise<void>;
+
+  /**
+   * 监听数据清空
+   * @param callback 
+   */
+  onClear(callback: () => void): void;
 }
 
 /**

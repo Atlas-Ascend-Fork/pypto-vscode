@@ -601,7 +601,7 @@ const handleMouseMove = throttle((e) => {
   }
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
-}, 320);
+}, 80);
 const handleHoverEvent = (hoveredEvent) => {
   if (!hoveredEvent) {
     return false;
@@ -715,7 +715,7 @@ const lockClick = (e) => {
   sendMsg('activeLock', { label: preLabel });
   let rootHashArray = [];
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     process.threads.forEach((thread, threadKey) => {
@@ -765,7 +765,7 @@ const resizeDrawBoundary = () => {
     return;
   }
   processes.forEach((process, processKey) => {
-    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+    if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
     changeNodeColor(processKey, true);
@@ -809,7 +809,7 @@ const checkInSelection = () => {
 
   // 遍历进程
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     // 遍历线程
@@ -1548,9 +1548,6 @@ const showTooltip = (e, event, canvasRef) => {
   const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("title")}</span><span class="tooltip-value">${displayName}</span></div>`;
-  if(event.cat){
-    tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("categroy")}</span><span class="tooltip-value">${event.cat}</span></div>`;
-  }
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("start")}</span><span class="tooltip-value">${formatTimeWithUnit(event.startTime - viewState.minTime).value}${formatTimeWithUnit(event.startTime - viewState.minTime).unit}</span></div>`;
   if (event.isCounter) {
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("countValue")}</span><span class="tooltip-value">${event.counterSize}</span></div>`;
@@ -1732,7 +1729,7 @@ const setSelectedData = (boundRange, label) => {
   points = [];
   drawColorDatas = {};
   processes.forEach((process, processKey) => {
-    if (!process.expanded) {
+    if (!processExpanded.get(processKey)) {
       return;
     }
     highlightedPaths.clear();
@@ -1766,7 +1763,7 @@ const setSelectedData = (boundRange, label) => {
 const drawSelection = (label, needSendCom, isLock) => {
   let rootHashArray = [];
   processes.forEach((process, processKey) => {
-    if (!process.expanded || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
+    if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
     changeNodeColor(processKey, true);

@@ -166,6 +166,10 @@ The three-panel linked view simultaneously displays code, a computational graph,
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
+## Close all pages opened by PyPTO Toolkit
+
+![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
+
 ## Feedback Channel
 
   If you have any questions or suggestions, please provide feedback in the user support group. Group ID: 866394745314853397

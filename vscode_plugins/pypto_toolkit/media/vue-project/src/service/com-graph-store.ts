@@ -28,6 +28,8 @@ interface ComGraphData {
   fixedNodeId: string;
   layoutDirection: string;
   svgExportMode: boolean;
+  isCached?: boolean,
+  nodeCount?: number,
   version: string;
   selectedNodeSemanticLabel: string;
   traceTensors: any[];

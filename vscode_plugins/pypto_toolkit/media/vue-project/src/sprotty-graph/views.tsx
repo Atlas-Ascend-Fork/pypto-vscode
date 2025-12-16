@@ -450,7 +450,7 @@ export class AstgrNodeLabelView extends ShapeView {
       const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
-      if ((node.role !== 'input') && (node.role !== 'output')) {
+      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError) {
         // if(label.id.includes("operation")) node = label.parent;
         if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
@@ -485,7 +485,8 @@ export class AstgrNodeLabelView extends ShapeView {
       let keyFillOpacity = '0.6';
       let valueFillColor = 'var(--devui-primary-text)';
       
-      if ((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') {
+      if (((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') 
+        || ((node.role === 'input' || node.role === 'output') && node.isError && node.selected)) {
         keyFillColor = 'var(--devui-op-node-selected-label-text)';
         keyFillOpacity = '1';
         valueFillColor = 'var(--devui-op-node-selected-value-text)';
@@ -609,6 +610,7 @@ export class AstgrOpView extends RectangularNodeView {
     }
 
     const isMiniType = node.root.zoom < 0.04;
+    const errClass = node.isError === true ? 'error-node' : '';
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
@@ -665,7 +667,7 @@ export class AstgrOpView extends RectangularNodeView {
       if (node.selected) {
         backgroundFillColor = node.lightColor;
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -868,6 +870,8 @@ export class AstgrTensorView extends RectangularNodeView {
       return undefined;
     }
 
+    // check node has errinfo
+    const errClass = node.isError === true ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
@@ -927,7 +931,7 @@ export class AstgrTensorView extends RectangularNodeView {
         titleBackgroundFillColor = node.lightColor;
         inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -988,6 +992,7 @@ export class AstgrTensorView extends RectangularNodeView {
           inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
         }
       }
+      const errorColor = node.selected ? node.lightColor : node.baseColor;
       rectNode = (
         <g>
           <path
@@ -996,7 +1001,7 @@ export class AstgrTensorView extends RectangularNodeView {
             } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
               width / 2
             } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
-            fill={inoutBackgroundFillColor}
+            fill={node.isError ? errorColor: inoutBackgroundFillColor}
             class-tensor-inout-background-label={true}
             filter={backgroundFilter}
             class-tensor-diff-add={node.compareType === 'add'}
@@ -1034,6 +1039,7 @@ export class AstgrTensorView extends RectangularNodeView {
         class-op-not-traced={shouldDim}
         class-mouseover={node.hoverFeedback}
         class-tensor-diff-normal={node.compareType === 'normal'}
+        class-error-nodes={errClass}
       >
         {rectNode}
         {!isMiniType && context.renderChildren(node, args)}

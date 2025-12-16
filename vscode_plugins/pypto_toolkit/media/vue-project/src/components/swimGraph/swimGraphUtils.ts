@@ -129,18 +129,55 @@ export const TimelineWithUnit = (timelineRange, timeInMicroseconds) => {
     return { value: timeInMicroseconds.toFixed(0), unit: 'μs' };
   }
 };
-export const calculateGridInterval = (timePerPixel) => {
+export const calculateGridInterval = (timePerPixel: number): number => {
   const minPixelInterval = 100;
   const minTimeInterval = timePerPixel * minPixelInterval;
 
-  const intervals = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100,
-   200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
-  for (const interval of intervals) {
+  const smallIntervals = [
+    0.001, 0.002, 0.005,
+    0.1, 0.2, 0.5,
+  ];
+
+  // 微秒到其他时间单位的转换因子
+  const microsecond = 1;
+  const millisecond = 1000 * microsecond;
+  const second = 1000 * millisecond;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  
+  // 定义基础时间单位（微秒）
+  const intervals = [
+    1 * microsecond, 2 * microsecond, 5 * microsecond,       // 1, 2, 5 μs
+    10 * microsecond, 20 * microsecond, 50 * microsecond,    // 10, 20, 50 μs
+    100 * microsecond, 200 * microsecond, 500 * microsecond, // 100, 200, 500 μs
+    1 * millisecond, 2 * millisecond, 5 * millisecond,       // 1, 2, 5 ms
+    10 * millisecond, 20 * millisecond, 50 * millisecond,    // 10, 20, 50 ms
+    100 * millisecond, 200 * millisecond, 500 * millisecond, // 100, 200, 500 ms
+    1 * second, 2 * second, 5 * second,                      // 1, 2, 5 s
+    10 * second, 20 * second, 30 * second,                   // 10, 20, 30 s
+    1 * minute, 2 * minute, 5 * minute,                      // 1, 2, 5 min
+    10 * minute, 15 * minute, 30 * minute,                   // 10, 15, 30 min
+    1 * hour, 2 * hour, 3 * hour, 6 * hour,                  // 1, 2, 3, 6 h
+    12 * hour,                                               // 12 h
+    1 * day                                                  // 1 d
+  ];
+
+  const finalIntervals = [...smallIntervals, ...intervals];
+
+  // 查找第一个 >= minTimeInterval 的间隔
+  for (const interval of finalIntervals) {
     if (interval >= minTimeInterval) {
       return interval;
     }
   }
-  return intervals[intervals.length - 1];
+
+  // 如果还是不够，就按指数增长（比如每次 ×10）
+  let fallback = finalIntervals[finalIntervals.length - 1];
+  while (fallback < minTimeInterval) {
+    fallback *= 10;
+  }
+  return fallback;
 };
 
 export const drawArrow = (ctx: any, position: any, startColor: string, endColor: string, scale=1, translate=0) => {
@@ -237,6 +274,20 @@ export const setupHighDPICanvas = (canvas: any, width: number, height: number) =
   }
   
   return ctx;
+};
+
+export const processesToMap = (processes: any, id2event: any) => {
+  for (const [processKey, process] of processes.entries()) {
+    const { threads } = process;
+    for (const [threadKey, thread] of threads.entries()) {
+      for (const event of thread.events) {
+        if (event.isCounter) {
+          break;
+        }
+        id2event[event.id] = event;
+      }
+    }
+  }
 };
 
 export const getFontStyle = (fontSize: number) => {
