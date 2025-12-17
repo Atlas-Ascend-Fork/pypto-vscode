@@ -58,10 +58,10 @@ export class RegisterCommand {
         if (!uri) return;
         await this.openView('diffGraph', uri);
       }),
-      commands.registerCommand('PyPTO.OpenComGraphForNodeSearch', async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: number) => {
+      commands.registerCommand('PyPTO.OpenComGraphForNodeSearch', async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
-        nodeMagic ??= -1;
+        nodeMagic ??= '-1';
         await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
       }),
 
@@ -84,14 +84,14 @@ export class RegisterCommand {
     ];
   }
 
-  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: number) {
+  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string) {
     const content = ((await this.readFirstNLines(uri.fsPath, 10)) as string[]).join('');
     const { editorView } = useView();
     if (content.includes('entryhash')) {
       const finalQuery = {
         funcHash: funcHash,
         isSearch: isSearch,
-        nodeMagic:nodeMagic,
+        nodeMagic: nodeMagic,
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), {
         query: finalQuery,
@@ -115,7 +115,7 @@ export class RegisterCommand {
   }
 }
 
-function getBasenameWithoutExt(filePath: string): string {
+export function getBasenameWithoutExt(filePath: string): string {
   const basename = path.basename(filePath); // 获取带扩展名的文件名，如 'file.txt'
   return path.parse(basename).name; // 提取不带扩展名的部分，如 'file'
 }

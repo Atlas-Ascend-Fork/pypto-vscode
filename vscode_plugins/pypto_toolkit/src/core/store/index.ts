@@ -10,8 +10,8 @@ export function initStores(extensionContext: vscode.ExtensionContext) {
   new SqlStoreManager(extensionContext);
 }
 
-export function clearAllStores() {
-  SqlStoreManager.getInstance().clearAllSqlStore();
+export function clearAllStores(): Promise<void> {
+  return SqlStoreManager.getInstance().clearAllSqlStore();
 }
 
 /**

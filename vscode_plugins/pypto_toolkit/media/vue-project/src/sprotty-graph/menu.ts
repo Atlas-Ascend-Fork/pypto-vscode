@@ -144,11 +144,11 @@ export class AstgrContextMenuService implements IContextMenuService {
           textSpan.textContent = text;
           textSpan.className = 'menu-text';
 
-          if (!nodeMagic) {
+          if (nodeMagic === undefined) {
             textSpan.style.cursor = 'not-allowed';
           } else {
             textSpan.onclick = () => {
-              (window as any).ascEventBus.emit('SearchModeOpen', nodeMagic);
+              (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
             };
           }
 
@@ -313,30 +313,7 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
     
     rootNodes = root;
 
-    const nodeInfo = root.children.filter(e => (e as SNodeImpl).selected);
-    if (nodeInfo.length > 0 && !nodeInfo[0].calleehash && nodeInfo[0].codePath) {
-      return [
-        {
-          id: 'LockAndHightLight',
-          label: `${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`,
-          actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`, [callSetFixed(true, false, selectedNodeIds[0], false, '', 0)])?.actions,
-        },
-        {
-          id: 'FocusOnCurrent',
-          label: `${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`,
-          actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
-        },
-        {
-          id: 'JumpToCodeLine',
-          label: `${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`,
-          actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`, [callSetFixed(false, false, selectedNodeIds[0], true, nodeInfo[0].codePath, nodeInfo[0].codeLine)])?.actions,
-        },
-        //   new LabeledAction('', []), // 后续需要再打开
-        //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),
-      ];
-    }
-
-    return [
+    const menuItemList = [
       {
         id: 'LockAndHightLight',
         label: `${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`,
@@ -359,6 +336,20 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
       },
       //   new LabeledAction('', []), // 后续需要再打开
       //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),
-    ];
+    ]
+
+    const nodeInfo = root.children.filter(e => (e as SNodeImpl).selected);
+    if (nodeInfo.length > 0 && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
+      const codeLineItem =
+        {
+          id: 'JumpToCodeLine',
+          label: `${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`,
+          actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`, [callSetFixed(false, false, selectedNodeIds[0], true, nodeInfo[0].codePath, nodeInfo[0].codeLine)])?.actions,
+        }
+      
+      menuItemList.splice(-1, 0, codeLineItem);
+    }
+
+    return menuItemList;
   }
 }

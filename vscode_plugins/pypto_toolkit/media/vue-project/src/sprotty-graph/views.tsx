@@ -450,7 +450,7 @@ export class AstgrNodeLabelView extends ShapeView {
       const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
-      if ((node.role !== 'input') && (node.role !== 'output')) {
+      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError) {
         // if(label.id.includes("operation")) node = label.parent;
         if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
@@ -485,7 +485,8 @@ export class AstgrNodeLabelView extends ShapeView {
       let keyFillOpacity = '0.6';
       let valueFillColor = 'var(--devui-primary-text)';
       
-      if ((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') {
+      if (((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') 
+        || ((node.role === 'input' || node.role === 'output') && node.isError && node.selected)) {
         keyFillColor = 'var(--devui-op-node-selected-label-text)';
         keyFillOpacity = '1';
         valueFillColor = 'var(--devui-op-node-selected-value-text)';
@@ -567,6 +568,10 @@ function getBadgeDom(node) {
       magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
       magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
     } else {
+      if (node.isError) {
+        magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
+        magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
+      }
       badgePaddingTop = 1;
       badgePaddingRight = 1;
       radius = 4;
@@ -609,6 +614,7 @@ export class AstgrOpView extends RectangularNodeView {
     }
 
     const isMiniType = node.root.zoom < 0.04;
+    const errClass = node.isError === true ? 'error-node' : '';
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
@@ -624,7 +630,7 @@ export class AstgrOpView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     // Selected nodes should never be dimmed
@@ -665,7 +671,7 @@ export class AstgrOpView extends RectangularNodeView {
       if (node.selected) {
         backgroundFillColor = node.lightColor;
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -737,7 +743,7 @@ export class AstgrOpMinimapView extends RectangularNodeView {
 
     const traceResult = isNodeTraced(node.id, trace);
     const isTraced = traceResult.incoming || traceResult.outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     return (
@@ -804,7 +810,8 @@ export class AstgrRectView extends RectangularNodeView {
       node.customSize.width = endX - startX + 80;
       node.customSize.height = endY - startY + 80;
     }
-    let strokeWidth = node.root.zoom >= 1 ? 2 : (2 / node.root.zoom);
+    let strokeWidth = node.root.zoom >= 1 ? 1 : (1 / node.root.zoom);
+    let imgSize = node.root.zoom >= 1 ? 12 : node.root.zoom < 0.45 ? (12 / 0.45): (12 / node.root.zoom);
 
     const strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
 
@@ -848,8 +855,8 @@ export class AstgrRectView extends RectangularNodeView {
           fill="transparent"
         ></path>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
-          <rect width="30" height="30" x="6" y="6" rx={6} ry={6} fill='var(--devui-tooltip-bg)'></rect>
-          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={13}  y={13} width="16" height="16" />
+          <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill='var(--devui-tooltip-bg)'></rect>
+          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={3 + imgSize / 2}  y={3 + imgSize / 2} width={imgSize} height={imgSize} />
         </g>
       </g>
     );
@@ -867,6 +874,8 @@ export class AstgrTensorView extends RectangularNodeView {
       return undefined;
     }
 
+    // check node has errinfo
+    const errClass = node.isError === true ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
     const trace = (args as AstgrViewArgs)?.trace ?? {
@@ -883,7 +892,7 @@ export class AstgrTensorView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     // Selected nodes should never be dimmed
@@ -926,7 +935,7 @@ export class AstgrTensorView extends RectangularNodeView {
         titleBackgroundFillColor = node.lightColor;
         inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
       }
-      if (!incoming && !outgoing) {
+      if (!incoming && !outgoing && !errClass) {
         backgroundFilter = 'grayscale(1)';
       }
     }
@@ -987,6 +996,7 @@ export class AstgrTensorView extends RectangularNodeView {
           inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
         }
       }
+      const errorColor = node.selected ? node.lightColor : node.baseColor;
       rectNode = (
         <g>
           <path
@@ -995,7 +1005,7 @@ export class AstgrTensorView extends RectangularNodeView {
             } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
               width / 2
             } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
-            fill={inoutBackgroundFillColor}
+            fill={node.isError ? errorColor: inoutBackgroundFillColor}
             class-tensor-inout-background-label={true}
             filter={backgroundFilter}
             class-tensor-diff-add={node.compareType === 'add'}
@@ -1033,6 +1043,7 @@ export class AstgrTensorView extends RectangularNodeView {
         class-op-not-traced={shouldDim}
         class-mouseover={node.hoverFeedback}
         class-tensor-diff-normal={node.compareType === 'normal'}
+        class-error-nodes={errClass}
       >
         {rectNode}
         {!isMiniType && context.renderChildren(node, args)}
@@ -1067,7 +1078,7 @@ export class  AstgrTensorMinimapView extends RectangularNodeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     const isInput = node.role === 'input';
@@ -1257,7 +1268,7 @@ export class AstgrEdge extends PolylineEdgeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
     const isTraced = incoming || outgoing;
-    if (comGraphStore.data.visibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
     let isParent = false;

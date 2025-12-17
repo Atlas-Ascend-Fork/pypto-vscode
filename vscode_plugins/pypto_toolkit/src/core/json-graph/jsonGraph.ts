@@ -1,242 +1,15 @@
-import { SEdge, SLabel, SModelRoot, SNode, SPort, SCompartment } from 'sprotty-protocol';
+import { SEdge, SLabel, SNode, SCompartment } from 'sprotty-protocol';
 import { AttrReader, parseSymbolicOrIntList, parseExprList } from './parseSymbolicAttr';
 import { generateColorList, getLighterColorByHex } from '../../color-list';
-import { getIDELang } from '../../lang';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 import { Util } from '../../util';
 import { getSemanticColor } from '../../process';
-
-/**
- * Extended SModelRoot with custom properties
- */
-export interface ExtendedSModelRoot extends SModelRoot {
-    colorBySubgraph?: boolean;
-    filterSubgraphId?: number;
-}
-
-/**
- * Base interface for all ASTGR nodes extending SNode with role-specific properties
- */
-export interface AstgrNode extends SNode {
-    magic: string;
-    role: 'input' | 'operation' | 'tensor' | 'output' | 'sync';
-    calleehash?: string; // For CALL operations that reference subgraph functions
-    opcode?: string; // Store the operation code
-    pipeId?: number; // For sync operations, store pipe_id
-    trigPipe?: number; // For sync operations, store trig_pipe
-    eventId?: number; // For sync operations, store event_id
-    phase?: number; // Execution phase (PHASE1, PHASE2, etc.)
-    subgraphId?: number; // Subgraph ID for computational operations
-    latency?: number; // Operation execution latency
-    opmagic?: string; // Operation magic number for identification
-    kind?: number; // Operation kind
-    isCube?: boolean; // Whether operation uses CUBE processing
-    semanticLabel?: string; // Semantic label for the operation
-    coreType?: number; // Core type from sync_queue
-    gmBufId?: number; // Global memory buffer ID
-    hasAttr?: boolean;
-    compareType?: any;
-    baseColor?: string;
-    lightColor?: string;
-    codePath?: string;
-    codeLine?: string;
-}
-
-/**
- * Port interface for ASTGR nodes
- */
-export interface AstgrPort extends SPort {
-    role: 'input' | 'output';
-}
-
-/**
- * Input node interface
- */
-export interface AstgrInputNode extends AstgrNode {
-    type: 'node:input';
-}
-
-/**
- * Output node interface
- */
-export interface AstgrOutputNode extends AstgrNode {
-    type: 'node:output';
-}
-
-/**
- * Tensor node interface
- */
-export interface AstgrTensorNode extends AstgrNode {
-    type: 'node:tensor';
-    compareType?: string;
-    baseColor?: string;
-    lightColor?: string;
-}
-
-/**
- * Synchronization node interface
- */
-export interface AstgrSyncNode extends AstgrNode {
-    type: 'node:sync';
-}
-
-/**
- * Raw tensor data structure
- */
-interface RawTensor {
-    kind: number;
-    rawmagic: number;
-    rawshape: number[];
-    datatype: number;
-    symbol?: string;
-    ori_rawshape?: number[];
-    tensorIndex?: number;
-    tensorSubscript?: number;
-}
-
-/**
- * Tensor data structure
- */
-interface Tensor {
-    magic: number;
-    rawtensor: any;
-    offset: number[];
-    nodetype: number;
-    format: number;
-    shape: number[];
-    kind: number;
-    validshape?: number[];
-    dynvalidshape?: number[];
-    semantic_label: {
-        filename?: string;
-        label?: string;
-        lineno?: number;
-    };
-    mem_type?: { [key: string]: number };
-    subgraphid?: number;
-    compareType?: string
-}
-
-/**
- * Sync queue configuration
- */
-interface SyncQueue {
-    pipe_id?: number;
-    trig_pipe?: number;
-    event_id?: number;
-    core_type?: number;
-    gm_buf_id?: number;
-    tri_core_type?: number;
-    offset?: number[];
-}
-
-/**
- * SemanticLab configuration
- */
-interface SemanticLab {
-    color: string; 
-}
-/**
- * Operation data structure
- */
-interface Operation {
-    kind: number;
-    opmagic: number;
-    opcode: string;
-    ioperands: number[];
-    ooperands: number[];
-    semantic_label: {
-        filename?: string;
-        label?: string;
-        lineno?: number;
-    };
-    subgraphid?: number;
-    calleehash?: string;
-    sync_queue?: SyncQueue;
-    latency?: number;
-    offset?: number[];
-    func_magicname?: string;
-    compareType: any;
-    file?: string;
-    line?: string;
-    attr?: (number | (number | string)[])[];
-}
-
-/**
- * Function data structure containing all graph elements
- */
-interface FunctionData {
-    func_magicname?: string;
-    rawtensors?: RawTensor[];
-    tensors?: Tensor[];
-    operations?: Operation[];
-    incasts?: (number | number[])[];
-    outcasts?: number[][];
-    functions?: FunctionData[];
-    inouttensors?: CallInOutItems;
-}
-
-/**
- * Operation reference for sync coordination
- */
-interface OpReference {
-    index: number;
-    op: Operation;
-}
-
-/**
- * Port reference for graph connections
- */
-interface PortReference {
-    nodeId: string;
-    portId: string;
-}
-
-export type MetadataLabel = {
-    minZoomLevel: number
-}
-
-/**
- * Global mapping of format enum values to string representations
- */
-const FORMAT_MAP: { [key: number]: string } = {
-    0: 'ND', 1: 'NZ'
-};
-
-/**
- * Global mapping of memory type enum values to string representations
- */
-export const MEMTYPE_MAP: { [key: number]: string } = {
-    0: 'MEM_UB', 1: 'MEM_L1', 2: 'MEM_L0A', 3: 'MEM_L0B', 4: 'MEM_L0C', 5: 'MEM_FIX',
-    6: 'MEM_FIX_QUANT_PRE', 7: 'MEM_FIX_RELU_PRE', 8: 'MEM_FIX_RELU_POST', 9: 'MEM_FIX_QUANT_POST',
-    10: 'MEM_FIX_ELT_ANTIQ', 11: 'MEM_FIX_MTE2_ANTIQ', 12: 'MEM_BT', 13: 'MEM_L2', 14: 'MEM_L3',
-    15: 'MEM_DEVICE_DDR', 16: 'MEM_HOST1', 17: 'MEM_FAR1', 18: 'MEM_FAR2', 19: 'MEM_WORKSPACE',
-    20: 'MEM_VECTOR_REG', 21: 'MEM_UNKNOW'
-};
-
-/**
- * Global mapping of datatype enum values to string representations
- */
-const DATATYPE_MAP: { [key: number]: string } = {
-    0: 'int4', 1: 'int8', 2: 'int16', 3: 'int32',
-    4: 'int64', 5: 'fp8', 6: 'fp16', 7: 'fp32',
-    8: 'bf16', 9: 'hf4', 10: 'hf8', 11: 'uint8',
-    12: 'uint16', 13: 'uint32', 14: 'uint64', 15: 'bool',
-    16: 'double'
-};
-
-interface TensorRowTensorItems {
-    tensor: Tensor;
-    rawTensor: RawTensor;
-}
-
-interface CallInOutItems {
-    inTensors: TensorRowTensorItems[];
-    outTensors: TensorRowTensorItems[];
-}
+import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP, 
+    ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, MetadataLabel, Operation, OpReference, PortReference, 
+    RawTensor, SemanticLab, Tensor } from './jsonGraph.types';
+import { addPhaseGroupingInfo, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp } from './utils';
 
 declare const vscode: any;
-
 /**
  * Builder class for creating Sprotty graphs from ASCPP DAG data
  */
@@ -282,7 +55,7 @@ export class AscppDagBuilder {
         // Handle potential data structure variations
         let actualData = funcData;
         // Check if the data might be nested under a property
-        if (!this.hasValidStructure(funcData)) {
+        if (!hasValidStructure(funcData)) {
             actualData = this.extractNestedData(funcData);
         }
 
@@ -301,16 +74,6 @@ export class AscppDagBuilder {
     }
 
     /**
-     * Extracts node ID from port ID
-     * @param portId - The port ID (e.g., "operation-0-magic-123-out")
-     * @returns The node ID (e.g., "operation-0-magic-123")
-     */
-    private extractNodeIdFromPortId(portId: string): string {
-        // Remove port suffixes like "-in", "-out", "-input-0", "-output-0"
-        return portId.replace(/-(?:in|out|input-\d+|output-\d+)$/, '');
-    }
-
-    /**
      * Creates a Sprotty graph model from function data
      * @param funcData - The function data containing operations, tensors, etc.
      * @param showTensorNodes - Whether to show tensor nodes in the graph
@@ -321,7 +84,7 @@ export class AscppDagBuilder {
      * @returns The Sprotty graph model
      */
     public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
-                              filterSubgraphId?: number, nodeMagic?: string, threeMode: boolean = false): ExtendedSModelRoot {
+                              filterSubgraphId?: number, nodeMagic?: string, threeMode: boolean = false, errNodeList?: any): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
         const colorList = generateColorList(360, isDark);
@@ -329,13 +92,13 @@ export class AscppDagBuilder {
         this.lightColorList = colorList.lightColorList;
         this.vscodeConfig = Util.getComGraphCustomCfg();
         // Check if the data might be nested under a property
-        if (!this.hasValidStructure(funcData)) {
+        if (!hasValidStructure(funcData)) {
             actualData = this.extractNestedData(funcData);
         }
 
         // Initialize data structures
-        const { nodes, edges, tensorMap, portMap, rawTensorProducers, rawTensorConsumers } = this.initializeDataStructures();
-        const { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap } = this.createTensorMaps(actualData);
+        const { nodes, edges, tensorMap, portMap, rawTensorProducers, rawTensorConsumers } = initializeDataStructures();
+        const { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap } = createTensorMaps(actualData);
 
         if (nodeMagic) {
             const startNode = nodeMagic.toString();
@@ -361,15 +124,15 @@ export class AscppDagBuilder {
         } else {
             // Create tensor nodes if enabled
             if (showTensorNodes) {
-                this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap);
+                this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, errNodeList);
             }
 
             // Create input and output nodes
-            this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes);
-            this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes);
+            this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, errNodeList);
+            this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList);
 
             // Create operation nodes
-            this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode);
+            this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
         }
 
         //record call input output nodes
@@ -397,7 +160,7 @@ export class AscppDagBuilder {
         }
 
         // Create phase grouping information for layout hints
-        this.addPhaseGroupingInfo(actualData, nodes);
+        addPhaseGroupingInfo(actualData, nodes);
 
         // Create control flow edges for synchronization operations only if sync nodes are shown
         if (showSyncNodes) {
@@ -538,62 +301,6 @@ export class AscppDagBuilder {
         };
     }
 
-    /**
-     * Initializes the data structures used for graph construction
-     */
-    private initializeDataStructures() {
-        return {
-            nodes: [] as SNode[],
-            edges: [] as SEdge[],
-            tensorMap: new Map<string, { nodeId: string }>(),
-            portMap: new Map<string, PortReference>(),
-            rawTensorProducers: new Map<string, PortReference[]>(),
-            rawTensorConsumers: new Map<string, PortReference[]>()
-        };
-    }
-
-    /**
-     * Creates tensor maps for quick lookup
-     */
-    private createTensorMaps(actualData: FunctionData) {
-        const rawTensorMap = new Map<string, RawTensor>();
-        if (actualData.rawtensors && Array.isArray(actualData.rawtensors)) {
-            for (const rt of actualData.rawtensors) {
-                rawTensorMap.set(String(rt.rawmagic), rt);
-            }
-        }
-
-        const tensorToRawTensorMap = new Map<string, string>();
-        const magicToTensorMap = new Map<string, Tensor>();
-        if (actualData.tensors && Array.isArray(actualData.tensors)) {
-            for (const tensor of actualData.tensors) {
-                tensorToRawTensorMap.set(String(tensor.magic), String(tensor.rawtensor));
-                magicToTensorMap.set(String(tensor.magic), tensor);
-            }
-        }
-
-        const inoutMap = new Map<string, Set<string>>();
-        if (actualData.incasts && Array.isArray(actualData.incasts)) {
-            const incastSet = inoutMap.get('incasts') || new Set<string>();
-            for (const incast of actualData.incasts) {
-                const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
-                incastSet.add(tensorMagic);
-            }
-            inoutMap.set('incasts', incastSet);
-        }
-
-        if (actualData.outcasts && Array.isArray(actualData.outcasts)) {
-            const outcastSet = inoutMap.get('outcasts') || new Set<string>();
-            for (const outcast of actualData.outcasts) {
-                const tensorMagic = String(Array.isArray(outcast) ? outcast[0] : outcast);
-                outcastSet.add(tensorMagic);
-            }
-            inoutMap.set('outcasts', outcastSet);
-        }
-
-        return { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap };
-    }
-
     public createNodeListMap(funcData: FunctionData) {
         let actualData: any = funcData;
 
@@ -678,9 +385,6 @@ export class AscppDagBuilder {
         }
     }
 
-    /**
-     * Creates an op node and search forward
-     */
     public opSearchForward(
         startNode: string,
         actualData: FunctionData,
@@ -724,9 +428,6 @@ export class AscppDagBuilder {
         }
     }
 
-    /**
-     * Creates an op node and search backward
-     */
     public opSearchBackward(
         startNode: string,
         actualData: FunctionData,
@@ -1203,6 +904,7 @@ export class AscppDagBuilder {
         rawTensorMap: Map<string, RawTensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
+        errNodeList: any,
         nodeMagic?: string | undefined
     ): void {
         if (!actualData.tensors || !Array.isArray(actualData.tensors)) {
@@ -1246,7 +948,13 @@ export class AscppDagBuilder {
             const graphId = tensor?.subgraphid ?? -1;
             let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
             let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;
-
+            let isError = false;
+            // 判断节点是否有错误信息
+            if (errNodeList?.has(tensor.magic)) {
+                isError = true;
+                baseColor = 'rgba(231, 67, 74, 1)';
+                lightColor = 'rgba(250, 189, 193, 1)';
+            }
             try {
                 const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
                 if (userColor) {
@@ -1298,6 +1006,7 @@ export class AscppDagBuilder {
                     subgraphId: graphId,
                     baseColor: baseColor,
                     lightColor: lightColor,
+                    isError: isError,
                     layout: 'vbox',
                     layoutOptions: {
                         hAlign: 'left',
@@ -1390,7 +1099,7 @@ export class AscppDagBuilder {
      */
     private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined,
         nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[],
-        nodeRole: "operation" | "tensor" | "input" | "output" | "sync"): AstgrTensorNode {
+        nodeRole: "operation" | "tensor" | "input" | "output" | "sync", errNodeList?: any): AstgrTensorNode {
         // Create metadata parts for the tensor
         const metadataParts: string[] = [];
         try {
@@ -1405,6 +1114,15 @@ export class AscppDagBuilder {
         } catch (error) {
             this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         }
+        // 判断节点是否有错误信息
+        let isError = false;
+        let baseColor;
+        let lightColor;
+        if (errNodeList?.has(tensor.magic)) {
+            isError = true;
+            baseColor = 'rgba(231, 67, 74, 1)';
+            lightColor = 'rgba(250, 189, 193, 1)';
+        }
         const node: AstgrTensorNode = {
             type: 'node:tensor',
             id: nodeId,
@@ -1413,6 +1131,9 @@ export class AscppDagBuilder {
             // compareType: compareType,
             magic: `${tensorMagic}`,
             role: nodeRole,
+            baseColor: baseColor,
+            lightColor: lightColor,
+            isError: isError,
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',
@@ -1502,7 +1223,8 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         rawTensorMap: Map<string, RawTensor>,
         rawTensorProducers: Map<string, PortReference[]>,
-        showTensorNodes: boolean
+        showTensorNodes: boolean,
+        errNodeList?: any
     ): void {
         if (!actualData.incasts || !Array.isArray(actualData.incasts)) {
             return;
@@ -1552,7 +1274,7 @@ export class AscppDagBuilder {
 
             const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
 
-            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input');
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input', errNodeList);
 
             node.children!.push(inPort);
             this.nodeSet.add(nodeId);
@@ -1669,6 +1391,7 @@ export class AscppDagBuilder {
         rawTensorMap: Map<string, RawTensor>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
+        errNodeList?: any
     ): void {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
@@ -1728,7 +1451,7 @@ export class AscppDagBuilder {
             const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
             const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
-            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output');
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList);
             node.children!.push(outPort);
             if (actualData.inouttensors) {
                 nodes.push(node);
@@ -1772,28 +1495,18 @@ export class AscppDagBuilder {
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
         showSyncNodes: boolean,
-        threeMode: boolean
+        threeMode: boolean,
+        errNodeList: any[]
     ): void {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
         }
-
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
             const opId = `operation-magic-${op.opmagic}`;
 
-            // Check if this is a synchronization operation
-            const isSyncOp = ['SYNC_SRC', 'SYNC_DST', 'BAR.V', 'PHASE1', 'PHASE2'].includes(op.opcode);
-
-            if (isSyncOp) {
-                if (showSyncNodes) {
-                    this.createSyncNode(op, opId, nodes);
-                }
-                continue;
-            }
-
             // Create regular operation node
-            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, threeMode);
+            this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, threeMode, undefined, errNodeList);
         }
     }
 
@@ -1839,180 +1552,7 @@ export class AscppDagBuilder {
         }
     }
 
-    /**
-     * Creates a synchronization node
-     */
-    private createSyncNode(op: Operation, opId: string, nodes: SNode[]): void {
-        const syncQueue = op.sync_queue || {};
 
-        const labelParts: string[] = [];
-
-        if (op.opcode === 'PHASE1' || op.opcode === 'PHASE2') {
-            // Phase operations are phase markers
-            if (op.latency && op.latency > 0) {
-                labelParts.push(`lat: ${op.latency}`);
-            }
-        } else if (op.opcode === 'BAR.V') {
-            labelParts.push(`pipe: ${syncQueue.pipe_id || 0}`);
-            if (syncQueue.event_id !== undefined) {
-                labelParts.push(`evt: ${syncQueue.event_id}`);
-            }
-            if (syncQueue.core_type !== undefined) {
-                labelParts.push(`core: ${syncQueue.core_type}`);
-            }
-        } else {
-            // SYNC_SRC, SYNC_DST operations
-            labelParts.push(`pipe: ${syncQueue.pipe_id || 0}`);
-            labelParts.push(`trig: ${syncQueue.trig_pipe || 0}`);
-            if (syncQueue.event_id !== undefined) {
-                labelParts.push(`evt: ${syncQueue.event_id}`);
-            }
-            if (syncQueue.gm_buf_id !== undefined) {
-                labelParts.push(`gm: ${syncQueue.gm_buf_id}`);
-            }
-        }
-
-        // Add operation magic for identification
-        if (op.opmagic) {
-            labelParts.push(`#${op.opmagic}`);
-        }
-
-        const syncNode: AstgrSyncNode = {
-            type: 'node:sync',
-            role: 'sync',
-            id: opId,
-            magic: op.opmagic ? String(op.opmagic) : '',
-            opcode: op.opcode,
-            pipeId: syncQueue.pipe_id,
-            trigPipe: syncQueue.trig_pipe,
-            eventId: syncQueue.event_id,
-            // Add phase number for PHASE operations
-            phase: op.opcode === 'PHASE1' ? 1 : (op.opcode === 'PHASE2' ? 2 : undefined),
-            // Include additional properties
-            latency: op.latency,
-            opmagic: op.opmagic ? String(op.opmagic) : undefined,
-            coreType: syncQueue.core_type,
-            gmBufId: syncQueue.gm_buf_id,
-            subgraphId: op.subgraphid,
-            layout: 'vbox',
-            layoutOptions: {
-                hAlign: 'left',
-                paddingTop: 12,
-                paddingBottom: 12,
-                paddingLeft: 8,
-                paddingRight: 8,
-                minWidth: 250
-            },
-            children: [
-                // Labels compartment with vbox layout
-                {
-                    type: 'compartment',
-                    id: `${opId}-labels-compartment`,
-                    layout: 'vbox',
-                    layoutOptions: {
-                        hAlign: 'left',
-                        paddingTop: 0,
-                        paddingBottom: 0,
-                        paddingLeft: 0,
-                        paddingRight: 0
-                    },
-                    children: [
-                        // Main label with larger font for sync operation name
-                        {
-                            type: 'label',
-                            id: `${opId}-label-main`,
-                            text: op.opcode,
-                            cssClasses: ['sync-main-label'],
-                            layoutOptions: {
-                                hAlign: 'left',
-                                paddingTop: 2,
-                                paddingBottom: 2,
-                                paddingLeft: 0,
-                                paddingRight: 0
-                            },
-                        } as SLabel,
-                        // Single metadata label with all metadata combined
-                        ...(labelParts.slice(1).length > 0 ? labelParts.map((part, index) => {
-                            const splitedStr = part.split(':');
-                            let value = splitedStr[1];
-                            if (value && value.length > 32) {
-                                value = value.slice(0, 32) + '...';
-                            }
-                            return {
-                                type: 'label',
-                                id: `${opId}-label-meta-${index}`,
-                                originText: part, // Use pipe separator for compact display
-                                text: [splitedStr[0], value].join(':'),
-                                cssClasses: ['sync-meta-label'],
-                                minZoomLevel: 0.4
-                            } as SLabel & MetadataLabel
-                        }) : [])
-                    ]
-                } as SCompartment
-            ]
-        };
-
-        nodes.push(syncNode);
-    }
-
-    // 处理 copy 类操作
-    private parseCopyOp(labelAttr: string[], reader: AttrReader, isCopyOut: boolean): void {
-        reader.readNumber(); // skip isCopyOut flag (already known from opcode)
-        const memType = reader.readNumber();
-        const memTypeStr = MEMTYPE_MAP[memType] || 'MEM_UNKNOWN';
-
-        const offsetSize = reader.readNumber();
-        const offset = parseSymbolicOrIntList(reader, offsetSize, this.version);
-        const shape = parseSymbolicOrIntList(reader, offsetSize, this.version);
-
-        labelAttr.push(`shape: [${shape.join(',')}]`);
-        if (isCopyOut) {
-            labelAttr.push(`from: ${memTypeStr}`);
-            labelAttr.push(`to offset: [${offset.join(',')}]`);
-        } else {
-            labelAttr.push(`from offset: [${offset.join(',')}]`);
-            labelAttr.push(`to: ${memTypeStr}`);
-        }
-    }
-
-    // 处理 convert 操作
-    private parseConvertOp(labelAttr: string[], reader: AttrReader): void {
-        const fromMemType = reader.readNumber();
-        const toMemType = reader.readNumber();
-
-        const fromStr = MEMTYPE_MAP[fromMemType] || 'MEM_UNKNOWN';
-        const toStr = MEMTYPE_MAP[toMemType] || 'MEM_UNKNOWN';
-
-        labelAttr.push(`from: ${fromStr}`);
-        labelAttr.push(`to: ${toStr}`);
-    }
-
-    // 处理 assemble/view 操作
-    private parseAssembleViewOp(labelAttr: string[], reader: AttrReader, isAssemble: boolean): void {
-        const toMemType = reader.readNumber();
-        const toMemStr = MEMTYPE_MAP[toMemType] || 'MEM_UNKNOWN';
-
-        const offsetSize = reader.readNumber();
-        const offset: number[] = [];
-        for (let i = 0; i < offsetSize; i++) {
-            offset.push(reader.readNumber());
-        }
-
-        const dynOffsetSize = reader.readNumber();
-        const dynOffsetParse = parseExprList(reader, dynOffsetSize, this.version);
-
-        const dynShapeSize = reader.readNumber();
-        const dynShapeParse = parseExprList(reader, dynShapeSize, this.version);
-
-        labelAttr.push(`shape: [${dynShapeParse.join(',')}]`);
-        if (isAssemble) {
-            labelAttr.push(`from: ${toMemStr}`);
-            labelAttr.push(`to offset: [${offset.join(',')}]`);
-        } else {
-            labelAttr.push(`from offset: [${offset.join(',')}]`);
-            labelAttr.push(`to: ${toMemStr}`);
-        }
-    }
     /**
      * Parse operation attr by op code and fill into label.
      */
@@ -2029,19 +1569,19 @@ export class AscppDagBuilder {
 
         switch (opcodeStr) {
             case 'copy_in':
-                this.parseCopyOp(labelAttr, reader, opcodeStr === 'copy_in');
+                parseCopyOp(labelAttr, reader, opcodeStr === 'copy_in', this.version);
                 break;
             case 'copy_out':
-                this.parseCopyOp(labelAttr, reader, opcodeStr === 'copy_out');
+                parseCopyOp(labelAttr, reader, opcodeStr === 'copy_out', this.version);
                 break;
             case 'convert':
-                this.parseConvertOp(labelAttr, reader);
+                parseConvertOp(labelAttr, reader);
                 break;
             case 'assemble':
-                this.parseAssembleViewOp(labelAttr, reader, opcodeStr === 'assemble');
+                parseAssembleViewOp(labelAttr, reader, opcodeStr === 'assemble', this.version);
                 break;
             case 'view':
-                this.parseAssembleViewOp(labelAttr, reader, opcodeStr === 'view');
+                parseAssembleViewOp(labelAttr, reader, opcodeStr === 'view', this.version);
                 break;
             default:
                 // 可选：处理未知 opcode
@@ -2063,7 +1603,8 @@ export class AscppDagBuilder {
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
         threeMode: boolean,
-        nodeMagic?: string
+        nodeMagic?: string,
+        errNodeList?: any
     ): void {
         // Extract additional information from the operation
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
@@ -2084,8 +1625,11 @@ export class AscppDagBuilder {
             }
             opName += funcName ?? op.func_magicname ?? "Not found function";
         }
-        const codePath = op.file;
-        const codeLine = op.line;
+
+        const codePath = (op.file && op.file !== "" ? op.file : undefined) ?? 
+                         (op.semantic_label?.filename && op.semantic_label?.filename !== "" ? op.semantic_label?.filename : undefined);
+        const codeLine = (op.line && op.line !== "" ? op.line : undefined) ?? 
+                         (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
 
         // Create labels compartment containing main and metadata labels
         const labelChildren: SLabel[] = [
@@ -2109,6 +1653,7 @@ export class AscppDagBuilder {
 
         let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
+        let isError = false;
         if(threeMode) {
             const semanticColor: SemanticLab = {
                 color: op.semantic_label?.label ?? ''
@@ -2116,6 +1661,12 @@ export class AscppDagBuilder {
             baseColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.base;
             lightColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
         }
+        if (errNodeList?.has(op.opmagic)) {
+            isError = true;
+            baseColor = 'rgba(231, 67, 74, 1)';
+            lightColor = 'rgba(250, 189, 193, 1)';
+        }
+
         try {
             const userColor = this.vscodeConfig?.operationColorFunc && this.vscodeConfig.operationColorFunc(op, this.baseColorList);
             if (userColor) {
@@ -2284,6 +1835,7 @@ export class AscppDagBuilder {
             role: 'operation',
             id: opId,
             magic: opmagic,
+            isError: isError,
             hasAttr: hasAttrValue,
             compareType: op.compareType,
             semanticLabel: op.semantic_label?.label ?? '',
@@ -2624,7 +2176,7 @@ export class AscppDagBuilder {
             // they coordinate with computational operations across all subgraphs
             const associatedCompOps = computationalOps.filter(compOp =>
                 compOp.index > phaseOp.index && compOp.index < nextPhaseIndex &&
-                this.hasSameCoordinationScope(phaseOp.op, compOp.op)
+                hasSameCoordinationScope(phaseOp.op, compOp.op)
             );
 
             // Connect phase marker to the first computational operations in this phase
@@ -2649,7 +2201,7 @@ export class AscppDagBuilder {
                 const prevPhaseIndex = phaseOps[i - 1].index;
                 const prevPhaseCompOps = computationalOps.filter(compOp =>
                     compOp.index > prevPhaseIndex && compOp.index < phaseOp.index &&
-                    this.hasSameCoordinationScope(phaseOp.op, compOp.op)
+                    hasSameCoordinationScope(phaseOp.op, compOp.op)
                 );
 
                 const lastCompOps = prevPhaseCompOps
@@ -2672,60 +2224,6 @@ export class AscppDagBuilder {
     }
 
     /**
-     * Determines if two operations should be coordinated together based on their sync_queue properties
-     */
-    private hasSameCoordinationScope(phaseOp: Operation, compOp: Operation): boolean {
-        // PHASE operators (subgraphid: -1) coordinate with computational operations based on pipe_id
-        const phasePipeId = phaseOp.sync_queue?.pipe_id ?? 0;
-        const compPipeId = compOp.sync_queue?.pipe_id ?? 0;
-
-        // PHASE operators with pipe_id 0 coordinate with computational operations with pipe_id 0
-        return phasePipeId === compPipeId;
-    }
-
-    /**
-     * Adds phase grouping information to nodes for layout hints
-     */
-    private addPhaseGroupingInfo(actualData: FunctionData, nodes: SNode[]): void {
-        if (!actualData.operations || !Array.isArray(actualData.operations)) {
-            return;
-        }
-
-        let currentPhase = 0;
-
-        for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
-            const op = actualData.operations[opIndex];
-            const nodeId = `operation-magic-${op.opmagic}`;
-
-            // Track phase transitions
-            if (op.opcode === 'PHASE1') {
-                currentPhase = 1;
-            } else if (op.opcode === 'PHASE2') {
-                currentPhase = 2;
-            }
-
-            // Find the corresponding node and add phase info
-            const node = nodes.find(n => n.id === nodeId) as AstgrNode;
-            if (node) {
-                // Add phase information to node for potential layout grouping
-                node.phase = currentPhase;
-
-                // Add subgraph information for computational operations
-                if (op.subgraphid && op.subgraphid !== -1) {
-                    node.subgraphId = op.subgraphid;
-                }
-            }
-        }
-    }
-
-    /**
-     * Checks if the function data has a valid structure
-     */
-    private hasValidStructure(funcData: FunctionData): boolean {
-        return !!(funcData.rawtensors || funcData.tensors || funcData.operations);
-    }
-
-    /**
      * Extracts nested data from the function data structure
      */
     private extractNestedData(funcData: FunctionData): FunctionData {
@@ -2740,7 +2238,7 @@ export class AscppDagBuilder {
             const value = funcData[key];
             if (value && typeof value === 'object' && !Array.isArray(value)) {
                 const nestedData = value as FunctionData;
-                if (this.hasValidStructure(nestedData)) {
+                if (hasValidStructure(nestedData)) {
                     return nestedData;
                 }
             }

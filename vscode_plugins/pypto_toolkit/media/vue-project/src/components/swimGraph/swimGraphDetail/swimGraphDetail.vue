@@ -233,10 +233,9 @@ const releventDisplay = ref(DEP_MODE.all);
 const {
   selectedEvent,
   viewState,
-  processedEvents,
   detailsPanelExpanded,
   detailsCoresExpanded,
-  childContextMap,
+  id2event,
   bindFile,
   bindButton,
   isDarkTheme,
@@ -401,14 +400,14 @@ const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 const predecessors = computed(() => {
   if (!selectedEvent.value) return [];
   return selectedEvent.value.dependencies.predecessors.map(id =>
-    processedEvents.value.find(e => e.id === id)
+    id2event[id]
   ).filter(e => e);
 });
 
 const successors = computed(() => {
   if (!selectedEvent.value) return [];
   return selectedEvent.value.dependencies.successors.map(id =>
-    processedEvents.value.find(e => e.id === id)
+    id2event[id]
   ).filter(e => e);
 });
 

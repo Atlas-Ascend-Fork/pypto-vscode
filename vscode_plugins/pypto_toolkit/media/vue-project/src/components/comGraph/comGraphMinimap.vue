@@ -174,6 +174,13 @@ function handleMouseMove(event) {
   let y = ((tempTop - minimapTop) / minimapSvgHeight) * originalHeight;
   (window as any).ascEventBus.emit(`${props.type}_minimap_rect_move`, [x, y, mainmapScale.value]);
   emits('mousemove', [x, y, mainmapScale.value]);
+  (window as any).ascEventBus.emit(`viewer_update`, {
+    zoom: mainmapScale.value, 
+    scroll: {
+      x,
+      y
+    }
+  });
   rectLeft.value = tempLeft;
   rectTop.value = tempTop;
 }
@@ -346,6 +353,13 @@ const mouseDownListener = (args) => {
 
 const mouseMoveListener = (args) => {
   if (mainmapIsDragging && args[3] === props.type) {
+    (window as any).ascEventBus.emit(`viewer_update`, {
+      zoom: args[2], 
+      scroll: {
+        x: args[0],
+        y: args[1]
+      }
+    });
     let x = args[0];
     let y = args[1];
     calcRectLeft(x);

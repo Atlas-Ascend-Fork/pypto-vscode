@@ -34,6 +34,8 @@ export class SqlStore<
 
   private _manager: SqlStoreManager;
 
+  private _clearListeners: (() => void)[] = [];
+
   /**
    * @param storeName 数据表名
    * @param attributes 字段
@@ -58,6 +60,7 @@ export class SqlStore<
   public async initializeDb(): Promise<void> {
     if (this._db) {
       (await this._db).close();
+      this._clearListeners.forEach((callback) => callback());
     }
     this._db = this._manager.openDatabase(this);
     this._initializeTable(await this._db);
@@ -98,7 +101,12 @@ export class SqlStore<
   public async clear(): Promise<void> {
     await this._dataFileController.clear();
     await this._runAndSave(`DELETE FROM ${this.storeName}`);
+    this._clearListeners.forEach((callback) => callback());
     return;
+  }
+
+  public onClear(callback: () => void): void {
+    this._clearListeners.push(callback);
   }
 
   /**

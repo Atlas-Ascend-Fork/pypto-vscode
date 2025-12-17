@@ -51,6 +51,13 @@ function addDiffElements(eleChangeType, eleNodeType, magic, eleNodeId, diffList:
   diffList.push({ changeType: eleChangeType, nodeType: eleNodeType, magic: magic, nodeId: eleNodeId });
 }
 
+function addDiffDetail(newOp, oldOp, diffDetail: any, opCode = 'Default') {
+  if (syncNode.has(opCode)) {
+    return;
+  }
+  diffDetail.push({ new: newOp ? { ...newOp } : newOp, old: oldOp ? { ...oldOp } : oldOp });
+}
+
 // diff双图数据对比
 export function compareJsonData(beforeData: Object, currentData: Object) {
   const BeforeOpMagicMap: Record<number, string> = {};
@@ -86,6 +93,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
       }) ?? [],
   };
   let diffList: Record<string, any>[] = [];
+  const diffDetail: Record<string, any>[] = []
   const curTensorMap = new Map(currentData.tensors?.map((t) => [t.magic, t]) ?? []);
   const curOpMap = new Map(currentData.operations?.map((op) => [op.opmagic, op]) ?? []);
   const beforeTensorMap = new Map(beforeData.tensors?.map((t) => [t.magic, t]) ?? []);
@@ -93,9 +101,11 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   for (const ct of curTensorMap.values()) {
     const bt = beforeTensorMap.get(ct.magic);
     if (!bt) {
+      diffDetail.push({ new: { ...ct } });
       ct.compareType = 'add';
       diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
     } else if (JSON.stringify(ct.offset) !== JSON.stringify(bt.offset) || JSON.stringify(ct.shape) !== JSON.stringify(bt.shape)) {
+      diffDetail.push({ new: { ...ct }, old: { ...bt } });
       ct.compareType = 'change';
       bt.compareType = 'change';
       diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
@@ -108,6 +118,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   for (const bt of beforeTensorMap.values()) {
     const ct = curTensorMap.get(bt.magic);
     if (!ct) {
+      diffDetail.push({ old: { ...bt } });
       bt.compareType = 'delete';
       diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, nodeId: BeforeTensorMagicMap[bt.magic] });
     }
@@ -116,11 +127,13 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   for (const cop of curOpMap.values()) {
     const bop = beforeOpMap.get(cop.opmagic);
     if (!bop) {
+      addDiffDetail(cop, undefined, diffDetail, cop.opcode);
       cop.compareType = 'add';
       addDiffElements('add', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
     } else if (cop.opcode != bop.opcode ||
               JSON.stringify(cop.ioperands) !== JSON.stringify(bop.ioperands) ||
               JSON.stringify(cop.ooperands) !== JSON.stringify(bop.ooperands)) {
+      addDiffDetail(cop, bop, diffDetail, cop.opcode);
       cop.compareType = 'change';
       bop.compareType = 'change';
       addDiffElements('change', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
@@ -133,6 +146,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   for (const bop of beforeOpMap.values()) {
     const cop = curOpMap.get(bop.opmagic);
     if (!cop) {
+      addDiffDetail(undefined, bop, diffDetail, bop.opcode);
       bop.compareType = 'delete';
       addDiffElements('delete', 'op', bop.opmagic, BeforeOpMagicMap[bop.opmagic], diffList, bop.opcode);
     }
@@ -150,7 +164,7 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   if (diffList.length === 0) {
     (window as any).ascEventBus.emit('message_notice', 'noCompareTips');
   }
-  return { diffList, showDiffList: true };
+  return { diffList, diffDetail, showDiffList: true };
 }
 
 // 判断是否是node节点

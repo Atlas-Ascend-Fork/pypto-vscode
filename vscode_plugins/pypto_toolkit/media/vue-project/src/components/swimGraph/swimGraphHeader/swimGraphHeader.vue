@@ -18,16 +18,11 @@
       </div>
       <span class="result-count" v-if="isSearchActive"> {{ currentResultIndex }} / {{ searchResultCount }} </span>
       <div class="search-res" v-if="isSearchActive">
-        <d-icon name="icon-arrow-left-l" class="pre-button" @click="navigateResults('prev')" style="font-size: 16px;" :disabled="currentResultIndex <= 1"></d-icon>
-        <d-icon name="icon-arrow-right-l" class="right-button" @click="navigateResults('next')" style="font-size: 16px;" :disabled="currentResultIndex === searchResultCount"></d-icon>
+        <d-icon name="icon-arrow-left-l" class="pre-button" @click="navigateResults('prev')" style="font-size: 16px;" ></d-icon>
+        <d-icon name="icon-arrow-right-l" class="right-button" @click="navigateResults('next')" style="font-size: 16px;"></d-icon>
       </div>
     </div>
     <div class="right-container">
-      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
-        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
-          <KeyboradIcon :active="isShortcutKeyShow"/>
-        </d-button>
-      </d-tooltip>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
         <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
@@ -35,6 +30,16 @@
         </div>
         <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
       </div>
+      <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
+        <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
+          <KeyboradIcon :active="isShortcutKeyShow"/>
+        </d-button>
+      </d-tooltip>
+      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+        <d-button class="icon-container" :disabled=isExporting @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
+          <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
+        </d-button>
+      </d-tooltip>
       <d-tooltip :content="isCfgDisabled ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
         <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isCfgDisabled">
           <LayerControlIcon :active="isCfgEditing"/>
@@ -57,7 +62,7 @@
         <div class="report-title">{{reportTitle}}</div>
         <div class="task-container">
           <div class="task-item-container">
-            <div class='task-title'>Task Time</div>
+            <div class='task-title'>Task Time (μs)</div>
             <div class="task-data">{{taskTime}}</div>
           </div>
           <div class="task-item-container">
@@ -69,7 +74,7 @@
           <div class="aicore-container-column"> 
             <div class="task-item-container">
               <div class="task-title-container">
-                <div class='task-title'>AICore Time</div>
+                <div class='task-title'>AICore Time (μs)</div>
                 <d-tooltip :content="$t('AICoreTimeTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
@@ -131,7 +136,7 @@ import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
-
+import { toPng } from 'dom-to-image-more';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -157,7 +162,9 @@ const {
   isLockStatus,
   isCfgEditing,
   isShortcutKeyShow,
-  searchedEvent
+  searchedEvent,
+  isThreeColumn,
+  fileName
 } = inject('swimGraphState');
 
 const {
@@ -193,6 +200,7 @@ const searchPlaceholder = $t("searchKeyword");
 const searchResultCount = ref(0);
 
 const reportVisible = ref(false);
+const isExporting = ref(false);
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
@@ -230,7 +238,7 @@ const showDrawer = () => {
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
   aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString();
 
-  if (pmuTotal.value == undefined) {
+  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
     cubeRateCycle.value = '/';
     vectorRateCycle.value = '/';
     cubeTimePercentage.value = '/';
@@ -290,6 +298,72 @@ const showDrawer = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
 };
 
+const exportSwimGraph = async () => {
+  const container = document.querySelector('.swim-global-container');
+  const scrollable = container?.querySelector('.swimlane-scroller-container'); // 真正的滚动元素
+  const contentArgsScrollable = container?.querySelector('.content-args');
+  const canvasContainerScrollable = container?.querySelector('#canvas-container');
+  const mulDetailTableScrollable = container?.querySelector('.measure-detail-data-table');
+  if (!container || !scrollable) {
+    return;
+  }
+  // 保存滚动位置！
+  const savedScrollTop = scrollable.scrollTop;
+  // 保存原始样式
+  const origContainerStyles = {
+    height: container.style.height,
+    width: container.style.width,
+    overflow: container.style.overflow,
+  };
+  const origScrollableStyles = {
+    height: scrollable.style.height,
+    overflow: scrollable.style.overflow,
+  };
+ // 展开内容（作用于滚动容器，而不是父容器！）
+  container.style.overflow = 'visible';
+  container.style.width = 'fit-content';
+  container.style.height = 'fit-content';
+  scrollable.style.height = scrollable.scrollHeight + 'px';
+  scrollable.style.overflow = 'visible'; // 隐藏滚动条，避免截图中出现
+  if (contentArgsScrollable) {
+    contentArgsScrollable.style.overflow = 'hidden';
+  }
+  if (canvasContainerScrollable) {
+    canvasContainerScrollable.style.overflow = 'hidden';
+  }
+  if (mulDetailTableScrollable) {
+    mulDetailTableScrollable.style.overflow = 'hidden';
+  }
+  try {
+    isExporting.value = true;
+    const dataUrl = await toPng(container, {
+      backgroundColor: isDarkTheme.value ? '#1F1F1F' : '#ffffff',
+      pixelRatio: Math.min(window.devicePixelRatio, 2),
+    });
+    const link = document.createElement('a');
+    link.download = fileName.value || 'swim-graph-export.png';
+    link.href = dataUrl;
+    link.click();
+  } catch (error) {
+    postMessage($t('swimExportErrorInfo'));
+  } finally {
+   // 恢复所有样式
+    isExporting.value = false;
+    Object.assign(container.style, origContainerStyles);
+    Object.assign(scrollable.style, origScrollableStyles);
+    // 关键：恢复滚动位置！
+    scrollable.scrollTop = savedScrollTop;
+    if (contentArgsScrollable) {
+      contentArgsScrollable.style.overflow = 'auto';
+    }
+    if (canvasContainerScrollable) {
+      canvasContainerScrollable.style.overflow = 'scroll';
+    }
+    if (mulDetailTableScrollable) {
+      mulDetailTableScrollable.style.overflow = 'auto';
+    }
+  }
+};
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
 const pmuRowCoordLoc = ref([]);
@@ -417,9 +491,9 @@ const toggleCaseSensitivity = () => {
 const navigateResults = (direction) => {
   if (searchResultCount.value === 0) return;
   if (direction === 'prev') {
-    currentResultIndex.value = Math.max(1, currentResultIndex.value - 1);
+    currentResultIndex.value = currentResultIndex.value > 1 ? currentResultIndex.value - 1 : searchResultCount.value;
   } else if (direction === "next") {
-    currentResultIndex.value = Math.min(searchResultCount.value, currentResultIndex.value + 1);
+    currentResultIndex.value = currentResultIndex.value < searchResultCount.value ? currentResultIndex.value + 1 : 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
   selectEventChild(target.at(0));
@@ -588,6 +662,11 @@ const sendMsg = (command, param) => {
   Promise.resolve().then(() => {
     window.ascEventBus.emit(command, param);
   });
+};
+const postMessage = (message) => {
+  if (window.vscode) {
+    window.vscode.postMessage({ command: 'showMessage', paramObj: { text: message } });
+  }
 };
 onMounted(() => {
   updateTheme();

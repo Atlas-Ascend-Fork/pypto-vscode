@@ -214,6 +214,9 @@ function onJumpCom() {
 }
 
 function jumpControlFlow() {
+  if (props.currentStep === 'controlFlow') {
+    return;
+  }
   if (controlFlowFile.value) {
     openControlFlow({ outputPath: currentOutputPath.value, controlFlowPath: controlFlowFile.value });
   }

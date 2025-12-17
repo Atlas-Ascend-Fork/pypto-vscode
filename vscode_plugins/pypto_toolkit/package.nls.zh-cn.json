@@ -109,5 +109,15 @@
   "PyPTOToolkit.workspace.controlFlowName": "结果总览",
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
-  "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置"
+  "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
+  "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",
+  "pypto.swimGraph.validate.process": "processes 缺少关键字段 ",
+  "pypto.swimGraph.validate.threadWithid": "thread缺少关键字段 pid:{{pid}}, tid:{{tid}}",
+  "pypto.swimGraph.validate.thread": "thread缺少关键字段",
+  "pypto.swimGraph.validate.eventWithName": "Event缺少关键字段 name:{{name}}",
+  "pypto.swimGraph.validate.event": "Event缺少关键字段",
+  "pypto.swimGraph.validate.cntEvent": "Counter类型event args参数错误 name:{{name}}",
+  "pypto.swimGraph.validate.noProcess": "SwimJson内没有process节点",
+  "pypto.swimGraph.validate.savedData": "缓存数据错误,请按F1清除数据库缓存",
+  "pypto.swimGraph.validate.swimLaneFileError": "输入Json文件错误:{{swimPath}}"
 }

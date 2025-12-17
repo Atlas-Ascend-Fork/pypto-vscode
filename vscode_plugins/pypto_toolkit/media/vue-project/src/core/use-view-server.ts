@@ -12,6 +12,7 @@ import { deepToRaw } from '@/utils/reactive';
 
 import { ExtensionConnector } from './connector';
 import { getQuery } from './query';
+import { measureState } from '@/components/swimGraph/swimGraphProcesses/render/meatureRender';
 
 /**
  * 视图服务配置
@@ -84,7 +85,7 @@ serverApiConnector.receive((message) => {
  * 是否为流式传输
  */
 function isStreamResponse(message: ViewServerApiResponse): message is ViewServerApiStreamResponse {
-  return Reflect.has(message, 'streamResponse');
+  return Reflect.has(message, 'streamDone');
 }
 
 const pendingStreams = new Map<string, ReadableStreamDefaultController<any>>();

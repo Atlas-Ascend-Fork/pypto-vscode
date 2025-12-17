@@ -107,5 +107,15 @@
   "PyPTOToolkit.workspace.controlFlowName": "Result Overview",
   "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
   "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph",
-  "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration"
+  "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration",
+  "pypto.swimGraph.validate.processWithPid": "Missing Required keys in process pid:{{pid}}",
+  "pypto.swimGraph.validate.process": "Missing Required keys in processes",
+  "pypto.swimGraph.validate.threadWithid": "Missing Required keys in thread pid:{{pid}}, tid:{{tid}}",
+  "pypto.swimGraph.validate.thread": "Missing Required keys in thread",
+  "pypto.swimGraph.validate.eventWithName": "Missing Required keys in event name:{{name}}",
+  "pypto.swimGraph.validate.event": "Missing Required keys in event ",
+  "pypto.swimGraph.validate.cntEvent": "Args error in counter event name:{{name}}",
+  "pypto.swimGraph.validate.noProcess": "No process in SwimJson",
+  "pypto.swimGraph.validate.savedData": "saved data error, please enter F1 and refresh cache DB",
+  "pypto.swimGraph.validate.swimLaneFileError": "Input Json file error:{{swimPath}}"
 }

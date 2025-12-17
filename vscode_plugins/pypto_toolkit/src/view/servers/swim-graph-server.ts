@@ -2,12 +2,15 @@ import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { ISwimViewServer, ICommonViewServer, ISwimApis, ISwimRefs, ICommonApis, ICommonRefs } from './view-server-interface';
+import fs from 'node:fs';
+import stream from 'node:stream';
+
 
 type Apis = ISwimApis | ICommonApis;
 
 type Refs = ISwimRefs & ICommonRefs & { validateSwimFile: unknown };
 
-@viewRefs(['returnSwim', 'noSwimFile', 'validateSwimFile', 'returnSwimData', 'bindResult', 'unbindResult'])
+@viewRefs(['returnSwim', 'noSwimFile', 'validateSwimFile', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;
@@ -38,7 +41,12 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   };
   @viewApi()
   public getSwimData = async () => {
-    return await this.handler.getSwimData(this);
+    const packages = await this.handler.getSwimData(this);
+    return stream.Readable.toWeb(stream.Readable.from(packages!));
+  };
+  @viewApi()
+  public getOtherData = async () => {
+    return await this.handler.getOtherData(this);
   };
   @viewApi()
   public validateSwimFile = async () => {

@@ -22,12 +22,14 @@ interface ComGraphData {
   comGraphConfig: ComGraphConfig;
   inSelectedComGraphFlow: boolean;
   inFixedComGraphFlow: boolean;
-  visibleOtherNodes: boolean;
+  unVisibleOtherNodes: boolean;
   isNodeRectLock: boolean;
   stableRect:boolean;
   fixedNodeId: string;
   layoutDirection: string;
   svgExportMode: boolean;
+  isCached?: boolean,
+  nodeCount?: number,
   version: string;
   selectedNodeSemanticLabel: string;
   traceTensors: any[];
@@ -71,7 +73,7 @@ export const comGraphStore: DataStore = reactive({
     },
     inSelectedComGraphFlow:false,
     inFixedComGraphFlow:false,
-    visibleOtherNodes:false,
+    unVisibleOtherNodes:false,
     layoutDirection: 'RIGHT',
     svgExportMode: false,
   },

@@ -3,6 +3,7 @@ import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { fork } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
+import * as readline from 'readline'
 import { SQLiteCache, getMTime } from '../core/sqliteCache';
 import { globalConfig } from '../config/config';
 import { getIDETheme } from '../theme';
@@ -12,11 +13,12 @@ import { Util } from '../util';
 import { graphFileHashMap } from '../common/graphFileHashMap';
 import * as Extractor from '../utils/graphExtractor';
 import { AbstractGraphData, SingleGraphData, DiffGraphData } from '../core/graphData';
-import { basename, join } from 'path';
+import { basename, join, dirname, extname } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { GraphView } from '../view/graphView';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
+import { readFileSync, readdirSync } from 'fs';
 import * as vscode from 'vscode';
 
 enum RequestSourceType {
@@ -24,6 +26,12 @@ enum RequestSourceType {
   SearchNoMagic = 2,
   SearchMagic = 3,
 }
+
+type OpError = {
+  FuncMagic: number | null;
+  OpMagic: number | null;
+  error: string;
+};
 
 const NODE_COUNT_LIMIT = 10000;
 /* -------------------- 通用类型 -------------------- */
@@ -113,7 +121,13 @@ export abstract class BaseGraphMsgHandler {
     if (message.data.threeMode) {
       funcHash = funcHash + '_threeMode';
     }
-    if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath) {
+    // get errorNode info
+    let errNodeList = new Set<number>();
+    if (message.data?.threeMode === false) {
+      const errTraceList = await this.getErrorMessage(message, server);
+      errNodeList = await this.collectOpMagic(server, errTraceList, message.data.currentData.funcmagic);
+    }
+    if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath && !message.data.filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
     if (finalResult) {
@@ -121,12 +135,89 @@ export abstract class BaseGraphMsgHandler {
       data['isFinial'] = true;
       isCached = true;
     } else {
-      data = this.createJsonGraphData(message.data, server);
+      data = this.createJsonGraphData(message.data, server, errNodeList);
     }
     this.postJsonGraphData(server, message, data, isCached);
   }
 
-  static createJsonGraphData(data, server) {
+  static findFileHere(dir: string, name: string): string | null {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name === name) {
+        return join(dir, entry.name);
+      }
+    }
+    return null;
+  }
+
+  static async collectOpMagic(server: any, errlist: any[], targetFuncMagic: number): Promise<Set<number>> {
+    const magics = new Set<number>();
+    const records: { magic: number; error: string }[] = [];
+
+    for (const { FuncMagic, OpMagic, error } of errlist) {
+      if (OpMagic === null) continue;
+
+      if (FuncMagic === null || FuncMagic === targetFuncMagic) {
+        magics.add(OpMagic);
+        records.push({ magic: OpMagic, error });
+      }
+    }
+    server.setRef('nodeErrorList', { data: records });
+    return magics;
+  }
+
+  static async getErrorMessage(message: any, server: any) {
+    const gd = this.getGraphData(server);
+    const dirName = dirname(gd.fsPath);
+    const jsonFile = basename(gd.fsPath);
+    let stacks: any[] = [];
+    let key: any;
+    
+    const mpath = jsonFile.match(/PATH\d+_[^_]+/);
+    if (mpath) {
+      key = jsonFile.slice(0, jsonFile.indexOf(mpath[0]) + mpath[0].length).replace(/^[^_]+_[^_]+_/, '').replace(/\.json$/, '') + '.log';
+    } else {
+      key = jsonFile.split('_').slice(2).join('_').replace(/\.json$/, '.log');
+    }
+    const targetLog = key.replace(/^([^_]*?)\d*_/, '$1');
+    const logFile = this.findFileHere(dirName, targetLog);
+    if (logFile) {
+      stacks = await this.extractErrorBackTrace(logFile);
+    }
+    return stacks;
+  }
+
+  static async extractErrorBackTrace(logPath: string): Promise<any[]> {
+    const errorLines: string[] = [];
+    const rl = readline.createInterface({
+      input: fs.createReadStream(logPath, { encoding: 'utf8' }),
+      crlfDelay: Infinity
+    });
+
+    const magicRe = /\b(?:magic|opmagic):\s*\d+/i;
+    for await (const line of rl) {
+      if (line.includes('[ERROR]') && magicRe.test(line)) {
+        errorLines.push(line.trim());
+      }
+    }
+    const errorList = await this.parseErrorLogs(errorLines);
+    return errorList;
+  }
+
+  static async parseErrorLogs(logs: string[]): Promise<OpError[]> {
+    return logs.map(line => {
+      const funcMatch = line.match(/FuncMagic:(\d+)/);
+      const FuncMagic = funcMatch ? Number(funcMatch[1]) : null;
+
+      const magicRe = /\b(?:magic|opmagic):\s*(\d+)/i;
+      const m = line.match(magicRe);
+      const OpMagic = m ? Number(m[1]) : null;
+
+      const errorText = line.replace(/^.*\[ERROR\]:\s*(.*?)(?:\s*\[FuncMagic:\d+\]\[OpMagic:\d+\]\[Backtrace\].*)?$/, '$1').trim();
+      return { FuncMagic, OpMagic, error: errorText };
+    });
+  }
+
+  static createJsonGraphData(data, server, errNodeList) {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap);
 
@@ -139,6 +230,7 @@ export abstract class BaseGraphMsgHandler {
       selectedSubgraphId,
       nodeMagic,
       threeMode,
+      errNodeList,
     );
 
     return sprottyGraph;
@@ -156,7 +248,7 @@ export abstract class BaseGraphMsgHandler {
         if (hit === 0) {
           await gd.readFileAndSetCache(gd.fsPath);
         } else {
-          console.debug('BaseGraphMsgHandler getInitialData FuncData命中缓存');
+          // BaseGraphMsgHandler getInitialData FuncData 命中缓存
         }
       } else {
         await gd.readFileAndSetCache(gd.fsPath);
@@ -178,7 +270,7 @@ export abstract class BaseGraphMsgHandler {
 
 
   static async openSearchMode(message: any, server: any) {
-    const nodeMagic: number = message.data?.nodeMagic;
+    const nodeMagic: string = message.data?.nodeMagic;
     const funcHash = message.data?.funcHash;
     const gd = server.comGraphData;
     commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
@@ -519,24 +611,10 @@ export abstract class BaseGraphMsgHandler {
   }> {
     if (!gd) return { json: undefined };
     let ret: string | null = null;
-
-    /* 1️⃣ 数据库模式：带延迟重试 */
     if (gd.isUsedDB) {
-      const maxRetry = 5;
-      const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-      for (let i = 0; i < maxRetry; i++) {
-        const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
-        ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
-
-        if (ret) {
-          break;
-        }
-        console.debug(`fetchGraphJson comGraphFuncDataGet 未拿到数据 重试第${i + 1}次`);
-        await delay(100);
-      }
+      const row = await SQLiteCache.getInstance().comGraphFuncDataGet(gd.fsPath, gd.funcHash!);
+      ret = row?.big_data_file_path ? await SQLiteCache.getInstance().readJsonFile(row.big_data_file_path) : row?.data ?? null;
     } else {
-      /* 2️⃣ 内存模式：一次拿完 */
       ret = gd.dataMap[gd.funcHash!] ?? null;
     }
 
@@ -548,11 +626,9 @@ export abstract class BaseGraphMsgHandler {
       }
       return { json: undefined };
     }
-
     const json = JSON.parse(ret);
     await this.returnCalleeMap(gd, server, json);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
-
     return { json, io };
   }
 
@@ -618,10 +694,10 @@ export abstract class BaseGraphMsgHandler {
       const nodesMagic = server.query?.nodeMagic;
       if (nodeCount > NODE_COUNT_LIMIT || isNodeSearch || nodesMagic != null) {
         const mode = isNodeSearch
-          ? (nodesMagic === -1 ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
+          ? (nodesMagic === '-1' ? RequestSourceType.SearchNoMagic : RequestSourceType.SearchMagic)
           : RequestSourceType.NodeOverLimit;
 
-        server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic });
+        server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
       }
       server.query.isSearch = false;
       server.query.nodeMagic = undefined;
