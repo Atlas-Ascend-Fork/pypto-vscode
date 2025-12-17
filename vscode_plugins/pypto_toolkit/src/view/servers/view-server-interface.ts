@@ -11,6 +11,7 @@ export type IComApis =
   | 'setFinalResult'
   | 'searchAllFunc'
   | 'innerGetSubgraph'
+  | 'selectFile'
   | 'returnFuncTree';
 export type IComRefs = {
   CalleeMap: unknown;
@@ -31,6 +32,8 @@ export type IComRefs = {
   PathOriginMode: unknown;
   nodeErrorList: unknown;
   InitComFlag: unknown;
+  SameDiffFile: unknown;
+  AfterDiffData: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
@@ -46,6 +49,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   getHealthyReport: () => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
   returnFuncTree: () => Promise<void>;
+  selectFile: (beforeFilePath: string) => Promise<void>;
 }
 
 export type IThreeApis =
