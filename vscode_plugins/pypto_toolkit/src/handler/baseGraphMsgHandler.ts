@@ -720,8 +720,6 @@ export abstract class BaseGraphMsgHandler {
 
         server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
       }
-      server.query.isSearch = false;
-      server.query.nodeMagic = undefined;
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
       const [_, passIndex, __] = server.comGraphData.fsPath?.match(passDirectoryRegExp) ?? [];
