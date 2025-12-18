@@ -159,15 +159,7 @@ const findSemanticLabelAtPosition = (position) => {
 };
 
 // 在行尾显示语义标签信息
-const showLabelInfo = (position) => {
-  // 清除之前的标签信息装饰
-  clearLabelInfo();
-
-  const currentLabel = findSemanticLabelAtPosition(position);
-  if (!currentLabel) {
-    return;
-  }
-  
+const showLabelInfo = (position, currentLabel) => {
   const lineContent = editor.getModel().getLineContent(position.lineNumber);
   const lineLength = lineContent.length;
   
@@ -438,7 +430,14 @@ const setupHoverListeners = () => {
   editor.onMouseDown((e) => {
     const { position } = e.target;
     if (position) {
-      showLabelInfo(position);
+      // 清除之前的标签信息装饰
+      clearLabelInfo();
+      const currentLabel = findSemanticLabelAtPosition(position);
+      if (!currentLabel) {
+        return;
+      }
+      showLabelInfo(position, currentLabel);
+      sendMsg('returnSemanticLabelFromCodeClick', { label: currentLabel.name });
     }
   });
 
