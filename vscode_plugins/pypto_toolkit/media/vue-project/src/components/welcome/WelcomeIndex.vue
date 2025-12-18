@@ -39,7 +39,7 @@
                 @click="getInitPythonProject()"
                 :disabled="!isLinux"
               >
-                去打开
+                去运行
               </button>
             </div>
           </div>
@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { openControlFlow } from '@/apis/opener';
-import { getInitPythonProject, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { getInitPythonProject, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
 import { ref, computed, watch, onMounted } from 'vue';
 
 // 模拟静态资源路径
@@ -241,14 +241,14 @@ const markAsCompleted = async () => {
   }
 };
 
-function goToCheckResult() {
+ async function goToCheckResult() {
   updateWelcomeState({
     key: 'guide.state',
     value: true,
   });
   openControlFlow({
-    controlFlowPath: 'M:\Users\s30075542\AppData\demo\pypto-tools\vscode_plugins\pypto_toolkit\src\testdata',
-    outputPath: 'M:\Users\s30075542\AppData\demo\pypto-tools\vscode_plugins\pypto_toolkit\src\testdata',
+    controlFlowPath: `${await getUserRunRoot()}/program.json`,
+    outputPath: `${await getUserRunRoot()}`,
   });
 }
 
@@ -526,7 +526,6 @@ watch(
       justify-content: start;
       align-items: center;
       padding: 20px;
-      position: relative;
       min-width: 800px;
       min-height:450px;
       .preview-area__image-bg {

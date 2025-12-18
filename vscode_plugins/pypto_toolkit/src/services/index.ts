@@ -14,7 +14,7 @@ import {
   updateConfigsFile,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
-import { getInitPythonProject, isLinuxEnvironment } from './welcome';
+import { getInitPythonProject, getUserRunRoot, isLinuxEnvironment } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
 
 export const services = {
@@ -24,6 +24,7 @@ export const services = {
     getWelcomeState,
     isLinuxEnvironment,
     getIsCompleteBoot,
+    getUserRunRoot,
   },
   // 控制流
   controlFlow: {
