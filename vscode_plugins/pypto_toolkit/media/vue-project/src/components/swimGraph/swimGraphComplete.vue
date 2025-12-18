@@ -11,7 +11,7 @@
       <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
     </div>
     <div class="container">
-      <Loading v-if="loading" :loadingText="loadingText" warningText="" />
+      <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }">
           <div class="title_up" v-show="!isSwimGraphActive">
@@ -157,6 +157,7 @@ const highlightedPaths = reactive(new Set());
 const processExpanded = reactive(new Map());
 const loading = ref(false);
 const loadingText = ref($t('loadTraceData'));
+const warningText = ref('');
 const detailsPanelExpanded = ref(false);
 const detailsCoresExpanded = ref(false);
 const tooltip = ref(null);
@@ -319,6 +320,9 @@ function setupSwimWatchers() {
   });
   watch(server.dataError, (newValue) => {
     window.ascEventBus.emit('jsonParseError', {msg: newValue});
+  });
+  watch(server.performanceWarn, (newValue) => {
+    warningText.value = newValue;
   });
 }
 

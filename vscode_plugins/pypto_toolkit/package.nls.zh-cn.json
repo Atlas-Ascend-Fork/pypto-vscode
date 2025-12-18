@@ -110,6 +110,8 @@
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
   "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
+  "pypto.swimGraph.performance.useTime": "当前文件预计打开耗时介于 {{lower}} 和 {{upper}} 之间",
+  "pypto.swimGraph.performance.tooLarge": "当前文件过大，可能存在打不开的情况",
   "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",
   "pypto.swimGraph.validate.process": "processes 缺少关键字段 ",
   "pypto.swimGraph.validate.threadWithid": "thread缺少关键字段 pid:{{pid}}, tid:{{tid}}",

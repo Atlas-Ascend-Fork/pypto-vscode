@@ -110,6 +110,8 @@
   "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration",
   "pypto.swimGraph.validate.processWithPid": "Missing Required keys in process pid:{{pid}}",
   "pypto.swimGraph.validate.process": "Missing Required keys in processes",
+  "pypto.swimGraph.performance.useTime": "The estimated time to open the current file is between {{lower}} and {{upper}}.",
+  "pypto.swimGraph.performance.tooLarge": "The current file is too large and may fail to open.",
   "pypto.swimGraph.validate.threadWithid": "Missing Required keys in thread pid:{{pid}}, tid:{{tid}}",
   "pypto.swimGraph.validate.thread": "Missing Required keys in thread",
   "pypto.swimGraph.validate.eventWithName": "Missing Required keys in event name:{{name}}",
