@@ -35,4 +35,9 @@ export const routes: EditorViewRoutes = {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
     viewServer: RunConfigViewServer,
   },
+
+  // 欢迎页面
+  welcome: {
+    title: '快速开始',
+  },
 };
