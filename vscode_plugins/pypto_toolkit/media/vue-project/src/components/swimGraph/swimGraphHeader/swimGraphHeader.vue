@@ -7,9 +7,21 @@
             <d-search class="swim-search" :disabled="isLockStatus"  v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
               :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
           </d-tooltip>
-          <d-search v-else class="swim-search" v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
-              :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
-          <d-tooltip :content="$t('caseSensitive')" v-if="searchQuery" position="bottom">
+          <d-category-search v-else 
+            ref="searchEl"
+            :class="['swim-search', isSearchActive && 'search-focus']"
+            :category="category" 
+            :selected-tags="selectedTagsRef"
+            :extend-config="{show:true, clear: {show : isSearchActive}, save: { show: false }, more: {show : false} }"
+            :placeholder="searchPlaceholder"
+            :text-config="textConfig"
+            :show-search-category="searchConfig"
+            @search="onSearch"
+            @selectedTagsChange="onSelectChange"
+            @searchKeyChange="onSearchKeyChange"
+            @clearAll="onClearAll">
+          </d-category-search>
+          <d-tooltip :content="$t('caseSensitive')" v-if="searchedKey" position="bottom">
             <button class="case-sensitive" @click="toggleCaseSensitivity" :class="{'case-dark': isCaseSensitive}">
               <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
                 <path d="M339.62496 186.78272H249.8816L4.26496 834.56H97.3824l62.75584-177.46432h269.90592L496.84992 834.56h93.11744L339.62496 186.78272z m-155.19744 396.76416L292.39296 269.1072h1.35168l107.96032 314.43968H184.42752zM927.21664 584.35584c-4.32128 8.09984-17.67424 15.25248-40.07936 21.45792-22.4 6.20544-54.38464 10.65984-95.9488 13.35808-42.6496 4.85376-74.22464 14.84288-94.74048 29.96224s-29.96224 34.816-28.3392 59.1104c3.23584 46.41792 38.05696 69.63712 104.448 69.63712 93.93152-6.4768 145.4848-50.74432 154.65984-132.79744v-60.72832z m-315.79136-97.97632c21.59104-93.93152 90.14272-139.27424 205.66528-136.03328 62.08512-1.61792 107.96544 12.416 137.65632 42.10688 29.69088 29.69088 43.72992 74.76736 42.10688 135.22432v187.04896c-1.61792 25.36448-0.13312 46.82752 4.4544 64.36864 4.58752 17.54112 11.4688 31.70816 20.64896 42.51136h-66.40128c-7.55712-7.55712-13.09184-16.8704-16.59904-27.93472-3.5072-11.06944-5.25824-22.8096-5.25824-35.2256-37.79584 50.74432-97.97632 76.11392-180.57216 76.11392-96.62464-3.24096-148.17792-43.1872-154.65984-119.8336 1.62304-44.80512 16.06144-79.62624 43.32544-104.45824 27.25888-24.832 68.68992-39.67488 124.288-44.53376 44.26752-4.85376 79.89248-9.85088 106.88512-14.976 26.98752-5.13536 45.07648-11.74528 54.25152-19.84 3.24096-42.64448-4.58752-73.68704-23.48032-93.12256-18.88768-19.4304-48.85504-28.3392-89.8816-26.72128-39.94624-1.61792-71.53152 5.39648-94.73536 21.05344-23.2192 15.65696-36.98176 40.21248-41.29792 73.68192l-66.39616-19.4304z" p-id="5425"></path>
@@ -207,7 +219,44 @@ const backgroundColor = ref('#606061');
 const caseSensitivePath = computed(() => isCaseSensitive.value ? caseSensitivePathActive : caseSensitivePathNoActive);
 
 const searchPlaceholder = $t("searchKeyword");
+const selectedTagsRef = ref([]);
+const searchedKey = ref('');
+const searchEl = ref();
+let category = [
+    {
+      label: 'Root Func. Hash',
+      field: 'Root',
+      type: 'textInput',
+      group: 'Basic',
+      maxLength: 50,
+      validateRules:[
+        {required: true, message: $t('noNull'), trigger: 'change'},
+        {min: 1, max: 100, message: $t('hashInput'), trigger: 'change'},
+        ],
+    },
+    {
+      label: 'Leaf Func. Hash',
+      field: 'Leaf',
+      type: 'textInput',
+      group: 'Basic',
+      maxLength: 50,
+      validateRules:[
+        {required: true, message: $t('noNull'), trigger: 'change'},
+        {min: 1, max: 100, message: $t('hashInput'), trigger: 'change'},
+        ],
+    }
+  ];
 
+const searchConfig = {
+  keywordDescription: (key) => $t('swimGraphkeywordDesc', { key }),
+  fieldDescription: (label) => $t('swimGraphfieldDesc', { label }),
+  categoryDescription: $t('swimGraphcategoryDesc')
+};
+const textConfig = {
+  noCategoriesAvailable: $t('noSearchCondition'),
+  tagMenuEmpty: $t('noSearchMeasureDetaildata'),
+  keywordName: $t('comGraph.keyword')
+};
 const searchResultCount = ref(0);
 
 const reportVisible = ref(false);
@@ -425,41 +474,60 @@ const mte3RatePercentage = ref(0);
 
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
-const onSearch = (term) => {
-  if (isLockStatus.value) {
+
+const onSearch = (e) => {
+  if (currentResultIndex.value >= 1 && e.searchKey === searchedKey.value) {
     return;
   }
-  searchQuery.value = term;
-  let termL = term.toLowerCase();
+  e.category = e.selectedTags[0]?.field;
+  searchedKey.value = e.searchKey;
+  if (!(e.category) || e.category === '') {
+    fuzzSearch(e.searchKey);
+  } else {
+    onSelectChange(e);
+  }
+};
+
+const onSelectChange = (e) => {
+  let { selectedTags } = e;
+  if (selectedTags.length === 0) {
+    fuzzSearch(e.currentChangeTag?.value.value);
+  } else if (selectedTags.length === 1) {
+    const [tag] = selectedTags;
+    searchBySingleHash(tag.field, tag.value.value);
+  } else {
+    const rootTag = selectedTags.find(tag => tag.field === 'Root');
+    const leafTag = selectedTags.find(tag => tag.field === 'Leaf');
+    if (rootTag && leafTag) {
+      searchByComHash(rootTag.value.value, leafTag.value.value);
+    }
+  }
+};
+
+const onSearchKeyChange = (e) => {
+  searchedKey.value = e;
+};
+
+const onClearAll = (e) => {
+  searchedKey.value = '';
+  resetsearchState();
+};
+
+const performSearch = (filterFn) => {
   searchResult.value = [];
   searchResultCount.value = 0;
   currentResultIndex.value = 0;
-  if (term.trim() === '') {
-    // 关闭按钮
-    searchResultCount.value = 0;
-    currentResultIndex.value = 0;
-    isSearchActive.value = false;
-    detailsPanelExpanded.value = false;
-    searchedEvent.value = null;
-    clearSearchData();
-    return;
-  }
-  for (const [processkey, process] of processes.entries()) {
-    if (!processExpanded.get(processkey)) {
-      continue;
+  for (const [processKey, process] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
+      continue; 
     }
+    
     for (const [threadKey, thread] of process.threads.entries()) {
-      thread.events.forEach(event => {
-        if (isCaseSensitive.value) {
-          if (event.name.includes(term)) {
-            searchResult.value.push([event, thread.threadName, processkey]);
-          }
-        } else {
-          if (event.name.toLowerCase().includes(termL)) {
-            searchResult.value.push([event, thread.threadName, processkey]);
-          }
+      for (const event of thread.events) {
+        if (filterFn(event, thread, processKey)) {
+          searchResult.value.push([event, thread.threadName, processKey]);
         }
-      });
+      }
     }
   }
   if (!searchResult.value.length) {
@@ -471,16 +539,78 @@ const onSearch = (term) => {
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
   searchResultCount.value = searchResult.value.length;
   isSearchActive.value = true;
-  if(searchResultCount.value > 0) {
+  if (searchResultCount.value > 0) {
     currentResultIndex.value += 1;
+    const target = searchResult.value.at(currentResultIndex.value - 1);
+    if (target) {
+      selectEventChild(target.at(0));
+      scrollToEvent(target.at(0));
+    }
   }
-  const target = searchResult.value.at(currentResultIndex.value - 1);
-  if (!target) {
-    return;
-  }
-  selectEventChild(target.at(0));
-  scrollToEvent(target.at(0));
 };
+
+const searchByComHash = (rootHash, leafHash) => {
+  const rootRegex = new RegExp(`rootHash:(?<hash>\\d+)`);
+  const leafRegex = new RegExp(`leafHash:(?<hash>\\d+)`);
+  performSearch((event) => {
+    const eventHint = event.args['event-hint'];
+    if (!eventHint) {
+      return false; 
+    }
+    const rootMatch = eventHint.match(rootRegex);
+    const leafMatch = eventHint.match(leafRegex);
+    if (!rootMatch || !leafMatch) {
+      return false; 
+    }
+    const eventName = isCaseSensitive.value ? event.name : event.name.toLowerCase();
+    const searchKey = searchedKey?.value;
+    if (!searchKey) {
+      return rootMatch.groups.hash.includes(rootHash) && leafMatch.groups.hash.includes(leafHash);
+    }
+    const searchKeyLower = searchKey.toLowerCase();
+    const isMatch = eventName.includes(isCaseSensitive.value ? searchKey : searchKeyLower);
+    return isMatch && rootMatch.groups.hash.includes(rootHash) && leafMatch.groups.hash.includes(leafHash);
+  });
+};
+
+const searchBySingleHash = (hashCate, hash) => {
+  const regex = new RegExp(`${hashCate.toLowerCase()}Hash:(?<hash>\\d+)`);
+  performSearch((event) => {
+    const eventHint = event.args['event-hint'];
+    if (!eventHint) { 
+      return false; 
+    }
+    const match = eventHint.match(regex);
+    if (!match?.groups.hash) { 
+      return false; 
+    }
+    const eventName = isCaseSensitive.value ? event.name : event.name.toLowerCase();
+    const searchKey = searchedKey?.value;
+    if (!searchKey) {
+      return match.groups.hash.includes(hash);
+    }
+    const searchKeyLower = searchKey.toLowerCase();
+    return eventName.includes(isCaseSensitive.value ? searchKey : searchKeyLower) && match.groups.hash.includes(hash);
+  });
+};
+
+const fuzzSearch = (e) => {
+  let searchKey = e;
+  if (!searchKey || searchKey.trim() === '') {
+    if (searchedKey.value) {
+      searchKey = searchedKey.value;
+    } else {
+      resetsearchState();
+      return;
+    }
+  }
+  const searchKeyL = isCaseSensitive.value ? searchKey : searchKey.toLowerCase();
+  performSearch((event) => {
+    const eventName = isCaseSensitive.value ? event.name : event.name.toLowerCase();
+    return eventName.includes(isCaseSensitive.value ? searchKey : searchKeyL);
+  });
+};
+
 const clearSearchData = () => {
   highlightedPaths.clear();
   for (const [processkey, process] of processes.entries()) {
@@ -496,10 +626,9 @@ const clearSearchData = () => {
 
 const toggleCaseSensitivity = () => {
   isCaseSensitive.value = !isCaseSensitive.value;
-  if (!searchQuery.value) return;
-  if (searchQuery.value) {
-    onSearch(searchQuery.value);
-  }
+  currentResultIndex.value = 0;
+  const icon = searchEl.value.$el.querySelector('.dp-category-search-icon');
+  icon?.click();
 };
 // 导航搜索结果
 const navigateResults = (direction) => {
@@ -660,13 +789,30 @@ const isCfgDisabled = computed(() => {
 });
 
 const handleClickOutsize = (event) => {
+  if (!event || !event.target) {
+    return;
+  }
   const container = document.querySelector('.zoom-controls');
-  if (container && !container.contains(event.target)) {
-    if (!isSwimGraphActive.value) {
-      return;
-    }
+  const flagsCanvas = document.querySelector('.flags-canvas');
+  const eventsCanvas = document.querySelector('.events-canvas');
+  if (!container || !flagsCanvas || !eventsCanvas) {
+    return;
+  }
+  if (isSearchActive.value && (flagsCanvas.contains(event.target) || eventsCanvas.contains(event.target))) {
+    resetsearchState();
+  }
+  if (isSwimGraphActive.value && !container.contains(event.target)) {
     threeColumnSearchVisible.value = false;
   }
+};
+
+const resetsearchState = () => {
+  searchResultCount.value = 0;
+  currentResultIndex.value = 0;
+  isSearchActive.value = false;
+  detailsPanelExpanded.value = false;
+  searchedEvent.value = null;
+  clearSearchData();
 };
 
 const isThreeColumnHeader =() => {
@@ -701,6 +847,21 @@ watch(isSwimGraphActive, () => {
     threeColumnSearchVisible.value = false;
   } else {
     threeColumnSearchVisible.value = true;
+  }
+});
+watch(searchEl, () => {
+  if (searchEl.value) {
+    const inputEl = searchEl.value.$el.querySelector('.dp-category-search-toggle');
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isSearchActive.value) {
+          navigateResults('next');
+        }
+      } else if (e.key === 'Escape') {
+        resetsearchState();
+      }
+    }, true);
   }
 });
 const updateTheme = () => {
@@ -818,5 +979,54 @@ defineExpose({
 #swim-header-increase {
   padding: 3px 0 ;
 }
+</style>
+<style scoped lang="scss">
+:deep() {
+  .swim-search.dp-category-search-container {
+    height: 28px;
+    width: 320px;
+    border: 1px solid transparent;
+    background: var(--devui-category-search-bg);
+  }
 
+  .swim-search.dp-category-search-container:focus-within {
+    border: 1px solid var(--devui-select-active-border-color);
+  }
+
+  .swim-search.container-hover {
+    border: 1px solid var(--devui-select-hover-border-color);
+  }
+
+  .swim-search.dp-category-search-container {
+    .dp-category-search-extended-container {
+      border-left-color: transparent;
+      padding-left: 28px;
+      .dp-category-search-icon {
+        padding-right: 0px;
+      }
+    }
+
+    .dp-category-search-line-container {
+      height: 26px;
+      .dp-category-search-toggle {
+        height: 28px;
+        font-size: 13px;
+        &::placeholder {
+          color: var(--devui-category-search-placeholder);
+        }
+      }
+      &:hover {
+        overflow-y: hidden;
+      }
+    }
+  }
+  .search-focus.dp-category-search-container .dp-category-search-line-container .dp-category-search-toggle {
+    min-width: 0px;
+    width: 80px;
+  }
+  .search-focus.dp-category-search-container .dp-category-search-line-container .dp-category-search-line .dp-category-search-input {
+    min-width: 0px;
+    width: 100px;
+  }
+}
 </style>

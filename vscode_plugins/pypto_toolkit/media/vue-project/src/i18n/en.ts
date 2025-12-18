@@ -103,6 +103,8 @@ export default {
     'hitRate': 'Hit Rate',
     'args':'Args',
     'pipeStat':'Pipe Statistics',
+    'noNull':'The value cannot be empty',
+    'hashInput':"Enter a hash value of at least one character",
     diffList: 'Differences List',
     diff: 'Difference',
     sameDiffFileTips: 'The currently selected file is the same as the one already opened. Please select again',

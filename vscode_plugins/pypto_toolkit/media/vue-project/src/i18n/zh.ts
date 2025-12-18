@@ -103,6 +103,8 @@ export default {
    'hitRate': '命中率',
    'args':'Task参数',
    'pipeStat':'Pipe统计',
+   'noNull':'不能为空',
+   'hashInput':"输入至少一个字符的hash值",
    diffList: '差异列表',
    diff: '差异',
    sameDiffFileTips: '当前选择文件与已打开文件相同，请重新选择',
