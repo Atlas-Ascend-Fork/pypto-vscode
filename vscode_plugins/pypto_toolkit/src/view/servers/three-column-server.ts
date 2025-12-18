@@ -60,7 +60,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'returnSwim',
   'noSwimFile',
   'dataError',
-  'validateSwimFile',
+  'performanceWarn',
   'returnSwimData',
   'bindResult',
   'unbindResult',
@@ -69,7 +69,9 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'returnInitPath',
   'returnSearchPath',
   'returnReplace',
-  'SetVscodeState'
+  'SetVscodeState',
+  'returnSwimPath',
+  'returnComPath',
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
@@ -193,10 +195,6 @@ export class ThreeColumnServer
   @viewApi()
   public getOtherData = async () => {
     return await SwimGraphMsgHandler.getOtherData(this);
-  };
-  @viewApi()
-  public validateSwimFile = async () => {
-    return await SwimGraphMsgHandler.validateFile(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {
@@ -345,7 +343,57 @@ export class ThreeColumnServer
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
     this.setRef('returnSearchPath', { data: pathMsg });
+  };
+  @viewApi()
+  public singleSelectFile = async (message: {graphType: string}) => {
+    if (!message || !message.graphType) {
+      return ;
+    }
+    const validGraphTypes = ['editor', 'swimGraph', 'comGraph'];
+    if ( !validGraphTypes.includes(message.graphType)) {
+      return;
+    }
+    try {
+      const {path} = await new Fider(this.codePath).selectPath(message.graphType);
+      if (!path) {
+        return ;
+      }
+      switch (message.graphType) {
+        case 'editor':
+          await this.handleCodeGraph(path);
+          break;
+        case 'swimGraph':
+          await this.handleSwimGraph(path);
+          break;
+        case 'comGraph':
+          await this.handleComGraph(path);
+          break;                      
+      }
+    } catch (error) {
+      console.log(`Error processing graphType ${message.graphType}:`, error)
+    }
+  };
+  private async handleCodeGraph(path: string) {
+    this.codePath = path;
+    try {
+      const code = readFileSync(path, 'utf8');
+      this.setRef('PyCode', { data: { code, codePath:path } });
+    } catch (err) {
+      console.error(`${path}读取 py 文件时发生错误:`, err);
+    }
+  };
+  private async handleComGraph(path: string) {
+    this.comPath = path;
+    this.query = {
+      fsPath: path,
+    };
+    this.setRef('returnComPath', {data: {comPath: path}});
   }
+  private async handleSwimGraph(path: string) {
+    this.swimDataPath = path;
+    this.swimData = new SwimData(Uri.file(path), path);
+    this.setRef('returnSwimPath', {data: {swimPath: path}});
+  };
 
   safeParse(str) {
     try {

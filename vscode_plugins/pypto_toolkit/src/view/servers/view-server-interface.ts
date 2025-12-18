@@ -67,6 +67,7 @@ export type IThreeApis =
   | 'getInitialComData'
   | 'getInitialSwimData'
   | 'selectFile'
+  | 'singleSelectFile'
   | 'fetchVscodeState';
 export type IThreeRefs = {
   InitFlag: unknown;
@@ -93,11 +94,13 @@ export type IThreeRefs = {
   ReadJsonWarning: unknown;
   PathOriginMode: unknown;
   nodeErrorList: unknown;
-  validateSwimFile: unknown;
+  performanceWarn: unknown;
   JsonContent: unknown;
   GetPassPath: unknown;
   returnInitPath: unknown;
   returnReplace: unknown;
+  returnSwimPath: unknown,
+  returnComPath: unknown,
   returnSearchPath: unknown;
   SetVscodeState: unknown;
 };
@@ -121,7 +124,6 @@ export type ISwimApis =
   | 'getInitialData'
   | 'getOtherData'
   | 'getSwimData'
-  | 'validateSwimFile'
   | 'bindComGraphJson'
   | 'unbindComGraph'
   | 'jumpToComGraph'
@@ -138,11 +140,11 @@ export type ISwimRefs = {
   bindResult: unknown;
   unbindResult: unknown;
   dataError: unknown;
+  performanceWarn: unknown;
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
   getSwimData: () => Promise<any>;
-  validateSwimFile: () => Promise<any>;
   getOtherData: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;

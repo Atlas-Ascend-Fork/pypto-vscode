@@ -8,9 +8,9 @@ import stream from 'node:stream';
 
 type Apis = ISwimApis | ICommonApis;
 
-type Refs = ISwimRefs & ICommonRefs & { validateSwimFile: unknown };
+type Refs = ISwimRefs & ICommonRefs;
 
-@viewRefs(['returnSwim', 'noSwimFile', 'validateSwimFile', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError'])
+@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;
@@ -47,10 +47,6 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public getOtherData = async () => {
     return await this.handler.getOtherData(this);
-  };
-  @viewApi()
-  public validateSwimFile = async () => {
-    return await this.handler.validateFile(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {

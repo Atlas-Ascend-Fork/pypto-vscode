@@ -11,14 +11,11 @@
     >
       <div class="three-column-block editor-block">
         <div class="sticky-block">
-          <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{ display: 'none' }">
-            <div class="simple-com-file-name">Program.json</div>
-            <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
-          </div>
-          <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
+          <fileSelect  :file-name="editorFileName" />
           <DragIcon />
+          <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
         </div>
-        <editor />
+        <editor  ref="editorRef"/>
       </div>
     </ItemBlock>
     <ItemBlock
@@ -71,13 +68,19 @@ import type { ILayoutInfo, BlockType, LayoutMode, IBlockToGraphMap, IShowBlockMa
 import ItemBlock from './itemBlock.vue';
 import ThreeColumnHeader from './threeColumnHeader.vue';
 import DragIcon from './drag-icon.vue';
+import fileSelect from '../threeColumn/file-select.vue';
 import { findKeyByValue } from './utils';
+import { useViewServer } from '../../core/use-view-server';
+import { ThreeColumnServer } from 'ext:/view/servers/three-column-server';
+const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 
 const currentLayoutMode = ref<LayoutMode>('triangular');
 const HResizeBarLeft = ref('');
 const VResizeBarTop = ref('');
+const editorFileName = ref('');
+const editorRef = ref();
 const HResizeBarOffset = ref('1px');
 const VResizeBarOffset = ref('1px');
 const currentWidth = ref('50%');
@@ -270,9 +273,6 @@ function resetLayout() {
   showBottom.value = true;
   emitSizeChange();
 }
-function openSelectedFileWindow() {
-  console.log(11);
-}
 onMounted(() => {
   HResizeBarLeft.value = `calc(50% - var(--offset))`;
   VResizeBarTop.value = `calc(50% - var(--offset))`;
@@ -284,7 +284,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateContainerRect);
 });
 
-provide('threeColumnState', { isDarkTheme });
+provide('threeColumnState', { isDarkTheme, editorFileName });
 </script>
 
 <style scoped lang="scss">
@@ -403,16 +403,6 @@ provide('threeColumnState', { isDarkTheme });
   .simple-containner {
     display: flex;
     cursor: pointer;
-  }
-  .simple-com-file-name {
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 28px;
-  }
-  .simple-com-file-name-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--devui-primary-text);
   }
   .icon-line-height {
     line-height: 30px;

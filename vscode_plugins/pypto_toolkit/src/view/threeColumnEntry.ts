@@ -85,6 +85,31 @@ export class Fider {
   
     return { swimPath: undefined, comPath: undefined };
   }
+  async selectPath(graphType: string): Promise<{ path: string | undefined}>  {
+    if (graphType === "editor") {
+      const codePath = await this.selectFile(t('pypto.selectCodeFile'), 'cpp');
+      if (!codePath) {
+        window.showWarningMessage(t('pypto.noCodeFileSelect'));
+        return {path: undefined };
+      }
+      return {path: codePath };
+    } else if (graphType === "swimGraph") {
+      const swimPath = await this.selectFile(t('pypto.selectSwimFile'));
+      if (!swimPath) {
+        window.showWarningMessage(t('pypto.noSwimFileSelect'));
+        return {path: undefined };
+      }
+      return {path: swimPath };
+    } else if (graphType === "comGraph") {
+      const comPath = await this.selectFile(t('pypto.selectComFile'));
+      if (!comPath) {
+        window.showWarningMessage(t('pypto.noComFileSelect'));
+        return { path: undefined };
+      }
+      return {path: comPath };
+    }
+    return {path: undefined};
+  }
 
   async handleUserSelect(graphType: string): Promise<{ swimPath: string | undefined; comPath: string | undefined }>  {
     if (graphType === "swimGraph") {
@@ -153,16 +178,31 @@ export class Fider {
 
   private async selectFile(
     title: string,
+    filters: 'json' | 'cpp' | 'py' | 'all' = 'json'
   ): Promise<string | undefined> {
+    const filterCfg = {
+      json: {
+        [t('pypto.jsonFile')]: ['json'],
+        [t('pypto.allFile')]: ['*']
+      },
+      cpp: {
+        [t('pypto.cppFile')]: ['cpp', 'h', 'hpp', 'py'],
+        [t('pypto.allFile')]: ['*']
+      },
+      py: {
+        [t('pypto.pyFile')]: ['py'],
+        [t('pypto.allFile')]: ['*']
+      },
+      all: {
+        [t('pypto.allFile')]: ['*']
+      },                  
+    };
     const fileUris = await window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: false,
       openLabel: `${title}`,
-      filters: {
-        [t('pypto.jsonFile')]: ['json'],
-        [t('pypto.allFile')]: ['*']
-      },
+      filters: filterCfg[filters],
       title: title,
     });
   
