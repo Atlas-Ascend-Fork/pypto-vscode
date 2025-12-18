@@ -326,11 +326,9 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
 
 const openNextWebview = (nextBigGroup: number) => {
   const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1); 
-  if (!nextGroupConfig) return;
+  if (!nextGroupConfig?.openWebviewFn) return;
   postToExtension('openWebviewWithGuide', {
-    webviewType: nextGroupConfig.webviewType,
-    bigGroup: nextBigGroup,
-    smallIndex: 0,
+    openWebviewFn: nextGroupConfig?.openWebviewFn,
   });
 };
 

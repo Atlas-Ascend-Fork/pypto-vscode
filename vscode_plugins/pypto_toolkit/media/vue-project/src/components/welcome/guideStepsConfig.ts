@@ -19,7 +19,7 @@ export interface GuideStepConfig {
 export interface GuideBigGroupConfig {
   groupName: string; // 大组名称
   webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph'; // 对应WebView类型
-  openWebviewFn?: (params?: any) => Promise<any>; // 打开该WebView的方法
+  openWebviewFn?: string; // 打开该WebView的方法
   openWebviewParams?: Record<string, any> | null; // 打开WebView的参数
   steps: GuideStepConfig[]; // 该组的小步骤配置
   imgUrl: string;
@@ -31,7 +31,6 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   {
     groupName: '控制流',
     webviewType: 'controlFlow',
-    openWebviewFn: openControlFlow,
     openWebviewParams: { outputPath: '', controlFlowPath: '' }, // 实际参数按需传
     imgUrl: controlFlowImg.value,
     steps: [
@@ -63,7 +62,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   {
     groupName: '导航系统',
     webviewType: 'navigation',
-    openWebviewFn: openSwimlaneGraph,
+    openWebviewFn: 'openComputeGraph',
     imgUrl: controlFlowImg.value,
     openWebviewParams: null,
     steps: [
@@ -74,7 +73,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: 'controlFlow-search', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'left', // 三角指向左侧
+        triangleDirection: 'top', // 三角指向左侧
       },
       {
         title: '导航系统-步骤2标题',
@@ -90,7 +89,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   {
     groupName: '计算图',
     webviewType: 'computeGraph',
-    openWebviewFn: openComputeGraph,
+    openWebviewFn: 'openSwimlaneGraph',
     imgUrl: computeImg.value,
     openWebviewParams: { outputPath: '', computeGraphPath: '', pathName: 'compute' },
     steps: [
