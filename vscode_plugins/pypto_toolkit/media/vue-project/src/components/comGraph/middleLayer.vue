@@ -56,6 +56,8 @@ enum RequestType {
 }
 const graphType = toRef(props, 'graphType');
 const filePaths = ref({ swimPath: '', comPath: '' });
+const swimFileName = ref('merged_swimlane.json');
+const comFileName = ref('program.json');
 const { server } = useViewServer<ICommonViewServer>();
 
 // 控制需要哪些监听器
@@ -174,12 +176,14 @@ function setupThreeWatchers(server: any) {
       filePaths.value = { swimPath, comPath };
       if (swimPath) {
         noSwimFile.value = false;
+        swimFileName.value = swimPath.split(/[\/\\]/).pop();
         await server.getInitialSwimData();
       } else {
         noSwimFile.value = true;
       }
       if (comPath) {
         noComFile.value = false;
+        comFileName.value = comPath.split(/[\/\\]/).pop();
         await server.getInitialComData();
         server.returnFuncTree();
       } else {
@@ -193,10 +197,12 @@ function setupThreeWatchers(server: any) {
     const promises = [];
     if (swimPath) {
       noSwimFile.value = false;
+      swimFileName.value = swimPath.split(/[\/\\]/).pop();
       promises.push(server.getInitialSwimData());
     }
     if (comPath) {
       noComFile.value = false;
+      comFileName.value = comPath.split(/[\/\\]/).pop();
       promises.push(server.getInitialComData());
     }
     await Promise.all(promises);
@@ -210,6 +216,20 @@ function setupThreeWatchers(server: any) {
   watch(server.SetVscodeState, async (newValue) => {
     pushState({ comPath: newValue.comPath, swimDataPath: newValue.swimDataPath });
   });
+  watch(server.returnComPath, async (path) => {
+    const { comPath } = path.data;
+    comFileName.value = comPath.split(/[\/\\]/).pop();
+    if (comErrorMessage.value) {
+      comErrorMessage.value = '';
+    }
+    await server.getInitialComData();
+  });
+  watch(server.returnSwimPath, async (path) => {
+    const { swimPath } = path.data;
+    swimFileName.value = swimPath.split(/[\/\\]/).pop();
+    await server.getInitialSwimData();
+    await reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache);
+  });    
 }
 
 function setupSwimWatchers(server: any) {
@@ -380,13 +400,13 @@ const onInputLeave = (event) => {
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'">
       <template #comGraph>
-        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
-        <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" />
-        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
+        <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog"/>
+        <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep" :com-file-name="comFileName" />
+        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths"/>
       </template>
       <template #swimGraph>
         <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />
-        <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
+        <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true" :swim-file-name="swimFileName"
           :graphType="graphType" />
         <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />
       </template>

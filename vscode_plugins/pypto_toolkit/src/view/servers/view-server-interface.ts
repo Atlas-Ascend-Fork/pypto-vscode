@@ -67,6 +67,7 @@ export type IThreeApis =
   | 'getInitialComData'
   | 'getInitialSwimData'
   | 'selectFile'
+  | 'singleSelectFile'
   | 'fetchVscodeState';
 export type IThreeRefs = {
   InitFlag: unknown;
@@ -98,6 +99,8 @@ export type IThreeRefs = {
   GetPassPath: unknown;
   returnInitPath: unknown;
   returnReplace: unknown;
+  returnSwimPath: unknown,
+  returnComPath: unknown,
   returnSearchPath: unknown;
   SetVscodeState: unknown;
 };

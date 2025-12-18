@@ -2,10 +2,7 @@
   <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
       <div class="simple-layout">
-        <div class="simple-containner" @click="() => openSelectedFileWindow()" :style="{ display: 'none' }">
-          <div class="simple-com-file-name">Program.json</div>
-          <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
-        </div>
+        <fileSelect :file-name="comFileName"/>
         <d-select
           ref="rootHashEl"
           v-model="rootHash"
@@ -63,6 +60,7 @@ import NodeDetail from './nodeDetail/nodeDetail.vue';
 import { debounce } from 'lodash-es';
 import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
+import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 import { findNodeIdsBySemanticLabel } from '../../utils/search';
@@ -91,6 +89,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  comFileName: {
+    type:String,
+    default:'',
+  }
 });
 
 const { isDarkTheme } = inject('root');
@@ -380,9 +382,6 @@ function onDocumentClick(e: MouseEvent) {
   }
   isExpandSearch.value = false;
 }
-function openSelectedFileWindow() {
-  console.log(11);
-}
 onMounted(() => {
   loadingText.value = t(LoadingStatusMap['loading']);
   isLoading.value = true;
@@ -516,15 +515,6 @@ onBeforeUnmount(() => {
   }
   .ml20 {
     margin-left: 20px;
-  }
-  .simple-com-file-name-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--devui-primary-text);
-  }
-  .icon-line-height {
-    line-height: 30px;
-    margin-left: 6px;
   }
 }
 

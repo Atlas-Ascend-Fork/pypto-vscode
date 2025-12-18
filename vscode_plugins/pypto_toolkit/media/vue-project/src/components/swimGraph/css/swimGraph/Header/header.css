@@ -10,11 +10,23 @@
   overflow: auto;
 }
 
+.zoom-controls-threeColumn {
+  height: 40px;
+  background: var(--devui-card-bg);
+  border-bottom: 1px solid var(--devui-split-line);
+}
+
 .left-container {
+  margin-left: 16px;
+}
+
+.search-container-res{
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: 16px;
+}
+
+.left-container-search{
   min-width: 440px;
 }
 
