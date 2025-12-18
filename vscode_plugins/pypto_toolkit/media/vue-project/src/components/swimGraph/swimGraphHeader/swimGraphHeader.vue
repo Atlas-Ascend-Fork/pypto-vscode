@@ -25,7 +25,9 @@
       </div>
     </div>
     <div class="right-container" v-if="threeColumnHeaderVisible">
-      <d-icon name="icon-search" id="swim-header-decrease" @click="isThreeColumnSearchActive()" v-if="!threeColumnSearchVisible"></d-icon>
+      <d-button class="icon-container" @click="isThreeColumnSearchActive()" style="height: 28px; width: 28px; padding:4px;" v-if="!threeColumnSearchVisible">
+          <d-icon name="icon-search" size="16px" color="var(--devui-overlay-icon)"></d-icon>
+      </d-button>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
         <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
@@ -58,6 +60,9 @@
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
+      <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
+          <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
+      </d-button>
       <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
@@ -169,6 +174,7 @@ const {
   isThreeColumn,
   fileName,
   isSwimGraphActive,
+  isSwimFullscreen,
 } = inject('swimGraphState');
 
 const {
@@ -185,7 +191,8 @@ const {
   getTimelineCanvas,
   resizeMeasure,
   selectEvent,
-  getDisplayName
+  getDisplayName,
+  onToggleSwimFullscreenFunction
 } = inject('swimGraphMethods');
 
 const {
@@ -671,7 +678,7 @@ const isThreeColumnHeader =() => {
       threeColumnHeaderVisible.value = false;
     }
   }
-}
+};
 
 watch(isDarkTheme, () => {
   updateTheme();

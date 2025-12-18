@@ -5,7 +5,6 @@
         <DragIcon v-if="isThreeColumn" />
       </div>
       <swim-graph-header ref="swimgraphHeaderComponent" />
-      <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleSwimFullscreen"></i>
     </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" warningText="" />
@@ -1807,6 +1806,10 @@ const setPageState = (message) => {
   }
 };
 
+const onToggleSwimFullscreenFunction = () => {
+  onToggleSwimFullscreen();
+};
+
 // 生命周期钩子
 onMounted(async () => {
   setupSwimWatchers();
@@ -1923,6 +1926,7 @@ provide('swimGraphState', {
   labelRender,
   fileName,
   isSwimGraphActive,
+  isSwimFullscreen,
 });
 
 // 提供方法给子组件
@@ -1968,6 +1972,7 @@ provide('swimGraphMethods', {
   changeScale: (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
     timelineComponent?.value.changeScale(zoomFactor, centerPositionX, needRender, isManual);
   },
+  onToggleSwimFullscreenFunction,
 });
 watch(isDarkTheme, () => {
   updateTheme();

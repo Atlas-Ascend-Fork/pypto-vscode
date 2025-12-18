@@ -43,7 +43,10 @@ function openSelectedFileWindow() {
     font-weight: 700;
     color: rgba(230, 230, 230, 1);
     white-space: normal;
-    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    display: inline-block;
 }
 
 .simple-com-file-name-icon{
