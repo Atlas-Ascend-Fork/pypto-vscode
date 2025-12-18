@@ -119,6 +119,7 @@
   "pypto.swimGraph.validate.cntEvent": "Counter类型event args参数错误 name:{{name}}",
   "pypto.swimGraph.validate.noProcess": "SwimJson内没有process节点",
   "pypto.swimGraph.validate.savedData": "缓存数据错误,请按F1清除数据库缓存",
+  "pypto.swimGraph.validate.swimLaneFileError": "输入Json文件错误:{{swimPath}}",
   "PyPTOToolkit.welcome.runPython.state": "状态",
   "PyPTOToolkit.welcome.runPython.installErr": "依赖安装失败,无法执行脚本!",
   "PyPTOToolkit.welcome.runPython.channel": "PyPTO样例工程输出",

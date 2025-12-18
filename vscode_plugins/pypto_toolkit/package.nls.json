@@ -117,6 +117,7 @@
   "pypto.swimGraph.validate.cntEvent": "Args error in counter event name:{{name}}",
   "pypto.swimGraph.validate.noProcess": "No process in SwimJson",
   "pypto.swimGraph.validate.savedData": "saved data error, please enter F1 and refresh cache DB",
+  "pypto.swimGraph.validate.swimLaneFileError": "Input Json file error:{{swimPath}}",
   "PyPTOToolkit.welcome.runPython.state": "state",
   "PyPTOToolkit.welcome.runPython.installErr": "Dependency installation failed; script could not be executed!",
   "PyPTOToolkit.welcome.runPython.channel": "PyPTO Sample Project Output",

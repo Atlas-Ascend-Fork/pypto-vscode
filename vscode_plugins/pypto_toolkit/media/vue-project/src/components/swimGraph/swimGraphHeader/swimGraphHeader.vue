@@ -36,7 +36,7 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
-        <d-button class="icon-container" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
+        <d-button class="icon-container" :disabled=isExporting @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
@@ -200,6 +200,7 @@ const searchPlaceholder = $t("searchKeyword");
 const searchResultCount = ref(0);
 
 const reportVisible = ref(false);
+const isExporting = ref(false);
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
@@ -334,6 +335,7 @@ const exportSwimGraph = async () => {
     mulDetailTableScrollable.style.overflow = 'hidden';
   }
   try {
+    isExporting.value = true;
     const dataUrl = await toPng(container, {
       backgroundColor: isDarkTheme.value ? '#1F1F1F' : '#ffffff',
       pixelRatio: Math.min(window.devicePixelRatio, 2),
@@ -346,6 +348,7 @@ const exportSwimGraph = async () => {
     postMessage($t('swimExportErrorInfo'));
   } finally {
    // 恢复所有样式
+    isExporting.value = false;
     Object.assign(container.style, origContainerStyles);
     Object.assign(scrollable.style, origScrollableStyles);
     // 关键：恢复滚动位置！

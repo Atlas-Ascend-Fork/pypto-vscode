@@ -568,6 +568,10 @@ function getBadgeDom(node) {
       magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
       magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
     } else {
+      if (node.isError) {
+        magicIdBgFillColor = 'var(--devui-op-node-badge-focus-bg)';
+        magicIdTextFillColor = 'var(--devui-op-node-badge-focus-text)';
+      }
       badgePaddingTop = 1;
       badgePaddingRight = 1;
       radius = 4;
