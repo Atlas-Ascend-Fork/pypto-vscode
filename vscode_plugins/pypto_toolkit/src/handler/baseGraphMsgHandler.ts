@@ -130,7 +130,11 @@ export abstract class BaseGraphMsgHandler {
     if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath && !message.data.filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
-    if (finalResult) {
+    let lastChangeTime;
+    if (filePath) {
+      lastChangeTime = await getMTime(filePath);
+    }
+    if (finalResult && lastChangeTime === finalResult.last_change_time) {
       data = JSON.parse(finalResult.final_result); // 如果有缓存则发送最终数据
       data['isFinial'] = true;
       isCached = true;
@@ -347,8 +351,8 @@ export abstract class BaseGraphMsgHandler {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
     if (renderMode === 'path' || !cache || lastChangeTime !== cache.last_change_time) {
-      if (vscode.extensions.getExtension('undefined_publisher.elk-java-layout-ext')) {
-        vscode.commands.executeCommand('PyPTO.elkLayout', `${comGraphData.fsPath}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}`, JSON.stringify(gd), 'PyPto.postLayoutData')
+      if (vscode.extensions.getExtension('huawei-cloud.elk-java-layout-ext')) {
+        vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.postLayoutData')
       } else {
         this.layoutByLocal(server, gd, lastChangeTime, funcHash);
       }
@@ -357,8 +361,25 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
-  static async renderLayout(layoutJsonStr: string, server: any) {
+  static async renderLayout(layoutJsonStr: string, infoStr: string, server: any) {
     const gd = JSON.parse(layoutJsonStr);
+    if (gd.type === 'error') {
+      const info = JSON.parse(infoStr);
+      const originGd = gd.data;
+      const comGraphData = this.getElkLayoutComGraghData(server, originGd);
+      let funcHash = comGraphData?.funcHash!;
+      const lastChangeTime = await getMTime(comGraphData?.fsPath);
+      originGd.layoutOptions = {
+        ...originGd.layoutOptions,
+        ...info
+      };
+      this.layoutByLocal(server, originGd, lastChangeTime, funcHash)
+    }
+    const info = JSON.parse(infoStr);
+    gd.layoutOptions = {
+      ...gd.layoutOptions,
+      ...info
+    };
     const comGraphData = this.getElkLayoutComGraghData(server, gd);
     const renderMode = gd.layoutOptions['PyPTO.renderMode'];
     const filePath = comGraphData?.fsPath;

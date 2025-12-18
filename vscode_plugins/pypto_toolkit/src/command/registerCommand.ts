@@ -76,9 +76,10 @@ export class RegisterCommand {
         this.closeAllToolPages();
       }),
       commands.registerCommand('PyPto.postLayoutData', (id: string, data: any) => {
-        const server = this.editorView.editorView.openServer.get(id);
+        const [serverId, infoStr] = id.split('&&');
+        const server = this.editorView.editorView.openServer.get(serverId);
         if (server) {
-          server.renderLayout(data);
+          server.renderLayout(data, infoStr);
         }
       })
     ];

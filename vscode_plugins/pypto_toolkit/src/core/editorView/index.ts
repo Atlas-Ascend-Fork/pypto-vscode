@@ -168,7 +168,7 @@ export class EditorView {
     const { viewServer } = this.viewRawMap.get(viewType) ?? {};
     let server: ViewServer<never, {}>;
     const query = JSON.parse(uri.query);
-    const serverKey = `${uri.fsPath}_${query.funcHash || ''}_${query.nodeMagic || ''}`;
+    const serverKey = `${query._path}_${query.funcHash || ''}_${query.nodeMagic || ''}`;
     if (viewServer) {
       const ctx = makeViewServerContext(viewPanel, viewType, uri);
       server = new viewServer(ctx);
