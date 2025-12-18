@@ -59,7 +59,14 @@
               <p class="step-description">导航系统</p>
               <p class="step-description">计算图</p>
               <p class="step-description">泳道图</p>
-              <button class="step-content__run-button" :class="{ button__disable: !isLinux||!steps[0].completed}" @click="goToCheckResult" :disabled="!isLinux || !steps[0].completed">去查看</button>
+              <button
+                class="step-content__run-button"
+                :class="{ button__disable: !isLinux || !steps[0].completed }"
+                @click="goToCheckResult"
+                :disabled="!isLinux || !steps[0].completed"
+              >
+                去查看
+              </button>
             </div>
           </div>
 
@@ -74,8 +81,14 @@
             </div>
             <div class="step-content" :class="{ expanded: expandedStepId === 'step3' }">
               <p class="step-description">查看三联动视图查看三联动视图查看三联动视图</p>
-              <button class="step-content__run-button" :class="{ button__disable: !isLinux||!steps[1].completed}" @click="visible = true" :disabled="!isLinux || !steps[1].completed">去查看</button>
-
+              <button
+                class="step-content__run-button"
+                :class="{ button__disable: !isLinux || !steps[1].completed }"
+                @click="visible = true"
+                :disabled="!isLinux || !steps[1].completed"
+              >
+                去查看
+              </button>
             </div>
           </div>
           <!-- 底部操作栏 -->
@@ -229,23 +242,37 @@ const markAsCompleted = async () => {
 };
 
 function goToCheckResult() {
-    updateWelcomeState({
-        key: 'guide.state',
-        value:true
-    })
-    //     openControlFlow({
-    //   controlFlowPath: 'M:\Users\s30075542\AppData\demo\pypto-tools\vscode_plugins\pypto_toolkit\src\testdata',
-    //   outputPath: node.outputPath,
-    // });
-    // console.log({
-    //   computeGraphPath: node.absolutePath,
-    //   outputPath: node.pathName ? node.outputPath : undefined,
-    //   pathName: node.pathName,
-    // });
+  updateWelcomeState({
+    key: 'guide.state',
+    value: true,
+  });
+  openControlFlow({
+    controlFlowPath: 'M:\Users\s30075542\AppData\demo\pypto-tools\vscode_plugins\pypto_toolkit\src\testdata',
+    outputPath: 'M:\Users\s30075542\AppData\demo\pypto-tools\vscode_plugins\pypto_toolkit\src\testdata',
+  });
 }
+
+
+
+// 2. 监听插件主线程的消息
+const listenExtensionMessage = () => {
+  window.addEventListener('message', async (event) => {
+    const message = event.data;
+
+    if (message.type == 'callWebviewMethod') {
+      // 执行当前WebView的方法
+      const { methodName, params } = message.data;
+      if (window[methodName] && typeof window[methodName] === 'function') {
+        window[methodName](params); // 调用注册的方法
+      }
+    }
+  });
+};
+
+
 // 6. 监听&初始化
 onMounted(async () => {
-//   isLinux.value = await isLinuxEnvironment();
+    // isLinux.value = await isLinuxEnvironment();
   initSteps();
   toggleTheme();
 });
@@ -266,8 +293,6 @@ watch(
 <style scoped lang="less">
 /* 容器样式 */
 .guide-container {
-  width: 100vw;
-  height: 100vh;
   background-color: var(--color-bg);
   overflow: hidden;
   padding: 290px;
@@ -502,7 +527,8 @@ watch(
       align-items: center;
       padding: 20px;
       position: relative;
-
+      min-width: 800px;
+      min-height:450px;
       .preview-area__image-bg {
         position: absolute;
         width: 800px;
@@ -519,9 +545,9 @@ watch(
         height: 450px;
         object-fit: fill;
         z-index: 2; // 高于背景层
-        border: 1.5px solid;
-        border-radius: 12px;
-        border-image: linear-gradient(#0fd979, #4475f5, #ff6c96, #c75bef) 30 30;
+        // border: 1.5px solid;
+        // border-radius: 12px;
+        // border-image: linear-gradient(#0fd979, #4475f5, #ff6c96, #c75bef) 30 30;
       }
     }
   }
