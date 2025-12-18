@@ -60,7 +60,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'returnSwim',
   'noSwimFile',
   'dataError',
-  'validateSwimFile',
+  'performanceWarn',
   'returnSwimData',
   'bindResult',
   'unbindResult',
@@ -193,10 +193,6 @@ export class ThreeColumnServer
   @viewApi()
   public getOtherData = async () => {
     return await SwimGraphMsgHandler.getOtherData(this);
-  };
-  @viewApi()
-  public validateSwimFile = async () => {
-    return await SwimGraphMsgHandler.validateFile(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {
