@@ -82,6 +82,7 @@ import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
 import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectItem } from './type/node-detail-types';
 import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
+import { openComputeGraph } from '@/apis/opener';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -343,6 +344,18 @@ const listenExtensionMessage = () => {
       switch (message.methodName) {
         case 'bootStepOpenSideBar':
           bootStepOpenSideBar();
+          break;
+      }
+    }
+    if (event.type == 'openWebviewWithGuide') {
+      switch (message.openWebviewFn) {
+        case 'openComputeGraph':
+          const length = stepOpenSidebaNode.value.data.source.meta?.passes.length;
+          openComputeGraph({
+            outputPath: outPutPath.value as string,
+            computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
+            pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
+          });
           break;
       }
     }

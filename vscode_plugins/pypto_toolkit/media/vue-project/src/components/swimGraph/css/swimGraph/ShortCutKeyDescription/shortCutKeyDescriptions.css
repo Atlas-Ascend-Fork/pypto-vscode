@@ -1,6 +1,6 @@
 .shortCutKeyDescriptionEdit {
     width: 450px;
-    height: 390px;
+    height: auto;
     border-radius: 16px;
     position: absolute;
     background: var(--devui-select-bg);
