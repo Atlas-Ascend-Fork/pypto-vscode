@@ -6,7 +6,6 @@ const OPENER_PREFIX = 'tmpViewOpener';
  * 打开控制流
  */
 export function openControlFlow(params: { outputPath: string; controlFlowPath: string }) {
-  console.log(params);
   request.post(`${OPENER_PREFIX}/openControlFlow`, params);
 }
 

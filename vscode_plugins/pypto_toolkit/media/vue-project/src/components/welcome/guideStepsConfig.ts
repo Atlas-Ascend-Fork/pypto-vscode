@@ -38,22 +38,23 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       {
         title: '控制流-步骤1标题',
         content: '这是控制流的第一个小步骤，打开侧边栏...',
-        targetDomId: 'controlFlow-search', // 步骤1定位
-        showTriangle: true, // 显示三角
-        triangleDirection: 'top', // 三角指向右侧
+        targetDomId: 'controlFlow-search',
+        showTriangle: false,
+        triangleDirection: 'top',
       },
       {
         title: '控制流-步骤2标题',
         content: '这是控制流的第二个小步骤，打开搜索框...',
-        targetDomId: 'controlFlow-search', // 步骤2定位
+        targetDomId: 'controlFlow-search',
+        // method: 'bootStepOpenSideBar',
         showTriangle: true,
-        triangleDirection: 'right', // 三角指向下方
+        triangleDirection: 'right',
       },
       {
         title: '控制流-步骤3标题',
         content: '这是控制流的第三个小步骤，完成后将进入导航系统...',
-        targetDomId: 'controlFlow-search', // 步骤3定位
-        showTriangle: true, // 不显示三角
+        targetDomId: 'controlFlow-search',
+        showTriangle: true,
         triangleDirection: 'right',
       },
     ],

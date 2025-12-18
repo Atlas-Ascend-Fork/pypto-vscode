@@ -103,7 +103,11 @@
       <!-- 右侧图片预览区 -->
       <div class="preview-area">
         <div class="preview-area__image-bg"></div>
-        <img class="preview-image" v-if="activeStep" :src="activeStep.image" />
+        <div class="preview-image-wrapper">
+          <div class="preview-image-border">
+            <img class="preview-image" v-if="activeStep" :src="images[activeStep.index - 1]" />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -127,9 +131,14 @@ interface GuideStep {
   id: string;
   index: number; // 步骤序号（1/2/3）
   title: string;
-  image: string;
   completed: boolean;
 }
+
+const images = [
+  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif',
+  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
+  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
+];
 
 // 2. 初始步骤数据
 const defaultSteps = ref<GuideStep[]>([
@@ -137,21 +146,18 @@ const defaultSteps = ref<GuideStep[]>([
     id: 'step1',
     index: 1,
     title: '打开并运行样例工程',
-    image: sortUp.value,
     completed: false,
   },
   {
     id: 'step2',
     index: 2,
     title: '查看运行结果',
-    image: logo.value,
     completed: false,
   },
   {
     id: 'step3',
     index: 3,
     title: '查看三联动视图',
-    image: logo2.value,
     completed: false,
   },
 ]);
@@ -205,8 +211,6 @@ const handleStepClick = (stepId: string) => {
 // 点击Checkbox切换完成状态（简化参数，直接取反）
 const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
-  // 可选：手动触发持久化（也可依赖watch）
-  // localStorage.setItem('guideSteps', JSON.stringify(steps.value));
 };
 
 // 上一步
@@ -231,8 +235,6 @@ const nextStep = () => {
 const markAsCompleted = async () => {
   const targetStep = steps.value.find((step) => step.id === activeStepId.value);
   if (targetStep) {
-    // 移除错误的越界代码
-    // steps.value[targetStep.index].completed = true;
     targetStep.completed = !targetStep.completed;
     await updateWelcomeState({
       key: 'guideSteps',
@@ -241,18 +243,24 @@ const markAsCompleted = async () => {
   }
 };
 
- async function goToCheckResult() {
+async function goToCheckResult() {
   updateWelcomeState({
     key: 'guide.state',
     value: true,
+  });
+  await updateWelcomeState({
+    key: 'guide.currentBigGroup',
+    value: 0,
+  });
+  await updateWelcomeState({
+    key: 'guide.currentSmallIndex',
+    value: 0,
   });
   openControlFlow({
     controlFlowPath: `${await getUserRunRoot()}/program.json`,
     outputPath: `${await getUserRunRoot()}`,
   });
 }
-
-
 
 // 2. 监听插件主线程的消息
 const listenExtensionMessage = () => {
@@ -269,24 +277,22 @@ const listenExtensionMessage = () => {
   });
 };
 
-
 // 6. 监听&初始化
 onMounted(async () => {
-    // isLinux.value = await isLinuxEnvironment();
+  // isLinux.value = await isLinuxEnvironment();
   initSteps();
   toggleTheme();
 });
 
-// 修正：监听ref对象steps，而非steps.value
 watch(
-  steps, // 关键修正：监听响应式对象本身
+  steps,
   async (newVal) => {
     await updateWelcomeState({
       key: 'guideSteps',
       value: JSON.stringify(newVal),
     });
   },
-  { deep: true }, // 深度监听对象内部属性变化
+  { deep: true },
 );
 </script>
 
@@ -294,22 +300,25 @@ watch(
 /* 容器样式 */
 .guide-container {
   background-color: var(--color-bg);
-  overflow: hidden;
-  padding: 290px;
-
+  width: 100%;
+  height: 100%;
   /* 主体内容 */
   .guide-main {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     height: 100%;
     width: 100%;
+    min-width: 1400px;
+    gap: 90px;
 
     .guide-step {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: end;
       min-width: 500px;
-      width: 50%;
+      min-height: 450px;
+      width: 40%;
       height: 100%;
       .system-warning {
         margin-top: 20px;
@@ -322,6 +331,7 @@ watch(
       .guide-step__header {
         display: flex;
         flex-direction: row;
+        justify-content: end;
         align-items: center;
         gap: 24px;
         width: 100%;
@@ -527,26 +537,55 @@ watch(
       align-items: center;
       padding: 20px;
       min-width: 800px;
-      min-height:450px;
+      min-height: 450px;
       .preview-area__image-bg {
         position: absolute;
         width: 800px;
         height: 450px;
-        opacity: 0.4;
+        opacity: 0.2;
         background: var(--welcome-header-right-imge-bg);
         border-radius: 12px;
         filter: blur(120px);
-        z-index: 1; // 低于图片层级
+        z-index: 1;
+      }
+
+      /* 外层容器 */
+      .preview-image-wrapper {
+        width: 800px;
+        height: 450px;
+        padding: 1px; /* 渐变边框厚度（1px） */
+        border-radius: 12px; /* 统一圆角 */
+        background: linear-gradient(
+          135deg,
+          rgba(15, 217, 119, 0.6) 0%,
+          rgba(15, 217, 119, 0.1) 40%,
+          rgba(199, 91, 239, 0.1) 60%,
+          rgba(199, 91, 239, 0.6) 100%
+        );
+        overflow: hidden;
+        box-sizing: border-box;
+        z-index: 2;
+      }
+
+      /* 中间边框层 */
+      .preview-image-border {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        border: 8px solid rgba(41, 41, 41, 0.89);
+        // padding: 16px;
+        border-radius: 11px;
+        overflow: hidden;
+        opacity: 0.1 0.2 0.3 0.4;
       }
 
       .preview-image {
-        width: 800px;
-        height: 450px;
+        width: 100%;
+        height: 100%;
         object-fit: fill;
-        z-index: 2; // 高于背景层
-        // border: 1.5px solid;
-        // border-radius: 12px;
-        // border-image: linear-gradient(#0fd979, #4475f5, #ff6c96, #c75bef) 30 30;
+        display: block;
+        box-shadow: 8px 8px 15px rgba(199, 91, 239, 0.3);
+        border-radius: 1px;
       }
     }
   }

@@ -307,10 +307,10 @@ const emit = defineEmits<{
 
 // 发送消息通知事件
 const postToExtension = (type: string, data: any) => {
-  window.postMessage({ type, data });  
+  (window as any).ascEventBus.emit('boot-step-tips',{ type, data });
 };
 
-// ========== 修复：callCurrentWebviewMethod添加容错 ==========
+// ========== callCurrentWebviewMethod添加容错 ==========
 const callCurrentWebviewMethod = (methodName: string, params: any) => {
   const currentGroupConfig = guideStepsConfig[currentBigGroup.value];
   if (!currentGroupConfig) {
@@ -324,9 +324,8 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
   });
 };
 
-// ========== 修复：openNextWebview逻辑错误 ==========
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1); // 修正：获取下一个大组
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1); 
   if (!nextGroupConfig) return;
   postToExtension('openWebviewWithGuide', {
     webviewType: nextGroupConfig.webviewType,
