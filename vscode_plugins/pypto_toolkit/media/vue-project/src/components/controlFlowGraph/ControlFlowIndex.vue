@@ -334,25 +334,16 @@ function bootStepOpenSideBar() {
   sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 2);
 }
 
-//  注册当前WebView的可调用方法（挂载到window）
-const registerWebviewMethods = () => {
-  // 打开侧边栏方法
-  window.bootStepOpenSideBar = () => {
-    // 打开侧边栏
-    bootStepOpenSideBar();
-  };
-};
-
-// 2. 监听插件主线程的消息
+// 监听引导模式的消息
 const listenExtensionMessage = () => {
-  window.addEventListener('message', async (event) => {
+  (window as any).ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
 
-    if (message.type == 'callWebviewMethod') {
-      // 执行当前WebView的方法
-      const { methodName, params } = message.data;
-      if (window[methodName] && typeof window[methodName] === 'function') {
-        window[methodName](params); // 调用注册的方法
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'bootStepOpenSideBar':
+          bootStepOpenSideBar();
+          break;
       }
     }
   });
@@ -362,7 +353,6 @@ const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
-  registerWebviewMethods();
   const res = await getQuery();
   outPutPath.value = res.url;
   programPath.value = res._path;

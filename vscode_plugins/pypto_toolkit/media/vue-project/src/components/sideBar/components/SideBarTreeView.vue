@@ -194,9 +194,12 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
   const treeItems = await nodeChildrenMap.get(parentNode.id);
   callback({ treeItems, node: parentNode });
 }
+import { openPyPTOWelcome } from '@/apis/opener';
 
-onMounted(() => {
-  getOutputs();
+onMounted(async () => {
+  await getOutputs();
+  openPyPTOWelcome();
+
   // 禁用原生右键菜单
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止原生菜单弹出

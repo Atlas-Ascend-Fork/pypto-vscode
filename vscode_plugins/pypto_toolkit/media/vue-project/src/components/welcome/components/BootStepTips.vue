@@ -1,6 +1,6 @@
 <template>
   <!-- 遮罩层 -->
-  <div v-if="visible" class="guide-mask" @click="handleMaskClick">
+  <div v-if="visible" class="guide-mask" @click.stop="handleMaskClick" @pointerup.stop>
     <!-- 弹窗外层容器（ -->
     <div class="guide-popup-wrapper" :style="popupWrapperStyle">
       <!-- 引导三角 -->
@@ -49,11 +49,11 @@
 
 <script setup lang="ts">
 import { getWelcomeState, updateWelcomeState } from '@/apis/welcome';
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
 import type { CSSProperties } from 'vue';
 import {
   getCurrentStepConfig,
-  getCurrentStepPosition,
+  getCurrentStepTargetDomId,
   getCurrentStepTriangleConfig,
   getNextBigGroupConfig,
   guideStepsConfig,
@@ -63,9 +63,9 @@ import {
 interface GuideStepItem {
   title: string;
   content: string;
-  position: Partial<{ top: string; left: string; right: string; bottom: string }>; // 每步独立定位
-  showTriangle: boolean; // 是否显示三角
-  triangleDirection: 'top' | 'bottom' | 'left' | 'right'; // 三角方向
+  showTriangle: boolean;
+  targetDomId: string;
+  triangleDirection: 'top' | 'bottom' | 'left' | 'right';
 }
 interface GuideBigGroup {
   groupName: string;
@@ -81,38 +81,223 @@ const props = defineProps<{
   width?: string;
 }>();
 
+// ========== 响应式触发变量（强制更新computed） ==========
+const refreshTrigger = ref(0);
+
+/**
+ * 防抖函数
+ */
+const debounce = (fn: Function, delay = 300) => {
+  let timer: NodeJS.Timeout | null = null;
+  return (...args: any[]) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay);
+  };
+};
+
 // 三角配置
 const triangleConfig = computed(() => {
   return getCurrentStepTriangleConfig(currentBigGroup.value, currentSmallIndex.value);
 });
 
-// 外层容器样式（读取step的position）
+const defaultGuideSteps = guideStepsConfig;
+const currentBigGroup = ref(0);
+const currentSmallIndex = ref(0);
+
+// ========== 1：拆分位置计算逻辑，先算高度再算位置 ==========
+/**
+ * 获取弹窗实际高度（确保实时）
+ */
+const getPopupRealHeight = (): number => {
+  if (!props.visible) return 200;
+  const popupContent = document.querySelector('.guide-popup-content');
+  if (!popupContent) return 200;
+  // 强制重绘，确保获取最新高度
+  popupContent.getBoundingClientRect();
+  return popupContent.offsetHeight || 200;
+};
+
+/**
+ * 获取目标DOM的位置信息（接收实时弹窗高度）
+ * @param domId 目标DOM的ID
+ * @param popupHeight 弹窗实时高度
+ * @returns DOM的位置信息
+ */
+const getTargetDomPosition = (domId: string, popupHeight: number) => {
+  if (!domId || !props.visible) {
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)'
+    } as CSSProperties;
+  }
+
+  const targetDom = document.getElementById(domId);
+  if (!targetDom) {
+    console.warn(`目标DOM ID ${domId} 不存在，使用兜底定位`);
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)'
+    } as CSSProperties;
+  }
+
+  // 强制获取最新的DOM位置（触发重绘）
+  targetDom.getBoundingClientRect();
+  const domRect = targetDom.getBoundingClientRect();
+  const popupWidth = props.width ? parseInt(props.width) : 420;
+  const triangleDir = triangleConfig.value.triangleDirection;
+  let position: CSSProperties = {};
+
+  switch (triangleDir) {
+    case 'right':
+      position = {
+        position: 'fixed',
+        top: `${domRect.top + domRect.height / 2 - popupHeight / 2}px`,
+        left: `${domRect.left - popupWidth - 8}px`,
+        transform: 'none',
+        zIndex: 99999,
+        boxSizing: 'border-box'
+      };
+      break;
+    case 'left':
+      position = {
+        position: 'fixed',
+        top: `${domRect.top + domRect.height / 2 - popupHeight / 2}px`,
+        left: `${domRect.right + 8}px`,
+        transform: 'none',
+        zIndex: 99999,
+        boxSizing: 'border-box'
+      };
+      break;
+    case 'bottom':
+      position = {
+        position: 'fixed',
+        top: `${domRect.top - popupHeight - 8}px`,
+        left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
+        transform: 'none',
+        zIndex: 99999,
+        boxSizing: 'border-box'
+      };
+      break;
+    case 'top':
+      position = {
+        position: 'fixed',
+        top: `${domRect.bottom + 8}px`,
+        left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
+        transform: 'none',
+        zIndex: 99999,
+        boxSizing: 'border-box'
+      };
+      break;
+    default:
+      position = {
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 99999,
+        boxSizing: 'border-box'
+      };
+  }
+
+  return position;
+};
+
+// ========== 2：computed依赖refreshTrigger，强制重新计算 ==========
 const popupWrapperStyle = computed<CSSProperties>(() => {
-  const currentStepPos = getCurrentStepPosition(currentBigGroup.value, currentSmallIndex.value);
-  const baseStyle: CSSProperties = {
-    width: props.width || '420px',
-    position: 'fixed',
-    borderRadius: '16px',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-  };
-
-  const finalStyle = { ...baseStyle };
-  if (currentStepPos.top || currentStepPos.bottom) {
-    delete finalStyle.top;
-    delete finalStyle.transform;
-  }
-  if (currentStepPos.left || currentStepPos.right) {
-    delete finalStyle.left;
-    delete finalStyle.transform;
-  }
-
-  return {
-    ...finalStyle,
-    ...currentStepPos,
-  };
+  // 依赖refreshTrigger，触发重新计算
+  refreshTrigger.value;
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const popupHeight = getPopupRealHeight();
+  const domPosition = getTargetDomPosition(targetDomId, popupHeight);
+  return domPosition;
 });
+
+// ========== 3：重写handleResize，强制触发响应式更新 ==========
+const handleResize = async () => {
+  if (!props.visible) return;
+  await nextTick();
+  console.log('handleResize触发，开始重新计算位置');
+  
+  // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const targetDom = document.getElementById(targetDomId);
+  if (targetDom) targetDom.getBoundingClientRect();
+  const popupContent = document.querySelector('.guide-popup-content');
+  if (popupContent) popupContent.getBoundingClientRect();
+
+  // 步骤2：更新refreshTrigger，强制computed重新计算
+  refreshTrigger.value += 1;
+
+  // 步骤3：手动更新样式（兜底）
+  const wrapper = document.querySelector('.guide-popup-wrapper');
+  if (wrapper && popupWrapperStyle.value) {
+    Object.assign(wrapper.style, popupWrapperStyle.value);
+  }
+};
+
+// 防抖后的resize处理函数
+const debouncedHandleResize = debounce(handleResize, 300);
+
+// ========== 核心修改4：改用ResizeObserver监听DOM尺寸/位置变化（替代MutationObserver） ==========
+let resizeObserver: ResizeObserver | null = null;
+let domObserver: MutationObserver | null = null;
+
+/**
+ * 监听目标DOM及其父元素的变化（适配flex布局）
+ */
+const observeDomChange = (domId: string) => {
+  // 销毁原有监听
+  if (resizeObserver) resizeObserver.disconnect();
+  if (domObserver) domObserver.disconnect();
+
+  const targetDom = document.getElementById(domId);
+  if (!targetDom) return;
+
+  // 1. ResizeObserver：监听DOM尺寸变化（直接）
+  resizeObserver = new ResizeObserver(debouncedHandleResize);
+  resizeObserver.observe(targetDom);
+
+  // 2. MutationObserver：监听父元素的布局变化
+  const parentDom = targetDom.parentElement;
+  if (parentDom) {
+    domObserver = new MutationObserver(debouncedHandleResize);
+    domObserver.observe(parentDom, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      childList: false,
+      subtree: true
+    });
+  }
+};
+
+// ========== 监听步骤变化 ==========
+watch([currentBigGroup, currentSmallIndex], async () => {
+  await nextTick();
+  handleResize();
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  observeDomChange(targetDomId);
+});
+
+// 监听弹窗显示状态
+watch(
+  () => props.visible,
+  async (newVal) => {
+    if (newVal) {
+      await nextTick();
+      getGuideProgress();
+      handleResize();
+      const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+      observeDomChange(targetDomId);
+    } else {
+      if (resizeObserver) resizeObserver.disconnect();
+      if (domObserver) domObserver.disconnect();
+    }
+  },
+  { immediate: true },
+);
 
 // 组件Emits
 const emit = defineEmits<{
@@ -120,20 +305,18 @@ const emit = defineEmits<{
   (e: 'complete'): void;
 }>();
 
-// 原有Props/Emits/默认配置不变，替换默认步骤为全局配置
-const defaultGuideSteps = guideStepsConfig;
-// 响应式进度（初始值为0）
-const currentBigGroup = ref(0);
-const currentSmallIndex = ref(0);
-
 // 发送消息通知事件
 const postToExtension = (type: string, data: any) => {
-  window.postMessage({ type, data });  
+  (window as any).ascEventBus.emit('boot-step-tips',{ type, data });
 };
 
-// 调用当前WebView的方法
+// ========== callCurrentWebviewMethod添加容错 ==========
 const callCurrentWebviewMethod = (methodName: string, params: any) => {
   const currentGroupConfig = guideStepsConfig[currentBigGroup.value];
+  if (!currentGroupConfig) {
+    console.warn('当前大组配置不存在，无法调用WebView方法');
+    return;
+  }
   postToExtension('callWebviewMethod', {
     targetWebviewType: currentGroupConfig.webviewType,
     methodName,
@@ -141,14 +324,13 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
   });
 };
 
-// 打开新WebView并显示弹窗
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(currentBigGroup.value);
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1); 
   if (!nextGroupConfig) return;
   postToExtension('openWebviewWithGuide', {
     webviewType: nextGroupConfig.webviewType,
     bigGroup: nextBigGroup,
-    smallIndex: 0, // 新组从第一步开始
+    smallIndex: 0,
   });
 };
 
@@ -164,9 +346,7 @@ const handlePrevStep = async () => {
     newSmall = guideStepsConfig[newBig].steps.length - 1;
   }
 
-  // 1. 更新进度到globalState
   await setGuideProgress(newBig, newSmall);
-  // 2. 调用当前步骤的方法（上一步也可触发方法，按需调整）
   const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
   if (currentStepConfig?.method) {
     callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
@@ -178,30 +358,27 @@ const handleNextStep = async () => {
   let newBig = currentBigGroup.value;
   let newSmall = currentSmallIndex.value;
   const currentGroupConfig = guideStepsConfig[newBig];
+  if (!currentGroupConfig) return; // 容错
   const isLastInGroup = newSmall === currentGroupConfig.steps.length - 1;
 
-  // 1. 调用当前步骤的方法
+  // 先调用当前步骤方法
+  const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
+  if (currentStepConfig?.method) {
+    callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
+  }
 
-  // 2. 更新进度
   if (isLastInGroup) {
-    // 当前组最后一步：打开下一个WebView
-    openNextWebview(newBig);
     newBig++;
     newSmall = 0;
+    openNextWebview(newBig);
     await setGuideProgress(newBig, newSmall);
-    // 3. 打开新WebView并同步进度
   } else {
-    // 本组内下一步
     newSmall++;
     await setGuideProgress(newBig, newSmall);
-    const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
-    if (currentStepConfig?.method) {
-      callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
-    }
   }
 };
 
-// 跳过全部：关闭所有WebView的弹窗
+// 跳过全部
 const handleSkipAll = () => {
   updateWelcomeState({
     key: 'guide.state',
@@ -211,7 +388,7 @@ const handleSkipAll = () => {
   emit('update:visible', false);
 };
 
-// 开始体验：关闭所有弹窗
+// 开始体验
 const handleStartExperience = () => {
   postToExtension('closeAllGuideModal', null);
   emit('update:visible', false);
@@ -258,8 +435,6 @@ const nextBtnText = computed(() => {
   return '下一步';
 });
 
-// ========== VSCode globalState 通信方法 ==========
-
 // 读取globalState中的进度
 const getGuideProgress = async () => {
   const currentBig = await getWelcomeState({
@@ -282,7 +457,6 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
     key: 'guide.currentSmallIndex',
     value: smallIndex,
   });
-  // 同步更新本地响应式数据
   currentBigGroup.value = bigGroup;
   currentSmallIndex.value = smallIndex;
 };
@@ -291,26 +465,25 @@ const handleMaskClick = () => {
   if (props.closeOnMaskClick) emit('update:visible', false);
 };
 
-// ========== 生命周期 ==========
+// 生命周期
 onMounted(() => {
-  // 组件挂载后读取进度
+  // 监听窗口resize事件
+  window.addEventListener('resize', debouncedHandleResize);
+  // 额外监听滚动（如果DOM位置受滚动影响）
+  window.addEventListener('scroll', debouncedHandleResize);
   if (props.visible) {
-    getGuideProgress();
+    const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+    observeDomChange(targetDomId);
   }
 });
 
-// 监听弹窗显示状态：显示时读取进度
-watch(
-  () => props.visible,
-  (newVal) => {
-    if (newVal) {
-      getGuideProgress(); // 每次打开弹窗都读取最新的globalState进度
-    }
-  },
-  { immediate: true },
-);
+onUnmounted(() => {
+  window.removeEventListener('resize', debouncedHandleResize);
+  window.removeEventListener('scroll', debouncedHandleResize);
+  if (resizeObserver) resizeObserver.disconnect();
+  if (domObserver) domObserver.disconnect();
+});
 </script>
-
 <style scoped lang="less">
 // 遮罩层
 .guide-mask {
@@ -320,7 +493,7 @@ watch(
   right: 0;
   bottom: 0;
   background-color: rgba(255, 254, 254, 0);
-  z-index: 999999999999;
+  z-index: 99999;
   pointer-events: auto;
   display: flex;
   align-items: center;

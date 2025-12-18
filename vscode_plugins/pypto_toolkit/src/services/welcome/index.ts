@@ -47,3 +47,36 @@ export async function isLinuxEnvironment() {
   console.log(os.platform());
   return os.platform() === 'linux';
 }
+
+/** 当前用户根目录 */
+const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
+
+/** PYPTO运行记录根目录 */
+export const RUN_DATA_HOME = process.env.PYPTO_HOME
+  ? `${process.env.PYPTO_HOME}${path.sep}run`
+  : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run${path.sep}rundata_20251021203500`;
+
+/**
+ * 转换路径中的磁盘盘符为小写（仅针对Windows系统）
+ * @param {string} filePath 原始路径
+ * @returns {string} 盘符小写后的路径
+ */
+function toLowerCaseDriveLetter(filePath) {
+  // 仅处理Windows系统，且路径以 "大写字母:\\" 开头的情况
+  if (process.platform === 'win32' && /^[A-Z]:\\/.test(filePath)) {
+    // 捕获盘符并转为小写，保留后续路径
+    return filePath.replace(/^([A-Z]):\\/, (_, drive) => `${drive.toLowerCase()}:\\`);
+  }
+  // 非Windows系统/无盘符路径，直接返回原路径
+  return filePath;
+}
+
+/**
+ * 获取指定测试数据根地址（盘符转为小写）
+ */
+export async function getUserRunRoot() {
+  const outPutPath = RUN_DATA_HOME;
+  // 调用盘符小写处理函数
+  const lowerDrivePath = toLowerCaseDriveLetter(outPutPath);
+  return lowerDrivePath;
+}

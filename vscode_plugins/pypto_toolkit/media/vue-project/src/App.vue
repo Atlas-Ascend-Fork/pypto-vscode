@@ -49,7 +49,7 @@ onMounted( async() => {
     <ControlFlowIndex></ControlFlowIndex>
   </div>
   <!-- 欢迎页面 -->
-  <WelcomeIndex v-else-if="graphType === 'welcome'"></WelcomeIndex>
+  <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
   <!-- 运行配置 -->
   <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
   <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">

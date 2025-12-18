@@ -16,12 +16,7 @@
 import SideBarTreeView from './components/SideBarTreeView.vue';
 import SideBarRunConfigView from './components/SideBarRunConfigView.vue';
 import SplitViewContainer from '../util/split-view/SplitViewContainer.vue';
-import { onMounted } from 'vue';
-import { openPyPTOWelcome } from '@/apis/opener';
 
-onMounted(() => {
-  openPyPTOWelcome();
-});
 </script>
 
 <style scoped lang="less">

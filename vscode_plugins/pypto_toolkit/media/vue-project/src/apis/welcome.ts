@@ -37,3 +37,10 @@ export function isLinuxEnvironment(): Promise<boolean> {
 export function getIsCompleteBoot(): Promise<boolean> {
   return request.post(`${WELCOME}/getIsCompleteBoot`, null);
 }
+
+/**
+ *
+ */
+export function getUserRunRoot(): Promise<string> {
+  return request.post(`${WELCOME}/getUserRunRoot`, null);
+}
