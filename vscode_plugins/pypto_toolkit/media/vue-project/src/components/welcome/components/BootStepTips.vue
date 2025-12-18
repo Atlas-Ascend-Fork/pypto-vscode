@@ -130,7 +130,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
     return {
       top: '50%',
       left: '50%',
-      transform: 'translate(-50%, -50%)'
+      transform: 'translate(-50%, -50%)',
     } as CSSProperties;
   }
 
@@ -140,7 +140,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
     return {
       top: '50%',
       left: '50%',
-      transform: 'translate(-50%, -50%)'
+      transform: 'translate(-50%, -50%)',
     } as CSSProperties;
   }
 
@@ -159,7 +159,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
         left: `${domRect.left - popupWidth - 8}px`,
         transform: 'none',
         zIndex: 99999,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       };
       break;
     case 'left':
@@ -169,7 +169,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
         left: `${domRect.right + 8}px`,
         transform: 'none',
         zIndex: 99999,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       };
       break;
     case 'bottom':
@@ -179,7 +179,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
         left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
         transform: 'none',
         zIndex: 99999,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       };
       break;
     case 'top':
@@ -189,7 +189,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
         left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
         transform: 'none',
         zIndex: 99999,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       };
       break;
     default:
@@ -198,7 +198,7 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
         left: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 99999,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       };
   }
 
@@ -220,7 +220,7 @@ const handleResize = async () => {
   if (!props.visible) return;
   await nextTick();
   console.log('handleResize触发，开始重新计算位置');
-  
+
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
   const targetDom = document.getElementById(targetDomId);
@@ -268,7 +268,7 @@ const observeDomChange = (domId: string) => {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: false,
-      subtree: true
+      subtree: true,
     });
   }
 };
@@ -307,7 +307,7 @@ const emit = defineEmits<{
 
 // 发送消息通知事件
 const postToExtension = (type: string, data: any) => {
-  (window as any).ascEventBus.emit('boot-step-tips',{ type, data });
+  (window as any).ascEventBus.emit('boot-step-tips', { type, data });
 };
 
 // ========== callCurrentWebviewMethod添加容错 ==========
@@ -325,7 +325,7 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
 };
 
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1); 
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1);
   if (!nextGroupConfig?.openWebviewFn) return;
   postToExtension('openWebviewWithGuide', {
     openWebviewFn: nextGroupConfig?.openWebviewFn,
@@ -359,12 +359,6 @@ const handleNextStep = async () => {
   if (!currentGroupConfig) return; // 容错
   const isLastInGroup = newSmall === currentGroupConfig.steps.length - 1;
 
-  // 先调用当前步骤方法
-  const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
-  if (currentStepConfig?.method) {
-    callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
-  }
-
   if (isLastInGroup) {
     newBig++;
     newSmall = 0;
@@ -372,6 +366,12 @@ const handleNextStep = async () => {
     await setGuideProgress(newBig, newSmall);
   } else {
     newSmall++;
+    // 先调用当前步骤方法
+    const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
+    if (currentStepConfig?.method) {
+      callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
+    }
+
     await setGuideProgress(newBig, newSmall);
   }
 };
