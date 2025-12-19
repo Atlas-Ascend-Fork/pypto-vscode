@@ -39,6 +39,7 @@
   "pypto.noSwimFileSelect": "No swimlane file selected",
   "pypto.selectComFile": "Please select computation graph file",
   "pypto.noComFileSelect": "No computation graph file selected",
+  "pypto.selectDiffFile": "Please select comparison file",
   "pypto.jsonFile": "JSON File",
   "pypto.cppFile": "CODE File",
   "pypto.pyFile": "PY File",

@@ -118,6 +118,7 @@ import { ThreeColumnProvideKey } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
+import { pushState, pullState } from '../../core/state';
 
 const { server } = useViewServer();
 
@@ -1826,8 +1827,8 @@ onMounted(async () => {
 
   loading.value = true;
   let data = {};
-
-  const Reader = await getSwimData();
+  const state = pullState();
+  const Reader = await getSwimData({swimDataPath:state.swimDataPath});
   const originalReader = Reader.getReader();
   let result = await originalReader.read();
   loadingText.value = $t('receiveTraceData');

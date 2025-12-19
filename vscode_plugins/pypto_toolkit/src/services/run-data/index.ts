@@ -1,5 +1,5 @@
 import path from 'node:path';
-
+import { access, constants } from 'node:fs/promises';
 import * as vscode from 'vscode';
 
 import { SqlStore } from '../../core/store';
@@ -99,6 +99,12 @@ export class RunDataService extends BasicService {
     this.scanning = true;
     this.scannedCount = 0;
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
+    
+    try {
+      await access(runDataCollectionUri.path, constants.F_OK); // F_OK 表示检查文件是否存在
+    } catch {
+      return;
+    }
     const runDataList = await readRunDataList(runDataCollectionUri);
 
     const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();

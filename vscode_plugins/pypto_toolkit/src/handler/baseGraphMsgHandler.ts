@@ -130,7 +130,11 @@ export abstract class BaseGraphMsgHandler {
     if (server.comGraphData.isUsedDB && !message.data.nodeMagic && filePath && !message.data.filePath) {
       finalResult = await SQLiteCache.getInstance().comGraphFinalResultGet(filePath, funcHash);
     }
-    if (finalResult) {
+    let lastChangeTime;
+    if (filePath) {
+      lastChangeTime = await getMTime(filePath);
+    }
+    if (finalResult && lastChangeTime === finalResult.last_change_time) {
       data = JSON.parse(finalResult.final_result); // 如果有缓存则发送最终数据
       data['isFinial'] = true;
       isCached = true;
@@ -283,8 +287,43 @@ export abstract class BaseGraphMsgHandler {
     throw new Error('子类必须覆盖 loadMainData 方法');
   }
 
+  static async loadDiffData(server: any, otherFsPath: string) {
+    throw new Error('子类必须覆盖 loadDiffData 方法');
+  }
+
   protected static getGraphData(server: any): AbstractGraphData {
     throw new Error(`子类必须覆盖 getGraphData 方法`);
+  }
+
+
+  static async layoutByLocal(server: any, gd:any, lastChangeTime: string, funcHash: string) {
+    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
+    const comGraphData = this.getElkLayoutComGraghData(server, gd);
+    const filePath = comGraphData?.fsPath;
+    const child = fork(path.join(__dirname, '../core/layoutWork.js'));
+    child.send({ type: 'layout', graphData: gd });
+    child.on('message', async (res: { type: string; message?: any, data?: any }) => {
+      if (res.type === 'result') {
+        const layoutJsonStr = JSON.stringify(res.data);
+        if (comGraphData?.isUsedDB && renderMode !== 'path') {
+          await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
+        }
+        this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
+        child.kill();
+      }
+      if (res.type === 'error') {
+        this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data });
+        return;
+      }
+    });
+    // 添加对子进程异常的监听
+    child.on('error', (err) => {
+      console.error('子进程发生错误:', err);
+      child.kill();
+    });
+
+    // 监听子进程退出事件
+    child.on('exit', () => { });
   }
 
   /* ===================================================
@@ -292,10 +331,7 @@ export abstract class BaseGraphMsgHandler {
    * =================================================== */
   static async elkLayout(gd: any, server: any) {
     const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
-
-    let comGraphData;
-    comGraphData = this.getElkLayoutComGraghData(server, gd, elkFactory);
-
+    const comGraphData = this.getElkLayoutComGraghData(server, gd, elkFactory);
     const layoutDirection = gd.layoutOptions['elk.direction'];
     const showtensor = gd.layoutOptions['PyPTO.showTensor'];
     const filePath = comGraphData?.fsPath;
@@ -318,41 +354,53 @@ export abstract class BaseGraphMsgHandler {
     if (comGraphData?.isUsedDB) {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
-    if (renderMode === 'path' || !cache || gd.layoutOptions['PyPTO.filePath']) {
-      const child = fork(path.join(__dirname, '../core/layoutWork.js'));
-      child.send({ type: 'layout', graphData: gd });
-      child.on('message', async (res: { type: string; message?: any, data?: any }) => {
-        if (res.type === 'result') {
-          const layoutJsonStr = JSON.stringify(res.data);
-          if (comGraphData?.isUsedDB && renderMode !== 'path' && !gd.layoutOptions['PyPTO.filePath']) {
-            await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
-          }
-          this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
-          child.kill();
-        }
-        if (res.type === 'error') {
-          this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data });
-          return;
-        }
-      });
-      // 添加对子进程异常的监听
-      child.on('error', (err) => {
-        console.error('子进程发生错误:', err);
-        child.kill();
-      });
-
-      // 监听子进程退出事件
-      child.on('exit', () => { });
-    } else {
-      if (lastChangeTime !== cache.last_change_time) {
-        await SQLiteCache.getInstance().comGraphLayoutDel(filePath);
-        const result = await elkFactory.layout(gd);
-        const layoutJsonStr = JSON.stringify(result);
-        await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
-        this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
+    if (renderMode === 'path' || !cache || lastChangeTime !== cache.last_change_time) {
+      if (vscode.extensions.getExtension('huawei-cloud.elk-java-layout-ext')) {
+        vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.postLayoutData')
       } else {
-        this.postLayoutResult(server, cache.layout_result, gd.layoutOptions['PyPTO.filePath']);
+        this.layoutByLocal(server, gd, lastChangeTime, funcHash);
       }
+    } else {
+      this.postLayoutResult(server, cache.layout_result, gd.layoutOptions['PyPTO.filePath']);
+    }
+  }
+
+  static async renderLayout(layoutJsonStr: string, infoStr: string, server: any) {
+    const gd = JSON.parse(layoutJsonStr);
+    if (gd.type === 'error') {
+      const info = JSON.parse(infoStr);
+      const originGd = gd.data;
+      const comGraphData = this.getElkLayoutComGraghData(server, originGd);
+      let funcHash = comGraphData?.funcHash!;
+      const lastChangeTime = await getMTime(comGraphData?.fsPath);
+      originGd.layoutOptions = {
+        ...originGd.layoutOptions,
+        ...info
+      };
+      this.layoutByLocal(server, originGd, lastChangeTime, funcHash)
+    }
+    const info = JSON.parse(infoStr);
+    gd.layoutOptions = {
+      ...gd.layoutOptions,
+      ...info
+    };
+    const comGraphData = this.getElkLayoutComGraghData(server, gd);
+    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
+    const filePath = comGraphData?.fsPath;
+    const layoutDirection = gd.layoutOptions['elk.direction'];
+    const showtensor = gd.layoutOptions['PyPTO.showTensor'];
+    let funcHash = comGraphData?.funcHash!;
+    const lastChangeTime = await getMTime(filePath);
+    // 构造缓存 key
+    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
+      funcHash = funcHash + '_hasParent';
+    }
+    if (layoutDirection === 'DOWN') funcHash += '_down';
+    if (showtensor !== 'true') funcHash += '_notshowtensor';
+    funcHash += gd.layoutOptions['PyPTO.filePath'] || '';
+    this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
+    if (comGraphData?.isUsedDB && renderMode !== 'path') {
+      await SQLiteCache.getInstance().comGraphLayoutSet(filePath, funcHash, layoutJsonStr, lastChangeTime);
     }
   }
 
@@ -676,8 +724,6 @@ export abstract class BaseGraphMsgHandler {
 
         server.setRef('PathOriginMode', { data: mode, nodeMagic: nodesMagic, nodeCount: nodeCount });
       }
-      server.query.isSearch = false;
-      server.query.nodeMagic = undefined;
       /** Pass目录名称正则 */
       const passDirectoryRegExp = /Pass_(\d+)_(\w+)/;
       const [_, passIndex, __] = server.comGraphData.fsPath?.match(passDirectoryRegExp) ?? [];
@@ -794,7 +840,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
   // graphData elkFactory 给子类重写预留
-  static getElkLayoutComGraghData(server: any, graphData: any, elkFactory: any) {
+  static getElkLayoutComGraghData(server: any, graphData: any, elkFactory?: any) {
     return server.comGraphData;
   }
 }

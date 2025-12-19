@@ -1,6 +1,7 @@
 import { ViewServer } from '../../core/view/view-server';
 export type IComApis =
   | 'askLayout'
+  | 'renderLayout'
   | 'getJsonGraphData'
   | 'openSearchMode'
   | 'getHealthyReport'
@@ -11,6 +12,7 @@ export type IComApis =
   | 'setFinalResult'
   | 'searchAllFunc'
   | 'innerGetSubgraph'
+  | 'selectFile'
   | 'returnFuncTree';
 export type IComRefs = {
   CalleeMap: unknown;
@@ -31,11 +33,15 @@ export type IComRefs = {
   PathOriginMode: unknown;
   nodeErrorList: unknown;
   InitComFlag: unknown;
+  SameDiffFile: unknown;
+  AfterDiffData: unknown;
+  JsonContent: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
+  renderLayout?: (data: any, infoStr: string) => void;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
   openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
@@ -46,6 +52,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   getHealthyReport: () => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
   returnFuncTree: () => Promise<void>;
+  selectFile: (beforeFilePath: string) => Promise<void>;
 }
 
 export type IThreeApis =
@@ -53,6 +60,7 @@ export type IThreeApis =
   | 'savePyCode'
   | 'getInitialData'
   | 'askLayout'
+  | 'renderLayout'
   | 'getJsonGraphData'
   | 'openSearchMode'
   | 'getHealthyReport'
@@ -108,6 +116,7 @@ export type IThreeRefs = {
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
   // getInitialData :()=> Promise<void> ;
   askLayout: (message: { data: any }) => Promise<void>;
+  renderLayout?: (data: any, infoStr: string) => void;
   getJsonGraphData: (message: { data: any }) => Promise<void>;
   openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
@@ -144,7 +153,7 @@ export type ISwimRefs = {
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
-  getSwimData: () => Promise<any>;
+  getSwimData: (message: { swimDataPath: any }) => Promise<any>;
   getOtherData: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;

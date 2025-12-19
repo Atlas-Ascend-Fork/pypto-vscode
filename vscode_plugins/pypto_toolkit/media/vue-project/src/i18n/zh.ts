@@ -105,6 +105,7 @@ export default {
    'pipeStat':'Pipe统计',
    diffList: '差异列表',
    diff: '差异',
+   sameDiffFileTips: '当前选择文件与已打开文件相同，请重新选择',
    allExpand: '全部展开',
    allCollapse: '全部收起',
    syncOperate: '同步操作',

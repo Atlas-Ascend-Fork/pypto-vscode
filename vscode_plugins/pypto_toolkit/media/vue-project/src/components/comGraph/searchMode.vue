@@ -79,7 +79,7 @@
               </div>
               <div v-for="(it, index) in res" :key="index" 
                 class="res-it"
-                @click="onLocate(it)">
+                @click="onLocateSearchRes(it)">
                 <div class="res-it-text" :title="displayResIt(it)">
                   {{displayResIt(it)}}
                   <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
@@ -118,11 +118,16 @@ import { extractIncasts,
   extractTensorNodes,
   extractOperationNodes,
   searchFuzzy,
+  extractFuncMap,
   searchByTensorMagic,
   searchByTensorSemanticLabel,
   searchByRawTensorMagic,
   searchBySubgraphid,
   searchByOperationMagic } from '../../utils/search';
+import { useViewServer } from '../../core/use-view-server';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+
+const { server } = useViewServer<IComViewServer>();
 
 
 const props = defineProps({
@@ -242,6 +247,7 @@ const category = ref(categoryCurrent);
 
 const searchOptions = [
   {name: t('comGraph.currentGraph'), value: 'current'},
+  {name: t('comGraph.globalGraph'), value: 'global'},
 ];
 
 const curSearchOptions = [
@@ -368,6 +374,12 @@ const historyOnSearch = (searchNode) => {
   onSearch(e);
 }
 
+function globalSearch(event) {
+  if (event.searchKey) {
+    server.searchAllFunc(event);
+  }
+}
+
 const onSearch = (e) => {
   //防抖
   if (hasSearched) return;
@@ -380,6 +392,10 @@ const onSearch = (e) => {
   e.isUpper = upperActive.value;
   e.isReg = regActive.value;
   isVisible.value = Boolean(e.searchKey);
+  if (currentSelect.value === 'global') {
+    globalSearch(e);
+    return;
+  }
   if (!(e.category) || e.category === '') {
     res.value = searchFuzzy(tensorMap, opMap, rawTensorMap, funcMap.value, e.searchKey, '', e.isUpper, e.isReg);
   } else {
@@ -514,12 +530,38 @@ const displayResIt = (it) => {
   return `${it.node_type} SubgraphID:${it.subgraphid} ${symbol}magic:${displayMagic}`;
 }
 
-const onLocate = (it) => {
+function jumpSearchSubgraph(calleehash, funcMagicName) {
+  if (comGraphStore.data.comGraphConfig.isSimple) {
+    server.innerGetSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName}});
+  } else {
+    let newPath = JSON.stringify([calleehash]);
+    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}});
+  }
+}
+
+const onGlobalSearchLocate = (it) => {
   if (it.node_type === 'function') {
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'all', nodeMagic: -1});
+    server.innerGetSubgraph( {calleehash: it.hash, subFuncmagicname: funcMap.value[it.hash]?.func_magicname })
     return;
   }
-  emits('searchMode');
-  (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
+  if (it.funcHash) {
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'path', nodeMagic: it.magic ?? it.opmagic});
+    server.innerGetSubgraph( {calleehash: it.funcHash, subFuncmagicname: funcMap.value[it.funcHash]?.func_magicname })
+  }
+
+}
+
+const onLocateSearchRes = (it) => {
+  if (currentSelect.value === 'current') {
+      if (it.node_type === 'function') {
+        return;
+      }
+      emits('searchMode');
+      (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
+  } else if (currentSelect.value === 'global') {
+    onGlobalSearchLocate(it);
+  }
 }
 
 function calcNodeSize(map) {
@@ -564,6 +606,26 @@ onMounted(() => {
     icon?.click();
   });
 });
+
+watch(server.GlobalSearchResult, (newValue) => {
+  res.value = [];
+  const calleeMap = comGraphStore?.data?.calleeMap ?? undefined;
+  if (Object.keys(calleeMap).length !== 0) {
+    funcMap.value = extractFuncMap(calleeMap);
+  }
+  for (const[k, v] of Object.entries(newValue.data)) {
+    v.forEach(item => {
+      const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
+      if (k == currentFuncHash) {
+        res.value.unshift(newItem);
+      } else {
+        res.value.push(newItem);
+      }
+    });
+  }
+  resSize.value = res.value.length;
+});
+
 </script>
 
 <style scoped lang="scss">
