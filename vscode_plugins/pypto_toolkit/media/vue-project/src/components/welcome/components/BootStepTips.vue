@@ -3,16 +3,21 @@
   <div v-if="visible" class="guide-mask" @click.stop="handleMaskClick" @pointerup.stop>
     <!-- 弹窗外层容器（ -->
     <div class="guide-popup-wrapper" :style="popupWrapperStyle">
-      <!-- 引导三角 -->
-      <div v-if="triangleConfig.showTriangle" class="guide-triangle" :class="`triangle-${triangleConfig.triangleDirection}`"></div>
+      <!-- 引导三角：动态偏移样式 -->
+      <div
+        v-if="triangleConfig.showTriangle"
+        class="guide-triangle"
+        :class="`triangle-${triangleConfig.triangleDirection}`"
+        :style="triangleOffsetStyle"
+      ></div>
 
       <!-- 气泡弹窗容器 -->
-      <div class="guide-popup-content">
+      <div class="guide-popup-content" ref="popupContentRef">
         <!-- 顶部进度指示器 -->
         <div class="progress-container">
           <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
-            <img :src="group.imgUrl" class="progress-img" />
             <div class="progress-group">
+            <img :src="group.imgUrl" class="progress-img" />
               <div
                 v-for="(step, stepIdx) in group.steps"
                 :key="stepIdx"
@@ -83,6 +88,8 @@ const props = defineProps<{
 
 // ========== 响应式触发变量（强制更新computed） ==========
 const refreshTrigger = ref(0);
+// 弹窗内容区Ref（用于精准获取尺寸）
+const popupContentRef = ref<HTMLDivElement | null>(null);
 
 /**
  * 防抖函数
@@ -106,7 +113,7 @@ const defaultGuideSteps = guideStepsConfig;
 const currentBigGroup = ref(0);
 const currentSmallIndex = ref(0);
 
-// ========== 1：拆分位置计算逻辑，先算高度再算位置 ==========
+// ========== 拆分位置计算逻辑，先算高度再算位置 ==========
 /**
  * 获取弹窗实际高度（确保实时）
  */
@@ -119,53 +126,221 @@ const getPopupRealHeight = (): number => {
   return popupContent.offsetHeight || 200;
 };
 
-/**
- * 获取目标DOM的位置信息（接收实时弹窗高度）
- * @param domId 目标DOM的ID
- * @param popupHeight 弹窗实时高度
- * @returns DOM的位置信息
- */
-const getTargetDomPosition = (domId: string, popupHeight: number) => {
-  if (!domId || !props.visible) {
-    return {
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-    } as CSSProperties;
-  }
+// ========== 弹窗样式 + 三角偏移样式 ==========
+const popupWrapperStyle = computed<CSSProperties>(() => {
+  refreshTrigger.value; // 触发重新计算
+  return getTargetDomPosition().popupStyle;
+});
 
-  const targetDom = document.getElementById(domId);
-  if (!targetDom) {
-    console.warn(`目标DOM ID ${domId} 不存在，使用兜底定位`);
-    return {
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-    } as CSSProperties;
-  }
-
-  // 强制获取最新的DOM位置（触发重绘）
-  targetDom.getBoundingClientRect();
-  const domRect = targetDom.getBoundingClientRect();
-  const popupWidth = props.width ? parseInt(props.width) : 420;
+const triangleOffsetStyle = computed<CSSProperties>(() => {
+  refreshTrigger.value; // 触发重新计算
+  const { triangleOffset } = getTargetDomPosition();
   const triangleDir = triangleConfig.value.triangleDirection;
-  let position: CSSProperties = {};
 
+  // 根据三角方向应用偏移
+  switch (triangleDir) {
+    case 'top':
+    case 'bottom':
+      return {
+        transform: `translate(${triangleOffset.x}px, -50%)`,
+        left: `50%`,
+      };
+    case 'left':
+    case 'right':
+      return {
+        transform: `translateY(${triangleOffset.y}px)`,
+        top: `50%`,
+      };
+    default:
+      return {};
+  }
+});
+// ========== 视口尺寸/边界检测工具函数 ==========
+/**
+ * 获取视口尺寸（实时）
+ */
+const getViewportSize = () => {
+  return {
+    width: window.innerWidth || document.documentElement.clientWidth,
+    height: window.innerHeight || document.documentElement.clientHeight,
+    // 安全边距：避免弹窗贴边，留8px
+    safeMargin: 8,
+  };
+};
+
+/**
+ * 获取弹窗实际尺寸（宽+高，精准）
+ */
+const getPopupRealSize = (): { width: number; height: number } => {
+  if (!props.visible || !popupContentRef.value) {
+    return { width: props.width ? parseInt(props.width) : 420, height: 200 };
+  }
+  // 强制重绘，获取最新尺寸
+  popupContentRef.value.getBoundingClientRect();
+  return {
+    width: popupContentRef.value.offsetWidth,
+    height: popupContentRef.value.offsetHeight,
+  };
+};
+
+/**
+ * 修正弹窗位置，避免溢出视口
+ * @param initialPos 初始计算的弹窗位置
+ * @param domRect 目标DOM的位置信息
+ * @param popupSize 弹窗尺寸
+ * @param triangleDir 三角方向
+ * @returns 修正后的位置 + 三角偏移量
+ */
+const fixPositionOverflow = (
+  initialPos: CSSProperties,
+  domRect: DOMRect,
+  popupSize: { width: number; height: number },
+  triangleDir: 'top' | 'bottom' | 'left' | 'right',
+) => {
+  const viewport = getViewportSize();
+  // 解构初始位置（转为数字）
+  let top = initialPos.top ? parseFloat(initialPos.top.toString().replace('px', '')) : 0;
+  let left = initialPos.left ? parseFloat(initialPos.left.toString().replace('px', '')) : 0;
+  // 三角偏移量（默认居中）
+  let triangleOffset = { x: 0, y: 0 };
+
+  // ========== 1. 处理水平方向（left/right）溢出 ==========
+  // 弹窗左边界溢出
+  if (left < viewport.safeMargin) {
+    const offsetX = viewport.safeMargin - left;
+    left = viewport.safeMargin;
+    // 根据三角方向调整偏移
+    if (triangleDir === 'top' || triangleDir === 'bottom') {
+      triangleOffset.x = -offsetX; // 三角左移
+    } else if (triangleDir === 'left') {
+      triangleOffset.x = offsetX; // 三角右移
+    } else if (triangleDir === 'right') {
+      triangleOffset.x = -offsetX; // 三角左移
+    }
+  }
+  // 弹窗右边界溢出
+  if (left + popupSize.width > viewport.width - viewport.safeMargin) {
+    const offsetX = left + popupSize.width - (viewport.width - viewport.safeMargin);
+    left -= offsetX;
+    // 根据三角方向调整偏移
+    if (triangleDir === 'top' || triangleDir === 'bottom') {
+      triangleOffset.x = offsetX; // 三角右移
+    } else if (triangleDir === 'left') {
+      triangleOffset.x = -offsetX; // 三角左移
+    } else if (triangleDir === 'right') {
+      triangleOffset.x = offsetX; // 三角右移
+    }
+  }
+
+  // ========== 2. 处理垂直方向（top/bottom）溢出 ==========
+  // 弹窗上边界溢出
+  if (top < viewport.safeMargin) {
+    const offsetY = viewport.safeMargin - top;
+    top = viewport.safeMargin;
+    // 根据三角方向调整偏移
+    if (triangleDir === 'left' || triangleDir === 'right') {
+      triangleOffset.y = -offsetY; // 三角上移
+    } else if (triangleDir === 'top') {
+      triangleOffset.y = offsetY; // 三角下移
+    } else if (triangleDir === 'bottom') {
+      triangleOffset.y = -offsetY; // 三角上移
+    }
+  }
+  // 弹窗下边界溢出
+  if (top + popupSize.height > viewport.height - viewport.safeMargin) {
+    const offsetY = top + popupSize.height - (viewport.height - viewport.safeMargin);
+    top -= offsetY;
+    // 根据三角方向调整偏移
+    if (triangleDir === 'left' || triangleDir === 'right') {
+      triangleOffset.y = offsetY; // 三角下移
+    } else if (triangleDir === 'top') {
+      triangleOffset.y = -offsetY; // 三角上移
+    } else if (triangleDir === 'bottom') {
+      triangleOffset.y = offsetY; // 三角下移
+    }
+  }
+
+  // ========== 3. 特殊场景：DOM贴近边角时的强制修正 ==========
+  // 比如top方向弹窗，DOM在视口最右侧，弹窗右溢 → 强制左移到DOM正下方
+  if (triangleDir === 'top' && left + popupSize.width > viewport.width - viewport.safeMargin) {
+    // 弹窗左边界对齐DOM左边界
+    left = domRect.left - (popupSize.width / 2 - domRect.width / 2);
+    // 再次检测右溢，若仍溢出则左移到视口右边界内
+    if (left + popupSize.width > viewport.width - viewport.safeMargin) {
+      left = viewport.width - viewport.safeMargin - popupSize.width;
+    }
+    // 计算三角偏移（指向DOM中心）
+    triangleOffset.x = domRect.left + domRect.width / 2 - (left + popupSize.width / 2);
+  }
+
+  return {
+    fixedPos: {
+      ...initialPos,
+      top: `${top}px`,
+      left: `${left}px`,
+    },
+    triangleOffset,
+  };
+};
+
+/**
+ * 获取目标DOM的位置信息 + 边界修正 + 三角偏移
+ */
+const getTargetDomPosition = () => {
+  if (!props.visible) {
+    return {
+      popupStyle: {
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 99999,
+        boxSizing: 'border-box',
+        position: 'fixed' as const,
+      },
+      triangleOffset: { x: 0, y: 0 },
+    };
+  }
+
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const targetDom = document.getElementById(targetDomId);
+  if (!targetDom) {
+    console.warn(`目标DOM ID ${targetDomId} 不存在，使用兜底定位`);
+    return {
+      popupStyle: {
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 99999,
+        boxSizing: 'border-box',
+        position: 'fixed' as const,
+      },
+      triangleOffset: { x: 0, y: 0 },
+    };
+  }
+
+  // 1. 获取基础信息（实时）
+  targetDom.getBoundingClientRect(); // 强制重绘
+  const domRect = targetDom.getBoundingClientRect();
+  const popupSize = getPopupRealSize();
+  const triangleDir = triangleConfig.value.triangleDirection;
+  let initialPos: CSSProperties = {};
+
+  // 2. 计算初始位置
   switch (triangleDir) {
     case 'right':
-      position = {
-        position: 'fixed',
-        top: `${domRect.top + domRect.height / 2 - popupHeight / 2}px`,
-        left: `${domRect.left - popupWidth - 8}px`,
+      initialPos = {
+        position: 'fixed' as const,
+        top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
+        left: `${domRect.left - popupSize.width - 8}px`,
         transform: 'none',
         zIndex: 99999,
         boxSizing: 'border-box',
       };
       break;
     case 'left':
-      position = {
-        position: 'fixed',
-        top: `${domRect.top + domRect.height / 2 - popupHeight / 2}px`,
+      initialPos = {
+        position: 'fixed' as const,
+        top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
         left: `${domRect.right + 8}px`,
         transform: 'none',
         zIndex: 99999,
@@ -173,27 +348,28 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
       };
       break;
     case 'bottom':
-      position = {
-        position: 'fixed',
-        top: `${domRect.top - popupHeight - 8}px`,
-        left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
+      initialPos = {
+        position: 'fixed' as const,
+        top: `${domRect.top - popupSize.height - 8}px`,
+        left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
         zIndex: 99999,
         boxSizing: 'border-box',
       };
       break;
     case 'top':
-      position = {
-        position: 'fixed',
-        top: `${domRect.bottom + 8}px`,
-        left: `${domRect.left + domRect.width / 2 - popupWidth / 2}px`,
+      initialPos = {
+        position: 'fixed' as const,
+        top: `${domRect.bottom + 20}px`,
+        left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
         zIndex: 99999,
         boxSizing: 'border-box',
       };
       break;
     default:
-      position = {
+      initialPos = {
+        position: 'fixed' as const,
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
@@ -202,20 +378,16 @@ const getTargetDomPosition = (domId: string, popupHeight: number) => {
       };
   }
 
-  return position;
+  //  修正溢出 + 计算三角偏移
+  const { fixedPos, triangleOffset } = fixPositionOverflow(initialPos, domRect, popupSize, triangleDir);
+
+  return {
+    popupStyle: fixedPos,
+    triangleOffset,
+  };
 };
 
-// ========== 2：computed依赖refreshTrigger，强制重新计算 ==========
-const popupWrapperStyle = computed<CSSProperties>(() => {
-  // 依赖refreshTrigger，触发重新计算
-  refreshTrigger.value;
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
-  const popupHeight = getPopupRealHeight();
-  const domPosition = getTargetDomPosition(targetDomId, popupHeight);
-  return domPosition;
-});
-
-// ========== 3：重写handleResize，强制触发响应式更新 ==========
+// ========== handleResize，强制触发响应式更新 ==========
 const handleResize = async () => {
   if (!props.visible) return;
   await nextTick();
@@ -239,9 +411,9 @@ const handleResize = async () => {
 };
 
 // 防抖后的resize处理函数
-const debouncedHandleResize = debounce(handleResize, 300);
+const debouncedHandleResize = debounce(handleResize, 100);
 
-// ========== 核心修改4：改用ResizeObserver监听DOM尺寸/位置变化（替代MutationObserver） ==========
+// ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
 let domObserver: MutationObserver | null = null;
 
@@ -256,7 +428,7 @@ const observeDomChange = (domId: string) => {
   const targetDom = document.getElementById(domId);
   if (!targetDom) return;
 
-  // 1. ResizeObserver：监听DOM尺寸变化（直接）
+  // 1. ResizeObserver：监听DOM尺寸变化
   resizeObserver = new ResizeObserver(debouncedHandleResize);
   resizeObserver.observe(targetDom);
 
@@ -366,7 +538,7 @@ const handleNextStep = async () => {
     await setGuideProgress(newBig, newSmall);
   } else {
     newSmall++;
-    // 先调用当前步骤方法
+    // 先调用下一步步骤方法
     const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
     if (currentStepConfig?.method) {
       callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
@@ -504,9 +676,10 @@ onUnmounted(() => {
   z-index: 99999;
   // 取消margin，避免尺寸溢出
   box-sizing: border-box;
+  max-width: 480px;
 }
 
-// 三角基础样式
+// 三角基础样式（优化定位）
 .guide-triangle {
   position: absolute;
   width: 0;
@@ -516,38 +689,36 @@ onUnmounted(() => {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   pointer-events: none;
+  transition: transform 0.2s ease;
 }
 
 // 1. 向右三角（外层容器右侧外部）
 .triangle-right {
-  right: -16px; // 容器右边缘外8px
+  right: -16px;
   top: 50%;
-  transform: translateY(-50%);
   border-left-color: #292929;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
 // 2. 向左三角（外层容器左侧外部）
 .triangle-left {
-  left: -16px; // 容器左边缘外8px
+  left: -16px;
   top: 50%;
-  transform: translateY(-50%);
   border-right-color: #292929;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
 // 3. 向上三角（外层容器顶部外部）
 .triangle-top {
-  top: -16px; // 容器上边缘外8px
+  top: -8px;
   left: 50%;
-  transform: translateX(-50%);
   border-bottom-color: #292929;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
 // 4. 向下三角（外层容器底部外部）
 .triangle-bottom {
-  bottom: -16px; // 容器下边缘外8px
+  bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
   border-top-color: #292929;
@@ -570,53 +741,66 @@ onUnmounted(() => {
 }
 
 // ========== 内容区样式 ==========
-.progress-img {
-  width: 12px;
-  height: 12px;
-  margin-right: 8px;
-  object-fit: contain;
-}
 
 .progress-container {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   flex-wrap: nowrap;
+
+  .progress-img {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+  }
 
   .progress-group {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     margin-right: 8px;
   }
 
   .progress-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    transition: all 0.2s;
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    position: relative; 
+    box-sizing: border-box; 
 
     &.completed-dot {
-      border: 2px solid #ffffff;
-      background: transparent;
+      border: 0.5px solid #ffffff;
+      background: rgba(255, 255, 255, 0.1);
     }
 
     &.active-dot {
-      background: #ffffff;
-      border: none;
-      transform: scale(1.2);
+      background: #ffffff; // 基础白色填充（伪元素覆盖中间）
+      transform: scale(2); // 放大效果
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: calc(100% - 2px); 
+        height: calc(100% - 2px);
+        border-radius: 50%;
+        border: 1.5px solid #000000; // 黑色圆环
+        background: rgba(255, 255, 255, 0.1);
+        box-sizing: border-box;
+      }
     }
 
     &.unfinished-dot {
-      background: #c0c4cc;
-      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
   }
 
   .separator {
-    color: #c0c4cc;
-    margin: 0 12px;
+    color: rgba(255, 255, 255, 0.2);
     font-size: 12px;
   }
 }
@@ -658,7 +842,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 16px; // 增加按钮区间距，避免内容拥挤
+  margin-top: 16px;
 
   button {
     padding: 8px 16px;

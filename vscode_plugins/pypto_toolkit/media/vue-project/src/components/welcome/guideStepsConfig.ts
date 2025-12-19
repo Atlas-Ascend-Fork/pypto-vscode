@@ -36,23 +36,25 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     steps: [
       {
         title: '控制流-步骤1标题',
-        content: '这是控制流的第一个小步骤，打开侧边栏...',
-        targetDomId: 'controlFlow-search',
+        content:
+          '这是控制流的第一个小步骤，打开侧边栏这是控制流的第一个小步骤，打开侧边栏这是控制流的第一个小步骤，打开侧边栏这是控制流的第一个小步骤，打开侧边栏这是控制流的第一个小步骤，打开侧边栏这是控制流的第一个小步骤，打开侧边栏...',
+        targetDomId: 'boot-steps-controlFlow',
         showTriangle: false,
-        triangleDirection: 'top',
+        triangleDirection: 'left',
       },
       {
         title: '控制流-步骤2标题',
         content: '这是控制流的第二个小步骤，打开搜索框...',
-        targetDomId: 'controlFlow-search',
-        // method: 'bootStepOpenSideBar',
+        targetDomId: 'boot-steps-controlFlow-search',
+        method: 'bootStepSearch',
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: '控制流-步骤3标题',
         content: '这是控制流的第三个小步骤，完成后将进入导航系统...',
-        targetDomId: 'controlFlow-search',
+        targetDomId: 'boot-steps-controlFlow-right-panel',
+        method: 'bootStepOpenSideBar',
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -71,17 +73,42 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '这是导航系统的第一个小步骤，加载导航菜单...',
         method: 'loadNavMenu',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤1定位
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
-        triangleDirection: 'top', // 三角指向左侧
+        triangleDirection: 'top',
       },
       {
         title: '导航系统-步骤2标题',
         content: '这是导航系统的第二个小步骤，完成后将进入计算图...',
         method: 'checkNavStatus',
-        targetDomId: 'controlFlow-search', // 步骤2定位
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
-        triangleDirection: 'top', // 三角指向上方
+        triangleDirection: 'top',
+      },
+      {
+        title: '导航系统-步骤1标题',
+        content: '这是导航系统的第一个小步骤，加载导航菜单...',
+        method: 'loadNavMenu',
+        methodParams: {},
+        targetDomId: 'controlFlow-search',
+        showTriangle: true,
+        triangleDirection: 'top',
+      },
+      {
+        title: '导航系统-步骤2标题',
+        content: '这是导航系统的第二个小步骤，完成后将进入计算图...',
+        method: 'checkNavStatus',
+        targetDomId: 'controlFlow-search',
+        showTriangle: true,
+        triangleDirection: 'top',
+      },
+      {
+        title: '导航系统-步骤2标题',
+        content: '这是导航系统的第二个小步骤，完成后将进入计算图...',
+        method: 'checkNavStatus',
+        targetDomId: 'controlFlow-search',
+        showTriangle: true,
+        triangleDirection: 'top',
       },
     ],
   },
@@ -98,7 +125,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '这是计算图的第一个小步骤，渲染节点...',
         method: 'renderComputeNodes',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤1定位
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -107,7 +134,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '计算图第二步，绑定节点事件...',
         method: 'bindNodeEvents',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤2定位
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -116,7 +143,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '计算图第三步，校验节点配置...',
         method: 'checkNodeConfig',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤3定位
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -125,7 +152,16 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '计算图第四步，完成后进入泳道图...',
         method: 'saveNodeConfig',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤4定位
+        targetDomId: 'controlFlow-search',
+        showTriangle: true,
+        triangleDirection: 'top',
+      },
+      {
+        title: '计算图-步骤4标题',
+        content: '计算图第四步，完成后进入泳道图...',
+        method: 'saveNodeConfig',
+        methodParams: {},
+        targetDomId: 'controlFlow-search',
         showTriangle: true,
         triangleDirection: 'top',
       },
@@ -139,6 +175,69 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     imgUrl: computeImg.value,
     openWebviewParams: { swimlaneGraphPath: '' },
     steps: [
+      {
+        title: '泳道图-步骤1标题',
+        content: '泳道图第一步，加载泳道数据...',
+        method: 'loadSwimlaneData',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤2标题',
+        content: '泳道图第二步，完成引导，开始体验...',
+        method: 'initSwimlane',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤1标题',
+        content: '泳道图第一步，加载泳道数据...',
+        method: 'loadSwimlaneData',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤2标题',
+        content: '泳道图第二步，完成引导，开始体验...',
+        method: 'initSwimlane',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤1标题',
+        content: '泳道图第一步，加载泳道数据...',
+        method: 'loadSwimlaneData',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤2标题',
+        content: '泳道图第二步，完成引导，开始体验...',
+        method: 'initSwimlane',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '泳道图-步骤1标题',
+        content: '泳道图第一步，加载泳道数据...',
+        method: 'loadSwimlaneData',
+        methodParams: {},
+        targetDomId: 'controlFlow-search', // 步骤1定位
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
       {
         title: '泳道图-步骤1标题',
         content: '泳道图第一步，加载泳道数据...',
