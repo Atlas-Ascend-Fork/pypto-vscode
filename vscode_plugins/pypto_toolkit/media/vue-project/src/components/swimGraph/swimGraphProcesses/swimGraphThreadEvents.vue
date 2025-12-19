@@ -1916,6 +1916,8 @@ const listenExtensionMessage = () => {
         case 'distanceMeasurement':
           guideDistanceMeasurement();
           break;
+        default:
+          break;
       }
     }
   });
@@ -1927,8 +1929,7 @@ const guideDistanceMeasurement = () => {
     }
     for (const [threadKey, thread] of process.threads.entries()) {
         if (thread.events.length > 2) {
-          const preData = thread.events[0];
-          const lastData  = thread.events[1];
+          const [preData, lastData] = thread.events;
           altClickData.preData = preData;
           altClickData.lastData = lastData;
           const uiCtx = getUIContext(processkey);
