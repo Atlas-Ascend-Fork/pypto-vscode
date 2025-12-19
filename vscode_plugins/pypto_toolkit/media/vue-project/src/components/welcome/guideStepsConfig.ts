@@ -94,40 +94,63 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     openWebviewParams: { outputPath: '', computeGraphPath: '', pathName: 'compute' },
     steps: [
       {
-        title: '计算图-步骤1标题',
-        content: '这是计算图的第一个小步骤，渲染节点...',
-        method: 'renderComputeNodes',
+        title: '查看计算图',
+        content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能',
+        method: 'viewComGraph',
         methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'right',
-      },
-      {
-        title: '计算图-步骤2标题',
-        content: '计算图第二步，绑定节点事件...',
-        method: 'bindNodeEvents',
-        methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤2定位
-        showTriangle: true,
-        triangleDirection: 'right',
-      },
-      {
-        title: '计算图-步骤3标题',
-        content: '计算图第三步，校验节点配置...',
-        method: 'checkNodeConfig',
-        methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤3定位
-        showTriangle: true,
-        triangleDirection: 'right',
-      },
-      {
-        title: '计算图-步骤4标题',
-        content: '计算图第四步，完成后进入泳道图...',
-        method: 'saveNodeConfig',
-        methodParams: {},
-        targetDomId: 'controlFlow-search', // 步骤4定位
+        targetDomId: 'navbarComGraphTab',
         showTriangle: true,
         triangleDirection: 'top',
+      },
+      {
+        title: '查看节点详情',
+        content: '点击节点标题区域，支持开启节点详情查看，详情面板支持内容搜索',
+        method: 'viewNodeDetail',
+        methodParams: {
+          nodeId: 'tensor-5692-2',
+          nodeTitleLabelId: 'tensor-5692-2-label-main',
+        },
+        targetDomId: 'sprotty_tensor-5692-2-label-main',
+        showTriangle: true,
+        triangleDirection: 'top',
+      },
+      {
+        title: '搜索目标节点',
+        content: '在此处输入内容搜索目标节点，支持模糊搜索匹配及精确搜索某个值',
+        method: 'searchNode',
+        methodParams: {
+          searchKey: '5818',
+          selectedTags: [
+            {
+              label: 'Tensor',
+              field: 'Tensor',
+              value: { Option: 'magic', value: { Option: 'magic' } },
+            },
+          ],
+        },
+        targetDomId: 'comGraphHeaderSearch',
+        showTriangle: true,
+        triangleDirection: 'right',
+      },
+      {
+        title: '只看当前通路',
+        content: '对节点点击鼠标右键，下拉中可以选择锁定通路并高亮，只看当前通路，可以避免干扰，精准查看目标前后关系',
+        method: 'focusCurrentPath',
+        methodParams: {
+          searchNodeId: 'tensor-5818-3',
+        },
+        targetDomId: 'sprotty_tensor-5818-3',
+        showTriangle: true,
+        triangleDirection: 'top',
+      },
+      {
+        title: '计算图diff查看',
+        content: '点击该按钮会自动关联before及after文件，开启对比查看，快速定位差异内容',
+        method: '',
+        methodParams: {},
+        targetDomId: 'openDiffViewerIcon',
+        showTriangle: true,
+        triangleDirection: 'right',
       },
     ],
   },
