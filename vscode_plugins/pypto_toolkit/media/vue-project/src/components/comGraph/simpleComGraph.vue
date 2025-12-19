@@ -150,6 +150,8 @@ window.addEventListener('message', (event) => {
 // 规避锁定时泳道图发送消息，重新创建框选时，框选消失的问题
 let prevent = false;
 let currentLockLabel: string = '';
+let sendlist;
+let clickLabel: string = '';
 function onMessageFromSwim(args) {
   if (prevent) {
     prevent = false;
@@ -160,6 +162,7 @@ function onMessageFromSwim(args) {
   } else {
     removeSelectNodesRect?.();
   }
+  sendlist = args.rootHashList;
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
       rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
@@ -212,6 +215,17 @@ function onMessageFromSwim(args) {
     rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
   }
   threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
+});
+
+(window as any).ascEventBus.on('returnSemanticLabelFromCodeClick', (args) => {
+  clickLabel = args.label;
+  generateHashList( sendlist ?? []);
+  const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, args.label);
+  if (selectedNodes.length <= 0 && rootHashList.value.length) {
+    rootHash.value = rootHashList.value[0].value;
+    onHashChange(rootHashList.value[0]);
+  }
+  generateHashList();
 });
 
 watch(threeColumnServer.GetPassPath, (newValue) => {
@@ -328,11 +342,11 @@ watch(
         comGraphStore.setData('jsonData', jsonValue);
         server.returnFuncTree();
         let shouldListenViewZoom = true;
-        if (comGraphStore.data.isNodeRectLock && currentLockLabel) {
+        if ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel)  {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';
-              createSelectNodesRect?.(currentLockLabel, true);
+              createSelectNodesRect?.(comGraphStore.data.isNodeRectLock ? currentLockLabel : clickLabel, true);
               shouldListenViewZoom = false;
             }
           });

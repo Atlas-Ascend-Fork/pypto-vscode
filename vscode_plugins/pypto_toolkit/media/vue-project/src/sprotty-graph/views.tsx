@@ -26,7 +26,7 @@ import { VNode } from 'snabbdom';
 import { RenderingContext, setAttr, ShapeView, SPortImpl, getAbsoluteBounds } from 'sprotty';
 import { Point, Selectable, Hoverable, Dimension, getSubType } from 'sprotty-protocol';
 import { AstgrNode, MetadataLabel } from './graph.types';
-import { getTextWidth } from '../utils';
+import { compareJsonData, getTextWidth } from '../utils';
 import { comGraphStore } from '../service/com-graph-store';
 import { getRectPath } from './animation';
 
@@ -811,9 +811,20 @@ export class AstgrRectView extends RectangularNodeView {
       node.customSize.height = endY - startY + 80;
     }
     let strokeWidth = node.root.zoom >= 1 ? 1 : (1 / node.root.zoom);
+    if (comGraphStore.data.isNodeRectLock) {
+      strokeWidth = node.root.zoom >= 1 ? 1.5 : (1 / node.root.zoom);
+    }
     let imgSize = node.root.zoom >= 1 ? 12 : node.root.zoom < 0.45 ? (12 / 0.45): (12 / node.root.zoom);
 
-    const strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
+    let nodeRectLockColor = comGraphStore.data.isNodeRectLock ? 'rgba(49,122,247,1)' : 'var(--devui-tooltip-bg)';
+    let strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
+    const isStable = comGraphStore.data.stableRect;
+    if (isStable) {
+      strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.6)': 'rgba(0,0,0,0.08)';
+    }  
+    if (comGraphStore.data.isNodeRectLock) {
+      strokeColor =  (window as any).isAscDark ? 'rgba(49,122,247,1)': '#0A59F7';
+    }
 
     let lockOpenSvgName: string;
     if(comGraphStore.data.isNodeRectLock) {
@@ -855,7 +866,7 @@ export class AstgrRectView extends RectangularNodeView {
           fill="transparent"
         ></path>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
-          <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill='var(--devui-tooltip-bg)'></rect>
+          <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill={nodeRectLockColor}></rect>
           <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={3 + imgSize / 2}  y={3 + imgSize / 2} width={imgSize} height={imgSize} />
         </g>
       </g>
