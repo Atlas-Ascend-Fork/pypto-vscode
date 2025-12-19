@@ -26,7 +26,7 @@
         </div>
         <div class="diff-after-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <DiffHeader :file-name="realAfterFileName" />
-          <SelectFile v-if="showSelectFile && !isLoading" @change="renderGraph" />
+          <SelectFile v-if="showSelectFile && !isLoading" :before-file-path="beforeFilePath" @change="renderGraph" />
           <div id="sprotty-after"></div>
           <MiniMap
             ref="afterMinimapEl"
@@ -70,6 +70,7 @@ const props = defineProps({
   afterFileName: String,
   beforeJson: Object,
   beforeFileName: String,
+  beforeFilePath: String,
   loadingStep: { type: String, default: '' },
 });
 const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };

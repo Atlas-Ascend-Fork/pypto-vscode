@@ -33,6 +33,12 @@ export class RectAnimateCommand implements Command {
     const model = context.root;
     if (this.action) {
       const element = model.index.getById(this.action.elementId) as any;
+      if (!element) {
+        return {
+          model,
+          modelChanged: false
+        };
+      }
       element.location = this.action.rotateLocation;
     }
     return {
@@ -133,7 +139,7 @@ export function getRectPath(w, h, x, y) {
     v = [p1, p2];
     paths.push(`M ${p1[0]} ${p1[1]}`);
     let acc = 0;
-    for (let i = locationIndex1; i < locationIndex2; i++){
+    for (let i = locationIndex1; i < locationIndex2; i++) {
       const midPoint = edges[i].corner;
       paths.push(`L ${midPoint[0]} ${midPoint[1]}`)
     }

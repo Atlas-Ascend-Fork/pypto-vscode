@@ -1,3 +1,6 @@
+import { window, Uri } from 'vscode';
+import { t } from 'i18next';
+import { basename } from 'path';
 import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
@@ -29,6 +32,9 @@ type Refs = IComRefs & ICommonRefs;
   'InitComFlag',
   'PathOriginMode',
   'nodeErrorList',
+  'SameDiffFile',
+  'AfterDiffData',
+  'JsonContent',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -65,6 +71,10 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public askLayout = async (message) => {
     await this.handler.elkLayout(message.data, this);
+  };
+  @viewApi()
+  public renderLayout = async (data, infoStr: string) => {
+    await this.handler.renderLayout(data, infoStr, this);
   };
   @viewApi()
   public getJsonGraphData = async (message) => {
@@ -105,6 +115,30 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public returnFuncTree = async () => {
     await SingleGraphHandler.returnFuncTree(this);
+  };
+  @viewApi()
+  public selectFile = async (beforeFilePath: string) => {
+    const fileName = basename(beforeFilePath);
+    const fileUris = await window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      defaultUri: Uri.file(beforeFilePath.replace(fileName, '')),
+      openLabel: t('pypto.selectDiffFile') as string,
+      filters: {
+        [t('pypto.jsonFile')]: ['json'],
+        [t('pypto.allFile')]: ['*'],
+      },
+      title: t('pypto.selectDiffFile') as string,
+    });
+
+    if (fileUris && fileUris.length > 0) {
+      if (beforeFilePath === fileUris[0].fsPath) {
+        this.setRef('SameDiffFile', '');
+        return;
+      }
+      this.handler.loadDiffData(this, fileUris[0].fsPath);
+    }
   };
 
   safeParse(str) {

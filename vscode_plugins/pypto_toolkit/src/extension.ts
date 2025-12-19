@@ -72,7 +72,6 @@ export async function activate(context: ExtensionContext) {
 
   await hismartliteEx.initHismartliteEx(context);
   const registerCommand = new RegisterCommand(context);
-  registerCommand.register();
   if (config.IS_USE_DB) {
     await initDB(context);
   }
@@ -80,15 +79,16 @@ export async function activate(context: ExtensionContext) {
   // 启动存储
   initStores(context);
   // 启动接口
+
   const server = initServer(services);
   // 启动服务
   startAllServices();
-
   // 启动编辑区视图
-  initView((viewPanel) => {
+  const editorView = initView((viewPanel) => {
     server.addWebview(viewPanel.webview);
   });
-
+  registerCommand.register(editorView);
+  
   const sidebarViewProvider = new SidebarViewProvider();
 
   vscode.window.registerWebviewViewProvider(
@@ -111,8 +111,8 @@ async function initDB(context: ExtensionContext) {
   await SQLiteCache.init(context);
   // 文件修改监听
   const watcher = vscode.workspace.createFileSystemWatcher('**/*.json');
-  watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
-  watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphLayoutDel(uri.fsPath));
+  watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphDataDelete(uri.fsPath));
+  watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphDataDelete(uri.fsPath));
   // 2. 注册命令
   vscode.commands.registerCommand('PyPTO.deletePersistFile', async () => {
     const yes = 'Clear';

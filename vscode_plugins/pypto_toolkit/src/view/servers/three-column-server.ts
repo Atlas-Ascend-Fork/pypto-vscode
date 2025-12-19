@@ -139,6 +139,10 @@ export class ThreeColumnServer
     await ComGraphHandler.elkLayout(message.data, this);
   };
   @viewApi()
+  public renderLayout = async (data, infoStr) => {
+    await ComGraphHandler.renderLayout(data, infoStr, this);
+  };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await ComGraphHandler.getJsonGraphData(message, this);
   };
@@ -184,13 +188,23 @@ export class ThreeColumnServer
       this.comPath = message.comPath;
       this.query = {
         fsPath: message.comPath,
+        _path: this.codePath
       };
+    }
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
   };
   @viewApi()
-  public getSwimData = async () => {
+  public getSwimData = async (message) => {
+    if(!this.swimDataPath){
+      this.swimDataPath = message.swimDataPath;
+    }
     const packages = await SwimGraphMsgHandler.getSwimData(this);
-    return stream.Readable.toWeb(stream.Readable.from(packages!));
+    if(packages){
+      return stream.Readable.toWeb(stream.Readable.from(packages));
+    }
+    return;
   };
   @viewApi()
   public getOtherData = async () => {
@@ -261,6 +275,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
+          _path: this.codePath
         };
       }   
       if (!this.swimDataPath || !this.comPath) {
@@ -294,6 +309,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
+          _path: this.codePath
         };
       }
       const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
@@ -322,7 +338,7 @@ export class ThreeColumnServer
       }
     }
 
-    if (this.swimDataPath && this.comPath) {
+    if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
   }
@@ -339,7 +355,11 @@ export class ThreeColumnServer
       this.comPath = comPath;
       this.query = {
         fsPath: comPath,
+        _path: this.codePath
       };
+    }
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
     this.setRef('returnSearchPath', { data: pathMsg });

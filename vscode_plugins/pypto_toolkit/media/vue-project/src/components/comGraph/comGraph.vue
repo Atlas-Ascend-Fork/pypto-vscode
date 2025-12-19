@@ -267,6 +267,11 @@ function onMessageNotice(text) {
     message:text
   });
 }
+
+function onNodeHiddenMessageNotice(text) {
+  onMessageNotice(t(text));
+}
+
 function onViewMouseUp(node) {
   if (node.type === 'graph' || node.id.startsWith('parent')) {
     showNodeDetail.value = false;
@@ -350,6 +355,7 @@ async function onStepsChange(args) {
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', onViewMouseUp);
   (window as any).ascEventBus.on('message_notice', onMessageNotice);
+  (window as any).ascEventBus.on('node_hidden_message_notice', onNodeHiddenMessageNotice);
   (window as any).ascEventBus.on('switchLockInformation', onSwitchLockInfo);
   (window as any).ascEventBus.on('layoutEnding', onLayoutEnding);
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
@@ -365,6 +371,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('view_mouseup', onViewMouseUp);
   (window as any).ascEventBus.remove('message_notice', onMessageNotice);
+  (window as any).ascEventBus.remove('node_hidden_message_notice', onNodeHiddenMessageNotice);
   (window as any).ascEventBus.remove('switchLockInformation', onSwitchLockInfo);
   (window as any).ascEventBus.remove('layoutEnding', onLayoutEnding);
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
