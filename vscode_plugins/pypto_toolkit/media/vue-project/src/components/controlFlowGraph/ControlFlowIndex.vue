@@ -58,12 +58,12 @@
       </div>
     </template>
   </div>
-  <Loading v-if="isLoading" :loadingText="'loading'" />
+  <Loading class="loading-index" v-if="isLoading" :loadingText="'loading'" />
   <div class="boot-steps-controlFlow" id="boot-steps-controlFlow"></div>
 </template>
 
 <script lang="ts" setup>
-import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CommonEvent, ExtensionCategory, Graph, GraphEvent, register } from '@antv/g6';
 import RightPanel from '@/components/controlFlowGraph/components/RightPanel.vue';
@@ -83,7 +83,8 @@ import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
 import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectItem } from './type/node-detail-types';
 import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
-import { openComputeGraph } from '@/apis/opener';
+import { openComputeGraph, openSwimlaneGraph } from '@/apis/opener';
+import { getIsCompleteBoot } from '@/apis/welcome';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -333,29 +334,47 @@ const stepOpenSidebaNode = ref();
 
 // 由引导弹窗控制打开侧边栏
 function bootStepOpenSideBar() {
-  sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 2);
+  sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 0);
 }
-function bootStepSearch() {
-  console.log(11111111111)
-  sideBarRef.value.drawerVisible=false
+function closeSidebar() {
+  sideBarRef.value.drawerVisible = false;
 }
 
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
+  watch(
+    () => isLoading.value,
+    (value) => {
+      if (!value) {
+        graph.zoomTo(50 / 100);
+        const pathPosition = graph.getElementPosition(stepOpenSidebaNode.value.id);
+      }
+    },
+  );
+
   (window as any).ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
 
-    if (event.type == 'callWebviewMethod') {
+    if (event.type === 'callWebviewMethod') {
       switch (message.methodName) {
+        case 'checkControlFlow':
+          closeSidebar();
+          graph.zoomTo(50 / 100);
+          break;
         case 'bootStepOpenSideBar':
           bootStepOpenSideBar();
-          break;          
+          break;
         case 'bootStepSearch':
-          bootStepSearch()
+          closeSidebar();
+          break;
+        case 'viewNavigationHistory':
+          closeSidebar();
+          break;
+        default:
           break;
       }
     }
-    if (event.type == 'openWebviewWithGuide') {
+    if (event.type === 'openWebviewWithGuide') {
       switch (message.openWebviewFn) {
         case 'openComputeGraph':
           const length = stepOpenSidebaNode.value.data.source.meta?.passes.length;
@@ -364,6 +383,8 @@ const listenExtensionMessage = () => {
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
             pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
           });
+          break;
+        default:
           break;
       }
     }
@@ -374,6 +395,9 @@ const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
+  if (await getIsCompleteBoot()) {
+    listenExtensionMessage();
+  }
   const res = await getQuery();
   outPutPath.value = res.url;
   programPath.value = res._path;
@@ -424,7 +448,6 @@ onMounted(async () => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止原生菜单弹出
   });
-  listenExtensionMessage();
 });
 
 onUnmounted(() => {
@@ -440,11 +463,13 @@ onUnmounted(() => {
   box-sizing: border-box;
   background-color: var(--control-flow-bg);
 }
-.boot-steps-controlFlow{
+.boot-steps-controlFlow {
   position: absolute;
-  background-color: pink;
-  top: 50%;
-  left: 60%;
+  top: 58%;
+  left: 30%;
+}
+.loading-index {
+  z-index: 99999999;
 }
 .tool-navbar {
   position: absolute !important;
