@@ -205,8 +205,8 @@ onBeforeUnmount(() => {
     inset: 0;
     width: 100%;
     transform: unset !important;
-    .devui-modal__body {
-      max-height: calc(100vh - 46px);
+    .devui-modal__body .code-review-wrap {
+      max-height: calc(100vh - 86px);
     }
   }
 

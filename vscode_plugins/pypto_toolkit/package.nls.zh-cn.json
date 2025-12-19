@@ -33,12 +33,16 @@
   "pypto.cannotRender": "PyPTO Toolkit无法渲染此文件",
   "pypto.autoFinded": "自动找到最新输出目录中的文件",
   "pypto.useLatest": "使用最新输出目录: ",
+  "pypto.selectCodeFile": "请选择算子文件",
+  "pypto.noCodeFileSelect": "未选择算子文件",
   "pypto.selectSwimFile": "请选择泳道图文件",
   "pypto.noSwimFileSelect": "未选择泳道图文件",
   "pypto.selectComFile": "请选择计算图文件",
   "pypto.noComFileSelect": "未选择计算图文件",
   "pypto.selectDiffFile": "请选择对比文件",
   "pypto.jsonFile": "JSON文件",
+  "pypto.cppFile": "CODE文件",
+  "pypto.pyFile": "PY文件",
   "pypto.allFile": "所有文件",
   "PyPTOToolkit.request.statusNotFound": "接口{{apiName}}不存在。",
   "PyPTOToolkit.request.statusSuccess": "请求成功。",
@@ -111,6 +115,8 @@
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
   "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
+  "pypto.swimGraph.performance.useTime": "当前文件预计打开耗时介于 {{lower}} 和 {{upper}} 之间",
+  "pypto.swimGraph.performance.tooLarge": "当前文件过大，可能存在打不开的情况",
   "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",
   "pypto.swimGraph.validate.process": "processes 缺少关键字段 ",
   "pypto.swimGraph.validate.threadWithid": "thread缺少关键字段 pid:{{pid}}, tid:{{tid}}",
@@ -119,5 +125,6 @@
   "pypto.swimGraph.validate.event": "Event缺少关键字段",
   "pypto.swimGraph.validate.cntEvent": "Counter类型event args参数错误 name:{{name}}",
   "pypto.swimGraph.validate.noProcess": "SwimJson内没有process节点",
-  "pypto.swimGraph.validate.savedData": "缓存数据错误,请按F1清除数据库缓存"
+  "pypto.swimGraph.validate.savedData": "缓存数据错误,请按F1清除数据库缓存",
+  "pypto.swimGraph.validate.swimLaneFileError": "输入Json文件错误:{{swimPath}}"
 }

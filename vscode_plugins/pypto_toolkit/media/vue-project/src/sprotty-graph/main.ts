@@ -349,6 +349,14 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
         retainZoom: retainZoomPara,
         zoomScale: zoomScalePara,
       };
+
+      const nodeVisibleFlag = !!modelSource.currentRoot?.children.find( t => selectedElements.includes(t.id));
+
+      if (!nodeVisibleFlag) {
+        (window as any).ascEventBus.emit('node_hidden_message_notice', 'comGraph.searchingNodeUntraced');
+        return;
+      }
+
       modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
         getViewport(modelSource, MAINMAP_FIT_SCREEN);
 

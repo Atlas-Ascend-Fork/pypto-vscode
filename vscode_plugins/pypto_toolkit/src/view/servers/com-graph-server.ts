@@ -34,6 +34,7 @@ type Refs = IComRefs & ICommonRefs;
   'nodeErrorList',
   'SameDiffFile',
   'AfterDiffData',
+  'JsonContent',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;

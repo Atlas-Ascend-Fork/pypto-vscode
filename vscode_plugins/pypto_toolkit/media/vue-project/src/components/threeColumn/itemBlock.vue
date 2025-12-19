@@ -8,7 +8,7 @@
     @dragleave="onDragleave"
     @dragend="onDragend"
     @drop.prevent="onDrop"
-    @mouseenter="onMouseenter"
+    @click.capture="onMouseenter"
   >
     <slot />
     <div v-if="currentActiveBlock === blockName" class="active-border"></div>
@@ -76,6 +76,7 @@ function onDrop(e: DragEvent) {
   if (props.blockName === transferData) {
     return;
   }
+  currentActiveBlock.value = props.blockName;
   const dropEl = document.querySelector(`.three-column-item-${props.blockName}`);
   const dragEl = document.querySelector(`.three-column-item-${transferData}`);
   if (dropEl && dragEl) {

@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
 import { getBasenameWithoutExt } from '../command/registerCommand';
+import { hismartliteEx } from '../hismarliteEx';
 const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
@@ -31,6 +32,43 @@ export abstract class SwimGraphMsgHandler {
 
     static async getInitialData(server: any) {
         server.setRef('returnSwim', { data: {} });
+    }
+
+    static warnPerformance(server: any, size: any, swimPerformanceBase: any) {
+      const baseSizes = Object.keys(swimPerformanceBase)
+        .map(Number)
+        .sort((a, b) => a - b);
+      const keys = Object.keys(swimPerformanceBase).map(Number);
+      const minKey = Math.min(...keys);
+      const maxKey = Math.max(...keys);
+
+      function getEstimatedTimeRange(fileSizeInMB) {
+        for (let i = 0; i < baseSizes.length - 1; i++) {
+          const lowerSize = baseSizes[i];
+          const upperSize = baseSizes[i + 1];
+      
+          if (fileSizeInMB >= lowerSize && fileSizeInMB <= upperSize) {
+            const lowerTime = swimPerformanceBase[lowerSize];
+            const upperTime = swimPerformanceBase[upperSize];
+            return { type: 'range', lower: lowerTime, upper: upperTime };
+          }
+        }
+      }
+    
+      const fileSizeInMB = Math.ceil(size / (1024 * 1024)); // 转为 MB 并向上取整
+      if (fileSizeInMB <= minKey) {
+        return;
+      }
+      if (fileSizeInMB >= maxKey) {
+        server.setRef('performanceWarn', t('pypto.swimGraph.performance.tooLarge'));
+        return;
+      }
+      const result = getEstimatedTimeRange(fileSizeInMB);
+      if (result) {
+        const lower = `${result.lower}s`;
+        const upper = `${result.upper}s`;
+        server.setRef('performanceWarn', t('pypto.swimGraph.performance.useTime', { lower, upper }));
+      }
     }
 
     static async getOtherData(server: any) {
@@ -58,7 +96,7 @@ export abstract class SwimGraphMsgHandler {
     }
 
     static async splitJson(swimData: any) {
-      let eventSize = 500;
+      let eventSize = 2000;
       let sendList: any[] = [];
 
       //发送整体信息
@@ -143,6 +181,7 @@ export abstract class SwimGraphMsgHandler {
           if (false) {
             swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
           } else {
+            this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
             const fileUri = vscode.Uri.file(parsedInfoRow[0].info);
             const fileData = await vscode.workspace.fs.readFile(fileUri);
             const content = new TextDecoder().decode(fileData);
@@ -157,6 +196,7 @@ export abstract class SwimGraphMsgHandler {
         } else {
           //解析数据
           //处理tilefwk_prof_pmu.csv
+          this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.first);
           let pmuInfo = {};
           let pmuExist = false;
           let pmuTotal:any = {};
@@ -210,7 +250,10 @@ export abstract class SwimGraphMsgHandler {
             console.log('读取merged_swimlane.json文件');
     
           } catch (err) {
+            const msg = t('pypto.swimGraph.validate.swimLaneFileError', {swimPath: swimPath});
+            server.setRef('dataError', msg);
             console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+            return [];
           }
     
           //处理dyn_topo
@@ -241,7 +284,7 @@ export abstract class SwimGraphMsgHandler {
           if ('errMsg' in swimData) {
             server.setRef('dataError', swimData.errMsg);
             console.log('data ERROR:', swimData.errMsg);
-            return;
+            return [];
           }
 
           swimData.lane2line = Object.fromEntries(swimData.lane2line);
