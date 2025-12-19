@@ -287,6 +287,10 @@ export abstract class BaseGraphMsgHandler {
     throw new Error('子类必须覆盖 loadMainData 方法');
   }
 
+  static async loadDiffData(server: any, otherFsPath: string) {
+    throw new Error('子类必须覆盖 loadDiffData 方法');
+  }
+
   protected static getGraphData(server: any): AbstractGraphData {
     throw new Error(`子类必须覆盖 getGraphData 方法`);
   }

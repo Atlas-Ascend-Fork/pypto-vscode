@@ -32,7 +32,7 @@ const outputDirPath = ref('');
 const passIndex = ref('');
 const pathName = ref('');
 const fileName = ref('');
-const diffInfo = ref({});
+const diffInfo = ref<Record<string, any>>({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
 const comLoadFlag = ref(false);
@@ -423,7 +423,7 @@ const onInputLeave = (event) => {
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
       :afterFileName="diffInfo.afterFileName" :beforeJson="diffInfo.beforeJson"
-      :beforeFileName="diffInfo.beforeFileName" :loadingStep="loadingStep" />
+      :beforeFileName="diffInfo.beforeFileName" :beforeFilePath="diffInfo.beforeFilePath" :loadingStep="loadingStep" />
     <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
       @full-render="onFullRender" @search-mode="entrySearchModeSet" />
     <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2 && jsonContent.hash" :jsonContent="jsonContent"

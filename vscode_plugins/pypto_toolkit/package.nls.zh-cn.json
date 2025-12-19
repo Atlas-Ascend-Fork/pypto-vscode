@@ -39,6 +39,7 @@
   "pypto.noSwimFileSelect": "未选择泳道图文件",
   "pypto.selectComFile": "请选择计算图文件",
   "pypto.noComFileSelect": "未选择计算图文件",
+  "pypto.selectDiffFile": "请选择对比文件",
   "pypto.jsonFile": "JSON文件",
   "pypto.cppFile": "CODE文件",
   "pypto.pyFile": "PY文件",

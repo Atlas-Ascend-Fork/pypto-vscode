@@ -9,6 +9,7 @@ export interface DiffInfo {
   afterFileName?: string;
   beforeJson?: Record<string, any>;
   beforeFileName?: string;
+  beforeFilePath?: string;
 }
 
 export class Util {
@@ -119,6 +120,7 @@ export function getDiffInfo(fsPath: string, ret: Record<string, any>) {
   const result: DiffInfo = {
     beforeFileName: curFile.replace('.json', ''),
     beforeJson: ret,
+    beforeFilePath: fsPath,
   };
   return result;
 }

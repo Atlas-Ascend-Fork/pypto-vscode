@@ -125,6 +125,37 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     }
   }
 
+  // 开启对比图时未自动找到after文件，用于单独打开after文件
+  public static override async loadDiffData(server: any, otherFsPath: string) {
+    server.query.otherFsPath = otherFsPath;
+    // 1. 初始化
+    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData');
+    // 2. 校验
+    const gd = this.getGraphData(server);
+    const diffgd = this.getDiffGraphData(server);
+    if (!diffgd) {
+      return;
+    }
+    if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) {
+      return;
+    }
+    // 3.读取文件数据
+    const jsonContent = await this.getJsonData(diffgd, server);
+    if (!jsonContent) {
+      return;
+    }
+    // 4. 加载FuncHashMap
+    await this.loadFuncHashMap(server, gd);
+    // 5. 解析json并返回
+    const otherFileName = basename(server.diffGraphData.fsPath).replace('.json', '');
+    const { json } = await DiffGraphHandler.fetchGraphJson(diffgd, server);
+    const postInfo = {
+      fileName: otherFileName,
+      fileContent: json,
+    };
+    server.setRef('AfterDiffData', postInfo);
+  }
+
   protected static override postLayoutResult(server: any, jsonStr: string, filePath?: string) {
     server.setRef('LayoutResult', { data: JSON.parse(jsonStr), filePath });
   }
