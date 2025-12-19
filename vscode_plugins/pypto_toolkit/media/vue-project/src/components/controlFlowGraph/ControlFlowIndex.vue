@@ -59,6 +59,7 @@
     </template>
   </div>
   <Loading v-if="isLoading" :loadingText="'loading'" />
+  <div class="boot-steps-controlFlow" id="boot-steps-controlFlow"></div>
 </template>
 
 <script lang="ts" setup>
@@ -334,6 +335,10 @@ const stepOpenSidebaNode = ref();
 function bootStepOpenSideBar() {
   sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 2);
 }
+function bootStepSearch() {
+  console.log(11111111111)
+  sideBarRef.value.drawerVisible=false
+}
 
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
@@ -344,6 +349,9 @@ const listenExtensionMessage = () => {
       switch (message.methodName) {
         case 'bootStepOpenSideBar':
           bootStepOpenSideBar();
+          break;          
+        case 'bootStepSearch':
+          bootStepSearch()
           break;
       }
     }
@@ -432,7 +440,12 @@ onUnmounted(() => {
   box-sizing: border-box;
   background-color: var(--control-flow-bg);
 }
-
+.boot-steps-controlFlow{
+  position: absolute;
+  background-color: pink;
+  top: 50%;
+  left: 60%;
+}
 .tool-navbar {
   position: absolute !important;
   z-index: 10;

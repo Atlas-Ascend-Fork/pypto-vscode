@@ -9,7 +9,7 @@
       clearable
       :placeholder="t('controlFlows.searchPlaceholder')"
       prefix="search"
-      id="controlFlow-search"
+      id="boot-steps-controlFlow-search"
     />
     <div v-if="isOpen && visibleResults.length" class="search-result-list" @mousedown.prevent ref="resultContainerRef">
       <div
