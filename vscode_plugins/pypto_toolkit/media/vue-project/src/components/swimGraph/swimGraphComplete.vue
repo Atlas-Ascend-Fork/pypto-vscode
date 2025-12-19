@@ -1860,6 +1860,7 @@ onMounted(async () => {
   }
 
   updateTheme();
+  listenExtensionMessage();
 });
 
 defineExpose({
@@ -1996,6 +1997,39 @@ const updateTheme = () => {
   down_16px.value = isDarkTheme.value
     ? `${window.staticPath}/static-assets/down_16px.svg`
     : `${window.staticPath}/static-assets/down_16px_light.svg`;
+};
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'showGuideDetailsPanel':
+          getEventInfo();
+          break;
+        case 'measureDetailSearch':
+          measureDragStartX.value = layout.processLabelWidth;
+          measureDragEndX.value = viewState.canvasCssWidth;
+          isMeasureDragging.value = true;
+          showDragAreaBorders.value = true;
+          measureMouseUp();
+          break;
+      }
+    }
+  });
+};
+const getEventInfo = () => {
+  for (const [processkey, process] of processes.entries()) {
+    if (!processExpanded.get(processkey)) {
+      continue;
+    }
+    for (const [threadKey, thread] of process.threads.entries()) {
+        if (thread.events.length > 0) {
+          selectEvent(thread.events[0], processkey);
+          break;
+        }
+      }
+  }
 };
 </script>
 

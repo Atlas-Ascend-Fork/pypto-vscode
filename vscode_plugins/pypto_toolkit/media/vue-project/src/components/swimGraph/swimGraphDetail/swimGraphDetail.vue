@@ -123,7 +123,7 @@
                     <span class="args-button" v-if="typeof(value) === 'string' && (value.includes('rootHash') || value.includes('leafHash'))">
                       <span v-for="(item, key) in splitValue(value)">
                         <span v-if="item[0]=='rootHash' || item[0]=='leafHash'" class="main-text">
-                          {{ item[0] }}:<span class="event-hint-hash" @click="jumpToComGraph(item[1])">{{ item[1] }}</span>.
+                          {{ item[0] }}:<span :id="item[0]" class="event-hint-hash" @click="jumpToComGraph(item[1])">{{ item[1] }}</span>.
                         </span>
                         <span v-else class="main-text">
                           {{ item[0] }}:{{ item[1] }},

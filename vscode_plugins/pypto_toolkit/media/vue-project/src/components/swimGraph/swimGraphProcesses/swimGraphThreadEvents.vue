@@ -274,6 +274,7 @@ onMounted(() => {
     }
     onKeyUp(e);
   });
+  listenExtensionMessage();
 });
 
 onUnmounted(() => {
@@ -1906,6 +1907,38 @@ watch(isDarkTheme, () => {
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
   flagRender();
 });
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'distanceMeasurement':
+          guideDistanceMeasurement();
+          break;
+      }
+    }
+  });
+};
+const guideDistanceMeasurement = () => {
+  for (const [processkey, process] of processes.entries()) {
+    if (!processExpanded.get(processkey)) {
+      continue;
+    }
+    for (const [threadKey, thread] of process.threads.entries()) {
+        if (thread.events.length > 2) {
+          const preData = thread.events[0];
+          const lastData  = thread.events[1];
+          altClickData.preData = preData;
+          altClickData.lastData = lastData;
+          const uiCtx = getUIContext(processkey);
+          measureRenderer.drawRoundedRect(uiCtx, lastData, processkey);
+          measureRenderer.calculateAndDrawConnection(uiCtx);
+          break;
+        }
+      }
+  }
+};
 </script>
 
 <style scoped>
