@@ -12,7 +12,7 @@
         </div>
       </d-tooltip>
       <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
-        <div :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="openDiffViewer">
+        <div id="openDiffViewerIcon" :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="openDiffViewer">
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
@@ -63,6 +63,7 @@
       >
         <div
           ref="toolbarRowEl"
+          id="comGraphHeaderSearch"
           class="toolbar-row"
           :class="{ 'search-focusd': isSearchFocus}"
         :style="{maxWidth: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px' }"
@@ -392,6 +393,17 @@ watch(currentSelect, (newVal) => {
   }
   onSelectedTagsChange({ selectedTags: [] });
 });
+
+// 操作指引页更新搜索条件和关键字
+const updateSearchParams = (params: Record<string, any>) => {
+  categorySearchKey.value = params.searchKey;
+  selectedTags.value = params.selectedTags;
+  onSearch(params);
+}
+// 操作指引页关闭搜索结果下拉框
+const hideSearchResMenu = () => {
+  isVisible.value = false;
+}
 
 const onSelectedChange = (e) => {
   onSelectedTagsChange(e);
@@ -735,7 +747,9 @@ defineExpose({
     nextTick(() => {
       categorySearchKey.value = '';
     });
-  }
+  },
+  updateSearchParams,
+  hideSearchResMenu
 })
 
 watch(

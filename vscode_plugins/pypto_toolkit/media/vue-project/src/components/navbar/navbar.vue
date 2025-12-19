@@ -28,7 +28,7 @@
         position="bottom"
         :disabled="currentStep === 'comGraph'"
       >
-        <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
+        <div id="navbarComGraphTab" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
           <div class="com-graph-icon-wrap">
             <ComGraphIcon />
           </div>
