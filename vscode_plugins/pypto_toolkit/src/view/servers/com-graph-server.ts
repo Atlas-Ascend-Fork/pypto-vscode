@@ -29,6 +29,7 @@ type Refs = IComRefs & ICommonRefs;
   'InitComFlag',
   'PathOriginMode',
   'nodeErrorList',
+  'JsonContent',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;

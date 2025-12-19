@@ -31,6 +31,7 @@ export type IComRefs = {
   PathOriginMode: unknown;
   nodeErrorList: unknown;
   InitComFlag: unknown;
+  JsonContent: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {

@@ -262,6 +262,7 @@ onMounted(async () => {
     loadingStep.value = args;
   });
   (window as any).ascEventBus.on('searchNode', searchNodeListener);
+  (window as any).ascEventBus.on('searchNodeGlobal', searchNodeGlobalListener);
 });
 
 const searchNodeListener = (args) => {
@@ -269,6 +270,12 @@ const searchNodeListener = (args) => {
   openMode.value = 'path';
   nodeMagic.value = args;
   loadingStep.value = 'convertData';
+};
+
+const searchNodeGlobalListener = (args) => {
+    jsonContent.value = undefined;
+    searchMode.value = 0;
+    loadingStep.value = 'convertData';
 };
 
 function dealConfig(config) {
