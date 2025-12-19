@@ -8,7 +8,8 @@
            left: lockPosition.left + 'px',
            'background-color': 'var(--devui-tooltip-bg)',
            'border-radius': '6px',
-           'padding': '4px 6px',
+           padding: '4px 6px',
+           cursor: 'pointer',
          }">
       <d-icon name="lock-open"></d-icon>
     </div>
@@ -18,11 +19,12 @@
          :style="{
            top: lockPosition.top + 'px',
            left: lockPosition.left + 'px',
-           'background-color': 'var(--devui-tooltip-bg)',
+           'background-color': 'rgba(49,122,247,1)',
            'border-radius': '6px',
-           'padding': '4px 6px',
+           padding: '4px 6px',
+           cursor: 'pointer',
          }">
-      <d-icon name="icon-lock-private"></d-icon>
+      <d-icon name="icon-lock-private" style="color: #ffffff;"></d-icon>
     </div>
     <canvas 
       class="events-canvas" 
@@ -67,7 +69,7 @@ let boundaries = [];
 let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
-let isHoverLockStatus = false; // 选定状态
+let isHoverLockStatus = ref(false); // 选定状态
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -195,11 +197,11 @@ const handleCanvasClick = (e) => {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (isPointInPolygon) {
       if (!clickedEvent) {
-        isHoverLockStatus = true;
+        isHoverLockStatus.value = true;
         return;
       }
     } else {
-      isHoverLockStatus = false;
+      isHoverLockStatus.value = false;
       clearSelectionCanvas('data-three-column-process-key');
       sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
       toggleLock();
@@ -563,7 +565,7 @@ const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
   const hoveredEvent = hoverInfo?.event;
   const { x, y } = localPosition;
   const hasHnadleHover = handleHoverEvent(hoveredEvent);
-  if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus) {
+  if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus.value) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (!isPointInPolygon && preLabel) {
       sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
@@ -620,7 +622,7 @@ const handleHoverEvent = (hoveredEvent) => {
   return true;
 };
 const shouldUpdateOutline = (color) => {
-  return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus;
+  return preLabel !== color && !isLockStatus.value && isThreeColumn && !isHoverLockStatus.value;
 };
 const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
   const taskCursor = handleTooltipAndCursor(e, hoveredEvent, canvasRef) || '';
@@ -1887,6 +1889,10 @@ addChildContext('threadEvent', {
   drawBoundary: threeRender.drawBoundary,
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,
+});
+
+watch(isHoverLockStatus, () => {
+  sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
 });
 
 // 每个事件画布都会走一遍
