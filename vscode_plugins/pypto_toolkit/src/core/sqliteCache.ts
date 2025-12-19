@@ -909,6 +909,13 @@ export class SQLiteCache {
     throw new Error('重试次数已达上限');
   }
   /****************** 4️⃣  生命周期 ******************/
+  public async comGraphDataDelete(fsPath: string) {
+    this.comGraphLayoutDel(fsPath);
+    this.comGraphFinalResultDel(fsPath);
+    this.comGraphFuncDataDel(fsPath);
+    this.comGraphFileHashMapDel(fsPath);
+  }
+
   /** 把内存中的数据持久化到磁盘，在 deactivate() 里调用 **/
   public async save() {
     if (!this.db) {
