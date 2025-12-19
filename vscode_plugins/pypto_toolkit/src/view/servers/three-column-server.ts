@@ -139,6 +139,10 @@ export class ThreeColumnServer
     await ComGraphHandler.elkLayout(message.data, this);
   };
   @viewApi()
+  public renderLayout = async (data, infoStr) => {
+    await ComGraphHandler.renderLayout(data, infoStr, this);
+  };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await ComGraphHandler.getJsonGraphData(message, this);
   };
@@ -184,6 +188,7 @@ export class ThreeColumnServer
       this.comPath = message.comPath;
       this.query = {
         fsPath: message.comPath,
+        _path: this.codePath
       };
     }
   };
@@ -261,6 +266,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
+          _path: this.codePath
         };
       }   
       if (!this.swimDataPath || !this.comPath) {
@@ -294,6 +300,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
+          _path: this.codePath
         };
       }
       const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
@@ -339,6 +346,7 @@ export class ThreeColumnServer
       this.comPath = comPath;
       this.query = {
         fsPath: comPath,
+        _path: this.codePath
       };
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };

@@ -323,9 +323,9 @@ watch(
       graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
       if (initComDocText) {
+        resetModelSource(true);
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
         comGraphStore.setData('jsonData', jsonValue);
-        resetModelSource();
         server.returnFuncTree();
         let shouldListenViewZoom = true;
         if (comGraphStore.data.isNodeRectLock && currentLockLabel) {

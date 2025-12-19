@@ -9,6 +9,7 @@ import * as path from 'path';
 
 export class RegisterCommand {
   private context: ExtensionContext;
+  private editorView;
 
   constructor(context: ExtensionContext) {
     this.context = context;
@@ -74,6 +75,13 @@ export class RegisterCommand {
       commands.registerCommand('PyPTO.CloseAllToolPages', () => {
         this.closeAllToolPages();
       }),
+      commands.registerCommand('PyPto.postLayoutData', (id: string, data: any) => {
+        const [serverId, infoStr] = id.split('&&');
+        const server = this.editorView.editorView.openServer.get(serverId);
+        if (server) {
+          server.renderLayout(data, infoStr);
+        }
+      })
     ];
   }
 
@@ -102,7 +110,8 @@ export class RegisterCommand {
     editorView.closeAll();
   }
 
-  register() {
+  register(editorView) {
+    this.editorView = editorView;
     this.context.subscriptions.push(...this.getCommands());
   }
 }

@@ -40,6 +40,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     resetModelSource();
   }
   let currentData: unknown = null;
+  let jsonGraphWatchHandle;
 
   // Track subgraph coloring state
   let colorBySubgraph = false;
@@ -131,7 +132,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
   }
 
-  function resetModelSource() {
+  function resetModelSource(resetHandle?: boolean) {
+    if (resetHandle) {
+      jsonGraphWatchHandle?.stop();
+    }
     container = createDiContainer(SPROTTY_CONTAINER_ID);
     modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
     const layoutConfigurator = container.get(ILayoutConfigurator) as import('./di.config').AstgrLayoutConfigurator;
@@ -173,7 +177,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       threeMode: isThreeMode
     };
     server.getJsonGraphData({ data: data });
-    watch(server.JsonGraphData, (newValue: any) => {
+    jsonGraphWatchHandle = watch(server.JsonGraphData, (newValue: any) => {
       comGraphStore.setData("isCached", newValue.isCached);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');

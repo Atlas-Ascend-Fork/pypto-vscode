@@ -68,6 +68,10 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     await this.handler.elkLayout(message.data, this);
   };
   @viewApi()
+  public renderLayout = async (data, infoStr: string) => {
+    await this.handler.renderLayout(data, infoStr, this);
+  };
+  @viewApi()
   public getJsonGraphData = async (message) => {
     await this.handler.getJsonGraphData(message, this);
   };
