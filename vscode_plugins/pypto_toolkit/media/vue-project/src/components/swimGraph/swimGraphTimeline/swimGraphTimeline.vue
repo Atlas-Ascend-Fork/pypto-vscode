@@ -715,18 +715,22 @@ const listenExtensionMessage = () => {
     const message = event.data;
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
-        case 'addObservationLine':
+        case 'addObservationLine': {
           const e = {
-            clientX: layout.processLabelWidth + viewState.canvasCssWidth / 2,
+            clientX: layout.processLabelWidth + (viewState.canvasCssWidth / 2),
             clientY: 0
           };
           flagMouseClick(e);
           break;
+        }
         case 'zoomControls':
           if (flags.value.length > 0) {
-            currentFlag.value = flags.value[0];
+            const [firstFlag] = flags.value || [];
+            currentFlag.value = firstFlag;
             deleteFlag();
           }
+          break;
+        default:
           break;
       }
     }

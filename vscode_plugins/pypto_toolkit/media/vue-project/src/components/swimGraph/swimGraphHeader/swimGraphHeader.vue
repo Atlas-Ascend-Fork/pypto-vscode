@@ -729,6 +729,8 @@ const listenExtensionMessage = () => {
         case 'viewPMUPerformance':
           measureModel();
           break;
+        default:
+          break;
       }
     }
   });

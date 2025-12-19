@@ -2014,6 +2014,8 @@ const listenExtensionMessage = () => {
           showDragAreaBorders.value = true;
           measureMouseUp();
           break;
+        default:
+          break;
       }
     }
   });
