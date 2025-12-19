@@ -41,7 +41,7 @@
         <!-- 操作按钮栏 -->
         <div class="btn-container">
           <button class="skip-btn" @click="handleSkipAll">跳过全部</button>
-          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button>
+          <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
