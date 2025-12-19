@@ -120,12 +120,12 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
       canSelectFolders: false,
       canSelectMany: false,
       defaultUri: Uri.file(beforeFilePath.replace(fileName, '')),
-      openLabel: t('pypto.selectDiffFile'),
+      openLabel: t('pypto.selectDiffFile') as string,
       filters: {
         [t('pypto.jsonFile')]: ['json'],
         [t('pypto.allFile')]: ['*'],
       },
-      title: t('pypto.selectDiffFile'),
+      title: t('pypto.selectDiffFile') as string,
     });
 
     if (fileUris && fileUris.length > 0) {
