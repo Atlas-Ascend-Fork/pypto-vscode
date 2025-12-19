@@ -17,7 +17,7 @@
         <div class="progress-container">
           <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
             <div class="progress-group">
-            <img :src="group.imgUrl" class="progress-img" />
+              <img :src="group.imgUrl" class="progress-img" />
               <div
                 v-for="(step, stepIdx) in group.steps"
                 :key="stepIdx"
@@ -25,7 +25,7 @@
                 :class="getDotItemStatus(groupIdx, stepIdx)"
               ></div>
             </div>
-            <span v-if="groupIdx < guideSteps.length - 1" class="separator">|</span>
+            <span v-if="groupIdx < guideSteps.length - 1" class="separator"></span>
           </template>
         </div>
 
@@ -45,7 +45,7 @@
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
-          <button v-else class="next-btn" @click="handleStartExperience">开始体验</button>
+          <button v-else class="next-btn" @click="handleStartExperience">完成</button>
         </div>
       </div>
     </div>
@@ -63,6 +63,7 @@ import {
   getNextBigGroupConfig,
   guideStepsConfig,
 } from '../guideStepsConfig';
+import { useViewServer } from '@/core/use-view-server';
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -424,7 +425,16 @@ const observeDomChange = (domId: string) => {
   // 销毁原有监听
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
-
+  domObserver = new MutationObserver(debouncedHandleResize);
+  const middleLayerFlowElement = document.querySelector('#boot-middleLayer');
+  if (middleLayerFlowElement) {
+    domObserver.observe(middleLayerFlowElement, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      childList: false,
+      subtree: true,
+    });
+  }
   const targetDom = document.getElementById(domId);
   if (!targetDom) return;
 
@@ -476,6 +486,7 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
   (e: 'complete'): void;
 }>();
+const { server } = useViewServer();
 
 // 发送消息通知事件
 const postToExtension = (type: string, data: any) => {
@@ -555,7 +566,7 @@ const handleSkipAll = () => {
     value: false,
   });
   postToExtension('closeAllGuideModal', null);
-  emit('update:visible', false);
+  // emit('update:visible', false);
 };
 
 // 开始体验
@@ -767,8 +778,8 @@ onUnmounted(() => {
     width: 8px;
     height: 8px;
     border-radius: 4px;
-    position: relative; 
-    box-sizing: border-box; 
+    position: relative;
+    box-sizing: border-box;
 
     &.completed-dot {
       border: 0.5px solid #ffffff;
@@ -777,16 +788,16 @@ onUnmounted(() => {
 
     &.active-dot {
       background: #ffffff; // 基础白色填充（伪元素覆盖中间）
-      transform: scale(2); // 放大效果
+      transform: scale(1.5); // 放大效果
       &::before {
         content: '';
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: calc(100% - 2px); 
+        width: calc(100% - 2px);
         height: calc(100% - 2px);
-        border-radius: 50%;
+        border-radius: 4px;
         border: 1.5px solid #000000; // 黑色圆环
         background: rgba(255, 255, 255, 0.1);
         box-sizing: border-box;
@@ -800,8 +811,12 @@ onUnmounted(() => {
   }
 
   .separator {
-    color: rgba(255, 255, 255, 0.2);
+    width: 1px;
+    height: 12px;
     font-size: 12px;
+    line-height: 12px;
+    margin-right: 6px;
+    background-color: rgba(255, 255, 255, 0.2);
   }
 }
 

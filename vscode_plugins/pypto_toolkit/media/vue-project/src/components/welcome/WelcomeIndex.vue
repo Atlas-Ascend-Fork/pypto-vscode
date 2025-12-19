@@ -49,7 +49,6 @@
             <div class="step-header" @click="handleStepClick('step2')">
               <div class="step-header-left">
                 <input type="checkbox" class="custom-checkbox" :checked="steps[1].completed" @click.stop="toggleCheckbox(1)" />
-
                 <span class="step-title">{{ steps[1].title }}</span>
               </div>
               <div class="step-header-right"></div>
@@ -243,6 +242,9 @@ const markAsCompleted = async () => {
   }
 };
 
+/**
+ * 打开运行结果进行引导
+ */
 async function goToCheckResult() {
   updateWelcomeState({
     key: 'guide.state',
@@ -262,26 +264,31 @@ async function goToCheckResult() {
   });
 }
 
-// 2. 监听插件主线程的消息
-const listenExtensionMessage = () => {
-  window.addEventListener('message', async (event) => {
-    const message = event.data;
+/**
+ * 打开三联视图进行引导
+ */
+async function goToCheckTriptychView() {
 
-    if (message.type == 'callWebviewMethod') {
-      // 执行当前WebView的方法
-      const { methodName, params } = message.data;
-      if (window[methodName] && typeof window[methodName] === 'function') {
-        window[methodName](params); // 调用注册的方法
-      }
+}
+
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  (window as any).ascEventBus.on('closeAllGuideModal', (event) => {
+    const message = event.data;
+    console.log('closeAllGuideModal')
+
+    if (event.type === 'CheckResultHasDown') {
+      console.log('CheckResultHasDown');
+      steps.value[1].completed=true
     }
   });
 };
 
-// 6. 监听&初始化
 onMounted(async () => {
   // isLinux.value = await isLinuxEnvironment();
   initSteps();
   toggleTheme();
+  listenExtensionMessage()
 });
 
 watch(

@@ -45,16 +45,16 @@ onMounted( async() => {
   <!-- 导航栏 -->
   <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
   <!-- 控制流 -->
-  <div class="parent-container" v-else-if="graphType === 'controlFlow'">
+  <div  class="parent-container" v-else-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>
   </div>
   <!-- 欢迎页面 -->
   <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
   <!-- 运行配置 -->
   <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
-  <header v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
+  <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
     <MiddleLayer :graphType="graphType"></MiddleLayer>
-  </header>
+  </header>  
   <!-- 全局引导弹窗（也可在各组件内独立显示） -->
   <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :guideSteps="guideStepsConfig" />
 </template>
