@@ -541,10 +541,12 @@ function jumpSearchSubgraph(calleehash, funcMagicName) {
 
 const onGlobalSearchLocate = (it) => {
   if (it.node_type === 'function') {
-    jumpSearchSubgraph(it.hash, it.func_magicname);
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'all', nodeMagic: -1});
+    server.innerGetSubgraph( {calleehash: it.hash, subFuncmagicname: funcMap.value[it.hash]?.func_magicname })
     return;
   }
   if (it.funcHash) {
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'path', nodeMagic: it.magic ?? it.opmagic});
     server.innerGetSubgraph( {calleehash: it.funcHash, subFuncmagicname: funcMap.value[it.funcHash]?.func_magicname })
   }
 
@@ -559,9 +561,7 @@ const onLocateSearchRes = (it) => {
       (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
   } else if (currentSelect.value === 'global') {
     onGlobalSearchLocate(it);
-    (window as any).ascEventBus.emit('searchNodeGlobal', it.magic ?? it.opmagic);
   }
-
 }
 
 function calcNodeSize(map) {

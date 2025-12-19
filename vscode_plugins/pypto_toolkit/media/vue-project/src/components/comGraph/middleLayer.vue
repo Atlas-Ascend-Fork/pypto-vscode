@@ -273,9 +273,17 @@ const searchNodeListener = (args) => {
 };
 
 const searchNodeGlobalListener = (args) => {
-    jsonContent.value = undefined;
-    searchMode.value = 0;
-    loadingStep.value = 'convertData';
+  jsonContent.value = undefined;
+  searchMode.value = 0;
+  
+  if(args.nodeMagic === -1) {
+    openMode.value = args.openMode;
+    nodeMagic.value = undefined
+  } else {
+    nodeMagic.value = args.nodeMagic;
+  }
+
+  loadingStep.value = 'convertData';
 };
 
 function dealConfig(config) {
