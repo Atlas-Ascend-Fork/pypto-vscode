@@ -191,11 +191,20 @@ export class ThreeColumnServer
         _path: this.codePath
       };
     }
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    }
   };
   @viewApi()
-  public getSwimData = async () => {
+  public getSwimData = async (message) => {
+    if(!this.swimDataPath){
+      this.swimDataPath = message.swimDataPath;
+    }
     const packages = await SwimGraphMsgHandler.getSwimData(this);
-    return stream.Readable.toWeb(stream.Readable.from(packages!));
+    if(packages){
+      return stream.Readable.toWeb(stream.Readable.from(packages));
+    }
+    return;
   };
   @viewApi()
   public getOtherData = async () => {
@@ -329,7 +338,7 @@ export class ThreeColumnServer
       }
     }
 
-    if (this.swimDataPath && this.comPath) {
+    if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
   }
@@ -348,6 +357,9 @@ export class ThreeColumnServer
         fsPath: comPath,
         _path: this.codePath
       };
+    }
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
     this.setRef('returnSearchPath', { data: pathMsg });
