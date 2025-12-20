@@ -1,5 +1,5 @@
 <template>
-  <div class="zoom-controls" id="zoom-controls" :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
+  <div class="zoom-controls" :id=zoomControl :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
     <div class="left-container" :class="{ 'left-container-search': isSearchActive}" v-if="threeColumnHeaderVisible">
       <div class="search-container-res" v-if="threeColumnSearchVisible">
         <div class="search-container">
@@ -214,6 +214,7 @@ const reportVisible = ref(false);
 const isExporting = ref(false);
 const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
+const zoomControl = ref('');
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
@@ -740,6 +741,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutsize);
   isThreeColumnHeader();
   listenExtensionMessage();
+  zoomControl.value = isThreeColumn.value ? 'zoom-controls-three' : 'zoom-controls';
 });
 
 defineExpose({

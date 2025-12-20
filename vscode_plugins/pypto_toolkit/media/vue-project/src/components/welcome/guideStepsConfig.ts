@@ -209,7 +209,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: 'zoom-controls', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: '泳道图-开启时间度量-查看核利用率统计信息',
@@ -250,7 +250,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '支持根据rootHash和leafHash跳转至计算图',
         targetDomId: 'rootHash', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'bottom',
       },
     ],
   },
