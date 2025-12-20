@@ -2,8 +2,7 @@
 
   <div class="com-graph-header">
     <img 
-      :src="iconPath" 
-      :class= "icon-img"
+      :src="iconPath"
       style = "width: 64px; height: 64px; margin-top: -20px; gap: 20px"
     />
 
@@ -283,6 +282,7 @@ const upperActive = ref(false);
 const regActive = ref(false);
 const iconPath = `${(window as any).staticPath}/static-assets/logo.png`;
 let  historyList = localStorage[props?.jsonContent?.hash]?.split(',');
+const searchScopeArr: Record<string, string>[] = JSON.parse(localStorage.getItem(`${props?.jsonContent?.hash}-scope`) ?? '[]');
 
 const { onCategoryClick, onSelectedTagsChange, onSelectClick } = useHeader(isVisible);
 
@@ -332,6 +332,10 @@ function regSearch() {
   icon?.click();
 }
 
+const SearchScopeMap = {
+  current: 'currentGraph',
+  global: 'globalGraph'
+}
 const restoreHistory = (item) => {
   if (!item) return item;
   const kvPair = item.split(':');
@@ -339,12 +343,14 @@ const restoreHistory = (item) => {
   const searchKey = kvPair[1] ?? '';
   const isFuzz = kvPair[2] ?? undefined;
   const optValue = kvPair[3] ?? undefined;
+  const searchScopeItem = searchScopeArr.find(scope => Boolean(scope[item]));
+  const searchScope = searchScopeItem && SearchScopeMap[searchScopeItem[item]] ? `:${SearchScopeMap[searchScopeItem[item]]}` : ':currentGraph';
 
   if (!category || !searchKey) {
-    return item;
+    return item + searchScope;
   }
 
-  const shownItem = (isFuzz === 'true' && optValue) ? `${category}:${optValue}:${searchKey}` : `${category}:${searchKey}`
+  const shownItem = (isFuzz === 'true' && optValue) ? `${category}:${optValue}:${searchKey}${searchScope}` : `${category}:${searchKey}${searchScope}`
   return shownItem;
 }
 
@@ -352,6 +358,8 @@ const historyOnSearch = (searchNode) => {
   hasSearched = false;
   upperActive.value = false;
   regActive.value = false;
+  const searchScope = searchScopeArr.find(scope => Boolean(scope[searchNode]));
+  currentSelect.value = searchScope?.[searchNode] ?? 'current';
 
   let nodeType = searchNode?.split(':')[0] ?? undefined;
   if (nodeType) {
@@ -394,6 +402,7 @@ const onSearch = (e) => {
   isVisible.value = Boolean(e.searchKey);
   if (currentSelect.value === 'global') {
     globalSearch(e);
+    setSearchHistory(e.searchKey, e.option, e.category);
     return;
   }
   if (!(e.category) || e.category === '') {
@@ -441,17 +450,18 @@ const onSearch = (e) => {
   }
   filterSearchResult(res.value);
   resSize.value = res.value.length;
-  setSearchHistory(e.searchKey, res.value, e.option, e.category);
+  setSearchHistory(e.searchKey, e.option, e.category);
 }
 
-function setSearchHistory(searchContent: string, result: any, optionValue?: string, searchNodeType?: string) {
+function setSearchHistory(searchContent: string, optionValue?: string, searchNodeType?: string) {
   if (!(searchContent) || searchContent === '') {
     return;
   }
   searchContent = searchContent.trim();
-  const searchKeyType = matchNodeType(searchContent, result, searchNodeType);
+  const searchKeyType = matchNodeType(searchNodeType);
 
   let currentPageHistory = localStorage.getItem(currentFuncHash)?.split(',');
+  let searchScopeArr = JSON.parse(localStorage.getItem(`${currentFuncHash}-scope`) ?? '[]')
   if (!currentPageHistory) {
     currentPageHistory = [];
   }
@@ -461,19 +471,29 @@ function setSearchHistory(searchContent: string, result: any, optionValue?: stri
 
   const nodePos = currentPageHistory.findIndex(pastnode => pastnode?.split(':')[1] === searchContent);
   if (nodePos !== -1) {
-    currentPageHistory.splice(nodePos, 1);
+    const temp = currentPageHistory.splice(nodePos, 1)[0];
+    const index = searchScopeArr.findIndex(item => Boolean(item[temp]));
+    if (index !== -1) {
+      searchScopeArr.splice(index, 1);
+    }
   }
   currentPageHistory.unshift(newRecord);
+  searchScopeArr.push({[newRecord]: currentSelect.value});
 
   if (currentPageHistory.length > 20) {
-    currentPageHistory.pop();
+    const temp = currentPageHistory.pop();
+    const index = searchScopeArr.findIndex(item => Boolean(item[temp]));
+    if (index !== -1) {
+      searchScopeArr.splice(index, 1);
+    }
   }
 
   const newPageHistory = currentPageHistory.join(',');
   localStorage.setItem(currentFuncHash, newPageHistory);
+  localStorage.setItem(`${currentFuncHash}-scope`, JSON.stringify(searchScopeArr));
 }
 
-function matchNodeType(searchContent: string, result: any, searchNodeType?: string) {
+function matchNodeType(searchNodeType?: string) {
   let searchKey = 'implicit';
 
   if (searchNodeType && searchNodeType !== '') {
