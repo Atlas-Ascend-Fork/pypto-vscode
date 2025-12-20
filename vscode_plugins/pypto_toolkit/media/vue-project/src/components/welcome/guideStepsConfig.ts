@@ -108,16 +108,16 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     steps: [
       {
         title: '查看计算图',
-        content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能',
-        method: 'viewComGraph',
+        content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能。',
+        method: '',
         methodParams: {},
         targetDomId: 'navbarComGraphTab',
         showTriangle: true,
         triangleDirection: 'top',
       },
       {
-        title: '查看节点详情',
-        content: '点击节点标题区域，支持开启节点详情查看，详情面板支持内容搜索',
+        title: '选中节点并查看前后关系',
+        content: '点击节点后会将当前节点所在通路高亮，不在当前通路的节点变暗，可更方便查看选中节点的前后关系。',
         method: 'viewNodeDetail',
         methodParams: {
           nodeId: 'tensor-5692-2',
@@ -129,7 +129,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '搜索目标节点',
-        content: '在此处输入内容搜索目标节点，支持模糊搜索匹配及精确搜索某个值',
+        content: '在此处输入内容搜索目标节点，支持模糊搜索匹配及精确搜索某个值。',
         method: 'searchNode',
         methodParams: {
           searchKey: '5818',
@@ -147,7 +147,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '只看当前通路',
-        content: '对节点点击鼠标右键，下拉中可以选择锁定通路并高亮，只看当前通路，可以避免干扰，精准查看目标前后关系',
+        content: '对节点点击鼠标右键，下拉中可以选择锁定通路并高亮，只看当前通路，可以避免干扰，精准查看目标前后关系。',
         method: 'focusCurrentPath',
         methodParams: {
           searchNodeId: 'tensor-5818-3',
@@ -158,7 +158,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '计算图diff查看',
-        content: '点击该按钮会自动关联before及after文件，开启对比查看，快速定位差异内容',
+        content: '点击该按钮会自动关联before及after文件，开启对比查看，快速定位差异内容。',
         method: '',
         methodParams: {},
         targetDomId: 'openDiffViewerIcon',
@@ -167,7 +167,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '打开泳道图',
-        content: '点击导航栏中的打开泳道图按钮，可以快速打开泳道图',
+        content: '点击导航栏中的打开泳道图按钮，可以快速打开泳道图。',
         method: '',
         methodParams: {},
         targetDomId: 'boot-steps-navbar-open-swm-graph',
