@@ -51,19 +51,19 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('Measure')">
-        <d-button id= "measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
+        <d-button id="measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
           <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('PerformanceStatus')" position="bottom">
-        <d-button id="pmu-report" class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
+        <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;" id="pmu-report">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
         </div>
@@ -717,36 +717,17 @@ const postMessage = (message) => {
     window.vscode.postMessage({ command: 'showMessage', paramObj: { text: message } });
   }
 };
-// 监听引导模式的消息
-const listenExtensionMessage = () => {
-  window.ascEventBus.on('boot-step-tips', (event) => {
-    const message = event.data;
-    if (event.type == 'callWebviewMethod') {
-      switch (message.methodName) {
-        case 'measureModel':
-          isMeasureModel.value = false;
-          measureModel();
-          break;
-        case 'viewPMUPerformance':
-          measureModel();
-          break;
-        default:
-          break;
-      }
-    }
-  });
-};
 onMounted(() => {
   updateTheme();
   document.addEventListener('click', handleClickOutsize);
   isThreeColumnHeader();
-  listenExtensionMessage();
   zoomControl.value = isThreeColumn.value ? 'zoom-controls-three' : 'zoom-controls';
 });
 
 defineExpose({
   leftmove,
-  rightmove
+  rightmove,
+  closeDrawer
 })
 </script>
 

@@ -51,6 +51,7 @@ import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
+import { getIsCompleteBoot } from '@/apis/welcome';
 const { server } = useViewServer();
 
 const { t: $t } = useI18n();
@@ -703,6 +704,7 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
+  initEventListeners();
   listenExtensionMessage();
 });
 
@@ -716,6 +718,7 @@ const listenExtensionMessage = () => {
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
         case 'addObservationLine': {
+          drawVirtualDom();
           const e = {
             clientX: layout.processLabelWidth + (viewState.canvasCssWidth / 2),
             clientY: 0
@@ -739,6 +742,36 @@ const listenExtensionMessage = () => {
       }
     }
   });
+};
+const initEventListeners = () => {
+  window.addEventListener('resize', onWindowResize);
+};
+const onWindowResize = (event) => {
+  drawVirtualDomAsync();
+};
+const drawVirtualDomAsync = async () => {
+  if (await getIsCompleteBoot()) {
+    drawVirtualDom();
+  }
+};
+const drawVirtualDom = () => {
+  const e = {
+    clientX: layout.processLabelWidth + (viewState.canvasCssWidth / 2),
+    clientY: 0
+  };
+  const rect = flagsCanvas.value.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const existingElement = document.querySelector('#observation-line');
+  if (existingElement) {
+    existingElement.remove();
+  }
+  const domRect = document.createElement('div');
+  domRect.id = 'observation-line';
+  domRect.style.position = 'absolute';
+  domRect.style.left = mouseX + 'px';
+  domRect.style.top = rect.top + 'px';
+  domRect.style.backgroundColor = 'transparent';
+  flagsCanvas.value.parentNode.appendChild(domRect);
 };
 // 暴露方法给父组件
 defineExpose({

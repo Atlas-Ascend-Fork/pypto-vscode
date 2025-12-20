@@ -57,7 +57,8 @@ import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffs
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
-
+import { getIsCompleteBoot } from '@/apis/welcome';
+import { swimConfig } from '../../welcome/guideStepsConfig';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
@@ -277,6 +278,8 @@ onMounted(() => {
     onKeyUp(e);
   });
   listenExtensionMessage();
+  listenExtensionClearMessage();
+  initEventListeners();
 });
 
 onUnmounted(() => {
@@ -1499,7 +1502,7 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   return true;
 };
 
-const renderProcessText = (process, ctx) => {
+const renderProcessText = async (process, ctx) => {
   ctx.font = getFontStyle(eventTextSize);
   ctx.textRenderingOptimization = 'optimizeLegibility';
   ctx.save();
@@ -1538,13 +1541,29 @@ const renderProcessText = (process, ctx) => {
       } else {
         ctx.fillStyle = drawData.fontColor;
       }
-
+      drawVirtualDom(event, ctx, drawData);
       ctx.fillText(drawData.text, drawData.textX, drawData.textY);
     }
   }
   ctx.restore();
 };
-
+const drawVirtualDom = (event, ctx, drawData) => {
+  if (event.name === swimConfig.sampleEventName) {
+    const existingElement = document.querySelector('#distance-measurement');
+    if (existingElement) {
+      existingElement.remove();
+    }
+    const domRect = document.createElement('div');
+    domRect.id = 'distance-measurement';
+    domRect.style.position = 'absolute';
+    domRect.style.left = drawData.rectX + drawData.eventWidth + 'px';
+    domRect.style.top = drawData.rectY + 'px';
+    domRect.style.width = drawData.eventWidth + 'px';
+    domRect.style.height = drawData.height + 'px';
+    domRect.style.backgroundColor = 'transparent';
+    ctx.canvas.parentNode.appendChild(domRect);
+  }
+};
 const showTooltip = (e, event, canvasRef) => {
   if (!tooltip.value) return;
 
@@ -1914,14 +1933,21 @@ watch(isDarkTheme, () => {
   flagRender();
 });
 // 监听引导模式的消息
-const listenExtensionMessage = () => {
+const listenExtensionMessage = async () => {
+  if (await getIsCompleteBoot()) {
+    guideDistanceMeasurement();
+  }
+};
+// 监听引导模式的消息
+const listenExtensionClearMessage = () => {
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
-        case 'distanceMeasurement':
-          guideDistanceMeasurement();
+        case 'addObservationLine': {
+          clearDistanceMeasurement();
           break;
+        }
         default:
           break;
       }
@@ -1945,6 +1971,21 @@ const guideDistanceMeasurement = () => {
         }
       }
   }
+};
+const clearDistanceMeasurement = () => {
+  for (const [processkey, process] of processes.entries()) {
+    if (!processExpanded.get(processkey)) {
+      continue;
+    }
+    const uiCtx = getUIContext(processkey);
+    measureRenderer.clearDrawConnector(uiCtx, processkey);
+  }
+};
+const initEventListeners = () => {
+  window.addEventListener('resize', onWindowResize);
+};
+const onWindowResize = (event) => {
+  guideDistanceMeasurement();
 };
 </script>
 
