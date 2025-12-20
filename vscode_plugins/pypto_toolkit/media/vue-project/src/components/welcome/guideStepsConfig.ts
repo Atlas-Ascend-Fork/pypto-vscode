@@ -225,7 +225,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '点击泳道图中某个任务节点，可显示节点的详情面板',
         method: 'showGuideDetailsPanel',
         methodParams: {},
-        targetDomId: 'swim-title_up_threecolum', // 步骤1定位
+        targetDomId: 'details-content', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'bottom',
       },

@@ -6,7 +6,7 @@
     </div>
 
     <div class="details-panel" :class="{ expanded: detailsPanelExpanded }">
-      <div class="details-content" ref="detailsContent">
+      <div class="details-content" ref="detailsContent" id="details-content">
         <div class="details-title" v-if="!selectedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
           <div class="detail-content">
