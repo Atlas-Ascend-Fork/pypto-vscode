@@ -59,7 +59,7 @@
     </template>
   </div>
   <Loading class="loading-index" v-if="isLoading" :loadingText="'loading'" />
-  <div class="boot-steps-controlFlow" id="boot-steps-controlFlow"></div>
+  <div  class="boot-steps-controlFlow" id="boot-steps-controlFlow"></div>
 </template>
 
 <script lang="ts" setup>
@@ -85,6 +85,7 @@ import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectI
 import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
 import { openComputeGraph, openSwimlaneGraph } from '@/apis/opener';
 import { getIsCompleteBoot } from '@/apis/welcome';
+import { useViewServer } from '@/core/use-view-server';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -103,6 +104,7 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
+const isBoot=ref(false)
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -347,6 +349,7 @@ const listenExtensionMessage = () => {
     (value) => {
       if (!value) {
         graph.zoomTo(50 / 100);
+        isBoot.value = true;
         const pathPosition = graph.getElementPosition(stepOpenSidebaNode.value.id);
       }
     },
@@ -383,6 +386,8 @@ const listenExtensionMessage = () => {
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
             pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
           });
+          const { server } = useViewServer();
+          server.close();
           break;
         default:
           break;

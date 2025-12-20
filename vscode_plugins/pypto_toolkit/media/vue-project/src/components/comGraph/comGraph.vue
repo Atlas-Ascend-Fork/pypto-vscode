@@ -348,6 +348,7 @@ async function onStepsChange(args) {
     openSwimlaneGraph({
       swimlaneGraphPath: `${await getUserRunRoot()}/merged_swimlane.json`,
     });
+    server.close();
     return;
   }
   stepsMap[args.data.methodName](args.data.params);
