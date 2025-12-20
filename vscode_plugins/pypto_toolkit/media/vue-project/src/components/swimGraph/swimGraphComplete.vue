@@ -2006,6 +2006,13 @@ const listenExtensionMessage = () => {
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
         case 'showGuideDetailsPanel':
+          mulDetailsExpanded.value = false;
+          measureDetailsExpanded.value = false;
+          measureDragStartX.value = 0;
+          measureDragEndX.value = 0;
+          isMeasureDragging.value = false;
+          showDragAreaBorders.value = false;
+          renderTwoTimeline();
           getEventInfo();
           break;
         case 'measureDetailSearch':

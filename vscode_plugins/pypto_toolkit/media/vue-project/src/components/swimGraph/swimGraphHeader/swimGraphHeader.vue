@@ -51,7 +51,7 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('Measure')">
-        <d-button id= "measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
+        <d-button id="measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
           <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>
@@ -716,52 +716,16 @@ const postMessage = (message) => {
     window.vscode.postMessage({ command: 'showMessage', paramObj: { text: message } });
   }
 };
-// 监听引导模式的消息
-const listenExtensionMessage = () => {
-  window.ascEventBus.on('boot-step-tips', (event) => {
-    const message = event.data;
-    if (event.type == 'callWebviewMethod') {
-      switch (message.methodName) {
-        case 'viewPMUPerformance':
-          isMeasureModel.value = true;
-          measureModel();
-          openViewPMUPerformance(true);
-          break;
-        case 'showGuideDetailsPanel':
-          openViewPMUPerformance(false);
-          break;
-        default:
-          break;
-      }
-    }
-  });
-};
-
-const openViewPMUPerformance = (isOpen) => {
-  if (isOpen) {
-    showDrawer();
-  } else {
-    closeDrawer();
-  }
-  setTimeout(() => {
-    const pmuDom = document.querySelector('#pmu-report');
-    const prevSibling = pmuDom?.previousElementSibling;
-    if (prevSibling) {
-      prevSibling.style.opacity = isOpen ? '0' : '0.72';
-    }
-  }, 0);
-};
-
 onMounted(() => {
   updateTheme();
   document.addEventListener('click', handleClickOutsize);
-  isThreeColumnHeader();
-  listenExtensionMessage();
+  isThreeColumnHeader(); 
 });
 
 defineExpose({
   leftmove,
-  rightmove
+  rightmove,
+  closeDrawer
 })
 </script>
 
