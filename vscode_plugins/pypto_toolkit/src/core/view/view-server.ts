@@ -2,13 +2,21 @@ import { Disposable } from 'vscode';
 
 import { ViewServerContext } from './view-server-context';
 
+// static属性无法使用泛型，此处用于解析Apis和Refs，运行代码不包含下列属性
+export interface ViewServer<Apis extends string, Refs extends object> {
+  _allowedApis: Record<Apis, unknown> & { close: () => void };
+  _allowedRefs: Refs;
+}
+
+const DEFAULT_VIEW_CONFIG: ViewServerConfig = { apis: ['close'], refs: [] };
+
 /**
  * 【装饰器】客户端可以访问的方法
  */
 export function viewApi<Apis extends string>() {
   return (target: ViewServer<Apis, {}>, targetKey: Apis): void => {
     if (!(target.constructor as any)._viewConfig) {
-      (target.constructor as any)._viewConfig = { apis: [], refs: [] };
+      (target.constructor as any)._viewConfig = structuredClone(DEFAULT_VIEW_CONFIG);
     }
     (target.constructor as any)._viewConfig.apis.push(targetKey);
   };
@@ -22,16 +30,10 @@ export function viewApi<Apis extends string>() {
 export function viewRefs<Refs extends object>(refKeys: (keyof Refs)[]) {
   return (target: new (...args: any[]) => ViewServer<never, Refs>): void => {
     if (!(target as any)._viewConfig) {
-      (target as any)._viewConfig = { apis: [], refs: [] };
+      (target as any)._viewConfig = structuredClone(DEFAULT_VIEW_CONFIG);
     }
     (target as any)._viewConfig.refs.push(...refKeys);
   };
-}
-
-// static属性无法使用泛型，此处用于解析Apis和Refs，运行代码不包含下列属性
-export interface ViewServer<Apis extends string, Refs extends object> {
-  _allowedApis: Record<Apis, unknown>;
-  _allowedRefs: Refs;
 }
 
 /**
@@ -48,7 +50,7 @@ export class ViewServer<Apis extends string, Refs extends object> extends Dispos
   constructor(private _ctx: ViewServerContext) {
     super(() => {
       this.onDisposed();
-      this.closeWebview();
+      this.close();
     });
     _ctx.init.call(this);
   }
@@ -81,7 +83,7 @@ export class ViewServer<Apis extends string, Refs extends object> extends Dispos
   /**
    * 关闭视图
    */
-  protected closeWebview() {
+  public close() {
     this._ctx.closeWebview();
   }
 }
