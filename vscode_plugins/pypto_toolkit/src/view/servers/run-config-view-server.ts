@@ -51,11 +51,6 @@ export class RunConfigViewServer extends ViewServer<Apis, Refs> {
   }
 
   @viewApi()
-  public close(): void {
-    this.closeWebview();
-  }
-
-  @viewApi()
   public viewSourceFile(): void {
     vscode.commands.executeCommand('vscode.open', this.fileUri);
   }

@@ -4,13 +4,13 @@
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
-      <swim-graph-header ref="swimgraphHeaderComponent" />
+      <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
-          <div class="title_up_threecolum" v-show="isThreeColumn">
+          <div class="title_up_threecolum" v-show="isThreeColumn" id="swim-title_up_threecolum">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
             <div class="title_up_r_threecolum">
@@ -2020,6 +2020,8 @@ const listenExtensionMessage = () => {
           measureDragEndX.value = viewState.canvasCssWidth;
           isMeasureDragging.value = true;
           showDragAreaBorders.value = true;
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '';
           measureMouseUp();
           break;
         default:

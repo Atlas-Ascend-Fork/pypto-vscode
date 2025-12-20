@@ -2,7 +2,6 @@ import { UpdateWelcomeStateParams } from '../../types/welcome';
 import { extensionContext } from '../../extension';
 import * as vscode from 'vscode';
 
-// 注册单个WebView的消息监听
 export async function registerWebviewMessageListener(message) {
   if (!extensionContext) {
     vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
@@ -53,5 +52,29 @@ export async function getIsCompleteBoot() {
   }
 
   const value = await extensionContext.globalState.get('guide.state', false);
+  return value;
+}
+
+/**
+ * 是否下次打开引导页面
+ */
+export async function getIsOpen() {
+  if (!extensionContext) {
+    return;
+  }
+
+  const value = await extensionContext.globalState.get('guide.isOpen', true);
+  return value;
+}
+
+/**
+ * 是否下次打开引导页面
+ */
+export async function getIsSuccessBoot() {
+  if (!extensionContext) {
+    return;
+  }
+
+  const value = await extensionContext.globalState.get('guide.isOpen', false);
   return value;
 }

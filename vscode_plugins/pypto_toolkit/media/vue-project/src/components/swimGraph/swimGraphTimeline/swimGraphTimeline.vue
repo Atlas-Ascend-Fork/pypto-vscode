@@ -724,6 +724,8 @@ const listenExtensionMessage = () => {
             clientY: 0
           };
           flagMouseClick(e);
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '';
           break;
         }
         case 'zoomControls':
@@ -732,6 +734,8 @@ const listenExtensionMessage = () => {
             currentFlag.value = firstFlag;
             deleteFlag();
           }
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '1px dashed';
           break;
         default:
           break;

@@ -298,12 +298,6 @@ function onViewMouseDown() {
 function onMouseup() {
   isDragging.value = false;
 }
-// 步骤1查看计算图
-function viewComGraph() {
-  // 关闭步骤2节点详情弹窗
-  nodeId.value = '';
-  showNodeDetail.value = false;
-}
 
 // 步骤2查看节点详情
 function viewNodeDetail(params: Record<string, any>) {
@@ -312,19 +306,10 @@ function viewNodeDetail(params: Record<string, any>) {
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
   selectAction([params.nodeId]);
-  // 打开节点详情
-  const timer = setTimeout(() => {
-    nodeId.value = params.nodeTitleLabelId;
-    showNodeDetail.value = true;
-    timer && clearTimeout(timer)
-  }, 1000);
 }
 
 // 步骤3搜索节点
 function searchNode(params: Record<string, any>) {
-  // 关闭步骤2节点详情弹窗
-  nodeId.value = '';
-  showNodeDetail.value = false;
   // 填充搜索条件
   headerEl.value.updateSearchParams(params);
 }
@@ -334,11 +319,10 @@ function focusCurrentPath(params) {
   // 聚焦搜索的节点
   centerNodeAction([params.searchNodeId]);
   selectAction([params.searchNodeId]);
-  // 激活通路锁定
-  setFixedComGraphFlow(true, false, params.searchNodeId);
+  // 只看当前通路
+  setFixedComGraphFlow(true, true, params.searchNodeId);
 }
 const stepsMap = {
-  viewComGraph,
   viewNodeDetail,
   searchNode,
   focusCurrentPath
@@ -348,6 +332,7 @@ async function onStepsChange(args) {
     openSwimlaneGraph({
       swimlaneGraphPath: `${await getUserRunRoot()}/merged_swimlane.json`,
     });
+    server.close();
     return;
   }
   stepsMap[args.data.methodName](args.data.params);
