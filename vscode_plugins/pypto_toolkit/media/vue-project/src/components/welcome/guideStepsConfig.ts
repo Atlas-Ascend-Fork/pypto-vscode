@@ -109,15 +109,15 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       {
         title: '查看计算图',
         content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能。',
-        method: 'viewComGraph',
+        method: '',
         methodParams: {},
         targetDomId: 'navbarComGraphTab',
         showTriangle: true,
         triangleDirection: 'top',
       },
       {
-        title: '查看节点详情',
-        content: '点击节点标题区域，支持开启节点详情查看，详情面板支持内容搜索。',
+        title: '选中节点并查看前后关系',
+        content: '点击节点后会将当前节点所在通路高亮，不在当前通路的节点变暗，可更方便查看选中节点的前后关系。',
         method: 'viewNodeDetail',
         methodParams: {
           nodeId: 'tensor-5692-2',
