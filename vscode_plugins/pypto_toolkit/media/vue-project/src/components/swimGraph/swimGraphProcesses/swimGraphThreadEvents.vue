@@ -1911,9 +1911,9 @@ watch(isDarkTheme, () => {
 const listenExtensionMessage = () => {
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
-    if (event.type == 'callWebviewMethod') {
-      switch (message.methodName) {
-        case 'distanceMeasurement':
+    if (event.type === 'openWebviewWithGuide') {
+      switch (message.openWebviewFn) {
+        case 'openSwimlaneGraph':
           guideDistanceMeasurement();
           break;
         default:

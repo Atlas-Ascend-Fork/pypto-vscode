@@ -56,14 +56,14 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('PerformanceStatus')" position="bottom">
-        <d-button id="pmu-report" class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
+        <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;" id="pmu-report">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
         </div>
@@ -722,12 +722,13 @@ const listenExtensionMessage = () => {
     const message = event.data;
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
-        case 'measureModel':
-          isMeasureModel.value = false;
-          measureModel();
-          break;
         case 'viewPMUPerformance':
+          isMeasureModel.value = true;
           measureModel();
+          openViewPMUPerformance(true);
+          break;
+        case 'showGuideDetailsPanel':
+          openViewPMUPerformance(false);
           break;
         default:
           break;
@@ -735,6 +736,22 @@ const listenExtensionMessage = () => {
     }
   });
 };
+
+const openViewPMUPerformance = (isOpen) => {
+  if (isOpen) {
+    showDrawer();
+  } else {
+    closeDrawer();
+  }
+  setTimeout(() => {
+    const pmuDom = document.querySelector('#pmu-report');
+    const prevSibling = pmuDom?.previousElementSibling;
+    if (prevSibling) {
+      prevSibling.style.opacity = isOpen ? '0' : '0.72';
+    }
+  }, 0);
+};
+
 onMounted(() => {
   updateTheme();
   document.addEventListener('click', handleClickOutsize);

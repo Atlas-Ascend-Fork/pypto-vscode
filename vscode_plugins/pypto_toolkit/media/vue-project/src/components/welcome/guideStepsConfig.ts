@@ -189,7 +189,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距',
         method: 'distanceMeasurement',
         methodParams: {},
-        targetDomId: '', // 步骤1定位
+        targetDomId: 'timeline-container', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -198,7 +198,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '鼠标悬停在时间轴上，或者点击时间轴，均可添加时间观测线',
         method: 'addObservationLine',
         methodParams: {},
-        targetDomId: 'timeline-container', // 步骤1定位
+        targetDomId: '', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -209,11 +209,11 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: 'zoom-controls', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: '泳道图-开启时间度量-查看核利用率统计信息',
-        content: '点击泳道图右上角的度量模式按钮，或者鼠标框选节点，即可查看核利用率统计信息',
+        content: '点击泳道图右上角的度量模式按钮，并在主操作区单击拖拽出度量范围或者鼠标框选节点，即可查看核利用率统计信息',
         method: 'measureDetailSearch',
         methodParams: {},
         targetDomId: 'measure-button', // 步骤1定位
@@ -236,7 +236,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: '', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'bottom',
       },
       {
         title: '泳道图-依赖分析',
