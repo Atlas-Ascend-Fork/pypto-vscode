@@ -23,6 +23,7 @@
             <div class="step-header" @click="handleStepClick('step1')">
               <div class="step-header-left">
                 <input type="checkbox" class="custom-checkbox" :checked="steps[0].completed" @click.stop="toggleCheckbox(0)" />
+                
                 <span class="step-title">{{ steps[0].title }}</span>
               </div>
               <div class="step-header-right"></div>
@@ -48,7 +49,7 @@
           <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
             <div class="step-header" @click="handleStepClick('step2')">
               <div class="step-header-left">
-                <input type="checkbox" class="custom-checkbox" :checked="steps[1].completed" @click.stop="toggleCheckbox(1)" />
+                <input type="checkbox" class="custom-checkbox" :checked="skipAll" disabled/>
                 <span class="step-title">{{ steps[1].title }}</span>
               </div>
               <div class="step-header-right"></div>
@@ -70,7 +71,7 @@
           </div>
 
           <!-- 步骤3 -->
-          <div class="step-item" :class="{ active: 'step3' === activeStepId, completed: steps[2].completed }">
+          <!-- <div class="step-item" :class="{ active: 'step3' === activeStepId, completed: steps[2].completed }">
             <div class="step-header" @click="handleStepClick('step3')">
               <div class="step-header-left">
                 <input type="checkbox" class="custom-checkbox" :checked="steps[2].completed" @click.stop="toggleCheckbox(2)" />
@@ -89,12 +90,14 @@
                 去查看
               </button>
             </div>
-          </div>
+          </div> -->
           <!-- 底部操作栏 -->
           <div class="action-bar">
             <!-- <button class="action-btn prev-btn" @click="prevStep" :disabled="isFirstStep"><i class="fa fa-chevron-left"></i> 上一步</button> -->
-            <button class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">下一步 <i class="fa fa-chevron-right"></i></button>
-            <!-- <button class="action-btn complete-btn" @click="markAsCompleted">标记为完成</button> -->
+            <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">下一步 <i class="fa fa-chevron-right"></i></button>
+            <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage" >
+              开始体验 <i class="fa fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -159,12 +162,6 @@ const defaultSteps = ref<GuideStep[]>([
     title: '查看运行结果',
     completed: false,
   },
-  {
-    id: 'step3',
-    index: 3,
-    title: '查看三联动视图',
-    completed: false,
-  },
 ]);
 
 // 3. 响应式数据
@@ -184,18 +181,18 @@ const currentStepIndex = computed(() => {
 
 const isFirstStep = computed(() => currentStepIndex.value === 0);
 const isLastStep = computed(() => currentStepIndex.value === steps.value.length - 1);
+const isAllChecked = computed(() => steps.value.some((step) => !step.completed));
 
-// 5. 核心方法
 // 初始化步骤数据
 const initSteps = async () => {
-  const savedSteps = (await getWelcomeState({
-    key: 'guideSteps',
-  })) as string;
-  if (savedSteps) {
-    steps.value = JSON.parse(savedSteps);
-  } else {
-    steps.value = [...defaultSteps.value];
+  const stepRunPython = (await getWelcomeState({
+    key: 'guideSteps-runPython',
+  })) as boolean;
+  if (stepRunPython) {
+    defaultSteps.value[0].completed = stepRunPython;
   }
+  defaultSteps.value[1].completed = skipAll.value;
+  steps.value = [...defaultSteps.value];
   activeStepId.value = steps.value[0].id;
   expandedStepId.value = steps.value[0].id;
 };
@@ -218,14 +215,6 @@ const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
 };
 
-// 上一步
-const prevStep = () => {
-  if (!isFirstStep.value) {
-    const prevIndex = currentStepIndex.value - 1;
-    activeStepId.value = steps.value[prevIndex].id;
-    expandedStepId.value = steps.value[prevIndex].id;
-  }
-};
 
 // 下一步
 const nextStep = () => {
@@ -235,18 +224,10 @@ const nextStep = () => {
     expandedStepId.value = steps.value[nextIndex].id;
   }
 };
-
-// 标记当前步骤为完成/取消
-const markAsCompleted = async () => {
-  const targetStep = steps.value.find((step) => step.id === activeStepId.value);
-  if (targetStep) {
-    targetStep.completed = !targetStep.completed;
-    await updateWelcomeState({
-      key: 'guideSteps',
-      value: JSON.stringify(steps.value),
-    });
-  }
-};
+//开始体验
+function closeWelcomPage(){
+  server.close()
+}
 
 /**
  * 打开运行结果进行引导
@@ -269,40 +250,31 @@ async function goToCheckResult() {
     outputPath: `${await getUserRunRoot()}`,
   });
 }
+watch(skipAll,
+  (newValue)=> {
+    if (newValue) { 
+      steps.value[1].completed=newValue
+    }
+})
 
 /**
  * 打开三联视图进行引导
  */
-async function goToCheckTriptychView() {
+async function goToCheckTriptychView() {}
 
-}
-
-// 监听引导模式的消息
-const listenExtensionMessage = () => {
-  (window as any).ascEventBus.on('closeAllGuideModal', (event) => {
-    const message = event.data;
-    console.log('closeAllGuideModal')
-
-    if (event.type === 'CheckResultHasDown') {
-      console.log('CheckResultHasDown');
-      steps.value[1].completed=true
-    }
-  });
-};
 
 onMounted(async () => {
   // isLinux.value = await isLinuxEnvironment();
   initSteps();
   toggleTheme();
-  listenExtensionMessage()
 });
 
 watch(
   steps,
   async (newVal) => {
     await updateWelcomeState({
-      key: 'guideSteps',
-      value: JSON.stringify(newVal),
+      key: 'guideSteps-runPython',
+      value: newVal[0].completed,
     });
   },
   { deep: true },

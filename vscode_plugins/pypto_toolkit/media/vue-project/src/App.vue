@@ -45,7 +45,7 @@ onMounted( async() => {
   <!-- 导航栏 -->
   <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
   <!-- 控制流 -->
-  <div  class="parent-container" v-else-if="graphType === 'controlFlow'">
+  <div id="boot-controlFlow-index" class="parent-container" v-else-if="graphType === 'controlFlow'">
     <ControlFlowIndex></ControlFlowIndex>
   </div>
   <!-- 欢迎页面 -->

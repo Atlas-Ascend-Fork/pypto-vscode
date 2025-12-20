@@ -41,11 +41,11 @@
         <!-- 操作按钮栏 -->
         <div class="btn-container">
           <button class="skip-btn" @click="handleSkipAll">跳过全部</button>
-          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button>
+          <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
-          <button v-else class="next-btn" @click="handleStartExperience">完成</button>
+          <button v-else class="next-btn" @click="handleSkipAll">完成</button>
         </div>
       </div>
     </div>
@@ -63,8 +63,7 @@ import {
   getNextBigGroupConfig,
   guideStepsConfig,
 } from '../guideStepsConfig';
-import { useViewServer } from '@/core/use-view-server';
-import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
+import { request } from '@/core/request';
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -136,7 +135,7 @@ const popupWrapperStyle = computed<CSSProperties>(() => {
 
 const triangleOffsetStyle = computed<CSSProperties>(() => {
   refreshTrigger.value; // 触发重新计算
-  const { triangleOffset } = getTargetDomPosition();
+  let { triangleOffset } = getTargetDomPosition();
   const triangleDir = triangleConfig.value.triangleDirection;
 
   // 根据三角方向应用偏移
@@ -144,13 +143,13 @@ const triangleOffsetStyle = computed<CSSProperties>(() => {
     case 'top':
     case 'bottom':
       return {
-        transform: `translate(${triangleOffset.x}px, -50%)`,
+        transform: `translate(${triangleOffset.x-10}px, -50%)`,
         left: `50%`,
       };
     case 'left':
     case 'right':
       return {
-        transform: `translateY(${triangleOffset.y}px)`,
+        transform: `translateY(${triangleOffset.y-10}px)`,
         top: `50%`,
       };
     default:
@@ -274,7 +273,6 @@ const fixPositionOverflow = (
     // 计算三角偏移（指向DOM中心）
     triangleOffset.x = domRect.left + domRect.width / 2 - (left + popupSize.width / 2);
   }
-
   return {
     fixedPos: {
       ...initialPos,
@@ -321,7 +319,7 @@ const getTargetDomPosition = () => {
   }
 
   // 1. 获取基础信息（实时）
-  targetDom.getBoundingClientRect(); // 强制重绘
+  // targetDom.getBoundingClientRect(); // 强制重绘
   const domRect = targetDom.getBoundingClientRect();
   const popupSize = getPopupRealSize();
   const triangleDir = triangleConfig.value.triangleDirection;
@@ -398,7 +396,10 @@ const handleResize = async () => {
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
   const targetDom = document.getElementById(targetDomId);
-  if (targetDom) targetDom.getBoundingClientRect();
+  if (targetDom) {
+    targetDom.getBoundingClientRect();
+  }
+
   const popupContent = document.querySelector('.guide-popup-content');
   if (popupContent) popupContent.getBoundingClientRect();
 
@@ -436,9 +437,10 @@ const observeDomChange = (domId: string) => {
       subtree: true,
     });
   }
-    const controlFlowStartElement = document.querySelector('#boot-steps-controlFlow');
-  if (controlFlowStartElement) {
-    domObserver.observe(controlFlowStartElement, {
+
+    const middleLayerElement2 = document.querySelector('#boot-controlFlow-index');
+  if (middleLayerElement2) {
+    domObserver.observe(middleLayerElement2, {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: false,
@@ -447,8 +449,8 @@ const observeDomChange = (domId: string) => {
   }
   const targetDom = document.getElementById(domId);
   if (!targetDom) {
-    return
-  };
+    return;
+  }
 
   // 1. ResizeObserver：监听DOM尺寸变化
   resizeObserver = new ResizeObserver(debouncedHandleResize);
@@ -461,7 +463,7 @@ const observeDomChange = (domId: string) => {
     domObserver.observe(parentDom, {
       attributes: true,
       attributeFilter: ['style', 'class'],
-      childList: false,
+      childList: true,
       subtree: true,
     });
   }
@@ -569,25 +571,17 @@ const handleNextStep = async () => {
     await setGuideProgress(newBig, newSmall);
   }
 };
-const { server:wecomeServer } = useViewServer<WelcomeViewServer>();
 
-const { skipAll } = wecomeServer;
 // 跳过全部
 const handleSkipAll = () => {
   updateWelcomeState({
     key: 'guide.state',
     value: false,
   });
-  postToExtension('closeAllGuideModal', null);
-  emit('update:visible', false);
+  request.post('welcome/skipAll', null);
+  postToExtension('welcomeSkipAll',null)
 };
 
-// 开始体验
-const handleStartExperience = () => {
-  postToExtension('closeAllGuideModal', null);
-  emit('update:visible', false);
-  emit('complete');
-};
 
 // 合并步骤数据
 const guideSteps = computed(() => props.guideSteps || defaultGuideSteps);
@@ -639,7 +633,6 @@ const getGuideProgress = async () => {
   });
   currentBigGroup.value = currentBig as number;
   currentSmallIndex.value = currentSmall as number;
-  console.log('getGuideProgress',currentBig,currentSmall)
 };
 
 // 写入进度到globalState
@@ -654,8 +647,6 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   });
   currentBigGroup.value = bigGroup;
   currentSmallIndex.value = smallIndex;
-  console.log('setGuideProgress',bigGroup,smallIndex)
-
 };
 
 const handleMaskClick = () => {
@@ -723,7 +714,7 @@ onUnmounted(() => {
 .triangle-right {
   right: -16px;
   top: 50%;
-  border-left-color: #292929;
+  border-left-color: #353535;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -731,7 +722,7 @@ onUnmounted(() => {
 .triangle-left {
   left: -16px;
   top: 50%;
-  border-right-color: #292929;
+  border-right-color: #353535;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -739,7 +730,7 @@ onUnmounted(() => {
 .triangle-top {
   top: -8px;
   left: 50%;
-  border-bottom-color: #292929;
+  border-bottom-color: #353535;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -748,7 +739,7 @@ onUnmounted(() => {
   bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: #292929;
+  border-top-color: #353535;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -757,7 +748,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #292929;
+  background: #353535;
   padding: 28px;
   border-radius: 16px;
   box-sizing: border-box;

@@ -3,7 +3,7 @@
     <!-- 代码预览组件 -->
     <CodeSnippetPreview :config="codePreviewState" :theme="isDarkTheme ? 'vs-dark' : 'vs'" @close="codePreviewState.isVisible = false" />
   </div>
-  <div class="g6-flow-chart">
+  <div class="g6-flow-chart" ref="graphContainerRef">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
       <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath" />
@@ -59,7 +59,6 @@
     </template>
   </div>
   <Loading class="loading-index" v-if="isLoading" :loadingText="'loading'" />
-  <div  class="boot-steps-controlFlow" id="boot-steps-controlFlow"></div>
 </template>
 
 <script lang="ts" setup>
@@ -104,7 +103,8 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
-const isBoot=ref(false)
+const isBoot = ref(false);
+const graphContainerRef = ref(null);
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -344,20 +344,37 @@ function closeSidebar() {
 
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
+  // 封装动态创建DOM的函数（核心逻辑）
+  const createControlFlowDiv = () => {
+    // 防重复创建：先检查是否已存在该ID的元素
+    const existingElement = document.getElementById('boot-steps-controlFlow');
+    if (existingElement) {
+      return;
+    }
+
+    const controlFlowDiv = document.createElement('div');
+    controlFlowDiv.id = 'boot-steps-controlFlow';
+    controlFlowDiv.style = 'position: absolute;top: 58%;  left: 30%;';
+    const controlFlowStartElement = document.querySelector('#boot-controlFlow-index');
+    const mountTarget = controlFlowStartElement;
+    mountTarget.appendChild(controlFlowDiv);
+  };
+  const { server } = useViewServer();
   watch(
     () => isLoading.value,
     (value) => {
       if (!value) {
         graph.zoomTo(50 / 100);
-        isBoot.value = true;
-        const pathPosition = graph.getElementPosition(stepOpenSidebaNode.value.id);
+        createControlFlowDiv();
       }
     },
   );
 
   (window as any).ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
-
+    if (event.type === 'welcomeSkipAll') {
+      server.close();
+    }
     if (event.type === 'callWebviewMethod') {
       switch (message.methodName) {
         case 'checkControlFlow':
@@ -386,7 +403,7 @@ const listenExtensionMessage = () => {
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
             pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
           });
-          const { server } = useViewServer();
+
           server.close();
           break;
         default:
@@ -467,11 +484,6 @@ onUnmounted(() => {
   height: 100%;
   box-sizing: border-box;
   background-color: var(--control-flow-bg);
-}
-.boot-steps-controlFlow {
-  position: absolute;
-  top: 58%;
-  left: 30%;
 }
 .loading-index {
   z-index: 99999999;

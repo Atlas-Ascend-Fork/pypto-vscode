@@ -16,6 +16,7 @@ import {
 import { ConfigDataService } from './schema-config/configdata';
 import { getInitPythonProject, getUserRunRoot, isLinuxEnvironment } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
+import { WelcomeViewServer } from '../view/servers/welcom-server';
 
 export const services = {
   welcome: {
@@ -25,6 +26,9 @@ export const services = {
     isLinuxEnvironment,
     getIsCompleteBoot,
     getUserRunRoot,
+    skipAll() {
+      WelcomeViewServer.skipGuide();
+    },
   },
   // 控制流
   controlFlow: {
