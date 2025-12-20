@@ -2001,8 +2001,15 @@ const updateTheme = () => {
 };
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
+    console.log('listenExtensionMessage')
+
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
+    console.log(event)
+    if (event.type === 'welcomeSkipAll') {
+      console.log('welcomeSkipAll')
+      server.close();
+    }
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
         case 'showGuideDetailsPanel':

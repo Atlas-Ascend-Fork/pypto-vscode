@@ -1,9 +1,9 @@
 import { openControlFlow, openPyPTOWelcome, openComputeGraph, openSwimlaneGraph } from '@/apis/opener';
 import { ref } from 'vue';
-const controlFlowImg = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
-const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
-const computeImg = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
-const iconPathRightLight = ref(`${window.staticPath}/static-assets/control_flow_path_right-light.svg`);
+const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control.svg`);
+const native = ref(`${window.staticPath}/static-assets/boot_steps_native.svg`);
+const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute.svg`);
+const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim.svg`);
 // 定义单个步骤的配置类型
 export interface GuideStepConfig {
   title: string; // 步骤标题
@@ -67,7 +67,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     groupName: '导航系统',
     webviewType: 'navigation',
     openWebviewFn: 'openComputeGraph',
-    imgUrl: controlFlowImg.value,
+    imgUrl: native.value,
     openWebviewParams: null,
     steps: [
       {
@@ -79,14 +79,6 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         showTriangle: true,
         triangleDirection: 'top',
       },
-      // {
-      //   title: '导航系统-步骤2标题',
-      //   content: '这是导航系统的第二个小步骤，完成后将进入计算图...',
-      //   method: 'checkNavStatus',
-      //   targetDomId: 'boot-steps-navbar-com-graph',
-      //   showTriangle: true,
-      //   triangleDirection: 'top',
-      // },
       {
         title: '导航系统-打开计算图',
         content: '这是导航系统中打开计算图的图标，点击后即可打开计算图',
@@ -181,7 +173,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     groupName: '泳道图',
     webviewType: 'swimlaneGraph',
     openWebviewFn: 'openSwimlaneGraph',
-    imgUrl: computeImg.value,
+    imgUrl: swim.value,
     openWebviewParams: { swimlaneGraphPath: '' },
     steps: [
       {
@@ -218,7 +210,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: 'measure-button', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: '泳道图-查看节点详情',

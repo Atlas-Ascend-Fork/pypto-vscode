@@ -13,7 +13,7 @@ export function getInitPythonProject(): Promise<void> {
 /**
  * 获取引导弹窗进度
  */
-export function getWelcomeState(params): Promise<number | string> {
+export function getWelcomeState(params): Promise<any> {
   return request.post(`${WELCOME}/getWelcomeState`, params);
 }
 

@@ -335,6 +335,9 @@ async function onStepsChange(args) {
     server.close();
     return;
   }
+  if (args.type === 'welcomeSkipAll') {
+    server.close();
+  }
   stepsMap[args.data.methodName](args.data.params);
 }
 onMounted(() => {
