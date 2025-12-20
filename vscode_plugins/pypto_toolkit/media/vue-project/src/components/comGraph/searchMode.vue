@@ -550,15 +550,6 @@ const displayResIt = (it) => {
   return `${it.node_type} SubgraphID:${it.subgraphid} ${symbol}magic:${displayMagic}`;
 }
 
-function jumpSearchSubgraph(calleehash, funcMagicName) {
-  if (comGraphStore.data.comGraphConfig.isSimple) {
-    server.innerGetSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName}});
-  } else {
-    let newPath = JSON.stringify([calleehash]);
-    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}});
-  }
-}
-
 const onGlobalSearchLocate = (it) => {
   if (it.node_type === 'function') {
     (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'all', nodeMagic: -1});
