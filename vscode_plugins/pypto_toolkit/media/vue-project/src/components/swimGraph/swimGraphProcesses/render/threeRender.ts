@@ -35,7 +35,7 @@ export class ThreeRender extends EventRender {
   drawBoundary(boundaries: any, processKey: string) {
     currentBoundaries = boundaries;
     currentProcessKey = processKey;
-    const { viewState, isDarkTheme } = this.deps;
+    const { viewState, isDarkTheme, isLockStatus } = this.deps;
     const boundaryCanvas: HTMLCanvasElement = document.querySelector(`[data-three-column-process-key="${processKey}"]`);
     if (!boundaryCanvas) return;
     const boundaryCtx = boundaryCanvas.getContext('2d');
@@ -73,8 +73,13 @@ export class ThreeRender extends EventRender {
         };
       });
     });
-    boundaryCtx.strokeStyle = isDarkTheme.value ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
-    boundaryCtx.lineWidth = 1 / viewState.scale;
+    if (isLockStatus.value) {
+      boundaryCtx.strokeStyle = isDarkTheme.value ? 'rgba(49, 122, 247, 1)' : 'rgba(10, 89, 247, 1)';
+      boundaryCtx.lineWidth = 1.5 / viewState.scale;
+    } else {
+      boundaryCtx.strokeStyle = isDarkTheme.value ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+      boundaryCtx.lineWidth = 1 / viewState.scale;
+    }
     // 遍历每个区域并绘制路径
     this.drawPath(boundaryCtx, tempRegions);
     // 绘制不同区域的连线
@@ -174,10 +179,12 @@ export class ThreeRender extends EventRender {
       ctx.fillStyle = gradientFill;
       ctx.fill();
       ctx.stroke();
+      const { isLockStatus } = this.deps;
       // 绘制第一条线：整体渐变 + 淡出
       this.drawFadingPath(lineSegs1, '#90b8f9', '#b8adfd', ctx);
       // 绘制第二条线：整体渐变 + 淡出
-      this.drawFadingPath(lineSegs2, '#db95fb', '#ea8ede', ctx);
+      const [color1, color2] = isLockStatus.value ? ['#90b8f9', '#b8adfd'] : ['#db95fb', '#ea8ede'];
+      this.drawFadingPath(lineSegs2, color1, color2, ctx);
       ctx.restore();
     });
   }

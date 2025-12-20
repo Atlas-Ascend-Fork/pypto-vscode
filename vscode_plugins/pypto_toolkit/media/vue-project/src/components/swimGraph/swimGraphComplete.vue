@@ -4,7 +4,7 @@
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
-      <swim-graph-header ref="swimgraphHeaderComponent" />
+      <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
@@ -2013,6 +2013,8 @@ const listenExtensionMessage = () => {
           measureDragEndX.value = viewState.canvasCssWidth;
           isMeasureDragging.value = true;
           showDragAreaBorders.value = true;
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '';
           measureMouseUp();
           break;
         default:
