@@ -10,7 +10,7 @@
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
-          <div class="title_up_threecolum" v-show="isThreeColumn">
+          <div class="title_up_threecolum" v-show="isThreeColumn" id="swim-title_up_threecolum">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
             <div class="title_up_r_threecolum">

@@ -197,8 +197,8 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
 import { openPyPTOWelcome } from '@/apis/opener';
 
 onMounted(async () => {
-  await getOutputs();
   openPyPTOWelcome();
+  await getOutputs();
 
   // 禁用原生右键菜单
   document.addEventListener('contextmenu', (e) => {

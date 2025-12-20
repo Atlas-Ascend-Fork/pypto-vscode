@@ -115,7 +115,13 @@
 <script setup lang="ts">
 import { openControlFlow } from '@/apis/opener';
 import { getInitPythonProject, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { useViewServer } from '@/core/use-view-server';
+import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted } from 'vue';
+
+const { server } = useViewServer<WelcomeViewServer>();
+
+const { skipAll } = server;
 
 // 模拟静态资源路径
 const staticPath = ref(window.staticPath || '');

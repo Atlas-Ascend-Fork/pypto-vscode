@@ -41,7 +41,7 @@
         <!-- 操作按钮栏 -->
         <div class="btn-container">
           <button class="skip-btn" @click="handleSkipAll">跳过全部</button>
-          <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
+          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button>
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
@@ -64,6 +64,7 @@ import {
   guideStepsConfig,
 } from '../guideStepsConfig';
 import { useViewServer } from '@/core/use-view-server';
+import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -308,8 +309,8 @@ const getTargetDomPosition = () => {
     console.warn(`目标DOM ID ${targetDomId} 不存在，使用兜底定位`);
     return {
       popupStyle: {
-        top: '50%',
-        left: '50%',
+        top: '150%',
+        left: '150%',
         transform: 'translate(-50%, -50%)',
         zIndex: 99999,
         boxSizing: 'border-box',
@@ -426,9 +427,18 @@ const observeDomChange = (domId: string) => {
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
   domObserver = new MutationObserver(debouncedHandleResize);
-  const middleLayerFlowElement = document.querySelector('#boot-middleLayer');
-  if (middleLayerFlowElement) {
-    domObserver.observe(middleLayerFlowElement, {
+  const middleLayerElement = document.querySelector('#boot-middleLayer');
+  if (middleLayerElement) {
+    domObserver.observe(middleLayerElement, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      childList: false,
+      subtree: true,
+    });
+  }
+    const controlFlowStartElement = document.querySelector('#boot-steps-controlFlow');
+  if (controlFlowStartElement) {
+    domObserver.observe(controlFlowStartElement, {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: false,
@@ -436,7 +446,9 @@ const observeDomChange = (domId: string) => {
     });
   }
   const targetDom = document.getElementById(domId);
-  if (!targetDom) return;
+  if (!targetDom) {
+    return
+  };
 
   // 1. ResizeObserver：监听DOM尺寸变化
   resizeObserver = new ResizeObserver(debouncedHandleResize);
@@ -486,7 +498,6 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
   (e: 'complete'): void;
 }>();
-const { server } = useViewServer();
 
 // 发送消息通知事件
 const postToExtension = (type: string, data: any) => {
@@ -545,8 +556,8 @@ const handleNextStep = async () => {
   if (isLastInGroup) {
     newBig++;
     newSmall = 0;
-    openNextWebview(newBig);
     await setGuideProgress(newBig, newSmall);
+    openNextWebview(newBig);
   } else {
     newSmall++;
     // 先调用下一步步骤方法
@@ -558,7 +569,9 @@ const handleNextStep = async () => {
     await setGuideProgress(newBig, newSmall);
   }
 };
+const { server:wecomeServer } = useViewServer<WelcomeViewServer>();
 
+const { skipAll } = wecomeServer;
 // 跳过全部
 const handleSkipAll = () => {
   updateWelcomeState({
@@ -566,7 +579,7 @@ const handleSkipAll = () => {
     value: false,
   });
   postToExtension('closeAllGuideModal', null);
-  // emit('update:visible', false);
+  emit('update:visible', false);
 };
 
 // 开始体验
@@ -626,6 +639,7 @@ const getGuideProgress = async () => {
   });
   currentBigGroup.value = currentBig as number;
   currentSmallIndex.value = currentSmall as number;
+  console.log('getGuideProgress',currentBig,currentSmall)
 };
 
 // 写入进度到globalState
@@ -640,6 +654,8 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   });
   currentBigGroup.value = bigGroup;
   currentSmallIndex.value = smallIndex;
+  console.log('setGuideProgress',bigGroup,smallIndex)
+
 };
 
 const handleMaskClick = () => {

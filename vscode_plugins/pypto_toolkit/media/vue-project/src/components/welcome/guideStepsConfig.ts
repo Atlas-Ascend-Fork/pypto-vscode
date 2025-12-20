@@ -189,7 +189,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距',
         method: 'distanceMeasurement',
         methodParams: {},
-        targetDomId: '', // 步骤1定位
+        targetDomId: 'swim-title_up_threecolum', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -234,7 +234,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: '点击泳道图中某个任务节点，可显示节点的详情面板',
         method: 'showGuideDetailsPanel',
         methodParams: {},
-        targetDomId: '', // 步骤1定位
+        targetDomId: 'swim-title_up_threecolum', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
@@ -251,7 +251,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         targetDomId: 'rootHash', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
-      }
+      },
     ],
   },
 ];
