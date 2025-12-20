@@ -359,7 +359,7 @@ const historyOnSearch = (searchNode) => {
   upperActive.value = false;
   regActive.value = false;
   const searchScope = searchScopeArr.find(scope => Boolean(scope[searchNode]));
-  currentSelect.value = searchScope[searchNode] ?? 'current';
+  currentSelect.value = searchScope?.[searchNode] ?? 'current';
 
   let nodeType = searchNode?.split(':')[0] ?? undefined;
   if (nodeType) {

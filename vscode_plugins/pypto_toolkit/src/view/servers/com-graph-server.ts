@@ -94,7 +94,11 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   };
   @viewApi()
   public getSubgraph = async (message: any) => {
-    await this.handler.getSubgraph(this, message.paramObj, this.query);
+    let query = this.query;
+    if (typeof query === 'object' && message.query) {
+      query = { ...(query as Object), ...message.query };
+    }
+    await this.handler.getSubgraph(this, message.paramObj, query);
   };
   @viewApi()
   public searchAllFunc = async (message) => {
