@@ -334,8 +334,8 @@ function focusCurrentPath(params) {
   // 聚焦搜索的节点
   centerNodeAction([params.searchNodeId]);
   selectAction([params.searchNodeId]);
-  // 激活通路锁定
-  setFixedComGraphFlow(true, false, params.searchNodeId);
+  // 只看当前通路
+  setFixedComGraphFlow(true, true, params.searchNodeId);
 }
 const stepsMap = {
   viewComGraph,
