@@ -159,6 +159,8 @@ function setupComWatchers(server: any) {
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
     if (server.InitFlag.value == 'true') {
+      noComFile.value = false;
+      noSwimFile.value = false;
       await server.getInitialData();
       server.returnFuncTree();
     }

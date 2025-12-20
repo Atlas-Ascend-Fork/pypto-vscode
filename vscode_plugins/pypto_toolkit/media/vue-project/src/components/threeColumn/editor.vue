@@ -13,7 +13,7 @@
            left: lockPosition.left + 'px',
            'background-color': 'var(--devui-tooltip-bg)',
            'border-radius': '6px',
-           'padding': '4px 6px',
+           padding: '4px 6px',
            cursor: 'pointer',
          }">
       <d-icon name="lock-open"></d-icon>
@@ -24,12 +24,12 @@
          :style="{
            top: lockPosition.top + 'px',
            left: lockPosition.left + 'px',
-           'background-color': 'var(--devui-tooltip-bg)',
+           'background-color': 'rgba(49,122,247,1)',
            'border-radius': '6px',
-           'padding': '4px 6px',
+           padding: '4px 6px',
            cursor: 'pointer',
          }">
-      <d-icon name="icon-lock-private"></d-icon>
+      <d-icon name="icon-lock-private" style="color: #ffffff;"></d-icon>
     </div>
   </div>
 </div>
@@ -283,22 +283,96 @@ const deactivateLock = () => {
     return;
   }
   
+  updateBkDecoration(lockedLabel, false);
   isLocked.value = false;
   lockedLabel = null;
-  
   sendMsg('deactivateLock','');
+};
+
+const updateBkDecoration = (lockedLabel: any, isLock: boolean) => {
+  if (currentHoverDecoration) {
+    editor.deltaDecorations(currentHoverDecoration, []);
+    currentHoverDecoration = null;
+  }
+  let decorations = [];
+  if (isLock) {
+    decorations = createLockedDecorations(lockedLabel.startLine, lockedLabel.endLine);
+  } else {
+    decorations = createHoverDecorations(lockedLabel.startLine, lockedLabel.endLine);
+  }
+  currentHoverDecoration = editor.deltaDecorations([], decorations);
 };
 
 const lockClick = (e) => {
   e.stopPropagation();
   lockedLabel = lastMoveLabel;
   isLocked.value = true;
+  updateBkDecoration(lockedLabel, true);
   sendMsg('activeLock', { label: lastMoveLabel.name });
 };
 
 const unLockClick = (e) => {
+  updateBkDecoration(lockedLabel, false);
   e.stopPropagation();
   deactivateLock();
+};
+
+const createLockedDecorations = (startLine, endLine) => {
+  const decorations = [];
+
+  if (startLine === endLine) {
+    // 单行情况，直接应用完整边框
+    decorations.push({
+      range: new monaco.Range(startLine, 1, endLine, 1),
+      options: {
+        isWholeLine: true,
+        className: 'semantic-hover-full'
+      }
+    });
+  } else {
+    // 首行
+    decorations.push({
+      range: new monaco.Range(startLine, 1, startLine, 1),
+      options: {
+        isWholeLine: true,
+        className: 'semantic-hover-top'
+      }
+    });
+
+    // 中间行（如果有）
+    for (let line = startLine + 1; line < endLine; line++) {
+      decorations.push({
+        range: new monaco.Range(line, 1, line, 1),
+        options: {
+          isWholeLine: true,
+          className: 'semantic-hover-middle'
+        }
+      });
+    }
+
+    // 末行
+    decorations.push({
+      range: new monaco.Range(endLine, 1, endLine, 1),
+      options: {
+        isWholeLine: true,
+        className: 'semantic-hover-bottom'
+      }
+    });
+  }
+
+  return decorations;
+};
+
+const createHoverDecorations = (startLine, endLine) => {
+  const decorations = [];
+  decorations.push({
+    range: new monaco.Range(startLine, 1, endLine, 1),
+    options: {
+      isWholeLine: true,
+      className: 'semantic-hover-highlight'
+    }
+  });
+  return decorations;
 };
 
 // 更新悬停装饰
@@ -327,14 +401,8 @@ const updateHoverDecoration = (position, emit = true) => {
   
   // 如果当前在语义标签区域内，添加悬停效果
   if (currentLabel) {
-    const hoverDecoration = {
-      range: new monaco.Range(currentLabel.startLine, 1, currentLabel.endLine, 1),
-      options: {
-        isWholeLine: true,
-        className: 'semantic-hover-highlight'
-      }
-    };
-    currentHoverDecoration = editor.deltaDecorations([], [hoverDecoration]);
+    const decorations = createHoverDecorations(currentLabel.startLine, currentLabel.endLine);
+    currentHoverDecoration = editor.deltaDecorations([], decorations);
     if (emit && lastSentLabel !== currentLabel.name && !isMouseLeaved) {
       lastSentLabel = currentLabel.name;
       sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
@@ -469,17 +537,39 @@ const handleMouseEnter = () => {
 // 添加悬停效果的 CSS
 const setupHoverStyles = () => {
   const style = document.createElement('style');
-  const bkColor = isDarkTheme.value ? '#317AF7' : '#0A59F7';
+  const bkColor = isDarkTheme.value ? 'rgba(49,122,247,0.2)' : 'rgba(10,89,247,0.2)';
+  const borderColor = isDarkTheme.value ? 'rgba(49,122,247,1)' : 'rgba(10,89,247,1)';
+  
   style.textContent = `
     .semantic-hover-highlight {
       background-color: ${bkColor} !important;
-      opacity: 0.2 !important;
+    }
+    .semantic-hover-full {
+      background-color: ${bkColor} !important;
+      border: 1.5px solid ${borderColor} !important;
+    }
+    .semantic-hover-top {
+      background-color: ${bkColor} !important;
+      border-top: 1.5px solid ${borderColor} !important;
+      border-left: 1.5px solid ${borderColor} !important;
+      border-right: 1.5px solid ${borderColor} !important;
+    }
+    .semantic-hover-middle {
+      background-color: ${bkColor} !important;
+      border-left: 1.5px solid ${borderColor} !important;
+      border-right: 1.5px solid ${borderColor} !important;
+    }
+    .semantic-hover-bottom {
+      background-color: ${bkColor} !important;
+      border-bottom: 1.5px solid ${borderColor} !important;
+      border-left: 1.5px solid ${borderColor} !important;
+      border-right: 1.5px solid ${borderColor} !important;
     }
     .lock-indicator {
       position: absolute;
       z-index: 100;
       font-size: 16px;
-      cusror: pointer;
+      cursor: pointer;
       filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
     }
   `;
@@ -580,6 +670,7 @@ const updateTheme = () => {
   isLocked.value = true;
   const targetLabel = labels.find(l => l.name === label);
   lockedLabel = targetLabel;
+  updateBkDecoration(lockedLabel, true);
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
   deactivateLock();

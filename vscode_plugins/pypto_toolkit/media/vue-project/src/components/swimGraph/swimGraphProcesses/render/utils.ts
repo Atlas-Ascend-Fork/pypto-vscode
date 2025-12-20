@@ -4,6 +4,7 @@ import { getEventColorByMode } from '../processInfo';
 export interface Dependencies {
   viewState: any;
   isDarkTheme: any;
+  isLockStatus: any;
   spaceInThreeCol: number;
   colorCfg: any;
   selectedEvent: any;
