@@ -822,7 +822,7 @@ export abstract class BaseGraphMsgHandler {
     const { json, io } = await this.fetchGraphJson(gd, server);
     if (!json) return;
     // 挂 inouttensors
-    if (io) json.inouttensors = io;
+    if (io && server.query.calleeOpMagic) json.inouttensors = io;
     // 2. 发送初始化消息
     await this.postInitMessages(server, gd, json, false);
 

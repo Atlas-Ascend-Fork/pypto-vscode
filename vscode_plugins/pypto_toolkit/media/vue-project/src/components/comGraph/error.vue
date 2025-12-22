@@ -9,12 +9,13 @@
     }"> </div>
     <span class="error-text">{{ props.jsonContent }}</span>
     <span class="error-text">{{ props.errorLog }}</span>
+    <fileSelect :file-name="comFileName"/>
   </div>
 </template>
 
 <script setup lang="ts">
 import { defineProps, ref } from 'vue';
-
+import fileSelect from '../threeColumn/file-select.vue';
 
 const errorSvgPath = ref(`"${window.staticPath}/static-assets/data_error.svg"`);
 
@@ -27,6 +28,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  comFileName: {
+    type:String,
+    default:'',
+  }
 })
 
 </script>

@@ -47,6 +47,10 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
   protected static override getGraphData(server: any): AbstractGraphData {
     return server.comGraphData as SingleGraphData;
   }
+
+  public static getGrahpDataExtend(serve: any): AbstractGraphData{
+    return this.getGraphData(serve);
+  }
   /** 重写 基类方法 */
   protected static override async postInitMessages(server: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */

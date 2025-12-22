@@ -128,11 +128,11 @@ watch(currentActiveBlock, (val) => {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
     if (!isComGraphActive.value) {
       isExpandSearch.value = false;
-      comGraphHeaderEl.value.hideDropdown();
-      rootHashEl.value.toggleChange(false);
+      comGraphHeaderEl.value?.hideDropdown();
+      rootHashEl.value?.toggleChange(false);
     }
   }
-});
+},{ immediate: true });
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -152,12 +152,14 @@ let prevent = false;
 let currentLockLabel: string = '';
 let sendlist;
 let clickLabel: string = '';
+let currentHoverLabel: string = '';
 function onMessageFromSwim(args) {
   if (prevent) {
     prevent = false;
     return;
   }
   if (args.label) {
+    currentHoverLabel = args.label;
     createSelectNodesRect?.(args.label, true);
   } else {
     removeSelectNodesRect?.();
@@ -217,7 +219,7 @@ function onMessageFromSwim(args) {
   threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
 });
 
-(window as any).ascEventBus.on('returnSemanticLabelFromCodeClick', (args) => {
+function autoDrillCb(args) {
   clickLabel = args.label;
   generateHashList( sendlist ?? []);
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, args.label);
@@ -226,6 +228,12 @@ function onMessageFromSwim(args) {
     onHashChange(rootHashList.value[0]);
   }
   generateHashList();
+}
+(window as any).ascEventBus.on('returnSemanticLabelFromCodeClick', autoDrillCb);
+(window as any).ascEventBus.on('swimSelectModeChange', (args) => {
+  if (args.selectMode) {
+    autoDrillCb({ label: currentHoverLabel });
+  }
 });
 
 watch(threeColumnServer.GetPassPath, (newValue) => {

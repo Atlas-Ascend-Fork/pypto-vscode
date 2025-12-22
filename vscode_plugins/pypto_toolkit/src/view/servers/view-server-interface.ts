@@ -46,7 +46,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   openSearchMode?: (message: { data: any }) => Promise<void>;
   setFinalResult: (message: { data: any }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
-  getSubgraph: (message: { paramObj: any }) => Promise<void>;
+  getSubgraph: (message: { paramObj: any, query?: any }) => Promise<void>;
   searchAllFunc: (message: { data: any }) => Promise<void>;
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
