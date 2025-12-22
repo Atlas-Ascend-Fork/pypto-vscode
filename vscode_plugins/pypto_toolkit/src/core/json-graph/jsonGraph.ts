@@ -640,9 +640,9 @@ export class AscppDagBuilder {
         showTensorNodes: boolean) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
-        if (tensor.nodetype === 1) {
+        if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
-        } else if (tensor.nodetype === 2) {
+        } else if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
             this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         } else {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
