@@ -67,8 +67,6 @@ const textOptions = ref([
   "rawshape",
   "offset",
   "asis",
-  "tobe",
-  "datatype",
 ]);
 
 const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange', 'selectNodesChange']);
