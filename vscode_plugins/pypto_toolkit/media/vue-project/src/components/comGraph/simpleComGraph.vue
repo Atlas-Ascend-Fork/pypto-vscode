@@ -128,11 +128,11 @@ watch(currentActiveBlock, (val) => {
     isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
     if (!isComGraphActive.value) {
       isExpandSearch.value = false;
-      comGraphHeaderEl.value.hideDropdown();
-      rootHashEl.value.toggleChange(false);
+      comGraphHeaderEl.value?.hideDropdown();
+      rootHashEl.value?.toggleChange(false);
     }
   }
-});
+},{ immediate: true });
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
