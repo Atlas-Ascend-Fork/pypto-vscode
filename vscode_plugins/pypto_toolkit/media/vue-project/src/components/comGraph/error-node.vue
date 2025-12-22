@@ -6,7 +6,7 @@
       left: node.x + 'px'
     }"
     v-show="node.show"
-    @mouseleave="() => node.showErrorIconOnly = currentZoom < 0.4"
+    @mouseleave="() => leave(node)"
   >
     <div class="error-info" :title="node.errorInfo">
       {{ node.errorInfo }}
@@ -14,7 +14,7 @@
     <i class="icon-error-o" @mouseenter="() => node.showErrorIconOnly = false"></i>
     <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100" v-if="node.stackList?.length">
       <template #content>
-        <div style="width: auto;font-size: 12px;">
+        <div style="width: auto;font-size: 12px;" @mouseenter="onPopoverMouseenter" @mouseleave="() => onPopoverMouseleave(node)">
           <p v-for="stack in node.stackList">
             <a class="error-jump" @click="jumpTo(stack)">{{stack}}</a>
           </p>
@@ -35,6 +35,7 @@ import { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { watch } from 'vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { debounce } from 'lodash-es';
 const { t } = useI18n();
 
 const props = defineProps({
@@ -57,6 +58,22 @@ const model = ref();
 const { server } = useViewServer<IComViewServer>();
 const displayList = ref([]);
 let currentZoom = 1;
+let isEnterPopover: boolean = false;
+
+const leave = debounce((node: Record<string, any>) => {
+  if (!isEnterPopover) {
+    node.showErrorIconOnly = currentZoom < 0.4;
+  }
+}, 100);
+
+const onPopoverMouseenter = () => {
+  isEnterPopover = true;
+}
+
+const onPopoverMouseleave = (node: Record<string, any>) => {
+  isEnterPopover = false;
+  leave(node);
+}
 
 const jumpTo = (stack) => {
   const list = stack.split(':');
