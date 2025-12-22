@@ -1963,7 +1963,7 @@ const guideDistanceMeasurement = () => {
       if (threadKey !== swimConfig.threadKey) {
         continue;
       }
-      const events = thread.events;
+      const { events } = thread;
       if (events.length < 2) {
         continue;
       }
@@ -1998,8 +1998,8 @@ const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
 };
 const onWindowResize = (event) => {
-  if(swimConfig.currentStepTargetDomId !== 'distance-measurement'){
-     return;
+  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+    return;
   }
   guideDistanceMeasurement();
 };

@@ -748,8 +748,8 @@ const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
 };
 const onWindowResize = (event) => {
-  if(swimConfig.currentStepTargetDomId !== 'observation-line'){
-     return;
+  if (swimConfig.currentStepTargetDomId !== 'observation-line') {
+    return;
   }
   drawVirtualDomAsync();
 };
