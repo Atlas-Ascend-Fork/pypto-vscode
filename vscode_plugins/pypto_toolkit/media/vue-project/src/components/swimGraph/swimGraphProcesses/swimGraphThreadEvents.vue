@@ -1955,21 +1955,34 @@ const listenExtensionClearMessage = () => {
   });
 };
 const guideDistanceMeasurement = () => {
-  for (const [processkey, process] of processes.entries()) {
-    if (!processExpanded.get(processkey)) {
+  for (const [processKey, process] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
       continue;
     }
     for (const [threadKey, thread] of process.threads.entries()) {
-        if (thread.events.length > 2) {
-          const [preData, lastData] = thread.events;
-          altClickData.preData = preData;
-          altClickData.lastData = lastData;
-          const uiCtx = getUIContext(processkey);
-          measureRenderer.drawRoundedRect(uiCtx, lastData, processkey);
-          measureRenderer.calculateAndDrawConnection(uiCtx);
-          break;
-        }
+      if (threadKey !== swimConfig.threadKey) {
+        continue;
       }
+      const { events } = thread;
+      if (events.length < 2) {
+        continue;
+      }
+      // 查找 sampleEventName 对应的事件索引
+      const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventName);
+      // 不存在 或 是最后一个（无后续）
+      if (preIndex === -1 || preIndex === events.length - 1) {
+        continue; 
+      }
+      const preData = events[preIndex];
+      const lastData = events[preIndex + 1];
+      // 更新全局状态（如果确实需要）
+      altClickData.preData = preData;
+      altClickData.lastData = lastData;
+      const uiCtx = getUIContext(processKey);
+      measureRenderer.drawRoundedRect(uiCtx, lastData, processKey);
+      measureRenderer.calculateAndDrawConnection(uiCtx);
+      break; // 找到目标线程即可退出
+    }
   }
 };
 const clearDistanceMeasurement = () => {
@@ -1985,6 +1998,9 @@ const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
 };
 const onWindowResize = (event) => {
+  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+    return;
+  }
   guideDistanceMeasurement();
 };
 </script>

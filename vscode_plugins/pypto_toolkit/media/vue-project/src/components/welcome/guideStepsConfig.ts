@@ -254,6 +254,7 @@ export const getNextBigGroupConfig = (currentBigGroup: number) => {
 // 工具函数：获取当前步骤的目标DOM ID
 export const getCurrentStepTargetDomId = (bigGroup: number, smallIndex: number) => {
   const stepConfig = getCurrentStepConfig(bigGroup, smallIndex);
+  swimConfig.currentStepTargetDomId = stepConfig?.targetDomId || '';
   return stepConfig?.targetDomId || '';
 };
 
@@ -265,6 +266,8 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
     triangleDirection: stepConfig?.triangleDirection || 'right',
   };
 };
-export const swimConfig = {
-  sampleEventName: '218-25 (z )'
+export let swimConfig = {
+  threadKey: '1-1000',
+  sampleEventName: '218-25 (z )',
+  currentStepTargetDomId: ''
 };
