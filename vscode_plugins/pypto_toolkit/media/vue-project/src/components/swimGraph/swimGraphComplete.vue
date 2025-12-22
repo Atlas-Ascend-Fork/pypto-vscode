@@ -2019,17 +2019,24 @@ const listenExtensionMessage = () => {
           measureDragEndX.value = 0;
           isMeasureDragging.value = false;
           showDragAreaBorders.value = false;
+          isMeasureModel.value = false;
+          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+          document.documentElement.style.setProperty('--maskHeight', `0px`);
           renderTwoTimeline();
           getEventInfo();
           break;
         case 'measureDetailSearch':
-          measureDragStartX.value = layout.processLabelWidth;
-          measureDragEndX.value = viewState.canvasCssWidth;
+          const totalWidth = viewState.canvasCssWidth + layout.processLabelWidth;
+          measureDragStartX.value = totalWidth * (1 / 3);
+          measureDragEndX.value = totalWidth * (2 / 3);
           isMeasureDragging.value = true;
+          isMeasureModel.value = true;
           showDragAreaBorders.value = true;
           const element = document.querySelector('.zoom-controls');
           element.style.border = '';
           measureMouseUp();
+          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+          document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
           break;
         default:
           break;
