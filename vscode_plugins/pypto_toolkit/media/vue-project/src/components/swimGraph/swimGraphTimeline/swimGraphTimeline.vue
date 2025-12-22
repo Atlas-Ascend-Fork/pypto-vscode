@@ -52,6 +52,7 @@ import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
+import { swimConfig } from '@/components/welcome/guideStepsConfig';
 const { server } = useViewServer();
 
 const { t: $t } = useI18n();
@@ -747,6 +748,9 @@ const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
 };
 const onWindowResize = (event) => {
+  if(swimConfig.currentStepTargetDomId !== 'observation-line'){
+     return;
+  }
   drawVirtualDomAsync();
 };
 const drawVirtualDomAsync = async () => {
