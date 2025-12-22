@@ -33,7 +33,10 @@
         <div class="content-container">
           <div class="container__header">
             <h3 class="step-title">{{ currentStepInfo.title }}</h3>
-            <p class="step-count">{{ currentSmallIndex + 1 }}/{{ currentBigGroupSteps.length }}</p>
+            <div class="step-count__group">
+              <p class="step-count">{{ currentSmallIndex + 1 }}</p>
+              <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
+            </div>
           </div>
           <p class="step-content">{{ currentStepInfo.content }}</p>
         </div>
@@ -724,24 +727,24 @@ onUnmounted(() => {
 .triangle-right {
   right: -16px;
   top: 50%;
-  border-left-color: #363636;
-  filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
+  border-left-color: var(--devui-select-bg);
+  filter: var(--devui-select-shadow);
 }
 
 // 2. 向左三角（外层容器左侧外部）
 .triangle-left {
   left: -16px;
   top: 50%;
-  border-right-color: #363636;
-  filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
+  border-right-color: var(--devui-select-bg);
+  filter: var(--devui-select-shadow);
 }
 
 // 3. 向上三角（外层容器顶部外部）
 .triangle-top {
   top: -8px;
   left: 50%;
-  border-bottom-color: #363636;
-  filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
+  border-bottom-color: var(--devui-select-bg);
+  filter: var(--devui-select-shadow);
 }
 
 // 4. 向下三角（外层容器底部外部）
@@ -749,8 +752,8 @@ onUnmounted(() => {
   bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: #363636;
-  filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
+  border-top-color: var(--devui-select-bg);
+  filter: var(--devui-select-shadow);
 }
 
 // 气泡弹窗内容区（仅承载内容，无三角定位）
@@ -758,7 +761,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #363636;
+  background: var(--devui-select-bg);
   padding: 28px;
   border-radius: 16px;
   box-sizing: border-box;
@@ -766,10 +769,10 @@ onUnmounted(() => {
   // 调整max-height，避免滚动条
   max-height: calc(80vh - 32px);
   overflow-y: auto;
+  box-shadow: var(--devui-modal-shadow);
 }
 
 // ========== 内容区样式 ==========
-
 .progress-container {
   display: flex;
   align-items: center;
@@ -799,12 +802,12 @@ onUnmounted(() => {
     box-sizing: border-box;
 
     &.completed-dot {
-      border: 0.5px solid #ffffff;
-      background: rgba(255, 255, 255, 0.1);
+      border: 0.5px solid var(--devui-title-text);
+      background: var(--devui-nest-bg);
     }
 
     &.active-dot {
-      background: #ffffff; // 基础白色填充（伪元素覆盖中间）
+      background: var(--devui-title-text); // 基础标题色填充（伪元素覆盖中间）
       transform: scale(1.5); // 放大效果
       &::before {
         content: '';
@@ -815,15 +818,15 @@ onUnmounted(() => {
         width: calc(100% - 2px);
         height: calc(100% - 2px);
         border-radius: 4px;
-        border: 1.5px solid #000000; // 黑色圆环
-        background: rgba(255, 255, 255, 0.1);
+        border: 1.5px solid var(--devui-global-bg); // 全局背景色作为圆环
+        background: var(--devui-nest-bg);
         box-sizing: border-box;
       }
     }
 
     &.unfinished-dot {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--devui-nest-bg);
+      border: 1px solid var(--devui-split-line);
     }
   }
 
@@ -833,7 +836,7 @@ onUnmounted(() => {
     font-size: 12px;
     line-height: 12px;
     margin-right: 6px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--devui-split-line);
   }
 }
 
@@ -852,19 +855,34 @@ onUnmounted(() => {
     .step-title {
       font-size: 16px;
       font-weight: 600;
-      color: #dfdfdf;
+      color: var(--devui-primary-text);
     }
+    .step-count__group {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      line-height: normal;
 
-    .step-count {
-      font-size: 16px;
-      font-weight: 600;
-      color: #dfdfdf;
+      .step-count {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--devui-primary-text);
+        vertical-align: bottom;
+      }
+
+      .step-count__right {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--devui-placeholder-text);
+        vertical-align: bottom;
+        margin-left: 2px;
+      }
     }
   }
 
   .step-content {
     font-size: 14px;
-    color: #a8a9ac;
+    color: var(--devui-secondary-text);
     line-height: 1.6;
   }
 }
@@ -890,18 +908,33 @@ onUnmounted(() => {
   }
 
   .skip-btn {
-    background: #57585a;
-    color: #e2e2e2;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--devui-input-hover-bg);
+    color: var(--devui-primary-text);
   }
 
   .prev-btn {
-    background: #f5f7fa;
-    color: #303133;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    height: 28px;
+    background: var(--ddevui-active-icon);
+    color: var(--devui-primary-text);
   }
 
   .next-btn {
-    background: #409eff;
-    color: #fff;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    height: 28px;
+    background-color: var(--devui-active-icon);
+    color: var(--devui-primary-tooltip-text);
   }
 }
 </style>

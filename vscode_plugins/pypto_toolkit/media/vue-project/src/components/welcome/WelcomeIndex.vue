@@ -92,7 +92,7 @@
             <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage">
               开始体验 
             </button>
-             <d-checkbox label="启动时显示新手引导页" :isShowTitle="false" v-model="isOpenWithPyPto" />
+             <d-checkbox label="启动时显示新手引导页" class="open-page-checkbox" :isShowTitle="false" v-model="isOpenWithPyPto" />
           </div>
         </div>
       </div>
@@ -297,9 +297,10 @@ watch(
 <style scoped lang="less">
 /* 容器样式 */
 .guide-container {
-  background-color: var(--color-bg);
+  background-color: var(--devui-global-bg); // 全局背景（适配明暗）
   width: 100%;
   height: 100%;
+
   /* 主体内容 */
   .guide-main {
     display: flex;
@@ -318,13 +319,17 @@ watch(
       min-height: 450px;
       width: 40%;
       height: 100%;
+
       .system-warning {
         margin-top: 20px;
         width: 410px;
         height: 26px;
         font-size: 13px;
         font-weight: 400;
+        background-color: var(--devui-status-warning-bg); // 警告背景
+        color: var(--devui-status-warning-text); // 警告文字
       }
+
       /* 左侧列表标题部分 */
       .guide-step__header {
         display: flex;
@@ -348,7 +353,7 @@ watch(
           font-weight: 400;
 
           .describe__title {
-            color: var(--devui-title-text);
+            color: var(--devui-title-text); // 标题文字（明暗适配）
             font-size: 24px;
             line-height: 32px;
           }
@@ -362,7 +367,7 @@ watch(
             font-weight: 400;
 
             .describe__detail {
-              color: var(--devui-primary-text);
+              color: var(--devui-primary-text); // 主要文字
               font-size: 13px;
               line-height: 32px;
             }
@@ -370,25 +375,23 @@ watch(
             .describe__version {
               padding: 4px 8px;
               box-sizing: border-box;
-              color: var(--devui-primary-text);
+              color: var(--devui-primary-text); // 主要文字
               font-size: 12px;
               line-height: 16px;
               border-radius: 17px;
-              background: var(--welcome-header-title-version);
+              background: var(--welcome-header-title-version); // 版本渐变背景（主题变量）
             }
           }
         }
       }
 
       /* 左侧步骤列表 */
-
       .guide-step__list {
         padding-top: 20px;
         display: flex;
         flex-direction: column;
 
         .step-item {
-          border: 1px solid var(--color-border);
           border-radius: 8px;
           cursor: pointer;
           width: 380px;
@@ -396,18 +399,18 @@ watch(
         }
 
         .active {
-          background-color: var(--devui-node-bg);
+          background-color: var(--devui-nest-bg); // 节点背景（激活态）
         }
 
         .active .step-header {
           .step-title {
-            color: var(--devui-title-text);
+            color: var(--devui-title-text); // 标题文字
           }
         }
 
         .active .step-content {
           .step-description {
-            color: var(--devui-title-text);
+            color: var(--devui-title-text); // 标题文字
           }
           .step-content__item {
             display: flex;
@@ -424,10 +427,6 @@ watch(
           align-items: center;
         }
 
-        .step-header:hover {
-          background-color: var(--color-hover);
-        }
-
         .step-header-left {
           display: flex;
           align-items: center;
@@ -435,41 +434,10 @@ watch(
           gap: 10px;
 
           .step-title {
-            color: var(--devui-secondary-text);
+            color: var(--devui-secondary-text); // 次要文字
             font-size: 16px;
             font-weight: 700;
             line-height: 24px;
-          }
-
-          .custom-checkbox {
-            /* 隐藏原生checkbox */
-            appearance: none;
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            border: 1px solid white;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s ease;
-          }
-
-          /* checkbox选中状态 */
-          .custom-checkbox:checked {
-            background-color: #317af7;
-            border-color: #317af7;
-          }
-
-          /* 选中后添加√图标（伪元素实现） */
-          .custom-checkbox:checked::after {
-            content: '✓';
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: var(--color-checkbox-check);
-            font-size: 12px;
-            font-weight: bold;
           }
         }
 
@@ -489,14 +457,17 @@ watch(
             gap: 10px;
             padding: 8px;
             background-color: var(--devui-primary-button-bg);
-            color: var(--devui-primary-text);
+            color: var(--devui-primary-tooltip-text);
             border-radius: 8px;
             border: none;
             cursor: pointer;
+            transition: background-color 0.2s ease;
           }
+
           .button__disable {
-            background-color: #003d83;
-            color: #666666;
+            background-color: var(--devui-primary-button-disabled-bg); // 主按钮禁用背景
+            color: var(--devui-disabled-text); // 禁用文字
+            cursor: not-allowed;
           }
         }
 
@@ -518,7 +489,7 @@ watch(
               display: flex;
               align-items: center;
               justify-content: center;
-              color: rgba(241, 225, 5, 0.808);
+              color: var(--devui-yellow-60); // 黄色主题色
             }
           }
         }
@@ -526,11 +497,12 @@ watch(
         .step-description {
           line-height: 20px;
           font-size: 13px;
-          color: var(--color-text);
+          color: var(--devui-primary-text); // 主要文字
           opacity: 0.9;
         }
       }
     }
+
     /* 右侧预览区 */
     .preview-area {
       flex: 1;
@@ -540,12 +512,13 @@ watch(
       padding: 20px;
       min-width: 800px;
       min-height: 450px;
+
       .preview-area__image-bg {
         position: absolute;
         width: 800px;
         height: 450px;
         opacity: 0.2;
-        background: var(--welcome-header-right-imge-bg);
+        background: var(--welcome-header-right-imge-bg); // 预览区背景渐变（主题变量）
         border-radius: 12px;
         filter: blur(120px);
         z-index: 1;
@@ -574,11 +547,9 @@ watch(
         box-sizing: border-box;
         width: 100%;
         height: 100%;
-        border: 8px solid rgba(41, 41, 41, 0.89);
-        // padding: 16px;
+        border: 8px solid var(--devui-card-bg); // 卡片背景（适配明暗）
         border-radius: 11px;
         overflow: hidden;
-        opacity: 0.1 0.2 0.3 0.4;
       }
 
       .preview-image {
@@ -586,7 +557,7 @@ watch(
         height: 100%;
         object-fit: fill;
         display: block;
-        box-shadow: 8px 8px 15px rgba(199, 91, 239, 0.3);
+        box-shadow: var(--devui-select-shadow); // 下拉阴影（主题变量）
         border-radius: 1px;
       }
     }
@@ -594,14 +565,14 @@ watch(
 }
 
 .step-item.completed .step-title {
-  color: var(--color-completed);
+  color: var(--devui-status-success-text); // 成功文字色
 }
 
 .step-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-text);
+  color: var(--devui-primary-text); // 主要文字
 }
 
 /* 底部操作栏 */
@@ -623,17 +594,18 @@ watch(
   display: flex;
   align-items: center;
   gap: 6px;
+  background-color: rgba(255,255,255,0);
 }
 
 .prev-btn,
 .next-btn {
-  background-color: var(--color-btn-bg);
-  color: var(--devui-select-active-border-color);
-}
+  color: var(--devui-select-active-border-color); // 选中边框色（文字）
+  transition: background-color 0.2s ease;
+  background-color: rgba(255,255,255,0);
 
-.prev-btn:hover,
-.next-btn:hover {
-  background-color: var(--color-btn-hover);
+}
+:deep(.devui-checkbox__label-text){
+  color: var(--devui-secondary-text) !important;
 }
 
 .prev-btn:disabled,
@@ -643,17 +615,17 @@ watch(
 }
 
 .complete-btn {
-  background-color: var(--color-btn-complete);
-  color: white;
+  background-color: var(--devui-status-success-bg); // 成功背景
+  color: var(--devui-primary-tooltip-text); // 提示文字（白/灰）
 }
 
 .complete-btn:hover {
-  background-color: var(--color-btn-complete-hover);
+  background-color: var(--devui-status-success-bg-weak); // 成功背景弱化
 }
 
 .complete-btn.completed {
-  background-color: var(--color-border);
-  color: var(--color-text);
+  background-color: var(--devui-split-line-deep); // 深分割线
+  color: var(--devui-primary-text); // 主要文字
   cursor: default;
 }
 
@@ -662,5 +634,6 @@ watch(
   top: 50%;
   left: 50%;
   z-index: 999;
+  color: var(--devui-title-text); // 标题文字
 }
 </style>
