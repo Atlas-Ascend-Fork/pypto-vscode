@@ -64,6 +64,7 @@ import {
   guideStepsConfig,
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
+import { getQuery } from '@/core/query';
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -143,13 +144,13 @@ const triangleOffsetStyle = computed<CSSProperties>(() => {
     case 'top':
     case 'bottom':
       return {
-        transform: `translate(${triangleOffset.x-10}px, -50%)`,
+        transform: `translate(${triangleOffset.x - 10}px, -50%)`,
         left: `50%`,
       };
     case 'left':
     case 'right':
       return {
-        transform: `translateY(${triangleOffset.y-10}px)`,
+        transform: `translateY(${triangleOffset.y - 10}px)`,
         top: `50%`,
       };
     default:
@@ -438,7 +439,7 @@ const observeDomChange = (domId: string) => {
     });
   }
 
-    const middleLayerElement2 = document.querySelector('#boot-controlFlow-index');
+  const middleLayerElement2 = document.querySelector('#boot-controlFlow-index');
   if (middleLayerElement2) {
     domObserver.observe(middleLayerElement2, {
       attributes: true,
@@ -579,9 +580,8 @@ const handleSkipAll = () => {
     value: false,
   });
   request.post('welcome/skipAll', null);
-  postToExtension('welcomeSkipAll',null)
+  postToExtension('welcomeSkipAll', null);
 };
-
 
 // 合并步骤数据
 const guideSteps = computed(() => props.guideSteps || defaultGuideSteps);
@@ -654,7 +654,7 @@ const handleMaskClick = () => {
 };
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
   // 监听窗口resize事件
   window.addEventListener('resize', debouncedHandleResize);
   // 额外监听滚动（如果DOM位置受滚动影响）
@@ -662,6 +662,16 @@ onMounted(() => {
   if (props.visible) {
     const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
     observeDomChange(targetDomId);
+  }
+  const res = await getQuery();
+  const uri = res._uri;
+  const query = JSON.parse(uri.query);
+  if (!query.isBootStep) {
+    emit('update:visible', false);
+    window.removeEventListener('resize', debouncedHandleResize);
+    window.removeEventListener('scroll', debouncedHandleResize);
+    if (resizeObserver) resizeObserver.disconnect();
+    if (domObserver) domObserver.disconnect();
   }
 });
 
@@ -714,7 +724,7 @@ onUnmounted(() => {
 .triangle-right {
   right: -16px;
   top: 50%;
-  border-left-color: #353535;
+  border-left-color: #363636;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -722,7 +732,7 @@ onUnmounted(() => {
 .triangle-left {
   left: -16px;
   top: 50%;
-  border-right-color: #353535;
+  border-right-color: #363636;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -730,7 +740,7 @@ onUnmounted(() => {
 .triangle-top {
   top: -8px;
   left: 50%;
-  border-bottom-color: #353535;
+  border-bottom-color: #363636;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -739,7 +749,7 @@ onUnmounted(() => {
   bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: #353535;
+  border-top-color: #363636;
   filter: drop-shadow(0 2px 4px rgba(95, 95, 95, 0.15));
 }
 
@@ -748,7 +758,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #353535;
+  background: #363636;
   padding: 28px;
   border-radius: 16px;
   box-sizing: border-box;

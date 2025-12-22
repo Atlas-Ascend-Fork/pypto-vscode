@@ -52,6 +52,12 @@
         "category": "PyPTO.CloseAllToolPages",
         "command": "PyPTO.CloseAllToolPages",
         "title": "%PyPTO.CloseAllToolPages%"
+      },
+      {
+        "command": "PyPTO.OpenWelcomeGuide",
+        "title": "Open Welcome Guide",
+        "category": "PyPTO.OpenWelcomeGuide",
+        "icon": "webview-dist/static-assets/boot_steps_open_sideBar.svg"
       }
     ],
     "menus": {
@@ -72,7 +78,7 @@
           "group": "navigation"
         }
       ],
-      "pypto.graph.advan":[
+      "pypto.graph.advan": [
         {
           "command": "PyPTO.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
@@ -95,6 +101,13 @@
         {
           "command": "PyPTO.CloseAllToolPages",
           "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "PyPTO.OpenWelcomeGuide",
+          "when": "view == PyPTO-Toolkit-Sidebar",
+          "group": "navigation@1"
         }
       ]
     },

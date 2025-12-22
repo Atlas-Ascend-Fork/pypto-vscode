@@ -22,8 +22,8 @@
           <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
             <div class="step-header" @click="handleStepClick('step1')">
               <div class="step-header-left">
-                <input type="checkbox" class="custom-checkbox" :checked="steps[0].completed" @click.stop="toggleCheckbox(0)" />
-                
+                <img :src="hasCompletedImg" v-if="steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
+                <img :src="hasNotCompletedImg" v-else="!steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
                 <span class="step-title">{{ steps[0].title }}</span>
               </div>
               <div class="step-header-right"></div>
@@ -49,16 +49,29 @@
           <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
             <div class="step-header" @click="handleStepClick('step2')">
               <div class="step-header-left">
-                <input type="checkbox" class="custom-checkbox" :checked="skipAll" disabled/>
+                <img :src="hasCompletedImg" v-if="skipAll"></img>
+                <img :src="hasNotCompletedImg" v-else="!skipAll"></img>
                 <span class="step-title">{{ steps[1].title }}</span>
               </div>
               <div class="step-header-right"></div>
             </div>
             <div class="step-content" :class="{ expanded: expandedStepId === 'step2' }">
-              <p class="step-description">控制流图</p>
-              <p class="step-description">导航系统</p>
-              <p class="step-description">计算图</p>
-              <p class="step-description">泳道图</p>
+              <div class="step-content__item">
+                <img :src="controlFlowImg" alt="控制流图" />
+                <p class="step-description">控制流图</p>
+              </div>
+              <div class="step-content__item">
+                <img :src="native" alt="控制流图" />
+                <p class="step-description">导航系统</p>
+              </div>
+              <div class="step-content__item">
+                <img :src="computeImg" alt="控制流图" />
+                <p class="step-description">计算图</p>
+              </div>
+              <div class="step-content__item">
+                <img :src="swim" alt="控制流图" />
+                <p class="step-description">泳道图</p>
+              </div>
               <button
                 class="step-content__run-button"
                 :class="{ button__disable: !isLinux || !steps[0].completed }"
@@ -70,34 +83,16 @@
             </div>
           </div>
 
-          <!-- 步骤3 -->
-          <!-- <div class="step-item" :class="{ active: 'step3' === activeStepId, completed: steps[2].completed }">
-            <div class="step-header" @click="handleStepClick('step3')">
-              <div class="step-header-left">
-                <input type="checkbox" class="custom-checkbox" :checked="steps[2].completed" @click.stop="toggleCheckbox(2)" />
-                <span class="step-title">{{ steps[2].title }}</span>
-              </div>
-              <div class="step-header-right"></div>
-            </div>
-            <div class="step-content" :class="{ expanded: expandedStepId === 'step3' }">
-              <p class="step-description">查看三联动视图查看三联动视图查看三联动视图</p>
-              <button
-                class="step-content__run-button"
-                :class="{ button__disable: !isLinux || !steps[1].completed }"
-                @click="visible = true"
-                :disabled="!isLinux || !steps[1].completed"
-              >
-                去查看
-              </button>
-            </div>
-          </div> -->
           <!-- 底部操作栏 -->
           <div class="action-bar">
             <!-- <button class="action-btn prev-btn" @click="prevStep" :disabled="isFirstStep"><i class="fa fa-chevron-left"></i> 上一步</button> -->
-            <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">下一步 <i class="fa fa-chevron-right"></i></button>
-            <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage" >
-              开始体验 <i class="fa fa-chevron-right"></i>
+            <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">
+              下一步 
             </button>
+            <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage">
+              开始体验 
+            </button>
+             <d-checkbox label="启动时显示新手引导页" :isShowTitle="false" v-model="isOpenWithPyPto" />
           </div>
         </div>
       </div>
@@ -122,17 +117,23 @@ import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted } from 'vue';
 
-const { server } = useViewServer<WelcomeViewServer>();
 
-const { skipAll } = server;
 
 // 模拟静态资源路径
 const staticPath = ref(window.staticPath || '');
-const sortUp = ref(`${staticPath.value}/static-assets/nofile.png`);
 const logo = ref(`${staticPath.value}/static-assets/logo.png`);
-const logo2 = ref(`${staticPath.value}/static-assets/logo.png`);
-const visible = ref(false);
 const isLinux = ref(true);
+const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control.svg`);
+const native = ref(`${window.staticPath}/static-assets/boot_steps_native.svg`);
+const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute.svg`);
+const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim.svg`);
+const images = ref([
+  `${window.staticPath}/static-assets/boot_steps_runPython.png`,
+  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
+  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
+])
+const hasCompletedImg= ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
+const hasNotCompletedImg= ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
 
 // 1. 定义步骤数据类型
 interface GuideStep {
@@ -141,12 +142,6 @@ interface GuideStep {
   title: string;
   completed: boolean;
 }
-
-const images = [
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif',
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
-];
 
 // 2. 初始步骤数据
 const defaultSteps = ref<GuideStep[]>([
@@ -164,11 +159,13 @@ const defaultSteps = ref<GuideStep[]>([
   },
 ]);
 
+
 // 3. 响应式数据
 const isDarkTheme = ref<boolean>(localStorage.getItem('guideTheme') === 'dark');
 const steps = ref<GuideStep[]>([]);
 const activeStepId = ref<string>('');
 const expandedStepId = ref<string>('');
+const isOpenWithPyPto=ref(true)
 
 // 4. 计算属性
 const activeStep = computed(() => {
@@ -183,20 +180,6 @@ const isFirstStep = computed(() => currentStepIndex.value === 0);
 const isLastStep = computed(() => currentStepIndex.value === steps.value.length - 1);
 const isAllChecked = computed(() => steps.value.some((step) => !step.completed));
 
-// 初始化步骤数据
-const initSteps = async () => {
-  const stepRunPython = (await getWelcomeState({
-    key: 'guideSteps-runPython',
-  })) as boolean;
-  if (stepRunPython) {
-    defaultSteps.value[0].completed = stepRunPython;
-  }
-  defaultSteps.value[1].completed = skipAll.value;
-  steps.value = [...defaultSteps.value];
-  activeStepId.value = steps.value[0].id;
-  expandedStepId.value = steps.value[0].id;
-};
-
 // 切换主题
 const toggleTheme = () => {
   isDarkTheme.value = !isDarkTheme.value;
@@ -210,11 +193,10 @@ const handleStepClick = (stepId: string) => {
   expandedStepId.value = expandedStepId.value === stepId ? '' : stepId;
 };
 
-// 点击Checkbox切换完成状态（简化参数，直接取反）
+// 点击Checkbox切换完成状态(方便调试，实际用户不能点击改变状态)
 const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
 };
-
 
 // 下一步
 const nextStep = () => {
@@ -225,8 +207,8 @@ const nextStep = () => {
   }
 };
 //开始体验
-function closeWelcomPage(){
-  server.close()
+function closeWelcomPage() {
+  server.close();
 }
 
 /**
@@ -248,20 +230,40 @@ async function goToCheckResult() {
   openControlFlow({
     controlFlowPath: `${await getUserRunRoot()}/program.json`,
     outputPath: `${await getUserRunRoot()}`,
+    isBootStep:true
   });
 }
-watch(skipAll,
-  (newValue)=> {
-    if (newValue) { 
-      steps.value[1].completed=newValue
-    }
-})
 
-/**
- * 打开三联视图进行引导
- */
-async function goToCheckTriptychView() {}
+// 第二部查看运行结果是否完成
+const { server } = useViewServer<WelcomeViewServer>();
+const { skipAll } = server;
+watch(skipAll, (newValue) => {
+  if (newValue) {
+    steps.value[1].completed = newValue;
+  }
+});
 
+
+
+// 初始化步骤数据
+const initSteps = async () => {
+  const stepRunPython = (await getWelcomeState({
+    key: 'guideSteps-runPython',
+  })) as boolean;
+  if (stepRunPython) {
+    defaultSteps.value[0].completed = stepRunPython;
+  }
+  defaultSteps.value[1].completed = skipAll.value;
+  steps.value = [...defaultSteps.value];
+  activeStepId.value = steps.value[0].id;
+  expandedStepId.value = steps.value[0].id;
+    const isOpenWith = (await getWelcomeState({
+    key: 'guideSteps-isOpenWithPyPto',
+    })) as boolean;
+  if (isOpenWith===false) {
+    isOpenWithPyPto.value=false
+  }
+};
 
 onMounted(async () => {
   // isLinux.value = await isLinuxEnvironment();
@@ -275,6 +277,17 @@ watch(
     await updateWelcomeState({
       key: 'guideSteps-runPython',
       value: newVal[0].completed,
+    });
+  },
+  { deep: true },
+);
+
+watch(
+  isOpenWithPyPto,
+  async (newVal) => {
+    await updateWelcomeState({
+      key: 'guideSteps-isOpenWithPyPto',
+      value: newVal
     });
   },
   { deep: true },
@@ -395,6 +408,10 @@ watch(
         .active .step-content {
           .step-description {
             color: var(--devui-title-text);
+          }
+          .step-content__item {
+            display: flex;
+            gap: 6px;
           }
         }
 
@@ -592,7 +609,10 @@ watch(
   width: 100%;
   display: flex;
   gap: 12px;
-  align-items: start;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-top: 24px;
 }
 
 .action-btn {
@@ -600,7 +620,6 @@ watch(
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 6px;

@@ -331,6 +331,7 @@ async function onStepsChange(args) {
   if (args.type === 'openWebviewWithGuide') {
     openSwimlaneGraph({
       swimlaneGraphPath: `${await getUserRunRoot()}/merged_swimlane.json`,
+      isBootStep:true
     });
     server.close();
     return;

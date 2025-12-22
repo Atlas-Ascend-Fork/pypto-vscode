@@ -402,6 +402,7 @@ const listenExtensionMessage = () => {
             outputPath: outPutPath.value as string,
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
             pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
+            isBootStep: true,
           });
 
           server.close();
