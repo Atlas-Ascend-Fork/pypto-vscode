@@ -264,5 +264,119 @@ export default {
         filepathLabel: 'Filepath:',
         viewSourceFile: 'View source file',
         unknownDataType: 'Unknown data type'
-    }
+    },
+    welcome: {
+        startUsingPyPTOToolkit: 'Start Using PyPTO Toolkit',
+        pyptoEfficiencyPlugin: 'PyPTO Efficiency Plugin',
+        version: 'Version',
+        linuxEnvironmentWarning: 'Cannot run Python files in the current environment, please configure Linux remote connection',
+        step1Title: 'Open and Run Sample Project',
+        goToRun: 'Run',
+        step2Title: 'View Running Results',
+        controlFlowChart: 'Control Flow Chart',
+        navigationSystem: 'Navigation System',
+        computationGraph: 'Computation Graph',
+        swimlaneChart: 'Swimlane Chart',
+        goToView: 'View',
+        nextStep: 'Next Step',
+        startExperience: 'Start Experience',
+        showGuideOnStartup: 'Show newbie guide page on startup'
+      },
+      bootStep: {
+        // 按钮文案
+        button: {
+          skipAll: 'Skip All',
+          nextStep: 'Next Step',
+          complete: 'Complete',
+          learnGroup: 'Learn about {groupName}'
+        },
+        // 控制流组
+        controlFlow: {
+          groupName: 'Control Flow',
+          step1: {
+            title: 'Control Flow - View Control Flow Graph',
+            content: 'The control flow graph displays the structure of the control flow, allowing you to clearly understand control flow logic and relationships such as loops and branch judgments. Click the leaf function, called function-called, or calling function-callee in the rectangular Path card to open the details of the path node on the right. The next step will demonstrate the effect of clicking the leaf function.'
+          },
+          step2: {
+            title: 'Control Flow - View Path Node Panel',
+            content: 'Called function-called displays the number of sub-functions of the current PATH node; Calling function-callee displays the number of times the current PATH node calls other functions; All computation graphs display the list of all computation graphs of the current node. Click any PASS in the list to open the corresponding computation graph page.'
+          },
+          step3: {
+            title: 'Control Flow - Search Bar',
+            content: 'After opening the control flow interface, you can perform fuzzy search for LOOP or PATH nodes in the current control flow graph in the search box. Select the search result to jump to the corresponding node in the current graph.'
+          }
+        },
+        // 导航系统组
+        navigation: {
+          groupName: 'Navigation System',
+          step1: {
+            title: 'Navigation System - View History Records',
+            content: 'This is the list of running history viewed by the navigation system. Click to expand the list of running history.'
+          },
+          step2: {
+            title: 'Navigation System - Open Computation Graph',
+            content: 'This is the icon for opening the computation graph in the navigation system. Click to open the computation graph.'
+          }
+        },
+        // 计算图组
+        computeGraph: {
+          groupName: 'Computation Graph',
+          step1: {
+            title: 'View Computation Graph',
+            content: 'View the code computation graph structure, supporting mouse scroll zoom, hold and drag, click to highlight node links, and small map quick positioning function.'
+          },
+          step2: {
+            title: 'Select Node and View Context',
+            content: 'Clicking a node will highlight the path where the current node is located, and dim nodes not in the current path, making it easier to view the context of the selected node.'
+          },
+          step3: {
+            title: 'Search Target Node',
+            content: 'Enter content here to search for target nodes, supporting fuzzy search matching and precise search for a specific value.'
+          },
+          step4: {
+            title: 'View Only Current Path',
+            content: 'Right-click a node and select "Lock Path and Highlight" from the drop-down menu to view only the current path, avoiding interference and accurately viewing the target context.'
+          },
+          step5: {
+            title: 'Computation Graph Diff View',
+            content: 'Click this button to automatically associate before and after files, enable comparison view, and quickly locate differences.'
+          },
+          step6: {
+            title: 'Open Swimlane Graph',
+            content: 'Click the "Open Swimlane Graph" button in the navigation bar to quickly open the swimlane graph.'
+          }
+        },
+        // 泳道图组
+        swimlaneGraph: {
+          groupName: 'Swimlane Graph',
+          step1: {
+            title: 'Swimlane Graph - Distance Measurement',
+            content: 'Automatic distance measurement between adjacent nodes in the same swimlane, or manual distance measurement across swimlanes or nodes.'
+          },
+          step2: {
+            title: 'Swimlane Graph - Add Observation Line on Time Axis',
+            content: 'Hover the mouse over the time axis or click the time axis to add a time observation line.'
+          },
+          step3: {
+            title: 'Swimlane Graph - Operation Area',
+            content: 'Supports search, zoom, rendering settings, time measurement, and performance reports.'
+          },
+          step4: {
+            title: 'Swimlane Graph - Enable Time Measurement - View Core Utilization Statistics',
+            content: 'Click the measurement mode button in the upper right corner of the swimlane graph, and click and drag to draw a measurement range in the main operation area or select nodes with the mouse to view core utilization statistics.'
+          },
+          step5: {
+            title: 'Swimlane Graph - View Node Details',
+            content: 'Click a task node in the swimlane graph to display the node details panel.'
+          },
+          step6: {
+            title: 'Swimlane Graph - Dependency Analysis',
+            content: 'Click a task node in the swimlane graph to display the node details panel, and then view node dependency information.'
+          },
+          step7: {
+            title: 'Swimlane Graph - Jump to Computation Graph',
+            content: 'Supports jumping to the computation graph based on rootHash and leafHash.'
+          }
+        }
+      }
 }

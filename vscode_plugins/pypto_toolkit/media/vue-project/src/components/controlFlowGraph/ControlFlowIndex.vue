@@ -58,7 +58,7 @@
       </div>
     </template>
   </div>
-  <Loading class="loading-index" v-if="isLoading" :loadingText="'loading'" />
+  <Loading class="loading-index" v-if="isLoading" :loadingText="t('public.loading')" />
 </template>
 
 <script lang="ts" setup>

@@ -7,15 +7,15 @@
         <div class="guide-step__header">
           <img class="header__image" :src="logo" />
           <div class="header__describe">
-            <div class="describe__title">开始使用PyPTO Toolkit</div>
+            <div class="describe__title">{{ t('welcome.startUsingPyPTOToolkit') }}</div>
             <div class="describe__group">
-              <div class="describe__detail">PyPTO 效率提升插件</div>
-              <div class="describe__version">Version:1.0.0-alpha.17</div>
+              <div class="describe__detail">{{ t('welcome.pyptoEfficiencyPlugin') }}</div>
+              <div class="describe__version">{{ t('welcome.version') }}:1.0.0-alpha.17</div>
             </div>
           </div>
         </div>
         <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false"
-          >无法在当前环境下运行Python文件，请配置Linux远程连接</d-alert
+          >{{ t('welcome.linuxEnvironmentWarning') }}</d-alert
         >
         <div class="guide-step__list" v-if="steps.length">
           <!-- 步骤1 -->
@@ -40,7 +40,7 @@
                 @click="getInitPythonProject()"
                 :disabled="!isLinux"
               >
-                去运行
+                {{ t('welcome.goToRun') }}
               </button>
             </div>
           </div>
@@ -58,19 +58,19 @@
             <div class="step-content" :class="{ expanded: expandedStepId === 'step2' }">
               <div class="step-content__item">
                 <img :src="controlFlowImg" alt="控制流图" />
-                <p class="step-description">控制流图</p>
+                <p class="step-description">{{ t('welcome.controlFlowChart') }}</p>
               </div>
               <div class="step-content__item">
                 <img :src="native" alt="控制流图" />
-                <p class="step-description">导航系统</p>
+                <p class="step-description">{{ t('welcome.navigationSystem') }}</p>
               </div>
               <div class="step-content__item">
                 <img :src="computeImg" alt="控制流图" />
-                <p class="step-description">计算图</p>
+                <p class="step-description">{{ t('welcome.computationGraph') }}</p>
               </div>
               <div class="step-content__item">
                 <img :src="swim" alt="控制流图" />
-                <p class="step-description">泳道图</p>
+                <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
               </div>
               <button
                 class="step-content__run-button"
@@ -78,21 +78,20 @@
                 @click="goToCheckResult"
                 :disabled="!isLinux || !steps[0].completed"
               >
-                去查看
+                {{ t('welcome.goToView') }}
               </button>
             </div>
           </div>
 
           <!-- 底部操作栏 -->
           <div class="action-bar">
-            <!-- <button class="action-btn prev-btn" @click="prevStep" :disabled="isFirstStep"><i class="fa fa-chevron-left"></i> 上一步</button> -->
             <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">
-              下一步 
+              {{ t('welcome.nextStep') }} 
             </button>
             <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage">
-              开始体验 
+              {{ t('welcome.startExperience') }} 
             </button>
-             <d-checkbox label="启动时显示新手引导页" class="open-page-checkbox" :isShowTitle="false" v-model="isOpenWithPyPto" />
+             <d-checkbox :label="t('welcome.showGuideOnStartup')" class="open-page-checkbox" :isShowTitle="false" v-model="isOpenWithPyPto" />
           </div>
         </div>
       </div>
@@ -116,8 +115,8 @@ import { getInitPythonProject, getUserRunRoot, getWelcomeState, isLinuxEnvironme
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted } from 'vue';
-
-
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 // 模拟静态资源路径
 const staticPath = ref(window.staticPath || '');
@@ -148,13 +147,13 @@ const defaultSteps = ref<GuideStep[]>([
   {
     id: 'step1',
     index: 1,
-    title: '打开并运行样例工程',
+    title: t('welcome.step1Title'),
     completed: false,
   },
   {
     id: 'step2',
     index: 2,
-    title: '查看运行结果',
+    title: t('welcome.step2Title'),
     completed: false,
   },
 ]);

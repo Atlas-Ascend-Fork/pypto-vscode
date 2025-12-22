@@ -264,5 +264,119 @@ export default {
         filepathLabel: '文件路径：',
         viewSourceFile: '查看源文件',
         unknownDataType: '未知的数据类型'
-    }
+    },
+    welcome: {
+        startUsingPyPTOToolkit: '开始使用PyPTO Toolkit',
+        pyptoEfficiencyPlugin: 'PyPTO 效率提升插件',
+        version: '版本',
+        linuxEnvironmentWarning: '无法在当前环境下运行Python文件，请配置Linux远程连接',
+        step1Title: '打开并运行样例工程',
+        goToRun: '去运行',
+        step2Title: '查看运行结果',
+        controlFlowChart: '控制流图',
+        navigationSystem: '导航系统',
+        computationGraph: '计算图',
+        swimlaneChart: '泳道图',
+        goToView: '去查看',
+        nextStep: '下一步',
+        startExperience: '开始体验',
+        showGuideOnStartup: '启动时显示新手引导页'
+      },
+      bootStep: {
+        // 按钮文案
+        button: {
+          skipAll: '跳过全部',
+          nextStep: '下一步',
+          complete: '完成',
+          learnGroup: '了解{groupName}'
+        },
+        // 控制流组
+        controlFlow: {
+          groupName: '控制流',
+          step1: {
+            title: '控制流-查看控制流图',
+            content: '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，在矩形Path卡片中点击leaf函数、被调用函数-called、调用函数-callee即可在右侧打开该path节点的详情。下一步将演示点击leaf函数的效果。'
+          },
+          step2: {
+            title: '控制流-查看Path节点面板',
+            content: '被调用函数-called显示当前PATH节点的子函数个数；调用函数-callee显示当前PATH节点调用其他函数调用的次数；所有计算图显示当前节点所有的计算图列表，在列表中点击任意PASS可打开相应计算图页面。'
+          },
+          step3: {
+            title: '控制流-搜索栏',
+            content: '打开控制流界面后，可以在搜索框中针对本控制流图中的LOOP或PATH节点进行模糊搜索，选中搜索结果，可跳转至当前图对应的节点。'
+          }
+        },
+        // 导航系统组
+        navigation: {
+          groupName: '导航系统',
+          step1: {
+            title: '导航系统-查看历史记录',
+            content: '这是导航系统的查看运行历史列表，点击可以展开历史运行列表。'
+          },
+          step2: {
+            title: '导航系统-打开计算图',
+            content: '这是导航系统中打开计算图的图标，点击后即可打开计算图。'
+          }
+        },
+        // 计算图组
+        computeGraph: {
+          groupName: '计算图',
+          step1: {
+            title: '查看计算图',
+            content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能。'
+          },
+          step2: {
+            title: '选中节点并查看前后关系',
+            content: '点击节点后会将当前节点所在通路高亮，不在当前通路的节点变暗，可更方便查看选中节点的前后关系。'
+          },
+          step3: {
+            title: '搜索目标节点',
+            content: '在此处输入内容搜索目标节点，支持模糊搜索匹配及精确搜索某个值。'
+          },
+          step4: {
+            title: '只看当前通路',
+            content: '对节点点击鼠标右键，下拉中可以选择锁定通路并高亮，只看当前通路，可以避免干扰，精准查看目标前后关系。'
+          },
+          step5: {
+            title: '计算图diff查看',
+            content: '点击该按钮会自动关联before及after文件，开启对比查看，快速定位差异内容。'
+          },
+          step6: {
+            title: '打开泳道图',
+            content: '点击导航栏中的打开泳道图按钮，可以快速打开泳道图。'
+          }
+        },
+        // 泳道图组
+        swimlaneGraph: {
+          groupName: '泳道图',
+          step1: {
+            title: '泳道图-测距',
+            content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距。'
+          },
+          step2: {
+            title: '泳道图-在时间轴上添加观测线',
+            content: '鼠标悬停在时间轴上，或者点击时间轴，均可添加时间观测线。'
+          },
+          step3: {
+            title: '泳道图-操作区',
+            content: '支持搜索、缩放、渲染设置，时间度量、性能报告。'
+          },
+          step4: {
+            title: '泳道图-开启时间度量-查看核利用率统计信息',
+            content: '点击泳道图右上角的度量模式按钮，并在主操作区单击拖拽出度量范围或者鼠标框选节点，即可查看核利用率统计信息。'
+          },
+          step5: {
+            title: '泳道图-查看节点详情',
+            content: '点击泳道图中某个任务节点，可显示节点的详情面板。'
+          },
+          step6: {
+            title: '泳道图-依赖分析',
+            content: '点击泳道图中某个任务节点，可显示节点的详情面板，进而可以查看节点依赖信息。'
+          },
+          step7: {
+            title: '泳道图-跳转计算图',
+            content: '支持根据rootHash和leafHash跳转至计算图。'
+          }
+        }
+      }
 }
