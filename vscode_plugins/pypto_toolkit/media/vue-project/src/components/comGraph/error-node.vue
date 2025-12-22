@@ -1,5 +1,5 @@
 <template>
-  <div class="com-graph-error-node"
+  <div :class="['com-graph-error-node', showErrorIconOnly && 'only-show-error-icon']"
     v-for="node in displayList"
     :style="{
       top: node.y + 'px',
@@ -10,7 +10,7 @@
     <div class="error-info" :title="node.errorInfo">
       {{ node.errorInfo }}
     </div>
-    <i class="icon-error-o"></i>
+    <i class="icon-error-o" @mouseenter="() => showErrorIconOnly = false" @mouseleave="onMouseLeave"></i>
     <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100" v-if="node.stackList?.length">
       <template #content>
         <div style="width: auto;font-size: 12px;">
@@ -52,9 +52,15 @@ const props = defineProps({
 });
 
 const model = ref();
+const showErrorIconOnly = ref(false);
 
 const { server } = useViewServer<IComViewServer>();
 const displayList = ref([]);
+let currentZoom = 1;
+
+const onMouseLeave = () => {
+  showErrorIconOnly.value = currentZoom < 0.4;
+}
 
 const jumpTo = (stack) => {
   const list = stack.split(':');
@@ -68,9 +74,11 @@ const updateLocation = (data) => {
     model.value = data.model;
   }
   const {zoom, scroll} = data;
+  currentZoom = zoom;
+  showErrorIconOnly.value = zoom < 0.4;
   
   displayList.value.forEach(node => {
-    const target = model.value.children.find(t => t.magic === node.magic);
+    const target = model.value?.children.find(t => t.magic === node.magic);
     if (!target) {
       return;
     }
@@ -151,6 +159,18 @@ onMounted(() => {
   border-radius: 8px;
   padding: 6px 8px 6px 24px;
   word-break: normal;
+
+  &.only-show-error-icon {
+      width: auto;
+      padding: 0;
+      background-color: unset;
+      backdrop-filter: unset;
+  
+      .error-info,
+      .error-stack {
+        display: none;
+      }
+    }
 
   .error-info {
     font-size: 14px;
