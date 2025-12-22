@@ -91,6 +91,8 @@ import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
 import SideBarSearch from './SideBarSearch.vue';
 import LoadMoreTrigger from '../../util/LoadMoreTrigger.vue';
+import { openPyPTOWelcome } from '@/apis/opener';
+import { getWelcomeState } from '@/apis/welcome';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -194,10 +196,14 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
   const treeItems = await nodeChildrenMap.get(parentNode.id);
   callback({ treeItems, node: parentNode });
 }
-import { openPyPTOWelcome } from '@/apis/opener';
 
 onMounted(async () => {
-  openPyPTOWelcome();
+  const isOpenWith = (await getWelcomeState({
+    key: 'guideSteps-isOpenWithPyPto',
+  }));
+  if (isOpenWith !== false) {
+    openPyPTOWelcome();
+  }
   await getOutputs();
 
   // 禁用原生右键菜单
