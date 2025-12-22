@@ -1,16 +1,17 @@
 <template>
-  <div :class="['com-graph-error-node', showErrorIconOnly && 'only-show-error-icon']"
+  <div :class="['com-graph-error-node', node.showErrorIconOnly && 'only-show-error-icon']"
     v-for="node in displayList"
     :style="{
       top: node.y + 'px',
       left: node.x + 'px'
     }"
     v-show="node.show"
+    @mouseleave="() => node.showErrorIconOnly = currentZoom < 0.4"
   >
     <div class="error-info" :title="node.errorInfo">
       {{ node.errorInfo }}
     </div>
-    <i class="icon-error-o" @mouseenter="() => showErrorIconOnly = false" @mouseleave="onMouseLeave"></i>
+    <i class="icon-error-o" @mouseenter="() => node.showErrorIconOnly = false"></i>
     <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100" v-if="node.stackList?.length">
       <template #content>
         <div style="width: auto;font-size: 12px;">
@@ -52,15 +53,10 @@ const props = defineProps({
 });
 
 const model = ref();
-const showErrorIconOnly = ref(false);
 
 const { server } = useViewServer<IComViewServer>();
 const displayList = ref([]);
 let currentZoom = 1;
-
-const onMouseLeave = () => {
-  showErrorIconOnly.value = currentZoom < 0.4;
-}
 
 const jumpTo = (stack) => {
   const list = stack.split(':');
@@ -75,7 +71,6 @@ const updateLocation = (data) => {
   }
   const {zoom, scroll} = data;
   currentZoom = zoom;
-  showErrorIconOnly.value = zoom < 0.4;
   
   displayList.value.forEach(node => {
     const target = model.value?.children.find(t => t.magic === node.magic);
@@ -86,7 +81,8 @@ const updateLocation = (data) => {
       node.type = 'tensor'
     }
     node.x = (target.position.x + target.size.width - scroll.x) * zoom + 4;
-    node.y = (target.position.y - scroll.y) * zoom
+    node.y = (target.position.y - scroll.y) * zoom;
+    node.showErrorIconOnly = zoom < 0.4;
   })
 }
 
@@ -108,7 +104,6 @@ watch(() => comGraphStore.data.inFixedComGraphFlow, (value) => {
       node.show = true
     })
   }
-  console.log(value)
 })
 
 watch(() => props.showType, (value) => {
@@ -135,7 +130,8 @@ const initNodeList = () => {
       magic: String(magic),
       show: true,
       errorInfo: errInfo,
-      stackList: isStackListValid ? list : undefined
+      stackList: isStackListValid ? list : undefined,
+      showErrorIconOnly: false
     }
   })
 }
@@ -169,6 +165,11 @@ onMounted(() => {
       .error-info,
       .error-stack {
         display: none;
+      }
+
+      .icon-error-o {
+        left: 0;
+        top: 0;
       }
     }
 
