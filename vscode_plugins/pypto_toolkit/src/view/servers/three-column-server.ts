@@ -381,6 +381,9 @@ export class ThreeColumnServer
       switch (message.graphType) {
         case 'editor':
           await this.handleCodeGraph(path);
+          const graphData = ComGraphHandler.getGrahpDataExtend(this);
+          const fullData = await graphData.getCompleteData(graphData.fsPath);
+          ComGraphHandler.getSemanticObj(this, fullData);
           break;
         case 'swimGraph':
           await this.handleSwimGraph(path);
