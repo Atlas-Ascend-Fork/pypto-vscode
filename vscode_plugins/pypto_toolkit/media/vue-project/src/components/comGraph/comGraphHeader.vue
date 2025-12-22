@@ -699,7 +699,7 @@ function jumpSearchSubgraph(calleehash, funcMagicName) {
     server.innerGetSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName}});
   } else {
     let newPath = JSON.stringify([calleehash]);
-    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}});
+    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}, query: { isSearch: false, nodeMagic: null }});
   }
 }
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 
 import type { OutputRecord, RunDataManifest } from '../../types/workspace';
+import { isFileUriExists } from '../../utils/file-system';
 
 export interface RunDataDir {
   dirname: string;
@@ -15,29 +16,28 @@ const SCAN_RUN_DATA_LIMIT = 5000;
  * 读取所有rundata目录
  */
 export async function readRunDataList(parentUri: vscode.Uri): Promise<RunDataDir[]> {
-  try {
-    const runDataList = await vscode.workspace.fs.readDirectory(parentUri);
-    const sortedRunDataList: RunDataDir[] = [];
-    for (let i = runDataList.length - 1; i >= 0; i--) {
-      const [subPath, fileType] = runDataList[i];
-      // 非目录无需扫描
-      if (fileType !== vscode.FileType.Directory) {
-        continue;
-      }
-      // 最新记录之前的目录无需扫描
-      const { datetimeFormat } = resolveExecuteTime(subPath);
-      if (!datetimeFormat) {
-        continue;
-      }
-      sortedRunDataList.push({ dirname: subPath, executeTime: datetimeFormat });
-      if (sortedRunDataList.length >= SCAN_RUN_DATA_LIMIT) {
-        break;
-      }
-    }
-    return sortedRunDataList;
-  } catch {
+  if (!(await isFileUriExists(parentUri))) {
     return [];
   }
+  const runDataList = await vscode.workspace.fs.readDirectory(parentUri);
+  const sortedRunDataList: RunDataDir[] = [];
+  for (let i = runDataList.length - 1; i >= 0; i--) {
+    const [subPath, fileType] = runDataList[i];
+    // 非目录无需扫描
+    if (fileType !== vscode.FileType.Directory) {
+      continue;
+    }
+    // 最新记录之前的目录无需扫描
+    const { datetimeFormat } = resolveExecuteTime(subPath);
+    if (!datetimeFormat) {
+      continue;
+    }
+    sortedRunDataList.push({ dirname: subPath, executeTime: datetimeFormat });
+    if (sortedRunDataList.length >= SCAN_RUN_DATA_LIMIT) {
+      break;
+    }
+  }
+  return sortedRunDataList;
 }
 
 const RUNDATA_FILE_NAME = 'rundata.json';

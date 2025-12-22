@@ -364,17 +364,6 @@ export class AscppDagBuilder {
             BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseAttr', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'tensor.offset' })
             return;
         }
-
-        if (tensor?.mem_type) {
-            const asisTypeStr = MEMTYPE_MAP[tensor.mem_type.asis] || 'MEM_UNKNOWN';
-            const tobeTypeStr = MEMTYPE_MAP[tensor.mem_type.tobe] || 'MEM_UNKNOWN';
-            labelAttr.push(`asis: ${asisTypeStr}`);
-            labelAttr.push(`tobe: ${tobeTypeStr}`);
-        } else {
-            labelAttr.push(`asis: 'MEM_UNKNOWN'`);
-            labelAttr.push(`tobe: 'MEM_UNKNOWN'`);
-        }
-
         // Add datatype information
         if (rawTensor?.datatype !== undefined) {
             const datatypeStr = DATATYPE_MAP[rawTensor.datatype] || `dt${rawTensor.datatype}`;
@@ -651,9 +640,9 @@ export class AscppDagBuilder {
         showTensorNodes: boolean) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
-        if (tensor.nodetype === 1) {
+        if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
-        } else if (tensor.nodetype === 2) {
+        } else if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
             this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         } else {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);

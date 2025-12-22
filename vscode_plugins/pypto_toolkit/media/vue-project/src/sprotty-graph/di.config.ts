@@ -469,6 +469,7 @@ export class CustomMouseListener extends MouseListener {
                 calleeOpMagic: current.magic,
                 calleeOpSubgraphId: calleeOpSubgraphId,
               },
+              query: { isSearch: false, nodeMagic: null }
             });
           }
           break;

@@ -39,6 +39,7 @@ export class RunDataService extends BasicService {
   private set scannedCount(newValue: number) {
     this._scannedCount = newValue;
     this.scanListeners.get(newValue)?.();
+    this.scanListeners.delete(newValue);
   }
   private _scannedCount: number;
 
@@ -99,12 +100,6 @@ export class RunDataService extends BasicService {
     this.scanning = true;
     this.scannedCount = 0;
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
-    
-    try {
-      await access(runDataCollectionUri.path, constants.F_OK); // F_OK 表示检查文件是否存在
-    } catch {
-      return;
-    }
     const runDataList = await readRunDataList(runDataCollectionUri);
 
     const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
@@ -122,7 +117,12 @@ export class RunDataService extends BasicService {
       this.scannedCount++;
     }
     this.scanning = false;
-    this.scanListeners.get(Infinity)?.();
+
+    // 继续执行所有waitForScanning
+    for (const listener of this.scanListeners.values()) {
+      listener();
+    }
+    this.scanListeners.clear();
   }
 
   private stopScan(): Promise<void> {
@@ -165,7 +165,7 @@ export class RunDataService extends BasicService {
   private async setOutputToStore(runDataUri: vscode.Uri) {
     const record = await getOutputRecord(runDataUri);
     if (record) {
-      this.store.set(record);
+      await this.store.set(record);
     }
   }
 }
