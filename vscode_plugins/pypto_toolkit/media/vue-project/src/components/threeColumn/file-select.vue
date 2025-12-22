@@ -1,6 +1,8 @@
 <template>
     <div class="file-select" @click="() => openSelectedFileWindow()">
-      <div class="simple-com-file-name">{{ props.fileName }}</div>
+      <d-tooltip :content="props.fileName">
+        <div class="simple-com-file-name">{{ props.fileName }}</div>
+      </d-tooltip>
       <div class="icon-line-height"><d-icon name="icon-sequence-new" class="simple-com-file-name-icon" size="16px"></d-icon></div>
     </div>
 </template>
@@ -24,7 +26,7 @@ const props = defineProps({
 });
 function openSelectedFileWindow() {
     threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
-}
+};
 
 </script>
 
@@ -41,7 +43,7 @@ function openSelectedFileWindow() {
 .simple-com-file-name{
     font-size: 14px;
     font-weight: 700;
-    color: rgba(230, 230, 230, 1);
+    color: var(--devui-tooltip-text);
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
