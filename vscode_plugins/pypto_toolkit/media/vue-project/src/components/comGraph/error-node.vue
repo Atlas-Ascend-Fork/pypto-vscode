@@ -11,7 +11,7 @@
     <div class="error-info" :title="node.errorInfo">
       {{ node.errorInfo }}
     </div>
-    <i class="icon-error-o" @mouseenter="() => node.showErrorIconOnly = false"></i>
+    <i class="icon-error-o" @mouseenter="onIconMouseenter(node)"></i>
     <d-popover :position="['top']" trigger="hover" :mouse-leave-delay="100" v-if="node.stackList?.length">
       <template #content>
         <div style="width: auto;font-size: 12px;" @mouseenter="onPopoverMouseenter" @mouseleave="() => onPopoverMouseleave(node)">
@@ -65,6 +65,11 @@ const leave = debounce((node: Record<string, any>) => {
     node.showErrorIconOnly = currentZoom < 0.4;
   }
 }, 100);
+
+const onIconMouseenter = (node: Record<string, any>) => {
+  node.showErrorIconOnly = false;
+  (window as any).ascEventBus.emit('closeNodeTip');
+}
 
 const onPopoverMouseenter = () => {
   isEnterPopover = true;
