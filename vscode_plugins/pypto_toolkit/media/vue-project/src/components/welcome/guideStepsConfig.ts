@@ -178,7 +178,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     steps: [
       {
         title: '泳道图-测距',
-        content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距',
+        content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距。',
         method: 'distanceMeasurement',
         methodParams: {},
         targetDomId: 'distance-measurement', // 步骤1定位
@@ -187,7 +187,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '泳道图-在时间轴上添加观测线',
-        content: '鼠标悬停在时间轴上，或者点击时间轴，均可添加时间观测线',
+        content: '鼠标悬停在时间轴上，或者点击时间轴，均可添加时间观测线。',
         method: 'addObservationLine',
         methodParams: {},
         targetDomId: 'observation-line', // 步骤1定位
@@ -196,7 +196,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '泳道图-操作区',
-        content: '支持搜索、缩放、渲染设置，时间度量、性能报告',
+        content: '支持搜索、缩放、渲染设置，时间度量、性能报告。',
         method: 'zoomControls',
         methodParams: {},
         targetDomId: 'zoom-controls', // 步骤1定位
@@ -205,7 +205,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '泳道图-开启时间度量-查看核利用率统计信息',
-        content: '点击泳道图右上角的度量模式按钮，并在主操作区单击拖拽出度量范围或者鼠标框选节点，即可查看核利用率统计信息',
+        content: '点击泳道图右上角的度量模式按钮，并在主操作区单击拖拽出度量范围或者鼠标框选节点，即可查看核利用率统计信息。',
         method: 'measureDetailSearch',
         methodParams: {},
         targetDomId: 'measure-button', // 步骤1定位
@@ -214,7 +214,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '泳道图-查看节点详情',
-        content: '点击泳道图中某个任务节点，可显示节点的详情面板',
+        content: '点击泳道图中某个任务节点，可显示节点的详情面板。',
         method: 'showGuideDetailsPanel',
         methodParams: {},
         targetDomId: 'details-content', // 步骤1定位
@@ -223,14 +223,14 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
       },
       {
         title: '泳道图-依赖分析',
-        content: '点击泳道图中某个任务节点，可显示节点的详情面板，进而可以查看节点依赖信息',
+        content: '点击泳道图中某个任务节点，可显示节点的详情面板，进而可以查看节点依赖信息。',
         targetDomId: 'canvas-container', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
       {
         title: '泳道图-跳转计算图',
-        content: '支持根据rootHash和leafHash跳转至计算图',
+        content: '支持根据rootHash和leafHash跳转至计算图。',
         targetDomId: 'rootHash', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'bottom',
