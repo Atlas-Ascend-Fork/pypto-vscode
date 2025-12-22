@@ -269,5 +269,5 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
 export let swimConfig = {
   threadKey: '1-1000',
   sampleEventName: '218-25 (z )',
-  currentStepTargetDomId: ''
+  currentStepTargetDomId: '',
 };
