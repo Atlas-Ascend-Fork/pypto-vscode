@@ -93,7 +93,7 @@
       <div v-if="historyList?.length" class="history-box">
         <div class="history-header">{{ t('comGraph.searchHistoryTips') }}</div>
         <div class="history-tags">
-          <span v-for="item in historyList" :key="item" class="history-tag" @click="historyOnSearch(item)">
+          <span v-for="item in historyList" :key="item" class="history-tag" @click.stop="historyOnSearch(item)">
               {{restoreHistory(item)}}
           </span>
         </div>
