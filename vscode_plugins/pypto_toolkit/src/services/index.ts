@@ -14,7 +14,7 @@ import {
   updateConfigsFile,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
-import { getInitPythonProject, getUserRunRoot, isLinuxEnvironment } from './welcome';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getSwimPath, getUserRunRoot, isLinuxEnvironment } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
 import { WelcomeViewServer } from '../view/servers/welcom-server';
 
@@ -26,6 +26,9 @@ export const services = {
     isLinuxEnvironment,
     getIsCompleteBoot,
     getUserRunRoot,
+    getProgramPath,
+    getSwimPath,
+    getPluginVersion,
     skipAll() {
       WelcomeViewServer.skipGuide();
     },

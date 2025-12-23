@@ -53,8 +53,8 @@ const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
 
 /** PYPTO运行记录根目录 */
 export const RUN_DATA_HOME = process.env.PYPTO_HOME
-  ? `${process.env.PYPTO_HOME}${path.sep}run`
-  : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run${path.sep}rundata_20251021203500`;
+  ? `${process.env.PYPTO_HOME}${path.sep}`
+  : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}rundata_20251021203500`;
 
 /**
  * 转换路径中的磁盘盘符为小写（仅针对Windows系统）
@@ -72,11 +72,65 @@ function toLowerCaseDriveLetter(filePath) {
 }
 
 /**
+ * 获取插件安装目录
+ */
+export function getMockDataPath() {
+  // 校验前置条件
+  if (!extensionContext) {
+    vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
+    return '';
+  }
+  const extensionRoot = extensionContext.extensionPath;
+  const mode = getExtensionMode();
+
+  let mockDataFilePath = '';
+  // 适配打包和调试的路径
+  if (mode === 'development') {
+    // 调试
+    mockDataFilePath = path.join(extensionRoot, 'src', 'boot-mock-data', 'rundata_20251224101342');
+  } else {
+    // 打包
+    mockDataFilePath = path.join(extensionRoot, 'webview-dist', 'boot-mock-data', 'rundata_20251224101342');
+  }
+
+  return mockDataFilePath;
+}
+
+/**
  * 获取指定测试数据根地址（盘符转为小写）
  */
 export async function getUserRunRoot() {
-  const outPutPath = RUN_DATA_HOME;
+  const outPutPath = getMockDataPath();
   // 调用盘符小写处理函数
   const lowerDrivePath = toLowerCaseDriveLetter(outPutPath);
   return lowerDrivePath;
+}
+
+/**
+ * 获取output目录
+ */
+export async function getProgramPath() {
+  const mockRootPath = getMockDataPath();
+  return `${mockRootPath}${path.sep}program.json`;
+}
+
+/**
+ * 获取泳道图目录
+ */
+export async function getSwimPath() {
+  const mockRootPath = getMockDataPath();
+  return `${mockRootPath}${path.sep}merged_swimlane.json`;
+}
+
+/**
+ * 获取插件版本
+ */
+export async function getPluginVersion() {
+    // 校验前置条件
+    if (!extensionContext) {
+      vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
+      return;
+    }
+    const version = extensionContext.extension.packageJSON.version
+    return version
 }

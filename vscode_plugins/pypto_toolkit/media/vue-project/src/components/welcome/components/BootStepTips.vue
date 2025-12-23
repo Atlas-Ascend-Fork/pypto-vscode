@@ -773,7 +773,7 @@ onUnmounted(() => {
   // 调整max-height，避免滚动条
   max-height: calc(80vh - 32px);
   overflow-y: auto;
-  box-shadow: var(--devui-modal-shadow);
+  box-shadow: var(--welcome-box-shadow);
 }
 
 // ========== 内容区样式 ==========

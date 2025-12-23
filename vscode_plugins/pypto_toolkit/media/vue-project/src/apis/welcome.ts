@@ -39,8 +39,29 @@ export function getIsCompleteBoot(): Promise<boolean> {
 }
 
 /**
- *
+ * 获取output根目录
  */
 export function getUserRunRoot(): Promise<string> {
   return request.post(`${WELCOME}/getUserRunRoot`, null);
+}
+
+/**
+ * 获取output programe目录
+ */
+export function getProgramPath():Promise<string>{  
+  return request.post(`${WELCOME}/getProgramPath`, null);
+}
+
+/**
+ * 获取泳道图目录
+ */
+export function getSwimPath():Promise<string>{  
+  return request.post(`${WELCOME}/getSwimPath`, null);
+}
+
+/**
+ * 获取插件版本号
+ */
+export function getPluginVersion():Promise<string>{
+  return request.post(`${WELCOME}/getPluginVersion`, null);
 }

@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import type { OutputRecord, RunDataManifest } from '../../types/workspace';
 import { isFileUriExists } from '../../utils/file-system';
+import { getMockDataPath, getProgramPath, getSwimPath } from '../welcome';
 
 export interface RunDataDir {
   dirname: string;
@@ -41,6 +42,7 @@ export async function readRunDataList(parentUri: vscode.Uri): Promise<RunDataDir
 }
 
 const RUNDATA_FILE_NAME = 'rundata.json';
+const RUNDATA_BOOT_STEPS_FILE_NAME = 'rundata_boot_steps.json';
 
 /**
  * 获取output记录
@@ -75,8 +77,19 @@ export async function getOutputRecord(runDataUri: vscode.Uri): Promise<OutputRec
  */
 async function readOutputRunData(outputUri: vscode.Uri): Promise<RunDataManifest | null> {
   try {
-    const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_FILE_NAME));
-    return JSON.parse(fileContent.toString());
+    const fileList = await vscode.workspace.fs.readDirectory(outputUri);
+    const isBootSteps = fileList.some((item) => item[0] === RUNDATA_BOOT_STEPS_FILE_NAME);
+    if (isBootSteps) {
+      const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_BOOT_STEPS_FILE_NAME));
+      const res =JSON.parse(fileContent.toString())
+      res.compute_graph_path=await getMockDataPath()
+      res.program_file=await getProgramPath()
+      res.swim_graph_path=await getSwimPath()
+      return res;
+    } else {
+      const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_FILE_NAME));
+      return JSON.parse(fileContent.toString());
+    }
   } catch {
     return null;
   }

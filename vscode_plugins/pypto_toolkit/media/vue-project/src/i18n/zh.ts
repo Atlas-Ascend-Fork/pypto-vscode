@@ -268,7 +268,7 @@ export default {
     welcome: {
         startUsingPyPTOToolkit: '开始使用PyPTO Toolkit',
         pyptoEfficiencyPlugin: 'PyPTO 效率提升插件',
-        version: '版本',
+        version: 'Version',
         linuxEnvironmentWarning: '无法在当前环境下运行Python文件，请配置Linux远程连接',
         step1Title: '打开并运行样例工程',
         goToRun: '去运行',
@@ -311,7 +311,7 @@ export default {
           groupName: '导航系统',
           step1: {
             title: '导航系统-查看历史记录',
-            content: '这是导航系统的查看运行历史列表，点击可以展开历史运行列表。'
+            content: '默认展示当前运行记录，点击可展开历史运行列表，点击列表中任意一条运行记录可查看对应结果总览。'
           },
           step2: {
             title: '导航系统-打开计算图',
