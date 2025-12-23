@@ -32,23 +32,23 @@
         <!-- 主体内容区 -->
         <div class="content-container">
           <div class="container__header">
-            <h3 class="step-title">{{ currentStepInfo.title }}</h3>
+            <h3 class="step-title">{{ t(currentStepInfo.title) }}</h3>
             <div class="step-count__group">
               <p class="step-count">{{ currentSmallIndex + 1 }}</p>
               <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
             </div>
           </div>
-          <p class="step-content">{{ currentStepInfo.content }}</p>
+          <p class="step-content">{{ t(currentStepInfo.content) }}</p>
         </div>
 
         <!-- 操作按钮栏 -->
         <div class="btn-container">
-          <button class="skip-btn" @click="handleSkipAll">跳过全部</button>
+          <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
           <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
-          <button v-else class="next-btn" @click="handleSkipAll">完成</button>
+          <button v-else class="next-btn" @click="handleSkipAll">{{ t('bootStep.button.complete') }}</button>
         </div>
       </div>
     </div>
@@ -68,6 +68,8 @@ import {
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -621,9 +623,11 @@ const hasNextBtn = computed(
 const nextBtnText = computed(() => {
   const isLastInGroup = currentSmallIndex.value === currentBigGroupSteps.value.length - 1;
   if (isLastInGroup && currentBigGroup.value < guideSteps.value.length - 1) {
-    return `了解${guideSteps.value[currentBigGroup.value + 1].groupName}`;
+    return t('bootStep.button.learnGroup', { 
+      groupName: t(guideSteps.value[currentBigGroup.value + 1].groupName) 
+    });
   }
-  return '下一步';
+  return t('bootStep.button.nextStep');
 });
 
 // 读取globalState中的进度

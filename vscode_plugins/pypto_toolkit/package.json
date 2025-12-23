@@ -55,7 +55,7 @@
       },
       {
         "command": "PyPTO.OpenWelcomeGuide",
-        "title": "Open Welcome Guide",
+        "title": "%PyPTOToolkit.welcome.open%",
         "category": "PyPTO.OpenWelcomeGuide",
         "icon": "webview-dist/static-assets/boot_steps_open_sideBar.svg"
       }

@@ -1,13 +1,14 @@
-import { openControlFlow, openPyPTOWelcome, openComputeGraph, openSwimlaneGraph } from '@/apis/opener';
 import { ref } from 'vue';
+
 const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control.svg`);
 const native = ref(`${window.staticPath}/static-assets/boot_steps_native.svg`);
 const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute.svg`);
 const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim.svg`);
+
 // 定义单个步骤的配置类型
 export interface GuideStepConfig {
-  title: string; // 步骤标题
-  content: string; // 步骤内容
+  title: string; // 步骤标题（国际化key）
+  content: string; // 步骤内容（国际化key）
   method?: string; // 该步骤要调用的WebView内方法名（如openSidebar）
   methodParams?: Record<string, any>; // 调用方法的参数
   targetDomId: string; // 目标引导DOM的ID
@@ -17,7 +18,7 @@ export interface GuideStepConfig {
 
 // 定义大组配置类型
 export interface GuideBigGroupConfig {
-  groupName: string; // 大组名称
+  groupName: string; // 大组名称（国际化key）
   webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph'; // 对应WebView类型
   openWebviewFn?: string; // 打开该WebView的方法
   openWebviewParams?: Record<string, any> | null; // 打开WebView的参数
@@ -29,32 +30,30 @@ export interface GuideBigGroupConfig {
 export const guideStepsConfig: GuideBigGroupConfig[] = [
   // 第一组：控制流
   {
-    groupName: '控制流',
+    groupName: 'bootStep.controlFlow.groupName',
     webviewType: 'controlFlow',
     openWebviewParams: { outputPath: '', controlFlowPath: '' }, // 实际参数按需传
     imgUrl: controlFlowImg.value,
     steps: [
       {
-        title: '控制流-查看控制流图',
-        content:
-          '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，在矩形Path卡片中点击leaf函数、被调用函数-called、调用函数-callee即可在右侧打开该path节点的详情。下一步将演示点击leaf函数的效果。',
+        title: 'bootStep.controlFlow.step1.title',
+        content: 'bootStep.controlFlow.step1.content',
         targetDomId: 'boot-steps-controlFlow',
         method: 'checkControlFlow',
         showTriangle: false,
         triangleDirection: 'right',
       },
       {
-        title: '控制流-查看Path节点面板',
-        content:
-          'leaf函数显示当前PATH节点的子函数个数；被调用函数-called显示当前PATH节点被其他函数调用的次数；所有计算图显示当前节点所有的计算图列表，点击后可以打开相应计算图页面。',
+        title: 'bootStep.controlFlow.step2.title',
+        content: 'bootStep.controlFlow.step2.content',
         targetDomId: 'boot-steps-controlFlow-right-panel',
         method: 'bootStepOpenSideBar',
         showTriangle: true,
         triangleDirection: 'right',
       },
       {
-        title: '控制流-搜索栏',
-        content: '打开控制流界面后，可以在搜索框中针对本控制流图中的LOOP或PATH节点进行模糊搜索，选中搜索结果，可跳转至当前图对应的节点。',
+        title: 'bootStep.controlFlow.step3.title',
+        content: 'bootStep.controlFlow.step3.content',
         targetDomId: 'boot-steps-controlFlow-search',
         method: 'bootStepSearch',
         showTriangle: true,
@@ -64,15 +63,15 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   },
   // 第二组：导航系统
   {
-    groupName: '导航系统',
+    groupName: 'bootStep.navigation.groupName',
     webviewType: 'navigation',
     openWebviewFn: 'openComputeGraph',
     imgUrl: native.value,
     openWebviewParams: null,
     steps: [
       {
-        title: '导航系统-查看历史记录',
-        content: '这是导航系统的查看运行历史列表，点击可以展开历史运行列表。',
+        title: 'bootStep.navigation.step1.title',
+        content: 'bootStep.navigation.step1.content',
         method: 'viewNavigationHistory',
         methodParams: {},
         targetDomId: 'boot-steps-navbar-history',
@@ -80,8 +79,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '导航系统-打开计算图',
-        content: '这是导航系统中打开计算图的图标，点击后即可打开计算图',
+        title: 'bootStep.navigation.step2.title',
+        content: 'bootStep.navigation.step2.content',
         method: 'loadNavMenu',
         methodParams: {},
         targetDomId: 'boot-steps-navbar-open-com-graph',
@@ -92,15 +91,15 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   },
   // 第三组：计算图
   {
-    groupName: '计算图',
+    groupName: 'bootStep.computeGraph.groupName',
     webviewType: 'computeGraph',
     openWebviewFn: 'openSwimlaneGraph',
     imgUrl: computeImg.value,
     openWebviewParams: { outputPath: '', computeGraphPath: '', pathName: 'compute' },
     steps: [
       {
-        title: '查看计算图',
-        content: '查看代码计算图结构，支持鼠标滚动缩放，按住拖拽，点击高亮节点链路，小地图快速定位功能。',
+        title: 'bootStep.computeGraph.step1.title',
+        content: 'bootStep.computeGraph.step1.content',
         method: '',
         methodParams: {},
         targetDomId: 'navbarComGraphTab',
@@ -108,8 +107,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '选中节点并查看前后关系',
-        content: '点击节点后会将当前节点所在通路高亮，不在当前通路的节点变暗，可更方便查看选中节点的前后关系。',
+        title: 'bootStep.computeGraph.step2.title',
+        content: 'bootStep.computeGraph.step2.content',
         method: 'viewNodeDetail',
         methodParams: {
           nodeId: 'tensor-5692-2',
@@ -120,8 +119,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '搜索目标节点',
-        content: '在此处输入内容搜索目标节点，支持模糊搜索匹配及精确搜索某个值。',
+        title: 'bootStep.computeGraph.step3.title',
+        content: 'bootStep.computeGraph.step3.content',
         method: 'searchNode',
         methodParams: {
           searchKey: '5818',
@@ -138,8 +137,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'right',
       },
       {
-        title: '只看当前通路',
-        content: '对节点点击鼠标右键，下拉中可以选择锁定通路并高亮，只看当前通路，可以避免干扰，精准查看目标前后关系。',
+        title: 'bootStep.computeGraph.step4.title',
+        content: 'bootStep.computeGraph.step4.content',
         method: 'focusCurrentPath',
         methodParams: {
           searchNodeId: 'tensor-5818-3',
@@ -149,8 +148,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '计算图diff查看',
-        content: '点击该按钮会自动关联before及after文件，开启对比查看，快速定位差异内容。',
+        title: 'bootStep.computeGraph.step5.title',
+        content: 'bootStep.computeGraph.step5.content',
         method: '',
         methodParams: {},
         targetDomId: 'openDiffViewerIcon',
@@ -158,8 +157,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'right',
       },
       {
-        title: '打开泳道图',
-        content: '点击导航栏中的打开泳道图按钮，可以快速打开泳道图。',
+        title: 'bootStep.computeGraph.step6.title',
+        content: 'bootStep.computeGraph.step6.content',
         method: '',
         methodParams: {},
         targetDomId: 'boot-steps-navbar-open-swm-graph',
@@ -170,15 +169,15 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
   },
   // 第四组：泳道图
   {
-    groupName: '泳道图',
+    groupName: 'bootStep.swimlaneGraph.groupName',
     webviewType: 'swimlaneGraph',
     openWebviewFn: 'openSwimlaneGraph',
     imgUrl: swim.value,
     openWebviewParams: { swimlaneGraphPath: '' },
     steps: [
       {
-        title: '泳道图-测距',
-        content: '同一泳道内相邻节点间自动测距，或者跨泳道、跨节点手动测距。',
+        title: 'bootStep.swimlaneGraph.step1.title',
+        content: 'bootStep.swimlaneGraph.step1.content',
         method: 'distanceMeasurement',
         methodParams: {},
         targetDomId: 'distance-measurement', // 步骤1定位
@@ -186,8 +185,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'right',
       },
       {
-        title: '泳道图-在时间轴上添加观测线',
-        content: '鼠标悬停在时间轴上，或者点击时间轴，均可添加时间观测线。',
+        title: 'bootStep.swimlaneGraph.step2.title',
+        content: 'bootStep.swimlaneGraph.step2.content',
         method: 'addObservationLine',
         methodParams: {},
         targetDomId: 'observation-line', // 步骤1定位
@@ -195,8 +194,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'right',
       },
       {
-        title: '泳道图-操作区',
-        content: '支持搜索、缩放、渲染设置，时间度量、性能报告。',
+        title: 'bootStep.swimlaneGraph.step3.title',
+        content: 'bootStep.swimlaneGraph.step3.content',
         method: 'zoomControls',
         methodParams: {},
         targetDomId: 'zoom-controls', // 步骤1定位
@@ -204,8 +203,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '泳道图-开启时间度量-查看核利用率统计信息',
-        content: '点击泳道图右上角的度量模式按钮，并在主操作区单击拖拽出度量范围或者鼠标框选节点，即可查看核利用率统计信息。',
+        title: 'bootStep.swimlaneGraph.step4.title',
+        content: 'bootStep.swimlaneGraph.step4.content',
         method: 'measureDetailSearch',
         methodParams: {},
         targetDomId: 'measure-button', // 步骤1定位
@@ -213,8 +212,8 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'top',
       },
       {
-        title: '泳道图-查看节点详情',
-        content: '点击泳道图中某个任务节点，可显示节点的详情面板。',
+        title: 'bootStep.swimlaneGraph.step5.title',
+        content: 'bootStep.swimlaneGraph.step5.content',
         method: 'showGuideDetailsPanel',
         methodParams: {},
         targetDomId: 'details-content', // 步骤1定位
@@ -222,15 +221,15 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         triangleDirection: 'bottom',
       },
       {
-        title: '泳道图-依赖分析',
-        content: '点击泳道图中某个任务节点，可显示节点的详情面板，进而可以查看节点依赖信息。',
+        title: 'bootStep.swimlaneGraph.step6.title',
+        content: 'bootStep.swimlaneGraph.step6.content',
         targetDomId: 'canvas-container', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'right',
       },
       {
-        title: '泳道图-跳转计算图',
-        content: '支持根据rootHash和leafHash跳转至计算图。',
+        title: 'bootStep.swimlaneGraph.step7.title',
+        content: 'bootStep.swimlaneGraph.step7.content',
         targetDomId: 'rootHash', // 步骤1定位
         showTriangle: true,
         triangleDirection: 'bottom',
@@ -266,6 +265,7 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
     triangleDirection: stepConfig?.triangleDirection || 'right',
   };
 };
+
 export let swimConfig = {
   threadKey: '1-1000',
   sampleEventName: '218-25 (z )',
