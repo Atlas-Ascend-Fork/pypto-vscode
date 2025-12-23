@@ -37,7 +37,7 @@ export async function getInitPythonProject(address = 'https://cmc-cd-mirror.rnd.
     vscode.window.showErrorMessage(errorMsg);
     return;
   }
-  runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
+ return await runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
 }
 
 /**

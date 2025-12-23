@@ -2,109 +2,109 @@
   <div class="guide-container">
     <!-- 主体内容 -->
     <div class="guide-main">
-      <!-- 左侧步骤列表 -->
-      <div class="guide-step">
-        <div class="guide-step__header">
-          <img class="header__image" :src="logo" />
-          <div class="header__describe">
-            <div class="describe__title">{{ t('welcome.startUsingPyPTOToolkit') }}</div>
-            <div class="describe__group">
-              <div class="describe__detail">{{ t('welcome.pyptoEfficiencyPlugin') }}</div>
-              <div class="describe__version">{{ t('welcome.version') }}:{{ pluginVersion }}</div>
+      <div class="guide-panel">
+        <!-- 左侧步骤列表 -->
+        <div class="guide-step">
+          <div class="guide-step__header">
+            <img class="header__image" :src="logo" />
+            <div class="header__describe">
+              <div class="describe__title">{{ t('welcome.startUsingPyPTOToolkit') }}</div>
+              <div class="describe__group">
+                <div class="describe__detail">{{ t('welcome.pyptoEfficiencyPlugin') }}</div>
+                <div class="describe__version">{{ t('welcome.version') }}:{{ pluginVersion }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="guide-step__list" v-if="steps.length">
+            <!-- <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false">{{
+              t('welcome.linuxEnvironmentWarning') }}</d-alert> -->
+            <!-- 步骤1 -->
+            <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
+              <div class="step-header" @click="handleStepClick('step1')">
+                <div class="step-header-left">
+                  <img :src="hasCompletedImg" v-if="steps[0].completed || !isLinux"></img>
+                  <img :src="hasNotCompletedImg" v-else></img>
+                  <span class="step-title">{{ steps[0].title }}</span>
+                </div>
+                <div class="step-header-right"></div>
+              </div>
+
+              <div class="step-content" :class="{ expanded: expandedStepId === 'step1' }">
+                <div class="step-content__run-python">
+                  <i class="icon-json"></i>
+                  <div class="step-description">python3 test hello_world.py</div>
+                </div>
+                <button class="step-content__run-button" :class="{ button__disable: !isLinux }" @click="runPythonFile"
+                  :disabled="!isLinux">
+                  {{ t('welcome.goToRun') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 步骤2 -->
+            <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
+              <div class="step-header" @click="handleStepClick('step2')">
+                <div class="step-header-left">
+                  <img :src="hasCompletedImg" v-if="skipAll"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAll"></img>
+                  <span class="step-title">{{ steps[1].title }}</span>
+                </div>
+                <div class="step-header-right"></div>
+              </div>
+              <div class="step-content" :class="{ expanded: expandedStepId === 'step2' }">
+                <div class="step-content__item">
+                  <img :src="controlFlowImg" alt="控制流图" />
+                  <p class="step-description">{{ t('welcome.controlFlowChart') }}</p>
+                </div>
+                <div class="step-content__item">
+                  <img :src="native" alt="控制流图" />
+                  <p class="step-description">{{ t('welcome.navigationSystem') }}</p>
+                </div>
+                <div class="step-content__item">
+                  <img :src="computeImg" alt="控制流图" />
+                  <p class="step-description">{{ t('welcome.computationGraph') }}</p>
+                </div>
+                <div class="step-content__item">
+                  <img :src="swim" alt="控制流图" />
+                  <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
+                </div>
+                <button v-if="isLinux" class="step-content__run-button"
+                  :class="{ button__disable: !isLinux || !steps[0].completed }" @click="goToCheckResult"
+                  :disabled="!steps[0].completed">
+                  {{ t('welcome.goToView') }}
+                </button>
+                <button v-else class="step-content__run-button" :class="{ button__disable: !steps[0].completed }"
+                  @click="goToCheckResult">
+                  {{ t('welcome.goToView') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 底部操作栏 -->
+            <div class="action-bar">
+              <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">
+                {{ t('welcome.nextStep') }}
+              </button>
+              <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage">
+                {{ t('welcome.startExperience') }}
+              </button>
+              <d-checkbox :label="t('welcome.showGuideOnStartup')" class="open-page-checkbox" :isShowTitle="false"
+                v-model="isOpenWithPyPto" />
             </div>
           </div>
         </div>
-        <div class="guide-step__list" v-if="steps.length">
-          <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false"
-          >{{ t('welcome.linuxEnvironmentWarning') }}</d-alert
-        >
-          <!-- 步骤1 -->
-          <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
-            <div class="step-header" @click="handleStepClick('step1')">
-              <div class="step-header-left">
-                <img :src="hasCompletedImg" v-if="steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
-                <img :src="hasNotCompletedImg" v-else="!steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
-                <span class="step-title">{{ steps[0].title }}</span>
-              </div>
-              <div class="step-header-right"></div>
-            </div>
 
-            <div class="step-content" :class="{ expanded: expandedStepId === 'step1' }">
-              <div class="step-content__run-python">
-                <i class="icon-json"></i>
-                <div class="step-description">python3 test hello_world.py</div>
-              </div>
-              <button
-                class="step-content__run-button"
-                :class="{ button__disable: !isLinux }"
-                @click="getInitPythonProject()"
-                :disabled="!isLinux"
-              >
-                {{ t('welcome.goToRun') }}
-              </button>
+        <!-- 右侧图片预览区 -->
+        <div class="preview-area">
+          <div class="preview-area__image-bg"></div>
+          <div class="preview-image-wrapper">
+            <div class="preview-image-border">
+              <img class="preview-image" v-if="activeStep" :src="images[activeStep.index - 1]" />
             </div>
-          </div>
-
-          <!-- 步骤2 -->
-          <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
-            <div class="step-header" @click="handleStepClick('step2')">
-              <div class="step-header-left">
-                <img :src="hasCompletedImg" v-if="skipAll"></img>
-                <img :src="hasNotCompletedImg" v-else="!skipAll"></img>
-                <span class="step-title">{{ steps[1].title }}</span>
-              </div>
-              <div class="step-header-right"></div>
-            </div>
-            <div class="step-content" :class="{ expanded: expandedStepId === 'step2' }">
-              <div class="step-content__item">
-                <img :src="controlFlowImg" alt="控制流图" />
-                <p class="step-description">{{ t('welcome.controlFlowChart') }}</p>
-              </div>
-              <div class="step-content__item">
-                <img :src="native" alt="控制流图" />
-                <p class="step-description">{{ t('welcome.navigationSystem') }}</p>
-              </div>
-              <div class="step-content__item">
-                <img :src="computeImg" alt="控制流图" />
-                <p class="step-description">{{ t('welcome.computationGraph') }}</p>
-              </div>
-              <div class="step-content__item">
-                <img :src="swim" alt="控制流图" />
-                <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
-              </div>
-              <button
-                class="step-content__run-button"
-                :class="{ button__disable: !isLinux || !steps[0].completed }"
-                @click="goToCheckResult"
-                :disabled="!isLinux || !steps[0].completed"
-              >
-                {{ t('welcome.goToView') }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 底部操作栏 -->
-          <div class="action-bar">
-            <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">
-              {{ t('welcome.nextStep') }} 
-            </button>
-            <button v-if="!isAllChecked" class="action-btn next-btn" @click="closeWelcomPage">
-              {{ t('welcome.startExperience') }} 
-            </button>
-             <d-checkbox :label="t('welcome.showGuideOnStartup')" class="open-page-checkbox" :isShowTitle="false" v-model="isOpenWithPyPto" />
           </div>
         </div>
       </div>
 
-      <!-- 右侧图片预览区 -->
-      <div class="preview-area">
-        <div class="preview-area__image-bg"></div>
-        <div class="preview-image-wrapper">
-          <div class="preview-image-border">
-            <img class="preview-image" v-if="activeStep" :src="images[activeStep.index - 1]" />
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -114,25 +114,26 @@ import { openControlFlow } from '@/apis/opener';
 import { getInitPythonProject, getPluginVersion, getProgramPath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
+const { isDarkTheme } = inject('root');
 
 // 模拟静态资源路径
 const staticPath = ref(window.staticPath || '');
 const logo = ref(`${staticPath.value}/static-assets/logo.png`);
 const isLinux = ref(true);
-const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control.svg`);
-const native = ref(`${window.staticPath}/static-assets/boot_steps_native.svg`);
-const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute.svg`);
-const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim.svg`);
+const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`);
+const native = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
+const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
 const images = ref([
   `${window.staticPath}/static-assets/boot_steps_runPython.png`,
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
-const hasCompletedImg= ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
-const hasNotCompletedImg= ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
+const hasCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
+const hasNotCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
 
 // 1. 定义步骤数据类型
 interface GuideStep {
@@ -160,12 +161,11 @@ const defaultSteps = ref<GuideStep[]>([
 
 
 // 3. 响应式数据
-const isDarkTheme = ref<boolean>(localStorage.getItem('guideTheme') === 'dark');
 const steps = ref<GuideStep[]>([]);
 const activeStepId = ref<string>('');
 const expandedStepId = ref<string>('');
-const isOpenWithPyPto=ref(true)
-const pluginVersion=ref('1.1.1')
+const isOpenWithPyPto = ref(true)
+const pluginVersion = ref('1.1.1')
 
 // 4. 计算属性
 const activeStep = computed(() => {
@@ -180,12 +180,12 @@ const isFirstStep = computed(() => currentStepIndex.value === 0);
 const isLastStep = computed(() => currentStepIndex.value === steps.value.length - 1);
 const isAllChecked = computed(() => steps.value.some((step) => !step.completed));
 
-// 切换主题
-const toggleTheme = () => {
-  isDarkTheme.value = !isDarkTheme.value;
-  localStorage.setItem('guideTheme', isDarkTheme.value ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', isDarkTheme.value ? 'dark' : 'light');
-};
+async function runPythonFile() {
+  const res = await getInitPythonProject()
+  if (res) {
+    steps.value[0].completed = true
+  }
+}
 
 // 点击步骤头部（激活+折叠）
 const handleStepClick = (stepId: string) => {
@@ -230,7 +230,7 @@ async function goToCheckResult() {
   openControlFlow({
     controlFlowPath: `${await getProgramPath()}`,
     outputPath: `${await getUserRunRoot()}`,
-    isBootStep:true
+    isBootStep: true
   });
 }
 
@@ -247,6 +247,7 @@ watch(skipAll, (newValue) => {
 
 // 初始化步骤数据
 const initSteps = async () => {
+
   const stepRunPython = (await getWelcomeState({
     key: 'guideSteps-runPython',
   })) as boolean;
@@ -257,19 +258,26 @@ const initSteps = async () => {
   steps.value = [...defaultSteps.value];
   activeStepId.value = steps.value[0].id;
   expandedStepId.value = steps.value[0].id;
-    const isOpenWith = (await getWelcomeState({
+  const isOpenWith = (await getWelcomeState({
     key: 'guideSteps-isOpenWithPyPto',
-    })) as boolean;
-  if (isOpenWith===false) {
-    isOpenWithPyPto.value=false
+  })) as boolean;
+  if (isOpenWith === false) {
+    isOpenWithPyPto.value = false
   }
   pluginVersion.value = await getPluginVersion()
+
+  isLinux.value = await isLinuxEnvironment();
+  if (!isLinux.value) {
+    await updateWelcomeState({
+      key: 'guideSteps-runPython',
+      value: true,
+    });
+    steps.value[0].completed = true
+  }
 };
 
 onMounted(async () => {
-  // isLinux.value = await isLinuxEnvironment();
   initSteps();
-  toggleTheme();
 });
 
 watch(
@@ -298,8 +306,7 @@ watch(
 <style scoped lang="less">
 /* 容器样式 */
 .guide-container {
-  background-color: var(--devui-global-bg); // 全局背景（适配明暗）
-  width: 100%;
+  width: 100vw;
   height: 100%;
 
   /* 主体内容 */
@@ -309,14 +316,21 @@ watch(
     height: 100%;
     width: 100%;
     min-width: 1400px;
-    gap: 90px;
 
+    .guide-panel {
+      width: 1300px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      padding-top: 300px;
+    }
+
+    /* 左侧步骤区 */
     .guide-step {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: end;
-      min-width: 500px;
+      align-items: start;
+      width: 500px;
       min-height: 450px;
       width: 40%;
       height: 100%;
@@ -336,7 +350,6 @@ watch(
       .guide-step__header {
         display: flex;
         flex-direction: row;
-        justify-content: end;
         align-items: center;
         gap: 24px;
         width: 100%;
@@ -363,7 +376,6 @@ watch(
           .describe__group {
             display: flex;
             flex-direction: row;
-            justify-content: space-between;
             gap: 8px;
             align-items: center;
             font-weight: 400;
@@ -414,6 +426,7 @@ watch(
           .step-description {
             color: var(--devui-title-text); // 标题文字
           }
+
           .step-content__item {
             display: flex;
             gap: 6px;
@@ -530,18 +543,19 @@ watch(
       .preview-image-wrapper {
         width: 800px;
         height: 450px;
-        padding: 1px; /* 渐变边框厚度（1px） */
-        border-radius: 12px; /* 统一圆角 */
-        background: linear-gradient(
-          135deg,
-          rgba(15, 217, 119, 0.6) 0%,
-          rgba(15, 217, 119, 0.1) 40%,
-          rgba(199, 91, 239, 0.1) 60%,
-          rgba(199, 91, 239, 0.6) 100%
-        );
+        padding: 1px;
+        /* 渐变边框厚度（1px） */
+        border-radius: 12px;
+        /* 统一圆角 */
+        background: linear-gradient(135deg,
+            rgba(15, 217, 119, 0.4) 0%,
+            rgba(15, 217, 119, 0.1) 40%,
+            rgba(199, 91, 239, 0.1) 60%,
+            rgba(199, 91, 239, 0.4) 100%);
         overflow: hidden;
         box-sizing: border-box;
         z-index: 2;
+        // box-shadow:0 10px 70px 0  rgba(0, 0, 0, 0.5);
       }
 
       /* 中间边框层 */
@@ -596,17 +610,18 @@ watch(
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: rgba(255,255,255,0);
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .prev-btn,
 .next-btn {
   color: var(--devui-select-active-border-color); // 选中边框色（文字）
   transition: background-color 0.2s ease;
-  background-color: rgba(255,255,255,0);
+  background-color: rgba(255, 255, 255, 0);
 
 }
-:deep(.devui-checkbox__label-text){
+
+:deep(.devui-checkbox__label-text) {
   color: var(--devui-secondary-text) !important;
 }
 

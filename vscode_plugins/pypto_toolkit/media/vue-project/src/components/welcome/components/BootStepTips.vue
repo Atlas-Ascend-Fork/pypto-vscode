@@ -10,14 +10,14 @@
         :class="`triangle-${triangleConfig.triangleDirection}`"
         :style="triangleOffsetStyle"
       ></div>
-
       <!-- 气泡弹窗容器 -->
       <div class="guide-popup-content" ref="popupContentRef">
         <!-- 顶部进度指示器 -->
         <div class="progress-container">
           <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
             <div class="progress-group">
-              <img :src="group.imgUrl" class="progress-img" />
+              <img v-if="groupIdx<=currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
+              <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
               <div
                 v-for="(step, stepIdx) in group.steps"
                 :key="stepIdx"
@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { getWelcomeState, updateWelcomeState } from '@/apis/welcome';
-import { computed, ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, nextTick, onUnmounted, inject } from 'vue';
 import type { CSSProperties } from 'vue';
 import {
   getCurrentStepConfig,
@@ -70,6 +70,19 @@ import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
+const { isDarkTheme } = inject('root');
+const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`);
+const nativeImg = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimImg = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+
+const controlFlowActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_control_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const nativeActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_native_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_compute_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`);
+
+const imgArr=ref([controlFlowImg,nativeImg,computeImg,swimImg])
+const imgActiveArr=ref([controlFlowActiveImg,nativeActiveImg,computeActiveImg,swimActiveImg])
 
 // 定义步骤类型
 interface GuideStepItem {
@@ -337,7 +350,7 @@ const getTargetDomPosition = () => {
       initialPos = {
         position: 'fixed' as const,
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
-        left: `${domRect.left - popupSize.width - 8}px`,
+        left: `${domRect.left - popupSize.width - 16}px`,
         transform: 'none',
         zIndex: 99999,
         boxSizing: 'border-box',
@@ -347,7 +360,7 @@ const getTargetDomPosition = () => {
       initialPos = {
         position: 'fixed' as const,
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
-        left: `${domRect.right + 8}px`,
+        left: `${domRect.right + 16}px`,
         transform: 'none',
         zIndex: 99999,
         boxSizing: 'border-box',
@@ -356,7 +369,7 @@ const getTargetDomPosition = () => {
     case 'bottom':
       initialPos = {
         position: 'fixed' as const,
-        top: `${domRect.top - popupSize.height - 8}px`,
+        top: `${domRect.top - popupSize.height - 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
         zIndex: 99999,
@@ -366,7 +379,7 @@ const getTargetDomPosition = () => {
     case 'top':
       initialPos = {
         position: 'fixed' as const,
-        top: `${domRect.bottom + 20}px`,
+        top: `${domRect.bottom + 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
         zIndex: 99999,
@@ -780,7 +793,6 @@ onUnmounted(() => {
 .progress-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 20px;
   flex-wrap: nowrap;
 
@@ -794,7 +806,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 10px;
     margin-right: 8px;
   }
 
