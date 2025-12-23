@@ -49,7 +49,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
@@ -280,7 +280,7 @@ onMounted(() => {
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
-  initEventListeners();
+  initMeasurementResizeObserver();
 });
 
 onUnmounted(() => {
@@ -290,7 +290,7 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
-  destroyMeasurementResizeObserver();
+  destroyResizeObserver(resizeObserver);
 });
 
 const onKeyDown = (e) => {
@@ -1996,16 +1996,12 @@ const clearDistanceMeasurement = () => {
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
 };
-const initEventListeners = () => {
-  initMeasurementResizeObserver();
-};
-// 初始化一次 ResizeObserver
 const initMeasurementResizeObserver = () => {
-  // 防止重复初始化
-  if (resizeObserver) return;
+  if (resizeObserver) {
+    return;
+  }
   const container = document.querySelector('.swim-global-container');
   if (!container) {
-    console.warn('Swim container not found for ResizeObserver');
     return;
   }
   resizeObserver = new ResizeObserver(() => {
@@ -2015,16 +2011,7 @@ const initMeasurementResizeObserver = () => {
   });
   resizeObserver.observe(container);
 };
-
-// 销毁函数（在组件卸载时调用）
-const destroyMeasurementResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
-};
 </script>
-
 <style scoped>
 @import url("../css/swimGraph/Processes/events.css");
 </style>

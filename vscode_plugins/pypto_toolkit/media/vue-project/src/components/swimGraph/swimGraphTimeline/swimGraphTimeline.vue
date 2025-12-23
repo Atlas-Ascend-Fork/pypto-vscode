@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, destroyResizeObserver } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
@@ -706,13 +706,13 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
-  initEventListeners();
+  initObservationLineResizeObserver();
   listenExtensionMessage();
 });
 
 onUnmounted(() => {
   throttledRender.cancel();
-  destroyObservationLineResizeObserver();
+  destroyResizeObserver(resizeObserver);
 });
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
@@ -746,16 +746,14 @@ const listenExtensionMessage = () => {
     }
   });
 };
-const initEventListeners = () => {
-  initObservationLineResizeObserver();
-};
 // 初始化一次 ResizeObserver
 const initObservationLineResizeObserver = () => {
   // 防止重复初始化
-  if (resizeObserver) return;
+  if (resizeObserver) {
+    return;
+  }
   const container = document.querySelector('.swim-global-container');
   if (!container) {
-    console.warn('Swim container not found for ResizeObserver');
     return;
   }
   resizeObserver = new ResizeObserver(() => {
@@ -764,14 +762,6 @@ const initObservationLineResizeObserver = () => {
     }
   });
   resizeObserver.observe(container);
-};
-
-// 销毁函数（在组件卸载时调用）
-const destroyObservationLineResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
 };
 const drawVirtualDomAsync = async () => {
   if (await getIsCompleteBoot()) {

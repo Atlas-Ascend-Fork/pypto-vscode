@@ -346,3 +346,11 @@ export const clearWholeProcess = (ctx: any, viewState: any, processKey: string) 
   const { clearWidth, clearHeight } = viewState.clearInfo[processKey];
   ctx.clearRect(0, 0, clearWidth, clearHeight);
 }
+
+// 销毁函数（在组件卸载时调用）
+export const destroyResizeObserver = (resizeObserver) => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+};
