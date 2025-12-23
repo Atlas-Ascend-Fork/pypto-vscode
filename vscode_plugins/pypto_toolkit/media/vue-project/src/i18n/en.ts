@@ -371,7 +371,7 @@ export default {
           },
           step6: {
             title: 'Swimlane Graph - Dependency Analysis',
-            content: 'Clicking a task node in the swimlane diagram opens a details panel where you can view its dependency information.'
+            content: 'Click a task node in the swimlane diagram to open the details panel and view its dependency information.'
           },
           step7: {
             title: 'Swimlane Graph - Jump to Computation Graph',
