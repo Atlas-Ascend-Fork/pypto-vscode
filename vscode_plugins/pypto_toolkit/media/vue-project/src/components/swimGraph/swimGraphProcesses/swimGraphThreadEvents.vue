@@ -49,7 +49,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver, initCommonResizeObserver
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver, initCommonResizeObserver,
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
