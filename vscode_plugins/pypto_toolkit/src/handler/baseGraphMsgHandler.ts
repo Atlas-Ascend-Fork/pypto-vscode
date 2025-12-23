@@ -175,7 +175,7 @@ export abstract class BaseGraphMsgHandler {
     const jsonFile = basename(gd.fsPath);
     let stacks: any[] = [];
     let key: any;
-    
+
     const mpath = jsonFile.match(/PATH\d+_[^_]+/);
     if (mpath) {
       key = jsonFile.slice(0, jsonFile.indexOf(mpath[0]) + mpath[0].length).replace(/^[^_]+_[^_]+_/, '').replace(/\.json$/, '') + '.log';
@@ -296,7 +296,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
 
-  static async layoutByLocal(server: any, gd:any, lastChangeTime: string, funcHash: string) {
+  static async layoutByLocal(server: any, gd: any, lastChangeTime: string, funcHash: string) {
     const renderMode = gd.layoutOptions['PyPTO.renderMode'];
     const comGraphData = this.getElkLayoutComGraghData(server, gd);
     const filePath = comGraphData?.fsPath;
@@ -459,7 +459,7 @@ export abstract class BaseGraphMsgHandler {
         : { level: 0 };
 
       // 处理非根节点图的 parentInfo 补全（仅当有 calleeOpMagic + calleeOpSubgraphId）
-      if (oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
+      if (!parentInfo.calleeOpMagic && !parentInfo.calleeOpSubgraphId && oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
         parentInfo.calleeOpMagic = oldQuery.calleeOpMagic;
         parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
       }
@@ -790,6 +790,9 @@ export abstract class BaseGraphMsgHandler {
 
   protected static async generateFucTree(hash: string, gd: AbstractGraphData): Promise<any> {
     const subHashes = await this.getSubHash(hash, gd); // 沿用原实现
+    if (!subHashes) {
+      return {};
+    }
     const node: any = {};
     if (!Array.isArray(subHashes)) return node;
     for (const h of subHashes) {
@@ -802,7 +805,7 @@ export abstract class BaseGraphMsgHandler {
     let comGraphFuncData: any;
     let resStr = '';
     if (comGraphData.isUsedDB) {
-      comGraphFuncData = await SQLiteCache.getInstance().comGraphFuncDataGet(comGraphData.fsPath, curHash);
+      comGraphFuncData = await SQLiteCache.getInstance().comGraphFuncDataGet(comGraphData.fsPath, curHash, 1, 50);
       resStr = comGraphFuncData?.call_hash_arr;
     } else {
       resStr = comGraphData.callHashArrMap[curHash];
