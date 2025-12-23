@@ -51,7 +51,7 @@ enum RequestType {
   SearchMagic = 3,
 }
 const graphType = toRef(props, 'graphType');
-const filePaths = ref({ swimPath: '', comPath: '' });
+const filePaths = ref({ swimPath: null, comPath: null });
 const swimFileName = ref('merged_swimlane.json');
 const comFileName = ref('program.json');
 const { server } = useViewServer<ICommonViewServer>();
@@ -178,7 +178,7 @@ function setupThreeWatchers(server: any) {
       if (!comPath) {
         comPath = state.comPath
       }
-      filePaths.value = { swimPath, comPath };
+      filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
       if (swimPath) {
         if (noSwimFile.value) {
           noSwimFile.value = false;
@@ -209,7 +209,7 @@ function setupThreeWatchers(server: any) {
     if (!comPath) {
       comPath = state.comPath
     }
-    filePaths.value = { swimPath, comPath };
+    filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
     const promises = [];
     if (swimPath) {
       noSwimFile.value = false;
@@ -264,7 +264,9 @@ onMounted(async () => {
   if (server.fetchVscodeState) {
     server.fetchVscodeState(state);
   }
-  filePaths.value = { swimPath: state.swimDataPath, comPath: state.comPath };
+  if (filePaths.value.swimPath === null) {
+    filePaths.value = { swimPath: state.swimDataPath, comPath: state.comPath };
+  }
   if (state.swimDataPath) {
     if (noSwimFile.value) {
       noSwimFile.value = false;
