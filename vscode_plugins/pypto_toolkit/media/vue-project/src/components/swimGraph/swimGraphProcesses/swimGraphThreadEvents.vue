@@ -1933,7 +1933,6 @@ watch(isDarkTheme, () => {
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
   flagRender();
 });
-// 监听引导模式的消息
 const listenExtensionMessage = async () => {
   if (await getIsCompleteBoot()) {
     guideDistanceMeasurement();
@@ -1968,7 +1967,6 @@ const guideDistanceMeasurement = () => {
       if (events.length < 2) {
         continue;
       }
-      // 查找 sampleEventName 对应的事件索引
       const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventName);
       // 不存在 或 是最后一个（无后续）
       if (preIndex === -1 || preIndex === events.length - 1) {
