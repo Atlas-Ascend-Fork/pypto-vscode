@@ -10,14 +10,14 @@
             <div class="describe__title">{{ t('welcome.startUsingPyPTOToolkit') }}</div>
             <div class="describe__group">
               <div class="describe__detail">{{ t('welcome.pyptoEfficiencyPlugin') }}</div>
-              <div class="describe__version">{{ t('welcome.version') }}:1.0.0-alpha.17</div>
+              <div class="describe__version">{{ t('welcome.version') }}:{{ pluginVersion }}</div>
             </div>
           </div>
         </div>
-        <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false"
+        <div class="guide-step__list" v-if="steps.length">
+          <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false"
           >{{ t('welcome.linuxEnvironmentWarning') }}</d-alert
         >
-        <div class="guide-step__list" v-if="steps.length">
           <!-- 步骤1 -->
           <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
             <div class="step-header" @click="handleStepClick('step1')">
@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { openControlFlow } from '@/apis/opener';
-import { getInitPythonProject, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted } from 'vue';
@@ -165,6 +165,7 @@ const steps = ref<GuideStep[]>([]);
 const activeStepId = ref<string>('');
 const expandedStepId = ref<string>('');
 const isOpenWithPyPto=ref(true)
+const pluginVersion=ref('1.1.1')
 
 // 4. 计算属性
 const activeStep = computed(() => {
@@ -227,7 +228,7 @@ async function goToCheckResult() {
     value: 0,
   });
   openControlFlow({
-    controlFlowPath: `${await getUserRunRoot()}/program.json`,
+    controlFlowPath: `${await getProgramPath()}`,
     outputPath: `${await getUserRunRoot()}`,
     isBootStep:true
   });
@@ -262,6 +263,7 @@ const initSteps = async () => {
   if (isOpenWith===false) {
     isOpenWithPyPto.value=false
   }
+  pluginVersion.value = await getPluginVersion()
 };
 
 onMounted(async () => {
@@ -320,13 +322,14 @@ watch(
       height: 100%;
 
       .system-warning {
-        margin-top: 20px;
-        width: 410px;
+        width: 380px;
         height: 26px;
         font-size: 13px;
         font-weight: 400;
-        background-color: var(--devui-status-warning-bg); // 警告背景
-        color: var(--devui-status-warning-text); // 警告文字
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 26px;
       }
 
       /* 左侧列表标题部分 */

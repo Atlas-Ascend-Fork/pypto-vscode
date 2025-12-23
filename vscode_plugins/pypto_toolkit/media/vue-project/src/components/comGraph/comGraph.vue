@@ -48,7 +48,7 @@ import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { ComGraphProvideKey } from './type';
 import  ErrorNode  from './error-node.vue';
 import {openSwimlaneGraph} from "@/apis/opener";
-import {getUserRunRoot} from "@/apis/welcome";
+import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
@@ -330,7 +330,7 @@ const stepsMap = {
 async function onStepsChange(args) {
   if (args.type === 'openWebviewWithGuide') {
     openSwimlaneGraph({
-      swimlaneGraphPath: `${await getUserRunRoot()}/merged_swimlane.json`,
+      swimlaneGraphPath: `${await getSwimPath()}`,
       isBootStep:true
     });
     server.close();

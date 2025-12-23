@@ -52,7 +52,10 @@ export interface GetOutputDetailRes {
  */
 export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const runDataService = useService('runData');
-  const [record] = await runDataService.query().filter({ directoryPath: outputDirPath }).exec();
+  const record =await runDataService.getRecordByDirectoryPath(outputDirPath)  ;
+  if(!record){
+    return { data: null }
+  }
   const outputUri = vscode.Uri.file(outputDirPath);
   const directoryTree = await getOutputDirectory(outputUri, record);
   if (!directoryTree) {

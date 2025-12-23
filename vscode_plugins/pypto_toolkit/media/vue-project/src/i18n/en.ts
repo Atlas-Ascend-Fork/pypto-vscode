@@ -311,7 +311,7 @@ export default {
           groupName: 'Navigation System',
           step1: {
             title: 'Navigation System - View History Records',
-            content: 'This is the list of running history viewed by the navigation system. Click to expand the list of running history.'
+            content: 'The default display shows the current running records. Clicking on a record will expand the historical running list. Clicking on any record in the list will show an overview of the reply results.'
           },
           step2: {
             title: 'Navigation System - Open Computation Graph',

@@ -81,12 +81,13 @@ export class ThreeColumnServer
   public msgHandler: any;
   public _disposables: any[];
   codePath: string;
+  initPath: string;
   swimDataPath?: string;
   comPath?: string;
   swimData?: SwimData;
   codeMsgHandler?: any;
 
-  query?: {};
+  query?: any;
   constructor(ctx: ViewServerContext) {
     super(ctx);
     if (!ctx.fileUri) {
@@ -94,7 +95,7 @@ export class ThreeColumnServer
     }
     const oldQuery = typeof ctx.fileUri.query === 'string' ? JSON.parse(ctx.fileUri.query) : ctx.fileUri.query ?? {};
     this.codePath = removeSuffix(oldQuery._path);
-
+    this.initPath = this.codePath;
     // 设置视图标题
     const titleNameMatch = ctx.fileUri.path.match(/\/([^\/]+)\.py$/);
     let titleName = 'linkage mode default';
@@ -188,7 +189,7 @@ export class ThreeColumnServer
       this.comPath = message.comPath;
       this.query = {
         fsPath: message.comPath,
-        _path: this.codePath
+        _path: this.initPath
       };
     }
     if (this.swimDataPath || this.comPath) {
@@ -275,7 +276,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
-          _path: this.codePath
+          _path: this.initPath
         };
       }   
       if (!this.swimDataPath || !this.comPath) {
@@ -309,7 +310,7 @@ export class ThreeColumnServer
         this.comPath = comPath;
         this.query = {
           fsPath: comPath,
-          _path: this.codePath
+          _path: this.initPath
         };
       }
       const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
@@ -355,7 +356,7 @@ export class ThreeColumnServer
       this.comPath = comPath;
       this.query = {
         fsPath: comPath,
-        _path: this.codePath
+        _path: this.initPath
       };
     }
     if (this.swimDataPath || this.comPath) {
@@ -409,6 +410,7 @@ export class ThreeColumnServer
     this.comPath = path;
     this.query = {
       fsPath: path,
+      _path: this.initPath
     };
     this.setRef('returnComPath', {data: {comPath: path}});
   }

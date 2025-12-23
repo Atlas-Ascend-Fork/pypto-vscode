@@ -66,8 +66,6 @@ const textOptions = ref([
   "shape",
   "rawshape",
   "offset",
-  "asis",
-  "tobe",
   "datatype",
 ]);
 

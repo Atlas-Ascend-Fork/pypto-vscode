@@ -360,12 +360,13 @@ const listenExtensionMessage = () => {
     mountTarget.appendChild(controlFlowDiv);
   };
   const { server } = useViewServer();
+
   watch(
     () => isLoading.value,
-    (value) => {
+    async (value) => {
       if (!value) {
-        graph.zoomTo(50 / 100);
-        createControlFlowDiv();
+       graph.zoomTo(50 / 100);
+       createControlFlowDiv();
       }
     },
   );

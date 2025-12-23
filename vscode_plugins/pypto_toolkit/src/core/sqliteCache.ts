@@ -423,7 +423,7 @@ export class SQLiteCache {
       return count;
     }, 1, 100, (result) => !result, "comGraphFuncDataGetCount");
   }
-  public async comGraphFuncDataGet(filePath: string, funcHash: string): Promise<ComGraphFuncDataRow | undefined> {
+  public async comGraphFuncDataGet(filePath: string, funcHash: string, maxRetries?: number, delayMs?: number): Promise<ComGraphFuncDataRow | undefined> {
     return await this.retryOperation(async () => {
       const stmt = this.db!.prepare(
         'SELECT file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time FROM com_graph_func_data WHERE file_path=? and func_hash=?',
@@ -435,7 +435,7 @@ export class SQLiteCache {
       }
       stmt.free();
       return row;
-    }, 5, 100, (result) => !result, "comGraphFuncDataGet");
+    }, maxRetries, delayMs, (result) => !result, "comGraphFuncDataGet");
   }
   public async comGraphFuncDataDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_func_data WHERE file_path=?', [filePath]);
