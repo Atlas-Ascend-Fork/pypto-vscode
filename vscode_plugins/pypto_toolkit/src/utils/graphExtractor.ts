@@ -197,7 +197,7 @@ export function searchFunc(
       if (option === 'semantic_label')
         return Object.values(tensorMap)
           .flatMap((m) => Object.values(m))
-          .filter((n) => n.semantic_label?.label === searchKey);
+          .filter((n) => n.semantic_label?.label?.includes(searchKey));
       // 默认模糊
       return Object.values(tensorMap)
         .flatMap((m) => Object.values(m))
