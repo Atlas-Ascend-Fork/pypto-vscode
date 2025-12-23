@@ -124,9 +124,9 @@ const showTip = (target) => {
   const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
   const selSet = new Set(comGraphStore.data.selectCustom);
 
-  const targetLabel = ((!metaDataId.includes('metadata-compartment') && !(metaDataId.includes('main-labels-compartment') && targetTitle.text.startsWith('CALL'))) || (!targetLabelAll.length) || (selSet.size === 0))
+  const targetLabel = (!metaDataId.includes('metadata-compartment') || (!targetLabelAll.length) || (selSet.size === 0))
     ? targetLabelAll
-    : targetLabelAll.filter((item) => item.text.startsWith('InCast') || item.text.startsWith('OutCast') || Array.from(selSet).some((sel) => item.text?.startsWith(sel)));
+    : targetLabelAll.filter((_, idx) => selSet.has(idx));
   titleLabels.value = [];
   currentLabels.value = [];
   titleLabels.value.push(targetTitle.text);

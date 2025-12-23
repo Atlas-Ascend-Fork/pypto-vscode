@@ -1417,18 +1417,14 @@ export class CustomCompartmentView extends SCompartmentView {
   render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
     const isMetadataCompartment = compartment.id.includes("metadata-compartment");
-    const isMainLabelsCompartment = compartment.id.includes('main-labels-compartment') && compartment.children?.[0]?.text.startsWith('InCast');
     const lastChirdPosY = compartment.children?.at(-1)?.position?.y > 0;
 
     const selIndexes = comGraphStore.data.selectCustom;
     const selSet = new Set(selIndexes);
 
     const isMeta = (c: SChildElement) => c.cssClasses?.[0] === "tensor-meta-label";
-    const isOpMeta = (c: SChildElement) => c.cssClasses?.[0] === "operation-meta-label";
     const stepY = 15;
     const tensorBaseY = 4;
-    const opStepY = 16;
-    const opBaseY = 0;
 
     const updateChildElement = (child: SChildElement, idx: number, runningY: number): VNode | undefined => {
       const rawVNode = context.renderElement(child);
@@ -1436,14 +1432,7 @@ export class CustomCompartmentView extends SCompartmentView {
         return undefined;
       };
 
-      let innerTransY = (isMeta(child) ? tensorBaseY + idx * stepY : idx * stepY);
-      if (isMeta(child)) {
-        innerTransY = tensorBaseY + idx * stepY;
-      } else if (isOpMeta(child)) {
-        innerTransY = opBaseY + idx * opStepY;
-      } else {
-        innerTransY = idx * stepY;
-      }
+      const innerTransY = (isMeta(child) ? tensorBaseY + idx * stepY : idx * stepY);
       const textNode = rawVNode.data;
       if(textNode) {
         textNode.attrs ||= {};
@@ -1455,14 +1444,11 @@ export class CustomCompartmentView extends SCompartmentView {
     }
 
     let vnode: VNode;
-    if ((isMetadataCompartment || isMainLabelsCompartment) && selIndexes.length > 0 && lastChirdPosY) {
+    if (isMetadataCompartment && selIndexes.length > 0 && lastChirdPosY) {
       const children: VNode[] = [];
       let runningY = 0;
 
-      const filterMetadataCompartments = compartment.children.filter(
-        (item) =>
-          item.text.startsWith('InCast') || item.text.startsWith('OutCast') || Array.from(selSet).some((sel) => item.text?.startsWith(sel)),
-      );
+      const filterMetadataCompartments = compartment.children.filter((_, idx) => selSet.has(idx));
       filterMetadataCompartments.forEach((element, index) => {
         const ele = updateChildElement(element, index, runningY);
         if (ele) {
