@@ -67,19 +67,15 @@ const textOptions = ref([
   "rawshape",
   "offset",
   "datatype",
+  "calleehash"
 ]);
 
 const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange', 'selectNodesChange']);
 
 const selectedValues = ref([]);
-const selectedIndexes = computed(()=>{
-  return selectedValues.value.map(value =>{
-    return textOptions.value.indexOf(value);
-  });
-});
 
 const OnTextChange = (val) => {
-  comGraphStore.setData("selectCustom", selectedIndexes.value);
+  comGraphStore.setData("selectCustom", selectedValues.value);
   emits('selectNodesChange', val);
 }
 

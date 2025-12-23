@@ -1,11 +1,11 @@
 <template>
   <div class="node-rect" v-if="showNodeTip" :style="nodeTipStyle">
-    <div class="title-rect" :style="{ backgroundColor: titleRectColor, height: titleRectHeight + 'px' }">
-      <div class="label-title">{{ currentLabels[0] }} </div>
-      <div class="sub-title">{{ currentLabels[1] }} </div>
+    <div class="title-rect" :style="{ backgroundColor: titleRectColor }">
+      <div class="label-title">{{ titleLabels[0] }} </div>
+      <div v-if="titleLabels[1]" class="sub-title">{{ titleLabels[1] }} </div>
       <div class="label-magic">{{ tipNodeMagic }} </div>
     </div>
-    <div v-for="(lbl, idx) in currentLabels.slice(2)" :key="idx" class="label-line">
+    <div v-for="(lbl, idx) in currentLabels" :key="idx" class="label-line">
       <span class="key">{{ lbl.split(':')[0] }}:</span>
       <span class="val">{{ lbl.split(':').slice(1).join(':') }}</span>
     </div>
@@ -24,10 +24,10 @@ const nodeTipHeight = ref(0);
 const nodeTipLeft = ref(0);
 const nodeTipTop = ref(0);
 const tipColor = ref('');
+const titleLabels = ref<string[]>([]);
 const currentLabels = ref<string[]>([]);
 const tipNodeMagic = ref('0');
 const titleRectColor = ref('');
-const titleRectHeight = ref(48);
 const scale = ref(1);
 let timer;
 
@@ -124,24 +124,20 @@ const showTip = (target) => {
   const targetLabelAll = target.children?.[0].children?.[1]?.children ?? [];
   const selSet = new Set(comGraphStore.data.selectCustom);
 
-  const targetLabel = ((!metaDataId.includes('metadata-compartment')) || (!targetLabelAll.length) || (selSet.size === 0))
+  const targetLabel = ((!metaDataId.includes('metadata-compartment') && !metaDataId.includes('main-labels-compartment')) || (!targetLabelAll.length) || (selSet.size === 0))
     ? targetLabelAll
-    : targetLabelAll.filter((_, idx) => selSet.has(idx));
+    : targetLabelAll.filter((item) => item.text.startsWith('InCast') || item.text.startsWith('OutCast') || Array.from(selSet).some((sel) => item.text?.startsWith(sel)));
+  titleLabels.value = [];
   currentLabels.value = [];
-  currentLabels.value.push(targetTitle.text);
-  if (target.size.height > 50) {
-    titleRectHeight.value = 48;
-  } else {
-    titleRectHeight.value = 0;
-  }
+  titleLabels.value.push(targetTitle.text);
   if (target.role == 'input' || target.role == 'output') {
-    const slotStr = `Slot ID:    ${JSON.stringify(targetTitle.slotId)}`;
-    currentLabels.value.push(slotStr);
     tipColor.value = 'var(--devui-node-bg)';
     titleRectColor.value = 'var(--devui-node-bg)';
   } else {
-    const subgraphidStr = `Subgraph ID:    ${JSON.stringify(targetTitle.subgraphId)}`;
-    currentLabels.value.push(subgraphidStr);
+    if (targetTitle.text.startsWith('CALL')) {
+      const subgraphidStr = `Subgraph ID:    ${JSON.stringify(targetTitle.subgraphId)}`;
+      titleLabels.value.push(subgraphidStr);
+    }
     if (target.role == 'tensor') {
       tipColor.value = 'var(--devui-node-bg)';
     } else {
@@ -157,7 +153,7 @@ const showTip = (target) => {
 onMounted(() => {
   (window as any).ascEventBus.on('closeNodeTip', (flag) => {
     clearTimeout(timer);
-    showNodeTip.value = false;
+    //showNodeTip.value = false;
   });
   (window as any).ascEventBus.on('showNodeTip', (target) => {
     clearTimeout(timer);
@@ -177,17 +173,15 @@ onMounted(() => {
   display: flex;
   font-weight: 600;
   line-height: 15.67px;
-  margin-bottom: 4px;
   font-size: 9.91px;
   padding-left: 10px;
-  padding-top: 8px;
 }
 
 .sub-title {
   color: var(--devui-primary-text);
   font-weight: 400;
   line-height: 12.82px;
-  margin-bottom: 12px;
+  margin-top: 4px;
   font-size: 8.55px;
   padding-left: 10px;
   white-space: pre;
@@ -218,9 +212,8 @@ onMounted(() => {
 
 .title-rect {
   width: 100%;
-  height: 48px;
   border-radius: 8px 8px 0 0;
-  top: 0;
+  padding: 8px 0;
   position: relative;
 }
 
