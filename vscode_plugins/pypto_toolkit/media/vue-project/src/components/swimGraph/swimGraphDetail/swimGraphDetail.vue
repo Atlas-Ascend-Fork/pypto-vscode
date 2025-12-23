@@ -67,12 +67,12 @@
                 </template>
                 <template v-else>
                   <div class="argstime">
-                    <span class="third-text">duration</span>
-                    <span class="main-text">{{ selectedEvent.duration }}</span>
+                    <span class="third-text">duration (μs)</span>
+                    <span class="main-text">{{ formattedDuration }}</span>
                   </div>
                   <div class="argstime">
-                    <span class="third-text">end_time</span>
-                    <span class="main-text">{{ selectedEvent.endTime - viewState.minTime }}</span>
+                    <span class="third-text">end_time (μs)</span>
+                    <span class="main-text">{{ formattedEndTime }}</span>
                   </div>
                   <div style="display: none;">
                     <span>last_pred</span>
@@ -83,8 +83,8 @@
                     <span>3640</span>
                   </div>
                   <div class="argstime">
-                    <span class="third-text">start_time</span>
-                    <span class="main-text">{{ selectedEvent.startTime - viewState.minTime }}</span>
+                    <span class="third-text">start_time (μs)</span>
+                    <span class="main-text">{{ formattedStartTime }}</span>
                   </div>
                   <div style="display: none;">
                     <span>subgraph_average</span>
@@ -410,6 +410,19 @@ const successors = computed(() => {
     id2event[id]
   ).filter(e => e);
 });
+
+const formatDuration = (value, minTime = 0) => {
+  if (!value) {
+    return '0';
+  }
+  let duration = value - minTime;
+  const decimalPlaces = duration.toString().split('.')[1]?.length || 0;
+  const placesToKeep = Math.min(decimalPlaces, 3);
+  return placesToKeep === 0 ? duration.toString() : duration.toFixed(placesToKeep);
+};
+const formattedDuration = computed(() => formatDuration(selectedEvent.value?.duration));
+const formattedStartTime = computed(() => formatDuration(selectedEvent.value?.startTime, viewState.minTime));
+const formattedEndTime = computed(() => formatDuration(selectedEvent.value?.endTime, viewState.minTime));
 
 const getEventDisplayName = (event) => {
   return event.isCounter ? event.displayName : (event.name || 'Event');
