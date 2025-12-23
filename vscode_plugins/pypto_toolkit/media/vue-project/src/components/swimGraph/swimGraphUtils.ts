@@ -40,7 +40,7 @@ export const nodeSpaceMin = 58;
 
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
-
+let resizeObserver = null;
 export const setDevicePixelRatio = (ratio: number) => {
   devicePixelRatio = ratio;
   eventTextSize = 12 * devicePixelRatio;
@@ -346,9 +346,21 @@ export const clearWholeProcess = (ctx: any, viewState: any, processKey: string) 
   const { clearWidth, clearHeight } = viewState.clearInfo[processKey];
   ctx.clearRect(0, 0, clearWidth, clearHeight);
 }
+const initCommonResizeObserver = (mode, drawFn, swimConfig) => {
+  if (resizeObserver) return;
+  const container = document.querySelector('.swim-global-container');
+  if (!container) return;
+
+  resizeObserver = new ResizeObserver(() => {
+    if (swimConfig.currentStepTargetDomId === mode) {
+      requestAnimationFrame(drawFn);
+    }
+  });
+  resizeObserver.observe(container);
+};
 
 // 销毁函数（在组件卸载时调用）
-export const destroyResizeObserver = (resizeObserver) => {
+export const destroyResizeObserver = () => {
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;

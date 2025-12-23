@@ -49,7 +49,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver, initCommonResizeObserver
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
@@ -71,7 +71,6 @@ let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false); // 选定状态
-let resizeObserver = null;
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -280,7 +279,7 @@ onMounted(() => {
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
-  initMeasurementResizeObserver();
+  initCommonResizeObserver('distance-measurement', guideDistanceMeasurement, swimConfig);
 });
 
 onUnmounted(() => {
@@ -290,7 +289,7 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
-  destroyResizeObserver(resizeObserver);
+  destroyResizeObserver();
 });
 
 const onKeyDown = (e) => {
@@ -1995,21 +1994,6 @@ const clearDistanceMeasurement = () => {
     const uiCtx = getUIContext(processkey);
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
-};
-const initMeasurementResizeObserver = () => {
-  if (resizeObserver) {
-    return;
-  }
-  const container = document.querySelector('.swim-global-container');
-  if (!container) {
-    return;
-  }
-  resizeObserver = new ResizeObserver(() => {
-    if (swimConfig.currentStepTargetDomId === 'distance-measurement') {
-      requestAnimationFrame(guideDistanceMeasurement);
-    }
-  });
-  resizeObserver.observe(container);
 };
 </script>
 <style scoped>

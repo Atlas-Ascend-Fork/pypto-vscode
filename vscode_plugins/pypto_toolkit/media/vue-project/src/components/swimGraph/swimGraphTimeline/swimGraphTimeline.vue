@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, destroyResizeObserver } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, destroyResizeObserver, initCommonResizeObserver } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
@@ -111,7 +111,6 @@ const flagtooltipStyle = reactive({
 })
 const isEditing = ref(false);
 const editTime = ref('00:00:00.123456789');
-let resizeObserver = null;
 const editmodelStyle = reactive({
   display: 'none',
   left: '0px',
@@ -706,13 +705,13 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
-  initObservationLineResizeObserver();
+  initCommonResizeObserver('observation-line', drawVirtualDomAsync, swimConfig);
   listenExtensionMessage();
 });
 
 onUnmounted(() => {
   throttledRender.cancel();
-  destroyResizeObserver(resizeObserver);
+  destroyResizeObserver();
 });
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
@@ -745,23 +744,6 @@ const listenExtensionMessage = () => {
       }
     }
   });
-};
-// 初始化一次 ResizeObserver
-const initObservationLineResizeObserver = () => {
-  // 防止重复初始化
-  if (resizeObserver) {
-    return;
-  }
-  const container = document.querySelector('.swim-global-container');
-  if (!container) {
-    return;
-  }
-  resizeObserver = new ResizeObserver(() => {
-    if (swimConfig.currentStepTargetDomId === 'observation-line') {
-      requestAnimationFrame(drawVirtualDomAsync);
-    }
-  });
-  resizeObserver.observe(container);
 };
 const drawVirtualDomAsync = async () => {
   if (await getIsCompleteBoot()) {
