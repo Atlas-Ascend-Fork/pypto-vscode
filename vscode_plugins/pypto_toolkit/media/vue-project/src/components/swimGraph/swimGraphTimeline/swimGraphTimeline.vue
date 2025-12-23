@@ -711,7 +711,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   throttledRender.cancel();
-  destroyResizeObserver();
 });
 // 监听引导模式的消息
 const listenExtensionMessage = () => {

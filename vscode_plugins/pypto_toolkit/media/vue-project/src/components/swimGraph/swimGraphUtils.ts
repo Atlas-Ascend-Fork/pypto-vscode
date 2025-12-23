@@ -40,6 +40,7 @@ export const nodeSpaceMin = 58;
 
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
+
 export const setDevicePixelRatio = (ratio: number) => {
   devicePixelRatio = ratio;
   eventTextSize = 12 * devicePixelRatio;
