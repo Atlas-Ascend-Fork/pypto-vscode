@@ -437,9 +437,7 @@ export class AstgrNodeLabelView extends ShapeView {
     let vnode;
     const subType = getSubType(label);
     let subgraphId = '';
-    if (label.slotId && Array.isArray(label.slotId)) {
-      subgraphId += 'Slot ID： ' + (`[${label.slotId.join(',')}]` || '[]');
-    } else {
+    if (!(label.slotId && Array.isArray(label.slotId))){
       subgraphId += 'Subgraph ID： ' + label.subgraphId;
     }
 
@@ -464,11 +462,11 @@ export class AstgrNodeLabelView extends ShapeView {
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
-      const idText = (
+      const idText = subgraphId && label.text.startsWith('CALL') ? (
         <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
           {subgraphId}
         </text>
-      );
+      ) : null;
       vnode = (
         <g>
           {titleText}
@@ -477,7 +475,7 @@ export class AstgrNodeLabelView extends ShapeView {
       );
       if (subType) {
         setAttr(titleText, 'class', 'tensor-title-label');
-        setAttr(idText, 'class', 'tensor-subgraphId-label');
+        idText && setAttr(idText, 'class', 'tensor-subgraphId-label');
       }
     } else if (label.cssClasses[0].includes('-meta-label')) {
       let node = label.parent.parent.parent;
@@ -934,7 +932,7 @@ export class AstgrTensorView extends RectangularNodeView {
       }
     }
 
-    const blurBgRectHeight = 48;
+    const blurBgRectHeight = 30;
 
     /* root节点的类型判断，是否使用亮色 */
     let titleBackgroundFillColor = node.baseColor;
@@ -1419,14 +1417,18 @@ export class CustomCompartmentView extends SCompartmentView {
   render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
     const isMetadataCompartment = compartment.id.includes("metadata-compartment");
+    const isMainLabelsCompartment = compartment.id.includes('main-labels-compartment');
     const lastChirdPosY = compartment.children?.at(-1)?.position?.y > 0;
 
     const selIndexes = comGraphStore.data.selectCustom;
     const selSet = new Set(selIndexes);
 
     const isMeta = (c: SChildElement) => c.cssClasses?.[0] === "tensor-meta-label";
+    const isOpMeta = (c: SChildElement) => c.cssClasses?.[0] === "operation-meta-label";
     const stepY = 15;
     const tensorBaseY = 4;
+    const opStepY = 16;
+    const opBaseY = 0;
 
     const updateChildElement = (child: SChildElement, idx: number, runningY: number): VNode | undefined => {
       const rawVNode = context.renderElement(child);
@@ -1434,7 +1436,14 @@ export class CustomCompartmentView extends SCompartmentView {
         return undefined;
       };
 
-      const innerTransY = (isMeta(child) ? tensorBaseY + idx * stepY : idx * stepY);
+      let innerTransY = (isMeta(child) ? tensorBaseY + idx * stepY : idx * stepY);
+      if (isMeta(child)) {
+        innerTransY = tensorBaseY + idx * stepY;
+      } else if (isOpMeta(child)) {
+        innerTransY = opBaseY + idx * opStepY;
+      } else {
+        innerTransY = idx * stepY;
+      }
       const textNode = rawVNode.data;
       if(textNode) {
         textNode.attrs ||= {};
@@ -1446,11 +1455,14 @@ export class CustomCompartmentView extends SCompartmentView {
     }
 
     let vnode: VNode;
-    if (isMetadataCompartment && selIndexes.length > 0 && lastChirdPosY) {
+    if ((isMetadataCompartment || isMainLabelsCompartment) && selIndexes.length > 0 && lastChirdPosY) {
       const children: VNode[] = [];
       let runningY = 0;
 
-      const filterMetadataCompartments = compartment.children.filter((_, idx) => selSet.has(idx));
+      const filterMetadataCompartments = compartment.children.filter(
+        (item) =>
+          item.text.startsWith('InCast') || item.text.startsWith('OutCast') || Array.from(selSet).some((sel) => item.text?.startsWith(sel)),
+      );
       filterMetadataCompartments.forEach((element, index) => {
         const ele = updateChildElement(element, index, runningY);
         if (ele) {
