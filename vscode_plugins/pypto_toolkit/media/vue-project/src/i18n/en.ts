@@ -355,7 +355,7 @@ export default {
           },
           step2: {
             title: 'Swimlane Graph - Add Observation Line on Time Axis',
-            content: 'Supports adding time reference lines by hovering over or clicking the timeline.'
+            content: 'Hover over the timeline to preview a time reference line, and click to add it.'
           },
           step3: {
             title: 'Swimlane Graph - Operation Area',
@@ -363,7 +363,7 @@ export default {
           },
           step4: {
             title: 'Swimlane Graph - Enable Time Measurement - View Core Utilization Statistics',
-            content: 'Click the measurement mode button in the upper right corner of the swimlane graph, and click and drag to draw a measurement range in the main operation area or select nodes with the mouse to view core utilization statistics.'
+            content: 'Click the Measurement Mode button in the top-right corner of the swimlane diagram, then either drag to define a measurement area or select nodes by box selection in the main workspace to view CPU core utilization statistics.'
           },
           step5: {
             title: 'Swimlane Graph - View Node Details',
@@ -371,7 +371,7 @@ export default {
           },
           step6: {
             title: 'Swimlane Graph - Dependency Analysis',
-            content: 'Click a task node in the swimlane graph to display the node details panel, and then view node dependency information.'
+            content: 'Clicking a task node in the swimlane diagram opens a details panel where you can view its dependency information.'
           },
           step7: {
             title: 'Swimlane Graph - Jump to Computation Graph',
