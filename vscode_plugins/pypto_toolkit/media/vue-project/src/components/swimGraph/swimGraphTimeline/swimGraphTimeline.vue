@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, destroyResizeObserver, initCommonResizeObserver } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
@@ -705,7 +705,7 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
-  initCommonResizeObserver('observation-line', drawVirtualDomAsync, swimConfig);
+  initEventListeners();
   listenExtensionMessage();
 });
 
@@ -744,6 +744,15 @@ const listenExtensionMessage = () => {
       }
     }
   });
+};
+const initEventListeners = () => {
+  window.addEventListener('resize', onWindowResize);
+};
+const onWindowResize = (event) => {
+  if (swimConfig.currentStepTargetDomId !== 'observation-line') {
+    return;
+  }
+  drawVirtualDomAsync();
 };
 const drawVirtualDomAsync = async () => {
   if (await getIsCompleteBoot()) {

@@ -49,7 +49,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, destroyResizeObserver, initCommonResizeObserver,
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight,
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
@@ -279,7 +279,7 @@ onMounted(() => {
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
-  initCommonResizeObserver('distance-measurement', guideDistanceMeasurement, swimConfig);
+  initEventListeners();
 });
 
 onUnmounted(() => {
@@ -289,7 +289,6 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
-  destroyResizeObserver();
 });
 
 const onKeyDown = (e) => {
@@ -1992,6 +1991,15 @@ const clearDistanceMeasurement = () => {
     const uiCtx = getUIContext(processkey);
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
+};
+const initEventListeners = () => {
+  window.addEventListener('resize', onWindowResize);
+};
+const onWindowResize = (event) => {
+  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+    return;
+  }
+  guideDistanceMeasurement();
 };
 </script>
 <style scoped>
