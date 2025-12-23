@@ -437,9 +437,7 @@ export class AstgrNodeLabelView extends ShapeView {
     let vnode;
     const subType = getSubType(label);
     let subgraphId = '';
-    if (label.slotId && Array.isArray(label.slotId)) {
-      subgraphId += 'Slot ID： ' + (`[${label.slotId.join(',')}]` || '[]');
-    } else {
+    if (!(label.slotId && Array.isArray(label.slotId))){
       subgraphId += 'Subgraph ID： ' + label.subgraphId;
     }
 
@@ -464,11 +462,11 @@ export class AstgrNodeLabelView extends ShapeView {
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
-      const idText = (
+      const idText = subgraphId && label.text.startsWith('CALL') ? (
         <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
           {subgraphId}
         </text>
-      );
+      ) : null;
       vnode = (
         <g>
           {titleText}
@@ -477,7 +475,7 @@ export class AstgrNodeLabelView extends ShapeView {
       );
       if (subType) {
         setAttr(titleText, 'class', 'tensor-title-label');
-        setAttr(idText, 'class', 'tensor-subgraphId-label');
+        idText && setAttr(idText, 'class', 'tensor-subgraphId-label');
       }
     } else if (label.cssClasses[0].includes('-meta-label')) {
       let node = label.parent.parent.parent;
@@ -934,7 +932,7 @@ export class AstgrTensorView extends RectangularNodeView {
       }
     }
 
-    const blurBgRectHeight = 48;
+    const blurBgRectHeight = 30;
 
     /* root节点的类型判断，是否使用亮色 */
     let titleBackgroundFillColor = node.baseColor;

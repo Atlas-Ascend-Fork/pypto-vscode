@@ -509,7 +509,7 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "In";
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
+        tensorName = `${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-out`;
         const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
         const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
@@ -589,7 +589,7 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "Out";
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
+        tensorName = `${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-in`;
         const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
         const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
@@ -726,7 +726,7 @@ export class AscppDagBuilder {
         }
 
         let symbol = rawTensor?.symbol || "Tensor";
-        symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
+        symbol = `${symbol} (${rawTensor!.rawmagic})`;
 
         const graphId = tensor?.subgraphid ?? -1;
         let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
@@ -918,7 +918,7 @@ export class AscppDagBuilder {
             }
 
             let symbol = rawTensor?.symbol || "Tensor";
-            symbol = `${tensorMagic} ${symbol} (${rawTensor!.rawmagic})`;
+            symbol = `${symbol} (${rawTensor!.rawmagic})`;
 
             // Create more detailed label information
             const labelParts: string[] = [];
@@ -1255,7 +1255,7 @@ export class AscppDagBuilder {
             }
             let tensorName = rawTensor?.symbol || "In";
 
-            tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
+            tensorName = `${tensorName} (${rawTensor!.rawmagic})`
             const graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
             const portId = `tensor-${tensorMagic}-${graphId}-out`;
@@ -1312,7 +1312,7 @@ export class AscppDagBuilder {
 
         // Get the raw tensor ID and then lookup the tensor name
         let tensorName = rawTensor?.symbol || "In";
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+        tensorName = `${tensorName} (${rawTensor.rawmagic})`
 
         const graphId = -1;
         const nodeId = `parent-incast-${index}-tensor-${index}-${graphId}`;
@@ -1350,7 +1350,7 @@ export class AscppDagBuilder {
         // Get the raw tensor ID and then lookup the tensor name
         let tensorName = rawTensor?.symbol || "Out";
 
-        tensorName = `${tensorMagic} ${tensorName} (${rawTensor.rawmagic})`
+        tensorName = `${tensorName} (${rawTensor.rawmagic})`
 
         const graphId = -1;
         const nodeId = `parent-outcast-${index}-tensor-${index}-${graphId}`;
@@ -1423,7 +1423,7 @@ export class AscppDagBuilder {
             }
             let tensorName = rawTensor?.symbol || "Out";
 
-            tensorName = `${tensorMagic} ${tensorName} (${rawTensor!.rawmagic})`
+            tensorName = `${tensorName} (${rawTensor!.rawmagic})`
 
             let graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
@@ -1752,6 +1752,7 @@ export class AscppDagBuilder {
             if (op.opcode === 'CALL') {
                 labelParts.push(`InCast: [${op.ioperands.join(',')}]`);
                 labelParts.push(`OutCast: [${op.ooperands.join(',')}]`);
+                labelParts.push(`calleehash: ${op.calleehash}`);
                 const callChildren: any = {
                     type: 'compartment',
                     id: `${opId}-main-labels-compartment`,
