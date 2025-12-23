@@ -459,7 +459,7 @@ export abstract class BaseGraphMsgHandler {
         : { level: 0 };
 
       // 处理非根节点图的 parentInfo 补全（仅当有 calleeOpMagic + calleeOpSubgraphId）
-      if (oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
+      if ( !parentInfo.calleeOpMagic && !parentInfo.calleeOpSubgraphId && oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
         parentInfo.calleeOpMagic = oldQuery.calleeOpMagic;
         parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
       }
