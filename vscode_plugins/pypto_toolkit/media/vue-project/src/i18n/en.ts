@@ -351,11 +351,11 @@ export default {
           groupName: 'Swimlane Graph',
           step1: {
             title: 'Swimlane Graph - Distance Measurement',
-            content: 'Automatic distance measurement between adjacent nodes in the same swimlane, or manual distance measurement across swimlanes or nodes.'
+            content: 'Supports automatic distance measurement between adjacent nodes within the same swimlane, as well as manual distance measurement across swimlanes or between arbitrary nodes.'
           },
           step2: {
             title: 'Swimlane Graph - Add Observation Line on Time Axis',
-            content: 'Hover the mouse over the time axis or click the time axis to add a time observation line.'
+            content: 'Supports adding time reference lines by hovering over or clicking the timeline.'
           },
           step3: {
             title: 'Swimlane Graph - Operation Area',
