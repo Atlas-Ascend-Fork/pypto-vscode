@@ -57,7 +57,10 @@
         "command": "PyPTO.OpenWelcomeGuide",
         "title": "%PyPTOToolkit.welcome.open%",
         "category": "PyPTO.OpenWelcomeGuide",
-        "icon": "webview-dist/static-assets/boot_steps_open_sideBar.svg"
+        "icon": {
+          "light": "webview-dist/static-assets/boot_steps_open_sideBar-light.svg",
+          "dark": "webview-dist/static-assets/boot_steps_open_sideBar.svg"
+        }
       }
     ],
     "menus": {

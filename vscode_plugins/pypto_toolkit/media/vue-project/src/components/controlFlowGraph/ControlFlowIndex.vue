@@ -354,7 +354,7 @@ const listenExtensionMessage = () => {
 
     const controlFlowDiv = document.createElement('div');
     controlFlowDiv.id = 'boot-steps-controlFlow';
-    controlFlowDiv.style = 'position: absolute;top: 58%;  left: 30%;';
+    controlFlowDiv.style = 'position: absolute;top: 30%;  left: 40%;';
     const controlFlowStartElement = document.querySelector('#boot-controlFlow-index');
     const mountTarget = controlFlowStartElement;
     mountTarget.appendChild(controlFlowDiv);
@@ -365,7 +365,7 @@ const listenExtensionMessage = () => {
     () => isLoading.value,
     async (value) => {
       if (!value) {
-       graph.zoomTo(50 / 100);
+       graph.zoomTo(60 / 100);
        createControlFlowDiv();
       }
     },

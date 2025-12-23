@@ -211,6 +211,20 @@ export function getExtensionMode() {
   return 'production';
 }
 
+
+async function checkDependencies(outputChannel: vscode.OutputChannel, address: string){
+ // 定义需安装的依赖
+ const dependencies = ['argparse', 'numpy', 'torch', 'pypto']; // 注意:pypto若为自定义包需确认pip源可下载
+ outputChannel.clear();
+
+ // 安装依赖,失败则终止执行
+ const installSuccess = await installPythonDependencies(dependencies, outputChannel, address);
+ if (!installSuccess) {
+   vscode.window.showErrorMessage(`Python ${t('PyPTOToolkit.welcome.runPython.installErr')}`);
+   return;
+ }
+}
+
 /**
  * 执行 Python 文件并处理输出结果
  * @param outputChannel 输出面板单例
@@ -220,16 +234,6 @@ export function getExtensionMode() {
  */
 export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
-    // 定义需安装的依赖
-    const dependencies = ['argparse', 'numpy', 'torch', 'pypto']; // 注意:pypto若为自定义包需确认pip源可下载
-    outputChannel.clear();
-
-    // 安装依赖,失败则终止执行
-    const installSuccess = await installPythonDependencies(dependencies, outputChannel, address);
-    if (!installSuccess) {
-      vscode.window.showErrorMessage(`Python ${t('PyPTOToolkit.welcome.runPython.installErr')}`);
-      return;
-    }
 
     // 执行 Python 文件,获取输出结果
     outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
@@ -242,15 +246,16 @@ export async function runPythonScript(outputChannel: vscode.OutputChannel, pytho
       outputChannel.appendLine(`[result stdout] ${result.stdout}`);
       // 根据Python输出结果判断Python文件最终是否执行成功
       if (result.stdout.includes('Hello World')) {
-        vscode.window.showInformationMessage('Run Python Success!');
+        vscode.window.showInformationMessage('Hello World');        
       }
+      return true
     } else {
       outputChannel.appendLine(`[state] error`);
       outputChannel.appendLine(`[error message] ${result.error?.message || 'undefined'}`);
       outputChannel.appendLine(`[error stderr] ${result.stderr}`);
+      return false
     }
   } catch (error) {
     console.log(error);
-    vscode.window.showErrorMessage(`Run Python error ${error}`);
   }
 }

@@ -6,7 +6,7 @@ const WELCOME = 'welcome';
 /**
  * 运行脚本初始化工程
  */
-export function getInitPythonProject(): Promise<void> {
+export function getInitPythonProject(): Promise<boolean> {
   return request.post(`${WELCOME}/getInitPythonProject`, null);
 }
 

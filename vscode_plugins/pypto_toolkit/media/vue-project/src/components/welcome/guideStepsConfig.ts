@@ -41,7 +41,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         targetDomId: 'boot-steps-controlFlow',
         method: 'checkControlFlow',
         showTriangle: false,
-        triangleDirection: 'right',
+        triangleDirection: 'bottom',
       },
       {
         title: 'bootStep.controlFlow.step2.title',
@@ -97,56 +97,56 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     imgUrl: computeImg.value,
     openWebviewParams: { outputPath: '', computeGraphPath: '', pathName: 'compute' },
     steps: [
-      {
-        title: 'bootStep.computeGraph.step1.title',
-        content: 'bootStep.computeGraph.step1.content',
-        method: '',
-        methodParams: {},
-        targetDomId: 'navbarComGraphTab',
-        showTriangle: true,
-        triangleDirection: 'top',
-      },
-      {
-        title: 'bootStep.computeGraph.step2.title',
-        content: 'bootStep.computeGraph.step2.content',
-        method: 'viewNodeDetail',
-        methodParams: {
-          nodeId: 'tensor-5692-2',
-          nodeTitleLabelId: 'tensor-5692-2-label-main',
-        },
-        targetDomId: 'sprotty_tensor-5692-2-label-main',
-        showTriangle: true,
-        triangleDirection: 'top',
-      },
-      {
-        title: 'bootStep.computeGraph.step3.title',
-        content: 'bootStep.computeGraph.step3.content',
-        method: 'searchNode',
-        methodParams: {
-          searchKey: '5818',
-          selectedTags: [
-            {
-              label: 'Tensor',
-              field: 'Tensor',
-              value: { Option: 'magic', value: { Option: 'magic' } },
-            },
-          ],
-        },
-        targetDomId: 'comGraphHeaderSearch',
-        showTriangle: true,
-        triangleDirection: 'right',
-      },
-      {
-        title: 'bootStep.computeGraph.step4.title',
-        content: 'bootStep.computeGraph.step4.content',
-        method: 'focusCurrentPath',
-        methodParams: {
-          searchNodeId: 'tensor-5818-3',
-        },
-        targetDomId: 'sprotty_tensor-5818-3',
-        showTriangle: true,
-        triangleDirection: 'top',
-      },
+      // {
+      //   title: 'bootStep.computeGraph.step1.title',
+      //   content: 'bootStep.computeGraph.step1.content',
+      //   method: '',
+      //   methodParams: {},
+      //   targetDomId: 'navbarComGraphTab',
+      //   showTriangle: true,
+      //   triangleDirection: 'top',
+      // },
+      // {
+      //   title: 'bootStep.computeGraph.step2.title',
+      //   content: 'bootStep.computeGraph.step2.content',
+      //   method: 'viewNodeDetail',
+      //   methodParams: {
+      //     nodeId: 'tensor-5692-2',
+      //     nodeTitleLabelId: 'tensor-5692-2-label-main',
+      //   },
+      //   targetDomId: 'sprotty_tensor-5692-2-label-main',
+      //   showTriangle: true,
+      //   triangleDirection: 'top',
+      // },
+      // {
+      //   title: 'bootStep.computeGraph.step3.title',
+      //   content: 'bootStep.computeGraph.step3.content',
+      //   method: 'searchNode',
+      //   methodParams: {
+      //     searchKey: '5818',
+      //     selectedTags: [
+      //       {
+      //         label: 'Tensor',
+      //         field: 'Tensor',
+      //         value: { Option: 'magic', value: { Option: 'magic' } },
+      //       },
+      //     ],
+      //   },
+      //   targetDomId: 'comGraphHeaderSearch',
+      //   showTriangle: true,
+      //   triangleDirection: 'right',
+      // },
+      // {
+      //   title: 'bootStep.computeGraph.step4.title',
+      //   content: 'bootStep.computeGraph.step4.content',
+      //   method: 'focusCurrentPath',
+      //   methodParams: {
+      //     searchNodeId: 'tensor-5818-3',
+      //   },
+      //   targetDomId: 'sprotty_tensor-5818-3',
+      //   showTriangle: true,
+      //   triangleDirection: 'top',
+      // },
       {
         title: 'bootStep.computeGraph.step5.title',
         content: 'bootStep.computeGraph.step5.content',
