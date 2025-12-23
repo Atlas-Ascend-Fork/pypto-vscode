@@ -335,7 +335,7 @@ export default {
           },
           step4: {
             title: 'View Only Current Path',
-            content: 'Right-click a node and select "Lock Path and Highlight" from the drop-down menu to view only the current path, avoiding interference and accurately viewing the target context.'
+            content: 'Right-click on a node, and you can choose to view only the current path from the dropdown menu to avoid distractions and accurately examine the relationships before and after the target.'
           },
           step5: {
             title: 'Computation Graph Diff View',
