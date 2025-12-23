@@ -225,7 +225,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step6.content',
         targetDomId: 'canvas-container', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'bottom',
       },
       {
         title: 'bootStep.swimlaneGraph.step7.title',
@@ -267,7 +267,7 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
 };
 
 export let swimConfig = {
-  threadKey: '1-1000',
-  sampleEventName: '218-25 (z )',
+  threadKey: '1-1034',
+  sampleEventName: '0-0-7-25-1(b1-matmul2)',
   currentStepTargetDomId: '',
 };

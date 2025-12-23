@@ -111,6 +111,7 @@ const flagtooltipStyle = reactive({
 })
 const isEditing = ref(false);
 const editTime = ref('00:00:00.123456789');
+let resizeObserver = null;
 const editmodelStyle = reactive({
   display: 'none',
   left: '0px',
@@ -711,6 +712,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   throttledRender.cancel();
+  destroyObservationLineResizeObserver();
 });
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
@@ -745,13 +747,31 @@ const listenExtensionMessage = () => {
   });
 };
 const initEventListeners = () => {
-  window.addEventListener('resize', onWindowResize);
+  initObservationLineResizeObserver();
 };
-const onWindowResize = (event) => {
-  if (swimConfig.currentStepTargetDomId !== 'observation-line') {
+// 初始化一次 ResizeObserver
+const initObservationLineResizeObserver = () => {
+  // 防止重复初始化
+  if (resizeObserver) return;
+  const container = document.querySelector('.swim-global-container');
+  if (!container) {
+    console.warn('Swim container not found for ResizeObserver');
     return;
   }
-  drawVirtualDomAsync();
+  resizeObserver = new ResizeObserver(() => {
+    if (swimConfig.currentStepTargetDomId === 'observation-line') {
+      requestAnimationFrame(drawVirtualDomAsync);
+    }
+  });
+  resizeObserver.observe(container);
+};
+
+// 销毁函数（在组件卸载时调用）
+const destroyObservationLineResizeObserver = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 };
 const drawVirtualDomAsync = async () => {
   if (await getIsCompleteBoot()) {

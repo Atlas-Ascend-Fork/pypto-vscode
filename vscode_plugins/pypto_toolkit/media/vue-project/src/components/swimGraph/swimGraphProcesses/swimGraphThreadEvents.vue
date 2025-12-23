@@ -71,6 +71,7 @@ let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false); // 选定状态
+let resizeObserver = null;
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -289,6 +290,7 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
+  destroyMeasurementResizeObserver();
 });
 
 const onKeyDown = (e) => {
@@ -1995,13 +1997,31 @@ const clearDistanceMeasurement = () => {
   }
 };
 const initEventListeners = () => {
-  window.addEventListener('resize', onWindowResize);
+  initMeasurementResizeObserver();
 };
-const onWindowResize = (event) => {
-  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+// 初始化一次 ResizeObserver
+const initMeasurementResizeObserver = () => {
+  // 防止重复初始化
+  if (resizeObserver) return;
+  const container = document.querySelector('.swim-global-container');
+  if (!container) {
+    console.warn('Swim container not found for ResizeObserver');
     return;
   }
-  guideDistanceMeasurement();
+  resizeObserver = new ResizeObserver(() => {
+    if (swimConfig.currentStepTargetDomId === 'distance-measurement') {
+      requestAnimationFrame(guideDistanceMeasurement);
+    }
+  });
+  resizeObserver.observe(container);
+};
+
+// 销毁函数（在组件卸载时调用）
+const destroyMeasurementResizeObserver = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 };
 </script>
 
