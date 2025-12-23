@@ -1417,7 +1417,7 @@ export class CustomCompartmentView extends SCompartmentView {
   render(compartment: Readonly<SCompartmentImpl>, context: RenderingContext, args?: IViewArgs): VNode | undefined {
     const translate = `translate(${compartment.bounds.x}, ${compartment.bounds.y})`;
     const isMetadataCompartment = compartment.id.includes("metadata-compartment");
-    const isMainLabelsCompartment = compartment.id.includes('main-labels-compartment');
+    const isMainLabelsCompartment = compartment.id.includes('main-labels-compartment') && compartment.children?.[0]?.text.startsWith('InCast');
     const lastChirdPosY = compartment.children?.at(-1)?.position?.y > 0;
 
     const selIndexes = comGraphStore.data.selectCustom;
