@@ -1251,6 +1251,8 @@ const onWindowResize = throttle((event) => {
   // 重新渲染所有内容
   render();
   drawMeasureTime();
+  timelineComponent.value.observationLineResize();
+  childContextMap.threadEvent.distanceMeasurementResize();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline = true) => {
