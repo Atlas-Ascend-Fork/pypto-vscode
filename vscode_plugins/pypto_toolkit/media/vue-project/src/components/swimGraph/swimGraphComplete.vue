@@ -2004,13 +2004,9 @@ const updateTheme = () => {
 };
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
-    console.log('listenExtensionMessage')
-
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
-    console.log(event)
     if (event.type === 'welcomeSkipAll') {
-      console.log('welcomeSkipAll')
       server.close();
     }
     if (event.type == 'callWebviewMethod') {
@@ -2028,7 +2024,7 @@ const listenExtensionMessage = () => {
           renderTwoTimeline();
           getEventInfo();
           break;
-        case 'measureDetailSearch':
+        case 'measureDetailSearch': {
           const totalWidth = viewState.canvasCssWidth + layout.processLabelWidth;
           measureDragStartX.value = totalWidth * (1 / 3);
           measureDragEndX.value = totalWidth * (2 / 3);
@@ -2041,6 +2037,7 @@ const listenExtensionMessage = () => {
           measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
           document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
           break;
+        }
         default:
           break;
       }
