@@ -295,11 +295,11 @@ export default {
           groupName: 'Control Flow',
           step1: {
             title: 'Control Flow - View Control Flow Graph',
-            content: 'The control flow graph displays the structure of the control flow, allowing you to clearly understand control flow logic and relationships such as loops and branch judgments. Click the leaf function, called function-called, or calling function-callee in the rectangular Path card to open the details of the path node on the right. The next step will demonstrate the effect of clicking the leaf function.'
+            content: 'The flow graph control displays the structure of the control flow. You can understand the control flow logic and relationships, such as loops and branching statements, through voice prompts. Clicking on the number of leaf functions, the number of times a leaf function is called, or the number of times a leaf function is called in the planned path will open the details of that path node on the right. The next step will be to practice clicking on the number of leaf functions.'
           },
           step2: {
             title: 'Control Flow - View Path Node Panel',
-            content: 'Called function-called displays the number of sub-functions of the current PATH node; Calling function-callee displays the number of times the current PATH node calls other functions; All computation graphs display the list of all computation graphs of the current node. Click any PASS in the list to open the corresponding computation graph page.'
+            content: 'The number of times leaf is called displays the number of child functions of the current PATH node; the number of times leaf is called displays the number of times the function is called by the current PATH node; the list of all computation graphs displays a list of all computation graphs of the current node, and clicking PASS in the list will open the corresponding computation graph page.'
           },
           step3: {
             title: 'Control Flow - Search Bar',

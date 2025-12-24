@@ -9,13 +9,19 @@
     }"> </div>
     <span class="error-text">{{ props.jsonContent }}</span>
     <span class="error-text">{{ props.errorLog }}</span>
-    <fileSelect :file-name="comFileName"/>
+    <d-button variant="solid" @click="openSelectedFileWindow" class="mt10">{{ $t('openFile') }}</d-button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref } from 'vue';
-import fileSelect from '../threeColumn/file-select.vue';
+import { defineProps, ref, inject } from 'vue';
+import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
+import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+import { useViewServer } from '../../core/use-view-server';
+const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
+const { currentActiveBlock, BlockToGraphMap } = inject(
+  ThreeColumnProvideKey,
+) as IThreeColumnCtx;
 
 const errorSvgPath = ref(`"${window.staticPath}/static-assets/data_error.svg"`);
 
@@ -27,12 +33,12 @@ const props = defineProps({
   errorLog: {
     type: String,
     default: ''
-  },
-  comFileName: {
-    type:String,
-    default:'',
   }
 })
+
+const openSelectedFileWindow = () => {
+  threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
+}
 
 </script>
 
@@ -58,6 +64,10 @@ const props = defineProps({
     letter-spacing: 0px;
     text-align: center;
     white-space: pre-wrap;
+  }
+
+  .mt10 {
+    margin-top: 10px;
   }
 }
 </style>
