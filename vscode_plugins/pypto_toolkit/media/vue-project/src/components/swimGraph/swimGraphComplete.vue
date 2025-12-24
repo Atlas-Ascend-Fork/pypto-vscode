@@ -544,6 +544,7 @@ const clearDependencyLines = (processKey) => {
 };
 
 const render = () => {
+  resetState();
   renderTwoTimeline();
   renderEvent();
   renderDependencyLines();
