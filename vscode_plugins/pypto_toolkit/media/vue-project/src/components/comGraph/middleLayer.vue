@@ -75,6 +75,7 @@ if (graphType.value === 'swimGraph') {
 function setupComWatchers(server: any) {
   watch(server.ErrorMessage, (newValue) => {
     comErrorMessage.value = newValue.data;
+    jsonContent.value = '';
     errorLog.value = newValue.log;
   });
 
@@ -235,6 +236,9 @@ function setupThreeWatchers(server: any) {
     }
     if (newValue.swimDataPath) {
       pushState({ swimDataPath: newValue.swimDataPath });
+    }
+    if (newValue.codePath) {
+      pushState({ codePath: newValue.codePath });
     }
   });
   watch(server.returnComPath, async (path) => {

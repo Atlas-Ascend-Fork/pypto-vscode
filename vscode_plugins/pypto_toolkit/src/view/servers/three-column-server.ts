@@ -192,17 +192,17 @@ export class ThreeColumnServer
         _path: this.initPath
       };
     }
-    if (this.swimDataPath || this.comPath) {
-      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    if (message.codePath) {
+      this.codePath = message.codePath;
     }
   };
   @viewApi()
   public getSwimData = async (message) => {
-    if(!this.swimDataPath){
+    if(message.swimDataPath){
       this.swimDataPath = message.swimDataPath;
     }
     const packages = await SwimGraphMsgHandler.getSwimData(this);
-    if(packages){
+    if (packages) {
       return stream.Readable.toWeb(stream.Readable.from(packages));
     }
     return;
@@ -278,7 +278,7 @@ export class ThreeColumnServer
           fsPath: comPath,
           _path: this.initPath
         };
-      }   
+      }
       if (!this.swimDataPath || !this.comPath) {
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
         this.setRef('returnInitPath', { data: pathMsg });
@@ -366,33 +366,36 @@ export class ThreeColumnServer
     this.setRef('returnSearchPath', { data: pathMsg });
   };
   @viewApi()
-  public singleSelectFile = async (message: {graphType: string}) => {
+  public singleSelectFile = async (message: { graphType: string }) => {
     if (!message || !message.graphType) {
-      return ;
+      return;
     }
     const validGraphTypes = ['editor', 'swimGraph', 'comGraph'];
-    if ( !validGraphTypes.includes(message.graphType)) {
+    if (!validGraphTypes.includes(message.graphType)) {
       return;
     }
     try {
-      const {path} = await new Fider(this.codePath).selectPath(message.graphType);
+      const { path } = await new Fider(this.codePath).selectPath(message.graphType);
       if (!path) {
-        return ;
+        return;
       }
       switch (message.graphType) {
         case 'editor':
           await this.handleCodeGraph(path);
           const graphData = ComGraphHandler.getGrahpDataExtend(this);
-          const fullData = await graphData.getCompleteData(graphData.fsPath);
-          ComGraphHandler.getSemanticObj(this, fullData);
+          if (graphData) {
+            const fullData = await graphData.getCompleteData(graphData.fsPath);
+            ComGraphHandler.getSemanticObj(this, fullData);
+          }
           break;
         case 'swimGraph':
           await this.handleSwimGraph(path);
           break;
         case 'comGraph':
           await this.handleComGraph(path);
-          break;                      
+          break;
       }
+      this.setRef('SetVscodeState', { codePath: this.codePath, comPath: this.comPath, swimDataPath: this.swimDataPath });
     } catch (error) {
       console.log(`Error processing graphType ${message.graphType}:`, error)
     }
@@ -401,7 +404,7 @@ export class ThreeColumnServer
     this.codePath = path;
     try {
       const code = readFileSync(path, 'utf8');
-      this.setRef('PyCode', { data: { code, codePath:path } });
+      this.setRef('PyCode', { data: { code, codePath: path } });
     } catch (err) {
       console.error(`${path}读取 py 文件时发生错误:`, err);
     }
@@ -412,12 +415,12 @@ export class ThreeColumnServer
       fsPath: path,
       _path: this.initPath
     };
-    this.setRef('returnComPath', {data: {comPath: path}});
+    this.setRef('returnComPath', { data: { comPath: path } });
   }
   private async handleSwimGraph(path: string) {
     this.swimDataPath = path;
     this.swimData = new SwimData(Uri.file(path), path);
-    this.setRef('returnSwimPath', {data: {swimPath: path}});
+    this.setRef('returnSwimPath', { data: { swimPath: path } });
   };
 
   safeParse(str) {
