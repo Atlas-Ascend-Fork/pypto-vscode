@@ -119,6 +119,7 @@ import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
 import { pushState, pullState } from '../../core/state';
+import { swimConfig } from '../welcome/guideStepsConfig';
 
 const { server } = useViewServer();
 
@@ -1251,6 +1252,8 @@ const onWindowResize = throttle((event) => {
   // 重新渲染所有内容
   render();
   drawMeasureTime();
+  timelineComponent.value.observationLineResize();
+  childContextMap.threadEvent.distanceMeasurementResize();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline = true) => {
@@ -2045,20 +2048,24 @@ const listenExtensionMessage = () => {
   });
 };
 const getEventInfo = () => {
-  for (const [processkey, process] of processes.entries()) {
-    if (!processExpanded.get(processkey)) {
+  for (const [processKey, process] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
       continue;
     }
-    for (const [threadKey, thread] of process.threads.entries()) {
-        if (thread.events.length > 0) {
-          selectEvent(thread.events[0], processkey);
-          break;
-        }
-      }
+    const thread = process.threads.get(swimConfig.threadKey);
+    if (!thread || thread.events.length === 0) {
+      continue;
+    }
+    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventName);
+    const [firstEvent] = thread.events;
+    const targetEvent = matchedEvent ?? firstEvent;
+    if (targetEvent) {
+      selectEvent(targetEvent, processKey);
+      return;
+    }
   }
 };
 </script>
-
 <style>
 @import url('css/common.css');
 </style>

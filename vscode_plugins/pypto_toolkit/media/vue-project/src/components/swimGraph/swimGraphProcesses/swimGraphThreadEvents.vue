@@ -279,7 +279,6 @@ onMounted(() => {
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
-  initEventListeners();
 });
 
 onUnmounted(() => {
@@ -1882,7 +1881,12 @@ const sendMsg = (command, param) => {
 const drawLockedOutline = () => {
   handleOutline(lockedLabel, true, true, true);
 };
-
+const distanceMeasurementResize = () => {
+  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+    return;
+  }
+  guideDistanceMeasurement();
+};
 addChildContext('threadEvent', {
   drawLockedOutline,
   getCanvasHeight,
@@ -1908,12 +1912,11 @@ addChildContext('threadEvent', {
   drawBoundary: threeRender.drawBoundary,
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,
+  distanceMeasurementResize
 });
-
 watch(isHoverLockStatus, () => {
   sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
 });
-
 // 每个事件画布都会走一遍
 watch(isDarkTheme, () => {
   colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
@@ -1932,7 +1935,6 @@ watch(isDarkTheme, () => {
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
   flagRender();
 });
-// 监听引导模式的消息
 const listenExtensionMessage = async () => {
   if (await getIsCompleteBoot()) {
     guideDistanceMeasurement();
@@ -1967,21 +1969,18 @@ const guideDistanceMeasurement = () => {
       if (events.length < 2) {
         continue;
       }
-      // 查找 sampleEventName 对应的事件索引
       const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventName);
-      // 不存在 或 是最后一个（无后续）
       if (preIndex === -1 || preIndex === events.length - 1) {
         continue; 
       }
       const preData = events[preIndex];
       const lastData = events[preIndex + 1];
-      // 更新全局状态（如果确实需要）
       altClickData.preData = preData;
       altClickData.lastData = lastData;
       const uiCtx = getUIContext(processKey);
       measureRenderer.drawRoundedRect(uiCtx, lastData, processKey);
       measureRenderer.calculateAndDrawConnection(uiCtx);
-      break; // 找到目标线程即可退出
+      break;
     }
   }
 };
@@ -1994,17 +1993,7 @@ const clearDistanceMeasurement = () => {
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
 };
-const initEventListeners = () => {
-  window.addEventListener('resize', onWindowResize);
-};
-const onWindowResize = (event) => {
-  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
-    return;
-  }
-  guideDistanceMeasurement();
-};
 </script>
-
 <style scoped>
 @import url("../css/swimGraph/Processes/events.css");
 </style>

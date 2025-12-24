@@ -705,7 +705,6 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
-  initEventListeners();
   listenExtensionMessage();
 });
 
@@ -744,10 +743,7 @@ const listenExtensionMessage = () => {
     }
   });
 };
-const initEventListeners = () => {
-  window.addEventListener('resize', onWindowResize);
-};
-const onWindowResize = (event) => {
+const observationLineResize = () => {
   if (swimConfig.currentStepTargetDomId !== 'observation-line') {
     return;
   }
@@ -788,6 +784,7 @@ defineExpose({
   handleWheel,
   flagRender,
   changeScale,
+  observationLineResize
 });
 </script>
 
