@@ -355,7 +355,7 @@ export abstract class BaseGraphMsgHandler {
       cache = await SQLiteCache.getInstance().comGraphLayoutGet(filePath, funcHash);
     }
     if (renderMode === 'path' || !cache || lastChangeTime !== cache.last_change_time) {
-      if (vscode.extensions.getExtension('huawei-cloud.elk-java-layout-ext')) {
+      if (vscode.extensions.getExtension('hakan-6666.java-elk-extension')) {
         vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.postLayoutData')
       } else {
         this.layoutByLocal(server, gd, lastChangeTime, funcHash);
