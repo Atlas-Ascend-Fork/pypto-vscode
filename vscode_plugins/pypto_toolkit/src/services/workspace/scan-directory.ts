@@ -14,6 +14,7 @@ import {
 import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
 import { hasHealthReport, isHealthReport } from '../../utils/health-report';
+import { isFileUriExists } from '../../utils/file-system';
 
 /**
  * 运行结果
@@ -40,7 +41,7 @@ async function getControlFlowFile(outputUri: vscode.Uri, record: OutputRecord): 
     return [];
   }
   const controlFlowUri = vscode.Uri.file(record.controlFlowFilePath);
-  if (!(await isFileExist(controlFlowUri))) {
+  if (!(await isFileUriExists(controlFlowUri))) {
     return [];
   }
   return [
@@ -63,7 +64,7 @@ async function getSwimlaneFile(outputUri: vscode.Uri, record: OutputRecord): Pro
     return [];
   }
   const swimlaneFileUri = vscode.Uri.file(record.swimlaneGraphFilePath);
-  if (!(await isFileExist(swimlaneFileUri))) {
+  if (!(await isFileUriExists(swimlaneFileUri))) {
     return [];
   }
   return [
@@ -182,15 +183,6 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
   }
 
   return graphs;
-}
-
-async function isFileExist(fileUri: vscode.Uri): Promise<boolean> {
-  try {
-    await vscode.workspace.fs.stat(fileUri);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function isComputeGraph(subPath: string, { passIndex, passName }: Pass): boolean {

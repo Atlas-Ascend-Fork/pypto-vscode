@@ -5,7 +5,14 @@
         <HistoryNpuIcon v-if="isNpu" />
         <HistoryIcon v-else />
       </div>
-      <HistoryList ref="historyListEl" :current-record="currentRecord" :page="page" :all-loaded="allLoaded" @load-more="handleLoadMore" />
+      <HistoryList
+        id="boot-steps-navbar-history"
+        ref="historyListEl"
+        :current-record="currentRecord"
+        :page="page"
+        :all-loaded="allLoaded"
+        @load-more="handleLoadMore"
+      />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -16,7 +23,11 @@
       </d-tooltip>
       <ThreeDot v-if="showControlFlow" dot-color="var(--devui-placeholder-icon)" />
       <d-tooltip v-if="showControlFlow" :content="t('controlFlow')" position="bottom" :disabled="currentStep === 'controlFlow'">
-        <div :class="['navbar-control-flow', currentStep === 'controlFlow' && 'active']" @click="jumpControlFlow">
+        <div
+          id="boot-steps-navbar-com-graph"
+          :class="['navbar-control-flow', currentStep === 'controlFlow' && 'active']"
+          @click="jumpControlFlow"
+        >
           <ControlFlowIcon />
           <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
         </div>
@@ -28,8 +39,8 @@
         position="bottom"
         :disabled="currentStep === 'comGraph'"
       >
-        <div :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
-          <div class="com-graph-icon-wrap">
+        <div id="navbarComGraphTab" :class="['com-graph', currentStep === 'comGraph' && 'active']" @click="onJumpCom">
+          <div id="boot-steps-navbar-open-com-graph" class="com-graph-icon-wrap">
             <ComGraphIcon />
           </div>
           <div v-if="getControlFlowError" class="com-graph-error" :title="comGraphName">{{ comGraphName }}</div>
@@ -45,7 +56,7 @@
       </d-tooltip>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
       <d-tooltip v-if="showSwim" :content="t('swimGraph')" position="bottom">
-        <div class="swim-graph" @click="jumpSwim">
+        <div id="boot-steps-navbar-open-swm-graph" class="swim-graph" @click="jumpSwim">
           <SwimIcon />
         </div>
       </d-tooltip>

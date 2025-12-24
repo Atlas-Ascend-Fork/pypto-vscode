@@ -1,5 +1,5 @@
 <template>
-  <div class="zoom-controls" :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
+  <div class="zoom-controls" :id=zoomControl :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
     <div class="left-container" :class="{ 'left-container-search': isSearchActive}" v-if="threeColumnHeaderVisible">
       <div class="search-container-res" v-if="threeColumnSearchVisible">
         <div class="search-container">
@@ -51,7 +51,7 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('Measure')">
-        <d-button id= "measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
+        <d-button id="measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
           <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>
@@ -63,7 +63,7 @@
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;" id="pmu-report">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
         </div>
@@ -214,6 +214,7 @@ const reportVisible = ref(false);
 const isExporting = ref(false);
 const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
+const zoomControl = ref('');
 
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
@@ -720,11 +721,13 @@ onMounted(() => {
   updateTheme();
   document.addEventListener('click', handleClickOutsize);
   isThreeColumnHeader();
+  zoomControl.value = isThreeColumn.value ? 'zoom-controls-three' : 'zoom-controls';
 });
 
 defineExpose({
   leftmove,
-  rightmove
+  rightmove,
+  closeDrawer
 })
 </script>
 

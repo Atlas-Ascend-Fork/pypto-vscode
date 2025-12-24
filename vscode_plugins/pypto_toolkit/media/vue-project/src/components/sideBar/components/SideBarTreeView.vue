@@ -91,6 +91,8 @@ import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
 import SideBarSearch from './SideBarSearch.vue';
 import LoadMoreTrigger from '../../util/LoadMoreTrigger.vue';
+import { openPyPTOWelcome } from '@/apis/opener';
+import { getWelcomeState } from '@/apis/welcome';
 
 type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
 
@@ -195,8 +197,16 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
   callback({ treeItems, node: parentNode });
 }
 
-onMounted(() => {
-  getOutputs();
+onMounted(async () => {
+
+  getOutputs(1);
+  const isOpenWith = (await getWelcomeState({
+    key: 'guideSteps-isOpenWithPyPto',
+  }));
+  if (isOpenWith !== false) {
+    openPyPTOWelcome();
+  }
+
   // 禁用原生右键菜单
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止原生菜单弹出
@@ -220,7 +230,7 @@ function clearList() {
 function handleReload() {
   clearList();
   page.value = 1;
-  getOutputs();
+  getOutputs(page.value);
 }
 
 /**
@@ -231,13 +241,13 @@ function handleLoadMore() {
     return;
   }
   page.value += 1;
-  getOutputs();
+  getOutputs(page.value);
 }
 
-async function getOutputs(): Promise<void> {
+async function getOutputs(loadingPage: number): Promise<void> {
   isLoading.value = true;
   try {
-    const { data } = await getOutputRecords({ page: page.value, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
+    const { data } = await getOutputRecords({ page: loadingPage, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
     // 再次清空列表，避免并发请求导致数据异常
     if (page.value === 1) {
       clearList();

@@ -1,6 +1,6 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath" :pathName="pathName"
+    <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath" :pathName="pathName"
       :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
       :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
@@ -47,6 +47,8 @@ import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { ComGraphProvideKey } from './type';
 import  ErrorNode  from './error-node.vue';
+import {openSwimlaneGraph} from "@/apis/opener";
+import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
@@ -104,6 +106,7 @@ const switchLockInformationFlag = ref(false);
 const leafCalledRecordMap = ref<Record<string, number>>({});
 const currentLeafName = ref('');
 const nodeErrorList = ref([]);
+const headerEl = ref();
 const minimapOffsetRight = computed(() => {
   if (showNodeDetail.value || showLeafCalledRecord.value) {
     return 480;
@@ -295,6 +298,49 @@ function onViewMouseDown() {
 function onMouseup() {
   isDragging.value = false;
 }
+
+// 步骤2查看节点详情
+function viewNodeDetail(params: Record<string, any>) {
+  // 关闭步骤3搜索结果下拉框
+  headerEl.value.hideSearchResMenu();
+  // 选中并居中节点
+  centerNodeAction([params.nodeId], undefined, undefined, 1);
+  selectAction([params.nodeId]);
+}
+
+// 步骤3搜索节点
+function searchNode(params: Record<string, any>) {
+  // 填充搜索条件
+  headerEl.value.updateSearchParams(params);
+}
+
+// 步骤4只看当前通路
+function focusCurrentPath(params) {
+  // 聚焦搜索的节点
+  centerNodeAction([params.searchNodeId]);
+  selectAction([params.searchNodeId]);
+  // 只看当前通路
+  setFixedComGraphFlow(true, true, params.searchNodeId);
+}
+const stepsMap = {
+  viewNodeDetail,
+  searchNode,
+  focusCurrentPath
+}
+async function onStepsChange(args) {
+  if (args.type === 'openWebviewWithGuide') {
+    openSwimlaneGraph({
+      swimlaneGraphPath: `${await getSwimPath()}`,
+      isBootStep:true
+    });
+    server.close();
+    return;
+  }
+  if (args.type === 'welcomeSkipAll') {
+    server.close();
+  }
+  stepsMap[args.data.methodName](args.data.params);
+}
 onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', onViewMouseUp);
   (window as any).ascEventBus.on('message_notice', onMessageNotice);
@@ -307,6 +353,8 @@ onMounted(() => {
   }
   (window as any).ascEventBus.on('view_mousedown', onViewMouseDown);
   document.addEventListener('mouseup', onMouseup);
+  // 监听操作指引每个步骤需要触发的操作
+  (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
 });
 
 onBeforeUnmount(() => {
@@ -317,6 +365,7 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('layoutEnding', onLayoutEnding);
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
   document.removeEventListener('mouseup', onMouseup);
+  (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
 });
 
 // 统一出口：解除固定

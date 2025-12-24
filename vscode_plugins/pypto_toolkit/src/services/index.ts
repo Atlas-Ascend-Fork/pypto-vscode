@@ -1,7 +1,5 @@
-import * as vscode from 'vscode';
-
 import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
-import { openComputeGraph, openControlFlow, openPtoConfig, openSwimlaneGraph } from './tmp-view-opener';
+import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph } from './tmp-view-opener';
 import { getOutputRecords, getOutputDetail } from './workspace';
 import { RunDataService } from './run-data';
 import {
@@ -16,8 +14,25 @@ import {
   updateConfigsFile,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getSwimPath, getUserRunRoot, isLinuxEnvironment } from './welcome';
+import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
+import { WelcomeViewServer } from '../view/servers/welcom-server';
 
 export const services = {
+  welcome: {
+    getInitPythonProject,
+    updateWelcomeState,
+    getWelcomeState,
+    isLinuxEnvironment,
+    getIsCompleteBoot,
+    getUserRunRoot,
+    getProgramPath,
+    getSwimPath,
+    getPluginVersion,
+    skipAll() {
+      WelcomeViewServer.skipGuide();
+    },
+  },
   // 控制流
   controlFlow: {
     /** 获取控制流 */
@@ -71,6 +86,7 @@ export const services = {
     openSwimlaneGraph,
     openPtoConfig,
     getTileFwkConfigData,
+    openPyPTOWelcome,
   },
 };
 

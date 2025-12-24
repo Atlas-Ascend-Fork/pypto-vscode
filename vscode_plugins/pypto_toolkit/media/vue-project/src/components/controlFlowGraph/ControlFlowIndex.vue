@@ -3,7 +3,7 @@
     <!-- 代码预览组件 -->
     <CodeSnippetPreview :config="codePreviewState" :theme="isDarkTheme ? 'vs-dark' : 'vs'" @close="codePreviewState.isVisible = false" />
   </div>
-  <div class="g6-flow-chart">
+  <div class="g6-flow-chart" ref="graphContainerRef">
     <RightPanel ref="sideBarRef"></RightPanel>
     <div class="tool-navbar">
       <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath" />
@@ -58,11 +58,11 @@
       </div>
     </template>
   </div>
-  <Loading v-if="isLoading" :loadingText="'loading'" />
+  <Loading class="loading-index" v-if="isLoading" :loadingText="t('public.loading')" />
 </template>
 
 <script lang="ts" setup>
-import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CommonEvent, ExtensionCategory, Graph, GraphEvent, register } from '@antv/g6';
 import RightPanel from '@/components/controlFlowGraph/components/RightPanel.vue';
@@ -82,6 +82,10 @@ import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
 import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectItem } from './type/node-detail-types';
 import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
+import { openComputeGraph } from '@/apis/opener';
+import { getIsCompleteBoot } from '@/apis/welcome';
+import { useViewServer } from '@/core/use-view-server';
+import { JsxEmit } from 'typescript';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -100,6 +104,8 @@ const initZoom = ref();
 const isActive = ref(false);
 const options = ref([]);
 const combosNode = ref(null);
+const isBoot = ref(false);
+const graphContainerRef = ref(null);
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -327,11 +333,96 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
   isGraphVisible.value = true;
   isLoading.value = false;
 };
+const stepOpenSidebaNode = ref();
+
+// 由引导弹窗控制打开侧边栏
+function bootStepOpenSideBar() {
+  sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 0);
+}
+function closeSidebar() {
+  sideBarRef.value.drawerVisible = false;
+}
+
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  // 封装动态创建DOM的函数（核心逻辑）
+  const createControlFlowDiv = () => {
+    // 防重复创建：先检查是否已存在该ID的元素
+    const existingElement = document.getElementById('boot-steps-controlFlow');
+    if (existingElement) {
+      return;
+    }
+
+    const controlFlowDiv = document.createElement('div');
+    controlFlowDiv.id = 'boot-steps-controlFlow';
+    controlFlowDiv.style = 'position: absolute;top: 30%;  left: 40%;';
+    const controlFlowStartElement = document.querySelector('#boot-controlFlow-index');
+    const mountTarget = controlFlowStartElement;
+    mountTarget.appendChild(controlFlowDiv);
+  };
+  const { server } = useViewServer();
+
+  watch(
+    () => isLoading.value,
+    async (value) => {
+      if (!value) {
+       graph.zoomTo(60 / 100);
+       createControlFlowDiv();
+      }
+    },
+  );
+
+  (window as any).ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type === 'welcomeSkipAll') {
+      server.close();
+    }
+    if (event.type === 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'checkControlFlow':
+          closeSidebar();
+          graph.zoomTo(50 / 100);
+          break;
+        case 'bootStepOpenSideBar':
+          bootStepOpenSideBar();
+          break;
+        case 'bootStepSearch':
+          closeSidebar();
+          break;
+        case 'viewNavigationHistory':
+          closeSidebar();
+          break;
+        default:
+          break;
+      }
+    }
+    if (event.type === 'openWebviewWithGuide') {
+      switch (message.openWebviewFn) {
+        case 'openComputeGraph':
+          const length = stepOpenSidebaNode.value.data.source.meta?.passes.length;
+          openComputeGraph({
+            outputPath: outPutPath.value as string,
+            computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
+            pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
+            isBootStep: true,
+          });
+
+          server.close();
+          break;
+        default:
+          break;
+      }
+    }
+  });
+};
 
 const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
+  if (await getIsCompleteBoot()) {
+    listenExtensionMessage();
+  }
   const res = await getQuery();
   outPutPath.value = res.url;
   programPath.value = res._path;
@@ -349,7 +440,7 @@ onMounted(async () => {
 
   const { nodes, edges, combos } = transformData(rootData.value);
   combosNode.value = [...combos, ...nodes];
-
+  stepOpenSidebaNode.value = nodes[0];
   await initG6Graph(nodes, edges, combos);
   combosNode.value.forEach((item) => (clearAllNodeState[item.id] = []));
   // 初始化搜索组件数据源
@@ -397,7 +488,9 @@ onUnmounted(() => {
   box-sizing: border-box;
   background-color: var(--control-flow-bg);
 }
-
+.loading-index {
+  z-index: 99999999;
+}
 .tool-navbar {
   position: absolute !important;
   z-index: 10;

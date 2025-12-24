@@ -16,6 +16,7 @@ import { SwimGraphView } from './view/swimGraphView.js';
 import { loadMaterialColorUtilities } from './color-list';
 import { SidebarViewProvider } from './view/SidebarViewProvider';
 import { t } from 'i18next';
+import { openPyPTOWelcome } from './services/tmp-view-opener';
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -88,7 +89,7 @@ export async function activate(context: ExtensionContext) {
     server.addWebview(viewPanel.webview);
   });
   registerCommand.register(editorView);
-  
+
   const sidebarViewProvider = new SidebarViewProvider();
 
   vscode.window.registerWebviewViewProvider(
@@ -121,6 +122,10 @@ async function initDB(context: ExtensionContext) {
     await SQLiteCache.getInstance().deleteForCommand();
     await clearAllStores();
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
+  });
+
+  vscode.commands.registerCommand('PyPTO.OpenWelcomeGuide', async () => {
+    openPyPTOWelcome();
   });
 
   // 3. 监听停用

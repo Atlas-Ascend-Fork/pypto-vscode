@@ -16,6 +16,7 @@
 import SideBarTreeView from './components/SideBarTreeView.vue';
 import SideBarRunConfigView from './components/SideBarRunConfigView.vue';
 import SplitViewContainer from '../util/split-view/SplitViewContainer.vue';
+
 </script>
 
 <style scoped lang="less">

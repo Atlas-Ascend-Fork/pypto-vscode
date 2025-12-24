@@ -4,11 +4,14 @@ import { ComputeGraphServer } from './servers/com-graph-server';
 import { ThreeColumnServer } from './servers/three-column-server';
 import { SwimGraphServer } from './servers/swim-graph-server';
 import { RunConfigViewServer } from './servers/run-config-view-server';
+import { WelcomeViewServer } from './servers/welcom-server';
+import { ControlFlowViewServer } from './servers/controlFlow-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
   // 控制流
   controlFlow: {
     title: () => t('PyPTOToolkit.workspace.controlFlowName'),
+    viewServer: ControlFlowViewServer,
   },
   // 计算图
   computeGraph: {
@@ -34,5 +37,11 @@ export const routes: EditorViewRoutes = {
   editRunConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
     viewServer: RunConfigViewServer,
+  },
+
+  // 欢迎页面
+  welcome: {
+    title: ()=>t('PyPTOToolkit.welcome.page'),
+    viewServer: WelcomeViewServer,
   },
 };

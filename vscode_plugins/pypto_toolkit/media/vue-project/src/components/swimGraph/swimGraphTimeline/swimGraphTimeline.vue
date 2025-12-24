@@ -1,5 +1,5 @@
 <template>
-  <div class="timeline" 
+  <div class="timeline" id="timeline-container"
   @mousedown="timelineMouseDown($event)" @mousemove="timelineMouseMove($event)" @mouseup="timelineMouseUp($event)"
   @mouseleave="timelineMouseOut($event)">
     <!-- 一段时间轴区域 -->
@@ -51,7 +51,8 @@ import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
-
+import { getIsCompleteBoot } from '@/apis/welcome';
+import { swimConfig } from '@/components/welcome/guideStepsConfig';
 const { server } = useViewServer();
 
 const { t: $t } = useI18n();
@@ -115,8 +116,6 @@ const editmodelStyle = reactive({
   left: '0px',
   top: '0px'
 })
-
-
 const toggleEditModel = () => {
   isEditing.value = false;
   refLabel.value = '';
@@ -706,12 +705,75 @@ const initCanvases = () => {
 
 onMounted(() => {
   initCanvases();
+  listenExtensionMessage();
 });
 
 onUnmounted(() => {
   throttledRender.cancel();
 });
-
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'addObservationLine': {
+          drawVirtualDom();
+          const e = {
+            clientX: layout.processLabelWidth + (viewState.canvasCssWidth / 2),
+            clientY: 0
+          };
+          flagMouseClick(e);
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '';
+          break;
+        }
+        case 'zoomControls': {
+          if (flags.value.length > 0) {
+            const [firstFlag] = flags.value || [];
+            currentFlag.value = firstFlag;
+            deleteFlag();
+          }
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '1px dashed';
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  });
+};
+const observationLineResize = () => {
+  if (swimConfig.currentStepTargetDomId !== 'observation-line') {
+    return;
+  }
+  drawVirtualDomAsync();
+};
+const drawVirtualDomAsync = async () => {
+  if (await getIsCompleteBoot()) {
+    drawVirtualDom();
+  }
+};
+const drawVirtualDom = () => {
+  const e = {
+    clientX: layout.processLabelWidth + (viewState.canvasCssWidth / 2),
+    clientY: 0
+  };
+  const rect = flagsCanvas.value.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const existingElement = document.querySelector('#observation-line');
+  if (existingElement) {
+    existingElement.remove();
+  }
+  const domRect = document.createElement('div');
+  domRect.id = 'observation-line';
+  domRect.style.position = 'absolute';
+  domRect.style.left = mouseX + 'px';
+  domRect.style.top = rect.top + 'px';
+  domRect.style.backgroundColor = 'transparent';
+  flagsCanvas.value.parentNode.appendChild(domRect);
+};
 // 暴露方法给父组件
 defineExpose({
   resizeCanvases,
@@ -723,6 +785,7 @@ defineExpose({
   handleWheel,
   flagRender,
   changeScale,
+  observationLineResize
 });
 </script>
 

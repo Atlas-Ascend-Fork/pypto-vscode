@@ -46,7 +46,7 @@ type ExposeViewServer<Server extends ViewServer<never, {}>> = {
   [refKey in keyof Server['_allowedRefs']]: Readonly<Ref<Server['_allowedRefs'][refKey]>>;
 };
 
-export function useViewServer<ServerInstance extends ViewServer<never, {}>>() {
+export function useViewServer<ServerInstance extends ViewServer<never, {}> = ViewServer<never, {}>>() {
   const server: ExposeViewServer<ServerInstance> = new Proxy<any>(
     {},
     {

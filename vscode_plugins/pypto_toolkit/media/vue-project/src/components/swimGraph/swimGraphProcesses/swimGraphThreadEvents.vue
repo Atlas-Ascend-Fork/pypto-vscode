@@ -57,7 +57,8 @@ import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffs
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
-
+import { getIsCompleteBoot } from '@/apis/welcome';
+import { swimConfig } from '../../welcome/guideStepsConfig';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
@@ -276,6 +277,8 @@ onMounted(() => {
     }
     onKeyUp(e);
   });
+  listenExtensionMessage();
+  listenExtensionClearMessage();
 });
 
 onUnmounted(() => {
@@ -1498,7 +1501,7 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   return true;
 };
 
-const renderProcessText = (process, ctx) => {
+const renderProcessText = async (process, ctx) => {
   ctx.font = getFontStyle(eventTextSize);
   ctx.textRenderingOptimization = 'optimizeLegibility';
   ctx.save();
@@ -1537,13 +1540,29 @@ const renderProcessText = (process, ctx) => {
       } else {
         ctx.fillStyle = drawData.fontColor;
       }
-
+      drawVirtualDom(event, ctx, drawData);
       ctx.fillText(drawData.text, drawData.textX, drawData.textY);
     }
   }
   ctx.restore();
 };
-
+const drawVirtualDom = (event, ctx, drawData) => {
+  if (event.name === swimConfig.sampleEventName) {
+    const existingElement = document.querySelector('#distance-measurement');
+    if (existingElement) {
+      existingElement.remove();
+    }
+    const domRect = document.createElement('div');
+    domRect.id = 'distance-measurement';
+    domRect.style.position = 'absolute';
+    domRect.style.left = drawData.rectX + drawData.eventWidth + 'px';
+    domRect.style.top = drawData.rectY + 'px';
+    domRect.style.width = drawData.eventWidth + 'px';
+    domRect.style.height = drawData.height + 'px';
+    domRect.style.backgroundColor = 'transparent';
+    ctx.canvas.parentNode.appendChild(domRect);
+  }
+};
 const showTooltip = (e, event, canvasRef) => {
   if (!tooltip.value) return;
 
@@ -1862,7 +1881,12 @@ const sendMsg = (command, param) => {
 const drawLockedOutline = () => {
   handleOutline(lockedLabel, true, true, true);
 };
-
+const distanceMeasurementResize = () => {
+  if (swimConfig.currentStepTargetDomId !== 'distance-measurement') {
+    return;
+  }
+  guideDistanceMeasurement();
+};
 addChildContext('threadEvent', {
   drawLockedOutline,
   getCanvasHeight,
@@ -1888,12 +1912,11 @@ addChildContext('threadEvent', {
   drawBoundary: threeRender.drawBoundary,
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,
+  distanceMeasurementResize
 });
-
 watch(isHoverLockStatus, () => {
   sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
 });
-
 // 每个事件画布都会走一遍
 watch(isDarkTheme, () => {
   colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
@@ -1912,8 +1935,65 @@ watch(isDarkTheme, () => {
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
   flagRender();
 });
+const listenExtensionMessage = async () => {
+  if (await getIsCompleteBoot()) {
+    guideDistanceMeasurement();
+  }
+};
+// 监听引导模式的消息
+const listenExtensionClearMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'addObservationLine': {
+          clearDistanceMeasurement();
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  });
+};
+const guideDistanceMeasurement = () => {
+  for (const [processKey, process] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
+      continue;
+    }
+    for (const [threadKey, thread] of process.threads.entries()) {
+      if (threadKey !== swimConfig.threadKey) {
+        continue;
+      }
+      const { events } = thread;
+      if (events.length < 2) {
+        continue;
+      }
+      const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventName);
+      if (preIndex === -1 || preIndex === events.length - 1) {
+        continue; 
+      }
+      const preData = events[preIndex];
+      const lastData = events[preIndex + 1];
+      altClickData.preData = preData;
+      altClickData.lastData = lastData;
+      const uiCtx = getUIContext(processKey);
+      measureRenderer.drawRoundedRect(uiCtx, lastData, processKey);
+      measureRenderer.calculateAndDrawConnection(uiCtx);
+      break;
+    }
+  }
+};
+const clearDistanceMeasurement = () => {
+  for (const [processkey, process] of processes.entries()) {
+    if (!processExpanded.get(processkey)) {
+      continue;
+    }
+    const uiCtx = getUIContext(processkey);
+    measureRenderer.clearDrawConnector(uiCtx, processkey);
+  }
+};
 </script>
-
 <style scoped>
 @import url("../css/swimGraph/Processes/events.css");
 </style>

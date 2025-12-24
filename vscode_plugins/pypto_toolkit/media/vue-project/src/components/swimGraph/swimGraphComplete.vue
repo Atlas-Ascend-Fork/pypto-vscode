@@ -4,13 +4,13 @@
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
       </div>
-      <swim-graph-header ref="swimgraphHeaderComponent" />
+      <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
     <div class="container">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
-          <div class="title_up_threecolum" v-show="isThreeColumn">
+          <div class="title_up_threecolum" v-show="isThreeColumn" id="swim-title_up_threecolum">
             <!-- <div class="title_pic"></div> -->
             <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
             <div class="title_up_r_threecolum">
@@ -119,6 +119,7 @@ import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
 import { pushState, pullState } from '../../core/state';
+import { swimConfig } from '../welcome/guideStepsConfig';
 
 const { server } = useViewServer();
 
@@ -1252,6 +1253,8 @@ const onWindowResize = throttle((event) => {
   // 重新渲染所有内容
   render();
   drawMeasureTime();
+  timelineComponent.value.observationLineResize();
+  childContextMap.threadEvent.distanceMeasurementResize();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline = true) => {
@@ -1862,6 +1865,7 @@ onMounted(async () => {
   }
 
   updateTheme();
+  listenExtensionMessage();
 });
 
 defineExpose({
@@ -1999,8 +2003,67 @@ const updateTheme = () => {
     ? `${window.staticPath}/static-assets/down_16px.svg`
     : `${window.staticPath}/static-assets/down_16px_light.svg`;
 };
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type === 'welcomeSkipAll') {
+      server.close();
+    }
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'showGuideDetailsPanel':
+          mulDetailsExpanded.value = false;
+          measureDetailsExpanded.value = false;
+          measureDragStartX.value = 0;
+          measureDragEndX.value = 0;
+          isMeasureDragging.value = false;
+          showDragAreaBorders.value = false;
+          isMeasureModel.value = false;
+          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+          document.documentElement.style.setProperty('--maskHeight', `0px`);
+          renderTwoTimeline();
+          getEventInfo();
+          break;
+        case 'measureDetailSearch': {
+          const totalWidth = viewState.canvasCssWidth + layout.processLabelWidth;
+          measureDragStartX.value = totalWidth * (1 / 3);
+          measureDragEndX.value = totalWidth * (2 / 3);
+          isMeasureDragging.value = true;
+          isMeasureModel.value = true;
+          showDragAreaBorders.value = true;
+          const element = document.querySelector('.zoom-controls');
+          element.style.border = '';
+          measureMouseUp();
+          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+          document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  });
+};
+const getEventInfo = () => {
+  for (const [processKey, process] of processes.entries()) {
+    if (!processExpanded.get(processKey)) {
+      continue;
+    }
+    const thread = process.threads.get(swimConfig.threadKey);
+    if (!thread || thread.events.length === 0) {
+      continue;
+    }
+    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventName);
+    const [firstEvent] = thread.events;
+    const targetEvent = matchedEvent ?? firstEvent;
+    if (targetEvent) {
+      selectEvent(targetEvent, processKey);
+      return;
+    }
+  }
+};
 </script>
-
 <style>
 @import url('css/common.css');
 </style>

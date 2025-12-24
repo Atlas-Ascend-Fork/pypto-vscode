@@ -125,5 +125,19 @@
   "pypto.swimGraph.validate.noProcess": "No process in SwimJson",
   "pypto.swimGraph.validate.savedData": "saved data error, please enter F1 and refresh cache DB",
   "pypto.swimGraph.validate.swimLaneFileError": "Input Json file error:{{swimPath}}",
-  "pypto.swimGraph.validate.unsupportedEventType": "Unsupported event type, ph: {{type}}"
+  "pypto.swimGraph.validate.unsupportedEventType": "Unsupported event type, ph: {{type}}",
+  "PyPTOToolkit.welcome.runPython.state": "state",
+  "PyPTOToolkit.welcome.runPython.installErr": "Dependency installation failed; script could not be executed!",
+  "PyPTOToolkit.welcome.runPython.channel": "PyPTO Sample Project Output",
+  "PyPTOToolkit.welcome.runPython.install.check": "Dependency check",
+  "PyPTOToolkit.welcome.runPython.install.start": "Start installing missing dependencies",
+  "PyPTOToolkit.welcome.runPython.install.timeOut": "Dependency installation timed out (more than 2 minutes). Please check your network or install manually!",
+  "PyPTOToolkit.welcome.runPython.Installation.log": "Installation log",
+  "PyPTOToolkit.welcome.runPython.Installation.error": "Installation error",
+  "PyPTOToolkit.welcome.runPython.Installation.warning": "Installation warning",
+  "PyPTOToolkit.welcome.runPython.Installation.results": "Installation results",
+  "PyPTOToolkit.welcome.runPython.Installation.solution": " Solution:\n1. Run VS Code as administrator (/root);\n2. Check network connectivity (using a suitable mirror source is recommended);\n3. Manually execute the command",
+  "PyPTOToolkit.welcome.runPython.Installation.variables": "Please check if Python has been added to your system environment variables",
+  "PyPTOToolkit.welcome.open": "quik start",
+  "PyPTOToolkit.welcome.page": "quik start"
 }

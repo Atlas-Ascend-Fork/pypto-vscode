@@ -113,8 +113,8 @@ export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
   }
   const res = await readSchemaData(configUri);
   if (res.tag) {
-    const simulatorConfigsTemplate = await generateSimulatorConfigsArray(res.schemaData as SchemaType);
-    const passTableTemplate = await generatePassStrategyTemplate(res.schemaData as SchemaType);
+    const simulatorConfigsTemplate = await generateSimulatorConfigsArray(res.schemaData as SchemaType, 'simulationConfig');
+    const passTableTemplate = await generatePassStrategyTemplate(res.schemaData as SchemaType, 'passConfig');
     return {
       tag: true,
       simulationTemplate: simulatorConfigsTemplate,
@@ -131,7 +131,7 @@ export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
 
 /**
  * 获取指定Config仿真与Pass数据
- * @param string 文件路径
+ * @param path 文件路径
  */
 export async function getConfigsForRevise(path: string): Promise<ConfigsForRevise> {
   const configUri = vscode.Uri.file(path);
