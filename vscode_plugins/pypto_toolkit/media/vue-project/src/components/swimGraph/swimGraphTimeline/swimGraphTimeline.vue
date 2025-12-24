@@ -728,7 +728,7 @@ const listenExtensionMessage = () => {
           element.style.border = '';
           break;
         }
-        case 'zoomControls':
+        case 'zoomControls': {
           if (flags.value.length > 0) {
             const [firstFlag] = flags.value || [];
             currentFlag.value = firstFlag;
@@ -737,6 +737,7 @@ const listenExtensionMessage = () => {
           const element = document.querySelector('.zoom-controls');
           element.style.border = '1px dashed';
           break;
+        }
         default:
           break;
       }
