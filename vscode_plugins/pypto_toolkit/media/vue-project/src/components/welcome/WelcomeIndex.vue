@@ -22,8 +22,8 @@
             <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
               <div class="step-header" @click="handleStepClick('step1')">
                 <div class="step-header-left">
-                  <img :src="hasCompletedImg" v-if="steps[0].completed || !isLinux"></img>
-                  <img :src="hasNotCompletedImg" v-else></img>
+                  <img :src="hasCompletedImg" v-if="steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
+                  <img :src="hasNotCompletedImg" v-else  @click.stop="toggleCheckbox(0)"></img>
                   <span class="step-title">{{ steps[0].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -45,8 +45,8 @@
             <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
               <div class="step-header" @click="handleStepClick('step2')">
                 <div class="step-header-left">
-                  <img :src="hasCompletedImg" v-if="skipAll"></img>
-                  <img :src="hasNotCompletedImg" v-else="!skipAll"></img>
+                  <img :src="hasCompletedImg" v-if="steps[1].completed" @click.stop="toggleCheckbox(1)"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAll" @click.stop="toggleCheckbox(1)"></img>
                   <span class="step-title">{{ steps[1].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -180,10 +180,7 @@ const isLastStep = computed(() => currentStepIndex.value === steps.value.length 
 const isAllChecked = computed(() => steps.value.some((step) => !step.completed));
 
 async function runPythonFile() {
-  const res = await getInitPythonProject()
-  if (res) {
-    steps.value[0].completed = true
-  }
+  getInitPythonProject()
 }
 
 // 点击步骤头部（激活+折叠）
@@ -192,9 +189,10 @@ const handleStepClick = (stepId: string) => {
   expandedStepId.value = expandedStepId.value === stepId ? '' : stepId;
 };
 
-// 点击Checkbox切换完成状态(方便调试，实际用户不能点击改变状态)
+// 点击Checkbox切换完成状态
 const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
+  console.log(steps.value)
 };
 
 // 下一步
@@ -286,6 +284,10 @@ watch(
       key: 'guideSteps-runPython',
       value: newVal[0].completed,
     });
+    await updateWelcomeState({
+      key: 'welcomeView.skipAll',
+      value: newVal[1].completed,
+    });
   },
   { deep: true },
 );
@@ -306,12 +308,13 @@ watch(
 /* 容器样式 */
 .guide-container {
   width: 100vw;
-  height: 100%;
+  height: 100vh;
 
   /* 主体内容 */
   .guide-main {
     display: flex;
     justify-content: center;
+    align-items: center;
     height: 100%;
     width: 100%;
     min-width: 1400px;
@@ -321,7 +324,6 @@ watch(
       display: flex;
       justify-content: space-between;
       align-items: start;
-      padding-top: 300px;
     }
 
     /* 左侧步骤区 */
@@ -362,9 +364,10 @@ watch(
           display: flex;
           height: 100%;
           flex-direction: column;
-          justify-content: space-around;
+          justify-content: start;
           flex-wrap: nowrap;
           font-weight: 400;
+          gap: 16px;
 
           .describe__title {
             color: var(--devui-title-text); // 标题文字（明暗适配）

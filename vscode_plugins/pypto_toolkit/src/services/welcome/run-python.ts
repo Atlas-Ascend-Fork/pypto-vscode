@@ -152,7 +152,7 @@ export async function executePythonFile(pythonFilePath: string, cwd: string): Pr
     // 跨平台命令适配
     const isWindows = os.platform() === 'win32';
     const pythonCmd = isWindows ? 'python' : 'python3';
-    let execCommand = `"${pythonCmd}" "${pythonFilePath}"`;
+    let execCommand = `"${pythonCmd}" "${pythonFilePath}" "--run_mode=sim"`;
 
     // Windows 切换 UTF-8 编码
     if (isWindows) {
