@@ -240,8 +240,8 @@ export default {
         searchPlaceholder: '搜索',
         noMatchingData: '没有找到匹配的数据',
         allComputationalPanelTitle: '所有计算图',
-        callFunctionPanelTitle: '调用函数-callee',
-        calledFunctionPanelTitle: '被调用函数-called',
+        callFunctionPanelTitle: '调用leaf次数',
+        calledFunctionPanelTitle: 'leaf被调用次数',
         callFunctionTableName: 'callee function 名称',
         callFunctionTableValue: 'callee次数',
         leafFunctionTableName: 'leaf functions',
@@ -250,7 +250,7 @@ export default {
         tableSearch: '搜索',
         fileNotFoundError: '找不到结果总览',
         dataParseError: '无法打开控制流，解析数据异常。',
-        leafName: 'leaf 函数',
+        leafName: 'leaf函数个数',
         openSourceCode: '打开源码',
         openSwimlane: '打开泳道图',
         codeSnippet:'代码片段',
@@ -295,11 +295,11 @@ export default {
           groupName: '控制流',
           step1: {
             title: '控制流-查看控制流图',
-            content: '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，在矩形Path卡片中点击leaf函数、被调用函数-called、调用函数-callee即可在右侧打开该path节点的详情。下一步将演示点击leaf函数的效果。'
+            content: '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，在矩形Path卡片中点击leaf函数个数、leaf被调用次数、调用leaf次数即可在右侧打开该path节点的详情。下一步将演示点击leaf函数个数的效果。'
           },
           step2: {
             title: '控制流-查看Path节点面板',
-            content: '被调用函数-called显示当前PATH节点的子函数个数；调用函数-callee显示当前PATH节点调用其他函数调用的次数；所有计算图显示当前节点所有的计算图列表，在列表中点击任意PASS可打开相应计算图页面。'
+            content: 'leaf被调用次数显示当前PATH节点的子函数个数；调用leaf次数显示当前PATH节点调用函数的次数；所有计算图显示当前节点所有的计算图列表，在列表中点击任意PASS可打开相应计算图页面。'
           },
           step3: {
             title: '控制流-搜索栏',

@@ -82,9 +82,10 @@ import { useMinimap } from './hooks/use-minimap';
 import { useLevelOfDetail } from './hooks/useZoomLevel';
 import { CombsType, ControlFlowNodesType, EdgesType, PreviewState, SearchSelectItem } from './type/node-detail-types';
 import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
-import { openComputeGraph, openSwimlaneGraph } from '@/apis/opener';
+import { openComputeGraph } from '@/apis/opener';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
+import { JsxEmit } from 'typescript';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -399,6 +400,8 @@ const listenExtensionMessage = () => {
       switch (message.openWebviewFn) {
         case 'openComputeGraph':
           const length = stepOpenSidebaNode.value.data.source.meta?.passes.length;
+          console.log(stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath)
+          console.log(stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName)
           openComputeGraph({
             outputPath: outPutPath.value as string,
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,

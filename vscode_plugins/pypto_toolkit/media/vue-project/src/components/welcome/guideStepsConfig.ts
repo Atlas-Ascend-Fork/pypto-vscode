@@ -181,7 +181,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {},
         targetDomId: 'distance-measurement', // 步骤1定位
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: 'bootStep.swimlaneGraph.step2.title',
