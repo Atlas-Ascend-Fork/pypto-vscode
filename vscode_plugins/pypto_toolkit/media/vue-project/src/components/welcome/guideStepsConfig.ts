@@ -131,9 +131,9 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
             },
           ],
         },
-        targetDomId: 'comGraphHeaderSearch',
+        targetDomId: 'comGraphSearchResList',
         showTriangle: true,
-        triangleDirection: 'right',
+        triangleDirection: 'top',
       },
       {
         title: 'bootStep.computeGraph.step4.title',

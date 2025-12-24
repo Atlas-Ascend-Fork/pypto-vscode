@@ -126,7 +126,7 @@
           </d-category-search>
         </div>
         <template #menu>
-          <ul class="search-res-list">
+          <ul id="comGraphSearchResList" class="search-res-list">
             <div class="res-size">
               <span class="res-size-text">
                 {{ t('comGraph.searchResSize', {resSize}) }}

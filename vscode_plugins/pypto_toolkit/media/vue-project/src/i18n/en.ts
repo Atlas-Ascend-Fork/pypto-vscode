@@ -331,7 +331,7 @@ export default {
           },
           step3: {
             title: 'Search Target Node',
-            content: 'Enter content here to search for target nodes, supporting fuzzy search matching and precise search for a specific value.'
+            content: 'Enter keywords in the search box to target the desired node. Fuzzy search matching and searching for a specific value are supported. Search results are displayed in a drop-down list. Clicking on a search result will take you to the corresponding node.'
           },
           step4: {
             title: 'View Only Current Path',
