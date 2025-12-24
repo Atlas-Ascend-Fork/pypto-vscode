@@ -75,6 +75,7 @@ if (graphType.value === 'swimGraph') {
 function setupComWatchers(server: any) {
   watch(server.ErrorMessage, (newValue) => {
     comErrorMessage.value = newValue.data;
+    jsonContent.value = '';
     errorLog.value = newValue.log;
   });
 

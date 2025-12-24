@@ -429,6 +429,9 @@ onMounted(() => {
   (window as any).ascEventBus.on('lockToggleChange', onLockClick);
 });
 onBeforeUnmount(() => {
+  if (resetModelSource) {
+    resetModelSource(true)
+  }
   document.removeEventListener('click', onDocumentClick);
   (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
 });
