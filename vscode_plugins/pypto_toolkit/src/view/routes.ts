@@ -41,7 +41,7 @@ export const routes: EditorViewRoutes = {
 
   // 欢迎页面
   welcome: {
-    title: '快速开始',
+    title: ()=>t('PyPTOToolkit.welcome.page'),
     viewServer: WelcomeViewServer,
   },
 };

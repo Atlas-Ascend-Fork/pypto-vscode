@@ -16,8 +16,8 @@
             </div>
           </div>
           <div class="guide-step__list" v-if="steps.length">
-            <!-- <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false">{{
-              t('welcome.linuxEnvironmentWarning') }}</d-alert> -->
+            <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false">{{
+              t('welcome.linuxEnvironmentWarning') }}</d-alert>
             <!-- 步骤1 -->
             <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
               <div class="step-header" @click="handleStepClick('step1')">
@@ -69,8 +69,7 @@
                   <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
                 </div>
                 <button v-if="isLinux" class="step-content__run-button"
-                  :class="{ button__disable: !isLinux || !steps[0].completed }" @click="goToCheckResult"
-                  :disabled="!steps[0].completed">
+                  :class="{ button__disable: !isLinux || !steps[0].completed }" @click="goToCheckResult">
                   {{ t('welcome.goToView') }}
                 </button>
                 <button v-else class="step-content__run-button" :class="{ button__disable: !steps[0].completed }"

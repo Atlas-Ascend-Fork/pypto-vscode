@@ -114,7 +114,7 @@ const popupContentRef = ref<HTMLDivElement | null>(null);
 /**
  * 防抖函数
  */
-const debounce = (fn: Function, delay = 300) => {
+const debounce = (fn: Function, delay = 100) => {
   let timer: NodeJS.Timeout | null = null;
   return (...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -725,6 +725,7 @@ onUnmounted(() => {
   // 取消margin，避免尺寸溢出
   box-sizing: border-box;
   max-width: 480px;
+  min-width: 480px;
 }
 
 // 三角基础样式（优化定位）

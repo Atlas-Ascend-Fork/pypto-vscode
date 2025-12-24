@@ -280,7 +280,7 @@ export default {
         goToView: '去查看',
         nextStep: '下一步',
         startExperience: '开始体验',
-        showGuideOnStartup: '启动时显示新手引导页'
+        showGuideOnStartup: '启动时显示快速开始页'
       },
       bootStep: {
         // 按钮文案

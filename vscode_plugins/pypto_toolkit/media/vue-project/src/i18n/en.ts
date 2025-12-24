@@ -269,7 +269,7 @@ export default {
         startUsingPyPTOToolkit: 'Start Using PyPTO Toolkit',
         pyptoEfficiencyPlugin: 'PyPTO Efficiency Plugin',
         version: 'Version',
-        linuxEnvironmentWarning: 'Cannot run Python files in the current environment, please configure Linux remote connection',
+        linuxEnvironmentWarning: 'Please configure Linux remote connection to run',
         step1Title: 'Open and Run Sample Project',
         goToRun: 'Run',
         step2Title: 'View Running Results',
@@ -280,7 +280,7 @@ export default {
         goToView: 'View',
         nextStep: 'Next Step',
         startExperience: 'Start Experience',
-        showGuideOnStartup: 'Show newbie guide page on startup'
+        showGuideOnStartup: 'Show quik start page on startup'
       },
       bootStep: {
         // 按钮文案

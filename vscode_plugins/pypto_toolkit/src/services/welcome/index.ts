@@ -8,7 +8,7 @@ import { extensionContext } from '../../extension';
 /**
  * 根据插件初始Python文件创建初始工程
  */
-export async function getInitPythonProject(address = 'https://cmc-cd-mirror.rnd.huawei.com/pypi/simple') {
+export async function getInitPythonProject(address = 'https://pypi.tuna.tsinghua.edu.cn/simple') {
   // 校验前置条件
   if (!extensionContext) {
     vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
