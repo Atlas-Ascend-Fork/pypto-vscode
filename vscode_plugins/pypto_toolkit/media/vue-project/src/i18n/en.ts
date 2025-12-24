@@ -72,7 +72,7 @@ export default {
     'swimErroMsgNot_JSON': 'The file you choose is not JSON format',
     'tips1': 'Jump to compilation. please look forward to the design.',
     'tips2': 'Jump to the calculation diagram overview, under design, please look forward to.',
-    'swimGraph': 'Swimlane',
+    'swimGraph': 'Swimlane Graph',
     'lessThan0': '<1us',
     'caseSensitive': 'case sensitive',
     'editTitle': 'marker point edit',
@@ -331,11 +331,11 @@ export default {
           },
           step3: {
             title: 'Search Target Node',
-            content: 'Enter content here to search for target nodes, supporting fuzzy search matching and precise search for a specific value.'
+            content: 'Enter keywords in the search box to target the desired node. Fuzzy search matching and searching for a specific value are supported. Search results are displayed in a drop-down list. Clicking on a search result will take you to the corresponding node.'
           },
           step4: {
-            title: 'View Only Current Path',
-            content: 'Right-click on a node, and you can choose to view only the current path from the dropdown menu to avoid distractions and accurately examine the relationships before and after the target.'
+            title: 'Focus Only On The Current Path',
+            content: 'Right-click on a node, and you can choose to focus only on the current path from the dropdown menu to avoid distractions and accurately examine the relationships before and after the target.'
           },
           step5: {
             title: 'Computation Graph Diff View',
@@ -343,7 +343,7 @@ export default {
           },
           step6: {
             title: 'Open Swimlane Graph',
-            content: 'Click the "Open Swimlane Graph" button in the navigation bar to quickly open the swimlane graph.'
+            content: 'Click the "Swimlane Graph" button in the navigation bar to quickly open the swimlane graph.'
           }
         },
         // 泳道图组
