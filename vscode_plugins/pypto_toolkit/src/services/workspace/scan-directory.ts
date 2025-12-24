@@ -202,7 +202,7 @@ function decodeComputeGraphFilename(
   { passIndex, passName }: Pass,
 ): Pick<ComputeGraph, 'pathName' | 'computeType' | 'leafProgramId' | 'leafHash'> {
   const fileNameRegExp = new RegExp(
-    `^After_0${passIndex}_${passName}(?:_\\d+)?_(\\w+_PATH\\d+)_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
+    `^After_0${passIndex}_${passName}(?:_\\d+)?_(\\w+_PATH\\d+)(?:_hiddenfunc\\d+)?_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
   );
   const [_, pathName, rootOrLeaf, leafProgramId, leafHash] = filename.match(fileNameRegExp) ?? [];
   const computeType = rootOrLeaf ? (rootOrLeaf.toLowerCase() as 'root' | 'leaf') : 'all';
