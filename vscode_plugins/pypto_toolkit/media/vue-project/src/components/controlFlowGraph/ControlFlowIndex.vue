@@ -400,8 +400,6 @@ const listenExtensionMessage = () => {
       switch (message.openWebviewFn) {
         case 'openComputeGraph':
           const length = stepOpenSidebaNode.value.data.source.meta?.passes.length;
-          console.log(stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath)
-          console.log(stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName)
           openComputeGraph({
             outputPath: outPutPath.value as string,
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
