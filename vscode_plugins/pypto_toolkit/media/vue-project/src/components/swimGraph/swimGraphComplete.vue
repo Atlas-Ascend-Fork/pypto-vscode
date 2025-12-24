@@ -328,7 +328,7 @@ function setupSwimWatchers() {
     window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
   });
   watch(server.dataError, (newValue) => {
-    window.ascEventBus.emit('jsonParseError', {msg: newValue});
+    window.ascEventBus.emit('jsonParseError', {msg: newValue.data});
   });
   watch(server.performanceWarn, (newValue) => {
     warningText.value = newValue;
