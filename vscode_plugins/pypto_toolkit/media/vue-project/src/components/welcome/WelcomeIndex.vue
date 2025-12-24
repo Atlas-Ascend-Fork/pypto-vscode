@@ -23,7 +23,7 @@
               <div class="step-header" @click="handleStepClick('step1')">
                 <div class="step-header-left">
                   <img :src="hasCompletedImg" v-if="steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
-                  <img :src="hasNotCompletedImg" v-else  @click.stop="toggleCheckbox(0)"></img>
+                  <img :src="hasNotCompletedImg" v-else @click.stop="toggleCheckbox(0)"></img>
                   <span class="step-title">{{ steps[0].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -126,11 +126,19 @@ const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_contro
 const native = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
 const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
 const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+
 const images = ref([
   `${window.staticPath}/static-assets/boot_steps_runPython.png`,
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
+
+watch(() => isDarkTheme.value,
+  (value) => {
+    images.value[0] = value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
+    images.value[1] = value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
+  })
+
 const hasCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
 const hasNotCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
 
