@@ -128,8 +128,8 @@ const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${i
 const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
 
 const images = ref([
-  `${window.staticPath}/static-assets/boot_steps_runPython.png`,
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
+  `${window.staticPath}/static-assets/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,
+  isDarkTheme.value?'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif': 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
 
@@ -282,7 +282,11 @@ const initSteps = async () => {
 };
 
 onMounted(async () => {
+
+  images.value[0] = isDarkTheme.value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
+  images.value[1] = isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
   initSteps();
+  
 });
 
 watch(
