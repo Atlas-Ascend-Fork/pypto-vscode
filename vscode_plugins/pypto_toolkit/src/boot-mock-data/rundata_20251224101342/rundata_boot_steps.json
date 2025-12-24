@@ -1,0 +1,6 @@
+{
+    "runtype":"nup",
+    "compute_graph_path":"rundata_20251224101342",
+    "program_file":"program.json",
+    "swim_graph_path":"merged_swimlane.json"
+}
