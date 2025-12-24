@@ -464,6 +464,10 @@ const calculateDependencies = (events, connections) => {
 
   async function validate(event:any) {
     const errorMsg: any = {};
+    if(!(event.ph === 'C' || event.ph === 'X' || event.ph === 'M' || event.ph === 's' || event.ph === 'f' || event.ph === 'B' || event.ph === 'E')) {
+      errorMsg.errMsg = t('pypto.swimGraph.validate.unsupportedEventType', {type: event.ph});
+      return errorMsg;
+    }
     if (event.name === 'process_name') {
       if (!('pid' in event) || !('args' in event)) {
         if (event.pid) {
