@@ -47,18 +47,19 @@ const RUNDATA_FILE_NAME = 'rundata.json';
  */
 export async function getOutputRecord(runDataUri: vscode.Uri): Promise<OutputRecord | undefined> {
   const runData = await readOutputRunData(runDataUri);
-  if (!runData) {
+  const directoryName = path.posix.basename(runDataUri.path);
+  const executeTime = resolveExecuteTime(directoryName)!;
+  if (!runData || !runData.runtype || !executeTime.titleFormat) {
     return undefined;
   }
+
+  const title = `${runData.runtype}_${executeTime.titleFormat}`;
   const directoryPath = runDataUri.fsPath;
   const sourceFilePath = runData.pto_src_file || null;
   const controlFlowFilePath = runData.program_file || null;
   const swimlaneGraphFilePath = runData.swim_graph_path || null;
   const computeGraphDirPath = runData.compute_graph_path || null;
 
-  const directoryName = path.posix.basename(runDataUri.path);
-  const executeTime = resolveExecuteTime(directoryName)!;
-  const title = `${runData.runtype}_${executeTime.titleFormat}`;
   return {
     title,
     executeTime: executeTime.datetimeFormat,

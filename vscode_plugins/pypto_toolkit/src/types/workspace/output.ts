@@ -5,19 +5,19 @@ import { OutputDirectory } from './directory-tree';
  */
 export interface RunDataManifest {
   /** 运行类型（例：simulation、onChip） */
-  runtype: string;
+  runtype?: string;
 
   /** 源码路径 */
-  pto_src_file: string;
+  pto_src_file?: string;
 
   /** 控制流路径 */
-  program_file: string;
+  program_file?: string;
 
   /** 计算图目录 */
-  compute_graph_path: string;
+  compute_graph_path?: string;
 
   /** 泳道图目录 */
-  swim_graph_path: string;
+  swim_graph_path?: string;
 }
 
 export type OutputRecord = Omit<OutputDetail, 'directoryTree'>;
