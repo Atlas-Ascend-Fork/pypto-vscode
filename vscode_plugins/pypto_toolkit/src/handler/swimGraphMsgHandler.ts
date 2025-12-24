@@ -188,7 +188,7 @@ export abstract class SwimGraphMsgHandler {
             swimData = JSON.parse(content);
             if (typeof swimData.processes != 'object' || typeof swimData.lane2line != 'object' || typeof swimData.pmu_total != 'object') {
               const msg = t('pypto.swimGraph.validate.savedData');
-              server.setRef('dataError', msg);
+              server.setRef('dataError', { data: msg});
               return; 
             }
           }
@@ -251,7 +251,7 @@ export abstract class SwimGraphMsgHandler {
     
           } catch (err) {
             const msg = t('pypto.swimGraph.validate.swimLaneFileError', {swimPath: swimPath});
-            server.setRef('dataError', msg);
+            server.setRef('dataError', { data: msg} );
             console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
             return [];
           }
@@ -282,7 +282,7 @@ export abstract class SwimGraphMsgHandler {
           swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
 
           if ('errMsg' in swimData) {
-            server.setRef('dataError', swimData.errMsg);
+            server.setRef('dataError', { data: swimData.errMsg});
             console.log('data ERROR:', swimData.errMsg);
             return [];
           }
