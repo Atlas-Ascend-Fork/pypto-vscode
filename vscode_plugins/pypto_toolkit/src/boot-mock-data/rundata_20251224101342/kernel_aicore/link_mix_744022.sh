@@ -1,0 +1,2 @@
+#!/bin/bash
+ld.lld -m aicorelinux -Ttext=0 -static  -o /data/z30040105/1119/pypto-dev/pypto-dev-master/build/output/bin/output/output_20251124_101342_686139/kernel_aicore/dy_kernel_0.o  /data/z30040105/1119/pypto-dev/pypto-dev-master/build/output/bin/output/output_20251124_101342_686139/kernel_aicore/dy_kernel_aic_0.o /data/z30040105/1119/pypto-dev/pypto-dev-master/build/output/bin/output/output_20251124_101342_686139/kernel_aicore/dy_kernel_aiv_0.o

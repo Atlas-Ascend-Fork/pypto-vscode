@@ -1,0 +1,1014 @@
+{
+ "entryhash": "0",
+ "functions": [
+  {
+   "_cube_nbuffer_num": 1,
+   "_funcid": 12,
+   "_l1_reuse_num": 0,
+   "_magicseed": 30,
+   "_nbuffer_merge_mode": 1,
+   "_ooo_preschedule_method": "PriorDFS",
+   "_opseed": 10001,
+   "_rawid": 449,
+   "_sg_copyin_threshold": 2097152,
+   "_sg_cube_parallel_num": 24,
+   "_sg_cycle_lowerbound": 1,
+   "_sg_cycle_upperbound": 1,
+   "_sg_parallel_num": 1,
+   "_sg_skip_partition": false,
+   "_sg_vec_parallel_num": 48,
+   "_total_subgraph_count": 0,
+   "func_magicname": "PROGRAM_ENTRY",
+   "funcmagic": 1,
+   "functype": 0,
+   "global_tensors": [],
+   "graphtype": 5,
+   "hash": "0",
+   "incasts": [],
+   "kind": 3,
+   "operations": [
+    {
+     "attr": [
+      6316281875383642747,
+      0,
+      0
+     ],
+     "calleehash": "6316281875383642747",
+     "ioperands": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+     ],
+     "kind": 2,
+     "latency": 4105,
+     "ooperands": [
+      16,
+      17,
+      18,
+      19,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+     ],
+     "opcode": "CALL",
+     "opmagic": 10000,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    }
+   ],
+   "outcasts": [],
+   "rawname": "PROGRAM_ENTRY",
+   "rawtensors": [
+    {
+     "datatype": 8,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 0,
+     "rawshape": [
+      128,
+      512
+     ],
+     "symbol": "qNope",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 8,
+     "format": 1,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 1,
+     "rawshape": [
+      1024,
+      512
+     ],
+     "symbol": "kNopeCache",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 8,
+     "format": 1,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 2,
+     "rawshape": [
+      1024,
+      512
+     ],
+     "symbol": "vNopeCache",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 8,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 3,
+     "rawshape": [
+      128,
+      64
+     ],
+     "symbol": "qRope",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 8,
+     "format": 1,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 4,
+     "rawshape": [
+      1024,
+      64
+     ],
+     "symbol": "kRope",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 7,
+     "rawshape": [
+      128,
+      512
+     ],
+     "symbol": "paOut",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 8,
+     "rawshape": [
+      32,
+      512
+     ],
+     "symbol": "oiUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 9,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "liUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 10,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 26,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 33,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "liUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 37,
+     "rawshape": [
+      32,
+      512
+     ],
+     "symbol": "oiUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 75,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 82,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "liUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 87,
+     "rawshape": [
+      32,
+      512
+     ],
+     "symbol": "oiUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 122,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 126,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "liUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 127,
+     "rawshape": [
+      32,
+      512
+     ],
+     "symbol": "oiUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 154,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 158,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "liUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 160,
+     "rawshape": [
+      32,
+      512
+     ],
+     "symbol": "oiUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    }
+   ],
+   "static": {
+    "global_tensors": []
+   },
+   "tensors": [
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 8,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 4,
+     "shape": [
+      1024,
+      64
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      1024,
+      64
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 9,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1,
+     "shape": [
+      1024,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      1024,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 10,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 3,
+     "shape": [
+      128,
+      64
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      128,
+      64
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 11,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 0,
+     "shape": [
+      128,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      128,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 12,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 2,
+     "shape": [
+      1024,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      1024,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 13,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 10,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 14,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 9,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 15,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 8,
+     "shape": [
+      32,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 16,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 154,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 17,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 158,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 18,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 160,
+     "shape": [
+      32,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 19,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 7,
+     "shape": [
+      128,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      128,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 21,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 122,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 22,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 127,
+     "shape": [
+      32,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 23,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 126,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 24,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 75,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 25,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 82,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 26,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 87,
+     "shape": [
+      32,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 27,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 26,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 28,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 37,
+     "shape": [
+      32,
+      512
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      512
+     ]
+    },
+    {
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 29,
+     "mem_id": -1,
+     "mem_range": [
+      0,
+      0
+     ],
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 33,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": false,
+     "validshape": [
+      32,
+      1
+     ]
+    }
+   ]
+  }
+ ],
+ "version": "2.0"
+}

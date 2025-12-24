@@ -1,0 +1,1879 @@
+{
+ "entryhash": "7050512177935686204",
+ "functions": [
+  {
+   "_cube_nbuffer_num": 1,
+   "_funcid": 55,
+   "_l1_reuse_num": 0,
+   "_magicseed": 0,
+   "_nbuffer_merge_mode": 1,
+   "_ooo_preschedule_method": "PriorDFS",
+   "_opseed": 10005,
+   "_rawid": 1079,
+   "_sg_copyin_threshold": 1048576,
+   "_sg_cube_parallel_num": 24,
+   "_sg_cycle_lowerbound": 512,
+   "_sg_cycle_upperbound": 10000,
+   "_sg_parallel_num": 20,
+   "_sg_skip_partition": false,
+   "_sg_vec_parallel_num": 48,
+   "_total_subgraph_count": 0,
+   "func_magicname": "TENSOR_LOOP_L2_bn_Unroll1_PATH2_leaf3_50",
+   "funcmagic": 50,
+   "functype": 1,
+   "global_tensors": [
+    26
+   ],
+   "graphtype": 3,
+   "hash": "7050512177935686204",
+   "incasts": [
+    [
+     133,
+     []
+    ],
+    [
+     130,
+     []
+    ]
+   ],
+   "kind": 3,
+   "operations": [
+    {
+     "ioperands": [],
+     "kind": 2,
+     "latency": 1,
+     "ooperands": [
+      599
+     ],
+     "opcode": "UB_ALLOC",
+     "opmagic": 10206,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    },
+    {
+     "ioperands": [],
+     "kind": 2,
+     "latency": 1,
+     "ooperands": [
+      143
+     ],
+     "opcode": "UB_ALLOC",
+     "opmagic": 10205,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    },
+    {
+     "ioperands": [],
+     "kind": 2,
+     "latency": 1,
+     "ooperands": [
+      596
+     ],
+     "opcode": "UB_ALLOC",
+     "opmagic": 10204,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    },
+    {
+     "ioperands": [],
+     "kind": 2,
+     "latency": 1,
+     "ooperands": [
+      136
+     ],
+     "opcode": "UB_ALLOC",
+     "opmagic": 10203,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    },
+    {
+     "ioperands": [],
+     "kind": 2,
+     "latency": 1,
+     "ooperands": [
+      146
+     ],
+     "opcode": "UB_ALLOC",
+     "opmagic": 10202,
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": -1,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "vec": []
+     }
+    },
+    {
+     "attr": [
+      0,
+      0,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       1,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       1,
+       0,
+       1
+      ],
+      2,
+      4,
+      2,
+      5,
+      2,
+      6,
+      2,
+      7,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       1,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       1,
+       0,
+       1
+      ]
+     ],
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/interface/function/function.cpp",
+     "in_param_loc": [
+      268435456
+     ],
+     "ioperands": [
+      133
+     ],
+     "kind": 2,
+     "latency": 41,
+     "line": 695,
+     "ooperands": [
+      599
+     ],
+     "op_attr": {
+      "IS_CUBE": false
+     },
+     "opcode": "COPY_IN",
+     "opmagic": 10201,
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "b1-matmul2",
+      "lineno": 113
+     },
+     "static": {
+      "in_param_loc": [
+       268435456
+      ],
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    },
+    {
+     "attr": [
+      0,
+      0,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       10,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       10,
+       0,
+       1
+      ],
+      2,
+      13,
+      2,
+      14,
+      2,
+      15,
+      2,
+      16,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       10,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       10,
+       0,
+       1
+      ]
+     ],
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/interface/function/function.cpp",
+     "in_param_loc": [
+      268435457
+     ],
+     "ioperands": [
+      130
+     ],
+     "kind": 2,
+     "latency": 41,
+     "line": 695,
+     "ooperands": [
+      596
+     ],
+     "op_attr": {
+      "IS_CUBE": false
+     },
+     "opcode": "COPY_IN",
+     "opmagic": 10198,
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "b1-matmul2",
+      "lineno": 113
+     },
+     "static": {
+      "in_param_loc": [
+       268435457
+      ],
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    },
+    {
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+     "ioperands": [
+      596,
+      599
+     ],
+     "kind": 2,
+     "latency": 41,
+     "line": 103,
+     "ooperands": [
+      143
+     ],
+     "op_attr": {
+      "IS_CUBE": false
+     },
+     "opcode": "PAIRMAX",
+     "opmagic": 10088,
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "SoftMax",
+      "lineno": 102
+     },
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    },
+    {
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+     "ioperands": [
+      143
+     ],
+     "kind": 2,
+     "latency": 41,
+     "line": 103,
+     "ooperands": [
+      136,
+      146
+     ],
+     "op_attr": {
+      "IS_CUBE": false,
+      "op_attr_AXIS": 1
+     },
+     "opcode": "ROWMAX_SINGLE",
+     "opmagic": 10089,
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "SoftMax",
+      "lineno": 102
+     },
+     "static": {
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    },
+    {
+     "attr": [
+      1,
+      0,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       28,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       28,
+       0,
+       1
+      ],
+      2,
+      31,
+      2,
+      32,
+      2,
+      33,
+      2,
+      34,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       28,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       28,
+       0,
+       1
+      ]
+     ],
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/interface/function/function.cpp",
+     "ioperands": [
+      136
+     ],
+     "kind": 2,
+     "latency": 10,
+     "line": 695,
+     "ooperands": [
+      26
+     ],
+     "op_attr": {
+      "IS_CUBE": false
+     },
+     "opcode": "COPY_OUT",
+     "opmagic": 10140,
+     "out_param_loc": [
+      0
+     ],
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "b1-matmul2",
+      "lineno": 113
+     },
+     "static": {
+      "out_param_loc": [
+       0
+      ],
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    },
+    {
+     "attr": [
+      1,
+      0,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       19,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_OFFSET",
+       0,
+       2,
+       0,
+       19,
+       0,
+       1
+      ],
+      2,
+      22,
+      2,
+      23,
+      2,
+      24,
+      2,
+      25,
+      2,
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       19,
+       0,
+       0
+      ],
+      1,
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_COA_GET_PARAM_VALID_SHAPE",
+       0,
+       2,
+       0,
+       19,
+       0,
+       1
+      ]
+     ],
+     "file": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/interface/function/function.cpp",
+     "ioperands": [
+      136
+     ],
+     "kind": 2,
+     "latency": 10,
+     "line": 695,
+     "ooperands": [
+      591
+     ],
+     "op_attr": {
+      "IS_CUBE": false
+     },
+     "opcode": "COPY_OUT",
+     "opmagic": 10193,
+     "out_param_loc": [
+      536870912
+     ],
+     "semantic_label": {
+      "filename": "/data/z30040105/1119/pypto-dev/pypto-dev-master/framework/src/operator/models/deepseek/page_attention.cpp",
+      "label": "b1-matmul2",
+      "lineno": 113
+     },
+     "static": {
+      "out_param_loc": [
+       536870912
+      ],
+      "sync_queue": {
+       "core_type": 0,
+       "event_id": 0,
+       "gm_buf_id": 0,
+       "offset": [],
+       "pipe_id": 0,
+       "tri_core_type": 0,
+       "trig_pipe": 0
+      }
+     },
+     "subgraphid": 3,
+     "sync_queue": {
+      "core_type": 0,
+      "event_id": 0,
+      "gm_buf_id": 0,
+      "offset": [],
+      "pipe_id": 0,
+      "tri_core_type": 0,
+      "trig_pipe": 0
+     },
+     "tile": {
+      "comm": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       32767
+      ],
+      "cube": [
+       32,
+       0,
+       32,
+       0,
+       64,
+       0,
+       64,
+       0,
+       64,
+       0,
+       128,
+       0,
+       128,
+       0
+      ],
+      "vec": [
+       32,
+       64
+      ]
+     }
+    }
+   ],
+   "outcasts": [
+    [
+     591,
+     []
+    ],
+    [
+     26,
+     []
+    ]
+   ],
+   "parent_funcmagic": 46,
+   "rawname": "TENSOR_LOOP_L2_bn_Unroll1_PATH2_leaf3",
+   "rawtensors": [
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 138,
+     "rawshape": [
+      32,
+      1
+     ],
+     "symbol": "miUpdate",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [
+      32,
+      1
+     ],
+     "rawmagic": 139,
+     "rawshape": [
+      32,
+      8
+     ],
+     "symbol": "OUTCAST_LOCAL_BUF0",
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 988,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 1027,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 1028,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [
+      32,
+      64
+     ],
+     "rawmagic": 1039,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [],
+     "rawmagic": 1070,
+     "rawshape": [
+      32,
+      1
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [
+      32,
+      64
+     ],
+     "rawmagic": 1075,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    },
+    {
+     "datatype": 7,
+     "format": 0,
+     "kind": 0,
+     "ori_rawshape": [
+      32,
+      64
+     ],
+     "rawmagic": 1078,
+     "rawshape": [
+      32,
+      64
+     ],
+     "tensorIndex": -1,
+     "tensorSubscript": -1
+    }
+   ],
+   "static": {
+    "global_tensors": [
+     26
+    ],
+    "subfunc_param": {
+     "incasts": [
+      {
+       "data_type": 7,
+       "ddrId": 1027,
+       "loc": 268435456,
+       "name": "Var$1027",
+       "offset": [
+        -1,
+        -1
+       ],
+       "operandIdx": 0,
+       "shape": [
+        -2,
+        -2
+       ],
+       "symbol": ""
+      },
+      {
+       "data_type": 7,
+       "ddrId": 1028,
+       "loc": 268435457,
+       "name": "Var$1028",
+       "offset": [
+        -1,
+        -1
+       ],
+       "operandIdx": 0,
+       "shape": [
+        -2,
+        -2
+       ],
+       "symbol": ""
+      }
+     ],
+     "outcasts": [
+      {
+       "data_type": 7,
+       "ddrId": 1070,
+       "loc": 536870912,
+       "name": "Var$1070",
+       "offset": [
+        -1,
+        -1
+       ],
+       "operandIdx": 0,
+       "shape": [
+        -2,
+        -2
+       ],
+       "symbol": ""
+      }
+     ],
+     "tensors": [
+      {
+       "data_type": 7,
+       "ddrId": 138,
+       "loc": 0,
+       "name": "Var$138",
+       "offset": [
+        -1,
+        -1
+       ],
+       "operandIdx": 0,
+       "shape": [
+        -2,
+        -2
+       ],
+       "symbol": "miUpdate"
+      }
+     ]
+    }
+   },
+   "subfunc_param": {
+    "incasts": [
+     {
+      "data_type": 7,
+      "ddrId": 1027,
+      "loc": 268435456,
+      "name": "Var$1027",
+      "offset": [
+       -1,
+       -1
+      ],
+      "operandIdx": 0,
+      "shape": [
+       -2,
+       -2
+      ],
+      "symbol": ""
+     },
+     {
+      "data_type": 7,
+      "ddrId": 1028,
+      "loc": 268435457,
+      "name": "Var$1028",
+      "offset": [
+       -1,
+       -1
+      ],
+      "operandIdx": 0,
+      "shape": [
+       -2,
+       -2
+      ],
+      "symbol": ""
+     }
+    ],
+    "outcasts": [
+     {
+      "data_type": 7,
+      "ddrId": 1070,
+      "loc": 536870912,
+      "name": "Var$1070",
+      "offset": [
+       -1,
+       -1
+      ],
+      "operandIdx": 0,
+      "shape": [
+       -2,
+       -2
+      ],
+      "symbol": ""
+     }
+    ],
+    "tensors": [
+     {
+      "data_type": 7,
+      "ddrId": 138,
+      "loc": 0,
+      "name": "Var$138",
+      "offset": [
+       -1,
+       -1
+      ],
+      "operandIdx": 0,
+      "shape": [
+       -2,
+       -2
+      ],
+      "symbol": "miUpdate"
+     }
+    ]
+   },
+   "tensors": [
+    {
+     "dynvalidshape": [
+      [
+       1,
+       "sym_26_dim_0"
+      ],
+      [
+       1,
+       "sym_26_dim_1"
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 26,
+     "mem_id": 138,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 15,
+      "tobe": 15
+     },
+     "nodetype": 2,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 138,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": true,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       0,
+       32
+      ],
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_GetViewValidShapeDim",
+       2,
+       16,
+       2,
+       4,
+       2,
+       18,
+       3,
+       1,
+       "RUNTIME_GetInputDataInt32Dim1",
+       1,
+       "ARG_actSeqs",
+       1,
+       "bIdx",
+       2,
+       5,
+       1,
+       "bn",
+       0,
+       128,
+       0,
+       128,
+       0,
+       0,
+       0,
+       64
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 130,
+     "mem_id": 1028,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 15,
+      "tobe": 15
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1028,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": true,
+     "subgraphid": 1,
+     "validshape": [
+      32,
+      64
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       0,
+       32
+      ],
+      [
+       2,
+       18,
+       4,
+       1,
+       "RUNTIME_GetViewValidShapeDim",
+       2,
+       16,
+       2,
+       4,
+       2,
+       18,
+       3,
+       1,
+       "RUNTIME_GetInputDataInt32Dim1",
+       1,
+       "ARG_actSeqs",
+       1,
+       "bIdx",
+       2,
+       5,
+       1,
+       "bn",
+       0,
+       128,
+       0,
+       128,
+       0,
+       64,
+       0,
+       64
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 133,
+     "mem_id": 1027,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 15,
+      "tobe": 15
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1027,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": true,
+     "subgraphid": 2,
+     "validshape": [
+      32,
+      64
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       2,
+       17,
+       1,
+       "sym_596_dim_0",
+       1,
+       "sym_599_dim_0"
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 136,
+     "mem_id": 139,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 0,
+      "tobe": 0
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 139,
+     "shape": [
+      32,
+      8
+     ],
+     "subgraph_boundary": false,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       2,
+       17,
+       1,
+       "sym_596_dim_0",
+       1,
+       "sym_599_dim_0"
+      ],
+      [
+       2,
+       17,
+       1,
+       "sym_596_dim_1",
+       1,
+       "sym_599_dim_1"
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 143,
+     "mem_id": 1039,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 0,
+      "tobe": 0
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1039,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": false,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      64
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       2,
+       17,
+       1,
+       "sym_596_dim_0",
+       1,
+       "sym_599_dim_0"
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 146,
+     "mem_id": 988,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 0,
+      "tobe": 0
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 988,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": false,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      64
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       1,
+       "sym_591_dim_0"
+      ],
+      [
+       1,
+       "sym_591_dim_1"
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 591,
+     "mem_id": 1070,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 15,
+      "tobe": 15
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1070,
+     "shape": [
+      32,
+      1
+     ],
+     "subgraph_boundary": true,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      1
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       1,
+       "sym_596_dim_0"
+      ],
+      [
+       1,
+       "sym_596_dim_1"
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 596,
+     "mem_id": 1075,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 0,
+      "tobe": 0
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1075,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": false,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      64
+     ]
+    },
+    {
+     "dynvalidshape": [
+      [
+       1,
+       "sym_599_dim_0"
+      ],
+      [
+       1,
+       "sym_599_dim_1"
+      ]
+     ],
+     "kind": 1,
+     "life_range": [
+      -1,
+      -1
+     ],
+     "magic": 599,
+     "mem_id": 1078,
+     "mem_range": [
+      0,
+      0
+     ],
+     "mem_type": {
+      "asis": 0,
+      "tobe": 0
+     },
+     "nodetype": 0,
+     "offset": [
+      0,
+      0
+     ],
+     "rawtensor": 1078,
+     "shape": [
+      32,
+      64
+     ],
+     "subgraph_boundary": false,
+     "subgraphid": 3,
+     "validshape": [
+      32,
+      64
+     ]
+    }
+   ]
+  }
+ ],
+ "version": "2.0"
+}
