@@ -18,7 +18,7 @@ import { getInitPythonProject, getPluginVersion, getProgramPath, getSwimPath, ge
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
 import { WelcomeViewServer } from '../view/servers/welcom-server';
 
-export const services = {
+export const serviceApis = {
   welcome: {
     getInitPythonProject,
     updateWelcomeState,

@@ -8,7 +8,7 @@
       <div class="expand" @click="treeExpand">
         <d-icon :name="isExpanded ? 'icon-chevron-up-2' : 'icon-chevron-down-2'"></d-icon>
       </div>
-      <div class="refresh" :class="{ hidden: isExpanded }" @click="handleReload">
+      <div class="refresh" :class="{ hidden: isExpanded }" @click="handleReload(true)">
         <d-icon name="refresh"></d-icon>
       </div>
       <div :class="{ hidden: isExpanded }" class="flex1"></div>
@@ -226,11 +226,12 @@ function clearList() {
 
 /**
  * 刷新、修改筛选条件
+ * @param forceReload 强制刷新
  */
-function handleReload() {
+function handleReload(forceReload?: boolean) {
   clearList();
   page.value = 1;
-  getOutputs(page.value);
+  getOutputs(page.value, forceReload);
 }
 
 /**
@@ -244,10 +245,19 @@ function handleLoadMore() {
   getOutputs(page.value);
 }
 
-async function getOutputs(loadingPage: number): Promise<void> {
+/**
+ * 获取运行记录
+ * @param forceReload 强制刷新
+ */
+async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<void> {
   isLoading.value = true;
   try {
-    const { data } = await getOutputRecords({ page: loadingPage, pageSize, sortOrder: sortOption.value ? 'asc' : 'desc' });
+    const { data } = await getOutputRecords({
+      page: loadingPage,
+      pageSize,
+      sortOrder: sortOption.value ? 'asc' : 'desc',
+      forceReloadFromFiles: forceReload,
+    });
     // 再次清空列表，避免并发请求导致数据异常
     if (page.value === 1) {
       clearList();

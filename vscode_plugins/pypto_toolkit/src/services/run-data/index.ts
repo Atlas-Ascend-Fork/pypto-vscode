@@ -93,7 +93,7 @@ export class RunDataService extends BasicService {
   /**
    * 扫描目录
    */
-  private async scanDirectory(): Promise<void> {
+  public async scanDirectory(): Promise<void> {
     if (this.scanning) {
       return;
     }
