@@ -114,8 +114,7 @@ export function searchByTensorSemanticLabel(tensorMap, semantic_label) {
   return Object.values(tensorMap)
     .flatMap(subgraph => Object.values((subgraph)))
     .filter(tensor =>
-      tensor.semantic_label?.length > 0 &&
-      tensor.semantic_label?.includes(semantic_label)
+      tensor.semantic_label?.label.includes(semantic_label)
     );
 }
 
