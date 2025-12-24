@@ -1528,7 +1528,8 @@ const renderProcessText = async (process, ctx) => {
       
       visibleEvents.push({ event, drawData });
     }
-    
+    let preData;
+    let nextData;
     // 批量渲染文本，减少样式切换
     for (const { event, drawData } of visibleEvents) {
       const isSelf = selectedEventId === event.id;
@@ -1540,28 +1541,36 @@ const renderProcessText = async (process, ctx) => {
       } else {
         ctx.fillStyle = drawData.fontColor;
       }
-      drawVirtualDom(event, ctx, drawData);
+      if (event.name === swimConfig.sampleEventNamePre) {
+        preData = drawData;
+      }
+      if (event.name === swimConfig.sampleEventNameNext) {
+        nextData = drawData;
+      }
       ctx.fillText(drawData.text, drawData.textX, drawData.textY);
     }
+    if (preData && nextData) {
+      drawVirtualDom(preData, nextData, ctx);
+    } 
   }
   ctx.restore();
 };
-const drawVirtualDom = (event, ctx, drawData) => {
-  if (event.name === swimConfig.sampleEventName) {
-    const existingElement = document.querySelector('#distance-measurement');
-    if (existingElement) {
-      existingElement.remove();
-    }
-    const domRect = document.createElement('div');
-    domRect.id = 'distance-measurement';
-    domRect.style.position = 'absolute';
-    domRect.style.left = drawData.rectX + drawData.eventWidth + 'px';
-    domRect.style.top = drawData.rectY + 'px';
-    domRect.style.width = drawData.eventWidth + 'px';
-    domRect.style.height = drawData.height + 'px';
-    domRect.style.backgroundColor = 'transparent';
-    ctx.canvas.parentNode.appendChild(domRect);
+
+// 引导页定位测距的虚拟dom
+const drawVirtualDom = (preData, nextData, ctx) => {
+  const existingElement = document.querySelector('#distance-measurement');
+  if (existingElement) {
+    existingElement.remove();
   }
+  const domRect = document.createElement('div');
+  domRect.id = 'distance-measurement';
+  domRect.style.position = 'absolute';
+  domRect.style.left = (((preData.rectX + preData.eventWidth) + nextData.rectX) / 2) + 'px';
+  domRect.style.top = preData.rectY + 'px';
+  domRect.style.width = '1px';
+  domRect.style.height = preData.height + 'px';
+  domRect.style.backgroundColor = 'transparent';
+  ctx.canvas.parentNode.appendChild(domRect);
 };
 const showTooltip = (e, event, canvasRef) => {
   if (!tooltip.value) return;
@@ -1969,7 +1978,7 @@ const guideDistanceMeasurement = () => {
       if (events.length < 2) {
         continue;
       }
-      const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventName);
+      const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventNamePre);
       if (preIndex === -1 || preIndex === events.length - 1) {
         continue; 
       }

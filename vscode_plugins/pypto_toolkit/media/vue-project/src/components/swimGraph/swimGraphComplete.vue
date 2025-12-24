@@ -2054,7 +2054,7 @@ const getEventInfo = () => {
     if (!thread || thread.events.length === 0) {
       continue;
     }
-    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventName);
+    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventNamePre);
     const [firstEvent] = thread.events;
     const targetEvent = matchedEvent ?? firstEvent;
     if (targetEvent) {
