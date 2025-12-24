@@ -586,7 +586,7 @@ const calculateDependencies = (events, connections) => {
         hasProcess = true;
       } else if (event.name === 'thread_name') {
         threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
-      } else if (event.cat === 'event' || event.ph === 'C') {
+      } else if ((event.cat === 'event' || event.ph === 'C') && !(event.name.startsWith('OOO_'))) {
         if (event.ph === 'C' && (typeof(event.args.size) === 'number' || typeof(event.args['/byte']) === 'number')) {
           const sId = event.name;
           if (!threadNames.has(sId)) {
