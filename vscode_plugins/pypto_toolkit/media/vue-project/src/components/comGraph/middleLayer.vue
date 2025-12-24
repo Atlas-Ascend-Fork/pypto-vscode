@@ -237,6 +237,9 @@ function setupThreeWatchers(server: any) {
     if (newValue.swimDataPath) {
       pushState({ swimDataPath: newValue.swimDataPath });
     }
+    if (newValue.codePath) {
+      pushState({ codePath: newValue.codePath });
+    }
   });
   watch(server.returnComPath, async (path) => {
     const { comPath } = path.data;
