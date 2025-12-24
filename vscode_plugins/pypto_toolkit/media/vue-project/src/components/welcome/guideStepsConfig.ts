@@ -267,6 +267,7 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
 
 export let swimConfig = {
   threadKey: '1-1034',
-  sampleEventName: '0-0-7-25-1(b1-matmul2)',
+  sampleEventNamePre: '0-0-7-25-1(b1-matmul2)',
+  sampleEventNameNext: '0-3-15-24-4(bn-matmul2)',
   currentStepTargetDomId: '',
 };
