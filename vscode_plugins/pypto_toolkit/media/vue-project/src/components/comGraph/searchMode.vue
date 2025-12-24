@@ -172,7 +172,8 @@ let showOperation = ref(false);
         group: 'Basic',
         filterKey: 'Option',
         options: [
-          { Option: 'magic' }
+          { Option: 'magic' },
+          { Option: 'semantic_label' }
         ],
       },
       {
@@ -216,7 +217,8 @@ let showOperation = ref(false);
         group: 'Basic',
         filterKey: 'Option',
         options: [
-          { Option: 'magic' }
+          { Option: 'magic' },
+          { Option: 'semantic_label' }
         ],
       },
       {
@@ -444,6 +446,8 @@ const onSearch = (e) => {
           res.value = searchFuzzy(tensorMap, opMap, rawTensorMap, funcMap.value, e.searchKey, 'Operation', e.isUpper, e.isReg);
         } else if (e.option == 'magic') {
           res.value = searchByOperationMagic(opMap, e.searchKey);
+        } else if (e.option == 'semantic_label') {
+          res.value = searchByTensorSemanticLabel(opMap, e.searchKey);
         }
         break;
     }
