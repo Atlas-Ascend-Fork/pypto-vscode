@@ -2056,12 +2056,13 @@ const getEventInfo = () => {
     if (!thread || thread.events.length === 0) {
       continue;
     }
-    let targetEvent = thread.events.find(event => event.name === swimConfig.sampleEventName);
-    if (!targetEvent) {
-      targetEvent = thread.events[0];
+    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventName);
+    const [firstEvent] = thread.events;
+    const targetEvent = matchedEvent ?? firstEvent;
+    if (targetEvent) {
+      selectEvent(targetEvent, processKey);
+      return;
     }
-    selectEvent(targetEvent, processKey);
-    return;
   }
 };
 </script>
