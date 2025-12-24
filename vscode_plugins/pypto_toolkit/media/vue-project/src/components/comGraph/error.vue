@@ -9,7 +9,7 @@
     }"> </div>
     <span class="error-text">{{ props.jsonContent }}</span>
     <span class="error-text">{{ props.errorLog }}</span>
-    <d-button variant="solid" @click="openSelectedFileWindow" class="mt10">{{ $t('openFile') }}</d-button>
+    <d-button variant="solid" v-if="isThreeColumn" @click="openSelectedFileWindow" class="mt10">{{ $t('openFile') }}</d-button>
   </div>
 </template>
 
@@ -21,7 +21,7 @@ import { useViewServer } from '../../core/use-view-server';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { currentActiveBlock, BlockToGraphMap } = inject(
   ThreeColumnProvideKey,
-) as IThreeColumnCtx;
+) as IThreeColumnCtx || {};
 
 const errorSvgPath = ref(`"${window.staticPath}/static-assets/data_error.svg"`);
 
