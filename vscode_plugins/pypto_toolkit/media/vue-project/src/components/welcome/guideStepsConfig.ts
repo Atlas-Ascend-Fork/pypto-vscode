@@ -111,10 +111,9 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step2.content',
         method: 'viewNodeDetail',
         methodParams: {
-          nodeId: 'tensor-5692-2',
-          nodeTitleLabelId: 'tensor-5692-2-label-main',
+          nodeId: 'tensor-138-2',
         },
-        targetDomId: 'sprotty_tensor-5692-2-label-main',
+        targetDomId: 'sprotty_tensor-138-2',
         showTriangle: true,
         triangleDirection: 'top',
       },
@@ -123,7 +122,7 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step3.content',
         method: 'searchNode',
         methodParams: {
-          searchKey: '5818',
+          searchKey: '665',
           selectedTags: [
             {
               label: 'Tensor',
@@ -141,9 +140,9 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step4.content',
         method: 'focusCurrentPath',
         methodParams: {
-          searchNodeId: 'tensor-5818-3',
+          searchNodeId: 'tensor-665-4',
         },
-        targetDomId: 'sprotty_tensor-5818-3',
+        targetDomId: 'sprotty_tensor-665-4',
         showTriangle: true,
         triangleDirection: 'top',
       },
