@@ -22,8 +22,8 @@
             <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
               <div class="step-header" @click="handleStepClick('step1')">
                 <div class="step-header-left">
-                  <img :src="hasCompletedImg" v-if="steps[0].completed || !isLinux"></img>
-                  <img :src="hasNotCompletedImg" v-else></img>
+                  <img :src="hasCompletedImg" v-if="steps[0].completed" @click.stop="toggleCheckbox(0)"></img>
+                  <img :src="hasNotCompletedImg" v-else @click.stop="toggleCheckbox(0)"></img>
                   <span class="step-title">{{ steps[0].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -32,7 +32,7 @@
               <div class="step-content" :class="{ expanded: expandedStepId === 'step1' }">
                 <div class="step-content__run-python">
                   <i class="icon-json"></i>
-                  <div class="step-description">python3 test hello_world.py</div>
+                  <div class="step-description">python3 hello_world.py</div>
                 </div>
                 <button class="step-content__run-button" :class="{ button__disable: !isLinux }" @click="runPythonFile"
                   :disabled="!isLinux">
@@ -45,8 +45,8 @@
             <div class="step-item" :class="{ active: 'step2' === activeStepId, completed: steps[1].completed }">
               <div class="step-header" @click="handleStepClick('step2')">
                 <div class="step-header-left">
-                  <img :src="hasCompletedImg" v-if="skipAll"></img>
-                  <img :src="hasNotCompletedImg" v-else="!skipAll"></img>
+                  <img :src="hasCompletedImg" v-if="steps[1].completed" @click.stop="toggleCheckbox(1)"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAll" @click.stop="toggleCheckbox(1)"></img>
                   <span class="step-title">{{ steps[1].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -68,11 +68,7 @@
                   <img :src="swim" alt="控制流图" />
                   <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
                 </div>
-                <button v-if="isLinux" class="step-content__run-button"
-                  :class="{ button__disable: !isLinux || !steps[0].completed }" @click="goToCheckResult">
-                  {{ t('welcome.goToView') }}
-                </button>
-                <button v-else class="step-content__run-button" :class="{ button__disable: !steps[0].completed }"
+                <button class="step-content__run-button"
                   @click="goToCheckResult">
                   {{ t('welcome.goToView') }}
                 </button>
@@ -126,11 +122,19 @@ const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_contro
 const native = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
 const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
 const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+
 const images = ref([
-  `${window.staticPath}/static-assets/boot_steps_runPython.png`,
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif',
+  `${window.staticPath}/static-assets/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,
+  isDarkTheme.value?'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif': 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
+
+watch(() => isDarkTheme.value,
+  (value) => {
+    images.value[0] = value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
+    images.value[1] = value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
+  })
+
 const hasCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
 const hasNotCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
 
@@ -180,10 +184,7 @@ const isLastStep = computed(() => currentStepIndex.value === steps.value.length 
 const isAllChecked = computed(() => steps.value.some((step) => !step.completed));
 
 async function runPythonFile() {
-  const res = await getInitPythonProject()
-  if (res) {
-    steps.value[0].completed = true
-  }
+  getInitPythonProject()
 }
 
 // 点击步骤头部（激活+折叠）
@@ -192,9 +193,10 @@ const handleStepClick = (stepId: string) => {
   expandedStepId.value = expandedStepId.value === stepId ? '' : stepId;
 };
 
-// 点击Checkbox切换完成状态(方便调试，实际用户不能点击改变状态)
+// 点击Checkbox切换完成状态
 const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
+  console.log(steps.value)
 };
 
 // 下一步
@@ -276,7 +278,11 @@ const initSteps = async () => {
 };
 
 onMounted(async () => {
+
+  images.value[0] = isDarkTheme.value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
+  images.value[1] = isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
   initSteps();
+  
 });
 
 watch(
@@ -285,6 +291,10 @@ watch(
     await updateWelcomeState({
       key: 'guideSteps-runPython',
       value: newVal[0].completed,
+    });
+    await updateWelcomeState({
+      key: 'welcomeView.skipAll',
+      value: newVal[1].completed,
     });
   },
   { deep: true },
@@ -306,12 +316,13 @@ watch(
 /* 容器样式 */
 .guide-container {
   width: 100vw;
-  height: 100%;
+  height: 100vh;
 
   /* 主体内容 */
   .guide-main {
     display: flex;
     justify-content: center;
+    align-items: center;
     height: 100%;
     width: 100%;
     min-width: 1400px;
@@ -321,7 +332,6 @@ watch(
       display: flex;
       justify-content: space-between;
       align-items: start;
-      padding-top: 300px;
     }
 
     /* 左侧步骤区 */
@@ -362,9 +372,10 @@ watch(
           display: flex;
           height: 100%;
           flex-direction: column;
-          justify-content: space-around;
+          justify-content: start;
           flex-wrap: nowrap;
           font-weight: 400;
+          gap: 16px;
 
           .describe__title {
             color: var(--devui-title-text); // 标题文字（明暗适配）
