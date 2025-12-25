@@ -10,7 +10,7 @@ import { initServer } from './core/request-server';
 import { SQLiteCache } from './core/sqliteCache';
 import { clearAllStores, initStores } from './core/store';
 import { hismartliteEx } from './hismarliteEx';
-import { closeAllServices, services, startAllServices } from './services';
+import { closeAllServices, serviceApis, startAllServices } from './services';
 import { initView } from './view';
 import { SwimGraphView } from './view/swimGraphView.js';
 import { loadMaterialColorUtilities } from './color-list';
@@ -81,7 +81,7 @@ export async function activate(context: ExtensionContext) {
   initStores(context);
   // 启动接口
 
-  const server = initServer(services);
+  const server = initServer(serviceApis);
   // 启动服务
   startAllServices();
   // 启动编辑区视图

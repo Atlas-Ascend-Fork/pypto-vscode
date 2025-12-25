@@ -16,6 +16,9 @@ export interface GetOutputRecordParams {
 
   /** 正序 or 倒序 */
   sortOrder?: 'asc' | 'desc';
+
+  /** 强制重新读取文件 */
+  forceReloadFromFiles?: boolean;
 }
 
 export interface GetOutputRecordsRes {
@@ -26,8 +29,11 @@ export interface GetOutputRecordsRes {
  * 获取运行结果记录
  */
 export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc' } = params;
+  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles } = params;
   const runDataService = useService('runData');
+  if (forceReloadFromFiles) {
+    runDataService.scanDirectory();
+  }
   const isDefaultSortCondition = sortBy === 'executeTime' && sortOrder === 'desc';
   const waitingCount = isDefaultSortCondition ? page * pageSize : undefined;
   await runDataService.waitForScanning(waitingCount);
