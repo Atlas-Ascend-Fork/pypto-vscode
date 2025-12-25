@@ -1,4 +1,4 @@
-import 'core-js/stable';
+import 'core-js/stable/structured-clone';
 
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
