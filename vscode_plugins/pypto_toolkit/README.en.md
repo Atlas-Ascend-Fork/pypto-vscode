@@ -78,21 +78,27 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
   
 - **Layer Control**
 
-    The button in the top right corner can open the layer control panel, which supports changing the layout direction and adjusting the node display mode
+    The button in the top right corner can open the layer control panel, which supports changing the layout direction and adjusting the node display mode, and control over the number of nodes displayed
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
 
 - **Link Locking**
 
-    After selecting a node, you can right-click to lock or display only the links related to that node
+    After selecting a node, right-clicking allows you to lock or display only the links related to that node. You can view the current path in a new tab and quickly jump to the previous and next nodes using shortcut keys.
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
 
 - **Comparison Mode Activation**
 
-    Right-click the calculation graph file and select "Open Calculation Graph Difference Comparison Using PyPTO Toolkit" to open it. It will automatically select the associated comparison file in the same folder. If it is not found, you can manually select the file path for the comparison.
+    Right-click the calculation graph file and select "PyPTO Toolkit Advanced Operations" under it, then choose "PyPTO Toolkit Open Calculation Graph Difference Comparison". It will automatically select the associated comparison file in the same folder. If not found, you can manually select the file path for comparison.
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
+ 
+- **Node search enabled**
+
+    Right-click the calculation graph file, select "Open Calculation Graph by Node Search Using PyPTO Toolkit" under the "Advanced Operations with PyPTO Toolkit" submenu, and open the calculation graph by searching for keywords and attributes of the nodes
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
 
 - **Local Search**
 
