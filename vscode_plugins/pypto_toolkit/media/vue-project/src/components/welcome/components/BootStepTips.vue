@@ -860,7 +860,7 @@ onUnmounted(() => {
 .content-container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 25px;
   justify-content: space-between;
 
   .container__header {

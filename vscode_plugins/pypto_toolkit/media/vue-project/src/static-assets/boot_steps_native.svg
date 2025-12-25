@@ -4,12 +4,12 @@
 <path d="M16 0H0V16H16V0Z" fill="white"/>
 </mask>
 <g mask="url(#mask0_5102_2)">
-<path d="M6 3.5H13" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M3 3.5H4" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M6 8H13" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M3 8H4" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M6 12.5H13" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M3 12.5H4" stroke="#666666" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 3.5H13" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3 3.5H4" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 8H13" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3 8H4" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 12.5H13" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3 12.5H4" stroke="#E6E6E6" stroke-width="0.9975" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 </g>
 <defs>

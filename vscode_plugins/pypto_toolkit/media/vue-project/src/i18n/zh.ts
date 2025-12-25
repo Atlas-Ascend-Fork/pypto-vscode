@@ -266,7 +266,7 @@ export default {
         unknownDataType: '未知的数据类型'
     },
     welcome: {
-        startUsingPyPTOToolkit: '开始使用PyPTO Toolkit',
+        startUsingPyPTOToolkit: '开始使用 PyPTO Toolkit',
         pyptoEfficiencyPlugin: 'PyPTO 效率提升插件',
         version: 'Version',
         linuxEnvironmentWarning: '无法在当前环境下运行Python文件，请配置Linux远程连接',

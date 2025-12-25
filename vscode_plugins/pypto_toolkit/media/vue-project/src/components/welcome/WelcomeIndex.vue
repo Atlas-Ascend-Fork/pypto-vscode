@@ -53,23 +53,22 @@
               </div>
               <div class="step-content" :class="{ expanded: expandedStepId === 'step2' }">
                 <div class="step-content__item">
-                  <img :src="controlFlowImg" alt="控制流图" />
+                  <img :src="controlFlowImg" alt="" />
                   <p class="step-description">{{ t('welcome.controlFlowChart') }}</p>
                 </div>
                 <div class="step-content__item">
-                  <img :src="native" alt="控制流图" />
+                  <img :src="nativeImg" alt="" />
                   <p class="step-description">{{ t('welcome.navigationSystem') }}</p>
                 </div>
                 <div class="step-content__item">
-                  <img :src="computeImg" alt="控制流图" />
+                  <img :src="computeImg" alt="" />
                   <p class="step-description">{{ t('welcome.computationGraph') }}</p>
                 </div>
                 <div class="step-content__item">
-                  <img :src="swim" alt="控制流图" />
+                  <img :src="swimImg" alt="" />
                   <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
                 </div>
-                <button class="step-content__run-button"
-                  @click="goToCheckResult">
+                <button class="step-content__run-button" @click="goToCheckResult">
                   {{ t('welcome.goToView') }}
                 </button>
               </div>
@@ -118,14 +117,14 @@ const { isDarkTheme } = inject('root');
 const staticPath = ref(window.staticPath || '');
 const logo = ref(`${staticPath.value}/static-assets/logo.png`);
 const isLinux = ref(true);
-const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`);
-const native = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
-const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`)
+const nativeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
 
 const images = ref([
   `${window.staticPath}/static-assets/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,
-  isDarkTheme.value?'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif': 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
+  isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
 
@@ -276,13 +275,13 @@ const initSteps = async () => {
     steps.value[0].completed = true
   }
 };
-
-onMounted(async () => {
-
+const initImage = () => {
   images.value[0] = isDarkTheme.value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
   images.value[1] = isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
+}
+onMounted(async () => {
+  initImage();
   initSteps();
-  
 });
 
 watch(
@@ -375,12 +374,14 @@ watch(
           justify-content: start;
           flex-wrap: nowrap;
           font-weight: 400;
-          gap: 16px;
+          gap: 10px;
 
           .describe__title {
             color: var(--devui-title-text); // 标题文字（明暗适配）
             font-size: 24px;
             line-height: 32px;
+            font-weight: 700;
+
           }
 
           .describe__group {
@@ -479,6 +480,7 @@ watch(
             flex-direction: row;
             justify-content: center;
             align-items: center;
+            margin-bottom: 6px;
             gap: 10px;
             padding: 8px;
             background-color: var(--devui-primary-button-bg);
@@ -487,6 +489,10 @@ watch(
             border: none;
             cursor: pointer;
             transition: background-color 0.2s ease;
+          }
+
+          .step-content__run-button:hover {
+            background-color: var(--devui-primary-button-hover-bg);
           }
 
           .button__disable {
@@ -634,6 +640,16 @@ watch(
 :deep(.devui-checkbox__label-text) {
   color: var(--devui-secondary-text) !important;
 }
+
+.open-page-checkbox {
+  .active {
+    :deep(.devui-checkbox__material) {
+      background: pink !important;
+    }
+  }
+}
+
+
 
 .prev-btn:disabled,
 .next-btn:disabled {

@@ -437,7 +437,6 @@ onMounted(async () => {
     dataError.value = true;
     dataErrorMessage.value = e.name.includes('EntryNotFound') ? t('controlFlows.fileNotFoundError') : t('controlFlows.dataParseError');
   }
-
   const { nodes, edges, combos } = transformData(rootData.value);
   combosNode.value = [...combos, ...nodes];
   stepOpenSidebaNode.value = nodes[0];
