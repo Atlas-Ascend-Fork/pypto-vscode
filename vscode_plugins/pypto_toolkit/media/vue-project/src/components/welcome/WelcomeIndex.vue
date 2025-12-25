@@ -32,7 +32,7 @@
               <div class="step-content" :class="{ expanded: expandedStepId === 'step1' }">
                 <div class="step-content__run-python">
                   <i class="icon-json"></i>
-                  <div class="step-description">python3 test hello_world.py</div>
+                  <div class="step-description">python3 hello_world.py</div>
                 </div>
                 <button class="step-content__run-button" :class="{ button__disable: !isLinux }" @click="runPythonFile"
                   :disabled="!isLinux">
