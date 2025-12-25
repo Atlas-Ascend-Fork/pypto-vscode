@@ -152,8 +152,7 @@ export class SqlStore<
    * @returns 删除的行数
    */
   private _execDelete = async (conditions: string): Promise<number> => {
-    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
-    const items = await this._getItemsFromQueryResult(queryResult);
+    const items = await this._execQuery(conditions);
     for (const item of items) {
       this.delete(item);
     }
@@ -187,6 +186,7 @@ export class SqlStore<
     }
     const savingFileNames = this._attributeResolver.getFileNamesFromQueryResult(queryResult);
     const readingPromises = savingFileNames.map((fileName) => this._dataFileController.read(fileName));
-    return await Promise.all(readingPromises);
+    const savingItems = (await Promise.all(readingPromises)).filter((fileResult): fileResult is Item => fileResult !== undefined);
+    return savingItems;
   }
 }
