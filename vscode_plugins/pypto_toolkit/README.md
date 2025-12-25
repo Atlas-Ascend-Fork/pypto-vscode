@@ -78,20 +78,27 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 - **图层控制**
 
-    右上角按钮可以开启图层控制面板，支持更改布局方向，更改节点显示模式
+    右上角按钮可以开启图层控制面板，支持更改布局方向，更改节点显示模式, 控制节点显示数量
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
 
 - **链路锁定**
 
-    选中节点后，右键可以锁定或仅显示该节点相关链路
+    选中节点后，右键可以锁定或仅显示该节点相关链路, 可以在新标签查看当前通路, 通过快捷键快速实现节点跳转到上一个和下一个
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
 
-    **对比图开启**
+- **对比图开启**
 
-    右键计算图文件，选择 “使用PyPTO Toolkit打开计算图差异对比” 打开，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
+    右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit打开计算图差异对比”，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
+
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
+
+- **按节点搜索开启**
+
+    右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit按节点搜索打开计算图”，可以通过搜索节点的关键字及属性打开计算图
+    
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
 
 - **局部搜索**
 
