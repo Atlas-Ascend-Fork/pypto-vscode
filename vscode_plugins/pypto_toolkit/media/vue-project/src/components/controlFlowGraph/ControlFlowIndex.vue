@@ -420,10 +420,13 @@ const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
 onMounted(async () => {
+  console.log(new Date(),'onMounted')
   if (await getIsCompleteBoot()) {
     listenExtensionMessage();
   }
   const res = await getQuery();
+  console.log(new Date(),'getQuery')
+
   outPutPath.value = res.url;
   programPath.value = res._path;
   try {
@@ -437,11 +440,16 @@ onMounted(async () => {
     dataError.value = true;
     dataErrorMessage.value = e.name.includes('EntryNotFound') ? t('controlFlows.fileNotFoundError') : t('controlFlows.dataParseError');
   }
+  console.log(new Date(),' rootData.value')
 
   const { nodes, edges, combos } = transformData(rootData.value);
+  console.log(new Date(),'transformData')
+
   combosNode.value = [...combos, ...nodes];
   stepOpenSidebaNode.value = nodes[0];
   await initG6Graph(nodes, edges, combos);
+  console.log(new Date(),'initG6Graph')
+
   combosNode.value.forEach((item) => (clearAllNodeState[item.id] = []));
   // 初始化搜索组件数据源
   combos.forEach((item, index) => {

@@ -662,6 +662,9 @@ defineExpose({
   height: 100vh;
   box-sizing: border-box;
 }
+.devui-drawer{
+  border-left: none !important;
+}
 </style>
 
 <style lang="less" scoped>
