@@ -170,9 +170,13 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
-## 一键关闭所有插件的页面
+## 其他辅助功能
 
-![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
+- **一键关闭插件所有页面**
+
+  当打开的页面较多时，可以通过`PyPTO Toolkit: 关闭所有工具页面`菜单来一键关闭插件打开的所有页面
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
 
 ## 反馈渠道
 

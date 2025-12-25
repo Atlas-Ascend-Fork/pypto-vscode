@@ -171,9 +171,13 @@ The three-panel linked view simultaneously displays code, a computational graph,
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
-## Close all pages opened by PyPTO Toolkit
+## Other Helper Features
 
-![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
+- **Close all pages opened by PyPTO Toolkit**
+
+  When you have multiple pages open, you can use the `PyPTO Toolkit: Close all tool page` menu to instantly close all pages opened by the plugin.
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.3%20allTabsOneClose.gif)
 
 ## Feedback Channel
 
