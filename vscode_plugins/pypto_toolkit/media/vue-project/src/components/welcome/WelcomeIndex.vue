@@ -68,11 +68,7 @@
                   <img :src="swim" alt="控制流图" />
                   <p class="step-description">{{ t('welcome.swimlaneChart') }}</p>
                 </div>
-                <button v-if="isLinux" class="step-content__run-button"
-                  :class="{ button__disable: !isLinux || !steps[0].completed }" @click="goToCheckResult">
-                  {{ t('welcome.goToView') }}
-                </button>
-                <button v-else class="step-content__run-button" :class="{ button__disable: !steps[0].completed }"
+                <button class="step-content__run-button"
                   @click="goToCheckResult">
                   {{ t('welcome.goToView') }}
                 </button>
