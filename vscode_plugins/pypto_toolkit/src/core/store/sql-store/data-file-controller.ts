@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import type { Data } from '../types';
 
 import { SqlStoreManager } from './sql-store-manager';
+import { isFileUriExists } from '../../../utils/file-system';
 
 export class DataFileController<Item extends Data> {
   private _storeDirUri: vscode.Uri;
@@ -12,10 +13,17 @@ export class DataFileController<Item extends Data> {
     vscode.workspace.fs.createDirectory(this._storeDirUri);
   }
 
-  public async read(fileName: string): Promise<Item> {
+  public async read(fileName: string): Promise<Item | undefined> {
     const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
+    if (!(await isFileUriExists(fileUri))) {
+      return;
+    }
     const fileContent = (await vscode.workspace.fs.readFile(fileUri)).toString();
-    return JSON.parse(fileContent, reviveDateInJson);
+    try {
+      return JSON.parse(fileContent, reviveDateInJson);
+    } catch {
+      return;
+    }
   }
 
   public async write(item: Item, fileName: string): Promise<void> {

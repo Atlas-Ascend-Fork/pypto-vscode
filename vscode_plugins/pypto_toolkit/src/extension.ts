@@ -1,3 +1,5 @@
+import 'core-js/stable';
+
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
 

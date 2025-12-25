@@ -149,11 +149,11 @@ function toggleNode(node: DevUITreeNode): void {
 }
 
 function transformData(outputData: OutputRecords): DevUITreeNode[] {
-  function transformChild(subDirOrFile: DirectoryTree['children']): DevUITreeNode[] {
+  function transformChild(subDirOrFile: DirectoryTree['children'], prefix: string): DevUITreeNode[] {
     const children: DevUITreeNode[] = [];
     for (const dirOrFile of subDirOrFile) {
       const child: DevUITreeNode = {
-        id: dirOrFile.absolutePath,
+        id: `${prefix}/${dirOrFile.name}`,
         label: dirOrFile.name,
         type: dirOrFile.type,
         expanded: false,
@@ -163,7 +163,10 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
       };
       children.push(child);
       if (dirOrFile.type === 'dir' && !child.isLeaf) {
-        nodeChildrenMap.set(child.id, Promise.resolve(transformChild(dirOrFile.children as unknown as DirectoryTree['children'])));
+        nodeChildrenMap.set(
+          child.id,
+          Promise.resolve(transformChild(dirOrFile.children as unknown as DirectoryTree['children'], child.id)),
+        );
       }
     }
     return children;
@@ -183,7 +186,7 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
 
     // 记录子节点
     const child = getOutputDetail(record.directoryPath).then((detail) => {
-      return transformChild(detail.data?.directoryTree.children ?? []);
+      return transformChild(detail.data?.directoryTree.children ?? [], rootNode.id);
     });
     nodeChildrenMap.set(rootNode.id, child);
 
@@ -198,11 +201,10 @@ async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeIt
 }
 
 onMounted(async () => {
-
   getOutputs(1);
-  const isOpenWith = (await getWelcomeState({
+  const isOpenWith = await getWelcomeState({
     key: 'guideSteps-isOpenWithPyPto',
-  }));
+  });
   if (isOpenWith !== false) {
     openPyPTOWelcome();
   }
