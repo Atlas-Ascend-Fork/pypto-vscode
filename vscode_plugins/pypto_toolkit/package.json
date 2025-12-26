@@ -2,12 +2,12 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "icon": "media/images/logo.png",
   "engines": {
     "vscode": "^1.82.0"
   },
-  "publisher": "HiSmartLiteOpen",
+  "publisher": "CANN-PUB",
   "categories": [
     "Other"
   ],
