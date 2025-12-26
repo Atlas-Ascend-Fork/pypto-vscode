@@ -58,8 +58,8 @@
         "title": "%PyPTOToolkit.welcome.open%",
         "category": "PyPTO.OpenWelcomeGuide",
         "icon": {
-          "light": "webview-dist/static-assets/boot_steps_open_sideBar-light.svg",
-          "dark": "webview-dist/static-assets/boot_steps_open_sideBar.svg"
+          "light": "webview-dist/static-assets/boot_steps/boot_steps_open_sideBar-light.svg",
+          "dark": "webview-dist/static-assets/boot_steps/boot_steps_open_sideBar.svg"
         }
       }
     ],
