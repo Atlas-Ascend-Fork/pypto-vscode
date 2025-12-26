@@ -2008,7 +2008,7 @@ const listenExtensionMessage = () => {
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
     if (event.type === 'welcomeSkipAll') {
-      server.close();
+      server.closeWebview();
     }
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {

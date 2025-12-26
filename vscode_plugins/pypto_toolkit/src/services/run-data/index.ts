@@ -1,12 +1,12 @@
 import path from 'node:path';
-import { access, constants } from 'node:fs/promises';
 import * as vscode from 'vscode';
 
 import { SqlStore } from '../../core/store';
 import type { OutputRecord } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
-import { getOutputRecord, readRunDataList } from './file-system-utils';
+import { getOutputRecord, readRunDataList, RunDataDir } from './file-system-utils';
+import { AsyncListResolver, asyncResolvingList } from './utils/async-resolving-list';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -31,27 +31,13 @@ const RUN_DATA_ATTRIBUTES = defineAttributes({
 export class RunDataService extends BasicService {
   private store: RunDataStore;
 
-  private scanning = false;
-
-  private get scannedCount(): number {
-    return this._scannedCount;
-  }
-  private set scannedCount(newValue: number) {
-    this._scannedCount = newValue;
-    this.scanListeners.get(newValue)?.();
-    this.scanListeners.delete(newValue);
-  }
-  private _scannedCount: number;
-
-  private scanListeners = new Map<number, () => void>();
-
-  private _stopScanTrigger?: () => void;
+  private listResolver?: AsyncListResolver<RunDataDir, unknown>;
 
   constructor() {
     super('runData');
     this.store = new SqlStore('run_data', RUN_DATA_ATTRIBUTES);
     this.store.onClear(async () => {
-      await this.stopScan();
+      await this.listResolver?.stop();
       this.scanDirectory();
     });
     this._disposables.push(this.store);
@@ -80,60 +66,31 @@ export class RunDataService extends BasicService {
   }
 
   public async waitForScanning(recordCount: number = Infinity): Promise<void> {
-    if (!this.scanning || this.scannedCount >= recordCount) {
+    if (!this.listResolver) {
       return;
     }
-    return new Promise<void>((resolve) => {
-      this.scanListeners.set(recordCount, () => {
-        resolve();
-      });
-    });
+    await this.listResolver.waitFor(recordCount);
+    return;
   }
 
   /**
    * 扫描目录
    */
   public async scanDirectory(): Promise<void> {
-    if (this.scanning) {
+    if (this.listResolver?.isResolving()) {
       return;
     }
-    this.scanning = true;
-    this.scannedCount = 0;
+
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
     const runDataList = await readRunDataList(runDataCollectionUri);
-
     const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
-    for (const { dirname, executeTime } of runDataList) {
+    this.listResolver = asyncResolvingList(runDataList, async ({ dirname, executeTime }) => {
       if (executeTime <= (latestRecord?.executeTime ?? '')) {
-        continue;
+        return { skip: true };
       }
       const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, dirname);
       await this.setOutputToStore(rootDirUri);
-      if (this._stopScanTrigger) {
-        this._stopScanTrigger();
-        this.scanning = false;
-        return;
-      }
-      this.scannedCount++;
-    }
-    this.scanning = false;
-
-    // 继续执行所有waitForScanning
-    for (const listener of this.scanListeners.values()) {
-      listener();
-    }
-    this.scanListeners.clear();
-  }
-
-  private stopScan(): Promise<void> {
-    if (!this.scanning) {
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      this._stopScanTrigger = () => {
-        resolve();
-        delete this._stopScanTrigger;
-      };
+      return { data: null };
     });
   }
 

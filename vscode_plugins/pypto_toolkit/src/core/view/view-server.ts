@@ -4,11 +4,11 @@ import { ViewServerContext } from './view-server-context';
 
 // static属性无法使用泛型，此处用于解析Apis和Refs，运行代码不包含下列属性
 export interface ViewServer<Apis extends string, Refs extends object> {
-  _allowedApis: Record<Apis, unknown> & { close: () => void };
+  _allowedApis: Record<Apis, unknown> & { closeWebview: () => void };
   _allowedRefs: Refs;
 }
 
-const DEFAULT_VIEW_CONFIG: ViewServerConfig = { apis: ['close'], refs: [] };
+const DEFAULT_VIEW_CONFIG: ViewServerConfig = { apis: ['closeWebview'], refs: [] };
 
 /**
  * 【装饰器】客户端可以访问的方法
@@ -50,7 +50,7 @@ export class ViewServer<Apis extends string, Refs extends object> extends Dispos
   constructor(private _ctx: ViewServerContext) {
     super(() => {
       this.onDisposed();
-      this.close();
+      this.closeWebview();
     });
     _ctx.init.call(this);
   }
@@ -83,7 +83,7 @@ export class ViewServer<Apis extends string, Refs extends object> extends Dispos
   /**
    * 关闭视图
    */
-  public close() {
+  public closeWebview() {
     this._ctx.closeWebview();
   }
 }

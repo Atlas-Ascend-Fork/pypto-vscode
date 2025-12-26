@@ -208,7 +208,7 @@ const nextStep = () => {
 };
 //开始体验
 function closeWelcomPage() {
-  server.close();
+  server.closeWebview();
 }
 
 /**
