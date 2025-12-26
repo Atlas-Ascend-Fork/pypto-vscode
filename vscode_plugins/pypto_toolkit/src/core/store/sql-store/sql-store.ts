@@ -78,7 +78,7 @@ export class SqlStore<
 
   public async set(item: Item): Promise<void> {
     const conditions = this._attributeResolver.itemToPrimaryConditions(item);
-    const savingFileName = `${crypto.hash('sha1', conditions.join(''))}.json`;
+    const savingFileName = this.makeUniqueFileName(conditions.join(''));
     await this._dataFileController.write(item, savingFileName);
     const columns = this._attributeResolver.toColumnNames();
     const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
@@ -188,5 +188,13 @@ export class SqlStore<
     const readingPromises = savingFileNames.map((fileName) => this._dataFileController.read(fileName));
     const savingItems = (await Promise.all(readingPromises)).filter((fileResult): fileResult is Item => fileResult !== undefined);
     return savingItems;
+  }
+
+  /**
+   * 唯一键生成数据文件名
+   */
+  private makeUniqueFileName(uniqueKey: string): string {
+    const hash = crypto.createHash('sha1');
+    return `${hash.update(uniqueKey).digest('hex')}.json`;
   }
 }

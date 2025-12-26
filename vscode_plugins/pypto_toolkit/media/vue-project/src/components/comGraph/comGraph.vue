@@ -333,11 +333,11 @@ async function onStepsChange(args) {
       swimlaneGraphPath: `${await getSwimPath()}`,
       isBootStep:true
     });
-    server.close();
+    server.closeWebview();
     return;
   }
   if (args.type === 'welcomeSkipAll') {
-    server.close();
+    server.closeWebview();
   }
   stepsMap[args.data.methodName](args.data.params);
 }

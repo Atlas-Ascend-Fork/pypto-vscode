@@ -25,12 +25,13 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref, withDefaults } from 'vue';
+import { inject, ref } from 'vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
 import { OutputRecord } from 'ext:/types/workspace';
+import { useViewServer } from '@/core/use-view-server';
 
 withDefaults(
   defineProps<{
@@ -47,9 +48,12 @@ const emits = defineEmits<{
 
 const { historyList } = inject(NavbarProvideKey) as NavbarContext;
 const isOpen = ref(false);
+const { server } = useViewServer();
 
 function onClick(item: HistoryData) {
-  openControlFlow({ outputPath: item.directoryPath, controlFlowPath: item.controlFlowFilePath });
+  openControlFlow({ outputPath: item.directoryPath, controlFlowPath: item.controlFlowFilePath }).then(() => {
+    server.closeWebview();
+  });
 }
 </script>
 

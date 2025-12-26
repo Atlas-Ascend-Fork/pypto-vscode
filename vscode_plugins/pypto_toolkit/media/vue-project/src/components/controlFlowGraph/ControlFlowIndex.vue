@@ -375,7 +375,7 @@ const listenExtensionMessage = () => {
   (window as any).ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
     if (event.type === 'welcomeSkipAll') {
-      server.close();
+      server.closeWebview();
     }
     if (event.type === 'callWebviewMethod') {
       switch (message.methodName) {
@@ -407,7 +407,7 @@ const listenExtensionMessage = () => {
             isBootStep: true,
           });
 
-          server.close();
+          server.closeWebview();
           break;
         default:
           break;

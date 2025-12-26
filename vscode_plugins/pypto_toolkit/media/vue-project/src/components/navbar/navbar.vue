@@ -90,6 +90,7 @@ import { useNavbar } from './hooks/use-navbar';
 import { useOutputNav } from '@/hooks/use-output-nav';
 import { ComGraphProvideKey } from '../comGraph/type';
 import type { ComGraphContext } from '../comGraph/type';
+import { useViewServer } from '@/core/use-view-server';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -224,12 +225,16 @@ function onJumpCom() {
   jumpComGraph(lastPass.value.graphFilePath, lastPass.value.pathName);
 }
 
+const { server } = useViewServer();
+
 function jumpControlFlow() {
   if (props.currentStep === 'controlFlow') {
     return;
   }
   if (controlFlowFile.value) {
-    openControlFlow({ outputPath: currentOutputPath.value, controlFlowPath: controlFlowFile.value });
+    openControlFlow({ outputPath: currentOutputPath.value, controlFlowPath: controlFlowFile.value }).then(() => {
+      server.closeWebview();
+    });
   }
 }
 
@@ -245,7 +250,9 @@ function jumpComGraph(filePath: string, pathName?: string) {
       pathName = (passEl.value?.getCurrentPass() as PathInPass | undefined)?.pathName ?? '';
     }
     if (currentRecord.value?.directoryPath) {
-      openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName });
+      openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName }).then(() => {
+        server.closeWebview();
+      });
     }
   }
 }

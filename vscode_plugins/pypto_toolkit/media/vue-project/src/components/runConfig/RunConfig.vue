@@ -102,7 +102,7 @@ async function handleSave() {
 }
 
 function handleCancel() {
-  server.close();
+  server.closeWebview();
 }
 
 function handleViewSourceFile() {
