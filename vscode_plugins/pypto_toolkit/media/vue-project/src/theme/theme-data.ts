@@ -174,8 +174,10 @@ export const ideLightTheme = new Theme({
     'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
     'welcome-header-right-imge-bg':
       'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
-      'welcome-box-shadow':'-4px -4px 12px 0px rgba(0,0,0,0.08)',
-    },
+    'welcome-box-shadow': '-4px -4px 12px 0px rgba(0,0,0,0.08)',
+    'welcome-banner-long': 'rgba(0, 0, 0, 0.5)',
+    'welcome-banner-point': 'rgba(0, 0, 0, 0.2)',
+  },
   isDark: false,
 });
 
@@ -352,7 +354,9 @@ export const ideDarkTheme = new Theme({
     'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
     'welcome-header-right-imge-bg':
       'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
-    'welcome-box-shadow':'-10px -10px 50px 10px rgba(0,0,0,0.3)',
-    },
+    'welcome-box-shadow': '-10px -10px 50px 10px rgba(0,0,0,0.3)',
+    'welcome-banner-long': 'rgba(255, 255, 255, 0.5)',
+    'welcome-banner-point': 'rgba(255, 255, 255, 0.2)',
+  },
   isDark: true,
 });

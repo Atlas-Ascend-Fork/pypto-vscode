@@ -71,15 +71,15 @@ import { getQuery } from '@/core/query';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { isDarkTheme } = inject('root');
-const controlFlowImg = ref(`${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`);
-const nativeImg = ref(`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
-const swimImg = ref(`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_control_weak${isDarkTheme.value ? '' : '-light'}.svg`);
+const nativeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_native_weak${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeImg =computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_compute_weak${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_swim_weak${isDarkTheme.value ? '' : '-light'}.svg`);
 
-const controlFlowActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_control_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const nativeActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_native_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_compute_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const swimActiveImg = ref(`${window.staticPath}/static-assets/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_control_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const nativeActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_native_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_compute_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`);
 
 const imgArr=ref([controlFlowImg,nativeImg,computeImg,swimImg])
 const imgActiveArr=ref([controlFlowActiveImg,nativeActiveImg,computeActiveImg,swimActiveImg])
