@@ -89,12 +89,30 @@
         </div>
 
         <!-- 右侧图片预览区 -->
-        <div class="preview-area">
+        <div class="preview-area" @mouseenter="pauseCarousel" @mouseleave="startCarousel">
+          <!-- 投影区 -->
           <div class="preview-area__image-bg"></div>
+
+          <!-- 图片预览区 -->
           <div class="preview-image-wrapper">
             <div class="preview-image-border">
-              <img class="preview-image" v-if="activeStep" :src="images[activeStep.index - 1]" />
+              <!-- 轮播图片容器 -->
+              <div class="carousel-image-container">
+                <!-- 步骤1显示原有图片，步骤2显示轮播图片 -->
+                <img class="preview-image" v-if="activeStep?.id === 'step1'" :src="runPythonImag" alt="步骤1预览图" />
+                <div v-else class="carousel-wrapper">
+                  <!-- 轮播图片列表 -->
+                  <img class="carousel-image" v-for="(img, idx) in images" :key="idx" :src="img"
+                    :class="{ 'carousel-active': currentCarouselIndex === idx }" alt="轮播图${idx+1}" />
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- 轮播指示器（小圆点+椭圆进度条） -->
+          <div v-if="activeStep?.id === 'step2'" class="carousel-indicators">
+            <div class="indicator-item" v-for="(img, idx) in images" :key="idx"
+              :class="{ 'indicator-active': currentCarouselIndex === idx }" @click="switchCarousel(idx)"></div>
           </div>
         </div>
       </div>
@@ -117,25 +135,57 @@ const { isDarkTheme } = inject('root');
 const staticPath = ref(window.staticPath || '');
 const logo = ref(`${staticPath.value}/static-assets/logo.png`);
 const isLinux = ref(true);
-const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`)
-const nativeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
-const swimImg = computed(()=>`${window.staticPath}/static-assets/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_control${isDarkTheme.value ? '' : '-light'}.svg`)
+const nativeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
+const computeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
+const swimImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+const runPythonImag = computed(() => `${staticPath.value}/static-assets/boot_steps/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,)
+const images = computed(() => {
+  const themeSuffix = isDarkTheme.value ? '' : '-light';
+  return [
+    // 步骤2轮播图片（共4张）
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_control.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_native.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_compute.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_swim.png`
+  ];
+});
 
-const images = ref([
-  `${window.staticPath}/static-assets/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,
-  isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
-  'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
-])
+// 轮播相关响应式数据
+const currentCarouselIndex = ref(0); // 当前轮播索引
+const carouselTimer = ref<NodeJS.Timeout | null>(null); // 轮播定时器
+const carouselInterval = 2500; // 轮播间隔（2.5秒，可调整）
 
-watch(() => isDarkTheme.value,
-  (value) => {
-    images.value[0] = value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
-    images.value[1] = value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
-  })
+// 1. 自动轮播函数
+const startCarousel = () => {
+  // 只有步骤2激活时才启动轮播
+  if (activeStepId.value !== 'step2' || carouselTimer.value) return;
 
-const hasCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_completed.svg`);
-const hasNotCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps_welcome_not_completed.svg`);
+  carouselTimer.value = setInterval(() => {
+    currentCarouselIndex.value = (currentCarouselIndex.value + 1) % images.value.length;
+  }, carouselInterval);
+};
+
+// 2. 暂停轮播
+const pauseCarousel = () => {
+  if (carouselTimer.value) {
+    clearInterval(carouselTimer.value);
+    carouselTimer.value = null;
+  }
+};
+
+// 3. 手动切换轮播
+const switchCarousel = (index: number) => {
+  currentCarouselIndex.value = index;
+  // 切换后重启定时器，避免快速点击
+  pauseCarousel();
+  startCarousel();
+};
+
+
+/** 步骤执行逻辑 */
+const hasCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps/boot_steps_welcome_completed.svg`);
+const hasNotCompletedImg = ref(`${window.staticPath}/static-assets/boot_steps/boot_steps_welcome_not_completed.svg`);
 
 // 1. 定义步骤数据类型
 interface GuideStep {
@@ -275,13 +325,12 @@ const initSteps = async () => {
     steps.value[0].completed = true
   }
 };
-const initImage = () => {
-  images.value[0] = isDarkTheme.value ? `${window.staticPath}/static-assets/boot_steps_runPython.png` : `${window.staticPath}/static-assets/boot_steps_runPython-light.png`
-  images.value[1] = isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif'
-}
 onMounted(async () => {
-  initImage();
   initSteps();
+  // 初始化后检查是否需要启动轮播
+  if (activeStepId.value === 'step2') {
+    startCarousel();
+  }
 });
 
 watch(
@@ -309,6 +358,15 @@ watch(
   },
   { deep: true },
 );
+
+// 监听步骤切换，控制轮播启停
+watch(activeStepId, (newStepId) => {
+  if (newStepId === 'step2') {
+    startCarousel(); // 步骤2激活时启动轮播
+  } else {
+    pauseCarousel(); // 离开步骤2时暂停轮播
+  }
+});
 </script>
 
 <style scoped lang="less">
@@ -543,6 +601,7 @@ watch(
       padding: 20px;
       min-width: 800px;
       min-height: 450px;
+      position: relative;
 
       .preview-area__image-bg {
         position: absolute;
@@ -571,19 +630,34 @@ watch(
         overflow: hidden;
         box-sizing: border-box;
         z-index: 2;
-        // box-shadow:0 10px 70px 0  rgba(0, 0, 0, 0.5);
+        position: relative;
+
+        .preview-image-border {
+          /* 避免轮播图片时渐变背景闪烁 */
+          background-color: var(--devui-global-bg);
+
+          /* 轮播图片容器 */
+          .carousel-image-container {
+            width: 100%;
+            height: 100%;
+          }
+
+        }
       }
 
-      /* 中间边框层 */
+      /* 中间边框层（固定，不随轮播变化） */
       .preview-image-border {
         box-sizing: border-box;
         width: 100%;
         height: 100%;
-        border: 8px solid var(--devui-card-bg); // 卡片背景（适配明暗）
+        border: 8px solid var(--devui-card-bg);
         border-radius: 11px;
         overflow: hidden;
+        position: relative;
       }
 
+
+      /* 通用预览图片样式 */
       .preview-image {
         width: 100%;
         height: 100%;
@@ -591,6 +665,62 @@ watch(
         display: block;
         box-shadow: var(--devui-select-shadow); // 下拉阴影（主题变量）
         border-radius: 1px;
+      }
+
+      /* 轮播容器 */
+      .carousel-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+
+      /* 轮播图片样式 */
+      .carousel-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        border-radius: 1px;
+        box-shadow: var(--devui-select-shadow);
+      }
+
+      /* 激活的轮播图片 */
+      .carousel-image.carousel-active {
+        opacity: 1;
+      }
+
+      /* 轮播指示器样式 */
+      .carousel-indicators {
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 10;
+      }
+
+      /* 指示器小圆点 */
+      .indicator-item {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--welcome-banner-point);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      /* 激活的指示器（椭圆长条） */
+      .indicator-item.indicator-active {
+        width: 20px;
+        height: 8px;
+        border-radius: 4px; // 椭圆效果
+        background-color: var(--welcome-banner-long);
       }
     }
   }
@@ -648,8 +778,6 @@ watch(
     }
   }
 }
-
-
 
 .prev-btn:disabled,
 .next-btn:disabled {
