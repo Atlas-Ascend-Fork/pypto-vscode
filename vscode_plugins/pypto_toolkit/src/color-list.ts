@@ -1,10 +1,14 @@
+import { defaultBaseColorList, defaultBaseColorListInDark, defaultLightColorList, defaultLightColorListInDark } from "./defaultColor";
+
 // 动态导入ES Module
 let Hct: any = null;
 
 export async function loadMaterialColorUtilities() {
   if (!Hct) {
     const dynamicImport = (new Function('specifier', 'return import(specifier);')) as (s: string) => Promise<any>;
-    const materialColorUtilities = await dynamicImport('@material/material-color-utilities');
+    const materialColorUtilities = await dynamicImport('@material/material-color-utilities').catch(err => {
+      return {Hct: null}
+    });
     Hct = materialColorUtilities.Hct;
   }
   return Hct;
@@ -62,11 +66,23 @@ function hexToArgb(hex) {
 }
 
 export function getLighterColorByHex(color: string) {
+  if (!Hct) {
+    return color;
+  }
   const hctColor = hexToHct(color);
   return hctToHex(hctColor.hue, hctColor.chroma, hctColor.tone + 20 > 100 ? 100 : hctColor.tone + 20);
 }
 
 export function generateColorList(count: number, isDark = true) {
+  if (!Hct) {
+    return isDark ? {
+      baseColorList: defaultBaseColorListInDark,
+      lightColorList: defaultLightColorListInDark
+    } : {
+      baseColorList: defaultBaseColorList,
+      lightColorList: defaultLightColorList
+    }
+  }
   const baseColor = isDark ? [268, 47, 43] : [268, 67, 85];
   const baseLightColor = isDark ? [268, 47, 80] : [268, 67, 43];
   const originBaseColorList: string[] = [];
