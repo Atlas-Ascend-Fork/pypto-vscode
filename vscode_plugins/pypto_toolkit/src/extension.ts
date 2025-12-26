@@ -46,30 +46,35 @@ export async function activate(context: ExtensionContext) {
 
   // 旧版本检查
   const delay = 5000;
-  setTimeout(() => {
-    const oldExtensions = {
-      'hismartliteopen.ascend-devkit': 'Ascend Devkit',
-      'hismartliteopen.ascend-cpp-devkit': 'Ascend C++ Devkit',
-    };
-    const detectedExtensions: string[] = [];
-    for (const [oldExtensionId, oldExtensionName] of Object.entries(oldExtensions)) {
-      const oldExtension = vscode.extensions.getExtension(oldExtensionId);
-      if (oldExtension && oldExtension.isActive) {
-        detectedExtensions.push(oldExtensionName);
-      }
+  setTimeout(async () => {
+    const oldExtensionId = 'hismartliteopen.pypto-toolkit';
+    const oldExtensionName = 'PyPTO Toolkit';
+
+    const ext = vscode.extensions.getExtension(oldExtensionId);
+    if (!ext?.isActive) {
+      return; // 未安装或未激活，直接退出
     }
-    if (detectedExtensions.length) {
-      vscode.window
-        .showWarningMessage(
-          i18next.t('pypto.ExtensionWarned', { oldExtensionName: detectedExtensions.join(', ') }),
-          i18next.t('pypto.ExtensionUninstall'),
-          i18next.t('pypto.ExtensionIgnore'),
-        )
-        .then((selection) => {
-          if (selection === i18next.t('pypto.ExtensionUninstall')) {
-            vscode.commands.executeCommand('workbench.extensions.search', `@installed ascend`);
-          }
-        });
+
+    try {
+      await vscode.commands.executeCommand('workbench.extensions.uninstallExtension', oldExtensionId);
+      // 卸载成功：提示重启
+      const msg = i18next.t('pypto.ExtensionUninstalledPleaseReload');
+      const reloadBtn = i18next.t('pypto.confirm');
+      vscode.window.showWarningMessage(msg, reloadBtn).then(selection => {
+        if (selection === reloadBtn) {
+          vscode.commands.executeCommand('workbench.action.reloadWindow');
+        }
+      });
+    } catch (err) {
+      console.warn(`Failed to uninstall extension ${oldExtensionId}:`, err);
+      // 卸载失败：提示手动操作
+      const msg = i18next.t('pypto.ExtensionWarned', { oldExtensionName: oldExtensionName });
+      const openExtensionsBtn = i18next.t('pypto.confirm');
+      vscode.window.showErrorMessage(msg, openExtensionsBtn).then(selection => {
+        if (selection === openExtensionsBtn) {
+          vscode.commands.executeCommand('workbench.extensions.search', `@installed pypto`);
+        }
+      });
     }
   }, delay);
 
@@ -101,7 +106,7 @@ export async function activate(context: ExtensionContext) {
   );
 
   if (window.registerWebviewPanelSerializer) {
-    window.registerWebviewPanelSerializer('swimLane', {
+    window.registerWebviewPanelSerializer('swimLaneOpen', {
       async deserializeWebviewPanel(webviewPanel: WebviewPanel, state: unknown) {
         await loadMaterialColorUtilities();
         SwimGraphView.revive(webviewPanel, context.extensionUri);
@@ -117,7 +122,7 @@ async function initDB(context: ExtensionContext) {
   watcher.onDidChange((uri) => SQLiteCache.getInstance().comGraphDataDelete(uri.fsPath));
   watcher.onDidDelete((uri) => SQLiteCache.getInstance().comGraphDataDelete(uri.fsPath));
   // 2. 注册命令
-  vscode.commands.registerCommand('PyPTO.deletePersistFile', async () => {
+  vscode.commands.registerCommand('PyPTO.Open.deletePersistFile', async () => {
     const yes = 'Clear';
     const pick = await vscode.window.showWarningMessage(t('pypto.clearAllCache'), { modal: true }, yes);
     if (pick !== yes) return;
@@ -126,7 +131,7 @@ async function initDB(context: ExtensionContext) {
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   });
 
-  vscode.commands.registerCommand('PyPTO.OpenWelcomeGuide', async () => {
+  vscode.commands.registerCommand('PyPTO.Open.OpenWelcomeGuide', async () => {
     openPyPTOWelcome();
   });
 

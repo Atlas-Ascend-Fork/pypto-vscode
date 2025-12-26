@@ -18,43 +18,43 @@
   "contributes": {
     "submenus": [
       {
-        "id": "pypto.graph.advan",
+        "id": "pypto.graph.advanOpen",
         "label": "%pypto.OpenGraphForAdvanceFeatures%"
       }
     ],
     "commands": [
       {
         "category": "PyPTO.renderGraph",
-        "command": "PyPTO.OpenRenderGraphForCurrent",
+        "command": "PyPTO.Open.OpenRenderGraphForCurrent",
         "title": "%pypto.OpenRenderGraphForCurrent%"
       },
       {
-        "command": "PyPTO.deletePersistFile",
+        "command": "PyPTO.Open.deletePersistFile",
         "title": "Delete Cache DB File",
         "category": "PyPTO.comGraph"
       },
       {
         "category": "PyPTO.renderDiffComGraph",
-        "command": "PyPTO.OpenDiffComGraphForCurrent",
+        "command": "PyPTO.Open.OpenDiffComGraphForCurrent",
         "title": "%pypto.OpenDiffComGraphForCurrent%"
       },
       {
         "category": "PyPTO.renderNodeSearch",
-        "command": "PyPTO.OpenComGraphForNodeSearch",
+        "command": "PyPTO.Open.OpenComGraphForNodeSearch",
         "title": "%pypto.OpenComGraphForNodeSearch%"
       },
       {
         "category": "PyPTO.OpenLinkageMode",
-        "command": "PyPTO.OpenLinkageMode",
+        "command": "PyPTO.Open.OpenLinkageMode",
         "title": "%PyPTO.OpenLinkageMode%"
       },
       {
         "category": "PyPTO.CloseAllToolPages",
-        "command": "PyPTO.CloseAllToolPages",
+        "command": "PyPTO.Open.CloseAllToolPages",
         "title": "%PyPTO.CloseAllToolPages%"
       },
       {
-        "command": "PyPTO.OpenWelcomeGuide",
+        "command": "PyPTO.Open.OpenWelcomeGuide",
         "title": "%PyPTOToolkit.welcome.open%",
         "category": "PyPTO.OpenWelcomeGuide",
         "icon": {
@@ -66,50 +66,50 @@
     "menus": {
       "explorer/context": [
         {
-          "command": "PyPTO.OpenRenderGraphForCurrent",
+          "command": "PyPTO.Open.OpenRenderGraphForCurrent",
           "when": "resourceExtname == .json",
           "group": "navigation@1"
         },
         {
-          "submenu": "pypto.graph.advan",
+          "submenu": "pypto.graph.advanOpen",
           "when": "resourceExtname == .json",
           "group": "navigation@2"
         },
         {
-          "command": "PyPTO.OpenLinkageMode",
+          "command": "PyPTO.Open.OpenLinkageMode",
           "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
       ],
-      "pypto.graph.advan": [
+      "pypto.graph.advanOpen": [
         {
-          "command": "PyPTO.OpenDiffComGraphForCurrent",
+          "command": "PyPTO.Open.OpenDiffComGraphForCurrent",
           "when": "resourceExtname == .json",
           "group": "1_graph@1"
         },
         {
-          "command": "PyPTO.OpenComGraphForNodeSearch",
+          "command": "PyPTO.Open.OpenComGraphForNodeSearch",
           "when": "resourceExtname == .json",
           "group": "1_graph@2"
         }
       ],
       "editor/context": [
         {
-          "command": "PyPTO.OpenLinkageMode",
+          "command": "PyPTO.Open.OpenLinkageMode",
           "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
         }
       ],
       "editor/title/context": [
         {
-          "command": "PyPTO.CloseAllToolPages",
+          "command": "PyPTO.Open.CloseAllToolPages",
           "group": "navigation"
         }
       ],
       "view/title": [
         {
-          "command": "PyPTO.OpenWelcomeGuide",
-          "when": "view == PyPTO-Toolkit-Sidebar",
+          "command": "PyPTO.Open.OpenWelcomeGuide",
+          "when": "view == PyPTO-Open-Toolkit-Sidebar",
           "group": "navigation@1"
         }
       ]
@@ -119,22 +119,22 @@
         "id": "computational",
         "title": "Computational Graph",
         "properties": {
-          "PyPTOToolkit.tensorAttr": {
+          "PyPTOToolkitOpen.tensorAttr": {
             "type": "string",
             "default": "",
             "description": "%PyPTOToolkit.tensorAttr.description%"
           },
-          "PyPTOToolkit.tensorColor": {
+          "PyPTOToolkitOpen.tensorColor": {
             "type": "string",
             "default": "",
             "description": "%PyPTOToolkit.tensorColor.description%"
           },
-          "PyPTOToolkit.operationAttr": {
+          "PyPTOToolkitOpen.operationAttr": {
             "type": "string",
             "default": "",
             "description": "%PyPTOToolkit.operationAttr.description%"
           },
-          "PyPTOToolkit.operationColor": {
+          "PyPTOToolkitOpen.operationColor": {
             "type": "string",
             "default": "",
             "description": "%PyPTOToolkit.operationColor.description%"
@@ -145,27 +145,27 @@
         "id": "swimlane",
         "title": "Swimlane Diagram",
         "properties": {
-          "PyPTOToolkit.ZoomInShortcut": {
+          "PyPTOToolkitOpen.ZoomInShortcut": {
             "type": "string",
             "default": "w",
             "description": "%PyPTOToolkit.ZoomIn.description%"
           },
-          "PyPTOToolkit.ZoomOutShortcut": {
+          "PyPTOToolkitOpen.ZoomOutShortcut": {
             "type": "string",
             "default": "s",
             "description": "%PyPTOToolkit.ZoomOut.description%"
           },
-          "PyPTOToolkit.leftmoveShortcut": {
+          "PyPTOToolkitOpen.leftmoveShortcut": {
             "type": "string",
             "default": "a",
             "description": "%PyPTOToolkit.leftmove.description%"
           },
-          "PyPTOToolkit.rightmoveShortcut": {
+          "PyPTOToolkitOpen.rightmoveShortcut": {
             "type": "string",
             "default": "d",
             "description": "%PyPTOToolkit.rightmove.description%"
           },
-          "PyPTOToolkit.connectionLevel": {
+          "PyPTOToolkitOpen.connectionLevel": {
             "type": "number",
             "default": -1,
             "description": "%PyPTOToolkit.connectionLevel.description%"
@@ -175,7 +175,7 @@
     ],
     "customEditors": [
       {
-        "viewType": "PyPTO.editorView",
+        "viewType": "PyPTO.open.editorView",
         "displayName": "PyPTO Toolkit",
         "selector": [
           {
@@ -198,7 +198,7 @@
       "sidebar": [
         {
           "type": "webview",
-          "id": "PyPTO-Toolkit-Sidebar",
+          "id": "PyPTO-Open-Toolkit-Sidebar",
           "name": "PyPTO Toolkit",
           "icon": "media/images/logo.png"
         }

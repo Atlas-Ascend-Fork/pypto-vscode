@@ -9,7 +9,7 @@ import { SidebarViewServer } from './servers/sidebar-view-server';
 import { makeViewServerConfig } from '../core/view/view-server';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'PyPTO-Toolkit-Sidebar';
+  public static readonly viewType = 'PyPTO-Open-Toolkit-Sidebar';
 
   private servers: ReturnType<typeof useServer>;
   /** 页面参数通信器 */

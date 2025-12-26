@@ -44,38 +44,38 @@ export class RegisterCommand {
 
   getCommands() {
     return [
-      commands.registerCommand('PyPTO.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
+      commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
         await this.openView('computeGraph', uri, undefined);
       }),
-      commands.registerCommand('PyPTO.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
+      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
         if (!uri) return;
         await this.openView('computeGraph', uri, funcHash);
       }),
-      commands.registerCommand('PyPTO.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
+      commands.registerCommand('PyPTO.Open.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
         await this.openView('diffGraph', uri);
       }),
-      commands.registerCommand('PyPTO.OpenComGraphForNodeSearch', async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
+      commands.registerCommand('PyPTO.Open.OpenComGraphForNodeSearch', async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
         nodeMagic ??= '-1';
         await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
       }),
 
-      commands.registerCommand('PyPTO.OpenLinkageMode', async (uri: Uri | undefined) => {
+      commands.registerCommand('PyPTO.Open.OpenLinkageMode', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
         // ThreeColumnGraphView.createPanel(uri);
         const { editorView } = useView();
         await editorView.open('threeColumnGraph', uri);
       }),
-      commands.registerCommand('PyPTO.CloseAllToolPages', () => {
+      commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
         this.closeAllToolPages();
       }),
-      commands.registerCommand('PyPto.postLayoutData', (id: string, data: any) => {
+      commands.registerCommand('PyPto.Open.postLayoutData', (id: string, data: any) => {
         const [serverId, infoStr] = id.split('&&');
         const server = this.editorView.editorView.openServer.get(serverId);
         if (server) {
