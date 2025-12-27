@@ -25,7 +25,7 @@ export class Util {
   }
 
   static getComGraphCustomCfg() {
-    const config = workspace.getConfiguration('PyPTOToolkit');
+    const config = workspace.getConfiguration('PyPTOToolkitOpen');
     const vscodeConfig = {
       tensorAttr: config.get('tensorAttr') as string,
       tensorColor: config.get('tensorColor') as string,
@@ -42,7 +42,7 @@ export class Util {
   }
 
   static getSwimGraphCustomCfg() {
-    const config = workspace.getConfiguration('PyPTOToolkit');
+    const config = workspace.getConfiguration('PyPTOToolkitOpen');
     // 仅对shortcut进行检测
     const configKeys = ['ZoomInShortcut', 'ZoomOutShortcut', 'leftmoveShortcut', 'rightmoveShortcut'];
     const seenShortCut = new Set();

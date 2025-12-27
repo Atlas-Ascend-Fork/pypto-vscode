@@ -277,7 +277,7 @@ export abstract class BaseGraphMsgHandler {
     const nodeMagic: string = message.data?.nodeMagic;
     const funcHash = message.data?.funcHash;
     const gd = server.comGraphData;
-    commands.executeCommand('PyPTO.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
+    commands.executeCommand('PyPTO.Open.OpenComGraphForNodeSearch', Uri.file(gd.fsPath), funcHash, nodeMagic);
   }
 
   /* ===================================================
@@ -356,7 +356,7 @@ export abstract class BaseGraphMsgHandler {
     }
     if (renderMode === 'path' || !cache || lastChangeTime !== cache.last_change_time) {
       if (vscode.extensions.getExtension('hakan-6666.java-elk-extension')) {
-        vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.postLayoutData')
+        vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.Open.postLayoutData')
       } else {
         this.layoutByLocal(server, gd, lastChangeTime, funcHash);
       }
@@ -446,7 +446,7 @@ export abstract class BaseGraphMsgHandler {
         }
       }
       targetCurPath = JSON.stringify(targetCurPath);
-      commands.executeCommand('PyPTO.OpenRenderGraphForCurrent', Uri.file(targetPath), subFuncmagicname);
+      commands.executeCommand('PyPTO.Open.OpenRenderGraphForCurrent', Uri.file(targetPath), subFuncmagicname);
     } else {
       const { useView } = await import('../view');
       const { editorView } = useView();

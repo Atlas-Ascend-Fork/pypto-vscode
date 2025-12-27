@@ -42,7 +42,7 @@ interface EditorViewOptions {
   title?: string;
 }
 
-const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.editorView';
+const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.open.editorView';
 
 /**
  * 在IDE中间编辑区域显示的自定义视图
