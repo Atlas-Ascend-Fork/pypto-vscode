@@ -15,6 +15,7 @@
   "PyPTOToolkit.connectionLevel.description": "configuration the max connection level on the swimlane(-1: disabled)",
   "pypto.selectComGraph": "Select the corresponding Compute Graph JSON file",
   "pypto.noFileSelect": "No file select.",
+  "pypto.emptyNodeList": "Node linked but undefined",
   "pypto.noBinding": "No binding found for this swimlane diagram.",
   "pypto.noRootHash": "No rootHash field.",
   "pypto.fileNodeExist": "File not exist.",

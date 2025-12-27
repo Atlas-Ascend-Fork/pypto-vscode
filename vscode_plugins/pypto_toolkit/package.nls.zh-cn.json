@@ -15,6 +15,7 @@
   "PyPTOToolkit.connectionLevel.description": "配置泳道图最大显示层级(-1: 表示不使能)",
   "pypto.selectComGraph": "请选择要绑定的计算图json文件",
   "pypto.noFileSelect": "没有选择文件",
+  "pypto.emptyNodeList": "当前节点仅有引用而无定义",
   "pypto.noBinding": "没有已绑定的文件",
   "pypto.noRootHash": "没有 rootHash 字段",
   "pypto.fileNodeExist": "文件不存在",

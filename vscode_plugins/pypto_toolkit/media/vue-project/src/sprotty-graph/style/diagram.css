@@ -128,6 +128,15 @@ rect.sprotty-node.op {
   fill: white;
 }
 
+.operation-main-label-empty text {
+  font-size: 7px !important; 
+  fill: rgba(249, 183, 102, 1) !important;
+}
+
+.operation-main-label-empty-light text {
+  font-size: 7px !important; 
+  fill: #C76207 !important;
+}
 .sprotty svg text {
   user-select: none;
   -webkit-user-select: none;
@@ -547,4 +556,12 @@ circle {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+.operation-main-op-empty rect{
+  width: 110px !important;
+  height: 50px !important;
+}
+.dashed-edge {
+  stroke-dasharray: 5, 5;
 }

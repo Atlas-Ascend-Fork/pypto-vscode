@@ -155,7 +155,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const isThreeMode = option?.isThreeMode ?? false;
     if (option?.showTensorNodes !== undefined) {
       currentLayoutConfig.showTensor = showTensorNodes;
-      resetModelSource();
+      resetModelSource(true);
     }
 
     let nodeMagic: any;
