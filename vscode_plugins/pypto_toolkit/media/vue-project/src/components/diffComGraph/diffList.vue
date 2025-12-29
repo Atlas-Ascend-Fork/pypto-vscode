@@ -9,7 +9,8 @@
         <div :class="['diff-list-item', isLoading && 'diff-list-item-disabled']" @click="() => onItemClick(scope.data)">
           <span class="item-index">{{ scope.index + 1 }}</span>
           <span class="item-title">{{ scope.data.nodeType }} : {{ scope.data.magic }}</span>
-          <i :class="['item-icon', scope.data.changeType, IconMap[scope.data.changeType]]"></i>
+          <DiffDeleteIcon v-if="scope.data.changeType === 'delete'" class="item-delete-icon" />
+          <i v-else :class="['item-icon', scope.data.changeType, IconMap[scope.data.changeType]]"></i>
         </div>
       </template>
     </VirtualScroll>
@@ -24,6 +25,7 @@ import { ref } from 'vue';
 import type { PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import VirtualScroll from './virtualScroll/virtualScroll.vue';
+import DiffDeleteIcon from './diffDeleteIcon.vue'
 import type { DiffListItem } from './type';
 
 const props = defineProps({
@@ -39,7 +41,6 @@ const { t } = useI18n();
 const isExpand = ref(true);
 const IconMap = {
   add: 'icon-add',
-  delete: 'icon-delete',
   change: 'icon-switch',
 };
 const onItemClick = (data: DiffListItem) => {
@@ -155,14 +156,16 @@ const onExpandChange = () => {
         border: 1px solid var(--devui-status-success-text);
         color: var(--devui-status-success-text);
       }
-      &.delete {
-        border: 1px solid var(--devui-status-error-text);
-        color: var(--devui-status-error-text);
-      }
+
       &.change {
         border: 1px solid var(--devui-status-warning-text);
         color: var(--devui-status-warning-text);
       }
+    }
+
+    .item-delete-icon {
+      width: 18px;
+      height: 18px;
     }
   }
 
