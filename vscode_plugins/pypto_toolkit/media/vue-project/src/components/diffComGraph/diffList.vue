@@ -38,7 +38,7 @@ const emits = defineEmits(['click', 'expandChange']);
 const { t } = useI18n();
 const isExpand = ref(true);
 const IconMap = {
-  add: 'icon-add-2',
+  add: 'icon-add',
   delete: 'icon-delete',
   change: 'icon-switch',
 };
@@ -142,15 +142,25 @@ const onExpandChange = () => {
     }
 
     .item-icon {
-      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+      border-radius: 4px;
+      box-sizing: border-box;
 
       &.add {
+        border: 1px solid var(--devui-status-success-text);
         color: var(--devui-status-success-text);
       }
       &.delete {
+        border: 1px solid var(--devui-status-error-text);
         color: var(--devui-status-error-text);
       }
       &.change {
+        border: 1px solid var(--devui-status-warning-text);
         color: var(--devui-status-warning-text);
       }
     }
