@@ -493,6 +493,7 @@ export abstract class BaseGraphMsgHandler {
         calleeOpSubgraphId: server.entryHash === calleehash ? undefined : calleeOpSubgraphId,
         isSearch: server.entryHash === calleehash ? undefined : oldQuery.isSearch,
         parentInfo: server.entryHash === calleehash ? undefined : parentInfo,
+        nodeMagic: server.entryHash === calleehash ? undefined : oldQuery.nodeMagic,
       };
 
       editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery, title: subFuncmagicname });
