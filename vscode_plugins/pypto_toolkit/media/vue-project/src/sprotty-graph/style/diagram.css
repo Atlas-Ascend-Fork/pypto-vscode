@@ -448,7 +448,7 @@ circle {
 }
 .op-diff-change,
 .tensor-diff-change {
-  stroke: var(--devui-status-warning-text) !important;
+  stroke: var(--devui-duff-change-border-color) !important;
   stroke-width: 2px;
 }
 .op-diff-normal,

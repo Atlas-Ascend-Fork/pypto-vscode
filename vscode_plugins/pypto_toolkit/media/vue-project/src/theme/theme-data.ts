@@ -79,6 +79,7 @@ export const ideLightTheme = new Theme({
     'devui-status-success-bg': '#dff4cc', // 成功色-背景
     'devui-status-warning': '#c76207', // 警告色
     'devui-status-warning-text': '#c76207', // 警告色-文字
+    'devui-duff-change-border-color': '#f69e39', // diff节点change类型的边框色
     'devui-status-warning-bg': '#fde2bd', // 警告色-背景
     'devui-split-line': 'rgba(0,0,0,0.1)', // 分割线-浅
     'devui-split-line-deep': '#dfdfdf', // 分割线-深
@@ -259,6 +260,7 @@ export const ideDarkTheme = new Theme({
     'devui-status-success-bg': '#1b3e0a', // 成功色-背景
     'devui-status-warning': '#f9b766', // 警告色
     'devui-status-warning-text': '#f9b766', // 警告色-文字
+    'devui-duff-change-border-color': '#f69e39', // diff节点change类型的边框色
     'devui-status-warning-bg': '#642802', // 警告色-背景
     'devui-split-line': 'rgba(255,255,255,0.1)', // 分割线
     'devui-split-line-deep': '#4d4d4d', // 分割线-深
