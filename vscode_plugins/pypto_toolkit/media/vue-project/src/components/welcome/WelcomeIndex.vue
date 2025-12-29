@@ -124,7 +124,7 @@ const swimImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot
 
 const images = computed(()=>[
   `${window.staticPath}/static-assets/boot_steps/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,
-  isDarkTheme.value ? 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif' : 'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/workflow.gif',
+  `${window.staticPath}/static-assets/boot_steps/openControlFlow${isDarkTheme.value ? '' : '-light'}.gif`,
   'https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.8%20swimToCom.gif',
 ])
 
