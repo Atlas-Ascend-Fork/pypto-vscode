@@ -67,6 +67,7 @@ const {
   searchedEvent,
   colorRending,
   labelRender,
+  childContextMap,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -102,6 +103,7 @@ provide('swimGraphState', {
   isThreeColumn,
   searchedEvent,
   colorRending,
+  childContextMap,
 });
 
 const {
