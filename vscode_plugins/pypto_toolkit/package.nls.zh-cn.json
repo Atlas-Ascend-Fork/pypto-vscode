@@ -116,6 +116,7 @@
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
   "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
+  "pypto.entry.fileTooLarge": "文件过大，使用命令无法获取文件信息，请在 json 文件右键，选择“PyPTO Toolkit: 打开文件”菜单进行可视化",
   "pypto.swimGraph.performance.useTime": "当前文件预计打开耗时介于 {{lower}} 和 {{upper}} 之间",
   "pypto.swimGraph.performance.tooLarge": "当前文件过大，可能存在打不开的情况",
   "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",
