@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { getExtensionMode, getPythonOutputChannel, runPythonScript } from './run-python';
 import { extensionContext } from '../../extension';
+import { readWholeFileByTextDocument } from './getPythonCode';
 
 /**
  * 根据插件初始Python文件创建初始工程
@@ -37,7 +38,7 @@ export async function getInitPythonProject(address = 'https://pypi.tuna.tsinghua
     vscode.window.showErrorMessage(errorMsg);
     return;
   }
- return await runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
+  return await runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
 }
 
 /**
@@ -126,11 +127,37 @@ export async function getSwimPath() {
  * 获取插件版本
  */
 export async function getPluginVersion() {
-    // 校验前置条件
-    if (!extensionContext) {
-      vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
-      return;
-    }
-    const version = extensionContext.extension.packageJSON.version
-    return version
+  // 校验前置条件
+  if (!extensionContext) {
+    vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
+    return;
+  }
+  const version = extensionContext.extension.packageJSON.version;
+  return version;
+}
+
+/**
+ * 获取python脚本代码
+ */
+export async function getPythonFileCode() {
+  // 校验前置条件
+  if (!extensionContext) {
+    vscode.window.showErrorMessage('插件未激活，无法获取上下文！');
+    return '';
+  }
+  const extensionRoot = extensionContext.extensionPath;
+  const mode = getExtensionMode();
+
+  let mockDataFilePath = '';
+  // 适配打包和调试的路径
+  if (mode === 'development') {
+    // 调试
+    mockDataFilePath = path.join(extensionRoot, 'src', 'python-file', 'test_hello_world.py');
+  } else {
+    // 打包
+    mockDataFilePath = path.join(extensionRoot, 'webview-dist', 'python-file', 'test_hello_world.py');
+  }
+  const uri = vscode.Uri.file(mockDataFilePath);
+  const code = await readWholeFileByTextDocument(uri);
+  return code;
 }

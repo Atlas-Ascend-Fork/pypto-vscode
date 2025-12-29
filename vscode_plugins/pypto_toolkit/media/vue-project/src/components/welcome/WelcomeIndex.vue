@@ -31,7 +31,7 @@
 
               <div class="step-content" :class="{ expanded: expandedStepId === 'step1' }">
                 <div class="step-content__run-python">
-                  <i class="icon-json"></i>
+                  <img :src="pythonIcon" class="icon-json">
                   <div class="step-description">python3 hello_world.py</div>
                 </div>
                 <button class="step-content__run-button" :class="{ button__disable: !isLinux }" @click="runPythonFile"
@@ -99,7 +99,7 @@
               <!-- 轮播图片容器 -->
               <div class="carousel-image-container">
                 <!-- 步骤1显示原有图片，步骤2显示轮播图片 -->
-                <img class="preview-image" v-if="activeStep?.id === 'step1'" :src="runPythonImag" alt="步骤1预览图" />
+                <python-code-snippet-preview v-if="activeStep?.id === 'step1'"></python-code-snippet-preview>
                 <div v-else class="carousel-wrapper">
                   <!-- 轮播图片列表 -->
                   <img class="carousel-image" v-for="(img, idx) in images" :key="idx" :src="img"
@@ -128,6 +128,7 @@ import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
+import PythonCodeSnippetPreview from './components/PythonCodeSnippetPreview.vue';
 const { t } = useI18n();
 const { isDarkTheme } = inject('root');
 
@@ -139,7 +140,6 @@ const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_s
 const nativeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
 const computeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
 const swimImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
-const runPythonImag = computed(() => `${staticPath.value}/static-assets/boot_steps/boot_steps_runPython${isDarkTheme.value ? '' : '-light'}.png`,)
 const images = computed(() => {
   const themeSuffix = isDarkTheme.value ? '' : '-light';
   return [
@@ -150,6 +150,7 @@ const images = computed(() => {
     `${window.staticPath}/static-assets/boot_steps/index_page_step2_swim.png`
   ];
 });
+const pythonIcon = computed(() => `${window.staticPath}/static-assets/python.svg`)
 
 // 轮播相关响应式数据
 const currentCarouselIndex = ref(0); // 当前轮播索引
@@ -573,6 +574,8 @@ watch(activeStepId, (newStepId) => {
             gap: 8px;
 
             .icon-json {
+              width: 16px;
+              height: 16px;
               line-height: 20px;
               font-size: 13px;
               display: flex;
