@@ -5,7 +5,7 @@ import { SqlStore } from '../../core/store';
 import type { OutputRecord } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
-import { getOutputRecord, readRunDataList, RunDataDir } from './file-system-utils';
+import { getRunDataRecord, readRunDataList, RunDataDir } from './utils/scan-run-data';
 import { AsyncListResolver, asyncResolvingList } from './utils/async-resolving-list';
 
 /** 当前用户根目录 */
@@ -59,7 +59,7 @@ export class RunDataService extends BasicService {
     // 数据库没有记录时，从文件目录读取
     if (!record) {
       const runDataUri = vscode.Uri.file(directoryPath);
-      return await getOutputRecord(runDataUri);
+      return await getRunDataRecord(runDataUri);
     }
 
     return record;
@@ -120,7 +120,7 @@ export class RunDataService extends BasicService {
   }
 
   private async setOutputToStore(runDataUri: vscode.Uri) {
-    const record = await getOutputRecord(runDataUri);
+    const record = await getRunDataRecord(runDataUri);
     if (record) {
       await this.store.set(record);
     }

@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getOutputDetail, getOutputRecords } from '@/apis/workspace';
+import { getOutputDetail, getRunDataList } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
@@ -94,7 +94,7 @@ import LoadMoreTrigger from '../../util/LoadMoreTrigger.vue';
 import { openPyPTOWelcome } from '@/apis/opener';
 import { getWelcomeState } from '@/apis/welcome';
 
-type OutputRecords = Awaited<ReturnType<typeof getOutputRecords>>['data'];
+type OutputRecords = Awaited<ReturnType<typeof getRunDataList>>['data'];
 
 type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
 const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
@@ -254,7 +254,7 @@ function handleLoadMore() {
 async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<void> {
   isLoading.value = true;
   try {
-    const { data } = await getOutputRecords({
+    const { data } = await getRunDataList({
       page: loadingPage,
       pageSize,
       sortOrder: sortOption.value ? 'asc' : 'desc',

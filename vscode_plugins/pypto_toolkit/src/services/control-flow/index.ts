@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import { ControlFlowPath, ControlFlowIf, ControlFlowLoop, ProgramOutput } from '../../types/control-flow';
 import { ComputeDirectory } from '../../types/workspace';
-import { getOutputDetail } from '../workspace';
+import { getOutputDetail } from '../run-data/api';
 
 import { FlowTreeAnalyzer } from './flow-tree';
 import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';

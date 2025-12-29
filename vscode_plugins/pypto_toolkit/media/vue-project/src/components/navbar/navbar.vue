@@ -82,7 +82,7 @@ import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { HistoryData, ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
-import { getOutputRecords, getOutputDetail } from '../../apis/workspace';
+import { getRunDataList, getOutputDetail } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
@@ -135,7 +135,7 @@ function handleLoadMore() {
 }
 function getHistoryList() {
   isPending = true;
-  getOutputRecords({ page: page.value, pageSize }, { timeout: 600000 }).then(({ data }) => {
+  getRunDataList({ page: page.value, pageSize }, { timeout: 600000 }).then(({ data }) => {
     if (data.length < pageSize) {
       allLoaded.value = true;
     }
