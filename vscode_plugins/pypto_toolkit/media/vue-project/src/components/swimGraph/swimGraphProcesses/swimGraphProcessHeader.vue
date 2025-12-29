@@ -78,7 +78,7 @@ const isExpanded = computed(() => {
 
 const handleToggleProcess = () => {
   toggleProcess(props.processKey);
-  childContextMap.threadEvent.eraseEventLine("over");
+  childContextMap.threadEvent.eraseEventLine('over');
 };
 let resetWidth = ref(false);
 
