@@ -411,7 +411,7 @@ export abstract class SwimGraphMsgHandler {
             return;
         }
 
-        commands.executeCommand('PyPTO.OpenComGraphByFunchash', Uri.file(comGraphPath), paramObj.hash);
+        commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', Uri.file(comGraphPath), paramObj.hash);
     }
 
     // 打开计算图文件
@@ -504,7 +504,7 @@ export abstract class SwimGraphMsgHandler {
         Util.writeSwimConfigMap(this.cachePath, paramObj);
     }
     static async changeUserCfgConnection(server: any, paramObj: { level: number }) {
-        const config = workspace.getConfiguration('PyPTOToolkit');
+        const config = workspace.getConfiguration('PyPTOToolkitOpen');
         config.update('connectionLevel', paramObj.level, ConfigurationTarget.Global);
     }
     static async getShortCutKeyCfg(server: any) {

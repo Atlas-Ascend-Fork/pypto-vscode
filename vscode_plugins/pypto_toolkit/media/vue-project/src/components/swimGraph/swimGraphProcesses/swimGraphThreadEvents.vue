@@ -267,15 +267,19 @@ const scaleCanvas = (mouseX, scale) => {
 onMounted(() => {
   document.addEventListener('keydown', (e) => {
     if (!handleMatchKey(e.key, userConfig)) {
+      e.stopPropagation();
       return;
     }
     onKeyDown(e);
+    e.stopPropagation();
   });
   document.addEventListener('keyup', (e) => {
     if (!handleMatchKey(e.key, userConfig)) {
+      e.stopPropagation();
       return;
     }
     onKeyUp(e);
+    e.stopPropagation();
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
