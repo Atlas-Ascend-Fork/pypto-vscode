@@ -15,6 +15,8 @@ interface PendingRequest {
   success: (value: any) => void;
   error: (statusCode: ResponseMessage['statusCode'], error: Error) => void;
   options: Required<RequestOptions>;
+  api: string;
+  requestTimestamp: number;
 }
 
 /** 请求并发数量 */
@@ -57,14 +59,25 @@ class ExtensionRequestImpl implements ExtensionRequest {
    */
   private listenToConnectorReceive() {
     this.connector.receive(({ requestId, statusCode, data, error }) => {
-      if (!this.pendingRequests.has(requestId)) {
+      const pendingRequest = this.pendingRequests.get(requestId);
+      if (!pendingRequest) {
         return;
       }
+
+      console.debug(
+        'API:',
+        pendingRequest.api,
+        statusCode,
+        '开始时间:',
+        pendingRequest.requestTimestamp,
+        '响应时间:',
+        Date.now() - pendingRequest.requestTimestamp,
+      );
       if (statusCode === 200) {
-        this.pendingRequests.get(requestId)?.success(data);
+        pendingRequest.success(data);
       } else {
         const errorInstance = error ? recoverFromMessageError(error) : new Error('unknown error');
-        this.pendingRequests.get(requestId)?.error(statusCode, errorInstance);
+        pendingRequest.error(statusCode, errorInstance);
       }
       this.pendingRequests.delete(requestId);
       this.holdingRequests.shift()?.();
@@ -86,7 +99,7 @@ class ExtensionRequestImpl implements ExtensionRequest {
   private executeRequest<Data, Res>(api: string, params: Data, options: Required<RequestOptions>): Promise<Res> {
     const requestId = `${api}-${window.crypto.randomUUID()}`;
     this.connector.send({ api, requestId, data: deepToRaw(params), options });
-    return this.waitForResponse<Res>(requestId, options);
+    return this.waitForResponse<Res>(api, requestId, options);
   }
 
   /**
@@ -95,7 +108,7 @@ class ExtensionRequestImpl implements ExtensionRequest {
    * @param options 请求选项
    * @returns 响应
    */
-  private waitForResponse<Res>(requestId: string, options: Required<RequestOptions>): Promise<Res> {
+  private waitForResponse<Res>(api: string, requestId: string, options: Required<RequestOptions>): Promise<Res> {
     return new Promise<Res>((resolve, reject) => {
       // 请求超时
       const requestTimeout = setTimeout(() => {
@@ -107,6 +120,8 @@ class ExtensionRequestImpl implements ExtensionRequest {
         success: makeSuccessHandler(resolve, requestTimeout),
         error: makeErrorHandler(reject, requestTimeout, options),
         options,
+        api,
+        requestTimestamp: Date.now(),
       });
     });
   }

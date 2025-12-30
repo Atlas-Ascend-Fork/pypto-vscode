@@ -5,14 +5,7 @@
         <HistoryNpuIcon v-if="isNpu" />
         <HistoryIcon v-else />
       </div>
-      <HistoryList
-        id="boot-steps-navbar-history"
-        ref="historyListEl"
-        :current-record="currentRecord"
-        :page="page"
-        :all-loaded="allLoaded"
-        @load-more="handleLoadMore"
-      />
+      <HistoryList id="boot-steps-navbar-history" ref="historyListEl" :current-record="currentRecord" />
     </div>
     <div class="dividing-line"></div>
     <div class="navbar-list">
@@ -80,9 +73,9 @@ import SwimIcon from '@/components/icons/swimlane-icon.vue';
 import ControlFlowIcon from './icons/control-flow-icon.vue';
 import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
-import type { HistoryData, ControlFlowData } from './navbar-types';
+import type { ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
-import { getRunDataList, getOutputDetail } from '../../apis/workspace';
+import { getOutputDetail } from '../../apis/workspace';
 import { getControlFlow } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
@@ -91,6 +84,7 @@ import { useOutputNav } from '@/hooks/use-output-nav';
 import { ComGraphProvideKey } from '../comGraph/type';
 import type { ComGraphContext } from '../comGraph/type';
 import { useViewServer } from '@/core/use-view-server';
+import type { OutputDetail } from 'ext:/types/workspace';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -98,11 +92,10 @@ const emits = defineEmits(['leafChange']);
 const comGraphCtx = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
 const historyListEl = ref();
 const passEl = ref();
-const historyList = ref<HistoryData[]>([]);
 const controlFlowList = ref<ControlFlowData[]>([]);
 const passList = ref<PathInPass[]>([]);
 const leafFunctions = ref<LeafInPass[]>([]);
-const currentRecord = ref<HistoryData>();
+const currentRecord = ref<OutputDetail>();
 const lastPass = ref<PathInPass>();
 const currentPathCalledLeafRecord = ref<CallLeafRecord[]>([]);
 const currentLeafData = ref<LeafInPass>();
@@ -111,7 +104,6 @@ const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu'
 
 provide(NavbarProvideKey, {
   rootProps: props,
-  historyList,
   controlFlowList,
   passList,
   leafFunctions,
@@ -122,31 +114,7 @@ provide(NavbarProvideKey, {
 
 const { comGraphName } = useNavbar();
 
-const page = ref(1);
-const pageSize = 50;
-const allLoaded = ref(false);
-let isPending = false;
-function handleLoadMore() {
-  if (isPending === true) {
-    return;
-  }
-  page.value += 1;
-  getHistoryList();
-}
-function getHistoryList() {
-  isPending = true;
-  getRunDataList({ page: page.value, pageSize }, { timeout: 600000 }).then(({ data }) => {
-    if (data.length < pageSize) {
-      allLoaded.value = true;
-    }
-    historyList.value.push(...data);
-    isPending = false;
-  });
-}
-getHistoryList();
-
-const currentOutputPath = computed(() => currentRecord.value?.directoryPath);
-const { controlFlowFile, swimlaneFile } = useOutputNav(currentOutputPath);
+const { controlFlowFile, swimlaneFile } = useOutputNav(currentRecord);
 const showControlFlow = computed(() => Boolean(controlFlowFile.value));
 const showSwim = computed(() => Boolean(swimlaneFile.value));
 
@@ -232,7 +200,7 @@ function jumpControlFlow() {
     return;
   }
   if (controlFlowFile.value) {
-    openControlFlow({ outputPath: currentOutputPath.value, controlFlowPath: controlFlowFile.value }).then(() => {
+    openControlFlow({ outputPath: currentRecord.value?.directoryPath, controlFlowPath: controlFlowFile.value }).then(() => {
       server.closeWebview();
     });
   }
