@@ -232,6 +232,7 @@
     "jquery": "^3.7.1",
     "jquery.json-viewer": "^1.5.0",
     "JSONStream": "^1.0.4",
+    "reflect-metadata": "^0.2.2",
     "sprotty-elk": "^1.4.0",
     "sprotty-protocol": "^1.4.0",
     "sql.js": "^1.13.0",

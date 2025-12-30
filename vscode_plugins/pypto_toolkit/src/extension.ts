@@ -19,6 +19,9 @@ import { loadMaterialColorUtilities } from './color-list';
 import { SidebarViewProvider } from './view/SidebarViewProvider';
 import { t } from 'i18next';
 import { openPyPTOWelcome } from './services/tmp-view-opener';
+import { PyptoJitCodeLensProvider } from './view/pyptoJitCodeLensProvider';
+import { PyptoJitService } from './services/pyptoJitService';
+
 
 const i18next = require('i18next');
 const config = globalConfig;
@@ -103,6 +106,28 @@ export async function activate(context: ExtensionContext) {
     SidebarViewProvider.viewType, // 页面 ID
     sidebarViewProvider, // 页面实例
     { webviewOptions: { retainContextWhenHidden: true } }, // 界面不可见时仍然保留内容
+  );
+
+  // 注册CodeLens提供者
+  const codeLensProvider = new PyptoJitCodeLensProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
+  );
+
+  // 注册 PyptoJit 命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('pypto.setDebugOptions', (uri: vscode.Uri, lineNumber: number) => {
+      PyptoJitService.setDebugOptions(uri, lineNumber);
+    }),
+    vscode.commands.registerCommand('pypto.unsetDebugOptions', (uri: vscode.Uri, lineNumber: number) => {
+      PyptoJitService.unsetDebugOptions(uri, lineNumber);
+    }),
+    vscode.commands.registerCommand('pypto.setAllDebugMode', (uri: vscode.Uri) => {
+      PyptoJitService.setAllDebugMode(uri);
+    }),
+    vscode.commands.registerCommand('pypto.unsetAllDebugMode', (uri: vscode.Uri) => {
+      PyptoJitService.unsetAllDebugMode(uri);
+    })
   );
 
   if (window.registerWebviewPanelSerializer) {
