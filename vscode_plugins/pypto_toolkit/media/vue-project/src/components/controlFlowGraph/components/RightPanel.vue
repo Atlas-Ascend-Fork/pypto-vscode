@@ -702,6 +702,7 @@ defineExpose({
       gap: 4px;
       font-size: 13px;
       font-weight: 400;
+      max-width: 380px;
 
       .group-line-name {
         font-size: 13px;
