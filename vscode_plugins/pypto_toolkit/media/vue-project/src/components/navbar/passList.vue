@@ -160,6 +160,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
   display: flex;
   gap: 4px;
   cursor: pointer;
+  min-width: 100px;
 
   &:hover {
     .pass-content {

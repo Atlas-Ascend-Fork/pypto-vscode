@@ -78,6 +78,8 @@ function onClick(item: HistoryData) {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .selected-history {
+  min-width: 170px;
+
   .selected-history-title {
     display: flex;
     align-items: center;
