@@ -169,6 +169,7 @@ onMounted(() => {
 @import 'devui-theme/styles-var/devui-var.scss';
 .com-graph-error-node {
   position: absolute;
+  z-index: 2;
   width: 160px;
   height: auto;
   max-height: 300px;
@@ -183,6 +184,7 @@ onMounted(() => {
       padding: 0;
       background-color: unset;
       backdrop-filter: unset;
+      z-index: 1;
   
       .error-info,
       .error-stack {

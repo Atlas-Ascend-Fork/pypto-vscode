@@ -37,9 +37,7 @@ function parseIfMagicName(magicName: string) {
 }
 
 function parseMagicName(item: ControlFlowData) {
-  if (item.nodeType === 'IF') {
-    return parseIfMagicName(item.magicName);
-  } else if (item.nodeType === 'PATH') {
+  if (item.nodeType === 'PATH') {
     return item.magicName.substring(item.magicName.indexOf('PATH'));
   } else {
     return item.magicName;
