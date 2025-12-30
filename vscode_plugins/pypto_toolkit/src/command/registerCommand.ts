@@ -46,7 +46,10 @@ export class RegisterCommand {
     return [
       commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri) return;
+        if (!uri) {
+          window.showErrorMessage(_('pypto.entry.fileTooLarge'));
+          return;
+        };
         await this.openView('computeGraph', uri, undefined);
       }),
       commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {

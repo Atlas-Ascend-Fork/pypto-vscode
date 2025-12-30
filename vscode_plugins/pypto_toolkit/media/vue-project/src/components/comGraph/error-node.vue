@@ -205,6 +205,9 @@ onMounted(() => {
 
   .error-stack {
     margin-top: 6px;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .icon-error-o {

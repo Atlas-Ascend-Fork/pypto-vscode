@@ -844,7 +844,6 @@ onMounted(() => {
   pointer-events: all;
 
   &:hover {
-    box-shadow: 0 4px 16px 0 $devui-shadow;
     cursor: pointer;
   }
 

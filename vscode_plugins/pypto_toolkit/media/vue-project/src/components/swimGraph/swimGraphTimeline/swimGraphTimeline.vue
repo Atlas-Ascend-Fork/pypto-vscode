@@ -220,7 +220,10 @@ const timelineMouseMove = (e) => {
     }
 
     if (timelineState.isOnTag === true) {
-      const onTagTimerange = mouseX - timelineInitX;
+      let onTagTimerange = mouseX - timelineInitX;
+      if (onTagTimerange > 0 && timelineInitEndX + onTagTimerange > canvasWidth) {
+        onTagTimerange = canvasWidth - timelineInitEndX;
+      } 
       startTime = fixedXToTime(timelineInitStartX + onTagTimerange + layout.processLabelWidth);
       const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
       viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
@@ -230,7 +233,7 @@ const timelineMouseMove = (e) => {
         transform();
         return;
       }
-      if (timelineInitEndX + onTagTimerange > canvasWidth) {
+      if (onTagTimerange >= 0 && timelineInitEndX === canvasWidth) {
         return;
       }
       viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
@@ -626,16 +629,24 @@ const onSaturationChange = () => {
 
 const clearLabel = (ctx, x, y, labelW) => {
   let flagWidth = 8;
-  ctx.clearRect(x + flagWidth, y - 10, labelW, 25);
+  ctx.clearRect(x + flagWidth, y - 10, labelW, 50);
 }
 
 const onInputChange = () => {
   if (!currentFlag.value) return;
   if (currentFlag.value.label === refLabel.value) return;
+  let flagWidth = 8;
+  const flagLaberStart = currentFlag.value.x + flagWidth;
+  const flagLaberend = flagLaberStart + currentFlag.value.labelW;
   clearLabel(flagsCtx.value, currentFlag.value.x, currentFlag.value.y, currentFlag.value.labelW);
   currentFlag.value.label = refLabel.value;
   currentFlag.value.labelW = getTextWidth((currentFlag.value.label), 12);
   renderCurFlag();
+  for (const flag of flags.value) {
+    if (flag.x >= flagLaberStart && flag.x <= flagLaberend) {
+      drawFlag(flagsCtx.value, flag.x, 1, flag.color, flag.label);
+    }
+  }
 }
 
 const editFlag = (e) => {
