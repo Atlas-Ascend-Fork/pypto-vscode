@@ -25,8 +25,8 @@
           :title="item.leafName"
           :class="['not-owned-list-item', item.leafName === currentLeaf.leafName && 'active']"
         >
-          <div>
-            <div :title="item.leafName" @click="() => jumpOwn(item)">{{ `leaf_${item.programId}` }}</div>
+          <div @click="() => jumpOwn(item)">
+            <div :title="item.leafName">{{ `leaf_${item.programId}` }}</div>
             <div :title="item.rootPathName">{{ item.rootPathName }}</div>
           </div>
           <i class="icon-share-one" @click="() => jumpNotOwn(item)"></i>
