@@ -16,7 +16,7 @@
             </div>
           </div>
           <div class="guide-step__list" v-if="steps.length">
-            <d-alert v-if="!isLinux" type="warning" class="system-warning" :closeable="false">{{
+            <d-alert v-if="!isLinux" type="warning" class="system-warning" :class="{ warning__step1: 'step1' === activeStepId }" :closeable="false">{{
               t('welcome.linuxEnvironmentWarning') }}</d-alert>
             <!-- 步骤1 -->
             <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
@@ -246,7 +246,6 @@ const handleStepClick = (stepId: string) => {
 // 点击Checkbox切换完成状态
 const toggleCheckbox = (index: number) => {
   steps.value[index].completed = !steps.value[index].completed;
-  console.log(steps.value)
 };
 
 // 下一步
@@ -407,12 +406,14 @@ watch(activeStepId, (newStepId) => {
         height: 26px;
         font-size: 13px;
         font-weight: 400;
-        padding: 0;
+        padding: 0 0 0 4px;
         display: flex;
-        justify-content: center;
-        margin-bottom: 26px;
+        justify-content: start;
+        align-items: center;
       }
-
+      .warning__step1{
+        margin-bottom: 24px;
+      }
       /* 左侧列表标题部分 */
       .guide-step__header {
         display: flex;
@@ -801,5 +802,11 @@ watch(activeStepId, (newStepId) => {
   left: 50%;
   z-index: 999;
   color: var(--devui-title-text); // 标题文字
+}
+
+:deep(.active){
+  .devui-checkbox__material{
+    background: var(--devui-primary-button-bg)!important;
+  }
 }
 </style>

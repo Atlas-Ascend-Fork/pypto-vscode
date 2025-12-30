@@ -73,8 +73,11 @@
   "pypto.funcHashUndefinedOnOpenSubGraph": "Unable to open the subgraph, function hash is undefined",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "Unable to open the original graph, the file does not contain the correct function hash.",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "Unable to open the comparison graph, the file does not contain the correct function hash.",
+  
+  "pypto.comGraph.errorMessage.streamProcessing": "Error when reading JSON file: Stream processing error",
+  "pypto.comGraph.errorMessage.dataOpMagicDuplication": "Error when reading JSON file: Node opmagic duplicated",
   "pypto.comGraph.errorMessage.fileRead": "Error when reading JSON file: File read error (e.g., file does not exist, permission issues)",
-  "pypto.comGraph.errorMessage.jsonParse": "Error when reading JSON file: indicating that the JSON file is parsed incorrectly (for example, the format is invalid).",
+  "pypto.comGraph.errorMessage.jsonParse": "Error when reading JSON file: Indicating that the JSON file is parsed incorrectly (for example, the format is invalid).",
   "pypto.comGraph.errorMessage.streaValues": "Error when reading JSON file: StreamValues error",
   "pypto.comGraph.errorMessage.readJsonUnknown": "Error when reading JSON file: Unknown error",
   "pypto.comGraph.errorMessage.pureMemory": "Error when reading JSON file: Abnormality in pure memory path.",

@@ -74,6 +74,8 @@
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "无法打开原图,该文件未找到正确function hash",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图,该文件未找到正确function hash",
 
+  "pypto.comGraph.errorMessage.streamProcessing": "读json文件时报错：文件流处理过程中出现异常",
+  "pypto.comGraph.errorMessage.dataOpMagicDuplication": "读json文件时报错：节点opmagic重复",
   "pypto.comGraph.errorMessage.fileRead": "读json文件时报错：文件读取错误（如文件不存在、权限问题）",
   "pypto.comGraph.errorMessage.jsonParse": "读json文件时报错：JSON 解析错误（如格式无效）",
   "pypto.comGraph.errorMessage.streaValues": "读json文件时报错：StreamValues 错误",
