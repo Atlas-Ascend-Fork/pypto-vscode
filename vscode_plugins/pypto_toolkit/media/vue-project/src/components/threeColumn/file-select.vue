@@ -44,11 +44,14 @@ function openSelectedFileWindow() {
     font-size: 14px;
     font-weight: 700;
     color: var(--devui-tooltip-text);
-    white-space: normal;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 150px;
     display: inline-block;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
 }
 
 .simple-com-file-name-icon{
