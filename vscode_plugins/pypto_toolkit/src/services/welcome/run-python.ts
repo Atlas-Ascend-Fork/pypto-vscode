@@ -185,7 +185,7 @@ export async function executePythonFile(pythonFilePath: string, cwd: string): Pr
  */
 export function getExtensionMode() {
   // 使用官方API（VS Code 1.74+）判断是否打包,低于1.74版本的走路径兼容进行判断
-  const extension = vscode.extensions.getExtension('hismartliteopen.pypto-toolkit');
+  const extension = vscode.extensions.getExtension('cann-pub.pypto-toolkit');
 
   if (extension && 'isDevelopment' in extension) {
     return extension.isDevelopment ? 'development' : 'production';
