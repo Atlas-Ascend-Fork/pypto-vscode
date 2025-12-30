@@ -220,7 +220,10 @@ const timelineMouseMove = (e) => {
     }
 
     if (timelineState.isOnTag === true) {
-      const onTagTimerange = mouseX - timelineInitX;
+      let onTagTimerange = mouseX - timelineInitX;
+      if (onTagTimerange > 0 && timelineInitEndX + onTagTimerange > canvasWidth) {
+        onTagTimerange = canvasWidth - timelineInitEndX;
+      } 
       startTime = fixedXToTime(timelineInitStartX + onTagTimerange + layout.processLabelWidth);
       const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
       viewState.offsetX = (viewState.minTime - startTime) / timelinePerPixel;
@@ -230,7 +233,7 @@ const timelineMouseMove = (e) => {
         transform();
         return;
       }
-      if (timelineInitEndX + onTagTimerange > canvasWidth) {
+      if (onTagTimerange >= 0 && timelineInitEndX === canvasWidth) {
         return;
       }
       viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
