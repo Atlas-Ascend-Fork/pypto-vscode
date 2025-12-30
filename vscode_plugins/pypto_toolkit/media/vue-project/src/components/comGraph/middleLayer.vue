@@ -26,7 +26,6 @@ const errorLog = ref('');
 const swimGrahRef = ref();
 const loadingStep = ref('');
 const searchMode = ref(0);
-const outputDirPath = ref('');
 const passIndex = ref('');
 const pathName = ref('');
 const fileName = ref('');
@@ -83,7 +82,6 @@ function setupComWatchers(server: any) {
     comGraphStore.setData('version', newValue.version || '2.0')
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
-    outputDirPath.value = newValue.outputDirPath;
     passIndex.value = newValue.passIndex;
     pathName.value = newValue.pathName;
     fileName.value = newValue.fileName;
@@ -151,7 +149,6 @@ function setupComWatchers(server: any) {
       fsPath: newValue.fsPath,
       funcHash: newValue.funcHash,
       magicName: newValue.magicName,
-      outputDirPath: newValue.outputDirPath,
       pathName: newValue.pathName,
     });
   });
@@ -460,7 +457,7 @@ const onInputLeave = (event) => {
         <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />
       </template>
     </ThreeColumn>
-    <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0" :outputDirPath="outputDirPath"
+    <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0"
       :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
