@@ -144,5 +144,9 @@
   "PyPTOToolkit.welcome.runPython.Installation.solution": " Solution:\n1. Run VS Code as administrator (/root);\n2. Check network connectivity (using a suitable mirror source is recommended);\n3. Manually execute the command",
   "PyPTOToolkit.welcome.runPython.Installation.variables": "Please check if Python has been added to your system environment variables",
   "PyPTOToolkit.welcome.open": "quik start",
-  "PyPTOToolkit.welcome.page": "quik start"
+  "PyPTOToolkit.welcome.page": "quik start",
+  "pypto.setDebugMode": "Set Debug Mode",
+  "pypto.cancelDebugMode": "Cancel Debug Mode",
+  "pypto.setAllDebugMode": "Set All Debug Mode",
+  "pypto.cancelAllDebugMode": "Cancel All Debug Mode"
 }

@@ -77,7 +77,10 @@ const renderPassList = computed(() => {
     return transformPassList(passList.value);
   } else {
     return transformPassList(
-      passList.value.filter((item) => item.passName.toLocaleLowerCase().includes(filterKey.value.toLocaleLowerCase())),
+      passList.value.filter((item) => {
+        const fullPassName = `${item.passIndex} ${parsePassName(item.passName)}`;
+        return fullPassName.toLocaleLowerCase().includes(filterKey.value.toLocaleLowerCase());
+      }),
     );
   }
 });
