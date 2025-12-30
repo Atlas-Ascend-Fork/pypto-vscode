@@ -55,6 +55,6 @@ export interface NavbarContext {
   leafFunctions: Ref<LeafInPass[]>;
   currentPathCalledLeafRecord: Ref<CallLeafRecord[]>;
   currentLeafData: Ref<LeafInPass>;
-  jumpComGraph: (filePath: string, pathName?: string) => void;
+  jumpComGraph: (filePath: string, pathName?: string, blank?: boolean) => void;
 }
 export const NavbarProvideKey = 'navbar' as unknown as InjectionKey<NavbarContext>;

@@ -244,14 +244,16 @@ function jumpSwim() {
   }
 }
 
-function jumpComGraph(filePath: string, pathName?: string) {
+function jumpComGraph(filePath: string, pathName?: string, blank = false) {
   if (historyListEl.value) {
     if (!pathName) {
       pathName = (passEl.value?.getCurrentPass() as PathInPass | undefined)?.pathName ?? '';
     }
     if (currentRecord.value?.directoryPath) {
       openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName }).then(() => {
-        server.closeWebview();
+        if (!blank) {
+          server.closeWebview();
+        }
       });
     }
   }
