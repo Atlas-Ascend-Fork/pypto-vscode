@@ -4,7 +4,6 @@ const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 import { SQLiteCache, getMTime } from './sqliteCache';
 const DATA_LENGTH_LIMIT = 62000000;
-import { t } from 'i18next';
 
 interface readFileResult {
   isBigFile: boolean;
@@ -52,46 +51,34 @@ export abstract class GraphData {
 
   // 读取json文件并存入缓存 并返回大小文件判断
   async readFileAndSetCache(fsPath: string): Promise<readFileResult> {
+    const result: readFileResult = { isBigFile: false };
+
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser();
     const valuesStreamer = streamValues();
-    const result: readFileResult = { isBigFile: false };
 
-    return await new Promise((resolve, reject) => {
-      fileStream.on('error', (err: any) => {
-        // 文件读取错误（如文件不存在、权限问题）
-        reject(Object.assign(err, { code: 'FILE_READ_ERROR' }));
-      });
+    // 错误统一收集
+    let streamError: Error | null = null;
 
-      jsonParser.on('error', (err: any) => {
-        // JSON 解析错误（如格式无效）
-        reject(Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
-      });
+    fileStream.on('error', (err) => streamError = Object.assign(err, { code: 'FILE_READ_ERROR' }));
+    jsonParser.on('error', (err) => streamError = Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
+    valuesStreamer.on('error', (err) => streamError = Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
 
-      valuesStreamer.on('error', (err: any) => {
-        // StreamValues 错误（较少见，但保险起见）
-        reject(Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
-      });
-      const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
-      pipeline
-        .on('data', async (ele) => {
-          // 处理数据
-          const value = ele.value;
-          if (!value.functions) return;
-          try {
-            await this.processFunctions(fsPath, value, result);
-          } catch (error) {
-            reject(error);
-          }
-        })
-        .on('end', () => {
-          resolve(result);
-        })
-        .on('error', (err) => {
-          // 错误处理
-          reject(err);
-        });
-    });
+    try {
+      const pipelineStream = fileStream.pipe(jsonParser).pipe(valuesStreamer);
+      for await (const ele of pipelineStream) {
+        if (streamError) throw streamError; // 检查是否有流错误
+
+        const value = ele.value;
+        if (!value?.functions) continue;
+
+        await this.processFunctions(fsPath, value, result);
+      }
+      return result;
+    } catch (error) {
+      // 优先返回流错误，否则返回当前错误
+      throw streamError || error;
+    }
   }
 
   async getCompleteData(fsPath) {
@@ -135,10 +122,17 @@ export abstract class GraphData {
       /* 2. 构造插入任务数组 */
       const tasks: (() => Promise<void>)[] = [];
       const lastChangeTime = await getMTime(fsPath);
-
       for (const funcItem of value.functions) {
         const callHashArr: string[] = [];
+        const seen = new Set<string>;
         for (const op of funcItem.operations) {
+          if (seen.has(op.opmagic)) {
+            throw Object.assign(
+              new Error(`Validation failed: OpMagic (${op.opmagic}) duplicated.`),
+              { code: 'DATA_VALIDATION_OP_MAGIC_ERROR' }
+            );
+          }
+          seen.add(op.opmagic);
           if (op.calleehash) {
             callHashArr.push(String(op.calleehash));
             if (Array.isArray(op.attr) && op.attr.length > 0) {
@@ -196,14 +190,18 @@ export abstract class GraphData {
         await Promise.all(sqlJobs.map((fn) => fn()));
       }
       await SQLiteCache.getInstance().save();
-    } catch (e) {
+    } catch (err: any) {
+      // 数据校验错误先抛出
+      if (err.code === 'DATA_VALIDATION_OP_MAGIC_ERROR') {
+        throw err;
+      }
       if (this.isUsedDB) {
-        console.warn('[DB] 数据库操作失败，自动降级 >>>', e);
+        console.warn('[DB] 数据库操作失败，自动降级 >>>', err);
         this.isUsedDB = false;
         // 立即重新走内存分支
         return await this.processFunctions(fsPath, value, result);
       } else {
-        console.error('纯内存操作失败，数据可能有误', e);
+        console.error('纯内存操作失败，数据可能有误', err);
         throw Object.assign(new Error(), { code: 'PURE_MEMORY' });
       }
     }
@@ -231,8 +229,6 @@ export abstract class GraphData {
       });
 
       const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
-      // const pipeline = createReadStream(fsPath).pipe(parser()).pipe(streamValues());
-
       pipeline
         .on('data', (data: any) => {
           const obj = data.value;
