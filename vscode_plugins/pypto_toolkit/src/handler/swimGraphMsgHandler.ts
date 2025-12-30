@@ -35,10 +35,10 @@ export abstract class SwimGraphMsgHandler {
     }
 
     static warnPerformance(server: any, size: any, swimPerformanceBase: any) {
-      const baseSizes = Object.keys(swimPerformanceBase)
+      const baseSizes = Object.keys(swimPerformanceBase.vsOpen)
         .map(Number)
         .sort((a, b) => a - b);
-      const keys = Object.keys(swimPerformanceBase).map(Number);
+      const keys = Object.keys(swimPerformanceBase.vsOpen).map(Number);
       const minKey = Math.min(...keys);
       const maxKey = Math.max(...keys);
 
@@ -48,8 +48,8 @@ export abstract class SwimGraphMsgHandler {
           const upperSize = baseSizes[i + 1];
       
           if (fileSizeInMB >= lowerSize && fileSizeInMB <= upperSize) {
-            const lowerTime = swimPerformanceBase[lowerSize];
-            const upperTime = swimPerformanceBase[upperSize];
+            const lowerTime = swimPerformanceBase.vsOpen[lowerSize];
+            const upperTime = swimPerformanceBase.vsHW[upperSize];
             return { type: 'range', lower: lowerTime, upper: upperTime };
           }
         }
