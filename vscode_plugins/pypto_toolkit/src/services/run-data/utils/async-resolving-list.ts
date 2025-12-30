@@ -56,7 +56,7 @@ class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
       return this._resolvingTask;
     }
     this._resolvedList = [];
-    this._resolvingTask = new Promise(async (resolve) => {
+    this._resolvingTask = new Promise<R[]>(async (resolve) => {
       for (const listItem of targetList) {
         const { skip, data } = await this.listItemHandler(listItem);
         if (skip) {
@@ -69,18 +69,22 @@ class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
           break;
         }
       }
-      this.triggerAllPartialResolvers();
-      this._resolvingTask = null;
       resolve(this._resolvedList);
+    }).then((res) => {
+      // 异步执行，避免targetList为空时，_resolvingTask赋值顺序错误
+      this._resolvingTask = null;
+      this.triggerAllPartialResolvers();
+      return res;
     });
     return this._resolvingTask;
   }
 
-  public async waitFor(length: number): Promise<R[]> {
-    if (!this._resolvingTask || this._resolvedList.length >= length) {
-      return this._resolvedList.slice(0, length);
-    }
+  public waitFor(length: number): Promise<R[]> {
     return new Promise<R[]>((resolve) => {
+      if (!this._resolvingTask || this._resolvedList.length >= length) {
+        resolve(this._resolvedList.slice(0, length));
+        return;
+      }
       this.setPartialResolver(length, resolve);
     });
   }
