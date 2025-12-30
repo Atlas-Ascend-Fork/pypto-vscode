@@ -10,8 +10,8 @@
         :class="`triangle-${triangleConfig.triangleDirection}`"
         :style="triangleOffsetStyle"
       ></div>
-      <!-- 气泡弹窗容器 -->
-      <div class="guide-popup-content" ref="popupContentRef">
+      <!-- 气泡弹窗容器-->
+      <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
         <!-- 顶部进度指示器 -->
         <div class="progress-container">
           <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
@@ -127,6 +127,47 @@ const debounce = (fn: Function, delay = 100) => {
 // 三角配置
 const triangleConfig = computed(() => {
   return getCurrentStepTriangleConfig(currentBigGroup.value, currentSmallIndex.value);
+});
+
+// ========== 动态计算弹窗box-shadow（阴影与箭头同方向） ==========
+const popupContentBoxShadow = computed(() => {
+  const triangleDir = triangleConfig.value.triangleDirection;
+  const darkMode = isDarkTheme.value;
+  // 基础阴影参数
+  const darkBase = {
+    offsetX: 0,
+    offsetY: 0,
+    blur: 50,
+    spread: 10,
+    color: 'rgba(0,0,0,0.3)'
+  };
+  const lightBase = {
+    offsetX: 0,
+    offsetY: 0,
+    blur: 50,
+    spread: 0,
+    color: 'rgba(0,0,0,0.08)'
+  };
+  const base = darkMode ? darkBase : lightBase;
+
+  // 阴影偏向箭头同方向
+  switch (triangleDir) {
+    case 'top':
+      // 箭头向上 → 阴影也向上（同方向）
+      return `${base.offsetX}px ${base.offsetY - 20}px ${base.blur}px ${base.spread}px ${base.color}`;
+    case 'bottom':
+      // 箭头向下 → 阴影也向下（同方向）
+      return `${base.offsetX}px ${base.offsetY + 20}px ${base.blur}px ${base.spread}px ${base.color}`;
+    case 'left':
+      // 箭头向左 → 阴影也向左（同方向）
+      return `${base.offsetX - 20}px ${base.offsetY}px ${base.blur}px ${base.spread}px ${base.color}`;
+    case 'right':
+      // 箭头向右 → 阴影也向右（同方向）
+      return `${base.offsetX + 20}px ${base.offsetY}px ${base.blur}px ${base.spread}px ${base.color}`;
+    default:
+      // 兜底使用基础阴影
+      return `${base.offsetX}px ${base.offsetY}px ${base.blur}px ${base.spread}px ${base.color}`;
+  }
 });
 
 const defaultGuideSteps = guideStepsConfig;
@@ -787,7 +828,6 @@ onUnmounted(() => {
   // 调整max-height，避免滚动条
   max-height: calc(80vh - 32px);
   overflow-y: auto;
-  box-shadow: var(--welcome-box-shadow);
 }
 
 // ========== 内容区样式 ==========
