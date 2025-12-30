@@ -142,7 +142,7 @@ async function initDB(context: ExtensionContext) {
 
   // 首次安装清理数据库缓存持久化文件
   const key = 'SqlDataVersions';
-  const extensionId = 'hismartliteopen.pypto-toolkit';
+  const extensionId = 'cann-pub.pypto-toolkit';
   const ext = vscode.extensions.getExtension(extensionId);
   const version = ext?.packageJSON.version;
   console.log('当前插件版本：' + version);

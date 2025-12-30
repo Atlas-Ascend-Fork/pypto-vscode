@@ -54,7 +54,7 @@ export class Util {
         if (seenShortCut.has(lowerCaseValue)) {
           window.showWarningMessage(t('pypto.configWarning'), t('pypto.configImprove')).then((selection) => {
             if (selection === t('pypto.configImprove')) {
-              commands.executeCommand('workbench.action.openSettings', '@ext:hismartliteopen.pypto-toolkit shortcut');
+              commands.executeCommand('workbench.action.openSettings', '@ext:cann-pub.pypto-toolkit shortcut');
             }
           });
         } else {
