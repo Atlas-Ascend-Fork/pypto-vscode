@@ -17,7 +17,7 @@
       </div>
 
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
-      <div class="drawer-content" >
+      <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
         <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange" custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
@@ -158,10 +158,11 @@
                   class="group-line"
                   :style="getColor(item.type)"
                   @click="openGraph(item)"
+                  :title="item.passName"
                 >
                   <div class="line-group">
                     <span class="group-line-index"> {{ item.passIndex }}</span>
-                    <span class="group-line-name" :title="item.passName"> {{ item.passName }}</span>
+                    <span class="group-line-name"> {{ item.passName }}</span>
                   </div>
                   <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon" /></span>
                 </div>
@@ -645,7 +646,7 @@ function openGraphViewFn() {
 
 defineExpose({
   transFormPanelData,
-  drawerVisible
+  drawerVisible,
 });
 </script>
 
@@ -654,6 +655,7 @@ defineExpose({
   overflow: hidden;
   box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.16);
 }
+
 .devui-drawer--right {
   overflow: hidden !important;
   background-color: var(--devui-card-bg) !important;
@@ -662,7 +664,8 @@ defineExpose({
   height: 100vh;
   box-sizing: border-box;
 }
-.devui-drawer{
+
+.devui-drawer {
   border-left: none !important;
 }
 </style>
@@ -678,7 +681,9 @@ defineExpose({
     align-items: center;
     gap: 4px;
     width: 100%;
+    max-width: 440px;
     height: 32px;
+    line-height: 32px;
     cursor: pointer;
     padding-left: 8px;
     border-radius: 4px;
@@ -690,22 +695,22 @@ defineExpose({
     .group-line-title {
       font-size: 14px;
     }
+
     .line-group {
       display: flex;
-      width: 440px;
       padding: 4px 8px;
       gap: 4px;
       font-size: 13px;
       font-weight: 400;
 
       .group-line-name {
-        width: 380px;
         font-size: 13px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
     }
+
     .group-line-icon {
       display: flex;
       align-items: center;
@@ -717,7 +722,6 @@ defineExpose({
       display: flex;
       align-items: center;
       width: 16px;
-      height: 16px;
     }
   }
 }
@@ -761,6 +765,7 @@ defineExpose({
     padding: 18px 0px;
     box-sizing: border-box;
     height: 0;
+
     // Tabs组件：深色主题适配
     .data-tabs {
       width: 100%;
@@ -783,10 +788,12 @@ defineExpose({
         flex-direction: column;
         padding: 3px 0px;
         margin: 0px;
+
         // 搜索框：样式适配
         .search-input {
           width: 200px;
           border-radius: 6px !important;
+
           // 搜索图标：颜色适配
           .search-input__icon {
             display: flex;
@@ -804,9 +811,11 @@ defineExpose({
         height: calc(100% - 60px);
         margin-top: 16px;
         border-radius: 12px 12px 0 0;
+
         //表头
         :deep(.header-container) {
           padding: 0 !important;
+
           //表头左侧
           .table-header-left {
             display: flex;
