@@ -139,12 +139,12 @@ const mouseStyleChange = (style) => {
 };
 
 const mouseStyleEvent = (mousex) => {
-  if (Math.abs(mousex - timelineState.startTimeX) < 5){
+  if (Math.abs(mousex - timelineState.startTimeX) < 5) {
     mouseStyleChange('col-resize');
     return;
   }
 
-  if (Math.abs(mousex - timelineState.endTimeX) < 5){
+  if (Math.abs(mousex - timelineState.endTimeX) < 5) {
     mouseStyleChange('col-resize');
     return;
   }
@@ -161,11 +161,12 @@ const mouseStyleEvent = (mousex) => {
 };
 
 const fixedMouseEvent = (e) => {
-  if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) return;
+  if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) {
+    return;
+  }
   const rect = fixedtimelineCanvas.value.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
   mouseStyleEvent(mouseX);
-
 };
 
 const timelineMouseDown = (e) => {
