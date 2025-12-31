@@ -13,7 +13,7 @@ import {
 } from '../../../types/workspace';
 import { t } from 'i18next';
 import { PassStage, StageEndPassNames } from '../../../types/workspace/pass';
-import { hasHealthReport, isHealthReport } from '../../../utils/health-report';
+import { hasHealthReport } from '../../../utils/health-report';
 import { isFileUriExists } from '../../../utils/file-system';
 
 /**
@@ -162,41 +162,42 @@ async function getComputeGraphFile(outputUri: vscode.Uri, pass: Pass): Promise<C
   const graphs: ComputeGraph[] = [];
 
   for (const [subPath, fileType] of subList) {
-    if (fileType === vscode.FileType.File && isComputeGraph(subPath, pass)) {
-      const computeGraphUri = vscode.Uri.joinPath(passUri, subPath);
-      const { pathName, computeType, leafProgramId, leafHash } = decodeComputeGraphFilename(subPath, pass);
-      graphs.push({
-        type: 'file',
-        fileType: 'computeGraph',
-        extname: '.json',
-        name: subPath,
-        absolutePath: computeGraphUri.fsPath,
-        outputPath: outputUri.fsPath,
-        passIndex,
-        pathName,
-        hasHealthReport: hasHealthReport(computeGraphUri.fsPath),
-        computeType,
-        leafProgramId,
-        leafHash,
-      });
+    if (fileType !== vscode.FileType.File) {
+      continue;
     }
+    const attrsFromName = decodeComputeGraphFilename(subPath, pass);
+    if (!attrsFromName) {
+      continue;
+    }
+    const computeGraphUri = vscode.Uri.joinPath(passUri, subPath);
+    graphs.push({
+      type: 'file',
+      fileType: 'computeGraph',
+      extname: '.json',
+      ...attrsFromName,
+      name: subPath,
+      absolutePath: computeGraphUri.fsPath,
+      outputPath: outputUri.fsPath,
+      passIndex,
+      hasHealthReport: hasHealthReport(computeGraphUri.fsPath),
+    });
   }
 
   return graphs;
 }
 
-function isComputeGraph(subPath: string, { passIndex, passName }: Pass): boolean {
-  return subPath.startsWith(`After_0${passIndex}_${passName}_`) && subPath.endsWith('.json') && !isHealthReport(subPath);
-}
-
 function decodeComputeGraphFilename(
   filename: string,
   { passIndex, passName }: Pass,
-): Pick<ComputeGraph, 'pathName' | 'computeType' | 'leafProgramId' | 'leafHash'> {
+): Pick<ComputeGraph, 'pathName' | 'computeType' | 'leafProgramId' | 'leafHash'> | undefined {
   const fileNameRegExp = new RegExp(
-    `^After_0${passIndex}_${passName}(?:_\\d+)?_(\\w+_PATH\\d+)(?:_hiddenfunc\\d+)?_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
+    `^After_0${passIndex}_${passName}(?:_?\\d+)?_(\\w+_PATH\\d+)(?:_hiddenfunc\\d+)?_\\d+(?:_(ROOT|LEAF)(?:_program_id_(\\d+)_(\\d+))?)?\\.json$`,
   );
-  const [_, pathName, rootOrLeaf, leafProgramId, leafHash] = filename.match(fileNameRegExp) ?? [];
+  const matchArray = filename.match(fileNameRegExp);
+  if (!matchArray) {
+    return;
+  }
+  const [_, pathName, rootOrLeaf, leafProgramId, leafHash] = matchArray;
   const computeType = rootOrLeaf ? (rootOrLeaf.toLowerCase() as 'root' | 'leaf') : 'all';
   return { pathName, computeType, leafProgramId, leafHash };
 }

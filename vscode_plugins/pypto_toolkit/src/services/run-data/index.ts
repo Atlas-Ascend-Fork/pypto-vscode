@@ -2,9 +2,10 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 
 import { SqlStore } from '../../core/store';
-import type { OutputRecord } from '../../types/workspace';
+import type { OutputRecord, OutputDetail } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
+import { getOutputDirectory } from './utils/scan-output';
 import { getRunDataRecord, readRunDataList, RunDataDir } from './utils/scan-run-data';
 import { AsyncListResolver, asyncResolvingList } from './utils/async-resolving-list';
 
@@ -16,7 +17,8 @@ const RUN_DATA_HOME = process.env.PYPTO_HOME
   ? `${process.env.PYPTO_HOME}${path.sep}run`
   : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
-type RunDataStore = Store<OutputRecord, 'title', 'executeTime' | 'directoryPath'>;
+type RecordOrDetail = OutputRecord & { directoryTree?: OutputDetail['directoryTree'] };
+type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath'>;
 
 const RUN_DATA_ATTRIBUTES = defineAttributes({
   title: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
@@ -26,6 +28,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes({
   controlFlowFilePath: { type: String },
   computeGraphDirPath: { type: String },
   swimlaneGraphFilePath: { type: String },
+  directoryTree: { type: Object },
 });
 
 export class RunDataService extends BasicService {
@@ -53,7 +56,23 @@ export class RunDataService extends BasicService {
     return this.store.delete(output);
   }
 
-  public async getRecordByDirectoryPath(directoryPath: string): Promise<OutputRecord | undefined> {
+  public async getOutputDetail(directoryPath: string): Promise<OutputDetail | undefined> {
+    const record = await this.getRecordByDirectoryPath(directoryPath);
+    if (!record || this.isDetail(record)) {
+      return record;
+    }
+    const outputUri = vscode.Uri.file(directoryPath);
+    const directoryTree = await getOutputDirectory(outputUri, record);
+    if (!directoryTree) {
+      this.delete(record);
+      return;
+    }
+    record.directoryTree = directoryTree;
+    this.store.set(record);
+    return record as OutputDetail;
+  }
+
+  public async getRecordByDirectoryPath(directoryPath: string): Promise<RecordOrDetail | undefined> {
     const [record] = await this.query().filter({ directoryPath }).exec();
 
     // 数据库没有记录时，从文件目录读取
@@ -65,11 +84,15 @@ export class RunDataService extends BasicService {
     return record;
   }
 
-  public async waitForScanning(recordCount: number = Infinity): Promise<void> {
+  /**
+   * 等待扫描目录
+   * @param targetLength 扫描至多少条数据继续运行
+   */
+  public async waitForScanning(targetLength: number = Infinity): Promise<void> {
     if (!this.listResolver) {
       return;
     }
-    await this.listResolver.waitFor(recordCount);
+    await this.listResolver.waitFor(targetLength);
     return;
   }
 
@@ -124,5 +147,9 @@ export class RunDataService extends BasicService {
     if (record) {
       await this.store.set(record);
     }
+  }
+
+  private isDetail(recordOrDetail: RecordOrDetail): recordOrDetail is OutputDetail {
+    return Reflect.has(recordOrDetail, 'directoryTree');
   }
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export type Data = Record<string, unknown>;
+export type Data = Object;
 
 /**
  * 存储属性配置
