@@ -38,6 +38,7 @@ const noSwimFile = ref(true);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 let inThreeColumnMode = false;
 const modalVisible = ref(false);
+const shouldUpdateComGraphHashList = ref(false);
 const replaceMsg = ref({ graphType: "", paths: { swimPath: "", comPath: "" }, selectPath: "" });
 //
 const props = defineProps({
@@ -80,7 +81,8 @@ function setupComWatchers(server: any) {
   });
 
   watch(server.ComData, (newValue) => {
-    comGraphStore.setData('version', newValue.version || '2.0')
+    comGraphStore.setData('version', newValue.version || '2.0');
+    shouldUpdateComGraphHashList.value = true;
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
     outputDirPath.value = newValue.outputDirPath;
@@ -145,6 +147,7 @@ function setupComWatchers(server: any) {
   });
   watch(server.JsonContent, (newValue) => {
     jsonContent.value = newValue.data;
+    shouldUpdateComGraphHashList.value = false;
   });
   watch(server.InitData, (newValue) => {
     pushState({
@@ -450,7 +453,7 @@ const onInputLeave = (event) => {
       <template #comGraph>
         <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep"
-          :com-file-name="comFileName" />
+          :com-file-name="comFileName" :should-update-hash-list="shouldUpdateComGraphHashList" />
         <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
       </template>
       <template #swimGraph>
