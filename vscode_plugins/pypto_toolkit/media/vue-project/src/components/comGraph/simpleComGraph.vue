@@ -92,6 +92,10 @@ const props = defineProps({
   comFileName: {
     type:String,
     default:'',
+  },
+  shouldUpdateHashList: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -358,6 +362,12 @@ watch(
               shouldListenViewZoom = false;
             }
           });
+        }
+        if (props.shouldUpdateHashList) {
+          generateHashList();
+          if (comGraphStore.data.curPath.length) {
+            rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
+          }
         }
         return;
       }
