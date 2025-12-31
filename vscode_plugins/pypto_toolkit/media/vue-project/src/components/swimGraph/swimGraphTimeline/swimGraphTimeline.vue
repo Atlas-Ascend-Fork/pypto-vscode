@@ -4,7 +4,7 @@
   @mouseleave="timelineMouseOut($event)">
     <!-- 一段时间轴区域 -->
     <div class="fixed-timeline-area" v-if="!loading">
-      <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas"></canvas>
+      <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
     </div>
 
     <!-- 二段时间轴区域 -->
@@ -134,9 +134,38 @@ const fixedXToTime = (x) => {
 };
 
 const mouseStyleChange = (style) => {
-  isTimelineDragging = true;
   fixedtimelineCanvas.value.style.cursor = style;
   flagsCanvas.value.style.cursor = style;
+};
+
+const mouseStyleEvent = (mousex) => {
+  if (Math.abs(mousex - timelineState.startTimeX) < 5){
+    mouseStyleChange('col-resize');
+    return;
+  }
+
+  if (Math.abs(mousex - timelineState.endTimeX) < 5){
+    mouseStyleChange('col-resize');
+    return;
+  }
+
+  if (mousex > timelineState.startTimeX && mousex < timelineState.endTimeX) {
+    mouseStyleChange('grab');
+    return;
+  }
+
+  if (mousex < timelineState.startTimeX || mousex > timelineState.endTimeX) {
+    mouseStyleChange('text');
+    return;
+  }
+};
+
+const fixedMouseEvent = (e) => {
+  if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) return;
+  const rect = fixedtimelineCanvas.value.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  mouseStyleEvent(mouseX);
+
 };
 
 const timelineMouseDown = (e) => {
@@ -151,25 +180,26 @@ const timelineMouseDown = (e) => {
   timelineInitEndX = timelineState.endTimeX;
 
   if (Math.abs(mouseX - timelineInitStartX) < 5){
-    mouseStyleChange('col-resize');
+    isTimelineDragging = true;
     timelineState.isInLeftTag = true;
     return;
   }
 
   if (Math.abs(mouseX - timelineInitEndX) < 5){
-    mouseStyleChange('col-resize');
+    isTimelineDragging = true;
     timelineState.isInRightTag = true;
     return;
   }
 
   if (mouseX > timelineInitStartX && mouseX < timelineInitEndX) {
-    mouseStyleChange('grab');
+    isTimelineDragging = true;
+    mouseStyleChange('grabbing');
     timelineState.isOnTag = true;
     return;
   }
 
   if (mouseX < timelineInitStartX || mouseX > timelineInitEndX) {
-    mouseStyleChange('text');
+    isTimelineDragging = true;
     timelineState.isOutTag = true;
     return;
   }
@@ -419,7 +449,8 @@ const flagMouseMove = (e) => {
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
   const ctx = hoverFlagsCtx.value;
   const color = "rgba(94, 124, 224, 1)";
-  const mouseX = e.clientX - rect.left;  
+  const mouseX = e.clientX - rect.left;
+  mouseStyleEvent(mouseX);  
 
   hoverLineErase();
   childContextMap.threadEvent.eraseEventLine("over");
@@ -436,6 +467,7 @@ const flagMouseOver = (e) => {
   const ctx = hoverFlagsCtx.value;
   const color = "rgba(94, 124, 224, 1)";
   const mouseX = e.clientX - rect.left;
+  mouseStyleEvent(mouseX); 
   const flag = drawFlag(ctx, mouseX, 1, color, '');
   childContextMap.threadEvent.drawEventLine(mouseX, color, 'over');
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
