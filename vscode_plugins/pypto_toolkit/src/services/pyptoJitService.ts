@@ -15,24 +15,20 @@ export class PyptoJitService {
      */
     private static transformDecoratorText(decoratorText: string, enableDebug: boolean): string {
         const debugModeValue = enableDebug ? '1' : '0';
-        // 注意：逗号后添加空格
         const debugOptions = `debug_options=dict(compile_debug_mode=${debugModeValue}, runtime_debug_mode=${debugModeValue})`;
-        
+
         // 处理可能的缩进
         const trimmedText = decoratorText.trim();
         const indentation = decoratorText.substring(0, decoratorText.indexOf('@pypto.jit'));
-        
+
         if (trimmedText === '@pypto.jit') {
             // 简单的@pypto.jit装饰器
             return indentation + trimmedText.replace('@pypto.jit', `@pypto.jit(${debugOptions})`);
         } else if (trimmedText.match(/^@pypto\.jit\(/)) {
             // 已经有参数的@pypto.jit装饰器
             if (trimmedText.includes('debug_options')) {
-                // 更新现有的debug_options
-                const updatedText = trimmedText.replace(
-                    /debug_options\s*=\s*dict\([^)]*\)/,
-                    debugOptions
-                );
+                // 更新现有的debug_options - 保留完整的多行格式
+                const updatedText = this.updateExistingDebugOptions(trimmedText, debugModeValue);
                 return indentation + updatedText;
             } else {
                 // 检查是否是空括号@pypto.jit()
@@ -45,17 +41,130 @@ export class PyptoJitService {
                     );
                     return indentation + updatedText;
                 } else {
-                    // 有其他参数，添加debug_options（注意逗号后有空格）
-                    const updatedText = trimmedText.replace(
-                        /@pypto\.jit\(([^)]*)\)/,
-                        `@pypto.jit($1, ${debugOptions})`
-                    );
+                    // 有其他参数，智能添加debug_options（保持原有格式）
+                    const updatedText = this.addDebugOptions(trimmedText, debugOptions);
                     return indentation + updatedText;
                 }
             }
         } else {
             throw new Error('无法识别的@pypto.jit装饰器格式');
         }
+    }
+
+    /**
+     * 更新现有的debug_options，保留多行格式
+     */
+    private static updateExistingDebugOptions(decoratorText: string, debugModeValue: string): string {
+        // 匹配 debug_options=dict(...) 并保留完整格式
+        const pattern = /(debug_options\s*=\s*dict\s*\()\s*(compile_debug_mode\s*=\s*)\d+\s*,\s*(runtime_debug_mode\s*=\s*)\d+\s*(\))/;
+        const replacement = `$1$2${debugModeValue}, $3${debugModeValue}$4`;
+        return decoratorText.replace(pattern, replacement);
+    }
+
+    /**
+     * 添加debug_options到装饰器中，智能处理多行格式
+     */
+    private static addDebugOptions(decoratorText: string, debugOptions: string): string {
+        // 找到最后一个右括号的位置
+        const lastParenIndex = this.findClosingParenthesis(decoratorText);
+        
+        // 检查是否是多行装饰器
+        const isMultiline = decoratorText.includes('\n');
+        
+        if (isMultiline) {
+            // 多行格式：找到最后一个非空行（非只包含右括号的行）
+            const lines = decoratorText.split('\n');
+            let lastContentLineIndex = -1;
+            let lastContentLine = '';
+            
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i];
+                const trimmedLine = line.trim();
+                // 跳过只包含右括号的行和空行
+                if (trimmedLine !== '' && trimmedLine !== ')') {
+                    lastContentLineIndex = i;
+                    lastContentLine = line;
+                    break;
+                }
+            }
+            
+            if (lastContentLineIndex >= 0) {
+                // 找到了最后一个内容行，在它后面添加debug_options
+                const beforeLastContentLine = lines.slice(0, lastContentLineIndex).join('\n');
+                const afterLastContentLine = lines.slice(lastContentLineIndex + 1).join('\n');
+                
+                // 检查最后一行是否有逗号
+                const hasComma = lastContentLine.trim().endsWith(',');
+                if (!hasComma) {
+                    lastContentLine += ',';
+                }
+                
+                // 获取最后一行的缩进（去掉前导空格后的实际内容）
+                const lastLineIndent = lastContentLine.match(/^\s*/)?.[0] || '';
+                
+                return beforeLastContentLine + '\n' + lastContentLine + '\n' + lastLineIndent + debugOptions + '\n' + afterLastContentLine;
+            } else {
+                // 没有其他参数，在@pypto.jit(后添加
+                const openParenIndex = decoratorText.indexOf('(');
+                const beforeOpenParen = decoratorText.substring(0, openParenIndex + 1);
+                const afterOpenParen = decoratorText.substring(openParenIndex + 1);
+                
+                // 获取第二行的缩进（如果有）
+                const lines = decoratorText.split('\n');
+                const secondLineIndent = lines.length > 1 ? lines[1].match(/^\s*/)?.[0] || '' : '';
+                
+                return beforeOpenParen + '\n' + secondLineIndent + debugOptions + afterOpenParen;
+            }
+        } else {
+            // 单行格式：在参数列表后添加debug_options
+            return decoratorText.substring(0, lastParenIndex) + ', ' + debugOptions + decoratorText.substring(lastParenIndex);
+        }
+    }
+
+    /**
+     * 找到装饰器的结束右括号位置（考虑嵌套括号）
+     */
+    private static findClosingParenthesis(text: string): number {
+        const openParenIndex = text.indexOf('(');
+        if (openParenIndex === -1) return -1;
+        
+        let depth = 1;
+        let inString = false;
+        let stringChar: string | null = null;
+        
+        for (let i = openParenIndex + 1; i < text.length; i++) {
+            const char = text[i];
+            const prevChar = i > 0 ? text[i - 1] : '';
+            
+            // 处理转义字符
+            if ((inString) && char === '\\') {
+                i++;
+                continue;
+            }
+            
+            // 处理字符串
+            if (!inString && (char === '"' || char === "'")) {
+                inString = true;
+                stringChar = char;
+            } else if (inString && char === stringChar && prevChar !== '\\') {
+                inString = false;
+                stringChar = null;
+            }
+            
+            // 不在字符串内才计数括号
+            if (!inString) {
+                if (char === '(') {
+                    depth++;
+                } else if (char === ')') {
+                    depth--;
+                    if (depth === 0) {
+                        return i;
+                    }
+                }
+            }
+        }
+        
+        return -1;
     }
 
     /**

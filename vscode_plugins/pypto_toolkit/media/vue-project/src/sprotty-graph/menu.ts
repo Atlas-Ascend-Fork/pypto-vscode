@@ -90,7 +90,7 @@ export class AstgrContextMenuService implements IContextMenuService {
 
     const shortCutTitle = document.createElement('div');
     shortCutTitle.style.cssText = 'menu-text;color: var(--devui-title-text);margin-bottom:3px';
-    shortCutTitle.textContent = `${(window as any).ascLang === 'en' ? 'ShortCuts': '快捷键'}`;
+    shortCutTitle.textContent = `${(window as any).ascLang === 'en' ? 'Switch Node': '切换节点'}`;
     shortCutContainer.appendChild(shortCutTitle);
 
     const [previousNode, nextNode] = findNeighborNode(selectedNodeId);
@@ -331,8 +331,8 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
       },
       {
         id: 'JumpToSibling',
-        label: `${(window as any).ascLang === 'en' ? 'Shortcut Keys' : '快捷键'}[Ctrl+G]`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Shortcut Keys' : '快捷键'}[Ctrl+G]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
+        label: `${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}[Ctrl+G]`,
+        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}[Ctrl+G]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
       },
       //   new LabeledAction('', []), // 后续需要再打开
       //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),
