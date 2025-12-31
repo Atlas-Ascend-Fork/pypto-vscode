@@ -55,7 +55,7 @@ onMounted( async() => {
   <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
     <MiddleLayer :graphType="graphType"></MiddleLayer>
   </header>  
-  <!-- 全局引导弹窗（也可在各组件内独立显示） -->
+  <!-- 全局引导弹窗 -->
   <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :guideSteps="guideStepsConfig" />
 </template>
 <style scoped>

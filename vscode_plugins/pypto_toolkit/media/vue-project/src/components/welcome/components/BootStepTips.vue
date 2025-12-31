@@ -44,7 +44,7 @@
         <!-- 操作按钮栏 -->
         <div class="btn-container">
           <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
-          <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
+          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
@@ -65,6 +65,7 @@ import {
   getCurrentStepTriangleConfig,
   getNextBigGroupConfig,
   guideStepsConfig,
+  GuideTargetDomConfig, // 新增：导入新增的定位配置接口
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
@@ -88,9 +89,9 @@ const imgActiveArr=ref([controlFlowActiveImg,nativeActiveImg,computeActiveImg,sw
 interface GuideStepItem {
   title: string;
   content: string;
-  showTriangle: boolean;
-  targetDomId: string;
-  triangleDirection: 'top' | 'bottom' | 'left' | 'right';
+  method?: string; 
+  methodParams?: Record<string, any>; 
+  targetDomConfigs: GuideTargetDomConfig[];
 }
 interface GuideBigGroup {
   groupName: string;
@@ -493,7 +494,7 @@ const observeDomChange = (domId: string) => {
     domObserver.observe(middleLayerElement, {
       attributes: true,
       attributeFilter: ['style', 'class'],
-      childList: false,
+      childList: true,
       subtree: true,
     });
   }
@@ -502,8 +503,7 @@ const observeDomChange = (domId: string) => {
   if (middleLayerElement2) {
     domObserver.observe(middleLayerElement2, {
       attributes: true,
-      attributeFilter: ['style', 'class'],
-      childList: false,
+      childList: true,
       subtree: true,
     });
   }
@@ -600,11 +600,12 @@ const handlePrevStep = async () => {
     newSmall = guideStepsConfig[newBig].steps.length - 1;
   }
 
-  await setGuideProgress(newBig, newSmall);
   const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
   if (currentStepConfig?.method) {
     callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
   }
+  await setGuideProgress(newBig, newSmall);
+
 };
 
 // 下一步逻辑
@@ -746,7 +747,7 @@ onUnmounted(() => {
 <style scoped lang="less">
 // 遮罩层
 .guide-mask {
-  position: fixed;
+  // position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -980,7 +981,7 @@ onUnmounted(() => {
     align-items: center;
     border-radius: 8px;
     height: 28px;
-    background: var(--ddevui-active-icon);
+    background: var(--devui-input-hover-bg);
     color: var(--devui-primary-text);
   }
 

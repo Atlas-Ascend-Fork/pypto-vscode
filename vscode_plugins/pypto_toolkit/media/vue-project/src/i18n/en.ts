@@ -277,8 +277,12 @@ export default {
         navigationSystem: 'Navigation System',
         computationGraph: 'Computation Graph',
         swimlaneChart: 'Swimlane Chart',
+        step3Title: 'View triple linkage view',
+        step3Content:
+      'By constructing a unified semantic association framework, bidirectional or multidirectional associations and visualization linkages are established between operator source code, computation graph view, and performance analysis view (swimlane graph).',
         goToView: 'View',
         nextStep: 'Next Step',
+        preStep: 'Previous step',
         startExperience: 'Start Experience',
         showGuideOnStartup: 'Show quik start page on startup'
       },
@@ -287,6 +291,7 @@ export default {
         button: {
           skipAll: 'Skip All',
           nextStep: 'Next Step',
+          preStep: 'Previous step',
           complete: 'Complete',
           learnGroup: 'Learn about {groupName}'
         },

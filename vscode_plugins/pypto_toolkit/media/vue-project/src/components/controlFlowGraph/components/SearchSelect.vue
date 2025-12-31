@@ -11,7 +11,7 @@
       prefix="search"
       id="boot-steps-controlFlow-search"
     />
-    <div v-if="isOpen && visibleResults.length" class="search-result-list" @mousedown.prevent ref="resultContainerRef">
+    <div v-if="isOpen && visibleResults.length" id="boot-steps-controlFlow-searchPnal" class="search-result-list" @mousedown.prevent ref="resultContainerRef">
       <div
         v-for="(item, index) in visibleResults"
         :key="item.value"

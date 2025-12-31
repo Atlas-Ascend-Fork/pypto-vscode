@@ -74,6 +74,26 @@
               </div>
             </div>
 
+            <!-- 步骤3 -->
+            <div class="step-item" :class="{ active: 'step3' === activeStepId, completed: steps[2].completed }">
+              <div class="step-header" @click="handleStepClick('step3')">
+                <div class="step-header-left">
+                  <img :src="hasCompletedImg" v-if="steps[2].completed" @click.stop="toggleCheckbox(2)"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAll" @click.stop="toggleCheckbox(2)"></img>
+                  <span class="step-title">{{ steps[2].title }}</span>
+                </div>
+                <div class="step-header-right"></div>
+              </div>
+              <div class="step-content" :class="{ expanded: expandedStepId === 'step3' }">
+                <div class="step-content__item">
+                  <p class="step-description step-description__weak">{{ t('welcome.step3Content') }}</p>
+                </div>
+                <!-- <button class="step-content__run-button" @click="">
+                  {{ t('welcome.goToView') }}
+                </button> -->
+              </div>
+            </div>
+
             <!-- 底部操作栏 -->
             <div class="action-bar">
               <button v-if="isAllChecked" class="action-btn next-btn" @click="nextStep" :disabled="isLastStep">
@@ -100,6 +120,7 @@
               <div class="carousel-image-container">
                 <!-- 步骤1显示原有图片，步骤2显示轮播图片 -->
                 <python-code-snippet-preview v-if="activeStep?.id === 'step1'"></python-code-snippet-preview>
+                <img  v-else-if="activeStep?.id === 'step3'" :src="step3Img"/>
                 <div v-else class="carousel-wrapper">
                   <!-- 轮播图片列表 -->
                   <img class="carousel-image" v-for="(img, idx) in images" :key="idx" :src="img"
@@ -140,6 +161,8 @@ const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_s
 const nativeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
 const computeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
 const swimImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
+const step3Img = computed(() => `${window.staticPath}/static-assets/boot_steps/index_page_step3_sanLian.png`);
+
 const images = computed(() => {
   const themeSuffix = isDarkTheme.value ? '' : '-light';
   return [
@@ -210,6 +233,12 @@ const defaultSteps = ref<GuideStep[]>([
     title: t('welcome.step2Title'),
     completed: false,
   },
+  {
+    id: 'step3',
+    index: 3,
+    title: t('welcome.step3Title'),
+    completed: false,
+  },
 ]);
 
 
@@ -218,7 +247,7 @@ const steps = ref<GuideStep[]>([]);
 const activeStepId = ref<string>('');
 const expandedStepId = ref<string>('');
 const isOpenWithPyPto = ref(true)
-const pluginVersion = ref('1.1.1')
+const pluginVersion = ref('2.0.0')
 
 // 4. 计算属性
 const activeStep = computed(() => {
@@ -305,6 +334,12 @@ const initSteps = async () => {
   if (stepRunPython) {
     defaultSteps.value[0].completed = stepRunPython;
   }
+    const stepSanlian = (await getWelcomeState({
+    key: 'welcomeView.Sanlian',
+  })) as boolean;
+  if (stepSanlian) {
+    defaultSteps.value[2].completed = stepSanlian;
+  }
   defaultSteps.value[1].completed = skipAll.value;
   steps.value = [...defaultSteps.value];
   activeStepId.value = steps.value[0].id;
@@ -345,6 +380,11 @@ watch(
       key: 'welcomeView.skipAll',
       value: newVal[1].completed,
     });
+    await updateWelcomeState({
+      key: 'welcomeView.Sanlian',
+      value: newVal[2].completed,
+    });
+    console.log(newVal)
   },
   { deep: true },
 );
@@ -495,8 +535,14 @@ watch(activeStepId, (newStepId) => {
         }
 
         .active .step-content {
+          padding-left: 28px;
           .step-description {
             color: var(--devui-title-text); // 标题文字
+          }
+          .step-description__weak{
+            color: var(--devui-secondary-text); // 标题文字
+            font-size: 13px;
+            font-weight: 400;
           }
 
           .step-content__item {
@@ -631,7 +677,7 @@ watch(activeStepId, (newStepId) => {
             rgba(15, 217, 119, 0.4) 0%,
             rgba(15, 217, 119, 0.1) 40%,
             rgba(199, 91, 239, 0.1) 60%,
-            rgba(199, 91, 239, 0.4) 100%);
+            rgba(234, 91, 239, 0.4) 100%);
         overflow: hidden;
         box-sizing: border-box;
         z-index: 2;
