@@ -668,7 +668,7 @@ const renderFixedTimeline = () => {
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
-        ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.7)' : '#cccccc';
+        ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.8)' : '#cccccc';
       }
       ctx.fillText(`${value}${unit}`, x + 2, 15);
     }
