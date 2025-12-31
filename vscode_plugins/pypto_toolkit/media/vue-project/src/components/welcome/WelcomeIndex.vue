@@ -179,6 +179,7 @@ const isAllChecked = computed(() => steps.value.some((step) => !step.completed))
 
 async function runPythonFile() {
   getInitPythonProject()
+  steps.value[0].completed = true
 }
 
 // 点击步骤头部（激活+折叠）
