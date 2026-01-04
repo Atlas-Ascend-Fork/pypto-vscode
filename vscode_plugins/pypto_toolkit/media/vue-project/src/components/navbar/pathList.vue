@@ -152,6 +152,7 @@ function onNodeClick(node: PathTreeData) {
   align-items: center;
   gap: 4px;
   margin-right: 8px;
+  min-width: 80px;
   cursor: pointer;
 
   &:hover {

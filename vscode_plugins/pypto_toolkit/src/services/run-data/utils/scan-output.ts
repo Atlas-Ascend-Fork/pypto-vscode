@@ -10,11 +10,11 @@ import {
   OutputRecord,
   PassDirectory,
   SwimlaneGraphFile,
-} from '../../types/workspace';
+} from '../../../types/workspace';
 import { t } from 'i18next';
-import { PassStage, StageEndPassNames } from '../../types/workspace/pass';
-import { hasHealthReport, isHealthReport } from '../../utils/health-report';
-import { isFileUriExists } from '../../utils/file-system';
+import { PassStage, StageEndPassNames } from '../../../types/workspace/pass';
+import { hasHealthReport, isHealthReport } from '../../../utils/health-report';
+import { isFileUriExists } from '../../../utils/file-system';
 
 /**
  * 运行结果

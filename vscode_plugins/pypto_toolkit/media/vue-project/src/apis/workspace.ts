@@ -1,13 +1,13 @@
 import { request, RequestOptions } from '../core/request';
-import type { GetOutputDetailParams, GetOutputDetailRes, GetOutputRecordParams, GetOutputRecordsRes } from 'ext:/services/workspace';
+import type { GetOutputDetailParams, GetOutputDetailRes, GetOutputRecordParams, GetOutputRecordsRes } from 'ext:/services/run-data/api';
 
 const WORKSPACE_PREFIX = 'workspace';
 
 /**
  * 获取所有运行记录
  */
-export function getOutputRecords(params: GetOutputRecordParams, options?: RequestOptions): Promise<GetOutputRecordsRes> {
-  return request.post(`${WORKSPACE_PREFIX}/getOutputRecords`, params, options);
+export function getRunDataList(params: GetOutputRecordParams, options?: RequestOptions): Promise<GetOutputRecordsRes> {
+  return request.post(`${WORKSPACE_PREFIX}/getRunDataList`, params, options);
 }
 
 /**

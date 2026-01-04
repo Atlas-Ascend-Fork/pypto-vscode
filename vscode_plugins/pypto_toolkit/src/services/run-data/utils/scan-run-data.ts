@@ -2,9 +2,9 @@ import path from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { OutputRecord, RunDataManifest } from '../../types/workspace';
-import { isFileUriExists } from '../../utils/file-system';
-import { getMockDataPath, getProgramPath, getSwimPath } from '../welcome';
+import type { OutputRecord, RunDataManifest } from '../../../types/workspace';
+import { isFileUriExists } from '../../../utils/file-system';
+import { getMockDataPath, getProgramPath, getSwimPath } from '../../welcome';
 
 export interface RunDataDir {
   dirname: string;
@@ -47,8 +47,8 @@ const RUNDATA_BOOT_STEPS_FILE_NAME = 'rundata_boot_steps.json';
 /**
  * 获取output记录
  */
-export async function getOutputRecord(runDataUri: vscode.Uri): Promise<OutputRecord | undefined> {
-  const runData = await readOutputRunData(runDataUri);
+export async function getRunDataRecord(runDataUri: vscode.Uri): Promise<OutputRecord | undefined> {
+  const runData = await readRunDataFile(runDataUri);
   const directoryName = path.posix.basename(runDataUri.path);
   const executeTime = resolveExecuteTime(directoryName)!;
   if (!runData || !runData.runtype || !executeTime.titleFormat) {
@@ -76,7 +76,7 @@ export async function getOutputRecord(runDataUri: vscode.Uri): Promise<OutputRec
 /**
  * 读取rundata文件
  */
-async function readOutputRunData(outputUri: vscode.Uri): Promise<RunDataManifest | null> {
+async function readRunDataFile(outputUri: vscode.Uri): Promise<RunDataManifest | null> {
   try {
     const fileList = await vscode.workspace.fs.readDirectory(outputUri);
     const isBootSteps = fileList.some((item) => item[0] === RUNDATA_BOOT_STEPS_FILE_NAME);
@@ -111,7 +111,7 @@ const RUN_DATA_DIRNAME_REG_EXP = /^rundata_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\
  * 从rundata目录名解析执行时间
  * @param directoryName 目录名
  */
-export function resolveExecuteTime(directoryName: string): ResolvedExecuteTime {
+function resolveExecuteTime(directoryName: string): ResolvedExecuteTime {
   const matches = RUN_DATA_DIRNAME_REG_EXP.exec(directoryName);
   if (!matches) {
     return { titleFormat: '', datetimeFormat: '' };

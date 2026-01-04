@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { OutputDetail, OutputRecord } from '../../types/workspace';
-import { getOutputDirectory } from './scan-directory';
+import { getOutputDirectory } from './utils/scan-output';
 import { useService } from '..';
 
 export interface GetOutputRecordParams {
@@ -28,7 +28,7 @@ export interface GetOutputRecordsRes {
 /**
  * 获取运行结果记录
  */
-export async function getOutputRecords(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
+export async function getRunDataList(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
   const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles } = params;
   const runDataService = useService('runData');
   if (forceReloadFromFiles) {
@@ -58,9 +58,9 @@ export interface GetOutputDetailRes {
  */
 export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const runDataService = useService('runData');
-  const record =await runDataService.getRecordByDirectoryPath(outputDirPath)  ;
-  if(!record){
-    return { data: null }
+  const record = await runDataService.getRecordByDirectoryPath(outputDirPath);
+  if (!record) {
+    return { data: null };
   }
   const outputUri = vscode.Uri.file(outputDirPath);
   const directoryTree = await getOutputDirectory(outputUri, record);

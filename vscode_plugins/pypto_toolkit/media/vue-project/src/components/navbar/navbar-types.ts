@@ -49,7 +49,6 @@ type NavbarProps = ExtractPropTypes<typeof navbarProps>;
 
 export interface NavbarContext {
   rootProps: NavbarProps;
-  historyList: Ref<HistoryData[]>;
   controlFlowList: Ref<ControlFlowData[]>;
   passList: Ref<PathInPass[]>;
   leafFunctions: Ref<LeafInPass[]>;

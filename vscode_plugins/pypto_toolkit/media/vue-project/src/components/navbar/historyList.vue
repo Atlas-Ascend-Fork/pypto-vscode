@@ -16,7 +16,7 @@
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
           </div>
-          <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="emits('loadMore')" />
+          <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="handleLoadMore" />
         </div>
       </template>
     </d-dropdown>
@@ -25,28 +25,45 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue';
-import { NavbarProvideKey } from './navbar-types';
-import type { NavbarContext, HistoryData } from './navbar-types';
+import { ref } from 'vue';
+import type { HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
 import { OutputRecord } from 'ext:/types/workspace';
 import { useViewServer } from '@/core/use-view-server';
+import { getRunDataList } from '@/apis/workspace';
 
 withDefaults(
   defineProps<{
     currentRecord?: Pick<OutputRecord, 'title' | 'executeTime'>;
-    page: number;
-    allLoaded: boolean;
   }>(),
   { currentRecord: () => ({ title: '', executeTime: '' }) },
 );
 
-const emits = defineEmits<{
-  (e: 'loadMore'): void;
-}>();
+const historyList = ref<HistoryData[]>([]);
+const page = ref(1);
+const pageSize = 50;
+const allLoaded = ref(false);
 
-const { historyList } = inject(NavbarProvideKey) as NavbarContext;
+let isPending = false;
+function handleLoadMore() {
+  if (isPending === true) {
+    return;
+  }
+  page.value += 1;
+  getHistoryList();
+}
+function getHistoryList() {
+  isPending = true;
+  getRunDataList({ page: page.value, pageSize }, { timeout: 600000 }).then(({ data }) => {
+    if (data.length < pageSize) {
+      allLoaded.value = true;
+    }
+    historyList.value.push(...data);
+    isPending = false;
+  });
+}
+
 const isOpen = ref(false);
 const { server } = useViewServer();
 
@@ -61,6 +78,8 @@ function onClick(item: HistoryData) {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .selected-history {
+  min-width: 170px;
+
   .selected-history-title {
     display: flex;
     align-items: center;

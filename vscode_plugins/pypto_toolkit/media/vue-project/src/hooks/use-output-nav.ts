@@ -1,53 +1,29 @@
 import { Ref, ref, watchEffect } from 'vue';
 
-import { getOutputDetail } from '@/apis/workspace';
+import type { OutputDetail } from 'ext:/types/workspace';
 
-interface OutputNav {
-  sourceCodeFile: string | null;
-  controlFlowFile: string | null;
-  swimlaneFile: string | null;
-}
-
-const outputNavCache = new Map<string, OutputNav>();
-
-export function useOutputNav(outputPath: Ref<string>) {
+export function useOutputNav(output: Ref<OutputDetail>) {
   const sourceCodeFile = ref<string | null>(null);
   const controlFlowFile = ref<string | null>(null);
   const swimlaneFile = ref<string | null>(null);
 
   watchEffect(() => {
-    if (!outputPath.value) {
+    if (!output.value) {
       return;
     }
-    if (outputNavCache.has(outputPath.value)) {
-      getOutputNavFromCache(outputPath.value);
-    } else {
-      getOutputNavFromApi(outputPath.value);
-    }
+
+    getOutputNavFromApi(output.value);
   });
 
-  function getOutputNavFromCache(newPath: string): void {
-    const cache = outputNavCache.get(newPath);
-    sourceCodeFile.value = cache.sourceCodeFile;
-    controlFlowFile.value = cache.controlFlowFile;
-    swimlaneFile.value = cache.swimlaneFile;
-  }
-
-  function getOutputNavFromApi(newPath: string): void {
-    getOutputDetail(newPath).then(({ data }) => {
-      const nav: OutputNav = { sourceCodeFile: null, controlFlowFile: null, swimlaneFile: null };
-      for (const childDirectory of data?.directoryTree.children ?? []) {
-        if (childDirectory.type === 'file' && childDirectory.fileType === 'controlFlow') {
-          nav.controlFlowFile = childDirectory.absolutePath;
-          controlFlowFile.value = childDirectory.absolutePath;
-        }
-        if (childDirectory.type === 'file' && childDirectory.fileType === 'swimlaneGraph') {
-          nav.swimlaneFile = childDirectory.absolutePath;
-          swimlaneFile.value = childDirectory.absolutePath;
-        }
+  function getOutputNavFromApi(outputDetail: OutputDetail): void {
+    for (const childDirectory of outputDetail.directoryTree.children ?? []) {
+      if (childDirectory.type === 'file' && childDirectory.fileType === 'controlFlow') {
+        controlFlowFile.value = childDirectory.absolutePath;
       }
-      outputNavCache.set(newPath, nav);
-    });
+      if (childDirectory.type === 'file' && childDirectory.fileType === 'swimlaneGraph') {
+        swimlaneFile.value = childDirectory.absolutePath;
+      }
+    }
   }
 
   return { sourceCodeFile, controlFlowFile, swimlaneFile };

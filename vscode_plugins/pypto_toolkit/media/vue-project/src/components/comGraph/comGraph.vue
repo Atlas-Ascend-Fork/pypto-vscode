@@ -49,6 +49,12 @@ import { ComGraphProvideKey } from './type';
 import  ErrorNode  from './error-node.vue';
 import {openSwimlaneGraph} from "@/apis/opener";
 import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
+import { getQuery } from '@/core/query';
+
+const outputDirPath = ref('');
+getQuery().then((res) => {
+  outputDirPath.value = res.outputDirPath as string;
+});
 
 const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
@@ -68,10 +74,6 @@ const props = defineProps({
   nodeMagic: {
     type: Number,
     default: -1
-  },
-  outputDirPath: {
-    type: String,
-    default: ''
   },
   passIndex: {
     type: String,

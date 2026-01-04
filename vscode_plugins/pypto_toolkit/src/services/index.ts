@@ -1,6 +1,6 @@
 import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph } from './tmp-view-opener';
-import { getOutputRecords, getOutputDetail } from './workspace';
+import { getRunDataList, getOutputDetail } from './run-data/api';
 import { RunDataService } from './run-data';
 import {
   getTileFwkConfigData,
@@ -45,7 +45,7 @@ export const serviceApis = {
   // 工作区
   workspace: {
     /** 获取运行结果记录 */
-    getOutputRecords,
+    getRunDataList,
 
     /** 获取运行结果详情 */
     getOutputDetail,
