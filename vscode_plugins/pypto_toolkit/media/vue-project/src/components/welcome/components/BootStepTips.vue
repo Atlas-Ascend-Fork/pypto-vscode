@@ -13,10 +13,10 @@
       <!-- 气泡弹窗容器-->
       <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
         <!-- 顶部进度指示器 -->
-        <div class="progress-container">
+        <div class="progress-container" v-if="graphType !== 'threeColumnGraph'">
           <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
             <div class="progress-group">
-              <img v-if="groupIdx<=currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
+              <img v-if="groupIdx <= currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
               <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
               <div
                 v-for="(step, stepIdx) in group.steps"
@@ -44,7 +44,7 @@
         <!-- 操作按钮栏 -->
         <div class="btn-container">
           <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
-          <!-- <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">上一步</button> -->
+          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
           <template v-if="hasNextBtn">
             <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
           </template>
@@ -64,33 +64,51 @@ import {
   getCurrentStepTargetDomId,
   getCurrentStepTriangleConfig,
   getNextBigGroupConfig,
-  guideStepsConfig,
+  guideStepsConfigStep2,
+  guideStepsConfigStep3,
+  GuideTargetDomConfig, // 新增：导入新增的定位配置接口
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { isDarkTheme } = inject('root');
-const controlFlowImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_control_weak${isDarkTheme.value ? '' : '-light'}.svg`);
-const nativeImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_native_weak${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeImg =computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_compute_weak${isDarkTheme.value ? '' : '-light'}.svg`);
-const swimImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_swim_weak${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_control_weak${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const nativeImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_native_weak${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const computeImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute_weak${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const swimImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim_weak${isDarkTheme.value ? '' : '-light'}.svg`,
+);
 
-const controlFlowActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_control_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const nativeActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_native_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const computeActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_compute_active${isDarkTheme.value ? '' : '-light'}.svg`);
-const swimActiveImg = computed(()=>`${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`);
+const controlFlowActiveImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_control_active${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const nativeActiveImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_native_active${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const computeActiveImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute_active${isDarkTheme.value ? '' : '-light'}.svg`,
+);
+const swimActiveImg = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`,
+);
 
-const imgArr=ref([controlFlowImg,nativeImg,computeImg,swimImg])
-const imgActiveArr=ref([controlFlowActiveImg,nativeActiveImg,computeActiveImg,swimActiveImg])
+const imgArr = ref([controlFlowImg, nativeImg, computeImg, swimImg]);
+const imgActiveArr = ref([controlFlowActiveImg, nativeActiveImg, computeActiveImg, swimActiveImg]);
 
 // 定义步骤类型
 interface GuideStepItem {
   title: string;
   content: string;
-  showTriangle: boolean;
-  targetDomId: string;
-  triangleDirection: 'top' | 'bottom' | 'left' | 'right';
+  method?: string;
+  methodParams?: Record<string, any>;
+  targetDomConfigs: GuideTargetDomConfig[];
 }
 interface GuideBigGroup {
   groupName: string;
@@ -104,6 +122,7 @@ const props = defineProps<{
   guideSteps?: GuideBigGroup[];
   closeOnMaskClick?: boolean;
   width?: string;
+  graphType: string;
 }>();
 
 // ========== 响应式触发变量（强制更新computed） ==========
@@ -126,7 +145,7 @@ const debounce = (fn: Function, delay = 100) => {
 
 // 三角配置
 const triangleConfig = computed(() => {
-  return getCurrentStepTriangleConfig(currentBigGroup.value, currentSmallIndex.value);
+  return getCurrentStepTriangleConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
 });
 
 // ========== 动态计算弹窗box-shadow（阴影与箭头同方向） ==========
@@ -139,14 +158,14 @@ const popupContentBoxShadow = computed(() => {
     offsetY: 0,
     blur: 50,
     spread: 10,
-    color: 'rgba(0,0,0,0.3)'
+    color: 'rgba(0,0,0,0.3)',
   };
   const lightBase = {
     offsetX: 0,
     offsetY: 0,
     blur: 50,
     spread: 0,
-    color: 'rgba(0,0,0,0.08)'
+    color: 'rgba(0,0,0,0.08)',
   };
   const base = darkMode ? darkBase : lightBase;
 
@@ -170,7 +189,7 @@ const popupContentBoxShadow = computed(() => {
   }
 });
 
-const defaultGuideSteps = guideStepsConfig;
+const defaultGuideSteps = props.graphType === 'threeColumnGraph' ? guideStepsConfigStep3 : guideStepsConfigStep2;
 const currentBigGroup = ref(0);
 const currentSmallIndex = ref(0);
 
@@ -361,7 +380,7 @@ const getTargetDomPosition = () => {
     };
   }
 
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   const targetDom = document.getElementById(targetDomId);
   if (!targetDom) {
     console.warn(`目标DOM ID ${targetDomId} 不存在，使用兜底定位`);
@@ -454,7 +473,7 @@ const handleResize = async () => {
   console.log('handleResize触发，开始重新计算位置');
 
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   const targetDom = document.getElementById(targetDomId);
   if (targetDom) {
     targetDom.getBoundingClientRect();
@@ -493,7 +512,7 @@ const observeDomChange = (domId: string) => {
     domObserver.observe(middleLayerElement, {
       attributes: true,
       attributeFilter: ['style', 'class'],
-      childList: false,
+      childList: true,
       subtree: true,
     });
   }
@@ -502,8 +521,7 @@ const observeDomChange = (domId: string) => {
   if (middleLayerElement2) {
     domObserver.observe(middleLayerElement2, {
       attributes: true,
-      attributeFilter: ['style', 'class'],
-      childList: false,
+      childList: true,
       subtree: true,
     });
   }
@@ -533,7 +551,7 @@ const observeDomChange = (domId: string) => {
 watch([currentBigGroup, currentSmallIndex], async () => {
   await nextTick();
   handleResize();
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   observeDomChange(targetDomId);
 });
 
@@ -545,7 +563,7 @@ watch(
       await nextTick();
       getGuideProgress();
       handleResize();
-      const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+      const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
       observeDomChange(targetDomId);
     } else {
       if (resizeObserver) resizeObserver.disconnect();
@@ -568,7 +586,7 @@ const postToExtension = (type: string, data: any) => {
 
 // ========== callCurrentWebviewMethod添加容错 ==========
 const callCurrentWebviewMethod = (methodName: string, params: any) => {
-  const currentGroupConfig = guideStepsConfig[currentBigGroup.value];
+  const currentGroupConfig = defaultGuideSteps[currentBigGroup.value];
   if (!currentGroupConfig) {
     console.warn('当前大组配置不存在，无法调用WebView方法');
     return;
@@ -581,7 +599,7 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
 };
 
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1);
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1, props.graphType);
   if (!nextGroupConfig?.openWebviewFn) return;
   postToExtension('openWebviewWithGuide', {
     openWebviewFn: nextGroupConfig?.openWebviewFn,
@@ -597,21 +615,21 @@ const handlePrevStep = async () => {
     newSmall--;
   } else {
     newBig--;
-    newSmall = guideStepsConfig[newBig].steps.length - 1;
+    newSmall = defaultGuideSteps[newBig].steps.length - 1;
   }
 
-  await setGuideProgress(newBig, newSmall);
-  const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
+  const currentStepConfig = getCurrentStepConfig(newBig, newSmall, props.graphType);
   if (currentStepConfig?.method) {
     callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
   }
+  await setGuideProgress(newBig, newSmall);
 };
 
 // 下一步逻辑
 const handleNextStep = async () => {
   let newBig = currentBigGroup.value;
   let newSmall = currentSmallIndex.value;
-  const currentGroupConfig = guideStepsConfig[newBig];
+  const currentGroupConfig = defaultGuideSteps[newBig];
   if (!currentGroupConfig) return; // 容错
   const isLastInGroup = newSmall === currentGroupConfig.steps.length - 1;
 
@@ -623,7 +641,7 @@ const handleNextStep = async () => {
   } else {
     newSmall++;
     // 先调用下一步步骤方法
-    const currentStepConfig = getCurrentStepConfig(newBig, newSmall);
+    const currentStepConfig = getCurrentStepConfig(newBig, newSmall, props.graphType);
     if (currentStepConfig?.method) {
       callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
     }
@@ -670,15 +688,17 @@ const getDotItemStatus = (groupIdx: number, stepIdx: number) => {
 };
 
 // 按钮逻辑
-const hasPrevStep = computed(() => !(currentBigGroup.value === 0 && currentSmallIndex.value === 0));
+const hasPrevStep = computed(() => {
+  return  !(currentSmallIndex.value === 0&&currentBigGroup.value !== 1)
+});
 const hasNextBtn = computed(
   () => !(currentBigGroup.value === guideSteps.value.length - 1 && currentSmallIndex.value === currentBigGroupSteps.value.length - 1),
 );
 const nextBtnText = computed(() => {
   const isLastInGroup = currentSmallIndex.value === currentBigGroupSteps.value.length - 1;
   if (isLastInGroup && currentBigGroup.value < guideSteps.value.length - 1) {
-    return t('bootStep.button.learnGroup', { 
-      groupName: t(guideSteps.value[currentBigGroup.value + 1].groupName) 
+    return t('bootStep.button.learnGroup', {
+      groupName: t(guideSteps.value[currentBigGroup.value + 1].groupName),
     });
   }
   return t('bootStep.button.nextStep');
@@ -721,7 +741,7 @@ onMounted(async () => {
   // 额外监听滚动（如果DOM位置受滚动影响）
   window.addEventListener('scroll', debouncedHandleResize);
   if (props.visible) {
-    const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value);
+    const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
     observeDomChange(targetDomId);
   }
   const res = await getQuery();
@@ -980,7 +1000,7 @@ onUnmounted(() => {
     align-items: center;
     border-radius: 8px;
     height: 28px;
-    background: var(--ddevui-active-icon);
+    background: var(--devui-input-hover-bg);
     color: var(--devui-primary-text);
   }
 

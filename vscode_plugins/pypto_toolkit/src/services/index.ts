@@ -14,7 +14,15 @@ import {
   updateConfigsFile,
 } from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
-import { getInitPythonProject, getPluginVersion, getProgramPath, getSwimPath, getUserRunRoot, isLinuxEnvironment } from './welcome';
+import {
+  getInitPythonProject,
+  getPluginVersion,
+  getProgramPath,
+  getPythonFileCode,
+  getSwimPath,
+  getUserRunRoot,
+  isLinuxEnvironment,
+} from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
 import { WelcomeViewServer } from '../view/servers/welcom-server';
 
@@ -29,6 +37,7 @@ export const serviceApis = {
     getProgramPath,
     getSwimPath,
     getPluginVersion,
+    getPythonFileCode,
     skipAll() {
       WelcomeViewServer.skipGuide();
     },

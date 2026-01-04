@@ -279,8 +279,11 @@ export default {
         navigationSystem: '导航系统',
         computationGraph: '计算图',
         swimlaneChart: '泳道图',
+        step3Title: '查看三联动视图',
+        step3Content: '通过构建一个统一的语义关联框架，建立算子源码、计算图视图、性能分析视图（泳道图）之间的双向或多向关联与可视化联动',
         goToView: '去查看',
         nextStep: '下一步',
+        preStep: '上一步',
         startExperience: '开始体验',
         showGuideOnStartup: '启动时显示快速开始页'
       },
@@ -289,6 +292,7 @@ export default {
         button: {
           skipAll: '跳过全部',
           nextStep: '下一步',
+          preStep: '上一步',
           complete: '完成',
           learnGroup: '了解{groupName}'
         },

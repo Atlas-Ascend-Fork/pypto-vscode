@@ -5,59 +5,83 @@ const native = ref(`${window.staticPath}/static-assets/boot_steps_native.svg`);
 const computeImg = ref(`${window.staticPath}/static-assets/boot_steps_compute.svg`);
 const swim = ref(`${window.staticPath}/static-assets/boot_steps_swim.svg`);
 
+// DOM定位配置接口（单个配置项，包含id+三角方向+是否显示三角）
+export interface GuideTargetDomConfig {
+  targetDomId: string; // 目标引导DOM的ID
+  triangleDirection: 'top' | 'bottom' | 'left' | 'right'; // 三角方向（上/下/左/右）
+  showTriangle: boolean; // 是否显示引导三角
+}
+
 // 定义单个步骤的配置类型
 export interface GuideStepConfig {
   title: string; // 步骤标题（国际化key）
   content: string; // 步骤内容（国际化key）
   method?: string; // 该步骤要调用的WebView内方法名（如openSidebar）
   methodParams?: Record<string, any>; // 调用方法的参数
-  targetDomId: string; // 目标引导DOM的ID
-  showTriangle: boolean; // 是否显示引导三角
-  triangleDirection: 'top' | 'bottom' | 'left' | 'right'; // 三角方向（上/下/左/右）
+  targetDomConfigs: GuideTargetDomConfig[];
 }
 
 // 定义大组配置类型
 export interface GuideBigGroupConfig {
   groupName: string; // 大组名称（国际化key）
-  webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph'; // 对应WebView类型
+  webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph' | 'step3Guide'; // 对应WebView类型
   openWebviewFn?: string; // 打开该WebView的方法
   openWebviewParams?: Record<string, any> | null; // 打开WebView的参数
   steps: GuideStepConfig[]; // 该组的小步骤配置
   imgUrl: string;
+  showProgressBar?: boolean; // 是否显示进度条，步骤三设为false
 }
 
-// 全局引导步骤配置（4个大组）
-export const guideStepsConfig: GuideBigGroupConfig[] = [
+// 全局引导步骤2配置（4个大组）
+export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
   // 第一组：控制流
   {
     groupName: 'bootStep.controlFlow.groupName',
     webviewType: 'controlFlow',
     openWebviewParams: { outputPath: '', controlFlowPath: '' }, // 实际参数按需传
     imgUrl: controlFlowImg.value,
+    showProgressBar: true,
     steps: [
       {
         title: 'bootStep.controlFlow.step1.title',
         content: 'bootStep.controlFlow.step1.content',
-        targetDomId: 'boot-steps-controlFlow',
         method: 'checkControlFlow',
-        showTriangle: false,
-        triangleDirection: 'bottom',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-controlFlow',
+            triangleDirection: 'bottom',
+            showTriangle: false,
+          },
+        ],
       },
       {
         title: 'bootStep.controlFlow.step2.title',
         content: 'bootStep.controlFlow.step2.content',
-        targetDomId: 'boot-steps-controlFlow-right-panel',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-controlFlow-right-panel',
+            triangleDirection: 'right',
+            showTriangle: true,
+          },
+        ],
         method: 'bootStepOpenSideBar',
-        showTriangle: true,
-        triangleDirection: 'right',
       },
       {
         title: 'bootStep.controlFlow.step3.title',
         content: 'bootStep.controlFlow.step3.content',
-        targetDomId: 'boot-steps-controlFlow-search',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-controlFlow-searchPnal',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'boot-steps-controlFlow-search',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
         method: 'bootStepSearch',
-        showTriangle: true,
-        triangleDirection: 'top',
       },
     ],
   },
@@ -68,24 +92,33 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     openWebviewFn: 'openComputeGraph',
     imgUrl: native.value,
     openWebviewParams: null,
+    showProgressBar: true,
     steps: [
       {
         title: 'bootStep.navigation.step1.title',
         content: 'bootStep.navigation.step1.content',
         method: 'viewNavigationHistory',
         methodParams: {},
-        targetDomId: 'boot-steps-navbar-history',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-navbar-history',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.navigation.step2.title',
         content: 'bootStep.navigation.step2.content',
         method: 'loadNavMenu',
         methodParams: {},
-        targetDomId: 'boot-steps-navbar-open-com-graph',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-navbar-open-com-graph',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
     ],
   },
@@ -96,15 +129,20 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     openWebviewFn: 'openSwimlaneGraph',
     imgUrl: computeImg.value,
     openWebviewParams: { outputPath: '', computeGraphPath: '', pathName: 'compute' },
+    showProgressBar: true,
     steps: [
       {
         title: 'bootStep.computeGraph.step1.title',
         content: 'bootStep.computeGraph.step1.content',
         method: '',
         methodParams: {},
-        targetDomId: 'navbarComGraphTab',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'navbarComGraphTab',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.computeGraph.step2.title',
@@ -113,9 +151,13 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {
           nodeId: 'tensor-138-2',
         },
-        targetDomId: 'sprotty_tensor-138-2',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'sprotty_tensor-138-2',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.computeGraph.step3.title',
@@ -131,9 +173,13 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
             },
           ],
         },
-        targetDomId: 'comGraphSearchResList',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'comGraphSearchResList',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.computeGraph.step4.title',
@@ -142,27 +188,39 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
         methodParams: {
           searchNodeId: 'tensor-665-4',
         },
-        targetDomId: 'sprotty_tensor-665-4',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'sprotty_tensor-665-4',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.computeGraph.step5.title',
         content: 'bootStep.computeGraph.step5.content',
         method: '',
         methodParams: {},
-        targetDomId: 'openDiffViewerIcon',
-        showTriangle: true,
-        triangleDirection: 'right',
+        targetDomConfigs: [
+          {
+            targetDomId: 'openDiffViewerIcon',
+            triangleDirection: 'right',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.computeGraph.step6.title',
         content: 'bootStep.computeGraph.step6.content',
         method: '',
         methodParams: {},
-        targetDomId: 'boot-steps-navbar-open-swm-graph',
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-navbar-open-swm-graph',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
     ],
   },
@@ -173,95 +231,170 @@ export const guideStepsConfig: GuideBigGroupConfig[] = [
     openWebviewFn: 'openSwimlaneGraph',
     imgUrl: swim.value,
     openWebviewParams: { swimlaneGraphPath: '' },
+    showProgressBar: true,
     steps: [
       {
         title: 'bootStep.swimlaneGraph.step1.title',
         content: 'bootStep.swimlaneGraph.step1.content',
         method: 'distanceMeasurement',
         methodParams: {},
-        targetDomId: 'distance-measurement', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'distance-measurement',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step2.title',
         content: 'bootStep.swimlaneGraph.step2.content',
         method: 'addObservationLine',
         methodParams: {},
-        targetDomId: 'observation-line', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'right',
+        targetDomConfigs: [
+          {
+            targetDomId: 'observation-line',
+            triangleDirection: 'right',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step3.title',
         content: 'bootStep.swimlaneGraph.step3.content',
         method: 'zoomControls',
         methodParams: {},
-        targetDomId: 'zoom-controls', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'zoom-controls',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step4.title',
         content: 'bootStep.swimlaneGraph.step4.content',
         method: 'measureDetailSearch',
         methodParams: {},
-        targetDomId: 'measure-button', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'top',
+        targetDomConfigs: [
+          {
+            targetDomId: 'measure-button',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step5.title',
         content: 'bootStep.swimlaneGraph.step5.content',
         method: 'showGuideDetailsPanel',
         methodParams: {},
-        targetDomId: 'details-content', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'bottom',
+        targetDomConfigs: [
+          {
+            targetDomId: 'details-content',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step6.title',
         content: 'bootStep.swimlaneGraph.step6.content',
-        targetDomId: 'canvas-container', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'bottom',
+        targetDomConfigs: [
+          {
+            targetDomId: 'canvas-container',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+        ],
       },
       {
         title: 'bootStep.swimlaneGraph.step7.title',
         content: 'bootStep.swimlaneGraph.step7.content',
-        targetDomId: 'rootHash', // 步骤1定位
-        showTriangle: true,
-        triangleDirection: 'bottom',
+        targetDomConfigs: [
+          {
+            targetDomId: 'rootHash',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+        ],
       },
     ],
   },
 ];
 
+// 全局引导步骤3配置（需要替换为真实三联动引导步骤）
+export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
+  {
+    groupName: 'bootStep.step3.groupName', 
+    webviewType: 'step3Guide', 
+    openWebviewFn: undefined, 
+    openWebviewParams: null, 
+    imgUrl: '', 
+    showProgressBar: false,
+    steps: [
+      {
+        title: 'bootStep.navigation.step1.title',
+        content: 'bootStep.navigation.step1.content',
+        method: 'viewNavigationHistory',
+        methodParams: {},
+        targetDomConfigs: [
+          {
+            targetDomId: 'boot-steps-navbar-history',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+        ],
+      },
+    ],
+  },
+];
+
+// 工具函数：获取当前步骤的「优先定位配置」（找到第一个存在的DOM对应的配置）
+const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
+  const groupConfig = graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
+  if (!groupConfig) return null;
+  const stepConfig = groupConfig.steps[smallIndex];
+  if (!stepConfig || !stepConfig.targetDomConfigs.length) return null;
+
+  // 遍历配置数组（索引越小优先级越高），返回第一个存在的DOM对应的配置
+  for (const config of stepConfig.targetDomConfigs) {
+    if (document.getElementById(config.targetDomId)) {
+      return config;
+    }
+  }
+
+  // 若所有DOM都不存在，返回数组第一个配置（兜底）
+  return stepConfig.targetDomConfigs[0];
+};
+
 // 工具函数：根据进度获取当前步骤配置
-export const getCurrentStepConfig = (bigGroup: number, smallIndex: number) => {
-  const groupConfig = guideStepsConfig[bigGroup];
+export const getCurrentStepConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
+  const groupConfig =  graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
   if (!groupConfig) return null;
   return groupConfig.steps[smallIndex] || null;
 };
 
 // 工具函数：获取下一个大组的配置
-export const getNextBigGroupConfig = (currentBigGroup: number) => {
-  return guideStepsConfig[currentBigGroup] || null;
+export const getNextBigGroupConfig = (currentBigGroup: number, graphType: string) => {
+  return  graphType === 'threeColumnGraph' ?guideStepsConfigStep3[currentBigGroup]:guideStepsConfigStep2[currentBigGroup] || null;
 };
 
-// 工具函数：获取当前步骤的目标DOM ID
-export const getCurrentStepTargetDomId = (bigGroup: number, smallIndex: number) => {
-  const stepConfig = getCurrentStepConfig(bigGroup, smallIndex);
-  swimConfig.currentStepTargetDomId = stepConfig?.targetDomId || '';
-  return stepConfig?.targetDomId || '';
+// 工具函数：获取当前步骤的目标DOM ID（优先返回索引小的存在的DOM）
+export const getCurrentStepTargetDomId = (bigGroup: number, smallIndex: number, graphType: string) => {
+  const priorityConfig = getCurrentPriorityTargetConfig(bigGroup, smallIndex, graphType);
+  const targetDomId = priorityConfig?.targetDomId || '';
+  swimConfig.currentStepTargetDomId = targetDomId;
+  return targetDomId;
 };
 
-// 工具函数：获取当前步骤的三角配置
-export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: number) => {
-  const stepConfig = getCurrentStepConfig(bigGroup, smallIndex);
+// 工具函数：获取当前步骤的三角配置（优先使用索引小的存在的DOM对应的配置）
+export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
+  const priorityConfig = getCurrentPriorityTargetConfig(bigGroup, smallIndex, graphType);
   return {
-    showTriangle: stepConfig?.showTriangle || true,
-    triangleDirection: stepConfig?.triangleDirection || 'right',
+    showTriangle: priorityConfig?.showTriangle || true,
+    triangleDirection: priorityConfig?.triangleDirection || 'right',
   };
 };
 

@@ -48,20 +48,27 @@ export function getUserRunRoot(): Promise<string> {
 /**
  * 获取output programe目录
  */
-export function getProgramPath():Promise<string>{  
+export function getProgramPath(): Promise<string> {
   return request.post(`${WELCOME}/getProgramPath`, null);
 }
 
 /**
  * 获取泳道图目录
  */
-export function getSwimPath():Promise<string>{  
+export function getSwimPath(): Promise<string> {
   return request.post(`${WELCOME}/getSwimPath`, null);
 }
 
 /**
  * 获取插件版本号
  */
-export function getPluginVersion():Promise<string>{
+export function getPluginVersion(): Promise<string> {
   return request.post(`${WELCOME}/getPluginVersion`, null);
+}
+
+/**
+ * 获取python脚本代码
+ */
+export function getPythonFileCode(): Promise<string> {
+  return request.post(`${WELCOME}/getPythonFileCode`, null);
 }
