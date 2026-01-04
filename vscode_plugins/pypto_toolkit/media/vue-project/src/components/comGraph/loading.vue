@@ -31,7 +31,7 @@ import { computed } from 'vue';
 const { t } = useI18n();
 
 const nodeCount = computed(() => 
-  comGraphStore.data?.nodeCount ?? 0
+  comGraphStore.data?.pathNodesSet.size ?? comGraphStore.data?.nodeCount ?? 0
 );
 
 const LoadingCountMap = {
