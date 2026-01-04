@@ -382,11 +382,11 @@ const handlekeydown = (event) => {
       }
       break;
     case matchKey(key, userConfig?.value.leftmoveShortcut):
-      rightmove(moveStep);
+      rightmove(moveStep, false);
       moveStep += moveStepIncrement;
       break;
     case matchKey(key, userConfig?.value.rightmoveShortcut):
-      leftmove(moveStep);
+      leftmove(moveStep, false);
       moveStep += moveStepIncrement;
       break;
     default:
@@ -1731,7 +1731,7 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   changeScale(zoomFactor, 0, false, false);
   const eventLeftX = (minX * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
-    rightmove(0 - eventLeftX);
+    rightmove(0 - eventLeftX, true);
     needRender = false;
   }
   const eventRightX = (maxX * viewState.scale) + viewState.offsetX;
@@ -1742,12 +1742,12 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   if (eventLeftX < actualMaxX && eventRightX > actualMaxX) {
     // 一半被隐藏在视口之外
     const hiddenWidth = eventRightX - canvasCSSWidth;
-    leftmove(hiddenWidth + scrollWidth);
+    leftmove(hiddenWidth + scrollWidth, true);
     needRender = false;
   } else if (eventLeftX > actualMaxX) {
     // 整个被隐藏在视口之外
     xRange = (maxX - minX) * viewState.pixelScale;
-    leftmove((eventLeftX - canvasCSSWidth + xRange) + scrollWidth);
+    leftmove((eventLeftX - canvasCSSWidth + xRange) + scrollWidth, true);
     needRender = false;
   }
   if (needRender) {

@@ -1973,11 +1973,11 @@ provide('swimGraphMethods', {
   flagRender: () => {
     timelineComponent?.value.flagRender();
   },
-  leftmove: (step) => {
-    swimgraphHeaderComponent?.value.leftmove(step);
+  leftmove: (step, forceTransform) => {
+    swimgraphHeaderComponent?.value.leftmove(step, forceTransform);
   },
-  rightmove: (step) => {
-    swimgraphHeaderComponent?.value.rightmove(step);
+  rightmove: (step, forceTransform) => {
+    swimgraphHeaderComponent?.value.rightmove(step, forceTransform);
   },
   changeScale: (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
     timelineComponent?.value.changeScale(zoomFactor, centerPositionX, needRender, isManual);
