@@ -16,7 +16,7 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
 
   // 标题使用output名称+图类型
   const runDataService = useService('runData');
-  const record = await runDataService.getRecordByDirectoryPath(outputPath);
+  const record = await runDataService.getOutputRecord(outputPath);
   const customTitle = `${record?.title ?? 'unknown'} - ${t('PyPTOToolkit.workspace.controlFlowName')}`;
 
   // 加query

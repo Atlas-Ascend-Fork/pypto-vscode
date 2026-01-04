@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 import { OutputDetail, OutputRecord } from '../../types/workspace';
-import { getOutputDirectory } from './utils/scan-output';
 import { useService } from '..';
 
 export interface GetOutputRecordParams {
@@ -58,15 +57,6 @@ export interface GetOutputDetailRes {
  */
 export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const runDataService = useService('runData');
-  const record = await runDataService.getRecordByDirectoryPath(outputDirPath);
-  if (!record) {
-    return { data: null };
-  }
-  const outputUri = vscode.Uri.file(outputDirPath);
-  const directoryTree = await getOutputDirectory(outputUri, record);
-  if (!directoryTree) {
-    runDataService.delete(record);
-    return { data: null };
-  }
-  return { data: { ...record, directoryTree } };
+  const detail = await runDataService.getOutputDetail(outputDirPath);
+  return { data: detail ?? null };
 }

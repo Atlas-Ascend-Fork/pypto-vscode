@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
 
+export function isFilePathExists(filePath: string): Promise<boolean> {
+  const fileUri = vscode.Uri.file(filePath);
+  return isFileUriExists(fileUri);
+}
+
 /**
  * 判断文件或目录是否存在
  */

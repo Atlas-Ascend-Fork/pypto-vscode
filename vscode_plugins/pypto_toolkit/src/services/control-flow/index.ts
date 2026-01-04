@@ -8,6 +8,7 @@ import { FlowTreeAnalyzer } from './flow-tree';
 import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';
 import { SourceCodeRequestDto } from '../../types/control-flow/basic-node';
 import { CodeSnippetDocument } from '../../types/control-flow/source-code';
+import { getControlFlowStore } from './store';
 
 export interface GetControlFlowParams {
   /** 编译结果文件夹路径 */
@@ -28,6 +29,10 @@ export interface GetControlFlowRes {
  * @returns
  */
 export async function getControlFlow(params: GetControlFlowParams): Promise<GetControlFlowRes> {
+  const cachedControlFlow = await getControlFlowStore().find({ sourceFilePath: params.controlFlowFilePath });
+  if (cachedControlFlow) {
+    return { data: cachedControlFlow.flow };
+  }
   const programUri = vscode.Uri.file(params.controlFlowFilePath);
   const fileContent = (await vscode.workspace.fs.readFile(programUri)).toString();
 
@@ -39,13 +44,15 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
   }
 
   const outputDetail = (await getOutputDetail({ outputDirPath: params.outputDirPath })).data;
-  const computeDir = outputDetail?.directoryTree.children.find((child) => {
+  const computeDir = outputDetail?.directoryTree?.children.find((child) => {
     return child.type === 'dir' && child.directoryType === 'compute';
   }) as ComputeDirectory | undefined;
   const passes = computeDir ? computeDir.children : [];
 
   const analyzer = new FlowTreeAnalyzer(program, passes);
-  return { data: analyzer.getControlFlow() };
+  const flow = analyzer.getControlFlow();
+  getControlFlowStore().set({ sourceFilePath: params.controlFlowFilePath, runDataPath: params.outputDirPath, flow });
+  return { data: flow };
 }
 
 /**

@@ -11,15 +11,6 @@ const HEALTH_REPORT_SUFFIX = [
 ];
 
 /**
- * 判断当前文件是否是健康报告
- * @param filename 
- * @returns 
- */
-export function isHealthReport(filename: string): boolean {
-  return HEALTH_REPORT_SUFFIX.some(([_, suffix]) => filename.endsWith(suffix));
-}
-
-/**
  * 判断计算图是否有健康报告
  * @param computeGraphPath
  * @returns

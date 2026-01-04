@@ -3,7 +3,7 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 
 import type { OutputRecord, RunDataManifest } from '../../../types/workspace';
-import { isFileUriExists } from '../../../utils/file-system';
+import { isFilePathExists, isFileUriExists } from '../../../utils/file-system';
 import { getMockDataPath, getProgramPath, getSwimPath } from '../../welcome';
 
 export interface RunDataDir {
@@ -47,7 +47,7 @@ const RUNDATA_BOOT_STEPS_FILE_NAME = 'rundata_boot_steps.json';
 /**
  * 获取output记录
  */
-export async function getRunDataRecord(runDataUri: vscode.Uri): Promise<OutputRecord | undefined> {
+export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord | undefined> {
   const runData = await readRunDataFile(runDataUri);
   const directoryName = path.posix.basename(runDataUri.path);
   const executeTime = resolveExecuteTime(directoryName)!;
@@ -57,10 +57,13 @@ export async function getRunDataRecord(runDataUri: vscode.Uri): Promise<OutputRe
 
   const title = `${runData.runtype}_${executeTime.titleFormat}`;
   const directoryPath = runDataUri.fsPath;
-  const sourceFilePath = runData.pto_src_file || null;
-  const controlFlowFilePath = runData.program_file || null;
-  const swimlaneGraphFilePath = runData.swim_graph_path || null;
-  const computeGraphDirPath = runData.compute_graph_path || null;
+  const sourceFilePath = await getPathIfExists(runData.pto_src_file);
+  const controlFlowFilePath = await getPathIfExists(runData.program_file);
+  const swimlaneGraphFilePath = await getPathIfExists(runData.swim_graph_path);
+  const computeGraphDirPath = await getPathIfExists(runData.compute_graph_path);
+  if (![sourceFilePath, controlFlowFilePath, swimlaneGraphFilePath, computeGraphDirPath].some(Boolean)) {
+    return undefined;
+  }
 
   return {
     title,
@@ -82,10 +85,10 @@ async function readRunDataFile(outputUri: vscode.Uri): Promise<RunDataManifest |
     const isBootSteps = fileList.some((item) => item[0] === RUNDATA_BOOT_STEPS_FILE_NAME);
     if (isBootSteps) {
       const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_BOOT_STEPS_FILE_NAME));
-      const res =JSON.parse(fileContent.toString())
-      res.compute_graph_path=await getMockDataPath()
-      res.program_file=await getProgramPath()
-      res.swim_graph_path=await getSwimPath()
+      const res = JSON.parse(fileContent.toString());
+      res.compute_graph_path = await getMockDataPath();
+      res.program_file = await getProgramPath();
+      res.swim_graph_path = await getSwimPath();
       return res;
     } else {
       const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(outputUri, RUNDATA_FILE_NAME));
@@ -121,4 +124,8 @@ function resolveExecuteTime(directoryName: string): ResolvedExecuteTime {
     titleFormat: `${year}${month}${day}_${hour}${minute}${second}`,
     datetimeFormat: `${year}-${month}-${day} ${hour}:${minute}:${second}`,
   };
+}
+
+async function getPathIfExists(checkingPath: string | undefined): Promise<string | null> {
+  return checkingPath && (await isFilePathExists(checkingPath)) ? checkingPath : null;
 }

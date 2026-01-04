@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import initSqlJs, { Database, QueryExecResult } from 'sql.js';
+import type { Database, QueryExecResult } from 'sql.js';
 import * as vscode from 'vscode';
 
 import { ExtractItem, PrimaryKeys, QueryKeys, Store, StoreAttributes, StoreQuery } from '../types';
@@ -10,7 +10,14 @@ import { SqlTableController } from './sql-table-controller';
 import { DataFileController } from './data-file-controller';
 import { SqlStoreDatabase, SqlStoreManager } from './sql-store-manager';
 
-const SQL = initSqlJs();
+export type SqlStoreOptions = {
+  /** 数据库版本，需要清空sql时指定更大的值强制升版 */
+  version?: number;
+};
+
+const DEFAULT_OPTIONS: Required<SqlStoreOptions> = {
+  version: 0,
+};
 
 /**
  * Sqlite缓存
@@ -24,6 +31,9 @@ export class SqlStore<
   extends vscode.Disposable
   implements Store<Item, P, Q>
 {
+  /** 数据库版本，需要清空sql时指定更大的值强制升版 */
+  public readonly version: number;
+
   private _db: Promise<SqlStoreDatabase>;
 
   private _attributeResolver: SqlAttributesResolver<Item>;
@@ -39,14 +49,15 @@ export class SqlStore<
   /**
    * @param storeName 数据表名
    * @param attributes 字段
-   * @param extensionContext vscode扩展运行环境
-   * @param version 数据库版本，需要清空sql时指定更大的值强制升版
+   * @param options 数据库配置
    */
-  constructor(public readonly storeName: string, public readonly attributes: Attr, public readonly version = 0) {
+  constructor(public readonly storeName: string, public readonly attributes: Attr, options?: SqlStoreOptions) {
     super(() => this._onDispose());
     if (Object.values(attributes).every((item) => !item.isPrimary)) {
       throw new Error(`store ${storeName}未设置主键，请选取合适的属性设置isPrimary:true`);
     }
+    const requiredOptions = options ? { ...DEFAULT_OPTIONS, ...options } : { ...DEFAULT_OPTIONS };
+    this.version = requiredOptions.version;
     this._manager = SqlStoreManager.getInstance();
     this._attributeResolver = new SqlAttributesResolver<Item>(attributes);
     this._tableController = new SqlTableController<Item>(storeName, this._attributeResolver);
@@ -90,8 +101,10 @@ export class SqlStore<
     const conditions = this._attributeResolver.itemToPrimaryConditions(primaryConditions as Partial<Item>);
     const selectResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);
     const savingFile = this._attributeResolver.getFileNamesFromQueryResult(selectResult)[0];
-    if (savingFile) {
-      await this._dataFileController.delete(savingFile);
+    if (selectResult) {
+      if (savingFile) {
+        await this._dataFileController.delete(savingFile);
+      }
       await this._runAndSave(`DELETE FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);
       return true;
     }

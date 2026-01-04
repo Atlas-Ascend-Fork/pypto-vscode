@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { SqlStoreManager } from './sql-store/sql-store-manager';
-import type { StoreAttributes } from './types';
+import type { Data, StoreAttributes } from './types';
 
 export { SqlStore } from './sql-store/sql-store';
 export type { Store, StoreQuery } from './types';
@@ -19,6 +19,6 @@ export function clearAllStores(): Promise<void> {
  * @param options
  * @returns
  */
-export function defineAttributes<T extends StoreAttributes>(options: T): T {
+export function defineAttributes<T extends Data>(options: StoreAttributes<T>): StoreAttributes<T> {
   return options;
 }

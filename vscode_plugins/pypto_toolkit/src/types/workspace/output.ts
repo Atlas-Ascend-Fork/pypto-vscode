@@ -33,7 +33,7 @@ export interface OutputDetail {
   directoryPath: string;
 
   /** 文件目录树 */
-  directoryTree: OutputDirectory;
+  directoryTree: OutputDirectory | null;
 
   /** 源代码文件地址 */
   sourceFilePath: string | null;

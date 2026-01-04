@@ -1,17 +1,5 @@
 /**
  * 异步解析列表
- * @param targetList 目标列表
- * @param listItemHandler 解析列表元素
- * @returns 解析器
- */
-export function asyncResolvingList<T>(targetList: T[], listItemHandler: AsyncListItemHandler<T, unknown>): AsyncListResolver<T, unknown> {
-  const asyncListResolver = new AsyncListResolverImpl<T, unknown>(listItemHandler);
-  asyncListResolver.start(targetList);
-  return asyncListResolver;
-}
-
-/**
- * 异步解析列表
  */
 export interface AsyncListResolver<T, R> {
   /** 是否正在解析 */
@@ -29,7 +17,7 @@ export interface AsyncListResolver<T, R> {
 
 type AsyncListItemHandler<T, R> = (row: T) => Promise<{ skip?: boolean; data: R } | { skip: true; data?: R }>;
 
-class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
+export class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
   /** 执行中的解析任务 */
   private _resolvingTask: Promise<R[]> | null = null;
 
@@ -66,6 +54,7 @@ class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
 
         this.triggerPartialResolvers(this._resolvedList.length);
         if (this._cancelResolver) {
+          this._cancelResolver();
           break;
         }
       }
