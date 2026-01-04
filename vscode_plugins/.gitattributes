@@ -1,0 +1,1 @@
+vscode_plugins/docs/figures/*.png filter=lfs diff=lfs merge=lfs -text
