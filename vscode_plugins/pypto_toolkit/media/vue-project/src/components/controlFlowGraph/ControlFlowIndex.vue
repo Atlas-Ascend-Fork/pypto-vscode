@@ -95,7 +95,6 @@ let graph = null;
 const { t } = useI18n();
 const rootData = ref([]);
 const outPutPath = ref();
-const programPath = ref();
 const isGraphVisible = ref(false);
 const searchSelectRef = ref(null);
 const isLoading = ref(true);
@@ -425,10 +424,9 @@ onMounted(async () => {
   }
   const res = await getQuery();
   outPutPath.value = res.url;
-  programPath.value = res._path;
   try {
     const data = await getControlFlow(
-      { outputDirPath: outPutPath.value, controlFlowFilePath: programPath.value },
+      { outputDirPath: outPutPath.value, controlFlowFilePath: res._uri.path },
       { useCustomErrorHandler: true },
     );
     rootData.value = data.data;

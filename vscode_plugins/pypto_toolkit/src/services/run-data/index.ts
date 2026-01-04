@@ -6,8 +6,8 @@ import type { OutputRecord, OutputDetail } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
 import { getOutputDirectory } from './utils/scan-output';
-import { getRunDataRecord, readRunDataList, RunDataDir } from './utils/scan-run-data';
-import { AsyncListResolver, asyncResolvingList } from './utils/async-resolving-list';
+import { readRunData, readRunDataList, RunDataDir } from './utils/scan-run-data';
+import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -17,10 +17,10 @@ const RUN_DATA_HOME = process.env.PYPTO_HOME
   ? `${process.env.PYPTO_HOME}${path.sep}run`
   : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
-type RecordOrDetail = OutputRecord & { directoryTree?: OutputDetail['directoryTree'] };
-type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath'>;
+type RecordOrDetail = OutputRecord & { directoryTree?: OutputDetail['directoryTree']; noDirectoryTree: boolean };
+type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath' | 'noDirectoryTree'>;
 
-const RUN_DATA_ATTRIBUTES = defineAttributes({
+const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   title: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   executeTime: { type: String, isQuery: true },
   directoryPath: { type: String, isQuery: true },
@@ -28,6 +28,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes({
   controlFlowFilePath: { type: String },
   computeGraphDirPath: { type: String },
   swimlaneGraphFilePath: { type: String },
+  noDirectoryTree: { type: Boolean, isQuery: true },
   directoryTree: { type: Object },
 });
 
@@ -35,6 +36,8 @@ export class RunDataService extends BasicService {
   private store: RunDataStore;
 
   private listResolver?: AsyncListResolver<RunDataDir, unknown>;
+
+  private delayTimer: ReturnType<typeof setTimeout> | null;
 
   constructor() {
     super('runData');
@@ -45,43 +48,86 @@ export class RunDataService extends BasicService {
     });
     this._disposables.push(this.store);
     this.scanDirectory();
-    this.watchFileChange();
   }
 
   public query(): ReturnType<RunDataStore['query']> {
-    return this.store.query();
+    return this.store.query().filter({ noDirectoryTree: false });
   }
 
   public delete(output: OutputRecord): ReturnType<RunDataStore['delete']> {
     return this.store.delete(output);
   }
 
-  public async getOutputDetail(directoryPath: string): Promise<OutputDetail | undefined> {
-    const record = await this.getRecordByDirectoryPath(directoryPath);
-    if (!record || this.isDetail(record)) {
+  /**
+   * 获取运行记录
+   * @param runDataDirPath rundata目录
+   */
+  public async getOutputRecord(runDataDirPath: string): Promise<OutputRecord | undefined> {
+    const runDataUri = vscode.Uri.file(runDataDirPath);
+    const record = await this.queryOutputFromStore(runDataUri);
+    if (record) {
       return record;
+    } else {
+      // 数据库没有记录时，从文件目录读取
+      return await readRunData(runDataUri);
     }
-    const outputUri = vscode.Uri.file(directoryPath);
-    const directoryTree = await getOutputDirectory(outputUri, record);
-    if (!directoryTree) {
-      this.delete(record);
-      return;
-    }
-    record.directoryTree = directoryTree;
-    this.store.set(record);
-    return record as OutputDetail;
   }
 
-  public async getRecordByDirectoryPath(directoryPath: string): Promise<RecordOrDetail | undefined> {
-    const [record] = await this.query().filter({ directoryPath }).exec();
-
-    // 数据库没有记录时，从文件目录读取
+  /**
+   * 获取运行记录详情
+   * @param runDataDirPath rundata目录
+   */
+  public async getOutputDetail(runDataDirPath: string): Promise<OutputDetail | undefined> {
+    const record = await this.getOutputRecord(runDataDirPath);
     if (!record) {
-      const runDataUri = vscode.Uri.file(directoryPath);
-      return await getRunDataRecord(runDataUri);
+      return undefined;
     }
 
-    return record;
+    if (this.isDetailLoaded(record)) {
+      return record;
+    }
+
+    // 缓存运行记录没有详情，扫描output目录，并更新缓存
+    const outputUri = vscode.Uri.file(runDataDirPath);
+    const directoryTree = await getOutputDirectory(outputUri, record);
+    const recordWithDetail = {
+      ...record,
+      noDirectoryTree: !directoryTree,
+      directoryTree,
+    };
+    if (await this.store.find({ title: record.title })) {
+      this.store.set(recordWithDetail);
+    }
+    return directoryTree ? recordWithDetail : undefined;
+  }
+
+  /**
+   * 扫描目录
+   */
+  public async scanDirectory(): Promise<void> {
+    if (this.listResolver?.isResolving()) {
+      return;
+    }
+
+    const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
+    const runDataList = await readRunDataList(runDataCollectionUri);
+    const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
+    this.listResolver = new AsyncListResolverImpl<RunDataDir, unknown>(async ({ dirname, executeTime }) => {
+      // 上次扫描时间之前的目录，延后扫描
+      if (executeTime <= (latestRecord?.executeTime ?? '')) {
+        this.listResolver?.stop().then((resolvedList) => {
+          this.delay(5000, () => {
+            this.updateSavedRunData(runDataList.slice(resolvedList.length));
+          });
+        });
+        return { skip: true };
+      }
+
+      const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, dirname);
+      await this.addNewOutputToStore(rootDirUri);
+      return { data: null };
+    });
+    this.listResolver.start(runDataList);
   }
 
   /**
@@ -96,60 +142,62 @@ export class RunDataService extends BasicService {
     return;
   }
 
-  /**
-   * 扫描目录
-   */
-  public async scanDirectory(): Promise<void> {
+  private async updateSavedRunData(savedDirs: RunDataDir[]): Promise<void> {
     if (this.listResolver?.isResolving()) {
       return;
     }
-
     const runDataCollectionUri = vscode.Uri.file(RUN_DATA_HOME);
-    const runDataList = await readRunDataList(runDataCollectionUri);
-    const [latestRecord] = await this.store.query().sort('executeTime', 'desc').slice(0, 1).exec();
-    this.listResolver = asyncResolvingList(runDataList, async ({ dirname, executeTime }) => {
-      if (executeTime <= (latestRecord?.executeTime ?? '')) {
-        return { skip: true };
-      }
+    for (const { dirname } of savedDirs) {
       const rootDirUri = vscode.Uri.joinPath(runDataCollectionUri, dirname);
-      await this.setOutputToStore(rootDirUri);
-      return { data: null };
-    });
-  }
-
-  /**
-   * 监听文件变化
-   */
-  private watchFileChange() {
-    const pattern = new vscode.RelativePattern(vscode.Uri.file(RUN_DATA_HOME), '{rundata_*/,rundata_*/rundata.json}');
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    this._disposables.push(watcher);
-    watcher.onDidCreate(async (uri) => {
-      const outputUri = this.getOutputUri(uri);
-      this.setOutputToStore(outputUri);
-    });
-    watcher.onDidChange((uri) => {
-      const outputUri = this.getOutputUri(uri);
-      this.setOutputToStore(outputUri);
-    });
-    watcher.onDidDelete((uri) => {
-      const outputUri = this.getOutputUri(uri);
-      this.store.query().filter({ directoryPath: outputUri.fsPath }).slice(0, 1).delete();
-    });
-  }
-
-  private getOutputUri(uri: vscode.Uri): vscode.Uri {
-    return uri.fsPath.endsWith('rundata.json') ? vscode.Uri.joinPath(uri, '..') : uri;
-  }
-
-  private async setOutputToStore(runDataUri: vscode.Uri) {
-    const record = await getRunDataRecord(runDataUri);
-    if (record) {
-      await this.store.set(record);
+      await this.updateOutputToStore(rootDirUri);
     }
   }
 
-  private isDetail(recordOrDetail: RecordOrDetail): recordOrDetail is OutputDetail {
+  private async queryOutputFromStore(runDataUri: vscode.Uri): Promise<RecordOrDetail | undefined> {
+    const [record] = await this.store.query().filter({ directoryPath: runDataUri.fsPath }).exec();
+    return record;
+  }
+
+  private async addNewOutputToStore(runDataUri: vscode.Uri): Promise<void> {
+    const record = await readRunData(runDataUri);
+    if (record) {
+      await this.store.set({ noDirectoryTree: false, ...record });
+    }
+  }
+
+  private async updateOutputToStore(runDataUri: vscode.Uri): Promise<void> {
+    const storeRecord = await this.queryOutputFromStore(runDataUri);
+    if (!storeRecord) {
+      await this.addNewOutputToStore(runDataUri);
+      return;
+    }
+    const record = await readRunData(runDataUri);
+    if (record) {
+      await this.store.set({ ...storeRecord, ...record });
+    } else {
+      await this.store.query().filter({ directoryPath: runDataUri.fsPath }).delete();
+    }
+  }
+
+  /**
+   * 是否扫描过详情
+   */
+  private isDetailLoaded(recordOrDetail: OutputRecord): recordOrDetail is OutputDetail {
     return Reflect.has(recordOrDetail, 'directoryTree');
+  }
+
+  /**
+   * 延后执行
+   * @param ms 延后时间（毫秒）
+   * @param handler 执行函数
+   */
+  private delay(ms: number, handler: () => void) {
+    if (this.delayTimer) {
+      clearTimeout(this.delayTimer);
+    }
+    this.delayTimer = setTimeout(() => {
+      this.delayTimer = null;
+      handler();
+    }, ms);
   }
 }

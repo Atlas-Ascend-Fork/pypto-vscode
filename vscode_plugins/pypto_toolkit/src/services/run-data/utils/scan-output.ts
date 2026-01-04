@@ -20,16 +20,20 @@ import { isFileUriExists } from '../../../utils/file-system';
  * 运行结果
  */
 export async function getOutputDirectory(outputUri: vscode.Uri, record: OutputRecord): Promise<OutputDirectory | null> {
+  const children = [
+    ...(await getControlFlowFile(outputUri, record)),
+    ...(await getSwimlaneFile(outputUri, record)),
+    ...(await getComputeGraphDirectory(outputUri, record)),
+  ];
+  if (children.length === 0) {
+    return null;
+  }
   return {
     type: 'dir',
     directoryType: 'output',
     name: path.basename(outputUri.path),
     absolutePath: outputUri.fsPath,
-    children: [
-      ...(await getControlFlowFile(outputUri, record)),
-      ...(await getSwimlaneFile(outputUri, record)),
-      ...(await getComputeGraphDirectory(outputUri, record)),
-    ],
+    children,
   };
 }
 
