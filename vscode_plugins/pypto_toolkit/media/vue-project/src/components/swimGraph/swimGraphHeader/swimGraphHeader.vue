@@ -722,8 +722,8 @@ const decrease = () => {
     updataScale();
   } 
 };
-const leftmove = (step=30) => {
-  if (viewState.scale === 1) {
+const leftmove = (step=30, forceTransform=false) => {
+  if (viewState.scale === 1 && !forceTransform) {
     return;
   } else {
     const timeLineEndX = Math.abs(timeLineX.value);
@@ -737,8 +737,8 @@ const leftmove = (step=30) => {
   }
 };
 
-const rightmove = (step=30) => {
-  if (viewState.scale === 1) {
+const rightmove = (step=30, forceTransform=false) => {
+  if (viewState.scale === 1 && !forceTransform) {
     return;
   } else {
     viewState.offsetX += step;
