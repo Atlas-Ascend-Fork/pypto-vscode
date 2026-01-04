@@ -161,16 +161,16 @@ const controlFlowImg = computed(() => `${window.staticPath}/static-assets/boot_s
 const nativeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_native${isDarkTheme.value ? '' : '-light'}.svg`);
 const computeImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_compute${isDarkTheme.value ? '' : '-light'}.svg`);
 const swimImg = computed(() => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim${isDarkTheme.value ? '' : '-light'}.svg`);
-const step3Img = computed(() => `${window.staticPath}/static-assets/boot_steps/index_page_step3_sanLian.png`);
+const step3Img = computed(() => `${window.staticPath}/static-assets/boot_steps/index_page_step3_sanLian${isDarkTheme.value ? '' : '-light'}.png`);
 
 const images = computed(() => {
   const themeSuffix = isDarkTheme.value ? '' : '-light';
   return [
     // 步骤2轮播图片（共4张）
-    `${window.staticPath}/static-assets/boot_steps/index_page_step2_control.png`,
-    `${window.staticPath}/static-assets/boot_steps/index_page_step2_native.png`,
-    `${window.staticPath}/static-assets/boot_steps/index_page_step2_compute.png`,
-    `${window.staticPath}/static-assets/boot_steps/index_page_step2_swim.png`
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_control${themeSuffix}.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_native${themeSuffix}.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_compute${themeSuffix}.png`,
+    `${window.staticPath}/static-assets/boot_steps/index_page_step2_swim${themeSuffix}.png`
   ];
 });
 const pythonIcon = computed(() => `${window.staticPath}/static-assets/python.svg`)

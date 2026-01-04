@@ -8,7 +8,6 @@ import RunConfig from './components/runConfig/RunConfig.vue';
 import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 import WelcomeIndex from './components/welcome/WelcomeIndex.vue';
 import BootStepTips from './components/welcome/components/BootStepTips.vue';
-import { guideStepsConfig } from './components/welcome/guideStepsConfig';
 import { getIsCompleteBoot } from './apis/welcome';
 
 const graphType = ref('');
@@ -56,7 +55,7 @@ onMounted( async() => {
     <MiddleLayer :graphType="graphType"></MiddleLayer>
   </header>  
   <!-- 全局引导弹窗 -->
-  <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :guideSteps="guideStepsConfig" />
+  <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :graphType="graphType"  />
 </template>
 <style scoped>
 .parent-container {
