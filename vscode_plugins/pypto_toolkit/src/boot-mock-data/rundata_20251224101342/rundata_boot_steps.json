@@ -1,6 +1,3 @@
-{
-    "runtype":"nup",
-    "compute_graph_path":"rundata_20251224101342",
-    "program_file":"program.json",
-    "swim_graph_path":"merged_swimlane.json"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:434bb80a6ce967c6ba071c8c0cf64059092b5400585dfdaa4640ad1b09d31d9f
+size 155

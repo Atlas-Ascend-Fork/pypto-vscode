@@ -1,1 +1,3 @@
 vscode_plugins/docs/figures/*.png filter=lfs diff=lfs merge=lfs -text
+vscode_plugins/pypto_toolkit/src/boot-mock-data/rundata_20251224101342/*.json filter=lfs diff=lfs merge=lfs -text
+vscode_plugins/pypto_toolkit/src/boot-mock-data/rundata_20251224101342/Pass_37_CodegenPreproc/*.json filter=lfs diff=lfs merge=lfs -text
