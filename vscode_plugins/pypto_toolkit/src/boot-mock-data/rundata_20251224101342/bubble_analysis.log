@@ -1,0 +1,470 @@
+Top 10 tasks in waiting schedule
+    Task:34, label:0-0-34-13-1(matmul), wait:                 7.0
+    Task:45, label:0-0-45-13-1(matmul), wait:                 6.760009765625
+    Task:46, label:0-0-46-13-1(matmul), wait:                 6.5400390625
+    Task:47, label:0-0-47-13-1(matmul), wait:                 6.3800048828125
+    Task:43, label:0-0-43-13-1(matmul), wait:                 6.320068359375
+    Task:42, label:0-0-42-13-1(matmul), wait:                 5.0
+    Task:44, label:0-0-44-13-1(matmul), wait:                 4.780029296875
+    Task:37, label:0-0-37-13-1(matmul), wait:                 4.699951171875
+    Task:36, label:0-0-36-13-1(matmul), wait:                 4.43994140625
+    Task:40, label:0-0-40-13-1(matmul), wait:                 4.320068359375
+
+
+[Fake Core_0] Execute task num:0, Fake Task: 5
+    Core Total Work Time: 0.0
+    Total Wait Time: 0
+    Wait Schedule Time: 0
+    Wait Predecessor Time: 0
+    Top 3 tasks in waiting schedule time
+[AIC_1] Execute task num:2
+    Core Total Work Time: 108.97998046875
+    Total Wait Time: 42.8800048828125
+    Wait Schedule Time: 0.8599853515625
+    Wait Predecessor Time: 42.02001953125
+    Top 3 tasks in waiting schedule time
+    Task:81, label:0-0-81-13-6(cast), wait:                     0.8599853515625
+    Task:87, label:0-0-87-13-2(matmul), wait:                     0.0
+[AIC_2] Execute task num:2
+    Core Total Work Time: 108.8599853515625
+    Total Wait Time: 42.8199462890625
+    Wait Schedule Time: 0.8800048828125
+    Wait Predecessor Time: 41.93994140625
+    Top 3 tasks in waiting schedule time
+    Task:82, label:0-0-82-13-6(cast), wait:                     0.8599853515625
+    Task:108, label:0-0-108-13-2(matmul), wait:                     0.02001953125
+[AIC_3] Execute task num:2
+    Core Total Work Time: 108.47998046875
+    Total Wait Time: 43.280029296875
+    Wait Schedule Time: 0.9200439453125
+    Wait Predecessor Time: 42.3599853515625
+    Top 3 tasks in waiting schedule time
+    Task:79, label:0-0-79-13-6(cast), wait:                     0.8800048828125
+    Task:107, label:0-0-107-13-2(matmul), wait:                     0.0400390625
+[AIC_4] Execute task num:2
+    Core Total Work Time: 109.1800537109375
+    Total Wait Time: 43.0400390625
+    Wait Schedule Time: 0.9000244140625
+    Wait Predecessor Time: 42.1400146484375
+    Top 3 tasks in waiting schedule time
+    Task:80, label:0-0-80-13-6(cast), wait:                     0.8800048828125
+    Task:106, label:0-0-106-13-2(matmul), wait:                     0.02001953125
+[AIC_5] Execute task num:2
+    Core Total Work Time: 108.3599853515625
+    Total Wait Time: 41.6600341796875
+    Wait Schedule Time: 0.860107421875
+    Wait Predecessor Time: 40.7999267578125
+    Top 3 tasks in waiting schedule time
+    Task:83, label:0-0-83-13-6(cast), wait:                     0.840087890625
+    Task:105, label:0-0-105-13-2(matmul), wait:                     0.02001953125
+[AIC_6] Execute task num:2
+    Core Total Work Time: 108.1600341796875
+    Total Wait Time: 41.52001953125
+    Wait Schedule Time: 0.860107421875
+    Wait Predecessor Time: 40.659912109375
+    Top 3 tasks in waiting schedule time
+    Task:84, label:0-0-84-13-6(cast), wait:                     0.820068359375
+    Task:104, label:0-0-104-13-2(matmul), wait:                     0.0400390625
+[AIC_7] Execute task num:2
+    Core Total Work Time: 109.52001953125
+    Total Wait Time: 41.5001220703125
+    Wait Schedule Time: 0.900146484375
+    Wait Predecessor Time: 40.5999755859375
+    Top 3 tasks in waiting schedule time
+    Task:85, label:0-0-85-13-6(cast), wait:                     0.820068359375
+    Task:103, label:0-0-103-13-2(matmul), wait:                     0.080078125
+[AIC_8] Execute task num:2
+    Core Total Work Time: 109.4200439453125
+    Total Wait Time: 41.4200439453125
+    Wait Schedule Time: 0.9600830078125
+    Wait Predecessor Time: 40.4599609375
+    Top 3 tasks in waiting schedule time
+    Task:86, label:0-0-86-13-6(cast), wait:                     0.8599853515625
+    Task:102, label:0-0-102-13-2(matmul), wait:                     0.10009765625
+[AIC_9] Execute task num:2
+    Core Total Work Time: 108.4200439453125
+    Total Wait Time: 41.179931640625
+    Wait Schedule Time: 1.0999755859375
+    Wait Predecessor Time: 40.0799560546875
+    Top 3 tasks in waiting schedule time
+    Task:94, label:0-0-94-13-2(matmul), wait:                     1.0
+    Task:74, label:0-0-74-13-6(cast), wait:                     0.0999755859375
+[AIC_10] Execute task num:2
+    Core Total Work Time: 108.52001953125
+    Total Wait Time: 41.1199951171875
+    Wait Schedule Time: 1.080078125
+    Wait Predecessor Time: 40.0399169921875
+    Top 3 tasks in waiting schedule time
+    Task:95, label:0-0-95-13-2(matmul), wait:                     1.0
+    Task:73, label:0-0-73-13-6(cast), wait:                     0.080078125
+[AIC_11] Execute task num:2
+    Core Total Work Time: 109.4600830078125
+    Total Wait Time: 40.9600830078125
+    Wait Schedule Time: 1.0201416015625
+    Wait Predecessor Time: 39.93994140625
+    Top 3 tasks in waiting schedule time
+    Task:96, label:0-0-96-13-2(matmul), wait:                     0.9801025390625
+    Task:72, label:0-0-72-13-6(cast), wait:                     0.0400390625
+[AIC_12] Execute task num:2
+    Core Total Work Time: 109.4000244140625
+    Total Wait Time: 40.9000244140625
+    Wait Schedule Time: 1.0001220703125
+    Wait Predecessor Time: 39.89990234375
+    Top 3 tasks in waiting schedule time
+    Task:97, label:0-0-97-13-2(matmul), wait:                     0.9801025390625
+    Task:71, label:0-0-71-13-6(cast), wait:                     0.02001953125
+[AIC_13] Execute task num:2
+    Core Total Work Time: 109.2200927734375
+    Total Wait Time: 40.47998046875
+    Wait Schedule Time: 1.0400390625
+    Wait Predecessor Time: 39.43994140625
+    Top 3 tasks in waiting schedule time
+    Task:98, label:0-0-98-13-2(matmul), wait:                     1.02001953125
+    Task:70, label:0-0-70-13-6(cast), wait:                     0.02001953125
+[AIC_14] Execute task num:2
+    Core Total Work Time: 109.2000732421875
+    Total Wait Time: 40.5
+    Wait Schedule Time: 1.0400390625
+    Wait Predecessor Time: 39.4599609375
+    Top 3 tasks in waiting schedule time
+    Task:99, label:0-0-99-13-2(matmul), wait:                     1.02001953125
+    Task:69, label:0-0-69-13-6(cast), wait:                     0.02001953125
+[AIC_15] Execute task num:2
+    Core Total Work Time: 107.9000244140625
+    Total Wait Time: 40.5999755859375
+    Wait Schedule Time: 1.06005859375
+    Wait Predecessor Time: 39.5399169921875
+    Top 3 tasks in waiting schedule time
+    Task:100, label:0-0-100-13-2(matmul), wait:                     1.0400390625
+    Task:68, label:0-0-68-13-6(cast), wait:                     0.02001953125
+[AIC_16] Execute task num:2
+    Core Total Work Time: 106.52001953125
+    Total Wait Time: 40.4599609375
+    Wait Schedule Time: 1.0400390625
+    Wait Predecessor Time: 39.419921875
+    Top 3 tasks in waiting schedule time
+    Task:101, label:0-0-101-13-2(matmul), wait:                     1.0400390625
+    Task:67, label:0-0-67-13-6(cast), wait:                     0.0
+[AIC_17] Execute task num:1
+    Core Total Work Time: 61.8599853515625
+    Total Wait Time: 22.4600830078125
+    Wait Schedule Time: 0.840087890625
+    Wait Predecessor Time: 21.6199951171875
+    Top 3 tasks in waiting schedule time
+    Task:109, label:0-0-109-13-2(matmul), wait:                     0.840087890625
+[AIC_18] Execute task num:1
+    Core Total Work Time: 62.080078125
+    Total Wait Time: 22.4600830078125
+    Wait Schedule Time: 0.840087890625
+    Wait Predecessor Time: 21.6199951171875
+    Top 3 tasks in waiting schedule time
+    Task:88, label:0-0-88-13-2(matmul), wait:                     0.840087890625
+[AIC_19] Execute task num:1
+    Core Total Work Time: 61.840087890625
+    Total Wait Time: 22.47998046875
+    Wait Schedule Time: 0.8599853515625
+    Wait Predecessor Time: 21.6199951171875
+    Top 3 tasks in waiting schedule time
+    Task:66, label:0-0-66-13-2(matmul), wait:                     0.8599853515625
+[AIC_20] Execute task num:1
+    Core Total Work Time: 61.97998046875
+    Total Wait Time: 22.5
+    Wait Schedule Time: 0.8800048828125
+    Wait Predecessor Time: 21.6199951171875
+    Top 3 tasks in waiting schedule time
+    Task:89, label:0-0-89-13-2(matmul), wait:                     0.8800048828125
+[AIC_21] Execute task num:2
+    Core Total Work Time: 109.5400390625
+    Total Wait Time: 42.2200927734375
+    Wait Schedule Time: 1.840087890625
+    Wait Predecessor Time: 40.3800048828125
+    Top 3 tasks in waiting schedule time
+    Task:75, label:0-0-75-13-6(cast), wait:                     0.9600830078125
+    Task:90, label:0-0-90-13-2(matmul), wait:                     0.8800048828125
+[AIC_22] Execute task num:2
+    Core Total Work Time: 109.239990234375
+    Total Wait Time: 42.4000244140625
+    Wait Schedule Time: 1.860107421875
+    Wait Predecessor Time: 40.5399169921875
+    Top 3 tasks in waiting schedule time
+    Task:76, label:0-0-76-13-6(cast), wait:                     0.9600830078125
+    Task:91, label:0-0-91-13-2(matmul), wait:                     0.9000244140625
+[AIC_23] Execute task num:2
+    Core Total Work Time: 109.10009765625
+    Total Wait Time: 42.219970703125
+    Wait Schedule Time: 1.820068359375
+    Wait Predecessor Time: 40.39990234375
+    Top 3 tasks in waiting schedule time
+    Task:77, label:0-0-77-13-6(cast), wait:                     0.9400634765625
+    Task:92, label:0-0-92-13-2(matmul), wait:                     0.8800048828125
+[AIC_24] Execute task num:2
+    Core Total Work Time: 109.239990234375
+    Total Wait Time: 42.4000244140625
+    Wait Schedule Time: 1.820068359375
+    Wait Predecessor Time: 40.5799560546875
+    Top 3 tasks in waiting schedule time
+    Task:78, label:0-0-78-13-6(cast), wait:                     0.9400634765625
+    Task:93, label:0-0-93-13-2(matmul), wait:                     0.8800048828125
+[AIV_25] Execute task num:2
+    Core Total Work Time: 14.56005859375
+    Total Wait Time: 7.0
+    Wait Schedule Time: 7.0
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:34, label:0-0-34-13-1(matmul), wait:                     7.0
+    Task:62, label:0-0-62-13-0(cast), wait:                     0.0
+[AIV_26] Execute task num:2
+    Core Total Work Time: 14.3599853515625
+    Total Wait Time: 6.4000244140625
+    Wait Schedule Time: 6.4000244140625
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:47, label:0-0-47-13-1(matmul), wait:                     6.3800048828125
+    Task:17, label:0-0-17-13-0(cast), wait:                     0.02001953125
+[AIV_27] Execute task num:2
+    Core Total Work Time: 14.47998046875
+    Total Wait Time: 6.580078125
+    Wait Schedule Time: 6.580078125
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:46, label:0-0-46-13-1(matmul), wait:                     6.5400390625
+    Task:63, label:0-0-63-13-0(cast), wait:                     0.0400390625
+[AIV_28] Execute task num:2
+    Core Total Work Time: 14.6400146484375
+    Total Wait Time: 6.800048828125
+    Wait Schedule Time: 6.800048828125
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:45, label:0-0-45-13-1(matmul), wait:                     6.760009765625
+    Task:65, label:0-0-65-13-0(cast), wait:                     0.0400390625
+[AIV_29] Execute task num:2
+    Core Total Work Time: 14.320068359375
+    Total Wait Time: 4.820068359375
+    Wait Schedule Time: 4.820068359375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:44, label:0-0-44-13-1(matmul), wait:                     4.780029296875
+    Task:60, label:0-0-60-13-0(cast), wait:                     0.0400390625
+[AIV_30] Execute task num:2
+    Core Total Work Time: 14.2200927734375
+    Total Wait Time: 6.380126953125
+    Wait Schedule Time: 6.380126953125
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:43, label:0-0-43-13-1(matmul), wait:                     6.320068359375
+    Task:59, label:0-0-59-13-0(cast), wait:                     0.06005859375
+[AIV_31] Execute task num:2
+    Core Total Work Time: 14.1400146484375
+    Total Wait Time: 5.06005859375
+    Wait Schedule Time: 5.06005859375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:42, label:0-0-42-13-1(matmul), wait:                     5.0
+    Task:58, label:0-0-58-13-0(cast), wait:                     0.06005859375
+[AIV_32] Execute task num:2
+    Core Total Work Time: 14.1800537109375
+    Total Wait Time: 4.2801513671875
+    Wait Schedule Time: 4.2801513671875
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:41, label:0-0-41-13-1(matmul), wait:                     4.2000732421875
+    Task:57, label:0-0-57-13-0(cast), wait:                     0.080078125
+[AIV_33] Execute task num:2
+    Core Total Work Time: 14.02001953125
+    Total Wait Time: 4.400146484375
+    Wait Schedule Time: 4.400146484375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:40, label:0-0-40-13-1(matmul), wait:                     4.320068359375
+    Task:56, label:0-0-56-13-0(cast), wait:                     0.080078125
+[AIV_34] Execute task num:2
+    Core Total Work Time: 13.7200927734375
+    Total Wait Time: 3.6800537109375
+    Wait Schedule Time: 3.6800537109375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:39, label:0-0-39-13-1(matmul), wait:                     3.5999755859375
+    Task:55, label:0-0-55-13-0(cast), wait:                     0.080078125
+[AIV_35] Execute task num:2
+    Core Total Work Time: 13.97998046875
+    Total Wait Time: 3.800048828125
+    Wait Schedule Time: 3.800048828125
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:38, label:0-0-38-13-1(matmul), wait:                     3.719970703125
+    Task:54, label:0-0-54-13-0(cast), wait:                     0.080078125
+[AIV_36] Execute task num:2
+    Core Total Work Time: 13.8800048828125
+    Total Wait Time: 4.800048828125
+    Wait Schedule Time: 4.800048828125
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:37, label:0-0-37-13-1(matmul), wait:                     4.699951171875
+    Task:53, label:0-0-53-13-0(cast), wait:                     0.10009765625
+[AIV_37] Execute task num:2
+    Core Total Work Time: 13.52001953125
+    Total Wait Time: 4.5400390625
+    Wait Schedule Time: 4.5400390625
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:36, label:0-0-36-13-1(matmul), wait:                     4.43994140625
+    Task:52, label:0-0-52-13-0(cast), wait:                     0.10009765625
+[AIV_38] Execute task num:2
+    Core Total Work Time: 13.10009765625
+    Total Wait Time: 3.39990234375
+    Wait Schedule Time: 3.39990234375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:35, label:0-0-35-13-1(matmul), wait:                     3.2799072265625
+    Task:51, label:0-0-51-13-0(cast), wait:                     0.1199951171875
+[AIV_39] Execute task num:2
+    Core Total Work Time: 12.280029296875
+    Total Wait Time: 3.159912109375
+    Wait Schedule Time: 3.159912109375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:48, label:0-0-48-13-1(matmul), wait:                     3.0399169921875
+    Task:50, label:0-0-50-13-0(cast), wait:                     0.1199951171875
+[AIV_40] Execute task num:2
+    Core Total Work Time: 12.9600830078125
+    Total Wait Time: 2.97998046875
+    Wait Schedule Time: 2.97998046875
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:61, label:0-0-61-13-1(matmul), wait:                     2.8599853515625
+    Task:49, label:0-0-49-13-0(cast), wait:                     0.1199951171875
+[AIV_41] Execute task num:1
+    Core Total Work Time: 71.97998046875
+    Total Wait Time: 65.52001953125
+    Wait Schedule Time: 0.0
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:1, label:0-0-1-13-4(cast), wait:                     0.0
+[AIV_42] Execute task num:1
+    Core Total Work Time: 70.8599853515625
+    Total Wait Time: 65.5400390625
+    Wait Schedule Time: 0.02001953125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:3, label:0-0-3-13-4(cast), wait:                     0.02001953125
+[AIV_43] Execute task num:2
+    Core Total Work Time: 75.7000732421875
+    Total Wait Time: 68.280029296875
+    Wait Schedule Time: 2.760009765625
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:31, label:0-0-31-13-5(cast), wait:                     2.739990234375
+    Task:4, label:0-0-4-13-4(cast), wait:                     0.02001953125
+[AIV_44] Execute task num:2
+    Core Total Work Time: 75.4200439453125
+    Total Wait Time: 68.4000244140625
+    Wait Schedule Time: 2.8800048828125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:30, label:0-0-30-13-5(cast), wait:                     2.8599853515625
+    Task:5, label:0-0-5-13-4(cast), wait:                     0.02001953125
+[AIV_45] Execute task num:2
+    Core Total Work Time: 75.52001953125
+    Total Wait Time: 68.5400390625
+    Wait Schedule Time: 3.02001953125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:29, label:0-0-29-13-5(cast), wait:                     3.0
+    Task:6, label:0-0-6-13-4(cast), wait:                     0.02001953125
+[AIV_46] Execute task num:2
+    Core Total Work Time: 71.840087890625
+    Total Wait Time: 67.1600341796875
+    Wait Schedule Time: 1.6400146484375
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:28, label:0-0-28-13-5(cast), wait:                     1.6199951171875
+    Task:7, label:0-0-7-13-4(cast), wait:                     0.02001953125
+[AIV_47] Execute task num:2
+    Core Total Work Time: 71.739990234375
+    Total Wait Time: 66.3199462890625
+    Wait Schedule Time: 0.7999267578125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:27, label:0-0-27-13-5(cast), wait:                     0.7799072265625
+    Task:8, label:0-0-8-13-4(cast), wait:                     0.02001953125
+[AIV_48] Execute task num:2
+    Core Total Work Time: 75.1800537109375
+    Total Wait Time: 67.6400146484375
+    Wait Schedule Time: 2.1199951171875
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:26, label:0-0-26-13-5(cast), wait:                     2.0999755859375
+    Task:9, label:0-0-9-13-4(cast), wait:                     0.02001953125
+[AIV_49] Execute task num:2
+    Core Total Work Time: 75.739990234375
+    Total Wait Time: 67.7000732421875
+    Wait Schedule Time: 2.1800537109375
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:25, label:0-0-25-13-5(cast), wait:                     2.1600341796875
+    Task:10, label:0-0-10-13-4(cast), wait:                     0.02001953125
+[AIV_50] Execute task num:2
+    Core Total Work Time: 75.280029296875
+    Total Wait Time: 67.1800537109375
+    Wait Schedule Time: 1.6600341796875
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:24, label:0-0-24-13-5(cast), wait:                     1.6199951171875
+    Task:11, label:0-0-11-13-4(cast), wait:                     0.0400390625
+[AIV_51] Execute task num:2
+    Core Total Work Time: 75.10009765625
+    Total Wait Time: 68.080078125
+    Wait Schedule Time: 2.56005859375
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:23, label:0-0-23-13-5(cast), wait:                     2.52001953125
+    Task:12, label:0-0-12-13-4(cast), wait:                     0.0400390625
+[AIV_52] Execute task num:2
+    Core Total Work Time: 74.9400634765625
+    Total Wait Time: 66.7601318359375
+    Wait Schedule Time: 1.2401123046875
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:22, label:0-0-22-13-5(cast), wait:                     1.1600341796875
+    Task:13, label:0-0-13-13-4(cast), wait:                     0.080078125
+[AIV_53] Execute task num:2
+    Core Total Work Time: 74.820068359375
+    Total Wait Time: 66.820068359375
+    Wait Schedule Time: 1.300048828125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:21, label:0-0-21-13-5(cast), wait:                     1.219970703125
+    Task:14, label:0-0-14-13-4(cast), wait:                     0.080078125
+[AIV_54] Execute task num:2
+    Core Total Work Time: 74.760009765625
+    Total Wait Time: 66.820068359375
+    Wait Schedule Time: 1.300048828125
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:20, label:0-0-20-13-5(cast), wait:                     1.219970703125
+    Task:15, label:0-0-15-13-4(cast), wait:                     0.080078125
+[AIV_55] Execute task num:3
+    Core Total Work Time: 76.3599853515625
+    Total Wait Time: 68.3800048828125
+    Wait Schedule Time: 2.8599853515625
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:33, label:0-0-33-13-5(cast), wait:                     1.760009765625
+    Task:19, label:0-0-19-13-5(cast), wait:                     1.0
+    Task:16, label:0-0-16-13-4(cast), wait:                     0.0999755859375
+[AIV_56] Execute task num:3
+    Core Total Work Time: 76.5
+    Total Wait Time: 68.7999267578125
+    Wait Schedule Time: 3.2799072265625
+    Wait Predecessor Time: 65.52001953125
+    Top 3 tasks in waiting schedule time
+    Task:18, label:0-0-18-13-5(cast), wait:                     1.9599609375
+    Task:32, label:0-0-32-13-5(cast), wait:                     1.219970703125
+    Task:2, label:0-0-2-13-4(cast), wait:                     0.0999755859375
+[AIV_57] Execute task num:1
+    Core Total Work Time: 3.8599853515625
+    Total Wait Time: 0.820068359375
+    Wait Schedule Time: 0.820068359375
+    Wait Predecessor Time: 0.0
+    Top 3 tasks in waiting schedule time
+    Task:64, label:0-0-64-13-3(cast), wait:                     0.820068359375
