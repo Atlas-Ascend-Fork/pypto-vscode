@@ -9,9 +9,8 @@
           </d-tooltip>
           <d-category-search v-else 
             ref="searchEl"
-            :class="['swim-search', isSearchActive && 'search-focus']"
+            class="swim-search"
             :category="category" 
-            :selected-tags="selectedTagsRef"
             :extend-config="{show:true, clear: {show : isSearchActive}, save: { show: false }, more: {show : false} }"
             :placeholder="searchPlaceholder"
             :text-config="textConfig"
@@ -490,6 +489,7 @@ const onSearch = (e) => {
 
 const onSelectChange = (e) => {
   let { selectedTags } = e;
+  selectedTagsRef.value = selectedTags;
   if (selectedTags.length === 0) {
     fuzzSearch(e.currentChangeTag?.value.value);
   } else if (selectedTags.length === 1) {
@@ -795,13 +795,14 @@ const handleClickOutsize = (event) => {
   const container = document.querySelector('.zoom-controls');
   const flagsCanvas = document.querySelector('.flags-canvas');
   const eventsCanvas = document.querySelector('.events-canvas');
+  const searchFocus = event.target.innerHTML.includes('Hash') || event.target.className === 'devui-input__inner' || searchedKey.value !== '' || selectedTagsRef.value.length > 0;
   if (!container || !flagsCanvas || !eventsCanvas) {
     return;
   }
   if (isSearchActive.value && (flagsCanvas.contains(event.target) || eventsCanvas.contains(event.target))) {
     resetsearchState();
   }
-  if (isSwimGraphActive.value && !container.contains(event.target)) {
+  if (isSwimGraphActive.value && (!container.contains(event.target) && !searchFocus)) {
     threeColumnSearchVisible.value = false;
   }
 };
@@ -984,7 +985,7 @@ defineExpose({
 :deep() {
   .swim-search.dp-category-search-container {
     height: 28px;
-    width: 320px;
+    width: 420px;
     border: 1px solid transparent;
     background: var(--devui-category-search-bg);
   }
@@ -1019,14 +1020,6 @@ defineExpose({
         overflow-y: hidden;
       }
     }
-  }
-  .search-focus.dp-category-search-container .dp-category-search-line-container .dp-category-search-toggle {
-    min-width: 0px;
-    width: 80px;
-  }
-  .search-focus.dp-category-search-container .dp-category-search-line-container .dp-category-search-line .dp-category-search-input {
-    min-width: 0px;
-    width: 100px;
   }
 }
 </style>
