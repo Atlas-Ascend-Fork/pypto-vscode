@@ -402,8 +402,10 @@ const exportSwimGraph = async () => {
     const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
     const scrollCanvas = timelineComponent.value.timelineCanvas;
     const flagsCanvas = timelineComponent.value.flagsCanvas;
+    ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
     if (fixedCanvas) {
       // 绘制顶部固定时间轴
+      ctx.fillRect(0, 0, processLabelWidth, (fixedCanvas.height / dpr) + (scrollCanvas.height / dpr)); 
       ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedCanvas.height / dpr);
     }
     if (scrollCanvas) {
