@@ -144,7 +144,7 @@
 
 <script setup lang="ts">
 import { openControlFlow, openThreeColumnGraph } from '@/apis/opener';
-import { getInitPythonProject, getPluginVersion, getProgramPath, getSanlanSamplePath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getThreeColumnSamplePath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted, inject } from 'vue';
@@ -315,10 +315,10 @@ async function goToCheckResult() {
 }
 
 async function goTocheckThreeColumn() {  
-  console.log(await getSanlanSamplePath())
+  console.log(await getThreeColumnSamplePath())
   openThreeColumnGraph({
     isBootStep: true,
-    sameplePath:await getSanlanSamplePath()
+    sameplePath:await getThreeColumnSamplePath()
   })
 }
 

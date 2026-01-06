@@ -76,6 +76,6 @@ export function getPythonFileCode(): Promise<string> {
 /**
  * 获取三栏数据地址
  */
-export function getSanlanSamplePath(): Promise<string>{
-  return request.post(`${WELCOME}/getSanlanSamplePath`, null);
+export function getThreeColumnSamplePath(): Promise<string>{
+  return request.post(`${WELCOME}/getThreeColumnSamplePath`, null);
 }

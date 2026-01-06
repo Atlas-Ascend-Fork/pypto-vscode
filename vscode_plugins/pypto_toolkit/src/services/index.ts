@@ -19,7 +19,7 @@ import {
   getPluginVersion,
   getProgramPath,
   getPythonFileCode,
-  getSanlanSamplePath,
+  getThreeColumnSamplePath,
   getSwimPath,
   getUserRunRoot,
   isLinuxEnvironment,
@@ -39,7 +39,7 @@ export const serviceApis = {
     getSwimPath,
     getPluginVersion,
     getPythonFileCode,
-    getSanlanSamplePath,
+    getThreeColumnSamplePath,
     skipAll() {
       WelcomeViewServer.skipGuide();
     },

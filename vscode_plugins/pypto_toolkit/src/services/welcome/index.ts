@@ -165,7 +165,7 @@ export async function getPythonFileCode() {
 /**
  * 获取三栏文件地址
  */
-export async function getSanlanSamplePath() {
+export async function getThreeColumnSamplePath() {
   let dataPath = sampleManager.getSamplePath();
   return dataPath;
 }
