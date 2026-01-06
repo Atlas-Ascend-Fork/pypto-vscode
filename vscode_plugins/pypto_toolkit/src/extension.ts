@@ -21,6 +21,7 @@ import { t } from 'i18next';
 import { openPyPTOWelcome } from './services/tmp-view-opener';
 import { PyptoJitCodeLensProvider } from './view/pyptoJitCodeLensProvider';
 import { PyptoJitService } from './services/pyptoJitService';
+import { SampleManager } from './services/welcome/sample';
 
 
 const i18next = require('i18next');
@@ -138,6 +139,7 @@ export async function activate(context: ExtensionContext) {
       },
     });
   }
+  new SampleManager().prepare();
 }
 
 async function initDB(context: ExtensionContext) {
