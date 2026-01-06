@@ -296,6 +296,8 @@ const isCaseSensitive = ref(false);
 const pmuTotal = ref({});
 const timeInfo = ref({});
 
+let isPathLockStatus = ref(false);
+
 // 方法
 const initEventListeners = () => {
   window.addEventListener('resize', onWindowResize);
@@ -1937,6 +1939,7 @@ provide('swimGraphState', {
   fileName,
   isSwimGraphActive,
   isSwimFullscreen,
+  isPathLockStatus,
 });
 
 // 提供方法给子组件

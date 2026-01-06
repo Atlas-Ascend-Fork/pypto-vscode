@@ -26,6 +26,9 @@
          }">
       <d-icon name="icon-lock-private" style="color: #ffffff;"></d-icon>
     </div>
+    <div class="swim-lock-information" v-if="isPathLockStatus">
+      <div class="swim-lock-information-item"> {{ $t('pathLockedTip') }} </div>
+    </div>
     <canvas 
       class="events-canvas" 
       :data-process-key="processKey"
@@ -35,6 +38,7 @@
       @mousedown="handleMouseDown" 
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
+      @contextmenu="handleCanvasRightClick"
     ></canvas>
     <canvas class="ui-events-canvas" :data-ui-process-key="process.key"></canvas>
     <canvas class="dependency-events-canvas" :data-dep-process-key="process.key"></canvas>
@@ -43,12 +47,13 @@
     <canvas class="line-events-canvas" :data-line-process-key="process.key"></canvas>
     <canvas class="selection-events-canvas" :data-selection-process-key="process.key"></canvas>
     <canvas class="three-column-events-canvas" :data-three-column-process-key="process.key"></canvas>
+    <swim-graph-thread-lock-menu/>
   </div>
 </template>
   
 <script setup>
 import { useI18n } from 'vue-i18n';
-import { inject, onMounted, onUnmounted, watch, ref } from 'vue';
+import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
@@ -59,11 +64,15 @@ import { altClickData, measureState, MeatureRender } from './render/meatureRende
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '../../welcome/guideStepsConfig';
+import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
 const curThread = inject('curThread');
 const lockPosition = ref(null);
+let switchLockInformationFlag = ref(false);
+let topX = ref(0);
+const leftX = ref(0);
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
@@ -101,7 +110,8 @@ const {
   dependencyLinesInfo,
   isThreeColumn,
   searchedEvent,
-  colorRending
+  colorRending,
+  isPathLockStatus
 } = swimGraphState;
 
 const {
@@ -167,6 +177,17 @@ let AIVCount = 0;
 let matchingAICEvents = [];
 let matchingAIVEvents = [];
 let selectionEvents = [];
+
+const canvasStatusReset = () => {
+  measureState.isMeasureFirst = false;
+  measureState.isMeasureFixed = false;
+  highlightedPaths.clear();
+  detailsPanelExpanded.value = false;
+  selectEvent(null, props.processKey);
+  const ctx = clearDependencyLines(props.processKey);
+  highlightEvent(ctx, searchedEvent.value, props.processKey, true);
+};
+
 const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
@@ -174,6 +195,10 @@ const handleCanvasClick = (e) => {
   if (isLockStatus.value) {
     return;
   }
+  if (isPathLockStatus.value) {
+    return;
+  }
+  switchLockInformationFlag.value = false;
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
     console.warn(`Canvas for process ${props.processKey} not found during click handling`);
@@ -219,13 +244,50 @@ const handleCanvasClick = (e) => {
       !e.ctrlKey && selectEvent(clickedEvent, props.processKey);
     }
   } else {
-    measureState.isMeasureFirst = false;
-    measureState.isMeasureFixed = false;
-    highlightedPaths.clear();
-    detailsPanelExpanded.value = false;
-    selectEvent(null, props.processKey);
-    const ctx = clearDependencyLines(props.processKey);
-    highlightEvent(ctx, searchedEvent.value, props.processKey, true);
+    canvasStatusReset();
+  }
+};
+
+const handleCanvasRightClick = (e) => {
+  if (isThreeColumn) {
+    return;
+  }
+  const refs = getCanvasRefs(props.processKey);
+  if (!refs) { return };
+  const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
+  const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
+  const { x, y } = localPosition;
+
+  const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
+  canvasclickedEvent.value = clickedEvent;
+  const canvasCSSWidth = viewState.canvasCssWidth;
+  if (x + 200  > canvasCSSWidth) {
+      leftX.value = x - 100;
+  } else {
+      leftX.value = x + 10;
+  }
+  topX.value = y + 10;
+  if (clickedEvent) {
+    switchLockInformationFlag.value = true;
+    hideTooltip();
+    if (e.altKey) {
+      // 清空hover画布 
+      onHoverEvent();
+      measureDistance(clickedEvent, props.processKey);
+    } else {
+      measureState.isMeasureFirst = false;
+      measureState.isMeasureFixed = false;
+      if (!e.ctrlKey) {
+        selectEvent(clickedEvent, props.processKey);
+      }
+      detailsPanelExpanded.value = false;
+    }
+  } else {
+    switchLockInformationFlag.value = false;
+    if (isPathLockStatus.value) {
+      return;
+    }
+    canvasStatusReset();
   }
 };
 
@@ -266,6 +328,20 @@ const scaleCanvas = (mouseX, scale) => {
 
 onMounted(() => {
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.code === 'Escape') {
+      e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
+      isPathLockStatus.value = false;
+      canvasStatusReset();
+    }
+
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
+    (e.key === 'l' || e.key === 'L')) {
+      if (switchLockInformationFlag.value) {
+        isPathLockStatus.value = true;
+        switchLockInformationFlag.value = false;
+      }
+    }
+
     if (!handleMatchKey(e.key, userConfig)) {
       e.stopPropagation();
       return;
@@ -465,7 +541,8 @@ function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
 
 function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   let cursor = '';
-  if (hoveredEvent && !e.altKey && !e.ctrlKey) {
+  const condition = hoveredEvent && !e.altKey && !e.ctrlKey;
+  if (condition && !isPathLockStatus.value) {
     showTooltip(e, hoveredEvent, canvasRef);
     cursor = 'pointer';
   } else {
@@ -2006,6 +2083,12 @@ const clearDistanceMeasurement = () => {
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
 };
+
+provide('switchLockInformationFlag', switchLockInformationFlag);
+provide('isPathLockStatus', isPathLockStatus);
+provide('topX', topX);
+provide('leftX', leftX);
+
 </script>
 <style scoped>
 @import url("../css/swimGraph/Processes/events.css");
