@@ -370,137 +370,37 @@ const exportSwimGraph = () => {
   isExporting.value = true;
   try {
     const dpr = window.devicePixelRatio || 1;
-    const {
-      processLabelWidth,
-      processHeaderHeight,
-      processMargin
-    } = layout;
+    const { processLabelWidth, processHeaderHeight, processMargin } = layout;
     const { canvasCssWidth } = viewState;
-    const totalWidth = processLabelWidth + canvasCssWidth;
-    // 计算总高度
-    const timelineEl = timelineComponent.value.$el;
-    const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
-    let totalProcessHeight = 0;
-    for (const [key, process] of processes) {
-      totalProcessHeight += processHeaderHeight;
-      if (processExpanded.get(key)) {
-        let processContentHeight = 0;
-        for (const [threadKey, thread] of process.threads.entries()) {
-          const tKey = thread.isCounter ? thread.threadName : thread.tid;
-          processContentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
-        }
-        totalProcessHeight += processContentHeight;
-      }
-      totalProcessHeight += processMargin;
-    }
-    const totalHeight = timelineHeight + totalProcessHeight;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = totalWidth * dpr;
-    canvas.height = totalHeight * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    // 背景
-    ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
-    ctx.fillRect(0, 0, totalWidth, totalHeight);
-    // 绘制时间轴
-    const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
-    const scrollCanvas = timelineComponent.value.timelineCanvas;
-    const { flagsCanvas } = timelineComponent.value;
-    ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
-    if (fixedCanvas) {
-      // 绘制顶部固定时间轴
-      ctx.fillRect(0, 0, processLabelWidth, (fixedCanvas.height / dpr) + (scrollCanvas.height / dpr)); 
-      ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedCanvas.height / dpr);
-    }
-    if (scrollCanvas) {
-      const fixedHeight = fixedCanvas.height / dpr;
-      // 绘制 fixedCanvas
-      ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
-      ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollCanvas.height / dpr );
-      ctx.drawImage(flagsCanvas, processLabelWidth, fixedHeight , canvasCssWidth, scrollCanvas.height / dpr );
-    }
-    let currentY = timelineHeight;
-    const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
-    const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-    ctx.font = '12px Arial';
-    ctx.textBaseline = 'middle';
-    for (const [key, process] of processes) {
-      // 1. Process Header
-      ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
-      ctx.fillRect(0, currentY, totalWidth, processHeaderHeight);
-      ctx.fillStyle = textColor;
-      ctx.fillText(process.processName, 10, currentY + (processHeaderHeight / 2));
-      currentY += processHeaderHeight;
-      if (processExpanded.get(key)) {
-        // 2. Process Body
-        const eventCanvas = document.querySelector(`[data-process-key="${key}"]`);
-        const bgCanvas = document.querySelector(`[data-background-process-key="${key}"]`);
-        const depCanvas = document.querySelector(`[data-dep-process-key="${key}"]`);
-        const selectionCanvas = document.querySelector(`[data-selection-process-key="${key}"]`);
-        const uiCanvas = document.querySelector(`[data-ui-process-key="${key}"]`);
-        const lineCanvas = document.querySelector(`[data-line-process-key="${key}"]`);
-        const processHeaderCanvas = document.querySelector(`[data-process-header-key="${key}"]`);
-        let processContentHeight = 0;
-        for (const [threadKey, thread] of process.threads.entries()) {
-          const tKey = thread.isCounter ? thread.threadName : thread.tid;
-          processContentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
-        }
-        // 绘制左侧 Thread Labels
-        ctx.save();
-        ctx.beginPath();
-        // 绘制分割线
-        ctx.moveTo(processLabelWidth, currentY);
-        ctx.lineTo(processLabelWidth, currentY + processContentHeight);
-        ctx.strokeStyle = lineColor;
-        ctx.stroke();
-        for (const [threadKey, thread] of process.threads.entries()) {
-          const tKey = thread.isCounter ? thread.threadName : thread.tid;
-          const tHeight = getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
-          const tStartY = getThreadStartY(process, key, tKey, lane2line, layout);
-          const labelY = currentY + tStartY;
-          ctx.fillStyle = textColor;
-          let labelText = thread.threadName || thread.tid;
-          if (ctx.measureText(labelText).width > (processLabelWidth - 20)) {
-            const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-            const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
-            labelText = labelText.substring(0, maxChars - 3) + '...';
-          }
-          ctx.fillText(labelText, 20, labelY + (tHeight / 2));
-          ctx.beginPath();
-          ctx.moveTo(0, labelY + tHeight);
-          ctx.lineTo(processLabelWidth, labelY + tHeight);
-          ctx.strokeStyle = lineColor;
-          ctx.stroke();
-        }
-        ctx.restore();
-        // 绘制右侧 Canvas 内容
-        if (bgCanvas) {
-          ctx.drawImage(bgCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (eventCanvas) {
-          ctx.drawImage(eventCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (depCanvas) {
-          ctx.drawImage(depCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (selectionCanvas) {
-          ctx.drawImage(selectionCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (uiCanvas) {
-          ctx.drawImage(uiCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (lineCanvas) {
-          ctx.drawImage(lineCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
-        }
-        if (processHeaderCanvas) {
-          const processHeaderCanvasHeight = processHeaderCanvas.height / dpr;
-          ctx.drawImage(processHeaderCanvas, processLabelWidth, processHeaderCanvasHeight, canvasCssWidth, processHeaderCanvasHeight + 30);
-        }
-        currentY += processContentHeight;
-      }
-      currentY += processMargin;
-    }
+    // 1. 计算总尺寸
+    const { totalWidth, totalHeight, timelineHeight } = calculateCanvasSize(
+      processLabelWidth,
+      canvasCssWidth,
+      timelineComponent.value.$el,
+      processes,
+      processExpanded,
+      lane2line,
+      layout
+    );
+    // 2. 创建导出画布
+    const { canvas, ctx } = createExportCanvas(totalWidth, totalHeight, dpr, isDarkTheme.value);
+    // 3. 绘制顶部时间轴（fixed + scroll + flags）
+    drawTimelineArea(ctx, timelineComponent.value, processLabelWidth, canvasCssWidth, dpr, isDarkTheme.value);
+    // 4. 绘制所有 Process 块
+    drawProcessBlocks(
+      ctx,
+      processes,
+      processExpanded,
+      processLabelWidth,
+      canvasCssWidth,
+      timelineHeight,
+      processHeaderHeight,
+      processMargin,
+      lane2line,
+      layout,
+      isDarkTheme.value
+    );
+    // 5. 导出图片
     const dataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = `${fileName.value}.png` || 'swim-graph-export.png';
@@ -512,6 +412,202 @@ const exportSwimGraph = () => {
     isExporting.value = false;
   }
 };
+
+// 辅助函数 1：计算画布总尺寸
+function calculateCanvasSize(
+  processLabelWidth,
+  canvasCssWidth,
+  timelineEl,
+  processes,
+  processExpanded,
+  lane2line,
+  layout
+) {
+  const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
+  let totalProcessHeight = 0;
+  for (const [key, process] of processes) {
+    totalProcessHeight += layout.processHeaderHeight;
+    if (processExpanded.get(key)) {
+      let contentHeight = 0;
+      for (const [threadKey, thread] of process.threads.entries()) {
+        const tKey = thread.isCounter ? thread.threadName : thread.tid;
+        contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+      }
+      totalProcessHeight += contentHeight;
+    }
+    totalProcessHeight += layout.processMargin;
+  }
+  const totalHeight = timelineHeight + totalProcessHeight;
+  const totalWidth = processLabelWidth + canvasCssWidth;
+  return { totalWidth, totalHeight, timelineHeight };
+}
+
+// 辅助函数 2：创建并初始化画布
+function createExportCanvas(totalWidth, totalHeight, dpr, isDarkTheme) {
+  const canvas = document.createElement('canvas');
+  canvas.width = totalWidth * dpr;
+  canvas.height = totalHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  // 背景
+  ctx.fillStyle = isDarkTheme ? '#1F1F1F' : '#ffffff';
+  ctx.fillRect(0, 0, totalWidth, totalHeight);
+  return { canvas, ctx };
+}
+
+// 辅助函数 3：绘制顶部时间轴区域
+function drawTimelineArea(ctx, timelineComp, processLabelWidth, canvasCssWidth, dpr, isDarkTheme) {
+  const fixedCanvas = timelineComp.fixedtimelineCanvas;
+  const scrollCanvas = timelineComp.timelineCanvas;
+  const flagsCanvas = timelineComp.flagsCanvas;
+  if (!fixedCanvas || !scrollCanvas) {
+    return;
+  }
+  const fixedHeight = fixedCanvas.height / dpr;
+  const scrollHeight = scrollCanvas.height / dpr;
+  // 左侧背景矩形（覆盖 fixed + scroll 高度）
+  ctx.fillStyle = isDarkTheme ? '#2b2b2b' : '#f0f0f0';
+  ctx.fillRect(0, 0, processLabelWidth, fixedHeight + scrollHeight);
+  // 绘制各层
+  ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
+  ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollHeight);
+  if (flagsCanvas) {
+    ctx.drawImage(flagsCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollHeight);
+  }
+}
+
+// 辅助函数 4：绘制所有 Process 块
+function drawProcessBlocks(
+  ctx,
+  processes,
+  processExpanded,
+  processLabelWidth,
+  canvasCssWidth,
+  startY,
+  processHeaderHeight,
+  processMargin,
+  lane2line,
+  layout,
+  isDarkTheme
+) {
+  let currentY = startY;
+  const textColor = isDarkTheme ? '#e8e8e8' : '#333333';
+  const lineColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  ctx.font = '12px Arial';
+  ctx.textBaseline = 'middle';
+  for (const [key, process] of processes) {
+    currentY = drawProcess(
+      ctx,
+      key,
+      process,
+      processExpanded,
+      currentY,
+      processLabelWidth,
+      canvasCssWidth,
+      processHeaderHeight,
+      processMargin,
+      lane2line,
+      layout,
+      textColor,
+      lineColor
+    );
+  }
+}
+
+// 辅助函数 5：绘制单个 Process（Header + Body）
+function drawProcess(
+  ctx,
+  key,
+  process,
+  processExpanded,
+  currentY,
+  processLabelWidth,
+  canvasCssWidth,
+  processHeaderHeight,
+  processMargin,
+  lane2line,
+  layout,
+  textColor,
+  lineColor
+) {
+  // Header
+  ctx.fillStyle = textColor === '#e8e8e8' ? '#2b2b2b' : '#f0f0f0'; // 根据主题反推背景色
+  ctx.fillRect(0, currentY, processLabelWidth + canvasCssWidth, processHeaderHeight);
+  ctx.fillStyle = textColor;
+  ctx.fillText(process.processName, 10, currentY + processHeaderHeight / 2);
+  let y = currentY + processHeaderHeight;
+  // Body
+  if (processExpanded.get(key)) {
+    let contentHeight = 0;
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const tKey = thread.isCounter ? thread.threadName : thread.tid;
+      contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+    }
+    // 绘制左侧 labels
+    drawThreadLabels(ctx, process, key, y, processLabelWidth, contentHeight, lane2line, layout, textColor, lineColor);
+    // 绘制右侧 layers
+    drawProcessLayers(ctx, key, y, processLabelWidth, canvasCssWidth, contentHeight);
+    y += contentHeight;
+  }
+  return y + processMargin;
+}
+
+// 辅助函数 6：绘制 Thread Labels
+function drawThreadLabels(ctx, process, processKey, startY, labelWidth, contentHeight, lane2line, layout, textColor, lineColor) {
+  ctx.save();
+  // 分割线
+  ctx.beginPath();
+  ctx.moveTo(labelWidth, startY);
+  ctx.lineTo(labelWidth, startY + contentHeight);
+  ctx.strokeStyle = lineColor;
+  ctx.stroke();
+  for (const [threadKey, thread] of process.threads.entries()) {
+    const tKey = thread.isCounter ? thread.threadName : thread.tid;
+    const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
+    const tStartY = getThreadStartY(process, processKey, tKey, lane2line, layout);
+    const labelY = startY + tStartY;
+    ctx.fillStyle = textColor;
+    let labelText = thread.threadName || thread.tid;
+    if (ctx.measureText(labelText).width > labelWidth - 20) {
+      const widthPerChar = ctx.measureText(labelText).width / labelText.length;
+      const maxChars = Math.floor((labelWidth - 20) / widthPerChar);
+      labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
+    }
+    ctx.fillText(labelText, 20, labelY + tHeight / 2);
+    // 底部分割线
+    ctx.beginPath();
+    ctx.moveTo(0, labelY + tHeight);
+    ctx.lineTo(labelWidth, labelY + tHeight);
+    ctx.strokeStyle = lineColor;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 辅助函数 7：绘制 Process 的各图层（bg, event, dep 等）
+function drawProcessLayers(ctx, processKey, y, x, width, height) {
+  const selectors = [
+    `[data-background-process-key="${processKey}"]`,
+    `[data-process-key="${processKey}"]`,
+    `[data-dep-process-key="${processKey}"]`,
+    `[data-selection-process-key="${processKey}"]`,
+    `[data-ui-process-key="${processKey}"]`,
+    `[data-line-process-key="${processKey}"]`,
+    `[data-process-header-key="${processKey}"]`
+  ];
+  for (const selector of selectors) {
+    const canvasEl = document.querySelector(selector);
+    if (canvasEl) {
+      // 特殊处理 processHeaderCanvas
+      if (selector.includes('process-header-key')) {
+        const h = canvasEl.height / (window.devicePixelRatio || 1);
+        ctx.drawImage(canvasEl, x, h, width, h + 30);
+      } else {
+        ctx.drawImage(canvasEl, x, y, width, height);
+      }
+    }
+  }
+}
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
 const pmuRowCoordLoc = ref([]);
