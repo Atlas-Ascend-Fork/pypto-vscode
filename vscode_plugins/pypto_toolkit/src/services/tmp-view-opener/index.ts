@@ -1,5 +1,5 @@
 // TODO 当前文件所有代码为临时功能，待实现页面路由后替换
-import path from 'node:path';
+import path, { join } from 'node:path';
 
 import * as vscode from 'vscode';
 import { t } from 'i18next';
@@ -59,4 +59,16 @@ export async function openPtoConfig(params: { configPath: string; pathName: stri
 export async function openPyPTOWelcome() {
   const uri = vscode.Uri.file('openPyPTOWelcome');
   useView().editorView.open('welcome', uri);
+}
+
+/**
+ * 打开引导模式三联动视图
+ */
+export function openThreeColumnGraph(params: { isBootStep?: boolean; sameplePath: string }) {
+  const { isBootStep = false, sameplePath } = params;
+  const pyPath = join(sameplePath, 'test_glm_ffn_dense_quant.py');
+  const swimPath = join(sameplePath, 'merged_swimlane.json');
+  const computPath = join(sameplePath, 'program.json');
+  const uri = vscode.Uri.file(pyPath);
+  useView().editorView.open('threeColumnGraph', uri, { query: { isBootStep, swim: swimPath, comput: computPath } });
 }

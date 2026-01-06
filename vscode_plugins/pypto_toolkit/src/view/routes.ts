@@ -43,5 +43,5 @@ export const routes: EditorViewRoutes = {
   welcome: {
     title: ()=>t('PyPTOToolkit.welcome.page'),
     viewServer: WelcomeViewServer,
-  },
+  },  
 };

@@ -23,12 +23,12 @@ import { PyptoJitCodeLensProvider } from './view/pyptoJitCodeLensProvider';
 import { PyptoJitService } from './services/pyptoJitService';
 import { SampleManager } from './services/welcome/sample';
 
-
 const i18next = require('i18next');
 const config = globalConfig;
 
 // 导出模块级变量，供其他文件访问
 export let extensionContext: vscode.ExtensionContext | undefined;
+export let sampleManager: SampleManager;
 
 export async function activate(context: ExtensionContext) {
   extensionContext = context;
@@ -64,7 +64,7 @@ export async function activate(context: ExtensionContext) {
       // 卸载成功：提示重启
       const msg = i18next.t('pypto.ExtensionUninstalledPleaseReload');
       const reloadBtn = i18next.t('pypto.confirm');
-      vscode.window.showWarningMessage(msg, reloadBtn).then(selection => {
+      vscode.window.showWarningMessage(msg, reloadBtn).then((selection) => {
         if (selection === reloadBtn) {
           vscode.commands.executeCommand('workbench.action.reloadWindow');
         }
@@ -74,7 +74,7 @@ export async function activate(context: ExtensionContext) {
       // 卸载失败：提示手动操作
       const msg = i18next.t('pypto.ExtensionWarned', { oldExtensionName: oldExtensionName });
       const openExtensionsBtn = i18next.t('pypto.confirm');
-      vscode.window.showErrorMessage(msg, openExtensionsBtn).then(selection => {
+      vscode.window.showErrorMessage(msg, openExtensionsBtn).then((selection) => {
         if (selection === openExtensionsBtn) {
           vscode.commands.executeCommand('workbench.extensions.search', `@installed pypto`);
         }
@@ -111,9 +111,7 @@ export async function activate(context: ExtensionContext) {
 
   // 注册CodeLens提供者
   const codeLensProvider = new PyptoJitCodeLensProvider();
-  context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
-  );
+  context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider));
 
   // 注册 PyptoJit 命令
   context.subscriptions.push(
@@ -128,7 +126,7 @@ export async function activate(context: ExtensionContext) {
     }),
     vscode.commands.registerCommand('pypto.unsetAllDebugMode', (uri: vscode.Uri) => {
       PyptoJitService.unsetAllDebugMode(uri);
-    })
+    }),
   );
 
   if (window.registerWebviewPanelSerializer) {
@@ -139,7 +137,8 @@ export async function activate(context: ExtensionContext) {
       },
     });
   }
-  new SampleManager().prepare();
+  sampleManager = new SampleManager();
+  sampleManager.prepare();
 }
 
 async function initDB(context: ExtensionContext) {

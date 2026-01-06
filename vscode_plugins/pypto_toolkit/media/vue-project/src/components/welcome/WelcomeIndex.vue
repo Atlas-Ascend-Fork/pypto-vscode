@@ -88,9 +88,9 @@
                 <div class="step-content__item">
                   <p class="step-description step-description__weak">{{ t('welcome.step3Content') }}</p>
                 </div>
-                <!-- <button class="step-content__run-button" @click="">
+                <button class="step-content__run-button" @click="goTocheckThreeColumn">
                   {{ t('welcome.goToView') }}
-                </button> -->
+                </button>
               </div>
             </div>
 
@@ -143,8 +143,8 @@
 </template>
 
 <script setup lang="ts">
-import { openControlFlow } from '@/apis/opener';
-import { getInitPythonProject, getPluginVersion, getProgramPath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { openControlFlow, openThreeColumnGraph } from '@/apis/opener';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getSanlanSamplePath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted, inject } from 'vue';
@@ -314,6 +314,15 @@ async function goToCheckResult() {
   });
 }
 
+async function goTocheckThreeColumn() {  
+  console.log(await getSanlanSamplePath())
+  openThreeColumnGraph({
+    isBootStep: true,
+    sameplePath:await getSanlanSamplePath()
+  })
+}
+
+
 // 第二部查看运行结果是否完成
 const { server } = useViewServer<WelcomeViewServer>();
 const { skipAll } = server;
@@ -367,6 +376,7 @@ onMounted(async () => {
   if (activeStepId.value === 'step2') {
     startCarousel();
   }
+
 });
 
 watch(
@@ -384,7 +394,6 @@ watch(
       key: 'welcomeView.Sanlian',
       value: newVal[2].completed,
     });
-    console.log(newVal)
   },
   { deep: true },
 );

@@ -36,3 +36,10 @@ export function openPtoConfig(params: { configPath: string; pathName: string; is
 export function openPyPTOWelcome() {
   return request.post(`${OPENER_PREFIX}/openPyPTOWelcome`, null);
 }
+
+/**
+ * 打开三联动视图
+ */
+export function openThreeColumnGraph(params: { isBootStep?: boolean , sameplePath:string}) {
+  return request.post(`${OPENER_PREFIX}/openThreeColumnGraph`, params);
+}
