@@ -72,3 +72,10 @@ export function getPluginVersion(): Promise<string> {
 export function getPythonFileCode(): Promise<string> {
   return request.post(`${WELCOME}/getPythonFileCode`, null);
 }
+
+/**
+ * 获取三栏数据地址
+ */
+export function getThreeColumnSamplePath(): Promise<string>{
+  return request.post(`${WELCOME}/getThreeColumnSamplePath`, null);
+}

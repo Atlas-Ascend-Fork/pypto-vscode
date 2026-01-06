@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { getExtensionMode, getPythonOutputChannel, runPythonScript } from './run-python';
-import { extensionContext } from '../../extension';
+import { extensionContext, sampleManager } from '../../extension';
 import { readWholeFileByTextDocument } from './getPythonCode';
 
 /**
@@ -160,4 +160,12 @@ export async function getPythonFileCode() {
   const uri = vscode.Uri.file(mockDataFilePath);
   const code = await readWholeFileByTextDocument(uri);
   return code;
+}
+
+/**
+ * 获取三栏文件地址
+ */
+export async function getThreeColumnSamplePath() {
+  let dataPath = sampleManager.getSamplePath();
+  return dataPath;
 }

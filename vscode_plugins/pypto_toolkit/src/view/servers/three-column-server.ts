@@ -86,10 +86,13 @@ export class ThreeColumnServer
   comPath?: string;
   swimData?: SwimData;
   codeMsgHandler?: any;
-
   query?: any;
+
   constructor(ctx: ViewServerContext) {
     super(ctx);
+  }
+
+  public override created(ctx: ViewServerContext): void { 
     if (!ctx.fileUri) {
       return;
     }
@@ -106,10 +109,13 @@ export class ThreeColumnServer
     this.title = 'multiple graph';
     this.isReveal = false;
     this._disposables = [];
-
+    const threeQuery = JSON.parse(ctx.fileUri?.query)  
+    if (threeQuery.isBootStep) {
+      this.swimDataPath = threeQuery.swim
+      this.comPath = threeQuery.comput
+    }
     this.initWebViewPanel();
   }
-  public override created(ctx: ViewServerContext): void { }
 
   @viewApi()
   public getInitialData = async () => {

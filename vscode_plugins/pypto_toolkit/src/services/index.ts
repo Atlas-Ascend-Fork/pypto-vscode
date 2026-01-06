@@ -1,5 +1,5 @@
 import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
-import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph } from './tmp-view-opener';
+import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph, openThreeColumnGraph } from './tmp-view-opener';
 import { getRunDataList, getOutputDetail } from './run-data/api';
 import { RunDataService } from './run-data';
 import {
@@ -19,6 +19,7 @@ import {
   getPluginVersion,
   getProgramPath,
   getPythonFileCode,
+  getThreeColumnSamplePath,
   getSwimPath,
   getUserRunRoot,
   isLinuxEnvironment,
@@ -38,6 +39,7 @@ export const serviceApis = {
     getSwimPath,
     getPluginVersion,
     getPythonFileCode,
+    getThreeColumnSamplePath,
     skipAll() {
       WelcomeViewServer.skipGuide();
     },
@@ -94,8 +96,8 @@ export const serviceApis = {
     openComputeGraph,
     openSwimlaneGraph,
     openPtoConfig,
-    getTileFwkConfigData,
     openPyPTOWelcome,
+    openThreeColumnGraph,
   },
 };
 
