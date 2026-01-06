@@ -3,8 +3,8 @@
     <div class="left-container" :class="{ 'left-container-search': isSearchActive}" v-if="threeColumnHeaderVisible">
       <div class="search-container-res" v-if="threeColumnSearchVisible">
         <div class="search-container">
-          <d-tooltip :content="$t('interlockModeSearchTip')" position="right" v-if="isLockStatus">
-            <d-search class="swim-search" :disabled="isLockStatus"  v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
+          <d-tooltip :content="getTooltipContent()" position="right" v-if="isLockStatus || isPathLockStatus">
+            <d-search class="swim-search" :disabled="isLockStatus || isPathLockStatus"  v-model="searchQuery" icon-position="left" :placeholder="searchPlaceholder"
               :show-glow-style="false" size="sm" is-keyup-search :delay="200" @search="onSearch" />
           </d-tooltip>
           <d-category-search v-else 
@@ -187,6 +187,7 @@ const {
   fileName,
   isSwimGraphActive,
   isSwimFullscreen,
+  isPathLockStatus,
 } = inject('swimGraphState');
 
 const {
@@ -815,6 +816,14 @@ const resetsearchState = () => {
   clearSearchData();
 };
 
+const getTooltipContent = () => {
+  if (isLockStatus.value) {
+    return $t('interlockModeSearchTip');
+  } else {
+    return $t('pathwayLockTip');
+  }
+};
+
 const isThreeColumnHeader =() => {
   if (!isThreeColumn) {
     threeColumnHeaderVisible.value = true;
@@ -840,6 +849,17 @@ watch(isLockStatus, () => {
   isSearchActive.value = false;
   detailsPanelExpanded.value = false;
   sendMsg('clearSearchEvent');
+});
+watch(isPathLockStatus, () => {
+  if (!isPathLockStatus.value && !searchQuery.value) {
+    return;
+  }
+  searchQuery.value = '';
+  searchResultCount.value = 0;
+  currentResultIndex.value = 0;
+  isSearchActive.value = false;
+  searchedEvent.value = null;
+  detailsPanelExpanded.value = false;
 });
 watch(isSwimGraphActive, () => {
   isThreeColumnHeader();
