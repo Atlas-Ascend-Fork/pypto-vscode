@@ -568,6 +568,26 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
         ctx.drawImage(canvasEl, processLabelWidth, h, width, h + 30);
       } else {
         ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
+        if (isMeasureModel.value && canvasEl.hasAttribute('data-process-key')) {
+          const totalExportWidth = processLabelWidth + width;
+          const g = ctx.createLinearGradient(0, 0, totalExportWidth, 0);
+          g.addColorStop(0, 'rgba(0,0,0,0.3)');
+          g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
+          g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0)');
+          g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0)');
+          g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
+          g.addColorStop(1, 'rgba(0,0,0,0.3)');
+          ctx.save();
+          // 限制绘制区域为当前 Process 的 body 区域（避免影响其他部分）
+          ctx.beginPath();
+          ctx.rect(processLabelWidth, y, width, height);
+          ctx.clip();
+          // 绘制遮罩
+          ctx.fillStyle = g;
+          ctx.fillRect(processLabelWidth, y, width, height);
+          // 恢复
+          ctx.restore();
+        }
       }
     }
   }
