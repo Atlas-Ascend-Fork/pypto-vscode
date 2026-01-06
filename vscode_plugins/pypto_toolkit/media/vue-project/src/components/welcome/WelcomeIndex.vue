@@ -317,7 +317,10 @@ async function goToCheckResult() {
 }
 
 async function goTocheckThreeColumn() {
-  console.log(await getThreeColumnSamplePath())
+  updateWelcomeState({
+    key: 'guide.state',
+    value: true,
+  });
   openThreeColumnGraph({
     isBootStep: true,
     sameplePath: await getThreeColumnSamplePath()
