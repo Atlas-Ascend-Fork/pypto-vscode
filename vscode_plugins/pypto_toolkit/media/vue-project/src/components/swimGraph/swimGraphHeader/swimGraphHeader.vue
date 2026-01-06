@@ -155,7 +155,6 @@ import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
-import { toPng } from 'dom-to-image-more';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -364,20 +363,26 @@ const showDrawer = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
 };
 
-const exportSwimGraph = async () => {
-  if (!timelineComponent?.value) return;
+const exportSwimGraph = () => {
+  if (!timelineComponent?.value) {
+    return;
+  }
   isExporting.value = true;
   try {
     const dpr = window.devicePixelRatio || 1;
-    const processLabelWidth = layout.processLabelWidth;
-    const canvasCssWidth = viewState.canvasCssWidth;
+    const {
+      processLabelWidth,
+      processHeaderHeight,
+      processMargin
+    } = layout;
+    const { canvasCssWidth } = viewState;
     const totalWidth = processLabelWidth + canvasCssWidth;
     // 计算总高度
     const timelineEl = timelineComponent.value.$el;
     const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
     let totalProcessHeight = 0;
     for (const [key, process] of processes) {
-      totalProcessHeight += layout.processHeaderHeight;
+      totalProcessHeight += processHeaderHeight;
       if (processExpanded.get(key)) {
         let processContentHeight = 0;
         for (const [threadKey, thread] of process.threads.entries()) {
@@ -386,7 +391,7 @@ const exportSwimGraph = async () => {
         }
         totalProcessHeight += processContentHeight;
       }
-      totalProcessHeight += layout.processMargin;
+      totalProcessHeight += processMargin;
     }
     const totalHeight = timelineHeight + totalProcessHeight;
 
@@ -401,7 +406,7 @@ const exportSwimGraph = async () => {
     // 绘制时间轴
     const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
     const scrollCanvas = timelineComponent.value.timelineCanvas;
-    const flagsCanvas = timelineComponent.value.flagsCanvas;
+    const { flagsCanvas } = timelineComponent.value;
     ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
     if (fixedCanvas) {
       // 绘制顶部固定时间轴
@@ -423,10 +428,10 @@ const exportSwimGraph = async () => {
     for (const [key, process] of processes) {
       // 1. Process Header
       ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
-      ctx.fillRect(0, currentY, totalWidth, layout.processHeaderHeight);
+      ctx.fillRect(0, currentY, totalWidth, processHeaderHeight);
       ctx.fillStyle = textColor;
-      ctx.fillText(process.processName, 10, currentY + layout.processHeaderHeight / 2);
-      currentY += layout.processHeaderHeight;
+      ctx.fillText(process.processName, 10, currentY + (processHeaderHeight / 2));
+      currentY += processHeaderHeight;
       if (processExpanded.get(key)) {
         // 2. Process Body
         const eventCanvas = document.querySelector(`[data-process-key="${key}"]`);
@@ -456,12 +461,12 @@ const exportSwimGraph = async () => {
           const labelY = currentY + tStartY;
           ctx.fillStyle = textColor;
           let labelText = thread.threadName || thread.tid;
-          if (ctx.measureText(labelText).width > processLabelWidth - 20) {
+          if (ctx.measureText(labelText).width > (processLabelWidth - 20)) {
             const widthPerChar = ctx.measureText(labelText).width / labelText.length;
             const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
             labelText = labelText.substring(0, maxChars - 3) + '...';
           }
-          ctx.fillText(labelText, 20, labelY + tHeight / 2);
+          ctx.fillText(labelText, 20, labelY + (tHeight / 2));
           ctx.beginPath();
           ctx.moveTo(0, labelY + tHeight);
           ctx.lineTo(processLabelWidth, labelY + tHeight);
@@ -479,13 +484,13 @@ const exportSwimGraph = async () => {
         if (depCanvas) {
           ctx.drawImage(depCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
         }
-        if(selectionCanvas){
+        if (selectionCanvas) {
           ctx.drawImage(selectionCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
         }
-        if(uiCanvas){
+        if (uiCanvas) {
           ctx.drawImage(uiCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
         }
-        if(lineCanvas){
+        if (lineCanvas) {
           ctx.drawImage(lineCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
         }
         if (processHeaderCanvas) {
@@ -494,7 +499,7 @@ const exportSwimGraph = async () => {
         }
         currentY += processContentHeight;
       }
-      currentY += layout.processMargin;
+      currentY += processMargin;
     }
     const dataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
@@ -503,7 +508,6 @@ const exportSwimGraph = async () => {
     link.click();
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
-    console.error(error);
   } finally {
     isExporting.value = false;
   }
