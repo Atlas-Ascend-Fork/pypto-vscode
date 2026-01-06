@@ -401,6 +401,7 @@ const exportSwimGraph = async () => {
     // 绘制时间轴
     const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
     const scrollCanvas = timelineComponent.value.timelineCanvas;
+    const flagsCanvas = timelineComponent.value.flagsCanvas;
     if (fixedCanvas) {
       // 绘制顶部固定时间轴
       ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedCanvas.height / dpr);
@@ -409,7 +410,8 @@ const exportSwimGraph = async () => {
       const fixedHeight = fixedCanvas.height / dpr;
       // 绘制 fixedCanvas
       ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
-      ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollCanvas.height / dpr);
+      ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollCanvas.height / dpr );
+      ctx.drawImage(flagsCanvas, processLabelWidth, fixedHeight , canvasCssWidth, scrollCanvas.height / dpr );
     }
     let currentY = timelineHeight;
     const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
@@ -431,6 +433,7 @@ const exportSwimGraph = async () => {
         const selectionCanvas = document.querySelector(`[data-selection-process-key="${key}"]`);
         const uiCanvas = document.querySelector(`[data-ui-process-key="${key}"]`);
         const lineCanvas = document.querySelector(`[data-line-process-key="${key}"]`);
+        const processHeaderCanvas = document.querySelector(`[data-process-header-key="${key}"]`);
         let processContentHeight = 0;
         for (const [threadKey, thread] of process.threads.entries()) {
           const tKey = thread.isCounter ? thread.threadName : thread.tid;
@@ -482,6 +485,10 @@ const exportSwimGraph = async () => {
         }
         if(lineCanvas){
           ctx.drawImage(lineCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if (processHeaderCanvas) {
+          const processHeaderCanvasHeight = processHeaderCanvas.height / dpr;
+          ctx.drawImage(processHeaderCanvas, processLabelWidth, processHeaderCanvasHeight, canvasCssWidth, processHeaderCanvasHeight + 30);
         }
         currentY += processContentHeight;
       }
