@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { getWelcomeState, updateWelcomeState } from '@/apis/welcome';
+import { completeResultsStep, completeTreeColumnStep, getWelcomeState, updateWelcomeState } from '@/apis/welcome';
 import { computed, ref, watch, onMounted, nextTick, onUnmounted, inject } from 'vue';
 import type { CSSProperties } from 'vue';
 import {
@@ -656,7 +656,11 @@ const handleSkipAll = () => {
     key: 'guide.state',
     value: false,
   });
-  request.post('welcome/skipAll', null);
+  if (props.graphType === 'threeColumnGraph') {
+    completeTreeColumnStep();
+  } else {
+    completeResultsStep();
+  }
   postToExtension('welcomeSkipAll', null);
 };
 
@@ -689,7 +693,7 @@ const getDotItemStatus = (groupIdx: number, stepIdx: number) => {
 
 // 按钮逻辑
 const hasPrevStep = computed(() => {
-  return  !(currentSmallIndex.value === 0&&currentBigGroup.value !== 1)
+  return !(currentSmallIndex.value === 0 && currentBigGroup.value !== 1);
 });
 const hasNextBtn = computed(
   () => !(currentBigGroup.value === guideSteps.value.length - 1 && currentSmallIndex.value === currentBigGroupSteps.value.length - 1),
@@ -886,6 +890,7 @@ onUnmounted(() => {
     &.active-dot {
       background: var(--devui-title-text); // 基础标题色填充（伪元素覆盖中间）
       transform: scale(1.5); // 放大效果
+
       &::before {
         content: '';
         position: absolute;
@@ -934,6 +939,7 @@ onUnmounted(() => {
       font-weight: 600;
       color: var(--devui-primary-text);
     }
+
     .step-count__group {
       display: flex;
       flex-direction: row;

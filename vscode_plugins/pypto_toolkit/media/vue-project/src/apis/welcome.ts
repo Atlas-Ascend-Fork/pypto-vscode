@@ -79,3 +79,31 @@ export function getPythonFileCode(): Promise<string> {
 export function getThreeColumnSamplePath(): Promise<string>{
   return request.post(`${WELCOME}/getThreeColumnSamplePath`, null);
 }
+
+/**
+ * 完成步骤二查看运行结果
+ */
+export function completeResultsStep(): Promise<string>{
+  return request.post(`${WELCOME}/completeResultsStep`, null);
+}
+
+/**
+ * 重置步骤二查看运行结果
+ */
+export function reductionResultsStep(): Promise<string>{
+  return request.post(`${WELCOME}/reductionResultsStep`, null);
+}
+
+/**
+ * 完成步骤三查看三栏联动
+ */
+export function completeTreeColumnStep(): Promise<string>{
+  return request.post(`${WELCOME}/completeTreeColumnStep`, null);
+}
+
+/**
+ * 重置步骤三查看三栏联动
+ */
+export function reductionTreeColumnStep(): Promise<string>{
+  return request.post(`${WELCOME}/reductionTreeColumnStep`, null);
+}
