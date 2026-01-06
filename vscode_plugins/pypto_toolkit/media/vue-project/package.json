@@ -29,8 +29,7 @@
     "sprotty-protocol": "^1.4.0",
     "vue": "^3.4.21",
     "vue-devui": "1.6.35",
-    "vue-i18n": "11.1.10",
-    "dom-to-image-more": "3.7.1"
+    "vue-i18n": "11.1.10"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.2",

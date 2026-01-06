@@ -829,7 +829,8 @@ defineExpose({
   handleWheel,
   flagRender,
   changeScale,
-  observationLineResize
+  observationLineResize,
+  flagsCanvas
 });
 </script>
 

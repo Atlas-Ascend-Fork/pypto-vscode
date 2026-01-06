@@ -51,8 +51,8 @@
           <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn && false">
-        <d-button class="icon-container" :disabled=isExporting @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
+      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+        <d-button class="icon-container" :disabled="isExporting" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
@@ -149,13 +149,12 @@
 <script setup>
 import { ref, inject, computed, watch, onMounted, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { devicePixelRatio } from '../swimGraphUtils';
+import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
-import { toPng } from 'dom-to-image-more';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -187,6 +186,9 @@ const {
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
+  timelineComponent,
+  layout,
+  lane2line,
 } = inject('swimGraphState');
 
 const {
@@ -361,72 +363,215 @@ const showDrawer = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
 };
 
-const exportSwimGraph = async () => {
-  const container = document.querySelector('.swim-global-container');
-  const scrollable = container?.querySelector('.swimlane-scroller-container'); // 真正的滚动元素
-  const contentArgsScrollable = container?.querySelector('.content-args');
-  const canvasContainerScrollable = container?.querySelector('#canvas-container');
-  const mulDetailTableScrollable = container?.querySelector('.measure-detail-data-table');
-  if (!container || !scrollable) {
+const exportSwimGraph = () => {
+  if (!timelineComponent?.value) {
     return;
   }
-  // 保存滚动位置！
-  const savedScrollTop = scrollable.scrollTop;
-  // 保存原始样式
-  const origContainerStyles = {
-    height: container.style.height,
-    width: container.style.width,
-    overflow: container.style.overflow,
-  };
-  const origScrollableStyles = {
-    height: scrollable.style.height,
-    overflow: scrollable.style.overflow,
-  };
- // 展开内容（作用于滚动容器，而不是父容器！）
-  container.style.overflow = 'visible';
-  container.style.width = 'fit-content';
-  container.style.height = 'fit-content';
-  scrollable.style.height = scrollable.scrollHeight + 'px';
-  scrollable.style.overflow = 'visible'; // 隐藏滚动条，避免截图中出现
-  if (contentArgsScrollable) {
-    contentArgsScrollable.style.overflow = 'hidden';
-  }
-  if (canvasContainerScrollable) {
-    canvasContainerScrollable.style.overflow = 'hidden';
-  }
-  if (mulDetailTableScrollable) {
-    mulDetailTableScrollable.style.overflow = 'hidden';
-  }
+  isExporting.value = true;
   try {
-    isExporting.value = true;
-    const dataUrl = await toPng(container, {
-      backgroundColor: isDarkTheme.value ? '#1F1F1F' : '#ffffff',
-      pixelRatio: Math.min(window.devicePixelRatio, 2),
-    });
+    const dpr = window.devicePixelRatio || 1;
+    const { processLabelWidth } = layout;
+    const { canvasCssWidth } = viewState;
+    // 1. 计算总尺寸
+    const { totalWidth, totalHeight, timelineHeight } = calculateCanvasSize(
+      processLabelWidth,
+      canvasCssWidth,
+      timelineComponent.value.$el
+    );
+    // 2. 创建导出画布
+    const { canvas, ctx } = createExportCanvas(totalWidth, totalHeight, dpr);
+    // 3. 绘制顶部时间轴（fixed + scroll + flags）
+    drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr);
+    // 4. 绘制所有 Process 块
+    drawProcessBlocks(
+      ctx,
+      canvasCssWidth,
+      timelineHeight
+    );
+    // 5. 导出图片
+    const dataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = fileName.value || 'swim-graph-export.png';
+    link.download = `${fileName.value}.png` || 'swim-graph-export.png';
     link.href = dataUrl;
     link.click();
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
   } finally {
-   // 恢复所有样式
     isExporting.value = false;
-    Object.assign(container.style, origContainerStyles);
-    Object.assign(scrollable.style, origScrollableStyles);
-    // 关键：恢复滚动位置！
-    scrollable.scrollTop = savedScrollTop;
-    if (contentArgsScrollable) {
-      contentArgsScrollable.style.overflow = 'auto';
-    }
-    if (canvasContainerScrollable) {
-      canvasContainerScrollable.style.overflow = 'scroll';
-    }
-    if (mulDetailTableScrollable) {
-      mulDetailTableScrollable.style.overflow = 'auto';
-    }
   }
 };
+
+// 辅助函数 1：计算画布总尺寸
+function calculateCanvasSize(
+  processLabelWidth,
+  canvasCssWidth,
+  timelineEl
+) {
+  const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
+  let totalProcessHeight = 0;
+  for (const [key, process] of processes) {
+    totalProcessHeight += layout.processHeaderHeight;
+    if (processExpanded.get(key)) {
+      let contentHeight = 0;
+      for (const [threadKey, thread] of process.threads.entries()) {
+        const tKey = thread.isCounter ? thread.threadName : thread.tid;
+        contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+      }
+      totalProcessHeight += contentHeight;
+    }
+    totalProcessHeight += layout.processMargin;
+  }
+  const totalHeight = timelineHeight + totalProcessHeight;
+  const totalWidth = processLabelWidth + canvasCssWidth;
+  return { totalWidth, totalHeight, timelineHeight };
+}
+
+// 辅助函数 2：创建并初始化画布
+function createExportCanvas(totalWidth, totalHeight, dpr) {
+  const canvas = document.createElement('canvas');
+  canvas.width = totalWidth * dpr;
+  canvas.height = totalHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  // 背景
+  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
+  ctx.fillRect(0, 0, totalWidth, totalHeight);
+  return { canvas, ctx };
+}
+
+// 辅助函数 3：绘制顶部时间轴区域
+function drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr) {
+  const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
+  const scrollCanvas = timelineComponent.value.timelineCanvas;
+  const { flagsCanvas } = timelineComponent.value;
+  if (!fixedCanvas || !scrollCanvas) {
+    return;
+  }
+  const fixedHeight = fixedCanvas.height / dpr;
+  const scrollHeight = scrollCanvas.height / dpr;
+  // 左侧背景矩形（覆盖 fixed + scroll 高度）
+  ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
+  ctx.fillRect(0, 0, processLabelWidth, fixedHeight + scrollHeight);
+  // 绘制各层
+  ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
+  ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollHeight);
+  if (flagsCanvas) {
+    ctx.drawImage(flagsCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollHeight);
+  }
+}
+
+// 辅助函数 4：绘制所有 Process 块
+function drawProcessBlocks(
+  ctx,
+  canvasCssWidth,
+  startY
+) {
+  let currentY = startY;
+  ctx.font = '12px Arial';
+  ctx.textBaseline = 'middle';
+  for (const [key, process] of processes) {
+    currentY = drawProcess(
+      ctx,
+      key,
+      process,
+      currentY,
+      canvasCssWidth
+    );
+  }
+}
+
+// 辅助函数 5：绘制单个 Process（Header + Body）
+function drawProcess(
+  ctx,
+  key,
+  process,
+  currentY,
+  canvasCssWidth
+) {
+  const { processLabelWidth, processHeaderHeight, processMargin } = layout;
+  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+  // Header
+  ctx.fillStyle = textColor === '#e8e8e8' ? '#2b2b2b' : '#f0f0f0'; // 根据主题反推背景色
+  ctx.fillRect(0, currentY, processLabelWidth + canvasCssWidth, processHeaderHeight);
+  ctx.fillStyle = textColor;
+  ctx.fillText(process.processName, 10, currentY + (processHeaderHeight / 2));
+  let y = currentY + processHeaderHeight;
+  // Body
+  if (processExpanded.get(key)) {
+    let contentHeight = 0;
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const tKey = thread.isCounter ? thread.threadName : thread.tid;
+      contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+    }
+    // 绘制左侧 labels
+    drawThreadLabels(ctx, process, key, y, contentHeight);
+    // 绘制右侧 layers
+    drawProcessLayers(ctx, key, y, canvasCssWidth, contentHeight);
+    y += contentHeight;
+  }
+  return y + processMargin;
+}
+
+// 辅助函数 6：绘制 Thread Labels
+function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
+  const { processLabelWidth } = layout;
+  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  ctx.save();
+  // 分割线
+  ctx.beginPath();
+  ctx.moveTo(processLabelWidth, startY);
+  ctx.lineTo(processLabelWidth, startY + contentHeight);
+  ctx.strokeStyle = lineColor;
+  ctx.stroke();
+  for (const [threadKey, thread] of process.threads.entries()) {
+    const tKey = thread.isCounter ? thread.threadName : thread.tid;
+    const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
+    const tStartY = getThreadStartY(process, processKey, tKey, lane2line, layout);
+    const labelY = startY + tStartY;
+    ctx.fillStyle = textColor;
+    let labelText = thread.threadName || thread.tid;
+    if (ctx.measureText(labelText).width > processLabelWidth - 20) {
+      const widthPerChar = ctx.measureText(labelText).width / labelText.length;
+      const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
+      labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
+    }
+    ctx.fillText(labelText, 20, labelY + (tHeight / 2));
+    // 底部分割线
+    ctx.beginPath();
+    ctx.moveTo(0, labelY + tHeight);
+    ctx.lineTo(processLabelWidth, labelY + tHeight);
+    ctx.strokeStyle = lineColor;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 辅助函数 7：绘制 Process 的各图层（bg, event, dep 等）
+function drawProcessLayers(ctx, processKey, y, width, height) {
+  const { processLabelWidth } = layout;
+  const selectors = [
+    `[data-background-process-key="${processKey}"]`,
+    `[data-process-key="${processKey}"]`,
+    `[data-dep-process-key="${processKey}"]`,
+    `[data-selection-process-key="${processKey}"]`,
+    `[data-ui-process-key="${processKey}"]`,
+    `[data-line-process-key="${processKey}"]`,
+    `[data-process-header-key="${processKey}"]`
+  ];
+  for (const selector of selectors) {
+    const canvasEl = document.querySelector(selector);
+    if (canvasEl) {
+      // 特殊处理 processHeaderCanvas
+      if (selector.includes('process-header-key')) {
+        const h = canvasEl.height / (window.devicePixelRatio || 1);
+        ctx.drawImage(canvasEl, processLabelWidth, h, width, h + 30);
+      } else {
+        ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
+      }
+    }
+  }
+}
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
 const pmuRowCoordLoc = ref([]);
