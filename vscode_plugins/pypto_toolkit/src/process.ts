@@ -232,8 +232,8 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
 
 function calculateDuration (eventTasks, processedTasks) {
   let taskIndex = 0;
-  let minTime = Infinity;
   let maxTime = 0;
+
   while (taskIndex <= eventTasks.length - 1) {
     const tStart = eventTasks[taskIndex];
     if (tStart.ph.toUpperCase() === 'X') {
@@ -254,7 +254,6 @@ function calculateDuration (eventTasks, processedTasks) {
       };
       processedTasks.push(event);
       taskIndex += 1;
-      minTime = Math.min(minTime, event.startTime);
       maxTime = Math.max(maxTime, event.endTime);
       continue;
     }
@@ -275,7 +274,6 @@ function calculateDuration (eventTasks, processedTasks) {
           successors: []
         }
       };
-      minTime = Math.min(minTime, processedEvent.startTime);
       maxTime = Math.max(maxTime, processedEvent.endTime);
       processedTasks.push(processedEvent);
       taskIndex += 2;
@@ -283,7 +281,7 @@ function calculateDuration (eventTasks, processedTasks) {
       taskIndex += 1;
     }
   }
-  return [maxTime, minTime];
+  return [maxTime, 0];
 };
 
 export function parsePmuInfo(csvData: string) {
@@ -464,28 +462,13 @@ const calculateDependencies = (events, connections) => {
 
   async function validate(event:any) {
     const errorMsg: any = {};
+
     if(!(event.ph === 'C' || event.ph === 'X' || event.ph === 'M' || event.ph === 's' || event.ph === 'f' || event.ph === 'B' || event.ph === 'E')) {
       errorMsg.errMsg = t('pypto.swimGraph.validate.unsupportedEventType', {type: event.ph});
       return errorMsg;
     }
-    if (event.name === 'process_name') {
-      if (!('pid' in event) || !('args' in event)) {
-        if (event.pid) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
-        }
-        return errorMsg;
-      }
-      if (!('name' in event.args)) {
-        if (event.pid) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.processWithPid', { pid: event.pid });;
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.process');
-        }
-        return errorMsg;
-      }
-    } else if (event.name === 'thread_name') {
+
+    if (event.name === 'thread_name') {
       if (!('pid' in event) || !('tid' in event) || !('args' in event)) {
         if (event.pid && event.tid) {
           errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
@@ -502,53 +485,54 @@ const calculateDependencies = (events, connections) => {
         }
         return errorMsg;
       }
-    } else if (event.cat === 'event' || event.ph === 'C') {
-      
-      if (event.cat == 'event') {
-        if (!('name' in event) || !('ph' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) ) {
-          if (event.name) {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-          } else {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-          }
+    }
+        
+    if (event.ph == 'X' || event.ph == 'B' || event.ph == 'E') {
+      if (!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) ) {
+        if (event.name) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+        }
+        return errorMsg;
+      }
+    }
+
+    if (event.ph === 'C') {
+      if(!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || !('args' in event)) {
+        if (event.name) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
           return errorMsg;
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+        return errorMsg;
         }
       }
-      if (event.ph === 'C') {
-        if(!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || !('args' in event)) {
-          if (event.name) {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-            return errorMsg;
-          } else {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-          return errorMsg;
-          }
-        }
-        if (!('size' in event.args || '/byte' in event.args)) {
+      if (!('size' in event.args || '/byte' in event.args)) {
+        errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+        return errorMsg;
+      }
+      if (event.args.size) {
+        if (!(typeof event.args.size === 'number')) {
           errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
           return errorMsg;
         }
-        if (event.args.size) {
-          if (!(typeof event.args.size === 'number')) {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
-            return errorMsg;
-          }
-        }
-        if (event.args['/byte']) {
-          if (!(typeof event.args['/byte'] === 'number')) {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
-            return errorMsg;
-          }
+      }
+      if (event.args['/byte']) {
+        if (!(typeof event.args['/byte'] === 'number')) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
+          return errorMsg;
         }
       }
-      if (event.ph === 'X') {
-        if(!('name' in event) || !('ts' in event) || !('dur' in event)) {
-          if (event.name) {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-          } else {
-            errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-            return errorMsg;
-          }
+    }
+
+    if (event.ph === 'X') {
+      if(!('dur' in event)) {
+        if (event.name) {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
+        } else {
+          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
+          return errorMsg;
         }
       }
     }
@@ -573,8 +557,17 @@ const calculateDependencies = (events, connections) => {
   
     let errorMsg: any = {};
 
+    let minThresh = Infinity;
+    for (let index = 0; index < traceData.traceEvents.length; index++) {
+      if (traceData.traceEvents[index].ts < minThresh) {
+        minThresh = traceData.traceEvents[index].ts;
+      }
+    }
+
+
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];
+      event.ts -= minThresh; 
 
       errorMsg = await validate(event);
       if ('errMsg' in errorMsg) {
