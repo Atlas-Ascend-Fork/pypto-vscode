@@ -160,6 +160,7 @@ export default {
    replaceFileInfo: '检测到您选择的{graphNameTemp}路径同目录下有配套的{graphName}文件，是否需要替换？',
    exportSwimGraph: '导出',
    swimExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
+   pleaseUnlock: '请先解除标签锁定',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

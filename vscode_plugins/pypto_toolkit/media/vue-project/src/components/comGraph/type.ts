@@ -25,3 +25,8 @@ export interface LeafCalledRowData {
   percent: number;
 }
 export type SortMethod<T = LeafCalledRowData> = (a: T, b: T) => boolean;
+
+export interface DrillDownPathItem {
+  calleehash: string;
+  subFuncmagicname: string;
+}
