@@ -370,35 +370,23 @@ const exportSwimGraph = () => {
   isExporting.value = true;
   try {
     const dpr = window.devicePixelRatio || 1;
-    const { processLabelWidth, processHeaderHeight, processMargin } = layout;
+    const { processLabelWidth } = layout;
     const { canvasCssWidth } = viewState;
     // 1. 计算总尺寸
     const { totalWidth, totalHeight, timelineHeight } = calculateCanvasSize(
       processLabelWidth,
       canvasCssWidth,
-      timelineComponent.value.$el,
-      processes,
-      processExpanded,
-      lane2line,
-      layout
+      timelineComponent.value.$el
     );
     // 2. 创建导出画布
-    const { canvas, ctx } = createExportCanvas(totalWidth, totalHeight, dpr, isDarkTheme.value);
+    const { canvas, ctx } = createExportCanvas(totalWidth, totalHeight, dpr);
     // 3. 绘制顶部时间轴（fixed + scroll + flags）
-    drawTimelineArea(ctx, timelineComponent.value, processLabelWidth, canvasCssWidth, dpr, isDarkTheme.value);
+    drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr);
     // 4. 绘制所有 Process 块
     drawProcessBlocks(
       ctx,
-      processes,
-      processExpanded,
-      processLabelWidth,
       canvasCssWidth,
-      timelineHeight,
-      processHeaderHeight,
-      processMargin,
-      lane2line,
-      layout,
-      isDarkTheme.value
+      timelineHeight
     );
     // 5. 导出图片
     const dataUrl = canvas.toDataURL('image/png');
@@ -417,11 +405,7 @@ const exportSwimGraph = () => {
 function calculateCanvasSize(
   processLabelWidth,
   canvasCssWidth,
-  timelineEl,
-  processes,
-  processExpanded,
-  lane2line,
-  layout
+  timelineEl
 ) {
   const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
   let totalProcessHeight = 0;
@@ -443,30 +427,30 @@ function calculateCanvasSize(
 }
 
 // 辅助函数 2：创建并初始化画布
-function createExportCanvas(totalWidth, totalHeight, dpr, isDarkTheme) {
+function createExportCanvas(totalWidth, totalHeight, dpr) {
   const canvas = document.createElement('canvas');
   canvas.width = totalWidth * dpr;
   canvas.height = totalHeight * dpr;
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   // 背景
-  ctx.fillStyle = isDarkTheme ? '#1F1F1F' : '#ffffff';
+  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
   ctx.fillRect(0, 0, totalWidth, totalHeight);
   return { canvas, ctx };
 }
 
 // 辅助函数 3：绘制顶部时间轴区域
-function drawTimelineArea(ctx, timelineComp, processLabelWidth, canvasCssWidth, dpr, isDarkTheme) {
-  const fixedCanvas = timelineComp.fixedtimelineCanvas;
-  const scrollCanvas = timelineComp.timelineCanvas;
-  const flagsCanvas = timelineComp.flagsCanvas;
+function drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr) {
+  const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
+  const scrollCanvas = timelineComponent.value.timelineCanvas;
+  const { flagsCanvas } = timelineComponent.value;
   if (!fixedCanvas || !scrollCanvas) {
     return;
   }
   const fixedHeight = fixedCanvas.height / dpr;
   const scrollHeight = scrollCanvas.height / dpr;
   // 左侧背景矩形（覆盖 fixed + scroll 高度）
-  ctx.fillStyle = isDarkTheme ? '#2b2b2b' : '#f0f0f0';
+  ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
   ctx.fillRect(0, 0, processLabelWidth, fixedHeight + scrollHeight);
   // 绘制各层
   ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
@@ -479,20 +463,10 @@ function drawTimelineArea(ctx, timelineComp, processLabelWidth, canvasCssWidth, 
 // 辅助函数 4：绘制所有 Process 块
 function drawProcessBlocks(
   ctx,
-  processes,
-  processExpanded,
-  processLabelWidth,
   canvasCssWidth,
-  startY,
-  processHeaderHeight,
-  processMargin,
-  lane2line,
-  layout,
-  isDarkTheme
+  startY
 ) {
   let currentY = startY;
-  const textColor = isDarkTheme ? '#e8e8e8' : '#333333';
-  const lineColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
   ctx.font = '12px Arial';
   ctx.textBaseline = 'middle';
   for (const [key, process] of processes) {
@@ -500,16 +474,8 @@ function drawProcessBlocks(
       ctx,
       key,
       process,
-      processExpanded,
       currentY,
-      processLabelWidth,
-      canvasCssWidth,
-      processHeaderHeight,
-      processMargin,
-      lane2line,
-      layout,
-      textColor,
-      lineColor
+      canvasCssWidth
     );
   }
 }
@@ -519,22 +485,16 @@ function drawProcess(
   ctx,
   key,
   process,
-  processExpanded,
   currentY,
-  processLabelWidth,
-  canvasCssWidth,
-  processHeaderHeight,
-  processMargin,
-  lane2line,
-  layout,
-  textColor,
-  lineColor
+  canvasCssWidth
 ) {
+  const { processLabelWidth, processHeaderHeight, processMargin } = layout;
+  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
   // Header
   ctx.fillStyle = textColor === '#e8e8e8' ? '#2b2b2b' : '#f0f0f0'; // 根据主题反推背景色
   ctx.fillRect(0, currentY, processLabelWidth + canvasCssWidth, processHeaderHeight);
   ctx.fillStyle = textColor;
-  ctx.fillText(process.processName, 10, currentY + processHeaderHeight / 2);
+  ctx.fillText(process.processName, 10, currentY + (processHeaderHeight / 2));
   let y = currentY + processHeaderHeight;
   // Body
   if (processExpanded.get(key)) {
@@ -544,21 +504,24 @@ function drawProcess(
       contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
     }
     // 绘制左侧 labels
-    drawThreadLabels(ctx, process, key, y, processLabelWidth, contentHeight, lane2line, layout, textColor, lineColor);
+    drawThreadLabels(ctx, process, key, y, contentHeight);
     // 绘制右侧 layers
-    drawProcessLayers(ctx, key, y, processLabelWidth, canvasCssWidth, contentHeight);
+    drawProcessLayers(ctx, key, y, canvasCssWidth, contentHeight);
     y += contentHeight;
   }
   return y + processMargin;
 }
 
 // 辅助函数 6：绘制 Thread Labels
-function drawThreadLabels(ctx, process, processKey, startY, labelWidth, contentHeight, lane2line, layout, textColor, lineColor) {
+function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
+  const { processLabelWidth } = layout;
+  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
   ctx.save();
   // 分割线
   ctx.beginPath();
-  ctx.moveTo(labelWidth, startY);
-  ctx.lineTo(labelWidth, startY + contentHeight);
+  ctx.moveTo(processLabelWidth, startY);
+  ctx.lineTo(processLabelWidth, startY + contentHeight);
   ctx.strokeStyle = lineColor;
   ctx.stroke();
   for (const [threadKey, thread] of process.threads.entries()) {
@@ -568,16 +531,16 @@ function drawThreadLabels(ctx, process, processKey, startY, labelWidth, contentH
     const labelY = startY + tStartY;
     ctx.fillStyle = textColor;
     let labelText = thread.threadName || thread.tid;
-    if (ctx.measureText(labelText).width > labelWidth - 20) {
+    if (ctx.measureText(labelText).width > processLabelWidth - 20) {
       const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-      const maxChars = Math.floor((labelWidth - 20) / widthPerChar);
+      const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
       labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
     }
-    ctx.fillText(labelText, 20, labelY + tHeight / 2);
+    ctx.fillText(labelText, 20, labelY + (tHeight / 2));
     // 底部分割线
     ctx.beginPath();
     ctx.moveTo(0, labelY + tHeight);
-    ctx.lineTo(labelWidth, labelY + tHeight);
+    ctx.lineTo(processLabelWidth, labelY + tHeight);
     ctx.strokeStyle = lineColor;
     ctx.stroke();
   }
@@ -585,7 +548,8 @@ function drawThreadLabels(ctx, process, processKey, startY, labelWidth, contentH
 }
 
 // 辅助函数 7：绘制 Process 的各图层（bg, event, dep 等）
-function drawProcessLayers(ctx, processKey, y, x, width, height) {
+function drawProcessLayers(ctx, processKey, y, width, height) {
+  const { processLabelWidth } = layout;
   const selectors = [
     `[data-background-process-key="${processKey}"]`,
     `[data-process-key="${processKey}"]`,
@@ -601,9 +565,9 @@ function drawProcessLayers(ctx, processKey, y, x, width, height) {
       // 特殊处理 processHeaderCanvas
       if (selector.includes('process-header-key')) {
         const h = canvasEl.height / (window.devicePixelRatio || 1);
-        ctx.drawImage(canvasEl, x, h, width, h + 30);
+        ctx.drawImage(canvasEl, processLabelWidth, h, width, h + 30);
       } else {
-        ctx.drawImage(canvasEl, x, y, width, height);
+        ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
       }
     }
   }
