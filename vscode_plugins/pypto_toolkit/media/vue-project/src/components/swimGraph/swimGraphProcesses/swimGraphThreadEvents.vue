@@ -261,7 +261,7 @@ const handleCanvasRightClick = (e) => {
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
   canvasclickedEvent.value = clickedEvent;
   const canvasCSSWidth = viewState.canvasCssWidth;
-    if(x + 200  > canvasCSSWidth){
+  if (x + 200  > canvasCSSWidth) {
       leftX.value = x - 100;
   } else {
       leftX.value = x + 10;
@@ -270,19 +270,21 @@ const handleCanvasRightClick = (e) => {
   if (clickedEvent) {
     switchLockInformationFlag.value = true;
     hideTooltip();
-    if(e.altKey){
+    if (e.altKey) {
       // 清空hover画布 
       onHoverEvent();
       measureDistance(clickedEvent, props.processKey);
     } else {
       measureState.isMeasureFirst = false;
       measureState.isMeasureFixed = false;
-      !e.ctrlKey && selectEvent(clickedEvent, props.processKey);
+      if (!e.ctrlKey) {
+        selectEvent(clickedEvent, props.processKey);
+      }
       detailsPanelExpanded.value = false;
     }
   } else {
     switchLockInformationFlag.value = false;
-    if(isPathLockStatus.value){
+    if (isPathLockStatus.value) {
       return;
     }
     canvasStatusReset();
@@ -539,7 +541,8 @@ function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
 
 function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   let cursor = '';
-  if (hoveredEvent && !e.altKey && !e.ctrlKey && !isPathLockStatus.value) {
+  const condition = hoveredEvent && !e.altKey && !e.ctrlKey;
+  if (condition && !isPathLockStatus.value) {
     showTooltip(e, hoveredEvent, canvasRef);
     cursor = 'pointer';
   } else {
