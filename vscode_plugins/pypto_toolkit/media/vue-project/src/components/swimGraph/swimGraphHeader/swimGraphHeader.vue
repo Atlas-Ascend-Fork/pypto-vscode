@@ -51,8 +51,8 @@
           <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn && false">
-        <d-button class="icon-container" :disabled=isExporting @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
+      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+        <d-button class="icon-container" :disabled="isExporting" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
@@ -149,7 +149,7 @@
 <script setup>
 import { ref, inject, computed, watch, onMounted, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { devicePixelRatio } from '../swimGraphUtils';
+import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
@@ -187,6 +187,9 @@ const {
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
+  timelineComponent,
+  layout,
+  lane2line,
 } = inject('swimGraphState');
 
 const {
@@ -362,69 +365,138 @@ const showDrawer = () => {
 };
 
 const exportSwimGraph = async () => {
-  const container = document.querySelector('.swim-global-container');
-  const scrollable = container?.querySelector('.swimlane-scroller-container'); // 真正的滚动元素
-  const contentArgsScrollable = container?.querySelector('.content-args');
-  const canvasContainerScrollable = container?.querySelector('#canvas-container');
-  const mulDetailTableScrollable = container?.querySelector('.measure-detail-data-table');
-  if (!container || !scrollable) {
-    return;
-  }
-  // 保存滚动位置！
-  const savedScrollTop = scrollable.scrollTop;
-  // 保存原始样式
-  const origContainerStyles = {
-    height: container.style.height,
-    width: container.style.width,
-    overflow: container.style.overflow,
-  };
-  const origScrollableStyles = {
-    height: scrollable.style.height,
-    overflow: scrollable.style.overflow,
-  };
- // 展开内容（作用于滚动容器，而不是父容器！）
-  container.style.overflow = 'visible';
-  container.style.width = 'fit-content';
-  container.style.height = 'fit-content';
-  scrollable.style.height = scrollable.scrollHeight + 'px';
-  scrollable.style.overflow = 'visible'; // 隐藏滚动条，避免截图中出现
-  if (contentArgsScrollable) {
-    contentArgsScrollable.style.overflow = 'hidden';
-  }
-  if (canvasContainerScrollable) {
-    canvasContainerScrollable.style.overflow = 'hidden';
-  }
-  if (mulDetailTableScrollable) {
-    mulDetailTableScrollable.style.overflow = 'hidden';
-  }
+  if (!timelineComponent?.value) return;
+  isExporting.value = true;
   try {
-    isExporting.value = true;
-    const dataUrl = await toPng(container, {
-      backgroundColor: isDarkTheme.value ? '#1F1F1F' : '#ffffff',
-      pixelRatio: Math.min(window.devicePixelRatio, 2),
-    });
+    const dpr = window.devicePixelRatio || 1;
+    const processLabelWidth = layout.processLabelWidth;
+    const canvasCssWidth = viewState.canvasCssWidth;
+    const totalWidth = processLabelWidth + canvasCssWidth;
+    // 计算总高度
+    const timelineEl = timelineComponent.value.$el;
+    const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
+    let totalProcessHeight = 0;
+    for (const [key, process] of processes) {
+      totalProcessHeight += layout.processHeaderHeight;
+      if (processExpanded.get(key)) {
+        let processContentHeight = 0;
+        for (const [threadKey, thread] of process.threads.entries()) {
+          const tKey = thread.isCounter ? thread.threadName : thread.tid;
+          processContentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+        }
+        totalProcessHeight += processContentHeight;
+      }
+      totalProcessHeight += layout.processMargin;
+    }
+    const totalHeight = timelineHeight + totalProcessHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = totalWidth * dpr;
+    canvas.height = totalHeight * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    // 背景
+    ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
+    ctx.fillRect(0, 0, totalWidth, totalHeight);
+    // 绘制时间轴
+    const fixedCanvas = timelineComponent.value.fixedtimelineCanvas;
+    const scrollCanvas = timelineComponent.value.timelineCanvas;
+    if (fixedCanvas) {
+      // 绘制顶部固定时间轴
+      ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedCanvas.height / dpr);
+    }
+    if (scrollCanvas) {
+      const fixedHeight = fixedCanvas.height / dpr;
+      // 绘制 fixedCanvas
+      ctx.drawImage(fixedCanvas, processLabelWidth, 0, canvasCssWidth, fixedHeight);
+      ctx.drawImage(scrollCanvas, processLabelWidth, fixedHeight, canvasCssWidth, scrollCanvas.height / dpr);
+    }
+    let currentY = timelineHeight;
+    const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+    const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    ctx.font = '12px Arial';
+    ctx.textBaseline = 'middle';
+    for (const [key, process] of processes) {
+      // 1. Process Header
+      ctx.fillStyle = isDarkTheme.value ? '#2b2b2b' : '#f0f0f0';
+      ctx.fillRect(0, currentY, totalWidth, layout.processHeaderHeight);
+      ctx.fillStyle = textColor;
+      ctx.fillText(process.processName, 10, currentY + layout.processHeaderHeight / 2);
+      currentY += layout.processHeaderHeight;
+      if (processExpanded.get(key)) {
+        // 2. Process Body
+        const eventCanvas = document.querySelector(`[data-process-key="${key}"]`);
+        const bgCanvas = document.querySelector(`[data-background-process-key="${key}"]`);
+        const depCanvas = document.querySelector(`[data-dep-process-key="${key}"]`);
+        const selectionCanvas = document.querySelector(`[data-selection-process-key="${key}"]`);
+        const uiCanvas = document.querySelector(`[data-ui-process-key="${key}"]`);
+        const lineCanvas = document.querySelector(`[data-line-process-key="${key}"]`);
+        let processContentHeight = 0;
+        for (const [threadKey, thread] of process.threads.entries()) {
+          const tKey = thread.isCounter ? thread.threadName : thread.tid;
+          processContentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+        }
+        // 绘制左侧 Thread Labels
+        ctx.save();
+        ctx.beginPath();
+        // 绘制分割线
+        ctx.moveTo(processLabelWidth, currentY);
+        ctx.lineTo(processLabelWidth, currentY + processContentHeight);
+        ctx.strokeStyle = lineColor;
+        ctx.stroke();
+        for (const [threadKey, thread] of process.threads.entries()) {
+          const tKey = thread.isCounter ? thread.threadName : thread.tid;
+          const tHeight = getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+          const tStartY = getThreadStartY(process, key, tKey, lane2line, layout);
+          const labelY = currentY + tStartY;
+          ctx.fillStyle = textColor;
+          let labelText = thread.threadName || thread.tid;
+          if (ctx.measureText(labelText).width > processLabelWidth - 20) {
+            const widthPerChar = ctx.measureText(labelText).width / labelText.length;
+            const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
+            labelText = labelText.substring(0, maxChars - 3) + '...';
+          }
+          ctx.fillText(labelText, 20, labelY + tHeight / 2);
+          ctx.beginPath();
+          ctx.moveTo(0, labelY + tHeight);
+          ctx.lineTo(processLabelWidth, labelY + tHeight);
+          ctx.strokeStyle = lineColor;
+          ctx.stroke();
+        }
+        ctx.restore();
+        // 绘制右侧 Canvas 内容
+        if (bgCanvas) {
+          ctx.drawImage(bgCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if (eventCanvas) {
+          ctx.drawImage(eventCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if (depCanvas) {
+          ctx.drawImage(depCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if(selectionCanvas){
+          ctx.drawImage(selectionCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if(uiCanvas){
+          ctx.drawImage(uiCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        if(lineCanvas){
+          ctx.drawImage(lineCanvas, processLabelWidth, currentY, canvasCssWidth, processContentHeight);
+        }
+        currentY += processContentHeight;
+      }
+      currentY += layout.processMargin;
+    }
+    const dataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = fileName.value || 'swim-graph-export.png';
+    link.download = `${fileName.value}.png` || 'swim-graph-export.png';
     link.href = dataUrl;
     link.click();
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
+    console.error(error);
   } finally {
-   // 恢复所有样式
     isExporting.value = false;
-    Object.assign(container.style, origContainerStyles);
-    Object.assign(scrollable.style, origScrollableStyles);
-    // 关键：恢复滚动位置！
-    scrollable.scrollTop = savedScrollTop;
-    if (contentArgsScrollable) {
-      contentArgsScrollable.style.overflow = 'auto';
-    }
-    if (canvasContainerScrollable) {
-      canvasContainerScrollable.style.overflow = 'scroll';
-    }
-    if (mulDetailTableScrollable) {
-      mulDetailTableScrollable.style.overflow = 'auto';
-    }
   }
 };
 const pmuRowCoordList = ref([]);
