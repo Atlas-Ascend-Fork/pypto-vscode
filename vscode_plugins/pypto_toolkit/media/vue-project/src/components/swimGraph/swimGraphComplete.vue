@@ -2016,16 +2016,7 @@ const listenExtensionMessage = () => {
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
         case 'showGuideDetailsPanel':
-          mulDetailsExpanded.value = false;
-          measureDetailsExpanded.value = false;
-          measureDragStartX.value = 0;
-          measureDragEndX.value = 0;
-          isMeasureDragging.value = false;
-          showDragAreaBorders.value = false;
-          isMeasureModel.value = false;
-          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
-          document.documentElement.style.setProperty('--maskHeight', `0px`);
-          renderTwoTimeline();
+          clearMeasureDetailSearch();
           getEventInfo();
           break;
         case 'measureDetailSearch': {
@@ -2042,11 +2033,27 @@ const listenExtensionMessage = () => {
           document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
           break;
         }
+        case 'zoomControls': {
+          clearMeasureDetailSearch();
+          break;
+        }
         default:
           break;
       }
     }
   });
+};
+const clearMeasureDetailSearch = () => {
+  mulDetailsExpanded.value = false;
+  measureDetailsExpanded.value = false;
+  measureDragStartX.value = 0;
+  measureDragEndX.value = 0;
+  isMeasureDragging.value = false;
+  showDragAreaBorders.value = false;
+  isMeasureModel.value = false;
+  measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+  document.documentElement.style.setProperty('--maskHeight', `0px`);
+  renderTwoTimeline();
 };
 const getEventInfo = () => {
   for (const [processKey, process] of processes.entries()) {
