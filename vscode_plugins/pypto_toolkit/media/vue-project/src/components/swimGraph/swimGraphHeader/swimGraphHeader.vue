@@ -15,6 +15,7 @@
             :placeholder="searchPlaceholder"
             :text-config="textConfig"
             :show-search-category="searchConfig"
+            :collapseTags="true"
             @search="onSearch"
             @selectedTagsChange="onSelectChange"
             @searchKeyChange="onSearchKeyChange"
@@ -1205,6 +1206,12 @@ defineExpose({
         overflow-y: hidden;
       }
     }
+  }
+  .swim-search.dp-category-search-container .dp-category-search-line-container .dp-category-search-toggle { 
+ 	  min-width: auto; 
+  } 
+  .swim-search.dp-category-search-container .dp-category-search-line-container .dp-category-search-line .dp-category-search-input { 
+    min-width: 100px; 
   }
 }
 </style>
