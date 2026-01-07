@@ -4,10 +4,7 @@ const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 import { SQLiteCache, getMTime } from './sqliteCache';
 const DATA_LENGTH_LIMIT = 62000000;
-
-interface readFileResult {
-  isBigFile: boolean;
-}
+import { getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from './sqlInit';
 
 export interface AbstractGraphData {
   fsPath: string;
@@ -22,7 +19,7 @@ export interface AbstractGraphData {
   calleeOpAttrMap: Record<string, string>;
   curPath?: string;
   magicName?: string;
-  readFileAndSetCache(fsPath: string): Promise<readFileResult>;
+  readFileAndSetCache(fsPath: string): Promise<void>;
   getCompleteData(fsPath: string): Promise<any>;
 }
 
@@ -50,9 +47,7 @@ export abstract class GraphData {
   ) { }
 
   // 读取json文件并存入缓存 并返回大小文件判断
-  async readFileAndSetCache(fsPath: string): Promise<readFileResult> {
-    const result: readFileResult = { isBigFile: false };
-
+  async readFileAndSetCache(fsPath: string): Promise<void> {
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser();
     const valuesStreamer = streamValues();
@@ -72,9 +67,8 @@ export abstract class GraphData {
         const value = ele.value;
         if (!value?.functions) continue;
 
-        await this.processFunctions(fsPath, value, result);
+        await this.processFunctions(fsPath, value);
       }
-      return result;
     } catch (error) {
       // 优先返回流错误，否则返回当前错误
       throw streamError || error;
@@ -104,7 +98,7 @@ export abstract class GraphData {
     });
   }
 
-  private async processFunctions(fsPath: string, value: any, result: readFileResult): Promise<void> {
+  private async processFunctions(fsPath: string, value: any): Promise<void> {
     try {
       const sqlJobs: (() => Promise<void>)[] = [];
       /* 1. 汇总 funcHashMap */
@@ -116,7 +110,7 @@ export abstract class GraphData {
         };
       }
       if (this.isUsedDB) {
-        sqlJobs.push(() => SQLiteCache.getInstance().comGraphFileHashMapSet(fsPath, JSON.stringify(this.funcHashMap)));
+        sqlJobs.push(() => getComGraphFileHashMapStore().set({ filePath: fsPath, data: JSON.stringify(this.funcHashMap) }));
       }
 
       /* 2. 构造插入任务数组 */
@@ -144,13 +138,13 @@ export abstract class GraphData {
               if (this.isUsedDB) {
                 const ioperands = [...new Set(op.ioperands)];
                 sqlJobs.push(() =>
-                  SQLiteCache.getInstance().comGraphFileCalleeOpAttrSet(
-                    op.calleehash,
-                    op.opmagic,
-                    op.subgraphid.toString(),
-                    JSON.stringify(op.attr),
-                    JSON.stringify(ioperands),
-                  ),
+                  getComGraphFileCalleeOpAttrStore().set({
+                    calleehash: op.calleehash,
+                    opMagic: op.opmagic,
+                    opSubgraphid: op.subgraphid.toString(),
+                    opAttr: JSON.stringify(op.attr),
+                    ioperands: JSON.stringify(ioperands)
+                  })
                 );
               } else {
                 this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic + '_' + op.subgraphid] = op.attr.toString();
@@ -166,24 +160,9 @@ export abstract class GraphData {
           this.callHashArrMap[funcItem.hash] = callHashArr.toString();
           return;
         }
-        if (data.length >= DATA_LENGTH_LIMIT) {
-          result.isBigFile = true;
-          const bigFilePath = await SQLiteCache.getInstance().createBigDataFile(funcItem.hash, data);
-          sqlJobs.push(() =>
-            SQLiteCache.getInstance().comGraphFuncDataSet(
-              fsPath,
-              String(funcItem.hash),
-              callHashArr.toString(),
-              '',
-              bigFilePath,
-              lastChangeTime,
-            ),
-          );
-        } else {
-          sqlJobs.push(() =>
-            SQLiteCache.getInstance().comGraphFuncDataSet(fsPath, String(funcItem.hash), callHashArr.toString(), data, '', lastChangeTime),
-          );
-        }
+        sqlJobs.push(() =>
+          getComGraphFuncDataStore().set({ filePath: fsPath, funcHash: String(funcItem.hash), lastChangeTime: lastChangeTime, callHashArr: callHashArr.toString(), data: data }),
+        );
       }
       // 等所有 INSERT 真正进内存 DB
       if (sqlJobs.length) {
@@ -199,7 +178,7 @@ export abstract class GraphData {
         console.warn('[DB] 数据库操作失败，自动降级 >>>', err);
         this.isUsedDB = false;
         // 立即重新走内存分支
-        return await this.processFunctions(fsPath, value, result);
+        return await this.processFunctions(fsPath, value);
       } else {
         console.error('纯内存操作失败，数据可能有误', err);
         throw Object.assign(new Error(), { code: 'PURE_MEMORY' });

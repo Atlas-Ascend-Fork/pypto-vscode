@@ -111,8 +111,13 @@ export async function activate(context: ExtensionContext) {
 
   // 注册CodeLens提供者
   const codeLensProvider = new PyptoJitCodeLensProvider();
-  context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider));
-
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
+  );
+  // 注册向导功能
+  vscode.commands.registerCommand('PyPTO.Open.OpenWelcomeGuide', async () => {
+    openPyPTOWelcome();
+  });
   // 注册 PyptoJit 命令
   context.subscriptions.push(
     vscode.commands.registerCommand('pypto.setDebugOptions', (uri: vscode.Uri, lineNumber: number) => {
@@ -155,10 +160,6 @@ async function initDB(context: ExtensionContext) {
     await SQLiteCache.getInstance().deleteForCommand();
     await clearAllStores();
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
-  });
-
-  vscode.commands.registerCommand('PyPTO.Open.OpenWelcomeGuide', async () => {
-    openPyPTOWelcome();
   });
 
   // 3. 监听停用
