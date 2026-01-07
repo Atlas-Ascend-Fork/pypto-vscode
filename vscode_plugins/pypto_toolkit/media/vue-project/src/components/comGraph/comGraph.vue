@@ -225,7 +225,8 @@ watch(
     if (!val) {return;}
     if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
-      waitingFlag.value = (comGraphStore.data?.nodeCount !== undefined && comGraphStore.data.nodeCount >= 5000) && (comGraphStore.data.isCached === false);
+      const nodeCount = comGraphStore.data?.pathNodesSet.size ?? comGraphStore.data?.nodeCount ?? 0;
+      waitingFlag.value = (nodeCount >= 5000) && (comGraphStore.data.isCached === false);
     }
     if (val === 'readJsonWarning') {
       isLoading.value = true;
