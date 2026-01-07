@@ -321,6 +321,14 @@ async function goTocheckThreeColumn() {
     key: 'guide.state',
     value: true,
   });
+  await updateWelcomeState({
+    key: 'guide.currentBigGroup',
+    value: 0,
+  });
+  await updateWelcomeState({
+    key: 'guide.currentSmallIndex',
+    value: 0,
+  });
   openThreeColumnGraph({
     isBootStep: true,
     sameplePath: await getThreeColumnSamplePath()

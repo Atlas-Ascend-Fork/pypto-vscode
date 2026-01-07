@@ -50,7 +50,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           {
             targetDomId: 'boot-steps-controlFlow',
             triangleDirection: 'bottom',
-            showTriangle: false,
+            showTriangle: true,
           },
         ],
       },
@@ -393,7 +393,7 @@ export const getCurrentStepTargetDomId = (bigGroup: number, smallIndex: number, 
 export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
   const priorityConfig = getCurrentPriorityTargetConfig(bigGroup, smallIndex, graphType);
   return {
-    showTriangle: priorityConfig?.showTriangle || true,
+    showTriangle: priorityConfig?.showTriangle ,
     triangleDirection: priorityConfig?.triangleDirection || 'right',
   };
 };
