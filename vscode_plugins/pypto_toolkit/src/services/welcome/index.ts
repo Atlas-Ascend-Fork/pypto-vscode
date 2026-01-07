@@ -5,6 +5,7 @@ import * as os from 'os';
 import { getExtensionMode, getPythonOutputChannel, runPythonScript } from './run-python';
 import { extensionContext, sampleManager } from '../../extension';
 import { readWholeFileByTextDocument } from './getPythonCode';
+import { WelcomeViewServer } from '../../view/servers/welcom-server';
 
 /**
  * 根据插件初始Python文件创建初始工程
@@ -168,4 +169,32 @@ export async function getPythonFileCode() {
 export async function getThreeColumnSamplePath() {
   let dataPath = sampleManager.getSamplePath();
   return dataPath;
+}
+
+/**
+ * 完成查看运行结果引导标记
+ */
+export async function completeResultsStep() {
+  WelcomeViewServer.completeResultsStep();
+}
+
+/**
+ * 重置查看运行结果引导标记
+ */
+export async function reductionResultsStep() {
+  WelcomeViewServer.reductionResultsStep();
+}
+
+/**
+ * 完成查看三栏标记
+ */
+export async function completeTreeColumnStep() {
+  WelcomeViewServer.completeTreeColumnStep();
+}
+
+/**
+ * 重置查看三栏标记
+ */
+export async function reductionTreeColumnStep() {
+  WelcomeViewServer.reductionTreeColumnStep();
 }

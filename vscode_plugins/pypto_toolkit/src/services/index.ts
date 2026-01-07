@@ -23,9 +23,12 @@ import {
   getSwimPath,
   getUserRunRoot,
   isLinuxEnvironment,
+  completeResultsStep,
+  reductionResultsStep,
+  completeTreeColumnStep,
+  reductionTreeColumnStep,
 } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
-import { WelcomeViewServer } from '../view/servers/welcom-server';
 
 export const serviceApis = {
   welcome: {
@@ -40,9 +43,10 @@ export const serviceApis = {
     getPluginVersion,
     getPythonFileCode,
     getThreeColumnSamplePath,
-    skipAll() {
-      WelcomeViewServer.skipGuide();
-    },
+    completeResultsStep,
+    reductionResultsStep,
+    completeTreeColumnStep,
+    reductionTreeColumnStep
   },
   // 控制流
   controlFlow: {

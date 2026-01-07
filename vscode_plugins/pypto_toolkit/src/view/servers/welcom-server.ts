@@ -6,24 +6,44 @@ import { viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { extensionContext } from '../../extension';
 type Apis = never;
-type Refs = { skipAll: boolean };
+type Refs = { skipAllStep2: boolean, skipAllStep3:boolean};
 
 // 定义持久化存储的 key，便于统一管理
-const SKIP_ALL_STORAGE_KEY = 'welcomeView.skipAll';
+const SKIP_ALL_STORAGE_KEY = 'welcomeView.skipAllStep2';
+const SKIP_Step3_STORAGE_KEY = 'welcomeView.skipAllStep3';
 
-@viewRefs(['skipAll'])
+@viewRefs(['skipAllStep2','skipAllStep3'])
 export class WelcomeViewServer extends ViewServer<Apis, Refs> {
-  static skipGuide: () => void;
+  static completeResultsStep: () => void;
+  static reductionResultsStep: () => void;
+  static completeTreeColumnStep: () => void;
+  static reductionTreeColumnStep: () => void;
   private fileUri: vscode.Uri;
   public override created(ctx: ViewServerContext): void {
-    // 1. 初始化 skipAll：从持久化存储读取，无值则设为 false
+    //  初始化从持久化存储读取，无值则设为 false
     const initialSkipAll = extensionContext?.globalState.get<boolean>(SKIP_ALL_STORAGE_KEY, false);
-    this.setRef('skipAll', initialSkipAll);
-    WelcomeViewServer.skipGuide = () => {
+    this.setRef('skipAllStep2', initialSkipAll);
+    const initialskipAllStep3 = extensionContext?.globalState.get<boolean>(SKIP_Step3_STORAGE_KEY, false);
+    this.setRef('skipAllStep3', initialskipAllStep3);
+
+    WelcomeViewServer.completeResultsStep = () => {
       // 更新内存中的 ref 值
-      this.setRef('skipAll', true);
-      // 持久化到 globalState（VS Code 会自动保存）
+      this.setRef('skipAllStep2', true);
+      // 持久化到 globalState
       extensionContext?.globalState.update(SKIP_ALL_STORAGE_KEY, true);
-    };
+    };    
+    WelcomeViewServer.reductionResultsStep = () => {      
+      this.setRef('skipAllStep2', false);
+      extensionContext?.globalState.update(SKIP_ALL_STORAGE_KEY, false);
+    }
+    WelcomeViewServer.completeTreeColumnStep = () => {
+      this.setRef('skipAllStep3', true);
+      extensionContext?.globalState.update(SKIP_Step3_STORAGE_KEY, true);
+    };    
+    WelcomeViewServer.reductionTreeColumnStep = () => {      
+      this.setRef('skipAllStep3', false);
+      extensionContext?.globalState.update(SKIP_Step3_STORAGE_KEY, false);
+    }
+
   }
 }

@@ -16,8 +16,9 @@
             </div>
           </div>
           <div class="guide-step__list" v-if="steps.length">
-            <d-alert v-if="!isLinux" type="warning" class="system-warning" :class="{ warning__step1: 'step1' === activeStepId }" :closeable="false">{{
-              t('welcome.linuxEnvironmentWarning') }}</d-alert>
+            <d-alert v-if="!isLinux" type="warning" class="system-warning"
+              :class="{ warning__step1: 'step1' === activeStepId }" :closeable="false">{{
+                t('welcome.linuxEnvironmentWarning') }}</d-alert>
             <!-- 步骤1 -->
             <div class="step-item" :class="{ active: 'step1' === activeStepId, completed: steps[0].completed }">
               <div class="step-header" @click="handleStepClick('step1')">
@@ -46,7 +47,7 @@
               <div class="step-header" @click="handleStepClick('step2')">
                 <div class="step-header-left">
                   <img :src="hasCompletedImg" v-if="steps[1].completed" @click.stop="toggleCheckbox(1)"></img>
-                  <img :src="hasNotCompletedImg" v-else="!skipAll" @click.stop="toggleCheckbox(1)"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAllStep2" @click.stop="toggleCheckbox(1)"></img>
                   <span class="step-title">{{ steps[1].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -79,7 +80,7 @@
               <div class="step-header" @click="handleStepClick('step3')">
                 <div class="step-header-left">
                   <img :src="hasCompletedImg" v-if="steps[2].completed" @click.stop="toggleCheckbox(2)"></img>
-                  <img :src="hasNotCompletedImg" v-else="!skipAll" @click.stop="toggleCheckbox(2)"></img>
+                  <img :src="hasNotCompletedImg" v-else="!skipAllStep2" @click.stop="toggleCheckbox(2)"></img>
                   <span class="step-title">{{ steps[2].title }}</span>
                 </div>
                 <div class="step-header-right"></div>
@@ -120,7 +121,7 @@
               <div class="carousel-image-container">
                 <!-- 步骤1显示原有图片，步骤2显示轮播图片 -->
                 <python-code-snippet-preview v-if="activeStep?.id === 'step1'"></python-code-snippet-preview>
-                <img  v-else-if="activeStep?.id === 'step3'" :src="step3Img"/>
+                <img v-else-if="activeStep?.id === 'step3'" :src="step3Img" />
                 <div v-else class="carousel-wrapper">
                   <!-- 轮播图片列表 -->
                   <img class="carousel-image" v-for="(img, idx) in images" :key="idx" :src="img"
@@ -144,7 +145,7 @@
 
 <script setup lang="ts">
 import { openControlFlow, openThreeColumnGraph } from '@/apis/opener';
-import { getInitPythonProject, getPluginVersion, getProgramPath, getThreeColumnSamplePath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, updateWelcomeState } from '@/apis/welcome';
+import { getInitPythonProject, getPluginVersion, getProgramPath, getThreeColumnSamplePath, getUserRunRoot, getWelcomeState, isLinuxEnvironment, reductionResultsStep, reductionTreeColumnStep, updateWelcomeState } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
 import { WelcomeViewServer } from 'ext:/view/servers/welcom-server';
 import { ref, computed, watch, onMounted, inject } from 'vue';
@@ -265,6 +266,7 @@ const isAllChecked = computed(() => steps.value.some((step) => !step.completed))
 async function runPythonFile() {
   getInitPythonProject()
   steps.value[0].completed = true
+  nextStep()
 }
 
 // 点击步骤头部（激活+折叠）
@@ -314,24 +316,32 @@ async function goToCheckResult() {
   });
 }
 
-async function goTocheckThreeColumn() {  
-  console.log(await getThreeColumnSamplePath())
+async function goTocheckThreeColumn() {
+  updateWelcomeState({
+    key: 'guide.state',
+    value: true,
+  });
   openThreeColumnGraph({
     isBootStep: true,
-    sameplePath:await getThreeColumnSamplePath()
+    sameplePath: await getThreeColumnSamplePath()
   })
 }
 
 
 // 第二部查看运行结果是否完成
 const { server } = useViewServer<WelcomeViewServer>();
-const { skipAll } = server;
-watch(skipAll, (newValue) => {
+const { skipAllStep2, skipAllStep3 } = server;
+watch(skipAllStep2, (newValue) => {
   if (newValue) {
     steps.value[1].completed = newValue;
+    nextStep()
   }
 });
-
+watch(skipAllStep3, (newValue) => {
+  if (newValue) {
+    steps.value[2].completed = newValue;
+  }
+});
 
 
 // 初始化步骤数据
@@ -343,16 +353,14 @@ const initSteps = async () => {
   if (stepRunPython) {
     defaultSteps.value[0].completed = stepRunPython;
   }
-    const stepSanlian = (await getWelcomeState({
+  const stepSanlian = (await getWelcomeState({
     key: 'welcomeView.Sanlian',
   })) as boolean;
   if (stepSanlian) {
     defaultSteps.value[2].completed = stepSanlian;
   }
-  defaultSteps.value[1].completed = skipAll.value;
+  defaultSteps.value[1].completed = skipAllStep2.value;
   steps.value = [...defaultSteps.value];
-  activeStepId.value = steps.value[0].id;
-  expandedStepId.value = steps.value[0].id;
   const isOpenWith = (await getWelcomeState({
     key: 'guideSteps-isOpenWithPyPto',
   })) as boolean;
@@ -369,6 +377,13 @@ const initSteps = async () => {
     });
     steps.value[0].completed = true
   }
+  // 初始化展开步骤id
+  steps.value.some((item) => {
+    activeStepId.value = item.id;
+    expandedStepId.value = item.id;
+    return !item.completed
+  })
+
 };
 onMounted(async () => {
   initSteps();
@@ -387,13 +402,23 @@ watch(
       value: newVal[0].completed,
     });
     await updateWelcomeState({
-      key: 'welcomeView.skipAll',
+      key: 'welcomeView.skipAllStep2',
       value: newVal[1].completed,
+    });
+    await updateWelcomeState({
+      key: 'welcomeView.skipAllStep3',
+      value: newVal[2].completed,
     });
     await updateWelcomeState({
       key: 'welcomeView.Sanlian',
       value: newVal[2].completed,
     });
+    if (!newVal[1].completed) {
+      reductionResultsStep()
+    }
+    if (!newVal[2].completed) {
+      reductionTreeColumnStep()
+    }
   },
   { deep: true },
 );
@@ -461,9 +486,11 @@ watch(activeStepId, (newStepId) => {
         justify-content: start;
         align-items: center;
       }
-      .warning__step1{
+
+      .warning__step1 {
         margin-bottom: 24px;
       }
+
       /* 左侧列表标题部分 */
       .guide-step__header {
         display: flex;
@@ -545,10 +572,12 @@ watch(activeStepId, (newStepId) => {
 
         .active .step-content {
           padding-left: 28px;
+
           .step-description {
             color: var(--devui-title-text); // 标题文字
           }
-          .step-description__weak{
+
+          .step-description__weak {
             color: var(--devui-secondary-text); // 标题文字
             font-size: 13px;
             font-weight: 400;
@@ -860,9 +889,9 @@ watch(activeStepId, (newStepId) => {
   color: var(--devui-title-text); // 标题文字
 }
 
-:deep(.active){
-  .devui-checkbox__material{
-    background: var(--devui-primary-button-bg)!important;
+:deep(.active) {
+  .devui-checkbox__material {
+    background: var(--devui-primary-button-bg) !important;
   }
 }
 </style>
