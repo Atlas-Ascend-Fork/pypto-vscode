@@ -773,13 +773,13 @@ const listenExtensionMessage = () => {
           break;
         }
         case 'zoomControls': {
-          if (flags.value.length > 0) {
-            const [firstFlag] = flags.value || [];
-            currentFlag.value = firstFlag;
-            deleteFlag();
-          }
+          clearFlags();
           const element = document.querySelector('.zoom-controls');
           element.style.border = '1px dashed';
+          break;
+        }
+        case 'distanceMeasurement': {
+          clearFlags();
           break;
         }
         default:
@@ -788,6 +788,16 @@ const listenExtensionMessage = () => {
     }
   });
 };
+
+const clearFlags = () => {
+  if (flags.value.length === 0) {
+    return;
+  }
+  const [firstFlag] = flags.value || [];
+  currentFlag.value = firstFlag;
+  deleteFlag();
+};
+
 const observationLineResize = () => {
   if (swimConfig.currentStepTargetDomId !== 'observation-line') {
     return;

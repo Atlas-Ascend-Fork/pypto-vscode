@@ -2040,6 +2040,10 @@ const listenExtensionClearMessage = () => {
           clearDistanceMeasurement();
           break;
         }
+        case 'distanceMeasurement': {
+          guideDistanceMeasurement();
+          break;
+        }
         default:
           break;
       }
