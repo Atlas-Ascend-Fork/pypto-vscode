@@ -72,7 +72,8 @@ const curThread = inject('curThread');
 const lockPosition = ref(null);
 let switchLockInformationFlag = ref(false);
 let topX = ref(0);
-const leftX = ref(0);
+let leftX = ref(0);
+let isClickedPath = ref(false);
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
@@ -195,9 +196,6 @@ const handleCanvasClick = (e) => {
   if (isLockStatus.value) {
     return;
   }
-  if (isPathLockStatus.value) {
-    return;
-  }
   switchLockInformationFlag.value = false;
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
@@ -218,6 +216,15 @@ const handleCanvasClick = (e) => {
 
   // 检查是否点击了事件
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
+  // 锁定时的点击处理
+  if (isPathLockStatus.value) {
+    detailsPanelExpanded.value = false;
+    if (clickedEvent) {
+      selectedEvent.value = clickedEvent;
+      detailsPanelExpanded.value = true;
+    }
+    return;
+  }
   canvasclickedEvent.value = clickedEvent;
   if (isThreeColumn) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
@@ -242,10 +249,16 @@ const handleCanvasClick = (e) => {
       measureState.isMeasureFirst = false;
       measureState.isMeasureFixed = false;
       !e.ctrlKey && selectEvent(clickedEvent, props.processKey);
+      isClickedPath.value = true;
     }
   } else {
     canvasStatusReset();
   }
+};
+
+const pathLockedMethod = (clickedEvent) => {
+  selectEvent(clickedEvent, props.processKey);
+  detailsPanelExpanded.value = false;
 };
 
 const handleCanvasRightClick = (e) => {
@@ -257,9 +270,6 @@ const handleCanvasRightClick = (e) => {
   const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
-
-  const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
-  canvasclickedEvent.value = clickedEvent;
   const canvasCSSWidth = viewState.canvasCssWidth;
   if (x + 200  > canvasCSSWidth) {
       leftX.value = x - 100;
@@ -267,6 +277,8 @@ const handleCanvasRightClick = (e) => {
       leftX.value = x + 10;
   }
   topX.value = y + 10;
+
+  const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
   if (clickedEvent) {
     switchLockInformationFlag.value = true;
     hideTooltip();
@@ -277,10 +289,7 @@ const handleCanvasRightClick = (e) => {
     } else {
       measureState.isMeasureFirst = false;
       measureState.isMeasureFixed = false;
-      if (!e.ctrlKey) {
-        selectEvent(clickedEvent, props.processKey);
-      }
-      detailsPanelExpanded.value = false;
+      canvasclickedEvent.value = clickedEvent;
     }
   } else {
     switchLockInformationFlag.value = false;
@@ -336,7 +345,7 @@ onMounted(() => {
 
     if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
     (e.key === 'l' || e.key === 'L')) {
-      if (switchLockInformationFlag.value) {
+      if (selectedEvent.value) {
         isPathLockStatus.value = true;
         switchLockInformationFlag.value = false;
       }
@@ -2084,10 +2093,18 @@ const clearDistanceMeasurement = () => {
   }
 };
 
-provide('switchLockInformationFlag', switchLockInformationFlag);
-provide('isPathLockStatus', isPathLockStatus);
-provide('topX', topX);
-provide('leftX', leftX);
+provide('swimGraphThreadState', {
+  switchLockInformationFlag,
+  isPathLockStatus,
+  topX,
+  leftX,
+  canvasclickedEvent,
+  isClickedPath
+});
+
+provide('swimGraphThreadMethods', {
+  pathLockedMethod
+});
 
 </script>
 <style scoped>

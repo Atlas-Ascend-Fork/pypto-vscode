@@ -23,7 +23,7 @@
                     <d-icon name="icon-helping" class="help-font"></d-icon>
                 </d-tooltip>
             </div>
-            <d-input-number class="connection-level-input" v-model="connectionLevel" :disabled=isPathLockStatus :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
+            <d-input-number class="connection-level-input" :class="{'locked-style': isPathLockStatus}" v-model="connectionLevel" :disabled=isPathLockStatus :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
         </div>
     </div>
   </div>
@@ -220,6 +220,15 @@ defineExpose({
         border-color: transparent;
         input {
             background-color: var(--devui-input-bg) !important;
+            border-color: transparent;
+        }
+    }
+    .devui-input-number.locked-style {
+        background-color: var(--devui-input-bg) !important;
+        height: 28px;
+        border-color: transparent;
+        input {
+            background-color: transparent !important;
             border-color: transparent;
         }
     }
