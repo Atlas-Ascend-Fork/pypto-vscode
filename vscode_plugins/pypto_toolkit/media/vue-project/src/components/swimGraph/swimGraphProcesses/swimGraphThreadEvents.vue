@@ -739,6 +739,13 @@ const drawSelectionBox = () => {
   uiCtx.rect(startLocalX, startY, endLocalX - startLocalX, endY - startY, 4);
   uiCtx.fill();
 };
+const drawSelectionHightlight = () => {
+  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const ctx = canvasRef.getContext('2d');
+  selectionEvents.forEach(eventItem => {
+    onSelectionEvent(eventItem, ctx, props.processKey, true);
+  });
+};
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
   checkInSelection();
@@ -747,11 +754,7 @@ const handleSelection = () => {
     clearSelectionCanvas('data-selection-process-key');
     return;
   }
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
-  const ctx = canvasRef.getContext('2d');
-  selectionEvents.forEach(eventItem => {
-    onSelectionEvent(eventItem, ctx, props.processKey, true);
-  });
+  drawSelectionHightlight();
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
 };
@@ -2003,6 +2006,7 @@ addChildContext('threadEvent', {
   getOffset,
   transformEvents,
   drawSelectionBox,
+  drawSelectionHightlight,
   toggleLock,
   resizeDrawBoundary,
   getEventColor: (event, processKey, highlight = false, stroke = true) => {

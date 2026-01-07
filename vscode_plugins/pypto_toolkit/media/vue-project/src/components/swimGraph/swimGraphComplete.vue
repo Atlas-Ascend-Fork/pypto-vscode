@@ -508,6 +508,7 @@ const transform = () => {
   }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
+    childContextMap.threadEvent.drawSelectionHightlight();
   }
 };
 
