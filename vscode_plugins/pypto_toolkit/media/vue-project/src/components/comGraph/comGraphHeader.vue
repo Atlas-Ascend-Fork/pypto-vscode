@@ -399,8 +399,10 @@ watch(currentSelect, (newVal) => {
 // 操作指引页更新搜索条件和关键字
 const updateSearchParams = (params: Record<string, any>) => {
   categorySearchKey.value = params.searchKey;
-  selectedTags.value = params.selectedTags;
-  onSearch(params);
+  nextTick(() => {
+    selectedTags.value = params.selectedTags;
+    onSearch(params);
+  });
 }
 // 操作指引页关闭搜索结果下拉框
 const hideSearchResMenu = () => {
