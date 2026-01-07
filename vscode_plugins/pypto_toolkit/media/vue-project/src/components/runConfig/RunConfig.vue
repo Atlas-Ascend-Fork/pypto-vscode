@@ -7,16 +7,18 @@
       </div>
       <div class="header-panel__right">
         <PtoButton type="text" @click="handleViewSourceFile">{{ $t('runConfig.viewSourceFile') }}</PtoButton>
-        <PtoButton @click="handleCancel">{{ $t('public.cancel') }}</PtoButton>
-        <PtoButton type="primary" @click="handleSave">{{ $t('public.save') }}</PtoButton>
+        <template v-if="schema">
+          <PtoButton @click="handleCancel">{{ $t('public.cancel') }}</PtoButton>
+          <PtoButton type="primary" @click="handleSave">{{ $t('public.save') }}</PtoButton>
+        </template>
       </div>
     </div>
-    <d-form layout="vertical" size="sm" :data="configData">
+    <d-form v-if="schema" class="tab-form" layout="vertical" size="normal" :data="configData">
       <d-tabs class="custom-tabs" v-model="activeTab">
-        <template v-for="tab in tabs" :key="tab.index">
+        <template v-for="tab in schema" :key="tab.key">
           <!-- 页签 -->
-          <d-tab class="sub-form" :id="tab.index" :title="getLocalLabel(tab.label)">
-            <template v-for="attribute in schema[tab.index].attributes" :key="attribute.key">
+          <d-tab class="sub-form" :id="tab.key" :title="tab.label">
+            <template v-for="attribute in tab.attributes" :key="attribute.key">
               <!-- 表单项 -->
               <d-form-item class="config-form-item" :field="attribute.key" :label="getLocalLabel(attribute.label)">
                 <RunConfigController
@@ -30,14 +32,15 @@
         </template>
       </d-tabs>
     </d-form>
+    <div v-else class="no-schema-tip">{{ $t('runConfig.noSchemaFound') }}</div>
   </div>
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { ConfigsForRevise, RunConfigAttribute } from 'ext:/types/config-schema';
-import { RunConfigSchema, RunConfigViewServer } from 'ext:/view/servers/run-config-view-server';
+import type { RunConfigSchema, RunConfigAttribute } from 'ext:/types/config-schema';
+import { RunConfigViewServer } from 'ext:/view/servers/run-config-view-server';
 
 import PtoButton from '@/components/ui/PtoButton.vue';
 import { useViewServer } from '@/core/use-view-server';
@@ -54,8 +57,8 @@ function getLocalLabel(label: Label): string {
 const { server } = useViewServer<RunConfigViewServer>();
 const { filename, filepath } = server;
 
-const schema = ref<RunConfigSchema>({});
-const configData = ref<Partial<ConfigsForRevise>>({});
+const schema = ref<RunConfigSchema | null>([]);
+const configData = ref<object>({});
 
 onMounted(async () => {
   schema.value = await server.getSchema();
@@ -63,14 +66,13 @@ onMounted(async () => {
   configData.value = await server.getConfigData();
 });
 
-type UpdateTabValue = <T extends RunConfigAttribute<any>>(attribute: T, value: T['defaultValue']) => void;
-type Tab = { index: string; label: Label };
+type Tab = { index: string; label: string };
 
 const tabs = ref<Tab[]>();
 const activeTab = ref<string>();
 function initializeTabs() {
-  tabs.value = Object.keys(schema.value).map((tabKey) => {
-    return { index: tabKey, label: schema.value[tabKey].label };
+  tabs.value = schema.value.map(({ key, label }) => {
+    return { index: key, label: label };
   });
   activeTab.value = tabs.value[0].index;
 }
@@ -92,21 +94,16 @@ function updateValue<T extends RunConfigAttribute<any>>(attribute: T, value: T['
   Reflect.set(parentObject, keyPath.at(-1), value);
 }
 
-async function handleSave() {
-  const success = await server.saveConfigData(configData.value);
-  if (success) {
-    // TODO: 提示保存成功
-  } else {
-    // TODO: 提示保存失败
-  }
+function handleSave() {
+  server.saveConfigData(configData.value);
 }
 
 function handleCancel() {
-  server.closeWebview();
+  server.cancelEdit();
 }
 
 function handleViewSourceFile() {
-  server.viewSourceFile();
+  server.openSourceFile();
 }
 </script>
 
@@ -117,29 +114,35 @@ function handleViewSourceFile() {
   color: var(--pto-font-color-title);
   box-sizing: border-box;
   padding: 16px;
+}
 
-  // 颜色等高保真统一适配主题
-  .header-panel {
-    width: 100%;
-    height: 58px;
-    display: flex;
-    justify-content: space-between;
+// 颜色等高保真统一适配主题
+.header-panel {
+  width: 100%;
+  height: 58px;
+  display: flex;
+  justify-content: space-between;
 
-    &__title {
-      height: 26px;
-      line-height: 26px;
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    &__file-path {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--pto-font-color-sub);
-    }
+  &__title {
+    height: 26px;
+    line-height: 26px;
+    font-size: 18px;
+    font-weight: 700;
   }
 
+  &__file-path {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--pto-font-color-sub);
+  }
+}
+
+.tab-form {
+  height: calc(100% - 58px);
+
   .custom-tabs {
+    height: 100%;
+
     :deep(.devui-tabs__nav--tabs) {
       li {
         margin-left: 24px;
@@ -160,10 +163,17 @@ function handleViewSourceFile() {
         }
       }
     }
-  }
 
-  .sub-form {
-    padding: 8px;
+    .sub-form {
+      height: calc(100% - 44px);
+      padding: 8px;
+      overflow-y: auto;
+    }
   }
+}
+
+.no-schema-tip {
+  font-size: 16px;
+  padding: 8px;
 }
 </style>

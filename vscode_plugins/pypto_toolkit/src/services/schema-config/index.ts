@@ -1,22 +1,18 @@
-import * as vscode from 'vscode';
-import {
-  ConfigsForRevise,
-  ConfigsTemplate,
-  ReadSchemaData,
-  SchemaType,
-  TileFWKConfigResponseDto,
-  updateTitleFWKConfigRequestDto,
-} from '../../types/config-schema/config-schema';
-import { readFwkData, writeFileData, getJsonFileList, delFile } from './configdata';
 import path from 'node:path';
-import { generatePassStrategyTemplate, generateSimulatorConfigsArray, readSchemaData } from './schemadata';
+
+import { t } from 'i18next';
+import { has, get, set } from 'lodash-es';
+import * as vscode from 'vscode';
+
+import { RunConfigSchema } from '../../types/config-schema/config-schema';
+
+import { readFwkData, writeFileData, getJsonFileList, delFile, CONFIG_FILE_NAME } from './configdata';
+import { formatSchemaToGroups, readSchemaData } from './schemadata';
 
 /** PYPTO配置文件目录文件夹名 */
 const CONFIG_PATH = 'config';
 /** PYPTO自定义配置文件目录文件夹名 */
 const CUSTOM_CONFIG_PATH = 'customConfigurations';
-/** PYPTO配置文件文件名 */
-const TILE_FWK_FILE_NAME = 'tile_fwk_config.json';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -25,43 +21,6 @@ const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
 export const RUN_DATA_HOME = process.env.PYPTO_HOME
   ? `${process.env.PYPTO_HOME}${path.sep}run`
   : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
-
-/**
- * 获取Schema文件数据
- * @returns Schema对象
- */
-export async function getSchemaData() {
-  const outputCollectionUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH);
-  if (!outputCollectionUri) {
-    return { data: [] };
-  }
-  const res: ReadSchemaData = await readSchemaData(outputCollectionUri);
-  return res;
-}
-
-/**
- * 获取指定路径下的config配置对象
- * @param configPath 指定路径
- * @returns 指定路径下的config配置对象
- */
-export async function getTileFwkConfigData(configPath: string) {
-  const tileFwkConfigUri = vscode.Uri.file(configPath);
-  if (!tileFwkConfigUri) {
-    return { data: [] };
-  }
-  const fwkData: TileFWKConfigResponseDto = await readFwkData(tileFwkConfigUri);
-  return fwkData;
-}
-
-/**
- * 更新指定路径下的config文件
- * @param params 指定文件路径，以及更新后的数据对象
- */
-export async function updateFwkConfigData(params: updateTitleFWKConfigRequestDto) {
-  const { filePath, data } = params;
-  const outputCollectionUri = vscode.Uri.file(filePath);
-  await writeFileData(outputCollectionUri, data);
-}
 
 /**
  * 获取自定义配置文件列表
@@ -89,7 +48,7 @@ export async function delCustomFile(configPath: string) {
 export async function addNewFwkConfigFile(fileName: string) {
   try {
     const newFwkConfigFileUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, CUSTOM_CONFIG_PATH, `${fileName}.json`);
-    const defaultFwkConfigUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, TILE_FWK_FILE_NAME);
+    const defaultFwkConfigUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, CONFIG_FILE_NAME);
     const defaultFwkConfigData = await readFwkData(defaultFwkConfigUri);
     await writeFileData(newFwkConfigFileUri, defaultFwkConfigData);
     return true;
@@ -99,41 +58,41 @@ export async function addNewFwkConfigFile(fileName: string) {
   }
 }
 
+const configGroups = [
+  { key: 'pass', label: () => t('PyPTOToolkit.runConfig.group.pass'), glob: ['pass.*'] },
+  {
+    key: 'debug',
+    label: () => t('PyPTOToolkit.runConfig.group.debug'),
+    glob: ['operator.*', 'verify.*', 'tensor_print.*', 'codegen.*', 'host.*', 'debug.*'],
+  },
+  { key: 'simulation', label: () => t('PyPTOToolkit.runConfig.group.simulation'), glob: ['simulation.*'] },
+  { key: 'runtime', label: () => t('PyPTOToolkit.runConfig.group.runtime'), glob: ['runtime.*'] },
+  { key: 'others', label: () => t('PyPTOToolkit.runConfig.group.others'), glob: ['*'] },
+];
+
 /**
  * 从schema文件中解析出数组模板
  */
-export async function getConfigsTemplate(): Promise<ConfigsTemplate> {
-  const configUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH);
-  if (!configUri) {
-    return {
-      tag: false,
-      simulationTemplate: [],
-      passTemplate: {},
-    };
+export async function getConfigsTemplate(): Promise<RunConfigSchema | null> {
+  const schemaData = await readSchemaData();
+  if (!schemaData) {
+    return null;
   }
-  const res = await readSchemaData(configUri);
-  if (res.tag) {
-    const simulatorConfigsTemplate = await generateSimulatorConfigsArray(res.schemaData as SchemaType, 'simulationConfig');
-    const passTableTemplate = await generatePassStrategyTemplate(res.schemaData as SchemaType, 'passConfig');
-    return {
-      tag: true,
-      simulationTemplate: simulatorConfigsTemplate,
-      passTemplate: passTableTemplate,
-    };
-  } else {
-    return {
-      tag: false,
-      simulationTemplate: [],
-      passTemplate: {},
-    };
+  const groupMap = formatSchemaToGroups(schemaData, configGroups);
+  const groups: RunConfigSchema = [];
+  for (const { key, label } of configGroups) {
+    if (groupMap[key]?.length > 0) {
+      groups.push({ key, label: label(), attributes: groupMap[key] });
+    }
   }
+  return groups;
 }
 
 /**
  * 获取指定Config仿真与Pass数据
  * @param path 文件路径
  */
-export async function getConfigsForRevise(path: string): Promise<ConfigsForRevise> {
+export async function getConfigsForRevise(path: string): Promise<object> {
   const configUri = vscode.Uri.file(path);
   if (!configUri) {
     return {
@@ -142,61 +101,48 @@ export async function getConfigsForRevise(path: string): Promise<ConfigsForRevis
       passConfig: {},
     };
   }
-  const configData = await readFwkData(configUri);
-  try {
-    // 提取config文件中default_pass_configs对象
-    const PassGlobalConfigs = configData?.pass_global_configs;
-    const defaultPassConfigs = PassGlobalConfigs?.default_pass_configs;
-    // 提取config文件中simulation_configs对象
-    const globalConfigs = configData?.global_configs;
-    const simulationConfig = globalConfigs?.simulation_configs;
-
-    return {
-      tag: true,
-      simulationConfig: simulationConfig,
-      passConfig: defaultPassConfigs,
-    };
-  } catch (error) {
-    vscode.window.showErrorMessage(`${(error as Error).message}`);
-    return {
-      tag: false,
-      simulationConfig: {},
-      passConfig: {},
-    };
-  }
+  return await readFwkData(configUri);
 }
 
 /**
  * 更新指定Config仿真与Pass数据
- * @param modifiedConfigData
- * @returns
+ * @param path 文件路径
+ * @param data 包含simulationConfig和passConfig的对象
+ * @returns 是否更新成功
  */
-export async function updateConfigsFile(modifiedConfigData: ConfigsForRevise) {
+export async function updateConfigsFile(path: string, data: object, schema: RunConfigSchema) {
   try {
-    const { simulationConfig, passConfig, path } = modifiedConfigData;
-    const configUri = vscode.Uri.file((path as string) ?? '');
+    const configUri = vscode.Uri.file(path);
     const configData = await readFwkData(configUri);
-    if (!configUri) {
+    if (!configData) {
       return false;
     }
 
-    // 提取config文件中原始simulation_configs对象
-    const globalConfigs = configData?.global_configs;
-    const simulation = globalConfigs?.simulation_configs;
-    const newSimulation = { ...simulation, ...simulationConfig };
-
-    // 提取config文件中原始default_pass_configs对象
-    const PassGlobalConfigs = configData?.pass_global_configs;
-    let defaultPass = PassGlobalConfigs?.default_pass_configs;
-    const newDefaultPass = { ...defaultPass, ...passConfig };
-
-    configData.global_configs.simulation_configs = newSimulation;
-    configData.pass_global_configs.default_pass_configs = newDefaultPass;
-
-    await writeFileData(configUri, configData);
+    const savingData = assignDeepWithSchema(configData, data, schema);
+    await writeFileData(configUri, savingData);
     return true;
   } catch (error) {
     vscode.window.showErrorMessage(`${(error as Error).message}`);
     return false;
   }
+}
+
+/**
+ * 深度合并两个对象
+ * @param target 目标对象
+ * @param source 源对象
+ * @returns 合并后的对象
+ */
+function assignDeepWithSchema(target: object, source: object, schema: RunConfigSchema): any {
+  const result = { ...target };
+
+  for (const group of schema) {
+    for (const attribute of group.attributes) {
+      if (has(source, attribute.key)) {
+        set(result, attribute.key, get(source, attribute.key));
+      }
+    }
+  }
+
+  return result;
 }

@@ -8,7 +8,7 @@ import * as translationCN from '../package.nls.zh-cn.json';
 
 import { RegisterCommand } from './command/registerCommand';
 import { globalConfig } from './config/config';
-import { initServer } from './core/request-server';
+import { initRequestServer } from './core/request-server';
 import { SQLiteCache } from './core/sqliteCache';
 import { clearAllStores, initStores } from './core/store';
 import { hismartliteEx } from './hismarliteEx';
@@ -91,13 +91,12 @@ export async function activate(context: ExtensionContext) {
   // 启动存储
   initStores(context);
   // 启动接口
-
-  const server = initServer(serviceApis);
+  const requestServer = initRequestServer(serviceApis);
   // 启动服务
-  startAllServices();
+  startAllServices(context);
   // 启动编辑区视图
   const editorView = initView((viewPanel) => {
-    server.addWebview(viewPanel.webview);
+    requestServer.addWebview(viewPanel.webview);
   });
   registerCommand.register(editorView);
 
@@ -111,9 +110,7 @@ export async function activate(context: ExtensionContext) {
 
   // 注册CodeLens提供者
   const codeLensProvider = new PyptoJitCodeLensProvider();
-  context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
-  );
+  context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider));
   // 注册向导功能
   vscode.commands.registerCommand('PyPTO.Open.OpenWelcomeGuide', async () => {
     openPyPTOWelcome();

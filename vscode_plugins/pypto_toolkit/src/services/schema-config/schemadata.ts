@@ -1,79 +1,97 @@
-import { SchemaType, PassFormTableaTemplate, TablePass, RunConfigAttribute, ReadSchemaData } from '../../types/config-schema/config-schema';
 import * as vscode from 'vscode';
-import { getConfigAttributes } from './utils';
+
+import { RunConfigAttribute, SchemaProperty, RunConfigAttributeType } from '../../types/config-schema/config-schema';
+
+const SCHEMA_FILE_NAME = 'tile_fwk_config_schema.json';
+const SCHEMA_FILE_PATH = `/framework/src/interface/configs/${SCHEMA_FILE_NAME}`;
+
+type RunConfigMap = Record<string, RunConfigAttribute<any>[]>;
 
 /**
- * 生成 pass_global_configs 与 PVC2_OOO 的表格表单数据
- * @param schema 传入schema 对象
+ * 将schema文件配置转换为动态表单数据结构
+ * @param schema schema文件配置
+ * @param configGroups 动态表单分组
  */
-export function generatePassStrategyTemplate(schema: SchemaType, passKey: string): PassFormTableaTemplate {
-  // 提取global_configs数据
-  const passGlobalConfigs = schema.properties?.pass_global_configs;
-  const defaultValuePassConfigs = passGlobalConfigs?.properties?.default_pass_configs;
-  const defaultPassConfigsProps = defaultValuePassConfigs?.properties || {};
-  const defaultPassConfigs = getConfigAttributes(defaultPassConfigsProps);
-
-  // 提取pass阶段数据（PVC2_OOO）
-  const properties = schema.properties;
-  const passExecutionOrder = properties.pass_execution_order;
-  const passDefault = passExecutionOrder.default;
-
-  // 构建表格pass阶段数据
-  const pass: TablePass[] = [];
-  passDefault.forEach((key, index) => pass.push({ key, index }));
-
-  // 构建global_configs数据
-  const global_configs: RunConfigAttribute<any>[] = Object.entries(defaultPassConfigs).map(([key, config]) => {
-    key = `${passKey}.${key}`;
-    return {
-      key,
-      label: config.label,
-      defaultValue: config.defaultValue,
-      type: config.type,
-    };
-  });
-
-  const result = { pass, global_configs };
-  return result;
+export function formatSchemaToGroups(schema: SchemaProperty, configGroups: { key: string; glob: string[] }[]): RunConfigMap {
+  if (!schema.properties) {
+    return {};
+  }
+  const globs = configGroups.flatMap(({ key, glob }) => glob.map((item) => ({ searcher: item.replace('*', ''), groupKey: key })));
+  globs.sort((a, b) => b.searcher.search(/\.[^*]/) - a.searcher.search(/\.[^*]/));
+  const attributes = searchForAttributes(schema.properties);
+  const groups: RunConfigMap = Object.fromEntries(configGroups.map((item) => [item.key, []]));
+  for (const attribute of attributes) {
+    for (const { groupKey, searcher } of globs) {
+      if (attribute.key.startsWith(searcher)) {
+        groups[groupKey].push(attribute);
+        break;
+      }
+    }
+  }
+  return groups;
 }
 
 /**
- * 生成 simulator_configs 的数组结构数据
- * @param schema 传入schema 对象
+ * 递归搜索Schema属性，将嵌套的属性结构扁平化为RunConfigAttribute数组
+ * @param properties 要搜索的Schema属性对象
+ * @param prefix 可选的前缀字符串，用于构建嵌套属性的完整键名
  */
-export function generateSimulatorConfigsArray(schema: SchemaType, SimulationKey: string): Array<RunConfigAttribute<any>> {
-  const globalConfigs = schema.properties?.global_configs;
-  const simulatorConfigs = globalConfigs?.properties?.simulation_configs;
-  const simulatorConfigsProps = simulatorConfigs?.properties || {};
-
-  const simulatorConfigsMap = getConfigAttributes(simulatorConfigsProps);
-  const result = Object.entries(simulatorConfigsMap).map(([key, config]) => {
-    key = `${SimulationKey}.${key}`;
-    return {
-      key,
-      ...config,
-    };
+function searchForAttributes(properties: NonNullable<SchemaProperty['properties']>, prefix?: string): RunConfigAttribute<any>[] {
+  return Object.entries(properties).flatMap(([key, schema]): RunConfigAttribute<any>[] => {
+    const keyWithPrefix = prefix ? `${prefix}.${key}` : key;
+    if (schema.properties) {
+      return searchForAttributes(schema.properties, keyWithPrefix);
+    } else if (schema.type === 'object') {
+      return [];
+    } else {
+      return [
+        {
+          key: keyWithPrefix,
+          type: getAttributeType(schema),
+          label: { zh: schema.label?.zh ?? keyWithPrefix, en: schema.label?.en ?? keyWithPrefix },
+          defaultValue: schema.default,
+          options: schema.options?.map((item) => ({
+            value: item.value,
+            label: item.label ?? { zh: String(item.value), en: String(item.value) },
+          })),
+        },
+      ];
+    }
   });
-  return result;
 }
 
-/** schema文件名称，todo schema文件读取路径 */
-const CONFIG_SCHEMA_FILE_NAME = 'tile_fwk_config_schema.json';
+function getAttributeType(schema: SchemaProperty): RunConfigAttributeType {
+  if (schema.options) {
+    return 'enum';
+  }
+  if (schema.type === 'integer') {
+    return 'number';
+  }
+  if (schema.type === 'array') {
+    const itemType = schema.items?.type === 'integer' ? 'number' : schema.items?.type ?? 'string';
+    return `array:${itemType}`;
+  }
+  if (schema.type === 'object') {
+    return 'string';
+  }
+  return schema.type;
+}
 
 /**
  * 读取Schema_fwk_config文件
  */
-export async function readSchemaData(baseUri: vscode.Uri): Promise<ReadSchemaData> {
-  try {
-    const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(baseUri, CONFIG_SCHEMA_FILE_NAME));
-    return {
-      tag: true,
-      schemaData: JSON.parse(fileContent.toString()),
-    };
-  } catch (error) {
-    vscode.window.showErrorMessage(`${(error as Error).message}`);
-    return {
-      tag: false,
-    };
+export async function readSchemaData(): Promise<SchemaProperty | null> {
+  const schemaFiles = await vscode.workspace.findFiles(`**/${SCHEMA_FILE_NAME}`);
+  for (const fileUri of schemaFiles) {
+    if (fileUri.path.endsWith(SCHEMA_FILE_PATH)) {
+      const fileContent = await vscode.workspace.fs.readFile(fileUri);
+      try {
+        return JSON.parse(fileContent.toString());
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
+    }
   }
+  return null;
 }

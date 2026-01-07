@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import type { HistoryData } from './navbar-types';
 import { openControlFlow } from '../../apis/opener';
 import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
@@ -41,7 +41,7 @@ withDefaults(
 );
 
 const historyList = ref<HistoryData[]>([]);
-const page = ref(1);
+const page = ref(0);
 const pageSize = 50;
 const allLoaded = ref(false);
 

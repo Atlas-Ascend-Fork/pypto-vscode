@@ -270,7 +270,8 @@ export default {
         scanning:'扫描中...',
         filepathLabel: '文件路径：',
         viewSourceFile: '查看源文件',
-        unknownDataType: '未知的数据类型'
+        unknownDataType: '未知的数据类型',
+        noSchemaFound: '未找到运行配置定义文件，请检查vscode工作区是否包含PyPTO项目',
     },
     welcome: {
         startUsingPyPTOToolkit: '开始使用 PyPTO Toolkit',

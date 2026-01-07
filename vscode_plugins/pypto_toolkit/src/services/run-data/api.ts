@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 import { OutputDetail, OutputRecord } from '../../types/workspace';
 import { useService } from '..';
 
@@ -41,7 +39,8 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
     .sort(sortBy, sortOrder)
     .slice(pageSize * (page - 1), pageSize * page)
     .exec();
-  return { data: records };
+  const list = records.map<OutputRecord>((record) => ({ ...record, directoryTree: undefined }));
+  return { data: list };
 }
 
 export interface GetOutputDetailParams {

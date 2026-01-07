@@ -1,18 +1,9 @@
+import * as vscode from 'vscode';
+
 import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
 import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph, openThreeColumnGraph } from './tmp-view-opener';
 import { getRunDataList, getOutputDetail } from './run-data/api';
 import { RunDataService } from './run-data';
-import {
-  getTileFwkConfigData,
-  updateFwkConfigData,
-  getCustomFileList,
-  delCustomFile,
-  addNewFwkConfigFile,
-  getSchemaData,
-  getConfigsTemplate,
-  getConfigsForRevise,
-  updateConfigsFile,
-} from './schema-config';
 import { ConfigDataService } from './schema-config/configdata';
 import {
   getInitPythonProject,
@@ -29,6 +20,7 @@ import {
   reductionTreeColumnStep,
 } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
+import { ExtensionConfig } from './extension-config';
 
 export const serviceApis = {
   welcome: {
@@ -65,35 +57,6 @@ export const serviceApis = {
     /** 获取运行结果详情 */
     getOutputDetail,
   },
-  // 配置项管理
-  config: {
-    /** 获取配置约束 */
-    getSchemaData,
-
-    /** 获取配置文件 */
-    getTileFwkConfigData,
-
-    /** 更新配置文件 */
-    updateFwkConfigData,
-
-    /** 获取自定义配置列表 */
-    getCustomFileList,
-
-    /** 删除自定义配置 */
-    delCustomFile,
-
-    /** 添加自定义配置 */
-    addNewFwkConfigFile,
-
-    /** 获取Simulator的数组模板 */
-    getConfigsTemplate,
-
-    /** 获取用户config文件中仿真与Pass数据 */
-    getConfigsForRevise,
-
-    /** 更新用户config文件中仿真与Pass数据 */
-    updateConfigs: updateConfigsFile,
-  },
   //【临时】开启webview
   tmpViewOpener: {
     openControlFlow,
@@ -105,10 +68,10 @@ export const serviceApis = {
   },
 };
 
-let singletonServices: { runData: RunDataService; configData: ConfigDataService };
+let singletonServices: { extension: ExtensionConfig; runData: RunDataService; configData: ConfigDataService };
 type Services = typeof singletonServices;
-export function startAllServices() {
-  singletonServices = { runData: new RunDataService(), configData: new ConfigDataService() };
+export function startAllServices(context: vscode.ExtensionContext) {
+  singletonServices = { extension: new ExtensionConfig(context), runData: new RunDataService(), configData: new ConfigDataService() };
 }
 
 export function closeAllServices() {

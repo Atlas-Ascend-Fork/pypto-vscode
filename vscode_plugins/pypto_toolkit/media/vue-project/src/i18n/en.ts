@@ -270,7 +270,8 @@ export default {
         scanning:'Scanning...',
         filepathLabel: 'Filepath:',
         viewSourceFile: 'View source file',
-        unknownDataType: 'Unknown data type'
+        unknownDataType: 'Unknown data type',
+        noSchemaFound: 'No schema file found, please check if the workspace has a PyPTO project',
     },
     welcome: {
         startUsingPyPTOToolkit: 'Start Using PyPTO Toolkit',

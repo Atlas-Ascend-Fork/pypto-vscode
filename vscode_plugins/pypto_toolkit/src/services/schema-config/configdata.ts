@@ -4,7 +4,8 @@ import { CustomConfigItemVo } from '../../types/config-schema/config-schema';
 import { BasicService } from '../basic-service';
 import { ConfigFileInfo, ScanStatus } from '../../types/config-schema/config-schema';
 
-const CONFIG_FILE_NAME = 'tile_fwk_config.json';
+export const CONFIG_FILE_NAME = 'tile_fwk_config.json';
+
 export class ConfigDataService extends BasicService {
   /** 已找到的配置文件列表 */
   private _configFiles: ConfigFileInfo[] = [];

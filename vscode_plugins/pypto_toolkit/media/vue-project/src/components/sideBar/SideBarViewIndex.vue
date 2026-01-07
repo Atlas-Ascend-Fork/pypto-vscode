@@ -4,10 +4,9 @@
       <template #view1="{ locked, lock, unlock }">
         <SideBarTreeView :isExpandable="locked" @tree-expand="(collapse) => (collapse ? lock(44) : unlock())"></SideBarTreeView>
       </template>
-      <!-- TODO 临时屏蔽运行配置入口 -->
-      <!-- <template #view2="{ locked, lock, unlock }">
+      <template #view2="{ locked, lock, unlock }">
         <SideBarRunConfigView :isExpandable="locked" @tree-expand="(collapse) => (collapse ? lock(28) : unlock())"></SideBarRunConfigView>
-      </template> -->
+      </template>
     </SplitViewContainer>
   </div>
 </template>
