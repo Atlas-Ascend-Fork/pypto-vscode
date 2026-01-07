@@ -84,7 +84,7 @@ export class SqlStore<
   }
 
   public query(): StoreQuery<Item, P | Q> {
-    return new SqlStoreQuery<Item, P | Q>(this._attributeResolver, this._execQuery, this._execDelete);
+    return new SqlStoreQuery<Item, P | Q>(this._attributeResolver, this._execQuery, this._execDelete, this._execCount);
   }
 
   public async set(item: Item): Promise<void> {
@@ -157,6 +157,16 @@ export class SqlStore<
   private _execQuery = async (conditions: string): Promise<Item[]> => {
     const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${conditions}`);
     return this._getItemsFromQueryResult(queryResult);
+  };
+
+  /**
+   * 执行count
+   * @param conditions
+   * @returns
+   */
+  private _execCount = async (conditions: string): Promise<number> => {
+    const queryResult = await this._execOneSelect(`SELECT count(*) as cnt FROM ${this.storeName} ${conditions}`);
+    return queryResult.values[0][0];
   };
 
   /**

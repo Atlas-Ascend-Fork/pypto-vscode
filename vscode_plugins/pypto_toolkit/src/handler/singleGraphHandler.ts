@@ -1,7 +1,7 @@
 import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { SingleGraphData, AbstractGraphData } from '../core/graphData';
-import { SQLiteCache } from '../core/sqliteCache';
 import { t } from 'i18next';
+import { getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
 
 export class SingleGraphHandler extends BaseGraphMsgHandler {
   protected static override async loadMainData(server: any): Promise<boolean> {
@@ -48,7 +48,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     return server.comGraphData as SingleGraphData;
   }
 
-  public static getGrahpDataExtend(serve: any): AbstractGraphData{
+  public static getGrahpDataExtend(serve: any): AbstractGraphData {
     return this.getGraphData(serve);
   }
   /** 重写 基类方法 */
@@ -62,11 +62,12 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
       let calleeOpAttr: string | undefined;
       let ioperands: string | undefined;
       if (gd.isUsedDB) {
-        opAttrData = await SQLiteCache.getInstance().comGraphFileCalleeOpAttrGet(
-          gd.funcHash ?? '',
-          gd.calleeOpMagic.toString(),
-          gd.calleeOpSubgraphId.toString(),
-        );
+
+        opAttrData = await getComGraphFileCalleeOpAttrStore().find({
+          calleehash: gd.funcHash ?? '',
+          opMagic: gd.calleeOpMagic.toString(),
+          opSubgraphid: gd.calleeOpSubgraphId.toString(),
+        });
         if (opAttrData) {
           calleeOpAttr = opAttrData.op_attr;
           ioperands = JSON.parse(opAttrData.ioperands);

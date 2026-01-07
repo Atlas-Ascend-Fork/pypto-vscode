@@ -16,6 +16,7 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
     private _attributeResolver: SqlAttributesResolver<Item>,
     private _execQuery: (condition: string) => Promise<Item[]>,
     private _execDelete: (condition: string) => Promise<number>,
+    private _execCount: (condition: string) => Promise<number>,
   ) {}
 
   public filter(condition: { [key in Keys]?: Item[key] }): this {
@@ -51,5 +52,9 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
 
   public delete(): Promise<number> {
     return this._execDelete(`${this._whereCondition} ${this._orderCondition} ${this._limitCondition}`);
+  }
+
+  public count(): Promise<number> {
+    return this._execCount(`${this._whereCondition} ${this._limitCondition}`);
   }
 }

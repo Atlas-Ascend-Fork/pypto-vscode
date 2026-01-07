@@ -24,7 +24,7 @@ export type StoreAttributes<Item extends Data = Data> = {
 /**
  * 存储库
  */
-export interface Store<Item extends Data, P extends keyof Item, Q extends keyof Item> extends vscode.Disposable {
+export interface Store<Item extends Data, P extends keyof Item, Q extends keyof Item = never> extends vscode.Disposable {
   readonly storeName: string;
 
   readonly attributes: StoreAttributes<Item>;
@@ -83,6 +83,9 @@ export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
 
   /** 执行查询 */
   exec(): Promise<Item[]>;
+
+  /** 执行计数 */
+  count(): Promise<number>;
 
   /** 执行删除 */
   delete(): Promise<number>;
