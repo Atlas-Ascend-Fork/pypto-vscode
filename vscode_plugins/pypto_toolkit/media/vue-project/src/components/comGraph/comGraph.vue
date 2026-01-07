@@ -243,9 +243,9 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     if (initComDocText){
+      resetModelSource(true);
       initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
       comGraphStore.setData('jsonData', jsonValue);
-      resetModelSource();
       return;
     }
     const sprottyLoadResult = useSprottyLoad();
