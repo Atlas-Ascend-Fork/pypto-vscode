@@ -745,7 +745,7 @@ const drawSelectionHightlight = () => {
   selectionEvents.forEach(eventItem => {
     onSelectionEvent(eventItem, ctx, props.processKey, true);
   });
-}
+};
 const handleSelection = () => {
   // 这里可以判断那些元素在框内
   checkInSelection();
