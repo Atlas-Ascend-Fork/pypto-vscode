@@ -2,7 +2,7 @@
   <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
       <div class="simple-layout">
-        <fileSelect :file-name="comFileName"/>
+        <fileSelect :file-name="comFileName" />
         <d-select
           ref="rootHashEl"
           v-model="rootHash"
@@ -11,7 +11,7 @@
           :position="['bottom-start']"
           :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
           :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
-          @value-change="onHashChange"
+          @value-change="handleHashChange"
           @toggle-change="onHashMenuToggleChange"
         >
           <template #empty>
@@ -22,6 +22,16 @@
       <DragIcon />
 
       <div :class="['sticky-block-right', isExpandSearch && 'expand-search']">
+        <d-tooltip
+          v-if="drillDownPathIcon.showBack"
+          :content="t('pleaseUnlock')"
+          :disabled="!drillDownPathIcon.disableBack"
+          position="top-end"
+          overlay-class="unlock-label-tips"
+        >
+          <i :class="['icon-arrow-left-l', drillDownPathIcon.disableBack && 'disabled-back-icon']" @click="onBackGraph"></i>
+        </d-tooltip>
+        <i v-if="drillDownPathIcon.showForward" class="icon-arrow-right-l" @click="onForwardGraph"></i>
         <i v-show="!isExpandSearch" class="icon-search-new" @click="() => (isExpandSearch = true)"></i>
         <ComGraphHeader
           ref="comGraphHeaderEl"
@@ -50,7 +60,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, inject, computed, nextTick, onBeforeUnmount } from 'vue';
+import { onMounted, watch, defineProps, ref, inject, computed, nextTick, onBeforeUnmount, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -65,6 +75,7 @@ import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
 import { findNodeIdsBySemanticLabel } from '../../utils/search';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+import type { DrillDownPathItem } from './type';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
@@ -90,13 +101,13 @@ const props = defineProps({
     default: true,
   },
   comFileName: {
-    type:String,
-    default:'',
+    type: String,
+    default: '',
   },
   shouldUpdateHashList: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const { isDarkTheme } = inject('root');
@@ -119,6 +130,13 @@ let removeSelectNodesRect;
 let initComDocText;
 let resetModelSource;
 let fitToScreenAction;
+let drillDownPath: DrillDownPathItem[] = [];
+let currentPath: DrillDownPathItem;
+const drillDownPathIcon = reactive({
+  showBack: false,
+  disableBack: false,
+  showForward: false,
+});
 const showNodeDetail = ref(false);
 const nodeId = ref('');
 const containerHeight = ref(0);
@@ -127,16 +145,20 @@ const comGraphHeaderEl = ref();
 const rootHashEl = ref();
 const isComGraphActive = ref(false);
 const minimapEl = ref();
-watch(currentActiveBlock, (val) => {
-  if (val) {
-    isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
-    if (!isComGraphActive.value) {
-      isExpandSearch.value = false;
-      comGraphHeaderEl.value?.hideDropdown();
-      rootHashEl.value?.toggleChange(false);
+watch(
+  currentActiveBlock,
+  (val) => {
+    if (val) {
+      isComGraphActive.value = BlockToGraphMap[val] === 'comGraph';
+      if (!isComGraphActive.value) {
+        isExpandSearch.value = false;
+        comGraphHeaderEl.value?.hideDropdown();
+        rootHashEl.value?.toggleChange(false);
+      }
     }
-  }
-},{ immediate: true });
+  },
+  { immediate: true },
+);
 
 window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
@@ -205,6 +227,7 @@ function onMessageFromSwim(args) {
   prevent = true;
   currentLockLabel = args.label;
   comGraphStore.data.isNodeRectLock = true;
+  drillDownPathIcon.disableBack = true;
   createSelectNodesRect?.(args.label, true);
   hoverFeedbackAction?.();
 });
@@ -214,6 +237,10 @@ function onMessageFromSwim(args) {
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, currentLockLabel);
   if (selectedNodes.length <= 0 && rootHashList.value.length) {
     rootHash.value = rootHashList.value[0].value;
+    drillDownPath = [currentPath, { calleehash: rootHashList.value[0].value, subFuncmagicname: rootHashList.value[0].name }];
+    drillDownPathIcon.showBack = true;
+    drillDownPathIcon.disableBack = true;
+    drillDownPathIcon.showForward = false
     onHashChange(rootHashList.value[0]);
     return;
   }
@@ -223,12 +250,38 @@ function onMessageFromSwim(args) {
   threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
 });
 
+function resetDrillDownPathIcon() {
+  drillDownPathIcon.disableBack = false;
+  drillDownPathIcon.showBack = false;
+  drillDownPathIcon.showForward = false;
+}
+
+function onBackGraph() {
+  if (drillDownPathIcon.disableBack) {
+    return;
+  }
+  drillDownPathIcon.showBack = false;
+  drillDownPathIcon.showForward = true;
+  rootHash.value = drillDownPath[0].calleehash;
+  server.innerGetSubgraph({ paramObj: drillDownPath[0] });
+}
+
+function onForwardGraph() {
+  drillDownPathIcon.showBack = true;
+  drillDownPathIcon.showForward = false;
+  server.innerGetSubgraph({ paramObj: drillDownPath[1] });
+  rootHash.value = drillDownPath[1].calleehash;
+}
+
 function autoDrillCb(args) {
   clickLabel = args.label;
-  generateHashList( sendlist ?? []);
+  generateHashList(sendlist ?? []);
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, args.label);
   if (selectedNodes.length <= 0 && rootHashList.value.length) {
     rootHash.value = rootHashList.value[0].value;
+    drillDownPath = [currentPath, { calleehash: rootHashList.value[0].value, subFuncmagicname: rootHashList.value[0].name }];
+    drillDownPathIcon.showBack = true;
+    drillDownPathIcon.showForward = false
     onHashChange(rootHashList.value[0]);
   }
   generateHashList();
@@ -251,6 +304,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
 (window as any).ascEventBus.on('deactivateLock', () => {
   prevent = false;
   comGraphStore.data.isNodeRectLock = false;
+  drillDownPathIcon.disableBack = false;
   hoverFeedbackAction?.();
   generateHashList();
 });
@@ -300,6 +354,10 @@ function onHashMenuToggleChange() {
   });
 }
 
+const handleHashChange = (val) => {
+  resetDrillDownPathIcon();
+  onHashChange(val);
+};
 const onHashChange = (val) => {
   server.innerGetSubgraph({ paramObj: { calleehash: val.value, subFuncmagicname: val.name } });
 };
@@ -348,13 +406,17 @@ watch(
     if (Object.keys(val).length) {
       graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+      const funcMagicName = comGraphStore.data.calleeMap?.[val.hash] ?? '';
+      if (val.hash && funcMagicName) {
+        currentPath = { calleehash: val.hash, subFuncmagicname: funcMagicName };
+      }
       if (initComDocText) {
         resetModelSource(true);
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
         comGraphStore.setData('jsonData', jsonValue);
         server.returnFuncTree();
         let shouldListenViewZoom = true;
-        if ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel)  {
+        if ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';
@@ -365,6 +427,7 @@ watch(
         }
         if (props.shouldUpdateHashList) {
           generateHashList();
+          resetDrillDownPathIcon();
           if (comGraphStore.data.curPath.length) {
             rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
           }
@@ -391,6 +454,7 @@ watch(
         canViewSubgraph: false,
       });
       generateHashList();
+      resetDrillDownPathIcon();
       if (comGraphStore.data.curPath.length) {
         rootHash.value = comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1];
       }
@@ -440,7 +504,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   if (resetModelSource) {
-    resetModelSource(true)
+    resetModelSource(true);
   }
   document.removeEventListener('click', onDocumentClick);
   (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
@@ -492,6 +556,11 @@ onBeforeUnmount(() => {
       font-size: 14px;
       cursor: pointer;
     }
+
+    .disabled-back-icon {
+      color: var(--devui-disabled-text);
+      cursor: not-allowed;
+    }
   }
 
   .com-graph-header {
@@ -536,18 +605,22 @@ onBeforeUnmount(() => {
   #sprotty {
     height: 100%;
   }
+
   .simple-layout {
     display: flex;
   }
+
   .simple-containner {
     display: flex;
     cursor: pointer;
   }
+
   .simple-com-file-name {
     font-size: 14px;
     font-weight: 700;
     line-height: 28px;
   }
+
   .ml20 {
     margin-left: 20px;
   }
@@ -572,5 +645,11 @@ onBeforeUnmount(() => {
   &.hide-root-hash-list {
     display: none !important;
   }
+}
+</style>
+
+<style lang="scss">
+.devui-tooltip.devui-flexible-overlay.unlock-label-tips {
+  max-width: unset;
 }
 </style>
