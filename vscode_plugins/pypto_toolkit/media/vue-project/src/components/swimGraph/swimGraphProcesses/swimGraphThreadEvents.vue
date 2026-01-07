@@ -259,7 +259,7 @@ const handleCanvasClick = (e) => {
 const pathLockedMethod = (clickedEvent) => {
   selectEvent(clickedEvent, props.processKey);
   detailsPanelExpanded.value = false;
-}
+};
 
 const handleCanvasRightClick = (e) => {
   if (isThreeColumn) {
