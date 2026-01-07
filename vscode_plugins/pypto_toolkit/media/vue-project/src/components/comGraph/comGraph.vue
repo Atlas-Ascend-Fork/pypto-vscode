@@ -303,7 +303,8 @@ function onMouseup() {
 
 // 步骤2查看节点详情
 function viewNodeDetail(params: Record<string, any>) {
-  // 关闭步骤3搜索结果下拉框
+  // 清空步骤3搜索条件并关闭搜索结果下拉框
+  headerEl.value.updateSearchParams({ searchKey: '', selectedTags: [] });
   headerEl.value.hideSearchResMenu();
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
@@ -312,6 +313,8 @@ function viewNodeDetail(params: Record<string, any>) {
 
 // 步骤3搜索节点
 function searchNode(params: Record<string, any>) {
+  // 还原步骤4的只看当前通路
+  setFixedComGraphFlow(false, false);
   // 填充搜索条件
   headerEl.value.updateSearchParams(params);
 }
