@@ -504,13 +504,11 @@ export abstract class BaseGraphMsgHandler {
 
   static async loadEntryFunction(filePath: string, server: any): Promise<void> {
     try {
-      const text = await fs.readFile(filePath, 'utf8');
-
+      const text = await promises.readFile(filePath, 'utf8');
       const json = JSON.parse(text) as {
         functions: Array<{ hash: string }>;
         entryhash: string;
       };
-
       const entryFunc = json.functions.find(f => f.hash === json.entryhash);
       if (!entryFunc) {
         throw new Error(`Entry function(${json.entryhash}) not found`);
@@ -526,7 +524,6 @@ export abstract class BaseGraphMsgHandler {
     const gd = this.getGraphData(server);
     const isCalleeHash = /^\d+$/.test(data.calleehash);
     gd.funcHash = data.calleehash;
-
     let ret: string | undefined = undefined;
     if (!isCalleeHash) {
       await this.loadEntryFunction(data.calleehash, server);
@@ -535,7 +532,6 @@ export abstract class BaseGraphMsgHandler {
       if (gd.isUsedDB && gd.funcHash) {
         const maxRetry = 5;
         const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
         for (let i = 0; i < maxRetry; i++) {
           const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash });
           ret = row?.data;
@@ -578,12 +574,11 @@ export abstract class BaseGraphMsgHandler {
     const gd = this.getGraphData(server);
     const fsPath = gd.fsPath;
     const isUsedDB = gd.isUsedDB;
-
     const funcHashMap = graphFileHashMap[fsPath] as Record<string, { func_magicname: string }>;
     if (!funcHashMap) {
       server.setRef('GlobalSearchResult', { data: {} });
       return;
-    }
+    } 
     const resultMap: Record<string, any[]> = {};
     for (const [funcHash, funcMeta] of Object.entries(funcHashMap)) {
       let jsonData: any;
@@ -643,7 +638,6 @@ export abstract class BaseGraphMsgHandler {
     } else {
       ret = gd.dataMap[gd.funcHash!] ?? undefined;
     }
-
     if (!ret) {
       if (gd.isUsedDB) {
         this.returnError(server, 'pypto.comGraph.errorMessage.dbQueryError', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
@@ -666,7 +660,6 @@ export abstract class BaseGraphMsgHandler {
   ): Record<string, { functype: string; func_magicname: string }> {
     const fileList = fs.readdirSync(dirName);
     const matchedFiles = fileList.filter((f) => f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix));
-
     for (const matchedFile of matchedFiles) {
       const targetPath = path.join(dirName, matchedFile);
       const targetFile = fs.readFileSync(targetPath, 'utf8');
@@ -750,7 +743,6 @@ export abstract class BaseGraphMsgHandler {
 
   protected static async loadFuncHashMap(server: any, gd: AbstractGraphData) {
     gd.isUsedDB = globalConfig.IS_USE_DB;
-
     if (!graphFileHashMap[gd.fsPath] && gd.funcHashMap && Object.keys(gd.funcHashMap).length > 0) {
       graphFileHashMap[gd.fsPath] = gd.funcHashMap;
     } else {
@@ -784,6 +776,7 @@ export abstract class BaseGraphMsgHandler {
     }
     return true;
   }
+
   public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>) {
     const data = cmdArgs ? t(cmd, cmdArgs) : t(cmd);
     const log = logCmd ? (logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd)) : null;
@@ -815,13 +808,11 @@ export abstract class BaseGraphMsgHandler {
     let comGraphFuncData: any;
     let resStr = '';
     if (comGraphData.isUsedDB) {
-      // comGraphFuncData = await SQLiteCache.getInstance().comGraphFuncDataGet(comGraphData.fsPath, curHash, 1, 50);
       comGraphFuncData = await getComGraphFuncDataStore().find({ filePath: comGraphData.fsPath, funcHash: curHash });
       resStr = comGraphFuncData?.callHashArr;
     } else {
       resStr = comGraphData.callHashArrMap[curHash];
     }
-
     if (resStr == '') {
       return [];
     }

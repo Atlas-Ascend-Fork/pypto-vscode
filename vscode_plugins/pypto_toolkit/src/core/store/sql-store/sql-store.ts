@@ -23,14 +23,13 @@ const DEFAULT_OPTIONS: Required<SqlStoreOptions> = {
  * Sqlite缓存
  */
 export class SqlStore<
-    Attr extends StoreAttributes<any>,
-    Item extends ExtractItem<Attr> = ExtractItem<Attr>,
-    P extends keyof Item = PrimaryKeys<Attr>,
-    Q extends keyof Item = QueryKeys<Attr>,
-  >
+  Attr extends StoreAttributes<any>,
+  Item extends ExtractItem<Attr> = ExtractItem<Attr>,
+  P extends keyof Item = PrimaryKeys<Attr>,
+  Q extends keyof Item = QueryKeys<Attr>,
+>
   extends vscode.Disposable
-  implements Store<Item, P, Q>
-{
+  implements Store<Item, P, Q> {
   /** 数据库版本，需要清空sql时指定更大的值强制升版 */
   public readonly version: number;
 
@@ -148,7 +147,7 @@ export class SqlStore<
   private _onDispose() {
     this._manager.closeDatabase(this);
   }
-
+ 
   /**
    * 执行query
    * @param conditions
@@ -166,7 +165,11 @@ export class SqlStore<
    */
   private _execCount = async (conditions: string): Promise<number> => {
     const queryResult = await this._execOneSelect(`SELECT count(*) as cnt FROM ${this.storeName} ${conditions}`);
-    return queryResult.values[0][0];
+    let result = 0;
+    if (queryResult && queryResult.values[0][0]) {
+      result = Number(queryResult.values[0][0]);
+    }
+    return result;
   };
 
   /**
