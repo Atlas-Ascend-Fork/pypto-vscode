@@ -2057,6 +2057,10 @@ const listenExtensionClearMessage = () => {
           guideDistanceMeasurement();
           break;
         }
+        case 'measureDetailSearch': {
+          canvasStatusReset();
+          break;
+        }
         default:
           break;
       }

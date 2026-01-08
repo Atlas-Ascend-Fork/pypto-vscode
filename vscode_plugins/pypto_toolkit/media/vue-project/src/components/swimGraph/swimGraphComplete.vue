@@ -2018,10 +2018,9 @@ const listenExtensionMessage = () => {
       switch (message.methodName) {
         case 'showGuideDetailsPanel':
           clearMeasureDetailSearch();
-          getEventInfo('showGuideDetailsPanel');
+          getEventInfo();
           break;
         case 'measureDetailSearch': {
-          getEventInfo('measureDetailSearch');
           const totalWidth = viewState.canvasCssWidth + layout.processLabelWidth;
           measureDragStartX.value = totalWidth * (1 / 4);
           measureDragEndX.value = totalWidth * (3 / 4);
@@ -2061,10 +2060,6 @@ const getEventInfo = (flag) => {
   for (const [processKey, process] of processes.entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
-    }
-    if (flag === 'measureDetailSearch') {
-      selectEvent(null, processKey);
-      return;
     }
     const thread = process.threads.get(swimConfig.threadKey);
     if (!thread || thread.events.length === 0) {
