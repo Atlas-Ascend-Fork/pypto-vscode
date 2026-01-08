@@ -485,7 +485,6 @@ watch(activeStepId, (newStepId) => {
       height: 100%;
 
       .system-warning {
-        width: 380px;
         height: 26px;
         font-size: 13px;
         font-weight: 400;
