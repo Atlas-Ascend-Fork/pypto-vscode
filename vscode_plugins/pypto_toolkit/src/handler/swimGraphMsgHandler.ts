@@ -11,6 +11,7 @@ import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
 import { getBasenameWithoutExt } from '../command/registerCommand';
 import { hismartliteEx } from '../hismarliteEx';
+import { useService } from '../services';
 const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
@@ -382,13 +383,18 @@ export abstract class SwimGraphMsgHandler {
     // 跳转至计算图
     static async jumpToComGraph(server: any, paramObj: { hash: string }) {
         const swimPath = server.swimDataPath;
-
         const cache = Util.readSwim2ComGraphMap(this.cachePath);
         let comGraphPath = cache[swimPath];
+        const runDataService = useService('runData');
+        const [record] = await runDataService.query().filter({ swimlaneGraphFilePath: swimPath }).exec();
         if (!comGraphPath) {
-            // 在用户未配置计算图时，优先找同级目录的计算图
             const swimDir = dirname(swimPath);
-            const programPath = join(swimDir, 'program.json');
+            // 在用户未配置计算图时，优先找同级目录的计算图
+            let programPath = join(swimDir, 'program.json');
+            // 如果有runData，优先获取runData数据
+            if (record) {
+              programPath = record['controlFlowFilePath'];
+            }
             if (existsSync(programPath)) {
                 comGraphPath = programPath;
                 cache[swimPath] = comGraphPath;
