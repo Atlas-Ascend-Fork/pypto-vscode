@@ -1,5 +1,13 @@
+import type {
+  GetOutputDetailParams,
+  GetOutputDetailRes,
+  GetOutputRecordParams,
+  GetOutputRecordsRes,
+  GetRunDataBySwimlaneGraphPathParams,
+} from 'ext:/services/run-data/api';
+import type { OutputRecord } from 'ext:/types/workspace';
+
 import { request, RequestOptions } from '../core/request';
-import type { GetOutputDetailParams, GetOutputDetailRes, GetOutputRecordParams, GetOutputRecordsRes } from 'ext:/services/run-data/api';
 
 const WORKSPACE_PREFIX = 'workspace';
 
@@ -16,4 +24,14 @@ export function getRunDataList(params: GetOutputRecordParams, options?: RequestO
 export function getOutputDetail(outputDirPath: string): Promise<GetOutputDetailRes> {
   const params: GetOutputDetailParams = { outputDirPath };
   return request.post(`${WORKSPACE_PREFIX}/getOutputDetail`, params);
+}
+
+/**
+ * 根据泳道图路径获取运行结果记录
+ * @param swimlaneGraphPath 泳道图文件路径
+ */
+export function getRunDataBySwimlaneGraphPath(swimlaneGraphPath: string): Promise<OutputRecord | null> {
+  return request.post<GetRunDataBySwimlaneGraphPathParams, OutputRecord | null>(`${WORKSPACE_PREFIX}/getRunDataBySwimlaneGraphPath`, {
+    swimlaneGraphPath,
+  });
 }

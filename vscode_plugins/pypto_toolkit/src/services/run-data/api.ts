@@ -59,3 +59,20 @@ export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams):
   const detail = await runDataService.getOutputDetail(outputDirPath);
   return { data: detail ?? null };
 }
+
+export interface GetRunDataBySwimlaneGraphPathParams {
+  swimlaneGraphPath: string;
+}
+
+/**
+ * 根据泳道图路径获取运行结果记录
+ * @param swimlaneGraphPath
+ * @returns
+ */
+export async function getRunDataBySwimlaneGraphPath({
+  swimlaneGraphPath,
+}: GetRunDataBySwimlaneGraphPathParams): Promise<OutputRecord | null> {
+  const runDataService = useService('runData');
+  const [record] = await runDataService.query().filter({ swimlaneGraphFilePath: swimlaneGraphPath }).exec();
+  return record ?? null;
+}

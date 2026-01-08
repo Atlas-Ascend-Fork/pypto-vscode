@@ -1,8 +1,15 @@
 import * as vscode from 'vscode';
 
 import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile } from './control-flow';
-import { openComputeGraph, openControlFlow, openPtoConfig, openPyPTOWelcome, openSwimlaneGraph, openThreeColumnGraph } from './tmp-view-opener';
-import { getRunDataList, getOutputDetail } from './run-data/api';
+import {
+  openComputeGraph,
+  openControlFlow,
+  openPtoConfig,
+  openPyPTOWelcome,
+  openSwimlaneGraph,
+  openThreeColumnGraph,
+} from './tmp-view-opener';
+import { getRunDataList, getOutputDetail, getRunDataBySwimlaneGraphPath } from './run-data/api';
 import { RunDataService } from './run-data';
 import { ConfigDataService } from './schema-config/configdata';
 import {
@@ -38,7 +45,7 @@ export const serviceApis = {
     completeResultsStep,
     reductionResultsStep,
     completeTreeColumnStep,
-    reductionTreeColumnStep
+    reductionTreeColumnStep,
   },
   // 控制流
   controlFlow: {
@@ -56,6 +63,9 @@ export const serviceApis = {
 
     /** 获取运行结果详情 */
     getOutputDetail,
+
+    /** 根据泳道图路径获取运行结果记录 */
+    getRunDataBySwimlaneGraphPath,
   },
   //【临时】开启webview
   tmpViewOpener: {
