@@ -14,6 +14,7 @@ interface ExtensionRequest {
 interface PendingRequest {
   success: (value: any) => void;
   error: (statusCode: ResponseMessage['statusCode'], error: Error) => void;
+  params: unknown;
   options: Required<RequestOptions>;
   api: string;
   requestTimestamp: number;
@@ -63,16 +64,20 @@ class ExtensionRequestImpl implements ExtensionRequest {
       if (!pendingRequest) {
         return;
       }
-
-      console.debug(
-        'API:',
-        pendingRequest.api,
-        statusCode,
-        '开始时间:',
-        pendingRequest.requestTimestamp,
-        '响应时间:',
-        Date.now() - pendingRequest.requestTimestamp,
-      );
+      if (import.meta.env.DEV) {
+        console.debug(
+          'API:',
+          pendingRequest.api,
+          '状态码:',
+          statusCode,
+          '开始时间:',
+          pendingRequest.requestTimestamp,
+          '响应时间:',
+          Date.now() - pendingRequest.requestTimestamp,
+          '内容:',
+          { request: pendingRequest.params, response: statusCode === 200 ? data : error },
+        );
+      }
       if (statusCode === 200) {
         pendingRequest.success(data);
       } else {
@@ -99,7 +104,7 @@ class ExtensionRequestImpl implements ExtensionRequest {
   private executeRequest<Data, Res>(api: string, params: Data, options: Required<RequestOptions>): Promise<Res> {
     const requestId = `${api}-${window.crypto.randomUUID()}`;
     this.connector.send({ api, requestId, data: deepToRaw(params), options });
-    return this.waitForResponse<Res>(api, requestId, options);
+    return this.waitForResponse<Data, Res>(api, requestId, params, options);
   }
 
   /**
@@ -108,7 +113,7 @@ class ExtensionRequestImpl implements ExtensionRequest {
    * @param options 请求选项
    * @returns 响应
    */
-  private waitForResponse<Res>(api: string, requestId: string, options: Required<RequestOptions>): Promise<Res> {
+  private waitForResponse<Data, Res>(api: string, requestId: string, params: Data, options: Required<RequestOptions>): Promise<Res> {
     return new Promise<Res>((resolve, reject) => {
       // 请求超时
       const requestTimeout = setTimeout(() => {
@@ -119,6 +124,7 @@ class ExtensionRequestImpl implements ExtensionRequest {
       this.pendingRequests.set(requestId, {
         success: makeSuccessHandler(resolve, requestTimeout),
         error: makeErrorHandler(reject, requestTimeout, options),
+        params,
         options,
         api,
         requestTimestamp: Date.now(),

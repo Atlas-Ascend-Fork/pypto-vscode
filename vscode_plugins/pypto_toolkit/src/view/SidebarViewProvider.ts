@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { getIDETheme } from '../theme';
-import { useServer } from '../core/request-server';
+import { useRequestServer } from '../core/request-server';
 import { ViewQuery, ViewQueryConnector } from '../core/view/view-query';
 import { getWebviewEntryCode } from '../core/editorView';
 import { makeViewServerContext } from '../core/view/view-server-context';
@@ -11,12 +11,12 @@ import { makeViewServerConfig } from '../core/view/view-server';
 export class SidebarViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'PyPTO-Open-Toolkit-Sidebar';
 
-  private servers: ReturnType<typeof useServer>;
+  private servers: ReturnType<typeof useRequestServer>;
   /** 页面参数通信器 */
   private queryConnector: ViewQueryConnector;
 
   constructor() {
-    this.servers = useServer();
+    this.servers = useRequestServer();
     this.queryConnector = new ViewQueryConnector();
   }
 

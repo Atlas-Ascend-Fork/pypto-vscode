@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 import { OutputDetail, OutputRecord } from '../../types/workspace';
 import { useService } from '..';
 
@@ -41,7 +39,8 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
     .sort(sortBy, sortOrder)
     .slice(pageSize * (page - 1), pageSize * page)
     .exec();
-  return { data: records };
+  const list = records.map<OutputRecord>((record) => ({ ...record, directoryTree: undefined }));
+  return { data: list };
 }
 
 export interface GetOutputDetailParams {
@@ -59,4 +58,21 @@ export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams):
   const runDataService = useService('runData');
   const detail = await runDataService.getOutputDetail(outputDirPath);
   return { data: detail ?? null };
+}
+
+export interface GetRunDataBySwimlaneGraphPathParams {
+  swimlaneGraphPath: string;
+}
+
+/**
+ * 根据泳道图路径获取运行结果记录
+ * @param swimlaneGraphPath
+ * @returns
+ */
+export async function getRunDataBySwimlaneGraphPath({
+  swimlaneGraphPath,
+}: GetRunDataBySwimlaneGraphPathParams): Promise<OutputRecord | null> {
+  const runDataService = useService('runData');
+  const [record] = await runDataService.query().filter({ swimlaneGraphFilePath: swimlaneGraphPath }).exec();
+  return record ?? null;
 }

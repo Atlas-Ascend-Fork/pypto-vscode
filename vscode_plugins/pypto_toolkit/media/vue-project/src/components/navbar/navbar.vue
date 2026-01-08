@@ -208,7 +208,7 @@ function jumpControlFlow() {
 
 function jumpSwim() {
   if (swimlaneFile.value) {
-    openSwimlaneGraph({ swimlaneGraphPath: swimlaneFile.value });
+    openSwimlaneGraph({ swimlaneGraphPath: swimlaneFile.value, outputPath: currentRecord.value?.directoryPath });
   }
 }
 

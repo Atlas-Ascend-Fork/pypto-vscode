@@ -39,12 +39,12 @@ type ApiGroup = {
 
 let server: ExtensionApiServer;
 
-export function initServer(apis: ApiGroup): ExtensionApiServer {
+export function initRequestServer(apis: ApiGroup): ExtensionApiServer {
   server = new ExtensionApiServer(apis);
   return server;
 }
 
-export function useServer(): ExtensionApiServer {
+export function useRequestServer(): ExtensionApiServer {
   return server;
 }
 

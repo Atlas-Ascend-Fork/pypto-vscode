@@ -12,7 +12,6 @@ import { deepToRaw } from '@/utils/reactive';
 
 import { ExtensionConnector } from './connector';
 import { getQuery } from './query';
-import { measureState } from '@/components/swimGraph/swimGraphProcesses/render/meatureRender';
 
 /**
  * 视图服务配置
@@ -32,16 +31,16 @@ type ViewServerApi<Server extends ViewServer<never, {}>, ApiKey> = ApiKey extend
     : never
   : never;
 
-type Promised<T> = T extends Promise<unknown> ? T : Promise<T>;
-
 /** 转为异步函数 */
-type Async<T extends (...args: any[]) => any> = (...args: Parameters<T>) => Promised<ReturnType<T>>;
+type Async<T extends (...args: any[]) => any> = ReturnType<T> extends Promise<unknown>
+  ? T
+  : (...args: Parameters<T>) => Promise<ReturnType<T>>;
 
 /**
  * 视图服务暴露给UI层的api和ref
  */
 type ExposeViewServer<Server extends ViewServer<never, {}>> = {
-  [apiKey in keyof Server['_allowedApis']]: Async<ViewServerApi<Server, apiKey>>;
+  [apiKey in keyof Server['_allowedApis']]: Server[apiKey] extends (...args: any[]) => any ? Async<Server[apiKey]> : never;
 } & {
   [refKey in keyof Server['_allowedRefs']]: Readonly<Ref<Server['_allowedRefs'][refKey]>>;
 };
@@ -116,12 +115,21 @@ function handleStreamResponse(requestId: string, message: ViewServerApiStreamRes
  * @param api
  * @returns
  */
-function getViewServerApi(api: string): (...args: unknown[]) => Promise<unknown> {
+function getViewServerApi(api: string): (...params: unknown[]) => Promise<unknown> {
   return (...params) => {
     const requestId = `${api}-${window.crypto.randomUUID()}`;
+    const requestTimestamp = Date.now();
     serverApiConnector.send({ api: api, requestId, params: deepToRaw(params) });
     return new Promise((resolve) => {
-      pendingApis.set(requestId, resolve);
+      pendingApis.set(requestId, (res) => {
+        if (import.meta.env.DEV) {
+          console.debug('ViewServer - API:', api, '开始时间:', requestTimestamp, '响应时间:', Date.now() - requestTimestamp, '内容:', {
+            request: params,
+            response: res,
+          });
+        }
+        resolve(res);
+      });
     });
   };
 }

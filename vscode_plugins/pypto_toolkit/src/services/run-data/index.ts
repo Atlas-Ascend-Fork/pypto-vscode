@@ -18,7 +18,7 @@ const RUN_DATA_HOME = process.env.PYPTO_HOME
   : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
 type RecordOrDetail = OutputRecord & { directoryTree?: OutputDetail['directoryTree']; noDirectoryTree: boolean };
-type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath' | 'noDirectoryTree'>;
+type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath' | 'noDirectoryTree' | 'swimlaneGraphFilePath'>;
 
 const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   title: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
@@ -27,7 +27,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   sourceFilePath: { type: String },
   controlFlowFilePath: { type: String },
   computeGraphDirPath: { type: String },
-  swimlaneGraphFilePath: { type: String },
+  swimlaneGraphFilePath: { type: String, isQuery: true },
   noDirectoryTree: { type: Boolean, isQuery: true },
   directoryTree: { type: Object },
 });

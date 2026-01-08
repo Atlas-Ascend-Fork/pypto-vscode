@@ -154,5 +154,16 @@
   "pypto.setDebugMode": "设置调试模式",
   "pypto.cancelDebugMode": "取消调试模式",
   "pypto.setAllDebugMode": "全部设置调试模式",
-  "pypto.cancelAllDebugMode": "全部取消调试模式"
+  "pypto.cancelAllDebugMode": "全部取消调试模式",
+  "PyPTOToolkit.runConfig.group.pass": "Pass",
+  "PyPTOToolkit.runConfig.group.debug": "调试",
+  "PyPTOToolkit.runConfig.group.simulation": "仿真",
+  "PyPTOToolkit.runConfig.group.runtime": "运行",
+  "PyPTOToolkit.runConfig.group.others": "其他",
+  "PyPTOToolkit.public.savingSuccess": "保存成功",
+  "PyPTOToolkit.runConfig.confirmCancelMessage": "确定取消？未保存的修改将丢失。",
+  "PyPTOToolkit.runConfig.confirmCancelButton": "坚持取消",
+  "PyPTOToolkit.runConfig.revertCancelButton": "返回",
+  "PyPTOToolkit.runConfig.rule.min": "当前值不可小于 {{min}}",
+  "PyPTOToolkit.runConfig.rule.max": "当前值不可大于 {{max}}"
 }

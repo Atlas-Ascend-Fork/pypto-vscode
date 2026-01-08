@@ -74,7 +74,7 @@
   "pypto.funcHashUndefinedOnOpenSubGraph": "Unable to open the subgraph, function hash is undefined",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "Unable to open the original graph, the file does not contain the correct function hash.",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "Unable to open the comparison graph, the file does not contain the correct function hash.",
-  
+
   "pypto.comGraph.errorMessage.streamProcessing": "Error when reading JSON file: Stream processing error",
   "pypto.comGraph.errorMessage.dataOpMagicDuplication": "Error when reading JSON file: Node opmagic duplicated",
   "pypto.comGraph.errorMessage.fileRead": "Error when reading JSON file: File read error (e.g., file does not exist, permission issues)",
@@ -152,5 +152,16 @@
   "pypto.setDebugMode": "Set Debug Mode",
   "pypto.cancelDebugMode": "Cancel Debug Mode",
   "pypto.setAllDebugMode": "Set All Debug Mode",
-  "pypto.cancelAllDebugMode": "Cancel All Debug Mode"
+  "pypto.cancelAllDebugMode": "Cancel All Debug Mode",
+  "PyPTOToolkit.runConfig.group.pass": "Pass",
+  "PyPTOToolkit.runConfig.group.debug": "Debug",
+  "PyPTOToolkit.runConfig.group.simulation": "Simulation",
+  "PyPTOToolkit.runConfig.group.runtime": "Runtime",
+  "PyPTOToolkit.runConfig.group.others": "Others",
+  "PyPTOToolkit.public.savingSuccess": "Saving Success",
+  "PyPTOToolkit.runConfig.confirmCancelMessage": "Are you sure you want to cancel? Unsaved modifications will be lost.",
+  "PyPTOToolkit.runConfig.confirmCancelButton": "Insist on cancel",
+  "PyPTOToolkit.runConfig.revertCancelButton": "Return",
+  "PyPTOToolkit.runConfig.rule.min": "Current value cannot be less than {{min}}",
+  "PyPTOToolkit.runConfig.rule.max": "Current value cannot be greater than {{max}}"
 }

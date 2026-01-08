@@ -36,10 +36,10 @@ export async function openComputeGraph(params: { outputPath: string; computeGrap
 /**
  * 打开泳道图
  */
-export async function openSwimlaneGraph(params: { swimlaneGraphPath: string; isBootStep?: boolean }) {
+export async function openSwimlaneGraph(params: { swimlaneGraphPath: string; outputPath?: string; isBootStep?: boolean }) {
   const { isBootStep = false } = params;
   const uri = vscode.Uri.file(params.swimlaneGraphPath);
-  useView().editorView.open('swimGraph', uri, { query: { isBootStep } });
+  useView().editorView.open('swimGraph', uri, { query: { isBootStep, outputPath: params.outputPath } });
 }
 
 /**

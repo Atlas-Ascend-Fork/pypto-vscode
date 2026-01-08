@@ -121,13 +121,10 @@ const visibleTreeData = computed(() => [...treeData.value]);
 function nodeClick(node: DevUITreeNode): void {
   if (node.fileType === 'controlFlow') {
     // 打开控制流
-    openControlFlow({
-      controlFlowPath: node.absolutePath,
-      outputPath: node.outputPath,
-    });
+    openControlFlow({ controlFlowPath: node.absolutePath, outputPath: node.outputPath });
   } else if (node.fileType === 'swimlaneGraph') {
     // 打开泳道图
-    openSwimlaneGraph({ swimlaneGraphPath: node.absolutePath });
+    openSwimlaneGraph({ swimlaneGraphPath: node.absolutePath, outputPath: node.outputPath });
   } else if (node.fileType === 'computeGraph') {
     // 打开计算图
     openComputeGraph({

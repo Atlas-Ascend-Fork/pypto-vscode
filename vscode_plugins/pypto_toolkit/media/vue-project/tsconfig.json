@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "module": "ES2022",
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "noImplicitOverride": true,
+    "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"],
       "ext:/*": ["../../src/*"]
