@@ -20,6 +20,7 @@
     </div>
     <div v-if="isLocked && lockPosition" 
          class="lock-indicator"
+         id="guideEditorLock"
          @click="unLockClick"
          :style="{
            top: lockPosition.top + 'px',
@@ -61,6 +62,7 @@ const lightThemeLightColors = lithtThemeColors.lightColorList;
 const containerRef = ref(null);
 const loadingText = ref($t('loadCode'));
 const loading = ref(true);
+const guideEditor = ref(false);
 let editor = null;
 let lastSentLabel = '';
 let lastMoveLabel = null;
@@ -461,6 +463,10 @@ const handleMouseMove = throttle((e) => {
     return;
   }
   const { position } = e.target;
+  simulateMouseMove(position);
+}, 100);
+
+const simulateMouseMove = (position) => {
   const currentLabel = findSemanticLabelAtPosition(position);
   if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
     updateHoverDecoration(position);
@@ -480,8 +486,7 @@ const handleMouseMove = throttle((e) => {
     updateHoverDecoration(null);
     return;
   }
-}, 100);
-
+};
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
   if (!editor) {
@@ -676,6 +681,51 @@ const updateTheme = () => {
   deactivateLock();
 });
 
+// 监听引导模式的消息
+const listenExtensionMessage = () => {
+  window.ascEventBus.on('boot-step-tips', (event) => {
+    const message = event.data;
+    if (event.type === 'welcomeSkipAll') {
+      threeColumnServer.closeWebview();
+    }
+    if (event.type == 'callWebviewMethod') {
+      switch (message.methodName) {
+        case 'viewThreeColumnGraph':
+          if (guideEditor.value) {
+            guideEditor.value = !guideEditor.value;
+            updateBkDecoration(lockedLabel, false);
+            deactivateLock();
+            clearLabelInfo();
+            let positionGuide = {
+              "lineNumber": 1,
+              "column": 1
+            };
+            simulateMouseMove(positionGuide);
+            editor.revealLineInCenter(1);
+          }
+          break;
+        case 'lockThreeColumnGraph': {
+          guideEditor.value = true;
+          let positionGuide = {
+            "lineNumber": 140,
+            "column":37
+          };
+          editor.revealLineInCenter(140);
+          simulateMouseMove(positionGuide);
+          // simulate click
+          isLocked.value = true;
+          lockedLabel = lastMoveLabel;
+          updateBkDecoration(lockedLabel, true);
+          sendMsg('activeLock', { label: lastMoveLabel.name });
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  });
+};
+
 const sendMsg = (command, param) => {
   Promise.resolve().then(() => {
     (window as any).ascEventBus.emit(command, param);
@@ -703,6 +753,7 @@ onMounted(() => {
   nextTick(() => {
   threeColumnServer.getPyCode();
   });
+  listenExtensionMessage();
 });
 
 onUnmounted(() => {

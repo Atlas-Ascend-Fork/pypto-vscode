@@ -24,7 +24,7 @@ export interface GuideStepConfig {
 // 定义大组配置类型
 export interface GuideBigGroupConfig {
   groupName: string; // 大组名称（国际化key）
-  webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph' | 'step3Guide'; // 对应WebView类型
+  webviewType: 'controlFlow' | 'navigation' | 'computeGraph' | 'swimlaneGraph' | 'threeColumnGraph'; // 对应WebView类型
   openWebviewFn?: string; // 打开该WebView的方法
   openWebviewParams?: Record<string, any> | null; // 打开WebView的参数
   steps: GuideStepConfig[]; // 该组的小步骤配置
@@ -327,26 +327,39 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
 // 全局引导步骤3配置（需要替换为真实三联动引导步骤）
 export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
   {
-    groupName: 'bootStep.step3.groupName', 
-    webviewType: 'step3Guide', 
+    groupName: 'bootStep.threeColumnGraph.groupName', 
+    webviewType: 'threeColumnGraph', 
     openWebviewFn: undefined, 
     openWebviewParams: null, 
     imgUrl: '', 
     showProgressBar: false,
     steps: [
       {
-        title: 'bootStep.navigation.step1.title',
-        content: 'bootStep.navigation.step1.content',
-        method: 'viewNavigationHistory',
+        title: 'bootStep.threeColumnGraph.step1.title',
+        content: 'bootStep.threeColumnGraph.step1.content',
+        method: 'viewThreeColumnGraph',
         methodParams: {},
         targetDomConfigs: [
           {
-            targetDomId: 'boot-steps-navbar-history',
-            triangleDirection: 'top',
-            showTriangle: true,
+            targetDomId: 'guideThreeColumn',
+            triangleDirection: 'right',
+            showTriangle: false,
           },
         ],
       },
+      {
+        title: 'bootStep.threeColumnGraph.step2.title',
+        content: 'bootStep.threeColumnGraph.step2.content',
+        method: 'lockThreeColumnGraph',
+        methodParams: {},
+        targetDomConfigs: [
+          {
+            targetDomId: 'guideEditorLock',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+        ],
+      },      
     ],
   },
 ];
