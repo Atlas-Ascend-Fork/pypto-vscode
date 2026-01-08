@@ -14,9 +14,7 @@ let pythonOutputChannel: vscode.OutputChannel | undefined;
  * @returns 单例 Output Channel
  */
 export function getPythonOutputChannel(): vscode.OutputChannel {
-  if (!pythonOutputChannel) {
-    pythonOutputChannel = vscode.window.createOutputChannel(`${t('PyPTOToolkit.welcome.runPython.channel')}`);
-  }
+  pythonOutputChannel = vscode.window.createOutputChannel(`${t('PyPTOToolkit.welcome.runPython.channel')} ${new Date().toLocaleString()}`);
   return pythonOutputChannel;
 }
 
@@ -213,15 +211,11 @@ export function getExtensionMode() {
 
 async function checkDependencies(outputChannel: vscode.OutputChannel, address: string) {
   // 定义需安装的依赖
-  const dependencies = [ 'numpy', 'torch']; // 注意:pypto若为自定义包需确认pip源可下载
+  const dependencies = ['numpy', 'torch']; 
   outputChannel.clear();
 
   // 安装依赖,失败则终止执行
   const installSuccess = await installPythonDependencies(dependencies, outputChannel, address);
-  if (!installSuccess) {
-    return false;
-  }
-  return true
 }
 
 /**
@@ -234,14 +228,14 @@ async function checkDependencies(outputChannel: vscode.OutputChannel, address: s
 export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
     // 执行 Python 文件,获取输出结果
-    outputChannel.appendLine(`[start check ] ${new Date().toLocaleString()}`);
+    outputChannel.appendLine(`[start check] ${new Date().toLocaleString()}`);
     await checkDependencies(outputChannel, address);
     outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
     const result = await executePythonFile(pythonFilePath, extensionRoot);
 
     // 处理输出结果
     if (result.success) {
-      outputChannel.appendLine(`[state] Success ${new Date().toLocaleString()}` );
+      outputChannel.appendLine(`[state] Success ${new Date().toLocaleString()}`);
       outputChannel.appendLine(`[result stdout] ${result.stdout}`);
       return true;
     } else {
