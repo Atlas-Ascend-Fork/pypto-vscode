@@ -390,6 +390,18 @@ export default {
             title: 'Swimlane Graph - Jump to Computation Graph',
             content: 'Supports jumping to the computation graph based on rootHash and leafHash.'
           }
+        },
+        // 三栏视图
+        threeColumnGraph: {
+          groupName: 'Three Column Graph',
+          step1: {
+            title: 'View Three Column Graph',
+            content: 'The code, compute graph, and swimlane graph are displayed in a page view. The three diagrams are associated with semantic tags to help developer quickly understand the whole process from code implementation to corresponding calculation graph expression to the final performance of the onboard swimlane graph.'
+          },
+          step2: {
+            title: 'Lock Mode',
+            content: 'Click the lock button in any of the three-column graph to enable lock mode.'
+          },          
         }
       }
 }

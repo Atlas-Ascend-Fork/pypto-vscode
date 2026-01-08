@@ -55,6 +55,7 @@
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
     <ComGraphMinimap ref="minimapEl" :width="200" :height="124"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
+    <div v-if="showGuideAnchor" id="guideThreeColumn" class="guide-three-column-anchor"></div>
   </div>
 </template>
 
@@ -116,6 +117,7 @@ const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGr
 ) as IThreeColumnCtx;
 const { server } = useViewServer<IComViewServer>();
 const isLoading = ref(false);
+const showGuideAnchor = ref(false);
 const loadingText = ref('');
 const warningText = ref('');
 const graphType = ref('');
@@ -164,6 +166,7 @@ window.addEventListener('message', (event) => {
   if (event.data.type === 'postLayoutResult') {
     isLoading.value = false;
     loadingText.value = '';
+    showGuideAnchor.value = true;
   }
 });
 
@@ -494,6 +497,7 @@ onMounted(() => {
   (window as any).ascEventBus.on('layoutEnding', (args) => {
     isLoading.value = false;
     loadingText.value = '';
+    showGuideAnchor.value = true;
   });
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
@@ -519,6 +523,13 @@ onBeforeUnmount(() => {
   height: 100%;
   position: relative;
   background-color: var(--devui-global-bg);
+  .guide-three-column-anchor {
+    position: absolute;
+    top: 50%;
+    left: 40%;
+    z-index: -1;
+    visibility: hidden;
+  }
 
   &.show-sticky-block {
     .sticky-block {
