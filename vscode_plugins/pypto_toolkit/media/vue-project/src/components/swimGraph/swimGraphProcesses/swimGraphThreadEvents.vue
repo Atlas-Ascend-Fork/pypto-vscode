@@ -2039,7 +2039,7 @@ watch(isDarkTheme, () => {
   flagRender();
 });
 const listenExtensionMessage = async () => {
-  if (await getIsCompleteBoot()) {
+  if (await getIsCompleteBoot() && !isThreeColumn) {
     guideDistanceMeasurement();
   }
 };

@@ -389,6 +389,18 @@ export default {
             title: '泳道图-跳转计算图',
             content: '支持根据rootHash和leafHash跳转至计算图。'
           }
+        },
+        // 三栏视图
+        threeColumnGraph: {
+          groupName: '三联动视图',
+          step1: {
+            title: '查看三联动视图',
+            content: '在一个页面视图里同时展示代码、计算图和泳道图，三者通过语义标签关联，帮助开发者快速理解从代码实现到对应的计算图表达，再到上板泳道图最终的性能表现的整个过程。'
+          },
+          step2: {
+            title: '锁定模式',
+            content: '在三栏视图的任一视图点击锁定按钮，即可开启锁定模式。'
+          },          
         }
       }
 }
