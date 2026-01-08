@@ -1,13 +1,13 @@
 import path from 'node:path';
 
 import { t } from 'i18next';
-import { has, get, set } from 'lodash-es';
+import { get, set } from 'lodash-es';
 import * as vscode from 'vscode';
 
 import { RunConfigSchema } from '../../types/config-schema/config-schema';
 
-import { readFwkData, writeFileData, getJsonFileList, delFile, CONFIG_FILE_NAME } from './configdata';
-import { formatSchemaToGroups, readSchemaData } from './schemadata';
+import { readFwkData, writeFileData, getJsonFileList, delFile } from './configdata';
+import { formatSchemaToAttributeGroups, readSchemaData } from './schemadata';
 
 /** PYPTO配置文件目录文件夹名 */
 const CONFIG_PATH = 'config';
@@ -41,23 +41,6 @@ export async function delCustomFile(configPath: string) {
   await delFile(tileFwkCustomConfigUri);
 }
 
-/**
- * 新增自定义配置文件
- * @param fileName 新增的配置文件名
- */
-export async function addNewFwkConfigFile(fileName: string) {
-  try {
-    const newFwkConfigFileUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, CUSTOM_CONFIG_PATH, `${fileName}.json`);
-    const defaultFwkConfigUri = vscode.Uri.joinPath(vscode.Uri.file(RUN_DATA_HOME), CONFIG_PATH, CONFIG_FILE_NAME);
-    const defaultFwkConfigData = await readFwkData(defaultFwkConfigUri);
-    await writeFileData(newFwkConfigFileUri, defaultFwkConfigData);
-    return true;
-  } catch (err) {
-    vscode.window.showErrorMessage(`${(err as Error).message}`);
-    return false;
-  }
-}
-
 const configGroups = [
   { key: 'pass', label: () => t('PyPTOToolkit.runConfig.group.pass'), glob: ['pass.*'] },
   {
@@ -78,7 +61,7 @@ export async function getConfigsTemplate(): Promise<RunConfigSchema | null> {
   if (!schemaData) {
     return null;
   }
-  const groupMap = formatSchemaToGroups(schemaData, configGroups);
+  const groupMap = formatSchemaToAttributeGroups(schemaData, configGroups);
   const groups: RunConfigSchema = [];
   for (const { key, label } of configGroups) {
     if (groupMap[key]?.length > 0) {
@@ -89,28 +72,28 @@ export async function getConfigsTemplate(): Promise<RunConfigSchema | null> {
 }
 
 /**
- * 获取指定Config仿真与Pass数据
+ * 获取指定Config数据
  * @param path 文件路径
  */
-export async function getConfigsForRevise(path: string): Promise<object> {
+export async function getConfigsForRevise(path: string, schema: RunConfigSchema): Promise<Record<string, unknown>> {
   const configUri = vscode.Uri.file(path);
-  if (!configUri) {
-    return {
-      tag: false,
-      simulationConfig: {},
-      passConfig: {},
-    };
+  const originalConfigData = await readFwkData(configUri);
+  const configFormData: Record<string, unknown> = {};
+  for (const group of schema) {
+    for (const attribute of group.attributes) {
+      configFormData[attribute.key] = get(originalConfigData, attribute.key);
+    }
   }
-  return await readFwkData(configUri);
+  return configFormData;
 }
 
 /**
  * 更新指定Config仿真与Pass数据
  * @param path 文件路径
- * @param data 包含simulationConfig和passConfig的对象
+ * @param formData 表单数据
  * @returns 是否更新成功
  */
-export async function updateConfigsFile(path: string, data: object, schema: RunConfigSchema) {
+export async function updateConfigsFile(path: string, formData: Record<string, unknown>, schema: RunConfigSchema) {
   try {
     const configUri = vscode.Uri.file(path);
     const configData = await readFwkData(configUri);
@@ -118,7 +101,7 @@ export async function updateConfigsFile(path: string, data: object, schema: RunC
       return false;
     }
 
-    const savingData = assignDeepWithSchema(configData, data, schema);
+    const savingData = assignDeepWithSchema(configData, formData, schema);
     await writeFileData(configUri, savingData);
     return true;
   } catch (error) {
@@ -133,13 +116,13 @@ export async function updateConfigsFile(path: string, data: object, schema: RunC
  * @param source 源对象
  * @returns 合并后的对象
  */
-function assignDeepWithSchema(target: object, source: object, schema: RunConfigSchema): any {
+function assignDeepWithSchema(target: object, source: Record<string, unknown>, schema: RunConfigSchema): any {
   const result = { ...target };
 
   for (const group of schema) {
     for (const attribute of group.attributes) {
-      if (has(source, attribute.key)) {
-        set(result, attribute.key, get(source, attribute.key));
+      if (Reflect.has(source, attribute.key)) {
+        set(result, attribute.key, Reflect.get(source, attribute.key));
       }
     }
   }

@@ -165,11 +165,7 @@ export class SqlStore<
    */
   private _execCount = async (conditions: string): Promise<number> => {
     const queryResult = await this._execOneSelect(`SELECT count(*) as cnt FROM ${this.storeName} ${conditions}`);
-    let result = 0;
-    if (queryResult && queryResult.values[0][0]) {
-      result = Number(queryResult.values[0][0]);
-    }
-    return result;
+    return Number(queryResult?.values[0][0] ?? 0);
   };
 
   /**

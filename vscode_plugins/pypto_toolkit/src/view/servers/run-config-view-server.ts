@@ -16,11 +16,15 @@ export class RunConfigViewServer extends ViewServer<Apis, Refs> {
   private fileUri: vscode.Uri;
 
   private schema: RunConfigSchema | null;
+  private pendingSchemaRequest: Promise<unknown>;
 
   public override created(ctx: ViewServerContext): void {
     this.fileUri = ctx.fileUri!;
     this.setRef('filename', path.basename(this.fileUri.path));
     this.setRef('filepath', this.fileUri.path);
+    this.pendingSchemaRequest = getConfigsTemplate().then((res) => {
+      this.schema = res;
+    });
   }
 
   /**
@@ -28,7 +32,7 @@ export class RunConfigViewServer extends ViewServer<Apis, Refs> {
    */
   @viewApi()
   public async getSchema(): Promise<RunConfigSchema | null> {
-    this.schema = await getConfigsTemplate();
+    await this.pendingSchemaRequest;
     return this.schema;
   }
 
@@ -36,15 +40,19 @@ export class RunConfigViewServer extends ViewServer<Apis, Refs> {
    * 获取配置
    */
   @viewApi()
-  public getConfigData(): Promise<object> {
-    return getConfigsForRevise(this.fileUri.path);
+  public async getConfigData(): Promise<Record<string, unknown>> {
+    await this.pendingSchemaRequest;
+    if (!this.schema) {
+      return {};
+    }
+    return await getConfigsForRevise(this.fileUri.path, this.schema);
   }
 
   /**
    * 保存配置
    */
   @viewApi()
-  public async saveConfigData(data: object): Promise<boolean> {
+  public async saveConfigData(data: Record<string, unknown>): Promise<boolean> {
     if (!this.schema) {
       return false;
     }

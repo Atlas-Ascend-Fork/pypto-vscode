@@ -13,24 +13,32 @@
         </template>
       </div>
     </div>
-    <d-form v-if="schema" class="tab-form" layout="vertical" size="normal" :data="configData">
-      <d-tabs class="custom-tabs" v-model="activeTab">
-        <template v-for="tab in schema" :key="tab.key">
-          <!-- 页签 -->
-          <d-tab class="sub-form" :id="tab.key" :title="tab.label">
-            <template v-for="attribute in tab.attributes" :key="attribute.key">
-              <!-- 表单项 -->
-              <d-form-item class="config-form-item" :field="attribute.key" :label="getLocalLabel(attribute.label)">
-                <RunConfigController
-                  :attribute="attribute"
-                  :model-value="getValue(attribute)"
-                  @update:model-value="updateValue(attribute, $event)"
-                />
-              </d-form-item>
-            </template>
-          </d-tab>
-        </template>
-      </d-tabs>
+    <d-tabs class="custom-tabs" v-model="activeTab" :show-content="false">
+      <template v-for="tab in schema" :key="tab.key">
+        <d-tab :id="tab.key" :title="tab.label"> </d-tab>
+      </template>
+    </d-tabs>
+    <d-form v-if="schema" ref="formRef" class="tab-form" layout="vertical" size="normal" :data="configData" message-type="text">
+      <template v-for="tab in schema" :key="tab.key">
+        <!-- 页签 -->
+        <div v-show="activeTab === tab.key" class="sub-form">
+          <template v-for="attribute in tab.attributes" :key="attribute.key">
+            <!-- 表单项 -->
+            <d-form-item
+              class="config-form-item"
+              :field="attribute.key"
+              :label="getLocalLabel(attribute.label)"
+              :rules="getFormItemRules(attribute, tab.key)"
+            >
+              <RunConfigController
+                :attribute="attribute"
+                :model-value="getValue(attribute)"
+                @update:model-value="updateValue(attribute, $event)"
+              />
+            </d-form-item>
+          </template>
+        </div>
+      </template>
     </d-form>
     <div v-else class="no-schema-tip">{{ $t('runConfig.noSchemaFound') }}</div>
   </div>
@@ -46,6 +54,7 @@ import PtoButton from '@/components/ui/PtoButton.vue';
 import { useViewServer } from '@/core/use-view-server';
 
 import RunConfigController from './RunConfigController.vue';
+import { throttle } from 'lodash-es';
 
 type Label = { zh: string; en: string };
 
@@ -58,44 +67,70 @@ const { server } = useViewServer<RunConfigViewServer>();
 const { filename, filepath } = server;
 
 const schema = ref<RunConfigSchema | null>([]);
-const configData = ref<object>({});
+
+const activeTab = ref<string>();
+
+function switchTab(tabKey: string) {
+  activeTab.value = tabKey;
+}
+
+const throttledSwitchTab = throttle(switchTab, 200);
+
+const configData = ref<Record<string, any>>({});
 
 onMounted(async () => {
   schema.value = await server.getSchema();
-  initializeTabs();
+  activeTab.value = schema.value[0].key;
   configData.value = await server.getConfigData();
 });
 
-type Tab = { index: string; label: string };
-
-const tabs = ref<Tab[]>();
-const activeTab = ref<string>();
-function initializeTabs() {
-  tabs.value = schema.value.map(({ key, label }) => {
-    return { index: key, label: label };
-  });
-  activeTab.value = tabs.value[0].index;
-}
-
-function getValue<T extends RunConfigAttribute<any>>(attribute: T): T['defaultValue'] {
-  const keyPath = attribute.key.split('.');
-  return keyPath.reduce((res, subKey) => res?.[subKey], configData.value) ?? attribute.defaultValue;
+function getValue<T extends RunConfigAttribute>(attribute: T): T['defaultValue'] {
+  return Reflect.get(configData.value, attribute.key) ?? attribute.defaultValue;
 }
 
 function updateValue<T extends RunConfigAttribute<any>>(attribute: T, value: T['defaultValue']): void {
-  const keyPath = attribute.key.split('.');
-  let parentObject = configData.value;
-  keyPath.slice(0, -1).forEach((subKey) => {
-    if (!Reflect.has(parentObject, subKey)) {
-      Reflect.set(parentObject, subKey, {});
-    }
-    parentObject = Reflect.get(parentObject, subKey);
-  });
-  Reflect.set(parentObject, keyPath.at(-1), value);
+  Reflect.set(configData.value, attribute.key, value);
 }
 
+function getFormItemRules(attribute: RunConfigAttribute, tabKey: string): object[] {
+  return [
+    {
+      validator: (_, value, callback) => {
+        const emptyValue = value === null || value === undefined;
+        function showValidateError(message: string) {
+          callback(new Error(message));
+          throttledSwitchTab(tabKey);
+        }
+        for (const rule of attribute.rules) {
+          // 判断空值
+          if (rule.required && emptyValue) {
+            return showValidateError(rule.message);
+          } else if (emptyValue) {
+            continue;
+          }
+
+          // 判断值范围
+          if (Reflect.has(rule, 'min') && value < rule.min) {
+            return showValidateError(rule.message);
+          }
+          if (Reflect.has(rule, 'max') && value > rule.max) {
+            return showValidateError(rule.message);
+          }
+        }
+        return callback();
+      },
+      trigger: 'blur',
+    },
+  ];
+}
+
+const formRef = ref();
 function handleSave() {
-  server.saveConfigData(configData.value);
+  formRef.value.validate((isValid) => {
+    if (isValid) {
+      server.saveConfigData(configData.value);
+    }
+  });
 }
 
 function handleCancel() {
@@ -137,38 +172,36 @@ function handleViewSourceFile() {
   }
 }
 
-.tab-form {
-  height: calc(100% - 58px);
+.custom-tabs {
+  :deep(.devui-tabs__nav--tabs) {
+    li {
+      margin-left: 24px;
 
-  .custom-tabs {
-    height: 100%;
+      &:first-child {
+        margin-left: 0;
+      }
 
-    :deep(.devui-tabs__nav--tabs) {
-      li {
-        margin-left: 24px;
-
-        &:first-child {
-          margin-left: 0;
+      &.active,
+      &:hover:not(.disabled) {
+        a {
+          color: var(--pto-font-color-title);
         }
 
-        &.active,
-        &:hover:not(.disabled) {
-          a {
-            color: var(--pto-font-color-title);
-          }
-
-          &::after {
-            background-color: var(--pto-font-color-title);
-          }
+        &::after {
+          background-color: var(--pto-font-color-title);
         }
       }
     }
+  }
+}
 
-    .sub-form {
-      height: calc(100% - 44px);
-      padding: 8px;
-      overflow-y: auto;
-    }
+.tab-form {
+  height: calc(100% - 58px - 34px);
+
+  .sub-form {
+    height: 100%;
+    padding: 8px;
+    overflow-y: auto;
   }
 }
 
