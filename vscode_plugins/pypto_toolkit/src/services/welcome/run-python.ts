@@ -66,7 +66,7 @@ async function installPythonDependencies(dependencies: string[], outputChannel: 
     const isWindows = os.platform() === 'win32';
     const pythonCmd = isWindows ? 'python' : 'python3';
     // 构建pip安装命令（传入镜像地址）
-    const pipArgs = ['-m', 'pip', 'install', '--user', '--upgrade', '-i', address, ...missingDeps];
+    const pipArgs = ['-m', 'pip', 'install', '--user', '--upgrade', ...missingDeps];
 
     outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.install.start')}:${missingDeps.join(', ')}`);
     outputChannel.appendLine(`${t('PyPTOToolkit.welcome.runPython.install.command')}:${pythonCmd} ${pipArgs.join(' ')}`);
@@ -163,8 +163,8 @@ export async function executePythonFile(pythonFilePath: string, cwd: string): Pr
     const execOptions = {
       cwd,
       encoding: 'utf8',
-      timeout: 10000,
-      maxBuffer: 1024 * 1024,
+      timeout: 100000,
+      maxBuffer: 1024 * 1024 * 10,
       env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
     };
 
@@ -213,7 +213,7 @@ export function getExtensionMode() {
 
 async function checkDependencies(outputChannel: vscode.OutputChannel, address: string) {
   // 定义需安装的依赖
-  const dependencies = ['argparse', 'numpy', 'torch']; // 注意:pypto若为自定义包需确认pip源可下载
+  const dependencies = [ 'numpy', 'torch']; // 注意:pypto若为自定义包需确认pip源可下载
   outputChannel.clear();
 
   // 安装依赖,失败则终止执行
@@ -234,17 +234,18 @@ async function checkDependencies(outputChannel: vscode.OutputChannel, address: s
 export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
     // 执行 Python 文件,获取输出结果
-    outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
+    outputChannel.appendLine(`[start check ] ${new Date().toLocaleString()}`);
     await checkDependencies(outputChannel, address);
+    outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
     const result = await executePythonFile(pythonFilePath, extensionRoot);
 
     // 处理输出结果
     if (result.success) {
-      outputChannel.appendLine(`[state] Success`);
+      outputChannel.appendLine(`[state] Success ${new Date().toLocaleString()}` );
       outputChannel.appendLine(`[result stdout] ${result.stdout}`);
       return true;
     } else {
-      outputChannel.appendLine(`[state] error`);
+      outputChannel.appendLine(`[state] error ${new Date().toLocaleString()}`);
       outputChannel.appendLine(`[error message] ${result.error?.message || 'undefined'}`);
       outputChannel.appendLine(`[error stderr] ${result.stderr}`);
       return false;
