@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import { t } from 'i18next';
-import { get, set } from 'lodash-es';
+import { get, set } from 'lodash';
 import * as vscode from 'vscode';
 
 import { RunConfigSchema } from '../../types/config-schema/config-schema';
