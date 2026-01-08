@@ -19,7 +19,7 @@ export function openComputeGraph(params: { outputPath?: string; computeGraphPath
 /**
  * 打开泳道图
  */
-export function openSwimlaneGraph(params: { swimlaneGraphPath: string; isBootStep?: boolean }) {
+export function openSwimlaneGraph(params: { swimlaneGraphPath: string; outputPath?: string; isBootStep?: boolean }) {
   return request.post(`${OPENER_PREFIX}/openSwimlaneGraph`, params);
 }
 
@@ -40,6 +40,6 @@ export function openPyPTOWelcome() {
 /**
  * 打开三联动视图
  */
-export function openThreeColumnGraph(params: { isBootStep?: boolean , sameplePath:string}) {
+export function openThreeColumnGraph(params: { isBootStep?: boolean; sameplePath: string }) {
   return request.post(`${OPENER_PREFIX}/openThreeColumnGraph`, params);
 }
