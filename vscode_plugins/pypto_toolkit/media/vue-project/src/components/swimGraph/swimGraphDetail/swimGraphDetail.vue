@@ -188,7 +188,7 @@
                   </div>
                   <div class="detail-level display-containner">
                     <div>{{$t('taskConnectionLevel') + ':'}}</div>
-                    <d-input-number class="input-number-container" ref="inputNumberRef"  v-model="connectionLevel" :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number> 
+                    <d-input-number class="input-number-container" :class="{'locked-style': isPathLockStatus}" ref="inputNumberRef"  v-model="connectionLevel" :step="1" :disabled=isPathLockStatus :precision="0" :min="-1" @change="onInputChange"></d-input-number> 
                     <d-tooltip :content="$t('connectionLevel')">
                       <d-icon name="icon-helping" class="help-font"></d-icon>
                     </d-tooltip>
@@ -240,6 +240,7 @@ const {
   bindButton,
   isDarkTheme,
   highlightedPaths,
+  isPathLockStatus,
 } = inject('swimGraphState');
 
 const {
@@ -530,6 +531,16 @@ defineExpose({
   
   .input-number-container .devui-input-number__control-buttons .control-button.control-inc svg {
     top: 0;
+  }
+
+  .input-number-container.locked-style {
+    background-color: var(--devui-input-bg) !important;
+    height: 28px;
+    border-color: transparent;
+    input {
+      background-color: transparent !important;
+      border-color: transparent;
+    }
   }
   .argsTabs {
     .devui-tabs__nav--tabs li {

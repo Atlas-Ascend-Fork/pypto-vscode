@@ -33,7 +33,10 @@ import { ref, inject, watch, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
+import { COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+const { isDarkTheme } = inject('root');
 
+let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 const { server } = useViewServer();
 const { t: $t } = useI18n();
 const {
@@ -120,11 +123,23 @@ const OnTextChange = (value) => {
     saveRendingMode(modeOption.value, textOption.value);
 };
 
+const configGetEventColor = (colorEvent, mode) => {
+    const color = getEventColorByMode(colorEvent, mode);
+    colorEvent.color = color;
+    const eventColor = isDarkTheme.value ? colorEvent.color.dark : colorEvent.color.light;
+    let fillColor = eventColor ? eventColor.base : '';
+    let fontColor = colorCfg.eventFont;
+    let strokeColor = '';
+
+    const colors = { fillColor, fontColor, strokeColor };
+    return colors;
+};
+
 const OnModeChange = () => {
     const updateEventColor = (event, mode) => {
         const color = getEventColorByMode(event, mode);
         event.color = color;
-        const { fillColor, fontColor, strokeColor } = childContextMap.threadEvent.getEventColor(event, event.renderInfo.processKey);
+        const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
         event.drawData.rectColor = fillColor;
         event.drawData.strokeColor = strokeColor;
         event.drawData.fontColor = fontColor;

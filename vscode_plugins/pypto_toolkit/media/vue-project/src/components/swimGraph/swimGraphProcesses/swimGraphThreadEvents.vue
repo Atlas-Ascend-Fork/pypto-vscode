@@ -217,16 +217,25 @@ const handleCanvasClick = (e) => {
 
   // 检查是否点击了事件
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
+  canvasclickedEvent.value = clickedEvent;
   // 锁定时的点击处理
   if (isPathLockStatus.value) {
     detailsPanelExpanded.value = false;
     if (clickedEvent) {
+      if(e.altKey){
+        // 清空hover画布 
+        onHoverEvent();
+        measureDistance(clickedEvent, props.processKey);
+        return;
+      }
       selectedEvent.value = clickedEvent;
       detailsPanelExpanded.value = true;
+      onHoverEvent();
+      changeNodeColor(props.processKey, selectedEvent.value);
+      drawNodeHeight(clickedEvent, props.processKey);
     }
     return;
   }
-  canvasclickedEvent.value = clickedEvent;
   if (isThreeColumn) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (isPointInPolygon) {
@@ -253,6 +262,7 @@ const handleCanvasClick = (e) => {
       isClickedPath.value = true;
     }
   } else {
+    isClickedPath.value = false;
     canvasStatusReset();
   }
 };
@@ -272,12 +282,12 @@ const handleCanvasRightClick = (e) => {
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
   const canvasCSSWidth = viewState.canvasCssWidth;
-  if (x + 200  > canvasCSSWidth) {
-      leftX.value = x - 100;
+  if (e.clientX + 200  > canvasCSSWidth) {
+      leftX.value = e.clientX - layout.processLabelWidth - 100;
   } else {
-      leftX.value = x + 10;
+      leftX.value = e.clientX - layout.processLabelWidth + 10;
   }
-  topX.value = y + 10;
+  topX.value = y  + 10;
 
   const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
   if (clickedEvent) {
@@ -346,9 +356,13 @@ onMounted(() => {
 
     if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
     (e.key === 'l' || e.key === 'L')) {
-      if (selectedEvent.value) {
+      if (canvasclickedEvent.value) {
         isPathLockStatus.value = true;
         switchLockInformationFlag.value = false;
+        if (isClickedPath) {
+          pathLockedMethod(canvasclickedEvent.value);
+          isClickedPath.value = false;
+        }
       }
     }
 
@@ -1741,6 +1755,11 @@ const hideTooltip = () => {
 
 const hideLineTooltip = () => {
   lineTooltipStyle.display = 'none';
+};
+
+const drawNodeHeight = (event, processKey) => {
+  const uiCtx = getUIContext(processKey);
+  measureRenderer.drawNodeRoundedRect(uiCtx, event, processKey);
 };
 
 const measureDistance = (event, processKey) => {

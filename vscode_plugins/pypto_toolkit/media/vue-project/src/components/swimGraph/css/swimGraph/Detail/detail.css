@@ -443,6 +443,7 @@
 }
 
 .noPmu {
+  color: var(--devui-tooltip-text);
   position: relative;
   top: 20px;
 }
