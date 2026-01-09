@@ -23,6 +23,7 @@ export class AscppDagBuilder {
     nodeSet = new Set<string>();
     outcastUnique = new Set<string>();
     emptyNodesList = new Set<string>();
+    emptyOutputSet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
     comGraphData;
@@ -130,6 +131,17 @@ export class AscppDagBuilder {
             // Create tensor nodes if enabled
             if (showTensorNodes) {
                 this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, errNodeList);
+            } else {
+                if (actualData.tensors && Array.isArray(actualData.tensors)) {
+                    for (const tensor of actualData.tensors) {
+                        const tensorMagic = String(tensor.magic);
+                        const isIncast = inoutMap.get('incasts')?.has(tensorMagic) ?? false;
+                        const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
+                        if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
+                            this.outcastUnique.add(tensorMagic);
+                        }
+                    }
+                }
             }
 
             // Create input and output nodes
@@ -158,7 +170,7 @@ export class AscppDagBuilder {
                             id: `edge-fanout-${rawTensorId}-prod${prodIndex}-${producer.portId}-to-cons${consIndex}-${consumer.portId}`,
                             sourceId: producer.portId,
                             targetId: consumer.portId,
-                            ...(this.emptyNodesList.has(consumer.portId) ? { cssClasses: ['dashed-edge'] } : {})
+                            ...(this.emptyNodesList.has(producer.portId) ? { cssClasses: ['dashed-edge'] } : {})
                         });
                     }
                 }
@@ -2015,7 +2027,7 @@ export class AscppDagBuilder {
                             id: `edge-${opId}-to-${tensorMagic}-${index}`,
                             sourceId: portId,
                             targetId: consumer.portId,
-                            ...(this.outcastUnique.has(tensorMagic) ? {} : { cssClasses: ['dashed-edge'] })
+                            ...((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) ? {} : { cssClasses: ['dashed-edge'] })
                         });
                         callTargetId = consumer.portId;
                     }
@@ -2027,7 +2039,7 @@ export class AscppDagBuilder {
                         sourceId: `${opId}-out`,
                         // targetId: `${nodeId}-in`
                         targetId: `${tensorNodeId}-in`,
-                        ...(this.outcastUnique.has(tensorMagic) ? {} : { cssClasses: ['dashed-edge'] })
+                        ...((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) ? {} : { cssClasses: ['dashed-edge'] })
                     });
                     callTargetId = `${tensorNodeId}-in`;
                 }
@@ -2042,9 +2054,12 @@ export class AscppDagBuilder {
                     }
                     rawTensorProducers.get(rawTensorId)!.push({ nodeId: opId, portId });
                 }
+                if (this.emptyOutputSet.has(tensorMagic)) {
+                    this.emptyNodesList.add(portId);
+                }
             }
-
-            if (op.opcode === "COPY_OUT") {
+            
+            if (op.opcode === "COPY_OUT" || op.opcode === "ASSEMBLE") {
                 const hasOut = this.outcastUnique.has(tensorMagic);
                 if (!hasOut) {
                     const emptyNode: AstgrNode = this.createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
@@ -2058,9 +2073,10 @@ export class AscppDagBuilder {
                                 rawTensorConsumers.set(rawTensorId, []);
                             }
                             rawTensorConsumers.get(rawTensorId)!.push({ nodeId: emptyNodeId, portId: emptyPortId });
-                            this.emptyNodesList.add(emptyPortId);
+                            this.emptyNodesList.add(portId);
                         }
                     }
+                    this.emptyOutputSet.add(tensorMagic);
                     this.outcastUnique.add(tensorMagic);
                 }
             }
