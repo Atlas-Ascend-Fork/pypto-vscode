@@ -278,7 +278,7 @@ function onNodeHiddenMessageNotice(text) {
 function onViewMouseUp(node) {
   if (node.type === 'graph' || node.id.startsWith('parent')) {
     showNodeDetail.value = false;
-  } else if (node.id.endsWith('label-main')) {
+  } else if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     nodeId.value = node.id;
     showNodeDetail.value = true;
   }

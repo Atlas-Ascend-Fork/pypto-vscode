@@ -35,6 +35,7 @@ export interface AstgrNode extends SNode {
     codePath?: string;
     codeLine?: string | number;
     isError?: boolean;
+    isEmptyNode?: boolean;
 }
 
 /**

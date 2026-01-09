@@ -38,6 +38,8 @@ export const ideLightTheme = new Theme({
     'devui-secondary-button-active-bg': '#c9c9c9', // 次要按钮按下
     'devui-secondary-button-disabled-bg': 'rgba(0,0,0,0.05)', // 次要按钮禁用
     'devui-node-selected-text': '#e6e6e6', // 节点选中颜色
+    'devui-primary-text-empty': '#C76207', // 空节点明亮颜色
+    'devui-empty-node-backgrd': '#FDE2BD',
     'devui-op-node-selected-label-text': 'rgba(255, 255, 255, 0.6)', // op节点选中颜色
     'devui-op-node-selected-value-text': 'rgba(255, 255, 255, 0.9)', // op节点选中颜色
     'devui-node-edge': '#aeaeae', // 节点间连线
@@ -219,6 +221,8 @@ export const ideDarkTheme = new Theme({
     'devui-secondary-button-active-bg': '#333333', // 次要按钮按下
     'devui-secondary-button-disabled-bg': 'rgba(255,255,255,0.05)', // 次要按钮禁用
     'devui-node-selected-text': 'rgba(25, 25, 25, 1)', // 节点选中颜色
+    'devui-primary-text-empty': 'rgba(249, 183, 102, 1)',
+    'devui-empty-node-backgrd': '#F69E39', 
     'devui-op-node-selected-label-text': 'rgba(0, 0, 0, 0.6)', // op节点选中颜色
     'devui-op-node-selected-value-text': 'rgba(0, 0, 0, 0.9)', // op节点选中颜色
     'devui-node-edge': '#666666', // 节点间连线

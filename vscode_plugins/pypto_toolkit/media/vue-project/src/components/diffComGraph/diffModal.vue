@@ -154,7 +154,7 @@ function onToggleAllLineExpand(status?: boolean) {
 }
 
 function onViewMouseUp(node) {
-  if (node.id.endsWith('label-main')) {
+  if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
     compareType = compareTypeNode?.compareType;
     if (compareType && compareType !== 'normal') {
