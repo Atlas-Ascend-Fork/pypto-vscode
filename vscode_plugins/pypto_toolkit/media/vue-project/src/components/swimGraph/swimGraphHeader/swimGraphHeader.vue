@@ -16,6 +16,7 @@
             :text-config="textConfig"
             :show-search-category="searchConfig"
             :collapseTags="true"
+            :menuBtnConfig="{ confirmText: $t('yes'), cancelText: $t('no')}"
             @search="onSearch"
             @selectedTagsChange="onSelectChange"
             @searchKeyChange="onSearchKeyChange"
@@ -962,14 +963,22 @@ const handleClickOutsize = (event) => {
   const container = document.querySelector('.zoom-controls');
   const flagsCanvas = document.querySelector('.flags-canvas');
   const eventsCanvas = document.querySelector('.events-canvas');
-  const searchFocus = event.target.innerHTML.includes('Hash') || event.target.className === 'devui-input__inner' || searchedKey.value !== '' || selectedTagsRef.value.length > 0;
+  const searchFocus = () => {
+    return (
+      event.target.innerHTML.includes('Hash') || 
+      event.target.classList.contains('devui-input__inner') || 
+      event.target.classList.contains('button-content') || 
+      searchedKey.value !== '' || 
+      selectedTagsRef.value.length > 0
+    );
+  }; 
   if (!container || !flagsCanvas || !eventsCanvas) {
     return;
   }
   if (isSearchActive.value && (flagsCanvas.contains(event.target) || eventsCanvas.contains(event.target))) {
     resetsearchState();
   }
-  if (isSwimGraphActive.value && (!container.contains(event.target) && !searchFocus)) {
+  if (isSwimGraphActive.value && (!container.contains(event.target) && !searchFocus())) {
     threeColumnSearchVisible.value = false;
   }
 };
@@ -1067,7 +1076,7 @@ const postMessage = (message) => {
 };
 onMounted(() => {
   updateTheme();
-  document.addEventListener('click', handleClickOutsize);
+  document.addEventListener('click', handleClickOutsize, true);
   isThreeColumnHeader();
   zoomControl.value = isThreeColumn.value ? 'zoom-controls-three' : 'zoom-controls';
 });
