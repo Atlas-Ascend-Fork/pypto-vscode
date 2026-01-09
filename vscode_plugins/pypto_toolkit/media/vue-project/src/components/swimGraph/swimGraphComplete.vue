@@ -382,8 +382,8 @@ const validData = (dataStr) => {
 
   data.traceEvents.forEach((event) => {
     if (
-      event.cat === 'event' &&
-      (!event.name || !event.ph || typeof event.pid === 'undefined' || typeof event.tid === 'undefined' || typeof event.ts === 'undefined')
+      ['B', 'E', 'X'].includes(event.ph) &&
+      (!event.name || typeof event.pid === 'undefined' || typeof event.tid === 'undefined' || typeof event.ts === 'undefined')
     ) {
       window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.MISSING_EVENT_FIELDS}: ["${event.name || event.id}"]`));
     }
