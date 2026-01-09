@@ -162,5 +162,11 @@
   "PyPTOToolkit.runConfig.confirmCancelButton": "Insist on cancel",
   "PyPTOToolkit.runConfig.revertCancelButton": "Return",
   "PyPTOToolkit.runConfig.rule.min": "Current value cannot be less than {{min}}",
-  "PyPTOToolkit.runConfig.rule.max": "Current value cannot be greater than {{max}}"
+  "PyPTOToolkit.runConfig.rule.max": "Current value cannot be greater than {{max}}",
+  "PyPTOToolkit.runConfig.rule.minLength": "At least {{min}} letters needed",
+  "PyPTOToolkit.runConfig.rule.maxLength": "No more than {{max}} letters",
+  "PyPTOToolkit.runConfig.rule.minItems": "At least {{min}} items needed",
+  "PyPTOToolkit.runConfig.rule.maxItems": "No more than {{max}} items",
+  "PyPTOToolkit.runConfig.rule.patternNotMatch": "Text content should match pattern: {{pattern}}",
+  "PyPTOToolkit.runConfig.rule.unique": "Items must be unique"
 }

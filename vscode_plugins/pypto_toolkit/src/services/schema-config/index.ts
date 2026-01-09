@@ -4,7 +4,7 @@ import { t } from 'i18next';
 import { get, set } from 'lodash';
 import * as vscode from 'vscode';
 
-import { RunConfigSchema } from '../../types/config-schema/config-schema';
+import { RunConfigAttributeType, RunConfigSchema } from '../../types/config-schema/config-schema';
 
 import { readFwkData, writeFileData, getJsonFileList, delFile } from './configdata';
 import { formatSchemaToAttributeGroups, readSchemaData } from './schemadata';
@@ -81,7 +81,7 @@ export async function getConfigsForRevise(path: string, schema: RunConfigSchema)
   const configFormData: Record<string, unknown> = {};
   for (const group of schema) {
     for (const attribute of group.attributes) {
-      configFormData[attribute.key] = get(originalConfigData, attribute.key);
+      configFormData[attribute.key] = getValueByType(get(originalConfigData, attribute.key), attribute.type);
     }
   }
   return configFormData;
@@ -107,6 +107,37 @@ export async function updateConfigsFile(path: string, formData: Record<string, u
   } catch (error) {
     vscode.window.showErrorMessage(`${(error as Error).message}`);
     return false;
+  }
+}
+
+function getValueByType(sourceValue: unknown, type: RunConfigAttributeType) {
+  if (type === 'boolean') {
+    return getBooleanValue(sourceValue);
+  } else if (type === 'number') {
+    return getNumberValue(sourceValue);
+  } else {
+    return sourceValue;
+  }
+}
+
+function getBooleanValue(sourceValue: unknown): boolean | undefined {
+  if (typeof sourceValue === 'boolean') {
+    return sourceValue;
+  }
+  if (String(sourceValue) === '1') {
+    return true;
+  }
+  if (String(sourceValue) === '0') {
+    return false;
+  }
+}
+
+function getNumberValue(sourceValue: unknown): number | undefined {
+  if (typeof sourceValue === 'number') {
+    return sourceValue;
+  }
+  if (!isNaN(Number(sourceValue))) {
+    return Number(sourceValue);
   }
 }
 

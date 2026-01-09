@@ -164,5 +164,11 @@
   "PyPTOToolkit.runConfig.confirmCancelButton": "坚持取消",
   "PyPTOToolkit.runConfig.revertCancelButton": "返回",
   "PyPTOToolkit.runConfig.rule.min": "当前值不可小于 {{min}}",
-  "PyPTOToolkit.runConfig.rule.max": "当前值不可大于 {{max}}"
+  "PyPTOToolkit.runConfig.rule.max": "当前值不可大于 {{max}}",
+  "PyPTOToolkit.runConfig.rule.minLength": "最少需要 {{min}} 字",
+  "PyPTOToolkit.runConfig.rule.maxLength": "最多不超过 {{max}} 字",
+  "PyPTOToolkit.runConfig.rule.minItems": "最少需要 {{min}} 个元素",
+  "PyPTOToolkit.runConfig.rule.maxItems": "最多不超过 {{max}} 个元素",
+  "PyPTOToolkit.runConfig.rule.patternNotMatch": "文本格式应符合正则 {{pattern}}",
+  "PyPTOToolkit.runConfig.rule.unique": "元素不可重复"
 }

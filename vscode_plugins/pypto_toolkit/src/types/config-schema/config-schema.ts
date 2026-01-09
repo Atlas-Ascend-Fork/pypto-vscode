@@ -68,6 +68,8 @@ export type RunConfigAttributeOptions<T extends RunConfigAttributeType> = T exte
   : undefined;
 
 export interface RunConfigAttributeRule {
+  type: 'string' | 'number' | 'array' | 'object' | 'integer' | 'boolean' | 'enum';
+
   trigger?: 'change' | 'blur';
 
   message?: string;
@@ -78,6 +80,10 @@ export interface RunConfigAttributeRule {
   min?: number;
 
   max?: number;
+
+  pattern?: string;
+
+  unique?: boolean;
 }
 
 export type RunConfigSchema = { key: string; label: string; attributes: RunConfigAttribute[] }[];
@@ -94,10 +100,22 @@ export interface SchemaProperty {
   properties?: Record<string, SchemaProperty>;
   /** 数组元素 */
   items?: { type: 'number' | 'string' | 'integer' };
-  /** 【校验】最小值 */
+  /** 【校验】数值最小值 */
   minimum?: number;
-  /** 【校验】最大值 */
+  /** 【校验】数值最大值 */
   maximum?: number;
+  /** 【校验】文本最小值长度 */
+  minLength?: number;
+  /** 【校验】文本最大值长度 */
+  maxLength?: number;
+  /** 【校验】文本规范 */
+  pattern?: string;
+  /** 【校验】数组最小元素数量 */
+  minItems?: number;
+  /** 【校验】数组最大元素数量 */
+  maxItems?: number;
+  /** 【校验】数组元素不重复 */
+  uniqueItems?: boolean;
   /** 【校验】枚举值 */
   enum?: (string | number)[];
   /** 属性名称 */
