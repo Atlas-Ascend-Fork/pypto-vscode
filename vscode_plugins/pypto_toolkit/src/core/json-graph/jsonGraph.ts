@@ -584,6 +584,10 @@ export class AscppDagBuilder {
             return;
         }
 
+        if (!this.outcastUnique.has(tensorMagic)) {
+            this.outcastUnique.add(tensorMagic);
+        }
+
         let graphId = tensor?.subgraphid ?? -1;
         let nodeId = `tensor-${tensorMagic}-${graphId}`;
         // check duplicate Nodes
@@ -792,6 +796,7 @@ export class AscppDagBuilder {
         const isIncast = inoutMap.get('incasts')?.has(tensorMagic) ?? false;
         const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
         if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
+            this.outcastUnique.add(tensorMagic);
             const tensorNode: AstgrTensorNode = {
                 type: 'node:tensor',
                 role: 'tensor',
@@ -1285,7 +1290,6 @@ export class AscppDagBuilder {
             return;
         }
 
-        const incastUnique: Set<string> = new Set<string>();
         for (let incastIndex = 0; incastIndex < actualData.incasts.length; incastIndex++) {
             const incast = actualData.incasts[incastIndex];
             const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
@@ -1295,13 +1299,6 @@ export class AscppDagBuilder {
             if (Array.isArray(incast) && incast.length > 1) {
                 const temp = Array.isArray(incast[1]) ? incast[1] : [incast[1]]
                 slotId.push(...temp);
-            }
-
-            const uniqueKey = `m${tensorMagic}_s${slotId}`;
-            if (incastUnique.has(uniqueKey)) {
-                continue;
-            } else {
-                incastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
@@ -1412,7 +1409,6 @@ export class AscppDagBuilder {
 
         const slotId = [];
 
-        const uniqueKey = `m${tensorMagic}_s${slotId}`;
         // Get the raw tensor ID and then lookup the tensor name
         let tensorName = rawTensor?.symbol || "Out";
 
@@ -1466,13 +1462,6 @@ export class AscppDagBuilder {
             if (Array.isArray(outcast) && outcast.length > 1) {
                 const temp = Array.isArray(outcast[1]) ? outcast[1] : [outcast[1]];
                 slotId.push(...temp);
-            }
-
-            const uniqueKey = `m${tensorMagic}_s${slotId}`;
-            if (this.outcastUnique.has(uniqueKey)) {
-                continue;
-            } else {
-                this.outcastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
