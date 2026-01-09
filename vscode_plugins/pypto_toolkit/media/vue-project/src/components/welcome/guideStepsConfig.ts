@@ -342,7 +342,7 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
         targetDomConfigs: [
           {
             targetDomId: 'guideThreeColumn',
-            triangleDirection: 'right',
+            triangleDirection: 'bottom',
             showTriangle: false,
           },
         ],
