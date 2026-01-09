@@ -109,18 +109,89 @@ function getAttributeOptions(schema: SchemaProperty): RunConfigAttributeOptions<
 
 function getAttributeRules(schema: SchemaProperty): RunConfigAttributeRule[] {
   const rules: RunConfigAttributeRule[] = [];
+  if (schema.type === 'integer' || schema.type === 'number') {
+    rules.push(...getNumberAttributeRules(schema));
+  } else if (schema.type === 'string') {
+    rules.push(...getStringAttributeRules(schema));
+  } else if (schema.type === 'array') {
+    rules.push(...getArrayAttributeRules(schema));
+  }
+  return rules;
+}
+
+function getNumberAttributeRules(schema: SchemaProperty): RunConfigAttributeRule[] {
+  const rules: RunConfigAttributeRule[] = [];
   if (schema.minimum !== undefined) {
     rules.push({
+      type: schema.type,
       min: schema.minimum,
       message: t('PyPTOToolkit.runConfig.rule.min', { min: schema.minimum.toString() }) ?? undefined,
-      trigger: 'change',
+      trigger: 'blur',
     });
   }
   if (schema.maximum !== undefined) {
     rules.push({
+      type: schema.type,
       max: schema.maximum,
       message: t('PyPTOToolkit.runConfig.rule.max', { max: schema.maximum.toString() }) ?? undefined,
-      trigger: 'change',
+      trigger: 'blur',
+    });
+  }
+  return rules;
+}
+
+function getStringAttributeRules(schema: SchemaProperty): RunConfigAttributeRule[] {
+  const rules: RunConfigAttributeRule[] = [];
+  if (schema.minLength !== undefined) {
+    rules.push({
+      type: schema.type,
+      min: schema.minLength,
+      message: t('PyPTOToolkit.runConfig.rule.minLength', { min: schema.minLength.toString() }) ?? undefined,
+      trigger: 'blur',
+    });
+  }
+  if (schema.maxLength !== undefined) {
+    rules.push({
+      type: schema.type,
+      max: schema.maxLength,
+      message: t('PyPTOToolkit.runConfig.rule.maxLength', { max: schema.maxLength.toString() }) ?? undefined,
+      trigger: 'blur',
+    });
+  }
+  if (schema.pattern !== undefined) {
+    rules.push({
+      type: schema.type,
+      pattern: schema.pattern,
+      message: t('PyPTOToolkit.runConfig.rule.patternNotMatch', { pattern: schema.pattern }) ?? undefined,
+    });
+  }
+  return rules;
+}
+
+function getArrayAttributeRules(schema: SchemaProperty): RunConfigAttributeRule[] {
+  const rules: RunConfigAttributeRule[] = [];
+  if (schema.minItems !== undefined) {
+    rules.push({
+      type: schema.type,
+      min: schema.minItems,
+      message: t('PyPTOToolkit.runConfig.rule.minItems', { min: schema.minItems.toString() }) ?? undefined,
+      trigger: 'blur',
+    });
+  }
+  if (schema.maxItems !== undefined) {
+    rules.push({
+      type: schema.type,
+      max: schema.maxItems,
+      message: t('PyPTOToolkit.runConfig.rule.maxItems', { max: schema.maxItems.toString() }) ?? undefined,
+      trigger: 'blur',
+    });
+  }
+  if (schema.uniqueItems !== undefined) {
+    rules.push({
+      type: schema.type,
+      unique: schema.uniqueItems,
+      message: t('PyPTOToolkit.runConfig.rule.unique') ?? undefined,
+      trigger: 'blur',
     });
   }
   return rules;

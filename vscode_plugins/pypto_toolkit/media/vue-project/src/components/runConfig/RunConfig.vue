@@ -28,7 +28,7 @@
               class="config-form-item"
               :field="attribute.key"
               :label="getLocalLabel(attribute.label)"
-              :rules="getFormItemRules(attribute, tab.key)"
+              :rules="formatAttributeRules(attribute.rules)"
             >
               <RunConfigController
                 :attribute="attribute"
@@ -54,7 +54,6 @@ import PtoButton from '@/components/ui/PtoButton.vue';
 import { useViewServer } from '@/core/use-view-server';
 
 import RunConfigController from './RunConfigController.vue';
-import { throttle } from 'lodash-es';
 
 type Label = { zh: string; en: string };
 
@@ -67,15 +66,7 @@ const { server } = useViewServer<RunConfigViewServer>();
 const { filename, filepath } = server;
 
 const schema = ref<RunConfigSchema | null>([]);
-
 const activeTab = ref<string>();
-
-function switchTab(tabKey: string) {
-  activeTab.value = tabKey;
-}
-
-const throttledSwitchTab = throttle(switchTab, 200);
-
 const configData = ref<Record<string, any>>({});
 
 onMounted(async () => {
@@ -88,47 +79,49 @@ function getValue<T extends RunConfigAttribute>(attribute: T): T['defaultValue']
   return Reflect.get(configData.value, attribute.key) ?? attribute.defaultValue;
 }
 
-function updateValue<T extends RunConfigAttribute<any>>(attribute: T, value: T['defaultValue']): void {
+function updateValue<T extends RunConfigAttribute>(attribute: T, value: T['defaultValue']): void {
   Reflect.set(configData.value, attribute.key, value);
 }
 
-function getFormItemRules(attribute: RunConfigAttribute, tabKey: string): object[] {
-  return [
-    {
-      validator: (_, value, callback) => {
-        const emptyValue = value === null || value === undefined;
-        function showValidateError(message: string) {
-          callback(new Error(message));
-          throttledSwitchTab(tabKey);
+function formatAttributeRules(rules: RunConfigAttribute['rules']) {
+  return rules.map((rule) => {
+    const adaptedRule: Record<string, unknown> = { ...rule };
+    if (rule.pattern) {
+      adaptedRule.pattern = new RegExp(rule.pattern);
+    }
+    if (rule.unique) {
+      delete adaptedRule.unique;
+      adaptedRule.validator = (_: unknown, value: unknown[], callback: (err?: Error) => void) => {
+        if (!value) {
+          callback();
+          return;
         }
-        for (const rule of attribute.rules) {
-          // 判断空值
-          if (rule.required && emptyValue) {
-            return showValidateError(rule.message);
-          } else if (emptyValue) {
-            continue;
-          }
-
-          // 判断值范围
-          if (Reflect.has(rule, 'min') && value < rule.min) {
-            return showValidateError(rule.message);
-          }
-          if (Reflect.has(rule, 'max') && value > rule.max) {
-            return showValidateError(rule.message);
-          }
+        const uniqueSet = new Set(value);
+        if (uniqueSet.size < value.length) {
+          callback(new Error(rule.message));
+          return;
         }
-        return callback();
-      },
-      trigger: 'blur',
-    },
-  ];
+        callback();
+      };
+    }
+    return adaptedRule;
+  });
 }
 
 const formRef = ref();
 function handleSave() {
-  formRef.value.validate((isValid) => {
+  formRef.value.validate((isValid: boolean, invalidFields: Record<string, unknown[]>) => {
     if (isValid) {
       server.saveConfigData(configData.value);
+    } else {
+      const invalidKeys = Object.keys(invalidFields);
+      for (const tab of schema.value) {
+        const hasInvalidField = tab.attributes.some((attribute) => invalidKeys.includes(attribute.key));
+        if (hasInvalidField) {
+          activeTab.value = tab.key;
+          return;
+        }
+      }
     }
   });
 }
