@@ -230,7 +230,7 @@ const handleCanvasClick = (e) => {
       selectedEvent.value = clickedEvent;
       detailsPanelExpanded.value = true;
       onHoverEvent();
-      changeNodeColor(props.processKey, selectedEvent.value)
+      changeNodeColor(props.processKey, selectedEvent.value);
       drawNodeHeight(clickedEvent, props.processKey);
     }
     return;
@@ -1759,7 +1759,7 @@ const hideLineTooltip = () => {
 const drawNodeHeight = (event, processKey) => {
   const uiCtx = getUIContext(processKey);
   measureRenderer.drawNodeRoundedRect(uiCtx, event, processKey);
-}
+};
 
 const measureDistance = (event, processKey) => {
   const uiCtx = getUIContext(processKey);

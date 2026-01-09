@@ -133,7 +133,7 @@ const configGetEventColor = (colorEvent, mode) => {
 
     const colors = { fillColor, fontColor, strokeColor };
     return colors;
-}
+};
 
 const OnModeChange = () => {
     const updateEventColor = (event, mode) => {
