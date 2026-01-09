@@ -137,7 +137,7 @@ export class SampleManager {
         const programJsonPath = join(this.targetDataPath, 'program.json');
         if (fs.existsSync(programJsonPath)) {
           let content = fs.readFileSync(programJsonPath, 'utf-8');
-          content = content.replace(/%threeColumnCodePath%/g, normalizedCodePath);
+          content = content.replace(/%threeColumnCodePath%/g, normalizedCodePath).replace(`"entryhash": "12780147721777633745"`, `"entryhash": "196978988935989036"`);
           fs.writeFileSync(programJsonPath, content, 'utf-8');
         }
 
