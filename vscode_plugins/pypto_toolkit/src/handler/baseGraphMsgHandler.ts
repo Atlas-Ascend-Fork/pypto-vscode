@@ -583,9 +583,9 @@ export abstract class BaseGraphMsgHandler {
     for (const [funcHash, funcMeta] of Object.entries(funcHashMap)) {
       let jsonData: any;
       if (isUsedDB && gd.funcHash) {
-        const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash });
+        const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || gd.funcHash });
         if (!row) continue;
-        const raw = row[0].data;
+        const raw = row.data;
         jsonData = JSON.parse(raw);
       } else {
         const raw = gd.dataMap[funcHash]; // 内存模式
