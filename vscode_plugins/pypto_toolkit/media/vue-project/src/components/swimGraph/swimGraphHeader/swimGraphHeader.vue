@@ -491,6 +491,7 @@ function drawProcess(
 ) {
   const { processLabelWidth, processHeaderHeight, processMargin } = layout;
   const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
   // Header
   ctx.fillStyle = textColor === '#e8e8e8' ? '#2b2b2b' : '#f0f0f0'; // 根据主题反推背景色
   ctx.fillRect(0, currentY, processLabelWidth + canvasCssWidth, processHeaderHeight);
@@ -510,7 +511,17 @@ function drawProcess(
     drawProcessLayers(ctx, key, y, canvasCssWidth, contentHeight);
     y += contentHeight;
   }
-  return y + processMargin;
+  drawProcessHeaderLayers(ctx, key, y, canvasCssWidth);
+  // 分割线
+  const totalProcessHeight = y - currentY; 
+  const bottomY = currentY + totalProcessHeight;
+  ctx.beginPath();
+  ctx.moveTo(0, bottomY);
+  ctx.lineTo(processLabelWidth + canvasCssWidth, bottomY);
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  return bottomY;
 }
 
 // 辅助函数 6：绘制 Thread Labels
@@ -557,40 +568,46 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
     `[data-dep-process-key="${processKey}"]`,
     `[data-selection-process-key="${processKey}"]`,
     `[data-ui-process-key="${processKey}"]`,
-    `[data-line-process-key="${processKey}"]`,
-    `[data-process-header-key="${processKey}"]`
+    `[data-line-process-key="${processKey}"]`
   ];
   for (const selector of selectors) {
     const canvasEl = document.querySelector(selector);
     if (canvasEl) {
-      // 特殊处理 processHeaderCanvas
-      if (selector.includes('process-header-key')) {
-        const h = canvasEl.height / (window.devicePixelRatio || 1);
-        ctx.drawImage(canvasEl, processLabelWidth, h, width, h + 30);
-      } else {
-        ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
-        if (isMeasureModel.value && canvasEl.hasAttribute('data-process-key')) {
-          const totalExportWidth = processLabelWidth + width;
-          const g = ctx.createLinearGradient(0, 0, totalExportWidth, 0);
-          g.addColorStop(0, 'rgba(0,0,0,0.3)');
-          g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
-          g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0)');
-          g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0)');
-          g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
-          g.addColorStop(1, 'rgba(0,0,0,0.3)');
-          ctx.save();
-          // 限制绘制区域为当前 Process 的 body 区域（避免影响其他部分）
-          ctx.beginPath();
-          ctx.rect(processLabelWidth, y, width, height);
-          ctx.clip();
-          // 绘制遮罩
-          ctx.fillStyle = g;
-          ctx.fillRect(processLabelWidth, y, width, height);
-          // 恢复
-          ctx.restore();
-        }
+      ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
+      if (isMeasureModel.value && canvasEl.hasAttribute('data-process-key')) {
+        const totalExportWidth = processLabelWidth + width;
+        const g = ctx.createLinearGradient(0, 0, totalExportWidth, 0);
+        g.addColorStop(0, 'rgba(0,0,0,0.3)');
+        g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
+        g.addColorStop(measureDragStartX.value / totalExportWidth, 'rgba(0,0,0,0)');
+        g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0)');
+        g.addColorStop(measureDragEndX.value / totalExportWidth, 'rgba(0,0,0,0.3)');
+        g.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.save();
+        // 限制绘制区域为当前 Process 的 body 区域（避免影响其他部分）
+        ctx.beginPath();
+        ctx.rect(processLabelWidth, y, width, height);
+        ctx.clip();
+        // 绘制遮罩
+        ctx.fillStyle = g;
+        ctx.fillRect(processLabelWidth, y, width, height);
+        // 恢复
+        ctx.restore();
       }
     }
+  }
+}
+function drawProcessHeaderLayers(ctx, processKey, y, width) {
+  const { processLabelWidth } = layout;
+  const labelHeight = 30;
+  const selector = `[data-process-header-key="${processKey}"]`;
+  const eventCanvas = `[data-process-key="${processKey}"]`;
+  const canvasEl = document.querySelector(selector);
+  const eventCanvasEl = document.querySelector(eventCanvas);
+  if (canvasEl && eventCanvasEl) {
+    //  源图像 X 坐标 Y 坐标 宽度 高度
+    const h = eventCanvasEl.offsetHeight;
+    ctx.drawImage(canvasEl, processLabelWidth, y - h - labelHeight, width, labelHeight);
   }
 }
 const pmuRowCoordList = ref([]);
