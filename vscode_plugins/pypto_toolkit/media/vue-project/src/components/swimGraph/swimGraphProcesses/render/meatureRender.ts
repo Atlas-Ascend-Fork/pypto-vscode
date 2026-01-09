@@ -52,6 +52,11 @@ export class MeatureRender extends EventRender {
     this.strokeRoundRect(uiCtx, altClickData.preData, processKey);
   }
 
+  drawNodeRoundedRect = (uiCtx: CanvasRenderingContext2D, event: any, processKey: string) => {
+    this.clearDrawConnector(uiCtx, processKey);
+    this.drawRoundedRect(uiCtx, event, processKey);
+  };
+
   handleDistanceMeasurement = (uiCtx: CanvasRenderingContext2D, event: any, processKey: string, isZoomMode = false) => {
     const shouldClearDrawConnector = !isZoomMode && altClickData.preData && altClickData.lastData && (measureState.isMeasureFixed || !measureState.isMeasureFirst);
     if (shouldClearDrawConnector) {

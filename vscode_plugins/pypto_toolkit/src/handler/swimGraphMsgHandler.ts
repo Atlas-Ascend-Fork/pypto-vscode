@@ -392,8 +392,8 @@ export abstract class SwimGraphMsgHandler {
             // 在用户未配置计算图时，优先找同级目录的计算图
             let programPath = join(swimDir, 'program.json');
             // 如果有runData，优先获取runData数据
-            if (record) {
-              programPath = record['controlFlowFilePath'];
+            if (record?.controlFlowFilePath) {
+              programPath = record.controlFlowFilePath;
             }
             if (existsSync(programPath)) {
                 comGraphPath = programPath;
