@@ -65,6 +65,7 @@ import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender'
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
+import { getQuery } from '@/core/query';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
@@ -2039,7 +2040,8 @@ watch(isDarkTheme, () => {
   flagRender();
 });
 const listenExtensionMessage = async () => {
-  if (await getIsCompleteBoot() && !isThreeColumn) {
+  const res = await getQuery();
+  if (res?.isBootStep === true  && !isThreeColumn && await getIsCompleteBoot()) {
     guideDistanceMeasurement();
   }
 };
