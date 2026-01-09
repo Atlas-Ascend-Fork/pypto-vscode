@@ -647,9 +647,11 @@ watch(activeStepId, (newStepId) => {
             background-color: var(--devui-primary-button-hover-bg);
           }
 
-          .button__disable {
-            background-color: var(--devui-primary-button-disabled-bg); // 主按钮禁用背景
-            color: var(--devui-disabled-text); // 禁用文字
+          .button__disable,
+          .button__disable:hover {
+            background-color: var(--devui-primary-button-disabled-bg);
+            color: var(--devui-primary-text);
+            user-select: none;
             cursor: not-allowed;
           }
         }
