@@ -1099,7 +1099,8 @@ export class AscppDagBuilder {
                 text: t('pypto.emptyNodeList'),
                 magic: magic,
                 size: {width: 110, height: 50},
-                cssClasses: [this.isDefinedDark ? 'operation-main-label-empty' : 'operation-main-label-empty-light'],
+                cssClasses: ['operation-main-label-empty'],
+                isEmptyLabel: true,
                 layoutOptions: {
                     hAlign: 'center',
                     paddingTop: 0,
@@ -1143,8 +1144,8 @@ export class AscppDagBuilder {
           size: {width: 110, height: 50},
           cssClasses: ['operation-main-op-empty'],
           baseColor:'rgba(246, 158, 57, 0.2)',
-          lightColor: '#FDE2BD',
-          children
+          children,
+          isEmptyNode: true
         };
     }
 
