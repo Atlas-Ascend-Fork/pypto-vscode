@@ -448,8 +448,11 @@ export class AstgrNodeLabelView extends ShapeView {
       const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
-      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError) {
+      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError || node.isEmptyNode) {
         // if(label.id.includes("operation")) node = label.parent;
+        if (node.isEmptyNode) {
+          titleTxtFillColor = 'var(--devui-primary-text-empty)';
+        }
         if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
         }
@@ -557,7 +560,7 @@ function getBadgeDom(node) {
   let badgePaddingTop = 0;
   let badgePaddingRight = 0;
   if (node.selected) {
-    if ((node.role !== 'input') && (node.role !== 'output')) {
+    if (((node.role !== 'input') && (node.role !== 'output')) || node.isEmptyNode) {
       badgePaddingTop = 0.5;
       badgePaddingRight = 0.5;
       radius = 8;
@@ -667,9 +670,9 @@ export class AstgrOpView extends RectangularNodeView {
     let backgroundFilter = '';
     if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
       if (node.selected) {
-        backgroundFillColor = node.lightColor;
+        backgroundFillColor = node.isEmptyNode === true ? 'var(--devui-primary-text-empty)' : node.lightColor;
       }
-      if (!incoming && !outgoing && !errClass) {
+      if (!incoming && !outgoing && !errClass && !node.isEmptyNode) {
         backgroundFilter = 'grayscale(1)';
       }
     }

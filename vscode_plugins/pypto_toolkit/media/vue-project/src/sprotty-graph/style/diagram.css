@@ -130,13 +130,9 @@ rect.sprotty-node.op {
 
 .operation-main-label-empty text {
   font-size: 7px !important; 
-  fill: rgba(249, 183, 102, 1) !important;
+  color: --var(--devui-primary-text-empty);
 }
 
-.operation-main-label-empty-light text {
-  font-size: 7px !important; 
-  fill: #C76207 !important;
-}
 .sprotty svg text {
   user-select: none;
   -webkit-user-select: none;
