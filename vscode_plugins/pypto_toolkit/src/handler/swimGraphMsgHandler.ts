@@ -12,6 +12,7 @@ import * as vscode from 'vscode';
 import { getBasenameWithoutExt } from '../command/registerCommand';
 import { hismartliteEx } from '../hismarliteEx';
 import { useService } from '../services';
+import { getSwimGraphParsedInfoStore, swimGraphPasedInfoCache } from '../core/swimSqlInit';
 const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
@@ -151,7 +152,7 @@ export abstract class SwimGraphMsgHandler {
         config['textRending'] = textRending;
         let savedParsedDataPath = '';
     
-        const parsedInfoRow = await SQLiteCache.getInstance().swimGraphParsedInfoGetByFilePath(swimPath);
+        const parsedInfoRow = await getSwimGraphParsedInfoStore().find({filePath: swimPath});
         let swimData: any = {};
         const swimLastChangeTime = await getMTime(swimPath);
 
@@ -167,23 +168,23 @@ export abstract class SwimGraphMsgHandler {
         }
 
         let fileChanged = false;
-        if (parsedInfoRow.length > 0) {
-          if (swimLastChangeTime != parsedInfoRow[0].last_change_time || 
-              dynTopoLastChangeTime != parsedInfoRow[0].dyn_topo_last_change_time ||
-              pmuLastChangeTime != parsedInfoRow[0].pmu_last_change_time) {
+        if (parsedInfoRow) {
+          if (swimLastChangeTime != parsedInfoRow.lastChangeTime || 
+              dynTopoLastChangeTime != parsedInfoRow.dynTopoLastChangeTime ||
+              pmuLastChangeTime != parsedInfoRow.pmuLastChangeTime) {
             fileChanged = true;
           }
         }
     
-        if (parsedInfoRow.length > 0 && !fileChanged && useCacheStream) {
+        if (parsedInfoRow && !fileChanged && useCacheStream) {
           //数据库有数据且文件未修改，直接从数据库读取
-          console.log(parsedInfoRow[0].info);
-          savedParsedDataPath = parsedInfoRow[0].info;
+          console.log(parsedInfoRow.infoPath);
+          savedParsedDataPath = parsedInfoRow.infoPath;
           if (false) {
             swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
           } else {
             this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
-            const fileUri = vscode.Uri.file(parsedInfoRow[0].info);
+            const fileUri = vscode.Uri.file(parsedInfoRow.infoPath);
             const fileData = await vscode.workspace.fs.readFile(fileUri);
             const content = new TextDecoder().decode(fileData);
             swimData = JSON.parse(content);
@@ -301,10 +302,9 @@ export abstract class SwimGraphMsgHandler {
     
           swimData.counterEvents = [];
           
-          if (parsedInfoRow.length > 0 && swimLastChangeTime != parsedInfoRow[0].last_change_time) {
+          if (parsedInfoRow  && fileChanged) {
             //数据库有数据，但文件已被修改，删除数据
-            await SQLiteCache.getInstance().swimGraphParsedInfoDelByFilePath(swimPath);
-            await SQLiteCache.getInstance().save();
+            await getSwimGraphParsedInfoStore().delete({filePath: swimPath});
           }
           //插入数据
           saveParsedInfoToDB(useCacheStream, swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, swimData);

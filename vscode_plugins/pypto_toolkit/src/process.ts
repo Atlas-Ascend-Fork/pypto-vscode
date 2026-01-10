@@ -3,7 +3,8 @@ import BigNumber from 'bignumber.js'
 import { getMTime, SQLiteCache } from './core/sqliteCache';
 import { dirname, join, extname, resolve } from 'path';
 import * as vscode from 'vscode';
-import { createReadStream,  createWriteStream } from 'fs';
+import { createReadStream,  createWriteStream, existsSync, mkdirSync } from 'fs';
+import { getSwimGraphParsedInfoStore, swimGraphPasedInfoCache } from './core/swimSqlInit';
 import { hismartliteEx } from './hismarliteEx';
 import JSONStream from 'JSONStream';
 import { parser } from 'stream-json';
@@ -798,8 +799,7 @@ const calculateDependencies = (events, connections) => {
     }
     if (useCache) {
       await writeLargeObjectToFileThreadGranular(info, dbSwimStore);
-      await SQLiteCache.getInstance().swimGraphParsedInfoSet(swimPath, lastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, dbSwimStore);
-      await SQLiteCache.getInstance().save();
+      await getSwimGraphParsedInfoStore().set({filePath: swimPath, lastChangeTime: lastChangeTime, dynTopoLastChangeTime: dynTopoLastChangeTime, pmuLastChangeTime: pmuLastChangeTime, infoPath: dbSwimStore});
       console.log(`${dbSwimStore} save done`);
     }
   }
@@ -994,6 +994,11 @@ const calculateDependencies = (events, connections) => {
   }
 
   async function writeLargeObjectToFileThreadGranular(obj: any, filePath: string): Promise<void> {
+    const directory = dirname(filePath);
+    if(!existsSync(directory)) {
+      mkdirSync(directory, { recursive: true});
+    }
+    
     const writeStream = createWriteStream(filePath, { encoding: 'utf8' });
     
     try {
