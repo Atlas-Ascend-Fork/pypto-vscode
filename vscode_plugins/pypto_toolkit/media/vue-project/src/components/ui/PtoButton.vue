@@ -14,7 +14,7 @@ const emit = defineEmits<{
 <template>
   <button :class="`pto-button ${type ? `pto-button--${type}` : ''}`" @click="emit('click')">
     <div class="pto-button-inner">
-      <icon class="pto-button-icon"></icon>
+      <icon v-if="icon" class="pto-button-icon"></icon>
       <slot></slot>
     </div>
   </button>
