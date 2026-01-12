@@ -302,6 +302,14 @@ function onMouseup() {
   isDragging.value = false;
 }
 
+// 步骤1查看计算图
+function viewComGraph() {
+  // 还原步骤2的选中并居中节点
+  centerNodeAction([], undefined, undefined, 1);
+  selectAction([]);
+  // 根据窗口大小渲染计算图
+  fitToScreenAction();
+}
 // 步骤2查看节点详情
 function viewNodeDetail(params: Record<string, any>) {
   // 清空步骤3搜索条件并关闭搜索结果下拉框
@@ -316,8 +324,12 @@ function viewNodeDetail(params: Record<string, any>) {
 function searchNode(params: Record<string, any>) {
   // 还原步骤4的只看当前通路
   setFixedComGraphFlow(false, false);
+  // 还原到步骤2的节点选中和居中
+  const { nodeId, ...rest } = params;
+  centerNodeAction([nodeId], undefined, undefined, 1);
+  selectAction([nodeId]);
   // 填充搜索条件
-  headerEl.value.updateSearchParams(params);
+  headerEl.value.updateSearchParams(rest);
 }
 
 // 步骤4只看当前通路
@@ -329,6 +341,7 @@ function focusCurrentPath(params) {
   setFixedComGraphFlow(true, true, params.searchNodeId);
 }
 const stepsMap = {
+  viewComGraph,
   viewNodeDetail,
   searchNode,
   focusCurrentPath
