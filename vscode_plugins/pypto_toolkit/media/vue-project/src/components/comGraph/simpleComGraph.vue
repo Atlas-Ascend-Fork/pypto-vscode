@@ -481,6 +481,11 @@ function onDocumentClick(e: MouseEvent) {
   }
   isExpandSearch.value = false;
 }
+
+function resetToFirstStep(param: Record<string, string>) {
+  server.innerGetSubgraph({ paramObj: param });
+}
+
 onMounted(() => {
   loadingText.value = t(LoadingStatusMap['loading']);
   isLoading.value = true;
@@ -505,6 +510,7 @@ onMounted(() => {
   }
   document.addEventListener('click', onDocumentClick);
   (window as any).ascEventBus.on('lockToggleChange', onLockClick);
+  (window as any).ascEventBus.on('resetComGraphToFirst', resetToFirstStep);
 });
 onBeforeUnmount(() => {
   if (resetModelSource) {
@@ -512,6 +518,7 @@ onBeforeUnmount(() => {
   }
   document.removeEventListener('click', onDocumentClick);
   (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
+  (window as any).ascEventBus.remove('resetComGraphToFirst', resetToFirstStep);
 });
 </script>
 

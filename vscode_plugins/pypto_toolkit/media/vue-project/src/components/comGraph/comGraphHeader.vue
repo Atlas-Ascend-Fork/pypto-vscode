@@ -925,8 +925,8 @@ onMounted(() => {
   .rect-upper-lower {
     width: 20px;
     height: 20px;
-    color: rgba(179, 179, 179, 1);
-    background-color: rgba(255, 255, 255, 0.13);
+    color: var(--devui-secondary-text);
+    background-color: var(--devui-secondary-button-hover-bg);
     border-radius: 4px;
     margin-right: 4px;
     display: flex;
@@ -938,8 +938,8 @@ onMounted(() => {
   .rect-reg {
     width: 20px;
     height: 20px;
-    color: rgba(179, 179, 179, 1);
-    background-color: rgba(255, 255, 255, 0.13);
+    color: var(--devui-secondary-text);
+    background-color: var(--devui-secondary-button-hover-bg);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -949,16 +949,16 @@ onMounted(() => {
 
   .rect-upper-lower.active,
   .rect-reg.active {
-    border-color: rgba(49, 122, 247, 1);
-    color: rgba(49, 122, 247, 1);
+    border-color: var(--devui-link-text);
+    color: var(--devui-link-text);
   }
 
   .rect-upper-lower:hover {
-    color: rgba(49, 122, 247, 1);
+    color: var(--devui-link-text);
   }
 
   .rect-reg:hover {
-    color: rgba(49, 122, 247, 1);
+    color: var(--devui-link-text);
   }
 
   .has-tooltip {
@@ -983,7 +983,7 @@ onMounted(() => {
     width: 100%;
     height: 20px;
     font-size: 12px;
-    color: rgba(82, 145, 255, 1);
+    color: var(--devui-hover-icon);
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1020,7 +1020,7 @@ onMounted(() => {
     width: 100%;
     height: 20px;
     font-size: 12px;
-    color: rgba(230, 230, 230, 1);
+    color: var(--devui-primary-text);
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1234,7 +1234,7 @@ onMounted(() => {
 }
 
 .toolbar-row.search-focusd {
-  border-color: rgba(49, 122, 247, 1);
+  border-color: var(--devui-link-text);
 }
 
 .control-flow {
