@@ -134,7 +134,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.computeGraph.step1.title',
         content: 'bootStep.computeGraph.step1.content',
-        method: '',
+        method: 'viewComGraph',
         methodParams: {},
         targetDomConfigs: [
           {
@@ -164,6 +164,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step3.content',
         method: 'searchNode',
         methodParams: {
+          nodeId: 'tensor-6030-7',
           searchKey: '6036',
           selectedTags: [
             {
