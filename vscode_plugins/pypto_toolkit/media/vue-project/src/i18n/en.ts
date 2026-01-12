@@ -301,7 +301,7 @@ export default {
           nextStep: 'Next Step',
           preStep: 'Previous step',
           complete: 'Complete',
-          learnGroup: 'Learn about {groupName}'
+          learnGroup: 'Learn {groupName}'
         },
         // 控制流组
         controlFlow: {
