@@ -91,3 +91,6 @@
 .dp-no-data-tip {
   padding: 10px;
 }
+.devui-popover__content.devui-flexible-overlay {
+  color: var(--devui-tooltip-text) !important;
+}
