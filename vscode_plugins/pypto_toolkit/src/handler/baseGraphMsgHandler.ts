@@ -533,7 +533,14 @@ export abstract class BaseGraphMsgHandler {
         const maxRetry = 5;
         const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
         for (let i = 0; i < maxRetry; i++) {
-          const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash });
+          const row = await retryUntil(
+            () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash || '' }),
+            {
+              maxRetries: 3,
+              delayMs: 50,
+              // 可选：自定义“成功”条件。isSuccess:
+            }
+          );
           ret = row?.data;
           if (ret) {
             break;
@@ -578,12 +585,19 @@ export abstract class BaseGraphMsgHandler {
     if (!funcHashMap) {
       server.setRef('GlobalSearchResult', { data: {} });
       return;
-    } 
+    }
     const resultMap: Record<string, any[]> = {};
     for (const [funcHash, funcMeta] of Object.entries(funcHashMap)) {
       let jsonData: any;
       if (isUsedDB && gd.funcHash) {
-        const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || gd.funcHash });
+        const row = await retryUntil(
+          () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || gd.funcHash || '' }),
+          {
+            maxRetries: 3,
+            delayMs: 50,
+            // 可选：自定义“成功”条件。isSuccess:
+          }
+        );
         if (!row) continue;
         const raw = row.data;
         jsonData = JSON.parse(raw);
@@ -633,7 +647,14 @@ export abstract class BaseGraphMsgHandler {
     if (!gd) return { json: undefined };
     let ret: string | undefined = undefined;
     if (gd.isUsedDB && gd.funcHash) {
-      const row = await getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash });
+      const row = await retryUntil(
+        () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash || '' }),
+        {
+          maxRetries: 3,
+          delayMs: 50,
+          // 可选：自定义“成功”条件。isSuccess:
+        }
+      );
       ret = row?.data;
     } else {
       ret = gd.dataMap[gd.funcHash!] ?? undefined;
@@ -699,7 +720,15 @@ export abstract class BaseGraphMsgHandler {
   private static async returnCalleeMap(gd: AbstractGraphData, server: any, filejson: any) {
     let calleeMap = graphFileHashMap[gd.fsPath];
     if (gd.isUsedDB) {
-      const result = await getComGraphFileHashMapStore().find({ filePath: gd.fsPath });
+      const result = await retryUntil(
+        () => getComGraphFileHashMapStore().find({ filePath: gd.fsPath }),
+        {
+          maxRetries: 3,
+          delayMs: 50,
+          // 可选：自定义“成功”条件。isSuccess:
+        }
+      );
+
       if (result?.data) {
         calleeMap = JSON.parse(result.data);
       } else {
@@ -746,7 +775,14 @@ export abstract class BaseGraphMsgHandler {
     if (!graphFileHashMap[gd.fsPath] && gd.funcHashMap && Object.keys(gd.funcHashMap).length > 0) {
       graphFileHashMap[gd.fsPath] = gd.funcHashMap;
     } else {
-      const result = await getComGraphFileHashMapStore().find({ filePath: gd.fsPath });
+      const result = await retryUntil(
+        () => getComGraphFileHashMapStore().find({ filePath: gd.fsPath }),
+        {
+          maxRetries: 3,
+          delayMs: 50,
+          // 可选：自定义“成功”条件。isSuccess:
+        }
+      );
       if (result?.data) {
         graphFileHashMap[gd.fsPath] = JSON.parse(result.data);
       }
@@ -854,4 +890,45 @@ export abstract class BaseGraphMsgHandler {
 async function getMTime(filePath: string): Promise<string> {
   const stat = await promises.stat(filePath); // 或 vscode.workspace.fs.stat(vscode.Uri.file(filePath))
   return stat.mtime.toString();
+}
+
+/**
+ * 重试执行一个异步函数，直到满足成功条件或达到最大重试次数。
+ *
+ * @param fn - 要执行的异步函数
+ * @param options - 重试选项
+ * @returns Promise<T> - 成功的结果
+ */
+async function retryUntil<T>(
+  fn: () => Promise<T>,
+  {
+    maxRetries = 1,
+    delayMs = 100,
+    isSuccess = (result: T) => result != null && result !== undefined,
+  }: {
+    maxRetries?: number;
+    delayMs?: number;
+    isSuccess?: (result: T) => boolean;
+  } = {}
+): Promise<T | undefined> {
+  let lastResult: T | undefined = undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await fn();
+      lastResult = result;
+      if (isSuccess(result)) {
+        return result;
+      }
+    } catch (error) {
+      // 捕获异常，但不中断流程；lastResult 保持上一次的值（或仍为 undefined）
+      console.warn(`Retry attempt ${attempt + 1} failed:`, error);
+    }
+    // 如果不是最后一次尝试，则等待后重试
+    if (attempt < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  // 所有尝试结束，返回最后一次拿到的结果（可能不满足 isSuccess）
+  return lastResult;
 }
