@@ -22,6 +22,7 @@ export class AscppDagBuilder {
     lightColorList: string[];
     nodeSet = new Set<string>();
     outcastUnique = new Set<string>();
+    incastUniqueSingle = new Set<string>();
     emptyNodesList = new Set<string>();
     emptyOutputSet = new Set<string>();
     isErrorReport = false;
@@ -518,6 +519,20 @@ export class AscppDagBuilder {
         const graphId = tensor?.subgraphid ?? -1;
         let nodeId = `tensor-${tensorMagic}-${graphId}`;
 
+        if (!this.incastUniqueSingle.has(tensorMagic)) {
+            this.incastUniqueSingle.add(tensorMagic);
+        } else {
+            return;
+        }
+
+        const uniqueKey = `m${tensorMagic}_s${slotId}`;
+        if (this.incastUniqueSingle.has(uniqueKey)) {
+            return;
+        } else {
+            this.incastUniqueSingle.add(uniqueKey);
+        }
+
+
         // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
             const new_graphId = -2;
@@ -598,6 +613,15 @@ export class AscppDagBuilder {
 
         if (!this.outcastUnique.has(tensorMagic)) {
             this.outcastUnique.add(tensorMagic);
+        } else {
+            return;
+        }
+
+        const uniqueKey = `m${tensorMagic}_s${slotId}`;
+        if (this.outcastUnique.has(uniqueKey)) {
+            return;
+        } else {
+            this.outcastUnique.add(uniqueKey);
         }
 
         let graphId = tensor?.subgraphid ?? -1;
