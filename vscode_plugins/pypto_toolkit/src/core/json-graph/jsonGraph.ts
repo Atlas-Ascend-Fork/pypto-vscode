@@ -1302,6 +1302,7 @@ export class AscppDagBuilder {
             return;
         }
 
+        const incastUnique: Set<string> = new Set<string> ();
         for (let incastIndex = 0; incastIndex < actualData.incasts.length; incastIndex++) {
             const incast = actualData.incasts[incastIndex];
             const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
@@ -1311,6 +1312,14 @@ export class AscppDagBuilder {
             if (Array.isArray(incast) && incast.length > 1) {
                 const temp = Array.isArray(incast[1]) ? incast[1] : [incast[1]]
                 slotId.push(...temp);
+            }
+
+
+            const uniqueKey = `m${tensorMagic}_s${slotId}`;
+            if (incastUnique.has(uniqueKey)) {
+                continue;
+            } else {
+                incastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
@@ -1474,6 +1483,13 @@ export class AscppDagBuilder {
             if (Array.isArray(outcast) && outcast.length > 1) {
                 const temp = Array.isArray(outcast[1]) ? outcast[1] : [outcast[1]];
                 slotId.push(...temp);
+            }
+
+            const uniqueKey = `m${tensorMagic}_s${slotId}`;
+            if (this.outcastUnique.has(uniqueKey)) {
+                continue;
+            } else {
+                this.outcastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
