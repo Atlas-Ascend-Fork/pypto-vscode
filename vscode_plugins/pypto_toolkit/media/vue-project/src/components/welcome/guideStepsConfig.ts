@@ -338,7 +338,10 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
         title: 'bootStep.threeColumnGraph.step1.title',
         content: 'bootStep.threeColumnGraph.step1.content',
         method: 'viewThreeColumnGraph',
-        methodParams: {},
+        methodParams: {
+          calleehash: '12780147721777633745',
+          subFuncmagicname: 'TENSOR_dense_moe_main_2'
+        },
         targetDomConfigs: [
           {
             targetDomId: 'guideThreeColumn',

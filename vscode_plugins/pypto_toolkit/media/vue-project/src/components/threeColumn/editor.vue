@@ -702,6 +702,7 @@ const listenExtensionMessage = () => {
             };
             simulateMouseMove(positionGuide);
             editor.revealLineInCenter(1);
+            (window as any).ascEventBus.emit('resetComGraphToFirst', message.params);
           }
           break;
         case 'lockThreeColumnGraph': {
