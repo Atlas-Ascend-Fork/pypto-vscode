@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { CustomConfigItemVo } from '../../types/config-schema/config-schema';
 
-import { BasicService } from '../basic-service';
+import { CustomConfigItemVo } from '../../types/config-schema/config-schema';
 import { ConfigFileInfo, ScanStatus } from '../../types/config-schema/config-schema';
+import { BasicService } from '../basic-service';
 
 export const CONFIG_FILE_NAME = 'tile_fwk_config.json';
 
@@ -22,14 +22,12 @@ export class ConfigDataService extends BasicService {
   /** 扫描忽略目录（暂定） */
   private readonly ignoreDirs = new Set(['node_modules', '.git', '.vscode', 'dist', 'build', 'out', 'coverage']);
 
-  private _fileWatcher?: vscode.FileSystemWatcher;
-
   constructor() {
     super('configData');
     // 只注册统一事件发射器到销毁列表
     this._disposables.push(this._onDidUpdateConfigData);
     this.scanDirectory();
-    this.watchFileChange();
+    // this.watchFileChange();
   }
 
   /**
@@ -58,7 +56,7 @@ export class ConfigDataService extends BasicService {
   }
 
   /** 扫描目录（扫描中/扫描完成后，触发统一事件） */
-  private async scanDirectory(): Promise<void> {
+  public async scanDirectory(): Promise<void> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
       this._scanStatus = 'completed';
@@ -142,35 +140,6 @@ export class ConfigDataService extends BasicService {
     }
   }
 
-  /** 监听文件变更（修改：变更后触发统一事件） */
-  private watchFileChange() {
-    this._fileWatcher = vscode.workspace.createFileSystemWatcher(`**/${CONFIG_FILE_NAME}`);
-    this._disposables.push(
-      this._fileWatcher.onDidCreate(async (uri) => {
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-        if (workspaceFolder) {
-          await this.handleFoundConfigFile(uri, workspaceFolder.name);
-          this.emitConfigDataUpdate(); // 新增文件后，推送完整列表
-        }
-      }),
-
-      this._fileWatcher.onDidDelete((uri) => {
-        this._configFiles = this._configFiles.filter((f) => f.uri.toString() !== uri.toString());
-        this.emitConfigDataUpdate(); // 删除文件后，推送完整列表
-      }),
-
-      this._fileWatcher.onDidChange(async (uri) => {
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-        if (workspaceFolder) {
-          await this.handleFoundConfigFile(uri, workspaceFolder.name);
-          this.emitConfigDataUpdate(); // 修改文件后，推送完整列表
-        }
-      }),
-
-      this._fileWatcher,
-    );
-  }
-
   private emitConfigDataUpdate() {
     this._onDidUpdateConfigData.fire({
       files: [...this._configFiles], // 返回副本，避免外部修改
@@ -210,19 +179,6 @@ export async function writeFileData(baseUri: vscode.Uri, targetObj: object) {
   // 写入文件
   try {
     await vscode.workspace.fs.writeFile(baseUri, content);
-  } catch (err) {
-    vscode.window.showErrorMessage(`${(err as Error).message}`);
-  }
-}
-
-/**
- * 创建指定文件夹
- * @param baseUri 需要创建的文件uri路径
- */
-export async function addNewFile(baseUri: vscode.Uri) {
-  // 创建文件夹
-  try {
-    await vscode.workspace.fs.createDirectory(baseUri);
   } catch (err) {
     vscode.window.showErrorMessage(`${(err as Error).message}`);
   }

@@ -6,6 +6,9 @@
       <div class="expand" @click="configExpand">
         <d-icon :name="isExpanded ? 'icon-chevron-up-2' : 'icon-chevron-down-2'"></d-icon>
       </div>
+      <div class="refresh" :class="{ hidden: isExpanded }" @click="handleRefresh">
+        <d-icon name="refresh"></d-icon>
+      </div>
     </div>
     <div class="config-list" :class="{ hidden: isExpanded }">
       <!-- 每组数据 -->
@@ -33,6 +36,10 @@ import { useViewServer } from '@/core/use-view-server';
 const { t } = useI18n();
 const { server } = useViewServer<SidebarViewServer>();
 const { isScanning, configFiles } = server;
+
+function handleRefresh(): void {
+  server.refreshConfigList();
+}
 
 const isExpanded = ref(false);
 const emit = defineEmits<{ (e: 'tree-expand', value: boolean) }>();
@@ -88,6 +95,24 @@ function openEditView(config: ConfigFileInfo): void {
       padding: 7px;
       font-size: 14px;
       cursor: pointer;
+
+      :deep(*) {
+        color: var(--pto-font-color-title);
+      }
+    }
+
+    .refresh {
+      width: 28px;
+      height: 28px;
+      padding: 7px;
+      font-size: 14px;
+      cursor: pointer;
+
+      &:hover {
+        :deep(*) {
+          color: var(--devui-link-text);
+        }
+      }
 
       :deep(*) {
         color: var(--pto-font-color-title);
