@@ -87,29 +87,25 @@ const renderTime = computed(() => {
     .bar1 {
       top: 0;
       left: 0;
-      background: #5e7ce0;
-      background: var(--devui-brand, #5e7ce0);
+      background: var(--devui-brand);
     }
 
     .bar2 {
       top: 0;
       left: 9px;
-      background: #859bff;
-      background: var(--devui-brand-foil, #859bff);
+      background: var(--devui-brand-foil);
     }
 
     .bar3 {
       top: 9px;
       left: 0;
-      background: #859bff;
-      background: var(--devui-brand-foil, #859bff);
+      background: var(--devui-brand-foil);
     }
 
     .bar4 {
       top: 9px;
       left: 9px;
-      background: #5e7ce0;
-      background: var(--devui-brand, #5e7ce0);
+      background: var(--devui-brand);
     }
   }
 
