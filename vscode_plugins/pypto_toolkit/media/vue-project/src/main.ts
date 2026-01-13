@@ -63,6 +63,8 @@ import Switch from 'vue-devui/switch';
 import 'vue-devui/switch/style.css';
 import Radio from 'vue-devui/radio';
 import 'vue-devui/radio/style.css';
+import Collapse from 'vue-devui/collapse';
+import 'vue-devui/collapse/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -128,4 +130,5 @@ createApp(App)
   .use(CodeReview)
   .use(Switch)
   .use(Radio)
+  .use(Collapse)
   .mount('#app');

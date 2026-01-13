@@ -9,6 +9,7 @@ import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 import WelcomeIndex from './components/welcome/WelcomeIndex.vue';
 import BootStepTips from './components/welcome/components/BootStepTips.vue';
 import { getIsCompleteBoot } from './apis/welcome';
+import GuideOverview from './components/welcome/components/GuideOverview.vue';
 
 const graphType = ref('');
 const outputDirPath = ref('');
@@ -32,7 +33,7 @@ window.addEventListener('message', (event) => {
   CommandCallbackMap[message.command]?.(message);
 });
 
-onMounted( async() => {
+onMounted(async () => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); //阻止原生菜单弹出
   });
@@ -41,25 +42,52 @@ onMounted( async() => {
 </script>
 
 <template>
-  <!-- 导航栏 -->
-  <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
-  <!-- 控制流 -->
-  <div id="boot-controlFlow-index" class="parent-container" v-else-if="graphType === 'controlFlow'">
-    <ControlFlowIndex></ControlFlowIndex>
+  <div style="display: flex; height: 100vh;">
+    <div style="width: 400px;height: 100%; flex-shrink: 0;"
+      v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome'">
+      <GuideOverview></GuideOverview>
+    </div>
+    <div style="flex: 1;">
+      <!-- 导航栏 -->
+      <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
+      <!-- 控制流 -->
+      <div id="boot-controlFlow-index" class="parent-container" v-else-if="graphType === 'controlFlow'">
+        <ControlFlowIndex></ControlFlowIndex>
+      </div>
+      <!-- 欢迎页面 -->
+      <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
+      <!-- 运行配置 -->
+      <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
+      <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
+        <MiddleLayer :graphType="graphType"></MiddleLayer>
+      </header>
+      <!-- 全局引导弹窗 -->
+      <BootStepTips
+        v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome'"
+        v-model:visible="showGlobalGuide" :graphType="graphType" />
+    </div>
   </div>
-  <!-- 欢迎页面 -->
-  <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
-  <!-- 运行配置 -->
-  <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
-  <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
-    <MiddleLayer :graphType="graphType"></MiddleLayer>
-  </header>  
-  <!-- 全局引导弹窗 -->
-  <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :graphType="graphType"  />
+
+        <!-- 导航栏 -->
+      <SideBarViewIndex v-if="graphType === 'returnSidBar'"></SideBarViewIndex>
+      <!-- 控制流 -->
+      <div id="boot-controlFlow-index" class="parent-container" v-else-if="graphType === 'controlFlow'">
+        <ControlFlowIndex></ControlFlowIndex>
+      </div>
+      <!-- 欢迎页面 -->
+      <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
+      <!-- 运行配置 -->
+      <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
+      <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
+        <MiddleLayer :graphType="graphType"></MiddleLayer>
+      </header>
+      <!-- 全局引导弹窗 -->
+      <BootStepTips
+        v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome'"
+        v-model:visible="showGlobalGuide" :graphType="graphType" />
 </template>
 <style scoped>
 .parent-container {
-  width: 100vw;
   height: 100vh;
   box-sizing: border-box;
 }
