@@ -16,6 +16,11 @@ export interface Dependencies {
   colorRending: any;
 }
 
+export function selectNoNodeWarm(): any {
+  (window as any).ascEventBus.emit('message_notice', (window as any).ascLang === 'en' ? 'Please select the node first' : '请先选中节点');
+  return;
+}
+
 export function isPointInPolygonFun(point: any, polygonBoundaries: any): boolean {
   if (!polygonBoundaries || polygonBoundaries.length === 0) {
     return false;
