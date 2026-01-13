@@ -58,7 +58,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithU
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey } from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
@@ -66,6 +66,7 @@ import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
 import { getQuery } from '@/core/query';
+import { Message } from 'vue-devui/message';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
@@ -346,12 +347,20 @@ const scaleCanvas = (mouseX, scale) => {
   throttledRender();
 };
 
+function onMessageNotice(text) {
+  Message({
+    type:'warning',
+    message:text
+  });
+};
+
 onMounted(() => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' || e.code === 'Escape') {
       e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
       isPathLockStatus.value = false;
       canvasStatusReset();
+      canvasclickedEvent.value = null;
     }
 
     if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
@@ -363,6 +372,8 @@ onMounted(() => {
           pathLockedMethod(canvasclickedEvent.value);
           isClickedPath.value = false;
         }
+      } else {
+        selectNoNodeWarm();
       }
     }
 
@@ -383,6 +394,7 @@ onMounted(() => {
   });
   listenExtensionMessage();
   listenExtensionClearMessage();
+  window.ascEventBus.on('message_notice', onMessageNotice);
 });
 
 onUnmounted(() => {
