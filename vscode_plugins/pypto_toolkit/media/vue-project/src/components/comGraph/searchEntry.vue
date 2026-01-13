@@ -79,6 +79,7 @@ const onClickSearchMode = () => {
       border-radius: 12px;
       border: 1px solid transparent;
       background-color: var(--devui-secondary-button-bg);
+      box-shadow: var(--devui-tips-shadow);
       transition: border-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
         background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
       cursor: pointer;
@@ -95,8 +96,8 @@ const onClickSearchMode = () => {
       }
 
       &:not(.search-mode-disabled):hover {
-        border-color: var(--devui-title-text);
-        background-color: var(--devui-flow-water-bg);
+        border-color: var(--devui-node-edge-active);
+        background-color: var(--devui-com-graph-pipe-bg);
         box-shadow: var(--devui-select-shadow);
       }
 

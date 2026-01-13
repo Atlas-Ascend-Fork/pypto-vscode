@@ -689,6 +689,7 @@ watch(server.GlobalSearchResult, (newValue) => {
           height: 26px;
           line-height: 26px;
           font-size: 13px;
+          background-color: var(--devui-tooltip-bg);
         }
 
         .dp-category-search-input {

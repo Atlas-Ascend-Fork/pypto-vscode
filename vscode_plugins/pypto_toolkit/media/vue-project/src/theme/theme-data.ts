@@ -8,6 +8,7 @@ export const ideLightTheme = new Theme({
   data: {
     ...infinityTheme.data,
     ...ptoLightTheme,
+    "devui-brand-foil": "#859bff",
     'devui-global-bg': '#f3f3f3', // 全局背景
     'devui-node-badge-bg': 'rgba(0,0,0,0.1)', // 节点右上角徽标背景色
     'devui-node-badge-text': '#595959', // 节点右上角徽标文字
@@ -191,6 +192,7 @@ export const ideDarkTheme = new Theme({
   data: {
     ...galaxyTheme.data,
     ...ptoDarkTheme,
+    "devui-brand-foil": "#F2F2F3",
     'devui-global-bg': '#1e1e1e', // 全局背景
     'devui-node-badge-bg': 'rgba(255,255,255,0.1)', // 节点右上角徽标背景色
     'devui-node-badge-text': '#ced1db', // 节点右上角徽标文字
