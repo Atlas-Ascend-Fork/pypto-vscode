@@ -711,6 +711,9 @@ const listenExtensionMessage = () => {
             "lineNumber": 140,
             "column":37
           };
+          if (labels.length === 0) {
+            labels.push({name: 'cast', startLine: 140, endLine: 207});
+          }
           editor.revealLineInCenter(140);
           simulateMouseMove(positionGuide);
           // simulate click
