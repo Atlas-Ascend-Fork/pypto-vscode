@@ -532,7 +532,6 @@ export class AscppDagBuilder {
             this.incastUniqueSingle.add(uniqueKey);
         }
 
-
         // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
             const new_graphId = -2;
@@ -609,6 +608,12 @@ export class AscppDagBuilder {
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
             BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseOutcastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'rawTensor.rawmagic' });
             return;
+        }
+
+        for (let index = nodes.length - 1; index >= 0; index--) {
+            if(nodes[index].id?.includes(tensorMagic) && nodes[index].id?.endsWith('empty')){
+                nodes.splice(index, 1);
+            }
         }
 
         if (!this.outcastUnique.has(tensorMagic)) {
@@ -832,6 +837,11 @@ export class AscppDagBuilder {
         const isIncast = inoutMap.get('incasts')?.has(tensorMagic) ?? false;
         const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
         if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
+            for (let index = nodes.length - 1; index >= 0; index--) {
+                if(nodes[index].id?.includes(tensorMagic) && nodes[index].id?.endsWith('empty')){
+                    nodes.splice(index, 1);
+                }
+            }
             this.outcastUnique.add(tensorMagic);
             const tensorNode: AstgrTensorNode = {
                 type: 'node:tensor',
