@@ -356,7 +356,7 @@ export abstract class BaseGraphMsgHandler {
       cache = await getComGraphLayoutStore().find({ filePath: filePath, funcHash: funcHash });
     }
     if (renderMode === 'path' || !cache || lastChangeTime !== cache.lastChangeTime) {
-      if (vscode.extensions.getExtension('hakan-6666.java-elk-extension')) {
+      if (vscode.extensions.getExtension('hakan-6666.java-elk-extension') && server.query) {
         vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.Open.postLayoutData')
       } else {
         this.layoutByLocal(server, gd, lastChangeTime, funcHash);
