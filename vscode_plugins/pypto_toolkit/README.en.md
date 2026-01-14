@@ -32,17 +32,17 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     Select any result directory, expand it, and click `Result Overview`.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
 
 - **Search for nodes**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
 
 - **Check PATH node detail**
 
     Click the icon in the upper right corner of the PATH card to view details.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowOpenPathDrawer.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
 
 ## Computation Graph
 
@@ -104,7 +104,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     When the number of open file nodes exceeds 10000, you can choose to render all nodes or search for a specific node and render its related linked. It is recommended to use this feature as needed when file size is too large.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
 
 ## Swimlane Diagram
 
@@ -112,31 +112,37 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     Right-click on the swimlane diagram json file and select `PyPTO Toolkit: Open file`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimOpen.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
   
 - **View Node Details**
 
     Click on the node to view its details in the lower panel
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimNodeDetail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
 - **Node Search**
 
     Inputting the node name in the search box allows for a fuzzy search of the node
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
 
 - **Jump to Computation Graph**
 
     Support jumping to computation graph based on `rootHash` and `leafHash`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimToCom.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
+
+- **Swim Graph Export**
+
+    Support export swim graph to png image file
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
 
 - **Add observation line**
 
     Clicking on the second axis can add observation lines, and clicking on an observation line can delete or modify it
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/addFlag.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
 - **PMU performance panel**
 
@@ -148,7 +154,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     Click the metric mode button in the upper left corner, or use the mouse to select nodes to view core utilization statistics.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/coreUti.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
 
 - **Shortcut Key List**
 
