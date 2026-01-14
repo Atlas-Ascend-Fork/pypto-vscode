@@ -126,8 +126,19 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
 }
 
 :deep(.devui-radio) {
+  .devui-radio__material {
+    border: 1px solid;
+    border-color: var(--pto-radio-border);
+  }
+
   .devui-radio__label {
     color: var(--pto-font-color-main);
+  }
+
+  &.active {
+    .devui-radio__material {
+      background-color: #ffffff;
+    }
   }
 }
 
