@@ -18,18 +18,25 @@
         <d-tab :id="tab.key" :title="tab.label"> </d-tab>
       </template>
     </d-tabs>
-    <d-form v-if="schema" ref="formRef" class="tab-form" layout="vertical" size="md" :data="configData" message-type="text">
+    <d-form
+      v-if="schema"
+      ref="formRef"
+      class="tab-form"
+      layout="vertical"
+      size="md"
+      :data="configData"
+      message-type="text"
+      label-size="200px"
+    >
       <template v-for="tab in schema" :key="tab.key">
         <!-- 页签 -->
         <div v-show="activeTab === tab.key" class="sub-form">
           <template v-for="attribute in tab.attributes" :key="attribute.key">
             <!-- 表单项 -->
-            <d-form-item
-              class="config-form-item"
-              :field="attribute.key"
-              :label="getLocalLabel(attribute.label)"
-              :rules="formatAttributeRules(attribute.rules)"
-            >
+            <d-form-item class="config-form-item" :field="attribute.key" :rules="formatAttributeRules(attribute.rules)">
+              <template #label>
+                <div class="config-form-label" :title="getLocalLabel(attribute.label)">{{ getLocalLabel(attribute.label) }}</div>
+              </template>
               <RunConfigController
                 :attribute="attribute"
                 :model-value="getValue(attribute)"
@@ -198,13 +205,25 @@ function handleViewSourceFile() {
     padding: 8px;
     overflow-y: auto;
 
+    .config-form-label {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     :deep(.devui-form__item--vertical) {
       margin-bottom: 16px;
     }
 
-    :deep(.devui-form__label-span) {
-      font-size: 13px;
-      color: var(--pto-font-color-main);
+    :deep(.devui-form__label) {
+      width: 100%;
+
+      .devui-form__label-span {
+        width: 100%;
+        font-size: 13px;
+        color: var(--pto-font-color-main);
+      }
     }
   }
 }
