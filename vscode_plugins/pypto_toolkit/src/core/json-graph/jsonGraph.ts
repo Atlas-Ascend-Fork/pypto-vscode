@@ -27,6 +27,7 @@ export class AscppDagBuilder {
     emptyOutputSet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
+    isSearch = false;
     comGraphData;
     server;
     callInOutTensorMap: ((data) => any) | undefined;
@@ -94,6 +95,7 @@ export class AscppDagBuilder {
         // Handle potential data structure variations
         let actualData = funcData;
         this.isDefinedDark = isDark;
+        this.isSearch = nodeMagic ? true : false;
         const colorList = generateColorList(360, isDark);
         this.baseColorList = colorList.baseColorList;
         this.lightColorList = colorList.lightColorList;
@@ -2077,7 +2079,7 @@ export class AscppDagBuilder {
                             id: `edge-${opId}-to-${tensorMagic}-${index}`,
                             sourceId: portId,
                             targetId: consumer.portId,
-                            ...((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) ? {} : { cssClasses: ['dashed-edge'] })
+                            ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                         });
                         callTargetId = consumer.portId;
                     }
@@ -2089,7 +2091,7 @@ export class AscppDagBuilder {
                         sourceId: `${opId}-out`,
                         // targetId: `${nodeId}-in`
                         targetId: `${tensorNodeId}-in`,
-                        ...((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) ? {} : { cssClasses: ['dashed-edge'] })
+                        ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                     });
                     callTargetId = `${tensorNodeId}-in`;
                 }
@@ -2109,7 +2111,7 @@ export class AscppDagBuilder {
                 }
             }
             
-            if (op.opcode === "COPY_OUT" || op.opcode === "ASSEMBLE") {
+            if ((op.opcode === "COPY_OUT" || op.opcode === "ASSEMBLE") && !this.isSearch) {
                 const hasOut = this.outcastUnique.has(tensorMagic);
                 if (!hasOut) {
                     const emptyNode: AstgrNode = this.createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
