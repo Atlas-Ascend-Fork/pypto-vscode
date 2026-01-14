@@ -152,7 +152,7 @@
   "pypto.cancelDebugMode": "Cancel Debug Mode",
   "pypto.setAllDebugMode": "Set All Debug Mode",
   "pypto.cancelAllDebugMode": "Cancel All Debug Mode",
-  "PyPTOToolkit.runConfig.group.pass": "Pass",
+  "PyPTOToolkit.runConfig.group.pass": "PASS",
   "PyPTOToolkit.runConfig.group.debug": "Debug",
   "PyPTOToolkit.runConfig.group.simulation": "Simulation",
   "PyPTOToolkit.runConfig.group.runtime": "Runtime",

@@ -18,7 +18,7 @@
         <d-tab :id="tab.key" :title="tab.label"> </d-tab>
       </template>
     </d-tabs>
-    <d-form v-if="schema" ref="formRef" class="tab-form" layout="vertical" size="normal" :data="configData" message-type="text">
+    <d-form v-if="schema" ref="formRef" class="tab-form" layout="vertical" size="md" :data="configData" message-type="text">
       <template v-for="tab in schema" :key="tab.key">
         <!-- 页签 -->
         <div v-show="activeTab === tab.key" class="sub-form">
@@ -167,6 +167,8 @@ function handleViewSourceFile() {
 
 .custom-tabs {
   :deep(.devui-tabs__nav--tabs) {
+    font-size: 13px;
+
     li {
       margin-left: 24px;
 
@@ -195,6 +197,15 @@ function handleViewSourceFile() {
     height: 100%;
     padding: 8px;
     overflow-y: auto;
+
+    :deep(.devui-form__item--vertical) {
+      margin-bottom: 16px;
+    }
+
+    :deep(.devui-form__label-span) {
+      font-size: 13px;
+      color: var(--pto-font-color-main);
+    }
   }
 }
 

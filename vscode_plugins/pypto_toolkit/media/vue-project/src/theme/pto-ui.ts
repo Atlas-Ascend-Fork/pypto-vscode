@@ -29,6 +29,8 @@ const ptoBorderTheme: Theme = {
 };
 
 const ptoBackgroundTheme: Theme = {
+  // 普通背景
+  'pto-background': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.05)'],
   // 悬浮背景
   'pto-background-hover': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
 };
@@ -57,6 +59,11 @@ const ptoButtonTheme: Theme = {
   'pto-button-primary-background-disabled': ['#9DBDFC', '#003D83'],
 };
 
+const ptoRadioTheme: Theme = {
+  // 【单选】【边框】未选中
+  'pto-radio-border': ['#191919', '#E6E6E6'],
+};
+
 /**
  * 插件通用主题（左侧light，右侧dark）
  */
@@ -65,6 +72,7 @@ const ptoTheme: Theme = {
   ...ptoBorderTheme,
   ...ptoBackgroundTheme,
   ...ptoButtonTheme,
+  ...ptoRadioTheme,
 };
 
 export const ptoLightTheme = Object.fromEntries(Object.entries(ptoTheme).map(([key, [light]]) => [key, light]));

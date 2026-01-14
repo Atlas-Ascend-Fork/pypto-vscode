@@ -154,7 +154,7 @@
   "pypto.cancelDebugMode": "取消调试模式",
   "pypto.setAllDebugMode": "全部设置调试模式",
   "pypto.cancelAllDebugMode": "全部取消调试模式",
-  "PyPTOToolkit.runConfig.group.pass": "Pass",
+  "PyPTOToolkit.runConfig.group.pass": "PASS",
   "PyPTOToolkit.runConfig.group.debug": "调试",
   "PyPTOToolkit.runConfig.group.simulation": "仿真",
   "PyPTOToolkit.runConfig.group.runtime": "运行",
