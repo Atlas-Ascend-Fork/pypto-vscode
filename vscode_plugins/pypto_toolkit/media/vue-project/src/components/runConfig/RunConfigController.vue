@@ -80,6 +80,7 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
   }
 
   :deep(.devui-input__wrapper) {
+    background-color: var(--pto-background);
     border-color: var(--devui-form-control-bg, #ffffff);
 
     &.devui-input--glow-style:not(.devui-input--error):not(.devui-input--disabled):not(.devui-input--focus):hover {
@@ -100,10 +101,15 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
 
 .devui-input-number {
   width: 150px;
+
+  :deep(.devui-input-number__input-box:not(.disabled)) {
+    background-color: var(--pto-background);
+  }
 }
 
 :deep(.devui-textarea) {
   width: 500px;
+  background-color: var(--pto-background);
   border-color: var(--devui-form-control-bg, #ffffff);
 
   &:focus {

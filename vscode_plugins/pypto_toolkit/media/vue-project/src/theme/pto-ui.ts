@@ -29,6 +29,8 @@ const ptoBorderTheme: Theme = {
 };
 
 const ptoBackgroundTheme: Theme = {
+  // 普通背景
+  'pto-background': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.05)'],
   // 悬浮背景
   'pto-background-hover': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
 };
