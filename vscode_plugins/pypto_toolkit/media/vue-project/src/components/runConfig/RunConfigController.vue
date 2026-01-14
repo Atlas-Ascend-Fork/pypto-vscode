@@ -42,8 +42,12 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
   <d-radio-group v-else-if="isType(attribute, 'enum')" direction="row" v-model="basicModel">
     <template v-for="option in attribute.options">
       <d-radio :value="option.value">
-        <span>{{ option.value }}</span>
-        <span class="radio-desc">{{ option.label ? ` (${getLocalLabel(option.label)})` : '' }}</span>
+        <div>{{ option.value }}</div>
+        <div class="radio-desc" v-if="option.label">
+          <div class="radio-desc-bracket">{{ getLocalLabel({ zh: '（', en: '(' }) }}</div>
+          <div class="radio-desc-content" :title="getLocalLabel(option.label)">{{ getLocalLabel(option.label) }}</div>
+          <div class="radio-desc-bracket">{{ getLocalLabel({ zh: '）', en: ')' }) }}</div>
+        </div>
       </d-radio>
     </template>
   </d-radio-group>
@@ -126,13 +130,22 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
 }
 
 :deep(.devui-radio) {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+
   .devui-radio__material {
+    display: block;
     border: 1px solid;
     border-color: var(--pto-radio-border);
+    flex-shrink: 0;
+    transform: none;
   }
 
   .devui-radio__label {
+    display: block;
     color: var(--pto-font-color-main);
+    display: flex;
   }
 
   &.active {
@@ -144,5 +157,13 @@ function isType<R extends RunConfigAttributeType>(attribute: RunConfigAttribute<
 
 .radio-desc {
   color: var(--pto-font-color-sub);
+  display: flex;
+}
+
+.radio-desc-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 600px;
 }
 </style>
