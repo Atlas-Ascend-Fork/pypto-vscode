@@ -50,7 +50,6 @@ export class ViewServer<Apis extends string, Refs extends object> extends Dispos
   constructor(private _ctx: ViewServerContext) {
     super(() => {
       this.onDisposed();
-      this.closeWebview();
     });
     _ctx.init.call(this);
   }

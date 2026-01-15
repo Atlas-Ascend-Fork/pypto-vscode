@@ -1,4 +1,4 @@
-import { Uri, Webview, WebviewPanel } from 'vscode';
+import type { Uri, Webview, WebviewPanel } from 'vscode';
 
 import { SingleWebviewConnector, WebviewConnector } from '../connector';
 
@@ -44,11 +44,16 @@ export function makeViewServerContext(
 ): ViewServerContext {
   const { webview, dispose } = webviewPanel;
   refConnector.addWebview(webview);
+  let apiConnector: SingleWebviewConnector;
   return {
     viewType,
     fileUri: uri,
     init() {
-      initApiConnector(webview, this);
+      if (!apiConnector) {
+        apiConnector = initApiConnector(webview, this);
+      } else {
+        apiConnector.reload();
+      }
     },
     setRef(key, value) {
       if (!serverHasRef(this, key)) {
@@ -100,7 +105,7 @@ export interface ViewServerApiMessage {
  * @param webview
  * @param instance
  */
-function initApiConnector(webview: Webview, instance: ViewServer<never, {}>) {
+function initApiConnector(webview: Webview, instance: ViewServer<never, {}>): SingleWebviewConnector {
   const apiConnector = new SingleWebviewConnector<ViewServerApiResponse, ViewServerApiMessage>('viewServerApi', webview, receive);
   async function receive({ api, requestId, params }): Promise<void> {
     if (!serverHasApi(instance, api)) {
@@ -122,6 +127,7 @@ function initApiConnector(webview: Webview, instance: ViewServer<never, {}>) {
       apiConnector.send({ requestId, response });
     }
   }
+  return apiConnector;
 }
 
 /**

@@ -7,7 +7,7 @@ import type { Webview } from 'vscode';
  * @value viewServerApi 页面服务端 - api方法
  * @value viewServerRef 页面服务端 - 响应式对象
  */
-export type ConnectChannel = '__connector__' | 'request' | 'viewQuery' | 'viewServerApi' | 'viewServerRef';
+export type ConnectChannel = '__connector__' | 'request' | 'editorView' | 'viewServerApi' | 'viewServerRef';
 
 export type ConnectMessage = { channel: ConnectChannel; data: any };
 
@@ -95,6 +95,7 @@ export class SingleWebviewConnector<T = unknown, R = T> {
       }
       callback?.(res.data);
     });
+    this.sendExtensionReady();
   }
 
   public send(data: T): void {
@@ -105,10 +106,20 @@ export class SingleWebviewConnector<T = unknown, R = T> {
     }
   }
 
+  public reload(): void {
+    this.webviewReady = false;
+    this.pendingDataList = [];
+    this.sendExtensionReady();
+  }
+
   private startConnector(): void {
     this.webviewReady = true;
     this.pendingDataList.forEach((data) => this.send(data));
     this.pendingDataList = [];
+  }
+
+  private sendExtensionReady(): void {
+    this.webview.postMessage({ channel: CONNECTOR_READY_CHANNEL, data: this.channel });
   }
 }
 

@@ -14,6 +14,10 @@ export class ExtensionConnector<T = unknown, R = T> {
   constructor(private channel: ConnectChannel) {
     window.addEventListener('message', (event) => {
       const res = event.data;
+      if (this.isExtensionReadyMessage(res)) {
+        this.sendReadyMessage();
+        return;
+      }
       if (res.channel !== channel) {
         return;
       }
@@ -21,7 +25,7 @@ export class ExtensionConnector<T = unknown, R = T> {
         callback(res.data);
       });
     });
-    vscode.value.postMessage({ channel: CONNECTOR_READY_CHANNEL, data: this.channel });
+    this.sendReadyMessage();
   }
 
   public send(message: T): void {
@@ -30,5 +34,13 @@ export class ExtensionConnector<T = unknown, R = T> {
 
   public receive(callback: WebviewListener<R>): void {
     this.listeners.push(callback);
+  }
+
+  private isExtensionReadyMessage(message: { channel: ConnectChannel; data: unknown }): boolean {
+    return message.channel === CONNECTOR_READY_CHANNEL && message.data === this.channel;
+  }
+
+  private sendReadyMessage(): void {
+    vscode.value.postMessage({ channel: CONNECTOR_READY_CHANNEL, data: this.channel });
   }
 }
