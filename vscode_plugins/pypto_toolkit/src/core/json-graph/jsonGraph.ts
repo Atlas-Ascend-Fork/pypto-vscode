@@ -966,7 +966,7 @@ export class AscppDagBuilder {
             }
 
             const tensorMagic = String(tensor.magic);
-            if (!tensor.rawtensor) {
+            if ((tensor.rawtensor !== 0) && (!tensor.rawtensor)) {
                 BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseTensorNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'Tensor.rawtensor' });
                 return;
             }
@@ -1364,7 +1364,7 @@ export class AscppDagBuilder {
                 BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseIncastNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensorMagic, argName: 'tensor.magic' });
                 return;
             }
-            if (!tensor.rawtensor) {
+            if ((tensor.rawtensor !== 0) && (!tensor.rawtensor)) {
                 BaseGraphMsgHandler.returnError(this.server, 'pypto.comGraph.errorMessage.parseTensorNode', {}, 'pypto.comGraph.errorLogMessage.parseFail', { funcHash: this.server.comGraphData.funcHash, key: 'magic', value: tensor.magic, argName: 'Tensor.rawtensor' });
                 return;
             }
