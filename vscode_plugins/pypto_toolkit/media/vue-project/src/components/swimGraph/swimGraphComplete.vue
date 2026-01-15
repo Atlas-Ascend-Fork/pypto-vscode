@@ -950,51 +950,70 @@ const findEventAtPosition = (x, y, processKey) => {
         continue;
       }
     }
-    for (let index = 0; index < thread.events.length; index++) {
-      const event = thread.events[index];
-      if (event.renderInfo) {
-        const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
-        const eventWidth = event.drawData.eventWidth;
-        if (!(y >= eventY && y <= eventY + eventHeight)) {
-          continue;
-        }
-        if (x >= eventX && x <= eventX + eventWidth) {
-          processObj.event = event;
-          return processObj;
-        } else {
-          const { pixelScale } = viewState;
-          const isNarrow = eventWidth * pixelScale <= NARROW_WIDTH_THRESHOLD;
-          if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
-            // 吸附
-            const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
-            const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth + snapThresholdInTime];
-            if (x >= eventRange[0] && x <= eventRange[1]) {
-              processObj.event = event;
-              return processObj;
-            }
-          }
-          // 间隙检测
-          const nextEvent = thread.events[index + 1];
-          if (nextEvent) {
-            const { x: nextEventX } = nextEvent.renderInfo;
-            if (x >= eventX + eventWidth && x <= nextEventX) {
-              // 记录间隙，但不立即返回！因为后面可能有吸附
-              fallbackAltClickData = {
-                preData: event,
-                lastData: nextEvent,
-                nodeSpacingX: nextEventX - (eventX + eventWidth)
-              };
-            }
-          }
-        }
-      }
+    const result = searchEventsInThread(thread, x, y);
+    if (result.foundEvent) {
+      processObj.event = result.foundEvent;
+      return processObj;
+    }
+    if (result.fallback) {
+      fallbackAltClickData = result.fallback;
     }
   }
   if (fallbackAltClickData) {
     processObj.altClickData = fallbackAltClickData;
   }
-
   return processObj;
+};
+
+const searchEventsInThread = (thread, x, y) => {
+  let fallbackAltClickData = null;
+  for (let index = 0; index < thread.events.length; index++) {
+    const event = thread.events[index];
+    if (event.renderInfo) {
+      const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
+      const eventWidth = event.drawData.eventWidth;
+      if (!(y >= eventY && y <= eventY + eventHeight)) {
+        continue;
+      }
+      if (x >= eventX && x <= eventX + eventWidth) {
+        return {
+          foundEvent: event,
+          fallback: null
+        };
+      } else {
+        const { pixelScale } = viewState;
+        const isNarrow = eventWidth * pixelScale <= NARROW_WIDTH_THRESHOLD;
+        if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
+          // 吸附
+          const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
+          const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth + snapThresholdInTime];
+          if (x >= eventRange[0] && x <= eventRange[1]) {
+            return {
+              foundEvent: event,
+              fallback: null
+            };
+          }
+        }
+        // 间隙检测
+        const nextEvent = thread.events[index + 1];
+        if (nextEvent) {
+          const { x: nextEventX } = nextEvent.renderInfo;
+          if (x >= eventX + eventWidth && x <= nextEventX) {
+            // 记录间隙，但不立即返回！因为后面可能有吸附
+            fallbackAltClickData = {
+              preData: event,
+              lastData: nextEvent,
+              nodeSpacingX: nextEventX - (eventX + eventWidth),
+            };
+          }
+        }
+      }
+    }
+  }
+  return {
+    foundEvent: null,
+    fallback: fallbackAltClickData
+  };
 };
 
 const showDependencies = (event, type) => {
