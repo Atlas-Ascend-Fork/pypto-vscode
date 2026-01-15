@@ -32,17 +32,17 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     选择任意运行结果目录，展开后点击 `结果总览`，即可查看控制流相关信息，控制流从上到下表示实际执行的先后顺序
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openControlFlow.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
 
 - **搜索节点**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
 
 - **查看PATH详情**
 
     点击PATH卡片右上角图标查看详情
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20controlFlowOpenPathDrawer.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
 
 ## 计算图
 
@@ -104,7 +104,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     打开文件节点数超过1万时，允许选择全量渲染或者搜索某个节点，渲染其相关链路，建议在文件过大时按需使用
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/0.1.12localSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
 
 ## 泳道图
 
@@ -112,31 +112,37 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     在泳道图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可打开
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimOpen.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
   
 - **查看节点详情**
 
     点击节点可以在下方面板查看节点详情
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimNodeDetail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
 - **节点搜索**
 
     在搜索框输入节点名称可以模糊搜索节点
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimSearch.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
 
 - **跳转计算图**
 
     支持根据`rootHash`和`leafHash`跳转至计算图
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/swimToCom.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
+
+- **泳道图导出**
+
+    支持导出泳道图为 png 图片
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
 
 - **添加观测线**
 
     在二段轴上点击可以添加观测线，点击观测线可以删除或修改
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/addFlag.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
 - **PMU性能看板**
 
@@ -148,7 +154,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     点击左上角的度量模式按钮，或者鼠标框选节点，可查看核利用率统计信息
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/coreUti.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
 
 - **快捷键列表**
 
