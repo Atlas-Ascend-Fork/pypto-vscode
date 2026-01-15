@@ -471,7 +471,9 @@ const processTraceData = (data) => {
   // 对线程进行排序
   processes.forEach((value) => {
     const cThread = new Map([...value.threads.entries()].filter((item) => item[1].isCounter).sort());
-    const eThread = new Map([...value.threads.entries()].filter((item) => !item[1].isCounter).sort());
+    const eThread = new Map([...value.threads.entries()].filter((item) => !item[1].isCounter).sort((a, b) => {
+      return Number(a[0].split('-')[1]) - Number(b[0].split('-')[1]);
+    }));
     value.threads = new Map([...eThread.entries(), ...cThread.entries()]);
   });
 
