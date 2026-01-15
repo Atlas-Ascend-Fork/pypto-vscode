@@ -127,20 +127,6 @@
   gap: 4px;
 }
 
-.workflow {
-  width: 65px;
-  height: 22px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  color: var(--devui-swim-text-title);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 22px;
-  letter-spacing: 0px;
-  text-align: left;
-}
-
 .title_time {
   display: none;
   width: 118px;
@@ -182,7 +168,7 @@
 }
 
 .dashed-line {
-  width: 16px;
+  width: 12px;
   border-top: 1px dashed rgba(153, 153, 153, 1);
   align-self: center;
   margin: 0 2px;
@@ -243,4 +229,19 @@
 }
 .title-threeColumn {
   height: 61px;
+}
+
+.simple-file-name{
+    height: 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--devui-tooltip-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    display: inline-block;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
 }

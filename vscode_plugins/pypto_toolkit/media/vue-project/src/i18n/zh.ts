@@ -75,7 +75,7 @@ export default {
    'swimErroMsgFILE_NOT_FOUND': '泳道图文件路径不存在：',
    'swimErroMsgNot_JSON': '所选文件不是 JSON 格式',
    'tips1': '跳转编译对象，设计中，敬请期待',
-   'tips2': '跳转计算图总览，设计中，敬请期待',
+   'tips2': '跳转计算图',
    'swimGraph': '泳道图',
    'lessThan0': '<1us',
    'caseSensitive': '区分大小写',
