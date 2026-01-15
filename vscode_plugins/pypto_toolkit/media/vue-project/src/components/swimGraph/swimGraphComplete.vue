@@ -1827,6 +1827,7 @@ const onToggleSwimFullscreenFunction = () => {
 };
 
 const findFirstEvent = () => {
+  let firstEvent = undefined;
   for (const [processKey, process] of processes.entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
@@ -1834,18 +1835,20 @@ const findFirstEvent = () => {
     const { threads } = process;
     for (const [threadKey, thread] of threads.entries()) {
       for (const event of thread.events) {
-        return event;
+        firstEvent = event;
+        return firstEvent;
       }
     }
   }
-}
+  return firstEvent;
+};
 
 const onJumpCom = () => {
   const jumpevent = findFirstEvent();
   const rootHashString = jumpevent.args['event-hint'].match(/rootHash:(?<hash>\d+)/);
   const [, rootHash] = rootHashString;
   server.jumpToComGraph({paramObj: { hash: rootHash }});
-}
+};
 
 // 生命周期钩子
 onMounted(async () => {
@@ -1865,9 +1868,9 @@ onMounted(async () => {
   let result = await originalReader.read();
   loadingText.value = $t('receiveTraceData');
 
-  const res = await getQuery();
-  if (res && res.outputPath) {
-    outPutPath.value = res.outputPath;
+  const resData = await getQuery();
+  if (resData && resData.outputPath) {
+    outPutPath.value = resData.outputPath;
   } else {
     outPutPath.value = '';
   }
