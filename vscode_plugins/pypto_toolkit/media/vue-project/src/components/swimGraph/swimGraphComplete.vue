@@ -11,7 +11,6 @@
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
           <div class="title_up_threecolum" v-show="isThreeColumn" id="swim-title_up_threecolum">
-            <!-- <div class="title_pic"></div> -->
             <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
             <div class="title_up_r_threecolum">
               <div class="title_up_threecolum_filename">
@@ -20,25 +19,27 @@
               </div>
             </div>
           </div>
-          <div class="title_up" v-show="!isThreeColumn">
-            <!-- <div class="title_pic"></div> -->
+          <Navbar v-if="!isThreeColumn && outPutPath" current-step="swimGraph" :current-record-directory-path="outPutPath" />
+          <div class="title_up" v-show="!isThreeColumn || !outPutPath">
             <img class="title_pic" :src="titlePath" alt="title-picture" />
             <div class="title_up_r">
               <div class="workflow-container">
-                <div class="workflow">Workflow</div>
-                <img class="down_16px" :src="down_16px" alt="down_16px" />
+                <d-tooltip :content="fileName + '.json'">
+                  <div class="simple-file-name">{{ fileName }}.json</div>
+                </d-tooltip>
               </div>
               <div class="title_time">{{ formattedTime }}</div>
             </div>
           </div>
-          <div class="title_up" v-show="!isThreeColumn">
-          </div>
-          <div class="title_down" v-if="!isThreeColumn">
+          <div class="title_up" v-show="!isThreeColumn || !outPutPath"></div>
+          <div class="title_down" v-if="!isThreeColumn || !outPutPath">
             <d-tooltip :content="$t('tips1')">
               <img class="title_icon1" :src="iconPath1" alt="iconPath1-picture" />
             </d-tooltip>
             <div class="dashed-line"></div>
-            <d-tooltip :content="$t('tips2')"><img class="title_icon2" :src="iconPath2" alt="iconPath2-picture" /></d-tooltip>
+            <d-tooltip :content="$t('tips2')">
+              <img class="title_icon2" :src="iconPath2" alt="iconPath2-picture" @click="onJumpCom"/>
+            </d-tooltip>
             <div class="dashed-line"></div>
             <div class="title_down3">
               <img class="title_icon3" :src="iconPath3" alt="iconPath3-picture" />
@@ -94,6 +95,8 @@ import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
 import SwimGraphConfig from './swimGraphConfig/swimGraphConfig.vue';
 import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/swimGraphShortCutKeyDescripiton.vue';
+import Navbar from '@/components/navbar/navbar.vue';
+import { getQuery } from '@/core/query';
 import { getTextWidth } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 import {
@@ -221,6 +224,7 @@ const leafHashMap = ref(new Map());
 let isLockStatus = ref(false);
 const labelRender = ref(false);
 const dependencyLinesInfo = ref([]);
+const outPutPath = ref();
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -1868,6 +1872,11 @@ const onToggleSwimFullscreenFunction = () => {
   onToggleSwimFullscreen();
 };
 
+const onJumpCom = () => {
+  const jumpType = 'nohash';
+  server.jumpToComGraph({paramObj: { hash: jumpType }});
+};
+
 // 生命周期钩子
 onMounted(async () => {
   setupSwimWatchers();
@@ -1885,6 +1894,13 @@ onMounted(async () => {
   const originalReader = Reader.getReader();
   let result = await originalReader.read();
   loadingText.value = $t('receiveTraceData');
+
+  const resData = await getQuery();
+  if (resData && resData.outputPath) {
+    outPutPath.value = resData.outputPath;
+  } else {
+    outPutPath.value = '';
+  }
 
   while (!result.done) {
     const val = result.value;

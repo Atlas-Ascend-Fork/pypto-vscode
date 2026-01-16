@@ -16,7 +16,7 @@ export interface PathTreeData {
   [key: string]: any;
 }
 
-type Step = 'controlFlow' | 'comGraph';
+type Step = 'controlFlow' | 'comGraph' | 'swimGraph';
 
 export const navbarProps = {
   currentRecordDirectoryPath: {

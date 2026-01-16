@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar-container">
+  <div class="navbar-container" :class="{ 'swimgraph-navbar-container': currentStep === 'swimGraph'}">
     <div class="history-wrap">
       <div class="history-icon">
         <HistoryNpuIcon v-if="isNpu" />
@@ -7,9 +7,11 @@
       </div>
       <HistoryList id="boot-steps-navbar-history" ref="historyListEl" :current-record="currentRecord" />
     </div>
-    <div class="dividing-line"></div>
+    <div v-if="currentStep !== 'swimGraph'" class="dividing-line"></div>
     <div class="navbar-list">
-      <d-tooltip :content="t('jumpCodeTips')" position="bottom" overlay-class="navbar-list-tooltip">
+      <d-tooltip :content="t('jumpCodeTips')" 
+        :position="currentStep === 'swimGraph' ? 'right' : 'bottom'" 
+        overlay-class="navbar-list-tooltip">
         <div class="source-code">
           <CodeIcon />
         </div>
@@ -49,8 +51,9 @@
       </d-tooltip>
       <ThreeDot v-if="showSwim" dot-color="var(--devui-placeholder-icon)" />
       <d-tooltip v-if="showSwim" :content="t('swimGraph')" position="bottom">
-        <div id="boot-steps-navbar-open-swm-graph" class="swim-graph" @click="jumpSwim">
+        <div id="boot-steps-navbar-open-swm-graph" :class="['swim-graph', currentStep === 'swimGraph' && 'active']" @click="jumpSwim">
           <SwimIcon />
+          <div v-if="currentStep === 'swimGraph'" class="title_name">{{ $t('swimGraph') }}</div>
         </div>
       </d-tooltip>
     </div>
@@ -132,6 +135,9 @@ watch(
       )
         .then((res) => {
           controlFlowList.value = res.data;
+          if (props.currentStep == 'swimGraph') {
+            findLastPass();
+          }
         })
         .catch(() => {
           getControlFlowError.value = true;
@@ -286,11 +292,8 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
       height: 24px;
     }
 
-    .swim-graph {
-      cursor: pointer;
-    }
-
     .navbar-control-flow,
+    .swim-graph,
     .com-graph {
       &:not(.active) {
         cursor: pointer;
@@ -298,6 +301,7 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
     }
 
     .navbar-control-flow,
+    .swim-graph,
     .com-graph {
       &:hover {
         border-color: var(--devui-primary-text);
@@ -311,20 +315,6 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
         }
       }
     }
-    .swim-graph {
-      &:hover {
-        border-color: var(--devui-primary-text);
-
-        svg {
-          :deep() {
-            path {
-              stroke: var(--devui-primary-text);
-            }
-          }
-        }
-      }
-    }
-
     .navbar-control-flow.active {
       width: auto;
       padding: 0 8px;
@@ -396,8 +386,42 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
         white-space: nowrap;
       }
     }
+
+    .swim-graph.active {
+      width: auto;
+      padding: 0 8px;
+      gap: 4px;
+      border-color: var(--devui-primary-text);
+
+      svg {
+        :deep() {
+          path {
+            fill: var(--devui-primary-text);
+          }
+        }
+      }
+    }
+
+    .title_name {
+      display: inline-block;
+      white-space: nowrap;
+      height: 18px;
+      color: var(--devui-swim-text-title);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 18px;
+      letter-spacing: 0px;
+      text-align: left;
+    }
+
   }
 }
+
+.navbar-container.swimgraph-navbar-container {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 </style>
 
 <style lang="scss">
