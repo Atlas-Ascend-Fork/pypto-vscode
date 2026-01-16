@@ -32,6 +32,7 @@ const fileName = ref('');
 const diffInfo = ref<Record<string, any>>({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
+const searchLevel = ref(-1);
 const noComFile = ref(true);
 const noSwimFile = ref(true);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
@@ -300,7 +301,8 @@ onMounted(async () => {
 const searchNodeListener = (args) => {
   searchMode.value = 0;
   openMode.value = 'path';
-  nodeMagic.value = args;
+  searchLevel.value = args.nodeSearchLevel;
+  nodeMagic.value = args.nodeMagic;
   loadingStep.value = 'convertData';
 };
 
@@ -313,6 +315,7 @@ const searchNodeGlobalListener = (args) => {
     nodeMagic.value = undefined
   } else {
     nodeMagic.value = args.nodeMagic;
+    searchLevel.value = args.nodeSearchLevel;
   }
 
   loadingStep.value = 'convertData';
@@ -461,7 +464,7 @@ const onInputLeave = (event) => {
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0"
-      :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
+      :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic" :searchLevel="searchLevel"
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
       :afterFileName="diffInfo.afterFileName" :beforeJson="diffInfo.beforeJson"

@@ -232,6 +232,10 @@ export default {
       callNumber: '调用次数',
       autoLineWrap: '自动换行',
       viewErrorStack: '查看调用栈',
+      advancedSearch: '高级搜索',
+      nodeSearchLevelTips1: '-1: 展示全链路',
+      nodeSearchLevelTips2: '其余数字：展示关联层级',
+      nodeSearchLevel: '链路关联层级'
    },
     sideBar: {
         title: '运行结果',

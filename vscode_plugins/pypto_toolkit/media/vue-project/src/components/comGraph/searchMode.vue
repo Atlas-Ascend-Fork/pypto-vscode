@@ -7,88 +7,128 @@
     />
 
     <div class="search-wrapper" :style="{width: 540 + selectWidth + 'px'}">
-      <div 
-        class="toolbar-row"
-        :class="{ 'search-focusd': isSearchFocus}"
-      >
-        <d-select
-          menu-class="globalSelect"
-          :options="allOptions"
-          v-model="currentSelect"
-          :placeholder="t('comGraph.currentGraph')"
-          class="select-options"
-          :style="{width:selectWidth + 'px'}"
-          @click="onSelectClick"
-          />
-          <div class='dividing-line'></div>
-        <d-dropdown 
-          class="search-dropdown" 
-          overlay-class="searchResultDown"
-          trigger="manually" 
-          :visible="isVisible"
-          :position="['bottom-start']"
-          @toggle="(val) => isVisible = val"
+      <div class="search-option-horizontal">
+        <div 
+          class="toolbar-row"
+          :class="{ 'search-focusd': isSearchFocus}"
         >
-          <d-category-search
-            ref="searchEl"
-            :category="category"
-            :text-config="textConfig"
-            :show-search-category="searchConfig"
-            :extend-config="{show:true, clear: { show: false}, save: {show: false}, more: {show: false}}"
-            :placeholder="t('comGraph.searchPlaceholder')"
-            :class="['category-search', isSearchFocus && 'search-focus']"
-            :style="{
-              '--hide-icon': showSearchIcon ? 1 : 0,
-            }"
-            @search="onSearch"
-            @click="onCategoryClick"
-            @selectedTagsChange="onSelectedChange"
+          <d-select
+            menu-class="globalSelect"
+            :options="allOptions"
+            v-model="currentSelect"
+            :placeholder="t('comGraph.currentGraph')"
+            class="select-options"
+            :style="{width:selectWidth + 'px'}"
+            @click="onSelectClick"
+            />
+            <div class='dividing-line'></div>
+          <d-dropdown 
+            class="search-dropdown" 
+            overlay-class="searchResultDown"
+            trigger="manually" 
+            :visible="isVisible"
+            :position="['bottom-start']"
+            @toggle="(val) => isVisible = val"
           >
-            <template #operation>
-              <div
-                class="rect-upper-lower has-tooltip"
-                :class="{active: upperActive}"
-                @mousedown.prevent
-                @click="upperSearch"
-                v-if="showOperation">
-                <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
-                  <path d="M339.62496 186.78272H249.8816L4.26496 834.56H97.3824l62.75584-177.46432h269.90592L496.84992 834.56h93.11744L339.62496 186.78272z m-155.19744 396.76416L292.39296 269.1072h1.35168l107.96032 314.43968H184.42752zM927.21664 584.35584c-4.32128 8.09984-17.67424 15.25248-40.07936 21.45792-22.4 6.20544-54.38464 10.65984-95.9488 13.35808-42.6496 4.85376-74.22464 14.84288-94.74048 29.96224s-29.96224 34.816-28.3392 59.1104c3.23584 46.41792 38.05696 69.63712 104.448 69.63712 93.93152-6.4768 145.4848-50.74432 154.65984-132.79744v-60.72832z m-315.79136-97.97632c21.59104-93.93152 90.14272-139.27424 205.66528-136.03328 62.08512-1.61792 107.96544 12.416 137.65632 42.10688 29.69088 29.69088 43.72992 74.76736 42.10688 135.22432v187.04896c-1.61792 25.36448-0.13312 46.82752 4.4544 64.36864 4.58752 17.54112 11.4688 31.70816 20.64896 42.51136h-66.40128c-7.55712-7.55712-13.09184-16.8704-16.59904-27.93472-3.5072-11.06944-5.25824-22.8096-5.25824-35.2256-37.79584 50.74432-97.97632 76.11392-180.57216 76.11392-96.62464-3.24096-148.17792-43.1872-154.65984-119.8336 1.62304-44.80512 16.06144-79.62624 43.32544-104.45824 27.25888-24.832 68.68992-39.67488 124.288-44.53376 44.26752-4.85376 79.89248-9.85088 106.88512-14.976 26.98752-5.13536 45.07648-11.74528 54.25152-19.84 3.24096-42.64448-4.58752-73.68704-23.48032-93.12256-18.88768-19.4304-48.85504-28.3392-89.8816-26.72128-39.94624-1.61792-71.53152 5.39648-94.73536 21.05344-23.2192 15.65696-36.98176 40.21248-41.29792 73.68192l-66.39616-19.4304z" p-id="5425"></path>
-                </svg>
-                <span class="tooltip tooltip-upper">{{ t('comGraph.caseSensitive') }}</span>
-              </div>
-              <div
-                class="rect-reg has-tooltip"
-                :class="{active: regActive}"
-                @click="regSearch"
-                @mousedown.prevent
-                v-if="showOperation">
+            <d-category-search
+              ref="searchEl"
+              :category="category"
+              :text-config="textConfig"
+              :show-search-category="searchConfig"
+              :extend-config="{show:true, clear: { show: false}, save: {show: false}, more: {show: false}}"
+              :placeholder="t('comGraph.searchPlaceholder')"
+              :class="['category-search', isSearchFocus && 'search-focus']"
+              :style="{
+                '--hide-icon': showSearchIcon ? 1 : 0,
+              }"
+              @search="onSearch"
+              @click="onCategoryClick"
+              @selectedTagsChange="onSelectedChange"
+            >
+              <template #operation>
+                <div
+                  class="rect-upper-lower has-tooltip"
+                  :class="{active: upperActive}"
+                  @mousedown.prevent
+                  @click="upperSearch"
+                  v-if="showOperation">
                   <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
-                    <path d="M136 836.928c0-32.896 25.088-60.608 58.112-60.608 34.304 0 59.392 27.776 59.392 60.608 0 35.712-25.088 59.456-59.392 59.456-36.992-1.344-58.112-26.432-58.112-59.456zM903.808 398.336l-214.912 42.112 150.336 188.032-92.928 64-120.64-207.744L503.68 692.48l-92.992-64 149.568-188.032-216.32-42.112 37.76-104.576 204.8 78.464-19.648-237.44h116.928l-20.352 237.44 204.8-78.464 35.584 104.576z" p-id="6435"></path>
+                    <path d="M339.62496 186.78272H249.8816L4.26496 834.56H97.3824l62.75584-177.46432h269.90592L496.84992 834.56h93.11744L339.62496 186.78272z m-155.19744 396.76416L292.39296 269.1072h1.35168l107.96032 314.43968H184.42752zM927.21664 584.35584c-4.32128 8.09984-17.67424 15.25248-40.07936 21.45792-22.4 6.20544-54.38464 10.65984-95.9488 13.35808-42.6496 4.85376-74.22464 14.84288-94.74048 29.96224s-29.96224 34.816-28.3392 59.1104c3.23584 46.41792 38.05696 69.63712 104.448 69.63712 93.93152-6.4768 145.4848-50.74432 154.65984-132.79744v-60.72832z m-315.79136-97.97632c21.59104-93.93152 90.14272-139.27424 205.66528-136.03328 62.08512-1.61792 107.96544 12.416 137.65632 42.10688 29.69088 29.69088 43.72992 74.76736 42.10688 135.22432v187.04896c-1.61792 25.36448-0.13312 46.82752 4.4544 64.36864 4.58752 17.54112 11.4688 31.70816 20.64896 42.51136h-66.40128c-7.55712-7.55712-13.09184-16.8704-16.59904-27.93472-3.5072-11.06944-5.25824-22.8096-5.25824-35.2256-37.79584 50.74432-97.97632 76.11392-180.57216 76.11392-96.62464-3.24096-148.17792-43.1872-154.65984-119.8336 1.62304-44.80512 16.06144-79.62624 43.32544-104.45824 27.25888-24.832 68.68992-39.67488 124.288-44.53376 44.26752-4.85376 79.89248-9.85088 106.88512-14.976 26.98752-5.13536 45.07648-11.74528 54.25152-19.84 3.24096-42.64448-4.58752-73.68704-23.48032-93.12256-18.88768-19.4304-48.85504-28.3392-89.8816-26.72128-39.94624-1.61792-71.53152 5.39648-94.73536 21.05344-23.2192 15.65696-36.98176 40.21248-41.29792 73.68192l-66.39616-19.4304z" p-id="5425"></path>
                   </svg>
-                  <span class="tooltip tooltip-reg">{{t('comGraph.useRegExp')}}</span>
-              </div>
-            </template>
-          </d-category-search>
-          <template #menu>
-            <ul class="search-res-list">
-              <div class="res-size">
-                <span class="res-size-text">
-                  {{ t('comGraph.searchResSize', {resSize}) }}
-                </span>
-              </div>
-              <div v-for="(it, index) in res" :key="index" 
-                class="res-it"
-                @click="onLocateSearchRes(it)">
-                <div class="res-it-text" :title="displayResIt(it)">
-                  {{displayResIt(it)}}
-                  <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
+                  <span class="tooltip tooltip-upper">{{ t('comGraph.caseSensitive') }}</span>
                 </div>
+                <div
+                  class="rect-reg has-tooltip"
+                  :class="{active: regActive}"
+                  @click="regSearch"
+                  @mousedown.prevent
+                  v-if="showOperation">
+                    <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
+                      <path d="M136 836.928c0-32.896 25.088-60.608 58.112-60.608 34.304 0 59.392 27.776 59.392 60.608 0 35.712-25.088 59.456-59.392 59.456-36.992-1.344-58.112-26.432-58.112-59.456zM903.808 398.336l-214.912 42.112 150.336 188.032-92.928 64-120.64-207.744L503.68 692.48l-92.992-64 149.568-188.032-216.32-42.112 37.76-104.576 204.8 78.464-19.648-237.44h116.928l-20.352 237.44 204.8-78.464 35.584 104.576z" p-id="6435"></path>
+                    </svg>
+                    <span class="tooltip tooltip-reg">{{t('comGraph.useRegExp')}}</span>
+                </div>
+              </template>
+            </d-category-search>
+            <template #menu>
+              <ul class="search-res-list">
+                <div class="res-size">
+                  <span class="res-size-text">
+                    {{ t('comGraph.searchResSize', {resSize}) }}
+                  </span>
+                </div>
+                <div v-for="(it, index) in res" :key="index" 
+                  class="res-it"
+                  @click="onLocateSearchRes(it)">
+                  <div class="res-it-text" :title="displayResIt(it)">
+                    {{displayResIt(it)}}
+                    <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
+                  </div>
+                </div>
+              </ul>
+            </template>
+          </d-dropdown>
+
+        </div>
+        <d-dropdown
+          class="advanced-search-dropdown"
+          :append-to-body="true"
+          :close-scope="all"
+        >
+          <div class="advanced-search-button" tabindex="0" role="button" > {{t('comGraph.advancedSearch')}} </div>
+
+          <template #menu>
+            <div
+              class="advanced-search-panel"
+              
+            >
+              <div style="display: flex; align-items: center; gap: 4px">
+                <div class="advanced-search-panel-title" @click.stop> {{ t('comGraph.nodeSearchLevel') }} </div>
+
+                <d-tooltip placement="top" popper-class="advanced-search-tooltip" @click.stop>
+                  <d-icon name="icon-help"  class="icon-help-font"></d-icon>
+                  <template #content>
+                      <div class="icon-help-tip "> {{t('comGraph.nodeSearchLevelTips1')}} <br> {{t('comGraph.nodeSearchLevelTips2')}} </div>
+                  </template>
+                </d-tooltip>
               </div>
-            </ul>
+
+              <d-input-number
+                v-model="linkLevel"
+                :step="1" :precision="0" :min="0"
+                class="advanced-search-panel-input"
+                @click.stop
+              />
+
+              <div class="advanced-search-panel-actions">
+                <d-button class="search-level-d-button search-level-d-button-primary" @click="onConfirm" > {{$t('yes')}} </d-button>
+                <d-button class="search-level-d-button" @click="onCancel" > {{$t('no')}} </d-button>
+              </div>
+            </div>
           </template>
         </d-dropdown>
-
       </div>
+
 
       <div v-if="historyList?.length" class="history-box">
         <div class="history-header">{{ t('comGraph.searchHistoryTips') }}</div>
@@ -142,6 +182,19 @@ const { t } = useI18n();
 const searchEl = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
+const advancedSearchVisible = ref(false);
+const linkLevel = ref<number>(0);
+let searchLevel = ref<number>(0);
+
+function onConfirm() {
+  searchLevel.value = linkLevel.value;
+  advancedSearchVisible.value = false;
+}
+
+function onCancel() {
+  advancedSearchVisible.value = false;
+}
+
 
  const categoryCurrent = [
       {
@@ -556,12 +609,12 @@ const displayResIt = (it) => {
 
 const onGlobalSearchLocate = (it) => {
   if (it.node_type === 'function') {
-    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'all', nodeMagic: -1});
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'all', nodeMagic: -1, nodeSearchLevel: searchLevel.value});
     server.innerGetSubgraph( {calleehash: it.hash, subFuncmagicname: funcMap.value[it.hash]?.func_magicname })
     return;
   }
   if (it.funcHash) {
-    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'path', nodeMagic: it.magic ?? it.opmagic});
+    (window as any).ascEventBus.emit('searchNodeGlobal', {openMode: 'path', nodeMagic: it.magic ?? it.opmagic, nodeSearchLevel: searchLevel.value});
     server.innerGetSubgraph( {calleehash: it.funcHash, subFuncmagicname: funcMap.value[it.funcHash]?.func_magicname })
   }
 
@@ -573,7 +626,8 @@ const onLocateSearchRes = (it) => {
         return;
       }
       emits('searchMode');
-      (window as any).ascEventBus.emit('searchNode', it.magic ?? it.opmagic);
+      (window as any).ascEventBus.emit('searchNode', {nodeMagic: it.magic ?? it.opmagic, nodeSearchLevel: searchLevel.value});
+
   } else if (currentSelect.value === 'global') {
     onGlobalSearchLocate(it);
   }
@@ -975,6 +1029,97 @@ watch(server.GlobalSearchResult, (newValue) => {
 
 .search-wrapper {
   margin-top: 32px;
+}
+
+.icon-help-font {
+    font-size: 13px;
+    margin-left: -6px !important;
+    margin-bottom: 6px !important;
+}
+
+.icon-help-tip {
+  color: #b3b3b3; 
+  font-size: 12px; 
+  font-weight: 400; 
+  line-height: 16px;
+  padding: 4px 4px 4px 4px;
+  margin-bottom: 6px !important;
+}
+
+.advanced-search-tooltip {
+  width: 180px;
+  height: 40px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background-color: #363636;
+  box-shadow: 0 8px 24px 0 rgba(0,0,0,0.24);
+}
+
+.search-option-horizontal {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-row {
+  flex: 1;
+}
+
+.advanced-search-dropdown {
+  margin-left: 16px;
+  flex-shrink: 0;
+  width: 30px;
+}
+
+.advanced-search-button {
+  margin-left: 16px;
+  width: 100px;
+  height: 24px;
+  font-size: 18px;
+  color: rgba(49, 122, 247, 1);
+  line-height: 1;
+
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.advanced-search-panel {
+  width: 220px;
+  padding: 12px;
+
+  background: var(--devui-tooltip-bg);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  border-radius: 4px;
+}
+
+.advanced-search-panel-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  padding: 4px 16px 8px 4px;
+}
+
+.advanced-search-panel-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.advanced-search-panel-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.search-level-d-button-primary {
+  background-color: #317af7;
+  border-radius: 4px;
+  color: rgb(250, 249, 249);
+}
+
+.search-level-d-button:hover {
+  background-color: #317af7;
+  border-radius: 4px;
+  color: rgb(250, 249, 249);
 }
 
 .history-tags {
