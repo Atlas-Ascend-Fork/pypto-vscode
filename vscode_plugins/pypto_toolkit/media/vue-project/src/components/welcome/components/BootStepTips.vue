@@ -298,7 +298,7 @@ const maskFullClipStyle = computed<CSSProperties>(() => {
   };
 });
 
-// ========== 第二层：包围盒内遮罩样式（灰色半透明，仅对指定DOM挖孔） ==========
+// ========== 第二层：包围盒内遮罩样式（仅对指定DOM挖孔） ==========
 const maskInnerStyle = computed<CSSProperties>(() => {
   refreshTrigger.value;
   const mergeRect = getMergeDomRect();
@@ -314,7 +314,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // 灰色半透明
+    backgroundColor: 'rgba(100,200, 300, 0.2)', // 内部遮罩
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease',
@@ -333,8 +333,8 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    border: '2px solid var(--devui-active-icon)',
-    borderRadius: '4px',
+    border: '1px solid var(--devui-active-icon)',
+    borderRadius: '8px',
     boxSizing: 'border-box',
     zIndex: 99998, // 高于两层遮罩，低于弹窗
     pointerEvents: 'none', // 点击穿透

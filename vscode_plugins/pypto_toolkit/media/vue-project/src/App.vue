@@ -9,7 +9,6 @@ import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 import WelcomeIndex from './components/welcome/WelcomeIndex.vue';
 import BootStepTips from './components/welcome/components/BootStepTips.vue';
 import { getIsCompleteBoot } from './apis/welcome';
-import GuideOverview from './components/welcome/components/GuideOverview.vue';
 
 const graphType = ref('');
 const outputDirPath = ref('');
@@ -58,7 +57,9 @@ onMounted(async () => {
   <!-- 全局引导弹窗 -->
   <BootStepTips
     v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome'"
-    v-model:visible="showGlobalGuide" :graphType="graphType" />
+    v-model:visible="showGlobalGuide"
+    :graphType="graphType"
+  />
 </template>
 <style scoped>
 .parent-container {
