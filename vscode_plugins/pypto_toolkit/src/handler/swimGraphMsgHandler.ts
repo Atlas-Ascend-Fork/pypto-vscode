@@ -417,6 +417,11 @@ export abstract class SwimGraphMsgHandler {
             return;
         }
 
+        if (paramObj.hash === 'nohash') {
+          commands.executeCommand('PyPTO.Open.OpenRenderGraphForCurrent', Uri.file(comGraphPath));
+          return;
+        }
+
         commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', Uri.file(comGraphPath), paramObj.hash);
     }
 

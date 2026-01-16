@@ -1826,28 +1826,9 @@ const onToggleSwimFullscreenFunction = () => {
   onToggleSwimFullscreen();
 };
 
-const findFirstEvent = () => {
-  let firstEvent;
-  for (const [processKey, process] of processes.entries()) {
-    if (!processExpanded.get(processKey)) {
-      continue;
-    }
-    const { threads } = process;
-    for (const [threadKey, thread] of threads.entries()) {
-      for (const event of thread.events) {
-        firstEvent = event;
-        return firstEvent;
-      }
-    }
-  }
-  return firstEvent;
-};
-
 const onJumpCom = () => {
-  const jumpevent = findFirstEvent();
-  const rootHashString = jumpevent.args['event-hint'].match(/rootHash:(?<hash>\d+)/);
-  const [, rootHash] = rootHashString;
-  server.jumpToComGraph({paramObj: { hash: rootHash }});
+  const jumpType = 'nohash';
+  server.jumpToComGraph({paramObj: { hash: jumpType }});
 };
 
 // 生命周期钩子
