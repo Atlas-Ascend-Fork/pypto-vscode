@@ -189,7 +189,12 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         methodParams: {
           searchNodeId: 'tensor-6036-13',
         },
-        targetDomConfigs: [
+        targetDomConfigs: [        
+          {
+            targetDomId: 'astgr-context-menu',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
           {
             targetDomId: 'sprotty_tensor-6036-13',
             triangleDirection: 'top',
@@ -268,6 +273,12 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         targetDomConfigs: [
           {
             targetDomId: 'zoom-controls',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          
+                  {
+            targetDomId: 'shortCutKeyDescriptionEdit',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -411,7 +422,7 @@ export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: numbe
   const priorityConfig = getCurrentPriorityTargetConfig(bigGroup, smallIndex, graphType);
   return {
     showTriangle: priorityConfig?.showTriangle ,
-    triangleDirection: priorityConfig?.triangleDirection || 'right',
+    triangleDirection: priorityConfig?.triangleDirection ,
   };
 };
 
