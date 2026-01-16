@@ -6,12 +6,13 @@ import * as vscode from 'vscode';
 import { hismartliteEx } from '../../hismarliteEx';
 import { getIDELang } from '../../lang';
 import { getIDETheme } from '../../theme';
-import { ViewQuery, ViewQueryConnector } from '../view/view-query';
+import type { ViewQuery } from '../view/view-query';
 import { makeViewServerConfig, ViewServer } from '../view/view-server';
 import { makeViewServerContext } from '../view/view-server-context';
 
 import { fromVirtualUri, toVirtualUri } from './virtualUri';
 import { OpenedViews } from './openedViews';
+import { WebviewConnector } from '../connector';
 
 /** 页面配置 */
 export interface EditorViewRaw {
@@ -49,15 +50,16 @@ const CUSTOM_EDITOR_VIEW_TYPE = 'PyPTO.open.editorView';
  */
 export class EditorView {
   /** 页面配置 */
-  private viewRawMap: Map<string, EditorViewRaw> = new Map();
+  private viewRawMap = new Map<string, EditorViewRaw>();
 
-  /** 页面参数通信器 */
-  private queryConnector: ViewQueryConnector;
+  /** 视图加载 */
+  private viewConnector = new WebviewConnector('editorView');
+  private initViewServerHooks = new WeakMap<vscode.Webview, () => void>();
 
   /** 已开启的页面 */
-  private openedViews: OpenedViews;
+  private openedViews = new OpenedViews();
 
-  public openServer: Map<string, any>;
+  public openServer = new Map<string, any>();
 
   /**
    * @param onViewActivated 显示页面hook
@@ -67,10 +69,10 @@ export class EditorView {
     private onViewActivated?: (viewPanel: vscode.WebviewPanel) => void,
     private onViewDisposed?: (viewType: string, uri: vscode.Uri) => void,
   ) {
-    this.queryConnector = new ViewQueryConnector();
-    this.openedViews = new OpenedViews();
-    this.openServer = new Map();
     this.registerSerializer();
+    this.viewConnector.receive((_, webview) => {
+      this.initViewServerHooks.get(webview)?.();
+    });
   }
 
   public registerViews(views: EditorViewRaw[]): void {
@@ -160,24 +162,23 @@ export class EditorView {
   private activeViewPanel(viewPanel: vscode.WebviewPanel, viewType: string, uri: vscode.Uri): void {
     this.openedViews.set(viewType, uri, viewPanel);
 
-    // 加载html
-    const htmlTemplateText = getWebviewEntryCode(viewPanel.webview);
-    viewPanel.webview.html = htmlTemplateText;
-
-    // 视图服务
     const { viewServer } = this.viewRawMap.get(viewType) ?? {};
     let server: ViewServer<never, {}>;
     const query = JSON.parse(uri.query);
     const serverKey = `${query._path}_${query.funcHash || ''}_${query.nodeMagic || ''}`;
+    // 视图服务
     if (viewServer) {
       const ctx = makeViewServerContext(viewPanel, viewType, uri);
-      server = new viewServer(ctx);
-      server.created(ctx);
-      this.openServer.set(serverKey, server);
+      this.viewConnector.addWebview(viewPanel.webview);
+      this.initViewServerHooks.set(viewPanel.webview, () => {
+        if (server) {
+          server.dispose();
+        }
+        server = new viewServer(ctx);
+        server.created(ctx);
+        this.openServer.set(serverKey, server);
+      });
     }
-
-    // 【hook】页面激活
-    this.onViewActivated?.(viewPanel);
 
     // 设置页面参数
     const uriQuery = fromVirtualUri(uri);
@@ -186,7 +187,11 @@ export class EditorView {
       _uri: uri,
       _server: makeViewServerConfig(viewServer),
     };
-    this.queryConnector.setQuery(viewPanel.webview, viewQuery);
+    // 加载html
+    const htmlTemplateText = getWebviewEntryCode(viewPanel.webview, viewQuery);
+    viewPanel.webview.html = htmlTemplateText;
+    // 【hook】页面激活
+    this.onViewActivated?.(viewPanel);
 
     // 监听主题变化
     const themeListener = vscode.window.onDidChangeActiveColorTheme(
@@ -209,7 +214,7 @@ export class EditorView {
 /**
  * 获取webview入口html文件代码
  */
-export function getWebviewEntryCode(webview: vscode.Webview): string {
+export function getWebviewEntryCode(webview: vscode.Webview, viewQuery: ViewQuery): string {
   /** 扩展根目录相对webview入口的路径 */
   const base = webview.asWebviewUri(vscode.Uri.file(hismartliteEx.extensionPath)).toString();
   const htmlPath = path.join(hismartliteEx.extensionPath, 'webview-dist', 'index.html');
@@ -218,6 +223,7 @@ export function getWebviewEntryCode(webview: vscode.Webview): string {
     .replace(/{{root}}/g, base)
     .replace(/{{staticPath}}/g, `${base}/webview-dist`)
     .replace(/{{ascTheme}}/g, getIDETheme())
-    .replace(/{{ascLang}}/g, getIDELang());
+    .replace(/{{ascLang}}/g, getIDELang())
+    .replace(/'{{query}}'/g, JSON.stringify(viewQuery));
   return htmlCode;
 }

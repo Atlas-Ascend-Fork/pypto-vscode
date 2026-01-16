@@ -70,7 +70,11 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
-import { initExtensionQuery } from './core/query';
+import { ExtensionConnector } from './core/connector';
+
+// 通知extension页面加载
+const viewConnector = new ExtensionConnector('editorView');
+viewConnector.send(null);
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
@@ -90,7 +94,6 @@ self.MonacoEnvironment = {
   },
 };
 
-initExtensionQuery();
 EventBus.init();
 
 createApp(App)

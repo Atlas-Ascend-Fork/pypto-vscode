@@ -22,15 +22,6 @@ getQuery().then(({ _server }) => {
   serverConfig = _server;
 });
 
-/**
- * 视图服务内的Api方法
- */
-type ViewServerApi<Server extends ViewServer<never, {}>, ApiKey> = ApiKey extends keyof Server
-  ? Server[ApiKey] extends (...args: any[]) => any
-    ? Server[ApiKey]
-    : never
-  : never;
-
 /** 转为异步函数 */
 type Async<T extends (...args: any[]) => any> = ReturnType<T> extends Promise<unknown>
   ? T

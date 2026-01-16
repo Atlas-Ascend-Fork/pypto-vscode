@@ -12,12 +12,10 @@
     <script>
       window.ascTheme = '{{ascTheme}}';
       window.ascLang = '{{ascLang}}';
+      window.staticPath = '{{staticPath}}';
+      window.extensionQuery = '{{query}}';
+      window.vscode = globalThis.acquireVsCodeApi && globalThis.acquireVsCodeApi();
     </script>
     <script type="module" src="/src/main.ts"></script>
-
-    <script>
-      window.vscode = acquireVsCodeApi && acquireVsCodeApi();
-      window.staticPath = '{{staticPath}}';
-    </script>
   </body>
 </html>
