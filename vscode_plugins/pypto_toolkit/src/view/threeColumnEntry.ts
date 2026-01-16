@@ -44,7 +44,7 @@ export class Fider {
       }
   
       const workspaceRoot = workspaceFolders[0].uri.fsPath;
-      const outputDir = join(workspaceRoot, 'build', 'output', 'bin', 'output');
+      const outputDir = join(workspaceRoot, 'output');
   
       // 检查输出目录是否存在
       if (!existsSync(outputDir)) {

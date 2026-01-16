@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isCfgEditing" class="cfgEdit">
+  <div v-if="isCfgEditing" class="cfgEdit" :style="{ top: isThreeColumn ? '0px': '60px'}">
     <div class="cfg-content">
         <div class="cfg-head">
             <div class="cfg-title"> {{ $t('swimRenderCfg') }} </div>
@@ -11,7 +11,7 @@
             <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
             <d-select v-model="modeOption" :options="modeOptions" size="sm" @update:modelValue="OnModeChange" :disabled=isThreeColumn></d-select>
         </div>
-        <div class="task-content">
+        <div class="task-content" v-if="!isAicpu">
             <div class="task-content-t">{{ $t('eventTask') }} </div>
             <d-select :class="[textOption.length === 1 && 'singleOption']" :menu-class="[textOption.length === 1 && 'singleOptionMenu']" v-model="textOption" :options="textOptions" :multiple="true" size="sm" @update:modelValue="OnTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
         </div>
@@ -46,6 +46,7 @@ const {
     timelineState,
     isThreeColumn,
     isPathLockStatus,
+    isAicpu,
 } = inject('swimGraphState');
 
 const {
@@ -80,7 +81,13 @@ const modeOp = [
     {name: $t('label'), value: 'label'},
 ];
 
-const modeOptions = reactive(modeOp);
+const modeOptions = computed(() => {
+    if (isAicpu.value) {
+        return [{name: $t('name'), value: 'name'}];
+    }
+    return modeOp;
+});
+
 const textOp = [
     {name: $t('taskName'), value: 'taskName', disabled: false},
     {name: $t('taskLabel'), value: 'taskLabel', disabled: false},
@@ -161,6 +168,8 @@ const OnModeChange = () => {
         updateEvents('stichedFunc');
     } else if (modeOption.value === 'label') {
         updateEvents('label');
+    } else if (modeOption.value === 'name') {
+        updateEvents('name');
     } else {
         return; 
     }

@@ -7,7 +7,7 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
-export const getSubGraphId = (event, mode) => {
+export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
   let subGraphId;
   const nameParts = event.name.split('(')[0].split('-').map(part => part.trim());
 
@@ -26,13 +26,21 @@ export const getSubGraphId = (event, mode) => {
     subGraphId = nameParts[0];
   }
 
-  return Number(subGraphId) || 15;
+  return Number(subGraphId) || defaultValue;
 };
 
 
 export const getEventColorByMode = (event, mode) => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
-  if (mode !== "label") {
+  if (mode === 'name') {
+    const label = event.name || '';
+    const dres = getColorByString(label, darkThemeBaseColors, darkThemeLightColors);
+    const lres = getColorByString(label, lightThemeBaseColors, lightThemeLightColors);
+    dBaseColor = dres.baseColor;
+    dLightColor = dres.lightColor;
+    lBaseColor = lres.baseColor;
+    lLightColor = lres.lightColor;
+  } else if (mode !== "label") {
     const subGraphId = getSubGraphId(event, mode);
     dBaseColor = darkThemeBaseColors[subGraphId];
     dLightColor = darkThemeLightColors[subGraphId];

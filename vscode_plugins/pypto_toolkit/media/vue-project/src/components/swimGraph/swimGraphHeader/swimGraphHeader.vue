@@ -58,8 +58,8 @@
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="isCfgDisabled ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
-        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isCfgDisabled">
+      <d-tooltip :content="isAicpu ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
+        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isAicpu">
           <LayerControlIcon :active="isCfgEditing"/>
         </d-button>
       </d-tooltip>
@@ -185,6 +185,7 @@ const {
   searchedEvent,
   isThreeColumn,
   fileName,
+  isAicpu,
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
@@ -959,19 +960,6 @@ const measureModel = () => {
   transform();
   mulDetailsExpanded.value = false;
 }
-
-const isCfgDisabled = computed(() => {
-  for (const process of processes.values()) {
-    for (const thread of process.threads.values()) {
-        for (const event of thread.events) {
-            if (!event.isCounter && !(event.leafIndex)) {
-                return true;
-            }
-        }
-    }
-  }
-  return false;
-});
 
 const handleClickOutsize = (event) => {
   if (!event || !event.target) {

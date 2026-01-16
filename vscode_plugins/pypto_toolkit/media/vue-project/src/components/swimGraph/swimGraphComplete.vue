@@ -202,6 +202,7 @@ const textOption = ref([]);
 const modeOption = ref('');
 const isCfgEditing = ref(false);
 const isShortcutKeyShow = ref(false);
+const isAicpu = ref(false);
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -1858,6 +1859,14 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 
 const setPageState = (message) => {
   userConfig.value = message.config;
+  if (message.swimData && message.swimData.colorRendering) {
+     userConfig.value.colorRending = message.swimData.colorRendering;
+  }
+  if (message.swimData && message.swimData.isAicpu) {
+    isAicpu.value = true;
+  } else {
+    isAicpu.value = false;
+  }
   modeOption.value = userConfig.value.colorRending;
   textOption.value = userConfig.value.textRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
@@ -2003,6 +2012,7 @@ provide('swimGraphState', {
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
+  isAicpu,
 });
 
 // 提供方法给子组件
