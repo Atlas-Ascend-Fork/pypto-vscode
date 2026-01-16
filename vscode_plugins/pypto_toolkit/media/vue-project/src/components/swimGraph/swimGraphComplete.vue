@@ -110,6 +110,8 @@ import {
   getDevicePixelRatio,
   COLOR_CFG,
   processesToMap,
+  SNAP_THRESHOLD,
+  NARROW_WIDTH_THRESHOLD,
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -932,7 +934,8 @@ const findEventAtPosition = (x, y, processKey) => {
   };
   const process = processes.get(processKey);
   if (!process) return null;
-
+  // 用于记录最后一个有效的间隙（仅当无吸附时使用）
+  let fallbackAltClickData = null;
   // 遍历进程中的所有事件，检查点击位置
   for (const [threadKey, thread] of process.threads.entries()) {
     // 优化: 先确定目标位置的y坐标是否在当前泳道中,如果不在,及时返回
@@ -949,30 +952,71 @@ const findEventAtPosition = (x, y, processKey) => {
         continue;
       }
     }
-    thread.events.forEach((event, index) => {
-      if (event.renderInfo) {
-        const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
-        const eventWidth = event.drawData.eventWidth;
-        if (x >= eventX && x <= eventX + eventWidth && y >= eventY && y <= eventY + eventHeight) {
-          processObj.event = event;
-          return processObj;
-        } else {
-          const nextEvent = thread.events[index + 1];
-          if (nextEvent) {
-            const { x: nextEventX } = nextEvent.renderInfo;
-            if (x >= eventX + eventWidth && x <= nextEventX) {
-              processObj.altClickData.preData = event;
-              processObj.altClickData.lastData = nextEvent;
-              processObj.altClickData.nodeSpacingX = nextEventX - (eventX + eventWidth);
-              return processObj;
-            }
-          }
+    const result = searchEventsInThread(thread, x, y);
+    if (result.foundEvent) {
+      processObj.event = result.foundEvent;
+      return processObj;
+    }
+    if (result.fallback) {
+      fallbackAltClickData = result.fallback;
+    }
+  }
+  if (fallbackAltClickData) {
+    processObj.altClickData = fallbackAltClickData;
+  }
+  return processObj;
+};
+
+const searchEventsInThread = (thread, x, y) => {
+  let fallbackAltClickData = null;
+  for (let index = 0; index < thread.events.length; index++) {
+    const event = thread.events[index];
+    if (!event.renderInfo) {
+      continue;
+    }
+    const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
+    const { eventWidth } = event.drawData;
+    if (y < eventY || y > eventY + eventHeight) {
+      continue;
+    }
+    if (x >= eventX && x <= eventX + eventWidth) {
+      return {
+        foundEvent: event,
+        fallback: null
+      };
+    } else {
+      const { pixelScale } = viewState;
+      const isNarrow = eventWidth * pixelScale <= NARROW_WIDTH_THRESHOLD;
+      if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
+        // 吸附
+        const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
+        const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth + snapThresholdInTime];
+        if (x >= eventRange[0] && x <= eventRange[1]) {
+          return {
+            foundEvent: event,
+            fallback: null
+          };
         }
       }
-    });
+      // 间隙检测
+      const nextEvent = thread.events[index + 1];
+      if (nextEvent) {
+        const { x: nextEventX } = nextEvent.renderInfo;
+        if (x >= eventX + eventWidth && x <= nextEventX) {
+          // 记录间隙，但不立即返回！因为后面可能有吸附
+          fallbackAltClickData = {
+            preData: event,
+            lastData: nextEvent,
+            nodeSpacingX: nextEventX - (eventX + eventWidth),
+          };
+        }
+      }
+    }
   }
-
-  return processObj;
+  return {
+    foundEvent: null,
+    fallback: fallbackAltClickData
+  };
 };
 
 const showDependencies = (event, type) => {

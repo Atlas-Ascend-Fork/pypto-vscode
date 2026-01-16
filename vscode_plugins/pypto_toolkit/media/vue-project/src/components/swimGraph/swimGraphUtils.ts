@@ -30,6 +30,11 @@ export const DEP_MODE = {
   next: 'next',
 };
 
+// 点击或者hover的吸附范围左右5px
+export const SNAP_THRESHOLD = 5;
+// 需要吸附节点的最大width
+export const NARROW_WIDTH_THRESHOLD = 2;
+
 export let ctxs: any = {};
 export const getDevicePixelRatio = () => { return window.devicePixelRatio || 1; };
 export let devicePixelRatio = getDevicePixelRatio();
