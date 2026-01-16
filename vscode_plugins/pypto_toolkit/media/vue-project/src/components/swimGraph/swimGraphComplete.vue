@@ -1827,7 +1827,7 @@ const onToggleSwimFullscreenFunction = () => {
 };
 
 const findFirstEvent = () => {
-  let firstEvent = undefined;
+  let firstEvent;
   for (const [processKey, process] of processes.entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
