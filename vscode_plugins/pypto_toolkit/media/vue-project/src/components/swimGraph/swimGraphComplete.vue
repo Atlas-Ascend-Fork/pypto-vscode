@@ -630,15 +630,15 @@ const renderFixedTimeline = () => {
   let lastx = 0;
   let distance = 0;
   const canvasWidth = viewState.canvasCssWidth;
-  const timePerPixel = viewState.timeRange / canvasWidth;
+  const timePerPixel = (new BigNumber(viewState.timeRange)).div(canvasWidth).toNumber();
   const gridInterval = calculateGridInterval(timePerPixel);
 
   // 联动二段轴逻辑
-  const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-  const startTime = viewState.minTime + Math.abs(viewState.offsetX * timelinePerPixel);
+  const timelinePerPixel = (new BigNumber(viewState.timeRange)).div(new BigNumber(canvasWidth * viewState.scale));
+  const startTime = viewState.minTime + ((new BigNumber(viewState.offsetX)).times(timelinePerPixel)).abs().toNumber();
   const startTimex = fixedTimeToX(startTime) - layout.processLabelWidth;
 
-  const endTime = startTime + canvasWidth * timelinePerPixel;
+  const endTime = startTime + (new BigNumber(canvasWidth)).times(timelinePerPixel).toNumber();
   const endTimex = fixedTimeToX(endTime) - layout.processLabelWidth;
   const endSecondTimex = timeToX(viewState.maxTime) - layout.processLabelWidth;
 
