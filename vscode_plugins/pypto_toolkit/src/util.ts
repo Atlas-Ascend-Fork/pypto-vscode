@@ -68,13 +68,13 @@ export class Util {
     return result;
   }
 
-  static getCachePath() {
+  static getCachePath(filename: string) {
     const extensionPath = hismartliteEx.extensionPath;
     const cacheDir = join(dirname(extensionPath), 'PyPTOToolkitCache');
     if (!existsSync(cacheDir)) {
       mkdirSync(cacheDir);
     }
-    const cachePath = join(cacheDir, 'swim2com.json');
+    const cachePath = join(cacheDir, filename);
     if (!existsSync(cachePath)) {
       writeFileSync(cachePath, '{}', 'utf-8');
     }
@@ -90,7 +90,10 @@ export class Util {
     return {};
   }
 
-  static writeSwim2ComGraphMap(cachePath: string, data: { [swimPath: string]: string }) {
+  static writeJsonCache<T>(cachePath: string, data: T ): void {
+    if (!cachePath) {
+      console.error('Failed to read cachePath');
+    }
     try {
       writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {

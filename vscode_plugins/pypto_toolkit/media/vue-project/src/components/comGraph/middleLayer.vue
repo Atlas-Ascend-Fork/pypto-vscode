@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, toRef, computed, shallowRef } from 'vue';
+import { onMounted, ref, watch, toRef, computed, shallowRef, provide } from 'vue';
 import ComGraph from '../../components/comGraph/comGraph.vue';
 import DiffComGraph from '../../components/diffComGraph/diffComGraph.vue';
 import ErrorView from '../../components/comGraph/error.vue';
@@ -14,6 +14,8 @@ import { pushState, pullState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 import { threadCache } from '../../components/swimGraph/swimGraphUtils';
+import { getRunDataList } from '@/apis/workspace';
+import type { HistoryData } from '../../components/navbar/navbar-types';
 import { useI18n } from 'vue-i18n';
 const { t: $t } = useI18n();
 const graphName = ref('');
@@ -214,9 +216,14 @@ function setupThreeWatchers(server: any) {
     filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
     const promises = [];
     if (swimPath) {
-      noSwimFile.value = false;
       swimFileName.value = swimPath.split(/[\/\\]/).pop();
       promises.push(server.getInitialSwimData());
+      if (noSwimFile.value) {
+        noSwimFile.value = false;
+      } else {
+        // 如果泳道图不缺省，则要重载泳道图
+        promises.push(reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache));
+      }
     }
     if (comPath) {
       noComFile.value = false;
@@ -265,6 +272,7 @@ function setupSwimWatchers(server: any) {
 }
 
 onMounted(async () => {
+  getHistoryList(1, '');
   const state = pullState();
   if (server.fetchVscodeState) {
     server.fetchVscodeState(state);
@@ -444,6 +452,80 @@ const onInputLeave = (event) => {
   isHovered.value = false;
 };
 
+const runDataVisible = ref(false);
+const missGraphType = ref('');
+const baseChoose = ref('');
+const baseList = ref([{}]);
+const historyList = ref<HistoryData[]>([]);
+const swimPath = ref('');
+const comPath = ref('');
+const pageIndex = ref(1);
+const pageSize = 10;
+const pagetotal = ref(0);
+const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort.svg`);
+const sortOption = ref(false);
+const showWarning = ref(false);
+const searchQuery = ref('');
+const pageIndexChange = (val) => {
+  pageIndex.value = val;
+  getHistoryList(val, searchQuery.value);
+};
+const getHistoryList = (page, searchKey) => {
+  baseList.value = [];
+  historyList.value = [];
+  getRunDataList({page: page, pageSize, sortOrder: sortOption.value ? 'asc': 'desc', isThreeColumnNotNull: true, titleKeyword: searchKey}, {timeout: 600000 }).then(({data, total}) => {
+    historyList.value.push(...data);
+    baseList.value.push(...data.map(item =>({
+      runData: item.title,
+      disabled: false
+    })));
+    // if (baseList.value.length > 0) {
+    //   baseChoose.value = baseList.value[0];
+    //     swimPath.value = foundItem.swimlaneGraphFilePath.substring(1).replace(/\//g, '\\');
+    // comPath.value = foundItem.controlFlowFilePath.substring(1).replace(/\//g, '\\');
+    // }
+    pagetotal.value = total;
+  });
+};
+watch(sortOption, () => {
+  getHistoryList(pageIndex.value, searchQuery.value);
+});
+
+const openOtherFile = () => {
+  runDataVisible.value = false;
+  const {swimPath, comPath} = filePaths.value;
+  server.selectFile({graphType: missGraphType.value, options: {swimPath, comPath}});
+};
+const onSearch = (val) => {
+  searchQuery.value = val;
+  getHistoryList(pageIndex.value, searchQuery.value);
+};
+const runDataCancel = () => {
+  runDataVisible.value = false;
+};
+const runDataConfirm = async () => {
+  runDataVisible.value = false;
+  if (swimPath.value && comPath.value) {
+    await server.selectRunData({runDataPaths: {swimPath: swimPath.value, comPath: comPath.value}});
+  }
+};
+const filterValChange = () => {
+  showWarning.value = false;
+  swimPath.value = '';
+  comPath.value = '';
+  const foundItem = historyList.value.find(item => item.title === baseChoose.value);
+  if (foundItem) {
+    if (!foundItem.swimlaneGraphFilePath || !foundItem.controlFlowFilePath) {
+      showWarning.value = true;
+      const baseItem = baseList.value.find(item => item.runData === baseChoose.value);
+      baseItem.disabled = true;
+      return ;
+    }
+    swimPath.value = foundItem.swimlaneGraphFilePath.substring(1).replace(/\//g, '\\');
+    comPath.value = foundItem.controlFlowFilePath.substring(1).replace(/\//g, '\\');
+  }
+};
+provide('runDataList', {runDataVisible, missGraphType, pagetotal});
 </script>
 
 <template>
@@ -489,6 +571,51 @@ const onInputLeave = (event) => {
       </template>
     </d-modal>
   </template>
+  <template>
+    <d-modal v-model="runDataVisible" class="runData-containner" :close-on-click-overlay="false">
+      <template #header>
+        <d-modal-header class="modal-button">
+          <span> {{ $t('selectRelective') }} </span>
+          <d-button class="open-File-Button" @click="openOtherFile">{{ $t('selectOtherFile') }}</d-button>
+        </d-modal-header>
+      </template>
+      <template #default>
+        <div>
+          <d-search icon-position="left" style="width: 100%" v-model="searchQuery" :placeholder="$t('comGraph.search')" @search="onSearch"></d-search>
+        </div>
+        <div class="alert-rundata">
+          <d-alert v-if="showWarning" type="warning" :closeable="true" :dismiss-time=6000>{{ $t('warningText') }} </d-alert>
+        </div>
+        <d-table :data="baseList" border-type="" style="width: 100%">
+          <d-column header="rundata">
+            <template #header>
+              <span class="table-header-left">Rundata</span>
+                <div class="left-sort">
+                  <div class="sort-icon">
+                    <d-icon class="sort" operable @click="sortOption = !sortOption">
+                      <template #prefix>
+                        <img :src="sortIcon" class="icon-sort" />
+                      </template>
+                    </d-icon>
+                  </div>
+                </div>
+            </template>
+            <template #default="scope">
+              <d-radio v-model="baseChoose" :value="scope.row.runData" :disabled="scope.row.disabled" class="mb-2" @change="filterValChange">{{ scope.row.runData }}</d-radio>
+            </template>
+          </d-column>
+        </d-table>
+        <d-pagination class="runDataPage" size="sm" :total="pagetotal" v-model:pageSize="pageSize" v-model:pageIndex="pageIndex" :cann-view-total="true" :max-items="5" @page-index-change="pageIndexChange" />
+      </template>
+      <template #footer>
+        <d-modal-footer class="runData-modal-button">
+          <d-button variant="solid" color='secondary' @click="runDataCancel" @mouseenter="onInputFocus"
+            @mouseleave="onInputLeave">{{ $t('no') }}</d-button>
+          <d-button variant="solid" color='primary' @click="runDataConfirm" :disabled="!baseChoose">{{ $t('yes') }}</d-button>
+        </d-modal-footer>
+      </template>
+    </d-modal>
+  </template>  
 </template>
 <style scoped>
 .parent-container {
@@ -599,5 +726,84 @@ header {
   .devui-button--solid--primary:active {
     background: var(--devui-primary-button-active-bg);
   }
+}
+.runData-containner.devui-modal {
+  width: 480px;
+  max-height: 620px;
+  gap: 20px;
+  background: var(--devui-category-search-dropdown-bg);
+}
+.devui-modal .btn-close {
+  top: 22px !important;
+}
+.runDataPage.devui-pagination {
+  margin-top: 26px;
+  display: flex;
+  justify-content: flex-end;
+  > div {
+    display: none !important;
+  }
+  > span {
+    display: none !important;
+  }
+}
+.open-File-Button.devui-button--outline--secondary {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  color: var(--devui-select-active-border-color);
+  margin-right: 8px;
+}
+.devui-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sort-icon {
+  display: flex;
+  align-items: center;
+}
+.devui-modal__body {
+  .devui-search {
+    background: var(--devui-input-bg);
+  }
+  .devui-search__clear, .devui-search__icon {
+    height: 28px;
+  }
+  .devui-search .devui-input {
+    height: 28px;
+    background-color: transparent;
+  }
+  .devui-input__wrapper {
+    background-color: transparent;
+  }
+}
+.devui-table {
+  top: 16px;
+  border-radius: 8px;
+  .devui-table__thead {
+    height: 32px;
+  }
+  .devui-table__thead tr {
+    background-color: var(--devui-input-bg);
+  }
+  .devui-table__tbody tr {
+    background-color: var(--devui-input-disabled-bg);
+  }
+  .devui-table__tbody tr:not(:last-child) td {
+    border: none;
+    border-bottom: 1px solid var(--devui-split-line);
+  }
+  .devui-radio__label {
+    border-bottom: 1px solid var(--devui-swim-text-title);
+  }
+  .devui-table--sm tbody>tr>td {
+    padding: 5px 20px 5px;
+  }
+}
+.alert-rundata {
+  width: 440px;
+  position: absolute;
+  top: 60px;
+  z-index: 10;
 }
 </style>

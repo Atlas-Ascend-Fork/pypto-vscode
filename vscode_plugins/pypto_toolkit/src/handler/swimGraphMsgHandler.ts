@@ -17,6 +17,7 @@ const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
     static cachePath: string;
+    static cacheCfgPath: string;
 
     public static readonly WHITE_COMMANDS = new Set([
         'getSwimData',
@@ -79,13 +80,15 @@ export abstract class SwimGraphMsgHandler {
         server.setRef('noSwimFile', swimPath);
         return;
       }
-      this.cachePath = Util.getCachePath();
-      const cache = Util.readSwim2ComGraphMap(this.cachePath);
-      const comGraphPath = cache[swimPath];
-      const colorRendingMode = cache['colorRending'] ?? 'subGraph';
+      this.cachePath = Util.getCachePath('swim2com.json');
+      this.cacheCfgPath = Util.getCachePath('swimRenderingCfg.json');
+      const swim2com = Util.readSwim2ComGraphMap(this.cachePath);
+      const cfgCache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
+      const comGraphPath = swim2com[swimPath];
+      const colorRendingMode = cfgCache['colorRending'] ?? 'subGraph';
       const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
       const colorRending = isThreeServer ? 'label' : colorRendingMode;
-      const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
+      const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const config = Util.getSwimGraphCustomCfg();
       config['colorRending'] = colorRending;
       config['textRending'] = textRending;
@@ -140,9 +143,8 @@ export abstract class SwimGraphMsgHandler {
         const swimFileStat = await fs.stat(swimPath);
         const useCacheStream = swimFileStat.size < CACHE_LARGE_FILE_SIZE * 1024 * 1024;
 
-        this.cachePath = Util.getCachePath();
-        const cache = Util.readSwim2ComGraphMap(this.cachePath);
-        const comGraphPath = cache[swimPath];
+        this.cacheCfgPath = Util.getCachePath('swimRenderingCfg.json');
+        const cache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
         const colorRendingMode = cache['colorRending'] ?? 'subGraph';
         const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
         const colorRending = isThreeServer ? 'label' : colorRendingMode;
@@ -344,7 +346,7 @@ export abstract class SwimGraphMsgHandler {
         const comGraphPath = comGraphUri.fsPath;
         const cache: any = Util.readSwim2ComGraphMap(this.cachePath);
         cache[swimPath] = comGraphPath;
-        Util.writeSwim2ComGraphMap(this.cachePath, cache);
+        Util.writeJsonCache(this.cachePath, cache);
 
         server.setRef('bindResult', {
             success: true,
@@ -370,7 +372,7 @@ export abstract class SwimGraphMsgHandler {
         }
 
         delete cache[swimPath];
-        Util.writeSwim2ComGraphMap(this.cachePath, cache);
+        Util.writeJsonCache(this.cachePath, cache);
 
         server.setRef('unbindResult', {
             success: true,
@@ -398,7 +400,7 @@ export abstract class SwimGraphMsgHandler {
             if (existsSync(programPath)) {
                 comGraphPath = programPath;
                 cache[swimPath] = comGraphPath;
-                Util.writeSwim2ComGraphMap(this.cachePath, cache);
+                Util.writeJsonCache(this.cachePath, cache);
                 server.setRef('bindResult', {
                     success: true,
                     message: t('pypto.optSucc'),
@@ -512,7 +514,7 @@ export abstract class SwimGraphMsgHandler {
     }
     // 保存全局配置
     static async saveRendingMode(server: any, paramObj: string) {
-        Util.writeSwimConfigMap(this.cachePath, paramObj);
+        Util.writeSwimConfigMap(this.cacheCfgPath, paramObj);
     }
     static async changeUserCfgConnection(server: any, paramObj: { level: number }) {
         const config = workspace.getConfiguration('PyPTOToolkitOpen');

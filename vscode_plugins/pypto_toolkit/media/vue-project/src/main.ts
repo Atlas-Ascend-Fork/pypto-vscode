@@ -65,6 +65,8 @@ import Radio from 'vue-devui/radio';
 import 'vue-devui/radio/style.css';
 import Collapse from 'vue-devui/collapse';
 import 'vue-devui/collapse/style.css';
+import Pagination from 'vue-devui/pagination';
+import 'vue-devui/pagination/style.css';
 
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -131,4 +133,5 @@ createApp(App)
   .use(Switch)
   .use(Radio)
   .use(Collapse)
+  .use(Pagination)
   .mount('#app');

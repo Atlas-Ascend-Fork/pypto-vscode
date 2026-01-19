@@ -6,6 +6,7 @@ import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 const { t: $t } = useI18n();
 const { server } = useViewServer<ICommonViewServer>();
 const { isDarkTheme } = inject('root');
+const { runDataVisible, missGraphType, pagetotal} = inject('runDataList');
 const props = defineProps({
   graphType: { type: String },
   filePath: {type: Object, default: {}}
@@ -13,8 +14,13 @@ const props = defineProps({
 let iconPath = computed(() => `${(window as any).staticPath}/static-assets/noFile${isDarkTheme.value ? 'Dark' : ''}.png`);
 let graphName = props.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
 function openFilePath() {
-    const {swimPath, comPath} = props.filePath;
-    server.selectFile({graphType: props.graphType, options: {swimPath, comPath}});
+    if (pagetotal.value > 0) {
+        runDataVisible.value = true;
+        missGraphType.value = props.graphType;
+    } else {
+        const {swimPath, comPath} = props.filePath;
+        server.selectFile({graphType: props.graphType, options: {swimPath, comPath}});
+    }
 }
 </script>
 
