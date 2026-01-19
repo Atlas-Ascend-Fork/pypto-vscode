@@ -276,12 +276,6 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             triangleDirection: 'top',
             showTriangle: true,
           },
-          
-                  {
-            targetDomId: 'shortCutKeyDescriptionEdit',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
         ],
       },
       {

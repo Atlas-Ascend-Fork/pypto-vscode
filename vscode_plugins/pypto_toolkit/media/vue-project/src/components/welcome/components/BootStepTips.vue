@@ -314,7 +314,8 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    backgroundColor: 'rgba(100,200, 300, 0.2)', // 内部遮罩
+    backgroundColor: '#317AF7', // 内部遮罩
+    opacity:`0.1`,
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease',
