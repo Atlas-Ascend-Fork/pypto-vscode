@@ -10,6 +10,7 @@ export interface GuideTargetDomConfig {
   targetDomId: string; // 目标引导DOM的ID
   triangleDirection: 'top' | 'bottom' | 'left' | 'right'; // 三角方向（上/下/左/右）
   showTriangle: boolean; // 是否显示引导三角
+  allowClick?: boolean; //是否允许点击该DOM区域
 }
 
 // 定义单个步骤的配置类型
@@ -62,6 +63,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             targetDomId: 'boot-steps-controlFlow-right-panel',
             triangleDirection: 'right',
             showTriangle: true,
+            allowClick: false,
           },
         ],
         method: 'bootStepOpenSideBar',
@@ -104,6 +106,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             targetDomId: 'boot-steps-navbar-history',
             triangleDirection: 'top',
             showTriangle: true,
+            allowClick: false 
           },
         ],
       },
@@ -273,6 +276,11 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         targetDomConfigs: [
           {
             targetDomId: 'zoom-controls',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'shortCutKeyDescriptionEdit',
             triangleDirection: 'top',
             showTriangle: true,
           },

@@ -1,6 +1,6 @@
 <template>
   <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
-  <div v-if="visible" class="guide-mask-container">
+  <div v-if="visible" class="guide-mask-container" @pointerup.stop>
     <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
     <div 
       class="guide-mask-full" 
@@ -13,6 +13,7 @@
       class="guide-mask-inner" 
       @click.stop
       :style="maskInnerStyle"
+      @pointerup.stop
     ></div>
 
     <!-- 合并后的视觉边框（单个包围盒边框） -->
@@ -153,7 +154,7 @@ const popupContentRef = ref<HTMLDivElement | null>(null);
 /**
  * 防抖函数
  */
-const debounce = (fn: Function, delay = 100) => {
+const debounce = (fn: Function, delay = 50) => {
   let timer: NodeJS.Timeout | null = null;
   return (...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -172,6 +173,13 @@ const triangleConfig = computed(() => {
 const currentStepAllTargetDomConfigs = computed<GuideTargetDomConfig[]>(() => {
   const stepConfig = getCurrentStepConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   return stepConfig?.targetDomConfigs || [];
+});
+
+// ========== 判断当前步骤是否允许点击目标DOM ==========
+const isStepAllowClick = computed<boolean>(() => {
+  const configs = currentStepAllTargetDomConfigs.value;
+  // 无配置默认允许；有配置时，只要有一个allowClick为true（或未设置），就允许
+  return configs.some(config => config.allowClick !== false);
 });
 
 // ========== 核心：获取单个DOM的位置信息 ==========
@@ -218,11 +226,16 @@ const getMergeDomRect = (): DOMRect | null => {
 
 // ========== 核心：生成多个DOM的clip-path路径（内层遮罩用） ==========
 const getMultiDomClipPath = (): string => {
+  // 新增：如果步骤不允许点击，返回空（不挖孔）
+  if (!isStepAllowClick.value) return '';
+  
   if (!props.visible || currentStepAllTargetDomConfigs.value.length === 0) return '';
 
   // 收集所有有效DOM的位置信息
   const validDomRects: DOMRect[] = [];
   currentStepAllTargetDomConfigs.value.forEach(config => {
+    // 新增：仅对allowClick为true的DOM生成挖孔路径
+    if (config.allowClick === false) return;
     const rect = getSingleDomRect(config.targetDomId);
     if (rect) validDomRects.push(rect);
   });
@@ -328,13 +341,18 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
   const mergeRect = getMergeDomRect();
   if (!mergeRect) return { display: 'none' };
 
+  // 新增：根据是否允许点击切换边框颜色
+  const borderColor = isStepAllowClick.value 
+    ? 'var(--devui-active-icon)' // 蓝色点击
+    : '#FFE485'; // 浅黄色 介绍根据高保真调整
+
   return {
     position: 'fixed',
     top: `${mergeRect.top}px`,
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    border: '1px solid var(--devui-active-icon)',
+    border: `1px solid ${borderColor}`, // 动态边框颜色
     borderRadius: '8px',
     boxSizing: 'border-box',
     zIndex: 99998, // 高于两层遮罩，低于弹窗
@@ -689,7 +707,7 @@ const handleResize = async () => {
 };
 
 // 防抖后的resize处理函数
-const debouncedHandleResize = debounce(handleResize, 100);
+const debouncedHandleResize = debounce(handleResize, 50);
 
 // ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
