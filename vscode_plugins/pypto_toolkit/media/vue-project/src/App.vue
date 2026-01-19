@@ -32,7 +32,7 @@ window.addEventListener('message', (event) => {
   CommandCallbackMap[message.command]?.(message);
 });
 
-onMounted( async() => {
+onMounted(async () => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault(); //阻止原生菜单弹出
   });
@@ -53,13 +53,16 @@ onMounted( async() => {
   <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
   <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
     <MiddleLayer :graphType="graphType"></MiddleLayer>
-  </header>  
+  </header>
   <!-- 全局引导弹窗 -->
-  <BootStepTips v-if="showGlobalGuide && graphType !== 'returnSidBar'&&graphType !== 'editRunConfig'&& graphType !== 'welcome'" v-model:visible="showGlobalGuide" :graphType="graphType"  />
+  <BootStepTips
+    v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome'"
+    v-model:visible="showGlobalGuide"
+    :graphType="graphType"
+  />
 </template>
 <style scoped>
 .parent-container {
-  width: 100vw;
   height: 100vh;
   box-sizing: border-box;
 }

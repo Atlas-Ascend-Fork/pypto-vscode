@@ -1,7 +1,28 @@
 <template>
-  <!-- 遮罩层 -->
-  <div v-if="visible" class="guide-mask" @click.stop="handleMaskClick" @pointerup.stop>
-    <!-- 弹窗外层容器（ -->
+  <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
+  <div v-if="visible" class="guide-mask-container" @pointerup.stop>
+    <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
+    <div 
+      class="guide-mask-full" 
+      @click.stop
+      :style="maskFullClipStyle"
+    ></div>
+    
+    <!-- 第二层：包围盒内遮罩对指定DOM挖孔 -->
+    <div 
+      class="guide-mask-inner" 
+      @click.stop
+      :style="maskInnerStyle"
+      @pointerup.stop
+    ></div>
+
+    <!-- 合并后的视觉边框（单个包围盒边框） -->
+    <div 
+      class="guide-target-border" 
+      :style="mergeTargetBorderStyle"
+    ></div>
+
+    <!-- 引导弹窗（可点击） -->
     <div class="guide-popup-wrapper" :style="popupWrapperStyle">
       <!-- 引导三角：动态偏移样式 -->
       <div
@@ -66,7 +87,7 @@ import {
   getNextBigGroupConfig,
   guideStepsConfigStep2,
   guideStepsConfigStep3,
-  GuideTargetDomConfig, // 新增：导入新增的定位配置接口
+  GuideTargetDomConfig, 
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
@@ -133,7 +154,7 @@ const popupContentRef = ref<HTMLDivElement | null>(null);
 /**
  * 防抖函数
  */
-const debounce = (fn: Function, delay = 100) => {
+const debounce = (fn: Function, delay = 50) => {
   let timer: NodeJS.Timeout | null = null;
   return (...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -146,6 +167,198 @@ const debounce = (fn: Function, delay = 100) => {
 // 三角配置
 const triangleConfig = computed(() => {
   return getCurrentStepTriangleConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+});
+
+// ========== 获取当前步骤的所有目标DOM配置 ==========
+const currentStepAllTargetDomConfigs = computed<GuideTargetDomConfig[]>(() => {
+  const stepConfig = getCurrentStepConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+  return stepConfig?.targetDomConfigs || [];
+});
+
+// ========== 判断当前步骤是否允许点击目标DOM ==========
+const isStepAllowClick = computed<boolean>(() => {
+  const configs = currentStepAllTargetDomConfigs.value;
+  // 无配置默认允许；有配置时，只要有一个allowClick为true（或未设置），就允许
+  return configs.some(config => config.allowClick !== false);
+});
+
+// ========== 核心：获取单个DOM的位置信息 ==========
+const getSingleDomRect = (domId: string): DOMRect | null => {
+  if (!props.visible) return null;
+  const targetDom = document.getElementById(domId);
+  if (!targetDom) return null;
+  // 强制重绘，获取最新位置
+  return targetDom.getBoundingClientRect();
+};
+
+// ========== 核心：计算多个DOM的最小包围矩形（合并挖孔用） ==========
+const getMergeDomRect = (): DOMRect | null => {
+  if (!props.visible || currentStepAllTargetDomConfigs.value.length === 0) return null;
+
+  // 收集所有有效DOM的位置信息
+  const validDomRects: DOMRect[] = [];
+  currentStepAllTargetDomConfigs.value.forEach(config => {
+    const rect = getSingleDomRect(config.targetDomId);
+    if (rect) validDomRects.push(rect);
+  });
+
+  if (validDomRects.length === 0) return null;
+
+  // 计算最小包围矩形：取所有DOM的最小top/left，最大right/bottom
+  const minTop = Math.min(...validDomRects.map(rect => rect.top));
+  const minLeft = Math.min(...validDomRects.map(rect => rect.left));
+  const maxRight = Math.max(...validDomRects.map(rect => rect.right));
+  const maxBottom = Math.max(...validDomRects.map(rect => rect.bottom));
+
+  // 构造合并后的DOMRect对象（模拟原生DOMRect结构）
+  return {
+    top: minTop,
+    left: minLeft,
+    right: maxRight,
+    bottom: maxBottom,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
+    x: minLeft,
+    y: minTop,
+    toJSON: () => ({})
+  };
+};
+
+// ========== 核心：生成多个DOM的clip-path路径（内层遮罩用） ==========
+const getMultiDomClipPath = (): string => {
+  // 新增：如果步骤不允许点击，返回空（不挖孔）
+  if (!isStepAllowClick.value) return '';
+  
+  if (!props.visible || currentStepAllTargetDomConfigs.value.length === 0) return '';
+
+  // 收集所有有效DOM的位置信息
+  const validDomRects: DOMRect[] = [];
+  currentStepAllTargetDomConfigs.value.forEach(config => {
+    // 新增：仅对allowClick为true的DOM生成挖孔路径
+    if (config.allowClick === false) return;
+    const rect = getSingleDomRect(config.targetDomId);
+    if (rect) validDomRects.push(rect);
+  });
+
+  if (validDomRects.length === 0) return '';
+
+  // 生成多个DOM的挖孔路径（仅这些DOM可点击）
+  let clipPathParts = ['0 0', '0 100%', '100% 100%', '100% 0', '0 0']; // 基础全屏路径
+  validDomRects.forEach(rect => {
+    // 相对于内层遮罩的坐标（内层遮罩是包围盒大小，所以要转相对坐标）
+    const mergeRect = getMergeDomRect();
+    if (!mergeRect) return;
+    
+    const relLeft = rect.left - mergeRect.left;
+    const relTop = rect.top - mergeRect.top;
+    const relRight = rect.right - mergeRect.left;
+    const relBottom = rect.bottom - mergeRect.top;
+
+    // 为每个DOM添加挖孔路径
+    clipPathParts.push(`${relLeft}px ${relTop}px`);
+    clipPathParts.push(`${relRight}px ${relTop}px`);
+    clipPathParts.push(`${relRight}px ${relBottom}px`);
+    clipPathParts.push(`${relLeft}px ${relBottom}px`);
+    clipPathParts.push(`${relLeft}px ${relTop}px`);
+  });
+
+  return `polygon(${clipPathParts.join(', ')})`;
+};
+
+// ========== 核心：获取目标DOM信息（供弹窗定位，保持原有逻辑） ==========
+const getTargetDomRect = (): DOMRect | null => {
+  if (!props.visible) return null;
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType );
+  return getSingleDomRect(targetDomId);
+};
+
+// ========== 第一层：全屏遮罩样式（仅挖掉合并后的包围盒区域） ==========
+const maskFullClipStyle = computed<CSSProperties>(() => {
+  refreshTrigger.value;
+  const mergeRect = getMergeDomRect();
+  if (!mergeRect) return {};
+
+  // 计算视口尺寸
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+  // clip-path：仅挖掉合并后的包围盒区域（视觉上的整体矩形）
+  const clipPath = `
+    polygon(
+      0 0, 
+      0 ${viewportHeight}px, 
+      ${viewportWidth}px ${viewportHeight}px, 
+      ${viewportWidth}px 0, 
+      0 0, 
+      ${mergeRect.left}px ${mergeRect.top}px, 
+      ${mergeRect.right}px ${mergeRect.top}px, 
+      ${mergeRect.right}px ${mergeRect.bottom}px, 
+      ${mergeRect.left}px ${mergeRect.bottom}px, 
+      ${mergeRect.left}px ${mergeRect.top}px
+    )
+  `.replace(/\s+/g, ' ').trim(); // 压缩空格，避免样式解析问题
+
+  return {
+    clipPath,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)', // 全屏遮罩底色
+    zIndex: 99997,
+    pointerEvents: 'auto',
+  };
+});
+
+// ========== 第二层：包围盒内遮罩样式（仅对指定DOM挖孔） ==========
+const maskInnerStyle = computed<CSSProperties>(() => {
+  refreshTrigger.value;
+  const mergeRect = getMergeDomRect();
+  if (!mergeRect) return { display: 'none' };
+
+  // 生成多个指定DOM的clip-path路径（仅这些DOM可点击）
+  const clipPath = getMultiDomClipPath();
+
+  return {
+    clipPath,
+    position: 'fixed',
+    top: `${mergeRect.top}px`,
+    left: `${mergeRect.left}px`,
+    width: `${mergeRect.width}px`,
+    height: `${mergeRect.height}px`,
+    backgroundColor: '#317AF7', // 内部遮罩
+    opacity:`0.1`,
+    zIndex: 99997.5, // 介于全屏遮罩和边框之间
+    pointerEvents: 'auto',
+    transition: 'all 0.2s ease',
+  };
+});
+
+// ========== 合并后的目标DOM视觉边框样式（单个包围盒边框） ==========
+const mergeTargetBorderStyle = computed<CSSProperties>(() => {
+  refreshTrigger.value;
+  const mergeRect = getMergeDomRect();
+  if (!mergeRect) return { display: 'none' };
+
+  // 新增：根据是否允许点击切换边框颜色
+  const borderColor = isStepAllowClick.value 
+    ? 'var(--devui-active-icon)' // 蓝色点击
+    : '#FFE485'; // 浅黄色 介绍根据高保真调整
+
+  return {
+    position: 'fixed',
+    top: `${mergeRect.top}px`,
+    left: `${mergeRect.left}px`,
+    width: `${mergeRect.width}px`,
+    height: `${mergeRect.height}px`,
+    border: `1px solid ${borderColor}`, // 动态边框颜色
+    borderRadius: '8px',
+    boxSizing: 'border-box',
+    zIndex: 99998, // 高于两层遮罩，低于弹窗
+    pointerEvents: 'none', // 点击穿透
+    transition: 'all 0.2s ease',
+  };
 });
 
 // ========== 动态计算弹窗box-shadow（阴影与箭头同方向） ==========
@@ -222,19 +435,20 @@ const triangleOffsetStyle = computed<CSSProperties>(() => {
     case 'top':
     case 'bottom':
       return {
-        transform: `translate(${triangleOffset.x - 10}px, -50%)`,
+        transform: `translate(${triangleOffset.x - 8}px, -50%)`,
         left: `50%`,
       };
     case 'left':
     case 'right':
       return {
-        transform: `translateY(${triangleOffset.y - 10}px)`,
+        transform: `translateY(${triangleOffset.y - 6}px)`,
         top: `50%`,
       };
     default:
       return {};
   }
 });
+
 // ========== 视口尺寸/边界检测工具函数 ==========
 /**
  * 获取视口尺寸（实时）
@@ -470,7 +684,7 @@ const getTargetDomPosition = () => {
 const handleResize = async () => {
   if (!props.visible) return;
   await nextTick();
-  console.log('handleResize触发，开始重新计算位置');
+  console.log('handleResize触发，开始重新计算位置和裁剪区域');
 
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
@@ -493,7 +707,7 @@ const handleResize = async () => {
 };
 
 // 防抖后的resize处理函数
-const debouncedHandleResize = debounce(handleResize, 100);
+const debouncedHandleResize = debounce(handleResize, 50);
 
 // ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
@@ -599,7 +813,7 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
 };
 
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1, props.graphType);
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1, props.graphType );
   if (!nextGroupConfig?.openWebviewFn) return;
   postToExtension('openWebviewWithGuide', {
     openWebviewFn: nextGroupConfig?.openWebviewFn,
@@ -734,10 +948,6 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   currentSmallIndex.value = smallIndex;
 };
 
-const handleMaskClick = () => {
-  if (props.closeOnMaskClick) emit('update:visible', false);
-};
-
 // 生命周期
 onMounted(async () => {
   // 监听窗口resize事件
@@ -768,29 +978,43 @@ onUnmounted(() => {
 });
 </script>
 <style scoped lang="less">
-// 遮罩层
-.guide-mask {
+// 遮罩容器：统一管理遮罩和弹窗层级
+.guide-mask-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 254, 254, 0);
-  z-index: 99999;
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  z-index: 99997;
+  pointer-events: none; // 容器不拦截点击
+}
+
+// 第一层：全屏遮罩 - 仅挖掉合并后的包围盒区域
+.guide-mask-full {
+  transition: clip-path 0.2s ease; // 裁剪区域变化时平滑过渡
+  pointer-events: auto; // 拦截非包围盒区域的点击
+}
+
+// 第二层：包围盒内遮罩 - 灰色半透明，仅对指定DOM挖孔
+.guide-mask-inner {
+  transition: clip-path 0.2s ease;
+  pointer-events: auto; // 拦截包围盒内非指定DOM的点击
+  border-radius: 4px; // 和边框圆角一致，视觉更统一
+}
+
+// 目标DOM的视觉边框（仅提示，无遮罩）
+.guide-target-border {
+  pointer-events: none !important; // 强制点击穿透
 }
 
 // 弹窗外层容器
 .guide-popup-wrapper {
-  position: relative; // 三角基于此定位
-  z-index: 99999;
-  // 取消margin，避免尺寸溢出
+  position: fixed; 
+  z-index: 99999; // 高于所有遮罩和边框
   box-sizing: border-box;
   max-width: 480px;
   min-width: 480px;
+  pointer-events: auto; // 弹窗可点击
 }
 
 // 三角基础样式（优化定位）
@@ -849,9 +1073,9 @@ onUnmounted(() => {
   border-radius: 16px;
   box-sizing: border-box;
   max-width: 90vw;
-  // 调整max-height，避免滚动条
   max-height: calc(80vh - 32px);
   overflow-y: auto;
+  pointer-events: auto; // 确保弹窗内容可点击
 }
 
 // ========== 内容区样式 ==========
@@ -888,8 +1112,8 @@ onUnmounted(() => {
     }
 
     &.active-dot {
-      background: var(--devui-title-text); // 基础标题色填充（伪元素覆盖中间）
-      transform: scale(1.5); // 放大效果
+      background: var(--devui-title-text);
+      transform: scale(1.5);
 
       &::before {
         content: '';
@@ -900,7 +1124,7 @@ onUnmounted(() => {
         width: calc(100% - 2px);
         height: calc(100% - 2px);
         border-radius: 4px;
-        border: 1.5px solid var(--devui-global-bg); // 全局背景色作为圆环
+        border: 1.5px solid var(--devui-global-bg);
         background: var(--devui-nest-bg);
         box-sizing: border-box;
       }

@@ -7,6 +7,8 @@
       :show-overlay="true"
       class="drawer-container"
       placement="right"
+      :close-on-click-overlay="true"
+      :esc-key-closeable="true"
       @close="handleDrawerClose"
       @open="handleDrawerOpen"
       id="boot-steps-controlFlow-right-panel"

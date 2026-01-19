@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isShortcutKeyShow" class="shortCutKeyDescriptionEdit">
+  <div v-if="isShortcutKeyShow" class="shortCutKeyDescriptionEdit" id="shortCutKeyDescriptionEdit">
     <div class="shortCutKey-content">
       <div class="shortCutKey-head">
         <div class="shortCutKey-title"> {{ $t('ShortcutKeyDescription')}} </div>

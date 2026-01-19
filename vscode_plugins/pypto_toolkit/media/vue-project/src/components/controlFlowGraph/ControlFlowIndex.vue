@@ -478,10 +478,10 @@ onUnmounted(() => {
 <style lang="less" scoped>
 .g6-flow-chart {
   display: flex;
-  width: 100%;
   height: 100%;
   box-sizing: border-box;
   background-color: var(--control-flow-bg);
+  position: relative;
 }
 .loading-index {
   z-index: 99999999;
