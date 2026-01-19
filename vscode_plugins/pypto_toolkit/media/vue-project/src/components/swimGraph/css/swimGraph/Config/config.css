@@ -1,6 +1,6 @@
 .cfgEdit {
     width: 300px;
-    height: 308px;
+    height: auto;
     border-radius: 8px;
     position: absolute;
     background: var(--devui-select-bg);
@@ -8,7 +8,6 @@
     z-index: 200;
     word-wrap: break-word;
     color: var(--devui-tooltip-text);
-    top: 60px;
     right: 8px;
     display: flex;
     padding: 16px;

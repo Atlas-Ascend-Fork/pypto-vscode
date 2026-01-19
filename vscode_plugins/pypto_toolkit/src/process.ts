@@ -576,8 +576,23 @@ const calculateDependencies = (events, connections) => {
     if (!traceData || !traceData.traceEvents) {
       return;
     }
-    
 
+    let hasCat = false;
+    let hasEventCat = false;
+    for (const event of traceData.traceEvents) {
+      if (event.cat) {
+        hasCat = true;
+        if (event.cat === 'event') {
+          hasEventCat = true;
+          break;
+        }
+      }
+    }
+    const isAicpuData = hasCat && !hasEventCat;
+    if (isAicpuData) {
+      mode = 'name';
+    }
+    
     const processNames = new Map();
     const threadNames = new Map();
     const eventTasks: any[] = [];
@@ -660,8 +675,8 @@ const calculateDependencies = (events, connections) => {
     processedTasks = processedTasks.sort((a, b) => a.startTime.comparedTo(b.startTime));
   
     // 计算依赖关系
-    const hasTopo = Object.keys(task2topo).length > 0;
-    const status = hasTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
+    const useTopo = !isAicpuData && Object.keys(task2topo).length > 0;
+    const status = useTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
     if (!status) {
       calculateDependencies(processedTasks, connections);
     }
@@ -678,7 +693,7 @@ const calculateDependencies = (events, connections) => {
       lane2line.set(`${event.pid}@${event.tid}`, lineCount);
       
       //pmu info process
-      if (Object.keys(pmuInfo).length > 0) {
+      if (!isAicpuData && Object.keys(pmuInfo).length > 0) {
         processTaskPmuCalc(event, pmuInfo);
       }
     }
@@ -753,6 +768,12 @@ const calculateDependencies = (events, connections) => {
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
     data['timeInfo'] = { maxTime: maxTime.toNumber(), minTime: minTime.toNumber()};
+    if (mode === 'name') {
+      data['colorRendering'] = 'name';
+    }
+    if (isAicpuData) {
+      data['isAicpu'] = true;
+    }
     return data;
   };
 
@@ -1086,8 +1107,14 @@ const calculateDependencies = (events, connections) => {
       writeStream.write(`"processExpanded": ${JSON.stringify(obj.processExpanded)},\n`);
       writeStream.write(`"lane2line": ${JSON.stringify(obj.lane2line)},\n`);
       writeStream.write(`"pmu_total": ${JSON.stringify(obj.pmu_total)},\n`);
-      writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}\n`);
-      writeStream.write('}');
+      writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}`);
+      if (obj.colorRendering) {
+        writeStream.write(`,\n"colorRendering": ${JSON.stringify(obj.colorRendering)}`);
+      }
+      if (obj.isAicpu) {
+        writeStream.write(`,\n"isAicpu": ${JSON.stringify(obj.isAicpu)}`);
+      }
+      writeStream.write('\n}');
       
       await new Promise<void>((resolve, reject) => {
         writeStream.on('finish', resolve);

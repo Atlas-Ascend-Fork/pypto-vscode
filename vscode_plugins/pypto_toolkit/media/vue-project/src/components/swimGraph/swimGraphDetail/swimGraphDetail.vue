@@ -20,7 +20,7 @@
                       <div>{{ getEventTruncateText(selectedEvent) }}</div>
                     </d-tooltip>
                     <div class="pipe-subgraph">
-                      <span :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(selectedEvent, 'subGraph') }}</span>
+                      <span :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(selectedEvent, 'subGraph', '/') }}</span>
                     </div>
                   </div>
                 </div>
@@ -343,15 +343,17 @@ const updateEventPmu = (event) => {
 };
 
 const dynamicWidthStyle = (event) => {
-  if(!useDynamicWidth) return {};
+  if (!useDynamicWidth) {
+    return {};
+  }
   const eventName = getEventTruncateText(event);
-  const width = eventName.length * 7 + 4 + 'px';
+  const width = `${((eventName.length * 7) + 4)}px`;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
   let fillColor = eventColor ? eventColor.base : 'rgba(10, 89, 247, 0.3)';
   const fontColor = colorCfg.eventFont;
   return {width, background:fillColor, color: fontColor};
-}
+};
 
 function bindFilePath() {
   if (bindFile.value) {
@@ -369,10 +371,10 @@ function jumpToComGraph(value) {
 }
 
 function splitValue(value) {
-  const splitString = value.split(", ");
+  const splitString = value.split(', ');
   const splitMap = new Map(splitString.map(pair => {
-    const [key, value] = pair.split(':');
-    return [key, value];
+    const [argKey, argValue] = pair.split(':');
+    return [argKey, argValue];
   }));
 
   return splitMap;
@@ -436,7 +438,7 @@ const getEventTruncateText = (event) => {
 };
 window.jumpRawMagic = (value, hintValue) => {
   server.jumpRawMagic({paramObj: { rawmagic: value, ascendHint: hintValue}});
-}
+};
 
 const createHint = (event, operate) => {
   if (!event.args) {
@@ -444,20 +446,20 @@ const createHint = (event, operate) => {
   }
   let value = event.args[operate];
   let eventhint = event.args['event-hint'];
-  const regex = /'rawmagic':\s*(\d+)/g;
+  const regex = /'rawmagic':\s*(?<rawmagic>\d+)/g;
   let matches;
   let result = value;
-  while((matches = regex.exec(value)) !== null) {
-    const rawmagicValue = matches[1];
+  while ((matches = regex.exec(value)) !== null) {
+    const rawmagicValue = matches.groups.rawmagic;
     const spanvalue = `<span class="event-hint-hash" onclick="jumpRawMagic('${rawmagicValue}', '${eventhint}')">${rawmagicValue}</span>`;
     result = result.replace(matches[0], `'rawmagic': ${spanvalue}`);
   }
-  if(operate === 'ioperand-hint') {
+  if (operate === 'ioperand-hint') {
     ioperandHtml.value = result;
   } else {
     ooperandHtml.value = result;
   }
-}
+};
 
 // 监听选中事件变化，更新依赖图
 watch(selectedEvent, (newEvent) => {
@@ -490,7 +492,7 @@ const updateTheme = () => {
     pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
                             'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
   }
-}
+};
 const onInputChange = (newValue, oldValue) => {
   userConfig.value.connectionLevel = newValue;
   const selectedEventTemp = clone(selectedEvent);
@@ -499,7 +501,7 @@ const onInputChange = (newValue, oldValue) => {
   selectEvent(null, processKey);
   selectEvent(selectedEventTemp.value, processKey);
   changeUserCfgConnection(newValue);
-}
+};
 function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
