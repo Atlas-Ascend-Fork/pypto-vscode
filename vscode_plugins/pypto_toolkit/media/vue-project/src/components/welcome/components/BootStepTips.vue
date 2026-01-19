@@ -87,7 +87,7 @@ import {
   getNextBigGroupConfig,
   guideStepsConfigStep2,
   guideStepsConfigStep3,
-  GuideTargetDomConfig, 
+  GuideTargetDomConfig,
 } from '../guideStepsConfig';
 import { request } from '@/core/request';
 import { getQuery } from '@/core/query';
@@ -177,9 +177,16 @@ const currentStepAllTargetDomConfigs = computed<GuideTargetDomConfig[]>(() => {
 
 // ========== 判断当前步骤是否允许点击目标DOM ==========
 const isStepAllowClick = computed<boolean>(() => {
-  const configs = currentStepAllTargetDomConfigs.value;
-  // 无配置默认允许；有配置时，只要有一个allowClick为true（或未设置），就允许
-  return configs.some(config => config.allowClick !== false);
+  const stepConfig = getCurrentStepConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+  const allowClick = stepConfig.allowClick;
+  return allowClick;
+});
+
+// ========== 判断当前步骤是否渲染边框 ==========
+const isShowBorder = computed<boolean>(() => {
+  const stepConfig = getCurrentStepConfig(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+  const isShowBorder = stepConfig.showBorder;
+  return isShowBorder;
 });
 
 // ========== 核心：获取单个DOM的位置信息 ==========
@@ -197,7 +204,7 @@ const getMergeDomRect = (): DOMRect | null => {
 
   // 收集所有有效DOM的位置信息
   const validDomRects: DOMRect[] = [];
-  currentStepAllTargetDomConfigs.value.forEach(config => {
+  currentStepAllTargetDomConfigs.value.forEach((config) => {
     const rect = getSingleDomRect(config.targetDomId);
     if (rect) validDomRects.push(rect);
   });
@@ -205,10 +212,10 @@ const getMergeDomRect = (): DOMRect | null => {
   if (validDomRects.length === 0) return null;
 
   // 计算最小包围矩形：取所有DOM的最小top/left，最大right/bottom
-  const minTop = Math.min(...validDomRects.map(rect => rect.top));
-  const minLeft = Math.min(...validDomRects.map(rect => rect.left));
-  const maxRight = Math.max(...validDomRects.map(rect => rect.right));
-  const maxBottom = Math.max(...validDomRects.map(rect => rect.bottom));
+  const minTop = Math.min(...validDomRects.map((rect) => rect.top));
+  const minLeft = Math.min(...validDomRects.map((rect) => rect.left));
+  const maxRight = Math.max(...validDomRects.map((rect) => rect.right));
+  const maxBottom = Math.max(...validDomRects.map((rect) => rect.bottom));
 
   // 构造合并后的DOMRect对象（模拟原生DOMRect结构）
   return {
@@ -220,41 +227,35 @@ const getMergeDomRect = (): DOMRect | null => {
     height: maxBottom - minTop,
     x: minLeft,
     y: minTop,
-    toJSON: () => ({})
+    toJSON: () => ({}),
   };
 };
 
 // ========== 核心：生成多个DOM的clip-path路径（内层遮罩用） ==========
 const getMultiDomClipPath = (): string => {
-  // 新增：如果步骤不允许点击，返回空（不挖孔）
   if (!isStepAllowClick.value) return '';
-  
   if (!props.visible || currentStepAllTargetDomConfigs.value.length === 0) return '';
 
-  // 收集所有有效DOM的位置信息
+  // 收集所有有效DOM的位置信息（无论模式，只要是目标DOM就挖孔）
   const validDomRects: DOMRect[] = [];
-  currentStepAllTargetDomConfigs.value.forEach(config => {
-    // 新增：仅对allowClick为true的DOM生成挖孔路径
-    if (config.allowClick === false) return;
+  currentStepAllTargetDomConfigs.value.forEach((config) => {
     const rect = getSingleDomRect(config.targetDomId);
     if (rect) validDomRects.push(rect);
   });
 
   if (validDomRects.length === 0) return '';
 
-  // 生成多个DOM的挖孔路径（仅这些DOM可点击）
+  // 生成多个DOM的挖孔路径（所有目标DOM都挖孔，保证交互能触达）
   let clipPathParts = ['0 0', '0 100%', '100% 100%', '100% 0', '0 0']; // 基础全屏路径
-  validDomRects.forEach(rect => {
-    // 相对于内层遮罩的坐标（内层遮罩是包围盒大小，所以要转相对坐标）
+  validDomRects.forEach((rect) => {
     const mergeRect = getMergeDomRect();
     if (!mergeRect) return;
-    
+
     const relLeft = rect.left - mergeRect.left;
     const relTop = rect.top - mergeRect.top;
     const relRight = rect.right - mergeRect.left;
     const relBottom = rect.bottom - mergeRect.top;
 
-    // 为每个DOM添加挖孔路径
     clipPathParts.push(`${relLeft}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relBottom}px`);
@@ -268,7 +269,7 @@ const getMultiDomClipPath = (): string => {
 // ========== 核心：获取目标DOM信息（供弹窗定位，保持原有逻辑） ==========
 const getTargetDomRect = (): DOMRect | null => {
   if (!props.visible) return null;
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType );
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   return getSingleDomRect(targetDomId);
 };
 
@@ -296,7 +297,9 @@ const maskFullClipStyle = computed<CSSProperties>(() => {
       ${mergeRect.left}px ${mergeRect.bottom}px, 
       ${mergeRect.left}px ${mergeRect.top}px
     )
-  `.replace(/\s+/g, ' ').trim(); // 压缩空格，避免样式解析问题
+  `
+    .replace(/\s+/g, ' ')
+    .trim(); // 压缩空格，避免样式解析问题
 
   return {
     clipPath,
@@ -328,7 +331,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
     backgroundColor: '#317AF7', // 内部遮罩
-    opacity:`0.1`,
+    opacity: `0.1`,
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease',
@@ -342,9 +345,11 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
   if (!mergeRect) return { display: 'none' };
 
   // 新增：根据是否允许点击切换边框颜色
-  const borderColor = isStepAllowClick.value 
-    ? 'var(--devui-active-icon)' // 蓝色点击
-    : '#FFE485'; // 浅黄色 介绍根据高保真调整
+  const borderColor = isShowBorder.value
+    ? isStepAllowClick.value
+      ? 'var(--devui-active-icon)' // 蓝色点击
+      : '#FFE485' // 浅黄色 介绍根据高保真调整
+    : 'rgba(0,0,0,0)';
 
   return {
     position: 'fixed',
@@ -813,7 +818,7 @@ const callCurrentWebviewMethod = (methodName: string, params: any) => {
 };
 
 const openNextWebview = (nextBigGroup: number) => {
-  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1, props.graphType );
+  const nextGroupConfig = getNextBigGroupConfig(nextBigGroup - 1, props.graphType);
   if (!nextGroupConfig?.openWebviewFn) return;
   postToExtension('openWebviewWithGuide', {
     openWebviewFn: nextGroupConfig?.openWebviewFn,
@@ -1009,7 +1014,7 @@ onUnmounted(() => {
 
 // 弹窗外层容器
 .guide-popup-wrapper {
-  position: fixed; 
+  position: fixed;
   z-index: 99999; // 高于所有遮罩和边框
   box-sizing: border-box;
   max-width: 480px;

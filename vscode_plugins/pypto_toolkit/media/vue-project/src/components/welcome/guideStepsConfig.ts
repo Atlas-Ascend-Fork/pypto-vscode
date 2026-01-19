@@ -10,7 +10,6 @@ export interface GuideTargetDomConfig {
   targetDomId: string; // 目标引导DOM的ID
   triangleDirection: 'top' | 'bottom' | 'left' | 'right'; // 三角方向（上/下/左/右）
   showTriangle: boolean; // 是否显示引导三角
-  allowClick?: boolean; //是否允许点击该DOM区域
 }
 
 // 定义单个步骤的配置类型
@@ -20,6 +19,8 @@ export interface GuideStepConfig {
   method?: string; // 该步骤要调用的WebView内方法名（如openSidebar）
   methodParams?: Record<string, any>; // 调用方法的参数
   targetDomConfigs: GuideTargetDomConfig[];
+  allowClick: boolean; //是否允许点击该DOM区域
+  showBorder: boolean; //是否展示边框
 }
 
 // 定义大组配置类型
@@ -47,6 +48,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         title: 'bootStep.controlFlow.step1.title',
         content: 'bootStep.controlFlow.step1.content',
         method: 'checkControlFlow',
+        allowClick: true,
+        showBorder:false,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-controlFlow',
@@ -58,12 +61,13 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.controlFlow.step2.title',
         content: 'bootStep.controlFlow.step2.content',
+        allowClick: false,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-controlFlow-right-panel',
             triangleDirection: 'right',
             showTriangle: true,
-            allowClick: false,
           },
         ],
         method: 'bootStepOpenSideBar',
@@ -71,6 +75,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.controlFlow.step3.title',
         content: 'bootStep.controlFlow.step3.content',
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-controlFlow-searchPnal',
@@ -101,12 +107,13 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.navigation.step1.content',
         method: 'viewNavigationHistory',
         methodParams: {},
+        allowClick: false,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-navbar-history',
             triangleDirection: 'top',
             showTriangle: true,
-            allowClick: false 
           },
         ],
       },
@@ -115,6 +122,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.navigation.step2.content',
         method: 'loadNavMenu',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-navbar-open-com-graph',
@@ -139,6 +148,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step1.content',
         method: 'viewComGraph',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'navbarComGraphTab',
@@ -154,6 +165,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         methodParams: {
           nodeId: 'tensor-6030-7',
         },
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'sprotty_tensor-6030-7',
@@ -177,6 +190,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             },
           ],
         },
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'comGraphSearchResList',
@@ -192,7 +207,9 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         methodParams: {
           searchNodeId: 'tensor-6036-13',
         },
-        targetDomConfigs: [        
+        allowClick: true,
+        showBorder:true,
+        targetDomConfigs: [
           {
             targetDomId: 'astgr-context-menu',
             triangleDirection: 'top',
@@ -210,6 +227,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step5.content',
         method: '',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'openDiffViewerIcon',
@@ -223,6 +242,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.computeGraph.step6.content',
         method: '',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'boot-steps-navbar-open-swm-graph',
@@ -247,6 +268,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step1.content',
         method: 'distanceMeasurement',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'distance-measurement',
@@ -260,6 +283,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step2.content',
         method: 'addObservationLine',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'observation-line',
@@ -273,6 +298,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step3.content',
         method: 'zoomControls',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'zoom-controls',
@@ -291,6 +318,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step4.content',
         method: 'measureDetailSearch',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'measure-button',
@@ -304,6 +333,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step5.content',
         method: 'showGuideDetailsPanel',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'details-content',
@@ -315,6 +346,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.swimlaneGraph.step6.title',
         content: 'bootStep.swimlaneGraph.step6.content',
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'canvas-container',
@@ -326,6 +359,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.swimlaneGraph.step7.title',
         content: 'bootStep.swimlaneGraph.step7.content',
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'rootHash',
@@ -341,11 +376,11 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
 // 全局引导步骤3配置（需要替换为真实三联动引导步骤）
 export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
   {
-    groupName: 'bootStep.threeColumnGraph.groupName', 
-    webviewType: 'threeColumnGraph', 
-    openWebviewFn: undefined, 
-    openWebviewParams: null, 
-    imgUrl: '', 
+    groupName: 'bootStep.threeColumnGraph.groupName',
+    webviewType: 'threeColumnGraph',
+    openWebviewFn: undefined,
+    openWebviewParams: null,
+    imgUrl: '',
     showProgressBar: false,
     steps: [
       {
@@ -354,8 +389,10 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
         method: 'viewThreeColumnGraph',
         methodParams: {
           calleehash: '12780147721777633745',
-          subFuncmagicname: 'TENSOR_dense_moe_main_2'
+          subFuncmagicname: 'TENSOR_dense_moe_main_2',
         },
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'guideThreeColumn',
@@ -369,6 +406,8 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
         content: 'bootStep.threeColumnGraph.step2.content',
         method: 'lockThreeColumnGraph',
         methodParams: {},
+        allowClick: true,
+        showBorder:true,
         targetDomConfigs: [
           {
             targetDomId: 'guideEditorLock',
@@ -376,7 +415,7 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
             showTriangle: true,
           },
         ],
-      },      
+      },
     ],
   },
 ];
@@ -401,14 +440,14 @@ const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, gr
 
 // 工具函数：根据进度获取当前步骤配置
 export const getCurrentStepConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
-  const groupConfig =  graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
+  const groupConfig = graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
   if (!groupConfig) return null;
   return groupConfig.steps[smallIndex] || null;
 };
 
 // 工具函数：获取下一个大组的配置
 export const getNextBigGroupConfig = (currentBigGroup: number, graphType: string) => {
-  return  graphType === 'threeColumnGraph' ?guideStepsConfigStep3[currentBigGroup]:guideStepsConfigStep2[currentBigGroup] || null;
+  return graphType === 'threeColumnGraph' ? guideStepsConfigStep3[currentBigGroup] : guideStepsConfigStep2[currentBigGroup] || null;
 };
 
 // 工具函数：获取当前步骤的目标DOM ID（优先返回索引小的存在的DOM）
@@ -423,8 +462,8 @@ export const getCurrentStepTargetDomId = (bigGroup: number, smallIndex: number, 
 export const getCurrentStepTriangleConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
   const priorityConfig = getCurrentPriorityTargetConfig(bigGroup, smallIndex, graphType);
   return {
-    showTriangle: priorityConfig?.showTriangle ,
-    triangleDirection: priorityConfig?.triangleDirection ,
+    showTriangle: priorityConfig?.showTriangle,
+    triangleDirection: priorityConfig?.triangleDirection,
   };
 };
 
