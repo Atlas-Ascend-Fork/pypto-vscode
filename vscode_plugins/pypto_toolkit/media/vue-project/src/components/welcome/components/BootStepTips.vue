@@ -2,74 +2,63 @@
   <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
   <div v-if="visible" class="guide-mask-container" @pointerup.stop>
     <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
-    <div 
-      class="guide-mask-full" 
-      @click.stop
-      :style="maskFullClipStyle"
-    ></div>
-    
-    <!-- 第二层：包围盒内遮罩对指定DOM挖孔 -->
-    <div 
-      class="guide-mask-inner" 
-      @click.stop
-      :style="maskInnerStyle"
-      @pointerup.stop
-    ></div>
+    <div class="guide-mask-full" @click.stop :style="maskFullClipStyle"></div>
+    <div v-if="isShow">
+      <!-- 第二层：包围盒内遮罩对指定DOM挖孔 -->
+      <div class="guide-mask-inner" @click.stop :style="maskInnerStyle" @pointerup.stop></div>
 
-    <!-- 合并后的视觉边框（单个包围盒边框） -->
-    <div 
-      class="guide-target-border" 
-      :style="mergeTargetBorderStyle"
-    ></div>
+      <!-- 合并后的视觉边框（单个包围盒边框） -->
+      <div class="guide-target-border" :style="mergeTargetBorderStyle"></div>
 
-    <!-- 引导弹窗（可点击） -->
-    <div class="guide-popup-wrapper" :style="popupWrapperStyle">
-      <!-- 引导三角：动态偏移样式 -->
-      <div
-        v-if="triangleConfig.showTriangle"
-        class="guide-triangle"
-        :class="`triangle-${triangleConfig.triangleDirection}`"
-        :style="triangleOffsetStyle"
-      ></div>
-      <!-- 气泡弹窗容器-->
-      <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
-        <!-- 顶部进度指示器 -->
-        <div class="progress-container" v-if="graphType !== 'threeColumnGraph'">
-          <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
-            <div class="progress-group">
-              <img v-if="groupIdx <= currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
-              <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
-              <div
-                v-for="(step, stepIdx) in group.steps"
-                :key="stepIdx"
-                class="progress-dot"
-                :class="getDotItemStatus(groupIdx, stepIdx)"
-              ></div>
-            </div>
-            <span v-if="groupIdx < guideSteps.length - 1" class="separator"></span>
-          </template>
-        </div>
-
-        <!-- 主体内容区 -->
-        <div class="content-container">
-          <div class="container__header">
-            <h3 class="step-title">{{ t(currentStepInfo.title) }}</h3>
-            <div class="step-count__group">
-              <p class="step-count">{{ currentSmallIndex + 1 }}</p>
-              <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
-            </div>
+      <!-- 引导弹窗（可点击） -->
+      <div class="guide-popup-wrapper" :style="popupWrapperStyle">
+        <!-- 引导三角：动态偏移样式 -->
+        <div
+          v-if="triangleConfig.showTriangle"
+          class="guide-triangle"
+          :class="`triangle-${triangleConfig.triangleDirection}`"
+          :style="triangleOffsetStyle"
+        ></div>
+        <!-- 气泡弹窗容器-->
+        <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
+          <!-- 顶部进度指示器 -->
+          <div class="progress-container" v-if="graphType !== 'threeColumnGraph'">
+            <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
+              <div class="progress-group">
+                <img v-if="groupIdx <= currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
+                <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
+                <div
+                  v-for="(step, stepIdx) in group.steps"
+                  :key="stepIdx"
+                  class="progress-dot"
+                  :class="getDotItemStatus(groupIdx, stepIdx)"
+                ></div>
+              </div>
+              <span v-if="groupIdx < guideSteps.length - 1" class="separator"></span>
+            </template>
           </div>
-          <p class="step-content">{{ t(currentStepInfo.content) }}</p>
-        </div>
 
-        <!-- 操作按钮栏 -->
-        <div class="btn-container">
-          <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
-          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
-          <template v-if="hasNextBtn">
-            <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
-          </template>
-          <button v-else class="next-btn" @click="handleSkipAll">{{ t('bootStep.button.complete') }}</button>
+          <!-- 主体内容区 -->
+          <div class="content-container">
+            <div class="container__header">
+              <h3 class="step-title">{{ t(currentStepInfo.title) }}</h3>
+              <div class="step-count__group">
+                <p class="step-count">{{ currentSmallIndex + 1 }}</p>
+                <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
+              </div>
+            </div>
+            <p class="step-content">{{ t(currentStepInfo.content) }}</p>
+          </div>
+
+          <!-- 操作按钮栏 -->
+          <div class="btn-container">
+            <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
+            <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
+            <template v-if="hasNextBtn">
+              <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
+            </template>
+            <button v-else class="next-btn" @click="handleSkipAll">{{ t('bootStep.button.complete') }}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -119,9 +108,7 @@ const computeActiveImg = computed(
 const swimActiveImg = computed(
   () => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`,
 );
-const cursorNotAllowed = computed(
-  () => `${window.staticPath}/static-assets/boot_steps/cursor_not_allowed.svg`,
-);
+const cursorNotAllowed = computed(() => `${window.staticPath}/static-assets/boot_steps/cursor_not_allowed.svg`);
 
 const imgArr = ref([controlFlowImg, nativeImg, computeImg, swimImg]);
 const imgActiveArr = ref([controlFlowActiveImg, nativeActiveImg, computeActiveImg, swimActiveImg]);
@@ -148,6 +135,7 @@ const props = defineProps<{
   width?: string;
   graphType: string;
 }>();
+const isShow = ref(true);
 
 // ========== 响应式触发变量（强制更新computed） ==========
 const refreshTrigger = ref(0);
@@ -157,7 +145,7 @@ const popupContentRef = ref<HTMLDivElement | null>(null);
 /**
  * 防抖函数
  */
-const debounce = (fn: Function, delay = 50) => {
+const debounce = (fn: Function, delay = 150) => {
   let timer: NodeJS.Timeout | null = null;
   return (...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -325,7 +313,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
 
   // 生成多个指定DOM的clip-path路径（仅这些DOM可点击）
   const clipPath = getMultiDomClipPath();
-  const backColor = isStepAllowClick.value?'#317AF7':"rgb(255,255,255)"
+  const backColor = isStepAllowClick.value ? '#317AF7' : 'rgb(255,255,255)';
   return {
     clipPath,
     position: 'fixed',
@@ -338,7 +326,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease',
-    cursor: `url(${cursorNotAllowed.value}),auto`
+    cursor: `url(${cursorNotAllowed.value}),auto`,
   };
 });
 
@@ -349,9 +337,7 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
   if (!mergeRect) return { display: 'none' };
 
   // 新增：根据是否允许点击切换边框颜色
-  const borderColor = isShowBorder.value
-    ? 'var(--devui-category-search-hover-border)'
-    : 'rgba(0,0,0,0)';
+  const borderColor = isShowBorder.value ? 'var(--devui-category-search-hover-border)' : 'rgba(0,0,0,0)';
 
   return {
     position: 'fixed',
@@ -714,7 +700,7 @@ const handleResize = async () => {
 };
 
 // 防抖后的resize处理函数
-const debouncedHandleResize = debounce(handleResize, 50);
+const debouncedHandleResize = debounce(handleResize, 150);
 
 // ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
@@ -843,7 +829,12 @@ const handlePrevStep = async () => {
   if (currentStepConfig?.method) {
     callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
   }
-  await setGuideProgress(newBig, newSmall);
+  isShow.value = false;
+  await nextTick();
+  setTimeout(async () => {
+    await setGuideProgress(newBig, newSmall);
+    isShow.value = true;
+  }, 100);
 };
 
 // 下一步逻辑
@@ -866,8 +857,12 @@ const handleNextStep = async () => {
     if (currentStepConfig?.method) {
       callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
     }
-
-    await setGuideProgress(newBig, newSmall);
+    isShow.value = false;
+    await nextTick();
+    setTimeout(async () => {
+      await setGuideProgress(newBig, newSmall);
+      isShow.value = true;
+    }, 100);
   }
 };
 

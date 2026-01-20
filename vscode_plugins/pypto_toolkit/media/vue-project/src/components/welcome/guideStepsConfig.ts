@@ -61,7 +61,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.controlFlow.step2.title',
         content: 'bootStep.controlFlow.step2.content',
-        allowClick: false,
+        allowClick: true,
         showBorder:true,
         targetDomConfigs: [
           {
