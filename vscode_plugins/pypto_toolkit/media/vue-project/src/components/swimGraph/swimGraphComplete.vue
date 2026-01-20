@@ -995,7 +995,7 @@ const searchEventsInThread = (thread, x, y) => {
       if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
         // 吸附
         const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
-        const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth + snapThresholdInTime];
+        const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth]; // 只扩充左边的吸附范围，避免右侧吸附范围包含了右侧节点时，选不中右侧节点的情况
         if (x >= eventRange[0] && x <= eventRange[1]) {
           return {
             foundEvent: event,

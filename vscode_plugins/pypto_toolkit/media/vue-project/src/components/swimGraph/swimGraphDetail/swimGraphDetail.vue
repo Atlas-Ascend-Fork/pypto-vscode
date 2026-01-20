@@ -57,7 +57,7 @@
                   <d-tooltip position="bottom" :content=bindToolTip>
                     <d-button variant="text" color="secondary" v-show="bindFile" @click="openBoundComGraph" class="jump-to-file"><strong class="icon-details"></strong></d-button>
                   </d-tooltip>
-                  <d-button v-if="selectedView === 'args'" variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
+                  <d-button v-if="!isAicpu && selectedView === 'args'" variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
                 </div>
               </div>
               <div class="content-two" v-if="selectedView === 'args'">
@@ -241,6 +241,7 @@ const {
   isDarkTheme,
   highlightedPaths,
   isPathLockStatus,
+  isAicpu,
 } = inject('swimGraphState');
 
 const {
