@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, getFontStyle, formatTimeWithUnit } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
@@ -54,7 +54,7 @@ import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '@/components/welcome/guideStepsConfig';
 const { server } = useViewServer();
-
+const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 
 // 注入父组件提供的状态和方法
@@ -104,6 +104,12 @@ const refColor = ref("rgba(94, 124, 224, 1)");
 const refLabel = ref("");
 const isShowTooltip = ref(false);
 const flagtooltip = ref(null);
+const boxWidth = 45;
+let altClickData = {
+  preData: null,
+  lastData: null,
+  largeSpacing: false
+};
 const flagtooltipStyle = reactive({
   display: 'none',
   left: '0px',
@@ -460,8 +466,159 @@ const flagMouseMove = (e) => {
   hoverCurFlag.value = flag;
   childContextMap.threadEvent.drawEventLine(mouseX, color, "over");
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
+  const isBetweenAnyAdjacentFlags = isMouseXBetweenAnyAdjacentFlags(mouseX);
+  if (!isBetweenAnyAdjacentFlags) {
+    return;
+  }
+  guideDistanceMeasurement(ctx);
 };
+const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
+  const flagsList = flags.value;
+  if (flagsList.length < 2) return false;
+  const { startTime, endTime } = timelineState;
+  const sortedFlags = [...flagsList].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < sortedFlags.length - 1; i++) {
+    const flagA = sortedFlags[i];
+    const flagB = sortedFlags[i + 1];
+    if (mouseX < flagA.x || mouseX > flagB.x) continue;
+    if (Math.min(flagA.time, flagB.time) > startTime && Math.max(flagA.time, flagB.time) < endTime) {
+      altClickData.preData = flagA;
+      altClickData.lastData = flagB;
+      return true;
+    }
+  }
+  return false;
+};
+const guideDistanceMeasurement = (ctx) => {
+  const { preData, lastData } = altClickData;
+  if (!preData || !lastData) return;
+  const spacing = Math.abs(lastData.x - preData.x);
+  const largeSpacing = spacing > boxWidth;
+  drawConnector(ctx, largeSpacing);
+};
+function drawConnector(ctx, largeSpacing) {
+  const rect = calculateRect();
+  // 填充矩形
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+  ctx.beginPath();
+  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  fillText(ctx, rect, rect.y);
+  // 绘制双向箭头
+  if (largeSpacing) {
+    drawDoubleArrow(rect, ctx);
+  } else {
+    drawDistanceSelectionBox(ctx);
+  }
+  ctx.restore();
+}
+function drawDoubleArrow(rect, ctx) {
+  const arrowSize = 8;
 
+  // 左侧箭头（指向左边）
+  const actLeft = rect.leftX;
+  const leftLineWidth = actLeft + arrowSize - 2;
+  const { centerY } = rect;
+  ctx.beginPath();
+  ctx.moveTo(rect.x, centerY);
+  ctx.lineTo(leftLineWidth, centerY);
+  ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 左侧箭头头部
+  ctx.beginPath();
+  ctx.moveTo(leftLineWidth - arrowSize / 2, centerY);
+  ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY - arrowSize / 2);
+  ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY + arrowSize / 2);
+  ctx.closePath();
+  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.fill();
+
+  // 右侧箭头（指向右边）
+  const rightLineWidth = rect.rightX - arrowSize + 2;
+  ctx.beginPath();
+  ctx.moveTo(rect.x + rect.width, centerY);
+  ctx.lineTo(rightLineWidth, centerY);
+  ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 右侧箭头头部
+  ctx.beginPath();
+  ctx.moveTo(rightLineWidth + arrowSize / 2, centerY);
+  ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY - arrowSize / 2);
+  ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY + arrowSize / 2);
+  ctx.closePath();
+  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.fill();
+}
+function drawDistanceSelectionBox(ctx) {
+  // 填充矩形
+  ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
+  ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.beginPath();
+  ctx.lineWidth = 1;
+  ctx.roundRect(altClickData.preData.x, layout.threadHeight, altClickData.lastData.x, layout.threadHeight, 4);
+  ctx.fill();
+  ctx.stroke();
+}
+function fillText(ctx, rect, scrollY = 0) {
+  const meaureTextSize = 12 * devicePixelRatio;
+  const measureY = scrollY === 0 ? rect.y : scrollY;
+  ctx.font = getFontStyle(meaureTextSize);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const centerX = rect.x + rect.width / 2;
+  const centerY = measureY + rect.height / 2;
+  const metrics = ctx.measureText(rect.text);
+  let ascent = metrics.actualBoundingBoxAscent;
+  let descent = metrics.actualBoundingBoxDescent;
+  // 如果浏览器不支持 actualBoundingBox...，回退到估算
+  if (ascent === undefined || descent === undefined) {
+    const fontSize = parseFloat(ctx.font);
+    ascent = fontSize * 0.8;
+    descent = fontSize * 0.2;
+  }
+  const textHeight = ascent + descent;
+  const textY = centerY + (ascent - textHeight / 2);
+  ctx.fillText(rect.text, centerX, textY);
+}
+// 计算矩形位置
+function calculateRect() {
+  const x1 = altClickData.preData.x;
+  const x2 = altClickData.lastData.x;
+  const y = altClickData.preData.y;
+  const leftX = Math.min(x1, x2);
+  const rightX = Math.max(x1, x2);
+  const width = boxWidth * devicePixelRatio;
+  const height = layout.threadHeight;
+  const rectX = leftX + (rightX - leftX - width) / 2;
+  const text = getMeasureDistance(altClickData);
+  return {
+    x: rectX,
+    y: y,
+    width: width,
+    height: height * devicePixelRatio,
+    leftX: leftX,
+    rightX: rightX,
+    centerY: y + (height * devicePixelRatio) / 2,
+    text
+  };
+}
+function getMeasureDistance(altClickData) {
+  const time = Math.abs(altClickData.lastData.time - altClickData.preData.time);
+  const timeInfo = formatTimeWithUnit(time);
+  if (Number(timeInfo.value) === 0) {
+    return this.lessThan0usMsg;
+  }
+  return timeInfo.value + timeInfo.unit;
+}
 const flagMouseOver = (e) => {
   if (!hoverFlagsCanvas.value || isTimelineDragging) return;
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
