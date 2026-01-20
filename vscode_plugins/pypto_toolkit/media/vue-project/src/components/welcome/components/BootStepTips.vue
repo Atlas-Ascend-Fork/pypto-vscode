@@ -952,6 +952,10 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
 
 // 生命周期
 onMounted(async () => {
+  updateWelcomeState({
+    key: 'guide.currentSmallIndex',
+    value: 0,
+  });
   // 监听窗口resize事件
   window.addEventListener('resize', debouncedHandleResize);
   // 额外监听滚动（如果DOM位置受滚动影响）
