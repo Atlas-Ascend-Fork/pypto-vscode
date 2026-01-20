@@ -109,7 +109,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="task-data">{{aicoreRate}}%</div>
+              <div class="task-data">{{aicoreRate}}</div>
             </div>
           </div>
           <div class="aicore-container-column" style="height: 46px; margin-top: 8px"> 
@@ -278,15 +278,7 @@ const closeDrawer = () => {
   reportVisible.value = false;
 };
 
-const showDrawer = () => {
-  reportVisible.value = true;
-
-  if (Number.isInteger(viewState.timeRange)) {
-    taskTime.value = viewState.timeRange;
-  }else {
-    taskTime.value = viewState.timeRange.toFixed(2);
-  }
-
+const calculateAicoreInfo = () => {
   let aicTaskTimeSum = new BigNumber('0');
   let totalCnt = new BigNumber('0');
   for (const [processKey, processVal] of processes) {
@@ -294,18 +286,36 @@ const showDrawer = () => {
       if (threadVal.isCounter == false) {
         totalCnt = totalCnt.plus(new BigNumber('1'));
       }
-      if (threadVal.threadName.toLowerCase().startsWith('aic') || threadVal.threadName.toLowerCase().startsWith('aiv')) {
-        for (const event of threadVal.events) {
-          aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
-        }
+      if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
+        continue;
+      }
+      for (const event of threadVal.events) {
+        aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
       }
     }
   }
 
   aicoreTime.value = aicTaskTimeSum.decimalPlaces(2).toString();
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
-  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString();
+  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString() + '%';
+};
 
+const showDrawer = () => {
+  reportVisible.value = true;
+
+  if (Number.isInteger(viewState.timeRange)) {
+    taskTime.value = viewState.timeRange;
+  } else {
+    taskTime.value = viewState.timeRange.toFixed(2);
+  }
+
+  if (isAicpu.value) {
+    aicoreTime.value = '/';
+    aicoreRate.value = '/';
+  } else {
+    calculateAicoreInfo();
+  }
+  
   if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
     cubeRateCycle.value = '/';
     vectorRateCycle.value = '/';
