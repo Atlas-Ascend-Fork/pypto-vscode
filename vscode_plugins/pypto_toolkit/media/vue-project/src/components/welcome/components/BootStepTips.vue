@@ -119,6 +119,9 @@ const computeActiveImg = computed(
 const swimActiveImg = computed(
   () => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`,
 );
+const cursorNotAllowed = computed(
+  () => `${window.staticPath}/static-assets/boot_steps/cursor_not_allowed.svg`,
+);
 
 const imgArr = ref([controlFlowImg, nativeImg, computeImg, swimImg]);
 const imgActiveArr = ref([controlFlowActiveImg, nativeActiveImg, computeActiveImg, swimActiveImg]);
@@ -322,7 +325,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
 
   // 生成多个指定DOM的clip-path路径（仅这些DOM可点击）
   const clipPath = getMultiDomClipPath();
-
+  const backColor = isStepAllowClick.value?'#317AF7':"rgb(255,255,255)"
   return {
     clipPath,
     position: 'fixed',
@@ -330,11 +333,12 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    backgroundColor: '#317AF7', // 内部遮罩
+    backgroundColor: backColor, // 内部遮罩
     opacity: `0.1`,
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease',
+    cursor: `url(${cursorNotAllowed.value}),auto`
   };
 });
 
@@ -346,9 +350,7 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
 
   // 新增：根据是否允许点击切换边框颜色
   const borderColor = isShowBorder.value
-    ? isStepAllowClick.value
-      ? 'var(--devui-active-icon)' // 蓝色点击
-      : '#FFE485' // 浅黄色 介绍根据高保真调整
+    ? 'var(--devui-category-search-hover-border)'
     : 'rgba(0,0,0,0)';
 
   return {
