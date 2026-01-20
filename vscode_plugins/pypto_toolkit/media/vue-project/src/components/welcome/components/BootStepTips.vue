@@ -180,13 +180,46 @@ const isShowBorder = computed<boolean>(() => {
   return isShowBorder;
 });
 
-// ========== 核心：获取单个DOM的位置信息 ==========
-const getSingleDomRect = (domId: string): DOMRect | null => {
-  if (!props.visible) return null;
-  const targetDom = document.getElementById(domId);
-  if (!targetDom) return null;
-  // 强制重绘，获取最新位置
-  return targetDom.getBoundingClientRect();
+/**
+ * 获取单个DOM的位置信息
+ * @param domSelector - 可以是ID字符串 或 class字符串
+ * @returns DOMRect对象 | null
+ */
+const getSingleDomRect = (domSelector: string): DOMRect | null => {
+  if (!props.visible) return null; 
+  const targetDom = getTargetElement(domSelector);
+
+  // 获取最新位置（强制重绘，确保实时性）
+  if (targetDom) {
+    targetDom.getBoundingClientRect(); // 强制重绘
+    return targetDom.getBoundingClientRect();
+  }
+  return null;
+};
+
+/**
+ * 通用DOM查找函数（优先ID，ID不存在则按class取第一个）
+ * @param selector - ID或class字符串
+ * @returns 匹配的DOM元素 | null
+ */
+const getTargetElement = (selector: string): HTMLElement | null => {
+  if (!selector) return null;
+
+  // 第一步：优先通过ID查找
+  let targetDom =  document.getElementById(selector);
+
+  // 第二步：ID查找失败，尝试通过class查找第一个匹配元素
+  if (!targetDom) {
+    const classElements = document.getElementsByClassName(selector);
+    if (classElements.length > 0) {
+      targetDom = classElements[0] as HTMLElement;
+    }
+  }
+  // 第三步：未找到时打印警告
+  if (!targetDom) {
+    return null;
+  }
+  return targetDom;
 };
 
 // ========== 核心：计算多个DOM的最小包围矩形（合并挖孔用） ==========
@@ -229,24 +262,35 @@ const getMultiDomClipPath = (): string => {
 
   // 收集所有有效DOM的位置信息（无论模式，只要是目标DOM就挖孔）
   const validDomRects: DOMRect[] = [];
-  currentStepAllTargetDomConfigs.value.forEach((config) => {
+  currentStepAllTargetDomConfigs.value.forEach((config, index) => {
     const rect = getSingleDomRect(config.targetDomId);
-    if (rect) validDomRects.push(rect);
+    if (rect) {
+      validDomRects.push(rect);
+    } 
   });
 
-  if (validDomRects.length === 0) return '';
+  if (validDomRects.length === 0) {
+    console.warn('没有有效的DOM位置信息，无法生成挖孔路径');
+    return '';
+  }
+
+  const mergeRect = getMergeDomRect();
+  if (!mergeRect) {
+    console.warn('合并后的包围盒为空，无法生成挖孔路径');
+    return '';
+  }
 
   // 生成多个DOM的挖孔路径（所有目标DOM都挖孔，保证交互能触达）
   let clipPathParts = ['0 0', '0 100%', '100% 100%', '100% 0', '0 0']; // 基础全屏路径
-  validDomRects.forEach((rect) => {
-    const mergeRect = getMergeDomRect();
-    if (!mergeRect) return;
-
+  validDomRects.forEach((rect, index) => {
+    // 计算相对mergeRect的偏移（关键：确保class DOM的相对位置正确）
     const relLeft = rect.left - mergeRect.left;
     const relTop = rect.top - mergeRect.top;
     const relRight = rect.right - mergeRect.left;
     const relBottom = rect.bottom - mergeRect.top;
 
+
+    // 追加当前DOM的挖孔路径（顺时针绘制）
     clipPathParts.push(`${relLeft}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relBottom}px`);
@@ -254,7 +298,9 @@ const getMultiDomClipPath = (): string => {
     clipPathParts.push(`${relLeft}px ${relTop}px`);
   });
 
-  return `polygon(${clipPathParts.join(', ')})`;
+  // 生成最终clip-path（压缩空格，避免解析问题）
+  const finalClipPath = `polygon(${clipPathParts.join(', ').replace(/\s+/g, ' ')})`;
+  return finalClipPath;
 };
 
 // ========== 核心：获取目标DOM信息（供弹窗定位，保持原有逻辑） ==========
@@ -588,7 +634,7 @@ const getTargetDomPosition = () => {
   }
 
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
-  const targetDom = document.getElementById(targetDomId);
+  const targetDom = getTargetElement(targetDomId);
   if (!targetDom) {
     console.warn(`目标DOM ID ${targetDomId} 不存在，使用兜底定位`);
     return {
@@ -681,7 +727,7 @@ const handleResize = async () => {
 
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
-  const targetDom = document.getElementById(targetDomId);
+  const targetDom = getTargetElement(targetDomId);
   if (targetDom) {
     targetDom.getBoundingClientRect();
   }
@@ -705,14 +751,18 @@ const debouncedHandleResize = debounce(handleResize, 150);
 // ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
 let domObserver: MutationObserver | null = null;
+// 保存父元素监听实例，避免内存泄漏
+let parentObserver: MutationObserver | null = null;
 
 /**
  * 监听目标DOM及其父元素的变化（适配flex布局）
  */
-const observeDomChange = (domId: string) => {
+const observeDomChange = (domSelector: string) => {
   // 销毁原有监听
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
+  if (parentObserver) parentObserver.disconnect();
+
   domObserver = new MutationObserver(debouncedHandleResize);
   const middleLayerElement = document.querySelector('#boot-middleLayer');
   if (middleLayerElement) {
@@ -732,20 +782,23 @@ const observeDomChange = (domId: string) => {
       subtree: true,
     });
   }
-  const targetDom = document.getElementById(domId);
+
+  // 关键修复：复用getTargetElement，统一ID/class查找逻辑
+  const targetDom = getTargetElement(domSelector);
   if (!targetDom) {
+    console.warn(`监听失败：未找到匹配的DOM元素（ID/class：${domSelector}）`);
     return;
   }
 
-  // 1. ResizeObserver：监听DOM尺寸变化
+  // 1. ResizeObserver：监听DOM尺寸变化（兼容class DOM）
   resizeObserver = new ResizeObserver(debouncedHandleResize);
   resizeObserver.observe(targetDom);
 
   // 2. MutationObserver：监听父元素的布局变化
   const parentDom = targetDom.parentElement;
   if (parentDom) {
-    domObserver = new MutationObserver(debouncedHandleResize);
-    domObserver.observe(parentDom, {
+    parentObserver = new MutationObserver(debouncedHandleResize);
+    parentObserver.observe(parentDom, {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: true,
@@ -981,6 +1034,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', debouncedHandleResize);
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
+  if (parentObserver) parentObserver.disconnect();
 });
 </script>
 <style scoped lang="less">

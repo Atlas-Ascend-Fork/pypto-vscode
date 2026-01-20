@@ -84,7 +84,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             showTriangle: true,
           },
           {
-            targetDomId: 'boot-steps-controlFlow-search',
+            targetDomId: 'devui-input',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -424,17 +424,28 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
 const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
   const groupConfig = graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
   if (!groupConfig) return null;
+  
   const stepConfig = groupConfig.steps[smallIndex];
   if (!stepConfig || !stepConfig.targetDomConfigs.length) return null;
 
+  // 复用通用DOM存在性判断逻辑（优先ID，降级class）
+  const isDomExist = (selector: string): boolean => {
+    // 查ID
+    if (document.getElementById(selector)) return true;
+    // 查class（存在至少一个匹配元素）
+    const classElements = document.getElementsByClassName(selector);
+    return classElements.length > 0;
+  };
+
   // 遍历配置数组（索引越小优先级越高），返回第一个存在的DOM对应的配置
   for (const config of stepConfig.targetDomConfigs) {
-    if (document.getElementById(config.targetDomId)) {
+    if (isDomExist(config.targetDomId)) {
       return config;
     }
   }
 
   // 若所有DOM都不存在，返回数组第一个配置（兜底）
+  console.warn(`[优先级配置] 所有目标DOM都不存在，返回第一个配置兜底`);
   return stepConfig.targetDomConfigs[0];
 };
 
