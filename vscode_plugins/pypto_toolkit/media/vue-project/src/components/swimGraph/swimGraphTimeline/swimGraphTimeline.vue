@@ -474,13 +474,17 @@ const flagMouseMove = (e) => {
 };
 const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
   const flagsList = flags.value;
-  if (flagsList.length < 2) return false;
+  if (flagsList.length < 2) {
+    return false;
+  }
   const { startTime, endTime } = timelineState;
   const sortedFlags = [...flagsList].sort((a, b) => a.x - b.x);
   for (let i = 0; i < sortedFlags.length - 1; i++) {
     const flagA = sortedFlags[i];
     const flagB = sortedFlags[i + 1];
-    if (mouseX < flagA.x || mouseX > flagB.x) continue;
+    if (mouseX < flagA.x || mouseX > flagB.x) {
+      continue;
+    }
     if (Math.min(flagA.time, flagB.time) > startTime && Math.max(flagA.time, flagB.time) < endTime) {
       altClickData.preData = flagA;
       altClickData.lastData = flagB;
@@ -491,7 +495,9 @@ const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
 };
 const guideDistanceMeasurement = (ctx) => {
   const { preData, lastData } = altClickData;
-  if (!preData || !lastData) return;
+  if (!preData || !lastData) {
+    return;
+  }
   const spacing = Math.abs(lastData.x - preData.x);
   const largeSpacing = spacing > boxWidth;
   drawConnector(ctx, largeSpacing);
@@ -533,9 +539,9 @@ function drawDoubleArrow(rect, ctx) {
 
   // 左侧箭头头部
   ctx.beginPath();
-  ctx.moveTo(leftLineWidth - arrowSize / 2, centerY);
-  ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY - arrowSize / 2);
-  ctx.lineTo(leftLineWidth - arrowSize / 2 + arrowSize, centerY + arrowSize / 2);
+  ctx.moveTo(leftLineWidth - (arrowSize / 2), centerY);
+  ctx.lineTo(leftLineWidth - (arrowSize / 2) + arrowSize, centerY - (arrowSize / 2));
+  ctx.lineTo(leftLineWidth - (arrowSize / 2) + arrowSize, centerY + (arrowSize / 2));
   ctx.closePath();
   ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
   ctx.fill();
@@ -551,9 +557,9 @@ function drawDoubleArrow(rect, ctx) {
 
   // 右侧箭头头部
   ctx.beginPath();
-  ctx.moveTo(rightLineWidth + arrowSize / 2, centerY);
-  ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY - arrowSize / 2);
-  ctx.lineTo(rightLineWidth + arrowSize / 2 - arrowSize + 1, centerY + arrowSize / 2);
+  ctx.moveTo(rightLineWidth + (arrowSize / 2), centerY);
+  ctx.lineTo(rightLineWidth + (arrowSize / 2) - arrowSize + 1, centerY - (arrowSize / 2));
+  ctx.lineTo(rightLineWidth + (arrowSize / 2) - arrowSize + 1, centerY + (arrowSize / 2));
   ctx.closePath();
   ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
   ctx.fill();
@@ -574,8 +580,8 @@ function fillText(ctx, rect, scrollY = 0) {
   ctx.font = getFontStyle(meaureTextSize);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const centerX = rect.x + rect.width / 2;
-  const centerY = measureY + rect.height / 2;
+  const centerX = rect.x + (rect.width / 2);
+  const centerY = measureY + (rect.height / 2);
   const metrics = ctx.measureText(rect.text);
   let ascent = metrics.actualBoundingBoxAscent;
   let descent = metrics.actualBoundingBoxDescent;
@@ -586,32 +592,33 @@ function fillText(ctx, rect, scrollY = 0) {
     descent = fontSize * 0.2;
   }
   const textHeight = ascent + descent;
-  const textY = centerY + (ascent - textHeight / 2);
+  const textY = centerY + (ascent - (textHeight / 2));
   ctx.fillText(rect.text, centerX, textY);
 }
 // 计算矩形位置
 function calculateRect() {
-  const x1 = altClickData.preData.x;
-  const x2 = altClickData.lastData.x;
-  const y = altClickData.preData.y;
+  const {
+    preData: { x: x1, y },
+    lastData: { x: x2 }
+  } = altClickData;
   const leftX = Math.min(x1, x2);
   const rightX = Math.max(x1, x2);
   const width = boxWidth * devicePixelRatio;
   const height = layout.threadHeight;
-  const rectX = leftX + (rightX - leftX - width) / 2;
-  const text = getMeasureDistance(altClickData);
+  const rectX = leftX + ((rightX - leftX - width) / 2);
+  const text = getMeasureDistance();
   return {
     x: rectX,
-    y: y,
-    width: width,
+    y,
+    width,
     height: height * devicePixelRatio,
-    leftX: leftX,
-    rightX: rightX,
-    centerY: y + (height * devicePixelRatio) / 2,
+    leftX,
+    rightX,
+    centerY: y + ((height * devicePixelRatio) / 2),
     text
   };
 }
-function getMeasureDistance(altClickData) {
+function getMeasureDistance() {
   const time = Math.abs(altClickData.lastData.time - altClickData.preData.time);
   const timeInfo = formatTimeWithUnit(time);
   if (Number(timeInfo.value) === 0) {
