@@ -114,6 +114,7 @@ export const ideLightTheme = new Theme({
     'devui-in-wave-fill2': 'rgba(200, 221, 189, 1)',
     'devui-out-wave-fill1': '#d2333c',
     'devui-out-wave-fill2': '#e6c6c7',
+    'devui-out-wave-fill3': '#beccfa',
     'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(243, 243, 243, 1), rgba(243, 243, 243, 0) 100%)',
     'devui-header-label': 'rgba(242,242,242,1)',
     'devui-swim-global-bg': '#ffffff',
@@ -299,6 +300,7 @@ export const ideDarkTheme = new Theme({
     'devui-in-wave-fill2': 'rgba(68, 81, 59, 1)',
     'devui-out-wave-fill1': 'rgba(231, 67, 74, 1)',
     'devui-out-wave-fill2': 'rgba(105, 56, 58, 1)',
+    'devui-out-wave-fill3': 'rgba(190, 204, 250, 1)',
     'devui-header-gradient-bg': 'linear-gradient(180.00deg, rgba(31, 31, 31, 1), rgba(31, 31, 31, 0) 100%)', // 计算图head渐变色
     'devui-header-label': 'rgba(43, 43, 43, 1)',
     'devui-swim-global-bg': '#1F1F1F',

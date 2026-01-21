@@ -22,7 +22,7 @@
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
-    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
+    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
     <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
   </div>
@@ -72,6 +72,10 @@ const props = defineProps({
     default: 'all'
   },
   nodeMagic: {
+    type: Number,
+    default: -1
+  },
+  searchLevel: {
     type: Number,
     default: -1
   },
@@ -142,6 +146,13 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
     openMode: props.openMode, nodeMagic: props.nodeMagic
   })
   showType.value = type;
+}
+
+
+const nodeSearchLevelChange = (newSearchLevel: string) => {
+  updateGraph(isDarkTheme.value, {
+    openMode: props.openMode, nodeMagic: props.nodeMagic, searchLevel: Number(newSearchLevel)
+  })
 }
 
 function isNodeInTrace(nodeId: string): boolean {
@@ -259,7 +270,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
     hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
-    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.searchLevel);
     comGraphStore.setData('jsonData', jsonValue);
   }
 }, { immediate: true });

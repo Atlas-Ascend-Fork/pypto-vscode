@@ -233,6 +233,10 @@ export default {
         callNumber: 'Number of calls',
         autoLineWrap: 'Auto line wrap',
         viewErrorStack: 'View call stack',
+        advancedSearch: 'advanced search',
+        nodeSearchLevelTips1: '-1: show full layers \n\r else: show selected layers',
+        nodeSearchLevelTips2: 'else: show selected layers',
+        nodeSearchLevel: 'Relative layers of searching node',
     },
     sideBar: {
         title: 'Compilation result',

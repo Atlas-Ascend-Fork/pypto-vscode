@@ -106,6 +106,10 @@ rect.sprotty-node.op {
   fill: var(--devui-out-wave-fill2);
 }
 
+.tensor-out-wave-label3 {
+  fill: var(--devui-out-wave-fill3);
+}
+
 /* Specific colors for different node type main labels */
 .tensor-main-label {
   fill: white;
