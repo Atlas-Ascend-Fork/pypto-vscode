@@ -25,6 +25,9 @@ export class AscppDagBuilder {
     incastUniqueSingle = new Set<string>();
     emptyNodesList = new Set<string>();
     emptyOutputSet = new Set<string>();
+    recordInOutRawId = new Set<string>();
+    recordInOutCastMap = new Map<string, string>();
+    recordNodeIdMap = new Map<string, string>();
     isErrorReport = false;
     isDefinedDark = true;
     isSearch = false;
@@ -162,6 +165,12 @@ export class AscppDagBuilder {
                 const producer = producers[prodIndex];
                 for (let consIndex = 0; consIndex < consumers.length; consIndex++) {
                     const consumer = consumers[consIndex];
+                    const mat = (s: string) => s.startsWith("tensor-") && s.match(/^tensor-(\d+)/)![1];
+                    const same = (a: string, b:string) => mat(a) === mat(b);
+                    if (same(producer.portId, consumer.portId) && this.recordInOutRawId.has(rawTensorId)) {
+                        continue;
+                    }
+                    
                     edges.push({
                         type: 'edge',
                         id: `edge-fanout-${rawTensorId}-prod${prodIndex}-${producer.portId}-to-cons${consIndex}-${consumer.portId}`,
@@ -1185,6 +1194,10 @@ export class AscppDagBuilder {
             baseColor = 'rgba(231, 67, 74, 1)';
             lightColor = 'rgba(250, 189, 193, 1)';
         }
+        let isMiddle = false;
+        if(tensorName.includes('Middle')) {
+            isMiddle = true;
+        }
         const node: AstgrTensorNode = {
             type: 'node:tensor',
             id: nodeId,
@@ -1196,6 +1209,7 @@ export class AscppDagBuilder {
             baseColor: baseColor,
             lightColor: lightColor,
             isError: isError,
+            isMiddle: isMiddle,
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',
@@ -1335,6 +1349,8 @@ export class AscppDagBuilder {
             const portId = `tensor-${tensorMagic}-${graphId}-out`;
             const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
 
+            this.recordInOutCastMap.set(tensorMagic, portId);
+            this.recordNodeIdMap.set(tensorMagic, nodeId);
             const inPort: AstgrPort = { type: 'port', id: portIdIn, role: 'input', size: { width: 8, height: 8 } };
 
             const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic, tensorName, slotId, 'input', errNodeList);
@@ -1494,6 +1510,9 @@ export class AscppDagBuilder {
                 return;
             }
             let tensorName = rawTensor?.symbol || "Out";
+            if (this.recordInOutCastMap.get(tensorMagic)) {
+                tensorName = "Middle";
+            }
 
             tensorName = `${tensorName} (${rawTensor!.rawmagic})`
 
@@ -1509,7 +1528,16 @@ export class AscppDagBuilder {
                 }
             }
             const portId = `tensor-${tensorMagic}-${graphId}-in`;
-            const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
+            let outPortId = `tensor-${tensorMagic}-${graphId}-out`;
+            if (this.recordInOutCastMap.has(tensorMagic)) {
+                outPortId = this.recordInOutCastMap.get(tensorMagic);
+                const nodeid = this.recordNodeIdMap.get(tensorMagic);
+                const index = nodes.findIndex(node => node.id === nodeid);
+                if (index !== -1) {
+                    nodes.splice(index, 1);
+                }
+            }
+
             const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
             const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList);
@@ -1538,6 +1566,9 @@ export class AscppDagBuilder {
                         rawTensorConsumers.set(rawTensorId, []);
                     }
                     rawTensorConsumers.get(rawTensorId)!.push({ nodeId, portId });
+                    if (this.recordInOutCastMap.has(tensorMagic)) {
+                        this.recordInOutRawId.add(rawTensorId);
+                    }
                 }
             }
         }
