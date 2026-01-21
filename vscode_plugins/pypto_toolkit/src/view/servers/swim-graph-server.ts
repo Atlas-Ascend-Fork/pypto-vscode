@@ -4,6 +4,7 @@ import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { ISwimViewServer, ICommonViewServer, ISwimApis, ISwimRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import fs from 'node:fs';
 import stream from 'node:stream';
+import { setSaveDir, getCurrentPlatform, savaFile } from '../../common/downloadFileCheck';
 
 
 type Apis = ISwimApis | ICommonApis;
@@ -33,7 +34,7 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     this.swimDataPath = this.query._path;
     this.handler = SwimGraphMsgHandler;
   }
-  public override created(ctx: ViewServerContext): void {}
+  public override created(ctx: ViewServerContext): void { }
 
   @viewApi()
   public getInitialData = async () => {
@@ -83,6 +84,20 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public getShortCutKeyCfg = async () => {
     return await this.handler.getShortCutKeyCfg(this);
+  };
+  @viewApi()
+  public setSaveDir = async () => {
+    const dir = await setSaveDir()
+    this.setRef('SaveDirPath', { dir: dir });
+  };
+  @viewApi()
+  public checkSys = async () => {
+    this.setRef('CheckSysResult', { sustem: getCurrentPlatform() });
+  };
+  @viewApi()
+  public savaFile = async (message) => {
+    const result = await savaFile(message);
+    this.setRef('SaveFileResult', { result: result });
   };
 
   safeParse(str) {

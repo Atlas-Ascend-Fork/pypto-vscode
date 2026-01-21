@@ -261,6 +261,15 @@ export class ThreeColumnServer
   public openSearchMode = async (message) => {
     await ComGraphHandler.openSearchMode(message, this);
   };
+  @viewApi()
+  public setSaveDir = async () => {
+  };
+  @viewApi()
+  public checkSys = async () => {
+  };
+  @viewApi()
+  public savaFile = async (message) => {
+  };
   // 初始化自动关联路径
   async initRelativePath(
     codePath: string,
