@@ -445,7 +445,6 @@ const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, gr
   }
 
   // 若所有DOM都不存在，返回数组第一个配置（兜底）
-  console.warn(`[优先级配置] 所有目标DOM都不存在，返回第一个配置兜底`);
   return stepConfig.targetDomConfigs[0];
 };
 
