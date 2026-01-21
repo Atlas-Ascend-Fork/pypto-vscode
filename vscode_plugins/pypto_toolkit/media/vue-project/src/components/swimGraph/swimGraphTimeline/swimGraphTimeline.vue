@@ -46,15 +46,17 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, COLOR_CFG } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '@/components/welcome/guideStepsConfig';
+import { MeatureRender } from '../swimGraphProcesses/render/meatureRender';
+import BigNumber from 'bignumber.js';
 const { server } = useViewServer();
-
+const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 
 // 注入父组件提供的状态和方法
@@ -104,6 +106,15 @@ const refColor = ref("rgba(94, 124, 224, 1)");
 const refLabel = ref("");
 const isShowTooltip = ref(false);
 const flagtooltip = ref(null);
+const boxWidth = 45;
+let flagHoverData = {
+  preData: null,
+  lastData: null,
+  largeSpacing: false
+};
+let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+const swimGraphState = inject('swimGraphState');
+const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
 const flagtooltipStyle = reactive({
   display: 'none',
   left: '0px',
@@ -460,8 +471,99 @@ const flagMouseMove = (e) => {
   hoverCurFlag.value = flag;
   childContextMap.threadEvent.drawEventLine(mouseX, color, "over");
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
+  const isBetweenAnyAdjacentFlags = isMouseXBetweenAnyAdjacentFlags(mouseX);
+  if (!isBetweenAnyAdjacentFlags) {
+    return;
+  }
+  guideDistanceMeasurement(ctx);
 };
-
+const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
+  const flagsList = flags.value;
+  if (flagsList.length < 2) {
+    return false;
+  }
+  const { startTime, endTime } = timelineState;
+  const sortedFlags = [...flagsList].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < sortedFlags.length - 1; i++) {
+    const flagA = sortedFlags[i];
+    const flagB = sortedFlags[i + 1];
+    if (mouseX < flagA.x || mouseX > flagB.x) {
+      continue;
+    }
+    if (Math.min(flagA.time, flagB.time) > startTime && Math.max(flagA.time, flagB.time) < endTime) {
+      flagHoverData.preData = flagA;
+      flagHoverData.lastData = flagB;
+      return true;
+    }
+  }
+  return false;
+};
+const guideDistanceMeasurement = (ctx) => {
+  const { preData, lastData } = flagHoverData;
+  if (!preData || !lastData) {
+    return;
+  }
+  const spacing = Math.abs(lastData.x - preData.x);
+  const largeSpacing = spacing > boxWidth;
+  drawConnector(ctx, largeSpacing);
+};
+function drawConnector(ctx, largeSpacing) {
+  const rect = calculateRect();
+  // 填充矩形
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+  ctx.beginPath();
+  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  measureRenderer.fillText(ctx, rect, rect.y);
+  // 绘制双向箭头
+  if (largeSpacing) {
+    measureRenderer.drawDoubleArrow(rect, ctx);
+  } else {
+    drawDistanceSelectionBox(ctx);
+  }
+  ctx.restore();
+}
+function drawDistanceSelectionBox(ctx) {
+  // 填充矩形
+  ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
+  ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.beginPath();
+  ctx.lineWidth = 1;
+  ctx.roundRect(flagHoverData.preData.x, layout.threadHeight, flagHoverData.lastData.x, layout.threadHeight, 4);
+  ctx.fill();
+  ctx.stroke();
+}
+// 计算矩形位置
+function calculateRect() {
+  const {
+    preData: { x: x1, y },
+    lastData: { x: x2 }
+  } = flagHoverData;
+  const leftX = Math.min(x1, x2);
+  const rightX = Math.max(x1, x2);
+  const width = boxWidth * devicePixelRatio;
+  const height = layout.threadHeight;
+  const rectX = leftX + ((rightX - leftX - width) / 2);
+  const end = new BigNumber(flagHoverData.lastData.time);
+  const start = new BigNumber(flagHoverData.preData.time);
+  const diffTime = end.minus(start).abs();
+  const text = measureRenderer.getMeasureDistance(diffTime);
+  return {
+    x: rectX,
+    y,
+    width,
+    height: height * devicePixelRatio,
+    leftX,
+    rightX,
+    centerY: y + ((height * devicePixelRatio) / 2),
+    text
+  };
+}
 const flagMouseOver = (e) => {
   if (!hoverFlagsCanvas.value || isTimelineDragging) return;
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
