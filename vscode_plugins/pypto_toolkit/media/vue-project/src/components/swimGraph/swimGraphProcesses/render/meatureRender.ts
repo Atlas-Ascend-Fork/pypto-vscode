@@ -265,7 +265,8 @@ export class MeatureRender extends EventRender {
     lastX = getNoZoomX(lastX, viewState);
     const width = boxWidth * devicePixelRatio;
     const height = preHeight;
-    const text = this.getMeasureDistance(altClickData);
+    const diffTime = Math.abs(altClickData.lastData.startTime - altClickData.preData.endTime);
+    const text = this.getMeasureDistance(diffTime);
     return {
       x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
       y: preY + height,
@@ -287,7 +288,8 @@ export class MeatureRender extends EventRender {
     const width = boxWidth * devicePixelRatio;
     const height = preHeight;
     const centerY = preY + height / 2;
-    const text = this.getMeasureDistance(altClickData);
+    const diffTime = Math.abs(altClickData.lastData.startTime - altClickData.preData.endTime);
+    const text = this.getMeasureDistance(diffTime);
     const leftX = getNoZoomX(preX + preWidth, viewState);  // 连线左端点
     const rectX = leftX + (lastX - leftX - width) / 2;
     return {
@@ -304,9 +306,8 @@ export class MeatureRender extends EventRender {
     };
   }
 
-  private getMeasureDistance(altClickData: any) {
-    const time = Math.abs(altClickData.lastData.startTime - altClickData.preData.endTime);
-    const timeInfo = formatTimeWithUnit(time);
+  private getMeasureDistance(diffTime: any) {
+    const timeInfo = formatTimeWithUnit(diffTime);
     if (Number(timeInfo.value) === 0){
       return this.lessThan0usMsg;
     }
