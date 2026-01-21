@@ -106,7 +106,7 @@ const refLabel = ref("");
 const isShowTooltip = ref(false);
 const flagtooltip = ref(null);
 const boxWidth = 45;
-let altClickData = {
+let flagHoverData = {
   preData: null,
   lastData: null,
   largeSpacing: false
@@ -490,15 +490,15 @@ const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
       continue;
     }
     if (Math.min(flagA.time, flagB.time) > startTime && Math.max(flagA.time, flagB.time) < endTime) {
-      altClickData.preData = flagA;
-      altClickData.lastData = flagB;
+      flagHoverData.preData = flagA;
+      flagHoverData.lastData = flagB;
       return true;
     }
   }
   return false;
 };
 const guideDistanceMeasurement = (ctx) => {
-  const { preData, lastData } = altClickData;
+  const { preData, lastData } = flagHoverData;
   if (!preData || !lastData) {
     return;
   }
@@ -533,7 +533,7 @@ function drawDistanceSelectionBox(ctx) {
   ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.roundRect(altClickData.preData.x, layout.threadHeight, altClickData.lastData.x, layout.threadHeight, 4);
+  ctx.roundRect(flagHoverData.preData.x, layout.threadHeight, flagHoverData.lastData.x, layout.threadHeight, 4);
   ctx.fill();
   ctx.stroke();
 }
@@ -542,13 +542,13 @@ function calculateRect() {
   const {
     preData: { x: x1, y },
     lastData: { x: x2 }
-  } = altClickData;
+  } = flagHoverData;
   const leftX = Math.min(x1, x2);
   const rightX = Math.max(x1, x2);
   const width = boxWidth * devicePixelRatio;
   const height = layout.threadHeight;
   const rectX = leftX + ((rightX - leftX - width) / 2);
-  const diffTime = Math.abs(altClickData.lastData.time - altClickData.preData.time);
+  const diffTime = Math.abs(flagHoverData.lastData.time - flagHoverData.preData.time);
   const text = measureRenderer.getMeasureDistance(diffTime);
   return {
     x: rectX,
