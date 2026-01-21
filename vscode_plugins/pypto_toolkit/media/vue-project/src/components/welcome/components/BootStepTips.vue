@@ -1,6 +1,8 @@
 <template>
   <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
   <div v-if="visible" class="guide-mask-container" @pointerup.stop>
+    <!-- 兜底全屏遮罩（始终覆盖视口，拦截操作） -->
+    <div v-if="isShowFullFalBack" class="guide-mask-full-fallback" :style="maskFullFallbackStyle"></div>
     <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
     <div class="guide-mask-full" @click.stop :style="maskFullClipStyle"></div>
     <div v-if="isShow">
@@ -136,6 +138,7 @@ const props = defineProps<{
   graphType: string;
 }>();
 const isShow = ref(true);
+const isShowFullFalBack = ref(true);
 
 // ========== 响应式触发变量（强制更新computed） ==========
 const refreshTrigger = ref(0);
@@ -154,6 +157,21 @@ const debounce = (fn: Function, delay = 150) => {
     }, delay);
   };
 };
+
+// ========== 兜底全屏遮罩样式（始终覆盖视口） ==========
+const maskFullFallbackStyle = computed<CSSProperties>(() => {
+  return {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    zIndex: 99997,
+    pointerEvents: 'auto', // 拦截所有
+    transition: 'background-color 0.2s ease',
+  };
+});
 
 // 三角配置
 const triangleConfig = computed(() => {
@@ -186,7 +204,7 @@ const isShowBorder = computed<boolean>(() => {
  * @returns DOMRect对象 | null
  */
 const getSingleDomRect = (domSelector: string): DOMRect | null => {
-  if (!props.visible) return null; 
+  if (!props.visible) return null;
   const targetDom = getTargetElement(domSelector);
 
   // 获取最新位置（强制重绘，确保实时性）
@@ -266,7 +284,7 @@ const getMultiDomClipPath = (): string => {
     const rect = getSingleDomRect(config.targetDomId);
     if (rect) {
       validDomRects.push(rect);
-    } 
+    }
   });
 
   if (validDomRects.length === 0) {
@@ -288,7 +306,6 @@ const getMultiDomClipPath = (): string => {
     const relTop = rect.top - mergeRect.top;
     const relRight = rect.right - mergeRect.left;
     const relBottom = rect.bottom - mergeRect.top;
-
 
     // 追加当前DOM的挖孔路径（顺时针绘制）
     clipPathParts.push(`${relLeft}px ${relTop}px`);
@@ -786,7 +803,6 @@ const observeDomChange = (domSelector: string) => {
   // 关键修复：复用getTargetElement，统一ID/class查找逻辑
   const targetDom = getTargetElement(domSelector);
   if (!targetDom) {
-    console.warn(`监听失败：未找到匹配的DOM元素（ID/class：${domSelector}）`);
     return;
   }
 
@@ -821,13 +837,13 @@ watch(
   async (newVal) => {
     if (newVal) {
       await nextTick();
-      getGuideProgress();
       handleResize();
       const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
       observeDomChange(targetDomId);
     } else {
       if (resizeObserver) resizeObserver.disconnect();
       if (domObserver) domObserver.disconnect();
+      if (parentObserver) parentObserver.disconnect();
     }
   },
   { immediate: true },
@@ -1003,20 +1019,39 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   currentSmallIndex.value = smallIndex;
 };
 
+ let checkDomInterval =null
 // 生命周期
 onMounted(async () => {
   updateWelcomeState({
     key: 'guide.currentSmallIndex',
     value: 0,
   });
+  await getGuideProgress();
   // 监听窗口resize事件
   window.addEventListener('resize', debouncedHandleResize);
   // 额外监听滚动（如果DOM位置受滚动影响）
   window.addEventListener('scroll', debouncedHandleResize);
+
+  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   if (props.visible) {
-    const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
     observeDomChange(targetDomId);
   }
+  // 检测一次DOM是否加载完成，直到找到DOM或引导关闭
+ checkDomInterval= setInterval(() => {
+    // 引导已关闭则停止检测
+    if (!props.visible) {
+      clearInterval(checkDomInterval);
+      return;
+    }
+    // DOM加载完成后，更新遮罩和弹窗位置
+   const targetDom = getTargetElement(targetDomId);
+    if (targetDom) {
+      clearInterval(checkDomInterval);
+      handleResize(); // 重新计算位置，恢复正常引导
+      isShowFullFalBack.value = false;
+      console.log(`目标DOM ${targetDomId} 加载完成，恢复正常引导`);
+    }
+  }, 200);
   const res = await getQuery();
   const uri = res._uri;
   const query = JSON.parse(uri.query);
@@ -1026,6 +1061,7 @@ onMounted(async () => {
     window.removeEventListener('scroll', debouncedHandleResize);
     if (resizeObserver) resizeObserver.disconnect();
     if (domObserver) domObserver.disconnect();
+    clearInterval(checkDomInterval);
   }
 });
 
@@ -1035,6 +1071,7 @@ onUnmounted(() => {
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
   if (parentObserver) parentObserver.disconnect();
+  clearInterval(checkDomInterval);
 });
 </script>
 <style scoped lang="less">
