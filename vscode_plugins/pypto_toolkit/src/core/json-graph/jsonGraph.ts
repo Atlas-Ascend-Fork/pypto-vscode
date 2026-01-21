@@ -8,7 +8,7 @@ import { getSemanticColor } from '../../process';
 import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP, 
     ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, MetadataLabel, Operation, OpReference, PortReference, 
     RawTensor, SemanticLab, Tensor } from './jsonGraph.types';
-import { addPhaseGroupingInfo, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp } from './utils';
+import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp } from './utils';
 
 declare const vscode: any;
 /**
@@ -80,6 +80,100 @@ export class AscppDagBuilder {
         return Array.from(subgraphs).sort((a, b) => a - b);
     }
 
+    public setColorConfig(isDark: boolean) {
+        this.isDefinedDark = isDark;
+        const colorList = generateColorList(360, isDark);
+        this.baseColorList = colorList.baseColorList;
+        this.lightColorList = colorList.lightColorList;
+        this.vscodeConfig = Util.getComGraphCustomCfg();
+    }
+
+    public prepareSprottyGraphData() {
+        
+    }
+
+    public createGraphSingleSearch(nodeMagic: string, actualData: FunctionData,
+                                    nodes: SNode[], edges: SEdge[], portMap: Map<string, PortReference>,
+                                    tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
+                                    rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
+                                    magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
+                                    inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, nodeSearchLevel?: string
+    ) {
+        const startNode = nodeMagic.toString();
+        const searchLevel = nodeSearchLevel ? (Number(nodeSearchLevel) + 1) : -1;
+        this.createNodeListMap(actualData);
+        if (this.opListMap.has(startNode)) {
+            // tensorType = 'operation';
+            this.opSearchForward(startNode, actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
+            this.opSearchBackward(startNode, actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
+        } else {
+            // tensorType = 'tensor';
+            this.tensorSearchForward(startNode, actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
+            this.tensorSearchBackward(startNode, actualData, nodes, edges, portMap,
+                tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
+        }
+        this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
+    }
+
+    public createGraphFullNodes(actualData: FunctionData,
+        nodes: SNode[], edges: SEdge[], portMap: Map<string, PortReference>,
+        tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
+        rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
+        magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
+        inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, showSyncNodes: boolean = false, threeMode: boolean = false, errNodeList?: any
+    ) {
+            // Create tensor nodes if enabled
+        if (showTensorNodes) {
+            this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, errNodeList);
+        } else {
+            if (actualData.tensors && Array.isArray(actualData.tensors)) {
+                for (const tensor of actualData.tensors) {
+                    const tensorMagic = String(tensor.magic);
+                    const isIncast = inoutMap.get('incasts')?.has(tensorMagic) ?? false;
+                    const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
+                    if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
+                        this.outcastUnique.add(tensorMagic);
+                    }
+                }
+            }
+        }
+
+        // Create input and output nodes
+        this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, errNodeList);
+        this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList);
+
+        // Create operation nodes
+        this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
+    }
+
+    public connectHiddenNodes(rawTensorProducers: Map<string, PortReference[]>, rawTensorConsumers: Map<string, PortReference[]>, edges: SEdge[]) {
+        for (const [rawTensorId, producers] of rawTensorProducers.entries()) {
+            const consumers = rawTensorConsumers.get(rawTensorId) || [];
+
+            // Connect each producer to each consumer (fan-out)
+            for (let prodIndex = 0; prodIndex < producers.length; prodIndex++) {
+                const producer = producers[prodIndex];
+                for (let consIndex = 0; consIndex < consumers.length; consIndex++) {
+                    const consumer = consumers[consIndex];
+                    edges.push({
+                        type: 'edge',
+                        id: `edge-fanout-${rawTensorId}-prod${prodIndex}-${producer.portId}-to-cons${consIndex}-${consumer.portId}`,
+                        sourceId: producer.portId,
+                        targetId: consumer.portId,
+                        ...(this.emptyNodesList.has(producer.portId) ? { cssClasses: ['dashed-edge'] } : {})
+                    });
+                }
+            }
+        }
+    }
+
     /**
      * Creates a Sprotty graph model from function data
      * @param funcData - The function data containing operations, tensors, etc.
@@ -91,15 +185,12 @@ export class AscppDagBuilder {
      * @returns The Sprotty graph model
      */
     public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
-                              filterSubgraphId?: number, nodeMagic?: string, threeMode: boolean = false, errNodeList?: any): ExtendedSModelRoot {
+                              filterSubgraphId?: number, nodeMagic?: string, nodeSearchLevel?: string, threeMode: boolean = false, errNodeList?: any): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
-        this.isDefinedDark = isDark;
         this.isSearch = nodeMagic ? true : false;
-        const colorList = generateColorList(360, isDark);
-        this.baseColorList = colorList.baseColorList;
-        this.lightColorList = colorList.lightColorList;
-        this.vscodeConfig = Util.getComGraphCustomCfg();
+        this.setColorConfig(isDark);
+
         // Check if the data might be nested under a property
         if (!hasValidStructure(funcData)) {
             actualData = this.extractNestedData(funcData);
@@ -110,49 +201,14 @@ export class AscppDagBuilder {
         const { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap } = createTensorMaps(actualData);
 
         if (nodeMagic) {
-            const startNode = nodeMagic.toString();
-            this.createNodeListMap(actualData);
-            if (this.opListMap.has(startNode)) {
-                // tensorType = 'operation';
-                this.opSearchForward(startNode, actualData, nodes, edges, portMap,
-                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-                this.opSearchBackward(startNode, actualData, nodes, edges, portMap,
-                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-            } else {
-                // tensorType = 'tensor';
-                this.tensorSearchForward(startNode, actualData, nodes, edges, portMap,
-                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-                this.tensorSearchBackward(startNode, actualData, nodes, edges, portMap,
-                    tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                    magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
-            }
-            this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
+            const searchLevel  = nodeSearchLevel ?? Number(nodeSearchLevel)> 0 ? nodeSearchLevel : undefined;
+            this.createGraphSingleSearch(nodeMagic, actualData, nodes, edges, portMap,
+                                         tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                                         magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
         } else {
-            // Create tensor nodes if enabled
-            if (showTensorNodes) {
-                this.createTensorNodes(actualData, nodes, portMap, rawTensorMap, tensorMap, inoutMap, errNodeList);
-            } else {
-                if (actualData.tensors && Array.isArray(actualData.tensors)) {
-                    for (const tensor of actualData.tensors) {
-                        const tensorMagic = String(tensor.magic);
-                        const isIncast = inoutMap.get('incasts')?.has(tensorMagic) ?? false;
-                        const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
-                        if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
-                            this.outcastUnique.add(tensorMagic);
-                        }
-                    }
-                }
-            }
-
-            // Create input and output nodes
-            this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, errNodeList);
-            this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList);
-
-            // Create operation nodes
-            this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
+            this.createGraphFullNodes(actualData, nodes, edges, portMap,
+                                      tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
+                                      magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
         }
 
         //record call input output nodes
@@ -160,24 +216,7 @@ export class AscppDagBuilder {
 
         // Create fan-out connections when tensor nodes are hidden
         if (!showTensorNodes) {
-            for (const [rawTensorId, producers] of rawTensorProducers.entries()) {
-                const consumers = rawTensorConsumers.get(rawTensorId) || [];
-
-                // Connect each producer to each consumer (fan-out)
-                for (let prodIndex = 0; prodIndex < producers.length; prodIndex++) {
-                    const producer = producers[prodIndex];
-                    for (let consIndex = 0; consIndex < consumers.length; consIndex++) {
-                        const consumer = consumers[consIndex];
-                        edges.push({
-                            type: 'edge',
-                            id: `edge-fanout-${rawTensorId}-prod${prodIndex}-${producer.portId}-to-cons${consIndex}-${consumer.portId}`,
-                            sourceId: producer.portId,
-                            targetId: consumer.portId,
-                            ...(this.emptyNodesList.has(producer.portId) ? { cssClasses: ['dashed-edge'] } : {})
-                        });
-                    }
-                }
-            }
+            this.connectHiddenNodes(rawTensorProducers, rawTensorConsumers, edges);
         }
 
         // Create phase grouping information for layout hints
@@ -193,119 +232,7 @@ export class AscppDagBuilder {
         let filteredEdges = edges;
 
         if (filterSubgraphId !== undefined) {
-            // First, find operation nodes that belong to the specified subgraph
-            const subgraphOperationIds = new Set<string>();
-
-            for (const node of nodes) {
-                const astgrNode = node as AstgrNode;
-
-                // Include nodes that belong to the specified subgraph
-                if (astgrNode.role === 'operation' && astgrNode.subgraphId === filterSubgraphId) {
-                    subgraphOperationIds.add(node.id);
-                }
-            }
-
-            // Find all tensors that are connected to these subgraph operations
-            const connectedTensorIds = new Set<string>();
-            const connectedInputOutputIds = new Set<string>();
-
-            for (const edge of edges) {
-                let isConnectedToSubgraphOp = false;
-
-                // Check if edge is connected to a subgraph operation
-                for (const opId of subgraphOperationIds) {
-                    if (edge.sourceId?.includes(opId) || edge.targetId?.includes(opId)) {
-                        isConnectedToSubgraphOp = true;
-                        break;
-                    }
-                }
-
-                if (isConnectedToSubgraphOp) {
-                    // Extract tensor IDs from ports
-                    if (edge.sourceId?.includes('tensor-')) {
-                        const match = edge.sourceId.match(/tensor-(\d+)/);
-                        if (match) connectedTensorIds.add(`tensor-${match[1]}`);
-                    }
-                    if (edge.targetId?.includes('tensor-')) {
-                        const match = edge.targetId.match(/tensor-(\d+)/);
-                        if (match) connectedTensorIds.add(`tensor-${match[1]}`);
-                    }
-
-                    // Extract input/output node IDs from ports
-                    if (edge.sourceId?.includes('incast-')) {
-                        const match = edge.sourceId.match(/(incast-\d+-tensor-\d+)/);
-                        if (match) connectedInputOutputIds.add(match[1]);
-                    }
-                    if (edge.targetId?.includes('outcast-')) {
-                        const match = edge.targetId.match(/(outcast-\d+-tensor-\d+)/);
-                        if (match) connectedInputOutputIds.add(match[1]);
-                    }
-                }
-            }
-
-            // Now find which input/output nodes are actually connected to the subgraph
-            // by checking if they connect to the identified tensors
-            for (const edge of edges) {
-                // Check if edge connects incast/outcast to connected tensors
-                if (edge.sourceId?.includes('incast-') && edge.targetId?.includes('tensor-')) {
-                    const tensorMatch = edge.targetId.match(/(tensor-\d+)/);
-                    const incastMatch = edge.sourceId.match(/(incast-\d+-tensor-\d+)/);
-                    if (tensorMatch && incastMatch && connectedTensorIds.has(tensorMatch[1])) {
-                        connectedInputOutputIds.add(incastMatch[1]);
-                    }
-                }
-
-                if (edge.sourceId?.includes('tensor-') && edge.targetId?.includes('outcast-')) {
-                    const tensorMatch = edge.sourceId.match(/(tensor-\d+)/);
-                    const outcastMatch = edge.targetId.match(/(outcast-\d+-tensor-\d+)/);
-                    if (tensorMatch && outcastMatch && connectedTensorIds.has(tensorMatch[1])) {
-                        connectedInputOutputIds.add(outcastMatch[1]);
-                    }
-                }
-            }
-
-            // Build the final set of relevant node IDs
-            const relevantNodeIds = new Set<string>();
-
-            // Add subgraph operations
-            subgraphOperationIds.forEach(id => relevantNodeIds.add(id));
-
-            // Add connected tensors
-            connectedTensorIds.forEach(id => relevantNodeIds.add(id));
-
-            // Add only connected input/output nodes
-            connectedInputOutputIds.forEach(id => relevantNodeIds.add(id));
-
-            // Filter nodes
-            filteredNodes = nodes.filter(node => relevantNodeIds.has(node.id));
-
-            // Filter edges to only include those where both source and target nodes are relevant
-            filteredEdges = edges.filter(edge => {
-                let sourceRelevant = false;
-                let targetRelevant = false;
-
-                // Check if source port belongs to a relevant node
-                if (edge.sourceId) {
-                    for (const nodeId of relevantNodeIds) {
-                        if (edge.sourceId.includes(nodeId)) {
-                            sourceRelevant = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Check if target port belongs to a relevant node
-                if (edge.targetId) {
-                    for (const nodeId of relevantNodeIds) {
-                        if (edge.targetId.includes(nodeId)) {
-                            targetRelevant = true;
-                            break;
-                        }
-                    }
-                }
-
-                return sourceRelevant && targetRelevant;
-            });
+            [filteredNodes, filteredEdges] = filterSubgraph(filterSubgraphId, nodes, edges);
         }
         const bottomNode: SEdge = {
             type: 'bottom',
@@ -408,7 +335,8 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean
+        showTensorNodes: boolean,
+        nodeSearchLevel?: number
     ) {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
@@ -426,6 +354,11 @@ export class AscppDagBuilder {
             this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, false, startNode);
         }
 
+        const curSearchLevel = nodeSearchLevel ? --nodeSearchLevel : -1;
+        if (curSearchLevel === 0) {
+            return;
+        }
+
         const ioperands = [...new Set(op.ioperands)];
         for (let incastNode of ioperands) {
             let tensorNodeId = this.tensorNodeMap.get(incastNode.toString())?.nodeId;
@@ -434,7 +367,7 @@ export class AscppDagBuilder {
             }
             this.tensorSearchForward(String(incastNode), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, curSearchLevel);
         }
     }
 
@@ -451,7 +384,8 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean
+        showTensorNodes: boolean,
+        nodeSearchLevel?: number
     ) {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
@@ -469,6 +403,11 @@ export class AscppDagBuilder {
             this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, false, startNode);
         }
 
+        const curSearchLevel = nodeSearchLevel ? --nodeSearchLevel : -1;
+        if (curSearchLevel === 0) {
+            return;
+        }
+
         const ooperands = [...new Set(op.ooperands)];
         for (let outcastNode of ooperands) {
             let tensorNodeId = this.tensorNodeMap.get(outcastNode.toString())?.nodeId;
@@ -477,7 +416,7 @@ export class AscppDagBuilder {
             }
             this.tensorSearchBackward(String(outcastNode), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, curSearchLevel);
         }
     }
 
@@ -690,7 +629,9 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean) {
+        showTensorNodes: boolean,
+        nodeSearchLevel?: number
+    ) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
         if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
@@ -701,15 +642,21 @@ export class AscppDagBuilder {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
         }
 
+        const curSearchLevel = nodeSearchLevel ? --nodeSearchLevel : -1;
+        if (curSearchLevel === 0) {
+            return;
+        }
+
         if (!this.tensor2opMap.get(startNode.toString())) {
             return;
         }
+
         const inOpList = this.tensor2opMap.get(startNode.toString())?.inOp;
 
         for (let op of inOpList!) {
             this.opSearchForward(op.toString(), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, curSearchLevel);
         }
     }
 
@@ -729,7 +676,9 @@ export class AscppDagBuilder {
         magicToTensorMap: Map<string, Tensor>,
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
-        showTensorNodes: boolean) {
+        showTensorNodes: boolean,
+        nodeSearchLevel?: number
+    ) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
         if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
@@ -738,6 +687,11 @@ export class AscppDagBuilder {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes);
         } else {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap);
+        }
+
+        const curSearchLevel = nodeSearchLevel ? --nodeSearchLevel : -1;
+        if (curSearchLevel === 0) {
+            return;
         }
 
         if (!this.tensor2opMap.get(startNode.toString())) {
@@ -749,7 +703,7 @@ export class AscppDagBuilder {
         for (let op of outOpList!) {
             this.opSearchBackward(op.toString(), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, curSearchLevel);
         }
     }
 

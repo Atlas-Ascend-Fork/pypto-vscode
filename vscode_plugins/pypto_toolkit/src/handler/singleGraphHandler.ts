@@ -2,8 +2,14 @@ import { BaseGraphMsgHandler } from './baseGraphMsgHandler';
 import { SingleGraphData, AbstractGraphData } from '../core/graphData';
 import { t } from 'i18next';
 import { getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
+import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 
 export class SingleGraphHandler extends BaseGraphMsgHandler {
+  /**
+   * sprottyGraph
+   */
+  static graphLastRenderData: any;
+
   protected static override async loadMainData(server: any): Promise<boolean> {
     if (!server.comGraphData) {
       server.comGraphData = new SingleGraphData(
@@ -51,6 +57,29 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
   public static getGrahpDataExtend(serve: any): AbstractGraphData {
     return this.getGraphData(serve);
   }
+
+  public static override async getSprottyGraphWithLevel(server: any, searchInfo: any) {
+    const newNodeMagic = searchInfo.nodeMagic;
+    const nodeSearchLevel = searchInfo.searchLevel;
+    const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, version, threeMode } = this.graphLastRenderData;
+    const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap);
+
+    const sprottyGraph = dagBuilder.createSprottyGraph(
+      currentData,
+      showTensorNodes,
+      showSyncNodes,
+      colorBySubgraph,
+      isDark,
+      selectedSubgraphId,
+      newNodeMagic ? newNodeMagic : nodeMagic,
+      nodeSearchLevel,
+    );
+
+    let message = undefined;
+    let isCached = false;
+    this.postJsonGraphData(server, message, sprottyGraph, isCached);
+  }
+
   /** 重写 基类方法 */
   protected static override async postInitMessages(server: any, gd: AbstractGraphData, json: any, isDiff: boolean): Promise<void> {
     /* 主题/语言  保证 前端初始状态 与当前主题一致，避免首帧闪白 */

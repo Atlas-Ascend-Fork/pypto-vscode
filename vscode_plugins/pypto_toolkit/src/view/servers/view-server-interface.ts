@@ -13,7 +13,8 @@ export type IComApis =
   | 'searchAllFunc'
   | 'innerGetSubgraph'
   | 'selectFile'
-  | 'returnFuncTree';
+  | 'returnFuncTree'
+  | 'getSprottyGraphWithLevel';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -53,6 +54,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
   returnFuncTree: () => Promise<void>;
   selectFile: (beforeFilePath: string) => Promise<void>;
+  getSprottyGraphWithLevel: (message: { data: any }) => Promise<void>;
 }
 
 export type IThreeApis =

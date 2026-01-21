@@ -146,7 +146,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   // Function to update the graph with current settings
-  const updateGraph = (isDark: boolean, option?: { openMode: any; nodeMagic: any; isThreeMode: any; showTensorNodes?: any; showSyncNodes?: any; subgraphFilterSelect?: any; }) => {
+  const updateGraph = (isDark: boolean, option?: { openMode: any; nodeMagic: any; searchLevel: number; isThreeMode: any; showTensorNodes?: any; showSyncNodes?: any; subgraphFilterSelect?: any; }) => {
     if (!currentData) return;
 
     const showTensorNodes = option?.showTensorNodes ?? true;
@@ -159,8 +159,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
 
     let nodeMagic: any;
+    let searchLevel: any;
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
+      searchLevel = option?.searchLevel;
+      if (searchLevel > 0) {
+        resetModelSource(true);
+      }
     }
     const data = {
       layout: currentLayoutConfig,
@@ -173,6 +178,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      searchLevel,
       version: comGraphStore.data.version,
       threeMode: isThreeMode
     };
@@ -385,10 +391,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, isThreeMode=false) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, searchLevel = 0, isThreeMode=false) => {
     try {
       currentData = jsonData; // Store the data
-      updateGraph(isDark, { openMode, nodeMagic, isThreeMode }); // Use the updateGraph function
+      updateGraph(isDark, { openMode, searchLevel, nodeMagic, isThreeMode }); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?

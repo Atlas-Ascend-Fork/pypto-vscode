@@ -186,6 +186,10 @@ export class ThreeColumnServer
     await ComGraphHandler.returnFuncTree(this);
   };
   @viewApi()
+  public getSprottyGraphWithLevel = async (message) => {
+    await ComGraphHandler.getSprottyGraphWithLevel(this, message);
+  };
+  @viewApi()
   public fetchVscodeState = async (message) => {
     if (message.swimDataPath) {
       this.swimDataPath = message.swimDataPath;
