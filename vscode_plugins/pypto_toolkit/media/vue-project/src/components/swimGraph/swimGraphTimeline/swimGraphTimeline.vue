@@ -54,6 +54,7 @@ import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '@/components/welcome/guideStepsConfig';
 import { MeatureRender } from '../swimGraphProcesses/render/meatureRender';
+import BigNumber from 'bignumber.js';
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -548,7 +549,9 @@ function calculateRect() {
   const width = boxWidth * devicePixelRatio;
   const height = layout.threadHeight;
   const rectX = leftX + ((rightX - leftX - width) / 2);
-  const diffTime = Math.abs(flagHoverData.lastData.time - flagHoverData.preData.time);
+  const end = new BigNumber(flagHoverData.lastData.time);
+  const start = new BigNumber(flagHoverData.preData.time);
+  const diffTime = end.minus(start).abs();
   const text = measureRenderer.getMeasureDistance(diffTime);
   return {
     x: rectX,
