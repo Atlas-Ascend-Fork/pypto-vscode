@@ -312,12 +312,12 @@ export default {
         controlFlow: {
           groupName: 'Control Flow',
           step1: {
-            title: 'Control Flow - View Control Flow Graph',
-            content: 'The flow graph control displays the structure of the control flow. You can understand the control flow logic and relationships, such as loops and branching statements, through voice prompts. Clicking on the number of leaf functions, the number of times a leaf function is called, or the number of times a leaf function is called in the planned path will open the details of that path node on the right. The next step will be to practice clicking on the number of leaf functions.'
+            title: 'Control Flow - Overall Introduction',
+            content: 'The control flow graph illustrates the structure of the control flow, clearly showing the control flow logic and relationships, such as loops and branching statements. It supports mouse scrolling and zooming, dragging, and quick location on a minimap. The rectangular Path cards below describe the number of leaf functions, the number of times leaf functions are called, and the number of times leaf functions are invoked. Clicking on a path node will open its details on the right. The next step will demonstrate the effect of clicking on the number of leaf functions.'
           },
           step2: {
-            title: 'Control Flow - View Path Node Panel',
-            content: 'The number of times leaf is called displays the number of child functions of the current PATH node; the number of times leaf is called displays the number of times the function is called by the current PATH node; the list of all computation graphs displays a list of all computation graphs of the current node, and clicking PASS in the list will open the corresponding computation graph page.'
+            title: 'Control Flow - Click to view details panel',
+            content: 'The number of times leaf is called displays the number of times the function is called by the current PATH node; the list of all computation graphs displays a list of all computation graphs of the current node, and clicking PASS in the list will open the corresponding computation graph page.'
           },
           step3: {
             title: 'Control Flow - Search Bar',
@@ -328,8 +328,8 @@ export default {
         navigation: {
           groupName: 'Navigation System',
           step1: {
-            title: 'Navigation System - View History Records',
-            content: 'The default display shows the current running records. Clicking on a record will expand the historical running list. Clicking on any record in the list will show an overview of the reply results.'
+            title: 'Navigation System - Navigation Title',
+            content: `It displays the name of the current page's running record, along with the time when the current running record was generated.`
           },
           step2: {
             title: 'Navigation System - Open Computation Graph',

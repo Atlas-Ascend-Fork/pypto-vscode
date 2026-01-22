@@ -54,7 +54,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           {
             targetDomId: 'boot-steps-controlFlow',
             triangleDirection: 'bottom',
-            showTriangle: true,
+            showTriangle: false,
           },
         ],
       },

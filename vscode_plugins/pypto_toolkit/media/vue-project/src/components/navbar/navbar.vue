@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar-container" :class="{ 'swimgraph-navbar-container': currentStep === 'swimGraph'}">
+  <div class="navbar-container" :class="{ 'swimgraph-navbar-container': currentStep === 'swimGraph' }">
     <div class="history-wrap">
       <div class="history-icon">
         <HistoryNpuIcon v-if="isNpu" />
@@ -9,9 +9,11 @@
     </div>
     <div v-if="currentStep !== 'swimGraph'" class="dividing-line"></div>
     <div class="navbar-list">
-      <d-tooltip :content="t('jumpCodeTips')" 
-        :position="currentStep === 'swimGraph' ? 'right' : 'bottom'" 
-        overlay-class="navbar-list-tooltip">
+      <d-tooltip
+        :content="t('jumpCodeTips')"
+        :position="currentStep === 'swimGraph' ? 'right' : 'bottom'"
+        overlay-class="navbar-list-tooltip"
+      >
         <div class="source-code">
           <CodeIcon />
         </div>
@@ -61,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, provide, ref, watch } from 'vue';
+import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { navbarProps } from './navbar-types';
 import PathList from './pathList.vue';
@@ -88,6 +90,7 @@ import { ComGraphProvideKey } from '../comGraph/type';
 import type { ComGraphContext } from '../comGraph/type';
 import { useViewServer } from '@/core/use-view-server';
 import type { OutputDetail } from 'ext:/types/workspace';
+import { getQuery } from '@/core/query';
 
 const { t } = useI18n();
 const props = defineProps(navbarProps);
@@ -120,6 +123,7 @@ const { comGraphName } = useNavbar();
 const { controlFlowFile, swimlaneFile } = useOutputNav(currentRecord);
 const showControlFlow = computed(() => Boolean(controlFlowFile.value));
 const showSwim = computed(() => Boolean(swimlaneFile.value));
+let isBootStep = false
 
 watch(
   () => props.currentRecordDirectoryPath,
@@ -225,13 +229,19 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
     }
     if (currentRecord.value?.directoryPath) {
       openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName }).then(() => {
-        if (!blank) {
+        if (!blank && !isBootStep) {
           server.closeWebview();
         }
       });
     }
   }
 }
+onMounted(async () => {
+  const res = await getQuery();
+  const uri = res._uri;
+  const query = JSON.parse(uri.query);
+  isBootStep = Boolean(query.isBootStep)
+});
 </script>
 
 <style scoped lang="scss">
@@ -413,7 +423,6 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
       letter-spacing: 0px;
       text-align: left;
     }
-
   }
 }
 
@@ -421,7 +430,6 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
   flex-direction: column;
   align-items: flex-start;
 }
-
 </style>
 
 <style lang="scss">

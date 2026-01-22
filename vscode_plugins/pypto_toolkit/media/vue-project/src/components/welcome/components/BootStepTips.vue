@@ -224,7 +224,7 @@ const getTargetElement = (selector: string): HTMLElement | null => {
   if (!selector) return null;
 
   // 第一步：优先通过ID查找
-  let targetDom =  document.getElementById(selector);
+  let targetDom = document.getElementById(selector);
 
   // 第二步：ID查找失败，尝试通过class查找第一个匹配元素
   if (!targetDom) {
@@ -392,7 +392,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     opacity: `0.1`,
     zIndex: 99997.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-in-out',
     cursor: `url(${cursorNotAllowed.value}),auto`,
   };
 });
@@ -417,7 +417,7 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
     boxSizing: 'border-box',
     zIndex: 99998, // 高于两层遮罩，低于弹窗
     pointerEvents: 'none', // 点击穿透
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-in-out',
   };
 });
 
@@ -744,7 +744,7 @@ const getTargetDomPosition = () => {
 const handleResize = async () => {
   if (!props.visible) return;
   await nextTick();
-  console.log('handleResize触发，开始重新计算位置和裁剪区域');
+  // console.log('handleResize触发，开始重新计算位置和裁剪区域');
 
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
@@ -1023,7 +1023,7 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   currentSmallIndex.value = smallIndex;
 };
 
- let checkDomInterval =null
+let checkDomInterval = null;
 // 生命周期
 onMounted(async () => {
   updateWelcomeState({
@@ -1036,24 +1036,25 @@ onMounted(async () => {
   // 额外监听滚动（如果DOM位置受滚动影响）
   window.addEventListener('scroll', debouncedHandleResize);
 
-  const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+  let targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   if (props.visible) {
     observeDomChange(targetDomId);
   }
   // 检测一次DOM是否加载完成，直到找到DOM或引导关闭
- checkDomInterval= setInterval(() => {
+  checkDomInterval = setInterval(() => {
+    targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
     // 引导已关闭则停止检测
     if (!props.visible) {
       clearInterval(checkDomInterval);
       return;
     }
     // DOM加载完成后，更新遮罩和弹窗位置
-   const targetDom = getTargetElement(targetDomId);
+    const targetDom = getTargetElement(targetDomId);
     if (targetDom) {
       clearInterval(checkDomInterval);
       handleResize(); // 重新计算位置，恢复正常引导
       isShowFullFalBack.value = false;
-      console.log(`目标DOM ${targetDomId} 加载完成，恢复正常引导`);
+      // console.log(`目标DOM ${targetDomId} 加载完成，恢复正常引导`);
     }
   }, 200);
   const res = await getQuery();
@@ -1092,13 +1093,13 @@ onUnmounted(() => {
 
 // 第一层：全屏遮罩 - 仅挖掉合并后的包围盒区域
 .guide-mask-full {
-  transition: clip-path 0.2s ease; // 裁剪区域变化时平滑过渡
+  transition: clip-path 0.1s ease-in-out; // 裁剪区域变化时平滑过渡
   pointer-events: auto; // 拦截非包围盒区域的点击
 }
 
 // 第二层：包围盒内遮罩 - 灰色半透明，仅对指定DOM挖孔
 .guide-mask-inner {
-  transition: clip-path 0.2s ease;
+  transition: clip-path 0.1s ease-in-out;
   pointer-events: auto; // 拦截包围盒内非指定DOM的点击
   border-radius: 4px; // 和边框圆角一致，视觉更统一
 }
