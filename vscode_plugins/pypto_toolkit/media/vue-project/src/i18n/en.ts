@@ -400,13 +400,13 @@ export default {
         threeColumnGraph: {
           groupName: 'Three Column Graph',
           step1: {
-            title: 'View Three Column Graph',
+            title: 'Three Column View',
             content: 'The code, compute graph, and swimlane graph are displayed in a page view. The three diagrams are associated with semantic tags to help developer quickly understand the whole process from code implementation to corresponding calculation graph expression to the final performance of the onboard swimlane graph.'
           },
           step2: {
-            title: 'Lock Mode',
-            content: 'Click the lock button in any of the three-column graph to enable lock mode.'
-          },          
+            title: 'Linked interaction experience',
+            content: 'Hovering a node in any of the three column view (we’ll use the swimlane graph as an example in this guide) will automatically highlight with the corresponding elements in the other two views. And simply click the lock icon to toggle the lock state.'
+          },
         }
       }
 }

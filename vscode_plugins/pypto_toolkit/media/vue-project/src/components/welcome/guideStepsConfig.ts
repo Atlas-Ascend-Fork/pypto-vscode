@@ -410,7 +410,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
   },
 ];
 
-// 全局引导步骤3配置（需要替换为真实三联动引导步骤）
+// 全局引导步骤3配置
 export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
   {
     groupName: 'bootStep.threeColumnGraph.groupName',
@@ -441,13 +441,18 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.threeColumnGraph.step2.title',
         content: 'bootStep.threeColumnGraph.step2.content',
-        method: 'lockThreeColumnGraph',
+        method: 'guideLink',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'guideEditorLock',
+            targetDomId: 'timeline-middle-virtual',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'threads-container',
             triangleDirection: 'bottom',
             showTriangle: true,
           },

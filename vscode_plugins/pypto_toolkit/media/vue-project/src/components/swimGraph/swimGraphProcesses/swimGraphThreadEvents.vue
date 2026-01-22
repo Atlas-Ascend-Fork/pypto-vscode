@@ -2095,6 +2095,10 @@ const listenExtensionClearMessage = () => {
           canvasStatusReset();
           break;
         }
+        case 'viewThreeColumnGraph': {
+          lockPosition.value = null;
+          break;
+        }
         default:
           break;
       }

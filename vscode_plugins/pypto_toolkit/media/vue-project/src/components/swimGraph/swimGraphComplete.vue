@@ -2139,6 +2139,27 @@ const listenExtensionMessage = () => {
           clearMeasureDetailSearch();
           break;
         }
+        case 'guideLink': {
+          await guideRestore();
+          const component = timelineComponent.value;
+          const ctx = component.fixedtimelineCtx;
+          const domRect = document.createElement('div');
+          domRect.id = 'timeline-middle-virtual';
+          domRect.style.position = 'absolute';
+          domRect.style.left = ((viewState.canvasCssWidth - layout.processLabelWidth) / 2) + 'px';
+          domRect.style.top = '90px';
+          domRect.style.width = '10px';
+          domRect.style.height = '3px';
+          domRect.style.backgroundColor = 'red';
+          ctx.canvas.parentNode.appendChild(domRect);
+          break;
+        }
+        case 'viewThreeColumnGraph': {
+          window.ascEventBus.emit('returnSemanticLabelFromCode', { label: '' });
+          window.ascEventBus.emit('deactivateLock', '');
+          guideRestore();
+          break;
+        }
         default:
           break;
       }
