@@ -75,9 +75,6 @@ export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
   /** 搜索（模糊条件） */
   search(prop: Keys, keyword: string): this;
 
-  /** 非空 */
-  notNull(props: string[]): this;
-
   /** 排序 */
   sort(prop: Keys, order: 'asc' | 'desc'): this;
 
@@ -100,8 +97,8 @@ export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
 export type ExtractItem<T extends StoreAttributes> = T extends any
   ? any
   : {
-    [K in keyof T]: AttributeType<T[K]>;
-  };
+      [K in keyof T]: AttributeType<T[K]>;
+    };
 
 /**
  * 从属性配置提取主键类型
@@ -109,8 +106,8 @@ export type ExtractItem<T extends StoreAttributes> = T extends any
 export type PrimaryKeys<T> = T extends any
   ? any
   : {
-    [K in keyof T]: T[K] extends { isPrimary: true } ? K : never;
-  }[keyof T];
+      [K in keyof T]: T[K] extends { isPrimary: true } ? K : never;
+    }[keyof T];
 
 /**
  * 从属性配置提取其他查询索引类型
@@ -118,8 +115,8 @@ export type PrimaryKeys<T> = T extends any
 export type QueryKeys<T> = T extends any
   ? any
   : {
-    [K in keyof T]: T[K] extends { isQuery: true; isPrimary?: false } ? K : never;
-  }[keyof T];
+      [K in keyof T]: T[K] extends { isQuery: true; isPrimary?: false } ? K : never;
+    }[keyof T];
 
 type Constructor<T> = T extends boolean
   ? BooleanConstructor

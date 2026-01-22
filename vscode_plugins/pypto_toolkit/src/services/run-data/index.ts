@@ -25,7 +25,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   executeTime: { type: String, isQuery: true },
   directoryPath: { type: String, isQuery: true },
   sourceFilePath: { type: String },
-  controlFlowFilePath: { type: String, isQuery: true },
+  controlFlowFilePath: { type: String },
   computeGraphDirPath: { type: String },
   swimlaneGraphFilePath: { type: String, isQuery: true },
   noDirectoryTree: { type: Boolean, isQuery: true },
