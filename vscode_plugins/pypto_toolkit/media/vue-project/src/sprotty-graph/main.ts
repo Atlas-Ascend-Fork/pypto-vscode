@@ -163,7 +163,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
       searchLevel = option?.searchLevel;
-      if (searchLevel > 0) {
+      if (searchLevel > -1) {
         resetModelSource(true);
       }
     }
@@ -391,7 +391,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, searchLevel = 0, isThreeMode=false) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, searchLevel = -1, isThreeMode=false) => {
     try {
       currentData = jsonData; // Store the data
       updateGraph(isDark, { openMode, searchLevel, nodeMagic, isThreeMode }); // Use the updateGraph function

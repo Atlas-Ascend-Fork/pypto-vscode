@@ -52,7 +52,7 @@
         </div>
         <div class="node-display-mode" v-if="props.openMode === 'path'">
           <div class="title mb-8">{{ t('comGraph.nodeSearchLevel') }}</div>
-              <d-input-number v-model="linkLevel" :step="1" :precision="0" :min="0" class="input-number-container" @change="onInputChange"/>
+              <d-input-number v-model="linkLevel" :step="1" :precision="0" :min="-1" class="input-number-container" @change="onInputChange"/>
               <d-tooltip>
                 <d-icon name="icon-helping" class="help-font"></d-icon>
                 <template #content>
@@ -119,7 +119,7 @@ const { t } = useI18n();
 const { dragEl, rootEl, styles } = useMoveable(props);
 const graphLayout = ref('RIGHT');
 const nodeDisplayMode = ref('all');
-const linkLevel = ref<number>(0);
+const linkLevel = ref<number>(-1);
 </script>
 
 <style scoped lang="scss">
