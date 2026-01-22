@@ -191,6 +191,8 @@ function onConfirm() {
 }
 
 function onCancel() {
+  searchLevel.value = -1;
+  linkLevel.value = -1;
   advancedSearchVisible.value = false;
 }
 
