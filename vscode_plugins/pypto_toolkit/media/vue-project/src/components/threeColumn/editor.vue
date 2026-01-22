@@ -701,28 +701,10 @@ const listenExtensionMessage = () => {
               "column": 1
             };
             simulateMouseMove(positionGuide);
-            editor.revealLineInCenter(1);
             (window as any).ascEventBus.emit('resetComGraphToFirst', message.params);
           }
+          editor.revealLineInCenter(1);
           break;
-        case 'lockThreeColumnGraph': {
-          guideEditor.value = true;
-          let positionGuide = {
-            "lineNumber": 140,
-            "column":37
-          };
-          if (labels.length === 0) {
-            labels.push({name: 'cast', startLine: 140, endLine: 207});
-          }
-          editor.revealLineInCenter(140);
-          simulateMouseMove(positionGuide);
-          // simulate click
-          isLocked.value = true;
-          lockedLabel = lastMoveLabel;
-          updateBkDecoration(lockedLabel, true);
-          sendMsg('activeLock', { label: lastMoveLabel.name });
-          break;
-        }
         default:
           break;
       }
