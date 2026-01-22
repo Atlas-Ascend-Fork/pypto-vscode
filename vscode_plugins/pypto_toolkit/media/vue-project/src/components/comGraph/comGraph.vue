@@ -258,7 +258,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     if (initComDocText){
       resetModelSource(true);
-      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.searchLevel);
       comGraphStore.setData('jsonData', jsonValue);
       return;
     }

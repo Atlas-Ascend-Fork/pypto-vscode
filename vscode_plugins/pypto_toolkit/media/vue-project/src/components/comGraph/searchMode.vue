@@ -1091,6 +1091,10 @@ watch(server.GlobalSearchResult, (newValue) => {
   background: var(--devui-tooltip-bg);
   box-shadow: 0 4px 12px rgba(0,0,0,0.12);
   border-radius: 4px;
+
+  :deep(.devui-input-number .disabled) {
+    cursor: default;
+  }
 }
 
 .advanced-search-panel-title {

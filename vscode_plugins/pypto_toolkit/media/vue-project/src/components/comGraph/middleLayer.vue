@@ -302,6 +302,7 @@ const searchNodeListener = (args) => {
   searchMode.value = 0;
   openMode.value = 'path';
   searchLevel.value = args.nodeSearchLevel;
+  comGraphStore.setData('searchLevel', searchLevel.value);
   nodeMagic.value = args.nodeMagic;
   loadingStep.value = 'convertData';
 };
