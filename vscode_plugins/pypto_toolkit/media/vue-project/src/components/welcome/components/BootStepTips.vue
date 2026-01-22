@@ -233,7 +233,11 @@ const getTargetElement = (selector: string): HTMLElement | null => {
       targetDom = classElements[0] as HTMLElement;
     }
   }
-  // 第三步：未找到时打印警告
+  // 第三步：className查找失败，尝试通过选择器查找
+  if (!targetDom) {
+    targetDom = document.querySelector(selector);
+  }
+  // 第四步：未找到时打印警告
   if (!targetDom) {
     return null;
   }

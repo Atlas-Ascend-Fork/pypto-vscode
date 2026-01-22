@@ -472,7 +472,7 @@ circle {
   display: flex;
   flex-direction: column;
   position: fixed;
-
+  z-index: 999999;
   box-shadow:var(--devui-select-shadow);
   background:var(--devui-node-bg);
   border-radius: 8px;

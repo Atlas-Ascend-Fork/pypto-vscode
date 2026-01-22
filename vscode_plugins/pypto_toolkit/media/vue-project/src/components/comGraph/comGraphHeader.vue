@@ -42,7 +42,7 @@
       </div>
 
       <Navbar
-        v-else
+        v-if="outputDirPath && isLoadingFinish"
         current-step="comGraph"
         :current-record-directory-path="outputDirPath"
         :current-path-magic-name="pathName"
@@ -50,6 +50,7 @@
         :current-leaf-name="fileName"
         @leaf-change="(e) => (currentLeafName = e)"
       />
+      <div v-if="outputDirPath && !isLoadingFinish"></div>
 
       <d-dropdown
         ref="dropdownEl"
@@ -93,6 +94,7 @@
               '--hide-icon': showSearchIcon ? 1 : 0,
               'left': selectWidth + 'px'
             }"
+            :appendToBody="false"
             @search="onSearch"
             @click="onCategoryClick"
             @selectedTagsChange="onSelectedChange"
@@ -538,6 +540,11 @@ function filterSearchResult(result: any) {
     }
   }
 }
+
+const isLoadingFinish = ref(false);
+watch(() => props.isLoading, (val) => {
+  isLoadingFinish.value = !val;
+});
 
 watch(() => comGraphStore.data.inFixedComGraphFlow, (val) => {
   if (val) {

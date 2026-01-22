@@ -152,6 +152,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         showBorder:true,
         targetDomConfigs: [
           {
+            targetDomId: 'path-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'pass-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
             targetDomId: 'navbarComGraphTab',
             triangleDirection: 'top',
             showTriangle: true,
@@ -198,6 +208,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             triangleDirection: 'top',
             showTriangle: true,
           },
+          {
+            targetDomId: '.devui-flexible-overlay:not(.hide-category-search-dropdown):has(.dp-category-search-dropdown)',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'comGraphHeaderSearch',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
         ],
       },
       {
@@ -210,11 +230,6 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         allowClick: true,
         showBorder:true,
         targetDomConfigs: [
-          {
-            targetDomId: 'astgr-context-menu',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
           {
             targetDomId: 'sprotty_tensor-6036-13',
             triangleDirection: 'top',
@@ -434,7 +449,11 @@ const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, gr
     if (document.getElementById(selector)) return true;
     // 查class（存在至少一个匹配元素）
     const classElements = document.getElementsByClassName(selector);
-    return classElements.length > 0;
+    if (classElements.length) {
+      return true
+    }
+    // 查选择器
+    return Boolean(document.querySelector(selector));
   };
 
   // 遍历配置数组（索引越小优先级越高），返回第一个存在的DOM对应的配置

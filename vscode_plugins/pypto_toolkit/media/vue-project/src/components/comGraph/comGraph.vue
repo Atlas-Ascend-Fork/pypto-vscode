@@ -137,7 +137,10 @@ let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
 const fitToScreen = () => {
-  fitToScreenAction();
+  const timer = setTimeout(() => {
+    fitToScreenAction();
+    clearTimeout(timer);
+  });
 }
 
 const nodeDisplayConfig = (type: 'op' | 'all') => {
@@ -328,7 +331,6 @@ function viewNodeDetail(params: Record<string, any>) {
   headerEl.value.hideSearchResMenu();
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
-  selectAction([params.nodeId]);
 }
 
 // 步骤3搜索节点
@@ -338,7 +340,6 @@ function searchNode(params: Record<string, any>) {
   // 还原到步骤2的节点选中和居中
   const { nodeId, ...rest } = params;
   centerNodeAction([nodeId], undefined, undefined, 1);
-  selectAction([nodeId]);
   // 填充搜索条件
   headerEl.value.updateSearchParams(rest);
 }
@@ -347,9 +348,6 @@ function searchNode(params: Record<string, any>) {
 function focusCurrentPath(params) {
   // 聚焦搜索的节点
   centerNodeAction([params.searchNodeId]);
-  selectAction([params.searchNodeId]);
-  // 只看当前通路
-  setFixedComGraphFlow(true, true, params.searchNodeId);
 }
 const stepsMap = {
   viewComGraph,
@@ -385,6 +383,7 @@ onMounted(() => {
   document.addEventListener('mouseup', onMouseup);
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
+  (window as any).addEventListener('resize', fitToScreen);
 });
 
 onBeforeUnmount(() => {
@@ -396,6 +395,7 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
   document.removeEventListener('mouseup', onMouseup);
   (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
+  (window as any).removeEventListener('resize', fitToScreen);
 });
 
 // 统一出口：解除固定
