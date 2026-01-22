@@ -6,6 +6,7 @@
     :position="['bottom']"
     :offset="7"
     class="path-list-menu-wrap"
+    :appendToBody="false"
     @toggle="onToggle"
   >
     <div :class="['path-list-container', isOpen && 'is-open']" @click="() => (isOpen = !isOpen)">
@@ -41,8 +42,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getQuery } from '@/core/query';
 import { NavbarProvideKey } from './navbar-types';
 import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
@@ -128,6 +130,7 @@ function onSearch(val: string) {
   searchNoRes.value = treeEl.value.treeFactory.treeData.value.every((item) => item.isHide);
 }
 
+let isBootStep = false;
 function onNodeClick(node: PathTreeData) {
   if (node.isLeaf) {
     isOpen.value = false;
@@ -135,13 +138,19 @@ function onNodeClick(node: PathTreeData) {
     const tempPassList = (node.controlFlowData as ControlFlowPath).meta.passes ?? [];
     if (tempPassList.length) {
       const lastPass = tempPassList[tempPassList.length - 1];
-      jumpComGraph(lastPass.graphFilePath, lastPass.pathName);
+      jumpComGraph(lastPass.graphFilePath, lastPass.pathName, isBootStep);
     }
   } else {
     treeEl.value.treeFactory.deselectNode(node);
     treeEl.value.treeFactory.selectNode(currentData.value);
   }
 }
+
+onMounted(async () => {
+  const res = await getQuery();
+  const query = JSON.parse(res._uri.query);
+  isBootStep = Boolean(query.isBootStep);
+});
 </script>
 
 <style scoped lang="scss">

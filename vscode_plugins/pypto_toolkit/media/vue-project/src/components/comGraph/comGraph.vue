@@ -331,7 +331,6 @@ function viewNodeDetail(params: Record<string, any>) {
   headerEl.value.hideSearchResMenu();
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
-  selectAction([params.nodeId]);
 }
 
 // 步骤3搜索节点
@@ -341,7 +340,6 @@ function searchNode(params: Record<string, any>) {
   // 还原到步骤2的节点选中和居中
   const { nodeId, ...rest } = params;
   centerNodeAction([nodeId], undefined, undefined, 1);
-  selectAction([nodeId]);
   // 填充搜索条件
   headerEl.value.updateSearchParams(rest);
 }
@@ -350,9 +348,6 @@ function searchNode(params: Record<string, any>) {
 function focusCurrentPath(params) {
   // 聚焦搜索的节点
   centerNodeAction([params.searchNodeId]);
-  selectAction([params.searchNodeId]);
-  // 只看当前通路
-  setFixedComGraphFlow(true, true, params.searchNodeId);
 }
 const stepsMap = {
   viewComGraph,
