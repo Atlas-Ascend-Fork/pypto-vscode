@@ -368,7 +368,7 @@ export default {
         swimlaneGraph: {
           groupName: 'Swimlane Graph',
           step1: {
-            title: 'Swimlane Graph - Distance Measurement',
+            title: 'Swimlane Graph - Check Distance Measurement',
             content: 'Supports automatic distance measurement between adjacent nodes within the same swimlane, as well as manual distance measurement across swimlanes or between arbitrary nodes.'
           },
           step2: {
@@ -377,11 +377,11 @@ export default {
           },
           step3: {
             title: 'Swimlane Graph - Operation Area',
-            content: 'Supports search, zoom, rendering settings, time measurement, and performance reports.'
+            content: 'Supports functionalities including search, zoom, viewing shortcut settings, exporting images, rendering settings, time measurement, and performance reports. The measurement mode can be explored separately in the subsequent step-by-step guide.'
           },
           step4: {
             title: 'Swimlane Graph - Enable Time Measurement - View Core Utilization Statistics',
-            content: 'Click the Measurement Mode button in the top-right corner of the swimlane diagram, then either drag to define a measurement area or select nodes by box selection in the main workspace to view CPU core utilization statistics.'
+            content: 'In time measurement mode, simply drag to select a time range in the main workspace, and you will see core utilization statistics for that interval.'
           },
           step5: {
             title: 'Swimlane Graph - View Node Details',

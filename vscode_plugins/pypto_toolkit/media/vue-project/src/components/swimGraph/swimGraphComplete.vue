@@ -50,7 +50,7 @@
         <div class="right-header-content" style="width: calc(100% - 250px)">
           <!-- 按钮操作区 -->
           <swim-graph-header v-if="!isThreeColumn" ref="swimgraphHeaderComponent" />
-          <div class="swimlane-container mr16" ref="swimlaneContainer">
+          <div class="swimlane-container" :class="{ mr16: !isGuidePage }" ref="swimlaneContainer">
             <!-- 时间轴区域 -->
             <swim-graph-timeline ref="timelineComponent" />
           </div>
@@ -59,7 +59,7 @@
         </div>
       </div>
       <div class="main-view" v-show="!loading">
-        <div class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer">
+        <div id="main-swim" class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer">
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
           <!-- 度量蒙板 -->
@@ -203,6 +203,7 @@ const modeOption = ref('');
 const isCfgEditing = ref(false);
 const isShortcutKeyShow = ref(false);
 const isAicpu = ref(false);
+const isGuidePage = ref(false);
 
 const isMeasureModel = ref(false);
 const isMeasureDragging = ref(false);
@@ -492,7 +493,7 @@ const processTraceData = (data) => {
   });
 };
 
-const transform = () => {
+const transform = (needClean=false) => {
   renderTwoTimeline();
   for (const [processKey, ctxInfo] of Object.entries(ctxs)) {
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
@@ -507,6 +508,9 @@ const transform = () => {
       const ctx = ctxs[processKey].eventCtx;
       childContextMap.threadEvent.renderProcessText(process, ctx);
     }
+  }
+  if (needClean) {
+    return;
   }
   renderDependencyLines();
   drawMeasureTime();
@@ -554,6 +558,23 @@ const renderDependencyLines = (processKey) => {
 const clearDependencyLines = (processKey) => {
   childContextMap.threadEvent.clearDependencyLines(processKey);
   return;
+};
+
+const guideRestore = async () => {
+  timelineComponent.value.clearFlagCanvas(true);
+  timelineComponent.value.toggleEditModel();
+  await swimgraphHeaderComponent?.value.clearHeadState();
+  detailComponent?.value.resetReleventState();
+  resetState();
+  transform(true);
+  mulDetailsExpanded.value = false;
+  swimlaneContainer.value.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+  isMeasureDragging.value = false;
+  isMeasureModel.value = false;
+  showDragAreaBorders.value = false;
 };
 
 const render = () => {
@@ -1281,7 +1302,7 @@ const resetState = () => {
   sliderValue.value = 0;
 };
 
-const onWindowResize = throttle((event) => {
+const doResize = () => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
 
@@ -1309,6 +1330,10 @@ const onWindowResize = throttle((event) => {
   drawMeasureTime();
   timelineComponent.value.observationLineResize();
   childContextMap.threadEvent.distanceMeasurementResize();
+};
+
+const onWindowResize = throttle(() => {
+  doResize();
 }, 50);
 
 const resizeCanvases = (processKey, needResizeTimeline = true) => {
@@ -1910,6 +1935,7 @@ onMounted(async () => {
   } else {
     outPutPath.value = '';
   }
+  isGuidePage.value = resData?.isBootStep;
 
   while (!result.done) {
     const val = result.value;
@@ -2040,6 +2066,7 @@ provide('swimGraphMethods', {
   getDisplayName,
   resetState,
   overflowText,
+  guideRestore,
   getTimelineCanvas: () => {
     return timelineComponent?.value.timelineCanvas;
   },
@@ -2081,7 +2108,7 @@ const updateTheme = () => {
 };
 // 监听引导模式的消息
 const listenExtensionMessage = () => {
-  window.ascEventBus.on('boot-step-tips', (event) => {
+  window.ascEventBus.on('boot-step-tips', async (event) => {
     const message = event.data;
     if (event.type === 'welcomeSkipAll') {
       server.closeWebview();
@@ -2089,10 +2116,11 @@ const listenExtensionMessage = () => {
     if (event.type == 'callWebviewMethod') {
       switch (message.methodName) {
         case 'showGuideDetailsPanel':
-          clearMeasureDetailSearch();
+          await guideRestore();
           getEventInfo();
           break;
         case 'measureDetailSearch': {
+          await guideRestore();
           const totalWidth = viewState.canvasCssWidth + layout.processLabelWidth;
           measureDragStartX.value = totalWidth * (1 / 4);
           measureDragEndX.value = totalWidth * (3 / 4);
@@ -2107,6 +2135,7 @@ const listenExtensionMessage = () => {
           break;
         }
         case 'zoomControls': {
+          await guideRestore();
           clearMeasureDetailSearch();
           break;
         }

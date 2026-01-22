@@ -11,11 +11,14 @@
             ref="searchEl"
             class="swim-search"
             :category="category" 
+            :selected-tags="catSelectedTags"
+            :search-key="categorySearchKey"
             :extend-config="{show:true, clear: {show : isSearchActive}, save: { show: false }, more: {show : false} }"
             :placeholder="searchPlaceholder"
             :text-config="textConfig"
             :show-search-category="searchConfig"
             :collapseTags="true"
+            :appendToBody="false"
             :menuBtnConfig="{ confirmText: $t('yes'), cancelText: $t('no')}"
             @search="onSearch"
             @selectedTagsChange="onSelectChange"
@@ -149,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onMounted, provide } from 'vue';
+import { ref, inject, computed, watch, onMounted, provide, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
@@ -227,6 +230,8 @@ const searchPlaceholder = $t("searchKeyword");
 const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
+const catSelectedTags = ref([]);
+const categorySearchKey = ref('');
 let category = [
     {
       label: 'Root Func. Hash',
@@ -270,8 +275,20 @@ const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
 const zoomControl = ref('');
 
+const clearSearch = async () => {
+  categorySearchKey.value = '';
+  await nextTick();
+  catSelectedTags.value = [];
+  const params = {
+    searchKey: categorySearchKey.value,
+    selectedTags: catSelectedTags.value,
+  };
+  onSearch(params);
+};
+
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
+  isShortcutKeyShow.value = false;
 };
 
 const closeDrawer = () => {
@@ -302,6 +319,8 @@ const calculateAicoreInfo = () => {
 
 const showDrawer = () => {
   reportVisible.value = true;
+  isCfgEditing.value = false;
+  isShortcutKeyShow.value = false;
 
   if (Number.isInteger(viewState.timeRange)) {
     taskTime.value = viewState.timeRange;
@@ -676,6 +695,8 @@ const onSearch = (e) => {
   }
   e.category = e.selectedTags[0]?.field;
   searchedKey.value = e.searchKey;
+  categorySearchKey.value = e.searchKey;
+  catSelectedTags.value = e.selectedTags;
   if (!(e.category) || e.category === '') {
     fuzzSearch(e.searchKey);
   } else {
@@ -955,6 +976,14 @@ const scrollToEventByDom = (event) => {
 
 const ShortcutKeyShow = () => {
   isShortcutKeyShow.value = !isShortcutKeyShow.value;
+  isCfgEditing.value = false;
+};
+
+const clearHeadState = () => {
+  closeDrawer();
+  clearSearch();
+  isCfgEditing.value = false;
+  isShortcutKeyShow.value = false;
 };
 
 const measureModel = () => {
@@ -1099,6 +1128,7 @@ onMounted(() => {
 defineExpose({
   leftmove,
   rightmove,
+  clearHeadState,
   closeDrawer
 })
 </script>
@@ -1128,8 +1158,6 @@ defineExpose({
 
   .devui-input {
     height: 28px !important;
-    padding-left: 32px !important;
-    padding-right: 44px !important;
     background: var(--devui-input-bg) !important;
     border-color: transparent;
     .devui-input__wrapper {

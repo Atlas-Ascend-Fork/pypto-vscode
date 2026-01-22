@@ -2091,6 +2091,7 @@ const listenExtensionClearMessage = () => {
           break;
         }
         case 'measureDetailSearch': {
+          mulDetailsExpanded.value = true;
           canvasStatusReset();
           break;
         }

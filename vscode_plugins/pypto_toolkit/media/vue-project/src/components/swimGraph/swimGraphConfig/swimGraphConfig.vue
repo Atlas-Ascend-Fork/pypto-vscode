@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isCfgEditing" class="cfgEdit" :style="{ top: isThreeColumn ? '0px': '60px'}">
+  <div v-if="isCfgEditing" id="cfgEdit" class="cfgEdit" :style="{ top: isThreeColumn ? '0px': '60px'}">
     <div class="cfg-content">
         <div class="cfg-head">
             <div class="cfg-title"> {{ $t('swimRenderCfg') }} </div>
