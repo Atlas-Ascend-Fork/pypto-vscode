@@ -157,10 +157,11 @@ import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
+import { useViewServer } from '../../../core/use-view-server';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
-
+const { server } = useViewServer();
 // 注入父组件提供的状态和方法
 const {
   viewState,
@@ -393,10 +394,8 @@ const exportSwimGraph = () => {
     );
     // 5. 导出图片
     const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = `${fileName.value}.png` || 'swim-graph-export.png';
-    link.href = dataUrl;
-    link.click();
+    const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
+    server.saveFile({dataUrl, fileName: fileNameInfo});
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
   } finally {
@@ -1079,7 +1078,13 @@ const postMessage = (message) => {
     window.vscode.postMessage({ command: 'showMessage', paramObj: { text: message } });
   }
 };
+function setupSwimWatchers() {
+  watch(server.SaveFileResult, (newValue) => {
+   console.log('1111' + newValue.result);
+  });
+}
 onMounted(() => {
+  setupSwimWatchers();
   updateTheme();
   document.addEventListener('click', handleClickOutsize, true);
   isThreeColumnHeader();

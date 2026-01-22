@@ -268,7 +268,7 @@ export class ThreeColumnServer
   public checkSys = async () => {
   };
   @viewApi()
-  public savaFile = async (message) => {
+  public saveFile = async (message) => {
   };
   // 初始化自动关联路径
   async initRelativePath(

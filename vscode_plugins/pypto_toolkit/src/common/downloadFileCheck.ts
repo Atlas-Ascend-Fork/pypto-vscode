@@ -60,7 +60,7 @@ export function getCurrentPlatform(): Platform {
     return 'unknown';
 }
 
-export async function  setSaveDir(): Promise<string> {
+export async function  setSaveDir(): Promise<string | undefined> {
     const uris = await vscode.window.showOpenDialog({
         canSelectMany: false,      // 只允许选一个
         canSelectFiles: false,     // 不允许选文件
@@ -72,7 +72,7 @@ export async function  setSaveDir(): Promise<string> {
 }
 
 
-export async function  savaFile(message:{dataUrl:any,fileName?:any,filePath?:any}): Promise<void> {
+export async function  saveFile(message:{dataUrl:any,fileName?:any,filePath?:any}): Promise<void> {
     if(message.fileName){
         const uris = await vscode.window.showOpenDialog({
             canSelectMany: false,      // 只允许选一个

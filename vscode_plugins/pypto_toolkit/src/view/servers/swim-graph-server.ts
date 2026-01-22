@@ -4,14 +4,14 @@ import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { ISwimViewServer, ICommonViewServer, ISwimApis, ISwimRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import fs from 'node:fs';
 import stream from 'node:stream';
-import { setSaveDir, getCurrentPlatform, savaFile } from '../../common/downloadFileCheck';
+import { setSaveDir, getCurrentPlatform, saveFile } from '../../common/downloadFileCheck';
 
 
 type Apis = ISwimApis | ICommonApis;
 
 type Refs = ISwimRefs & ICommonRefs;
 
-@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError'])
+@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError', 'SaveFileResult', 'CheckSysResult', 'SaveDirPath'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;
@@ -95,8 +95,8 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     this.setRef('CheckSysResult', { sustem: getCurrentPlatform() });
   };
   @viewApi()
-  public savaFile = async (message) => {
-    const result = await savaFile(message);
+  public saveFile = async (message) => {
+    const result = await saveFile(message);
     this.setRef('SaveFileResult', { result: result });
   };
 
