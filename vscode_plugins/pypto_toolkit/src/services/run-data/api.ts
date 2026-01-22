@@ -16,6 +16,12 @@ export interface GetOutputRecordParams {
 
   /** 强制重新读取文件 */
   forceReloadFromFiles?: boolean;
+
+  /** 是否三栏视图 */
+  isThreeColumnNotNull?: boolean;
+
+  /** 搜索关键词 */
+  titleKeyword?: string;
 }
 
 export interface GetOutputRecordsRes {
@@ -26,7 +32,7 @@ export interface GetOutputRecordsRes {
  * 获取运行结果记录
  */
 export async function getRunDataList(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles } = params;
+  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles, isThreeColumnNotNull = false, titleKeyword } = params;
   const runDataService = useService('runData');
   if (forceReloadFromFiles) {
     runDataService.scanDirectory();
@@ -34,11 +40,18 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   const isDefaultSortCondition = sortBy === 'executeTime' && sortOrder === 'desc';
   const waitingCount = isDefaultSortCondition ? page * pageSize : undefined;
   await runDataService.waitForScanning(waitingCount);
-  const records = await runDataService
+  let query = runDataService
     .query()
     .sort(sortBy, sortOrder)
     .slice(pageSize * (page - 1), pageSize * page)
-    .exec();
+  if (titleKeyword) {
+    query = query.search('title', titleKeyword)
+  }
+  // 三栏联动视图确保泳道图文件地址、控制流文件地址存在
+  if (isThreeColumnNotNull) {
+    query = query.notNull(['swimlaneGraphFilePath', 'controlFlowFilePath'])
+  }
+  const records = await query.exec();
   const list = records.map<OutputRecord>((record) => ({ ...record, directoryTree: undefined }));
   return { data: list };
 }

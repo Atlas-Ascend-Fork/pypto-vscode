@@ -26,7 +26,14 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
   }
 
   public search(prop: Keys & string, keyword: string): this {
-    this._whereConditions.push(`${prop}like '%${keyword}%'`);
+    this._whereConditions.push(`${prop} like '%${keyword}%'`);
+    return this;
+  }
+
+  public notNull(props: string[]): this {
+    props.forEach((field) => {
+      this._whereConditions.push(`${field} IS NOT NULL`)
+    })
     return this;
   }
 
