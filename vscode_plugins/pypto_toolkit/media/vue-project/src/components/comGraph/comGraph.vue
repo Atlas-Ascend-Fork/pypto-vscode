@@ -137,7 +137,10 @@ let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
 const fitToScreen = () => {
-  fitToScreenAction();
+  const timer = setTimeout(() => {
+    fitToScreenAction();
+    clearTimeout(timer);
+  });
 }
 
 const nodeDisplayConfig = (type: 'op' | 'all') => {
@@ -385,6 +388,7 @@ onMounted(() => {
   document.addEventListener('mouseup', onMouseup);
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
+  (window as any).addEventListener('resize', fitToScreen);
 });
 
 onBeforeUnmount(() => {
@@ -396,6 +400,7 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
   document.removeEventListener('mouseup', onMouseup);
   (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
+  (window as any).removeEventListener('resize', fitToScreen);
 });
 
 // 统一出口：解除固定
