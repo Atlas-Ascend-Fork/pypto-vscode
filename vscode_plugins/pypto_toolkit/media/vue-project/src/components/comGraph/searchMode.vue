@@ -100,7 +100,6 @@
           <template #menu>
             <div
               class="advanced-search-panel"
-              
             >
               <div style="display: flex; align-items: center; gap: 4px">
                 <div class="advanced-search-panel-title" @click.stop> {{ t('comGraph.nodeSearchLevel') }} </div>
@@ -115,7 +114,7 @@
 
               <d-input-number
                 v-model="linkLevel"
-                :step="1" :precision="0" :min="0"
+                :step="1" :precision="0" :min="-1"
                 class="advanced-search-panel-input"
                 @click.stop
               />
@@ -183,8 +182,8 @@ const searchEl = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
 const advancedSearchVisible = ref(false);
-const linkLevel = ref<number>(0);
-let searchLevel = ref<number>(0);
+const linkLevel = ref<number>(-1);
+let searchLevel = ref<number>(-1);
 
 function onConfirm() {
   searchLevel.value = linkLevel.value;

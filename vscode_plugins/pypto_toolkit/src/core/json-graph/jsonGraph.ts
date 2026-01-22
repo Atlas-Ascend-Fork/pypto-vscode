@@ -103,7 +103,7 @@ export class AscppDagBuilder {
                                     inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, nodeSearchLevel?: string
     ) {
         const startNode = nodeMagic.toString();
-        const searchLevel = nodeSearchLevel ? (Number(nodeSearchLevel) + 1) : -1;
+        const searchLevel = (nodeSearchLevel !== undefined) ? (Number(nodeSearchLevel) + 1) : -1;
         this.createNodeListMap(actualData);
         if (this.opListMap.has(startNode)) {
             // tensorType = 'operation';
@@ -210,7 +210,7 @@ export class AscppDagBuilder {
         const { rawTensorMap, magicToTensorMap, tensorToRawTensorMap, inoutMap } = createTensorMaps(actualData);
 
         if (nodeMagic) {
-            const searchLevel  = nodeSearchLevel ?? Number(nodeSearchLevel)> 0 ? nodeSearchLevel : undefined;
+            const searchLevel  = nodeSearchLevel ?? (Number(nodeSearchLevel)> -1 ? nodeSearchLevel : undefined);
             this.createGraphSingleSearch(nodeMagic, actualData, nodes, edges, portMap,
                                          tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
                                          magicToTensorMap, tensorMap, inoutMap, showTensorNodes, searchLevel);
