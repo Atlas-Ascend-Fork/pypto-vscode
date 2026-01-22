@@ -50,7 +50,7 @@
           <div class="title mb-8">{{ t('comGraph.nodesControl') }}</div>
           <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" :placeholder="t('comGraph.nodeShowAll')"/>
         </div>
-        <div class="node-display-mode" v-if="props.openMode === 'path'">
+        <div class="advanced-search-panel-input" v-if="props.openMode === 'path'">
           <div class="title mb-8">{{ t('comGraph.nodeSearchLevel') }}</div>
               <d-input-number v-model="linkLevel" :step="1" :precision="0" :min="-1" class="input-number-container" @change="onInputChange"/>
               <d-tooltip>
@@ -287,7 +287,9 @@ const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 
 .input-number-container {
   height: 28px;
+}
 
+.advanced-search-panel-input {
   :deep(.devui-input-number .disabled) {
     cursor: default;
   }
