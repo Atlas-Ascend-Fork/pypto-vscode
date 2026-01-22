@@ -1,6 +1,12 @@
 <template>
   <div class="selected-history">
-    <d-dropdown :position="['bottom-start']" :offset="20" class="history-list-menu-wrap" @toggle="(val) => (isOpen = val)">
+    <d-dropdown
+      :position="['bottom-start']"
+      :offset="20"
+      class="history-list-menu-wrap"
+      @toggle="(val) => (isOpen = val)"
+      :appendToBody="false"
+    >
       <div :class="['selected-history-title', isOpen && 'is-open']">
         <span :title="currentRecord.title">{{ currentRecord.title }}</span>
         <i class="icon-chevron-down-2"></i>
@@ -32,6 +38,7 @@ import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
 import { OutputRecord } from 'ext:/types/workspace';
 import { useViewServer } from '@/core/use-view-server';
 import { getRunDataList } from '@/apis/workspace';
+import { getQuery } from '@/core/query';
 
 withDefaults(
   defineProps<{
@@ -44,7 +51,7 @@ const historyList = ref<HistoryData[]>([]);
 const page = ref(0);
 const pageSize = 50;
 const allLoaded = ref(false);
-
+let isBootStep = false;
 let isPending = false;
 function handleLoadMore() {
   if (isPending === true) {
@@ -69,9 +76,17 @@ const { server } = useViewServer();
 
 function onClick(item: HistoryData) {
   openControlFlow({ outputPath: item.directoryPath, controlFlowPath: item.controlFlowFilePath }).then(() => {
-    server.closeWebview();
+    if (!isBootStep) {
+      server.closeWebview();
+    }
   });
 }
+onMounted(async () => {
+  const res = await getQuery();
+  const uri = res._uri;
+  const query = JSON.parse(uri.query);
+  isBootStep = Boolean(query.isBootStep);
+});
 </script>
 
 <style scoped lang="scss">
