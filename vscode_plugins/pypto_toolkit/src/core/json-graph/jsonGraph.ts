@@ -46,6 +46,7 @@ export class AscppDagBuilder {
     opIdMap = new Map<string, string>();
     singlePathNodeSet = new Set<string>();
     pathNodesSet = new Set<string>();
+    duplicateMagic = new Set<string>();
     vscodeConfig: any;
     version: string = '2.0';
 
@@ -272,6 +273,18 @@ export class AscppDagBuilder {
                 this.tensor2opMap.set(tensormagic, { inOp: new Set<string>(), outOp: new Set<string>() });
             }
         }
+
+        const outKeys = new Set(
+            actualData.outcasts.map(oc => String(Array.isArray(oc) ? oc[0] : oc))
+        );
+
+        for (const ic of actualData.incasts) {
+            const m = String(Array.isArray(ic) ? ic[0] : ic);
+            if (outKeys.has(m)) {
+                this.duplicateMagic.add(m);
+            }
+        }
+
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const opmagic = actualData.operations[opIndex].opmagic.toString();
             const ioperands = actualData.operations[opIndex].ioperands;
@@ -491,6 +504,9 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "In";
+        if(this.duplicateMagic.has(tensorMagic)) {
+            tensorName = "Middle";
+        }
         tensorName = `${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-out`;
         const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
@@ -590,6 +606,10 @@ export class AscppDagBuilder {
         }
 
         let tensorName = rawTensor?.symbol || "Out";
+        if(this.duplicateMagic.has(tensorMagic)) {
+            tensorName = "Middle";
+        }
+
         tensorName = `${tensorName} (${rawTensor!.rawmagic})`
         const portId = `tensor-${tensorMagic}-${graphId}-in`;
         const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
@@ -1529,10 +1549,12 @@ export class AscppDagBuilder {
             }
             const portId = `tensor-${tensorMagic}-${graphId}-in`;
             let outPortId = `tensor-${tensorMagic}-${graphId}-out`;
-            if (this.recordInOutCastMap.has(tensorMagic)) {
-                outPortId = this.recordInOutCastMap.get(tensorMagic);
-                const nodeid = this.recordNodeIdMap.get(tensorMagic);
-                const index = nodes.findIndex(node => node.id === nodeid);
+            const rePid = this.recordInOutCastMap.get(tensorMagic);
+            const repNodeId = this.recordNodeIdMap.get(tensorMagic);
+            if (rePid != null && repNodeId != null) {
+                outPortId = rePid;
+                nodeId = repNodeId;
+                const index = nodes.findIndex(node => node.id === nodeId);
                 if (index !== -1) {
                     nodes.splice(index, 1);
                 }
