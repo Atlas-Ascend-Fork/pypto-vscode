@@ -269,7 +269,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'distanceMeasurement',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
             targetDomId: 'distance-measurement',
@@ -289,6 +289,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           {
             targetDomId: 'observation-line',
             triangleDirection: 'right',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'timeline-area',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'edit-model',
+            triangleDirection: 'top',
             showTriangle: true,
           },
         ],
@@ -311,6 +321,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             triangleDirection: 'top',
             showTriangle: true,
           },
+          {
+            targetDomId: 'cfgEdit',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'dp-category-search-dropdown',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
         ],
       },
       {
@@ -319,12 +339,12 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'measureDetailSearch',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'measure-button',
-            triangleDirection: 'top',
-            showTriangle: true,
+            targetDomId: 'main-swim',
+            triangleDirection: 'bottom',
+            showTriangle: false,
           },
         ],
       },
@@ -333,8 +353,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step5.content',
         method: 'showGuideDetailsPanel',
         methodParams: {},
-        allowClick: true,
-        showBorder:true,
+        allowClick: false,
+        showBorder: true,
         targetDomConfigs: [
           {
             targetDomId: 'details-content',
@@ -347,7 +367,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         title: 'bootStep.swimlaneGraph.step6.title',
         content: 'bootStep.swimlaneGraph.step6.content',
         allowClick: true,
-        showBorder:true,
+        showBorder: true,
         targetDomConfigs: [
           {
             targetDomId: 'canvas-container',
@@ -359,6 +379,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.swimlaneGraph.step7.title',
         content: 'bootStep.swimlaneGraph.step7.content',
+        method: 'showGuideDetailsPanel',
+        methodParams: {},
         allowClick: true,
         showBorder:true,
         targetDomConfigs: [
@@ -392,7 +414,7 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
           subFuncmagicname: 'TENSOR_dense_moe_main_2',
         },
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
             targetDomId: 'guideThreeColumn',

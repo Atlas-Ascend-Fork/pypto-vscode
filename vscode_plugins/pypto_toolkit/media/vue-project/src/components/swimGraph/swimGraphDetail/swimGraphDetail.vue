@@ -506,9 +506,20 @@ const onInputChange = (newValue, oldValue) => {
 function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
+
+const resetReleventState = () => {
+  releventDisplay.value = DEP_MODE.all;
+  viewState.depMode = releventDisplay.value;
+  connectionLevel.value = -1;
+  userConfig.value.connectionLevel = -1;
+  highlightedPaths.clear();
+  changeUserCfgConnection(-1);
+};
+
 // 暴露方法给父组件
 defineExpose({
-  connectionLevel
+  connectionLevel,
+  resetReleventState,
 });
 </script>
 

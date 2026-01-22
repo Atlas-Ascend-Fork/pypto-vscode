@@ -8,7 +8,7 @@
     </div>
 
     <!-- 二段时间轴区域 -->
-    <div class="timeline-area" v-if="!loading">
+    <div class="timeline-area" id="timeline-area" v-if="!loading">
       <canvas class="timeline-canvas" ref="timelineCanvas" @wheel="handleWheel"></canvas>
       <canvas class="hover-flags-canvas" ref="hoverFlagsCanvas"></canvas>
       <canvas class="flags-canvas" ref="flagsCanvas" @mouseover="flagMouseOver" @mouseleave="flagMouseOut" @mousemove="flagMouseMove"
@@ -18,7 +18,7 @@
       <d-button icon="icon-delete" class="deletebotton" style="font-size: 16px;" @click.stop="deleteFlag"></d-button>
       <d-button icon="icon-edit" class="editbotton" style="font-size: 16px;" @click.stop="editFlag"></d-button>
     </div>
-    <div v-if="isEditing" class="edit-model" :style="editmodelStyle">
+    <div v-if="isEditing" class="edit-model" id="edit-model" :style="editmodelStyle">
       <div class="model-content">
         <div class="edit-head">
           <div class="edit-title">{{ $t('editTitle') }}</div>
@@ -659,13 +659,26 @@ const checkFlagHover = (x, y) => {
   return null;
 }
 
-const flagRender = () => {
-  if (!flagsCanvas.value) return;
+const clearFlagCanvas = (clearFlags=false) => {
+  if (!flagsCanvas.value) {
+    return;
+  }
   const ctx = flagsCtx.value;
   const canvas = flagsCanvas.value;
-  childContextMap.threadEvent.eraseEventLine("");
-  childContextMap.processHeaderEvent.eraseProcessHeadLine("");
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
+  childContextMap.threadEvent.eraseEventLine('');
+  childContextMap.processHeaderEvent.eraseProcessHeadLine('');
+  if (clearFlags) {
+    flags.value = [];
+  }
+};
+
+const flagRender = () => {
+  if (!flagsCanvas.value) {
+    return;
+  }
+  const ctx = flagsCtx.value;
+  clearFlagCanvas();
   const start = timelineState.startTime;
   const end = timelineState.endTime;
   if (flags.value.length === 0) return;
@@ -875,13 +888,12 @@ const listenExtensionMessage = () => {
           break;
         }
         case 'zoomControls': {
-          clearFlags();
           const element = document.querySelector('.zoom-controls');
           element.style.border = '1px dashed';
           break;
         }
         case 'distanceMeasurement': {
-          clearFlags();
+          clearFlagCanvas(true);
           break;
         }
         default:
@@ -889,15 +901,6 @@ const listenExtensionMessage = () => {
       }
     }
   });
-};
-
-const clearFlags = () => {
-  if (flags.value.length === 0) {
-    return;
-  }
-  const [firstFlag] = flags.value || [];
-  currentFlag.value = firstFlag;
-  deleteFlag();
 };
 
 const observationLineResize = () => {
@@ -942,6 +945,8 @@ defineExpose({
   flagRender,
   changeScale,
   observationLineResize,
+  clearFlagCanvas,
+  toggleEditModel,
   flagsCanvas
 });
 </script>
