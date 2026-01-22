@@ -30,6 +30,13 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
     return this;
   }
 
+  public notNull(props: string[]): this {
+    props.forEach((field) => {
+      this._whereConditions.push(`${field} IS NOT NULL`)
+    })
+    return this;
+  }
+
   public sort(prop: Keys & string, order: 'asc' | 'desc'): this {
     if (this._orderCondition) {
       throw new Error('查询条件中仅能使用一次排序');
