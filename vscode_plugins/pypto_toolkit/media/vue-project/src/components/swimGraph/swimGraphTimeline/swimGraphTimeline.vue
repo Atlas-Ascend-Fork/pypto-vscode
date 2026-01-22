@@ -5,6 +5,7 @@
     <!-- 一段时间轴区域 -->
     <div class="fixed-timeline-area" v-if="!loading">
       <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
+      <canvas class="hover-flags-line-canvas" ref="hoverFlagsLineCanvas"></canvas>
     </div>
 
     <!-- 二段时间轴区域 -->
@@ -95,7 +96,9 @@ const timelineCtx = ref(null);
 const flagsCanvas = ref(null);
 const flagsCtx = ref(null);
 const hoverFlagsCanvas = ref(null);
+const hoverFlagsLineCanvas = ref(null);
 const hoverFlagsCtx = ref(null);
+const hoverFlagsLineCtx = ref(null);
 const isTimelineMove = ref(false);
 const hoverCurFlag = ref(null);
 const flags = ref([]);
@@ -457,7 +460,8 @@ const checkIfInInterval = (x) => {
 };
 
 const flagMouseMove = (e) => {
-  if (!hoverFlagsCanvas.value || isTimelineDragging) return;
+  if (!hoverFlagsCanvas.value || isTimelineDragging || !hoverFlagsLineCanvas.value) return;
+  clearHoverFlagsLineCanvas();
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
   const ctx = hoverFlagsCtx.value;
   const color = "rgba(94, 124, 224, 1)";
@@ -500,26 +504,33 @@ const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
 };
 const guideDistanceMeasurement = (ctx) => {
   const { preData, lastData } = flagHoverData;
-  if (!preData || !lastData) {
+  const spacing = Math.abs(lastData.x - preData.x);
+  if (!preData || !lastData || spacing <= 3) {
     return;
   }
-  const spacing = Math.abs(lastData.x - preData.x);
-  const largeSpacing = spacing > boxWidth;
+  const largeSpacing = spacing > boxWidth + 10;
   drawConnector(ctx, largeSpacing);
+};
+const clearHoverFlagsLineCanvas  = () => {
+  const lineCtx = hoverFlagsLineCtx.value;
+  const clearHeight = fixedtimelineCanvas.value.offsetHeight;
+  lineCtx.clearRect(0, 0, viewState.canvasCssWidth, clearHeight);
 };
 function drawConnector(ctx, largeSpacing) {
   const rect = calculateRect();
+  const lineCtx = hoverFlagsLineCtx.value;
+  const renderCtx = largeSpacing ? ctx : lineCtx;
   // 填充矩形
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-  ctx.beginPath();
-  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  measureRenderer.fillText(ctx, rect, rect.y);
+  renderCtx.save();
+  renderCtx.setTransform(1, 0, 0, 1, 0, 0);
+  renderCtx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  renderCtx.strokeStyle = 'rgba(0, 0, 0, 0)';
+  renderCtx.beginPath();
+  renderCtx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+  renderCtx.fill();
+  renderCtx.stroke();
+  renderCtx.fillStyle = '#ffffff';
+  measureRenderer.fillText(renderCtx, rect, rect.y);
   // 绘制双向箭头
   if (largeSpacing) {
     measureRenderer.drawDoubleArrow(rect, ctx);
@@ -534,7 +545,9 @@ function drawDistanceSelectionBox(ctx) {
   ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.roundRect(flagHoverData.preData.x, layout.threadHeight, flagHoverData.lastData.x, layout.threadHeight, 4);
+  const height = fixedtimelineCanvas.value.offsetHeight;
+  const {preData,lastData} = flagHoverData;
+  ctx.roundRect(preData.x + 2, preData.y + (height / 2), lastData.x - preData.x - 4, height, 4);
   ctx.fill();
   ctx.stroke();
 }
@@ -547,7 +560,7 @@ function calculateRect() {
   const leftX = Math.min(x1, x2);
   const rightX = Math.max(x1, x2);
   const width = boxWidth * devicePixelRatio;
-  const height = layout.threadHeight;
+  const height = fixedtimelineCanvas.value.offsetHeight;
   const rectX = leftX + ((rightX - leftX - width) / 2);
   const end = new BigNumber(flagHoverData.lastData.time);
   const start = new BigNumber(flagHoverData.preData.time);
@@ -557,7 +570,7 @@ function calculateRect() {
     x: rectX,
     y,
     width,
-    height: height * devicePixelRatio,
+    height,
     leftX,
     rightX,
     centerY: y + ((height * devicePixelRatio) / 2),
@@ -823,6 +836,9 @@ const resizeCanvases = () => {
   if (hoverFlagsCanvas.value) {
     setupHighDPICanvas(hoverFlagsCanvas.value, canvasWidth, 40);
   }
+  if (hoverFlagsLineCanvas.value) {
+    setupHighDPICanvas(hoverFlagsLineCanvas.value, canvasWidth, 20);
+  }
 };
 
 const initCanvases = () => {
@@ -842,6 +858,9 @@ const initCanvases = () => {
     flagsCtx.value = flagsCanvas.value.getContext('2d');
   }
 
+  if (hoverFlagsLineCanvas.value) {
+    hoverFlagsLineCtx.value = hoverFlagsLineCanvas.value.getContext('2d');
+  }
   resizeCanvases();
   nextTick(() => {
     renderFixedTimeline();
