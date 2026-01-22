@@ -99,6 +99,8 @@ const tabDisable = computed(() => {
   return disabledFlag;
 })
 
+const defaultSearchLevel = computed(() => comGraphStore.data?.searchLevel ?? -1);
+
 const onInputChange = (newValue) => {
   linkLevel.value = newValue;
   emits('nodeSearchLevelChange', linkLevel.value);
@@ -119,7 +121,7 @@ const { t } = useI18n();
 const { dragEl, rootEl, styles } = useMoveable(props);
 const graphLayout = ref('RIGHT');
 const nodeDisplayMode = ref('all');
-const linkLevel = ref<number>(-1);
+const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 </script>
 
 <style scoped lang="scss">
@@ -285,6 +287,10 @@ const linkLevel = ref<number>(-1);
 
 .input-number-container {
   height: 28px;
+
+  :deep(.devui-input-number .disabled) {
+    cursor: default;
+  }
 }
 
   .input-number-container.locked-style {
