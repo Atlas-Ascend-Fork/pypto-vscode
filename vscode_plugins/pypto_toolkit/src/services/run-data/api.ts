@@ -26,6 +26,7 @@ export interface GetOutputRecordParams {
 
 export interface GetOutputRecordsRes {
   data: OutputRecord[];
+  total: number
 }
 
 /**
@@ -43,7 +44,6 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   let query = runDataService
     .query()
     .sort(sortBy, sortOrder)
-    .slice(pageSize * (page - 1), pageSize * page)
   if (titleKeyword) {
     query = query.search('title', titleKeyword)
   }
@@ -51,9 +51,10 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   if (isThreeColumnNotNull) {
     query = query.notNull(['swimlaneGraphFilePath', 'controlFlowFilePath'])
   }
-  const records = await query.exec();
+  const total = await query.count();
+  const records = await query.slice(pageSize * (page - 1), pageSize * page).exec();
   const list = records.map<OutputRecord>((record) => ({ ...record, directoryTree: undefined }));
-  return { data: list };
+  return { data: list, total };
 }
 
 export interface GetOutputDetailParams {
