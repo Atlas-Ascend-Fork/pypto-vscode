@@ -5,7 +5,7 @@
     <!-- 一段时间轴区域 -->
     <div class="fixed-timeline-area" v-if="!loading">
       <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
-      <canvas class="hover-flags-line-canvas" ref="hoverFlagsLineCanvas"></canvas>
+      <canvas class="hover-flags-line-canvas" ref="hoverFlagsLineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
     </div>
 
     <!-- 二段时间轴区域 -->
@@ -150,6 +150,7 @@ const fixedXToTime = (x) => {
 const mouseStyleChange = (style) => {
   fixedtimelineCanvas.value.style.cursor = style;
   flagsCanvas.value.style.cursor = style;
+  hoverFlagsLineCanvas.value.style.cursor = style;
 };
 
 const mouseStyleEvent = (mousex) => {
@@ -221,7 +222,7 @@ const timelineMouseDown = (e) => {
 }
 
 const timelineMouseMove = (e) => {
-  if (e.target === fixedtimelineCanvas.value || e.target === flagsCanvas.value) {
+  if (e.target === fixedtimelineCanvas.value || e.target === flagsCanvas.value || e.target === hoverFlagsLineCanvas.value) {
     if (!isTimelineDragging) return;
     isTimelineMove.value = true;
     const rect = fixedtimelineCanvas.value.getBoundingClientRect();
@@ -323,6 +324,7 @@ const timelineMouseOut = (e) => {
 
 const timelineMouseEventReset = () => {
   fixedtimelineCanvas.value.style.cursor = 'default';
+  hoverFlagsLineCanvas.value.style.cursor = 'default';
   timelineCanvas.value.style.cursor = 'default';
   isTimelineDragging = false;
   timelineState.isInLeftTag = false;
