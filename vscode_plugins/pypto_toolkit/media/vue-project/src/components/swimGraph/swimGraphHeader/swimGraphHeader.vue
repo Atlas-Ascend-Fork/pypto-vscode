@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div class="zoom-controls" :id=zoomControl :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
     <div class="left-container" :class="{ 'left-container-search': isSearchActive}" v-if="threeColumnHeaderVisible">
       <div class="search-container-res" v-if="threeColumnSearchVisible">
@@ -146,6 +147,29 @@
       <d-button class="right-container-buttor hidden" @click="toggleDetailsCores()">{{ $t("data") }}</d-button>
     </div>
   </div>
+  <div>
+    <d-modal v-model="modalVisible" :title="$t('iconExport')" class="export-modal-containner" :close-on-click-overlay="false">
+      <div class="export-title">{{ $t('exportPosition') }}</div>
+      <d-radio-group class="mt10" direction="row" v-model="exportRadioItem" @change="groupRadioChange">
+        <d-radio v-for="item in exportRadioList" :key="item.name" :value="item.value">{{ item.name }}</d-radio>
+      </d-radio-group>
+      <div class="export-title mt20" v-if="exportFoldVisible">{{ $t('exportFold') }}</div>
+      <div class="mt10 export-fold" v-if="exportFoldVisible">
+        <d-input class="label-input" v-model="refLabel" :placeholder="$t('editInput')" show-count :maxlength="16">
+          <template #append>
+            <d-button variant="solid" @click="setExportFold()"> {{ $t('setExportFold') }}</d-button>
+          </template>
+        </d-input>
+      </div>
+      <template #footer>
+        <d-modal-footer class="modal-button mt10">
+          <d-button variant="solid" color='secondary'  @click="exportCancel()">{{ $t('no') }}</d-button>
+          <d-button variant="solid" color='primary'  @click="exportConfirm()">{{ $t('exportSwimGraph') }}</d-button>
+        </d-modal-footer>
+      </template>
+    </d-modal>
+  </div>
+  </div>
 </template>
 
 <script setup>
@@ -228,6 +252,11 @@ const searchPlaceholder = $t("searchKeyword");
 const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
+const exportRadioList = [{name: '本地', value: 'local'},{name: 'Linux', value: 'linux'}];
+let exportRadioItem = ref('local');
+const refLabel = ref("11");
+const modalVisible = ref(true);
+const exportFoldVisible = ref(false);
 let category = [
     {
       label: 'Root Func. Hash',
@@ -1083,6 +1112,18 @@ function setupSwimWatchers() {
    console.log('1111' + newValue.result);
   });
 }
+const exportCancel = () => {
+  modalVisible.value = false;
+};
+const exportConfirm = () => {
+
+};
+const setExportFold = () => {
+
+};
+const groupRadioChange = (item) => {
+  exportFoldVisible.value = item === 'linux';
+};
 onMounted(() => {
   setupSwimWatchers();
   updateTheme();
@@ -1187,6 +1228,17 @@ defineExpose({
 }
 </style>
 <style scoped lang="scss">
+.label-input {
+  :deep() {
+    .devui-input__wrapper {
+      border: none;
+    }
+    .devui-input-slot__prepend, .devui-input-slot__append {
+      border: none;
+      border-left: 1px solid var(--devui-form-control-line);
+    }
+  }
+}
 :deep() {
   .swim-search.dp-category-search-container {
     height: 28px;

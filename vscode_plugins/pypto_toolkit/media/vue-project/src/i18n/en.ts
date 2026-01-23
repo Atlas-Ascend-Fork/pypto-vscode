@@ -166,6 +166,10 @@ export default {
     exportSwimGraph: 'Export',
     swimExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
     pleaseUnlock: 'Please unlock the label first.',
+    exportPosition: 'Export Location',
+    iconExport: 'Export Image',
+    exportFold: 'Export Directory',
+    setExportFold: 'Set Download Directory',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

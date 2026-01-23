@@ -166,6 +166,10 @@ export default {
    exportSwimGraph: '导出',
    swimExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
    pleaseUnlock: '请先解除标签锁定',
+   exportPosition: '导出位置',
+   iconExport: '图片导出',
+   exportFold: '导出目录',
+   setExportFold: '设置下载目录',
    comGraph: {
       copy: '复制',
       copied: '复制成功',
