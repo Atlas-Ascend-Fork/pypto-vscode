@@ -710,6 +710,8 @@ const deleteFlag = () => {
   if (!currentFlag.value) return;
   flags.value = flags.value.filter(flag => flag.x !== currentFlag.value.x);
   flagRender();
+  isEditing.value = false;
+  refLabel.value = '';
   hideTooltip();
 }
 
