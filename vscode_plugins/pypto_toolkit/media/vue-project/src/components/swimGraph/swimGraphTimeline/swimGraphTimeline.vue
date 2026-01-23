@@ -85,6 +85,7 @@ let timelineInitX = 0;
 let timelineInitStartX = 0;
 let timelineInitEndX = 0
 let lastPostion = 0;
+let isGuidePage = false;
 let wheelDebounceTimer;
 const fixedtimelineCanvas = ref(null);
 const fixedtimelineCtx = ref(null);
@@ -139,6 +140,9 @@ const mouseStyleChange = (style) => {
 };
 
 const mouseStyleEvent = (mousex) => {
+  if (isGuidePage) {
+    return;
+  }
   if (Math.abs(mousex - timelineState.startTimeX) < 5) {
     mouseStyleChange('col-resize');
     return;
@@ -179,6 +183,10 @@ const timelineMouseDown = (e) => {
   lastPostion = mouseX;
   timelineInitStartX = timelineState.startTimeX;
   timelineInitEndX = timelineState.endTimeX;
+
+  if (isGuidePage) {
+    return;
+  }
 
   if (Math.abs(mouseX - timelineInitStartX) < 5){
     isTimelineDragging = true;
@@ -760,6 +768,7 @@ const listenExtensionMessage = () => {
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
     if (event.type == 'callWebviewMethod') {
+      isGuidePage = true;
       switch (message.methodName) {
         case 'addObservationLine': {
           drawVirtualDom();
