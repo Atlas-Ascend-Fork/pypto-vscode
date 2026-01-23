@@ -365,7 +365,7 @@ const listenExtensionMessage = () => {
     () => isLoading.value,
     async (value) => {
       if (!value) {
-       createControlFlowDiv();
+        createControlFlowDiv();
       }
     },
   );
@@ -382,12 +382,14 @@ const listenExtensionMessage = () => {
           break;
         case 'bootStepOpenSideBar':
           bootStepOpenSideBar();
+          searchSelectRef.value.clear();
           break;
         case 'bootStepSearch':
           closeSidebar();
           break;
         case 'viewNavigationHistory':
           closeSidebar();
+          searchSelectRef.value.clear();
           break;
         default:
           break;

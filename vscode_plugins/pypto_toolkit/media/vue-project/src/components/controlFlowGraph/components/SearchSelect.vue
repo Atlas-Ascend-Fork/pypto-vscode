@@ -11,7 +11,13 @@
       prefix="search"
       id="boot-steps-controlFlow-search"
     />
-    <div v-if="isOpen && visibleResults.length" id="boot-steps-controlFlow-searchPnal" class="search-result-list" @mousedown.prevent ref="resultContainerRef">
+    <div
+      v-if="isOpen && visibleResults.length"
+      id="boot-steps-controlFlow-searchPnal"
+      class="search-result-list"
+      @mousedown.prevent
+      ref="resultContainerRef"
+    >
       <div
         v-for="(item, index) in visibleResults"
         :key="item.value"
@@ -197,6 +203,12 @@ const clear = () => {
   activeIndex.value = -1; // 重置选中索引
   emit('matched-results', []); // 通知父组件结果已清空
 };
+
+watch(searchValue, (val) => {
+  if (!val) {
+    clear();
+  }
+});
 
 /**
  * 列表项点击触发选中

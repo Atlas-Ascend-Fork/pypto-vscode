@@ -167,7 +167,7 @@ const maskFullFallbackStyle = computed<CSSProperties>(() => {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    zIndex: 99997,
+    zIndex: 1050,
     pointerEvents: 'auto', // 拦截所有
     transition: 'background-color 0.2s ease',
   };
@@ -367,7 +367,7 @@ const maskFullClipStyle = computed<CSSProperties>(() => {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.05)', // 全屏遮罩底色
-    zIndex: 99997,
+    zIndex: 1050,
     pointerEvents: 'auto',
   };
 });
@@ -390,7 +390,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     height: `${mergeRect.height}px`,
     backgroundColor: backColor, // 内部遮罩
     opacity: `0.1`,
-    zIndex: 99997.5, // 介于全屏遮罩和边框之间
+    zIndex: 1050.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
     transition: 'all 0.2s ease-in-out',
     cursor: `url(${cursorNotAllowed.value}),auto`,
@@ -415,7 +415,7 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
     border: `1px solid ${borderColor}`, // 动态边框颜色
     borderRadius: '8px',
     boxSizing: 'border-box',
-    zIndex: 99998, // 高于两层遮罩，低于弹窗
+    zIndex: 1051, // 高于两层遮罩，低于弹窗
     pointerEvents: 'none', // 点击穿透
     transition: 'all 0.2s ease-in-out',
   };
@@ -646,7 +646,7 @@ const getTargetDomPosition = () => {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
         position: 'fixed' as const,
       },
@@ -663,7 +663,7 @@ const getTargetDomPosition = () => {
         top: '150%',
         left: '150%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
         position: 'fixed' as const,
       },
@@ -686,7 +686,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
         left: `${domRect.left - popupSize.width - 16}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -696,7 +696,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
         left: `${domRect.right + 16}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -706,7 +706,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top - popupSize.height - 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -716,7 +716,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.bottom + 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -726,7 +726,7 @@ const getTargetDomPosition = () => {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
   }
@@ -923,6 +923,11 @@ const handleNextStep = async () => {
     newSmall = 0;
     await setGuideProgress(newBig, newSmall);
     openNextWebview(newBig);
+        // 调用下一步步骤方法
+    const currentStepConfig = getCurrentStepConfig(newBig, newSmall, props.graphType);
+    if (currentStepConfig?.method) {
+      callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
+    }
   } else {
     newSmall++;
     // 先调用下一步步骤方法
@@ -1067,6 +1072,7 @@ onMounted(async () => {
     if (resizeObserver) resizeObserver.disconnect();
     if (domObserver) domObserver.disconnect();
     clearInterval(checkDomInterval);
+    isShowFullFalBack.value = false;
   }
 });
 
@@ -1087,7 +1093,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99997;
+  z-index: 1050;
   pointer-events: none; // 容器不拦截点击
 }
 
@@ -1112,7 +1118,7 @@ onUnmounted(() => {
 // 弹窗外层容器
 .guide-popup-wrapper {
   position: fixed;
-  z-index: 99999; // 高于所有遮罩和边框
+  z-index: 1052; // 高于所有遮罩和边框
   box-sizing: border-box;
   max-width: 480px;
   min-width: 480px;
@@ -1125,7 +1131,7 @@ onUnmounted(() => {
   width: 0;
   height: 0;
   border: 8px solid transparent;
-  z-index: 99999;
+  z-index: 1052;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   pointer-events: none;
