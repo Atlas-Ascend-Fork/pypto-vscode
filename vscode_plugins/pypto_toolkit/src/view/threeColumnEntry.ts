@@ -19,12 +19,12 @@ export class Fider {
   async findByCodePath(
     swimPath: string | undefined,
     comPath: string | undefined,
-  ): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
+  ): Promise<{ swimPath: string | undefined; comPath: string | undefined; runDataTitle: string | undefined}> {
     if (!this.codePath) {
-      return { swimPath: undefined, comPath: undefined };
+      return { swimPath: undefined, comPath: undefined, runDataTitle: undefined };
     }
     if (swimPath && comPath) {
-      return { swimPath, comPath };
+      return { swimPath, comPath, runDataTitle: undefined};
     }
   
     // 情况2: 两个路径都未提供 - 自动查找最新输出目录
@@ -36,13 +36,13 @@ export class Fider {
       }
       const autoPaths = await this.tryFindLatestOutputPaths();
       const { swimPath: autoSwimPath, comPath: autoComPath } = autoPaths;
-      return {swimPath: autoSwimPath, comPath: autoComPath};
+      return {swimPath: autoSwimPath, comPath: autoComPath, runDataTitle: undefined};
     }
     // 任意一个没有，说明用户取消了，直接返回
-    return { swimPath: swimPath || undefined, comPath: comPath || undefined };
+    return { swimPath: swimPath || undefined, comPath: comPath || undefined, runDataTitle: undefined };
   }
 
-  private async getCachedPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined } | undefined> {
+  private async getCachedPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined; runDataTitle: string | undefined } | undefined> {
     this.cachePath = Util.getCachePath('threeViewFiles.json');
     if (!this.cachePath || !this.codePath) {
       return undefined;
@@ -52,10 +52,11 @@ export class Fider {
     if (!cacheData) {
       return undefined;
     }
-    const { swimPath, comPath } = cacheData;
+    const { swimPath, comPath, runDataTitle } = cacheData;
     return {
       swimPath: swimPath || undefined,
-      comPath: comPath || undefined
+      comPath: comPath || undefined,
+      runDataTitle: runDataTitle || undefined
     };
   }
 

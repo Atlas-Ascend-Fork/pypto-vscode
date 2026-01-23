@@ -162,9 +162,10 @@ function setupComWatchers(server: any) {
 
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
-    if (server.InitFlag.value == 'true') {
+    if (server.InitFlag.value) {
       noComFile.value = false;
       noSwimFile.value = false;
+      baseChoose.value = server.InitFlag.value.runDataTitle;
       await server.getInitialData();
       server.returnFuncTree();
     }
@@ -506,7 +507,7 @@ const runDataCancel = () => {
 const runDataConfirm = async () => {
   runDataVisible.value = false;
   if (swimPath.value && comPath.value) {
-    await server.selectRunData({runDataPaths: {swimPath: swimPath.value, comPath: comPath.value}});
+    await server.selectRunData({runDataPaths: {swimPath: swimPath.value, comPath: comPath.value, runDataTitle: baseChoose.value}});
   }
 };
 const filterValChange = () => {
@@ -525,7 +526,7 @@ const filterValChange = () => {
     comPath.value = foundItem.controlFlowFilePath.substring(1).replace(/\//g, '\\');
   }
 };
-provide('runDataList', {runDataVisible, missGraphType, pagetotal});
+provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose});
 </script>
 
 <template>
@@ -695,7 +696,7 @@ header {
   padding-right: 20px;
 }
 
-.modal-button {
+.modal-button, .devui-modal__footer.runData-modal-button {
   .devui-button {
     height: 28px;
     border-radius: 8px;
@@ -731,7 +732,7 @@ header {
   width: 480px;
   max-height: 620px;
   gap: 20px;
-  background: var(--devui-category-search-dropdown-bg);
+  background: var(--devui-tooltip-bg);
 }
 .devui-modal .btn-close {
   top: 22px !important;
@@ -757,24 +758,46 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--devui-title-text);
 }
 .sort-icon {
   display: flex;
   align-items: center;
+  margin-left: 5px;
 }
 .devui-modal__body {
-  .devui-search {
-    background: var(--devui-input-bg);
+  .devui-search--glow-style:not(.devui-search--disabled):hover, .devui-search--glow-style:not(.devui-search--disabled).devui-search--focus {
+    box-shadow: none;
   }
   .devui-search__clear, .devui-search__icon {
     height: 28px;
   }
   .devui-search .devui-input {
     height: 28px;
-    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: var(--devui-category-search-bg);
+    .devui-input__wrapper,
+      input {
+        margin-top: 2px;
+        background-color: transparent;
+        &::placeholder {
+          color: var(--devui-placeholder-text);
+        }
+      }
   }
-  .devui-input__wrapper {
-    background-color: transparent;
+  .devui-search {
+    &:not(.devui-search--focus):hover {
+      .devui-input {
+        border-color: var(--devui-primary-button-hover-bg) !important;
+      }
+    }
+
+    &.devui-search--focus {
+      .devui-input {
+        border-color: var(--devui-primary-button-active-bg);
+      }
+    }
   }
 }
 .devui-table {
@@ -784,10 +807,12 @@ header {
     height: 32px;
   }
   .devui-table__thead tr {
+    color: var(--devui-primary-text);
+    font-size: 12px;
     background-color: var(--devui-input-bg);
   }
   .devui-table__tbody tr {
-    background-color: var(--devui-input-disabled-bg);
+    background-color: var(--devui-table-body-bg);
   }
   .devui-table__tbody tr:not(:last-child) td {
     border: none;
@@ -799,6 +824,16 @@ header {
   .devui-table--sm tbody>tr>td {
     padding: 5px 20px 5px;
   }
+  .devui-radio.active .devui-radio__material {
+    border-color: var(--devui-primary-button-bg);
+    background: var(--devui-category-search-font-color);
+  }
+}
+.devui-pagination .devui-pagination__list li.devui-pagination__item:not(.disabled).active a.devui-pagination__link {
+  background-color: var(--devui-page-active-bg) !important;
+}
+.devui-modal__footer.runData-modal-button {
+  padding: 0 32px 20px;
 }
 .alert-rundata {
   width: 440px;

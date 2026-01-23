@@ -14,6 +14,8 @@
           <span></span>
         </div>
       </d-tooltip>
+      <div class="dividing-line"></div>
+      <DataList id="steps-navbar-datalist" />
     </div>
     <div>
       <d-tooltip :content="t('reset')" position="bottom-end">
@@ -27,6 +29,7 @@
 import { inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { IThreeColumnCtx, ThreeColumnProvideKey } from './types';
+import DataList from './dataList.vue';
 
 const { t } = useI18n();
 const { currentLayoutMode, resetLayout } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
@@ -84,6 +87,14 @@ const { currentLayoutMode, resetLayout } = inject(ThreeColumnProvideKey) as IThr
         background-color: var(--devui-active-icon);
       }
     }
+  }
+
+  .dividing-line {
+    width: 1px;
+    height: 20px;
+    background-color: var(--devui-placeholder-text);;
+    margin-left: 20px;
+    margin-right: 16px;
   }
 
   .triangular {

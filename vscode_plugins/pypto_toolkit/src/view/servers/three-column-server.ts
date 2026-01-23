@@ -273,14 +273,15 @@ export class ThreeColumnServer
     codePath: string,
     swimPath: string | undefined,
     comPath: string | undefined,
-  ): Promise<{ codePath: string; swimPath: string | undefined; comPath: string | undefined }> {
+  ): Promise<{ codePath: string; swimPath: string | undefined; comPath: string | undefined; runDataTitle: string | undefined }> {
     const ret = await new Fider(codePath).findByCodePath(swimPath, comPath);
     return { codePath, ...ret };
   }
 
   async initWebViewPanel() {
+    let headerTitle = '';
     if (!this.swimDataPath || !this.comPath) {
-      const { swimPath, comPath } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
+      const { swimPath, comPath, runDataTitle } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
       if (swimPath) {
         this.swimDataPath = swimPath;
         this.swimData = new SwimData(Uri.file(swimPath), swimPath);
@@ -296,15 +297,18 @@ export class ThreeColumnServer
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
         this.setRef('returnInitPath', { data: pathMsg });
       }
+      if (runDataTitle) {
+        headerTitle = runDataTitle;
+      }
     }
     if (this.swimDataPath && this.comPath) {
-      this.setRef('InitFlag', 'true');
+      this.setRef('InitFlag', {runDataTitle: headerTitle});
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
   }
   @viewApi()
   public selectRunData = async (message: any) => {
-    const { swimPath, comPath } = message.runDataPaths;
+    const { swimPath, comPath, runDataTitle } = message.runDataPaths;
 
     if (swimPath) {
       this.swimDataPath = swimPath;
@@ -318,12 +322,11 @@ export class ThreeColumnServer
       };
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
-    this.setRef('returnSearchPath', { data: pathMsg });
-    this.updateFilePathsCache(swimPath, comPath);
-
     if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
+    this.setRef('returnSearchPath', { data: pathMsg });
+    this.updateFilePathsCache(swimPath, comPath, runDataTitle);
   }
 
   @viewApi()
@@ -463,7 +466,7 @@ export class ThreeColumnServer
     this.setRef('returnSwimPath', { data: { swimPath: path } });
     this.updateFilePathsCache(path, undefined);
   };
-  private async updateFilePathsCache(swimPath: string | undefined, comPath: string | undefined) :Promise<void> {
+  private async updateFilePathsCache(swimPath: string | undefined, comPath: string | undefined, runDataTitle: string = '') :Promise<void> {
     try {
       const cache = (await Util.readSwim2ComGraphMap(this.cachePath)) || {};
       if (!cache[this.codePath]) {
@@ -474,6 +477,9 @@ export class ThreeColumnServer
       }
       if (comPath) {
         cache[this.codePath].comPath = comPath;
+      }
+      if (runDataTitle) {
+        cache[this.codePath].runDataTitle = runDataTitle;
       }
       await Util.writeJsonCache(this.cachePath, cache);
     } catch (error) {
