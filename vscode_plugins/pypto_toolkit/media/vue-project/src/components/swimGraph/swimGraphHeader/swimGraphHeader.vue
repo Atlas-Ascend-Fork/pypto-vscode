@@ -182,6 +182,7 @@ import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
 import { useViewServer } from '../../../core/use-view-server';
+import { Message } from 'vue-devui/message';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -255,7 +256,7 @@ const searchEl = ref();
 const exportRadioList = [{name: '本地', value: 'local'},{name: 'Linux', value: 'linux'}];
 let exportRadioItem = ref('local');
 const refLabel = ref("11");
-const modalVisible = ref(true);
+const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
 let category = [
     {
@@ -1109,9 +1110,20 @@ const postMessage = (message) => {
 };
 function setupSwimWatchers() {
   watch(server.SaveFileResult, (newValue) => {
-   console.log('1111' + newValue.result);
+   if(newValue.result) {
+    const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
+    window.ascEventBus.on('message_notice', onMessageNotice('success', $t('swimExportSuccessInfo', { fileNameInfo })));
+   } else {
+    window.ascEventBus.on('message_notice', onMessageNotice('error', $t('swimExportErrorInfo')));
+   }
   });
 }
+function onMessageNotice(type, text) {
+  Message({
+    type: type,
+    message: text
+  });
+};
 const exportCancel = () => {
   modalVisible.value = false;
 };

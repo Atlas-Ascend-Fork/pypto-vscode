@@ -165,6 +165,7 @@ export default {
    replaceFileInfo: '检测到您选择的{graphNameTemp}路径同目录下有配套的{graphName}文件，是否需要替换？',
    exportSwimGraph: '导出',
    swimExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
+   swimExportSuccessInfo: '成功导出{fileNameInfo}',
    pleaseUnlock: '请先解除标签锁定',
    exportPosition: '导出位置',
    iconExport: '图片导出',
