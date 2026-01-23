@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { t } from 'i18next';
 
 /**
  * 监听指定文件是否在 timeout 毫秒内被创建
@@ -60,35 +61,33 @@ export function getCurrentPlatform(): Platform {
     return 'unknown';
 }
 
-export async function  setSaveDir(): Promise<string | undefined> {
+export async function setSaveDir(): Promise<string | undefined> {
     const uris = await vscode.window.showOpenDialog({
         canSelectMany: false,      // 只允许选一个
         canSelectFiles: false,     // 不允许选文件
         canSelectFolders: true,    // ✅ 允许选文件夹
-        title: '选择目录',
-        openLabel: '选择此文件夹'   // 按钮文字（可选）
+        title: t('pypto.download.selectDir') || undefined,
+        openLabel: t('pypto.download.select') || undefined   // 按钮文字（可选）
     });
     return uris?.[0].fsPath;
 }
 
 
-export async function  saveFile(message:{dataUrl:any,fileName?:any,filePath?:any}): Promise<void> {
-    if(message.fileName){
-        const uris = await vscode.window.showOpenDialog({
-            canSelectMany: false,      // 只允许选一个
-            canSelectFiles: false,     // 不允许选文件
-            canSelectFolders: true,    // ✅ 允许选文件夹
-            title: '选择目录',
-            openLabel: '选择此文件夹'   // 按钮文字（可选）
-        });
-        downloadFile(message.dataUrl,uris?.[0].fsPath);
+export async function saveFile(message: { dataUrl: any, fileName?: any, filePath?: any }): Promise<boolean | undefined> {
+    if (message.fileName) {
+        // 2. 弹出保存对话框（用户可改目录 + 改文件名）
+        const fileUri = await promptSaveFile(message.fileName);
+        if (!fileUri) {
+            return; // 用户取消
+        }
+        return await downloadFile(message.dataUrl, fileUri);
     }
-    if(message.filePath){
-        downloadFile(message.dataUrl,message.filePath);
+    if (message.filePath) {
+        return await downloadFile(message.dataUrl, vscode.Uri.file(message.filePath));
     }
 }
 
-async function downloadFile(base64DataUrl:any, filePath:any){
+async function downloadFile(base64DataUrl: any, filePath: any): Promise<boolean> {
     try {
         // 1. 校验输入
         if (!base64DataUrl || typeof base64DataUrl !== 'string') {
@@ -153,4 +152,30 @@ async function downloadFile(base64DataUrl:any, filePath:any){
         // vscode.window.showErrorMessage(`❌ 保存失败：${msg}`);
         return false;
     }
+}
+
+
+/**
+ * 让用户选择保存位置（目录 + 可编辑文件名），并返回完整文件 Uri
+ * @param suggestedFileName 建议的文件名（不含扩展名），如 "my-diagram"
+ * @param extension 文件扩展名，如 "svg"
+ * @returns 用户选择的完整文件 Uri，或 undefined（取消）
+ */
+export async function promptSaveFile(
+    defaultFileName: string = 'diagram'): Promise<vscode.Uri | undefined> {
+
+    // 2. 设置默认路径（优先工作区根目录，否则用 home）
+    const defaultFolder = vscode.workspace.workspaceFolders?.[0]?.uri
+        || vscode.Uri.file(require('os').homedir());
+
+    const defaultUri = vscode.Uri.joinPath(defaultFolder, defaultFileName);
+
+    // 3. 弹出保存对话框
+    const fileUri = await vscode.window.showSaveDialog({
+        title: t('pypto.download.saveFile') || undefined,
+        defaultUri: defaultUri,
+        saveLabel: t('pypto.download.save') || undefined // 按钮文字（部分平台支持）
+    });
+
+    return fileUri; // 可能是 undefined（用户取消）
 }

@@ -74,7 +74,6 @@
   "pypto.funcHashUndefinedOnOpenSubGraph": "Unable to open the subgraph, function hash is undefined",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "Unable to open the original graph, the file does not contain the correct function hash.",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "Unable to open the comparison graph, the file does not contain the correct function hash.",
-
   "pypto.comGraph.errorMessage.streamProcessing": "Error when reading JSON file: Stream processing error",
   "pypto.comGraph.errorMessage.dataOpMagicDuplication": "Error when reading JSON file: Node opmagic duplicated",
   "pypto.comGraph.errorMessage.fileRead": "Error when reading JSON file: File read error (e.g., file does not exist, permission issues)",
@@ -168,5 +167,9 @@
   "PyPTOToolkit.runConfig.rule.minItems": "At least {{min}} items needed",
   "PyPTOToolkit.runConfig.rule.maxItems": "No more than {{max}} items",
   "PyPTOToolkit.runConfig.rule.patternNotMatch": "Text content should match pattern: {{pattern}}",
-  "PyPTOToolkit.runConfig.rule.unique": "Items must be unique"
+  "PyPTOToolkit.runConfig.rule.unique": "Items must be unique",
+  "pypto.download.selectDir": "Select directory",
+  "pypto.download.select": "Select",
+  "pypto.download.saveFile": "Save file",
+  "pypto.download.save": "Save"
 }

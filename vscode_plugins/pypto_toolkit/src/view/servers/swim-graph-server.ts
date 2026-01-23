@@ -97,6 +97,7 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public saveFile = async (message) => {
     const result = await saveFile(message);
+    if (!result) return;
     this.setRef('SaveFileResult', { result: result });
   };
 
