@@ -79,7 +79,7 @@
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;" id="pmu-report">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929; z-index: 1053" id="pmu-report">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
         </div>
