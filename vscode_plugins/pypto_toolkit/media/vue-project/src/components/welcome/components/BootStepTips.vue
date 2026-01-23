@@ -923,6 +923,11 @@ const handleNextStep = async () => {
     newSmall = 0;
     await setGuideProgress(newBig, newSmall);
     openNextWebview(newBig);
+        // 调用下一步步骤方法
+    const currentStepConfig = getCurrentStepConfig(newBig, newSmall, props.graphType);
+    if (currentStepConfig?.method) {
+      callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
+    }
   } else {
     newSmall++;
     // 先调用下一步步骤方法
