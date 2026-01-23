@@ -801,6 +801,7 @@ export abstract class BaseGraphMsgHandler {
     const { useView } = await import('../view');
     const { editorView } = useView();
     const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
+    oldQuery.isBootStep = false;
     const finalQuery = {
       ...oldQuery,
       funcHash: server.comGraphData?.funcHash,

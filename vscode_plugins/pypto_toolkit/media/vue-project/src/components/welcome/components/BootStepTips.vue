@@ -1072,6 +1072,7 @@ onMounted(async () => {
     if (resizeObserver) resizeObserver.disconnect();
     if (domObserver) domObserver.disconnect();
     clearInterval(checkDomInterval);
+    isShowFullFalBack.value = false;
   }
 });
 
