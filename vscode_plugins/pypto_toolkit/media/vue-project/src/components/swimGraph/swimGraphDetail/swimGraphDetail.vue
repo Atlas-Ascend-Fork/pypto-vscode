@@ -182,9 +182,9 @@
                 <div class="relevent">Relevent</div>
                 <div class="display-containner">
                   <div class="button-group">
-                    <button @click="releventShowPre" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.pre)}"><img class="left" :src="lPath" alt="left"/></button>
-                    <button @click="releventShowAll" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.all)}"><img class="all" :src="aPath" alt="all"/></button>
-                    <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}"><img class="right" :src="rPath" alt="right"/></button> 
+                    <button @click="releventShowPre" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.pre)}" :disabled="isPathLockStatus"><img class="left" :src="lPath" alt="left"/></button>
+                    <button @click="releventShowAll" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.all)}" :disabled="isPathLockStatus"><img class="all" :src="aPath" alt="all"/></button>
+                    <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}" :disabled="isPathLockStatus"><img class="right" :src="rPath" alt="right"/></button> 
                   </div>
                   <div class="detail-level display-containner">
                     <div>{{$t('taskConnectionLevel') + ':'}}</div>
