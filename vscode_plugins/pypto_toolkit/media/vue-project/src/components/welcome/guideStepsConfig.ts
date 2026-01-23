@@ -107,9 +107,14 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.navigation.step1.content',
         method: 'viewNavigationHistory',
         methodParams: {},
-        allowClick: false,
+        allowClick: true,
         showBorder:true,
         targetDomConfigs: [
+          {
+            targetDomId: 'history-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
           {
             targetDomId: 'boot-steps-navbar-history',
             triangleDirection: 'top',

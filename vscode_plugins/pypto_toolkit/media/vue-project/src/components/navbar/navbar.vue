@@ -253,7 +253,7 @@ onMounted(async () => {
   margin-top: 16px;
   margin-left: 16px;
   box-sizing: border-box;
-
+  pointer-events: all;
   .history-wrap {
     display: flex;
     gap: 8px;
