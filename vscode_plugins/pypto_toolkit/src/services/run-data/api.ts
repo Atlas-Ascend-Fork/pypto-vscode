@@ -26,7 +26,7 @@ export interface GetOutputRecordParams {
 
 export interface GetOutputRecordsRes {
   data: OutputRecord[];
-  total: number
+  total: number;
 }
 
 /**
