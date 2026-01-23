@@ -36,20 +36,20 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles, isThreeColumnNotNull = false, titleKeyword } = params;
   const runDataService = useService('runData');
   if (forceReloadFromFiles) {
-    runDataService.scanDirectory();
+    await runDataService.scanDirectory();
   }
   const isDefaultSortCondition = sortBy === 'executeTime' && sortOrder === 'desc';
   const waitingCount = isDefaultSortCondition ? page * pageSize : undefined;
   await runDataService.waitForScanning(waitingCount);
-  let query = runDataService
+  const query = runDataService
     .query()
-    .sort(sortBy, sortOrder)
+    .sort(sortBy, sortOrder);
   if (titleKeyword) {
-    query = query.search('title', titleKeyword)
+    query.search('title', titleKeyword);
   }
   // 三栏联动视图确保泳道图文件地址、控制流文件地址存在
   if (isThreeColumnNotNull) {
-    query = query.notNull(['swimlaneGraphFilePath', 'controlFlowFilePath'])
+    query.notNull(['swimlaneGraphFilePath', 'controlFlowFilePath']);
   }
   const total = await query.count();
   const records = await query.slice(pageSize * (page - 1), pageSize * page).exec();
