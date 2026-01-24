@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount } from 'vue';
+import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -52,8 +52,11 @@ import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
 import { getQuery } from '@/core/query';
 
 const outputDirPath = ref('');
+let isBootStep = false;
 getQuery().then((res) => {
   outputDirPath.value = res.outputDirPath as string;
+  const query = JSON.parse(res._uri.query);
+  isBootStep = Boolean(query.isBootStep)
 });
 
 const { server } = useViewServer<IComViewServer>();
@@ -328,9 +331,10 @@ function viewComGraph() {
 }
 // 步骤2查看节点详情
 function viewNodeDetail(params: Record<string, any>) {
-  // 清空步骤3搜索条件并关闭搜索结果下拉框
+  // 清空步骤3搜索条件并关闭搜索结果下拉框，清空用户选中的节点
   headerEl.value.updateSearchParams({ searchKey: '', selectedTags: [] });
   headerEl.value.hideSearchResMenu();
+  selectAction([]);
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
 }
@@ -348,8 +352,16 @@ function searchNode(params: Record<string, any>) {
 
 // 步骤4只看当前通路
 function focusCurrentPath(params) {
+  // 清空用户选中的节点
+  selectAction([]);
+  // 填充步骤3的搜索结果
+  const { searchNodeId, ...rest } = params;
+  headerEl.value.updateSearchParams({ searchKey: '', selectedTags: [] });
+  nextTick(() => {
+    headerEl.value.updateSearchParams(rest);
+  });
   // 聚焦搜索的节点
-  centerNodeAction([params.searchNodeId]);
+  centerNodeAction([searchNodeId]);
 }
 const stepsMap = {
   viewComGraph,
@@ -414,11 +426,11 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   }
   // 2. Ctrl+L  锁定通路并高亮
   if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
-    (e.key === 'l' || e.key === 'L')) {
+    (e.key === 'l' || e.key === 'L') && !isBootStep) {
     e.preventDefault();
     const selectedNodeId = await getSelectedNodeId()
-    setFixedComGraphFlow(true, false,selectedNodeId);
-    if(selectedNodeId && selectedNodeId !='' ){
+    setFixedComGraphFlow(true, false, selectedNodeId);
+    if (selectedNodeId && selectedNodeId != '') {
       switchLockInformationFlag.value = true;
       lockText = t('comGraph.pathLocked');
     }
