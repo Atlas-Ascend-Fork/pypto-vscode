@@ -28,7 +28,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   let container = createDiContainer(SPROTTY_CONTAINER_ID);
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
-  const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
+  let miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
   let originSprottyGraph: { isFinial: boolean; };
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
@@ -61,6 +61,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       getViewport(modelSource, MAINMAP_FIT_SCREEN);
     }); // Use dispatch instead of dispatchAll
   };
+
+  const resetMiniMap = () => {
+    jsonGraphWatchHandle?.stop();
+    const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
+    miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
+  }
 
   const renderMinimap = (model?: any) => {
     miniMapModelSource.updateModel(model || modelSource.model).then(() => {
@@ -163,7 +169,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
       searchLevel = option?.searchLevel;
-      if (searchLevel > -1) {
+      if (searchLevel > -2) {
         resetModelSource(true);
       }
     }
@@ -203,7 +209,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
                 server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig, threeMode: isThreeMode });
               }
-              renderMinimap(modelSource.model);
+              if ((searchLevel !== undefined) && (searchLevel > -1)) {
+                resetMiniMap();
+                renderMinimap(modelSource.model);
+              } else {
+                renderMinimap(modelSource.model);
+              }
             }
             if (!sprottyGraph.children) return;
             let node: SNode | undefined;
