@@ -487,8 +487,19 @@ circle {
   padding: 4px 8px;
 }
 
-.astgr-context-menu-item.disabled-action {
-  color: var(--devui-split-line);
+.astgr-context-menu-item.disabled-action .menu-text {
+  color: var(--devui-disabled-text);
+  cursor: not-allowed;
+}
+.astgr-context-menu-item.disabled-action .jump-button-item span {
+  color: var(--devui-disabled-text);
+  cursor: not-allowed;
+}
+.astgr-context-menu-item.disabled-action .jump-button-item span:first-of-type {
+  border-color: var(--devui-disabled-text) !important;
+}
+.astgr-context-menu-item:not(.disabled-action) .jump-button-item:hover {
+  background-color: var(--devui-input-hover-bg) !important;
 }
 
 .astgr-context-menu-item:empty {

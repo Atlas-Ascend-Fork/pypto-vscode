@@ -71,13 +71,14 @@
         >
           <d-select
             ref="globalSelectEl"
-            menu-class="com-graph-global-select"
+            :menu-class="`com-graph-global-select${isGlobalSelectShow ? ' show-global-select-menu' : ''}`"
             :options="allOptions"
             v-model="currentSelect"
             :placeholder="t('comGraph.currentGraph')"
             class="select-options"
             :style="{width:selectWidth + 'px'}"
             @click="onSelectClick"
+            @toggleChange="(e) => (isGlobalSelectShow = e)"
             />
           
           <d-category-search
@@ -128,7 +129,7 @@
           </d-category-search>
         </div>
         <template #menu>
-          <ul id="comGraphSearchResList" class="search-res-list">
+          <ul class="search-res-list">
             <div class="res-size">
               <span class="res-size-text">
                 {{ t('comGraph.searchResSize', {resSize}) }}
@@ -237,6 +238,7 @@ const currentLeafName = ref('');
 let passName = 'Loading';
 let curPath = ref([]);
 const curList = ref([]);
+const isGlobalSelectShow = ref(false);
 let module_row = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
@@ -404,6 +406,7 @@ const updateSearchParams = (params: Record<string, any>) => {
   nextTick(() => {
     selectedTags.value = params.selectedTags;
     onSearch(params);
+    onSelectedTagsChange({ selectedTags: params.selectedTags });
   });
 }
 // 操作指引页关闭搜索结果下拉框
@@ -1127,7 +1130,6 @@ onMounted(() => {
 
     .devui-select__item {
       font-size: 13px !important;
-      margin-left: 8px;
     }
 
     .devui-select__arrow {
@@ -1315,6 +1317,9 @@ onMounted(() => {
     overflow: auto;
   }
 }
+.devui-flexible-overlay:has(.com-graph-header-search-dropdown) {
+  z-index: 1049 !important;
+}
 </style>
 
 <style lang="scss">
@@ -1322,8 +1327,12 @@ onMounted(() => {
   z-index: 1030;
 }
 
-.com-graph-global-select .devui-select__item  {
-  padding: 8px;
-  font-size: 13px !important;
+.com-graph-global-select {
+  z-index: 1049 !important;
+
+  .devui-select__item  {
+    padding: 8px;
+    font-size: 13px !important;
+  }
 }
 </style>

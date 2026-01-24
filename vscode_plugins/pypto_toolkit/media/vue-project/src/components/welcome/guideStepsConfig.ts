@@ -209,12 +209,17 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         showBorder:true,
         targetDomConfigs: [
           {
-            targetDomId: 'comGraphSearchResList',
+            targetDomId: 'com-graph-header-search-dropdown',
             triangleDirection: 'top',
             showTriangle: true,
           },
           {
             targetDomId: '.devui-flexible-overlay:not(.hide-category-search-dropdown):has(.dp-category-search-dropdown)',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: '.com-graph-global-select.show-global-select-menu',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -231,6 +236,14 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'focusCurrentPath',
         methodParams: {
           searchNodeId: 'tensor-6036-13',
+          searchKey: '6036',
+          selectedTags: [
+            {
+              label: 'Tensor',
+              field: 'Tensor',
+              value: { Option: 'magic', value: { Option: 'magic' } },
+            },
+          ],
         },
         allowClick: true,
         showBorder:true,

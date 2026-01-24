@@ -18,6 +18,7 @@ import { setFixedComGraphFlow } from '../utils/operation';
 import { comGraphStore } from '../service/com-graph-store';
 import { useViewServer } from '../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { getQuery } from '@/core/query';
 import { forEach } from 'lodash-es';
 import { sizeType } from 'vue-devui/types/time-picker/src/types';
 
@@ -42,18 +43,19 @@ export class AstgrContextMenuService implements IContextMenuService {
       }
     };
     if (!comGraphStore.data.isDiffGraph && comGraphStore.data.comGraphConfig.canLockPath) {
-      menuNode = this.createMenu(items, hideMenu);
-  
-      container?.appendChild(menuNode);
-      fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
-  
-      menuNode.onmouseleave = (e: MouseEvent) => hideMenu();
+      this.createMenu(items, hideMenu).then((res) => {
+        menuNode = res;
+        container?.appendChild(menuNode);
+        fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
+        menuNode.onmouseleave = (e: MouseEvent) => hideMenu();
+      });
     }
   }
 
-  jumpNodeButtonStyleFit(buttonPos: string, buttonText: string, nodeId: string): HTMLDivElement {
+  jumpNodeButtonStyleFit(buttonPos: string, buttonText: string, nodeId: string, isBootStep = false): HTMLDivElement {
     const nodeWrap = document.createElement('div');
     nodeWrap.style.cssText = 'transition:background-color .15s;border-radius:4px;padding:2px 4px;cursor:pointer;display:flex;flex-direction:row;align-items:center;margin-top:6px;gap:3px';
+    nodeWrap.classList.add('jump-button-item');
     const nodeArrowBox = document.createElement('span');
     nodeArrowBox.style.cssText = 'border:1px solid var(--devui-placeholder-text);padding:3px 3px;border-radius:4px;display:inline-flex;align-items:center;'
     const nodeArrow = document.createElement('i');
@@ -65,13 +67,13 @@ export class AstgrContextMenuService implements IContextMenuService {
     nodeWrap.appendChild(nodeArrowBox);
     nodeWrap.appendChild(nodeText);
 
-    nodeWrap.onmouseenter = () => nodeWrap.style.backgroundColor='var(--devui-input-hover-bg)';
-    nodeWrap.onmouseleave = () => nodeWrap.style.backgroundColor='transparent';
-
     if (!nodeId) {
       nodeWrap.style.cursor = 'not-allowed';
     } else {
       nodeWrap.onclick = () => {
+        if (isBootStep) {
+          return;
+        }
         (window as any).ascEventBus.emit('jump2SiblingNode', nodeId);
       };
     }
@@ -79,7 +81,7 @@ export class AstgrContextMenuService implements IContextMenuService {
     return nodeWrap;
   }
 
-  findNeighbor(menuNode: HTMLDivElement, menuItem: HTMLDivElement, index: number, selectedNodeId: string) {
+  findNeighbor(menuNode: HTMLDivElement, menuItem: HTMLDivElement, index: number, selectedNodeId: string, isBootStep = false) {
     menuItem.style.backgroundColor = 'transparent';
 
     const splitLine = document.createElement('div');
@@ -94,8 +96,8 @@ export class AstgrContextMenuService implements IContextMenuService {
     shortCutContainer.appendChild(shortCutTitle);
 
     const [previousNode, nextNode] = findNeighborNode(selectedNodeId);
-    const leftWrap = this.jumpNodeButtonStyleFit('left', `${(window as any).ascLang === 'en' ? 'Previous Node': '上一个'}`, previousNode);
-    const rightWrap = this.jumpNodeButtonStyleFit('right', `${(window as any).ascLang === 'en' ? 'Next Node': '下一个'}`, nextNode);
+    const leftWrap = this.jumpNodeButtonStyleFit('left', `${(window as any).ascLang === 'en' ? 'Previous Node': '上一个'}`, previousNode, isBootStep);
+    const rightWrap = this.jumpNodeButtonStyleFit('right', `${(window as any).ascLang === 'en' ? 'Next Node': '下一个'}`, nextNode, isBootStep);
 
     const findSibling = document.createElement('div');
     findSibling.style.cssText = 'display:flex;align-items:center;gap:16px;fontSize:12px;color:var(--devui-primary-text)';
@@ -119,7 +121,10 @@ export class AstgrContextMenuService implements IContextMenuService {
     return nodeMagic;
   }
 
-  protected createMenu(items: MenuItem[], closeCallback: () => void): HTMLDivElement {
+  protected async createMenu(items: MenuItem[], closeCallback: () => void): Promise<HTMLDivElement> {
+    const res = await getQuery();
+    const query = JSON.parse(res._uri.query);
+    const isBootStep = Boolean(query.isBootStep);
     const menuNode = document.createElement('div');
     menuNode.id = 'astgr-context-menu';
     menuNode.classList.add('astgr-context-menu');
@@ -128,6 +133,9 @@ export class AstgrContextMenuService implements IContextMenuService {
       const menuItem = document.createElement('div');
       menuItem.id = `astgr-context-menu-item-${item.id}`;
       menuItem.classList.add('astgr-context-menu-item');
+      if (isBootStep && item.id !== 'FocusOnCurrent') {
+        menuItem.classList.add('disabled-action');
+      }
 
       if (item.label != '') {
         const { text, key } = splitLabel(item.label);
@@ -135,7 +143,7 @@ export class AstgrContextMenuService implements IContextMenuService {
         if (item.id === 'JumpToSibling') {
           // 快捷键处理
           const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
-          this.findNeighbor(menuNode, menuItem, index, selectedNodeId);
+          this.findNeighbor(menuNode, menuItem, index, selectedNodeId, isBootStep);
         } else if (item.id === 'NewTabForCurPath') {
           const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
           const nodeMagic = this.extractNodeMagic(selectedNodeId);
@@ -148,6 +156,9 @@ export class AstgrContextMenuService implements IContextMenuService {
             textSpan.style.cursor = 'not-allowed';
           } else {
             textSpan.onclick = () => {
+              if (isBootStep) {
+                return;
+              }
               (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
             };
           }
@@ -175,6 +186,9 @@ export class AstgrContextMenuService implements IContextMenuService {
       }
 
       menuItem.onclick = (e: MouseEvent) => {
+        if (isBootStep && item.id !== 'FocusOnCurrent') {
+          return;
+        }
         closeCallback();
         if (item.actions.length > 0) {
           // 自己识别“回调型”Action
