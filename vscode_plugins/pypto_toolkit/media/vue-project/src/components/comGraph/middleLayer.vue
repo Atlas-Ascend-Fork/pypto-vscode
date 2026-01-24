@@ -317,6 +317,7 @@ const searchNodeGlobalListener = (args) => {
   } else {
     nodeMagic.value = args.nodeMagic;
     searchLevel.value = args.nodeSearchLevel;
+    comGraphStore.setData('searchLevel', searchLevel.value);
   }
 
   loadingStep.value = 'convertData';

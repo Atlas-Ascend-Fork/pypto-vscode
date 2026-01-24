@@ -153,6 +153,7 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
 
 
 const nodeSearchLevelChange = (newSearchLevel: string) => {
+  comGraphStore.data.searchLevel = newSearchLevel;
   updateGraph(isDarkTheme.value, {
     openMode: props.openMode, nodeMagic: props.nodeMagic, searchLevel: Number(newSearchLevel)
   })
@@ -256,9 +257,10 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+    const searchLevel = comGraphStore.data?.searchLevel ?? props.searchLevel;
     if (initComDocText){
       resetModelSource(true);
-      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.searchLevel);
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
       comGraphStore.setData('jsonData', jsonValue);
       return;
     }
@@ -273,7 +275,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
     hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
-    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.searchLevel);
+    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
     comGraphStore.setData('jsonData', jsonValue);
   }
 }, { immediate: true });
