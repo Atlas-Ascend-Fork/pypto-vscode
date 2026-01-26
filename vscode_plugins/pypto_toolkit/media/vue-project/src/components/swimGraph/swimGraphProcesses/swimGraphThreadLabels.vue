@@ -93,7 +93,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
   const threadTaskMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
   for(const [threadKey, thread] of threads) {
-    if (isAicpu || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+    if (isAicpu.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       threadTaskMap.set(thread.threadName, thread.events.length);
     }
   }
