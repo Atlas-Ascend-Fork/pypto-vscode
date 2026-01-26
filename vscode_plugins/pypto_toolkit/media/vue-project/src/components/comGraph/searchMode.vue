@@ -1184,10 +1184,6 @@ watch(server.GlobalSearchResult, (newValue) => {
 </style>
 
 <style lang="scss">
-.devui-tooltip.devui-flexible-overlay.corner-tips {
-  z-index: 1030;
-}
-
 .globalSelect .devui-select__item  {
   font-size: 13px !important;
 }

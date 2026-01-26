@@ -129,7 +129,7 @@ const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 
 .layer-control-container {
   position: fixed;
-  z-index: 1040;
+  z-index: 1060;
   width: 280px;
   color: var(--devui-primary-text);
   border-radius: 8px;

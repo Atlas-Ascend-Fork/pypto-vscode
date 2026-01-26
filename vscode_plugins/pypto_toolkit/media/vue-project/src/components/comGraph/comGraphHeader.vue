@@ -1324,7 +1324,7 @@ onMounted(() => {
 
 <style lang="scss">
 .devui-tooltip.devui-flexible-overlay.corner-tips {
-  z-index: 1030;
+  z-index: 1053;
 }
 
 .com-graph-global-select {
