@@ -155,7 +155,7 @@
       </d-radio-group>
       <div class="export-title mt20" v-if="exportFoldVisible">{{ $t('exportFold') }}</div>
       <div class="mt10 export-fold" v-if="exportFoldVisible">
-        <d-input class="label-input" v-model="refLabel" :placeholder="$t('editInput')" show-count :maxlength="16">
+        <d-input class="label-input" v-model="exportPath" :placeholder="$t('editInput')" show-count :maxlength="16">
           <template #append>
             <d-button variant="solid" @click="setExportFold()"> {{ $t('setExportFold') }}</d-button>
           </template>
@@ -255,10 +255,11 @@ const searchedKey = ref('');
 const searchEl = ref();
 const exportRadioList = [{name: '本地', value: 'local'},{name: 'Linux', value: 'linux'}];
 let exportRadioItem = ref('local');
-const refLabel = ref("11");
+const exportPath = ref('');
 const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
 let dataUrl = null;
+let fileDir = '';
 let category = [
     {
       label: 'Root Func. Hash',
@@ -1115,11 +1116,10 @@ function setupSwimWatchers() {
       server.saveFile({ dataUrl, fileName: fileNameInfo });
     } else {
       modalVisible.value = true;
-      server.setSaveDir();
     }
   });
   watch(server.SaveDirPath, (newValue) => {
-    console.log(11);
+    fileDir = newValue.dir;
   });
   watch(server.SaveFileResult, (newValue) => {
    if(newValue.result) {
@@ -1140,10 +1140,21 @@ const exportCancel = () => {
   modalVisible.value = false;
 };
 const exportConfirm = () => {
-
+  if (exportRadioItem.value === 'local') {
+    const link = document.createElement('a');
+    link.download = `${fileName.value}.png` || 'swim-graph-export.png';
+    link.href = dataUrl;
+    link.click();
+  } else {
+    const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
+    const filePath = fileDir + `/${fileNameInfo}`;
+    server.saveFile({ dataUrl, fileName: fileNameInfo, filePath });
+    modalVisible.value = false;
+  }
 };
 const setExportFold = () => {
-
+  const dir = exportPath.value;
+  server.setSaveDir({ dir });
 };
 const groupRadioChange = (item) => {
   exportFoldVisible.value = item === 'linux';
