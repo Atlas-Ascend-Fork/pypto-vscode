@@ -258,6 +258,7 @@ let exportRadioItem = ref('local');
 const refLabel = ref("11");
 const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
+let dataUrl = null;
 let category = [
     {
       label: 'Root Func. Hash',
@@ -423,9 +424,8 @@ const exportSwimGraph = () => {
       timelineHeight
     );
     // 5. 导出图片
-    const dataUrl = canvas.toDataURL('image/png');
-    const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
-    server.saveFile({dataUrl, fileName: fileNameInfo});
+    dataUrl = canvas.toDataURL('image/png');
+    server.checkSys();
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
   } finally {
@@ -1109,6 +1109,18 @@ const postMessage = (message) => {
   }
 };
 function setupSwimWatchers() {
+  watch(server.CheckSysResult, (newValue) => {
+    if (newValue.sustem === 'windows') {
+      const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
+      server.saveFile({ dataUrl, fileName: fileNameInfo });
+    } else {
+      modalVisible.value = true;
+      server.setSaveDir();
+    }
+  });
+  watch(server.SaveDirPath, (newValue) => {
+    console.log(11);
+  });
   watch(server.SaveFileResult, (newValue) => {
    if(newValue.result) {
     const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
