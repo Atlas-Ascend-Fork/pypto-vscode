@@ -582,8 +582,9 @@ function getBadgeDom(node) {
     
   }
 
+  const inputRightPosY = (node.role === 'input' || node.isMiddle) ? 5 : 0;
   return (
-  <g transform={`translate(${node.size.width - badgeWidth}, 0)`}>
+  <g transform={`translate(${node.size.width - badgeWidth}, ${inputRightPosY})`}>
     <path
       d={`M -${badgePaddingRight} ${badgePaddingTop} L -${badgePaddingRight} ${
         badgeHeight + badgePaddingTop - radius
@@ -912,7 +913,9 @@ export class AstgrTensorView extends RectangularNodeView {
     /* 矩形圆角 */
     let radius = 8;
     const waveOffset1 = 2;
-    const waveOffset2 = 7;
+    const downOffset = 2.5;
+    const middleOffset = 4.5;
+    const waveOffset2 = 5;
     /* 带波浪线的矩形宽高 */
     const width = Math.max(node.size.width, 0);
     const height = Math.max(node.size.height, 0);
@@ -996,10 +999,14 @@ export class AstgrTensorView extends RectangularNodeView {
         </g>
       );
     } else {
-      let isInput = true;
+      let isInput = false;
+      if (node.role === 'input' && !node.isMiddle) {
+        isInput = true;
+      }
+      let isOutput = false;
       const parent = node.parent;
       if (node.role === 'output' && !node.isMiddle) {
-        isInput = false;
+        isOutput = true;
       }
       let isMdle = false;
       if (node.isMiddle) {
@@ -1013,44 +1020,129 @@ export class AstgrTensorView extends RectangularNodeView {
         }
       }
       const errorColor = node.selected ? node.lightColor : node.baseColor;
-      rectNode = (
-        <g>
-          <path
-            d={`M 0 ${height + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
-              width - radius
-            } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
-              width / 2
-            } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
-            fill={node.isError ? errorColor: inoutBackgroundFillColor}
-            class-tensor-inout-background-label={true}
-            filter={backgroundFilter}
-            class-tensor-diff-add={node.compareType === 'add'}
-            class-tensor-diff-delete={node.compareType === 'delete'}
-            class-tensor-diff-change={node.compareType === 'change'}
-          ></path>
-          <path
-            d={`M ${selectedWaveMargin} ${height} L ${selectedWaveMargin} ${height + waveOffset1} Q ${width / 4} ${height + waveOffset1 * 4} ${width / 2} ${
-              height + waveOffset1
-            } T ${width - selectedWaveMargin} ${height + waveOffset1} L ${width - selectedWaveMargin} ${height} Q ${(width / 4) * 3} ${height - waveOffset1 * 3} ${
-              width / 2
-            } ${height} T 0 ${height} Z`}
-            class-tensor-in-wave-label1={isInput}
-            class-tensor-out-wave-label1={!isInput}
-            filter={backgroundFilter}
-          ></path>
-          <path
-            d={`M ${selectedWaveMargin} ${height + waveOffset1} L ${selectedWaveMargin} ${height + waveOffset1 + waveOffset2} Q ${width / 4} ${height + waveOffset1 + waveOffset2 * 2} ${width / 2} ${
-              height + waveOffset1 + waveOffset2
-            } T ${width - selectedWaveMargin} ${height + waveOffset1 + waveOffset2} L ${width - selectedWaveMargin} ${height + waveOffset1} Q ${(width / 4) * 3} ${height + waveOffset1 - waveOffset1 * 3} ${
-              width / 2
-            } ${height + waveOffset1} T 0 ${height + waveOffset1} Z`}
-            class-tensor-in-wave-label2={isInput}
-            class-tensor-out-wave-label2={!isInput}
-            class-tensor-out-wave-label3={isMdle}
-            filter={backgroundFilter}
-          ></path>
-        </g>
-      );
+      if (node.role === 'input' && !node.isMiddle) {
+        rectNode = (
+          <g>
+            <path
+              d={`M 0 ${height + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
+                width - radius
+              } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
+                width / 2
+              } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
+              class-tensor-inout-background-label={true}
+              filter={backgroundFilter}
+              class-tensor-in-wave-label1={isInput}
+              class-tensor-diff-add={node.compareType === 'add'}
+              class-tensor-diff-delete={node.compareType === 'delete'}
+              class-tensor-diff-change={node.compareType === 'change'}
+            ></path>
+            <path
+              d={`M 0 ${height + correctHeight + waveOffset2}
+              L 0 ${radius + waveOffset2}
+              Q 0 ${waveOffset2} ${radius} ${waveOffset2}
+              L ${width - radius} ${waveOffset2}
+              Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
+              L ${width} ${height + correctHeight}
+              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3}
+                ${width / 2} ${height + correctHeight}
+              T 0 ${height + correctHeight} Z`}
+              filter={backgroundFilter}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
+            ></path>
+          </g>
+        );
+      } else if (node.role === 'output' && !node.isMiddle) {
+        rectNode = (
+          <g>
+            <path
+              d={`M 0 ${height + correctHeight - waveOffset1}
+              L 0 ${radius}
+              Q 0 0 ${radius} 0
+              L ${width - radius} 0
+              Q ${width} 0 ${width} ${radius}
+              L ${width} ${height + correctHeight - waveOffset1}
+              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
+                ${width / 2} ${height + correctHeight - waveOffset1}
+              T 0 ${height + correctHeight - waveOffset1}
+              Z`}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
+              class-tensor-inout-background-label={true}
+              filter={backgroundFilter}
+              class-tensor-diff-add={node.compareType === 'add'}
+              class-tensor-diff-delete={node.compareType === 'delete'}
+              class-tensor-diff-change={node.compareType === 'change'}
+            ></path>
+            <path
+              d={`M ${selectedWaveMargin} ${height + downOffset}
+                L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
+                Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
+                  ${width / 2} ${height + waveOffset2 + downOffset}
+                T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
+                L ${width - selectedWaveMargin} ${height + downOffset}
+                Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
+                  ${width / 2} ${height + downOffset}
+                T 0 ${height + downOffset}
+                Z`}
+              filter={backgroundFilter}
+              class-tensor-out-wave-label1={isOutput}
+            ></path>
+          </g>
+        );
+      } else {
+        const innerHeight = height - middleOffset;
+        rectNode = (
+          <g>
+            <path
+              d={`M 0 ${height + correctHeight - waveOffset1}
+              L 0 ${radius}
+              Q 0 0 ${radius} 0
+              L ${width - radius} 0
+              Q ${width} 0 ${width} ${radius}
+              L ${width} ${height + correctHeight - waveOffset1}
+              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
+                ${width / 2} ${height + correctHeight - waveOffset1}
+              T 0 ${height + correctHeight - waveOffset1}
+              Z`}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
+              class-tensor-in-wave-label1={isMdle}
+              class-tensor-inout-background-label={true}
+              filter={backgroundFilter}
+              class-tensor-diff-add={node.compareType === 'add'}
+              class-tensor-diff-delete={node.compareType === 'delete'}
+              class-tensor-diff-change={node.compareType === 'change'}
+            ></path>
+            <path
+               d={`M 0 ${innerHeight + correctHeight - waveOffset1 + waveOffset2}
+               L 0 ${radius + waveOffset2}
+               Q 0 ${waveOffset2} ${radius} ${waveOffset2}
+               L ${width - radius} ${waveOffset2}
+               Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
+               L ${width} ${innerHeight + correctHeight - waveOffset1}
+               Q ${(width / 4) * 3} ${innerHeight + correctHeight - waveOffset1 - waveOffset1 * 3}
+                 ${width / 2} ${innerHeight + correctHeight - waveOffset1}
+               T 0 ${innerHeight + correctHeight - waveOffset1}
+               Z`}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
+              filter={backgroundFilter}
+            ></path>
+            <path
+              d={`M ${selectedWaveMargin} ${height + downOffset}
+              L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
+              Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
+                ${width / 2} ${height + waveOffset2 + downOffset}
+              T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
+              L ${width - selectedWaveMargin} ${height + downOffset}
+              Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
+                ${width / 2} ${height + downOffset}
+              T 0 ${height + downOffset}
+              Z`}
+              filter={backgroundFilter}
+              class-tensor-out-wave-label1={isMdle}
+            ></path>
+          </g>
+        );
+      }
     }
 
     return (
