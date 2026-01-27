@@ -259,7 +259,6 @@ const exportPath = ref('');
 const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
 let dataUrl = null;
-let fileDir = '';
 let category = [
     {
       label: 'Root Func. Hash',
@@ -1119,7 +1118,7 @@ function setupSwimWatchers() {
     }
   });
   watch(server.SaveDirPath, (newValue) => {
-    fileDir = newValue.dir;
+    exportPath.value = newValue.dir;
   });
   watch(server.SaveFileResult, (newValue) => {
    if(newValue.result) {
@@ -1147,14 +1146,13 @@ const exportConfirm = () => {
     link.click();
   } else {
     const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
-    const filePath = fileDir + `/${fileNameInfo}`;
+    const filePath = exportPath.value + `/${fileNameInfo}`;
     server.saveFile({ dataUrl, fileName: fileNameInfo, filePath });
     modalVisible.value = false;
   }
 };
 const setExportFold = () => {
-  const dir = exportPath.value;
-  server.setSaveDir({ dir });
+  server.setSaveDir();
 };
 const groupRadioChange = (item) => {
   exportFoldVisible.value = item === 'linux';
