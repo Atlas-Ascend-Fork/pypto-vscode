@@ -77,7 +77,7 @@ function setupImageWatchers() {
 
 function onMessageNotice(type, text) {
     Message({
-        type: type,
+        type,
         message: text
     });
 };
