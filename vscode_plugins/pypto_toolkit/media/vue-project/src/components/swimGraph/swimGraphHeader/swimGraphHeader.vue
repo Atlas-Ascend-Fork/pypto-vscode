@@ -54,7 +54,7 @@
           <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+      <d-tooltip :content="$t('exportImageGraph')" position="bottom" v-if="!isThreeColumn">
         <d-button class="icon-container" :disabled="isExporting" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
@@ -403,7 +403,7 @@ const exportSwimGraph = () => {
     dataUrl.value = canvas.toDataURL('image/png');
     server.checkSys();
   } catch (error) {
-    postMessage($t('swimExportErrorInfo'));
+    postMessage($t('imageExportErrorInfo'));
   } finally {
     isExporting.value = false;
   }

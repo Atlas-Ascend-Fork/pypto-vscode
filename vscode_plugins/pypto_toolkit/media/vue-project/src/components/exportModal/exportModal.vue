@@ -18,17 +18,18 @@
             <template #footer>
                 <d-modal-footer class="modal-button mt10">
                     <d-button variant="solid" color='secondary' @click="exportCancel()">{{ $t('no') }}</d-button>
-                    <d-button variant="solid" color='primary' @click="exportConfirm()">{{ $t('exportSwimGraph')
+                    <d-button variant="solid" color='primary' @click="exportConfirm()">{{ $t('exportImageGraph')
                     }}</d-button>
                 </d-modal-footer>
             </template>
         </d-modal>
     </div>
 </template>
+
 <script setup>
 import { useViewServer } from '../../core/use-view-server';
 import { Message } from 'vue-devui/message';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 const { t: $t } = useI18n();
 const { server } = useViewServer();
@@ -47,11 +48,13 @@ const props = defineProps({
     required: true
   }
 });
-function setupSwimWatchers() {
+
+const pureFileName = computed(() => props.fileName.endsWith('svg') ? (props.fileName || 'com-graph-export.svg') : (props.fileName+'.png' || 'swim-graph-export.png'));
+
+function setupImageWatchers() {
     watch(server.CheckSysResult, (newValue) => {
         if (newValue.sustem === 'windows') {
-            const fileNameInfo = `${props.fileName}.png` || 'swim-graph-export.png';
-            server.saveFile({ dataUrl: props.dataUrl, fileName: fileNameInfo });
+            server.saveFile({ dataUrl: props.dataUrl, fileName: pureFileName.value });
         } else {
             modalVisible.value = true;
             exportRadioItem.value = 'local';
@@ -59,18 +62,18 @@ function setupSwimWatchers() {
         }
     });
     watch(server.SaveDirPath, (newValue) => {
-        const fileNameInfo = `${props.fileName}.png` || 'swim-graph-export.png';
-        exportPath.value = newValue.dir + `/${fileNameInfo}`;
+        exportPath.value = newValue.dir + `/${pureFileName.value}`;
     });
     watch(server.SaveFileResult, (newValue) => {
         if (newValue.result) {
-            const fileNameInfo = `${props.fileName}.png` || 'swim-graph-export.png';
-            window.ascEventBus.on('message_notice', onMessageNotice('success', $t('swimExportSuccessInfo', { fileNameInfo })));
+            const fileNameInfo = props.fileName.endsWith('svg') ? (props.fileName || 'com-graph-export.svg') : (props.fileName+'.png' || 'swim-graph-export.png');
+            window.ascEventBus.on('message_notice', onMessageNotice('success', $t('imageExportSuccessInfo', { fileNameInfo })));
         } else {
-            window.ascEventBus.on('message_notice', onMessageNotice('error', $t('swimExportErrorInfo')));
+            window.ascEventBus.on('message_notice', onMessageNotice('error', $t('imageExportErrorInfo')));
         }
     });
 }
+
 function onMessageNotice(type, text) {
     Message({
         type: type,
@@ -83,11 +86,11 @@ const exportCancel = () => {
 const exportConfirm = () => {
     if (exportRadioItem.value === 'local') {
         const link = document.createElement('a');
-        link.download = `${props.fileName}.png` || 'swim-graph-export.png';
+        link.download = pureFileName.value;
         link.href = props.dataUrl;
         link.click();
     } else {
-        const fileNameInfo = `${props.fileName}.png` || 'swim-graph-export.png';
+        const fileNameInfo = pureFileName.value;
         server.saveFile({ dataUrl: props.dataUrl, fileName: fileNameInfo, filePath: exportPath.value });
         modalVisible.value = false;
     }
@@ -99,7 +102,7 @@ const groupRadioChange = (item) => {
     exportFoldVisible.value = item === 'linux';
 };
 onMounted(() => {
-    setupSwimWatchers();
+    setupImageWatchers();
 });
 </script>
 <style lang="scss">
