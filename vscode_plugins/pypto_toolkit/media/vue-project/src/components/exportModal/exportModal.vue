@@ -54,6 +54,8 @@ function setupSwimWatchers() {
             server.saveFile({ dataUrl: props.dataUrl, fileName: fileNameInfo });
         } else {
             modalVisible.value = true;
+            exportRadioItem.value = 'local';
+            exportPath.value = '';
         }
     });
     watch(server.SaveDirPath, (newValue) => {
