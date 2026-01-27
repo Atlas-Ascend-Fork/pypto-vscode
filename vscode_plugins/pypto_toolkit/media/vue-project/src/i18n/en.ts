@@ -171,6 +171,7 @@ export default {
     iconExport: 'Export Image',
     exportFold: 'Export Directory',
     setExportFold: 'Set Download Directory',
+    exportLocal: 'Local',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',
