@@ -238,9 +238,7 @@ export default {
         calledFunctionName: 'Name of the called function',
         callNumber: 'Number of calls',
         autoLineWrap: 'Auto line wrap',
-        viewErrorStack: 'View call stack',
-        svgExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
-        svgExportSuccessInfo: 'Successfully exported {fileNameInfo}.',
+        viewErrorStack: 'View call stack'
     },
     sideBar: {
         title: 'Compilation result',

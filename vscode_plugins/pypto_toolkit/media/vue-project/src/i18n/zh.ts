@@ -238,9 +238,7 @@ export default {
       calledFunctionName: '被调用函数名',
       callNumber: '调用次数',
       autoLineWrap: '自动换行',
-      viewErrorStack: '查看调用栈',
-      svgExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
-      svgExportSuccessInfo: '成功导出{fileNameInfo}',
+      viewErrorStack: '查看调用栈'
    },
     sideBar: {
         title: '运行结果',
