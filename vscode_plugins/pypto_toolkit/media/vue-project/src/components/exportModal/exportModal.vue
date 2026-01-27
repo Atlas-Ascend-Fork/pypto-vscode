@@ -91,8 +91,7 @@ const exportConfirm = () => {
         link.href = props.dataUrl;
         link.click();
     } else {
-        const fileNameInfo = pureFileName.value;
-        server.saveFile({ dataUrl: props.dataUrl, fileName: fileNameInfo, filePath: exportPath.value });
+        server.saveFile({ dataUrl: props.dataUrl, filePath: exportPath.value });
         modalVisible.value = false;
     }
 };
