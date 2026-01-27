@@ -16,7 +16,7 @@
             <div :title="item.title">{{ item.title }}</div>
             <div>{{ item.executeTime }}</div>
           </div>
-          <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="handleLoadMore" />
+          <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="handleLoadMore" ref="loadMoreRef"/>
         </div>
       </template>
     </d-dropdown>
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, inject } from 'vue';
+import { onMounted, ref, inject, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { HistoryData } from '../navbar/navbar-types';
 import LoadMoreTrigger from '../util/LoadMoreTrigger.vue';
@@ -38,6 +38,7 @@ const historyList = ref<HistoryData[]>([]);
 const page = ref(0);
 const pageSize = 50;
 const allLoaded = ref(false);
+const loadMoreRef = ref(null);
 const swimPath = ref('');
 const comPath = ref(''); 
 
@@ -62,18 +63,31 @@ function getHistoryList() {
     }
     historyList.value.push(...data);
     isPending = false;
+    nextTick(() => {
+      if(loadMoreRef.value && typeof loadMoreRef.value.reObserver === 'function') {
+        loadMoreRef.value.reObserver();
+      }
+    });
+
   });
 };
 
 async function onClick(item: HistoryData) {
-  swimPath.value = item.swimlaneGraphFilePath.substring(1).replace(/\//g, '\\');
-  comPath.value = item.controlFlowFilePath.substring(1).replace(/\//g, '\\');
+  swimPath.value = item.swimlaneGraphFilePath;
+  comPath.value = item.controlFlowFilePath;
   if (!swimPath.value || !comPath.value) {
     return;
   }
   baseChoose.value = item.title;
   await server.selectRunData({runDataPaths: {swimPath: swimPath.value, comPath: comPath.value, runDataTitle: item.title}});
 };
+
+onMounted(() => {
+  page.value = 1;
+  allLoaded.value = false;
+  historyList.value = [];
+  getHistoryList();
+});
 
 </script>
 
