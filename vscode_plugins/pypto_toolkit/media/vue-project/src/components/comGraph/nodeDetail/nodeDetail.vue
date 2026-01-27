@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch, inject } from 'vue';
+import { nextTick, ref, watch, inject, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as monaco from 'monaco-editor';
 import { nodeDetailProps } from './node-detail-types';
@@ -175,6 +175,18 @@ const onCopy = () => {
     }, 1000);
   });
 };
+
+function onResize() {
+  editorIns?.layout();
+}
+
+onMounted(() => {
+  window.addEventListener('resize', onResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize);
+});
 </script>
 
 <style lang="scss">
@@ -219,7 +231,8 @@ const onCopy = () => {
       height: 24px;
       color: var(--devui-icon);
       border-radius: 8px;
-      transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
+      transition:
+        background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
         color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
       cursor: pointer;
 
@@ -266,6 +279,7 @@ const onCopy = () => {
     flex-direction: column;
     width: 100%;
     flex: 1;
+    height: 0;
 
     .copy-wrap {
       display: flex;
@@ -285,7 +299,8 @@ const onCopy = () => {
         padding: 4px 8px;
         border-radius: 8px;
         cursor: pointer;
-        transition: color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
+        transition:
+          color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
           background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
 
         span {
@@ -308,6 +323,7 @@ const onCopy = () => {
 
     .code-editor {
       flex: 1;
+      height: 0;
 
       .monaco-editor-overlaymessage {
         display: none !important;
