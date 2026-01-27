@@ -59,6 +59,7 @@ function setupImageWatchers() {
             modalVisible.value = true;
             exportRadioItem.value = 'local';
             exportPath.value = '';
+            exportFoldVisible.value = false;
         }
     });
     watch(server.SaveDirPath, (newValue) => {
