@@ -33,6 +33,7 @@ import {
   emptyLabelView,
   emptyPortView,
   InputOutputNodeView,
+  BootomAstgrEdge,
 } from "./views";
 import { AstgrNode, AstgrPort } from "./graph.types";
 
@@ -78,6 +79,10 @@ export function createMiniMapDiContainer(sprottyContainerId: string) {
       configureModelElement(context, "label", SLabelImpl, emptyLabelView);
 
       configureModelElement(context, "edge", SEdgeImpl, AstgrEdge, {
+        disable: [editFeature],
+      });
+
+      configureModelElement(context, 'bottom', SEdgeImpl, BootomAstgrEdge, {
         disable: [editFeature],
       });
 

@@ -5,10 +5,11 @@
     <!-- 一段时间轴区域 -->
     <div class="fixed-timeline-area" v-if="!loading">
       <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
+      <canvas class="hover-flags-line-canvas" ref="hoverFlagsLineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
     </div>
 
     <!-- 二段时间轴区域 -->
-    <div class="timeline-area" v-if="!loading">
+    <div class="timeline-area" id="timeline-area" v-if="!loading">
       <canvas class="timeline-canvas" ref="timelineCanvas" @wheel="handleWheel"></canvas>
       <canvas class="hover-flags-canvas" ref="hoverFlagsCanvas"></canvas>
       <canvas class="flags-canvas" ref="flagsCanvas" @mouseover="flagMouseOver" @mouseleave="flagMouseOut" @mousemove="flagMouseMove"
@@ -18,7 +19,7 @@
       <d-button icon="icon-delete" class="deletebotton" style="font-size: 16px;" @click.stop="deleteFlag"></d-button>
       <d-button icon="icon-edit" class="editbotton" style="font-size: 16px;" @click.stop="editFlag"></d-button>
     </div>
-    <div v-if="isEditing" class="edit-model" :style="editmodelStyle">
+    <div v-if="isEditing" class="edit-model" id="edit-model" :style="editmodelStyle">
       <div class="model-content">
         <div class="edit-head">
           <div class="edit-title">{{ $t('editTitle') }}</div>
@@ -46,15 +47,17 @@
 
 <script setup>
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
-import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth } from '../swimGraphUtils';
+import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, COLOR_CFG } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '@/components/welcome/guideStepsConfig';
+import { MeatureRender } from '../swimGraphProcesses/render/meatureRender';
+import BigNumber from 'bignumber.js';
 const { server } = useViewServer();
-
+const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 
 // 注入父组件提供的状态和方法
@@ -85,6 +88,7 @@ let timelineInitX = 0;
 let timelineInitStartX = 0;
 let timelineInitEndX = 0
 let lastPostion = 0;
+let isGuidePage = false;
 let wheelDebounceTimer;
 const fixedtimelineCanvas = ref(null);
 const fixedtimelineCtx = ref(null);
@@ -93,7 +97,9 @@ const timelineCtx = ref(null);
 const flagsCanvas = ref(null);
 const flagsCtx = ref(null);
 const hoverFlagsCanvas = ref(null);
+const hoverFlagsLineCanvas = ref(null);
 const hoverFlagsCtx = ref(null);
+const hoverFlagsLineCtx = ref(null);
 const isTimelineMove = ref(false);
 const hoverCurFlag = ref(null);
 const flags = ref([]);
@@ -104,6 +110,15 @@ const refColor = ref("rgba(94, 124, 224, 1)");
 const refLabel = ref("");
 const isShowTooltip = ref(false);
 const flagtooltip = ref(null);
+const boxWidth = 45;
+let flagHoverData = {
+  preData: null,
+  lastData: null,
+  largeSpacing: false
+};
+let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+const swimGraphState = inject('swimGraphState');
+const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
 const flagtooltipStyle = reactive({
   display: 'none',
   left: '0px',
@@ -136,9 +151,13 @@ const fixedXToTime = (x) => {
 const mouseStyleChange = (style) => {
   fixedtimelineCanvas.value.style.cursor = style;
   flagsCanvas.value.style.cursor = style;
+  hoverFlagsLineCanvas.value.style.cursor = style;
 };
 
 const mouseStyleEvent = (mousex) => {
+  if (isGuidePage) {
+    return;
+  }
   if (Math.abs(mousex - timelineState.startTimeX) < 5) {
     mouseStyleChange('col-resize');
     return;
@@ -180,6 +199,10 @@ const timelineMouseDown = (e) => {
   timelineInitStartX = timelineState.startTimeX;
   timelineInitEndX = timelineState.endTimeX;
 
+  if (isGuidePage) {
+    return;
+  }
+
   if (Math.abs(mouseX - timelineInitStartX) < 5){
     isTimelineDragging = true;
     timelineState.isInLeftTag = true;
@@ -207,7 +230,7 @@ const timelineMouseDown = (e) => {
 }
 
 const timelineMouseMove = (e) => {
-  if (e.target === fixedtimelineCanvas.value || e.target === flagsCanvas.value) {
+  if (e.target === fixedtimelineCanvas.value || e.target === flagsCanvas.value || e.target === hoverFlagsLineCanvas.value) {
     if (!isTimelineDragging) return;
     isTimelineMove.value = true;
     const rect = fixedtimelineCanvas.value.getBoundingClientRect();
@@ -309,6 +332,7 @@ const timelineMouseOut = (e) => {
 
 const timelineMouseEventReset = () => {
   fixedtimelineCanvas.value.style.cursor = 'default';
+  hoverFlagsLineCanvas.value.style.cursor = 'default';
   timelineCanvas.value.style.cursor = 'default';
   isTimelineDragging = false;
   timelineState.isInLeftTag = false;
@@ -446,7 +470,8 @@ const checkIfInInterval = (x) => {
 };
 
 const flagMouseMove = (e) => {
-  if (!hoverFlagsCanvas.value || isTimelineDragging) return;
+  if (!hoverFlagsCanvas.value || isTimelineDragging || !hoverFlagsLineCanvas.value) return;
+  clearHoverFlagsLineCanvas();
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
   const ctx = hoverFlagsCtx.value;
   const color = "rgba(94, 124, 224, 1)";
@@ -460,8 +485,108 @@ const flagMouseMove = (e) => {
   hoverCurFlag.value = flag;
   childContextMap.threadEvent.drawEventLine(mouseX, color, "over");
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
+  const isBetweenAnyAdjacentFlags = isMouseXBetweenAnyAdjacentFlags(mouseX);
+  if (!isBetweenAnyAdjacentFlags) {
+    return;
+  }
+  guideDistanceMeasurement(ctx);
 };
-
+const isMouseXBetweenAnyAdjacentFlags = (mouseX) => {
+  const flagsList = flags.value;
+  if (flagsList.length < 2) {
+    return false;
+  }
+  const { startTime, endTime } = timelineState;
+  const sortedFlags = [...flagsList].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < sortedFlags.length - 1; i++) {
+    const flagA = sortedFlags[i];
+    const flagB = sortedFlags[i + 1];
+    if (mouseX < flagA.x || mouseX > flagB.x) {
+      continue;
+    }
+    if (Math.min(flagA.time, flagB.time) > startTime && Math.max(flagA.time, flagB.time) < endTime) {
+      flagHoverData.preData = flagA;
+      flagHoverData.lastData = flagB;
+      return true;
+    }
+  }
+  return false;
+};
+const guideDistanceMeasurement = (ctx) => {
+  const { preData, lastData } = flagHoverData;
+  const spacing = Math.abs(lastData.x - preData.x);
+  if (!preData || !lastData || spacing <= 3) {
+    return;
+  }
+  const largeSpacing = spacing > boxWidth + 10;
+  drawConnector(ctx, largeSpacing);
+};
+const clearHoverFlagsLineCanvas  = () => {
+  const lineCtx = hoverFlagsLineCtx.value;
+  const clearHeight = fixedtimelineCanvas.value.offsetHeight;
+  lineCtx.clearRect(0, 0, viewState.canvasCssWidth, clearHeight);
+};
+function drawConnector(ctx, largeSpacing) {
+  const rect = calculateRect();
+  const lineCtx = hoverFlagsLineCtx.value;
+  const renderCtx = largeSpacing ? ctx : lineCtx;
+  // 填充矩形
+  renderCtx.save();
+  renderCtx.setTransform(1, 0, 0, 1, 0, 0);
+  renderCtx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  renderCtx.strokeStyle = 'rgba(0, 0, 0, 0)';
+  renderCtx.beginPath();
+  renderCtx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
+  renderCtx.fill();
+  renderCtx.stroke();
+  renderCtx.fillStyle = '#ffffff';
+  measureRenderer.fillText(renderCtx, rect, rect.y);
+  // 绘制双向箭头
+  if (largeSpacing) {
+    measureRenderer.drawDoubleArrow(rect, ctx);
+  } else {
+    drawDistanceSelectionBox(ctx);
+  }
+  ctx.restore();
+}
+function drawDistanceSelectionBox(ctx) {
+  // 填充矩形
+  ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
+  ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
+  ctx.beginPath();
+  ctx.lineWidth = 1;
+  const height = fixedtimelineCanvas.value.offsetHeight;
+  const {preData,lastData} = flagHoverData;
+  ctx.roundRect(preData.x + 2, preData.y + (height / 2), lastData.x - preData.x - 4, height, 4);
+  ctx.fill();
+  ctx.stroke();
+}
+// 计算矩形位置
+function calculateRect() {
+  const {
+    preData: { x: x1, y },
+    lastData: { x: x2 }
+  } = flagHoverData;
+  const leftX = Math.min(x1, x2);
+  const rightX = Math.max(x1, x2);
+  const width = boxWidth * devicePixelRatio;
+  const height = fixedtimelineCanvas.value.offsetHeight;
+  const rectX = leftX + ((rightX - leftX - width) / 2);
+  const end = new BigNumber(flagHoverData.lastData.time);
+  const start = new BigNumber(flagHoverData.preData.time);
+  const diffTime = end.minus(start).abs();
+  const text = measureRenderer.getMeasureDistance(diffTime);
+  return {
+    x: rectX,
+    y,
+    width,
+    height,
+    leftX,
+    rightX,
+    centerY: y + ((height * devicePixelRatio) / 2),
+    text
+  };
+}
 const flagMouseOver = (e) => {
   if (!hoverFlagsCanvas.value || isTimelineDragging) return;
   const rect = hoverFlagsCanvas.value.getBoundingClientRect();
@@ -557,13 +682,26 @@ const checkFlagHover = (x, y) => {
   return null;
 }
 
-const flagRender = () => {
-  if (!flagsCanvas.value) return;
+const clearFlagCanvas = (clearFlags=false) => {
+  if (!flagsCanvas.value) {
+    return;
+  }
   const ctx = flagsCtx.value;
   const canvas = flagsCanvas.value;
-  childContextMap.threadEvent.eraseEventLine("");
-  childContextMap.processHeaderEvent.eraseProcessHeadLine("");
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
+  childContextMap.threadEvent.eraseEventLine('');
+  childContextMap.processHeaderEvent.eraseProcessHeadLine('');
+  if (clearFlags) {
+    flags.value = [];
+  }
+};
+
+const flagRender = () => {
+  if (!flagsCanvas.value) {
+    return;
+  }
+  const ctx = flagsCtx.value;
+  clearFlagCanvas();
   const start = timelineState.startTime;
   const end = timelineState.endTime;
   if (flags.value.length === 0) return;
@@ -582,6 +720,8 @@ const deleteFlag = () => {
   if (!currentFlag.value) return;
   flags.value = flags.value.filter(flag => flag.x !== currentFlag.value.x);
   flagRender();
+  isEditing.value = false;
+  refLabel.value = '';
   hideTooltip();
 }
 
@@ -721,6 +861,9 @@ const resizeCanvases = () => {
   if (hoverFlagsCanvas.value) {
     setupHighDPICanvas(hoverFlagsCanvas.value, canvasWidth, 40);
   }
+  if (hoverFlagsLineCanvas.value) {
+    setupHighDPICanvas(hoverFlagsLineCanvas.value, canvasWidth, 20);
+  }
 };
 
 const initCanvases = () => {
@@ -740,6 +883,9 @@ const initCanvases = () => {
     flagsCtx.value = flagsCanvas.value.getContext('2d');
   }
 
+  if (hoverFlagsLineCanvas.value) {
+    hoverFlagsLineCtx.value = hoverFlagsLineCanvas.value.getContext('2d');
+  }
   resizeCanvases();
   nextTick(() => {
     renderFixedTimeline();
@@ -760,6 +906,7 @@ const listenExtensionMessage = () => {
   window.ascEventBus.on('boot-step-tips', (event) => {
     const message = event.data;
     if (event.type == 'callWebviewMethod') {
+      isGuidePage = true;
       switch (message.methodName) {
         case 'addObservationLine': {
           drawVirtualDom();
@@ -773,13 +920,12 @@ const listenExtensionMessage = () => {
           break;
         }
         case 'zoomControls': {
-          clearFlags();
           const element = document.querySelector('.zoom-controls');
           element.style.border = '1px dashed';
           break;
         }
         case 'distanceMeasurement': {
-          clearFlags();
+          clearFlagCanvas(true);
           break;
         }
         default:
@@ -787,15 +933,6 @@ const listenExtensionMessage = () => {
       }
     }
   });
-};
-
-const clearFlags = () => {
-  if (flags.value.length === 0) {
-    return;
-  }
-  const [firstFlag] = flags.value || [];
-  currentFlag.value = firstFlag;
-  deleteFlag();
 };
 
 const observationLineResize = () => {
@@ -840,6 +977,8 @@ defineExpose({
   flagRender,
   changeScale,
   observationLineResize,
+  clearFlagCanvas,
+  toggleEditModel,
   flagsCanvas
 });
 </script>

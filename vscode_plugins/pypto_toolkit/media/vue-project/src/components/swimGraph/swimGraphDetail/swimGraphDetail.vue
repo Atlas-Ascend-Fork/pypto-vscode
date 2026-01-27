@@ -57,7 +57,7 @@
                   <d-tooltip position="bottom" :content=bindToolTip>
                     <d-button variant="text" color="secondary" v-show="bindFile" @click="openBoundComGraph" class="jump-to-file"><strong class="icon-details"></strong></d-button>
                   </d-tooltip>
-                  <d-button v-if="selectedView === 'args'" variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
+                  <d-button v-if="!isAicpu && selectedView === 'args'" variant="text" color="primary" @click="bindFilePath">{{ bindButton }}</d-button>
                 </div>
               </div>
               <div class="content-two" v-if="selectedView === 'args'">
@@ -182,9 +182,9 @@
                 <div class="relevent">Relevent</div>
                 <div class="display-containner">
                   <div class="button-group">
-                    <button @click="releventShowPre" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.pre)}"><img class="left" :src="lPath" alt="left"/></button>
-                    <button @click="releventShowAll" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.all)}"><img class="all" :src="aPath" alt="all"/></button>
-                    <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}"><img class="right" :src="rPath" alt="right"/></button> 
+                    <button @click="releventShowPre" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.pre)}" :disabled="isPathLockStatus"><img class="left" :src="lPath" alt="left"/></button>
+                    <button @click="releventShowAll" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.all)}" :disabled="isPathLockStatus"><img class="all" :src="aPath" alt="all"/></button>
+                    <button @click="releventShowNext" :class="{'relevent-highlight': (releventDisplay == DEP_MODE.next)}" :disabled="isPathLockStatus"><img class="right" :src="rPath" alt="right"/></button> 
                   </div>
                   <div class="detail-level display-containner">
                     <div>{{$t('taskConnectionLevel') + ':'}}</div>
@@ -241,6 +241,7 @@ const {
   isDarkTheme,
   highlightedPaths,
   isPathLockStatus,
+  isAicpu,
 } = inject('swimGraphState');
 
 const {
@@ -505,9 +506,20 @@ const onInputChange = (newValue, oldValue) => {
 function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
+
+const resetReleventState = () => {
+  releventDisplay.value = DEP_MODE.all;
+  viewState.depMode = releventDisplay.value;
+  connectionLevel.value = -1;
+  userConfig.value.connectionLevel = -1;
+  highlightedPaths.clear();
+  changeUserCfgConnection(-1);
+};
+
 // 暴露方法给父组件
 defineExpose({
-  connectionLevel
+  connectionLevel,
+  resetReleventState,
 });
 </script>
 

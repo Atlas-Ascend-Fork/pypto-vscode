@@ -68,6 +68,7 @@ export interface AstgrTensorNode extends AstgrNode {
     baseColor?: string;
     lightColor?: string;
     isError?: boolean;
+    isMiddle?: boolean;
 }
 
 /**

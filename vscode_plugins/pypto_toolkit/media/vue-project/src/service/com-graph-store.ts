@@ -34,6 +34,7 @@ interface ComGraphData {
   selectedNodeSemanticLabel: string;
   traceTensors: any[];
   traceOperations: any[];
+  searchLevel: string;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;

@@ -50,6 +50,16 @@
           <div class="title mb-8">{{ t('comGraph.nodesControl') }}</div>
           <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" :placeholder="t('comGraph.nodeShowAll')"/>
         </div>
+        <div class="advanced-search-panel-input" v-if="props.openMode === 'path'">
+          <div class="title mb-8">{{ t('comGraph.nodeSearchLevel') }}</div>
+              <d-input-number v-model="linkLevel" :step="1" :precision="0" :min="-1" class="input-number-container" @change="onInputChange"/>
+              <d-tooltip>
+                <d-icon name="icon-helping" class="help-font"></d-icon>
+                <template #content>
+                    <div class="icon-help-tip"> {{t('comGraph.nodeSearchLevelTips1')}} <br> {{t('comGraph.nodeSearchLevelTips2')}} </div>
+                </template>
+              </d-tooltip>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -69,7 +79,7 @@ const textOptions = ref([
   "datatype",
 ]);
 
-const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange', 'selectNodesChange']);
+const emits = defineEmits(['update:modelValue', 'graphLayoutChange', 'nodeDisplayChange', 'selectNodesChange', 'nodeSearchLevelChange']);
 
 const selectedValues = ref([]);
 const selectedIndexes = computed(()=>{
@@ -89,17 +99,29 @@ const tabDisable = computed(() => {
   return disabledFlag;
 })
 
+const defaultSearchLevel = computed(() => comGraphStore.data?.searchLevel ?? -1);
+
+const onInputChange = (newValue) => {
+  linkLevel.value = newValue;
+  emits('nodeSearchLevelChange', linkLevel.value);
+}
+
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false,
   },
+  openMode: {
+  type: String,
+  default: 'all'
+},
 });
 
 const { t } = useI18n();
 const { dragEl, rootEl, styles } = useMoveable(props);
 const graphLayout = ref('RIGHT');
 const nodeDisplayMode = ref('all');
+const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 </script>
 
 <style scoped lang="scss">
@@ -107,7 +129,7 @@ const nodeDisplayMode = ref('all');
 
 .layer-control-container {
   position: fixed;
-  z-index: 1040;
+  z-index: 1060;
   width: 280px;
   color: var(--devui-primary-text);
   border-radius: 8px;
@@ -233,4 +255,56 @@ const nodeDisplayMode = ref('all');
     width: 0;
   }
 }
+
+.list-menu {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background-color: var(--devui-list-item-hover-bg, #e1e2e2);
+  color: var(--devui-list-item-hover-text, #7a7a7a);
+}
+
+.icon-help-tip {
+  color: #b3b3b3; 
+  font-size: 12px; 
+  font-weight: 400; 
+  line-height: 16px;
+  padding: 4px 4px 4px 4px;
+  margin-bottom: 6px !important;
+}
+
+.input-number-container {
+  height: 28px;
+}
+
+.advanced-search-panel-input {
+  :deep(.devui-input-number .disabled) {
+    cursor: default;
+  }
+}
+
+  .input-number-container.locked-style {
+    background-color: var(--devui-input-bg) !important;
+    height: 28px;
+    border-color: transparent;
+    input {
+      background-color: transparent !important;
+      border-color: transparent;
+    }
+  }
+
+
+
 </style>

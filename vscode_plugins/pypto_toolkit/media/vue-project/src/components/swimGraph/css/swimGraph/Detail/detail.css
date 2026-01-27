@@ -544,6 +544,10 @@
   background: var(--devui-button-group-hover);
 }
 
+.button-group>button:disabled {
+  cursor: not-allowed;
+}
+
 .details-title {
   font-size: 16px;
   font-weight: bold;

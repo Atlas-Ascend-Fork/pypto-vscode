@@ -1,75 +1,66 @@
 <template>
   <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
   <div v-if="visible" class="guide-mask-container" @pointerup.stop>
+    <!-- 兜底全屏遮罩（始终覆盖视口，拦截操作） -->
+    <div v-if="isShowFullFalBack" class="guide-mask-full-fallback" :style="maskFullFallbackStyle"></div>
     <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
-    <div 
-      class="guide-mask-full" 
-      @click.stop
-      :style="maskFullClipStyle"
-    ></div>
-    
-    <!-- 第二层：包围盒内遮罩对指定DOM挖孔 -->
-    <div 
-      class="guide-mask-inner" 
-      @click.stop
-      :style="maskInnerStyle"
-      @pointerup.stop
-    ></div>
+    <div class="guide-mask-full" @click.stop :style="maskFullClipStyle"></div>
+    <div v-if="isShow">
+      <!-- 第二层：包围盒内遮罩对指定DOM挖孔 -->
+      <div class="guide-mask-inner" @click.stop :style="maskInnerStyle" @pointerup.stop></div>
 
-    <!-- 合并后的视觉边框（单个包围盒边框） -->
-    <div 
-      class="guide-target-border" 
-      :style="mergeTargetBorderStyle"
-    ></div>
+      <!-- 合并后的视觉边框（单个包围盒边框） -->
+      <div class="guide-target-border" :style="mergeTargetBorderStyle"></div>
 
-    <!-- 引导弹窗（可点击） -->
-    <div class="guide-popup-wrapper" :style="popupWrapperStyle">
-      <!-- 引导三角：动态偏移样式 -->
-      <div
-        v-if="triangleConfig.showTriangle"
-        class="guide-triangle"
-        :class="`triangle-${triangleConfig.triangleDirection}`"
-        :style="triangleOffsetStyle"
-      ></div>
-      <!-- 气泡弹窗容器-->
-      <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
-        <!-- 顶部进度指示器 -->
-        <div class="progress-container" v-if="graphType !== 'threeColumnGraph'">
-          <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
-            <div class="progress-group">
-              <img v-if="groupIdx <= currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
-              <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
-              <div
-                v-for="(step, stepIdx) in group.steps"
-                :key="stepIdx"
-                class="progress-dot"
-                :class="getDotItemStatus(groupIdx, stepIdx)"
-              ></div>
-            </div>
-            <span v-if="groupIdx < guideSteps.length - 1" class="separator"></span>
-          </template>
-        </div>
-
-        <!-- 主体内容区 -->
-        <div class="content-container">
-          <div class="container__header">
-            <h3 class="step-title">{{ t(currentStepInfo.title) }}</h3>
-            <div class="step-count__group">
-              <p class="step-count">{{ currentSmallIndex + 1 }}</p>
-              <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
-            </div>
+      <!-- 引导弹窗（可点击） -->
+      <div class="guide-popup-wrapper" :style="popupWrapperStyle">
+        <!-- 引导三角：动态偏移样式 -->
+        <div
+          v-if="triangleConfig.showTriangle"
+          class="guide-triangle"
+          :class="`triangle-${triangleConfig.triangleDirection}`"
+          :style="triangleOffsetStyle"
+        ></div>
+        <!-- 气泡弹窗容器-->
+        <div class="guide-popup-content" ref="popupContentRef" :style="{ boxShadow: popupContentBoxShadow }">
+          <!-- 顶部进度指示器 -->
+          <div class="progress-container" v-if="graphType !== 'threeColumnGraph'">
+            <template v-for="(group, groupIdx) in guideSteps" :key="groupIdx">
+              <div class="progress-group">
+                <img v-if="groupIdx <= currentBigGroup" :src="imgActiveArr[groupIdx].value" class="progress-img" />
+                <img v-else :src="imgArr[groupIdx].value" class="progress-img" />
+                <div
+                  v-for="(step, stepIdx) in group.steps"
+                  :key="stepIdx"
+                  class="progress-dot"
+                  :class="getDotItemStatus(groupIdx, stepIdx)"
+                ></div>
+              </div>
+              <span v-if="groupIdx < guideSteps.length - 1" class="separator"></span>
+            </template>
           </div>
-          <p class="step-content">{{ t(currentStepInfo.content) }}</p>
-        </div>
 
-        <!-- 操作按钮栏 -->
-        <div class="btn-container">
-          <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
-          <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
-          <template v-if="hasNextBtn">
-            <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
-          </template>
-          <button v-else class="next-btn" @click="handleSkipAll">{{ t('bootStep.button.complete') }}</button>
+          <!-- 主体内容区 -->
+          <div class="content-container">
+            <div class="container__header">
+              <h3 class="step-title">{{ t(currentStepInfo.title) }}</h3>
+              <div class="step-count__group">
+                <p class="step-count">{{ currentSmallIndex + 1 }}</p>
+                <p class="step-count__right">/{{ currentBigGroupSteps.length }}</p>
+              </div>
+            </div>
+            <p class="step-content">{{ t(currentStepInfo.content) }}</p>
+          </div>
+
+          <!-- 操作按钮栏 -->
+          <div class="btn-container">
+            <button class="skip-btn" @click="handleSkipAll">{{ t('bootStep.button.skipAll') }}</button>
+            <button v-if="hasPrevStep" class="prev-btn" @click="handlePrevStep">{{ t('bootStep.button.preStep') }}</button>
+            <template v-if="hasNextBtn">
+              <button class="next-btn" @click="handleNextStep">{{ nextBtnText }}</button>
+            </template>
+            <button v-else class="next-btn" @click="handleSkipAll">{{ t('bootStep.button.complete') }}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -119,6 +110,7 @@ const computeActiveImg = computed(
 const swimActiveImg = computed(
   () => `${window.staticPath}/static-assets/boot_steps/boot_steps_swim_active${isDarkTheme.value ? '' : '-light'}.svg`,
 );
+const cursorNotAllowed = computed(() => `${window.staticPath}/static-assets/boot_steps/cursor_not_allowed.svg`);
 
 const imgArr = ref([controlFlowImg, nativeImg, computeImg, swimImg]);
 const imgActiveArr = ref([controlFlowActiveImg, nativeActiveImg, computeActiveImg, swimActiveImg]);
@@ -145,6 +137,8 @@ const props = defineProps<{
   width?: string;
   graphType: string;
 }>();
+const isShow = ref(true);
+const isShowFullFalBack = ref(true);
 
 // ========== 响应式触发变量（强制更新computed） ==========
 const refreshTrigger = ref(0);
@@ -154,7 +148,7 @@ const popupContentRef = ref<HTMLDivElement | null>(null);
 /**
  * 防抖函数
  */
-const debounce = (fn: Function, delay = 50) => {
+const debounce = (fn: Function, delay = 150) => {
   let timer: NodeJS.Timeout | null = null;
   return (...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -163,6 +157,21 @@ const debounce = (fn: Function, delay = 50) => {
     }, delay);
   };
 };
+
+// ========== 兜底全屏遮罩样式（始终覆盖视口） ==========
+const maskFullFallbackStyle = computed<CSSProperties>(() => {
+  return {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    zIndex: 1050,
+    pointerEvents: 'auto', // 拦截所有
+    transition: 'background-color 0.2s ease',
+  };
+});
 
 // 三角配置
 const triangleConfig = computed(() => {
@@ -189,13 +198,50 @@ const isShowBorder = computed<boolean>(() => {
   return isShowBorder;
 });
 
-// ========== 核心：获取单个DOM的位置信息 ==========
-const getSingleDomRect = (domId: string): DOMRect | null => {
+/**
+ * 获取单个DOM的位置信息
+ * @param domSelector - 可以是ID字符串 或 class字符串
+ * @returns DOMRect对象 | null
+ */
+const getSingleDomRect = (domSelector: string): DOMRect | null => {
   if (!props.visible) return null;
-  const targetDom = document.getElementById(domId);
-  if (!targetDom) return null;
-  // 强制重绘，获取最新位置
-  return targetDom.getBoundingClientRect();
+  const targetDom = getTargetElement(domSelector);
+
+  // 获取最新位置（强制重绘，确保实时性）
+  if (targetDom) {
+    targetDom.getBoundingClientRect(); // 强制重绘
+    return targetDom.getBoundingClientRect();
+  }
+  return null;
+};
+
+/**
+ * 通用DOM查找函数（优先ID，ID不存在则按class取第一个）
+ * @param selector - ID或class字符串
+ * @returns 匹配的DOM元素 | null
+ */
+const getTargetElement = (selector: string): HTMLElement | null => {
+  if (!selector) return null;
+
+  // 第一步：优先通过ID查找
+  let targetDom = document.getElementById(selector);
+
+  // 第二步：ID查找失败，尝试通过class查找第一个匹配元素
+  if (!targetDom) {
+    const classElements = document.getElementsByClassName(selector);
+    if (classElements.length > 0) {
+      targetDom = classElements[0] as HTMLElement;
+    }
+  }
+  // 第三步：className查找失败，尝试通过选择器查找
+  if (!targetDom) {
+    targetDom = document.querySelector(selector);
+  }
+  // 第四步：未找到时打印警告
+  if (!targetDom) {
+    return null;
+  }
+  return targetDom;
 };
 
 // ========== 核心：计算多个DOM的最小包围矩形（合并挖孔用） ==========
@@ -238,24 +284,34 @@ const getMultiDomClipPath = (): string => {
 
   // 收集所有有效DOM的位置信息（无论模式，只要是目标DOM就挖孔）
   const validDomRects: DOMRect[] = [];
-  currentStepAllTargetDomConfigs.value.forEach((config) => {
+  currentStepAllTargetDomConfigs.value.forEach((config, index) => {
     const rect = getSingleDomRect(config.targetDomId);
-    if (rect) validDomRects.push(rect);
+    if (rect) {
+      validDomRects.push(rect);
+    }
   });
 
-  if (validDomRects.length === 0) return '';
+  if (validDomRects.length === 0) {
+    console.warn('没有有效的DOM位置信息，无法生成挖孔路径');
+    return '';
+  }
+
+  const mergeRect = getMergeDomRect();
+  if (!mergeRect) {
+    console.warn('合并后的包围盒为空，无法生成挖孔路径');
+    return '';
+  }
 
   // 生成多个DOM的挖孔路径（所有目标DOM都挖孔，保证交互能触达）
   let clipPathParts = ['0 0', '0 100%', '100% 100%', '100% 0', '0 0']; // 基础全屏路径
-  validDomRects.forEach((rect) => {
-    const mergeRect = getMergeDomRect();
-    if (!mergeRect) return;
-
+  validDomRects.forEach((rect, index) => {
+    // 计算相对mergeRect的偏移（关键：确保class DOM的相对位置正确）
     const relLeft = rect.left - mergeRect.left;
     const relTop = rect.top - mergeRect.top;
     const relRight = rect.right - mergeRect.left;
     const relBottom = rect.bottom - mergeRect.top;
 
+    // 追加当前DOM的挖孔路径（顺时针绘制）
     clipPathParts.push(`${relLeft}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relTop}px`);
     clipPathParts.push(`${relRight}px ${relBottom}px`);
@@ -263,7 +319,9 @@ const getMultiDomClipPath = (): string => {
     clipPathParts.push(`${relLeft}px ${relTop}px`);
   });
 
-  return `polygon(${clipPathParts.join(', ')})`;
+  // 生成最终clip-path（压缩空格，避免解析问题）
+  const finalClipPath = `polygon(${clipPathParts.join(', ').replace(/\s+/g, ' ')})`;
+  return finalClipPath;
 };
 
 // ========== 核心：获取目标DOM信息（供弹窗定位，保持原有逻辑） ==========
@@ -309,7 +367,7 @@ const maskFullClipStyle = computed<CSSProperties>(() => {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.05)', // 全屏遮罩底色
-    zIndex: 99997,
+    zIndex: 1050,
     pointerEvents: 'auto',
   };
 });
@@ -322,7 +380,7 @@ const maskInnerStyle = computed<CSSProperties>(() => {
 
   // 生成多个指定DOM的clip-path路径（仅这些DOM可点击）
   const clipPath = getMultiDomClipPath();
-
+  const backColor = isStepAllowClick.value ? '#317AF7' : 'rgb(255,255,255)';
   return {
     clipPath,
     position: 'fixed',
@@ -330,11 +388,12 @@ const maskInnerStyle = computed<CSSProperties>(() => {
     left: `${mergeRect.left}px`,
     width: `${mergeRect.width}px`,
     height: `${mergeRect.height}px`,
-    backgroundColor: '#317AF7', // 内部遮罩
+    backgroundColor: backColor, // 内部遮罩
     opacity: `0.1`,
-    zIndex: 99997.5, // 介于全屏遮罩和边框之间
+    zIndex: 1050.5, // 介于全屏遮罩和边框之间
     pointerEvents: 'auto',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-in-out',
+    cursor: `url(${cursorNotAllowed.value}),auto`,
   };
 });
 
@@ -345,11 +404,7 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
   if (!mergeRect) return { display: 'none' };
 
   // 新增：根据是否允许点击切换边框颜色
-  const borderColor = isShowBorder.value
-    ? isStepAllowClick.value
-      ? 'var(--devui-active-icon)' // 蓝色点击
-      : '#FFE485' // 浅黄色 介绍根据高保真调整
-    : 'rgba(0,0,0,0)';
+  const borderColor = isShowBorder.value ? 'var(--devui-category-search-hover-border)' : 'rgba(0,0,0,0)';
 
   return {
     position: 'fixed',
@@ -360,9 +415,9 @@ const mergeTargetBorderStyle = computed<CSSProperties>(() => {
     border: `1px solid ${borderColor}`, // 动态边框颜色
     borderRadius: '8px',
     boxSizing: 'border-box',
-    zIndex: 99998, // 高于两层遮罩，低于弹窗
+    zIndex: 1051, // 高于两层遮罩，低于弹窗
     pointerEvents: 'none', // 点击穿透
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-in-out',
   };
 });
 
@@ -591,7 +646,7 @@ const getTargetDomPosition = () => {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
         position: 'fixed' as const,
       },
@@ -600,7 +655,7 @@ const getTargetDomPosition = () => {
   }
 
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
-  const targetDom = document.getElementById(targetDomId);
+  const targetDom = getTargetElement(targetDomId);
   if (!targetDom) {
     console.warn(`目标DOM ID ${targetDomId} 不存在，使用兜底定位`);
     return {
@@ -608,7 +663,7 @@ const getTargetDomPosition = () => {
         top: '150%',
         left: '150%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
         position: 'fixed' as const,
       },
@@ -631,7 +686,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
         left: `${domRect.left - popupSize.width - 16}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -641,7 +696,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top + domRect.height / 2 - popupSize.height / 2}px`,
         left: `${domRect.right + 16}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -651,7 +706,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.top - popupSize.height - 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -661,7 +716,7 @@ const getTargetDomPosition = () => {
         top: `${domRect.bottom + 16}px`,
         left: `${domRect.left + domRect.width / 2 - popupSize.width / 2}px`,
         transform: 'none',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
       break;
@@ -671,7 +726,7 @@ const getTargetDomPosition = () => {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 99999,
+        zIndex: 1052,
         boxSizing: 'border-box',
       };
   }
@@ -689,11 +744,11 @@ const getTargetDomPosition = () => {
 const handleResize = async () => {
   if (!props.visible) return;
   await nextTick();
-  console.log('handleResize触发，开始重新计算位置和裁剪区域');
+  // console.log('handleResize触发，开始重新计算位置和裁剪区域');
 
   // 步骤1：强制目标DOM和弹窗重绘，获取最新尺寸
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
-  const targetDom = document.getElementById(targetDomId);
+  const targetDom = getTargetElement(targetDomId);
   if (targetDom) {
     targetDom.getBoundingClientRect();
   }
@@ -712,19 +767,23 @@ const handleResize = async () => {
 };
 
 // 防抖后的resize处理函数
-const debouncedHandleResize = debounce(handleResize, 50);
+const debouncedHandleResize = debounce(handleResize, 150);
 
 // ========== 监听DOM尺寸/位置变化 ==========
 let resizeObserver: ResizeObserver | null = null;
 let domObserver: MutationObserver | null = null;
+// 保存父元素监听实例，避免内存泄漏
+let parentObserver: MutationObserver | null = null;
 
 /**
  * 监听目标DOM及其父元素的变化（适配flex布局）
  */
-const observeDomChange = (domId: string) => {
+const observeDomChange = (domSelector: string) => {
   // 销毁原有监听
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
+  if (parentObserver) parentObserver.disconnect();
+
   domObserver = new MutationObserver(debouncedHandleResize);
   const middleLayerElement = document.querySelector('#boot-middleLayer');
   if (middleLayerElement) {
@@ -744,20 +803,22 @@ const observeDomChange = (domId: string) => {
       subtree: true,
     });
   }
-  const targetDom = document.getElementById(domId);
+
+  // 关键修复：复用getTargetElement，统一ID/class查找逻辑
+  const targetDom = getTargetElement(domSelector);
   if (!targetDom) {
     return;
   }
 
-  // 1. ResizeObserver：监听DOM尺寸变化
+  // 1. ResizeObserver：监听DOM尺寸变化（兼容class DOM）
   resizeObserver = new ResizeObserver(debouncedHandleResize);
   resizeObserver.observe(targetDom);
 
   // 2. MutationObserver：监听父元素的布局变化
   const parentDom = targetDom.parentElement;
   if (parentDom) {
-    domObserver = new MutationObserver(debouncedHandleResize);
-    domObserver.observe(parentDom, {
+    parentObserver = new MutationObserver(debouncedHandleResize);
+    parentObserver.observe(parentDom, {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: true,
@@ -780,13 +841,13 @@ watch(
   async (newVal) => {
     if (newVal) {
       await nextTick();
-      getGuideProgress();
       handleResize();
       const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
       observeDomChange(targetDomId);
     } else {
       if (resizeObserver) resizeObserver.disconnect();
       if (domObserver) domObserver.disconnect();
+      if (parentObserver) parentObserver.disconnect();
     }
   },
   { immediate: true },
@@ -841,7 +902,12 @@ const handlePrevStep = async () => {
   if (currentStepConfig?.method) {
     callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
   }
-  await setGuideProgress(newBig, newSmall);
+  isShow.value = false;
+  await nextTick();
+  setTimeout(async () => {
+    await setGuideProgress(newBig, newSmall);
+    isShow.value = true;
+  }, 100);
 };
 
 // 下一步逻辑
@@ -857,6 +923,11 @@ const handleNextStep = async () => {
     newSmall = 0;
     await setGuideProgress(newBig, newSmall);
     openNextWebview(newBig);
+        // 调用下一步步骤方法
+    const currentStepConfig = getCurrentStepConfig(newBig, newSmall, props.graphType);
+    if (currentStepConfig?.method) {
+      callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
+    }
   } else {
     newSmall++;
     // 先调用下一步步骤方法
@@ -864,8 +935,12 @@ const handleNextStep = async () => {
     if (currentStepConfig?.method) {
       callCurrentWebviewMethod(currentStepConfig.method, currentStepConfig.methodParams);
     }
-
-    await setGuideProgress(newBig, newSmall);
+    isShow.value = false;
+    await nextTick();
+    setTimeout(async () => {
+      await setGuideProgress(newBig, newSmall);
+      isShow.value = true;
+    }, 100);
   }
 };
 
@@ -953,16 +1028,40 @@ const setGuideProgress = async (bigGroup: number, smallIndex: number) => {
   currentSmallIndex.value = smallIndex;
 };
 
+let checkDomInterval = null;
 // 生命周期
 onMounted(async () => {
+  updateWelcomeState({
+    key: 'guide.currentSmallIndex',
+    value: 0,
+  });
+  await getGuideProgress();
   // 监听窗口resize事件
   window.addEventListener('resize', debouncedHandleResize);
   // 额外监听滚动（如果DOM位置受滚动影响）
   window.addEventListener('scroll', debouncedHandleResize);
+
+  let targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   if (props.visible) {
-    const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
     observeDomChange(targetDomId);
   }
+  // 检测一次DOM是否加载完成，直到找到DOM或引导关闭
+  checkDomInterval = setInterval(() => {
+    targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
+    // 引导已关闭则停止检测
+    if (!props.visible) {
+      clearInterval(checkDomInterval);
+      return;
+    }
+    // DOM加载完成后，更新遮罩和弹窗位置
+    const targetDom = getTargetElement(targetDomId);
+    if (targetDom) {
+      clearInterval(checkDomInterval);
+      handleResize(); // 重新计算位置，恢复正常引导
+      isShowFullFalBack.value = false;
+      // console.log(`目标DOM ${targetDomId} 加载完成，恢复正常引导`);
+    }
+  }, 200);
   const res = await getQuery();
   const uri = res._uri;
   const query = JSON.parse(uri.query);
@@ -972,6 +1071,8 @@ onMounted(async () => {
     window.removeEventListener('scroll', debouncedHandleResize);
     if (resizeObserver) resizeObserver.disconnect();
     if (domObserver) domObserver.disconnect();
+    clearInterval(checkDomInterval);
+    isShowFullFalBack.value = false;
   }
 });
 
@@ -980,6 +1081,8 @@ onUnmounted(() => {
   window.removeEventListener('scroll', debouncedHandleResize);
   if (resizeObserver) resizeObserver.disconnect();
   if (domObserver) domObserver.disconnect();
+  if (parentObserver) parentObserver.disconnect();
+  clearInterval(checkDomInterval);
 });
 </script>
 <style scoped lang="less">
@@ -990,19 +1093,19 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99997;
+  z-index: 1050;
   pointer-events: none; // 容器不拦截点击
 }
 
 // 第一层：全屏遮罩 - 仅挖掉合并后的包围盒区域
 .guide-mask-full {
-  transition: clip-path 0.2s ease; // 裁剪区域变化时平滑过渡
+  transition: clip-path 0.1s ease-in-out; // 裁剪区域变化时平滑过渡
   pointer-events: auto; // 拦截非包围盒区域的点击
 }
 
 // 第二层：包围盒内遮罩 - 灰色半透明，仅对指定DOM挖孔
 .guide-mask-inner {
-  transition: clip-path 0.2s ease;
+  transition: clip-path 0.1s ease-in-out;
   pointer-events: auto; // 拦截包围盒内非指定DOM的点击
   border-radius: 4px; // 和边框圆角一致，视觉更统一
 }
@@ -1015,7 +1118,7 @@ onUnmounted(() => {
 // 弹窗外层容器
 .guide-popup-wrapper {
   position: fixed;
-  z-index: 99999; // 高于所有遮罩和边框
+  z-index: 1052; // 高于所有遮罩和边框
   box-sizing: border-box;
   max-width: 480px;
   min-width: 480px;
@@ -1028,7 +1131,7 @@ onUnmounted(() => {
   width: 0;
   height: 0;
   border: 8px solid transparent;
-  z-index: 99999;
+  z-index: 1052;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   pointer-events: none;

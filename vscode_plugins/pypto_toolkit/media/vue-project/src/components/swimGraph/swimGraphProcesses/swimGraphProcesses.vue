@@ -69,6 +69,7 @@ const {
   labelRender,
   childContextMap,
   isPathLockStatus,
+  isAicpu,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -106,6 +107,7 @@ provide('swimGraphState', {
   colorRending,
   childContextMap,
   isPathLockStatus,
+  isAicpu,
 });
 
 const {

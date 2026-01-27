@@ -12,11 +12,14 @@
             ref="searchEl"
             class="swim-search"
             :category="category" 
+            :selected-tags="catSelectedTags"
+            :search-key="categorySearchKey"
             :extend-config="{show:true, clear: {show : isSearchActive}, save: { show: false }, more: {show : false} }"
             :placeholder="searchPlaceholder"
             :text-config="textConfig"
             :show-search-category="searchConfig"
             :collapseTags="true"
+            :appendToBody="false"
             :menuBtnConfig="{ confirmText: $t('yes'), cancelText: $t('no')}"
             @search="onSearch"
             @selectedTagsChange="onSelectChange"
@@ -77,7 +80,7 @@
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929;" id="pmu-report">
+      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929; z-index: 1053" id="pmu-report">
         <div class="close-container">
           <d-icon name="close" operable @click="closeDrawer"></d-icon>
         </div>
@@ -110,7 +113,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="task-data">{{aicoreRate}}%</div>
+              <div class="task-data">{{aicoreRate}}</div>
             </div>
           </div>
           <div class="aicore-container-column" style="height: 46px; margin-top: 8px"> 
@@ -154,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onMounted, provide } from 'vue';
+import { ref, inject, computed, watch, onMounted, provide, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
@@ -235,6 +238,8 @@ const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
 let dataUrl = ref(null);
+const catSelectedTags = ref([]);
+const categorySearchKey = ref('');
 let category = [
     {
       label: 'Root Func. Hash',
@@ -278,23 +283,27 @@ const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
 const zoomControl = ref('');
 
+const clearSearch = async () => {
+  categorySearchKey.value = '';
+  await nextTick();
+  catSelectedTags.value = [];
+  const params = {
+    searchKey: categorySearchKey.value,
+    selectedTags: catSelectedTags.value,
+  };
+  onSearch(params);
+};
+
 const showSwimCfg = () => {
   isCfgEditing.value = !isCfgEditing.value;
+  isShortcutKeyShow.value = false;
 };
 
 const closeDrawer = () => {
   reportVisible.value = false;
 };
 
-const showDrawer = () => {
-  reportVisible.value = true;
-
-  if (Number.isInteger(viewState.timeRange)) {
-    taskTime.value = viewState.timeRange;
-  }else {
-    taskTime.value = viewState.timeRange.toFixed(2);
-  }
-
+const calculateAicoreInfo = () => {
   let aicTaskTimeSum = new BigNumber('0');
   let totalCnt = new BigNumber('0');
   for (const [processKey, processVal] of processes) {
@@ -302,18 +311,38 @@ const showDrawer = () => {
       if (threadVal.isCounter == false) {
         totalCnt = totalCnt.plus(new BigNumber('1'));
       }
-      if (threadVal.threadName.toLowerCase().startsWith('aic') || threadVal.threadName.toLowerCase().startsWith('aiv')) {
-        for (const event of threadVal.events) {
-          aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
-        }
+      if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
+        continue;
+      }
+      for (const event of threadVal.events) {
+        aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
       }
     }
   }
 
   aicoreTime.value = aicTaskTimeSum.decimalPlaces(2).toString();
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
-  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString();
+  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString() + '%';
+};
 
+const showDrawer = () => {
+  reportVisible.value = true;
+  isCfgEditing.value = false;
+  isShortcutKeyShow.value = false;
+
+  if (Number.isInteger(viewState.timeRange)) {
+    taskTime.value = viewState.timeRange;
+  } else {
+    taskTime.value = viewState.timeRange.toFixed(2);
+  }
+
+  if (isAicpu.value) {
+    aicoreTime.value = '/';
+    aicoreRate.value = '/';
+  } else {
+    calculateAicoreInfo();
+  }
+  
   if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
     cubeRateCycle.value = '/';
     vectorRateCycle.value = '/';
@@ -671,6 +700,8 @@ const onSearch = (e) => {
   }
   e.category = e.selectedTags[0]?.field;
   searchedKey.value = e.searchKey;
+  categorySearchKey.value = e.searchKey;
+  catSelectedTags.value = e.selectedTags;
   if (!(e.category) || e.category === '') {
     fuzzSearch(e.searchKey);
   } else {
@@ -950,6 +981,14 @@ const scrollToEventByDom = (event) => {
 
 const ShortcutKeyShow = () => {
   isShortcutKeyShow.value = !isShortcutKeyShow.value;
+  isCfgEditing.value = false;
+};
+
+const clearHeadState = () => {
+  closeDrawer();
+  clearSearch();
+  isCfgEditing.value = false;
+  isShortcutKeyShow.value = false;
 };
 
 const measureModel = () => {
@@ -1094,6 +1133,7 @@ onMounted(() => {
 defineExpose({
   leftmove,
   rightmove,
+  clearHeadState,
   closeDrawer
 })
 </script>
@@ -1123,8 +1163,6 @@ defineExpose({
 
   .devui-input {
     height: 28px !important;
-    padding-left: 32px !important;
-    padding-right: 44px !important;
     background: var(--devui-input-bg) !important;
     border-color: transparent;
     .devui-input__wrapper {

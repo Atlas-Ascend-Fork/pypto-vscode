@@ -28,7 +28,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   let container = createDiContainer(SPROTTY_CONTAINER_ID);
   const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
   let modelSource = container.get<LocalModelSource>(TYPES.ModelSource);
-  const miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
+  let miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
   let originSprottyGraph: { isFinial: boolean; };
   // Store the current data to allow re-rendering when settings change
   let currentLayoutConfig: any = {
@@ -61,6 +61,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       getViewport(modelSource, MAINMAP_FIT_SCREEN);
     }); // Use dispatch instead of dispatchAll
   };
+
+  const resetMiniMap = () => {
+    jsonGraphWatchHandle?.stop();
+    const minimapContainer = createMiniMapDiContainer(MINIMAP_ID);
+    miniMapModelSource = minimapContainer.get<LocalModelSource>(TYPES.ModelSource);
+  }
 
   const renderMinimap = (model?: any) => {
     miniMapModelSource.updateModel(model || modelSource.model).then(() => {
@@ -146,7 +152,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   }
 
   // Function to update the graph with current settings
-  const updateGraph = (isDark: boolean, option?: { openMode: any; nodeMagic: any; isThreeMode: any; showTensorNodes?: any; showSyncNodes?: any; subgraphFilterSelect?: any; }) => {
+  const updateGraph = (isDark: boolean, option?: { openMode: any; nodeMagic: any; searchLevel: number; isThreeMode: any; showTensorNodes?: any; showSyncNodes?: any; subgraphFilterSelect?: any; }) => {
     if (!currentData) return;
 
     const showTensorNodes = option?.showTensorNodes ?? true;
@@ -159,8 +165,13 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     }
 
     let nodeMagic: any;
+    let searchLevel: any;
     if (option?.openMode === 'path') {
       nodeMagic = option?.nodeMagic;
+      searchLevel = option?.searchLevel;
+      if (searchLevel > -2) {
+        resetModelSource(true);
+      }
     }
     const data = {
       layout: currentLayoutConfig,
@@ -173,6 +184,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      searchLevel,
       version: comGraphStore.data.version,
       threeMode: isThreeMode
     };
@@ -197,7 +209,12 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
               if (!sprottyGraph.isFinial && !nodeMagic) {
                 server.setFinalResult({ data: modelSource.model, layout: currentLayoutConfig, threeMode: isThreeMode });
               }
-              renderMinimap(modelSource.model);
+              if ((searchLevel !== undefined) && (searchLevel > -1)) {
+                resetMiniMap();
+                renderMinimap(modelSource.model);
+              } else {
+                renderMinimap(modelSource.model);
+              }
             }
             if (!sprottyGraph.children) return;
             let node: SNode | undefined;
@@ -385,10 +402,10 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     modelSource.actionDispatcher.dispatch(selectAction);
   };
 
-  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, isThreeMode=false) => {
+  const initComDocText = (jsonData: Object, isDark = true, openMode: string, nodeMagic: number, searchLevel = -1, isThreeMode=false) => {
     try {
       currentData = jsonData; // Store the data
-      updateGraph(isDark, { openMode, nodeMagic, isThreeMode }); // Use the updateGraph function
+      updateGraph(isDark, { openMode, searchLevel, nodeMagic, isThreeMode }); // Use the updateGraph function
     } catch (e) {
       console.error('Error parsing JSON or building graph:', e);
       // Display error in webview?

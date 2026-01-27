@@ -5,7 +5,7 @@
     position: absolute;
     background: var(--devui-select-bg);
     border: 1px solid var(--devui-swim-split-line);
-    z-index: 200;
+    z-index: 1053;
     word-wrap: break-word;
     color: var(--devui-tooltip-text);
     top: 60px;

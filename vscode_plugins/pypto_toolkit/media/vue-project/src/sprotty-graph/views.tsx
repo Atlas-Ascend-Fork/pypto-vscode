@@ -998,8 +998,12 @@ export class AstgrTensorView extends RectangularNodeView {
     } else {
       let isInput = true;
       const parent = node.parent;
-      if (node.role === 'output') {
+      if (node.role === 'output' && !node.isMiddle) {
         isInput = false;
+      }
+      let isMdle = false;
+      if (node.isMiddle) {
+        isMdle = true;
       }
       if (parent.zoom < 0.3) {
         if (isInput) {
@@ -1042,6 +1046,7 @@ export class AstgrTensorView extends RectangularNodeView {
             } ${height + waveOffset1} T 0 ${height + waveOffset1} Z`}
             class-tensor-in-wave-label2={isInput}
             class-tensor-out-wave-label2={!isInput}
+            class-tensor-out-wave-label3={isMdle}
             filter={backgroundFilter}
           ></path>
         </g>

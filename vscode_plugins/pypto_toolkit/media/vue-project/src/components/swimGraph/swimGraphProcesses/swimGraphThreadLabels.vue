@@ -11,7 +11,7 @@
       >
         {{ thread.threadName }}
       </div>
-      <div class="threads-box" v-if="thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
+      <div class="threads-box" v-if="isAicpu || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
         :style="{'--thread-fill-width': threadFillWidth(thread.threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName, selectedOption)) + '%', 
           'display':cycleDisplay}">
         <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%', 'background': getBackground(thread.threadName, selectedOption)}"></div>
@@ -31,7 +31,8 @@ import { getThreadHeight } from '../swimGraphUtils';
 const {
   layout,
   lane2line,
-  processes
+  processes,
+  isAicpu,
 } = inject('swimGraphState');
 
 const {
@@ -57,6 +58,11 @@ const props = defineProps({
 const averageValue = ref(0);
 
 const calculateThreadCycles = (allProcesses, proKey) => {
+  if (isAicpu.value) {
+    cycleDisplay.value = 'none';
+    options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
+    return [null, null];
+  }
   const threadCyclesMap = new Map();
   const threadCacheHitMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
@@ -87,7 +93,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
   const threadTaskMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
   for(const [threadKey, thread] of threads) {
-    if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+    if (isAicpu.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       threadTaskMap.set(thread.threadName, thread.events.length);
     }
   }

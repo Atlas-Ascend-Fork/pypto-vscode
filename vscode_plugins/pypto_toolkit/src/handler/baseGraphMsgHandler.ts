@@ -50,6 +50,7 @@ export abstract class BaseGraphMsgHandler {
     'callInOutTensorMap',
     'getSubgraph',
     'innerGetSubgraph',
+    'getSprottyGraphWithLevel',
     // 以后扩展再往里加
   ]);
 
@@ -219,7 +220,7 @@ export abstract class BaseGraphMsgHandler {
   }
 
   static createJsonGraphData(data, server, errNodeList) {
-    const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, version, threeMode } = data;
+    const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, searchLevel, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap);
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
@@ -230,9 +231,12 @@ export abstract class BaseGraphMsgHandler {
       isDark,
       selectedSubgraphId,
       nodeMagic,
+      searchLevel,
       threeMode,
       errNodeList,
     );
+
+    (this as any).graphLastRenderData = data;
 
     return sprottyGraph;
   }
@@ -295,6 +299,10 @@ export abstract class BaseGraphMsgHandler {
 
   protected static getGraphData(server: any): AbstractGraphData {
     throw new Error(`子类必须覆盖 getGraphData 方法`);
+  }
+
+  static async getSprottyGraphWithLevel(server: any, message: any) {
+    throw new Error('comgraph子类必须覆盖 getSprottyGraphWithLevel 方法');
   }
 
   static async layoutByLocal(server: any, gd: any, lastChangeTime: string, funcHash: string) {
@@ -793,6 +801,7 @@ export abstract class BaseGraphMsgHandler {
     const { useView } = await import('../view');
     const { editorView } = useView();
     const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
+    oldQuery.isBootStep = false;
     const finalQuery = {
       ...oldQuery,
       funcHash: server.comGraphData?.funcHash,

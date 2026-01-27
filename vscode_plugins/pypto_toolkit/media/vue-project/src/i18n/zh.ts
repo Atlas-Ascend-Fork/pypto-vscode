@@ -110,6 +110,9 @@ export default {
    'pipeStat':'Pipe统计',
    'noNull':'不能为空',
    'hashInput':"输入至少一个字符的hash值",
+   selectRelective: '选择关联数据',
+   selectOtherFile: '关联其他文件',
+   warningText: 'warning：当前选中的目录缺少文件',
    diffList: '差异列表',
    diff: '差异',
    sameDiffFileTips: '当前选择文件与已打开文件相同，请重新选择',
@@ -128,6 +131,8 @@ export default {
    directRelative: '直系',
    notDirectRelative: '非直系',
    pleaseSelect: '请选择',
+   'pleaseSelectResult':'请选择运行结果',
+   'selectWarningText':'当前目录缺少泳道图或计算图',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',
    'totalEvents': '共{eventNum}个事件',
@@ -238,7 +243,11 @@ export default {
       calledFunctionName: '被调用函数名',
       callNumber: '调用次数',
       autoLineWrap: '自动换行',
-      viewErrorStack: '查看调用栈'
+      viewErrorStack: '查看调用栈',
+      advancedSearch: '高级搜索',
+      nodeSearchLevelTips1: '-1: 展示全链路',
+      nodeSearchLevelTips2: '其余数字：展示关联层级',
+      nodeSearchLevel: '链路关联层级'
    },
     sideBar: {
         title: '运行结果',
@@ -313,12 +322,12 @@ export default {
         controlFlow: {
           groupName: '控制流',
           step1: {
-            title: '控制流-查看控制流图',
-            content: '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，在矩形Path卡片中点击leaf函数个数、leaf被调用次数、调用leaf次数即可在右侧打开该path节点的详情。下一步将演示点击leaf函数个数的效果。'
+            title: '控制流-整体介绍',
+            content: '控制流图展示了控制流的结构，可以清晰的了解循环和分支判断等控制流逻辑及关联关系，支持鼠标滚动缩放，按住拖拽，小地图快速定位功能。下面的矩形Path卡片中描述了leaf函数个数、leaf被调用次数、调用leaf次数,点击即可在右侧打开该path节点的详情。下一步将演示点击leaf函数个数后的效果。'
           },
           step2: {
-            title: '控制流-查看Path节点面板',
-            content: 'leaf被调用次数显示当前PATH节点的子函数个数；调用leaf次数显示当前PATH节点调用函数的次数；所有计算图显示当前节点所有的计算图列表，在列表中点击任意PASS可打开相应计算图页面。'
+            title: '控制流-点击查看详情面板',
+            content: '调用leaf次数显示当前PATH节点调用函数的次数；所有计算图显示当前节点所有的计算图列表，在列表中点击任意PASS可打开相应计算图页面。'
           },
           step3: {
             title: '控制流-搜索栏',
@@ -329,8 +338,8 @@ export default {
         navigation: {
           groupName: '导航系统',
           step1: {
-            title: '导航系统-查看历史记录',
-            content: '默认展示当前运行记录，点击可展开历史运行列表，点击列表中任意一条运行记录可查看对应结果总览。'
+            title: '导航系统-导航标题',
+            content: '展示了当前页面的运行记录名称，同时标注了当前运行记录生成的时间。'
           },
           step2: {
             title: '导航系统-打开计算图',
@@ -369,7 +378,7 @@ export default {
         swimlaneGraph: {
           groupName: '泳道图',
           step1: {
-            title: '泳道图-测距',
+            title: '泳道图-查看测距',
             content: '支持同一泳道内相邻节点的自动测距，以及跨泳道或跨节点的手动测距。'
           },
           step2: {
@@ -378,11 +387,11 @@ export default {
           },
           step3: {
             title: '泳道图-操作区',
-            content: '支持搜索、缩放、渲染设置、时间度量、性能报告。'
+            content: '支持搜索、缩放、查看快捷键设置、导出图片、渲染设置、时间度量、性能报告，其中度量模式可以在下一步引导中单独体验。'
           },
           step4: {
             title: '泳道图-开启时间度量-查看核利用率统计信息',
-            content: '点击泳道图右上角的度量模式按钮，然后在主操作区拖拽划定范围或框选节点，即可查看核利用率统计信息。'
+            content: '时间度量模式下，在主操作区拖拽划定范围，即可查看核利用率统计信息。'
           },
           step5: {
             title: '泳道图-查看节点详情',
@@ -405,9 +414,9 @@ export default {
             content: '在一个页面视图里同时展示代码、计算图和泳道图，三者通过语义标签关联，帮助开发者快速理解从代码实现到对应的计算图表达，再到上板泳道图最终的性能表现的整个过程。'
           },
           step2: {
-            title: '锁定模式',
-            content: '在三栏视图的任一视图点击锁定按钮，即可开启锁定模式。'
-          },          
+            title: '联动体验',
+            content: '在三栏视图的任一视图（本引导以泳道图为例）悬浮节点即可与其他两个视图联动。切换锁图标即可切换锁定状态。'
+          },
         }
       }
 }

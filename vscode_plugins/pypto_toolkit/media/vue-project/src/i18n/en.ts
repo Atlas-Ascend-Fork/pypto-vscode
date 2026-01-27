@@ -110,6 +110,9 @@ export default {
     'pipeStat':'Pipe Statistics',
     'noNull':'The value cannot be empty',
     'hashInput':"Enter a hash value of at least one character",
+    selectRelective: 'Select Associated Data',
+    selectOtherFile: 'Associate Other File',
+    warningText: 'warning: The selected directory lacks files',
     diffList: 'Differences List',
     diff: 'Difference',
     sameDiffFileTips: 'The currently selected file is the same as the one already opened. Please select again',
@@ -128,6 +131,7 @@ export default {
     directRelative: 'Direct relative',
     notDirectRelative: 'Non-direct relative',
     pleaseSelect: 'Please select',
+    'pleaseSelectResult':'Please select Compilation Result',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
     'totalEvents': 'There are {eventNum} events in total.',
@@ -238,7 +242,11 @@ export default {
         calledFunctionName: 'Name of the called function',
         callNumber: 'Number of calls',
         autoLineWrap: 'Auto line wrap',
-        viewErrorStack: 'View call stack'
+        viewErrorStack: 'View call stack',
+        advancedSearch: 'advanced search',
+        nodeSearchLevelTips1: '-1: show full layers',
+        nodeSearchLevelTips2: 'else: show selected layers',
+        nodeSearchLevel: 'Relative layers of searching node',
     },
     sideBar: {
         title: 'Compilation result',
@@ -314,12 +322,12 @@ export default {
         controlFlow: {
           groupName: 'Control Flow',
           step1: {
-            title: 'Control Flow - View Control Flow Graph',
-            content: 'The flow graph control displays the structure of the control flow. You can understand the control flow logic and relationships, such as loops and branching statements, through voice prompts. Clicking on the number of leaf functions, the number of times a leaf function is called, or the number of times a leaf function is called in the planned path will open the details of that path node on the right. The next step will be to practice clicking on the number of leaf functions.'
+            title: 'Control Flow - Overall Introduction',
+            content: 'The control flow graph illustrates the structure of the control flow, clearly showing the control flow logic and relationships, such as loops and branching statements. It supports mouse scrolling and zooming, dragging, and quick location on a minimap. The rectangular Path cards below describe the number of leaf functions, the number of times leaf functions are called, and the number of times leaf functions are invoked. Clicking on a path node will open its details on the right. The next step will demonstrate the effect of clicking on the number of leaf functions.'
           },
           step2: {
-            title: 'Control Flow - View Path Node Panel',
-            content: 'The number of times leaf is called displays the number of child functions of the current PATH node; the number of times leaf is called displays the number of times the function is called by the current PATH node; the list of all computation graphs displays a list of all computation graphs of the current node, and clicking PASS in the list will open the corresponding computation graph page.'
+            title: 'Control Flow - Click to view details panel',
+            content: 'The number of times leaf is called displays the number of times the function is called by the current PATH node; the list of all computation graphs displays a list of all computation graphs of the current node, and clicking PASS in the list will open the corresponding computation graph page.'
           },
           step3: {
             title: 'Control Flow - Search Bar',
@@ -330,8 +338,8 @@ export default {
         navigation: {
           groupName: 'Navigation System',
           step1: {
-            title: 'Navigation System - View History Records',
-            content: 'The default display shows the current running records. Clicking on a record will expand the historical running list. Clicking on any record in the list will show an overview of the reply results.'
+            title: 'Navigation System - Navigation Title',
+            content: `It displays the name of the current page's running record, along with the time when the current running record was generated.`
           },
           step2: {
             title: 'Navigation System - Open Computation Graph',
@@ -370,7 +378,7 @@ export default {
         swimlaneGraph: {
           groupName: 'Swimlane Graph',
           step1: {
-            title: 'Swimlane Graph - Distance Measurement',
+            title: 'Swimlane Graph - Check Distance Measurement',
             content: 'Supports automatic distance measurement between adjacent nodes within the same swimlane, as well as manual distance measurement across swimlanes or between arbitrary nodes.'
           },
           step2: {
@@ -379,11 +387,11 @@ export default {
           },
           step3: {
             title: 'Swimlane Graph - Operation Area',
-            content: 'Supports search, zoom, rendering settings, time measurement, and performance reports.'
+            content: 'Supports functionalities including search, zoom, viewing shortcut settings, exporting images, rendering settings, time measurement, and performance reports. The measurement mode can be explored separately in the subsequent step-by-step guide.'
           },
           step4: {
             title: 'Swimlane Graph - Enable Time Measurement - View Core Utilization Statistics',
-            content: 'Click the Measurement Mode button in the top-right corner of the swimlane diagram, then either drag to define a measurement area or select nodes by box selection in the main workspace to view CPU core utilization statistics.'
+            content: 'In time measurement mode, simply drag to select a time range in the main workspace, and you will see core utilization statistics for that interval.'
           },
           step5: {
             title: 'Swimlane Graph - View Node Details',
@@ -402,13 +410,13 @@ export default {
         threeColumnGraph: {
           groupName: 'Three Column Graph',
           step1: {
-            title: 'View Three Column Graph',
+            title: 'Three Column View',
             content: 'The code, compute graph, and swimlane graph are displayed in a page view. The three diagrams are associated with semantic tags to help developer quickly understand the whole process from code implementation to corresponding calculation graph expression to the final performance of the onboard swimlane graph.'
           },
           step2: {
-            title: 'Lock Mode',
-            content: 'Click the lock button in any of the three-column graph to enable lock mode.'
-          },          
+            title: 'Linked interaction experience',
+            content: 'Hovering a node in any of the three column view (we’ll use the swimlane graph as an example in this guide) will automatically highlight with the corresponding elements in the other two views. And simply click the lock icon to toggle the lock state.'
+          },
         }
       }
 }

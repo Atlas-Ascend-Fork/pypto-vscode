@@ -11,7 +11,7 @@
       :esc-key-closeable="true"
       @close="handleDrawerClose"
       @open="handleDrawerOpen"
-      id="boot-steps-controlFlow-right-panel"
+      
     >
       <div class="drawer-header">
         <div class="drawer-header__title">{{ currentDrawerData?.title }}</div>
@@ -21,7 +21,7 @@
       <!-- 抽屉内容区：包含页签切换和表格内容，高度自适应 -->
       <div class="drawer-content">
         <!-- Tabs组件：切换不同数据分类（如基本信息、联系方式） -->
-        <d-tabs v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange" custom-width="140px">
+        <d-tabs id="boot-steps-controlFlow-right-panel" v-model="activeTabId" class="data-tabs" type="options" @active-tab-change="handleTabChange" custom-width="140px">
           <!-- 动态页签面板：根据当前抽屉数据生成对应页签 -->
           <d-tab
             v-for="(tab, tabIndex) in currentDrawerData?.tabs || []"

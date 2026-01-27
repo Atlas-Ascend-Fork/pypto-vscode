@@ -415,7 +415,7 @@ watch(
       }
       if (initComDocText) {
         resetModelSource(true);
-        initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
+        initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
         comGraphStore.setData('jsonData', jsonValue);
         server.returnFuncTree();
         let shouldListenViewZoom = true;
@@ -439,7 +439,7 @@ watch(
       }
       const sprottyLoadResult = useSprottyLoad();
       initComDocText = sprottyLoadResult.initComDocText;
-      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, props.isThreeMode);
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
       createSelectNodesRect = sprottyLoadResult.createSelectNodesRect;

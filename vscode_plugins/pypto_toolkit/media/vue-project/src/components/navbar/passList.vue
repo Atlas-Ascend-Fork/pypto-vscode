@@ -6,6 +6,7 @@
     :offset="14"
     close-scope="blank"
     class="pass-list-menu-wrap"
+    :appendToBody="false"
     @toggle="onToggle"
   >
     <div class="pass-list-container" @click="isOpen = !isOpen">
@@ -55,8 +56,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getQuery } from '@/core/query';
 import ThreeDot from './threeDot.vue';
 import HealthReportIcon from './icons/health-report-icon.vue';
 import { transformPassList, UpperFirstStr, parsePassName } from './util';
@@ -71,6 +73,7 @@ const isOpen = ref(false);
 const currentData = ref<PathInPass>();
 const scrollEl = ref<HTMLElement>();
 let PassListMap: Partial<Record<PathInPass['passStage'], PathInPass[]>> = {};
+let isBootStep = false;
 
 const renderPassList = computed(() => {
   if (!filterKey.value) {
@@ -133,7 +136,7 @@ function onToggle(val: boolean) {
 
 function selectPass(pass: PathInPass) {
   isOpen.value = false;
-  jumpComGraph(pass.graphFilePath, pass.pathName);
+  jumpComGraph(pass.graphFilePath, pass.pathName, isBootStep);
 }
 
 function isLastGraph(passStage: PathInPass['passStage']) {
@@ -149,6 +152,12 @@ function isMiddleGraph(passStage: PathInPass['passStage']) {
     return currentData.value.passIndex !== temp[temp.length - 1].passIndex;
   }
 }
+
+onMounted(async () => {
+  const res = await getQuery();
+  const query = JSON.parse(res._uri.query);
+  isBootStep = Boolean(query.isBootStep);
+});
 
 defineExpose({ getCurrentPass: () => currentData.value });
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, toRef, computed, shallowRef } from 'vue';
+import { onMounted, ref, watch, toRef, computed, shallowRef, provide } from 'vue';
 import ComGraph from '../../components/comGraph/comGraph.vue';
 import DiffComGraph from '../../components/diffComGraph/diffComGraph.vue';
 import ErrorView from '../../components/comGraph/error.vue';
@@ -7,6 +7,7 @@ import SearchEntry from '../../components/comGraph/searchEntry.vue';
 import SearchMode from '../../components/comGraph/searchMode.vue';
 import SimpleComGraph from '../../components/comGraph/simpleComGraph.vue';
 import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
+import RundataModal from '../../components/threeColumn/rundataModal.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
@@ -32,8 +33,13 @@ const fileName = ref('');
 const diffInfo = ref<Record<string, any>>({});
 const openMode = ref('all');
 const nodeMagic = ref(0);
+const searchLevel = ref(-1);
 const noComFile = ref(true);
 const noSwimFile = ref(true);
+const runDataVisible = ref(false);
+const missGraphType = ref('');
+const baseChoose = ref('');
+const pagetotal = ref(0);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 let inThreeColumnMode = false;
 const modalVisible = ref(false);
@@ -159,9 +165,10 @@ function setupComWatchers(server: any) {
 
 function setupThreeWatchers(server: any) {
   watch(server.InitFlag, async () => {
-    if (server.InitFlag.value == 'true') {
+    if (server.InitFlag.value) {
       noComFile.value = false;
       noSwimFile.value = false;
+      baseChoose.value = server.InitFlag.value.runDataTitle;
       await server.getInitialData();
       server.returnFuncTree();
     }
@@ -213,9 +220,14 @@ function setupThreeWatchers(server: any) {
     filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
     const promises = [];
     if (swimPath) {
-      noSwimFile.value = false;
       swimFileName.value = swimPath.split(/[\/\\]/).pop();
       promises.push(server.getInitialSwimData());
+      if (noSwimFile.value) {
+        noSwimFile.value = false;
+      } else {
+        // 如果泳道图不缺省，则要重载泳道图
+        promises.push(reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache));
+      }
     }
     if (comPath) {
       noComFile.value = false;
@@ -300,7 +312,9 @@ onMounted(async () => {
 const searchNodeListener = (args) => {
   searchMode.value = 0;
   openMode.value = 'path';
-  nodeMagic.value = args;
+  searchLevel.value = args.nodeSearchLevel;
+  comGraphStore.setData('searchLevel', searchLevel.value);
+  nodeMagic.value = args.nodeMagic;
   loadingStep.value = 'convertData';
 };
 
@@ -313,6 +327,8 @@ const searchNodeGlobalListener = (args) => {
     nodeMagic.value = undefined
   } else {
     nodeMagic.value = args.nodeMagic;
+    searchLevel.value = args.nodeSearchLevel;
+    comGraphStore.setData('searchLevel', searchLevel.value);
   }
 
   loadingStep.value = 'convertData';
@@ -438,7 +454,7 @@ const onInputFocus = (event) => {
 const onInputLeave = (event) => {
   isHovered.value = false;
 };
-
+provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose});
 </script>
 
 <template>
@@ -461,7 +477,7 @@ const onInputLeave = (event) => {
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0"
-      :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic"
+      :jsonContent="jsonContent" :loadingStep="loadingStep" :openMode="openMode" :nodeMagic="nodeMagic" :searchLevel="searchLevel"
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
       :afterFileName="diffInfo.afterFileName" :beforeJson="diffInfo.beforeJson"
@@ -483,6 +499,9 @@ const onInputLeave = (event) => {
         </d-modal-footer>
       </template>
     </d-modal>
+  </template>
+  <template>
+    <RundataModal ref="runDataListRef" :filePath="filePaths" />
   </template>
 </template>
 <style scoped>
@@ -563,7 +582,7 @@ header {
   padding-right: 20px;
 }
 
-.modal-button {
+.modal-button, .devui-modal__footer.runData-modal-button {
   .devui-button {
     height: 28px;
     border-radius: 8px;

@@ -106,6 +106,10 @@ rect.sprotty-node.op {
   fill: var(--devui-out-wave-fill2);
 }
 
+.tensor-out-wave-label3 {
+  fill: var(--devui-out-wave-fill3);
+}
+
 /* Specific colors for different node type main labels */
 .tensor-main-label {
   fill: white;
@@ -468,7 +472,7 @@ circle {
   display: flex;
   flex-direction: column;
   position: fixed;
-
+  z-index: 999999;
   box-shadow:var(--devui-select-shadow);
   background:var(--devui-node-bg);
   border-radius: 8px;
@@ -483,8 +487,29 @@ circle {
   padding: 4px 8px;
 }
 
-.astgr-context-menu-item.disabled-action {
-  color: var(--devui-split-line);
+.menu-text {
+  color: var(--devui-title-text);
+  font-size: 13px;
+  flex: 1 1 auto;
+  margin-right: 20px;
+  line-height: 20px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.astgr-context-menu-item.disabled-action .menu-text {
+  color: var(--devui-disabled-text);
+  cursor: not-allowed;
+}
+.astgr-context-menu-item.disabled-action .jump-button-item span {
+  color: var(--devui-disabled-text);
+  cursor: not-allowed;
+}
+.astgr-context-menu-item.disabled-action .jump-button-item span:first-of-type {
+  border-color: var(--devui-disabled-text) !important;
+}
+.astgr-context-menu-item:not(.disabled-action) .jump-button-item:hover {
+  background-color: var(--devui-input-hover-bg) !important;
 }
 
 .astgr-context-menu-item:empty {
@@ -499,17 +524,6 @@ circle {
 
 .astgr-context-menu-item:hover:not(.disabled-action) {
   background-color: var(--devui-input-hover-bg);
-}
-
-
-.menu-text {
-  color: var(--devui-title-text);
-  font-size: 13px;
-  flex: 1 1 auto;
-  margin-right: 20px;
-  line-height: 20px;
-  letter-spacing: 0px;
-  text-align: left;
 }
 
 .shortcut-key {

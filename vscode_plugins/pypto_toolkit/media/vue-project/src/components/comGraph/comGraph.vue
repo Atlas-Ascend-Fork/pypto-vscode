@@ -22,7 +22,7 @@
     <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
-    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" />
+    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
     <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
   </div>
@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount } from 'vue';
+import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -52,8 +52,11 @@ import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
 import { getQuery } from '@/core/query';
 
 const outputDirPath = ref('');
+let isBootStep = false;
 getQuery().then((res) => {
   outputDirPath.value = res.outputDirPath as string;
+  const query = JSON.parse(res._uri.query);
+  isBootStep = Boolean(query.isBootStep)
 });
 
 const { server } = useViewServer<IComViewServer>();
@@ -72,6 +75,10 @@ const props = defineProps({
     default: 'all'
   },
   nodeMagic: {
+    type: Number,
+    default: -1
+  },
+  searchLevel: {
     type: Number,
     default: -1
   },
@@ -133,7 +140,10 @@ let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
 const fitToScreen = () => {
-  fitToScreenAction();
+  const timer = setTimeout(() => {
+    fitToScreenAction();
+    clearTimeout(timer);
+  });
 }
 
 const nodeDisplayConfig = (type: 'op' | 'all') => {
@@ -142,6 +152,14 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
     openMode: props.openMode, nodeMagic: props.nodeMagic
   })
   showType.value = type;
+}
+
+
+const nodeSearchLevelChange = (newSearchLevel: string) => {
+  comGraphStore.data.searchLevel = newSearchLevel;
+  updateGraph(isDarkTheme.value, {
+    openMode: props.openMode, nodeMagic: props.nodeMagic, searchLevel: Number(newSearchLevel)
+  })
 }
 
 function isNodeInTrace(nodeId: string): boolean {
@@ -242,9 +260,10 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
   if (Object.keys(val).length) {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+    const searchLevel = comGraphStore.data?.searchLevel ?? props.searchLevel;
     if (initComDocText){
       resetModelSource(true);
-      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+      initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
       comGraphStore.setData('jsonData', jsonValue);
       return;
     }
@@ -259,7 +278,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
     hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
-    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic);
+    initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
     comGraphStore.setData('jsonData', jsonValue);
   }
 }, { immediate: true });
@@ -312,12 +331,12 @@ function viewComGraph() {
 }
 // 步骤2查看节点详情
 function viewNodeDetail(params: Record<string, any>) {
-  // 清空步骤3搜索条件并关闭搜索结果下拉框
+  // 清空步骤3搜索条件并关闭搜索结果下拉框，清空用户选中的节点
   headerEl.value.updateSearchParams({ searchKey: '', selectedTags: [] });
   headerEl.value.hideSearchResMenu();
+  selectAction([]);
   // 选中并居中节点
   centerNodeAction([params.nodeId], undefined, undefined, 1);
-  selectAction([params.nodeId]);
 }
 
 // 步骤3搜索节点
@@ -327,18 +346,22 @@ function searchNode(params: Record<string, any>) {
   // 还原到步骤2的节点选中和居中
   const { nodeId, ...rest } = params;
   centerNodeAction([nodeId], undefined, undefined, 1);
-  selectAction([nodeId]);
   // 填充搜索条件
   headerEl.value.updateSearchParams(rest);
 }
 
 // 步骤4只看当前通路
 function focusCurrentPath(params) {
+  // 清空用户选中的节点
+  selectAction([]);
+  // 填充步骤3的搜索结果
+  const { searchNodeId, ...rest } = params;
+  headerEl.value.updateSearchParams({ searchKey: '', selectedTags: [] });
+  nextTick(() => {
+    headerEl.value.updateSearchParams(rest);
+  });
   // 聚焦搜索的节点
-  centerNodeAction([params.searchNodeId]);
-  selectAction([params.searchNodeId]);
-  // 只看当前通路
-  setFixedComGraphFlow(true, true, params.searchNodeId);
+  centerNodeAction([searchNodeId]);
 }
 const stepsMap = {
   viewComGraph,
@@ -374,6 +397,7 @@ onMounted(() => {
   document.addEventListener('mouseup', onMouseup);
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
+  (window as any).addEventListener('resize', fitToScreen);
 });
 
 onBeforeUnmount(() => {
@@ -385,6 +409,7 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
   document.removeEventListener('mouseup', onMouseup);
   (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
+  (window as any).removeEventListener('resize', fitToScreen);
 });
 
 // 统一出口：解除固定
@@ -401,11 +426,11 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
   }
   // 2. Ctrl+L  锁定通路并高亮
   if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
-    (e.key === 'l' || e.key === 'L')) {
+    (e.key === 'l' || e.key === 'L') && !isBootStep) {
     e.preventDefault();
     const selectedNodeId = await getSelectedNodeId()
-    setFixedComGraphFlow(true, false,selectedNodeId);
-    if(selectedNodeId && selectedNodeId !='' ){
+    setFixedComGraphFlow(true, false, selectedNodeId);
+    if (selectedNodeId && selectedNodeId != '') {
       switchLockInformationFlag.value = true;
       lockText = t('comGraph.pathLocked');
     }

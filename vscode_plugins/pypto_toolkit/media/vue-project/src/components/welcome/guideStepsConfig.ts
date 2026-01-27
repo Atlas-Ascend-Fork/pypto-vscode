@@ -54,14 +54,14 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           {
             targetDomId: 'boot-steps-controlFlow',
             triangleDirection: 'bottom',
-            showTriangle: true,
+            showTriangle: false,
           },
         ],
       },
       {
         title: 'bootStep.controlFlow.step2.title',
         content: 'bootStep.controlFlow.step2.content',
-        allowClick: false,
+        allowClick: true,
         showBorder:true,
         targetDomConfigs: [
           {
@@ -84,7 +84,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             showTriangle: true,
           },
           {
-            targetDomId: 'boot-steps-controlFlow-search',
+            targetDomId: 'devui-input',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -107,9 +107,14 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.navigation.step1.content',
         method: 'viewNavigationHistory',
         methodParams: {},
-        allowClick: false,
+        allowClick: true,
         showBorder:true,
         targetDomConfigs: [
+          {
+            targetDomId: 'history-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
           {
             targetDomId: 'boot-steps-navbar-history',
             triangleDirection: 'top',
@@ -151,6 +156,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         allowClick: true,
         showBorder:true,
         targetDomConfigs: [
+          {
+            targetDomId: 'path-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'pass-list-menu-wrap',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
           {
             targetDomId: 'navbarComGraphTab',
             triangleDirection: 'top',
@@ -194,7 +209,22 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         showBorder:true,
         targetDomConfigs: [
           {
-            targetDomId: 'comGraphSearchResList',
+            targetDomId: 'com-graph-header-search-dropdown',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: '.devui-flexible-overlay:not(.hide-category-search-dropdown):has(.dp-category-search-dropdown)',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: '.com-graph-global-select.show-global-select-menu',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'comGraphHeaderSearch',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -206,15 +236,18 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'focusCurrentPath',
         methodParams: {
           searchNodeId: 'tensor-6036-13',
+          searchKey: '6036',
+          selectedTags: [
+            {
+              label: 'Tensor',
+              field: 'Tensor',
+              value: { Option: 'magic', value: { Option: 'magic' } },
+            },
+          ],
         },
         allowClick: true,
         showBorder:true,
         targetDomConfigs: [
-          {
-            targetDomId: 'astgr-context-menu',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
           {
             targetDomId: 'sprotty_tensor-6036-13',
             triangleDirection: 'top',
@@ -269,7 +302,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'distanceMeasurement',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
             targetDomId: 'distance-measurement',
@@ -289,6 +322,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           {
             targetDomId: 'observation-line',
             triangleDirection: 'right',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'timeline-area',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'edit-model',
+            triangleDirection: 'top',
             showTriangle: true,
           },
         ],
@@ -311,6 +354,16 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
             triangleDirection: 'top',
             showTriangle: true,
           },
+          {
+            targetDomId: 'cfgEdit',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'dp-category-search-dropdown',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
         ],
       },
       {
@@ -319,12 +372,12 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'measureDetailSearch',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'measure-button',
-            triangleDirection: 'top',
-            showTriangle: true,
+            targetDomId: 'main-swim',
+            triangleDirection: 'bottom',
+            showTriangle: false,
           },
         ],
       },
@@ -333,8 +386,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         content: 'bootStep.swimlaneGraph.step5.content',
         method: 'showGuideDetailsPanel',
         methodParams: {},
-        allowClick: true,
-        showBorder:true,
+        allowClick: false,
+        showBorder: true,
         targetDomConfigs: [
           {
             targetDomId: 'details-content',
@@ -347,7 +400,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         title: 'bootStep.swimlaneGraph.step6.title',
         content: 'bootStep.swimlaneGraph.step6.content',
         allowClick: true,
-        showBorder:true,
+        showBorder: true,
         targetDomConfigs: [
           {
             targetDomId: 'canvas-container',
@@ -359,6 +412,8 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.swimlaneGraph.step7.title',
         content: 'bootStep.swimlaneGraph.step7.content',
+        method: 'showGuideDetailsPanel',
+        methodParams: {},
         allowClick: true,
         showBorder:true,
         targetDomConfigs: [
@@ -373,7 +428,7 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
   },
 ];
 
-// 全局引导步骤3配置（需要替换为真实三联动引导步骤）
+// 全局引导步骤3配置
 export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
   {
     groupName: 'bootStep.threeColumnGraph.groupName',
@@ -392,7 +447,7 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
           subFuncmagicname: 'TENSOR_dense_moe_main_2',
         },
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
             targetDomId: 'guideThreeColumn',
@@ -404,13 +459,18 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
       {
         title: 'bootStep.threeColumnGraph.step2.title',
         content: 'bootStep.threeColumnGraph.step2.content',
-        method: 'lockThreeColumnGraph',
+        method: 'guideLink',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'guideEditorLock',
+            targetDomId: 'timeline-middle-virtual',
+            triangleDirection: 'bottom',
+            showTriangle: true,
+          },
+          {
+            targetDomId: 'threads-container',
             triangleDirection: 'bottom',
             showTriangle: true,
           },
@@ -424,12 +484,26 @@ export const guideStepsConfigStep3: GuideBigGroupConfig[] = [
 const getCurrentPriorityTargetConfig = (bigGroup: number, smallIndex: number, graphType: string) => {
   const groupConfig = graphType === 'threeColumnGraph' ? guideStepsConfigStep3[bigGroup] : guideStepsConfigStep2[bigGroup];
   if (!groupConfig) return null;
+  
   const stepConfig = groupConfig.steps[smallIndex];
   if (!stepConfig || !stepConfig.targetDomConfigs.length) return null;
 
+  // 复用通用DOM存在性判断逻辑（优先ID，降级class）
+  const isDomExist = (selector: string): boolean => {
+    // 查ID
+    if (document.getElementById(selector)) return true;
+    // 查class（存在至少一个匹配元素）
+    const classElements = document.getElementsByClassName(selector);
+    if (classElements.length) {
+      return true
+    }
+    // 查选择器
+    return Boolean(document.querySelector(selector));
+  };
+
   // 遍历配置数组（索引越小优先级越高），返回第一个存在的DOM对应的配置
   for (const config of stepConfig.targetDomConfigs) {
-    if (document.getElementById(config.targetDomId)) {
+    if (isDomExist(config.targetDomId)) {
       return config;
     }
   }
