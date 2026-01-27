@@ -1118,7 +1118,8 @@ function setupSwimWatchers() {
     }
   });
   watch(server.SaveDirPath, (newValue) => {
-    exportPath.value = newValue.dir;
+    const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
+    exportPath.value = newValue.dir + `/${fileNameInfo}`;
   });
   watch(server.SaveFileResult, (newValue) => {
    if(newValue.result) {
@@ -1146,8 +1147,7 @@ const exportConfirm = () => {
     link.click();
   } else {
     const fileNameInfo = `${fileName.value}.png` || 'swim-graph-export.png';
-    const filePath = exportPath.value + `/${fileNameInfo}`;
-    server.saveFile({ dataUrl, fileName: fileNameInfo, filePath });
+    server.saveFile({ dataUrl, fileName: fileNameInfo, filePath: exportPath.value });
     modalVisible.value = false;
   }
 };
