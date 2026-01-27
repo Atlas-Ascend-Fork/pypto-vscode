@@ -26,16 +26,6 @@ async function downloadSvgFile(svgString: string, fileName: string = 'diagram.sv
     const blob = new Blob([svgString], {type: 'image/svf+xml' });
     const svgBase64 = await svg2Base64(blob);
     (window as any).ascEventBus.emit(`svgBase64`, {svgString: svgBase64, fileName: fileName});
-
-    // const url = URL.createObjectURL(blob);
-    // const a = document.createElement('a');
-    // a.href = url;
-    // a.download = fileName;
-    // document.body.appendChild(a);
-    // a.click();
-
-    // document.body.removeChild(a);
-    // URL.revokeObjectURL(url);
     (window as any).ascEventBus.emit(`svgExportingOver`);
 }
 
