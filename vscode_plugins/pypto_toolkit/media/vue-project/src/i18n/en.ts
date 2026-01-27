@@ -166,6 +166,9 @@ export default {
     exportSwimGraph: 'Export',
     swimExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
     swimExportSuccessInfo: 'Successfully exported {fileNameInfo}.',
+    imageExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
+    imageExportSuccessInfo: 'Successfully exported {fileNameInfo}.',
+    exportImageGraph: 'Export',
     pleaseUnlock: 'Please unlock the label first.',
     exportPosition: 'Export Location',
     iconExport: 'Export Image',
@@ -239,6 +242,8 @@ export default {
         callNumber: 'Number of calls',
         autoLineWrap: 'Auto line wrap',
         viewErrorStack: 'View call stack',
+        svgExportErrorInfo: 'Export failed. Please refresh the page and try again, or contact technical support.',
+        svgExportSuccessInfo: 'Successfully exported {fileNameInfo}.',
     },
     sideBar: {
         title: 'Compilation result',

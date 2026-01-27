@@ -1,24 +1,41 @@
 import { SModelRootImpl} from 'sprotty';
 import { comGraphStore } from '../service/com-graph-store';
 import cssraw from './style/diagram.css?raw';
+import { resolve } from 'path';
+import { reject } from 'lodash';
 
 const moreBorder = 200;
 let xBoundary = 0;
 let yBoundary = 0;
 
-function downloadSvgFile(svgString: string, fileName: string = 'diagram.svg') {
+function svg2Base64(svgBlob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = btoa(reader.result as string);
+            resolve(`data:image/svg+xml;base64,${base64}`);
+        };
+        reader.onerror = reject;
+        reader.readAsBinaryString(svgBlob);
+    });
+}
+
+async function downloadSvgFile(svgString: string, fileName: string = 'diagram.svg') {
     xBoundary = 0;
     yBoundary = 0;
     const blob = new Blob([svgString], {type: 'image/svf+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
+    const svgBase64 = await svg2Base64(blob);
+    (window as any).ascEventBus.emit(`svgBase64`, {svgString: svgBase64, fileName: fileName});
 
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // const url = URL.createObjectURL(blob);
+    // const a = document.createElement('a');
+    // a.href = url;
+    // a.download = fileName;
+    // document.body.appendChild(a);
+    // a.click();
+
+    // document.body.removeChild(a);
+    // URL.revokeObjectURL(url);
     (window as any).ascEventBus.emit(`svgExportingOver`);
 }
 

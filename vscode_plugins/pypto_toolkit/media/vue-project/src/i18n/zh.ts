@@ -166,6 +166,9 @@ export default {
    exportSwimGraph: '导出',
    swimExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
    swimExportSuccessInfo: '成功导出{fileNameInfo}',
+   imageExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
+   imageExportSuccessInfo: '成功导出{fileNameInfo}',
+   exportImageGraph: '导出',
    pleaseUnlock: '请先解除标签锁定',
    exportPosition: '导出位置',
    iconExport: '图片导出',
@@ -239,6 +242,8 @@ export default {
       callNumber: '调用次数',
       autoLineWrap: '自动换行',
       viewErrorStack: '查看调用栈',
+      svgExportErrorInfo: '导出失败，请刷新页面后重试，或联系技术支持',
+      svgExportSuccessInfo: '成功导出{fileNameInfo}',
    },
     sideBar: {
         title: '运行结果',
