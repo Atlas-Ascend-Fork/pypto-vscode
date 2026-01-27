@@ -164,7 +164,6 @@ import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
 import { useViewServer } from '../../../core/use-view-server';
 import ExportModal from '../../exportModal/exportModal.vue';
-import { Message } from 'vue-devui/message';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -235,7 +234,7 @@ const searchPlaceholder = $t("searchKeyword");
 const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
-let dataUrl = null;
+let dataUrl = ref(null);
 let category = [
     {
       label: 'Root Func. Hash',
@@ -401,7 +400,7 @@ const exportSwimGraph = () => {
       timelineHeight
     );
     // 5. 导出图片
-    dataUrl = canvas.toDataURL('image/png');
+    dataUrl.value = canvas.toDataURL('image/png');
     server.checkSys();
   } catch (error) {
     postMessage($t('swimExportErrorInfo'));
