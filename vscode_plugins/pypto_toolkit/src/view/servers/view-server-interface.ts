@@ -77,6 +77,7 @@ export type IThreeApis =
   | 'getInitialComData'
   | 'getInitialSwimData'
   | 'selectFile'
+  | 'selectRunData'
   | 'singleSelectFile'
   | 'fetchVscodeState';
 export type IThreeRefs = {

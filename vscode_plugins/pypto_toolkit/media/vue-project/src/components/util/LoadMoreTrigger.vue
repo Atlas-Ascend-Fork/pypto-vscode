@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch, onMounted, onUnmounted } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -27,25 +27,74 @@ const marginTop = computed(() => `${VISIBLE_HEIGHT - Math.max(props.distance, VI
 
 // 监听滚动触底
 const triggerRef = ref<HTMLDivElement | null>(null);
-const observer = new IntersectionObserver(([entry]) => {
-  if (entry.isIntersecting) {
-    emit('loadMore');
+let observer: IntersectionObserver | null = null;
+
+const initObserver = () => {
+  if (observer) {
+    return;
   }
-});
+  observer = new IntersectionObserver(([entry]) => {
+    if (entry.isIntersecting && !props.allLoaded) {
+      emit('loadMore');
+    }
+  }, {
+    rootMargin: `0px 0px ${props.distance}px 0px`
+  });
+};
+
+const updateObserver = () => {
+  if (!triggerRef.value) {
+    return;
+  }
+
+  if (props.allLoaded) {
+    if(observer) {
+      observer.unobserve(triggerRef.value);
+    }
+  } else {
+    if(observer) {
+      observer.observe(triggerRef.value);
+    }
+  }
+};
+
 watch(
   [() => props.allLoaded, triggerRef],
   ([isAllLoaded, target]) => {
     if (!target) {
       return;
     }
-    if (isAllLoaded) {
-      observer.unobserve(target);
-    } else {
-      observer.observe(target);
-    }
+    updateObserver();
   },
   { immediate: true },
 );
+
+// 挂载时初始化
+onMounted(() => {
+  initObserver();
+  updateObserver();
+});
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
+  }
+});
+
+// 暴露reObserver方法给父组件
+defineExpose({
+  reObserver: () => {
+    if (observer && triggerRef.value) {
+      observer.unobserve(triggerRef.value);
+      nextTick(() => {
+        if (observer && triggerRef.value) {
+          observer.observe(triggerRef.value);
+        }
+      });
+    }
+  }
+});
+
 </script>
 
 <template>

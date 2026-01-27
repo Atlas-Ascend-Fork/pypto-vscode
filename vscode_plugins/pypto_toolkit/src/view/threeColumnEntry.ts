@@ -1,12 +1,14 @@
 import { window, workspace } from 'vscode';
 import { dirname, join, basename } from 'path';
 import { existsSync, readdirSync } from 'fs';
+import { Util } from '../util';
 import { t } from 'i18next';
 
 export class Fider {
   public codePath: undefined | string;
   public swimPath: undefined | string;
   public comPath: undefined | string;
+  public cachePath: undefined | string;
 
   constructor(codePath?: string, swimPath?: string, comPath?: string) {
     this.codePath = codePath;
@@ -17,22 +19,45 @@ export class Fider {
   async findByCodePath(
     swimPath: string | undefined,
     comPath: string | undefined,
-  ): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
+  ): Promise<{ swimPath: string | undefined; comPath: string | undefined; runDataTitle: string | undefined}> {
     if (!this.codePath) {
-      return { swimPath: undefined, comPath: undefined };
+      return { swimPath: undefined, comPath: undefined, runDataTitle: undefined };
     }
     if (swimPath && comPath) {
-      return { swimPath, comPath };
+      return { swimPath, comPath, runDataTitle: undefined};
     }
   
     // 情况2: 两个路径都未提供 - 自动查找最新输出目录
     if (!swimPath && !comPath) {
+      this.cachePath = Util.getCachePath('threeViewFiles.json');
+      const cachedPaths = await this.getCachedPaths();
+      if (cachedPaths) {
+        return cachedPaths;
+      }
       const autoPaths = await this.tryFindLatestOutputPaths();
       const { swimPath: autoSwimPath, comPath: autoComPath } = autoPaths;
-      return {swimPath: autoSwimPath, comPath: autoComPath};
+      return {swimPath: autoSwimPath, comPath: autoComPath, runDataTitle: undefined};
     }
     // 任意一个没有，说明用户取消了，直接返回
-    return { swimPath: swimPath || undefined, comPath: comPath || undefined };
+    return { swimPath: swimPath || undefined, comPath: comPath || undefined, runDataTitle: undefined };
+  }
+
+  private async getCachedPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined; runDataTitle: string | undefined } | undefined> {
+    this.cachePath = Util.getCachePath('threeViewFiles.json');
+    if (!this.cachePath || !this.codePath) {
+      return undefined;
+    }
+    const cache = Util.readSwim2ComGraphMap(this.cachePath);
+    const cacheData = cache?.[this.codePath];
+    if (!cacheData) {
+      return undefined;
+    }
+    const { swimPath, comPath, runDataTitle } = cacheData;
+    return {
+      swimPath: swimPath || undefined,
+      comPath: comPath || undefined,
+      runDataTitle: runDataTitle || undefined
+    };
   }
 
   private async tryFindLatestOutputPaths(): Promise<{ swimPath: string | undefined; comPath: string | undefined }> {
