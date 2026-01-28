@@ -57,5 +57,6 @@ function openFilePath() {
 }
 .mt10 {
     margin-top: 10px;
+    background: var(--devui-primary-button-bg) !important;
 }
 </style>
