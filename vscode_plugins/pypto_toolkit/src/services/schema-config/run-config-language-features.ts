@@ -6,7 +6,7 @@ import { BasicService } from '../basic-service';
 export const TARGET_CONFIG_FILE = 'tile_fwk_config.json';
 export const SOURCE_SCHEMA_FILE = 'tile_fwk_config_schema.json';
 export const TRANSFORMED_SCHEMA_DIR = 'schemas'; // globalStorage下的子目录
-export const PLUGIN_SCHEMA_NAME = 'PYPTO TOOLKIT Config Schema'; // 本插件Schema专属名称，用于精准清空
+export const PLUGIN_SCHEMA_NAME = 'PYPTO TOOLKIT Config Schema'; // 本插件Schema名称
 
 // 扫描状态类型
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
@@ -29,7 +29,22 @@ export class RunConfigLanguageFeaturesService extends BasicService {
   /** 扫描状态 */
   private _scanStatus: ScanStatus = 'idle';
   /** 扫描忽略目录 */
-  private readonly ignoreDirs = new Set(['node_modules', '.git', '.vscode', 'dist', 'build', 'out', 'coverage', 'include', 'tests']);
+  private readonly ignoreDirs = new Set([
+    'node_modules',
+    '.git',
+    '.vscode',
+    'dist',
+    'build',
+    'out',
+    'coverage',
+    'include',
+    'tests',
+    'codegen',
+    'const_model',
+    'machine',
+    'operator',
+    'passes',
+  ]);
   /** 插件上下文（用于获取globalStorageUri、注册销毁资源） */
   private readonly _context: vscode.ExtensionContext;
 
@@ -139,12 +154,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
 
     // 只有配置变化时才更新
     if (remainingSchemas.length !== currentSchemas.length) {
-      await jsonConfig.update(
-        'schemas',
-        remainingSchemas,
-        vscode.ConfigurationTarget.Global,
-        false, 
-      );
+      await jsonConfig.update('schemas', remainingSchemas, vscode.ConfigurationTarget.Global, false);
     }
   }
 
@@ -154,13 +164,13 @@ export class RunConfigLanguageFeaturesService extends BasicService {
   private async deleteTransformedSchemaFiles(): Promise<void> {
     try {
       const schemaDirUri = vscode.Uri.joinPath(this._context.globalStorageUri, TRANSFORMED_SCHEMA_DIR);
-      
+
       // 1. 先检查目录是否存在
       if (await this.isFileExists(schemaDirUri)) {
         // 2. 读取目录下所有文件/子目录
         const entries = await vscode.workspace.fs.readDirectory(schemaDirUri);
-        
-        // 3. 遍历删除所有文件（仅删文件，保留目录结构更安全）
+
+        // 3. 遍历删除所有文件
         for (const [entryName, entryType] of entries) {
           if (entryType === vscode.FileType.File) {
             // 仅删除本插件生成的schema文件（匹配命名规则：SOURCE_SCHEMA_FILE前缀+MD5+json）
@@ -200,12 +210,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     const newSchemas = [...currentSchemas, ...newSchemaItems];
 
     // 统一更新配置
-    await jsonConfig.update(
-      'schemas',
-      newSchemas,
-      vscode.ConfigurationTarget.Global,
-      false, // 禁止通知用户配置变更
-    );
+    await jsonConfig.update('schemas', newSchemas, vscode.ConfigurationTarget.Global, false);
   }
 
   /**
@@ -272,13 +277,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     });
 
     // 监听器加入销毁队列
-    this._disposables.push(
-      workspaceFolderListener,
-      fileCreateListener,
-      fileDeleteListener,
-      textDocChangeListener,
-      fileRenameListener, 
-    );
+    this._disposables.push(workspaceFolderListener, fileCreateListener, fileDeleteListener, textDocChangeListener, fileRenameListener);
   }
 
   // ===================== 辅助方法：工具函数 =====================
@@ -313,7 +312,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
    * Schema转换映射为vscode 所需要格式
    * @param raw rawSchemaBuffer
    * @param lang 语言
-   * @returns 
+   * @returns
    */
   private transformSchema(raw: any, lang: string): any {
     const isZh = lang.startsWith('zh');
@@ -325,7 +324,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       const result: Record<string, any> = {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          if (key === 'label') continue; // 跳过原label
+          if (key === 'label') continue;
           result[key] = walk(obj[key]);
         }
       }
@@ -353,10 +352,10 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     return walk(raw);
   }
 
-  // 插件销毁时，可选彻底删除schemas目录
+  // 插件销毁时，删除schemas目录
   public override dispose(): void {
-    // 插件卸载时，彻底删除转换生成的schema目录
-    this.deleteTransformedSchemaFiles().catch(err => console.warn('插件卸载删除Schema文件失败：', err));
+    // 插件卸载时，删除转换生成的schema目录
+    this.deleteTransformedSchemaFiles().catch((err) => console.warn('插件卸载删除Schema文件失败：', err));
     super.dispose();
   }
 }
