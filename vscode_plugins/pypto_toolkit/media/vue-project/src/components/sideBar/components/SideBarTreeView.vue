@@ -212,6 +212,14 @@ onMounted(async () => {
   });
 });
 
+// 侧边栏激活时刷新数据
+window.addEventListener('message', event => {
+  const message = event.data;
+  if (message.type === 'SIDEBAR_VISIBILITY_CHANGED' && message.isVisible) {
+    handleReload(true);
+  }
+});
+
 const isLoading = ref(false);
 const page = ref(1);
 const pageSize = 50;
