@@ -12,6 +12,7 @@ import {
 import { getRunDataList, getOutputDetail, getRunDataBySwimlaneGraphPath } from './run-data/api';
 import { RunDataService } from './run-data';
 import { ConfigDataService } from './schema-config/configdata';
+import { RunConfigLanguageFeaturesService } from './schema-config/run-config-language-features';
 import {
   getInitPythonProject,
   getPluginVersion,
@@ -28,6 +29,7 @@ import {
 } from './welcome';
 import { updateWelcomeState, getWelcomeState, getIsCompleteBoot } from './welcome/steps-config';
 import { ExtensionConfig } from './extension-config';
+import { BasicService } from './basic-service';
 
 export const serviceApis = {
   welcome: {
@@ -79,13 +81,19 @@ export const serviceApis = {
 };
 
 let singletonServices: { extension: ExtensionConfig; runData: RunDataService; configData: ConfigDataService };
+const privateServices: BasicService[] = [];
 type Services = typeof singletonServices;
 export function startAllServices(context: vscode.ExtensionContext) {
   singletonServices = { extension: new ExtensionConfig(context), runData: new RunDataService(), configData: new ConfigDataService() };
+  /** ---- 以下是外部无需引用的service ---- */
+  privateServices.push(new RunConfigLanguageFeaturesService(context));
 }
 
 export function closeAllServices() {
   Object.values(singletonServices).forEach((service) => {
+    service.dispose();
+  });
+  privateServices.forEach((service) => {
     service.dispose();
   });
 }
