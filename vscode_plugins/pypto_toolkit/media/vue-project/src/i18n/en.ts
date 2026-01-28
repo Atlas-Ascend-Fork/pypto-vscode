@@ -176,6 +176,7 @@ export default {
     exportFold: 'Export Directory',
     setExportFold: 'Set Download Directory',
     exportLocal: 'Local',
+    exportPathPlace: 'Please enter the export path.',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

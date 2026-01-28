@@ -1,6 +1,6 @@
 <template>
     <div>
-        <d-modal v-model="modalVisible" :title="$t('iconExport')" class="export-modal-containner"
+        <d-modal v-model="modalVisible" :title="$t('iconExport')" class="export-modal-containner" :class="{ 'export-modal-containner-local': !exportFoldVisible}"
             :close-on-click-overlay="false">
             <div class="export-title">{{ $t('exportPosition') }}</div>
             <d-radio-group class="mt10" direction="row" v-model="exportRadioItem" @change="groupRadioChange">
@@ -8,8 +8,7 @@
             </d-radio-group>
             <div class="export-title mt20" v-if="exportFoldVisible">{{ $t('exportFold') }}</div>
             <div class="mt10 export-fold" v-if="exportFoldVisible">
-                <d-input class="label-input" v-model="exportPath" :placeholder="$t('editInput')" show-count
-                    :maxlength="16">
+                <d-input class="label-input" v-model="exportPath" :placeholder="$t('exportPathPlace')">
                     <template #append>
                         <d-button variant="solid" @click="setExportFold()"> {{ $t('setExportFold') }}</d-button>
                     </template>

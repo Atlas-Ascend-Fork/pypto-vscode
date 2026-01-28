@@ -177,6 +177,7 @@ export default {
    exportFold: '导出目录',
    setExportFold: '设置下载目录',
    exportLocal: '本地',
+   exportPathPlace: '请输入导出路径',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

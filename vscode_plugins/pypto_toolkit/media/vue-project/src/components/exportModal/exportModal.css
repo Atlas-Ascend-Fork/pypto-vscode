@@ -4,6 +4,9 @@
     background-color: var(--devui-global-bg);
     border: 1px solid var(--devui-modal-line);
   }
+  .export-modal-containner-local {
+    height: 200px !important;
+  }
   .export-title {
     color: var(--devui-swim-text-title);
     font-size: 14px;
