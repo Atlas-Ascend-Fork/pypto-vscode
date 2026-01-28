@@ -85,6 +85,7 @@ const privateServices: BasicService[] = [];
 type Services = typeof singletonServices;
 export function startAllServices(context: vscode.ExtensionContext) {
   singletonServices = { extension: new ExtensionConfig(context), runData: new RunDataService(), configData: new ConfigDataService() };
+  
   /** ---- 以下是外部无需引用的service ---- */
   privateServices.push(new RunConfigLanguageFeaturesService(context));
 }
