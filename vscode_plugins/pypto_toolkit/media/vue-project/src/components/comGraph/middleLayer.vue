@@ -232,6 +232,7 @@ function setupThreeWatchers(server: any) {
     if (comPath) {
       noComFile.value = false;
       comFileName.value = comPath.split(/[\/\\]/).pop();
+      loadingStep.value = 'loading';
       promises.push(server.getInitialComData());
     }
     await Promise.all(promises);
@@ -259,6 +260,7 @@ function setupThreeWatchers(server: any) {
     if (comErrorMessage.value) {
       comErrorMessage.value = '';
     }
+    loadingStep.value = 'loading';
     await server.getInitialComData();
   });
   watch(server.returnSwimPath, async (path) => {

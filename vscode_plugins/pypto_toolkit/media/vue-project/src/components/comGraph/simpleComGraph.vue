@@ -390,7 +390,7 @@ watch(rootHash, () => {
 watch(
   () => props.loadingStep,
   (val) => {
-    if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
+    if (val === 'readJson' || val === 'rendering' || val === 'convertData' || val === 'loading') {
       isLoading.value = true;
     }
     if (val === 'readJsonWarning') {

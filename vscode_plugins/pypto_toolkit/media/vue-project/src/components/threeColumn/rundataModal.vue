@@ -16,7 +16,7 @@
         <d-table :data="baseList" border-type="" style="width: 100%">
             <d-column header="rundata">
             <template #header>
-                <span class="table-header-left">Rundata</span>
+                <span class="table-header-left">{{ $t('pleaseSelectResult') }}</span>
                 <div class="left-sort">
                     <div class="sort-icon">
                     <d-icon class="sort" operable @click="sortOption = !sortOption">
