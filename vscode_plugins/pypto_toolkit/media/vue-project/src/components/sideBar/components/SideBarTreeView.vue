@@ -212,11 +212,26 @@ onMounted(async () => {
   });
 });
 
-// 侧边栏激活时刷新数据
-window.addEventListener('message', event => {
+// 侧边栏激活时,若有新数据刷新数据
+window.addEventListener('message', async event => {
   const message = event.data;
   if (message.type === 'SIDEBAR_VISIBILITY_CHANGED' && message.isVisible) {
-    handleReload(true);
+    try {
+      const { data, total } = await getRunDataList({
+        page: 1,
+        pageSize,
+        sortOrder: sortOption.value ? 'asc' : 'desc',
+        forceReloadFromFiles: true,
+      });
+      if (total > currentTotal.value) {
+        treeData.value = [...transformData(data)];
+        currentTotal.value = total;
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        throw e;
+      }
+    }
   }
 });
 
@@ -224,6 +239,7 @@ const isLoading = ref(false);
 const page = ref(1);
 const pageSize = 50;
 const allLoaded = ref(false);
+const currentTotal = ref(0)
 
 function clearList() {
   treeData.value = [];
@@ -259,12 +275,13 @@ function handleLoadMore() {
 async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<void> {
   isLoading.value = true;
   try {
-    const { data } = await getRunDataList({
+    const { data,total } = await getRunDataList({
       page: loadingPage,
       pageSize,
       sortOrder: sortOption.value ? 'asc' : 'desc',
       forceReloadFromFiles: forceReload,
     });
+    currentTotal.value = total
     // 再次清空列表，避免并发请求导致数据异常
     if (page.value === 1) {
       clearList();
