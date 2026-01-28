@@ -4,13 +4,14 @@ import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { ISwimViewServer, ICommonViewServer, ISwimApis, ISwimRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import fs from 'node:fs';
 import stream from 'node:stream';
+import { setSaveDir, getCurrentPlatform, saveFile } from '../../common/downloadFileCheck';
 
 
 type Apis = ISwimApis | ICommonApis;
 
 type Refs = ISwimRefs & ICommonRefs;
 
-@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError'])
+@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError', 'SaveFileResult', 'CheckSysResult', 'SaveDirPath'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;
@@ -33,7 +34,7 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     this.swimDataPath = this.query._path;
     this.handler = SwimGraphMsgHandler;
   }
-  public override created(ctx: ViewServerContext): void {}
+  public override created(ctx: ViewServerContext): void { }
 
   @viewApi()
   public getInitialData = async () => {
@@ -83,6 +84,21 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public getShortCutKeyCfg = async () => {
     return await this.handler.getShortCutKeyCfg(this);
+  };
+  @viewApi()
+  public setSaveDir = async () => {
+    const dir = await setSaveDir()
+    this.setRef('SaveDirPath', { dir: dir });
+  };
+  @viewApi()
+  public checkSys = async () => {
+    this.setRef('CheckSysResult', { sustem: getCurrentPlatform() });
+  };
+  @viewApi()
+  public saveFile = async (message) => {
+    const result = await saveFile(message);
+    if (!result) return;
+    this.setRef('SaveFileResult', { result: result });
   };
 
   safeParse(str) {

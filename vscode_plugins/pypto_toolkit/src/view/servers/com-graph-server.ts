@@ -8,6 +8,7 @@ import { AbstractGraphData } from '../../core/graphData';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
+import { setSaveDir, getCurrentPlatform, saveFile } from '../../common/downloadFileCheck';
 
 type Apis = IComApis | ICommonApis;
 
@@ -35,6 +36,9 @@ type Refs = IComRefs & ICommonRefs;
   'SameDiffFile',
   'AfterDiffData',
   'JsonContent',
+  'SaveFileResult',
+  'CheckSysResult', 
+  'SaveDirPath'
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -125,6 +129,20 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public returnFuncTree = async () => {
     await SingleGraphHandler.returnFuncTree(this);
+  };
+  @viewApi()
+  public setSaveDir = async () => {
+    const dir = await setSaveDir()
+    this.setRef('SaveDirPath', { dir: dir });
+  };
+  @viewApi()
+  public checkSys = async () => {
+    this.setRef('CheckSysResult', { sustem: getCurrentPlatform() });
+  };
+  @viewApi()
+  public saveFile = async (message) => {
+    const result = await saveFile(message);
+    this.setRef('SaveFileResult', { result: result });
   };
   @viewApi()
   public selectFile = async (beforeFilePath: string) => {

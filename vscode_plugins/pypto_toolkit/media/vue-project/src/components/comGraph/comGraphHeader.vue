@@ -22,6 +22,9 @@
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
+      <div>
+        <export-modal  :data-url="dataUrl" :file-name="svgfileName"/>
+      </div>
       <d-tooltip v-if="currentLeafName" :content="t('comGraph.leafCalledRecord')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', { 'corner-icon-disabled': isLoading }]" @click="openLeafCalledRecord">
           <CalledRecordIcon />
@@ -172,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, inject, onMounted, reactive, watch, nextTick} from 'vue';
+import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { GraphType, ComGraphProvideKey } from './type';
 import type { ComGraphContext } from './type';
@@ -182,6 +185,7 @@ import { getTextWidth } from '../../utils/index';
 import { useHeader } from './hooks/use-header';
 import LayerControlIcon from './layerControl/layerControlIcon.vue';
 import CalledRecordIcon from './icons/called-record-icon.vue';
+import ExportModal from '../exportModal/exportModal.vue';
 import Navbar from '../navbar/navbar.vue';
 import LeafList from './leaf-list.vue';
 import { extractIncasts,
@@ -242,6 +246,8 @@ const isGlobalSelectShow = ref(false);
 let module_row = ref();
 let showSearchIcon = ref(1);
 let showOperation = ref(false);
+let dataUrl = ref('');
+let svgfileName = ref('');
 
  const categoryCurrent = [
       {
@@ -816,6 +822,11 @@ onMounted(() => {
     icon?.click();
   });
 
+  (window as any).ascEventBus.on(`svgBase64`, (args) => {
+    dataUrl.value = args?.svgString;
+    svgfileName.value = args?.fileName;
+    server.checkSys();
+  });
   (window as any).ascEventBus.on(`svgExportingOver`, (args) => {
     isExporting.value = false;
     comGraphStore.data.svgExportMode = false;

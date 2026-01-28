@@ -32,7 +32,7 @@
             </template>
             </d-column>
         </d-table>
-        <d-pagination class="runDataPage" size="sm" :total="pagetotal" v-model:pageSize="pageSize" v-model:pageIndex="pageIndex" :cann-view-total="true" :max-items="5" @page-index-change="pageIndexChange" />
+        <d-pagination class="runDataPage" size="sm" :total="pagetotal" :pageSize="pageSize" :pageIndex="pageIndex" :cann-view-total="true" :max-items="5" @page-index-change="pageIndexChange" />
         </template>
         <template #footer>
         <d-modal-footer class="runData-modal-button">

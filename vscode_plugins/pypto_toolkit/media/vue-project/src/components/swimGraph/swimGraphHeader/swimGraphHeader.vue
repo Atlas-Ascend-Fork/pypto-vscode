@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div class="zoom-controls" :id=zoomControl :class="{ 'zoom-controls-threeColumn': isThreeColumn}" @click.stop>
     <div class="left-container" :class="{ 'left-container-search': isSearchActive}" v-if="threeColumnHeaderVisible">
       <div class="search-container-res" v-if="threeColumnSearchVisible">
@@ -56,7 +57,7 @@
           <KeyboradIcon :active="isShortcutKeyShow"/>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="$t('exportSwimGraph')" position="bottom" v-if="!isThreeColumn">
+      <d-tooltip :content="$t('exportImageGraph')" position="bottom" v-if="!isThreeColumn">
         <d-button class="icon-container" :disabled="isExporting" @click="exportSwimGraph" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
@@ -149,6 +150,10 @@
       <d-button class="right-container-buttor hidden" @click="toggleDetailsCores()">{{ $t("data") }}</d-button>
     </div>
   </div>
+  <div>
+    <export-modal  :data-url="dataUrl" :file-name="fileName"/>
+  </div>
+  </div>
 </template>
 
 <script setup>
@@ -160,10 +165,12 @@ import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
 import BigNumber from 'bignumber.js';
+import { useViewServer } from '../../../core/use-view-server';
+import ExportModal from '../../exportModal/exportModal.vue';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
-
+const { server } = useViewServer();
 // 注入父组件提供的状态和方法
 const {
   viewState,
@@ -230,6 +237,7 @@ const searchPlaceholder = $t("searchKeyword");
 const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
+let dataUrl = ref(null);
 const catSelectedTags = ref([]);
 const categorySearchKey = ref('');
 let category = [
@@ -421,13 +429,10 @@ const exportSwimGraph = () => {
       timelineHeight
     );
     // 5. 导出图片
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = `${fileName.value}.png` || 'swim-graph-export.png';
-    link.href = dataUrl;
-    link.click();
+    dataUrl.value = canvas.toDataURL('image/png');
+    server.checkSys();
   } catch (error) {
-    postMessage($t('swimExportErrorInfo'));
+    postMessage($t('imageExportErrorInfo'));
   } finally {
     isExporting.value = false;
   }

@@ -169,8 +169,18 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getShortCutKeyCfg: () => Promise<any>;
 }
 
-export type ICommonApis = 'getInitialData';
-export type ICommonRefs = {};
+export type ICommonApis = 'getInitialData'
+  | 'setSaveDir'
+  | 'checkSys'
+  | 'saveFile';
+export type ICommonRefs = {
+  SaveDirPath: unknown;
+  CheckSysResult: unknown;
+  SaveFileResult: unknown;
+};
 export interface ICommonViewServer extends ViewServer<ICommonApis, ICommonRefs> {
   getInitialData: () => Promise<void>;
+  setSaveDir: () => Promise<void>;
+  checkSys: () => Promise<void>;
+  saveFile: (message: { dataUrl: any, fileName?: any, filePath?: any, }) => Promise<void>;
 }

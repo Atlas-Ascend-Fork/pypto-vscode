@@ -74,7 +74,6 @@
   "pypto.funcHashUndefinedOnOpenSubGraph": "无法打开子图,function hash未定义",
   "pypto.canNotGetFuncHashOnOpenOriginGraph": "无法打开原图,该文件未找到正确function hash",
   "pypto.canNotGetFuncHashOnOpenComparisonGraph": "无法打开对比图,该文件未找到正确function hash",
-
   "pypto.comGraph.errorMessage.streamProcessing": "读json文件时报错：文件流处理过程中出现异常",
   "pypto.comGraph.errorMessage.dataOpMagicDuplication": "读json文件时报错：节点opmagic重复",
   "pypto.comGraph.errorMessage.fileRead": "读json文件时报错：文件读取错误（如文件不存在、权限问题）",
@@ -82,7 +81,6 @@
   "pypto.comGraph.errorMessage.streaValues": "读json文件时报错：StreamValues 错误",
   "pypto.comGraph.errorMessage.readJsonUnknown": "读json文件时报错：未知错误",
   "pypto.comGraph.errorMessage.pureMemory": "读json文件时报错：纯内存通路出现异常",
-
   "pypto.comGraph.errorMessage.parseAttr": "attr无法生成数学表达式",
   "pypto.comGraph.errorMessage.parseIncastNode": "无法创建输入节点",
   "pypto.comGraph.errorMessage.parseOutcastNode": "无法创建输出节点",
@@ -170,5 +168,9 @@
   "PyPTOToolkit.runConfig.rule.minItems": "最少需要 {{min}} 个元素",
   "PyPTOToolkit.runConfig.rule.maxItems": "最多不超过 {{max}} 个元素",
   "PyPTOToolkit.runConfig.rule.patternNotMatch": "文本格式应符合正则 {{pattern}}",
-  "PyPTOToolkit.runConfig.rule.unique": "元素不可重复"
+  "PyPTOToolkit.runConfig.rule.unique": "元素不可重复",
+  "pypto.download.selectDir": "选择目录",
+  "pypto.download.select": "选择",
+  "pypto.download.saveFile": "保存文件",
+  "pypto.download.save": "保存"
 }

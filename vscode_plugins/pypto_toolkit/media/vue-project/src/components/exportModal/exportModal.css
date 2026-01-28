@@ -1,0 +1,19 @@
+.export-modal-containner.devui-modal {
+    width: 500px;
+    height: 280px;
+    background-color: var(--devui-global-bg);
+    border: 1px solid var(--devui-modal-line);
+  }
+  .export-title {
+    color: var(--devui-swim-text-title);
+    font-size: 14px;
+  }
+  .mt20 {
+    margin-top: 20px;
+  }
+  .mt10 {
+    margin-top: 10px;
+  }
+  .export-fold {
+    display:flex;
+  }
