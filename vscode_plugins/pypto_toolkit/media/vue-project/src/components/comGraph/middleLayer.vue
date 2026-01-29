@@ -233,6 +233,9 @@ function setupThreeWatchers(server: any) {
       noComFile.value = false;
       comFileName.value = comPath.split(/[\/\\]/).pop();
       loadingStep.value = 'loading';
+      if (comErrorMessage.value) {
+        comErrorMessage.value = '';
+      }
       promises.push(server.getInitialComData());
     }
     await Promise.all(promises);

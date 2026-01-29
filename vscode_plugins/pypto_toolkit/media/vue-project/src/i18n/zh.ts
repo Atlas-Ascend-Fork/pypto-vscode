@@ -132,6 +132,7 @@ export default {
    notDirectRelative: '非直系',
    pleaseSelect: '请选择',
    'pleaseSelectResult':'请选择运行结果',
+   'selectResult':'选择运行结果',
    'selectWarningText':'当前目录缺少泳道图或计算图',
    'scaleMaxInfo': '已放大至极限，请缩小查看',
    'scaleMinInfo': '已缩至最小尺寸，请放大查看',

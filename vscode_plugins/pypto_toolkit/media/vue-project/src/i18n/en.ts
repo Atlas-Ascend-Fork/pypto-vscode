@@ -132,6 +132,7 @@ export default {
     notDirectRelative: 'Non-direct relative',
     pleaseSelect: 'Please select',
     'pleaseSelectResult':'Please select Compilation Result',
+    'selectResult':'Select Compilation Result',
     'scaleMaxInfo': 'Maximum zoom reached. Zoom out to view',
     'scaleMinInfo': 'Minimum zoom reached. Zoom in to view',
     'totalEvents': 'There are {eventNum} events in total.',

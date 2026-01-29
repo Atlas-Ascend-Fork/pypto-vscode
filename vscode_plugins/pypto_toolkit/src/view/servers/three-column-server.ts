@@ -9,6 +9,8 @@ import { Util } from '../../util';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { isAbsolute, resolve, dirname, extname } from 'path';
 import { SingleGraphData } from '../../core/graphData';
+import { GetOutputRecordParams } from '../../services/run-data/api';
+import { getRunDataList } from '../../services/run-data/api';
 import * as vscode from 'vscode';
 import { t } from 'i18next';
 
@@ -89,6 +91,7 @@ export class ThreeColumnServer
   codeMsgHandler?: any;
   query?: any;
   cachePath?: any;
+  headerTitle?: string
 
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -288,32 +291,63 @@ export class ThreeColumnServer
   }
 
   async initWebViewPanel() {
-    let headerTitle = '';
-    if (!this.swimDataPath || !this.comPath) {
-      const { swimPath, comPath, runDataTitle } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
-      if (swimPath) {
-        this.swimDataPath = swimPath;
-        this.swimData = new SwimData(Uri.file(swimPath), swimPath);
-      }
-      if (comPath) {
-        this.comPath = comPath;
-        this.query = {
-          fsPath: comPath,
-          _path: this.initPath
-        };
-      }
+    try {
+      await this.initPaths();
+      // 如果路径未初始化成功，有缺省页面
       if (!this.swimDataPath || !this.comPath) {
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
         this.setRef('returnInitPath', { data: pathMsg });
+        return ;
+      }
+      // 路径初始化成功
+      this.setRef('InitFlag', {runDataTitle: this.headerTitle});
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    } catch (error) {
+      console.log(`Error initializing WebView panel:`, error);
+    }
+  }
+  async initPaths() {
+    if (!this.swimDataPath || !this.comPath) {
+      const { swimPath, comPath, runDataTitle } = await this.initRelativePath(this.codePath, this.swimDataPath, this.comPath);
+      if (swimPath) {
+        this.updateSwimData(swimPath);
+      }
+      if (comPath) {
+        this.updateComData(comPath);
       }
       if (runDataTitle) {
-        headerTitle = runDataTitle;
+        this.headerTitle = runDataTitle;
+        await this.fetchRunDataList(this.headerTitle);
       }
     }
-    if (this.swimDataPath && this.comPath) {
-      this.setRef('InitFlag', {runDataTitle: headerTitle});
-      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+  }
+  async fetchRunDataList(headerTitle: string) {
+    const params: GetOutputRecordParams = {
+      page: 1, pageSize:20, isThreeColumnNotNull: true, titleKeyword: headerTitle
+    };
+    try {
+      const res = await getRunDataList(params);
+      const firstItem = res.data[0];
+      if (firstItem.swimlaneGraphFilePath) {
+        this.updateSwimData(firstItem.swimlaneGraphFilePath);
+      }
+      if (firstItem.controlFlowFilePath) {
+        this.updateComData(firstItem.controlFlowFilePath);
+      }
+    } catch (error) {
+      console.log('Failed to fetch run data: ', error);
     }
+  }
+  updateSwimData(path: string) {
+    this.swimDataPath = path;
+    this.swimData = new SwimData(Uri.file(path), path);
+  }
+  updateComData(path: string) {
+    this.comPath = path;
+    this.query = {
+      fsPath: path,
+      _path: this.initPath
+    };
   }
   @viewApi()
   public selectRunData = async (message: any) => {
@@ -363,7 +397,7 @@ export class ThreeColumnServer
       }
       const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
       this.setRef('returnSearchPath', { data: pathMsg });
-      this.updateFilePathsCache(swimPath, comPath);
+      this.updateFilePathsCache(this.swimDataPath, this.comPath);
     };
 
     if (graphType === "swimGraph") {
@@ -413,7 +447,7 @@ export class ThreeColumnServer
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
     this.setRef('returnSearchPath', { data: pathMsg });
-    this.updateFilePathsCache(swimPath, comPath);
+    this.updateFilePathsCache(this.swimDataPath, this.comPath);
   };
   @viewApi()
   public singleSelectFile = async (message: { graphType: string }) => {
@@ -467,13 +501,13 @@ export class ThreeColumnServer
       _path: this.initPath
     };
     this.setRef('returnComPath', { data: { comPath: path } });
-    this.updateFilePathsCache(undefined, path);
+    this.updateFilePathsCache(this.swimDataPath, this.comPath);
   }
   private async handleSwimGraph(path: string) {
     this.swimDataPath = path;
     this.swimData = new SwimData(Uri.file(path), path);
     this.setRef('returnSwimPath', { data: { swimPath: path } });
-    this.updateFilePathsCache(path, undefined);
+    this.updateFilePathsCache(this.swimDataPath, this.comPath);
   };
   private async updateFilePathsCache(swimPath: string | undefined, comPath: string | undefined, runDataTitle: string = '') :Promise<void> {
     try {
