@@ -48,7 +48,7 @@
         </div>
         <div class="node-display-mode node_cont">
           <div class="title mb-8">{{ t('comGraph.nodesControl') }}</div>
-          <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" @value-change="OnTextChange" :placeholder="t('comGraph.nodeShowAll')"/>
+          <d-select class="mb-2" style="height: 48px; max-height: 48px;" v-model="selectedValues" :options="textOptions" :multiple="true" menu-class="layer-control-node-control" @value-change="OnTextChange" :placeholder="t('comGraph.nodeShowAll')"/>
         </div>
         <div class="advanced-search-panel-input" v-if="props.openMode === 'path'">
           <div class="title mb-8">{{ t('comGraph.nodeSearchLevel') }}</div>
@@ -307,4 +307,10 @@ const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 
 
 
+</style>
+
+<style lang="scss">
+.layer-control-node-control {
+  z-index: 1062 !important;
+}
 </style>
