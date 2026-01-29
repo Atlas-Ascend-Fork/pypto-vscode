@@ -29,7 +29,7 @@ function openFilePath() {
     <div class="no-file-container">
         <div><img :src="iconPath" alt="" class="no-file-icon" /></div>
         <div class="no-file-title">{{ $t('noJsonFile', { graphName }) }}</div>
-        <d-button variant="solid" @click="openFilePath" class="mt10">{{ $t('openFile') }}</d-button>
+        <d-button variant="solid" @click="openFilePath" class="mt10 no-file-back">{{ $t('openFile') }}</d-button>
     </div>
 </template>
 
@@ -58,6 +58,8 @@ function openFilePath() {
 }
 .mt10 {
     margin-top: 10px;
+}
+.no-file-back {
     background: var(--devui-primary-button-bg) !important;
 }
 </style>
