@@ -17,8 +17,8 @@
             <template #footer>
                 <d-modal-footer class="modal-button mt10">
                     <d-button variant="solid" color='secondary' @click="exportCancel()">{{ $t('no') }}</d-button>
-                    <d-tooltip :content="$t('exportPathPlace')" v-if="exportFoldVisible && exportPath.length === 0">
-                        <d-button variant="solid" color='primary' @click="exportConfirm()" :disabled="exportFoldVisible && exportPath.length === 0">{{ $t('exportImageGraph')}}</d-button>
+                    <d-tooltip :content="$t('exportPathPlace')" v-if="isExportDisabled">
+                        <d-button variant="solid" color='primary' @click="exportConfirm()" :disabled="isExportDisabled">{{ $t('exportImageGraph')}}</d-button>
                     </d-tooltip>
                     <d-button v-else variant="solid" color='primary' @click="exportConfirm()">{{ $t('exportImageGraph')}}</d-button>
                 </d-modal-footer>
@@ -39,6 +39,9 @@ let exportRadioItem = ref('local');
 const exportPath = ref('');
 const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
+const isExportDisabled = computed(() => {
+  return exportFoldVisible.value && (!exportPath.value || exportPath.value.trim() === '');
+});
 const props = defineProps({
     dataUrl: {
     type: String,
