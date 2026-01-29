@@ -107,6 +107,7 @@ const currentPathCalledLeafRecord = ref<CallLeafRecord[]>([]);
 const currentLeafData = ref<LeafInPass>();
 const getControlFlowError = ref(false);
 const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
+const programePath = ref('')
 
 provide(NavbarProvideKey, {
   rootProps: props,
@@ -241,6 +242,7 @@ onMounted(async () => {
   const uri = res._uri;
   const query = JSON.parse(uri.query);
   isBootStep = Boolean(query.isBootStep)
+  programePath.value = query._path
 });
 </script>
 
