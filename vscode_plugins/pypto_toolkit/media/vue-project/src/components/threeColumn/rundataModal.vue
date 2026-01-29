@@ -3,7 +3,7 @@
         <template #header>
         <d-modal-header class="modal-button">
             <span> {{ $t('selectRelective') }} </span>
-            <d-button class="open-File-Button" @click="openOtherFile">{{ $t('selectOtherFile') }}</d-button>
+            <d-button class="open-File-Button" @click="openOtherFile" v-if="!isHeaderEnter">{{ $t('selectOtherFile') }}</d-button>
         </d-modal-header>
         </template>
         <template #default>
@@ -62,7 +62,7 @@ const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort
 const sortOption = ref(false);
 const showWarning = ref(false);
 const searchQuery = ref('');
-const { runDataVisible, missGraphType, pagetotal, baseChoose} = inject('runDataList');
+const { runDataVisible, missGraphType, pagetotal, baseChoose, isHeaderEnter} = inject('runDataList');
 const props = defineProps({
   filePath: {type: Object, default: {}}
 });
