@@ -6,7 +6,7 @@ import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 const { t: $t } = useI18n();
 const { server } = useViewServer<ICommonViewServer>();
 const { isDarkTheme } = inject('root');
-const { runDataVisible, missGraphType, pagetotal} = inject('runDataList');
+const { runDataVisible, missGraphType, pagetotal, isHeaderEnter} = inject('runDataList');
 const props = defineProps({
   graphType: { type: String },
   filePath: {type: Object, default: {}}
@@ -16,6 +16,7 @@ let graphName = props.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraph
 function openFilePath() {
     if (pagetotal.value > 0) {
         runDataVisible.value = true;
+        isHeaderEnter.value = true;
         missGraphType.value = props.graphType;
     } else {
         const {swimPath, comPath} = props.filePath;

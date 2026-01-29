@@ -27,6 +27,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  padding-right: 510px;
 }
 
 .left-container-search{
