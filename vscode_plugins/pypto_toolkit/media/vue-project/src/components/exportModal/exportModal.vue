@@ -71,10 +71,10 @@ function setupImageWatchers() {
     });
     watch(server.SaveFileResult, (newValue) => {
         if (newValue.result) {
-            const fileNameInfo = props.fileName.endsWith('svg') ? (props.fileName || 'com-graph-export.svg') : (props.fileName+'.png' || 'swim-graph-export.png');
+            const fileNameInfo = newValue.fileName;
             window.ascEventBus.on('message_notice', onMessageNotice('success', $t('imageExportSuccessInfo', { fileNameInfo })));
         } else {
-            window.ascEventBus.on('message_notice', onMessageNotice('error', $t('imageExportErrorInfo')));
+            window.ascEventBus.on('message_notice', onMessageNotice('error', newValue.message));
         }
     });
 }
