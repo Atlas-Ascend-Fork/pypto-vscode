@@ -34,6 +34,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
     //  主题变化自动刷新
     vscode.window.onDidChangeActiveColorTheme(() => webviewView.webview.postMessage({ command: 'returnTheme', data: getIDETheme() }), null);
+
+    // 监听侧边栏显隐
+    webviewView.onDidChangeVisibility(() => {
+      webviewView.webview.postMessage({
+        type: 'SIDEBAR_VISIBILITY_CHANGED',
+        isVisible: webviewView.visible
+      });
+    });
   }
 
   private startViewServer(webview: vscode.Webview): void {
