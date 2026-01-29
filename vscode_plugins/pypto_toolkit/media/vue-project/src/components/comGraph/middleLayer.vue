@@ -60,6 +60,7 @@ const graphType = toRef(props, 'graphType');
 const filePaths = ref({ swimPath: null, comPath: null });
 const swimFileName = ref('merged_swimlane.json');
 const comFileName = ref('program.json');
+const isHeaderEnter = ref(false);
 const { server } = useViewServer<ICommonViewServer>();
 
 // 控制需要哪些监听器
@@ -456,7 +457,7 @@ const onInputFocus = (event) => {
 const onInputLeave = (event) => {
   isHovered.value = false;
 };
-provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose});
+provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, isHeaderEnter});
 </script>
 
 <template>
