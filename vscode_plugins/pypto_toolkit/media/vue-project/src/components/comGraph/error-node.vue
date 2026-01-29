@@ -97,6 +97,7 @@ const updateLocation = (data) => {
   displayList.value.forEach(node => {
     const target = model.value?.children.find(t => t.magic === node.magic);
     if (!target) {
+      node.show = false;
       return;
     }
     if (target.role === 'tensor') {
@@ -105,6 +106,7 @@ const updateLocation = (data) => {
     node.x = (target.position.x + target.size.width - scroll.x) * zoom + 4;
     node.y = (target.position.y - scroll.y) * zoom;
     node.showErrorIconOnly = zoom < 0.4;
+    node.show = true;
   })
 }
 
