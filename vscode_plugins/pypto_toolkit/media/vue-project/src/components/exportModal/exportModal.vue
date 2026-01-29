@@ -24,6 +24,7 @@
                 </d-modal-footer>
             </template>
         </d-modal>
+        <div v-if="showModalOverlay" class="export-modal-overlay"></div>
     </div>
 </template>
 
@@ -39,6 +40,7 @@ let exportRadioItem = ref('local');
 const exportPath = ref('');
 const modalVisible = ref(false);
 const exportFoldVisible = ref(false);
+const showModalOverlay = ref(false);
 const isExportDisabled = computed(() => {
   return exportFoldVisible.value && (!exportPath.value || exportPath.value.trim() === '');
 });
@@ -67,6 +69,7 @@ function setupImageWatchers() {
         }
     });
     watch(server.SaveDirPath, (newValue) => {
+        showModalOverlay.value = false;
         exportPath.value = newValue.dir + `/${pureFileName.value}`;
     });
     watch(server.SaveFileResult, (newValue) => {
@@ -100,6 +103,7 @@ const exportConfirm = () => {
     modalVisible.value = false;
 };
 const setExportFold = () => {
+    showModalOverlay.value = true;
     server.setSaveDir();
 };
 const groupRadioChange = (item) => {
