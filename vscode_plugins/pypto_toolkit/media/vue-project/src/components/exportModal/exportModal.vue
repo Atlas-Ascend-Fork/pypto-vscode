@@ -17,8 +17,10 @@
             <template #footer>
                 <d-modal-footer class="modal-button mt10">
                     <d-button variant="solid" color='secondary' @click="exportCancel()">{{ $t('no') }}</d-button>
-                    <d-button variant="solid" color='primary' @click="exportConfirm()">{{ $t('exportImageGraph')
-                    }}</d-button>
+                    <d-tooltip :content="$t('exportPathPlace')" v-if="exportFoldVisible && exportPath.length === 0">
+                        <d-button variant="solid" color='primary' @click="exportConfirm()" :disabled="exportFoldVisible && exportPath.length === 0">{{ $t('exportImageGraph')}}</d-button>
+                    </d-tooltip>
+                    <d-button v-else variant="solid" color='primary' @click="exportConfirm()">{{ $t('exportImageGraph')}}</d-button>
                 </d-modal-footer>
             </template>
         </d-modal>
@@ -91,8 +93,8 @@ const exportConfirm = () => {
         link.click();
     } else {
         server.saveFile({ dataUrl: props.dataUrl, filePath: exportPath.value });
-        modalVisible.value = false;
     }
+    modalVisible.value = false;
 };
 const setExportFold = () => {
     server.setSaveDir();
