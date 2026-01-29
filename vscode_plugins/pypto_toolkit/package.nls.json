@@ -171,5 +171,8 @@
   "pypto.download.selectDir": "Select directory",
   "pypto.download.select": "Select",
   "pypto.download.saveFile": "Save file",
-  "pypto.download.save": "Save"
+  "pypto.download.save": "Save",
+  "pypto.download.invalidBase64": "Invalid Base64",
+  "pypto.download.invalidFilePath": "Invalid FilePath",
+  "pypto.download.downloadFileFail": "Download File Fail"
 }

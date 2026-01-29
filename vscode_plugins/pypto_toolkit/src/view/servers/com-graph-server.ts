@@ -142,7 +142,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public saveFile = async (message) => {
     const result = await saveFile(message);
-    this.setRef('SaveFileResult', { result: result });
+    this.setRef('SaveFileResult', result);
   };
   @viewApi()
   public selectFile = async (beforeFilePath: string) => {

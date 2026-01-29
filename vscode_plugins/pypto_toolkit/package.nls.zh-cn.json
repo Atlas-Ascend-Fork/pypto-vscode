@@ -172,5 +172,8 @@
   "pypto.download.selectDir": "选择目录",
   "pypto.download.select": "选择",
   "pypto.download.saveFile": "保存文件",
-  "pypto.download.save": "保存"
+  "pypto.download.save": "保存",
+  "pypto.download.invalidBase64": "无效的 Base64 数据",
+  "pypto.download.invalidFilePath": "无效的文件路径",
+  "pypto.download.downloadFileFail": "保存文件出错"
 }
