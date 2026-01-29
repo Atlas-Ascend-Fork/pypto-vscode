@@ -201,7 +201,7 @@ function onJumpCom() {
   if (props.currentStep === 'comGraph') {
     return;
   }
-  jumpComGraph(programePath.value, 'program');
+  jumpComGraph(lastPass.value.graphFilePath, lastPass.value.pathName);
 }
 
 const { server } = useViewServer();
