@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { t } from 'i18next';
+import * as fs from 'fs';
 
 /**
  * 监听指定文件是否在 timeout 毫秒内被创建
@@ -73,7 +74,7 @@ export async function setSaveDir(): Promise<string | undefined> {
 }
 
 
-export async function saveFile(message: { dataUrl: any, fileName?: any, filePath?: any }): Promise<boolean | undefined> {
+export async function saveFile(message: { dataUrl: any, fileName?: any, filePath?: any }): Promise<{result:boolean,fileName?:string,message?:string} | undefined> {
     if (message.fileName) {
         // 2. 弹出保存对话框（用户可改目录 + 改文件名）
         const fileUri = await promptSaveFile(message.fileName);
@@ -87,15 +88,15 @@ export async function saveFile(message: { dataUrl: any, fileName?: any, filePath
     }
 }
 
-async function downloadFile(base64DataUrl: any, filePath: any): Promise<boolean> {
+async function downloadFile(base64DataUrl: any, filePath: any): Promise<{result:boolean,fileName?:string,message?:string}> {
     try {
         // 1. 校验输入
         if (!base64DataUrl || typeof base64DataUrl !== 'string') {
-            throw new Error('无效的 Base64 数据');
+            return {result:false,message:t('pypto.download.invalidBase64') || undefined};
         }
 
-        if (!filePath || !(filePath instanceof vscode.Uri)) {
-            throw new Error('无效的文件路径');
+        if (!filePath || !(filePath instanceof vscode.Uri) || !(await parentDirectoryExists(filePath))) {
+            return {result:false,message:t('pypto.download.invalidFilePath') || undefined};
         }
 
         // 2. 检查是否为 data URL
@@ -141,16 +142,11 @@ async function downloadFile(base64DataUrl: any, filePath: any): Promise<boolean>
         // 5. 写入文件
         await vscode.workspace.fs.writeFile(filePath, uint8Array);
 
-        // 6. 成功提示
-        // const fileName = vscode.workspace.asRelativePath(filePath, false);
-        // vscode.window.showInformationMessage(`✅ 文件已保存：${fileName}`);
-
-        return true;
+        return {result:true,fileName:path.basename(filePath.fsPath)};
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error('保存文件失败:', error);
-        // vscode.window.showErrorMessage(`❌ 保存失败：${msg}`);
-        return false;
+        console.error(t('pypto.download.downloadFileFail') || undefined, error);
+        return {result:false,message:t('pypto.download.downloadFileFail') || undefined};
     }
 }
 
@@ -178,4 +174,22 @@ export async function promptSaveFile(
     });
 
     return fileUri; // 可能是 undefined（用户取消）
+}
+
+
+function getParentDir(input: string | vscode.Uri): string {
+    const fullPath = input instanceof vscode.Uri ? input.fsPath : input;
+    return path.dirname(fullPath);
+}
+
+async function parentDirectoryExists(input: string | vscode.Uri): Promise<boolean> {
+    const parentDir = getParentDir(input);
+    try {
+        await fs.promises.access(parentDir, fs.constants.F_OK);
+        // 可选：进一步确认是目录（而非文件）
+        const stat = await fs.promises.stat(parentDir);
+        return stat.isDirectory();
+    } catch {
+        return false;
+    }
 }
