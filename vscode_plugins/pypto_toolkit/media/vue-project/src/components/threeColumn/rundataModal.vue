@@ -14,9 +14,9 @@
             <d-alert v-if="showWarning" type="warning" :closeable="true" :dismiss-time=6000>{{ $t('warningText') }} </d-alert>
         </div>
         <d-table :data="baseList" border-type="" style="width: 100%">
-            <d-column header="rundata">
+            <d-column filed="runData" width="226px">
             <template #header>
-                <span class="table-header-left">{{ $t('pleaseSelectResult') }}</span>
+                <span class="table-header-left">{{ $t('selectResult') }}</span>
                 <div class="left-sort">
                     <div class="sort-icon">
                     <d-icon class="sort" operable @click="sortOption = !sortOption">
@@ -31,6 +31,11 @@
                 <d-radio v-model="baseChoose" :value="scope.row.runData" :disabled="scope.row.disabled" class="mb-2" @change="filterValChange">{{ scope.row.runData }}</d-radio>
             </template>
             </d-column>
+            <d-column filed="execTime" :header="$t('sideBar.sortName')">
+            <template #default="scope">
+                <span class="exec-time"> {{ scope.row.execTime }} </span>
+            </template>
+            </d-column>            
         </d-table>
         <d-pagination class="runDataPage" size="sm" :total="pagetotal" :pageSize="pageSize" :pageIndex="pageIndex" :cann-view-total="true" :max-items="5" @page-index-change="pageIndexChange" />
         </template>
@@ -77,7 +82,8 @@ const getHistoryList = (page, searchKey) => {
     historyList.value.push(...data);
     baseList.value.push(...data.map(item =>({
       runData: item.title,
-      disabled: false
+      disabled: false,
+      execTime: item.executeTime
     })));
     pagetotal.value = total;
   });
@@ -216,15 +222,20 @@ onMounted(() => {
     border: none;
     border-bottom: 1px solid var(--devui-split-line);
   }
-  .devui-radio__label {
-    border-bottom: 1px solid var(--devui-swim-text-title);
-  }
   .devui-table--sm tbody>tr>td {
+    font-size: var(--devui-font-size, 12px);
     padding: 5px 20px 5px;
   }
   .devui-radio.active .devui-radio__material {
     border-color: var(--devui-primary-button-bg);
     background: var(--devui-category-search-font-color);
+  }
+  .devui-table__thead>tr>th:nth-child(1) .header-container {
+    margin-left: 24px;
+  }
+  .devui-table__thead .header-container .title {
+    color: var(--devui-primary-text);
+    font-size: 12px;
   }
 }
 .devui-pagination .devui-pagination__list li.devui-pagination__item:not(.disabled).active a.devui-pagination__link {

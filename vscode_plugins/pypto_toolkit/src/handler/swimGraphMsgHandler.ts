@@ -77,7 +77,7 @@ export abstract class SwimGraphMsgHandler {
     static async getOtherData(server: any) {
       const swimPath = server.swimDataPath;
       if (!existsSync(swimPath)) {
-        server.setRef('noSwimFile', swimPath);
+        server.setRef('noSwimFile', {swimPath});
         return;
       }
       this.cachePath = Util.getCachePath('swim2com.json');
@@ -136,7 +136,7 @@ export abstract class SwimGraphMsgHandler {
     static async getSwimData(server: any) {
         const swimPath = server.swimDataPath;
         if (!existsSync(swimPath)) {
-            server.setRef('noSwimFile', swimPath);
+            server.setRef('noSwimFile', {swimPath});
             return;
         }
 
