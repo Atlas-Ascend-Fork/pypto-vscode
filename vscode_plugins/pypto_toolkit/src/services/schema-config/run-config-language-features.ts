@@ -234,6 +234,9 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       return undefined;
     }
     try {
+      // 生成新文件前，先清理该源Schema对应的所有旧转换文件
+      await this.clearOldTransformedFiles(sourceSchemaUri);
+
       const rawSchemaBuffer = await vscode.workspace.fs.readFile(sourceSchemaUri);
       const rawSchema = JSON.parse(Buffer.from(rawSchemaBuffer).toString('utf-8'));
       const transformedSchema = this.transformSchema(rawSchema, this.getVscodeLanguage());
@@ -320,11 +323,9 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       // 删除settings中的对应Schema注册
       const jsonConfig = vscode.workspace.getConfiguration('json');
       const currentSchemas = jsonConfig.get<any[]>('schemas') || [];
-      const updatedSchemas = currentSchemas.filter(
-        (s) => {
-          return s.name !== PLUGIN_SCHEMA_NAME || !s.fileMatch.includes(configUri.path.toString());
-        }
-      );
+      const updatedSchemas = currentSchemas.filter((s) => {
+        return s.name !== PLUGIN_SCHEMA_NAME || !s.fileMatch.includes(configUri.path.toString());
+      });
       if (updatedSchemas.length !== currentSchemas.length) {
         await jsonConfig.update('schemas', updatedSchemas, vscode.ConfigurationTarget.Workspace, true);
       }
@@ -343,16 +344,16 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       this._configSchemaMap = this._configSchemaMap.filter((item) => {
         return item.configUri.path !== schemaMap.configUri.path;
       });
+
       // 同步更新本地缓存
       this._configSchemaMap.push(schemaMap);
       const jsonConfig = vscode.workspace.getConfiguration('json');
       const currentSchemas = jsonConfig.get<any[]>('schemas') || [];
       // 清理settings中同目录旧配置，保证配置唯一
-      const cleanSchemas = currentSchemas.filter(
-        (s) => {
-          return s.name !== PLUGIN_SCHEMA_NAME || !s.fileMatch.includes(schemaMap.configUri.path.toString());
-        }
-      );
+      const cleanSchemas = currentSchemas.filter((s) => {
+        return s.name !== PLUGIN_SCHEMA_NAME || !s.fileMatch.includes(schemaMap.configUri.path.toString());
+      });
+      // 新注册的url是唯一的（带时间戳）
       const newSchemaItem = {
         fileMatch: [schemaMap.configUri.path.toString()],
         url: schemaMap.transformedSchemaUri.toString(),
@@ -431,9 +432,11 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       if (allTargetFiles.length === 0) {
         return;
       }
-      const targetDirs = this.uniqueDirUris(allTargetFiles.map((uri) => {
-        return vscode.Uri.joinPath(uri, '..');
-      }));
+      const targetDirs = this.uniqueDirUris(
+        allTargetFiles.map((uri) => {
+          return vscode.Uri.joinPath(uri, '..');
+        }),
+      );
       const workspaceName = vscode.workspace.workspaceFolders?.[0]?.name || 'default';
       for (const dirUri of targetDirs) {
         if (this._isDisposed) {
@@ -472,7 +475,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
       // 从缓存中筛选出所有被删除目录下的注册记录（路径包含匹配）
       const needDeleteSchemaMaps = this._configSchemaMap.filter((schemaMap) => {
         return checkDirUris.some((checkDir) => {
-          // 注册的配置文件路径 包含 被删除的目录路径 
+          // 注册的配置文件路径 包含 被删除的目录路径
           return schemaMap.configUri.path.includes(checkDir.path);
         });
       });
@@ -525,9 +528,11 @@ export class RunConfigLanguageFeaturesService extends BasicService {
 
           // 注册新资源的配置
           if (newTargetFiles.length > 0) {
-            const newTargetDirs = this.uniqueDirUris(newTargetFiles.map((uri) => {
-              return vscode.Uri.joinPath(uri, '..');
-            }));
+            const newTargetDirs = this.uniqueDirUris(
+              newTargetFiles.map((uri) => {
+                return vscode.Uri.joinPath(uri, '..');
+              }),
+            );
             for (const dirUri of newTargetDirs) {
               if (this._isDisposed) {
                 break;
@@ -546,12 +551,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     });
 
     // 所有监听器加入销毁队列
-    this._disposables.push(
-      workspaceFolderListener,
-      fileCreateListener,
-      fileDeleteListener,
-      fileRenameListener
-    );
+    this._disposables.push(workspaceFolderListener, fileCreateListener, fileDeleteListener, fileRenameListener);
   }
 
   // 校验文件/目录是否存在
@@ -576,8 +576,41 @@ export class RunConfigLanguageFeaturesService extends BasicService {
   // 生成唯一Schema文件名 - MD5源文件路径做唯一标识
   private generateUniqueSchemaFileName(sourceSchemaUri: vscode.Uri): string {
     const md5 = crypto.createHash('md5');
-    const hash = md5.update(sourceSchemaUri.toString()).digest('hex');
-    return `${SOURCE_SCHEMA_FILE.replace('.json', '')}-${hash}.json`;
+    // MD5源文件路径，保证同路径文件的旧转换文件有统一前缀
+    const pathHash = md5.update(sourceSchemaUri.toString()).digest('hex');
+    // 毫秒时间戳，保证每次生成的文件名/URI唯一
+    const timestamp = Date.now();
+    // 文件名格式：前缀-路径MD5-时间戳.json
+    return `${SOURCE_SCHEMA_FILE.replace('.json', '')}-${pathHash}-${timestamp}.json`;
+  }
+
+  // 清理指定源Schema对应的所有旧转换文件（按路径MD5前缀匹配）
+  private async clearOldTransformedFiles(sourceSchemaUri: vscode.Uri): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
+    try {
+      const md5 = crypto.createHash('md5');
+      const pathHash = md5.update(sourceSchemaUri.toString()).digest('hex');
+      const schemaDirUri = vscode.Uri.joinPath(this._context.globalStorageUri, TRANSFORMED_SCHEMA_DIR);
+      const filePrefix = `${SOURCE_SCHEMA_FILE.replace('.json', '')}-${pathHash}-`;
+
+      if (await this.isFileExists(schemaDirUri)) {
+        const entries = await vscode.workspace.fs.readDirectory(schemaDirUri);
+        for (const [entryName, entryType] of entries) {
+          if (this._isDisposed) {
+            break;
+          }
+          // 匹配当前源Schema的旧转换文件前缀
+          if (entryType === vscode.FileType.File && entryName.startsWith(filePrefix) && entryName.endsWith('.json')) {
+            const oldFileUri = vscode.Uri.joinPath(schemaDirUri, entryName);
+            await vscode.workspace.fs.delete(oldFileUri);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('清理旧Schema转换文件失败：', error);
+    }
   }
 
   // Schema格式转换 - label转多语言description，适配VSCode提示
