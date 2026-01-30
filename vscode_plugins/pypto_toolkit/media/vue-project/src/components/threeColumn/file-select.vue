@@ -17,6 +17,7 @@ const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { currentActiveBlock, BlockToGraphMap } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx;
+const { baseChoose } = inject('runDataList');
 
 const props = defineProps({
   fileName: {
@@ -26,6 +27,7 @@ const props = defineProps({
 });
 function openSelectedFileWindow() {
     threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
+    baseChoose.value = '';
 };
 
 </script>

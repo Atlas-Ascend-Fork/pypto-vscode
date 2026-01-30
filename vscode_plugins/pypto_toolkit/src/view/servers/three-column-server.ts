@@ -487,9 +487,7 @@ export class ThreeColumnServer
       if (comPath) {
         cache[this.codePath].comPath = comPath;
       }
-      if (runDataTitle) {
-        cache[this.codePath].runDataTitle = runDataTitle;
-      }
+      cache[this.codePath].runDataTitle = runDataTitle;
       await Util.writeJsonCache(this.cachePath, cache);
     } catch (error) {
       console.error(`更新${this.cachePath}文件发生错误`, error);
