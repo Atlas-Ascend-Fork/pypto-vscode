@@ -212,26 +212,11 @@ onMounted(async () => {
   });
 });
 
-// 侧边栏激活时,若有新数据刷新数据
+// 侧边栏激活时刷新数据
 window.addEventListener('message', async event => {
   const message = event.data;
   if (message.type === 'SIDEBAR_VISIBILITY_CHANGED' && message.isVisible) {
-    try {
-      const { data, total } = await getRunDataList({
-        page: 1,
-        pageSize,
-        sortOrder: sortOption.value ? 'asc' : 'desc',
-        forceReloadFromFiles: true,
-      });
-      if (total > currentTotal.value) {
-        treeData.value = [...transformData(data)];
-        currentTotal.value = total;
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        throw e;
-      }
-    }
+    handleReload(true);
   }
 });
 
