@@ -29,4 +29,5 @@
     background-color: transparent;
     opacity: 1;
     z-index: 1051;
+    cursor: not-allowed;
   }
