@@ -582,7 +582,11 @@ function getBadgeDom(node) {
     
   }
 
+<<<<<<< HEAD
   const inputRightPosY = (node.role === 'input' || node.isMiddle) ? 5 : 0;
+=======
+  const inputRightPosY = (node.role === 'input' || node.isMiddle) ? 7 : 0;
+>>>>>>> 27f07047... feat(comgraph)中间节点样式刷新
   return (
   <g transform={`translate(${node.size.width - badgeWidth}, ${inputRightPosY})`}>
     <path
@@ -1074,6 +1078,7 @@ export class AstgrTensorView extends RectangularNodeView {
               class-tensor-diff-change={node.compareType === 'change'}
             ></path>
             <path
+<<<<<<< HEAD
               d={`M ${selectedWaveMargin} ${height + downOffset}
                 L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
                 Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
@@ -1083,6 +1088,17 @@ export class AstgrTensorView extends RectangularNodeView {
                 Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
                   ${width / 2} ${height + downOffset}
                 T 0 ${height + downOffset}
+=======
+              d={`M ${selectedWaveMargin} ${height}
+                L ${selectedWaveMargin} ${height + waveOffset2}
+                Q ${width / 4} ${height + waveOffset2 * 2}
+                  ${width / 2} ${height + waveOffset2}
+                T ${width - selectedWaveMargin} ${height + waveOffset2}
+                L ${width - selectedWaveMargin} ${height}
+                Q ${(width / 4) * 3} ${height - waveOffset1 * 3}
+                  ${width / 2} ${height}
+                T 0 ${height}
+>>>>>>> 27f07047... feat(comgraph)中间节点样式刷新
                 Z`}
               filter={backgroundFilter}
               class-tensor-out-wave-label1={isOutput}
@@ -1090,7 +1106,11 @@ export class AstgrTensorView extends RectangularNodeView {
           </g>
         );
       } else {
+<<<<<<< HEAD
         const innerHeight = height - middleOffset;
+=======
+        const innerHeight = height - waveOffset2;
+>>>>>>> 27f07047... feat(comgraph)中间节点样式刷新
         rectNode = (
           <g>
             <path
@@ -1127,6 +1147,7 @@ export class AstgrTensorView extends RectangularNodeView {
               filter={backgroundFilter}
             ></path>
             <path
+<<<<<<< HEAD
               d={`M ${selectedWaveMargin} ${height + downOffset}
               L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
               Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
@@ -1137,6 +1158,18 @@ export class AstgrTensorView extends RectangularNodeView {
                 ${width / 2} ${height + downOffset}
               T 0 ${height + downOffset}
               Z`}
+=======
+              d={`M ${selectedWaveMargin} ${height}
+                L ${selectedWaveMargin} ${height + waveOffset2}
+                Q ${width / 4} ${height + waveOffset2 * 2}
+                  ${width / 2} ${height + waveOffset2}
+                T ${width - selectedWaveMargin} ${height + waveOffset2}
+                L ${width - selectedWaveMargin} ${height}
+                Q ${(width / 4) * 3} ${height - waveOffset1 * 3}
+                  ${width / 2} ${height}
+                T 0 ${height}
+                Z`}
+>>>>>>> 27f07047... feat(comgraph)中间节点样式刷新
               filter={backgroundFilter}
               class-tensor-out-wave-label1={isMdle}
             ></path>
