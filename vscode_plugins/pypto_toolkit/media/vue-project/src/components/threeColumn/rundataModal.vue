@@ -96,10 +96,11 @@ const openOtherFile = () => {
   runDataVisible.value = false;
   const {swimPath, comPath} = props.filePath;
   server.selectFile({graphType: missGraphType.value, options: {swimPath, comPath}});
+  baseChoose.value = '';
 };
 const onSearch = (val) => {
   searchQuery.value = val;
-  getHistoryList(pageIndex.value, searchQuery.value);
+  getHistoryList(1, searchQuery.value);
 };
 const runDataCancel = () => {
   runDataVisible.value = false;

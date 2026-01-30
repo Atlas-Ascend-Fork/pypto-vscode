@@ -22,6 +22,7 @@ const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { currentActiveBlock, BlockToGraphMap } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx || {};
+const { runDataVisible, isHeaderEnter, missGraphType} = inject('runDataList');
 
 const errorSvgPath = ref(`"${window.staticPath}/static-assets/data_error.svg"`);
 const isThreeColumnStage = ref(true);
@@ -44,7 +45,12 @@ onMounted(() => {
 });
 
 const openSelectedFileWindow = () => {
-  threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
+  runDataVisible.value = true;
+  isHeaderEnter.value = false;
+  missGraphType.value = BlockToGraphMap[currentActiveBlock.value];
+  if (BlockToGraphMap[currentActiveBlock.value] === 'comGraph') {
+    missGraphType.value = 'computeGraph';
+  }
 }
 
 </script>
