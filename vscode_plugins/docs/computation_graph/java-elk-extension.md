@@ -15,4 +15,4 @@
  	 
 3.  识别并安装：在搜索结果中找到java-elk-extension插件，点击蓝色的 “Install”（安装）按钮。
  	 
-![](../figures/zh-cn_image_0000002026010915.png)
+    ![](../figures/zh-cn_image_0000002026010915.png)
