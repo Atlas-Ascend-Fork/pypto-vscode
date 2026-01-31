@@ -6,7 +6,7 @@
 
 ## 前提条件
 
-执行PyPTO程序，生成运行结果界面。详细请参见[数据准备](数据准备.md)。
+执行PyPTO程序，生成运行结果界面。详细请参见[数据准备](../introduction/data_preparation.md)。
 
 ## 操作步骤
 
@@ -38,12 +38,12 @@
     鼠标悬浮在IF节点，可查看该IF节点的条件表达式。
 
     **图 3**  查看IF节点条件表达式  
-    ![](../figures/查看IF节点条件表达式.png "查看IF节点条件表达式")
+    ![](../figures/if_condition_expression.png "查看IF节点条件表达式")
 
 4.  查看PATH节点。
 
     **图 4**  PATH节点  
-    ![](../figures/PATH节点.png "PATH节点")
+    ![](../figures/path_node.png "PATH节点")
 
     **表 1**  PATH节点参数说明
 
@@ -58,5 +58,5 @@
     下面对上表中的参数进行具体解释，如[图5](#fig5)所示，如果在PATH0节点下有leaf1、leaf2、leaf3三个函数，其中leaf1被PATH0调用2次，leaf2被PATH0调用4次，leaf3被PATH0调用1次，又被PATH1调用3次。总计，PATH0中的函数个数为3个，PATH0的调用次数为7次，PATH0内的leaf1、leaf2、leaf3的总调用次数为10次。特别说明：leaf3属于PATH0，因此PATH1的leaf函数个数只有1个，即leaf4。
 
     **图 5**  调用关系说明<a id="fig5"></a>  
-    ![](../figures/调用关系说明.png "调用关系说明")
+    ![](../figures/invoke_relation.png "调用关系说明")
 

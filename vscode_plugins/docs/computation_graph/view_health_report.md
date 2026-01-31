@@ -16,11 +16,13 @@
 1.  配置健康报告生成开关：$\{install\_path\}/python/site-packages/pypto/lib/configs/tile\_fwk\_config.json。
 
     ```python
-    "pass_global_configs": {
-        "default_pass_configs": {
-            "HEALTH_CHECK": false  // 默认为false，需要配置为true
-        }
-        },
+     "global": {
+ 	         "pass":{
+ 	             "default_pass_configs": {
+ 	                 "health_check": false  // 默认为false，需要配置为true
+                 }
+ 	         }
+ 	         },
     ```
 
 2.  执行PyPTO程序，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）的计算图同级目录下生成相关健康报告文件，文件名格式为\_xxxHealthReport.json。
@@ -95,7 +97,7 @@
 
 请参照上述步骤打开Block Graph健康报告，界面显示如下：
 
-![](../figures/F3F0CD01-64BD-4DF6-993F-CBE9A7F9F5C9.png)
+![](../figures/block_graph_health_report.png)
 
 区域①：耗时总览，详细请参见[表4](#table4)。
 
@@ -162,7 +164,7 @@
 
 区域①：子图同构信息，详细请参见[表8](#table8)。
 
-区域②：耗时信息，详细请参见[表9](#table19)。
+区域②：耗时信息，详细请参见[表9](#table9)。
 
 区域③：最大出入度信息，详细请参见[表10](#table10)。
 

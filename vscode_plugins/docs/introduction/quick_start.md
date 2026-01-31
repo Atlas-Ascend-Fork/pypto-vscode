@@ -13,7 +13,7 @@
 
 1.  切换到样例所在目录，在已安装PyPTO的环境中运行如下命令。
 
-    ```bahs
+    ```bash
     # 配置 CANN 环境变量
     source /usr/local/Ascend/cann/bin/setenv.bash
     
@@ -27,7 +27,6 @@
 2.  程序执行成功后，显示以下信息。
 
     ```txt
-    !!! Kernel Launch
     Input shape: torch.Size([32, 32, 1, 256])
     Output shape: torch.Size([32, 32, 1, 256])
     Max difference：0.000000
