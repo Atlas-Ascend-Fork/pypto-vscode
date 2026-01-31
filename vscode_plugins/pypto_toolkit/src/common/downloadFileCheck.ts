@@ -84,20 +84,24 @@ export async function saveFile(message: { dataUrl: any, fileName?: any, filePath
         return await downloadFile(message.dataUrl, fileUri);
     }
     if (message.filePath) {
-        return await downloadFile(message.dataUrl, vscode.Uri.file(message.filePath));
+        return await downloadFile(message.dataUrl, message.filePath);
     }
 }
 
 async function downloadFile(base64DataUrl: any, filePath: any): Promise<{result:boolean,fileName?:string,message?:string}> {
     try {
         // 1. 校验输入
+        const flag = await parentDirectoryExists(filePath);
+        if (!filePath || !flag) {
+            return {result:false,message:t('pypto.download.invalidFilePath') || undefined};
+        }
+
+        filePath = vscode.Uri.file(filePath);
         if (!base64DataUrl || typeof base64DataUrl !== 'string') {
             return {result:false,message:t('pypto.download.invalidBase64') || undefined};
         }
 
-        if (!filePath || !(filePath instanceof vscode.Uri) || !(await parentDirectoryExists(filePath))) {
-            return {result:false,message:t('pypto.download.invalidFilePath') || undefined};
-        }
+        
 
         // 2. 检查是否为 data URL
         const DATA_URL_PREFIX = 'data:';
@@ -183,6 +187,12 @@ function getParentDir(input: string | vscode.Uri): string {
 }
 
 async function parentDirectoryExists(input: string | vscode.Uri): Promise<boolean> {
+    if(typeof input === 'string'){
+        const flag = isValidAbsolutePath(input);
+        if(!flag){
+            return false;
+        }
+    }
     const parentDir = getParentDir(input);
     try {
         await fs.promises.access(parentDir, fs.constants.F_OK);
@@ -192,4 +202,8 @@ async function parentDirectoryExists(input: string | vscode.Uri): Promise<boolea
     } catch {
         return false;
     }
+}
+
+function isValidAbsolutePath(p: string): boolean {
+    return p.length > 0 && path.isAbsolute(p);
 }

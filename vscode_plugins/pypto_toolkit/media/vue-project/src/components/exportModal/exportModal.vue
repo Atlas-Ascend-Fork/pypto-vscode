@@ -70,7 +70,9 @@ function setupImageWatchers() {
     });
     watch(server.SaveDirPath, (newValue) => {
         showModalOverlay.value = false;
-        exportPath.value = newValue.dir + `/${pureFileName.value}`;
+        if(newValue.dir){
+            exportPath.value = newValue.dir + `/${pureFileName.value}`;
+        }
     });
     watch(server.SaveFileResult, (newValue) => {
         if (newValue.result) {
