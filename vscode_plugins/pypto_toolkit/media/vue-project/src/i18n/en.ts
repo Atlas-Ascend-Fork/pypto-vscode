@@ -178,6 +178,8 @@ export default {
     setExportFold: 'Set Download Directory',
     exportLocal: 'Local',
     exportPathPlace: 'Please enter the export path.',
+    exportPathNotNull: 'Export path cannot be empty',
+    exportInvalidFilePath: 'Invalid FilePath',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

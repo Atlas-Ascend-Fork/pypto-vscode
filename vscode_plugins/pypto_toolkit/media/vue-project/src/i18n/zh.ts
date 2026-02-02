@@ -179,6 +179,8 @@ export default {
    setExportFold: '设置下载目录',
    exportLocal: '本地',
    exportPathPlace: '请输入导出路径',
+   exportPathNotNull: '导出路径不能为空',
+   exportInvalidFilePath: '无效的文件路径',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

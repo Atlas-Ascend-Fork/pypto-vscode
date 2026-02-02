@@ -87,7 +87,14 @@ export async function saveFile(message: { dataUrl: any, fileName?: any, filePath
         return await downloadFile(message.dataUrl, message.filePath);
     }
 }
-
+export async function checkFilePath(message: { filePath: any }): Promise<{ result: boolean; message?: string }> {
+  const flag = await parentDirectoryExists(message.filePath);
+  if (!message.filePath || !flag) {
+    return { result: false, message: t('pypto.download.invalidFilePath') || undefined };
+  } else {
+    return { result: true };
+  }
+}
 async function downloadFile(base64DataUrl: any, filePath: any): Promise<{result:boolean,fileName?:string,message?:string}> {
     try {
         // 1. 校验输入
