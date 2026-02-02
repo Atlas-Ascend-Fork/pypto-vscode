@@ -8,7 +8,8 @@
       width: '80px',
     }"> </div>
     <span class="error-text">{{ props.jsonContent }}</span>
-    <span class="error-text">{{ props.errorLog }}</span>
+    <span v-if="props.errorLog" class="error-text">{{ props.errorLog }}</span>
+    <span v-if="props.swimErrorLog" class="error-text">{{ props.swimErrorLog }}</span>
     <d-button variant="solid" v-if="isThreeColumnStage" @click="openSelectedFileWindow" class="mt10">{{ $t('openFile') }}</d-button>
   </div>
 </template>
@@ -33,6 +34,10 @@ const props = defineProps({
     default: ''
   },
   errorLog: {
+    type: String,
+    default: ''
+  },
+  swimErrorLog: {
     type: String,
     default: ''
   }

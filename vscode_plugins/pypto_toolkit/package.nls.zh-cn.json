@@ -130,6 +130,7 @@
   "pypto.swimGraph.validate.savedData": "缓存数据错误,请按F1清除数据库缓存",
   "pypto.swimGraph.validate.swimLaneFileError": "输入Json文件错误:{{swimPath}}",
   "pypto.swimGraph.validate.unsupportedEventType": "不支持的event类型, ph: {{type}}",
+  "pypto.swimGraph.validate.parseError": "解析json数据失败：",
   "PyPTOToolkit.welcome.prepare": "正在准备样例数据...",
   "PyPTOToolkit.welcome.prepareTimeout": "准备样例数据超时，请检查是否有多开窗口卡住。",
   "PyPTOToolkit.welcome.prepareFail": "样例数据准备失败，{{error}}",

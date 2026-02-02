@@ -24,6 +24,7 @@ const jsonContent = ref({});
 const comErrorMessage = ref('');
 const swimErrorMessage = ref('');
 const errorLog = ref('');
+const swimErrorLog = ref('');
 const swimGrahRef = ref();
 const loadingStep = ref('');
 const searchMode = ref(0);
@@ -77,6 +78,7 @@ if (graphType.value === 'swimGraph') {
 
 (window as any).ascEventBus.on('jsonParseError', (args) => {
   swimErrorMessage.value = args.msg;
+  swimErrorLog.value = args.log ? $t('swimErroMsgFILE_NOT_FOUND_LOG') + args.log : '';
 });
 
 function setupComWatchers(server: any) {
@@ -476,7 +478,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
         <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
       </template>
       <template #swimGraph>
-        <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />
+        <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" :swimErrorLog="swimErrorLog"/>
         <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
           :swim-file-name="swimFileName" :graphType="graphType" />
         <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />

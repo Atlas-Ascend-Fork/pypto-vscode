@@ -335,10 +335,12 @@ function setupSwimWatchers() {
     }
   });
   watch(server.noSwimFile, (newValue) => {
-    window.ascEventBus.emit('jsonParseError', generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND} "${newValue.swimPath}"`));
+    const errorMsg = generateErrorMsg(`${ERROR_MESSAGES.FILE_NOT_FOUND}`);
+    errorMsg.log = newValue.errMsg;
+    window.ascEventBus.emit('jsonParseError', errorMsg);
   });
   watch(server.dataError, (newValue) => {
-    window.ascEventBus.emit('jsonParseError', {msg: newValue.data});
+    window.ascEventBus.emit('jsonParseError', newValue);
   });
   watch(server.performanceWarn, (newValue) => {
     warningText.value = newValue;
