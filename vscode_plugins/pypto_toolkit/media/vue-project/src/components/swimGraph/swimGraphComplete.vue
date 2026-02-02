@@ -1900,6 +1900,10 @@ const setPageState = (message) => {
     bindFile.value = message.comGraphPath;
     bindButton.value = $t('unbindComGraph');
   }
+  if (isLockStatus.value) {
+    isLockStatus.value = false;
+    window.ascEventBus.emit('deactivateLock');
+  }
 };
 
 const onToggleSwimFullscreenFunction = () => {
