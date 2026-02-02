@@ -1270,5 +1270,20 @@ defineExpose({
   .swim-search.dp-category-search-container .dp-category-search-line-container .dp-category-search-line .dp-category-search-input { 
     min-width: 100px; 
   }
+  .swim-search.devui-button--solid--primary {
+    background-color: var(--devui-primary-button-bg);
+
+    &:hover {
+      background-color: var(--devui-primary-button-hover-bg);
+    }
+  }
+
+  .swim-search.devui-button--solid--secondary {
+    background-color: var(--devui-secondary-button-bg);
+
+    &:hover {
+      background-color: var(--devui-secondary-button-hover-bg);
+    }
+  }
 }
 </style>
