@@ -26,3 +26,10 @@ export function getSnippetCodeText(params: SourceCodeRequestDto): Promise<CodeSn
 export function openControlFlowTargetFile(params: SourceCodeRequestDto): Promise<string> {
   return request.post(`${CONTROL_FLOW_PREFIX}/openControlFlowTargetFile`, params);
 }
+
+/**
+ * 获取program.json的path
+ */
+export function getProgramPath(params: any): Promise<string> {
+  return request.post(`${CONTROL_FLOW_PREFIX}/getProgramPath`, params);
+}

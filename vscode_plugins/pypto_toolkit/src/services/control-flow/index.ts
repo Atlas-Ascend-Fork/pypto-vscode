@@ -74,3 +74,13 @@ export async function openControlFlowTargetFile(params: SourceCodeRequestDto) {
   const fileUri = vscode.Uri.file(params.filePath);
   openTargetFileInSplit(fileUri, params.line);
 }
+
+/**
+ * 根据outputPath获取program.json的Path
+ * @param params 控制流节点读取源码字段
+ * @returns 返回program.json的Path
+ */
+export function getProgramPath(outputPath: string) {
+  const filePathUri = vscode.Uri.file(outputPath);
+  return vscode.Uri.joinPath(filePathUri, 'program.json').path;
+}
