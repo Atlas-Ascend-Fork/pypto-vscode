@@ -9,7 +9,7 @@
             <div class="mt20 export-fold" v-if="exportFoldVisible">
                 <d-form ref="formRef" layout="vertical" :data="formData" :rules="rules" :pop-position="['right']">
                     <d-form-item field="filePath" :label="$t('exportFold')">
-                        <d-input class="label-input" v-model="formData.filePath" :placeholder="$t('exportPathPlace')">
+                        <d-input class="label-input mt10" v-model="formData.filePath" :placeholder="$t('exportPathPlace')">
                             <template #append>
                                 <d-button variant="solid" @click="setExportFold()"> {{ $t('setExportFold') }}</d-button>
                             </template>

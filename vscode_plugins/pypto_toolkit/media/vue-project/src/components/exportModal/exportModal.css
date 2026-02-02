@@ -1,6 +1,6 @@
 .export-modal-containner.devui-modal {
     width: 500px;
-    height: 280px;
+    height: 290px;
     background-color: var(--devui-global-bg);
     border: 1px solid var(--devui-modal-line);
   }
