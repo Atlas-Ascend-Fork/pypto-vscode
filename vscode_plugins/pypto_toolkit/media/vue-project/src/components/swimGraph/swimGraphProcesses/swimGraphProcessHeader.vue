@@ -11,8 +11,8 @@
       </div>
     </div>
     <div class="process-header-line">
-      <canvas class="process-header-canvas" :data-process-header-key="process.key"></canvas>
-      <canvas class="process-hover-header-canvas" :data-process-hover-header-key="process.key"></canvas>
+      <canvas ref="headerCanvasRef" class="process-header-canvas" :data-process-header-key="process.key"></canvas>
+      <canvas ref="hoverHeaderCanvasRef" class="process-hover-header-canvas" :data-process-hover-header-key="process.key"></canvas>
     </div>
   </div>
 </template>
@@ -20,9 +20,11 @@
 <script setup>
 import { ref, computed, inject, onMounted, watch, nextTick} from 'vue';
 import { useI18n } from 'vue-i18n';
+import { setupHighDPICanvas } from '../swimGraphUtils';
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
 const {
+  viewState,
   layout,
   processExpanded,
   swimlaneContainer,
@@ -37,6 +39,9 @@ const {
 
 const { addChildContext } = inject('swimGraphContext');
 const { options, selectedOption } = inject('swimCycleDisplay');
+
+const headerCanvasRef = ref(null);
+const hoverHeaderCanvasRef = ref(null);
 
 let dropDown = ref(`${window.staticPath}/static-assets/swim_dropDown.svg`);
 let collapse = ref(`${window.staticPath}/static-assets/swim_collapse.svg`);
@@ -91,27 +96,12 @@ const handleMouseOver = (e) => {
 };
 
 const processHeadCanvasResize = () => {
-  const containerRect = document.querySelector('.process-header-line')?.getBoundingClientRect();
-  if (!containerRect) return;
-
-  const availableWidth = containerRect.width;
-  const canvasWidth = availableWidth;
-  const canvasHeight = 30;
-
-  for (const processx of processes.entries()) {
-    const canvasRef = document.querySelector(`[data-process-header-key="${processx[0]}"]`);
-    const hoverCanvasRef = document.querySelector(`[data-process-hover-header-key="${processx[0]}"]`);
-
-    canvasRef.style.width = canvasWidth + 'px';
-    canvasRef.style.height = canvasHeight + 'px';
-    hoverCanvasRef.style.width = canvasWidth + 'px';
-    hoverCanvasRef.style.height = canvasHeight + 'px';
-  
-    canvasRef.width = canvasWidth;
-    canvasRef.height = canvasHeight;
-    hoverCanvasRef.width = canvasWidth;
-    hoverCanvasRef.height = canvasHeight;
+  if (!headerCanvasRef.value || !hoverHeaderCanvasRef.value) {
+    return;
   }
+
+  setupHighDPICanvas(headerCanvasRef.value, viewState.canvasCssWidth, layout.processHeaderHeight);
+  setupHighDPICanvas(hoverHeaderCanvasRef.value, viewState.canvasCssWidth, layout.processHeaderHeight);
 }
 
 const drawProcessHeadLine = (x, color, flag) => {
@@ -162,6 +152,10 @@ addChildContext('processHeaderEvent', {
 watch(isDarkTheme, () => {
   updateTheme();
 });
+
+watch(() => viewState.canvasCssWidth, () => {
+  processHeadCanvasResize();
+}, { flush: 'sync' });
 
 const updateTheme = () => {
   dropDown.value =  isDarkTheme.value ? `${window.staticPath}/static-assets/swim_dropDown.svg` : `${window.staticPath}/static-assets/swim_dropDown_light.svg`;
