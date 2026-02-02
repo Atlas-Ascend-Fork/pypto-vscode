@@ -2,7 +2,7 @@
   <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
     <div class="sticky-block">
       <div class="simple-layout">
-        <fileSelect :file-name="comFileName" />
+        <fileSelect :file-name="comFileName" :file-paths="filePaths" />
         <d-select
           ref="rootHashEl"
           v-model="rootHash"
@@ -109,6 +109,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  filePaths: {type: Object, default: {}},
 });
 
 const { isDarkTheme } = inject('root');

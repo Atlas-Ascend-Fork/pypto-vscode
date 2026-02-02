@@ -14,7 +14,7 @@
             <img class="title_pic_threecolum" :src="titlePath" alt="title-picture" />
             <div class="title_up_r_threecolum">
               <div class="title_up_threecolum_filename">
-                <fileSelect v-if="isThreeColumn" :file-name="swimFileName" />
+                <fileSelect v-if="isThreeColumn" :file-name="swimFileName" :file-paths="filePaths" />
                 <div class="title_time">{{ formattedTime }}</div>
               </div>
             </div>
@@ -137,6 +137,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  filePaths: {type: Object, default: {}}
 });
 
 const { isDarkTheme } = inject('root');

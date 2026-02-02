@@ -9,7 +9,7 @@ const { isDarkTheme } = inject('root');
 const { runDataVisible, missGraphType, pagetotal, isHeaderEnter, baseChoose} = inject('runDataList');
 const props = defineProps({
   graphType: { type: String },
-  filePath: {type: Object, default: {}}
+  filePaths: {type: Object, default: {}}
 });
 let iconPath = computed(() => `${(window as any).staticPath}/static-assets/noFile${isDarkTheme.value ? 'Dark' : ''}.png`);
 let graphName = props.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
@@ -19,7 +19,7 @@ function openFilePath() {
         isHeaderEnter.value = false;
         missGraphType.value = props.graphType;
     } else {
-        const {swimPath, comPath} = props.filePath;
+        const {swimPath, comPath} = props.filePaths;
         server.selectFile({graphType: props.graphType, options: {swimPath, comPath}});
         baseChoose.value = '';
     }

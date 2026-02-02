@@ -145,7 +145,7 @@ export class Fider {
       }
       const res = await this.handleOnlySwimPathProvided(swimPath);
       return res;
-    } else if (graphType === "computeGraph") {
+    } else if (graphType === "computeGraph" || graphType === "comGraph") {
       const comPath = await this.selectFile(t('pypto.selectComFile'));
       if (!comPath) {
         window.showWarningMessage(t('pypto.noComFileSelect'));

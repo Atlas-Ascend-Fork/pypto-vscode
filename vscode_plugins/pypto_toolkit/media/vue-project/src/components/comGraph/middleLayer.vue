@@ -211,13 +211,6 @@ function setupThreeWatchers(server: any) {
   }, { immediate: true });
   watch(server.returnSearchPath, async (path) => {
     let { swimPath, comPath } = path.data;
-    const state = pullState();
-    if (!swimPath) {
-      swimPath = state.swimDataPath
-    }
-    if (!comPath) {
-      comPath = state.comPath
-    }
     filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
     const promises = [];
     if (swimPath) {
@@ -257,6 +250,7 @@ function setupThreeWatchers(server: any) {
     if (newValue.codePath) {
       pushState({ codePath: newValue.codePath });
     }
+    filePaths.value = { swimPath: newValue.swimDataPath || '', comPath: newValue.comPath || '' };
   });
   watch(server.returnComPath, async (path) => {
     const { comPath } = path.data;
@@ -472,14 +466,14 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
       <template #comGraph>
         <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep"
-          :com-file-name="comFileName" :should-update-hash-list="shouldUpdateComGraphHashList" />
-        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePath="filePaths" />
+          :com-file-name="comFileName" :should-update-hash-list="shouldUpdateComGraphHashList" :filePaths="filePaths" />
+        <NoDataFile v-else="noComFile" :graphType="'computeGraph'" :filePaths="filePaths" />
       </template>
       <template #swimGraph>
         <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" />
         <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
-          :swim-file-name="swimFileName" :graphType="graphType" />
-        <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePath="filePaths" />
+          :swim-file-name="swimFileName" :graphType="graphType" :filePaths="filePaths" />
+        <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePaths="filePaths" />
       </template>
     </ThreeColumn>
     <ComGraph v-if="graphType === 'computeGraph' && searchMode == 0"

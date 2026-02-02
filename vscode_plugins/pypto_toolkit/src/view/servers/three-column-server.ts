@@ -354,22 +354,17 @@ export class ThreeColumnServer
     const { swimPath, comPath, runDataTitle } = message.runDataPaths;
 
     if (swimPath) {
-      this.swimDataPath = swimPath;
-      this.swimData = new SwimData(Uri.file(swimPath), swimPath);
+      this.updateSwimData(swimPath);
     }
     if (comPath) {
-      this.comPath = comPath;
-      this.query = {
-        fsPath: comPath,
-        _path: this.initPath
-      };
+      this.updateComData(comPath);
     }
     const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
     if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
     this.setRef('returnSearchPath', { data: pathMsg });
-    this.updateFilePathsCache(swimPath, comPath, runDataTitle);
+    this.updateFilePathsCache('', '', runDataTitle);
   }
 
   @viewApi()
@@ -385,15 +380,13 @@ export class ThreeColumnServer
 
     const updatePaths = (swimPath: string | undefined, comPath: string | undefined) => {
       if (swimPath) {
-        this.swimDataPath = swimPath;
-        this.swimData = new SwimData(Uri.file(swimPath), swimPath);
+        this.updateSwimData(swimPath);
       }
       if (comPath) {
-        this.comPath = comPath;
-        this.query = {
-          fsPath: comPath,
-          _path: this.initPath
-        };
+        this.updateComData(comPath);
+      }
+      if (this.swimDataPath || this.comPath) {
+        this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
       }
       const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
       this.setRef('returnSearchPath', { data: pathMsg });
@@ -410,7 +403,7 @@ export class ThreeColumnServer
           updatePaths(swimPath, comPath);
         }
       }
-    } else if (graphType === "computeGraph") {
+    } else if (graphType === "computeGraph" || graphType === "comGraph") {
       if (options.swimPath && swimPath && options.swimPath !== swimPath) {
         handlePaths(options.swimPath, swimPath, graphType);
       } else {
@@ -421,10 +414,6 @@ export class ThreeColumnServer
         }
       }
     }
-
-    if (this.swimDataPath || this.comPath) {
-      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
-    }
   }
 
   @viewApi()
@@ -432,15 +421,10 @@ export class ThreeColumnServer
     const options = message.options;
     const { swimPath, comPath } = options;
     if (swimPath) {
-      this.swimDataPath = swimPath;
-      this.swimData = new SwimData(Uri.file(swimPath), swimPath);
+      this.updateSwimData(swimPath);
     }
     if (comPath) {
-      this.comPath = comPath;
-      this.query = {
-        fsPath: comPath,
-        _path: this.initPath
-      };
+      this.updateComData(comPath);
     }
     if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
@@ -495,17 +479,12 @@ export class ThreeColumnServer
     }
   };
   private async handleComGraph(path: string) {
-    this.comPath = path;
-    this.query = {
-      fsPath: path,
-      _path: this.initPath
-    };
+    this.updateComData(path);
     this.setRef('returnComPath', { data: { comPath: path } });
     this.updateFilePathsCache(this.swimDataPath, this.comPath);
   }
   private async handleSwimGraph(path: string) {
-    this.swimDataPath = path;
-    this.swimData = new SwimData(Uri.file(path), path);
+    this.updateSwimData(path);
     this.setRef('returnSwimPath', { data: { swimPath: path } });
     this.updateFilePathsCache(this.swimDataPath, this.comPath);
   };
@@ -515,10 +494,10 @@ export class ThreeColumnServer
       if (!cache[this.codePath]) {
         cache[this.codePath] = {};
       }
-      if (swimPath) {
+      if (swimPath !== undefined) {
         cache[this.codePath].swimPath = swimPath;
       }
-      if (comPath) {
+      if (comPath !== undefined) {
         cache[this.codePath].comPath = comPath;
       }
       cache[this.codePath].runDataTitle = runDataTitle;

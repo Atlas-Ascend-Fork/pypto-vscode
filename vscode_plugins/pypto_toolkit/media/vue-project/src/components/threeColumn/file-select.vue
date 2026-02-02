@@ -24,10 +24,16 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filePaths: {type: Object, default: {}},
 });
 function openSelectedFileWindow() {
+  baseChoose.value = '';
+  if (BlockToGraphMap[currentActiveBlock.value] === 'editor') {
     threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
-    baseChoose.value = '';
+  } else {
+    const {swimPath, comPath} = props.filePaths;
+    threeColumnServer.selectFile({graphType: BlockToGraphMap[currentActiveBlock.value], options: {swimPath, comPath}});
+  } 
 };
 
 </script>

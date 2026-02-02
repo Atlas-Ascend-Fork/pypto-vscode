@@ -138,6 +138,7 @@ onMounted(() => {
   max-height: 620px;
   gap: 20px;
   background: var(--devui-tooltip-bg);
+  border: 1px solid var(--devui-modal-line);
 }
 .devui-modal .btn-close {
   top: 22px !important;
@@ -184,7 +185,6 @@ onMounted(() => {
     background: var(--devui-category-search-bg);
     .devui-input__wrapper,
       input {
-        margin-top: 2px;
         background-color: transparent;
         &::placeholder {
           color: var(--devui-placeholder-text);
@@ -208,6 +208,7 @@ onMounted(() => {
 .devui-table {
   top: 16px;
   border-radius: 8px;
+  box-sizing: content-box !important;
   .devui-table__thead {
     height: 32px;
   }
@@ -237,6 +238,12 @@ onMounted(() => {
   .devui-table__thead .header-container .title {
     color: var(--devui-primary-text);
     font-size: 12px;
+  }
+  .devui-table__empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--devui-table-body-bg);
   }
 }
 .devui-pagination .devui-pagination__list li.devui-pagination__item:not(.disabled).active a.devui-pagination__link {
