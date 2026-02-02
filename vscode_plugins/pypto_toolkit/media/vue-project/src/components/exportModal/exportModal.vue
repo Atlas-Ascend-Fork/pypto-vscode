@@ -97,7 +97,7 @@ const pureFileName = computed(() => props.fileName.endsWith('svg') ? (props.file
 
 function setupImageWatchers() {
     watch(server.CheckSysResult, (newValue) => {
-        if (newValue.sustem !== 'windows') {
+        if (newValue.sustem === 'windows') {
             server.saveFile({ dataUrl: props.dataUrl, fileName: pureFileName.value });
         } else {
             modalVisible.value = true;
@@ -108,7 +108,7 @@ function setupImageWatchers() {
     });
     watch(server.SaveDirPath, (newValue) => {
         showModalOverlay.value = false;
-        if(newValue.dir){
+        if (newValue.dir) {
             formData.filePath = newValue.dir + `/${pureFileName.value}`;
         }
     });
