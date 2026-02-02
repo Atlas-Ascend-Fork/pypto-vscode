@@ -1,7 +1,7 @@
 import { Uri, commands, window, workspace, ConfigurationTarget } from 'vscode';
 import { Util } from '../util';
 import { dirname, join, extname, resolve } from 'path';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { accessSync, constants, existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
@@ -76,8 +76,10 @@ export abstract class SwimGraphMsgHandler {
 
     static async getOtherData(server: any) {
       const swimPath = server.swimDataPath;
-      if (!existsSync(swimPath)) {
-        server.setRef('noSwimFile', {swimPath});
+      try {
+        accessSync(swimPath, constants.R_OK);
+      } catch (err: any) {
+        server.setRef('noSwimFile', { errMsg: err.message });
         return;
       }
       this.cachePath = Util.getCachePath('swim2com.json');
@@ -135,9 +137,11 @@ export abstract class SwimGraphMsgHandler {
 
     static async getSwimData(server: any) {
         const swimPath = server.swimDataPath;
-        if (!existsSync(swimPath)) {
-            server.setRef('noSwimFile', {swimPath});
-            return;
+        try {
+          accessSync(swimPath, constants.R_OK);
+        } catch (err: any) {
+          server.setRef('noSwimFile', { errMsg: err.message });
+          return;
         }
 
         const swimFileStat = await fs.stat(swimPath);
@@ -191,8 +195,9 @@ export abstract class SwimGraphMsgHandler {
             const content = new TextDecoder().decode(fileData);
             swimData = JSON.parse(content);
             if (typeof swimData.processes != 'object' || typeof swimData.lane2line != 'object' || typeof swimData.pmu_total != 'object') {
+              const title = t('pypto.swimGraph.validate.parseError');
               const msg = t('pypto.swimGraph.validate.savedData');
-              server.setRef('dataError', { data: msg});
+              server.setRef('dataError', { msg: title + msg});
               return; 
             }
           }
@@ -253,9 +258,8 @@ export abstract class SwimGraphMsgHandler {
             swimlaneData.traceEvents = await readSwimlaneFileStream(swimPath);
             console.log('读取merged_swimlane.json文件');
     
-          } catch (err) {
-            const msg = t('pypto.swimGraph.validate.swimLaneFileError', {swimPath: swimPath});
-            server.setRef('dataError', { data: msg} );
+          } catch (err: any) {
+            server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: err.message} );
             console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
             return [];
           }
@@ -286,7 +290,8 @@ export abstract class SwimGraphMsgHandler {
           swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
 
           if ('errMsg' in swimData) {
-            server.setRef('dataError', { data: swimData.errMsg});
+            const title = t('pypto.swimGraph.validate.parseError');
+            server.setRef('dataError', { msg: title + swimData.errMsg});
             console.log('data ERROR:', swimData.errMsg);
             return [];
           }

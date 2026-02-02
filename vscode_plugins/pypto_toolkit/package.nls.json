@@ -130,6 +130,7 @@
   "pypto.swimGraph.validate.savedData": "saved data error, please enter F1 and refresh cache DB",
   "pypto.swimGraph.validate.swimLaneFileError": "Input Json file error:{{swimPath}}",
   "pypto.swimGraph.validate.unsupportedEventType": "Unsupported event type, ph: {{type}}",
+  "pypto.swimGraph.validate.parseError": "Parse json data error: ",
   "PyPTOToolkit.welcome.prepare": "Preparing sample data...",
   "PyPTOToolkit.welcome.prepareTimeout": "Sample data preparation timed out. Please check if multiple windows are open and stuck.",
   "PyPTOToolkit.welcome.prepareFail": "Failed to prepare sample data, {{error}}",
