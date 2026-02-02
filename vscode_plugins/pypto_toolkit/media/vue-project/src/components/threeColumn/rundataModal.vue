@@ -89,7 +89,7 @@ const getHistoryList = (page, searchKey) => {
   });
 };
 watch(sortOption, () => {
-  getHistoryList(pageIndex.value, searchQuery.value);
+  getHistoryList(1, searchQuery.value);
 });
 
 const openOtherFile = () => {
