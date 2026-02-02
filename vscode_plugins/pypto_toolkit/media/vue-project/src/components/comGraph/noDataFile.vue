@@ -62,5 +62,9 @@ function openFilePath() {
 }
 .no-file-back {
     background: var(--devui-primary-button-bg) !important;
+
+    &:hover {
+        background: var(--devui-primary-button-hover-bg) !important;
+    }
 }
 </style>

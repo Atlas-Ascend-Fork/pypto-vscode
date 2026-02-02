@@ -574,6 +574,13 @@ defineExpose({
       padding: 0;
     }
   }
+  .bindbox.devui-button--text--primary {
+    color: var(--devui-link-text);
+
+    &:hover {
+      color: var(--devui-hover-icon);
+    }
+  }
 }
 </style>
 <style>
