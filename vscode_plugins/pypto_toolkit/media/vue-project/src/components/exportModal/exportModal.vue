@@ -7,7 +7,7 @@
                 <d-radio v-for="item in exportRadioList" :key="item.name" :value="item.value">{{ item.name }}</d-radio>
             </d-radio-group>
             <div class="mt20 export-fold" v-if="exportFoldVisible">
-                <d-form ref="formRef" layout="vertical" :data="formData" :rules="rules" :pop-position="['right']">
+                <d-form ref="formRef" class="export-form-width" layout="vertical" :data="formData" :rules="rules" :pop-position="['top']">
                     <d-form-item field="filePath" :label="$t('exportFold')">
                         <d-input class="label-input mt10" v-model="formData.filePath" :placeholder="$t('exportPathPlace')">
                             <template #append>
@@ -18,7 +18,7 @@
                 </d-form>
             </div>
             <template #footer>
-                <d-modal-footer class="modal-button">
+                <d-modal-footer class="modal-button mt10">
                     <d-button variant="solid" color='secondary' @click="exportCancel()">{{ $t('no') }}</d-button>
                     <d-tooltip :content="disabledTooltipContent" v-if="isExportDisabled">
                         <d-button variant="solid" color='primary' @click="exportConfirm()" :disabled="isExportDisabled">{{ $t('exportImageGraph')}}</d-button>
@@ -178,6 +178,11 @@ onMounted(() => {
         .devui-input-slot__append {
             border: none;
             border-left: 1px solid var(--devui-form-control-line);
+        }
+        .devui-input__wrapper.devui-input--glow-style:not(.devui-input--error):not(.devui-input--disabled):not(.devui-input--focus):hover,
+        .devui-input--focus.devui-input--glow-style:not(.devui-input--error) {
+            box-shadow: none;
+            border: none;
         }
     }
 }
