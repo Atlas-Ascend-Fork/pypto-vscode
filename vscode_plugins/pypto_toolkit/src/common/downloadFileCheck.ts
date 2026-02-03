@@ -74,7 +74,7 @@ export async function setSaveDir(): Promise<string | undefined> {
 }
 
 
-export async function saveFile(message: { dataUrl: any, fileName?: any, filePath?: any }): Promise<{result:boolean,fileName?:string,message?:string} | undefined> {
+export async function saveFile(message: { dataUrl: any, fileName?: any, filePath?: any }): Promise<{ result: boolean, fileName?: string, message?: string } | undefined> {
     if (message.fileName) {
         // 2. 弹出保存对话框（用户可改目录 + 改文件名）
         const fileUri = await promptSaveFile(message.fileName);
@@ -84,31 +84,28 @@ export async function saveFile(message: { dataUrl: any, fileName?: any, filePath
         return await downloadFile(message.dataUrl, fileUri);
     }
     if (message.filePath) {
-        return await downloadFile(message.dataUrl, message.filePath);
+        return await downloadFile(message.dataUrl, vscode.Uri.file(message.filePath));
     }
 }
 export async function checkFilePath(message: { filePath: any }): Promise<{ result: boolean; message?: string }> {
-  const flag = await parentDirectoryExists(message.filePath);
-  if (!message.filePath || !flag) {
-    return { result: false, message: t('pypto.download.invalidFilePath') || undefined };
-  } else {
-    return { result: true };
-  }
+    const flag = await parentDirectoryExists(message.filePath);
+    if (!message.filePath || !flag) {
+        return { result: false, message: t('pypto.download.invalidFilePath') || undefined };
+    } else {
+        return { result: true };
+    }
 }
-async function downloadFile(base64DataUrl: any, filePath: any): Promise<{result:boolean,fileName?:string,message?:string}> {
+
+async function downloadFile(base64DataUrl: any, fileUri: vscode.Uri): Promise<{ result: boolean, fileName?: string, message?: string }> {
     try {
         // 1. 校验输入
-        const flag = await parentDirectoryExists(filePath);
-        if (!filePath || !flag) {
-            return {result:false,message:t('pypto.download.invalidFilePath') || undefined};
+        if (!fileUri) {
+            return { result: false, message: t('pypto.download.invalidFilePath') || undefined };
         }
 
-        filePath = vscode.Uri.file(filePath);
         if (!base64DataUrl || typeof base64DataUrl !== 'string') {
-            return {result:false,message:t('pypto.download.invalidBase64') || undefined};
+            return { result: false, message: t('pypto.download.invalidBase64') || undefined };
         }
-
-        
 
         // 2. 检查是否为 data URL
         const DATA_URL_PREFIX = 'data:';
@@ -151,13 +148,13 @@ async function downloadFile(base64DataUrl: any, filePath: any): Promise<{result:
         }
 
         // 5. 写入文件
-        await vscode.workspace.fs.writeFile(filePath, uint8Array);
+        await vscode.workspace.fs.writeFile(fileUri, uint8Array);
 
-        return {result:true,fileName:path.basename(filePath.fsPath)};
+        return { result: true, fileName: path.basename(fileUri.fsPath) };
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error(t('pypto.download.downloadFileFail') || undefined, error);
-        return {result:false,message:t('pypto.download.downloadFileFail') || undefined};
+        console.error(t('pypto.download.downloadFileFail') || undefined, msg);
+        return { result: false, message: t('pypto.download.downloadFileFail') || undefined };
     }
 }
 
@@ -188,29 +185,32 @@ export async function promptSaveFile(
 }
 
 
-function getParentDir(input: string | vscode.Uri): string {
-    const fullPath = input instanceof vscode.Uri ? input.fsPath : input;
-    return path.dirname(fullPath);
+function getParentDir(input: string): string {
+    return path.dirname(input);
 }
 
-async function parentDirectoryExists(input: string | vscode.Uri): Promise<boolean> {
-    if(typeof input === 'string'){
+async function parentDirectoryExists(input: string): Promise<boolean> {
+    if (isFileByExtension(input)) {
         const flag = isValidAbsolutePath(input);
-        if(!flag){
+        if (!flag) {
+            return false;
+        }
+        const parentDir = getParentDir(input);
+        try {
+            await fs.promises.access(parentDir, fs.constants.F_OK);
+            // 可选：进一步确认是目录（而非文件）
+            const stat = await fs.promises.stat(parentDir);
+            return stat.isDirectory();
+        } catch {
             return false;
         }
     }
-    const parentDir = getParentDir(input);
-    try {
-        await fs.promises.access(parentDir, fs.constants.F_OK);
-        // 可选：进一步确认是目录（而非文件）
-        const stat = await fs.promises.stat(parentDir);
-        return stat.isDirectory();
-    } catch {
-        return false;
-    }
+    return false;
 }
 
 function isValidAbsolutePath(p: string): boolean {
     return p.length > 0 && path.isAbsolute(p);
+}
+function isFileByExtension(p: string) {
+    return path.extname(p) == '.svg' || path.extname(p) == '.png';
 }
