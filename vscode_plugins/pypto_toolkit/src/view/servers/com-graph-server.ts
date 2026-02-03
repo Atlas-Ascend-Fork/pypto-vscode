@@ -8,7 +8,7 @@ import { AbstractGraphData } from '../../core/graphData';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
-import { setSaveDir, getCurrentPlatform, saveFile } from '../../common/downloadFileCheck';
+import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 
 type Apis = IComApis | ICommonApis;
 
@@ -38,7 +38,8 @@ type Refs = IComRefs & ICommonRefs;
   'JsonContent',
   'SaveFileResult',
   'CheckSysResult', 
-  'SaveDirPath'
+  'SaveDirPath',
+  'CheckFilePathResult'
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -143,6 +144,11 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   public saveFile = async (message) => {
     const result = await saveFile(message);
     this.setRef('SaveFileResult', result);
+  };
+  @viewApi()
+  public checkFilePath = async (message) => {
+    const result = await checkFilePath(message);
+    this.setRef('CheckFilePathResult', result);
   };
   @viewApi()
   public selectFile = async (beforeFilePath: string) => {

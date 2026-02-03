@@ -280,6 +280,9 @@ export class ThreeColumnServer
   @viewApi()
   public saveFile = async (message) => {
   };
+  @viewApi()
+  public checkFilePath = async (message) => {
+  };
   // 初始化自动关联路径
   async initRelativePath(
     codePath: string,

@@ -172,15 +172,18 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
 export type ICommonApis = 'getInitialData'
   | 'setSaveDir'
   | 'checkSys'
-  | 'saveFile';
+  | 'saveFile'
+  | 'checkFilePath';
 export type ICommonRefs = {
   SaveDirPath: unknown;
   CheckSysResult: unknown;
   SaveFileResult: unknown;
+  CheckFilePathResult: unknown;
 };
 export interface ICommonViewServer extends ViewServer<ICommonApis, ICommonRefs> {
   getInitialData: () => Promise<void>;
   setSaveDir: () => Promise<void>;
   checkSys: () => Promise<void>;
   saveFile: (message: { dataUrl: any, fileName?: any, filePath?: any, }) => Promise<void>;
+  checkFilePath: (message: { filePath: any, }) => Promise<void>;
 }

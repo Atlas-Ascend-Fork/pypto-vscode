@@ -1,6 +1,6 @@
 .export-modal-containner.devui-modal {
     width: 500px;
-    height: 280px;
+    height: 300px;
     background-color: var(--devui-global-bg);
     border: 1px solid var(--devui-modal-line);
   }
@@ -30,4 +30,7 @@
     opacity: 1;
     z-index: 1051;
     cursor: not-allowed;
+  }
+  .export-form-width {
+    width: 100%;
   }
