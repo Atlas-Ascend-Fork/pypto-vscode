@@ -81,7 +81,7 @@ import { NavbarProvideKey } from './navbar-types';
 import type { ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
 import { getOutputDetail } from '../../apis/workspace';
-import { getControlFlow, getProgramPath } from '../../apis/control-flow';
+import { getControlFlow, joinProgramPath } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
 import { useNavbar } from './hooks/use-navbar';
@@ -243,7 +243,7 @@ onMounted(async () => {
   const uri = res._uri;
   const query = JSON.parse(uri.query);
   isBootStep = Boolean(query.isBootStep)
-  programePath.value = getProgramPath(query.outputPath)
+  programePath.value = await joinProgramPath({outputPath: res.outputPath})
   pathName.value = query.pathName;
 });
 </script>

@@ -30,6 +30,6 @@ export function openControlFlowTargetFile(params: SourceCodeRequestDto): Promise
 /**
  * 获取program.json的path
  */
-export function getProgramPath(params: any): Promise<string> {
-  return request.post(`${CONTROL_FLOW_PREFIX}/getProgramPath`, params);
+export function joinProgramPath(params: { outputPath: string }): Promise<string> {
+  return request.post(`${CONTROL_FLOW_PREFIX}/joinProgramPath`, params);
 }
