@@ -613,6 +613,11 @@ const initEditor = (code) => {
     editor = null;
   }
 
+  if (isLocked.value) {
+    isLocked.value = false;
+    sendMsg('deactivateLock','');
+  }
+
   const container = containerRef.value;
   const language = initCodePath.endsWith('py') ? 'python' : 'cpp';
 
