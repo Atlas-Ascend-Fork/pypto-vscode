@@ -88,7 +88,7 @@ export async function saveFile(message: { dataUrl: any, fileName?: any, filePath
     }
 }
 export async function checkFilePath(message: { filePath: any }): Promise<{ result: boolean; message?: string }> {
-    const flag = await parentDirectoryExists(message.filePath);
+    const flag = await directoryExists(message.filePath);
     if (!message.filePath || !flag) {
         return { result: false, message: t('pypto.download.invalidFilePath') || undefined };
     } else {
@@ -184,33 +184,21 @@ export async function promptSaveFile(
     return fileUri; // 可能是 undefined（用户取消）
 }
 
-
-function getParentDir(input: string): string {
-    return path.dirname(input);
-}
-
-async function parentDirectoryExists(input: string): Promise<boolean> {
-    if (isFileByExtension(input)) {
-        const flag = isValidAbsolutePath(input);
-        if (!flag) {
-            return false;
-        }
-        const parentDir = getParentDir(input);
-        try {
-            await fs.promises.access(parentDir, fs.constants.F_OK);
-            // 可选：进一步确认是目录（而非文件）
-            const stat = await fs.promises.stat(parentDir);
-            return stat.isDirectory();
-        } catch {
-            return false;
-        }
+async function directoryExists(input: string): Promise<boolean> {
+    const flag = isValidAbsolutePath(input);
+    if (!flag) {
+        return false;
     }
-    return false;
+    try {
+        await fs.promises.access(input, fs.constants.F_OK);
+        // 可选：进一步确认是目录（而非文件）
+        const stat = await fs.promises.stat(input);
+        return stat.isDirectory();
+    } catch {
+        return false;
+    }
 }
 
 function isValidAbsolutePath(p: string): boolean {
     return p.length > 0 && path.isAbsolute(p);
-}
-function isFileByExtension(p: string) {
-    return path.extname(p) == '.svg' || path.extname(p) == '.png';
 }
