@@ -384,7 +384,7 @@ async function onStepsChange(args) {
   stepsMap[args.data.methodName](args.data.params);
 }
 onMounted(() => {
-  (window as any).ascEventBus.on('view_mouseup', onViewMouseUp);
+  (window as any).ascEventBus.on('view_left_mouseup', onViewMouseUp);
   (window as any).ascEventBus.on('message_notice', onMessageNotice);
   (window as any).ascEventBus.on('node_hidden_message_notice', onNodeHiddenMessageNotice);
   (window as any).ascEventBus.on('switchLockInformation', onSwitchLockInfo);
@@ -401,7 +401,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  (window as any).ascEventBus.remove('view_mouseup', onViewMouseUp);
+  (window as any).ascEventBus.remove('view_left_mouseup', onViewMouseUp);
   (window as any).ascEventBus.remove('message_notice', onMessageNotice);
   (window as any).ascEventBus.remove('node_hidden_message_notice', onNodeHiddenMessageNotice);
   (window as any).ascEventBus.remove('switchLockInformation', onSwitchLockInfo);

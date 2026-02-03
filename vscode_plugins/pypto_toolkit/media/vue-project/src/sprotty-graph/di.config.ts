@@ -435,6 +435,9 @@ export class CustomMouseListener extends MouseListener {
       root = findParentByFeature(target, (e) => e.id === 'root');
     }
     (window as any).ascEventBus.emit('view_mouseup', target);
+    if (event.button === 0) {
+      (window as any).ascEventBus.emit('view_left_mouseup', target);
+    }
     return [];
   }
 
