@@ -1573,13 +1573,16 @@ const updateProcessDrawData = (process, processKey) => {
 // 调用之前需确认画布已还原成初始状态
 const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   // 预计算常量，避免重复计算
-  const { scale, offsetX } = viewState;
+  const { scale, offsetX, canvasCssWidth } = viewState;
   const absOffsetX = Math.abs(offsetX);
   
-  const actualRectX = drawData.rectX * scale;
-  const actualRectEndX = actualRectX + width * scale;
-  const isSplit = actualRectX < absOffsetX;
-  const actualWidth = isSplit ? actualRectEndX - absOffsetX : width * scale;
+  const rectStartX = drawData.rectX * scale;
+  const rectEndX = rectStartX + width * scale;
+  
+  // 计算可见范围
+  const visibleStartX = Math.max(rectStartX, absOffsetX);
+  const visibleEndX = Math.min(rectEndX, absOffsetX + canvasCssWidth);
+  const actualWidth = Math.max(0, visibleEndX - visibleStartX);
   
   if (actualWidth < 15) {
     drawData.text = '';
@@ -1606,14 +1609,9 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
     displayText = displayName;
   }
 
-  let textStartX = 0;
-  const textWidthDiff = actualPixWidth - textWidth;
-  
-  if (isSplit) {
-    textStartX = textWidthDiff / 2;
-  } else {
-    textStartX = (offsetX + actualRectX) * devicePixelRatio + textWidthDiff / 2;
-  }
+  const visibleRectXOnScreen = visibleStartX - absOffsetX;
+  // 计算文字居中位置：可见区域左边缘 + (可见宽度 - 文字宽度)/2
+  const textStartX = (visibleRectXOnScreen * devicePixelRatio) + (actualPixWidth - textWidth) / 2;
 
   drawData.text = displayText;
   drawData.textX = isTextXChange ? textStartX : event.drawData.textX;

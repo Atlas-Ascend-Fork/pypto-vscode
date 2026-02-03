@@ -87,5 +87,13 @@ const openSelectedFileWindow = () => {
   .mt10 {
     margin-top: 10px;
   }
+
+  .devui-button--solid--primary {
+    background: var(--devui-primary-button-bg) !important;
+
+    &:hover {
+      background: var(--devui-primary-button-hover-bg) !important;
+    }
+  }
 }
 </style>
