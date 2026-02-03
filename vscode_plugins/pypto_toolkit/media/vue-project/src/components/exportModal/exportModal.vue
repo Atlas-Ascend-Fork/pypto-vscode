@@ -66,7 +66,7 @@ const checkFilePath = async (rule, value, callback) => {
 };
 const rules = {
     filePath: [
-        { validator: checkFilePath }
+        { validator: checkFilePath, trigger: 'blur' }
     ]
 };
 const isExportDisabled = computed(() => {
@@ -109,7 +109,7 @@ function setupImageWatchers() {
     watch(server.SaveDirPath, (newValue) => {
         showModalOverlay.value = false;
         if (newValue.dir) {
-            formData.filePath = newValue.dir + `/${pureFileName.value}`;
+            formData.filePath = newValue.dir;
         }
     });
     watch(server.SaveFileResult, (newValue) => {
@@ -149,7 +149,7 @@ const exportConfirm = () => {
         saveFileResultMessage.value = null;
     } else {
         saveFileResultMessage.value = null;
-        server.saveFile({ dataUrl: props.dataUrl, filePath: formData.filePath });
+        server.saveFile({ dataUrl: props.dataUrl, filePath: formData.filePath + `/${pureFileName.value}` });
     }
 };
 const setExportFold = () => {
