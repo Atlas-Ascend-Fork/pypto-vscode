@@ -1,7 +1,7 @@
 <template>
   <div class="com-graph-container">
-    <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath" :pathName="pathName"
-      :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
+    <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath"
+      :pathName="pathName" :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
       :openMode="props.openMode"></ComGraphHeader>
     <div :style="{
       backgroundImage: 'url(' + svgPath + ')',
@@ -12,19 +12,21 @@
       <div id="sprotty"></div>
     </div>
     <div class="lock-information" v-if="switchLockInformationFlag">
-      <div class="lock-information-item">{{lockText}}，{{ t('comGraph.pressEscExit') }}</div>
+      <div class="lock-information-item">{{ lockText }}，{{ t('comGraph.pressEscExit') }}</div>
     </div>
 
     <ShowTip></ShowTip>
-    <ComGraphMinimap
-      :offset-right="minimapOffsetRight"
-    ></ComGraphMinimap>
-    <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph" @open="(e) => (healthReportGraphName = e)" />
+    <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
+    <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
+      @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
-    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)" @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)" @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
+    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)"
+      @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)"
+      @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
     <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
-    <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent" :nodeErrorList="nodeErrorList"></ErrorNode>
+    <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent"
+      :nodeErrorList="nodeErrorList"></ErrorNode>
   </div>
 </template>
 
@@ -46,9 +48,9 @@ import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { ComGraphProvideKey } from './type';
-import  ErrorNode  from './error-node.vue';
-import {openSwimlaneGraph} from "@/apis/opener";
-import {getSwimPath, getUserRunRoot} from "@/apis/welcome";
+import ErrorNode from './error-node.vue';
+import { openSwimlaneGraph } from "@/apis/opener";
+import { getSwimPath, getUserRunRoot } from "@/apis/welcome";
 import { getQuery } from '@/core/query';
 
 const outputDirPath = ref('');
@@ -125,7 +127,7 @@ const minimapOffsetRight = computed(() => {
     return 0;
   }
 })
-let lockText= '';
+let lockText = '';
 
 let fitToScreenAction;
 let initComDocText;
@@ -174,8 +176,8 @@ function isNodeInTrace(nodeId: string): boolean {
     nodesList = [...comGraphStore.data.pathNodesSet].map(item => Number(item));
   } else {
     const tracedTensors = comGraphStore.data.traceTensors?.[1];
-    const tracedOperations  = comGraphStore.data.traceOperations?.[1];
-    const tracedNodes = [...(tracedTensors || []),...(tracedOperations || [])];
+    const tracedOperations = comGraphStore.data.traceOperations?.[1];
+    const tracedNodes = [...(tracedTensors || []), ...(tracedOperations || [])];
     nodesList = tracedNodes;
   }
 
@@ -236,12 +238,13 @@ const LoadingStatusMap = {
   convertData: 'comGraph.convertData',
   readJsonWarning: 'comGraph.readJsonWarning',
   rendering: 'comGraph.rendering',
+  loading: 'loadTraceData',
 };
 watch(
   () => props.loadingStep,
   (val) => {
-    if (!val) {return;}
-    if (val === 'readJson' || val === 'rendering' || val === 'convertData') {
+    if (!val) { return; }
+    if (val === 'readJson' || val === 'rendering' || val === 'convertData' || val === 'loading') {
       isLoading.value = true;
       const nodeCount = comGraphStore.data?.pathNodesSet.size ?? comGraphStore.data?.nodeCount ?? 0;
       waitingFlag.value = (nodeCount >= 5000) && (comGraphStore.data.isCached === false);
@@ -261,7 +264,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     graphType.value = typeof val.graphtype !== 'undefined' ? String(val.graphtype) : '';
     const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
     const searchLevel = comGraphStore.data?.searchLevel ?? props.searchLevel;
-    if (initComDocText){
+    if (initComDocText) {
       resetModelSource(true);
       initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
       comGraphStore.setData('jsonData', jsonValue);
@@ -285,8 +288,8 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
 
 function onMessageNotice(text) {
   Message({
-    type:'warning',
-    message:text
+    type: 'warning',
+    message: text
   });
 }
 
@@ -304,9 +307,9 @@ function onViewMouseUp(node) {
 }
 function onSwitchLockInfo(attr) {
   switchLockInformationFlag.value = attr[0];
-  if(attr[1]){
+  if (attr[1]) {
     lockText = t('comGraph.singlePathMode');
-  }else{
+  } else {
     lockText = t('comGraph.pathLocked');
   }
 }
@@ -373,7 +376,7 @@ async function onStepsChange(args) {
   if (args.type === 'openWebviewWithGuide') {
     openSwimlaneGraph({
       swimlaneGraphPath: `${await getSwimPath()}`,
-      isBootStep:true
+      isBootStep: true
     });
     server.closeWebview();
     return;
@@ -414,12 +417,12 @@ onBeforeUnmount(() => {
 
 // 统一出口：解除固定
 function releaseFixedFlow() {
-  setFixedComGraphFlow(false,false);
+  setFixedComGraphFlow(false, false);
   switchLockInformationFlag.value = false;
 }
 
 // 在 document 上只绑定一次
-document.addEventListener('keydown',async (e: KeyboardEvent) => {
+document.addEventListener('keydown', async (e: KeyboardEvent) => {
   if (e.key === 'Escape' || e.code === 'Escape') {
     e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
     releaseFixedFlow();
@@ -443,8 +446,8 @@ document.addEventListener('keydown',async (e: KeyboardEvent) => {
     (e.key === 'h' || e.key === 'H')) {
     e.preventDefault();
     const selectedNodeId = await getSelectedNodeId()
-    setFixedComGraphFlow(true, true,selectedNodeId);
-    if(selectedNodeId && selectedNodeId !='' ){
+    setFixedComGraphFlow(true, true, selectedNodeId);
+    if (selectedNodeId && selectedNodeId != '') {
       switchLockInformationFlag.value = true;
       lockText = t('comGraph.singlePathMode');
     }

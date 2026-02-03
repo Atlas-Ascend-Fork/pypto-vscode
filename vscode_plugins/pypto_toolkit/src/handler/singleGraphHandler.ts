@@ -28,9 +28,8 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     const gd = server.comGraphData as SingleGraphData;
     if (!server.entryHash) {
       try {
-        const { entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+        const { entryhash } = await SingleGraphData.getEntryHash(gd.fsPath);
         server.entryHash = entryhash;
-        gd.version = version;
       } catch (err: any) {
         if (err.code === 'FILE_READ_ERROR') {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
@@ -106,7 +105,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
       }
     }
-    await SingleGraphHandler.returnFuncTree(server);
+    SingleGraphHandler.returnFuncTree(server);
   }
   public static async returnFuncTree(server: any) {
     const funcTree: any = {};

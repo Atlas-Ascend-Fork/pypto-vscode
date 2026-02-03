@@ -97,9 +97,8 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     const gd = server[prop] as DiffGraphData;
     if (!gd.funcHash) {
       try {
-        const { entryhash, version } = await DiffGraphData.getEntryHashAndVersion(gd.fsPath);
+        const { entryhash } = await DiffGraphData.getEntryHash(gd.fsPath);
         gd.funcHash = entryhash;
-        gd.version = version;
       } catch (err: any) {
         if (err.code === 'FILE_READ_ERROR') {
           server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })

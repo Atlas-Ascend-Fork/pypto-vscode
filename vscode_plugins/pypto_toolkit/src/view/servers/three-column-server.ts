@@ -567,10 +567,9 @@ class ComGraphHandler extends SingleGraphHandler {
     const gd = server.comGraphData as SingleGraphData;
 
     try {
-      const { entryhash, version } = await SingleGraphData.getEntryHashAndVersion(gd.fsPath);
+      const { entryhash } = await SingleGraphData.getEntryHash(gd.fsPath);
       server.entryHash = entryhash;
       gd.funcHash = entryhash;
-      gd.version = version;
     } catch (err: any) {
       if (err.code === 'FILE_READ_ERROR') {
         server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;

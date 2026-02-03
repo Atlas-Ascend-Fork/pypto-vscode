@@ -1,7 +1,8 @@
 import { createReadStream } from 'fs';
 const { parser } = require('stream-json');
-const { pick } = require('stream-json/filters/Pick');
 const { streamValues } = require('stream-json/streamers/StreamValues');
+import * as fs from 'fs/promises';
+
 import { SQLiteCache, getMTime } from './sqliteCache';
 const DATA_LENGTH_LIMIT = 62000000;
 import { getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from './sqlInit';
@@ -48,10 +49,25 @@ export abstract class GraphData {
 
   // 读取json文件并存入缓存 并返回大小文件判断
   async readFileAndSetCache(fsPath: string): Promise<void> {
+    const { size } = await fs.stat(fsPath);
+
+    // 策略：小文件用 JSON.parse（快），大文件用流（防崩）
+    if (size < 200 * 1024 * 1024) { // < 200MB
+      const buffer = await fs.readFile(fsPath);
+      const value = JSON.parse(buffer.toString());
+      if (value?.functions) {
+        await this.processFunctions(fsPath, value);
+      }
+    } else {
+      // 超大文件走流式（防止内存爆炸）
+      await this.readWithStream(fsPath);
+    }
+  }
+
+  private async readWithStream(fsPath: string): Promise<void> {
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser();
     const valuesStreamer = streamValues();
-
     // 错误统一收集
     let streamError: Error | null = null;
 
@@ -63,11 +79,10 @@ export abstract class GraphData {
       const pipelineStream = fileStream.pipe(jsonParser).pipe(valuesStreamer);
       for await (const ele of pipelineStream) {
         if (streamError) throw streamError; // 检查是否有流错误
-
         const value = ele.value;
-        if (!value?.functions) continue;
-
-        await this.processFunctions(fsPath, value);
+        if (value?.functions) {
+          await this.processFunctions(fsPath, value);
+        }
       }
     } catch (error) {
       // 优先返回流错误，否则返回当前错误
@@ -116,6 +131,8 @@ export abstract class GraphData {
       /* 2. 构造插入任务数组 */
       const tasks: (() => Promise<void>)[] = [];
       const lastChangeTime = await getMTime(fsPath);
+      this.version = value.version;
+
       for (const funcItem of value.functions) {
         const callHashArr: string[] = [];
         const seen = new Set<string>;
@@ -168,7 +185,6 @@ export abstract class GraphData {
       if (sqlJobs.length) {
         await Promise.all(sqlJobs.map((fn) => fn()));
       }
-      await SQLiteCache.getInstance().save();
     } catch (err: any) {
       // 数据校验错误先抛出
       if (err.code === 'DATA_VALIDATION_OP_MAGIC_ERROR') {
@@ -186,52 +202,54 @@ export abstract class GraphData {
     }
   }
 
-  static async getEntryHashAndVersion(fsPath: string): Promise<EntryInfo> {
-    const fileStream = createReadStream(fsPath);
-    const jsonParser = parser();
-    const valuesStreamer = streamValues();
-
+  static async getEntryHash(fsPath: string): Promise<EntryInfo> {
     return new Promise((resolve, reject) => {
-      fileStream.on('error', (err: any) => {
-        // 文件读取错误（如文件不存在、权限问题）
+      const stream = createReadStream(fsPath, { encoding: 'utf8' });
+      let buffer = '';
+      let result: EntryInfo = {};
+      let foundCount = 0;
+      const needed = 1;
+
+      const tryExtract = (text: string) => {
+        // 只在还没找到时才匹配
+        if (result.entryhash === undefined) {
+          const matchHash = text.match(/"entryhash"\s*:\s*"([^"]*)"/);
+          if (matchHash) {
+            result.entryhash = matchHash[1];
+            foundCount++;
+          }
+        }
+        if (foundCount >= needed) {
+          stream.destroy();
+          resolve(result);
+        }
+      };
+
+      stream.on('data', (chunk: string) => {
+        buffer += chunk;
+        // 尽快尝试匹配（避免 buffer 过大）
+        tryExtract(buffer);
+        // 可选：如果 buffer 太大且还没找到，保留最后 200 字符防跨 chunk
+        if (buffer.length > 1000 && foundCount === 0) {
+          buffer = buffer.slice(-200);
+        }
+      });
+
+      stream.on('end', () => {
+        // 最后一次尝试（以防字段在末尾）
+        tryExtract(buffer);
+        resolve(result);
+      });
+
+      stream.on('error', (err) => {
         reject(Object.assign(err, { code: 'FILE_READ_ERROR' }));
       });
-
-      jsonParser.on('error', (err: any) => {
-        // JSON 解析错误（如格式无效）
-        reject(Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
-      });
-
-      valuesStreamer.on('error', (err: any) => {
-        // StreamValues 错误（较少见，但保险起见）
-        reject(Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
-      });
-
-      const pipeline = fileStream.pipe(jsonParser).pipe(valuesStreamer);
-      pipeline
-        .on('data', (data: any) => {
-          const obj = data.value;
-          if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
-            const result: EntryInfo = {
-              entryhash: typeof obj.entryhash === 'string' ? obj.entryhash : undefined,
-              version: typeof obj.version === 'string' ? obj.version : undefined,
-            };
-            pipeline.destroy();
-            resolve(result);
-          }
-        })
-        .on('end', () => resolve({}))
-        .on('error', (err: any) => {
-          // 错误处理
-          reject(err);
-        });
     });
   }
 }
 
 interface EntryInfo {
   entryhash?: string;
-  version?: string;
 }
 
 export class SingleGraphData extends GraphData {
