@@ -28,6 +28,7 @@ export class AscppDagBuilder {
     recordInOutRawId = new Set<string>();
     recordInOutCastMap = new Map<string, string>();
     recordNodeIdMap = new Map<string, string>();
+    uniqueKeySet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
     isSearch = false;
@@ -94,6 +95,18 @@ export class AscppDagBuilder {
 
     public prepareSprottyGraphData() {
         
+    }
+
+    /**
+     * @param {string} key 唯一标识符
+     * @returns {boolean} 如果是没有添加返回true，已存在返回false
+     */
+    public tryAddUnique(key) {
+        if (this.uniqueKeySet.has(key)) {
+            return false;
+        }
+        this.uniqueKeySet.add(key);
+        return true;
     }
 
     public createGraphSingleSearch(nodeMagic: string, actualData: FunctionData,
@@ -493,11 +506,9 @@ export class AscppDagBuilder {
             return;
         }
 
-        const uniqueKey = `m${tensorMagic}_s${slotId}`;
-        if (this.incastUniqueSingle.has(uniqueKey)) {
+        const uniqueKey = `m${tensorMagic}_s${slotId}_in`;
+        if (!this.tryAddUnique(uniqueKey)) {
             return;
-        } else {
-            this.incastUniqueSingle.add(uniqueKey);
         }
 
         // check duplicate Nodes
@@ -594,11 +605,9 @@ export class AscppDagBuilder {
             return;
         }
 
-        const uniqueKey = `m${tensorMagic}_s${slotId}`;
-        if (this.outcastUnique.has(uniqueKey)) {
+        const uniqueKey = `m${tensorMagic}_s${slotId}_out`;
+        if (!this.tryAddUnique(uniqueKey)) {
             return;
-        } else {
-            this.outcastUnique.add(uniqueKey);
         }
 
         let graphId = tensor?.subgraphid ?? -1;
@@ -1344,7 +1353,6 @@ export class AscppDagBuilder {
             return;
         }
 
-        const incastUnique: Set<string> = new Set<string> ();
         for (let incastIndex = 0; incastIndex < actualData.incasts.length; incastIndex++) {
             const incast = actualData.incasts[incastIndex];
             const tensorMagic = String(Array.isArray(incast) ? incast[0] : incast);
@@ -1357,11 +1365,9 @@ export class AscppDagBuilder {
             }
 
 
-            const uniqueKey = `m${tensorMagic}_s${slotId}`;
-            if (incastUnique.has(uniqueKey)) {
+            const uniqueKey = `m${tensorMagic}_s${slotId}_in`;
+            if (!this.tryAddUnique(uniqueKey)) {
                 continue;
-            } else {
-                incastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
@@ -1529,11 +1535,9 @@ export class AscppDagBuilder {
                 slotId.push(...temp);
             }
 
-            const uniqueKey = `m${tensorMagic}_s${slotId}`;
-            if (this.outcastUnique.has(uniqueKey)) {
+            const uniqueKey = `m${tensorMagic}_s${slotId}_out`;
+            if (!this.tryAddUnique(uniqueKey)) {
                 continue;
-            } else {
-                this.outcastUnique.add(uniqueKey);
             }
 
             // Get the raw tensor ID and then lookup the tensor name
