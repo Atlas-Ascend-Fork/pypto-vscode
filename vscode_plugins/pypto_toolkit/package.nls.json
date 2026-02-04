@@ -122,6 +122,7 @@
   "pypto.entry.fileTooLarge": "The file is too large, command-line tools can't retrieve its info. Please right-click the JSON file and select 'PyPTO Toolkit: Open File' from the context menu to visualize it.",
   "pypto.swimGraph.performance.useTime": "The estimated time to open the current file is between {{lower}} and {{upper}}.",
   "pypto.swimGraph.performance.tooLarge": "The current file is too large and may fail to open.",
+  "pypto.swimGraph.validate.nodata": "No Valid data is read. Please Check the JSON file",
   "pypto.swimGraph.validate.threadWithid": "Missing Required keys in thread pid:{{pid}}, tid:{{tid}}",
   "pypto.swimGraph.validate.thread": "Missing Required keys in thread",
   "pypto.swimGraph.validate.eventWithName": "Missing Required keys in event name:{{name}}",

@@ -573,8 +573,10 @@ const calculateDependencies = (events, connections) => {
     let processes = new Map();
     let processExpanded = new Map();
     let lane2line = new Map();
+    let errorMsg: any = {};
     if (!traceData || !traceData.traceEvents) {
-      return;
+      errorMsg.errMsg = t('pypto.swimGraph.validate.nodata');
+      return errorMsg;
     }
 
     let hasCat = false;
@@ -597,8 +599,6 @@ const calculateDependencies = (events, connections) => {
     const threadNames = new Map();
     const eventTasks: any[] = [];
     const connections: any[] = [];
-  
-    let errorMsg: any = {};
 
     let minThresh = new BigNumber(Infinity);
     for (let index = 0; index < traceData.traceEvents.length; index++) {

@@ -91,7 +91,7 @@ export default {
    'eventTask':'Task内容展示',
    'colorRendering':'Task颜色渲染',
    'subGraph':'按子图',
-   'stichedFunc':'按Stiched Function',
+   'stichedFunc':'按Stitched Function',
    'label':'按语义标签',
    'name':'按名称',
    'allText':'全部字段',
