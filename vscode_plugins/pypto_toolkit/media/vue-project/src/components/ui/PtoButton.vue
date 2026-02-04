@@ -74,12 +74,12 @@ const emit = defineEmits<{
   &--primary {
     background-color: var(--pto-button-primary-background);
     border-color: var(--pto-button-primary-background);
-    color: rgba(255, 255, 255, 1);
+    color: var(--pto-button-primary-font-color);
 
     &:hover {
       background-color: var(--pto-button-primary-background-hover);
       border-color: var(--pto-button-primary-background-hover);
-      color: rgba(255, 255, 255, 1);
+      color: var(--pto-button-primary-font-color);
     }
   }
 
