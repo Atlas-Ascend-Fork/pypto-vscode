@@ -299,6 +299,7 @@ onMounted(async () => {
     }
   }
   if (graphType.value === 'computeGraph' || graphType.value === 'diffGraph') {
+    loadingStep.value = 'loading';
     await server.getInitialData();
   }
   if (graphType.value === 'swimGraph') {
