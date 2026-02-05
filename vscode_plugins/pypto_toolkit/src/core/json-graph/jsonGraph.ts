@@ -1194,6 +1194,9 @@ export class AscppDagBuilder {
         } as SCompartment);
         const inPort: AstgrPort = { type: 'port', id: nodeId, role: 'input', size: { width: 8, height: 8 } };
         children.push(inPort);
+        const outPortId = nodeId.replace(/-in$/, '-out');
+        const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
+        children.push(outPort);
         return {
           type: 'node',
           id:  `${nodeId}-empty`,
