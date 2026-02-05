@@ -121,6 +121,7 @@ export function useInitGraph(
         },
       },
     ],
+    animation:false
   });
 
   // path内hover事件
