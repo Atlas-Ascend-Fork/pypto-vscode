@@ -1,8 +1,15 @@
 <template>
   <div ref="previewContainer" class="code-preview">
     <div class="step-content__run-python">
-      <img :src="pythonIcon" class="icon-json" />
-      <div class="step-description">hello_world.py</div>
+      <div class="file-info">
+        <img :src="pythonIcon" class="icon-json" />
+        <div class="step-description">hello_world.py</div>
+      </div>
+      <div class="copy-code-wrap" @click="copyAllCode">
+        <i class="icon icon-copy copy-icon"></i>
+        <span class="copy-text" v-show="!copySuccess">{{ t('welcome.copyCode') }}</span>
+        <span class="copy-tip" v-show="copySuccess">{{ t('welcome.copiedSuccessfully') }}</span>
+      </div>
     </div>
     <!-- Monaco Editor 容器 -->
     <div ref="editorContainer" class="code-preview-editor"></div>
@@ -20,21 +27,46 @@ const { t } = useI18n();
 const pythonIcon = computed(() => `${window.staticPath}/static-assets/python.svg`);
 
 const editorContainer = ref<HTMLDivElement | null>(null);
-// 优化：明确 monacoEditor 类型，避免 TS 类型提示异常
 let monacoEditor: monaco.editor.IStandaloneCodeEditor | null = null;
 const previewCode = ref('asdfasdf');
 const previewOpacity = ref(0);
 const isOpenFile = ref(true);
+// 复制状态 - 控制成功提示显示，定时器标识
+const copySuccess = ref(false);
+let copyTimer: NodeJS.Timeout | null = null;
+
 const themeState = computed(() => {
   return isDarkTheme.value ? 'vs-dark' : 'vs';
 });
 
+// 使用Monaco内置API一键复制全部代码
+const copyAllCode = () => {
+  if (!monacoEditor || !previewCode.value) return;
+  try {
+    // 1. 全选命令
+    monacoEditor.trigger('keyboard', 'editor.action.selectAll');
+    // 2. 复制命令
+    monacoEditor.trigger('keyboard', 'editor.action.clipboardCopyAction');
+    // 3. 显示成功提示
+    copySuccess.value = true;
+    // 4. 清除原有定时器（避免多次点击叠加）
+    if (copyTimer) {
+      clearTimeout(copyTimer);
+    }
+    // 5. 3秒后隐藏提示
+    copyTimer = setTimeout(() => {
+      copySuccess.value = false;
+    }, 3000);
+  } catch (error) {
+    copySuccess.value = false;
+    console.error('Python代码复制失败:', error);
+  }
+};
+
 // 配置 Monaco Worker 环境
 const configureMonacoWorker = () => {
-  // 覆盖 Monaco 的 Worker 加载规则
   (self as any).MonacoEnvironment = {
     getWorkerUrl: () => {
-      // 创建空的内联 Worker（只读预览无需 Worker 处理逻辑）
       const blob = new Blob(['self.onmessage = () => {};'], {
         type: 'application/javascript',
       });
@@ -47,44 +79,37 @@ const configureMonacoWorker = () => {
 const initEditor = async () => {
   try {
     if (!editorContainer.value) return;
-    // 获取代码片段
     const res = await getPythonFileCode();
-
     previewCode.value = res;
-    // 配置 Worker 环境
     configureMonacoWorker();
-    // 创建编辑器实例
     monacoEditor = monaco.editor.create(editorContainer.value, {
       value: previewCode.value,
-      language: 'python', // 识别语言
-      theme: themeState.value, // 初始化主题
-      readOnly: true, // 只读模式（预览用）
-      minimap: { enabled: false }, // 隐藏迷你地图
-      scrollBeyondLastLine: false, // 禁止滚动超出最后一行
-      overviewRulerLanes: 0, // 隐藏滚动条轨道
-      folding: true, // 支持代码折叠
+      language: 'python',
+      theme: themeState.value,
+      readOnly: true,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      overviewRulerLanes: 0,
+      folding: true,
       fontSize: 14,
-      wordWrap: 'on', // 自动换行
-      automaticLayout: true, // 自动适应容器大小
-      // 隐藏状态栏和工具栏
+      wordWrap: 'on',
+      automaticLayout: true,
       hideCursorInOverviewRuler: true,
       overviewRulerBorder: false,
       scrollBeyondLastColumn: 0,
-      contextmenu: false, // 禁用右键菜单
-      tabFocusMode: false, // 禁用Tab键聚焦
-      // 禁用所有依赖 Worker 的功能
-      quickSuggestions: false, // 禁用快速补全
-      suggestOnTriggerCharacters: false, // 禁用触发字符补全
-      hover: { enabled: false }, // 禁用鼠标 hover 提示（避免触发 Worker）
-      parameterHints: { enabled: false }, // 禁用参数提示
-      formatOnType: false, // 禁用输入格式化
-      formatOnPaste: false, // 禁用粘贴格式化
-      // 隐藏 Monaco 内置滚动条
+      contextmenu: false,
+      tabFocusMode: false,
+      quickSuggestions: false,
+      suggestOnTriggerCharacters: false,
+      hover: { enabled: false },
+      parameterHints: { enabled: false },
+      formatOnType: false,
+      formatOnPaste: false,
       scrollbar: {
-        vertical: 'hidden', // 隐藏垂直滚动条
-        verticalHasArrows: false, // 隐藏垂直滚动条箭头
-        horizontal: 'hidden', // 隐藏水平滚动条（可选，根据需求）
-        horizontalHasArrows: false, // 隐藏水平滚动条箭头
+        vertical: 'hidden',
+        verticalHasArrows: false,
+        horizontal: 'hidden',
+        horizontalHasArrows: false,
       },
     });
   } catch (error) {
@@ -96,10 +121,7 @@ const initEditor = async () => {
 const updateEditorTheme = (newTheme: string) => {
   if (!monacoEditor) return;
   monaco.editor.setTheme(newTheme);
-
-  monacoEditor.updateOptions({
-    theme: newTheme,
-  });
+  monacoEditor.updateOptions({ theme: newTheme });
 };
 
 // 销毁编辑器实例
@@ -112,6 +134,8 @@ const disposeEditor = () => {
       previewCode.value = '';
       previewOpacity.value = 0;
     }
+    if (copyTimer) clearTimeout(copyTimer);
+    copySuccess.value = false;
   } catch (error) {
     console.log(error);
   }
@@ -119,21 +143,17 @@ const disposeEditor = () => {
 
 // 动态更新主题
 watch(
-  themeState, // 监听计算属性 themeState 的变化
+  themeState,
   (newTheme, oldTheme) => {
     if (newTheme === oldTheme) return;
-    updateEditorTheme(newTheme); // 执行主题更新
+    updateEditorTheme(newTheme);
   },
-  {
-    immediate: false,
-    deep: false,
-  },
+  { immediate: false, deep: false },
 );
 
 // 生命周期钩子
 onMounted(async () => {
   try {
-    // 监听显示状态变化，初始化/销毁编辑器
     await nextTick();
     await initEditor();
   } catch (error) {
@@ -142,7 +162,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // 销毁编辑器
   disposeEditor();
 });
 </script>
@@ -158,9 +177,18 @@ onUnmounted(() => {
   .step-content__run-python {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     line-height: 40px;
     gap: 8px;
-    padding-left: 15px;
+    padding: 0 15px;
+    cursor: default;
+
+    // 文件信息容器
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     .icon-json {
       width: 16px;
@@ -170,7 +198,39 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--devui-yellow-60); // 黄色主题色
+      color: var(--devui-yellow-60);
+    }
+
+    .step-description {
+      font-size: 14px;
+      color: var(--devui-title-text);
+    }
+
+    // 复制按钮整体样式
+    .copy-code-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--devui-tooltip-text);
+      position: relative;
+
+      // 复制图标
+      .copy-icon {
+        font-size: 14px;
+      }
+
+      // 复制成功提示
+      .copy-tip {
+        color: var(--devui-success-color);
+        white-space: nowrap;
+      }
+
+      // hover效果，适配主题
+      &:hover {
+        color: var(--devui-primary-color);
+      }
     }
   }
 

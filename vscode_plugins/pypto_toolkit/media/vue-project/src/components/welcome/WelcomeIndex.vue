@@ -339,17 +339,6 @@ async function goTocheckThreeColumn() {
 // 第二部查看运行结果是否完成
 const { server } = useViewServer<WelcomeViewServer>();
 const { skipAllStep2, skipAllStep3 } = server;
-watch(skipAllStep2, (newValue) => {
-  if (newValue) {
-    steps.value[1].completed = newValue;
-    nextStep()
-  }
-});
-watch(skipAllStep3, (newValue) => {
-  if (newValue) {
-    steps.value[2].completed = newValue;
-  }
-});
 
 
 // 初始化步骤数据
@@ -392,6 +381,17 @@ const initSteps = async () => {
     return !item.completed
   })
 
+  watch(skipAllStep2, (newValue) => {
+    if (newValue) {
+      steps.value[1].completed = newValue;
+      nextStep()
+    }
+  });
+  watch(skipAllStep3, (newValue) => {
+    if (newValue) {
+      steps.value[2].completed = newValue;
+    }
+  });
 };
 onMounted(async () => {
   initSteps();

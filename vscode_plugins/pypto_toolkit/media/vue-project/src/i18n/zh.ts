@@ -312,7 +312,9 @@ export default {
         nextStep: '下一步',
         preStep: '上一步',
         startExperience: '开始体验',
-        showGuideOnStartup: '启动时显示快速开始页'
+        showGuideOnStartup: '启动时显示快速开始页',
+        copyCode: '复制代码',
+        copiedSuccessfully:'复制成功',        
       },
       bootStep: {
         // 按钮文案
