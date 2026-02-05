@@ -20,7 +20,7 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
   const customTitle = `${record?.title ?? 'unknown'} - ${t('PyPTOToolkit.workspace.controlFlowName')}`;
 
   // 加query
-  useView().editorView.open('controlFlow', controlFlowUri, { query: { url: outputPath, isBootStep }, title: customTitle });
+  useView().editorView.open('controlFlow', controlFlowUri, { query: { url: outputPath, outputPath: outputPath, isBootStep }, title: customTitle });
 }
 
 /**
@@ -29,7 +29,7 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
 export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string; isBootStep?: boolean }) {
   const { isBootStep = false } = params;
   const uri = vscode.Uri.file(params.computeGraphPath);
-  const query = { outputDirPath: params.outputPath, pathName: params.pathName, isBootStep };
+  const query = { outputDirPath: params.outputPath, outputPath: params.outputPath, pathName: params.pathName, isBootStep };
   useView().editorView.open('computeGraph', uri, { query, title: path.basename(params.computeGraphPath) });
 }
 

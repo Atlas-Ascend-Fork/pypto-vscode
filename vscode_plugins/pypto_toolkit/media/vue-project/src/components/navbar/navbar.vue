@@ -29,9 +29,8 @@
           <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
         </div>
       </d-tooltip>
-      <ThreeDot v-if="currentStep === 'comGraph' || lastPass" dot-color="var(--devui-placeholder-icon)" />
+      <ThreeDot dot-color="var(--devui-placeholder-icon)" />
       <d-tooltip
-        v-if="currentStep === 'comGraph' || lastPass"
         :content="t('comGraphName')"
         position="bottom"
         :disabled="currentStep === 'comGraph'"
@@ -43,7 +42,7 @@
           <div v-if="getControlFlowError" class="com-graph-error" :title="comGraphName">{{ comGraphName }}</div>
           <template v-else>
             <PathList v-if="currentStep === 'comGraph'" />
-            <div v-if="currentStep === 'comGraph'" class="pass-leaf-wrap">
+            <div v-if="currentStep === 'comGraph' && pathName !== 'program'" class="pass-leaf-wrap">
               <PassList ref="passEl" />
               <div v-if="leafFunctions.length" class="dividing-line"></div>
               <LeafFunctionCom v-if="leafFunctions.length" />
@@ -81,7 +80,7 @@ import { NavbarProvideKey } from './navbar-types';
 import type { ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
 import { getOutputDetail } from '../../apis/workspace';
-import { getControlFlow } from '../../apis/control-flow';
+import { getControlFlow, joinProgramPath } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
 import { useNavbar } from './hooks/use-navbar';
@@ -108,6 +107,7 @@ const currentLeafData = ref<LeafInPass>();
 const getControlFlowError = ref(false);
 const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
 const programePath = ref('')
+const pathName = ref('')
 
 provide(NavbarProvideKey, {
   rootProps: props,
@@ -201,7 +201,7 @@ function onJumpCom() {
   if (props.currentStep === 'comGraph') {
     return;
   }
-  jumpComGraph(lastPass.value.graphFilePath, lastPass.value.pathName);
+  jumpComGraph(programePath.value, 'program');
 }
 
 const { server } = useViewServer();
@@ -242,7 +242,8 @@ onMounted(async () => {
   const uri = res._uri;
   const query = JSON.parse(uri.query);
   isBootStep = Boolean(query.isBootStep)
-  programePath.value = query._path
+  programePath.value = await joinProgramPath({outputPath: res.outputPath})
+  pathName.value = query.pathName;
 });
 </script>
 

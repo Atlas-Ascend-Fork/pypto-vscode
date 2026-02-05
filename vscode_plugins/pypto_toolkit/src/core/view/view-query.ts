@@ -21,4 +21,7 @@ export type ViewQuery = UriQuery & {
 
   /** 视图服务配置 */
   _server?: ViewServerConfig;
+
+  /** 所属output绝对路径 */
+  outputPath?: string;
 };
