@@ -211,29 +211,84 @@ export function getExtensionMode() {
 
 async function checkDependencies(outputChannel: vscode.OutputChannel, address: string) {
   // 定义需安装的依赖
-  const dependencies = ['numpy', 'torch']; 
-  outputChannel.clear();
-
+  const dependencies = ['numpy', 'torch'];
   // 安装依赖,失败则终止执行
-  const installSuccess = await installPythonDependencies(dependencies, outputChannel, address);
+  await installPythonDependencies(dependencies, outputChannel, address);
+}
+
+/**
+ * 复制Python文件到当前工作区根目录，存在则追加(n)
+ * @param sourcePyPath 插件内Python源文件路径
+ * @param outputChannel 输出面板
+ * @returns 复制后的目标文件路径 | null（失败）
+ */
+async function copyPyToWorkspace(sourcePyPath: string, outputChannel: vscode.OutputChannel): Promise<string | null> {
+  // 步骤1：校验是否打开了工作区
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return null;
+  }
+
+  // 仅单个工作区根目录执行复制，多工作区直接终止操作，不进行复制
+  if (workspaceFolders.length > 1) {
+    return null;
+  }
+
+  // 获取工作区根目录（单工作区直接取第一个）
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
+  outputChannel.appendLine(`[info] ${t('PyPTOToolkit.welcome.runPython.workspaceRoot')}: ${workspaceRoot}`);
+
+  // 步骤2：构建基础目标路径（工作区根/hello_world.py）
+  const baseFileName = 'hello_world.py';
+  let targetPyPath = path.join(workspaceRoot, baseFileName);
+
+  // 步骤3：文件已存在则生成hello_world(1).py/hello_world(2).py
+  let index = 1;
+  while (fs.existsSync(targetPyPath)) {
+    targetPyPath = path.join(workspaceRoot, `hello_world(${index}).py`);
+    index++;
+    // 兜底：最多尝试99次，避免无限循环
+    if (index > 99) {
+      const errMsg = t('PyPTOToolkit.welcome.runPython.copy.maxTry');
+      vscode.window.showErrorMessage(errMsg);
+      return null;
+    }
+  }
+
+  // 步骤4：异步复制文件（fs.promises.copyFile 原生异步，无需回调）
+  try {
+    // 复制文件（保留源文件权限）
+    await fs.promises.copyFile(sourcePyPath, targetPyPath);
+    return targetPyPath;
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : t('PyPTOToolkit.welcome.runPython.copy.fail');
+    vscode.window.showErrorMessage(`${t('PyPTOToolkit.welcome.runPython.copy.failTip')}: ${errMsg}`);
+    return null;
+  }
 }
 
 /**
  * 执行 Python 文件并处理输出结果
  * @param outputChannel 输出面板单例
- * @param pythonFilePath 需要执行的Python文件地址
+ * @param pythonFilePath 需要执行的Python文件地址（插件内的源文件）
  * @param extensionRoot 插件地址
  * @param address 镜像源
  */
 export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
   try {
-    // 执行 Python 文件,获取输出结果
+    // 步骤1：检查依赖
     outputChannel.appendLine(`[start check] ${new Date().toLocaleString()}`);
     await checkDependencies(outputChannel, address);
+
+    // 步骤2：新增核心逻辑——复制Python文件到工作区（关键：复制成功才继续）
+    outputChannel.appendLine(`[start copy file] ${new Date().toLocaleString()}`);
+    await copyPyToWorkspace(pythonFilePath, outputChannel);
+
+    // 步骤3：执行【工作区的副本文件】而非插件内的源文件
     outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
     const result = await executePythonFile(pythonFilePath, extensionRoot);
 
-    // 处理输出结果
+    // 步骤4：处理执行结果
     if (result.success) {
       outputChannel.appendLine(`[state] Success ${new Date().toLocaleString()}`);
       outputChannel.appendLine(`[result stdout] ${result.stdout}`);
