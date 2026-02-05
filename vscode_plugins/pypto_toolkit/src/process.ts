@@ -133,7 +133,7 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
     }
 
     if (latestPredEnd !== null) {
-      minStart = BigNumber.max(minStart, latestPredEnd);
+      minStart = BigNumber.min(minStart, latestPredEnd);
     }
   }
 
@@ -153,7 +153,7 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
     }
     
     if (earliestSuccStart !== null) {
-      maxEnd = BigNumber.min(maxEnd, earliestSuccStart);
+      maxEnd = BigNumber.max(maxEnd, earliestSuccStart);
     }
   }
 
@@ -167,7 +167,8 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
     const rowLastEnd = linesBN[i];
     const renderStart = BigNumber.max(minStart, rowLastEnd); // 不重叠 + 满足前驱
 
-    if (renderStart.comparedTo(maxEnd)! >= 0) {
+    const compareResult = renderStart.comparedTo(maxEnd);
+    if ( compareResult === null || compareResult >= 0) {
       continue; // 该行没空间了
     }
 
