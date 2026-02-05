@@ -23,11 +23,9 @@ const emit = defineEmits<{
 <style lang="less" scoped>
 // 默认，次要按钮
 .pto-button {
-  color: var(--pto-font-color-main);
+  color: var(--pto-font-color-title);
   background-color: var(--pto-button-background);
-  border-color: var(--pto-button-border-color);
-  border-style: solid;
-  border-width: 1px;
+  border: none;
   height: 28px;
   min-width: 74px;
   border-radius: 8px;
@@ -76,10 +74,12 @@ const emit = defineEmits<{
   &--primary {
     background-color: var(--pto-button-primary-background);
     border-color: var(--pto-button-primary-background);
+    color: var(--pto-button-primary-font-color);
 
     &:hover {
       background-color: var(--pto-button-primary-background-hover);
       border-color: var(--pto-button-primary-background-hover);
+      color: var(--pto-button-primary-font-color);
     }
   }
 

@@ -57,6 +57,8 @@ const ptoButtonTheme: Theme = {
   'pto-button-primary-background-active': ['#0950DE', '#317AF7'],
   // 【主要按钮】【背景】禁用
   'pto-button-primary-background-disabled': ['#9DBDFC', '#003D83'],
+  // 【主要按钮】【文字】默认
+  'pto-button-primary-font-color': ['rgba(255, 255, 255, 1)', 'rgba(230, 230, 230, 1)'],
 };
 
 const ptoRadioTheme: Theme = {
