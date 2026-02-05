@@ -280,7 +280,7 @@ export async function runPythonScript(outputChannel: vscode.OutputChannel, pytho
     outputChannel.appendLine(`[start check] ${new Date().toLocaleString()}`);
     await checkDependencies(outputChannel, address);
 
-    // 步骤2：新增核心逻辑——复制Python文件到工作区（关键：复制成功才继续）
+    // 步骤2：复制Python文件到工作区
     outputChannel.appendLine(`[start copy file] ${new Date().toLocaleString()}`);
     await copyPyToWorkspace(pythonFilePath, outputChannel);
 
