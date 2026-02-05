@@ -58,6 +58,16 @@ function addDiffDetail(newOp, oldOp, diffDetail: any, opCode = 'Default') {
   diffDetail.push({ new: newOp ? { ...newOp } : newOp, old: oldOp ? { ...oldOp } : oldOp });
 }
 
+function setCompreTypeOverrate(arr: any[]): void {
+  for (let i = 0, len = arr.length; i < len; i++) {
+    const item = arr[i];
+    const target = item.__v_raw || item.__raw || item;
+    if ('compareType' in target) {
+      target.compareType = 'overrate';
+    }
+  }
+}
+
 // diff双图数据对比
 export function compareJsonData(beforeData: Object, currentData: Object) {
   const BeforeOpMagicMap: Record<number, string> = {};
@@ -154,9 +164,13 @@ export function compareJsonData(beforeData: Object, currentData: Object) {
   let changeRate = diffList.length / (curOpMap.size + curTensorMap.size);
   if (changeRate > 0.5 && diffList.length >= 400) {
     beforeData.tensors = originBefore.tensors;
+    setCompreTypeOverrate(beforeData.tensors);
     beforeData.operations = originBefore.operations;
+    setCompreTypeOverrate(beforeData.operations);
     currentData.tensors = originCurrent.tensors;
+    setCompreTypeOverrate(currentData.tensors);
     currentData.operations = originCurrent.operations;
+    setCompreTypeOverrate(currentData.operations);
     diffList = [];
     (window as any).ascEventBus.emit('message_notice', 'compareLargerTips');
     return { diffList, showDiffList: false };
