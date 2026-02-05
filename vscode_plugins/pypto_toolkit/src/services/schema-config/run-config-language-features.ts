@@ -613,45 +613,61 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     }
   }
 
-  // Schema格式转换 - label转多语言description，适配VSCode提示
-  private transformSchema(rawSchema: any, lang: string): any {
-    const isZh = lang === 'zh';
-    const walk = (obj: any): any => {
-      if (obj === null || typeof obj !== 'object') {
-        return obj;
-      }
-      if (Array.isArray(obj)) {
-        return obj.map(walk);
-      }
+// Schema格式转换 - label转多语言description，适配VSCode提示
+private transformSchema(rawSchema: any, lang: string): any {
+  const isZh = lang === 'zh';
+  // 自定义类型映射表：将Schema中的自定义类型转为VSCode内置JSON服务支持的标准类型
+  const typeMap = {
+    double: 'number', 
+    float: 'number', 
+    int: 'integer'
+  };
+  // 递归遍历Schema，处理类型映射+label转description
+  const walk = (obj: any): any => {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(walk);
+    }
 
-      const result: Record<string, any> = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          if (key === 'label') {
-            continue;
-          }
-          result[key] = walk(obj[key]);
+    const result: Record<string, any> = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        // 跳过label，后续统一处理为description
+        if (key === 'label') {
+          continue;
         }
+        // 处理type字段：若为自定义类型，映射为标准类型
+        if (key === 'type' && typeof obj[key] === 'string' && typeMap[obj[key]]) {
+          result[key] = typeMap[obj[key]];
+          continue;
+        }
+        // 其他字段递归处理
+        result[key] = walk(obj[key]);
       }
+    }
 
-      if (obj.label && (obj.label.zh || obj.label.en)) {
-        result.description = isZh ? obj.label.zh : obj.label.en;
-      }
+    // label转VSCode识别的description
+    if (obj.label && (obj.label.zh || obj.label.en)) {
+      result.description = isZh ? obj.label.zh : obj.label.en;
+    }
 
-      if (Array.isArray(obj.options)) {
-        result.options = obj.options.map((opt: any) => {
-          const newOpt = { ...walk(opt) };
-          if (opt.label) {
-            newOpt.description = isZh ? opt.label.zh : opt.label.en;
-            delete newOpt.label;
-          }
-          return newOpt;
-        });
-      }
-      return result;
-    };
-    return walk(rawSchema);
-  }
+    // 处理options枚举的label
+    if (Array.isArray(obj.options)) {
+      result.options = obj.options.map((opt: any) => {
+        const newOpt = { ...walk(opt) };
+        if (opt.label) {
+          newOpt.description = isZh ? opt.label.zh : opt.label.en;
+          delete newOpt.label;
+        }
+        return newOpt;
+      });
+    }
+    return result;
+  };
+  return walk(rawSchema);
+}
 
   // 销毁服务 - 清理资源，防止内存泄漏
   public override dispose(): void {
