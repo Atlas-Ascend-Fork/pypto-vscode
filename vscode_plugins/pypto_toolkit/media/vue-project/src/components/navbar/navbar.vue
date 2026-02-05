@@ -29,9 +29,8 @@
           <span v-if="currentStep === 'controlFlow'">{{ t('controlFlow') }}</span>
         </div>
       </d-tooltip>
-      <ThreeDot v-if="currentStep === 'comGraph' || lastPass" dot-color="var(--devui-placeholder-icon)" />
+      <ThreeDot dot-color="var(--devui-placeholder-icon)" />
       <d-tooltip
-        v-if="currentStep === 'comGraph' || lastPass"
         :content="t('comGraphName')"
         position="bottom"
         :disabled="currentStep === 'comGraph'"

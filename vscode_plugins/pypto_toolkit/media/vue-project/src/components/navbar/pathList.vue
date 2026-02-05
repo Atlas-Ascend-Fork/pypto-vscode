@@ -11,7 +11,8 @@
   >
     <div :class="['path-list-container', isOpen && 'is-open']" @click="() => (isOpen = !isOpen)">
       <div class="selected-path">
-        <div class="path-parent" :title="parentData">{{pathName === 'program' ? 'program' : parentData}}</div>
+        <div class="path-parent" v-if="pathName === 'program'" :title="pathTitle">{{ pathTitle }}</div>
+        <div class="path-parent" v-else :title="parentData">{{parentData}}</div>
         <div class="path-current" :title="currentData?.label">{{ currentData ? parsePathMagicName(currentData?.label) : '' }}</div>
       </div>
       <i class="icon-chevron-down-2"></i>
@@ -62,6 +63,7 @@ const treeData = ref<PathTreeData[]>([]);
 const currentData = ref<PathTreeData>();
 const searchNoRes = ref(false);
 const pathName = ref('')
+const pathTitle = ref('');
 const parentData = computed(() => {
   if (currentData.value) {
     return TreeDataMap[currentData.value.label]?.parentNode?.label;
@@ -152,6 +154,7 @@ onMounted(async () => {
   const query = JSON.parse(res._uri.query);
   isBootStep = Boolean(query.isBootStep);
   pathName.value = query.pathName;
+  pathTitle.value = res?.subFuncmagicname ? res?.subFuncmagicname : 'Program';
 });
 </script>
 
