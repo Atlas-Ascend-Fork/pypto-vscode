@@ -24,7 +24,6 @@
 
 <script setup>
 import { computed, inject, ref } from 'vue';
-import { BigNumber } from 'bignumber.js';
 import { getThreadHeight } from '../swimGraphUtils';
 
 // 注入父组件提供的状态
@@ -67,9 +66,9 @@ const calculateThreadCycles = (allProcesses, proKey) => {
   const threadCacheHitMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
   for(const [threadKey, thread] of threads) {
-    let totleCycles = new BigNumber(0);
-    let icacheMiss = new BigNumber(0);
-    let icacheReq = new BigNumber(0);
+    let totleCycles = 0n;
+    let icacheMiss = 0n;
+    let icacheReq = 0n;
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
@@ -77,13 +76,14 @@ const calculateThreadCycles = (allProcesses, proKey) => {
           options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
           return [null, null];
         }
-        totleCycles = totleCycles.plus(new BigNumber(event['pmu_info']['total cycle']));
-        icacheMiss = icacheMiss.plus(new BigNumber(event['pmu_info']['icache_miss']));
-        icacheReq = icacheReq.plus(new BigNumber(event['pmu_info']['icache_req']));
+        totleCycles += BigInt(event['pmu_info']['total cycle']);
+        icacheMiss += BigInt(event['pmu_info']['icache_miss']);
+        icacheReq += BigInt(event['pmu_info']['icache_req']);
       }
       cycleDisplay.value = 'flex';
       threadCyclesMap.set(thread.threadName, totleCycles.toString());
-      threadCacheHitMap.set(thread.threadName, new BigNumber(1).minus(icacheMiss.dividedBy(icacheReq)).toString());
+      const missRate = Number(icacheMiss) / Number(icacheReq);
+      threadCacheHitMap.set(thread.threadName, (1 - missRate).toString());
     }
   }
   return [threadCyclesMap, threadCacheHitMap];
@@ -110,8 +110,8 @@ const threadTaskMap = calculateThreadTask(processes, props.processKey);
 const getBackground = (threadId, option) => {
   let values;
   if (option === 'clockCycle' && threadCyclesMap) {
-    values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
-    if (values.every((value, _, arr) => value.eq(arr[0]))) {
+    values = Array.from(threadCyclesMap.values()).map(value => BigInt(value));
+    if (values.every((value, _, arr) => value === arr[0])) {
       return 'var(--devui-timebar-bg)';
     }
   } else if (option === 'task' && threadTaskMap) {
@@ -120,8 +120,8 @@ const getBackground = (threadId, option) => {
       return 'var(--devui-timebar-bg)';
     }
   } else if (option === 'cacheHit' && threadCacheHitMap) {
-    values = Array.from(threadCacheHitMap.values()).map(value => new BigNumber(value));
-    if (values.every((value, _, arr) => value.eq(arr[0]))) {
+    values = Array.from(threadCacheHitMap.values()).map(value => Number(value));
+    if (values.every((value, _, arr) => value === arr[0])) {
       return 'var(--devui-timebar-bg)';
     }
   } else {
@@ -149,30 +149,30 @@ const threadTotaltime = (threadId, option) => {
 const threadFillWidth = (threadId, option) => {
   let values;
   if (option === 'clockCycle' && threadCyclesMap) {
-    const currenThreadTime = new BigNumber(threadCyclesMap.get(threadId));
-    let maxThreadTime = new BigNumber(0);
-    values = Array.from(threadCyclesMap.values()).map(value => new BigNumber(value));
-    let sum = new BigNumber(0);
-    maxThreadTime = values.reduce((max, value) => max.gt(value) ? max : value);
-    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
-    const averageBN = sum.dividedBy(values.length);
-    averageValue.value = averageBN.dividedBy(maxThreadTime).times(100).toNumber();
-    return currenThreadTime.dividedBy(maxThreadTime).times(100).toNumber();
+    const currenThreadTime = BigInt(threadCyclesMap.get(threadId));
+    let maxThreadTime = 0n;
+    values = Array.from(threadCyclesMap.values()).map(value => BigInt(value));
+    let sum = 0n;
+    maxThreadTime = values.reduce((max, value) => max > value ? max : value);
+    sum = values.reduce((acc, value) => acc + value, 0n);
+    const average = Number(sum) / values.length;
+    averageValue.value = (average / Number(maxThreadTime)) * 100;
+    return (Number(currenThreadTime) / Number(maxThreadTime)) * 100;
   } else if (option === 'task' && threadTaskMap) {
     values = Array.from(threadTaskMap.values());
     const maxTaskNum = values.length > 0 ? Math.max(...values) : 0;
     averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxTaskNum) * 100;
     return (threadTaskMap.get(threadId) / maxTaskNum) * 100;
   } else if (option === 'cacheHit' && threadCacheHitMap) {
-    const currenThreadHit = new BigNumber(threadCacheHitMap.get(threadId));
-    let maxThreadHit = new BigNumber(0);
-    values = Array.from(threadCacheHitMap.values()).map(value => new BigNumber(value));
-    let sum = new BigNumber(0);
-    maxThreadHit = values.reduce((max, value) => max.gt(value) ? max : value);
-    sum = values.reduce((acc, value) => acc.plus(value), new BigNumber(0));
-    const averageBN = sum.dividedBy(values.length);
-    averageValue.value = averageBN.dividedBy(maxThreadHit).times(100).toNumber();
-    return currenThreadHit.dividedBy(maxThreadHit).times(100).toNumber();
+    const currenThreadHit = Number(threadCacheHitMap.get(threadId));
+    let maxThreadHit = 0;
+    values = Array.from(threadCacheHitMap.values()).map(value => Number(value));
+    let sum = 0;
+    maxThreadHit = values.reduce((max, value) => max > value ? max : value);
+    sum = values.reduce((acc, value) => acc + value, 0);
+    const average = sum / values.length;
+    averageValue.value = (average / maxThreadHit) * 100;
+    return (currenThreadHit / maxThreadHit) * 100;
   } else {
     return 0;
   }

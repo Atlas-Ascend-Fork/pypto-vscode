@@ -164,7 +164,6 @@ import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
 import MeasureIcon from '../icon/measureIcon.vue';
-import BigNumber from 'bignumber.js';
 import { useViewServer } from '../../../core/use-view-server';
 import ExportModal from '../../exportModal/exportModal.vue';
 const swimGraphBarChartComponent = ref(null);
@@ -283,6 +282,13 @@ const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
 const zoomControl = ref('');
 
+const betterShow = (value) => {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+  return value.toFixed(2);
+};
+
 const clearSearch = async () => {
   categorySearchKey.value = '';
   await nextTick();
@@ -304,25 +310,25 @@ const closeDrawer = () => {
 };
 
 const calculateAicoreInfo = () => {
-  let aicTaskTimeSum = new BigNumber('0');
-  let totalCnt = new BigNumber('0');
+  let aicTaskTimeSum = 0;
+  let totalCnt = 0;
   for (const [processKey, processVal] of processes) {
     for (const [threadKey, threadVal] of processVal.threads) {
       if (threadVal.isCounter == false) {
-        totalCnt = totalCnt.plus(new BigNumber('1'));
+        totalCnt += 1;
       }
       if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
         continue;
       }
       for (const event of threadVal.events) {
-        aicTaskTimeSum = aicTaskTimeSum.plus(event.duration ? new BigNumber(event.duration) : new BigNumber(0));
+        aicTaskTimeSum += (event.duration || 0);
       }
     }
   }
 
-  aicoreTime.value = aicTaskTimeSum.decimalPlaces(2).toString();
-  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value)));
-  aicoreRate.value = aicoreRateBigNumber.times(100).decimalPlaces(2).toString() + '%';
+  aicoreTime.value = betterShow(aicTaskTimeSum / 1000);
+  const aicoreRateValue = aicTaskTimeSum / (totalCnt * viewState.timeRange);
+  aicoreRate.value = betterShow(aicoreRateValue * 100) + '%';
 };
 
 const showDrawer = () => {
@@ -330,11 +336,8 @@ const showDrawer = () => {
   isCfgEditing.value = false;
   isShortcutKeyShow.value = false;
 
-  if (Number.isInteger(viewState.timeRange)) {
-    taskTime.value = viewState.timeRange;
-  } else {
-    taskTime.value = viewState.timeRange.toFixed(2);
-  }
+  const tRange = viewState.timeRange / 1000;
+  taskTime.value = betterShow(tRange);
 
   if (isAicpu.value) {
     aicoreTime.value = '/';

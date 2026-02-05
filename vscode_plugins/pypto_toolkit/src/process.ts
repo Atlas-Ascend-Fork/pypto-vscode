@@ -1,5 +1,4 @@
 import { generateColorList, getColorByString } from './color-list';
-import BigNumber from 'bignumber.js'
 import { getMTime, SQLiteCache } from './core/sqliteCache';
 import { dirname, join, extname, resolve } from 'path';
 import * as vscode from 'vscode';
@@ -112,7 +111,7 @@ async function getEventColor(event: any, mode: string): Promise<{ dark: { base: 
 const FAKE_CORE_KEYWORD = 'Fake Core';
 
 function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
-  const originalDuration = event.endTime.minus(event.startTime);
+  const originalDuration = event.endTime - event.startTime;
 
   // --- Step 1: 计算合法窗口 [minStart, maxEnd] ---
   let minStart = event.startTime;
@@ -126,14 +125,14 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
       const pred = allEventsMap.get(id);
       if (pred && pred.endTime) {
         const predEnd = pred.endTime;
-        if (latestPredEnd === null || predEnd.comparedTo(latestPredEnd) > 0) {
+        if (latestPredEnd === null || predEnd > latestPredEnd) {
           latestPredEnd = predEnd;
         }
       }
     }
 
     if (latestPredEnd !== null) {
-      minStart = BigNumber.min(minStart, latestPredEnd);
+      minStart = Math.min(minStart, latestPredEnd);
     }
   }
 
@@ -146,40 +145,38 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
       const succ = allEventsMap.get(id);
       if (succ && succ.startTime) {
         const succStart = succ.startTime;
-        if (earliestSuccStart === null || succStart.comparedTo(earliestSuccStart) < 0) {
+        if (earliestSuccStart === null || succStart < earliestSuccStart) {
           earliestSuccStart = succStart;
         }
       }
     }
     
     if (earliestSuccStart !== null) {
-      maxEnd = BigNumber.max(maxEnd, earliestSuccStart);
+      maxEnd = Math.max(maxEnd, earliestSuccStart);
     }
   }
 
   const linesBN = lines.map(line => {
-    if (line instanceof BigNumber) return line;
-    return new BigNumber(line || 0);
+    return line || 0;
   });
 
   // --- Step 2: 尝试放入已有行 ---
   for (let i = 0; i < linesBN.length; i++) {
     const rowLastEnd = linesBN[i];
-    const renderStart = BigNumber.max(minStart, rowLastEnd); // 不重叠 + 满足前驱
+    const renderStart = Math.max(minStart, rowLastEnd); // 不重叠 + 满足前驱
 
-    const compareResult = renderStart.comparedTo(maxEnd);
-    if ( compareResult === null || compareResult >= 0) {
+    if (renderStart >= maxEnd) {
       continue; // 该行没空间了
     }
 
     // 策略：尽可能保持原始 duration，但不超过可用空间
-    const renderEnd = BigNumber.min(renderStart.plus(originalDuration), maxEnd);
+    const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
 
     // 即使 available 很小（如 0.0001ms），也允许放置！
     // UI 层负责确保 canvas 上至少画 1~2px
     event.renderStartTime = renderStart;
-    event.renderDuration = (renderEnd.minus(renderStart)).dividedBy(10);
-    event.renderEndTime = event.renderStartTime.plus(event.renderDuration);
+    event.renderDuration = Math.round((renderEnd - renderStart) / 10);
+    event.renderEndTime = event.renderStartTime + event.renderDuration;
     event.line = i;
     lines[i] = event.renderEndTime;
     applyGlobalClip();
@@ -188,25 +185,25 @@ function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
 
   // --- Step 3: 新开一行 ---
   const renderStart = minStart;
-  const renderEnd = BigNumber.min(renderStart.plus(originalDuration), maxEnd);
+  const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
   event.renderStartTime = renderStart;
-  event.renderDuration = (renderEnd.minus(renderStart)).dividedBy(10);
-  event.renderEndTime = event.renderStartTime.plus(event.renderDuration);
+  event.renderDuration = Math.round((renderEnd - renderStart) / 10);
+  event.renderEndTime = event.renderStartTime + event.renderDuration;
   event.line = lines.length;
   lines.push(event.renderEndTime);
 
   applyGlobalClip();
 
   function applyGlobalClip() {
-    if (event.renderEndTime.comparedTo(globalMaxTime) > 0) {
+    if (event.renderEndTime > globalMaxTime) {
       event.renderEndTime = globalMaxTime;
-      event.renderStartTime = BigNumber.max(event.renderStartTime, globalMaxTime.minus(originalDuration));
+      event.renderStartTime = Math.max(event.renderStartTime, globalMaxTime - originalDuration);
       // 如果 originalDuration 很大，可能仍超出，那就紧贴结尾
-      if (event.renderStartTime.comparedTo(event.renderEndTime) >= 0) {
-        event.renderStartTime = globalMaxTime.minus(new BigNumber('0.00001'));
+      if (event.renderStartTime >= event.renderEndTime) {
+        event.renderStartTime = globalMaxTime - 1;
         event.renderEndTime = globalMaxTime;
       }
-      event.renderDuration = event.renderEndTime.minus(event.renderStartTime);
+      event.renderDuration = event.renderEndTime - event.renderStartTime;
     }
   }
 }
@@ -233,7 +230,7 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
 
       let placed = false;
       for (let i = 0; i < lines.length; i++) {
-        if (event.startTime.comparedTo(lines[i]) >= 0) {
+        if (event.startTime >= lines[i]) {
           event.line = i;
           lines[i] = event.endTime;
           placed = true;
@@ -252,22 +249,22 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
 
 function calculateDuration (eventTasks, processedTasks) {
   let taskIndex = 0;
-  let minTime = new BigNumber(Infinity);
-  let maxTime = new BigNumber(-Infinity);
+  let minTime = Infinity;
+  let maxTime = -Infinity;
   while (taskIndex <= eventTasks.length - 1) {
     const tStart = eventTasks[taskIndex];
     if (tStart.ph.toUpperCase() === 'X') {      
       
       const ts = tStart.ts;
-      const dur = new BigNumber(tStart.dur);
+      const dur = Math.round(tStart.dur * 1000);
       
       const event = {
         ...tStart,
         id: `event_${tStart.originalIndex}`,
         startTime: ts,
-        endTime: ts.plus(dur),
+        endTime: ts + dur,
         renderStartTime: ts,
-        renderEndTime: ts.plus(dur),
+        renderEndTime: ts + dur,
         renderDuration: dur,
         duration: dur,
         isCounter: false,
@@ -278,8 +275,8 @@ function calculateDuration (eventTasks, processedTasks) {
       };
       processedTasks.push(event);
       taskIndex += 1;
-      minTime = BigNumber.min(minTime, event.startTime);
-      maxTime = BigNumber.max(maxTime, event.endTime);
+      minTime = Math.min(minTime, event.startTime);
+      maxTime = Math.max(maxTime, event.endTime);
       continue;
     }
     const tEnd = eventTasks[taskIndex + 1];
@@ -294,7 +291,7 @@ function calculateDuration (eventTasks, processedTasks) {
         id: `event_${tStart.originalIndex}`,
         startTime: startTs,
         endTime: endTs,
-        duration: endTs.minus(startTs),
+        duration: endTs - startTs,
         renderStartTime: startTs,
         renderEndTime: endTs,
         isCounter: false,
@@ -303,15 +300,17 @@ function calculateDuration (eventTasks, processedTasks) {
           successors: []
         }
       };
-      minTime = BigNumber.min(minTime, processedEvent.startTime);
-      maxTime = BigNumber.max(maxTime, processedEvent.endTime);
+      minTime = Math.min(minTime, processedEvent.startTime);
+      maxTime = Math.max(maxTime, processedEvent.endTime);
       processedTasks.push(processedEvent);
       taskIndex += 2;
     } else {
       taskIndex += 1;
     }
   }
-  return [maxTime, new BigNumber('0')];
+  if (minTime === Infinity) minTime = 0;
+  if (maxTime === -Infinity) maxTime = 0;
+  return [maxTime, minTime];
 };
 
 export function parsePmuInfo(csvData: string) {
@@ -393,7 +392,7 @@ const calculateDependencies = (events, connections) => {
   
     // 对每个 tid 的事件列表按 startTime 排序
     for (let eventsList of eventIndex.values()) {
-      eventsList.sort((a, b) => a.startTime.comparedTo(b.startTime));
+      eventsList.sort((a, b) => a.startTime - b.startTime);
     }
   
     let cIndex = 0;
@@ -405,11 +404,11 @@ const calculateDependencies = (events, connections) => {
   
       // 使用索引快速查找 parent 事件
       const parentEvents = eventIndex.get(tid1);
-      const parent = parentEvents ? findEvent(parentEvents, new BigNumber(start.ts)) : null;
+      const parent = parentEvents ? findEvent(parentEvents, start.ts) : null;
   
       // 使用索引快速查找 child 事件
       const childEvents = eventIndex.get(tid2);
-      const child = childEvents ? findEvent(childEvents, new BigNumber(end.ts)) : null;
+      const child = childEvents ? findEvent(childEvents, end.ts) : null;
   
       if (parent && child && start.ts <= end.ts) {
         if (!parent.dependencies.successors.includes(child.id)) {
@@ -433,9 +432,9 @@ const calculateDependencies = (events, connections) => {
       const mid = Math.floor((left + right) / 2);
       const event = eventsList[mid];
   
-      if (timestamp.comparedTo(event.startTime) >= 0 && timestamp.comparedTo(event.endTime) <= 0) {
+      if (timestamp >= event.startTime && timestamp <= event.endTime) {
         return event;
-      } else if (timestamp.comparedTo(event.startTime) < 0) {
+      } else if (timestamp < event.startTime) {
         right = mid - 1;
       } else {
         left = mid + 1;
@@ -467,17 +466,13 @@ const calculateDependencies = (events, connections) => {
   }
 
   export function processTotalPmuCalc(pmuTotal :any) {
-    pmuTotal['vec_ratio'] = ((new BigNumber(pmuTotal.vec_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['cube_ratio'] = ((new BigNumber(pmuTotal.cube_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['scalar_ratio'] = ((new BigNumber(pmuTotal.scalar_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['mte1_ratio'] = ((new BigNumber(pmuTotal.mte1_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['mte2_ratio'] = ((new BigNumber(pmuTotal.mte2_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['mte3_ratio'] = ((new BigNumber(pmuTotal.mte3_busy_cycles)).dividedBy(new BigNumber(pmuTotal['total cycle']))).toString();
-    pmuTotal['icache_hit'] = new BigNumber(1)
-      .minus(
-        (new BigNumber(pmuTotal.icache_miss))
-          .dividedBy(new BigNumber(pmuTotal.icache_req))
-        ).toString();
+    pmuTotal['vec_ratio'] = (Number(pmuTotal.vec_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['cube_ratio'] = (Number(pmuTotal.cube_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['scalar_ratio'] = (Number(pmuTotal.scalar_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['mte1_ratio'] = (Number(pmuTotal.mte1_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['mte2_ratio'] = (Number(pmuTotal.mte2_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['mte3_ratio'] = (Number(pmuTotal.mte3_busy_cycles) / Number(pmuTotal['total cycle'])).toString();
+    pmuTotal['icache_hit'] = (1 - Number(pmuTotal.icache_miss) / Number(pmuTotal.icache_req)).toString();
 
     pmuTotal['total cycle'] = pmuTotal['total cycle'].toString();
     pmuTotal.vec_busy_cycles = pmuTotal.vec_busy_cycles.toString();
@@ -601,18 +596,18 @@ const calculateDependencies = (events, connections) => {
     const eventTasks: any[] = [];
     const connections: any[] = [];
 
-    let minThresh = new BigNumber(Infinity);
+    let minThresh = Infinity;
     for (let index = 0; index < traceData.traceEvents.length; index++) {
-      const bgTs = new BigNumber(traceData.traceEvents[index].ts);
-      if (bgTs.comparedTo(minThresh)! < 0) {
-        minThresh = bgTs;
+      const ts = traceData.traceEvents[index].ts;
+      if (ts < minThresh) {
+        minThresh = ts;
       }
     }
 
 
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];
-      event.ts = (new BigNumber(event.ts)).minus(minThresh);
+      event.ts = Math.round((event.ts - minThresh) * 1000);
 
       errorMsg = await validate(event);
       if ('errMsg' in errorMsg) {
@@ -643,7 +638,7 @@ const calculateDependencies = (events, connections) => {
     }
   
     let processThreadMap = new Map();
-    counterEvents = counterEvents.sort((a, b) => a.ts.comparedTo(b.ts));
+    counterEvents = counterEvents.sort((a, b) => a.ts - b.ts);
     [...eventTasks, ...counterEvents].forEach((event: any) => {
       const processKey = `${event.pid || 0}`;
       const threadKey =  event.isCounter ? event.name : `${event.pid || 0}-${event.tid || 0}`;
@@ -667,13 +662,13 @@ const calculateDependencies = (events, connections) => {
       }
     });
     
-    let minTime: BigNumber;
-    let maxTime: BigNumber;
+    let minTime: number;
+    let maxTime: number;
 
     let processedTasks: any[] = [];
     [maxTime, minTime] = calculateDuration(eventTasks, processedTasks);
   
-    processedTasks = processedTasks.sort((a, b) => a.startTime.comparedTo(b.startTime));
+    processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
   
     // 计算依赖关系
     const useTopo = !isAicpuData && Object.keys(task2topo).length > 0;
@@ -684,8 +679,8 @@ const calculateDependencies = (events, connections) => {
 
     const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
     const globalMaxTime = processedTasks.reduce((max, e) => {
-      return e.endTime.comparedTo(max) > 0 ? e.endTime : max;
-    }, new BigNumber(-Infinity)); 
+      return e.endTime > max ? e.endTime : max;
+    }, -Infinity); 
     const calculateLine = createCalculateLine(allEventsMap, globalMaxTime);
     const lable2lines = {};
     for (const event of processedTasks) {
@@ -753,13 +748,13 @@ const calculateDependencies = (events, connections) => {
     for (const proc of processes.values()) {
       for (const thread of proc.threads.values() as any[]) {
         for (const event of thread.events) {
-          event.startTime = event.startTime?.toNumber();
-          event.endTime = event.endTime?.toNumber();
-          event.duration = event.duration?.toNumber();
-          event.renderDuration = event.renderDuration?.toNumber();
-          event.renderStartTime = event.renderStartTime?.toNumber();
-          event.renderEndTime = event.renderEndTime?.toNumber();
-          event.ts = event.ts?.toNumber();
+          event.startTime = event.startTime;
+          event.endTime = event.endTime;
+          event.duration = event.duration;
+          event.renderDuration = event.renderDuration;
+          event.renderStartTime = event.renderStartTime;
+          event.renderEndTime = event.renderEndTime;
+          event.ts = event.ts;
         }
       }
     }
@@ -768,7 +763,7 @@ const calculateDependencies = (events, connections) => {
     data['processes'] = processes;
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
-    data['timeInfo'] = { maxTime: maxTime.toNumber(), minTime: minTime.toNumber()};
+    data['timeInfo'] = { maxTime: maxTime, minTime: minTime};
     if (mode === 'name') {
       data['colorRendering'] = 'name';
     }
