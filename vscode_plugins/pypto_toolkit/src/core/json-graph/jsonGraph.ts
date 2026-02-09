@@ -29,6 +29,7 @@ export class AscppDagBuilder {
     recordInOutCastMap = new Map<string, string>();
     recordNodeIdMap = new Map<string, string>();
     uniqueKeySet = new Set<string>();
+    ioperandSet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
     isSearch = false;
@@ -197,6 +198,16 @@ export class AscppDagBuilder {
         }
     }
 
+    public deleteMiddleEmptyNodes(nodes: SNode[],) {
+        const magicIds = Array.from(this.emptyOutputSet).filter(element => this.ioperandSet.has(element));
+        for (const mid of magicIds) { 
+            const nodeid = `tensor-${mid}-0`
+            const index = nodes.findIndex(n => n.id === nodeid);
+            if (index !== -1) {
+                nodes.splice(index, 1);
+            }
+        }
+    }
     /**
      * Creates a Sprotty graph model from function data
      * @param funcData - The function data containing operations, tensors, etc.
@@ -239,6 +250,8 @@ export class AscppDagBuilder {
 
         // Create fan-out connections when tensor nodes are hidden
         if (!showTensorNodes) {
+            // delete 
+            this.deleteMiddleEmptyNodes(nodes);
             this.connectHiddenNodes(rawTensorProducers, rawTensorConsumers, edges);
         }
 
@@ -1155,6 +1168,7 @@ export class AscppDagBuilder {
 
     private createEmptyNodeWithPort(nodeId: string, magic: string): AstgrNode {
         const children: (SCompartment | AstgrPort)[] = [];
+        const truncatePortId = nodeId.replace(/-in.*$|-out.*$/, '');
         const labelChildren: SLabel[] = [
             {
                 type: 'label',
@@ -1199,7 +1213,7 @@ export class AscppDagBuilder {
         children.push(outPort);
         return {
           type: 'node',
-          id:  `${nodeId}-empty`,
+          id:  truncatePortId,
           magic: magic,
           role: 'output',
           compareType: 'none',
@@ -2031,6 +2045,7 @@ export class AscppDagBuilder {
 
         ioperandsUnique.forEach((iop: number, index: number) => {
             const tensorMagic = String(iop);
+            this.ioperandSet.add(tensorMagic);
             if (showTensorNodes) {
                 // Connect to producer tensor's output port
                 if (!nodeMagic) {
@@ -2040,7 +2055,8 @@ export class AscppDagBuilder {
                             type: 'edge',
                             id: `edge-${tensorMagic}-to-${opId}-${index}`,
                             sourceId: producer.portId,
-                            targetId: portId
+                            targetId: portId,
+                            ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                         });
                     }
                 } else {
@@ -2050,7 +2066,8 @@ export class AscppDagBuilder {
                         id: `edge-${tensorMagic}-to-${opId}-${index}`,
                         // sourceId: `${nodeId}-out`,
                         sourceId: `${tensorNodeId}-out`,
-                        targetId: `${opId}-in`
+                        targetId: `${opId}-in`,
+                        ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                     });
                 }
 
