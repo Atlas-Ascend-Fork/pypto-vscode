@@ -247,12 +247,6 @@ async function copyPyToWorkspace(sourcePyPath: string, outputChannel: vscode.Out
   while (fs.existsSync(targetPyPath)) {
     targetPyPath = path.join(workspaceRoot, `hello_world(${index}).py`);
     index++;
-    // 兜底：最多尝试99次，避免无限循环
-    if (index > 99) {
-      const errMsg = t('PyPTOToolkit.welcome.runPython.copy.maxTry');
-      vscode.window.showErrorMessage(errMsg);
-      return null;
-    }
   }
 
   // 步骤4：异步复制文件（fs.promises.copyFile 原生异步，无需回调）

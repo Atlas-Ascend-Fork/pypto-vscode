@@ -9,6 +9,7 @@ import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';
 import { SourceCodeRequestDto } from '../../types/control-flow/basic-node';
 import { CodeSnippetDocument } from '../../types/control-flow/source-code';
 import { getControlFlowStore } from './store';
+import { readRunData } from '../run-data/utils/scan-run-data';
 
 export interface GetControlFlowParams {
   /** 编译结果文件夹路径 */
@@ -76,11 +77,13 @@ export async function openControlFlowTargetFile(params: SourceCodeRequestDto) {
 }
 
 /**
- * 根据outputPath拼接program.json的Path
+ * 根据runData.json读取program.json的Path
  * @returns 返回program.json的Path
  */
-export function joinProgramPath(params: { outputPath: string }) {
-  const filePathUri = vscode.Uri.file(params.outputPath);
-  const path = vscode.Uri.joinPath(filePathUri, 'program.json').path;
-  return path;
+export async function readProgramPath(params: { outputPath: string }) {
+  const runDataUri = vscode.Uri.file(params.outputPath);
+  const record = await readRunData(runDataUri)
+  if (record) {
+    return record.controlFlowFilePath
+  }
 }
