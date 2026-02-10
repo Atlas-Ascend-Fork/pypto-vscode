@@ -28,14 +28,16 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
+  min-width: 0;
 }
 
 .tooltip-key {
   white-space: nowrap;
-  max-width: 80px;
+  width: 48px;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--devui-detail-text);
+  flex-shrink: 0;
 }
 
 .tooltip-value {
@@ -43,6 +45,8 @@
   max-width: 200px;
   word-wrap: break-word;
   color: var(--devui-primary-text);
+  flex: 1;
+  min-width: 0;
 }
 
 .linetooltip {

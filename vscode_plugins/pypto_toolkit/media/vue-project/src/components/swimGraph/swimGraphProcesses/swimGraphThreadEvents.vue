@@ -1706,7 +1706,7 @@ const showTooltip = (e, event, canvasRef) => {
   tooltip.value.innerHTML = tooltipContent;
   tooltipStyle.display = 'block';
   const canvasCSSWidth = viewState.canvasCssWidth;
-  if(event.renderInfo.x + 200  > canvasCSSWidth){
+  if(getNoZoomX(event.renderInfo.x, viewState) + 200  > canvasCSSWidth){
       tooltipStyle.left = (e.clientX - 100) + 'px';
   } else {
       tooltipStyle.left = (e.clientX + 10) + 'px';
