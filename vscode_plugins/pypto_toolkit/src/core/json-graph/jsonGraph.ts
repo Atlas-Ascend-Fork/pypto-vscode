@@ -29,7 +29,6 @@ export class AscppDagBuilder {
     recordInOutCastMap = new Map<string, string>();
     recordNodeIdMap = new Map<string, string>();
     uniqueKeySet = new Set<string>();
-    ioperandSet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
     isSearch = false;
@@ -198,16 +197,16 @@ export class AscppDagBuilder {
         }
     }
 
-    public deleteMiddleEmptyNodes(nodes: SNode[],) {
-        const magicIds = Array.from(this.emptyOutputSet).filter(element => this.ioperandSet.has(element));
-        for (const mid of magicIds) { 
-            const nodeid = `tensor-${mid}-0`
+    public deleteMiddleEmptyNodes(nodes: SNode[]): void {
+        for (const mid of this.emptyOutputSet) { 
+            const nodeid = `tensor-${mid}-0`;
             const index = nodes.findIndex(n => n.id === nodeid);
             if (index !== -1) {
                 nodes.splice(index, 1);
             }
         }
     }
+    
     /**
      * Creates a Sprotty graph model from function data
      * @param funcData - The function data containing operations, tensors, etc.
@@ -2045,7 +2044,6 @@ export class AscppDagBuilder {
 
         ioperandsUnique.forEach((iop: number, index: number) => {
             const tensorMagic = String(iop);
-            this.ioperandSet.add(tensorMagic);
             if (showTensorNodes) {
                 // Connect to producer tensor's output port
                 if (!nodeMagic) {
