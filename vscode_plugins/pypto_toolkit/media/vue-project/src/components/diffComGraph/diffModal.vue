@@ -194,6 +194,7 @@ function onViewMouseUp(node) {
     visible.value = true;
     showNormalNodeDetail.value = false;
     title.value = node.text;
+    otherTitle.value = '';
     if (compareType !== 'normal') {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
