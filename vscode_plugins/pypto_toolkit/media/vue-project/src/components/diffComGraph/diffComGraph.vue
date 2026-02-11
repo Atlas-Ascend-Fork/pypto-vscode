@@ -40,7 +40,7 @@
       </div>
     </div>
     <ShowTip></ShowTip>
-    <DiffModal :diff-detail="diffDetail" />
+    <DiffModal :diff-detail="diffDetail" :json-content="beforeJson" />
   </div>
 </template>
 

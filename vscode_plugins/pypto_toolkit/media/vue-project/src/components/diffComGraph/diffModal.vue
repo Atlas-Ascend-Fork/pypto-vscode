@@ -13,7 +13,7 @@
         <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="toggleFullscreen"></i>
       </d-modal-header>
     </template>
-    <div class="code-review-wrap">
+    <div :class="['code-review-wrap', showNormalNodeDetail && 'show-normal-node-detail']">
       <d-code-review
         :diff="diff"
         :allow-comment="false"
@@ -38,14 +38,19 @@ import { onBeforeUnmount, onMounted, PropType, ref, inject, computed, nextTick }
 import { createTwoFilesPatch } from 'diff';
 import { useI18n } from 'vue-i18n';
 import { DiffComGraphProvideKey, type DiffComGraphContext } from './type';
+import { getTensorData, getOperationData } from '../comGraph/nodeDetail/utils';
 
-const props = defineProps({ diffDetail: Array as PropType<Record<'new' | 'old', any>[]> });
+const props = defineProps({
+  diffDetail: Array as PropType<Record<'new' | 'old', any>[]>,
+  jsonContent: Object,
+});
 const { getOtherNodeTitle } = inject(DiffComGraphProvideKey) as DiffComGraphContext;
 const { t } = useI18n();
 
 const visible = ref(false);
 const isFullscreen = ref(false);
 const isExpandAllLine = ref(false);
+const showNormalNodeDetail = ref(false);
 const title = ref('');
 const otherTitle = ref('');
 const diff = ref(``);
@@ -153,11 +158,43 @@ function onToggleAllLineExpand(status?: boolean) {
   });
 }
 
+const TensorNodeIdPrefix = 'tensor-';
+const OperationNodeIdPrefix = 'operation-';
+const MagicPrefix = 'magic-';
+function getNormalNodeDetail(node) {
+  let nodeContent = '';
+  if (node.id.includes(TensorNodeIdPrefix)) {
+    const id = parseInt(node.id.split(TensorNodeIdPrefix)[1]);
+    if (!isNaN(id)) {
+      const tensorData = getTensorData(props.jsonContent.tensors, id);
+      if (tensorData) {
+        nodeContent = JSON.stringify(tensorData, null, 2);
+      }
+    }
+  }
+  if (node.id.includes(OperationNodeIdPrefix) && node.id.includes(MagicPrefix)) {
+    const id = parseInt(node.id.split(MagicPrefix)[1]);
+    if (!isNaN(id)) {
+      const operationData = getOperationData(props.jsonContent.operations, id);
+      if (operationData) {
+        nodeContent = JSON.stringify(operationData, null, 2);
+      }
+    }
+  }
+  return nodeContent;
+}
+
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
     compareType = compareTypeNode?.compareType;
-    if (compareType && compareType !== 'normal') {
+    if (!compareType) {
+      return;
+    }
+    visible.value = true;
+    showNormalNodeDetail.value = false;
+    title.value = node.text;
+    if (compareType !== 'normal') {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
         otherTitle.value = getOtherNodeTitle(compareTypeNode, node.root.filePath) ?? '';
@@ -165,9 +202,7 @@ function onViewMouseUp(node) {
         diffType.value === '';
         otherTitle.value = '';
       }
-      visible.value = true;
       nextTick(getOperateAreaWidth);
-      title.value = node.text;
       const nodeDetail = getNodeDetail(node);
       if (nodeDetail.old) {
         allStr = JSON.stringify(nodeDetail.old, null, 2)
@@ -181,6 +216,12 @@ function onViewMouseUp(node) {
       oldStr = nodeDetail.old ? JSON.stringify(nodeDetail.old, null, 2) : '';
       newStr = nodeDetail.new ? JSON.stringify(nodeDetail.new, null, 2) : '';
       diff.value = createTwoFilesPatch('old.json', t('diff'), oldStr, newStr);
+    } else {
+      const nodeContent = getNormalNodeDetail(node);
+      diff.value = createTwoFilesPatch('old.json', t('diff'), `${nodeContent}\n `, `${nodeContent}\n`, undefined, undefined, {
+        context: Infinity,
+      });
+      showNormalNodeDetail.value = true;
     }
   }
 }
@@ -306,6 +347,20 @@ onBeforeUnmount(() => {
 
       .d2h-file-wrapper {
         margin-bottom: 0;
+      }
+    }
+
+    .code-review-wrap.show-normal-node-detail {
+      .devui-code-review {
+        .devui-code-review__header {
+          display: none;
+        }
+        .d2h-diff-table {
+          tr:first-of-type,
+          tr:last-of-type {
+            display: none;
+          }
+        }
       }
     }
 
