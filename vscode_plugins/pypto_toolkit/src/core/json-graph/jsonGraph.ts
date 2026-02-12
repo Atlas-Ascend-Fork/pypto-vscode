@@ -2054,7 +2054,7 @@ export class AscppDagBuilder {
                             id: `edge-${tensorMagic}-to-${opId}-${index}`,
                             sourceId: producer.portId,
                             targetId: portId,
-                            ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
+                            ...((!this.emptyOutputSet.has(tensorMagic) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                         });
                     }
                 } else {
@@ -2065,7 +2065,7 @@ export class AscppDagBuilder {
                         // sourceId: `${nodeId}-out`,
                         sourceId: `${tensorNodeId}-out`,
                         targetId: `${opId}-in`,
-                        ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
+                        ...((!this.emptyOutputSet.has(tensorMagic) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
                     });
                 }
 
