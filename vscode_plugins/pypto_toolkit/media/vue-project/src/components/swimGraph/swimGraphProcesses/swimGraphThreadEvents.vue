@@ -70,6 +70,7 @@ import { Message } from 'vue-devui/message';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
+const pathLockedEvent = ref(null);
 const curThread = inject('curThread');
 const lockPosition = ref(null);
 let switchLockInformationFlag = ref(false);
@@ -361,11 +362,13 @@ onMounted(() => {
       isPathLockStatus.value = false;
       canvasStatusReset();
       canvasclickedEvent.value = null;
+      pathLockedEvent.value = null;
     }
 
     if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
     (e.key === 'l' || e.key === 'L')) {
       if (canvasclickedEvent.value) {
+        pathLockedEvent.value = canvasclickedEvent.value;
         isPathLockStatus.value = true;
         switchLockInformationFlag.value = false;
         if (isClickedPath) {
@@ -1255,6 +1258,9 @@ const drawDependencyLines = (process, processKey, mode) => {
   if (!ctx || !(selectedEvent.value || searchedEvent.value)) return;
   ctx.lineWidth = 1;
   if (selectedEvent.value) {
+    if (isPathLockStatus.value) {
+      selectedEvent.value = pathLockedEvent.value;
+    }
     const eventMap = buildEventMap(process);
     let level = userConfig.value.connectionLevel;
     const edgesToDraw = collectRelevantEdges(
@@ -2147,7 +2153,8 @@ provide('swimGraphThreadState', {
   topX,
   leftX,
   canvasclickedEvent,
-  isClickedPath
+  isClickedPath,
+  pathLockedEvent
 });
 
 provide('swimGraphThreadMethods', {
