@@ -1,31 +1,39 @@
 <template>
   <div class="com-graph-header">
     <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
-      <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+      <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+        overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="openHealthReport">
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
-      <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+      <d-tooltip :content="t('comGraph.layerControl')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+        overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="changeLayer">
           <LayerControlIcon :active="Boolean(comGraphCtx?.showLayerControl.value)" />
         </div>
       </d-tooltip>
-      <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100" :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
-        <div id="openDiffViewerIcon" :class="['corner-icon-container', (isLoading || openMode !=='all') && 'corner-icon-disabled']" @click="openDiffViewer">
+      <d-tooltip :content="t('comGraph.openDiffViewer')" :mouse-enter-delay="100"
+        :disabled="isLoading || openMode !== 'all'" position="left" overlay-class="corner-tips">
+        <div id="openDiffViewerIcon"
+          :class="['corner-icon-container', (isLoading || openMode !== 'all') && 'corner-icon-disabled']"
+          @click="openDiffViewer">
           <d-icon name="icon-operation-log" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
 
-      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
-        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]" @click="debounceSvgOutput">
+      <d-tooltip :content="t('comGraph.svgOutput')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+        overlay-class="corner-tips">
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]"
+          @click="debounceSvgOutput">
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
       <div>
-        <export-modal  :data-url="dataUrl" :file-name="svgfileName"/>
+        <export-modal :data-url="dataUrl" :file-name="svgfileName" />
       </div>
-      <d-tooltip v-if="currentLeafName" :content="t('comGraph.leafCalledRecord')" :mouse-enter-delay="100" :disabled="isLoading" position="left" overlay-class="corner-tips">
+      <d-tooltip v-if="currentLeafName" :content="t('comGraph.leafCalledRecord')" :mouse-enter-delay="100"
+        :disabled="isLoading" position="left" overlay-class="corner-tips">
         <div :class="['corner-icon-container', { 'corner-icon-disabled': isLoading }]" @click="openLeafCalledRecord">
           <CalledRecordIcon />
         </div>
@@ -38,93 +46,57 @@
           <d-icon name="icon-arrow-left-l" class="module-icon" size="16px" @click="backwards"></d-icon>
         </div>
         <div class="navigation" ref="navigation">
-          <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{displayNav(it, index)}}</span>
+          <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{ displayNav(it, index) }}</span>
           <LeafList :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpBackGraph" />
         </div>
         <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
       </div>
 
-      <Navbar
-        v-if="outputDirPath && isLoadingFinish"
-        current-step="comGraph"
-        :current-record-directory-path="outputDirPath"
-        :current-path-magic-name="pathName"
-        :current-pass-index="passIndex"
-        :current-leaf-name="fileName"
-        @leaf-change="(e) => (currentLeafName = e)"
-      />
+      <Navbar v-if="outputDirPath && isLoadingFinish" current-step="comGraph"
+        :current-record-directory-path="outputDirPath" :current-path-magic-name="pathName"
+        :current-pass-index="passIndex" :current-leaf-name="fileName" @leaf-change="(e) => (currentLeafName = e)" />
       <div v-if="outputDirPath && !isLoadingFinish"></div>
 
-      <d-dropdown
-        ref="dropdownEl"
-        class="com-graph-header-search-dropdown" 
-        trigger="manually" 
-        :offset="10"
-        :visible="isVisible"
-        :position="['bottom']"
-        :style="{ '--dropdown-width': dropdownWidth }"
-        @toggle="(val) => isVisible = val"
-      >
-        <div
-          ref="toolbarRowEl"
-          id="comGraphHeaderSearch"
-          class="toolbar-row"
-          :class="{ 'search-focusd': isSearchFocus}"
-        :style="{maxWidth: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px' }"
-        >
-          <d-select
-            ref="globalSelectEl"
+      <d-dropdown ref="dropdownEl" class="com-graph-header-search-dropdown" trigger="manually" :offset="10"
+        :visible="isVisible" :position="['bottom']" :style="{ '--dropdown-width': dropdownWidth }"
+        @toggle="(val) => isVisible = val">
+        <div ref="toolbarRowEl" id="comGraphHeaderSearch" class="toolbar-row"
+          :class="{ 'search-focusd': isSearchFocus }"
+          :style="{ maxWidth: 402 + selectWidth + 'px', '--select-width': selectWidth + 'px' }">
+          <d-select ref="globalSelectEl"
             :menu-class="`com-graph-global-select${isGlobalSelectShow ? ' show-global-select-menu' : ''}`"
-            :options="allOptions"
-            v-model="currentSelect"
-            :placeholder="t('comGraph.currentGraph')"
-            class="select-options"
-            :style="{width:selectWidth + 'px'}"
-            @click="onSelectClick"
-            @toggleChange="(e) => (isGlobalSelectShow = e)"
-            />
-          
-          <d-category-search
-            ref="searchEl"
-            :category="category"
-            :selected-tags="selectedTags"
-            :search-key="categorySearchKey"
-            :text-config="textConfig"
-            :show-search-category="searchConfig"
-            :extend-config="{show:true, clear: { show: false}, save: {show: false}, more: {show: false}}"
-            :placeholder="t('comGraph.searchPlaceholder')"
-            :class="['category-search', isSearchFocus && 'search-focus']"
+            :options="allOptions" v-model="currentSelect" :placeholder="t('comGraph.currentGraph')"
+            class="select-options" :style="{ width: selectWidth + 'px' }" @click="onSelectClick"
+            @toggleChange="(e) => (isGlobalSelectShow = e)" />
+
+          <d-category-search ref="searchEl" :category="category" :selected-tags="selectedTags"
+            :search-key="categorySearchKey" :text-config="textConfig" :show-search-category="searchConfig"
+            :extend-config="{ show: true, clear: { show: false }, save: { show: false }, more: { show: false } }"
+            :placeholder="t('comGraph.searchPlaceholder')" :class="['category-search', isSearchFocus && 'search-focus']"
             :style="{
               '--hide-icon': showSearchIcon ? 1 : 0,
               'left': selectWidth + 'px'
-            }"
-            :appendToBody="false"
-            @search="onSearch"
-            @click="onCategoryClick"
-            @selectedTagsChange="onSelectedChange"
-          >
+            }" :appendToBody="false" @search="onSearch" @click="onCategoryClick"
+            @selectedTagsChange="onSelectedChange">
             <template #operation>
-              <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')" :position="['top', 'bottom', 'left', 'right']">
-                <div
-                  class="rect-upper-lower has-tooltip"
-                  :class="{active: upperActive}"
-                  @mousedown.prevent
-                  @click="upperSearch"
-                >
+              <d-tooltip v-if="showOperation" :content="t('comGraph.caseSensitive')"
+                :position="['top', 'bottom', 'left', 'right']">
+                <div class="rect-upper-lower has-tooltip" :class="{ active: upperActive }" @mousedown.prevent
+                  @click="upperSearch">
                   <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
-                    <path d="M339.62496 186.78272H249.8816L4.26496 834.56H97.3824l62.75584-177.46432h269.90592L496.84992 834.56h93.11744L339.62496 186.78272z m-155.19744 396.76416L292.39296 269.1072h1.35168l107.96032 314.43968H184.42752zM927.21664 584.35584c-4.32128 8.09984-17.67424 15.25248-40.07936 21.45792-22.4 6.20544-54.38464 10.65984-95.9488 13.35808-42.6496 4.85376-74.22464 14.84288-94.74048 29.96224s-29.96224 34.816-28.3392 59.1104c3.23584 46.41792 38.05696 69.63712 104.448 69.63712 93.93152-6.4768 145.4848-50.74432 154.65984-132.79744v-60.72832z m-315.79136-97.97632c21.59104-93.93152 90.14272-139.27424 205.66528-136.03328 62.08512-1.61792 107.96544 12.416 137.65632 42.10688 29.69088 29.69088 43.72992 74.76736 42.10688 135.22432v187.04896c-1.61792 25.36448-0.13312 46.82752 4.4544 64.36864 4.58752 17.54112 11.4688 31.70816 20.64896 42.51136h-66.40128c-7.55712-7.55712-13.09184-16.8704-16.59904-27.93472-3.5072-11.06944-5.25824-22.8096-5.25824-35.2256-37.79584 50.74432-97.97632 76.11392-180.57216 76.11392-96.62464-3.24096-148.17792-43.1872-154.65984-119.8336 1.62304-44.80512 16.06144-79.62624 43.32544-104.45824 27.25888-24.832 68.68992-39.67488 124.288-44.53376 44.26752-4.85376 79.89248-9.85088 106.88512-14.976 26.98752-5.13536 45.07648-11.74528 54.25152-19.84 3.24096-42.64448-4.58752-73.68704-23.48032-93.12256-18.88768-19.4304-48.85504-28.3392-89.8816-26.72128-39.94624-1.61792-71.53152 5.39648-94.73536 21.05344-23.2192 15.65696-36.98176 40.21248-41.29792 73.68192l-66.39616-19.4304z" p-id="5425"></path>
+                    <path
+                      d="M339.62496 186.78272H249.8816L4.26496 834.56H97.3824l62.75584-177.46432h269.90592L496.84992 834.56h93.11744L339.62496 186.78272z m-155.19744 396.76416L292.39296 269.1072h1.35168l107.96032 314.43968H184.42752zM927.21664 584.35584c-4.32128 8.09984-17.67424 15.25248-40.07936 21.45792-22.4 6.20544-54.38464 10.65984-95.9488 13.35808-42.6496 4.85376-74.22464 14.84288-94.74048 29.96224s-29.96224 34.816-28.3392 59.1104c3.23584 46.41792 38.05696 69.63712 104.448 69.63712 93.93152-6.4768 145.4848-50.74432 154.65984-132.79744v-60.72832z m-315.79136-97.97632c21.59104-93.93152 90.14272-139.27424 205.66528-136.03328 62.08512-1.61792 107.96544 12.416 137.65632 42.10688 29.69088 29.69088 43.72992 74.76736 42.10688 135.22432v187.04896c-1.61792 25.36448-0.13312 46.82752 4.4544 64.36864 4.58752 17.54112 11.4688 31.70816 20.64896 42.51136h-66.40128c-7.55712-7.55712-13.09184-16.8704-16.59904-27.93472-3.5072-11.06944-5.25824-22.8096-5.25824-35.2256-37.79584 50.74432-97.97632 76.11392-180.57216 76.11392-96.62464-3.24096-148.17792-43.1872-154.65984-119.8336 1.62304-44.80512 16.06144-79.62624 43.32544-104.45824 27.25888-24.832 68.68992-39.67488 124.288-44.53376 44.26752-4.85376 79.89248-9.85088 106.88512-14.976 26.98752-5.13536 45.07648-11.74528 54.25152-19.84 3.24096-42.64448-4.58752-73.68704-23.48032-93.12256-18.88768-19.4304-48.85504-28.3392-89.8816-26.72128-39.94624-1.61792-71.53152 5.39648-94.73536 21.05344-23.2192 15.65696-36.98176 40.21248-41.29792 73.68192l-66.39616-19.4304z"
+                      p-id="5425"></path>
                   </svg>
                 </div>
               </d-tooltip>
-              <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')" :position="['top', 'bottom', 'left', 'right']">
-                <div
-                  class="rect-reg has-tooltip"
-                  :class="{active: regActive}"
-                  @click="regSearch"
-                  @mousedown.prevent
-                >
+              <d-tooltip v-if="showOperation" :content="t('comGraph.useRegExp')"
+                :position="['top', 'bottom', 'left', 'right']">
+                <div class="rect-reg has-tooltip" :class="{ active: regActive }" @click="regSearch" @mousedown.prevent>
                   <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor">
-                    <path d="M136 836.928c0-32.896 25.088-60.608 58.112-60.608 34.304 0 59.392 27.776 59.392 60.608 0 35.712-25.088 59.456-59.392 59.456-36.992-1.344-58.112-26.432-58.112-59.456zM903.808 398.336l-214.912 42.112 150.336 188.032-92.928 64-120.64-207.744L503.68 692.48l-92.992-64 149.568-188.032-216.32-42.112 37.76-104.576 204.8 78.464-19.648-237.44h116.928l-20.352 237.44 204.8-78.464 35.584 104.576z" p-id="6435"></path>
+                    <path
+                      d="M136 836.928c0-32.896 25.088-60.608 58.112-60.608 34.304 0 59.392 27.776 59.392 60.608 0 35.712-25.088 59.456-59.392 59.456-36.992-1.344-58.112-26.432-58.112-59.456zM903.808 398.336l-214.912 42.112 150.336 188.032-92.928 64-120.64-207.744L503.68 692.48l-92.992-64 149.568-188.032-216.32-42.112 37.76-104.576 204.8 78.464-19.648-237.44h116.928l-20.352 237.44 204.8-78.464 35.584 104.576z"
+                      p-id="6435"></path>
                   </svg>
                 </div>
               </d-tooltip>
@@ -135,14 +107,12 @@
           <ul class="search-res-list">
             <div class="res-size">
               <span class="res-size-text">
-                {{ t('comGraph.searchResSize', {resSize}) }}
+                {{ t('comGraph.searchResSize', { resSize }) }}
               </span>
             </div>
-            <div v-for="(it, index) in res" :key="index" 
-              class="res-it"
-              @click="onLocate(it)">
+            <div v-for="(it, index) in res" :key="index" class="res-it" @click="onLocate(it)">
               <div class="res-it-text" :title="displayResIt(it)">
-                {{displayResIt(it)}}
+                {{ displayResIt(it) }}
                 <div v-if="it.funcHash && it.funcHash !== currentFuncHash" class="icon-jump-to res-it-icon" />
               </div>
             </div>
@@ -153,29 +123,29 @@
 
     <div class="control-flow" v-if="!comGraphStore.data.comGraphConfig.isSimple && ctrl_flow.hasDynamic">
       <div class="control-flow-itername control-flow-base" :title="`itername: ${ctrl_flow.itername}`">
-        itername: {{ctrl_flow.itername}}
+        itername: {{ ctrl_flow.itername }}
       </div>
       <div class="control-flow-begin control-flow-base" :title="`begin: ${ctrl_flow.begin}`">
-        begin: {{ctrl_flow.begin}}
+        begin: {{ ctrl_flow.begin }}
       </div>
       <div class="control-flow-end control-flow-base" :title="`end: ${ctrl_flow.end}`">
-        end: {{ctrl_flow.end}}
+        end: {{ ctrl_flow.end }}
       </div>
       <div class="control-flow-step control-flow-base" :title="`step: ${ctrl_flow.step}`">
-        step: {{ctrl_flow.step}}
+        step: {{ ctrl_flow.step }}
       </div>
       <div class="control-flow-coretype control-flow-base" :title="`coretype: ${ctrl_flow.coretype}`">
-        coretype: {{ctrl_flow.coretype}}
+        coretype: {{ ctrl_flow.coretype }}
       </div>
       <div class="control-flow-magic-name control-flow-base" :title="`magic_name: ${ctrl_flow.magic_name}`">
-        magic_name: {{ctrl_flow.magic_name}}
+        magic_name: {{ ctrl_flow.magic_name }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick} from 'vue';
+import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { GraphType, ComGraphProvideKey } from './type';
 import type { ComGraphContext } from './type';
@@ -188,7 +158,8 @@ import CalledRecordIcon from './icons/called-record-icon.vue';
 import ExportModal from '../exportModal/exportModal.vue';
 import Navbar from '../navbar/navbar.vue';
 import LeafList from './leaf-list.vue';
-import { extractIncasts,
+import {
+  extractIncasts,
   extractOutcasts,
   extractRawTensors,
   extractTensorNodes,
@@ -199,7 +170,8 @@ import { extractIncasts,
   searchByTensorSemanticLabel,
   searchByRawTensorMagic,
   searchBySubgraphid,
-  searchByOperationMagic } from '../../utils/search';
+  searchByOperationMagic
+} from '../../utils/search';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
@@ -224,7 +196,7 @@ const props = defineProps({
 let funcTree = {}
 
 const backwards = () => {
-  if(curPath.value.length === 1) {
+  if (curPath.value.length === 1) {
     return;
   }
   const newPath = [...curPath.value.slice(0, -1)];
@@ -249,116 +221,116 @@ let showOperation = ref(false);
 let dataUrl = ref('');
 let svgfileName = ref('');
 
- const categoryCurrent = [
-      {
-        label: 'Rawtensor',
-        field: 'Rawtensor',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' }
-        ],
-      },
-      {
-        label: 'Tensor',
-        field: 'Tensor',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' },
-          { Option: 'semantic_label' }
-        ],
-      },
-      {
-        label: 'Operation',
-        field: 'Operation',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' },
-          { Option: 'semantic_label' }
-        ],
-      },
-      {
-        label: 'Subgraph',
-        field: 'Subgraph',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'id' }
-        ],
-      },
+const categoryCurrent = [
+  {
+    label: 'Rawtensor',
+    field: 'Rawtensor',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' }
+    ],
+  },
+  {
+    label: 'Tensor',
+    field: 'Tensor',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' },
+      { Option: 'semantic_label' }
+    ],
+  },
+  {
+    label: 'Operation',
+    field: 'Operation',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' },
+      { Option: 'semantic_label' }
+    ],
+  },
+  {
+    label: 'Subgraph',
+    field: 'Subgraph',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'id' }
+    ],
+  },
 ];
 
- const categoryGlobal = [
-      {
-        label: 'Rawtensor',
-        field: 'Rawtensor',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' }
-        ],
-      },
-      {
-        label: 'Tensor',
-        field: 'Tensor',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' },
-          { Option: 'semantic_label' }
-        ],
-      },
-      {
-        label: 'Operation',
-        field: 'Operation',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'magic' },
-          { Option: 'semantic_label' }
-        ],
-      },
-      {
-        label: 'Subgraph',
-        field: 'Subgraph',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'id' }
-        ],
-      },
-      {
-        label: 'Function',
-        field: 'Function',
-        type: 'radio',
-        group: 'Basic',
-        filterKey: 'Option',
-        options: [
-          { Option: 'hash' },
-          { Option: 'name' },
-        ],
-      }, 
+const categoryGlobal = [
+  {
+    label: 'Rawtensor',
+    field: 'Rawtensor',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' }
+    ],
+  },
+  {
+    label: 'Tensor',
+    field: 'Tensor',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' },
+      { Option: 'semantic_label' }
+    ],
+  },
+  {
+    label: 'Operation',
+    field: 'Operation',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'magic' },
+      { Option: 'semantic_label' }
+    ],
+  },
+  {
+    label: 'Subgraph',
+    field: 'Subgraph',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'id' }
+    ],
+  },
+  {
+    label: 'Function',
+    field: 'Function',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'hash' },
+      { Option: 'name' },
+    ],
+  },
 ];
 
 const category = ref(categoryCurrent);
 
 const searchOptions = [
-  {name: t('comGraph.currentGraph'), value: 'current'},
-  {name: t('comGraph.globalGraph'), value: 'global'},
+  { name: t('comGraph.currentGraph'), value: 'current' },
+  { name: t('comGraph.globalGraph'), value: 'global' },
 ];
 
 const curSearchOptions = [
-  {name: t('comGraph.onlyPath'), value: 'currentPath'},
+  { name: t('comGraph.onlyPath'), value: 'currentPath' },
 ];
 
 const currentSelect = ref('current');
@@ -395,7 +367,7 @@ const regActive = ref(false);
 const onlySvgOutputOnce = ref(false);
 const isExporting = ref(false);
 
-const { dropdownEl,  toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown } = useHeader(isVisible);
+const { dropdownEl, toolbarRowEl, dropdownWidth, onCategoryClick, onSelectedTagsChange, onSelectClick, hideCategorySearchDropdown } = useHeader(isVisible);
 
 watch(currentSelect, (newVal) => {
   if (newVal === 'global') {
@@ -575,11 +547,11 @@ watch(() => props.outputDirPath, (val) => {
 const displayNav = (it, index) => {
   if (curPath.value.length == 2) {
     return `${funcMap.value[it].func_magicname} / `;
-  } 
-  if (curPath.value.length >2) {
-    if(index === curPath.value.length - 3) {
+  }
+  if (curPath.value.length > 2) {
+    if (index === curPath.value.length - 3) {
       return '... / ';
-    } else if (index === curPath.value.length - 2){
+    } else if (index === curPath.value.length - 2) {
       return `${funcMap.value[it].func_magicname} / `;
     }
   }
@@ -590,11 +562,11 @@ const displayResIt = (it) => {
   if (it.node_type === 'function') {
     return `${it.node_type} hash:${it.hash} name:${it.func_magicname}`;
   }
-  
+
   let symbol = '';
   let displayMagic = '';
   if (it.node_type === 'tensor') {
-    symbol = (it.rawtensor_info.symbol??'') + ' ';
+    symbol = (it.rawtensor_info.symbol ?? '') + ' ';
     displayMagic = it.magic;
   } else {
     displayMagic = it.opmagic;
@@ -649,7 +621,7 @@ function jumpToGraph(funcHash) {
 }
 
 function jumpBackGraph(calleehash, funcMagicName, curPath) {
-  server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath}});
+  server.getSubgraph({ paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: curPath } });
 }
 
 function svgOutput() {
@@ -687,41 +659,41 @@ function globalSearch(event) {
 
 watch(server.GlobalSearchResult, (newValue) => {
   res.value = [];
-    for (const[k, v] of Object.entries(newValue.data)) {
-      v.forEach(item => {
-        const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
-        if (k == currentFuncHash) {
-          res.value.unshift(newItem);
-        } else {
-          res.value.push(newItem);
-        }
-      });
-    }
-    resSize.value = res.value.length;
+  for (const [k, v] of Object.entries(newValue.data)) {
+    v.forEach(item => {
+      const newItem = { ...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname }
+      if (k == currentFuncHash) {
+        res.value.unshift(newItem);
+      } else {
+        res.value.push(newItem);
+      }
+    });
+  }
+  resSize.value = res.value.length;
 });
 
-watch(server.CalleeOpAttrMap, (newValue:{data:any}) => {
+watch(server.CalleeOpAttrMap, (newValue: { data: any }) => {
   res.value = [];
-    for (const[k, v] of Object.entries(newValue.data)) {
-      (v as any[]).forEach(item => {
-        const newItem = {...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname}
-        if (k == currentFuncHash) {
-          res.value.unshift(newItem);
-        } else {
-          res.value.push(newItem);
-        }
-      });
-    }
-    resSize.value = res.value.length;
+  for (const [k, v] of Object.entries(newValue.data)) {
+    (v as any[]).forEach(item => {
+      const newItem = { ...item, funcHash: k, funcName: funcMap.value[k]?.func_magicname }
+      if (k == currentFuncHash) {
+        res.value.unshift(newItem);
+      } else {
+        res.value.push(newItem);
+      }
+    });
+  }
+  resSize.value = res.value.length;
 });
 
 
 function jumpSearchSubgraph(calleehash, funcMagicName) {
   if (comGraphStore.data.comGraphConfig.isSimple) {
-    server.innerGetSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName}});
+    server.innerGetSubgraph({ paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName } });
   } else {
     let newPath = JSON.stringify([calleehash]);
-    server.getSubgraph({paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath}, query: { isSearch: false, nodeMagic: null }});
+    server.getSubgraph({ paramObj: { calleehash: calleehash, subFuncmagicname: funcMagicName, curPath: newPath }, query: { isSearch: false, nodeMagic: null } });
   }
 }
 
@@ -730,7 +702,7 @@ function getLayerList(curPath, funcTree) {
     return [];
   }
   let curNode = funcTree;
-  for (let i = 0; i < curPath.length -1; i++) {
+  for (let i = 0; i < curPath.length - 1; i++) {
     const key = curPath[i];
     if (curNode[key]) {
       curNode = curNode[key];
@@ -739,13 +711,15 @@ function getLayerList(curPath, funcTree) {
   return Object.keys(curNode);
 }
 
-watch(server.FuncTree, (newValue:{data:any,fsPath:any,curPath:any,entry:any}) => {
+watch(server.FuncTree, (newValue: { data: any, fsPath: any, curPath: any, entry: any }) => {
   funcTree = newValue.data;
   passName = newValue.fsPath.split('\\').pop();
   curPath.value = typeof newValue.curPath === 'string' ? JSON.parse(newValue.curPath) : newValue.curPath;
   entry.value = newValue.entry;
   comGraphStore.setData('curPath', newValue.curPath);
-  curList.value = getLayerList(curPath.value.slice(1), funcTree[newValue.entry]);
+  if (funcTree) {
+    curList.value = getLayerList(curPath.value.slice(1), funcTree[newValue.entry]);
+  }
 });
 
 
@@ -763,7 +737,7 @@ defineExpose({
     isVisible.value = false;
     hideCategorySearchDropdown();
     globalSelectEl.value.toggleChange(false);
-    onSelectedTagsChange({ selectedTags:[] });
+    onSelectedTagsChange({ selectedTags: [] });
     selectedTags.value = [];
     categorySearchKey.value = ' ';
     nextTick(() => {
@@ -801,7 +775,7 @@ watch(() => comGraphStore.data.calleeMap, (val) => {
 
 onMounted(() => {
   const inputEl = searchEl.value.$el.querySelector('.dp-category-search-toggle');
-  let blurTimer:number | null = null;
+  let blurTimer: number | null = null;
   inputEl.addEventListener('focus', () => {
     clearTimeout(blurTimer);
     blurTimer = null;
@@ -832,11 +806,11 @@ onMounted(() => {
     comGraphStore.data.svgExportMode = false;
   });
   watch(server.InitComFlag, () => {
-    if(server.InitComFlag && server.InitComFlag.value === 'true'){
+    if (server.InitComFlag && server.InitComFlag.value === 'true') {
       server.returnFuncTree();
     }
-    
-  },{immediate:true});
+
+  }, { immediate: true });
 
 });
 </script>
@@ -880,7 +854,7 @@ onMounted(() => {
   height: 28px;
   margin-right: 0px;
   border-radius: 0 4px 4px 0;
-  transition: border-color 0.3s var(--devui-animation-ease-in-out-smooth, cubic-bezier(0.645,0.045,0.355,1));
+  transition: border-color 0.3s var(--devui-animation-ease-in-out-smooth, cubic-bezier(0.645, 0.045, 0.355, 1));
   user-select: none;
   position: absolute;
   right: 0px;
@@ -926,7 +900,7 @@ onMounted(() => {
     }
 
     .dp-category-search-icon {
-      position:absolute;
+      position: absolute;
       padding-right: 0px;
       right: 8px;
       width: 16px;
@@ -993,7 +967,7 @@ onMounted(() => {
   height: 28px;
   padding: 4px;
   border-radius: 4px;
-  overflow:hidden;
+  overflow: hidden;
   position: relative;
 
   &:hover {
@@ -1009,14 +983,14 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    
+
     &:has(.res-it-icon) {
       padding-right: 26px;
     }
   }
 
   .res-it-icon {
-    position:absolute;
+    position: absolute;
     right: 1px;
     width: 16px;
     height: 16px;
@@ -1081,22 +1055,27 @@ onMounted(() => {
   height: 18px;
   line-height: 16px;
   border-radius: 4px;
-  
+
   &.TENSOR_GRAPH {
     background-color: var(--devui-mint-60);
   }
+
   &.TILE_GRAPH {
     background-color: var(--devui-green-60);
   }
+
   &.EXECUTE_GRAPH {
     background-color: var(--devui-cyan-60);
   }
+
   &.BLOCK_GRAPH {
     background-color: var(--devui-blue-60);
   }
+
   &.LEAF_VF_GRAPH {
     background-color: var(--devui-indigo-60);
   }
+
   &.INVALID {
     background-color: var(--devui-red-60);
   }
@@ -1106,7 +1085,7 @@ onMounted(() => {
   display: flex;
   gap: 4px;
 
-  & > span {
+  &>span {
     line-height: 18px;
   }
 }
@@ -1123,8 +1102,8 @@ onMounted(() => {
 
   .toolbar-row .select-options.devui-select--open,
   .toolbar-row .select-options.devui-select--focus {
-      border-color: var(--devui-line) !important;
-      border: none !important;
+    border-color: var(--devui-line) !important;
+    border: none !important;
   }
 
 
@@ -1150,7 +1129,7 @@ onMounted(() => {
 
     .devui-select__input {
       padding-top: 5px;
-      height:26px;
+      height: 26px;
       line-height: 27px;
       padding-left: 8px;
       padding-right: 0px;
@@ -1200,9 +1179,11 @@ onMounted(() => {
 
   &:not(.corner-icon-disabled):hover {
     cursor: pointer;
+
     .devui-icon__container {
       color: var(--devui-operation-text-hover);
     }
+
     svg {
       :deep() {
         path {
@@ -1283,34 +1264,34 @@ onMounted(() => {
   }
 
   .control-flow-itername {
-      border: 1px solid rgba(244, 112, 171, 1);
-      color: rgba(244, 112, 171, 1);
-    }
+    border: 1px solid rgba(244, 112, 171, 1);
+    color: rgba(244, 112, 171, 1);
+  }
 
-    .control-flow-begin {
-      border: 1px solid rgba(140, 163, 250, 1);
-      color: rgba(140, 163, 250, 1);
-    }
+  .control-flow-begin {
+    border: 1px solid rgba(140, 163, 250, 1);
+    color: rgba(140, 163, 250, 1);
+  }
 
-    .control-flow-end {
-      border: 1px solid rgba(168, 219, 129, 1);
-      color: rgba(168, 219, 129, 1);
-    }
+  .control-flow-end {
+    border: 1px solid rgba(168, 219, 129, 1);
+    color: rgba(168, 219, 129, 1);
+  }
 
-    .control-flow-step {
-      border: 1px solid rgba(249, 183, 102, 1);
-      color: rgba(249, 183, 102, 1);
-    }
+  .control-flow-step {
+    border: 1px solid rgba(249, 183, 102, 1);
+    color: rgba(249, 183, 102, 1);
+  }
 
-    .control-flow-coretype {
-      border: 1px solid rgba(203, 142, 251, 1);
-      color: rgba(203, 142, 251, 1);
-    }
+  .control-flow-coretype {
+    border: 1px solid rgba(203, 142, 251, 1);
+    color: rgba(203, 142, 251, 1);
+  }
 
-    .control-flow-magic-name {
-      border: 1px solid rgba(99, 213, 168, 1);
-      color: rgba(99, 213, 168, 1);
-    }
+  .control-flow-magic-name {
+    border: 1px solid rgba(99, 213, 168, 1);
+    color: rgba(99, 213, 168, 1);
+  }
 }
 </style>
 
@@ -1328,6 +1309,7 @@ onMounted(() => {
     overflow: auto;
   }
 }
+
 .devui-flexible-overlay:has(.com-graph-header-search-dropdown) {
   z-index: 1049 !important;
 }
@@ -1341,7 +1323,7 @@ onMounted(() => {
 .com-graph-global-select {
   z-index: 1049 !important;
 
-  .devui-select__item  {
+  .devui-select__item {
     padding: 8px;
     font-size: 13px !important;
   }

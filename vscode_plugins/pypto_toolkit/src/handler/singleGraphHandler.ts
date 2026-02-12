@@ -105,7 +105,8 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
       }
     }
-    SingleGraphHandler.returnFuncTree(server);
+    server.setRef('FuncTree', { entry: server.comGraphData.funcHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [server.comGraphData.funcHash] });
+    await SingleGraphHandler.returnFuncTree(server);
   }
   public static async returnFuncTree(server: any) {
     const funcTree: any = {};
