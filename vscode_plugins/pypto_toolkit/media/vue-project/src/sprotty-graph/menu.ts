@@ -42,7 +42,16 @@ export class AstgrContextMenuService implements IContextMenuService {
         onHide();
       }
     };
-    if (!comGraphStore.data.isDiffGraph && comGraphStore.data.comGraphConfig.canLockPath) {
+    if (comGraphStore.data.comGraphConfig.isSimple && comGraphStore.data.comGraphConfig.canViewSubgraph) {
+      if (items.length) {
+        menuNode = this.createMenuForSimpleCom(items, hideMenu);
+        container?.appendChild(menuNode);
+        fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
+        menuNode.onmouseleave = () => hideMenu();
+      } else {
+        onHide?.();
+      }
+    } else if (!comGraphStore.data.isDiffGraph && comGraphStore.data.comGraphConfig.canLockPath) {
       this.createMenu(items, hideMenu).then((res) => {
         menuNode = res;
         container?.appendChild(menuNode);
@@ -217,6 +226,31 @@ export class AstgrContextMenuService implements IContextMenuService {
     });
     return menuNode;
   }
+
+  protected createMenuForSimpleCom(items: MenuItem[], closeCallback: () => void) {
+    const menuNode = document.createElement('div');
+    menuNode.id = 'astgr-context-menu';
+    menuNode.classList.add('astgr-context-menu');
+
+    items.forEach((item) => {
+      const menuItem = document.createElement('div');
+      menuItem.id = `astgr-context-menu-item-${item.id}`;
+      menuItem.classList.add('astgr-context-menu-item');
+      const textSpan = document.createElement('span');
+      textSpan.textContent = item.label;
+      textSpan.className = 'menu-text';
+      menuItem.appendChild(textSpan);
+      menuItem.onclick = () => {
+        const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
+        (window as any).ascEventBus.emit('OpenSubGraphInThreeColumn', { selectedNode: cb.selectedNode });
+        closeCallback();
+      }
+
+      menuNode.appendChild(menuItem);
+    });
+
+    return menuNode;
+  }
 }
 
 function findNeighborNode(selectedNode: string): string[] {
@@ -305,6 +339,7 @@ export interface CallSetFixedAction extends Action {
   goToCodeLine: boolean;
   codePath: string;
   codeLine: number;
+  selectedNode?: Record<string, any>;
 }
 
 // 3. 工厂函数
@@ -323,7 +358,24 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
   @inject(TYPES.IActionDispatcher) readonly actionDispatcher: IActionDispatcher;
 
   async getItems(root: Readonly<SModelRootImpl>, lastMousePosition?: Point | undefined): Promise<MenuItem[]> {
-    const selectedNodeIds = root.children.filter((e) => (e as SNodeImpl).selected).map((e) => e.id);
+    const selectedNode: Record<string, any>[] = root.children.filter((e) => (e as SNodeImpl).selected);
+    const selectedNodeIds = selectedNode.map((e) => e.id);
+
+    // 三栏模式，支持右键菜单打开子图
+    if (selectedNode.length && comGraphStore.data.comGraphConfig.isSimple && comGraphStore.data.comGraphConfig.canViewSubgraph) {
+      if (selectedNode[0].calleehash && comGraphStore.data.calleeMap && comGraphStore.data.calleeMap[selectedNode[0].calleehash]) {
+        return [
+          {
+            id: 'openSubGraph',
+            label: `${(window as any).ascLang === 'en' ? 'Open subgraph in new tab' : '在新标签打开子图'}`,
+            actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Open subgraph in new tab' : '在新标签打开子图'}`, [
+              { kind: CALL_SET_FIXED, selectedNode: selectedNode[0] } as unknown as CallSetFixedAction,
+            ])?.actions,
+          },
+        ];
+      }
+      return [];
+    }
     
     rootNodes = root;
 

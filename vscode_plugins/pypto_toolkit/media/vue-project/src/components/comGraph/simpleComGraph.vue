@@ -455,7 +455,7 @@ watch(
         showExtendBtn: false,
         canLockPath: false,
         canViewNodeDetail: true,
-        canViewSubgraph: false,
+        canViewSubgraph: true,
       });
       generateHashList();
       resetDrillDownPathIcon();
