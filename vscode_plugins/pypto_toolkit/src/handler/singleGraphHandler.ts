@@ -111,7 +111,13 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
   public static async returnFuncTree(server: any) {
     const funcTree: any = {};
     let hash;
-    if (server.entryHash) {
+    let curPath;
+    try {
+      curPath = JSON.parse(server.comGraphData.curPath);
+    } catch {}
+    if (curPath?.length > 1) {
+      hash = curPath[curPath.length - 2];
+    } else if (server.entryHash) {
       hash = server.entryHash;
     } else {
       hash = server.comGraphData.funcHash;
