@@ -106,7 +106,7 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
       }
     }
     server.setRef('FuncTree', { entry: server.comGraphData.funcHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [server.comGraphData.funcHash] });
-    await SingleGraphHandler.returnFuncTree(server);
+    SingleGraphHandler.returnFuncTree(server);
   }
   public static async returnFuncTree(server: any) {
     const funcTree: any = {};
