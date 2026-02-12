@@ -354,9 +354,7 @@ function onMessageNotice(text) {
     message:text
   });
 };
-
-onMounted(() => {
-  document.addEventListener('keydown', (e) => {
+const handleMountedKeyDown = (e) => {
     if (e.key === 'Escape' || e.code === 'Escape') {
       e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
       isPathLockStatus.value = false;
@@ -364,9 +362,9 @@ onMounted(() => {
       canvasclickedEvent.value = null;
       pathLockedEvent.value = null;
     }
-
-    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
-    (e.key === 'l' || e.key === 'L')) {
+    const isModifierKeyPressed = e.ctrlKey && !(e.shiftKey || e.altKey || e.metaKey);
+    const isLKey = e.key.toLowerCase() === 'l';
+    if (isModifierKeyPressed && isLKey) {
       if (canvasclickedEvent.value) {
         pathLockedEvent.value = canvasclickedEvent.value;
         isPathLockStatus.value = true;
@@ -386,23 +384,26 @@ onMounted(() => {
     }
     onKeyDown(e);
     e.stopPropagation();
-  });
-  document.addEventListener('keyup', (e) => {
-    if (!handleMatchKey(e.key, userConfig)) {
-      e.stopPropagation();
-      return;
-    }
-    onKeyUp(e);
+};
+const handleMountedKeyup = (e) => {
+  if (!handleMatchKey(e.key, userConfig)) {
     e.stopPropagation();
-  });
+    return;
+  }
+  onKeyUp(e);
+  e.stopPropagation();
+};
+onMounted(() => {
+  document.addEventListener('keydown', handleMountedKeyDown);
+  document.addEventListener('keyup', handleMountedKeyup);
   listenExtensionMessage();
   listenExtensionClearMessage();
   window.ascEventBus.on('message_notice', onMessageNotice);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('keydown');
-  document.removeEventListener('keyup');
+  document.removeEventListener('keydown', handleMountedKeyDown);
+  document.removeEventListener('keyup', handleMountedKeyup);
   throttledRender.cancel();
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');

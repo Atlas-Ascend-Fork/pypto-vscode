@@ -1981,7 +1981,9 @@ defineExpose({
   loading,
   labelRender,
   loadingText,
-  validData
+  validData,
+  processExpanded,
+  processes
 });
 
 provide('swimCycleDisplay', { cycleDisplay, selectedOption, options });
