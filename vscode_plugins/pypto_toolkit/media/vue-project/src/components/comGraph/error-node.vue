@@ -36,6 +36,7 @@ import { watch } from 'vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
+import { isNodeTraced } from '@/sprotty-graph/views';
 const { t } = useI18n();
 
 const props = defineProps({
@@ -99,6 +100,18 @@ const updateLocation = (data) => {
     if (!target) {
       node.show = false;
       return;
+    }
+
+    if (comGraphStore.data.unVisibleOtherNodes) {
+      const traceResult = isNodeTraced(target.id, (window as any).trace);
+      const incoming = traceResult.incoming;
+      const outgoing = traceResult.outgoing;
+      const isTraced = incoming || outgoing;
+
+      if (!isTraced) {
+        node.show = false;
+        return;
+      }
     }
     if (target.role === 'tensor') {
       node.type = 'tensor'
