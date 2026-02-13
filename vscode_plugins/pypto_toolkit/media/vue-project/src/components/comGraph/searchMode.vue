@@ -1074,7 +1074,6 @@ watch(server.GlobalSearchResult, (newValue) => {
 .advanced-search-button {
   margin-left: 16px;
   width: 100px;
-  height: 24px;
   font-size: 18px;
   color: rgba(49, 122, 247, 1);
   line-height: 1;

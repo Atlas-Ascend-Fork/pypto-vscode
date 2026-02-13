@@ -264,7 +264,7 @@ function traceElementsOptimized(elementId: string, edgeMap: EdgeMap, trace: Trac
 }
 
 // Helper functions for trace checking
-function isNodeTraced(nodeId: string, trace: Trace): { incoming: boolean; outgoing: boolean } {
+export function isNodeTraced(nodeId: string, trace: Trace): { incoming: boolean; outgoing: boolean } {
   const nodePortPrefix = nodeId + '-';
 
   // Check if the node itself is in the trace
