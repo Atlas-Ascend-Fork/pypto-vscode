@@ -39,7 +39,7 @@
           <div id="boot-steps-navbar-open-com-graph" class="com-graph-icon-wrap">
             <ComGraphIcon />
           </div>
-          <div v-if="getControlFlowError" class="com-graph-error" :title="comGraphName">{{ comGraphName }}</div>
+          <div v-if="getControlFlowError && currentStep === 'comGraph'" class="com-graph-error" :title="comGraphName">Program.json</div>
           <template v-else>
             <PathList v-if="currentStep === 'comGraph'" />
             <div v-if="currentStep === 'comGraph' && pathName !== 'program'" class="pass-leaf-wrap">
