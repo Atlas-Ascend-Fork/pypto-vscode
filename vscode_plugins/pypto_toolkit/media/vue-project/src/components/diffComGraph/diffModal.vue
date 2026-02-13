@@ -153,11 +153,12 @@ function onToggleAllLineExpand(status?: boolean) {
   });
 }
 
+const effectiveCompareType = ['add', 'delete', 'change'];
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
     compareType = compareTypeNode?.compareType;
-    if (compareType && compareType !== 'normal') {
+    if (compareType && effectiveCompareType.includes(compareType)) {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
         otherTitle.value = getOtherNodeTitle(compareTypeNode, node.root.filePath) ?? '';
