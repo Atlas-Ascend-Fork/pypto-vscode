@@ -184,19 +184,19 @@ function getNormalNodeDetail(node) {
   return nodeContent;
 }
 
-const effectiveCompareType = ['add', 'delete', 'change'];
+const hasDiffCompareType = ['add', 'delete', 'change'];
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
     compareType = compareTypeNode?.compareType;
-    if (!compareType) {
+    if (!compareType || ![...hasDiffCompareType, 'normal'].includes(compareType)) {
       return;
     }
     visible.value = true;
     showNormalNodeDetail.value = false;
     title.value = node.text;
     otherTitle.value = '';
-    if (compareType && effectiveCompareType.includes(compareType)) {
+    if (hasDiffCompareType.includes(compareType)) {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
         otherTitle.value = getOtherNodeTitle(compareTypeNode, node.root.filePath) ?? '';
