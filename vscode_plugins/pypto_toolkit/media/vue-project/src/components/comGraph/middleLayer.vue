@@ -411,6 +411,8 @@ const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCach
   const originalReader = Reader.getReader();
   let result = await originalReader.read();
   swimGrahRef.value.loadingText = $t('receiveTraceData');
+  swimGrahRef.value.processExpanded?.clear();
+  swimGrahRef.value.processes?.clear();
 
   while (!result.done) {
     const val = result.value;

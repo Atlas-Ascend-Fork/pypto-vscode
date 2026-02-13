@@ -70,6 +70,7 @@ import { Message } from 'vue-devui/message';
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
 const canvasclickedEvent = ref(null);
+const pathLockedEvent = ref(null);
 const curThread = inject('curThread');
 const lockPosition = ref(null);
 let switchLockInformationFlag = ref(false);
@@ -353,19 +354,19 @@ function onMessageNotice(text) {
     message:text
   });
 };
-
-onMounted(() => {
-  document.addEventListener('keydown', (e) => {
+const handleMountedKeyDown = (e) => {
     if (e.key === 'Escape' || e.code === 'Escape') {
       e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
       isPathLockStatus.value = false;
       canvasStatusReset();
       canvasclickedEvent.value = null;
+      pathLockedEvent.value = null;
     }
-
-    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey &&
-    (e.key === 'l' || e.key === 'L')) {
+    const isModifierKeyPressed = e.ctrlKey && !(e.shiftKey || e.altKey || e.metaKey);
+    const isLKey = e.key.toLowerCase() === 'l';
+    if (isModifierKeyPressed && isLKey) {
       if (canvasclickedEvent.value) {
+        pathLockedEvent.value = canvasclickedEvent.value;
         isPathLockStatus.value = true;
         switchLockInformationFlag.value = false;
         if (isClickedPath) {
@@ -383,23 +384,26 @@ onMounted(() => {
     }
     onKeyDown(e);
     e.stopPropagation();
-  });
-  document.addEventListener('keyup', (e) => {
-    if (!handleMatchKey(e.key, userConfig)) {
-      e.stopPropagation();
-      return;
-    }
-    onKeyUp(e);
+};
+const handleMountedKeyup = (e) => {
+  if (!handleMatchKey(e.key, userConfig)) {
     e.stopPropagation();
-  });
+    return;
+  }
+  onKeyUp(e);
+  e.stopPropagation();
+};
+onMounted(() => {
+  document.addEventListener('keydown', handleMountedKeyDown);
+  document.addEventListener('keyup', handleMountedKeyup);
   listenExtensionMessage();
   listenExtensionClearMessage();
   window.ascEventBus.on('message_notice', onMessageNotice);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('keydown');
-  document.removeEventListener('keyup');
+  document.removeEventListener('keydown', handleMountedKeyDown);
+  document.removeEventListener('keyup', handleMountedKeyup);
   throttledRender.cancel();
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
@@ -1255,6 +1259,9 @@ const drawDependencyLines = (process, processKey, mode) => {
   if (!ctx || !(selectedEvent.value || searchedEvent.value)) return;
   ctx.lineWidth = 1;
   if (selectedEvent.value) {
+    if (isPathLockStatus.value) {
+      selectedEvent.value = pathLockedEvent.value;
+    }
     const eventMap = buildEventMap(process);
     let level = userConfig.value.connectionLevel;
     const edgesToDraw = collectRelevantEdges(
@@ -1706,7 +1713,7 @@ const showTooltip = (e, event, canvasRef) => {
   tooltip.value.innerHTML = tooltipContent;
   tooltipStyle.display = 'block';
   const canvasCSSWidth = viewState.canvasCssWidth;
-  if(event.renderInfo.x + 200  > canvasCSSWidth){
+  if(getNoZoomX(event.renderInfo.x, viewState) + 200  > canvasCSSWidth){
       tooltipStyle.left = (e.clientX - 100) + 'px';
   } else {
       tooltipStyle.left = (e.clientX + 10) + 'px';
@@ -2147,7 +2154,8 @@ provide('swimGraphThreadState', {
   topX,
   leftX,
   canvasclickedEvent,
-  isClickedPath
+  isClickedPath,
+  pathLockedEvent
 });
 
 provide('swimGraphThreadMethods', {

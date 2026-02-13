@@ -184,6 +184,7 @@ function getNormalNodeDetail(node) {
   return nodeContent;
 }
 
+const effectiveCompareType = ['add', 'delete', 'change'];
 function onViewMouseUp(node) {
   if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
@@ -195,7 +196,7 @@ function onViewMouseUp(node) {
     showNormalNodeDetail.value = false;
     title.value = node.text;
     otherTitle.value = '';
-    if (compareType !== 'normal') {
+    if (compareType && effectiveCompareType.includes(compareType)) {
       if (compareType === 'change') {
         diffType.value = node.root.filePath;
         otherTitle.value = getOtherNodeTitle(compareTypeNode, node.root.filePath) ?? '';

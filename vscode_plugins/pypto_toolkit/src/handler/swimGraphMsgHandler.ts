@@ -424,6 +424,10 @@ export abstract class SwimGraphMsgHandler {
             return;
         }
 
+        if (!existsSync(comGraphPath)) {
+          comGraphPath = await this.bindComGraphJson(server);
+        }
+
         if (paramObj.hash === 'nohash') {
           commands.executeCommand('PyPTO.Open.OpenRenderGraphForCurrent', Uri.file(comGraphPath));
           return;

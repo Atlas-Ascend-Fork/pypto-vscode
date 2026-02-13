@@ -97,8 +97,9 @@ export const getThreadStartY = (process: any, processKey: any, threadKey: string
   return threadY;
 };
 
-export const formatTimeWithUnit = (timeInMicroseconds) => {
-  const microseconds = timeInMicroseconds;
+export const formatTimeWithUnit = (timeInNanoseconds) => {
+  const nanoseconds = timeInNanoseconds;
+  const microseconds = nanoseconds / 1000;
   const milliseconds = microseconds / 1000;
   const seconds = milliseconds / 1000;
   const minutes = seconds / 60;
@@ -109,29 +110,35 @@ export const formatTimeWithUnit = (timeInMicroseconds) => {
     return { value: seconds.toFixed(2), unit: 's' };
   } else if (milliseconds >= 1) {
     return { value: milliseconds.toFixed(2), unit: 'ms' };
-  } else {
+  } else if (microseconds >= 1) {
     return { value: microseconds.toFixed(0), unit: 'μs' };
+  } else {
+    return { value: nanoseconds.toFixed(0), unit: 'ns' };
   }
 };
 // 时间轴统一单位
-export const TimelineWithUnit = (timelineRange, timeInMicroseconds) => {
-  const microseconds = timelineRange;
+export const TimelineWithUnit = (timelineRange, timeInNanoseconds) => {
+  const nanoseconds = timelineRange;
+  const microseconds = nanoseconds / 1000;
   const milliseconds = microseconds / 1000;
   const seconds = milliseconds / 1000;
   const minutes = seconds / 60;
   let timelineValue = 0;
 
   if (minutes >= 1) {
-    timelineValue = timeInMicroseconds / 60000000;
+    timelineValue = timeInNanoseconds / 60000000000;
     return { value: timelineValue.toFixed(1), unit: 'min' };
   } else if (seconds >= 1) {
-    timelineValue = timeInMicroseconds / 1000000;
+    timelineValue = timeInNanoseconds / 1000000000;
     return { value: timelineValue.toFixed(1), unit: 's' };
   } else if (milliseconds >= 1) {
-    timelineValue = timeInMicroseconds / 1000;
+    timelineValue = timeInNanoseconds / 1000000;
     return { value: timelineValue.toFixed(1), unit: 'ms' };
+  } else if (microseconds >= 1) {
+    timelineValue = timeInNanoseconds / 1000;
+    return { value: timelineValue.toFixed(0), unit: 'μs' };
   } else {
-    return { value: timeInMicroseconds.toFixed(0), unit: 'μs' };
+    return { value: timeInNanoseconds.toFixed(0), unit: 'ns' };
   }
 };
 export const calculateGridInterval = (timePerPixel: number): number => {
@@ -144,7 +151,8 @@ export const calculateGridInterval = (timePerPixel: number): number => {
   ];
 
   // 微秒到其他时间单位的转换因子
-  const microsecond = 1;
+  const nanosecond = 1;
+  const microsecond = 1000 * nanosecond;
   const millisecond = 1000 * microsecond;
   const second = 1000 * millisecond;
   const minute = 60 * second;
@@ -153,6 +161,9 @@ export const calculateGridInterval = (timePerPixel: number): number => {
   
   // 定义基础时间单位（微秒）
   const intervals = [
+    1 * nanosecond, 2 * nanosecond, 5 * nanosecond,
+    10 * nanosecond, 20 * nanosecond, 50 * nanosecond,
+    100 * nanosecond, 200 * nanosecond, 500 * nanosecond,
     1 * microsecond, 2 * microsecond, 5 * microsecond,       // 1, 2, 5 μs
     10 * microsecond, 20 * microsecond, 50 * microsecond,    // 10, 20, 50 μs
     100 * microsecond, 200 * microsecond, 500 * microsecond, // 100, 200, 500 μs

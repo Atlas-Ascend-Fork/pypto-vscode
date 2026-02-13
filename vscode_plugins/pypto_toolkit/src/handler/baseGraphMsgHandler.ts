@@ -836,7 +836,7 @@ export abstract class BaseGraphMsgHandler {
     }
   }
 
-  protected static async generateFucTree(hash: string, gd: AbstractGraphData): Promise<any> {
+  protected static async generateFucTree(hash: string, gd: AbstractGraphData, loop: number = 0): Promise<any> {
     const subHashes = await this.getSubHash(hash, gd); // 沿用原实现
     if (!subHashes) {
       return {};
@@ -844,7 +844,12 @@ export abstract class BaseGraphMsgHandler {
     const node: any = {};
     if (!Array.isArray(subHashes)) return node;
     for (const h of subHashes) {
-      node[h] = await this.generateFucTree(h, gd);
+      if (loop > 0) {
+        node[h] = [];
+      } else {
+        node[h] = await this.generateFucTree(h, gd, loop + 1);
+      }
+
     }
     return node;
   }
@@ -876,7 +881,6 @@ export abstract class BaseGraphMsgHandler {
     if (io && server.query.calleeOpMagic) json.inouttensors = io;
     // 2. 发送初始化消息
     await this.postInitMessages(server, gd, json, false);
-
     // 3. 发图包
     await this.postRenderJson(server, json, 'returnCom');
   }

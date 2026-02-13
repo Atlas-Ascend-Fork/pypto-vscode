@@ -2,7 +2,6 @@ import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, d
 import { Dependencies, getEventColor, getNoZoomX, renderInfo2pixelData } from './utils';
 import { isEqual } from 'lodash-es';
 import { EventRender } from './eventRender';
-import BigNumber from 'bignumber.js';
 export let altClickData = {
   preData: null,
   lastData: null,
@@ -265,9 +264,9 @@ export class MeatureRender extends EventRender {
     lastX = getNoZoomX(lastX, viewState);
     const width = boxWidth * devicePixelRatio;
     const height = preHeight;
-    const start = new BigNumber(altClickData.lastData.startTime);
-    const end = new BigNumber(altClickData.preData.endTime);
-    const diffTime = start.minus(end).abs();
+    const start = altClickData.lastData.startTime;
+    const end = altClickData.preData.endTime;
+    const diffTime = Math.abs(start - end);
     const text = this.getMeasureDistance(diffTime);
     return {
       x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
@@ -290,9 +289,9 @@ export class MeatureRender extends EventRender {
     const width = boxWidth * devicePixelRatio;
     const height = preHeight;
     const centerY = preY + height / 2;
-    const start = new BigNumber(altClickData.lastData.startTime);
-    const end = new BigNumber(altClickData.preData.endTime);
-    const diffTime = start.minus(end).abs();
+    const start = altClickData.lastData.startTime;
+    const end = altClickData.preData.endTime;
+    const diffTime = Math.abs(start - end);
     const text = this.getMeasureDistance(diffTime);
     const leftX = getNoZoomX(preX + preWidth, viewState);  // 连线左端点
     const rectX = leftX + (lastX - leftX - width) / 2;

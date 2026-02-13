@@ -419,7 +419,7 @@ const formatDuration = (value, minTime = 0) => {
   if (!value) {
     return '0';
   }
-  let duration = value - minTime;
+  let duration = (value - minTime) / 1000;
   const decimalPlaces = duration.toString().split('.')[1]?.length || 0;
   const placesToKeep = Math.min(decimalPlaces, 3);
   return placesToKeep === 0 ? duration.toString() : duration.toFixed(placesToKeep);

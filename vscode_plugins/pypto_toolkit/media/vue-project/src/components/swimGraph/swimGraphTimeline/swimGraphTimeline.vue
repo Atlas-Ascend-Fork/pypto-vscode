@@ -55,7 +55,6 @@ import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '@/components/welcome/guideStepsConfig';
 import { MeatureRender } from '../swimGraphProcesses/render/meatureRender';
-import BigNumber from 'bignumber.js';
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -572,9 +571,9 @@ function calculateRect() {
   const width = boxWidth * devicePixelRatio;
   const height = fixedtimelineCanvas.value.offsetHeight;
   const rectX = leftX + ((rightX - leftX - width) / 2);
-  const end = new BigNumber(flagHoverData.lastData.time);
-  const start = new BigNumber(flagHoverData.preData.time);
-  const diffTime = end.minus(start).abs();
+  const end = flagHoverData.lastData.time;
+  const start = flagHoverData.preData.time;
+  const diffTime = Math.abs(end - start);
   const text = measureRenderer.getMeasureDistance(diffTime);
   return {
     x: rectX,
@@ -644,7 +643,7 @@ const flagMouseClick = (e) => {
     refColor.value = `hsl(${colorValue.value}, ${saturationValue.value}%, 50%)`;
     refLabel.value = '';
     const flagTime = xToTime(mouseX + layout.processLabelWidth);
-    const currentTime = Math.round((flagTime - viewState.minTime) * 1000);
+    const currentTime = Math.round(flagTime - viewState.minTime);
     formatTime(currentTime);
     const flagId = drawFlag(ctx, mouseX, 1, refColor.value, refLabel.value);
     childContextMap.threadEvent.drawEventLine(mouseX, refColor.value, '');
@@ -655,7 +654,7 @@ const flagMouseClick = (e) => {
   } else {
     currentFlag.value = flag;
     const flagTime = currentFlag.value.time;
-    const currentTime = Math.round((flagTime - viewState.minTime) * 1000);
+    const currentTime = Math.round(flagTime - viewState.minTime);
     formatTime(currentTime);
     checkFlagHover(mouseX, mouseY);
     return;

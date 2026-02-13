@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, joinProgramPath } from './control-flow';
+import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProgramPath } from './control-flow';
 import {
   openComputeGraph,
   openControlFlow,
@@ -57,8 +57,8 @@ export const serviceApis = {
     getSnippetCodeText,
     /** 打开代码片段源代码文件 */
     openControlFlowTargetFile,
-    /** 拼接program.json的path */
-    joinProgramPath,
+    /** 读取program.json的path */
+    readProgramPath,
   },
   // 工作区
   workspace: {
