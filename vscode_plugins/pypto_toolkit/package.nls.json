@@ -13,6 +13,7 @@
   "PyPTOToolkit.leftmove.description": "configuration the shortcut key for left move on the swimlane",
   "PyPTOToolkit.rightmove.description": "configuration the shortcut key for right move on the swimlane",
   "PyPTOToolkit.connectionLevel.description": "configuration the max connection level on the swimlane(-1: disabled)",
+  "PyPTOToolkit.showPerformancePanel.description": "Whether to display the performance statistics panel by default when opening the swimlane graph.",
   "pypto.selectComGraph": "Select the corresponding Compute Graph JSON file",
   "pypto.noFileSelect": "No file select.",
   "pypto.emptyNodeList": "Node linked but undefined",

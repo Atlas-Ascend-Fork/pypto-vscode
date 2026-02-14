@@ -100,6 +100,8 @@ export default {
    'swimRenderCfg':'泳道图渲染配置',
    'configButtonDisTip': 'AICPU泳道图不支持渲染配置',
    'configButtonTip':'渲染配置',
+   'showPerformancePanel': '默认显示性能统计面板',
+   'showPerformancePanelTip': '开启后，打开泳道图时会自动显示性能统计面板',
    'PerformanceStatus':'性能统计',
    'clockCycle': '时钟周期',
    'throughout': '吞吐量',

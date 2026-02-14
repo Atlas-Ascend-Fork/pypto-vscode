@@ -88,7 +88,7 @@
         height: '100%'
         }" 
         v-if="(!loadingComplete) && performanceVisible" >
-        <swim-graph-performance ref="swimGraphPerformacneComponent"/>
+        <swim-graph-performance ref="swimGraphPerformacneComponent" v-if="performanceVisible"/>
       </div>
     </div>
     <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
@@ -320,7 +320,7 @@ const isCaseSensitive = ref(false);
 const pmuTotal = ref({});
 const timeInfo = ref({});
 
-const performanceVisible = ref(true);
+const performanceVisible = ref(false);
 const performanceWidth = ref(480);
 const isWideScreen = ref(true);
 const screenWidth = ref(window.innerWidth);
@@ -341,7 +341,7 @@ watch(performanceWidth, async (newValue) => {
   });
 
 const containerStyle = computed(() => ({
-  width: `calc(100% - ${performanceWidth.value}px)`,
+  width: performanceVisible.value ? `calc(100% - ${performanceWidth.value}px)` : '100%',
 }));
 
 let isPathLockStatus = ref(false);
@@ -1921,6 +1921,9 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 
 const setPageState = (message) => {
   userConfig.value = message.config;
+  if (message.config && message.config.showPerformancePanel !== undefined) {
+    performanceVisible.value = message.config.showPerformancePanel;
+  }
   if (message.swimData && message.swimData.colorRendering) {
      userConfig.value.colorRending = message.swimData.colorRendering;
   }

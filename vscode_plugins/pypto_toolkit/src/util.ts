@@ -65,6 +65,7 @@ export class Util {
     }
     // 添加connectionLevel配置
     result['connectionLevel'] = config.get('connectionLevel');
+    result['showPerformancePanel'] = config.get('showPerformancePanel');
     return result;
   }
 

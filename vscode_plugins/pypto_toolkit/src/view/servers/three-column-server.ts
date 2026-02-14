@@ -260,6 +260,10 @@ export class ThreeColumnServer
     await SwimGraphMsgHandler.changeUserCfgConnection(this, message.paramObj);
   };
   @viewApi()
+  public changeUserCfgPerformance = async (message: any) => {
+    await SwimGraphMsgHandler.changeUserCfgPerformance(this, message.paramObj);
+  };
+  @viewApi()
   public getShortCutKeyCfg = async () => {
     return await SwimGraphMsgHandler.getShortCutKeyCfg(this);
   };

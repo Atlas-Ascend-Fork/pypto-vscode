@@ -25,6 +25,15 @@
             </div>
             <d-input-number class="connection-level-input" :class="{'locked-style': isPathLockStatus}" v-model="connectionLevel" :disabled=isPathLockStatus :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
         </div>
+        <div class="performance-panel-config">
+            <div class="cfg-head">
+                <div class="performance-panel-config-t mb6">{{ $t('showPerformancePanel') }}</div>
+                <d-tooltip :content="$t('showPerformancePanelTip')">
+                    <d-icon name="icon-helping" class="help-font"></d-icon>
+                </d-tooltip>
+            </div>
+            <d-switch v-model="showPerformancePanel" @change="onPerformanceChange"></d-switch>
+        </div>
     </div>
   </div>
 </template>
@@ -65,6 +74,13 @@ const connectionLevel = computed({
   get: () => userConfig.get('connectionLevel') ?? -1,
   set: (value) => {
     userConfig.set('connectionLevel', value);
+  }
+});
+
+const showPerformancePanel = computed({
+  get: () => userConfig.get('showPerformancePanel') ?? true,
+  set: (value) => {
+    userConfig.set('showPerformancePanel', value);
   }
 });
 
@@ -182,6 +198,14 @@ const onInputChange = (newValue) => {
     transform();
     changeUserCfgConnection(newValue);
 };
+
+const onPerformanceChange = (newValue) => {
+    if (userConfig.value) {
+        userConfig.value.showPerformancePanel = newValue;
+    }
+    userConfig.set('showPerformancePanel', newValue);
+    server.changeUserCfgPerformance({paramObj: {show: newValue}});
+};
 // 暴露方法给父组件
 defineExpose({
   connectionLevel
@@ -271,5 +295,10 @@ defineExpose({
     .active {
         pointer-events: none;
     }
+}
+
+.devui-switch--checked:hover {
+    background: var(--devui-brand) !important;
+    border-color: var(--devui-brand) !important;
 }
 </style>

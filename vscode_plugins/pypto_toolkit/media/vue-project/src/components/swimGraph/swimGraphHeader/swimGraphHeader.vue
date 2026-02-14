@@ -1107,7 +1107,6 @@ defineExpose({
 :deep() {
   .swim-search.dp-category-search-container {
     height: 28px;
-    width: 420px;
     border: 1px solid transparent;
     background: var(--devui-category-search-bg);
   }

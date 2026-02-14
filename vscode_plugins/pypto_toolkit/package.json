@@ -169,6 +169,11 @@
             "type": "number",
             "default": -1,
             "description": "%PyPTOToolkit.connectionLevel.description%"
+          },
+          "PyPTOToolkitOpen.showPerformancePanel": {
+            "type": "boolean",
+            "default": true,
+            "description": "%PyPTOToolkit.showPerformancePanel.description%"
           }
         }
       }

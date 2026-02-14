@@ -74,15 +74,16 @@
                 <div class="scheduling-gap-title-item">{{schedulingTask}}</div>
               </div>
               <div class="time-consuming-tasks-container">
-                <div v-for="(item, index) in maxTimeTask" 
-                  :key="index" 
-                  class="time-consuming-task"
-                  :style="{
-                  '--base-bg-color': getBaseColor(item),
-                   '--hover-bg-color': getLightColor(item),
-                   width: timeConsumingTaskWidth +'px'
-                  }"
-                  @click="clickTask(item)">{{item.name}}</div>
+                <d-tooltip v-for="(item, index) in maxTimeTask" :key="index" :content="item.name">
+                  <div 
+                    class="time-consuming-task"
+                    :style="{
+                    '--base-bg-color': getBaseColor(item),
+                     '--hover-bg-color': getLightColor(item),
+                     width: timeConsumingTaskWidth +'px'
+                    }"
+                    @click="clickTask(item)">{{item.name}}</div>
+                </d-tooltip>
               </div>
             </div>
           </div>
@@ -100,15 +101,16 @@
                 <div class="scheduling-gap-title-item">{{schedulingTask}}</div>
               </div>
               <div class="time-consuming-tasks-container">
-                <div v-for="(item, index) in minTimeTask" 
-                  :key="index" 
-                  class="time-consuming-task"
-                  :style="{
-                  '--base-bg-color': getBaseColor(item),
-                   '--hover-bg-color': getLightColor(item),
-                   width: timeConsumingTaskWidth +'px'
-                  }"
-                  @click="clickTask(item)">{{item.name}}</div>
+                <d-tooltip v-for="(item, index) in minTimeTask" :key="index" :content="item.name">
+                  <div 
+                    class="time-consuming-task"
+                    :style="{
+                    '--base-bg-color': getBaseColor(item),
+                     '--hover-bg-color': getLightColor(item),
+                     width: timeConsumingTaskWidth +'px'
+                    }"
+                    @click="clickTask(item)">{{item.name}}</div>
+                </d-tooltip>
               </div>
             </div>
           </div>
@@ -647,6 +649,7 @@ onMounted(() => {
   border-radius: 4px;
   overflow: hidden;
   background: var(--base-bg-color);
+  cursor: pointer;
 }
 
 .max-scheduling-gap-item-task:hover {
@@ -748,6 +751,10 @@ onMounted(() => {
   font-size: 12px;
   border-radius: 4px;
   background: var(--base-bg-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .time-consuming-task:hover {

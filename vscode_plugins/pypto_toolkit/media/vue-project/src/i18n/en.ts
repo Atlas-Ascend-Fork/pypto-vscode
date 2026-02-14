@@ -100,6 +100,8 @@ export default {
     'swimRenderCfg':'Swimlane Rendering Configuration',
     'configButtonDisTip': 'AiCPU swimlane diagrams do not support rendering configuration',
     'configButtonTip':'Swimlane Rendering Configuration',
+    'showPerformancePanel': 'Show Performance Panel by Default',
+    'showPerformancePanelTip': 'When enabled, the performance statistics panel will be automatically displayed when opening the swimlane graph',
     'PerformanceStatus':'Performance Statistics',
     'clockCycle': 'clock cycle',
     'throughout': 'throughout',

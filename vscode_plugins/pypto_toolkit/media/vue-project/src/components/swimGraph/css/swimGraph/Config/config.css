@@ -51,7 +51,7 @@
     margin-bottom: 4px;
 }
 
-.task-content {
+.task-content,.performance-panel-config {
     margin-top: 16px;
 }
 
@@ -93,4 +93,5 @@
 
 .mb6{
     margin-bottom: 6px;
+    color: var(--devui-secondary-text);
 }
