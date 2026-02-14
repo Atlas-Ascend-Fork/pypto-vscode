@@ -73,80 +73,13 @@
         </d-button>
       </d-tooltip>
       <d-tooltip :content="$t('PerformanceStatus')" position="bottom">
-        <d-button class="icon-container" @click="showDrawer" style="height: 28px; width: 28px; padding:4px">
+        <d-button class="icon-container" @click="showPerformance" style="height: 28px; width: 28px; padding:4px">
           <d-icon name="line-chart" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
       <d-button class="icon-container" @click="onToggleSwimFullscreenFunction()" style="height: 28px; width: 28px; padding:4px;" v-if="isThreeColumn">
           <i :class="[isSwimFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']"></i>
       </d-button>
-      <d-drawer v-model="reportVisible" style="width: 480px; background-color: #292929; z-index: 1053" id="pmu-report">
-        <div class="close-container">
-          <d-icon name="close" operable @click="closeDrawer"></d-icon>
-        </div>
-        <div class="report-title">{{reportTitle}}</div>
-        <div class="task-container">
-          <div class="task-item-container">
-            <div class='task-title'>Task Time (μs)</div>
-            <div class="task-data">{{taskTime}}</div>
-          </div>
-          <div class="task-item-container">
-            <div class='task-title'>{{icacheHitRateTitle}}</div>
-            <div class="task-data">{{icacheHitRate}}</div>
-          </div>
-        </div>
-        <div class="aicore-container">
-          <div class="aicore-container-column"> 
-            <div class="task-item-container">
-              <div class="task-title-container">
-                <div class='task-title'>AICore Time (μs)</div>
-                <d-tooltip :content="$t('AICoreTimeTip')">
-                  <d-icon name="helping" size="16px"></d-icon>
-                </d-tooltip>
-              </div>
-              <div class="task-data">{{aicoreTime}}</div>
-            </div>
-            <div class="task-item-container">
-              <div class='task-title-container'>
-                <div class='task-title'>{{aicoreRateTitle}}</div>
-                <d-tooltip :content="$t('AICoreRateTip')">
-                  <d-icon name="helping" size="16px"></d-icon>
-                </d-tooltip>
-              </div>
-              <div class="task-data">{{aicoreRate}}</div>
-            </div>
-          </div>
-          <div class="aicore-container-column" style="height: 46px; margin-top: 8px"> 
-            <div class="task-item-container">
-              <div class='task-title-container'>
-                <div class='task-title'>Cube Cycles</div>
-                <d-tooltip :content="$t('cubeTip')">
-                  <d-icon name="helping" size="16px"></d-icon>
-                </d-tooltip>
-              </div>
-              <div class="cube-rate-cycle">{{cubeRateCycle}}</div>
-            </div>
-            <div class="task-item-container">
-              <div class='task-title-container'>
-                <div class='task-title'>Vector Cycles</div>
-                <d-tooltip :content="$t('vecTip')">
-                  <d-icon name="helping" size="16px"></d-icon>
-                </d-tooltip>
-              </div>
-              <div class="vec-rate-cycle">{{vectorRateCycle}}</div>
-            </div>
-          </div>
-          <div class="cube-data-chart">
-            <div class="cube-time-bar" :style="{ width: cubeTimeWidth + 'px' }">
-              <div class="cube-time-num">{{cubeTimePercentage}}</div>
-            </div>
-            <div class="vector-time-bar" :style="{ width: vectorTimeWidth + 'px' }">
-              <div class="vector-time-num">{{vectorTimePercentage}}</div>
-            </div>
-          </div>
-        </div>
-        <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist"/>
-      </d-drawer>
       <d-button class="right-container-buttor hidden" @click="toggleDetailsCores()">{{ $t("data") }}</d-button>
     </div>
   </div>
@@ -157,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch, onMounted, provide, nextTick } from 'vue';
+import { ref, inject, computed, watch, onMounted, provide, nextTick, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
@@ -201,6 +134,9 @@ const {
   timelineComponent,
   layout,
   lane2line,
+  performanceVisible,
+  performanceWidth,
+  isWideScreen,
 } = inject('swimGraphState');
 
 const {
@@ -236,6 +172,10 @@ const searchPlaceholder = $t("searchKeyword");
 const selectedTagsRef = ref([]);
 const searchedKey = ref('');
 const searchEl = ref();
+const reportTabId = ref('tab1');
+const timeOptionsList = ["按子图", "按语义标签"];
+const option1 = ref("按子图");
+const timeOptions1111 = reactive(timeOptionsList);
 let dataUrl = ref(null);
 const catSelectedTags = ref([]);
 const categorySearchKey = ref('');
@@ -331,79 +271,15 @@ const calculateAicoreInfo = () => {
   aicoreRate.value = betterShow(aicoreRateValue * 100) + '%';
 };
 
-const showDrawer = () => {
-  reportVisible.value = true;
-  isCfgEditing.value = false;
-  isShortcutKeyShow.value = false;
-
-  const tRange = viewState.timeRange / 1000;
-  taskTime.value = betterShow(tRange);
-
-  if (isAicpu.value) {
-    aicoreTime.value = '/';
-    aicoreRate.value = '/';
-  } else {
-    calculateAicoreInfo();
-  }
-  
-  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
-    cubeRateCycle.value = '/';
-    vectorRateCycle.value = '/';
-    cubeTimePercentage.value = '/';
-    vectorTimePercentage.value = '/';
-    pmuExist.value = false;
-    return;
-  }
-
-  const cubeTime = Number(pmuTotal.value.cube_busy_cycles);
-  const vectorTime = Number(pmuTotal.value.vec_busy_cycles);
-
-  icacheHitRate.value = String(Math.round(pmuTotal.value.icache_hit * 100)) + '%';
-
-  const barWidth = 406;
-
-  cubeTimePercentage.value = Math.floor(cubeTime / (cubeTime + vectorTime) * 100) + '%';
-  vectorTimePercentage.value = String(100 - Math.floor(cubeTime / (cubeTime + vectorTime) * 100)) + '%';
-  cubeTimeWidth.value = barWidth * cubeTime / (cubeTime + vectorTime);
-  vectorTimeWidth.value = barWidth * vectorTime / (cubeTime + vectorTime);
-
-  vectorRateCycle.value = pmuTotal.value.vec_busy_cycles;
-  cubeRateCycle.value = pmuTotal.value.cube_busy_cycles;
-  scalarRateCycle.value = pmuTotal.value.scalar_busy_cycles;
-  mte1RateCycle.value = pmuTotal.value.mte1_busy_cycles;
-  mte2RateCycle.value = pmuTotal.value.mte2_busy_cycles;
-  mte3RateCycle.value = pmuTotal.value.mte3_busy_cycles;
-
-  vectorRatePercentage.value = Math.round(pmuTotal.value.vec_ratio * 100);
-  cubeRatePercentage.value = Math.round(pmuTotal.value.cube_ratio * 100);
-  scalarRatePercentage.value = Math.round(pmuTotal.value.scalar_ratio * 100);
-  mte1RatePercentage.value = Math.round(pmuTotal.value.mte1_ratio * 100);
-  mte2RatePercentage.value = Math.round(pmuTotal.value.mte2_ratio * 100);
-  mte3RatePercentage.value = Math.round(pmuTotal.value.mte3_ratio * 100);
-
-  vectorRateWidth.value = pmuTotal.value.vec_ratio * barWidth;
-  cubeRateWidth.value = pmuTotal.value.cube_ratio * barWidth;
-  scalarRateWidth.value = pmuTotal.value.scalar_ratio * barWidth;
-  mte1RateWidth.value = pmuTotal.value.mte1_ratio * barWidth;
-  mte2RateWidth.value = pmuTotal.value.mte2_ratio * barWidth;
-  mte3RateWidth.value = pmuTotal.value.mte3_ratio * barWidth;
-
-  pmuRowCoordLoc.value = ['0%', '18%', '36%', '54%', '72%', '88%'];
-  pmuBackLineLoc.value = ['20%', '40%', '60%', '80%'];
-  pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
-  pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
-                            'MTE2 Cycles', 'MTE3 Cycles'];
-  if (isDarkTheme.value) {
-    pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
-                            'rgba(70, 94, 184, 1)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
-  } else {
-    pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
-                            'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
-  }
-  pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
-                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
-  pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
-                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
+const showPerformance = () => {
+  performanceVisible.value = !performanceVisible.value;
+  nextTick(()=> {
+    if (performanceVisible.value) {
+      performanceWidth.value = isWideScreen.value ? 480 : 340;
+    } else {
+    performanceWidth.value = 0;
+    }
+  });
 };
 
 const exportSwimGraph = () => {
@@ -1288,5 +1164,34 @@ defineExpose({
       background-color: var(--devui-secondary-button-hover-bg);
     }
   }
+
+  .devui-select__selection {
+  width: 120px;
+  height: 28px;
+  }
 }
+
+.first-child {
+    :deep() {
+      .devui-tabs__nav--pills > li {
+        margin-left: 0px;
+      }}}
+
+.report-tabs {
+    :deep() {
+      .devui-tabs__nav--pills > li {
+        margin-left: 24px;
+      }
+      .devui-tabs__nav--pills > li:first-child {
+        margin-left: 0px !important
+      }
+      .devui-tabs__nav--tabs li.active:after, .devui-tabs__nav--pills li.active:after{
+        background: var(--devui-primary-text);
+      }
+      .devui-tabs__nav--tabs  li.active a, .devui-tabs__nav--tabs li:hover:not(.disabled) a, 
+      .devui-tabs__nav--pills li.active a, .devui-tabs__nav--pills li:hover:not(.disabled) a{
+        color: var(--devui-primary-text);
+      }
+    }
+  }
 </style>

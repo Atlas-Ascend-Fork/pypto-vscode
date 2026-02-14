@@ -425,5 +425,11 @@ export default {
             content: 'Hovering a node in any of the three column view (we’ll use the swimlane graph as an example in this guide) will automatically highlight with the corresponding elements in the other two views. And simply click the lock icon to toggle the lock state.'
           },
         }
-      }
+      },
+    'maxSchedulingGap': 'Max Gap ',
+    'schedulingTask': 'Task',
+    'schedulingSubTask': 'SubTask',
+    'SchedulingGap': 'Scheduling Gap ',
+    'TaskMinDuration': 'Min Duration ',
+    'TaskMaxDuration': 'Max Duration '
 }

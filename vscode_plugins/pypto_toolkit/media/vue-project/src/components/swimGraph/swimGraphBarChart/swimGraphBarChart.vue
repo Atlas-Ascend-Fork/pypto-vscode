@@ -1,7 +1,7 @@
 <template>
-  <div ref="chartDiv" class="occupy-rate-container">
+  <div ref="chartDiv" class="occupy-rate-container" :style="{width: occupyRateContainerWidth + 'px'}">
     <div class="occupy-rate-title">{{ chartTitle }}</div>
-    <div class="row-coord">
+    <div class="row-coord" :style="{width: rowCoordWidth + 'px'}">
       <div class="row-coord-num" 
         v-for="(coordIt, index) in rowCoordList" 
         :key="index"
@@ -9,7 +9,7 @@
         {{rowCoordList[index]}}
       </div>
     </div>
-    <div class="occupy-rate-chart-container" ref="barChartContainerDiv">
+    <div class="occupy-rate-chart-container" ref="barChartContainerDiv" :style="{width: occupyRateContainerWidth + 'px'}">
       <div class="occupy-rate-chart-col-coord-container" ref="colCoordContainerDiv">
         <div class="occupy-rate-chart-col-coord" 
           v-for="(colCoordIt, index) in colCoordList"
@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="occupy-rate-bar-container"
-        :style="{ height: pmuRowCoordList.length * 36 + 4 + 'px'}">
+        :style="{ height: pmuRowCoordList.length * 36 + 4 + 'px', width: barWidth + 'px'}">
         <div class="occupy-rate-bar-line"
           v-for="(lineLoc, index) in backLineLoc"
           :key="index"
@@ -28,7 +28,7 @@
         <div class="occupy-rate-backbar"
           v-for="(dataLeft, index) in chartDataLeft"
           :key="index"
-          :style="{ top: 8 + 36 * index + 'px'}">
+          :style="{ top: 8 + 36 * index + 'px', width: barWidth + 'px'}">
           <div class="occupy-rate-bar" 
             :style="{ width: barWidthList[index] + 'px', background: pmuBarColorList[index]}"></div>
           <div class="occupy-rate-cycle">{{ dataLeft }}</div>
@@ -45,6 +45,10 @@ import { useI18n } from 'vue-i18n';
 
 const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme} = inject('swimGraphPmuBarChartInfo');
 
+const {
+  isWideScreen,
+} = inject('swimGraphState');
+
 const chartDiv = ref(null);
 const rowCoordList = ref([]);
 const rowCoordLoc = ref([]);
@@ -56,12 +60,21 @@ const barColorList = ref([]);
 const backLineLoc = ref([]);
 const barWidthList = ref([]);
 
+const barWidth = ref(340);
+const occupyRateContainerWidth = ref(440);
+const rowCoordWidth = ref(350);
+
+barWidth.value = isWideScreen.value ? 340 : 200;
+occupyRateContainerWidth.value = isWideScreen.value ? 440 : 300;
+rowCoordWidth.value = isWideScreen.value ? 350 : 210;
+
 let chartDivWidth = 470;
 if (chartDiv.value) {
   chartDivWidth = chartDiv.value.offsetWidth;
 }
 
-const barChartContainerDivWidth = 340;
+let barChartContainerDivWidth = 340;
+barChartContainerDivWidth = isWideScreen.value ? 340 : 200;
 
 rowCoordList.value = pmuRowCoordList.value;
 rowCoordLoc.value = pmuRowCoordLoc.value;

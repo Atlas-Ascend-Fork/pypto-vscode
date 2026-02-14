@@ -425,5 +425,11 @@ export default {
             content: '在三栏视图的任一视图（本引导以泳道图为例）悬浮节点即可与其他两个视图联动。切换锁图标即可切换锁定状态。'
           },
         }
-      }
+      },
+    'maxSchedulingGap': '最大调度间隙 ',
+    'schedulingTask': '任务',
+    'schedulingSubTask': '下级任务',
+    'SchedulingGap': '调度间隙 ',
+    'TaskMinDuration': '任务最长耗时 ',
+    'TaskMaxDuration': '任务最短耗时 '
 }

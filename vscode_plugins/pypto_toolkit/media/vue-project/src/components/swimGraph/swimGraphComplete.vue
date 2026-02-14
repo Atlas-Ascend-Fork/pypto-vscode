@@ -6,7 +6,9 @@
       </div>
       <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
-    <div class="container">
+    <div style="display: flex; height:100%;">
+    <div class="container"   
+      :style="containerStyle">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
         <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn}">
@@ -80,6 +82,15 @@
         <swim-graph-detail ref="detailComponent" />
       </div>
     </div>
+      <div 
+        :style="{
+        width: performanceWidth.value + 'px',
+        height: '100%'
+        }" 
+        v-if="(!loadingComplete) && performanceVisible" >
+        <swim-graph-performance ref="swimGraphPerformacneComponent"/>
+      </div>
+    </div>
     <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
     <div class="linetooltip" ref="lineTooltip" :style="lineTooltipStyle"></div>
   </div>
@@ -95,6 +106,7 @@ import SwimGraphDetail from './swimGraphDetail/swimGraphDetail.vue';
 import SwimGraphMeasureDetail from './swimGrapMeasurehDetail/swimGraphMeasureDetail.vue';
 import SwimGraphConfig from './swimGraphConfig/swimGraphConfig.vue';
 import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/swimGraphShortCutKeyDescripiton.vue';
+import swimGraphPerformance from './swimGraphPerformance/swimGraphPerformance.vue';
 import Navbar from '@/components/navbar/navbar.vue';
 import { getQuery } from '@/core/query';
 import { getTextWidth } from '../../utils';
@@ -126,6 +138,8 @@ import { pushState, pullState } from '../../core/state';
 import { swimConfig } from '../welcome/guideStepsConfig';
 
 const { server } = useViewServer();
+
+const swimGraphPerformacneComponent = ref(null);
 
 const props = defineProps({
   isThreeColumn: {
@@ -170,6 +184,7 @@ const selectedEvent = ref(null);
 const highlightedPaths = reactive(new Set());
 const processExpanded = reactive(new Map());
 const loading = ref(false);
+const loadingComplete = ref(true);
 const loadingText = ref($t('loadTraceData'));
 const warningText = ref('');
 const detailsPanelExpanded = ref(false);
@@ -303,6 +318,30 @@ const isCaseSensitive = ref(false);
 
 const pmuTotal = ref({});
 const timeInfo = ref({});
+
+const performanceVisible = ref(true);
+const performanceWidth = ref(480);
+const isWideScreen = ref(true);
+const screenWidth = ref(window.innerWidth);
+
+if (screenWidth.value < 1500) {
+  isWideScreen.value = false;
+}
+
+if (isWideScreen.value) {
+  performanceWidth.value = 480;
+} else {
+  performanceWidth.value = 340;
+}
+
+watch(performanceWidth, async (newValue) => {
+    await nextTick();
+    doResize();
+  });
+
+const containerStyle = computed(() => ({
+  width: `calc(100% - ${performanceWidth.value}px)`,
+}));
 
 let isPathLockStatus = ref(false);
 
@@ -443,9 +482,11 @@ const loadTraceData = (data) => {
   try {
     processTraceData(data);
     loading.value = false;
+    loadingComplete.value = false;
   } catch (error) {
     console.error($t('loadTraceDataError'), error);
     loading.value = true;
+    loadingComplete.value = true;
   }
 };
 
@@ -1987,7 +2028,7 @@ provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, s
 provide('swimGraphCfg', { userConfig, textOption, modeOption });
 
 // provide pmu info
-provide('swimGraphPmuTotal', { pmuTotal });
+provide('swimGraphPmuTotal', { pmuTotal});
 
 // 提供状态给子组件
 provide('swimGraphState', {
@@ -2040,6 +2081,9 @@ provide('swimGraphState', {
   isSwimFullscreen,
   isPathLockStatus,
   isAicpu,
+  performanceVisible,
+  performanceWidth,
+  isWideScreen,
 });
 
 // 提供方法给子组件
