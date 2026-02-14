@@ -105,6 +105,7 @@ export default {
    'throughout': '吞吐量',
    'cacheHit': '缓存命中率',
    'task': '任务',
+   'utilization':'利用率',
    'noPmu': '无PMU数据',
    'hitRate': '命中率',
    'args':'Task参数',

@@ -15,8 +15,8 @@
         :style="{'--thread-fill-width': threadFillWidth(thread.threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName, selectedOption)) + '%', 
           'display':cycleDisplay}">
         <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%', 'background': getBackground(thread.threadName, selectedOption)}"></div>
-        <div class="threads-text"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
-        <div class="average-line" :style="{ left: averageValue + '%'}"></div>
+        <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
+        <div class="average-line" :style="{ left: averageValue + '%'}" v-if = "selectedOption !== 'utilization'"></div>
       </div>
     </div>
   </div>
@@ -32,6 +32,7 @@ const {
   lane2line,
   processes,
   isAicpu,
+  viewState,
 } = inject('swimGraphState');
 
 const {
@@ -104,11 +105,35 @@ const calculateThreadTask = (allProcesses, proKey) => {
   return threadTaskMap;
 };
 
+const calculateThreadUtilization = (allProcesses, proKey) => {
+  const threadUtilizationMap = new Map();
+  const { threads = new Map() } = allProcesses.get(proKey) || {};
+  let utilization = 0;
+  let eventTime = 0;
+  for(const [threadKey, thread] of threads) {
+    if (isAicpu.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+      for (const event of thread.events) {
+        eventTime = eventTime + (event.endTime - event.startTime);
+      }
+      utilization = viewState.timeRange !== 0 ? (eventTime / viewState.timeRange) : 1;
+      utilization = (utilization * 100).toFixed(0);
+      if (utilization === '0') {
+        utilization = '1';
+      }
+      threadUtilizationMap.set(thread.threadName, utilization);
+      eventTime = 0;
+    }
+  }
+  return threadUtilizationMap;
+};
+
 const [threadCyclesMap, threadCacheHitMap] = calculateThreadCycles(processes, props.processKey);
 const threadTaskMap = calculateThreadTask(processes, props.processKey);
+const threadUtilizationMap = calculateThreadUtilization(processes, props.processKey);
 
 const getBackground = (threadId, option) => {
   let values;
+  let utilization;
   if (option === 'clockCycle' && threadCyclesMap) {
     values = Array.from(threadCyclesMap.values()).map(value => BigInt(value));
     if (values.every((value, _, arr) => value === arr[0])) {
@@ -117,6 +142,13 @@ const getBackground = (threadId, option) => {
   } else if (option === 'task' && threadTaskMap) {
     values = Array.from(threadTaskMap.values());
     if (values.every((value, _, arr) => value === arr[0])) {
+      return 'var(--devui-timebar-bg)';
+    }
+  } else if (option === 'utilization' && threadUtilizationMap) {
+    utilization = threadUtilizationMap.get(threadId);
+    if (utilization < 50 || utilization === 50) {
+      return 'var(--devui-timefull-bg)';
+    } else {
       return 'var(--devui-timebar-bg)';
     }
   } else if (option === 'cacheHit' && threadCacheHitMap) {
@@ -133,9 +165,11 @@ const getBackground = (threadId, option) => {
 const threadTotaltime = (threadId, option) => {
   if (option === 'clockCycle' && threadCyclesMap) {
     return threadCyclesMap.get(threadId);
-  }  else if (option === 'task' && threadTaskMap) {
+  } else if (option === 'task' && threadTaskMap) {
     return threadTaskMap.get(threadId);
-  }  else if (option === 'cacheHit' && threadCacheHitMap) {
+  } else if (option === 'utilization' && threadUtilizationMap) {
+    return threadUtilizationMap.get(threadId) + '%';
+  } else if (option === 'cacheHit' && threadCacheHitMap) {
     const hitRate = threadCacheHitMap.get(threadId);
     if (hitRate) {
       return parseFloat(hitRate).toFixed(2);
@@ -163,6 +197,8 @@ const threadFillWidth = (threadId, option) => {
     const maxTaskNum = values.length > 0 ? Math.max(...values) : 0;
     averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxTaskNum) * 100;
     return (threadTaskMap.get(threadId) / maxTaskNum) * 100;
+  } else if (option === 'utilization' && threadUtilizationMap) {
+    return (threadUtilizationMap.get(threadId));
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     const currenThreadHit = Number(threadCacheHitMap.get(threadId));
     let maxThreadHit = 0;

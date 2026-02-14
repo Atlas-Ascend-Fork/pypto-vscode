@@ -209,6 +209,7 @@ const selectOptions = [
   { name: $t('clockCycle'), value: 'clockCycle', disabled: false },
   { name: $t('cacheHit'), value: 'cacheHit', disabled: false },
   { name: $t('task'), value: 'task', disabled: false },
+  { name: $t('utilization'), value: 'utilization', disabled: false },
 ];
 const options = reactive(selectOptions);
 const isSwimGraphActive = ref(false);

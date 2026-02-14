@@ -105,6 +105,7 @@ export default {
     'throughout': 'throughout',
     'cacheHit': 'cache hit ratio',
     'task': 'task',
+    'utilization':'utilization',
     'noPmu': 'No PMU Data',
     'hitRate': 'Hit Rate',
     'args':'Args',
