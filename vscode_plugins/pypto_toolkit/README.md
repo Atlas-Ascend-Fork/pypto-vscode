@@ -193,7 +193,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 ## 反馈渠道
 
-  如有任何问题和建议，欢迎提ISSUE：[https://gitcode.com/sunmaxwell/pypto-toolkit/issues](https://gitcode.com/sunmaxwell/pypto-toolkit/issues)
+  如有任何问题和建议，欢迎提ISSUE：[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
 
 ## 免责声明
 

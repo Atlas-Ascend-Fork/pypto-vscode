@@ -193,7 +193,7 @@ The three-panel linked view simultaneously displays code, a computational graph,
 
 ## Feedback Channel
 
-  If you have any questions or suggestions, please submit an issue:[https://gitcode.com/sunmaxwell/pypto-toolkit/issues](https://gitcode.com/sunmaxwell/pypto-toolkit/issues)
+  If you have any questions or suggestions, please submit an issue:[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
 
 ## Disclaimer
 
