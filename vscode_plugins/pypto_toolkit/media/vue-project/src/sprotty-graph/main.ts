@@ -1,5 +1,5 @@
 import 'reflect-metadata'; // Sprotty's DI relies on this
-import { LocalModelSource, SModelRootImpl, TYPES } from 'sprotty';
+import { LocalModelSource, SModelRootImpl, TYPES, SCompartmentImpl } from 'sprotty';
 import { createDiContainer } from './di.config';
 import { createSvg } from './svgExport';
 
@@ -260,6 +260,27 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     server.openSearchMode({data});
   }
 
+  const openSubGraphInThreeColumn = (params: Record<string, any>) => {
+    const funcName = comGraphStore.data.calleeMap[params.selectedNode.calleehash];
+    const newPath = [
+      ...(typeof comGraphStore.data.curPath == 'string' ? JSON.parse(comGraphStore.data.curPath) : comGraphStore.data.curPath),
+    ];
+    newPath.push(params.selectedNode.calleehash);
+    const curPathList = JSON.stringify(newPath);
+    const first = params.selectedNode.children?.[0] as unknown as SCompartmentImpl;
+    const calleeOpSubgraphId = first.subgraphId;
+    server.getSubgraph({
+      paramObj: {
+        calleehash: params.selectedNode.calleehash,
+        subFuncmagicname: funcName.func_magicname,
+        curPath: curPathList,
+        calleeOpMagic: params.selectedNode.magic,
+        calleeOpSubgraphId: calleeOpSubgraphId,
+      },
+      query: { isSearch: false, nodeMagic: null }
+    });
+  };
+
   (window as any).ascEventBus.on(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
 
   (window as any).ascEventBus.on('minimap_center', minimapCenterListener);
@@ -273,6 +294,8 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
   (window as any).ascEventBus.on(`jump2SiblingNode`, jump2SiblingNodeListener);
 
   (window as any).ascEventBus.on('SearchModeOpen', SearchModeOpenListener);
+
+  (window as any).ascEventBus.on('OpenSubGraphInThreeColumn', openSubGraphInThreeColumn);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph: boolean) => {
@@ -508,7 +531,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     const node = modelSource.currentRoot.children?.find((t: { id: string; }) => {
         return t.id === 'node-bottom-edge';
     })
-    if (node.children?.length) {
+    if (node?.children?.length) {
       await modelSource.removeElements([{elementId:'show-node-rect', parentId: node.id}]);
     }
   }
