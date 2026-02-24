@@ -70,6 +70,7 @@ const {
   childContextMap,
   isPathLockStatus,
   isAicpu,
+  isMaxSchedule,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -108,6 +109,7 @@ provide('swimGraphState', {
   childContextMap,
   isPathLockStatus,
   isAicpu,
+  isMaxSchedule,
 });
 
 const {
@@ -130,6 +132,7 @@ const {
   getDisplayName,
   changeScale,
   resetState,
+  resetMaxScheduleState,
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -152,6 +155,7 @@ provide('swimGraphMethods', {
   getDisplayName,
   changeScale,
   resetState,
+  resetMaxScheduleState,
 });
 
 const processesContainer = ref(null);

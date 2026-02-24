@@ -137,6 +137,7 @@ const {
   performanceVisible,
   performanceWidth,
   isWideScreen,
+  isMaxSchedule,
 } = inject('swimGraphState');
 
 const {
@@ -154,7 +155,8 @@ const {
   resizeMeasure,
   selectEvent,
   getDisplayName,
-  onToggleSwimFullscreenFunction
+  onToggleSwimFullscreenFunction,
+  resetMaxScheduleState
 } = inject('swimGraphMethods');
 
 const {
@@ -631,6 +633,9 @@ const performSearch = (filterFn) => {
       }
     }
   }
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+  }
   if (!searchResult.value.length) {
     clearSearchData();
   }
@@ -877,6 +882,9 @@ const measureModel = () => {
   } else {
     mPath.value = `${window.staticPath}/static-assets/measure.svg`;
   }
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+  }
   measureDragStartX.value = 0;
   measureDragEndX.value = 0;
   resizeMeasure();
@@ -1013,7 +1021,9 @@ defineExpose({
   leftmove,
   rightmove,
   clearHeadState,
-  closeDrawer
+  closeDrawer,
+  resetsearchState,
+  scrollToEvent
 })
 </script>
 

@@ -217,7 +217,7 @@
 import { ref, computed, inject, watch, nextTick, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
-import { formatTimeWithUnit, COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { formatTimeWithUnit, COLOR_CFG, DEP_MODE, setupHighDPICanvas } from '../swimGraphUtils';
 import { getSubGraphId } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
 
@@ -242,10 +242,10 @@ const {
   highlightedPaths,
   isPathLockStatus,
   isAicpu,
+  layout
 } = inject('swimGraphState');
 
 const {
-  showDependencies,
   toggleDetailsPanel,
   renderDependencyLines,
   postMessage,
@@ -516,10 +516,204 @@ const resetReleventState = () => {
   changeUserCfgConnection(-1);
 };
 
+const showDependencies = (event, type) => {
+  const displayName = event.isCounter ? event.displayName : event.name || 'Event';
+  const eventPredecessors = event.dependencies.predecessors.map((id) => id2event[id]).filter((e) => e);
+
+  const eventSuccessors = event.dependencies.successors.map((id) => id2event[id]).filter((e) => e);
+  const canvas = document.getElementById('dependency-canvas');
+  const canvasContainer = document.getElementById('canvas-container');
+  if (!canvas)  {
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+  // 去掉margin-left
+  const canvasWidth = canvasContainer.clientWidth - canvas.offsetLeft - layout.marginRight;
+  const canvasHeight = Math.max(186, 20 * (Math.max(eventPredecessors.length, eventSuccessors.length) + 1));
+  let actualWidth = canvasWidth / 5;
+  setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
+  ctx.clearRect(0, 0, viewState.canvasWidth, canvas.height);
+  const nodesInfo = [];
+  const currentNode = {
+    x: (canvasWidth / 2) - (canvasWidth / 10),
+    y: 10,
+    width: actualWidth,
+    height: 16,
+  };
+  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
+  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  let fillColor = eventColor ? eventColor.light : 'rgba(10, 89, 247, 0.3)';
+  ctx.fillStyle = fillColor;
+  ctx.roundRect(currentNode.x, currentNode.y, currentNode.width, currentNode.height, 4);
+  ctx.fill();
+  ctx.fillStyle = colorCfg.eventFontHighLight;
+  ctx.font = '12px Arial';
+  let [displayText, leftspace] = overflowText(actualWidth, displayName);
+  ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
+  nodesInfo.push({
+    node: currentNode,
+    type: 'current',
+    displayName: displayText,
+    fullDisplayName: displayName,
+  });
+  const depFillColor = colorCfg.lightlyCompareBkgColor;
+  if (type === 'forward' || type === 'both') {
+    eventPredecessors.forEach((pre, index) => {
+      const preNode = {
+        x: 0,
+        y: 10 + (index * 20),
+        width: actualWidth,
+        height: 16,
+      };
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : pre.name || 'Event');
+      ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
+      nodesInfo.push({
+        node: preNode,
+        type: 'predecessor',
+        displayName: displayText,
+        fullDisplayName: pre.isCounter ? pre.displayName : pre.name || 'Event',
+      });
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x, currentNode.y + (currentNode.height / 2));
+      ctx.bezierCurveTo(
+        currentNode.x + 5,
+        currentNode.y + (currentNode.height / 2) + 5,
+        preNode.x + preNode.width,
+        preNode.y + (preNode.height / 2) + 5,
+        preNode.x + preNode.width,
+        preNode.y + (preNode.height / 2),
+      );
+      let gradient = ctx.createLinearGradient(
+        currentNode.x,
+        currentNode.y + (currentNode.height / 2),
+        preNode.x + preNode.width,
+        preNode.y + (preNode.height / 2),
+      );
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+  }
+  if (type === 'backward' || type === 'both') {
+    eventSuccessors.forEach((dep, index) => {
+      const depNode = {
+        x: canvasWidth * 0.8,
+        y: 10 + (index * 20),
+        width: actualWidth,
+        height: 16,
+      };
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : dep.name || 'Event');
+      ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
+      nodesInfo.push({
+        node: depNode,
+        type: 'successor',
+        displayName: displayText,
+        fullDisplayName: dep.isCounter ? dep.displayName : dep.name || 'Event',
+      });
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + (currentNode.height / 2));
+      ctx.bezierCurveTo(
+        currentNode.x + currentNode.width,
+        currentNode.y + (currentNode.height / 2) + 5,
+        depNode.x,
+        depNode.y + (depNode.height / 2) + 5,
+        depNode.x,
+        depNode.y + (depNode.height / 2),
+      );
+      let gradient = ctx.createLinearGradient(
+        currentNode.x + currentNode.width,
+        currentNode.y + (currentNode.height / 2),
+        depNode.x,
+        depNode.y + (depNode.height / 2),
+      );
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+  }
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    let hoveredNode = null;
+    for (let i = nodesInfo.length - 1; i >= 0; i--) {
+      const nodeInfo = nodesInfo[i];
+      const { node } = nodeInfo;
+      const isXInRange = mouseX >= node.x && mouseX <= node.x + node.width;
+      const isYInRange = mouseY >= node.y && mouseY <= node.y + node.height;
+      if (isXInRange && isYInRange) {
+        hoveredNode = nodeInfo;
+        break;
+      }
+    }
+    if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
+      showTooltip(e, hoveredNode.fullDisplayName);
+      canvas.style.cursor = 'pointer';
+    } else {
+      hideTooltip();
+      canvas.style.cursor = 'default';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => {
+    hideTooltip();
+  });
+  const showTooltip = (e, text) => {
+    let tooltip = document.getElementById('dependency-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'dependency-tooltip';
+      tooltip.style.cssText = `
+      position: absolute;
+      background: var(--devui-tooltip-bg);
+      color: var(--devui-primary-text);
+      padding: 4px 8px;
+      boder-radius: 4px;
+      font-size: 12px;
+      z-index: 1000;
+      pointer-events: none;`;
+      document.body.appendChild(tooltip);
+    }
+    tooltip.textContent = text;
+    const { canvasCssWidth } = viewState;
+    if (e.clientX + 100 > canvasCssWidth) {
+      tooltip.style.left = e.clientX - 100 + 'px';
+    } else {
+      tooltip.style.left = e.clientX + 10 + 'px';
+    }
+    tooltip.style.top = e.clientY + 10 + 'px';
+    tooltip.style.display = 'block';
+  };
+  const hideTooltip = () => {
+    const tooltip = document.getElementById('dependency-tooltip');
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
+  };
+};
+
 // 暴露方法给父组件
 defineExpose({
   connectionLevel,
   resetReleventState,
+  showDependencies
 });
 </script>
 

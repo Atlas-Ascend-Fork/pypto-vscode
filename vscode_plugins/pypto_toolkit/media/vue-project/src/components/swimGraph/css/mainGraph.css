@@ -209,6 +209,11 @@
 .measure-drag-area {
   position: absolute;
   z-index: 7;
+  height: 100%;
+  left: var(--maskstart);
+  width: calc(var(--maskend) - var(--maskstart));
+  border-left: 1px solid var(--devui-modal-line);
+  border-right: 1px solid var(--devui-modal-line);
 }
 .simple-file-containner {
   display: flex;

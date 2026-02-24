@@ -67,14 +67,14 @@
           <!-- 度量蒙板 -->
           <div
             class="measure-mask"
-            v-if="isMeasureModel"
+            v-if="isMeasureModel || isMaxSchedule"
             @mousedown="measureMouseDown($event)"
             @mousemove="measureMouseMove($event)"
             @mouseup="measureMouseUp()"
             @mouseleave="measureMouseLeave($event)"
             @wheel="measureHandleWheel($event)"
           >
-            <div class="measure-drag-area" :style="dragAreaStyle()"></div>
+            <div class="measure-drag-area"></div>
           </div>
         </div>
         <swim-graph-measure-detail ref="measureDetailComponent" />
@@ -248,6 +248,9 @@ let sliderValue = ref(0);
 const sliderMax = ref(100);
 const sliderMaxCount = ref(100);
 const initialScale = ref(1);
+const isMaxSchedule = ref(false);
+let startEventId;
+let endEventId;
 const viewState = reactive({
   offsetX: 0,
   offsetY: 0,
@@ -589,12 +592,20 @@ const renderDependencyLines = (processKey) => {
   const mode = viewState.depMode;
   if (processKey) {
     const process = processes.get(processKey);
-    childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+    if (isMaxSchedule.value) {
+      childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
+    } else {
+      childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+    }
     return;
   }
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
-      childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+      if (isMaxSchedule.value) {
+        childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
+      } else {
+        childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+      }
     }
   }
 };
@@ -627,7 +638,7 @@ const render = () => {
   renderEvent();
   renderDependencyLines();
   if (detailsPanelExpanded.value) {
-    showDependencies(selectedEvent.value, 'both');
+    detailComponent?.value.showDependencies(selectedEvent.value, 'both');
   }
   timelineComponent.value.flagRender();
   if (props.isThreeColumn) {
@@ -922,6 +933,41 @@ const selectEvent = (event, processKey) => {
   childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(processKey), processKey);
 };
 
+const resetMaxScheduleState = () => {
+  isMaxSchedule.value = false;
+  selectedEvent.value = null;
+  transform();
+};
+
+const showMaxScheduleEvent = (startEvent, endEvent) => {
+  if (!startEvent || !endEvent) {
+    return;
+  }
+  if (isSearchActive.value) {
+    swimgraphHeaderComponent?.value.resetsearchState();
+  }
+  isMaxSchedule.value = true;
+  startEventId = startEvent.id;
+  endEventId = endEvent.id;
+  selectedEvent.value = startEvent;
+  const processKey = String(startEvent.pid);
+  const process = processes.get(processKey);
+  detailsPanelExpanded.value = false;
+  mulDetailsExpanded.value = false;
+
+  if (process) { 
+    childContextMap.threadEvent.changeNodeColor(processKey, true);
+    childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
+    measureDragStartX.value =  timeToX(startEvent.endTime);
+    measureDragEndY.value = timeToX(endEvent.startTime);
+    measureDragStartTime.value = xToTime(measureDragStartX.value);
+    measureDragEndTime.value = xToTime(measureDragEndY.value);
+    measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+    document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
+    drawMeasureTime();
+  }
+};
+
 const calculateHighlightedPaths = (event) => {
   if (!Object.keys(id2event).length) {
     processesToMap(processes, id2event);
@@ -1082,197 +1128,6 @@ const searchEventsInThread = (thread, x, y) => {
   };
 };
 
-const showDependencies = (event, type) => {
-  const displayName = event.isCounter ? event.displayName : event.name || 'Event';
-  const predecessors = event.dependencies.predecessors.map((id) => id2event[id]).filter((e) => e);
-
-  const successors = event.dependencies.successors.map((id) => id2event[id]).filter((e) => e);
-  const canvas = document.getElementById('dependency-canvas');
-  const canvasContainer = document.getElementById('canvas-container');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  // 去掉margin-left
-  const canvasWidth = canvasContainer.clientWidth - canvas.offsetLeft - layout.marginRight;
-  const canvasHeight = Math.max(186, 20 * (Math.max(predecessors.length, successors.length) + 1));
-  let actualWidth = canvasWidth / 5;
-  setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
-  ctx.clearRect(0, 0, viewState.canvasWidth, canvas.height);
-  const nodesInfo = [];
-  const currentNode = {
-    x: canvasWidth / 2 - canvasWidth / 10,
-    y: 10,
-    width: actualWidth,
-    height: 16,
-  };
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
-  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-  let fillColor = eventColor ? eventColor.light : 'rgba(10, 89, 247, 0.3)';
-  ctx.fillStyle = fillColor;
-  ctx.roundRect(currentNode.x, currentNode.y, currentNode.width, currentNode.height, 4);
-  ctx.fill();
-  ctx.fillStyle = colorCfg.eventFontHighLight;
-  ctx.font = '12px Arial';
-  let [displayText, leftspace] = overflowText(actualWidth, displayName);
-  ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
-  nodesInfo.push({
-    node: currentNode,
-    type: 'current',
-    displayName: displayText,
-    fullDisplayName: displayName,
-  });
-  const depFillColor = colorCfg.lightlyCompareBkgColor;
-  if (type === 'forward' || type === 'both') {
-    predecessors.forEach((pre, index) => {
-      const preNode = {
-        x: 0,
-        y: 10 + index * 20,
-        width: actualWidth,
-        height: 16,
-      };
-      ctx.beginPath();
-      ctx.fillStyle = depFillColor;
-      ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
-      ctx.fill();
-      ctx.closePath();
-      ctx.fillStyle = colorCfg.eventFontNoColor;
-      ctx.font = '12px Arial';
-      let [displayText, leftspace] = overflowText(actualWidth, pre.isCounter ? pre.displayName : pre.name || 'Event');
-      ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
-      nodesInfo.push({
-        node: preNode,
-        type: 'predecessor',
-        displayName: displayText,
-        fullDisplayName: pre.isCounter ? pre.displayName : pre.name || 'Event',
-      });
-      ctx.beginPath();
-      ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
-      ctx.bezierCurveTo(
-        currentNode.x + 5,
-        currentNode.y + currentNode.height / 2 + 5,
-        preNode.x + preNode.width,
-        preNode.y + preNode.height / 2 + 5,
-        preNode.x + preNode.width,
-        preNode.y + preNode.height / 2,
-      );
-      var gradient = ctx.createLinearGradient(
-        currentNode.x,
-        currentNode.y + currentNode.height / 2,
-        preNode.x + preNode.width,
-        preNode.y + preNode.height / 2,
-      );
-      gradient.addColorStop(0, fillColor);
-      gradient.addColorStop(1, depFillColor);
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    });
-  }
-  if (type === 'backward' || type === 'both') {
-    successors.forEach((dep, index) => {
-      const depNode = {
-        x: canvasWidth * 0.8,
-        y: 10 + index * 20,
-        width: actualWidth,
-        height: 16,
-      };
-      ctx.beginPath();
-      ctx.fillStyle = depFillColor;
-      ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
-      ctx.fill();
-      ctx.closePath();
-      ctx.fillStyle = colorCfg.eventFontNoColor;
-      ctx.font = '12px Arial';
-      let [displayText, leftspace] = overflowText(actualWidth, dep.isCounter ? dep.displayName : dep.name || 'Event');
-      ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
-      nodesInfo.push({
-        node: depNode,
-        type: 'successor',
-        displayName: displayText,
-        fullDisplayName: dep.isCounter ? dep.displayName : dep.name || 'Event',
-      });
-      ctx.beginPath();
-      ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
-      ctx.bezierCurveTo(
-        currentNode.x + currentNode.width,
-        currentNode.y + currentNode.height / 2 + 5,
-        depNode.x,
-        depNode.y + depNode.height / 2 + 5,
-        depNode.x,
-        depNode.y + depNode.height / 2,
-      );
-      var gradient = ctx.createLinearGradient(
-        currentNode.x + currentNode.width,
-        currentNode.y + currentNode.height / 2,
-        depNode.x,
-        depNode.y + depNode.height / 2,
-      );
-      gradient.addColorStop(0, fillColor);
-      gradient.addColorStop(1, depFillColor);
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    });
-  }
-  canvas.addEventListener('mousemove', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    let hoveredNode = null;
-    for (let i = nodesInfo.length - 1; i >= 0; i--) {
-      const nodeInfo = nodesInfo[i];
-      const { node } = nodeInfo;
-      const isXInRange = mouseX >= node.x && mouseX <= node.x + node.width;
-      const isYInRange = mouseY >= node.y && mouseY <= node.y + node.height;
-      if (isXInRange && isYInRange) {
-        hoveredNode = nodeInfo;
-        break;
-      }
-    }
-    if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
-      showTooltip(event, hoveredNode.fullDisplayName);
-      canvas.style.cursor = 'pointer';
-    } else {
-      hideTooltip();
-      canvas.style.cursor = 'default';
-    }
-  });
-  canvas.addEventListener('mouseleave', () => {
-    hideTooltip();
-  });
-  const showTooltip = (event, text) => {
-    let tooltip = document.getElementById('dependency-tooltip');
-    if (!tooltip) {
-      tooltip = document.createElement('div');
-      tooltip.id = 'dependency-tooltip';
-      tooltip.style.cssText = `
-      position: absolute;
-      background: var(--devui-tooltip-bg);
-      color: var(--devui-primary-text);
-      padding: 4px 8px;
-      boder-radius: 4px;
-      font-size: 12px;
-      z-index: 1000;
-      pointer-events: none;`;
-      document.body.appendChild(tooltip);
-    }
-    tooltip.textContent = text;
-    const { canvasCssWidth } = viewState;
-    if (event.clientX + 100 > canvasCssWidth) {
-      tooltip.style.left = event.clientX - 100 + 'px';
-    } else {
-      tooltip.style.left = event.clientX + 10 + 'px';
-    }
-    tooltip.style.top = event.clientY + 10 + 'px';
-    tooltip.style.display = 'block';
-  };
-  const hideTooltip = () => {
-    const tooltip = document.getElementById('dependency-tooltip');
-    if (tooltip) {
-      tooltip.style.display = 'none';
-    }
-  };
-};
-
 const getDisplayName = (event) => {
   let { name: displayName } = event;
   if (textOption.value?.length === 1 && textOption.value[0] === 'taskName') {
@@ -1423,6 +1278,11 @@ const measureMouseDown = (e) => {
   renderFixedTimeline();
   renderTimeline();
 
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+    return;
+  }
+
   if (!isMeasureModel.value) {
     return;
   }
@@ -1455,7 +1315,7 @@ const measureHandleWheel = (e) => {
 };
 
 const drawMeasureTime = () => {
-  if (!isMeasureModel.value) {
+  if (!isMeasureModel.value && !isMaxSchedule.value) {
     return;
   }
   let drawMeasureStartX = timeToX(measureDragStartTime.value);
@@ -2088,6 +1948,7 @@ provide('swimGraphState', {
   performanceVisible,
   performanceWidth,
   isWideScreen,
+  isMaxSchedule,
 });
 
 // 提供方法给子组件
@@ -2097,7 +1958,6 @@ provide('swimGraphMethods', {
   renderFixedTimeline,
   renderTimeline,
   calculateGridInterval,
-  showDependencies,
   toggleDetailsPanel,
   toggleDetailsCores,
   toggleProcess,
@@ -2116,6 +1976,14 @@ provide('swimGraphMethods', {
   resetState,
   overflowText,
   guideRestore,
+  showMaxScheduleEvent,
+  resetMaxScheduleState,
+  showDependencies: (e, mode) => {
+    return detailComponent?.value.showDependencies(e, mode);
+  },
+  scrollToEvent: (e) => {
+    return swimgraphHeaderComponent?.value.scrollToEvent(e);
+  },
   getTimelineCanvas: () => {
     return timelineComponent?.value.timelineCanvas;
   },

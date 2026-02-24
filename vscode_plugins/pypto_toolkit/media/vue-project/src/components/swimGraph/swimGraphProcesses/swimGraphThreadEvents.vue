@@ -115,7 +115,8 @@ const {
   isThreeColumn,
   searchedEvent,
   colorRending,
-  isPathLockStatus
+  isPathLockStatus,
+  isMaxSchedule
 } = swimGraphState;
 
 const {
@@ -134,6 +135,7 @@ const {
   getDisplayName,
   changeScale,
   resetState,
+  resetMaxScheduleState,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -361,6 +363,9 @@ const handleMountedKeyDown = (e) => {
       canvasStatusReset();
       canvasclickedEvent.value = null;
       pathLockedEvent.value = null;
+      if (isMaxSchedule.value) {
+        resetMaxScheduleState();
+      }
     }
     const isModifierKeyPressed = e.ctrlKey && !(e.shiftKey || e.altKey || e.metaKey);
     const isLKey = e.key.toLowerCase() === 'l';
@@ -1276,6 +1281,24 @@ const drawDependencyLines = (process, processKey, mode) => {
   highlightEvent(ctx, searchedEvent.value, processKey, true);
 };
 
+const drawMaxScheduleLine = (startEvent, endEvent, process, processKey) => {
+  if (!isDragging.value) {
+    clearSelectionCanvas('data-selection-process-key');
+  }
+  const ctx = clearDependencyLines(processKey);
+  if (!ctx || !(selectedEvent.value)) {
+    return;
+  }
+  ctx.lineWidth = 1;
+  if (selectedEvent.value) {
+    const eventMap = buildEventMap(process);
+    const edgesToDraw = [`${startEvent}->${endEvent}`];
+    renderDependencyEdges(edgesToDraw, eventMap, ctx);
+    highlightEvent(ctx, selectedEvent.value, processKey, true, true);
+  }
+};
+
+
 const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
   const edgesToDraw = new Set();
   
@@ -2036,6 +2059,7 @@ addChildContext('threadEvent', {
   realCoordinateY,
   drawDependencyLines,
   clearDependencyLines,
+  drawMaxScheduleLine,
   drawThreadSeparators,
   changeNodeColor,
   drawEventLine,

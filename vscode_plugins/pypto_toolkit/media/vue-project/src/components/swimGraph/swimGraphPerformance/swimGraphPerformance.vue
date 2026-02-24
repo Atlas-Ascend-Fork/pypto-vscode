@@ -27,7 +27,7 @@
             <div class="max-scheduling-gap">
               <div v-for="(item, index) in maxGap" :key="index" class="max-scheduling-gap-item">
                 <d-tooltip :content="item.parent.name">
-                  <div class="max-scheduling-gap-item-task" 
+                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item)"
                   :style="{
                     '--base-bg-color': getBaseColor(item.parent),
                     '--hover-bg-color': getLightColor(item.parent)
@@ -45,7 +45,7 @@
                     }"></div>
                 </div>
                 <d-tooltip :content="item.child.name">
-                  <div class="max-scheduling-gap-item-task" 
+                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item)"
                     :style="{
                     '--base-bg-color': getBaseColor(item.child),
                     '--hover-bg-color': getLightColor(item.child)
@@ -302,12 +302,16 @@ const {
   performanceVisible,
   performanceWidth,
   isWideScreen,
+  isMaxSchedule
 } = inject('swimGraphState');
 
 const {
   showDependencies,
   selectEvent,
-  findEventAtPosition
+  findEventAtPosition,
+  showMaxScheduleEvent,
+  resetMaxScheduleState,
+  scrollToEvent,
 } = inject('swimGraphMethods');
 
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
@@ -320,8 +324,21 @@ const TaskMinDuration = ref($t('TaskMinDuration'));
 const TaskMaxDuration = ref($t('TaskMaxDuration'));
 
 const clickTask = (event) => {
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+  }
   showDependencies(event, 'both');
   selectEvent(event, String(event.pid));
+};
+
+ const showMaxSchedule = (item) => {
+  // 取消
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+    return;
+  }
+  showMaxScheduleEvent(item.parent, item.child);
+  scrollToEvent(item.parent);
 };
 
 const subContainerWidth = ref(440);
