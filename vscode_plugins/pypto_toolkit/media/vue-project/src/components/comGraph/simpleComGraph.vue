@@ -5,8 +5,9 @@
         <fileSelect :file-name="comFileName" :file-paths="filePaths" />
         <d-select
           ref="rootHashEl"
-          v-model="rootHash"
-          :options="rootHashList"
+          v-if="rootHashList.length > 0"
+          :key="selectKey"
+          v-model="rootHashPath"
           :placeholder="t('comGraph.pleaseSelect')"
           :position="['bottom-start']"
           :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
@@ -14,6 +15,12 @@
           @value-change="handleHashChange"
           @toggle-change="onHashMenuToggleChange"
         >
+        <d-option v-for="(item, index) in rootHashList" :key="index" :value="item.name">
+          <div class="option-item">
+            <span v-if="item.graphtype ?? false" :class="['module-row-graph-type', item.graphtype]">{{ item.graphtype }}</span>
+            <span class="option-name">{{ item.name }}</span>
+          </div>
+        </d-option>
           <template #empty>
             <div class="simple-com-root-hash-empty">{{ t('comGraph.noData') }}</div>
           </template>
@@ -77,6 +84,7 @@ import type { IComViewServer } from '../../../../../src/core/view/view-server-in
 import { findNodeIdsBySemanticLabel } from '../../utils/search';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 import type { DrillDownPathItem } from './type';
+import { GraphType } from './type';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
@@ -123,7 +131,8 @@ const loadingText = ref('');
 const warningText = ref('');
 const graphType = ref('');
 const rootHash = ref('');
-const rootHashList = ref<Record<'name' | 'value', string>[]>([]);
+const rootHashPath = ref('');
+const rootHashList = ref<(Record<'name' | 'value', string> & { graphtype?: number })[]>([]);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
@@ -203,7 +212,9 @@ function onMessageFromSwim(args) {
       comGraphStore.data.isNodeRectLock &&
       !args.rootHashList.includes(comGraphStore.data.curPath[comGraphStore.data.curPath.length - 1])
     ) {
-      onHashChange({ name: comGraphStore.data.calleeMap[rootHash.value].func_magicname, value: rootHash.value });
+      const fname = comGraphStore.data.calleeMap[rootHash.value].func_magicname
+      const splitFileName = fname.replace(/^TENSOR_/i, '');
+      onHashChange({ name: splitFileName, value: rootHash.value });
     }
   }
 }
@@ -249,7 +260,11 @@ function onMessageFromSwim(args) {
     return;
   }
   if (rootHashList.value.every((item) => item.value !== currentHash)) {
-    rootHashList.value.unshift({ name: comGraphStore.data.calleeMap[currentHash].func_magicname, value: currentHash });
+    const fname = comGraphStore.data.calleeMap[currentHash].func_magicname;
+    const splitFileName = fname.replace(/^TENSOR_/i, '');
+    const tag = GraphType[comGraphStore.data.calleeMap[currentHash].graphtype];
+    const splitTag = tag.replace(/_GRAPH$/, '')
+    rootHashList.value.unshift({ name: splitFileName, value: currentHash,  graphtype: splitTag});
   }
   threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
 });
@@ -337,13 +352,21 @@ function generateHashList(hashList?: string[]) {
   rootHashList.value = [];
   if (hashList) {
     for (const item of hashList) {
-      rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+      const jsonFile = comGraphStore.data.calleeMap[item].func_magicname;
+      const splitName = jsonFile.replace(/^TENSOR_/i, '');
+      const tag = GraphType[comGraphStore.data.calleeMap[item].graphtype];
+      const splitTag = tag.replace(/_GRAPH$/, '')
+      rootHashList.value.push({ name: splitName, value: item, graphtype: splitTag });
     }
   } else {
     const tempHashList = Object.keys(comGraphStore.data.calleeMap);
     for (let i = 0; i < tempHashList.length; i++) {
       const item = tempHashList[i];
-      rootHashList.value.push({ name: comGraphStore.data.calleeMap[item].func_magicname, value: item });
+      const jsonFile = comGraphStore.data.calleeMap[item].func_magicname;
+      const splitName = jsonFile.replace(/^TENSOR_/i, '');
+      const tag = GraphType[comGraphStore.data.calleeMap[item].graphtype];
+      const splitTag = tag.replace(/_GRAPH$/, '')
+      rootHashList.value.push({ name: splitName, value: item, graphtype: splitTag});
     }
   }
 }
@@ -359,8 +382,11 @@ function onHashMenuToggleChange() {
 }
 
 const handleHashChange = (val) => {
+  const selectedItem = rootHashList.value.find(item => 
+    String(item.name) === String(val)
+  );
   resetDrillDownPathIcon();
-  onHashChange(val);
+  onHashChange(selectedItem);
 };
 const onHashChange = (val) => {
   server.innerGetSubgraph({ paramObj: { calleehash: val.value, subFuncmagicname: val.name } });
@@ -379,7 +405,7 @@ const LoadingStatusMap = {
   loading: 'loadTraceData',
 };
 
-watch(rootHash, () => {
+watch(rootHashPath, () => {
   nextTick(() => {
     const inputDom = document.querySelector('.simple-com-root-hash-list input') as HTMLInputElement | null;
     if (inputDom) {
@@ -466,6 +492,17 @@ watch(
   },
   { immediate: true },
 );
+
+const selectKey = ref(0);
+watch([rootHash, rootHashList], ([newHash, newList]) => {
+  const item = newList.find(i => i.value === newHash);
+  rootHashPath.value = item?.name || '';
+  selectKey.value++;
+  nextTick(() => {
+    const selectInput = rootHashEl.value?.$el.querySelector('input');
+    selectInput?.setAttribute('title', rootHashPath.value);
+  });
+}, { immediate: true, deep: true });
 
 function onDocumentClick(e: MouseEvent) {
   const composedPath = e.composedPath();
@@ -659,11 +696,47 @@ onBeforeUnmount(() => {
 }
 
 .simple-com-root-hash-list-menu {
-  width: 300px !important;
+  width: 360px !important;
 
   &.hide-root-hash-list {
     display: none !important;
   }
+}
+
+.module-row-graph-type {
+  color: var(--devui-primary-text);
+  padding: 0 8px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 4px;
+
+  &.TENSOR {
+    background-color: var(--devui-mint-60);
+  }
+
+  &.TILE {
+    background-color: var(--devui-green-60);
+  }
+
+  &.EXECUTE {
+    background-color: var(--devui-cyan-60);
+  }
+
+  &.BLOCK {
+    background-color: var(--devui-blue-60);
+  }
+
+  &.LEAF_VF {
+    background-color: var(--devui-indigo-60);
+  }
+
+  &.INVALID {
+    background-color: var(--devui-red-60);
+  }
+}
+
+.module-row-graph-type {
+  margin-right: 6px;
 }
 </style>
 

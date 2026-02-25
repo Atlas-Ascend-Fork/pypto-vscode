@@ -685,8 +685,8 @@ export abstract class BaseGraphMsgHandler {
     funcHash: string,
     filePrefix: string,
     dirName: string,
-    tempCalleemap: Record<string, { functype: string; func_magicname: string }>,
-  ): Record<string, { functype: string; func_magicname: string }> {
+    tempCalleemap: Record<string, { functype: string; func_magicname: string; graphtype: string }>,
+  ): Record<string, { functype: string; func_magicname: string; graphtype: string }> {
     const fileList = fs.readdirSync(dirName);
     const matchedFiles = fileList.filter((f) => f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix));
     for (const matchedFile of matchedFiles) {
@@ -695,7 +695,8 @@ export abstract class BaseGraphMsgHandler {
       const targetJson = JSON.parse(targetFile);
       const targetFunctype = targetJson.functions?.[0]?.functype;
       const targetFuncMagicname = targetJson.functions?.[0]?.func_magicname;
-      tempCalleemap[funcHash] = { functype: targetFunctype, func_magicname: targetFuncMagicname };
+      const targetGraphtype = targetJson.functions?.[0]?.graphtype;
+      tempCalleemap[funcHash] = { functype: targetFunctype, func_magicname: targetFuncMagicname, graphtype: targetGraphtype };
     }
     return tempCalleemap;
   }
@@ -704,7 +705,7 @@ export abstract class BaseGraphMsgHandler {
     fileJson: any,
     gd: AbstractGraphData,
     calleeMap: any,
-  ): Record<string, { functype: string; func_magicname: string }> {
+  ): Record<string, { functype: string; func_magicname: string; graphtype: string;}> {
     const filePath = gd.fsPath;
     const extName = path.extname(filePath);
     const baseName = path.basename(filePath, extName);
@@ -712,7 +713,7 @@ export abstract class BaseGraphMsgHandler {
     const splitIdx = baseName.indexOf('_');
     const filePrefix = baseName.slice(0, splitIdx);
     const isRoot: boolean = baseName.endsWith('ROOT');
-    const tempCalleemap: Record<string, { functype: string; func_magicname: string }> = {};
+    const tempCalleemap: Record<string, { functype: string; func_magicname: string; graphtype: string;}> = {};
     if (!isRoot) {
       return calleeMap;
     } else {

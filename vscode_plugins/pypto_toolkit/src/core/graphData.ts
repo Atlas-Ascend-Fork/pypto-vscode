@@ -122,6 +122,7 @@ export abstract class GraphData {
         this.funcHashMap[hash] = {
           functype: funcItem.functype || null,
           func_magicname: funcItem.func_magicname || null,
+          graphtype: funcItem.graphtype ?? null,
         };
       }
       if (this.isUsedDB) {
