@@ -19,6 +19,13 @@ export function getRunDataList(params: GetOutputRecordParams, options?: RequestO
 }
 
 /**
+ * 删除数据
+ */
+export function deleteRunData(params: { directoryPaths: string[] }): Promise<void> {
+  return request.post(`${WORKSPACE_PREFIX}/deleteRunData`, params);
+}
+
+/**
  * 获取运行记录详情（子目录）
  */
 export function getOutputDetail(outputDirPath: string): Promise<GetOutputDetailRes> {

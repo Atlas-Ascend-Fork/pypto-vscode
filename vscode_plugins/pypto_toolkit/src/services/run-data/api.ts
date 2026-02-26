@@ -57,6 +57,22 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   return { data: list, total };
 }
 
+/**
+ * 删除数据
+ */
+export async function deleteRunData(params: { directoryPaths: string[] }): Promise<void> {
+  const runDataService = useService('runData')
+  const recordPromises = params.directoryPaths.map(async (directoryPath) => {
+    return await runDataService.getOutputRecord(directoryPath);
+  });
+  const records = await Promise.all(recordPromises);
+  // 过滤掉无效或不存在的记录
+  const validRecords = records.filter((record): record is OutputRecord => record !== undefined);
+  if (validRecords.length > 0) {
+    await runDataService.deleteData(validRecords);
+  }
+}
+
 export interface GetOutputDetailParams {
   outputDirPath: string;
 }

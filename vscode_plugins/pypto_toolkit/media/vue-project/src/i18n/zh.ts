@@ -1,4 +1,5 @@
 export default {
+   delete: '删除',
    'zoomIn': '放大',
    'zoomOut': '缩小',
    'resizeWindow': '适应窗口',
@@ -261,6 +262,8 @@ export default {
         title: '运行结果',
         sortName: '执行时间',
         searchPlaceholder: '搜索运行结果',
+        selected:'项已选',
+        batchDelete:'批量删除',
         config: {
             configTitle: '运行配置',
             viewSchemaFile: '查看Schema文件',

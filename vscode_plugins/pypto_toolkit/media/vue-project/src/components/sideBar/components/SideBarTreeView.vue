@@ -12,6 +12,11 @@
         <d-icon name="refresh"></d-icon>
       </div>
       <div :class="{ hidden: isExpanded }" class="flex1"></div>
+      <d-popover :content="$t('sideBar.batchDelete')" trigger="hover" :position="['left']" >
+        <div class="batch-delete-icon" :class="{ hidden: isExpanded, active: isBatchDelete }" @click="changeBatchDeleteCheck">
+          <d-icon name="batch-delete"></d-icon>
+        </div>
+      </d-popover>
       <SideBarSearch :class="{ hidden: isExpanded }" @search="updateKeyword"></SideBarSearch>
     </div>
     <!-- 筛选区 -->
@@ -25,7 +30,7 @@
       </div>
     </div>
     <!-- 树组件：双插槽用法 -->
-    <div class="tree-container" :class="{ hidden: isExpanded }" v-loading="isLoading">
+    <div class="tree-container" :class="{ hidden: isExpanded, addButtom: isBatchDelete }" v-loading="isLoading">
       <d-tree
         ref="treeRef"
         :data="visibleTreeData"
@@ -36,7 +41,11 @@
       >
         <!-- 1. content插槽：自定义节点主内容（图标+文本）-->
         <template #content="{ nodeData }">
-          <div class="tree-container-content">
+          <div
+            class="tree-container-content"
+            @mouseenter="nodeData.showSingleDelete = true"
+            @mouseleave="nodeData.showSingleDelete = false"
+          >
             <div class="icon">
               <!-- 节点图标（文件夹/文件） -->
               <i v-if="nodeData.type === 'dir' && !nodeData.executeTime" class="icon-folder-new"></i>
@@ -51,6 +60,12 @@
             </div>
             <div v-else class="node-text-children">
               <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
+            </div>
+            <div v-if="nodeData.type === 'dir'" class="node-left">
+              <!-- 删除 -->
+              <d-icon v-if="!isBatchDelete && nodeData.showSingleDelete" @click.stop="handleDelete(nodeData)" name="delete" />
+              <!-- 批量删除勾选 -->
+              <d-checkbox v-if="isBatchDelete" v-model="nodeData.checked" :showAnimation="false" @click.stop="handleCheck(nodeData)" />
             </div>
           </div>
         </template>
@@ -77,13 +92,28 @@
       </d-tree>
       <LoadMoreTrigger v-show="page > 1 || !allLoaded" :all-loaded="allLoaded" @load-more="handleLoadMore" />
     </div>
+    <transition>
+      <div v-if="isBatchDelete" class="batch-delete-bar">
+        <div class="batch-delete-num" :class="{ active: selectedNodes.length }">
+          {{ selectedNodes.length }}
+        </div>
+        {{ t('sideBar.selected') }}
+        <div class="empty-rect"></div>
+        <button class="batch-delete-button" :class="{ active: selectedNodes.length }" @click="handleBatchDelet">
+          <i class="icon-delete"></i>
+          {{ t('delete') }}
+        </button>
+        <div class="empty-rect"></div>
+        <i class="icon-close" style="margin-right: 8px;" @click="changeBatchDeleteCheck"></i>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getOutputDetail, getRunDataList } from '@/apis/workspace';
+import { getOutputDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
@@ -260,7 +290,7 @@ function handleLoadMore() {
 async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<void> {
   isLoading.value = true;
   try {
-    const { data,total } = await getRunDataList({
+    const { data, total } = await getRunDataList({
       page: loadingPage,
       pageSize,
       sortOrder: sortOption.value ? 'asc' : 'desc',
@@ -288,6 +318,49 @@ const debouncedGetRecords = debounce(handleReload, 500);
 
 const sortOption = ref(false);
 
+const isBatchDelete = ref(false) // 是否开启批量删除
+const selectedNodes = ref<DevUITreeNode[]>([]) // 已勾选数据
+
+// 单个删除
+const handleDelete = async (node: DevUITreeNode) => {
+  await deleteRunData({ directoryPaths: [node.directoryPath] });
+  treeRef.value.treeFactory.removeNode(node);
+}
+
+// 勾选数据
+function handleCheck(node: DevUITreeNode) {
+  if (selectedNodes.value.includes(node)) {
+    node.checked = false
+    selectedNodes.value = selectedNodes.value.filter(item => item !== node);
+  } else {
+    node.checked = true
+    selectedNodes.value.push(node)
+  }
+}
+
+// 开启/关闭批量删除数据勾选
+function changeBatchDeleteCheck() {
+  if (isBatchDelete.value) {
+    if (selectedNodes.value.length > 0) {
+      selectedNodes.value.forEach(item => {
+        item.checked = false
+      });
+    }
+    selectedNodes.value = []
+    isBatchDelete.value = false
+  } else {
+    isBatchDelete.value = true
+  }
+}
+// 批量删除
+async function handleBatchDelet() {
+  const directoryPaths = selectedNodes.value.map(item => item.directoryPath)
+  await deleteRunData({ directoryPaths: directoryPaths });
+  for (let i = 0; i < selectedNodes.value.length; i++) {
+    treeRef.value.treeFactory.removeNode(selectedNodes.value[i]);
+  }
+  selectedNodes.value = []
+}
 watch(sortOption, () => {
   debouncedGetRecords();
 });
@@ -344,6 +417,30 @@ watch(sortOption, () => {
     &:hover {
       :deep(*) {
         color: var(--devui-link-text);
+      }
+    }
+
+    :deep(*) {
+      color: var(--pto-font-color-title);
+    }
+  }
+
+  .batch-delete-icon {
+    width: 28px;
+    height: 28px;
+    padding: 7px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      :deep(*) {
+        color: var(--pto-font-color-link-hover);
+      }
+    }
+
+    &.active {
+      :deep(*) {
+        color: var(--pto-font-color-link-hover);
       }
     }
 
@@ -415,6 +512,57 @@ watch(sortOption, () => {
   }
 }
 
+.batch-delete-bar {
+  align-items: center;
+  padding: 6px;
+  display: flex;
+  height: 48px;
+  background-color: var(--devui-base-bg);
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  border: 1px solid var(--devui-line);
+  border-radius: 12px;
+  font-size: 14px;
+
+  .empty-rect {
+    width: 1px;
+    height: 16px;
+    left: 183px;
+    margin: 0 12px;
+    background-color: var(--pto-border-default);
+  }
+
+  .batch-delete-num {
+    height: 28px;
+    border-radius: 8px;
+    background-color: var(--pto-font-color-disabled);
+    margin-right: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+
+    &.active {
+      background-color: var(--devui-brand);
+      color: var(--devui-light-text);
+    }
+  }
+
+  .batch-delete-button {
+    background-color: var(--devui-base-bg);
+    border: none;
+    color: var(--pto-font-color-disabled);
+
+    &.active {
+      color: var(--pto-font-color-title);
+    }
+  }
+}
+
 .tree-container {
   width: 100%;
   flex: 1;
@@ -422,6 +570,10 @@ watch(sortOption, () => {
   margin-top: 4px;
   box-sizing: border-box;
   overflow: auto;
+
+  &.addButtom {
+    padding-bottom: 112px;
+  }
 
   :deep(.devui-tree) {
     min-width: 100%;
@@ -465,10 +617,11 @@ watch(sortOption, () => {
 
       .devui-tree__node-content--value-wrapper {
         height: max-content !important;
+        width: 100%;
 
         .tree-container-content {
           display: flex;
-          justify-content: center;
+          width: 100%;
           align-items: center;
           gap: 4px;
           margin-left: 4px;
@@ -483,6 +636,12 @@ watch(sortOption, () => {
             .icon-json {
               color: orange;
             }
+          }
+
+          .node-left {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
           }
 
           .node-text-folder {

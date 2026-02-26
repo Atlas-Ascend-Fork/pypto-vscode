@@ -8,6 +8,7 @@ import { BasicService } from '../basic-service';
 import { getOutputDirectory } from './utils/scan-output';
 import { readRunData, readRunDataList, RunDataDir } from './utils/scan-run-data';
 import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
+import { isFileUriExists } from '../../utils/file-system';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -56,6 +57,30 @@ export class RunDataService extends BasicService {
 
   public delete(output: OutputRecord): ReturnType<RunDataStore['delete']> {
     return this.store.delete(output);
+  }
+
+  /**
+   * 删除数据
+   * @outputList outputList 数据地址列表
+   */
+  public async deleteData(outputList: OutputRecord[]): Promise<void> {
+    // 批量删除数据库
+    for (const output of outputList) {
+      await this.store.delete(output);
+    }
+    // 批量删除文件
+    const deletePromises = outputList.map(async (output) => {
+      const runDataUri = vscode.Uri.file(output.directoryPath);
+      if (await isFileUriExists(runDataUri)) {
+        try {
+          await vscode.workspace.fs.delete(runDataUri, { recursive: true });
+        } catch (error) {
+          console.error(`Failed to delete directory: ${output.directoryPath}`, error);
+        }
+      }
+    });
+    // 并行执行所有删除操作
+    await Promise.all(deletePromises);
   }
 
   /**

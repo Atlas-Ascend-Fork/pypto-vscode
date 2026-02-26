@@ -1,4 +1,5 @@
 export default {
+    delete:'delete',
     'zoomIn': 'Zoom In',
     'zoomOut': 'Zoom Out',
     'resizeWindow': 'Resize Window',
@@ -260,6 +261,8 @@ export default {
         title: 'Compilation result',
         sortName: 'Execution time',
         searchPlaceholder: 'Search from compilation result',
+        selected:'Selected',
+        batchDelete:'Batch delete',
         config: {
             configTitle: 'Run configuration',
             viewSchemaFile: 'View schema file',

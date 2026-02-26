@@ -9,6 +9,7 @@ export interface DevUITreeNode {
 
   selected?: boolean;
   checked?: boolean;
+  showSingleDelete?: boolean; // 显示单个删除按钮
 
   disableSelect?: boolean;
   disableCheck?: boolean;
@@ -18,6 +19,7 @@ export interface DevUITreeNode {
   absolutePath?: string;
   outputPath?: string;
   pathName?: string;
+  directoryPath?: string;
 
   [key: string]: unknown;
 }
