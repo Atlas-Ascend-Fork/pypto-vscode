@@ -45,7 +45,7 @@
                     }"></div>
                 </div>
                 <d-tooltip :content="item.child.name">
-                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item)"
+                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item, true)"
                     :style="{
                     '--base-bg-color': getBaseColor(item.child),
                     '--hover-bg-color': getLightColor(item.child)
@@ -331,14 +331,9 @@ const clickTask = (event) => {
   selectEvent(event, String(event.pid));
 };
 
- const showMaxSchedule = (item) => {
-  // 取消
-  if (isMaxSchedule.value) {
-    resetMaxScheduleState();
-    return;
-  }
+const showMaxSchedule = (item, isChild = false) => {
   showMaxScheduleEvent(item.parent, item.child);
-  scrollToEvent(item.parent);
+  scrollToEvent(isChild ? item.child : item.parent);
 };
 
 const subContainerWidth = ref(440);
