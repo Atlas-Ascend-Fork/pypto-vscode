@@ -13,9 +13,8 @@
           :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
           :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
           @value-change="handleHashChange"
-          @toggle-change="onHashMenuToggleChange"
         >
-        <d-option v-for="(item, index) in rootHashList" :key="index" :value="item.name">
+        <d-option v-for="(item, index) in rootHashList" :key="index" :value="item.name" :title="item.name">
           <div class="option-item">
             <span v-if="item.graphtype ?? false" :class="['module-row-graph-type', item.graphtype]">{{ item.graphtype }}</span>
             <span class="option-name">{{ item.name }}</span>
@@ -124,6 +123,7 @@ const { isDarkTheme } = inject('root');
 const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGraphFullscreen } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx;
+
 const { server } = useViewServer<IComViewServer>();
 const isLoading = ref(false);
 const showGuideAnchor = ref(false);
@@ -132,7 +132,7 @@ const warningText = ref('');
 const graphType = ref('');
 const rootHash = ref('');
 const rootHashPath = ref('');
-const rootHashList = ref<(Record<'name' | 'value', string> & { graphtype?: number })[]>([]);
+const rootHashList = ref<(Record<'name' | 'value', string> & { graphtype?: string })[]>([]);
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
@@ -263,7 +263,7 @@ function onMessageFromSwim(args) {
     const fname = comGraphStore.data.calleeMap[currentHash].func_magicname;
     const splitFileName = fname.replace(/^TENSOR_/i, '');
     const tag = GraphType[comGraphStore.data.calleeMap[currentHash].graphtype];
-    const splitTag = tag.replace(/_GRAPH$/, '')
+    const splitTag = tag?.replace(/_GRAPH$/, '') ?? '';
     rootHashList.value.unshift({ name: splitFileName, value: currentHash,  graphtype: splitTag});
   }
   threeColumnServer.selectPassPath({ paramObj: { calleehash: currentHash } });
@@ -355,7 +355,7 @@ function generateHashList(hashList?: string[]) {
       const jsonFile = comGraphStore.data.calleeMap[item].func_magicname;
       const splitName = jsonFile.replace(/^TENSOR_/i, '');
       const tag = GraphType[comGraphStore.data.calleeMap[item].graphtype];
-      const splitTag = tag.replace(/_GRAPH$/, '')
+      const splitTag = tag?.replace(/_GRAPH$/, '') ?? '';
       rootHashList.value.push({ name: splitName, value: item, graphtype: splitTag });
     }
   } else {
@@ -365,20 +365,10 @@ function generateHashList(hashList?: string[]) {
       const jsonFile = comGraphStore.data.calleeMap[item].func_magicname;
       const splitName = jsonFile.replace(/^TENSOR_/i, '');
       const tag = GraphType[comGraphStore.data.calleeMap[item].graphtype];
-      const splitTag = tag.replace(/_GRAPH$/, '')
+      const splitTag = tag?.replace(/_GRAPH$/, '') ?? '';
       rootHashList.value.push({ name: splitName, value: item, graphtype: splitTag});
     }
   }
-}
-
-function onHashMenuToggleChange() {
-  nextTick(() => {
-    const menuList = document.querySelectorAll('.simple-com-root-hash-list-menu li');
-    for (let i = 0; i < menuList.length; i++) {
-      const item = menuList[i] as HTMLElement;
-      item.setAttribute('title', item.innerText);
-    }
-  });
 }
 
 const handleHashChange = (val) => {
