@@ -208,7 +208,8 @@ const onPerformanceChange = (newValue) => {
 };
 // 暴露方法给父组件
 defineExpose({
-  connectionLevel
+  connectionLevel,
+  showPerformancePanel
 });
 
 </script>

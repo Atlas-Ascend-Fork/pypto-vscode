@@ -1,6 +1,6 @@
 <template>
   <ThreeColumnHeader />
-  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']">
+  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']" :style="{width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }">
     <ItemBlock
       block-name="left"
       :width="currentWidth"
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef } from 'vue';
 import type { Ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
@@ -98,6 +98,12 @@ const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
 const showHResizeBar = computed(() => showLeft.value && showRight.value);
 const showVResizeBar = computed(() => (showLeft.value || showLeft.value) && showBottom.value);
+const props = defineProps({
+  sharedSwimData: {
+    type: Object,
+  }
+});
+const sharedSwimData = toRef(props, 'sharedSwimData');
 const BlockToGraphMap: IBlockToGraphMap = {
   left: 'editor',
   right: 'comGraph',

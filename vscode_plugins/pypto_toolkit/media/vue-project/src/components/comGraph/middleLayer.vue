@@ -46,6 +46,10 @@ let inThreeColumnMode = false;
 const modalVisible = ref(false);
 const shouldUpdateComGraphHashList = ref(false);
 const replaceMsg = ref({ graphType: "", paths: { swimPath: "", comPath: "" }, selectPath: "" });
+const sharedSwimData = ref({});
+const handleDataFromSwim = (data) => {
+  sharedSwimData.value = data;
+}
 //
 const props = defineProps({
   graphType: {
@@ -467,7 +471,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
     <ErrorView style="height: 100vh" :jsonContent="(comErrorMessage || swimErrorMessage)" :errorLog="errorLog" />
   </template>
   <template v-else>
-    <ThreeColumn v-if="graphType === 'threeColumnGraph'">
+    <ThreeColumn v-if="graphType === 'threeColumnGraph'" :shared-swim-data="sharedSwimData">
       <template #comGraph>
         <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep"
@@ -477,7 +481,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
       <template #swimGraph>
         <ErrorView v-if="swimErrorMessage" :jsonContent="swimErrorMessage" :swimErrorLog="swimErrorLog"/>
         <SwimGraph v-if="!noSwimFile" ref="swimGrahRef" style="height: 100%" :is-three-column="true"
-          :swim-file-name="swimFileName" :graphType="graphType" :filePaths="filePaths" />
+          :swim-file-name="swimFileName" :graphType="graphType" :filePaths="filePaths" @update-shared-swim-data="handleDataFromSwim"/>
         <NoDataFile v-if="noSwimFile" :graphType="'swimGraph'" :filePaths="filePaths" />
       </template>
     </ThreeColumn>

@@ -6,7 +6,7 @@
       </div>
       <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
-    <div style="display: flex; height:100%;">
+    <div :style="{display: 'flex',height: isSwimGraphActive ? 'calc(100% - 40px)' : '100%' }">
     <div class="container"   
       :style="containerStyle">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
@@ -88,7 +88,9 @@
         height: '100%'
         }" 
         v-if="(!loadingComplete) && performanceVisible" >
-        <swim-graph-performance ref="swimGraphPerformacneComponent" v-if="performanceVisible"/>
+        <Teleport to="body">
+          <swim-graph-performance ref="swimGraphPerformacneComponent" v-if="performanceVisible"/>
+        </Teleport>
       </div>
     </div>
     <div class="tooltip" ref="tooltip" :style="tooltipStyle"></div>
@@ -325,6 +327,7 @@ const timeInfo = ref({});
 
 const performanceVisible = ref(false);
 const performanceWidth = ref(480);
+const emit = defineEmits(['update-shared-swim-data']);
 const isWideScreen = ref(true);
 const screenWidth = ref(window.innerWidth);
 
@@ -342,9 +345,14 @@ watch(performanceWidth, async (newValue) => {
     await nextTick();
     doResize();
   });
-
+watch(performanceVisible, async (newValue) => {
+  emit('update-shared-swim-data', {
+    performanceWidth,
+    performanceVisible
+  });
+});
 const containerStyle = computed(() => ({
-  width: performanceVisible.value ? `calc(100% - ${performanceWidth.value}px)` : '100%',
+  width: performanceVisible.value && !props.isThreeColumn ? `calc(100% - ${performanceWidth.value}px)` : '100%',
 }));
 
 let isPathLockStatus = ref(false);
@@ -1782,7 +1790,7 @@ const measureTimeSearch = (matchingEvents, lineRange, yLayer, type) => {
 const setPageState = (message) => {
   userConfig.value = message.config;
   if (message.config && message.config.showPerformancePanel !== undefined) {
-    performanceVisible.value = message.config.showPerformancePanel;
+    performanceVisible.value = message.config.showPerformancePanel && !props.isThreeColumn && !isGuidePage.value;
   }
   if (message.swimData && message.swimData.colorRendering) {
      userConfig.value.colorRending = message.swimData.colorRendering;
@@ -1796,6 +1804,7 @@ const setPageState = (message) => {
   textOption.value = userConfig.value.textRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
+  configComponent.value.showPerformancePanel = userConfig.value.showPerformancePanel;
   if (message.comGraphPath) {
     bindFile.value = message.comGraphPath;
     bindButton.value = $t('unbindComGraph');

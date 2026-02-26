@@ -432,6 +432,9 @@ const calculateStatistics = () => {
 
       for (const childId of event.dependencies.successors) {
         const child = eventMap.get(childId);
+        if (!child) {
+          continue;
+        }
         const gap = (child.startTime - event.endTime) / mod;
         if (gap > tMaxGap) {
           tMaxGap = gap;
@@ -575,7 +578,10 @@ onMounted(() => {
   padding: 20px;
   position: fixed;
   background: var(--devui-card-bg);
-
+  top:0;
+  bottom:0;
+  right:0;
+  z-index: 100;
 }
 
 .summary-container {
