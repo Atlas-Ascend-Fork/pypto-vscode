@@ -329,6 +329,7 @@ const clickTask = (event) => {
   }
   showDependencies(event, 'both');
   selectEvent(event, String(event.pid));
+  scrollToEvent(event);
 };
 
 const showMaxSchedule = (item, isChild = false) => {
@@ -355,7 +356,7 @@ cubeTimeWidth.value = isWideScreen.value? 203 : 133;
 vectorTimeWidth.value = isWideScreen.value? 203 : 133;
 aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
 rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
-gapLineWidth.value = isWideScreen.value? 173.5 : 36.5;
+gapLineWidth.value = isWideScreen.value? 173.5 : 66.5;
 
 
 const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
@@ -610,8 +611,8 @@ onMounted(() => {
   padding: 16px;
   box-sizing: border-box;
   border-radius: 8px;
-  background: var(--devui-tooltip-bg);
-  border: 1px solid var(--devui-tooltip-bg);
+  background: var(--devui-category-search-bg);
+  border: 1px solid var(--devui-category-search-bg);
 }
 
 .left-scheduling-gap-container {
@@ -730,9 +731,9 @@ onMounted(() => {
   gap: 16px;
   padding: 16px;
   box-sizing: border-box;
-  border: 1px solid var(--devui-tooltip-bg);
+  border: 1px solid var(--devui-category-search-bg);
   border-radius: 8px;
-  background: var(--devui-tooltip-bg);
+  background: var(--devui-category-search-bg);
 }
 
 .task-statistic-item {
@@ -787,7 +788,7 @@ onMounted(() => {
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  background: var(--devui-tooltip-bg);
+  background: var(--devui-category-search-bg);
 }
 
 .task-item-container {
@@ -839,7 +840,7 @@ onMounted(() => {
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  background: var(--devui-tooltip-bg);
+  background: var(--devui-category-search-bg);
   padding: 16px;
 }
 
