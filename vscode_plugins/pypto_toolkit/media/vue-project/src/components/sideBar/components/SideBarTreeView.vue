@@ -115,6 +115,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getOutputDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
+import { Message } from 'vue-devui/message';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
 
 import { useSearchingHighlight } from '../hooks/use-searching-highlight';
@@ -323,8 +324,19 @@ const selectedNodes = ref<DevUITreeNode[]>([]) // 已勾选数据
 
 // 单个删除
 const handleDelete = async (node: DevUITreeNode) => {
-  await deleteRunData({ directoryPaths: [node.directoryPath] });
-  treeRef.value.treeFactory.removeNode(node);
+  try {
+    await deleteRunData({ directoryPaths: [node.directoryPath] });
+    treeRef.value.treeFactory.removeNode(node);
+    Message({
+      type: 'success',
+      message: t('sideBar.deleteSuccess'),
+    });
+  } catch (e) {
+    Message({
+      type: 'success',
+      message: t('sideBar.deleteFailed'),
+    });
+  }
 }
 
 // 勾选数据
@@ -354,12 +366,23 @@ function changeBatchDeleteCheck() {
 }
 // 批量删除
 async function handleBatchDelet() {
-  const directoryPaths = selectedNodes.value.map(item => item.directoryPath)
-  await deleteRunData({ directoryPaths: directoryPaths });
-  for (let i = 0; i < selectedNodes.value.length; i++) {
-    treeRef.value.treeFactory.removeNode(selectedNodes.value[i]);
+  try {
+    const directoryPaths = selectedNodes.value.map(item => item.directoryPath)
+    await deleteRunData({ directoryPaths: directoryPaths });
+    for (let i = 0; i < selectedNodes.value.length; i++) {
+      treeRef.value.treeFactory.removeNode(selectedNodes.value[i]);
+    }
+    selectedNodes.value = []
+    Message({
+      type: 'success',
+      message: t('sideBar.deleteSuccess'),
+    });
+  } catch (e) {
+    Message({
+      type: 'warning',
+      message: t('sideBar.deleteFailed'),
+    });
   }
-  selectedNodes.value = []
 }
 watch(sortOption, () => {
   debouncedGetRecords();
@@ -559,6 +582,10 @@ watch(sortOption, () => {
 
     &.active {
       color: var(--pto-font-color-title);
+    }
+     
+    &:hover {
+      cursor: pointer;
     }
   }
 }

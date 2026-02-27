@@ -264,6 +264,8 @@ export default {
         searchPlaceholder: '搜索运行结果',
         selected:'项已选',
         batchDelete:'批量删除',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除失败',
         config: {
             configTitle: '运行配置',
             viewSchemaFile: '查看Schema文件',

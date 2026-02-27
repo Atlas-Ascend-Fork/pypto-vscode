@@ -9,6 +9,7 @@ import { getOutputDirectory } from './utils/scan-output';
 import { readRunData, readRunDataList, RunDataDir } from './utils/scan-run-data';
 import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
 import { isFileUriExists } from '../../utils/file-system';
+import { t } from 'i18next';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -103,11 +104,26 @@ export class RunDataService extends BasicService {
    * @param runDataDirPath rundata目录
    */
   public async getOutputDetail(runDataDirPath: string): Promise<OutputDetail | undefined> {
-    const record = await this.getOutputRecord(runDataDirPath);
+    const record = await this.getOutputRecord(runDataDirPath) as OutputDetail;
     if (!record) {
       return undefined;
     }
 
+    // 动态获取国际化
+    if (record?.directoryTree) {
+      const nameMap = {
+        controlFlow: t('PyPTOToolkit.workspace.controlFlowName'),
+        swimlaneGraph: t('PyPTOToolkit.workspace.swimlaneGraphName'),
+        compute: t('PyPTOToolkit.workspace.computeGraphName'),
+      };
+      record.directoryTree.children.forEach(item => {
+        if (item.type === 'file') {
+          item.name = t(nameMap[item.fileType])
+        } else if (item.type === 'dir') {
+          item.name = t(nameMap[item.directoryType])
+        }
+      });
+    }
     if (this.isDetailLoaded(record)) {
       return record;
     }

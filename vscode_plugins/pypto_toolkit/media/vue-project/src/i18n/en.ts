@@ -263,6 +263,8 @@ export default {
         searchPlaceholder: 'Search from compilation result',
         selected:'Selected',
         batchDelete:'Batch delete',
+        deleteSuccess: "Deleted successfully",
+        deleteFailed: "Deletion failed",
         config: {
             configTitle: 'Run configuration',
             viewSchemaFile: 'View schema file',
