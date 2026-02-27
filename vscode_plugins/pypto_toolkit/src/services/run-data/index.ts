@@ -99,18 +99,21 @@ export class RunDataService extends BasicService {
     }
   }
 
+  private hasDirectoryTree(record: OutputRecord): record is OutputDetail {
+    return 'directoryTree' in record
+  }
   /**
    * 获取运行记录详情
    * @param runDataDirPath rundata目录
    */
   public async getOutputDetail(runDataDirPath: string): Promise<OutputDetail | undefined> {
-    const record = await this.getOutputRecord(runDataDirPath) as OutputDetail;
+    const record = await this.getOutputRecord(runDataDirPath);
     if (!record) {
       return undefined;
     }
 
     // 动态获取国际化
-    if (record?.directoryTree) {
+    if (this.hasDirectoryTree(record) && record.directoryTree) {
       const nameMap = {
         controlFlow: t('PyPTOToolkit.workspace.controlFlowName'),
         swimlaneGraph: t('PyPTOToolkit.workspace.swimlaneGraphName'),
