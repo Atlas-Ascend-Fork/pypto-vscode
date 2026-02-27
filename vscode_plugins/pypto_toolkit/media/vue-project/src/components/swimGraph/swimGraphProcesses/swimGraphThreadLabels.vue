@@ -16,7 +16,7 @@
           'display':cycleDisplay}">
         <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%', 'background': getBackground(thread.threadName, selectedOption)}"></div>
         <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
-        <div class="average-line" :style="{ left: averageValue + '%'}" v-if = "selectedOption !== 'utilization'"></div>
+        <div class="average-line" :style="{ left: averageValue + '%'}"></div>
       </div>
     </div>
   </div>
@@ -198,6 +198,7 @@ const threadFillWidth = (threadId, option) => {
     averageValue.value = ((values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0) / maxTaskNum) * 100;
     return (threadTaskMap.get(threadId) / maxTaskNum) * 100;
   } else if (option === 'utilization' && threadUtilizationMap) {
+    averageValue.value = 50;
     return (threadUtilizationMap.get(threadId));
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     const currenThreadHit = Number(threadCacheHitMap.get(threadId));
