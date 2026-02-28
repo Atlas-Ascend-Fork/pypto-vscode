@@ -517,7 +517,7 @@ function resetToFirstStep(param: Record<string, string>) {
 onMounted(() => {
   loadingText.value = t(LoadingStatusMap['loading']);
   isLoading.value = true;
-  (window as any).ascEventBus.on('view_mouseup', (node) => {
+  (window as any).ascEventBus.on('view_mouseup', ({node}) => {
     if (node.type === 'graph' || node.id.startsWith('parent') || node.isEmptyLabel) {
       showNodeDetail.value = false;
     } else if (node.id.endsWith('label-main')) {

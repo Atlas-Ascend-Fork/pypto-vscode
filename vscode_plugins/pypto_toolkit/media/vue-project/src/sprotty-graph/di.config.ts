@@ -434,7 +434,7 @@ export class CustomMouseListener extends MouseListener {
     } else {
       root = findParentByFeature(target, (e) => e.id === 'root');
     }
-    (window as any).ascEventBus.emit('view_mouseup', target);
+    (window as any).ascEventBus.emit('view_mouseup', { node: target, area: moveArea });
     if (event.button === 0) {
       (window as any).ascEventBus.emit('view_left_mouseup', target);
     }
@@ -449,7 +449,7 @@ export class CustomMouseListener extends MouseListener {
 
   doubleClick(target: SModelElement, event: MouseEvent): Action[] {
     console.log('double click');
-    if (target?.id.startsWith('operation') && comGraphStore.data.comGraphConfig.canViewSubgraph) {
+    if (target?.id.startsWith('operation') && !comGraphStore.data.comGraphConfig.isSimple && comGraphStore.data.comGraphConfig.canViewSubgraph) {
       let current = target;
       while (current) {
         if ('calleehash' in current) {

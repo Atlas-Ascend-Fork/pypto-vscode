@@ -13,7 +13,8 @@
         <i :class="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" @click="toggleFullscreen"></i>
       </d-modal-header>
     </template>
-    <div :class="['code-review-wrap', showNormalNodeDetail && 'show-normal-node-detail']">
+    <div v-if="showNormalNodeDetail" ref="editorRef" class="diff-code-editor"></div>
+    <div v-else :class="['code-review-wrap']">
       <d-code-review
         :diff="diff"
         :allow-comment="false"
@@ -37,20 +38,24 @@
 import { onBeforeUnmount, onMounted, PropType, ref, inject, computed, nextTick } from 'vue';
 import { createTwoFilesPatch } from 'diff';
 import { useI18n } from 'vue-i18n';
+import * as monaco from 'monaco-editor';
 import { DiffComGraphProvideKey, type DiffComGraphContext } from './type';
 import { getTensorData, getOperationData } from '../comGraph/nodeDetail/utils';
 
 const props = defineProps({
   diffDetail: Array as PropType<Record<'new' | 'old', any>[]>,
-  jsonContent: Object,
+  beforeJsonContent: Object,
+  afterJsonContent: Object,
 });
 const { getOtherNodeTitle } = inject(DiffComGraphProvideKey) as DiffComGraphContext;
+const { isDarkTheme } = inject('root');
 const { t } = useI18n();
 
 const visible = ref(false);
 const isFullscreen = ref(false);
 const isExpandAllLine = ref(false);
 const showNormalNodeDetail = ref(false);
+const editorRef = ref<HTMLElement>();
 const title = ref('');
 const otherTitle = ref('');
 const diff = ref(``);
@@ -69,6 +74,7 @@ let allStr = [];
 let oldStr = '';
 let newStr = '';
 let compareType = '';
+let editorIns;
 
 const codeLoader = ([lStart, lEnd, rStart, rEnd], update) => {
   if (lStart >= allStr.length) {
@@ -129,6 +135,12 @@ function getNodeDetail(node) {
 
 function toggleFullscreen() {
   isFullscreen.value = !isFullscreen.value;
+  if (showNormalNodeDetail.value) {
+    nextTick(() => {
+      editorIns?.layout();
+    });
+    return;
+  }
   if (isFullscreen.value && compareType === 'change' && !isExpandAllLine.value) {
     onToggleAllLineExpand(true);
   }
@@ -161,12 +173,22 @@ function onToggleAllLineExpand(status?: boolean) {
 const TensorNodeIdPrefix = 'tensor-';
 const OperationNodeIdPrefix = 'operation-';
 const MagicPrefix = 'magic-';
-function getNormalNodeDetail(node) {
+function getNormalNodeDetail(node, area: 'before' | 'after') {
   let nodeContent = '';
+  let jsonContent;
+  if (area === 'before') {
+    jsonContent = props.beforeJsonContent;
+  }
+  if (area === 'after') {
+    jsonContent = props.afterJsonContent;
+  }
+  if (!jsonContent) {
+    return;
+  }
   if (node.id.includes(TensorNodeIdPrefix)) {
     const id = parseInt(node.id.split(TensorNodeIdPrefix)[1]);
     if (!isNaN(id)) {
-      const tensorData = getTensorData(props.jsonContent.tensors, id);
+      const tensorData = getTensorData(jsonContent.tensors, id);
       if (tensorData) {
         nodeContent = JSON.stringify(tensorData, null, 2);
       }
@@ -175,7 +197,7 @@ function getNormalNodeDetail(node) {
   if (node.id.includes(OperationNodeIdPrefix) && node.id.includes(MagicPrefix)) {
     const id = parseInt(node.id.split(MagicPrefix)[1]);
     if (!isNaN(id)) {
-      const operationData = getOperationData(props.jsonContent.operations, id);
+      const operationData = getOperationData(jsonContent.operations, id);
       if (operationData) {
         nodeContent = JSON.stringify(operationData, null, 2);
       }
@@ -184,12 +206,45 @@ function getNormalNodeDetail(node) {
   return nodeContent;
 }
 
+function updateTheme() {
+  let currentTheme;
+  if (isDarkTheme.value) {
+    currentTheme = 'vs-dark';
+  } else {
+    currentTheme = 'vs';
+  }
+  monaco.editor.setTheme(currentTheme);
+}
+
+function initEditor(nodeContent: string) {
+  if (editorRef.value) {
+    editorIns = monaco.editor.create(editorRef.value, {
+      value: nodeContent,
+      language: 'javascript',
+      readOnly: true,
+      contextmenu: false,
+      stickyScroll: { enabled: false },
+      find: { enable: false },
+      minimap: { enabled: false },
+      contributions: { 'editor.contrib.findController': undefined },
+    });
+
+    editorIns.onContextMenu((e) => {
+      e.event.preventDefault();
+    });
+    editorIns.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {});
+    editorIns.addCommand(monaco.KeyCode.F3, () => {});
+    editorIns.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.F3, () => {});
+    updateTheme();
+  }
+}
+
 const hasDiffCompareType = ['add', 'delete', 'change'];
-function onViewMouseUp(node) {
+function onViewMouseUp({ node, area }) {
   if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     const compareTypeNode = getCompareTypeNode(node);
     compareType = compareTypeNode?.compareType;
-    if (!compareType || ![...hasDiffCompareType, 'normal'].includes(compareType)) {
+    if (!compareType) {
       return;
     }
     visible.value = true;
@@ -219,11 +274,13 @@ function onViewMouseUp(node) {
       newStr = nodeDetail.new ? JSON.stringify(nodeDetail.new, null, 2) : '';
       diff.value = createTwoFilesPatch('old.json', t('diff'), oldStr, newStr);
     } else {
-      const nodeContent = getNormalNodeDetail(node);
-      diff.value = createTwoFilesPatch('old.json', t('diff'), `${nodeContent}\n `, `${nodeContent}\n`, undefined, undefined, {
-        context: Infinity,
-      });
-      showNormalNodeDetail.value = true;
+      const nodeContent = getNormalNodeDetail(node, area);
+      if (nodeContent) {
+        showNormalNodeDetail.value = true;
+        nextTick(() => {
+          initEditor(nodeContent);
+        });
+      }
     }
   }
 }
@@ -248,8 +305,13 @@ onBeforeUnmount(() => {
     inset: 0;
     width: 100%;
     transform: unset !important;
-    .devui-modal__body .code-review-wrap {
-      max-height: calc(100vh - 86px);
+    .devui-modal__body {
+      .diff-code-editor {
+        height: calc(100vh - 86px);
+      }
+      .code-review-wrap {
+        max-height: calc(100vh - 86px);
+      }
     }
   }
 
@@ -277,6 +339,9 @@ onBeforeUnmount(() => {
 
   .devui-modal__body {
     padding-right: 0;
+    .diff-code-editor {
+      height: calc(80vh - 86px);
+    }
     .code-review-wrap {
       padding-right: 20px;
       max-height: calc(80vh - 86px);
@@ -349,20 +414,6 @@ onBeforeUnmount(() => {
 
       .d2h-file-wrapper {
         margin-bottom: 0;
-      }
-    }
-
-    .code-review-wrap.show-normal-node-detail {
-      .devui-code-review {
-        .devui-code-review__header {
-          display: none;
-        }
-        .d2h-diff-table {
-          tr:first-of-type,
-          tr:last-of-type {
-            display: none;
-          }
-        }
       }
     }
 

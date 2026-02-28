@@ -40,7 +40,7 @@
       </div>
     </div>
     <ShowTip></ShowTip>
-    <DiffModal :diff-detail="diffDetail" :json-content="beforeJson" />
+    <DiffModal :diff-detail="diffDetail" :before-json-content="beforeJson" :after-json-content="afterJson ?? afterJsonContent" />
   </div>
 </template>
 
@@ -88,6 +88,7 @@ const showDiffList = ref(false);
 const loadedType = ref(new Set());
 const currentLayout = ref<TDiffLayout>('horizontal');
 const diffDetail = ref([]);
+const afterJsonContent = ref();
 let beforeIns;
 let afterIns;
 let expandTimer: ReturnType<typeof setTimeout>;
@@ -112,6 +113,7 @@ function onLayoutChange(e) {
 const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
   showSelectFile.value = false;
+  afterJsonContent.value = e.fileContent;
   const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
   diffDetail.value = detail;
   diffList.value = list as any;
