@@ -439,5 +439,6 @@ export default {
     'schedulingSubTask': 'SubTask',
     'SchedulingGap': 'Scheduling Gap ',
     'TaskMinDuration': 'Min Duration ',
-    'TaskMaxDuration': 'Max Duration '
+    'TaskMaxDuration': 'Max Duration ',
+    'PerformanceSummary': 'Summary',
 }

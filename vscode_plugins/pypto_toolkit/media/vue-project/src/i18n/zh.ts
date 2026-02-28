@@ -439,5 +439,6 @@ export default {
     'schedulingSubTask': '下级任务',
     'SchedulingGap': '调度间隙 ',
     'TaskMinDuration': '任务最短耗时 ',
-    'TaskMaxDuration': '任务最长耗时 '
+    'TaskMaxDuration': '任务最长耗时 ',
+    'PerformanceSummary': '概览',
 }

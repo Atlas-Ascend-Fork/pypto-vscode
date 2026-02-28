@@ -7,7 +7,7 @@
     </div>
     <div class="report-title">{{ reportTitle }}</div>
     <d-tabs class="report-tabs" type="pills" v-model="reportTabId">
-      <d-tab class="first-child" id="tab1" title="summary">
+      <d-tab class="first-child" id="tab1" :title=PerformanceSummary>
       <div class="summary-container" :style="{width: performanceWidth + 'px'}">
         <div class="scheduling-gap-container-perform"
         v-if="maxGap.length > 0"
@@ -36,7 +36,7 @@
                   </div>
                 </d-tooltip>
                 <div class="max-scheduling-gap-item-middle-container">
-                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap}}μs</div>
+                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
                       '--left-color': getBaseColor(item.parent),
@@ -322,6 +322,7 @@ const maxSchedulingGap = ref($t('maxSchedulingGap'));
 const SchedulingGap = ref($t('SchedulingGap'));
 const TaskMinDuration = ref($t('TaskMinDuration'));
 const TaskMaxDuration = ref($t('TaskMaxDuration'));
+const PerformanceSummary = ref($t('PerformanceSummary'));
 
 const clickTask = (event) => {
   if (isMaxSchedule.value) {
@@ -724,7 +725,7 @@ onMounted(() => {
 .split-line {
   margin-top: 3px;
   width: 0px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--devui-node-edge-active);
 }
 
 .time-consuming-container-perform {
@@ -751,7 +752,7 @@ onMounted(() => {
 .time-consuming-split-line {
   margin-top: 24px;
   width: 0px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--devui-node-edge-active);
 }
 
 .time-consuming-tasks-container {
@@ -904,6 +905,7 @@ onMounted(() => {
   left: 4px;
   bottom: 6px;
   z-index: 1;
+  color: white;
 }
 
 .vector-time-num {
@@ -914,6 +916,7 @@ onMounted(() => {
   right: 4px;
   bottom: 6px;
   z-index: 1;
+  color: white;
 }
 
 .time-statistics-container {
