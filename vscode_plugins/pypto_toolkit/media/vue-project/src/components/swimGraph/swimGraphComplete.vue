@@ -948,6 +948,7 @@ const selectEvent = (event, processKey) => {
 const resetMaxScheduleState = () => {
   isMaxSchedule.value = false;
   selectedEvent.value = null;
+  highlightedPaths.clear();
   transform();
 };
 
@@ -961,6 +962,9 @@ const showMaxScheduleEvent = (startEvent, endEvent) => {
   isMaxSchedule.value = true;
   startEventId = startEvent.id;
   endEventId = endEvent.id;
+  highlightedPaths.clear();
+  highlightedPaths.add(startEventId);
+  highlightedPaths.add(endEventId);
   selectedEvent.value = startEvent;
   const processKey = String(startEvent.pid);
   const process = processes.get(processKey);
@@ -968,15 +972,12 @@ const showMaxScheduleEvent = (startEvent, endEvent) => {
   mulDetailsExpanded.value = false;
 
   if (process) { 
-    childContextMap.threadEvent.changeNodeColor(processKey, true);
-    childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
     measureDragStartX.value =  timeToX(startEvent.endTime);
     measureDragEndY.value = timeToX(endEvent.startTime);
     measureDragStartTime.value = xToTime(measureDragStartX.value);
     measureDragEndTime.value = xToTime(measureDragEndY.value);
     measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
     document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
-    drawMeasureTime();
   }
 };
 
@@ -1290,11 +1291,6 @@ const measureMouseDown = (e) => {
   renderFixedTimeline();
   renderTimeline();
 
-  if (isMaxSchedule.value) {
-    resetMaxScheduleState();
-    return;
-  }
-
   if (!isMeasureModel.value) {
     return;
   }
@@ -1495,6 +1491,11 @@ const measureMouseMove = (e) => {
 };
 
 const measureMouseUp = () => {
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+    return;
+  }
+
   if (measureDragCtrl.value) {
     measureDragCtrl.value = false;
     return;
