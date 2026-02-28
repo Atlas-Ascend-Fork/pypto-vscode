@@ -105,7 +105,8 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
         server.setRef('CalleeOpAttrMap', { data: { calleeOpAttr: calleeOpAttr, opAttrIncastTensors: [...new Set(ioperands)] } });
       }
     }
-    server.setRef('FuncTree', { entry: server.comGraphData.funcHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [server.comGraphData.funcHash] });
+    let entryHash = server.comGraphData.firstExecFuncHash ?? server.comGraphData.funcHash;
+    server.setRef('FuncTree', { entry: entryHash, fsPath: server.comGraphData.fsPath, curPath: server.comGraphData.curPath ?? [entryHash] });
     SingleGraphHandler.returnFuncTree(server);
   }
   public static async returnFuncTree(server: any) {
@@ -117,6 +118,8 @@ export class SingleGraphHandler extends BaseGraphMsgHandler {
     } catch {}
     if (curPath?.length > 1) {
       hash = curPath[curPath.length - 2];
+    } else if (server.comGraphData.firstExecFuncHash) {
+      hash = server.comGraphData.firstExecFuncHash;
     } else if (server.entryHash) {
       hash = server.entryHash;
     } else {
