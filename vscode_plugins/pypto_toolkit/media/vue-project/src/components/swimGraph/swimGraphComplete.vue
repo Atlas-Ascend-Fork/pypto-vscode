@@ -350,7 +350,7 @@ watch(performanceVisible, async (newValue) => {
     performanceWidth,
     performanceVisible
   });
-  if (newValue && props.isThreeColumn) {
+  if (newValue) {
     await nextTick();
     doResize();
   }
