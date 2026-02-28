@@ -350,6 +350,10 @@ watch(performanceVisible, async (newValue) => {
     performanceWidth,
     performanceVisible
   });
+  if (newValue && props.isThreeColumn) {
+    await nextTick();
+    doResize();
+  }
 });
 const containerStyle = computed(() => ({
   width: performanceVisible.value && !props.isThreeColumn ? `calc(100% - ${performanceWidth.value}px)` : '100%',
