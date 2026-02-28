@@ -8,8 +8,9 @@ import { BasicService } from '../basic-service';
 import { getOutputDirectory } from './utils/scan-output';
 import { readRunData, readRunDataList, RunDataDir } from './utils/scan-run-data';
 import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
-import { isFileUriExists } from '../../utils/file-system';
+import { deleteFile } from '../../utils/file-system';
 import { t } from 'i18next';
+import { getControlFlowStore } from '../control-flow/store';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -68,16 +69,17 @@ export class RunDataService extends BasicService {
     // 批量删除数据库
     for (const output of outputList) {
       await this.store.delete(output);
+      if (output.controlFlowFilePath) {
+        await getControlFlowStore().delete({ sourceFilePath: output.controlFlowFilePath });
+      }
     }
     // 批量删除文件
     const deletePromises = outputList.map(async (output) => {
       const runDataUri = vscode.Uri.file(output.directoryPath);
-      if (await isFileUriExists(runDataUri)) {
-        try {
-          await vscode.workspace.fs.delete(runDataUri, { recursive: true });
-        } catch (error) {
-          console.error(`Failed to delete directory: ${output.directoryPath}`, error);
-        }
+      await deleteFile(runDataUri)
+      if (output.computeGraphDirPath) {
+        const outputUri = vscode.Uri.file(output.computeGraphDirPath);
+        await deleteFile(outputUri)
       }
     });
     // 并行执行所有删除操作

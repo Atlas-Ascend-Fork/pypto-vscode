@@ -16,7 +16,7 @@ export function useOutputNav(output: Ref<OutputDetail>) {
   });
 
   function getOutputNavFromApi(outputDetail: OutputDetail): void {
-    for (const childDirectory of outputDetail.directoryTree.children ?? []) {
+    for (const childDirectory of outputDetail.directoryTree?.children ?? []) {
       if (childDirectory.type === 'file' && childDirectory.fileType === 'controlFlow') {
         controlFlowFile.value = childDirectory.absolutePath;
       }

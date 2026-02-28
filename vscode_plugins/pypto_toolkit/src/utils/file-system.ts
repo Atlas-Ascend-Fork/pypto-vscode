@@ -16,3 +16,16 @@ export async function isFileUriExists(fileUri: vscode.Uri): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * 删除文件
+ */
+export async function deleteFile(fileUri: vscode.Uri): Promise<void> {
+  try {
+    if (await isFileUriExists(fileUri)) {
+      await vscode.workspace.fs.delete(fileUri, { recursive: true });
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}

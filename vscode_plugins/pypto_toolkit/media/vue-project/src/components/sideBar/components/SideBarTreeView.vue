@@ -55,13 +55,13 @@
 
             <!-- 节点文本区域（两行布局） -->
             <div v-if="nodeData.type === 'dir'" :class="{ 'node-text-folder': nodeData.level === 1 }">
-              <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
+              <div class="node-label" :title="nodeData.label" v-html="textToHighlightHtml(nodeData.label)"></div>
               <div class="node-date" v-if="nodeData.date">{{ nodeData.date }}</div>
             </div>
             <div v-else class="node-text-children">
               <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
             </div>
-            <div v-if="nodeData.type === 'dir'" class="node-left">
+            <div v-if="nodeData.level === 1" class="node-left">
               <!-- 删除 -->
               <d-icon v-if="!isBatchDelete && nodeData.showSingleDelete" @click.stop="handleDelete(nodeData)" name="delete" />
               <!-- 批量删除勾选 -->
@@ -603,8 +603,7 @@ watch(sortOption, () => {
   }
 
   :deep(.devui-tree) {
-    min-width: 100%;
-    width: fit-content;
+    width: 100%;
     height: fit-content;
     min-height: 48px;
 
@@ -676,6 +675,9 @@ watch(sortOption, () => {
             justify-content: center;
             flex-direction: column;
             height: 48px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
 
             .node-label {
               font-size: 14px;
