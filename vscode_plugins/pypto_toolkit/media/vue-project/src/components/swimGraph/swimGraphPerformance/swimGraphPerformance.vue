@@ -15,7 +15,7 @@
           <div class="left-scheduling-gap-container">
             <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title">{{maxSchedulingGap}}(μs)</div>
-              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap}}</div>
+              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap / 1000}}</div>
             </div>
           </div>
           <div class="split-line" :style="{ height: `${54 + 52 * (maxGap.length -1 )}px` }"/>
@@ -36,7 +36,7 @@
                   </div>
                 </d-tooltip>
                 <div class="max-scheduling-gap-item-middle-container">
-                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap}} μs</div>
+                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / 1000}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
                       '--left-color': getBaseColor(item.parent),
@@ -359,20 +359,6 @@ aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
 rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
 gapLineWidth.value = isWideScreen.value? 173.5 : 66.5;
 
-
-const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
-    return {
-      key,
-      ...value
-    };
-  });
-
-const globalEventMap = {};
-
-for (const process of processesArray) {
-  globalEventMap[process.pid] = buildEventMap(process);
-}
-
 const getBaseColor = (event) => {
   if (isDarkTheme.value) {
     return event.color.dark.base;
@@ -394,7 +380,33 @@ const closeStatistics = () => {
   performanceWidth.value = 0;
 };
 
+const buildTaskEventMap = (process) => {
+  const eventMap = new Map();
+  for (const [, thread] of process.threads) {
+    if (thread.isCounter || thread.isFakeCore) {
+      continue;
+    }
+    for (const event of thread.events) {
+      eventMap.set(event.id, event);
+    }
+  }
+  return eventMap;
+};
+
 const calculateStatistics = () => {
+  const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
+    return {
+      key,
+      ...value
+    };
+  });
+
+  const globalEventMap = {};
+
+  for (const process of processesArray) {
+    globalEventMap[process.pid] = buildTaskEventMap(process);
+  }
+    
   let tMaxGap = -Infinity;
   let tMaxTimeTask = -Infinity;
   let tMinTimeTask = Infinity;
@@ -403,18 +415,15 @@ const calculateStatistics = () => {
   let curMaxTimeTask = [];
   let curMinTimeTask = [];
 
+  const mod = 1000;
+
   for (const eventMap of Object.values(globalEventMap)) {
     for (const event of eventMap.values()) {
-      if (event.isFakeCore || event.ph == 'C') {
-        continue;
-      }
-
       let taskDur = 0;
-      const mod = 1000;
       if (event.duration) {
-        taskDur = event.duration / mod;
+        taskDur = event.duration;
       } else {
-        taskDur = (event.endTime - event.startTime) / mod;
+        taskDur = event.endTime - event.startTime;
       }
       
       if (taskDur > tMaxTimeTask) {
@@ -436,7 +445,7 @@ const calculateStatistics = () => {
         if (!child) {
           continue;
         }
-        const gap = (child.startTime - event.endTime) / mod;
+        const gap = child.startTime - event.endTime;
         if (gap > tMaxGap) {
           tMaxGap = gap;
           let printGap = 0;
@@ -458,6 +467,9 @@ const calculateStatistics = () => {
       }
     }
   }
+
+  tMaxTimeTask = tMaxTimeTask / mod;
+  tMinTimeTask = tMinTimeTask / mod;
 
   maxGap.value = curMaxGap;
   maxTimeTask.value = curMaxTimeTask;
