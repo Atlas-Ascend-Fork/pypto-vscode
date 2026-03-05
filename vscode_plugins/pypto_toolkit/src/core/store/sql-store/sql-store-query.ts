@@ -25,8 +25,14 @@ export class SqlStoreQuery<Item extends Data, Keys extends keyof Item> implement
     return this;
   }
 
-  public search(prop: Keys & string, keyword: string): this {
-    this._whereConditions.push(`${prop} like '%${keyword}%'`);
+  public search(prop: Keys & string, keyword: string, isExactMatch: boolean = false): this {
+    // 是否精确匹配，否：'_'为通配符
+    if (isExactMatch) {
+      const escapedkey = keyword.replace(/_/g, '\\_');
+      this._whereConditions.push(`${prop} like '%${escapedkey}%' escape '\\'`);
+    } else {
+      this._whereConditions.push(`${prop} like '%${keyword}%'`);
+    }
     return this;
   }
 

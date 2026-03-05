@@ -22,6 +22,9 @@ export interface GetOutputRecordParams {
 
   /** 搜索关键词 */
   titleKeyword?: string;
+
+  /** 是否精确匹配 */
+  isExactMatch?: boolean;
 }
 
 export interface GetOutputRecordsRes {
@@ -33,7 +36,7 @@ export interface GetOutputRecordsRes {
  * 获取运行结果记录
  */
 export async function getRunDataList(params: GetOutputRecordParams): Promise<GetOutputRecordsRes> {
-  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles, isThreeColumnNotNull = false, titleKeyword } = params;
+  const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles, isThreeColumnNotNull = false, titleKeyword, isExactMatch = false } = params;
   const runDataService = useService('runData');
   if (forceReloadFromFiles) {
     await runDataService.scanDirectory();
@@ -45,7 +48,7 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
     .query()
     .sort(sortBy, sortOrder);
   if (titleKeyword) {
-    query.search('title', titleKeyword);
+    query.search('title', titleKeyword, isExactMatch);
   }
   // 三栏联动视图确保泳道图文件地址、控制流文件地址存在
   if (isThreeColumnNotNull) {

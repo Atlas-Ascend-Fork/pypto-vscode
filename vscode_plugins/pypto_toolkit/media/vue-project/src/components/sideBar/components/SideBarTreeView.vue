@@ -17,7 +17,7 @@
           <d-icon name="batch-delete"></d-icon>
         </div>
       </d-popover>
-      <SideBarSearch :class="{ hidden: isExpanded }" @search="updateKeyword"></SideBarSearch>
+      <SideBarSearch :class="{ hidden: isExpanded }" @search="searchKeyword"></SideBarSearch>
     </div>
     <!-- 筛选区 -->
     <div class="filters" :class="{ hidden: isExpanded }">
@@ -288,7 +288,7 @@ function handleLoadMore() {
  * 获取运行记录
  * @param forceReload 强制刷新
  */
-async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<void> {
+async function getOutputs(loadingPage: number, forceReload?: boolean, titleKeyword?: string, isExactMatch?: boolean): Promise<void> {
   isLoading.value = true;
   try {
     const { data, total } = await getRunDataList({
@@ -296,6 +296,8 @@ async function getOutputs(loadingPage: number, forceReload?: boolean): Promise<v
       pageSize,
       sortOrder: sortOption.value ? 'asc' : 'desc',
       forceReloadFromFiles: forceReload,
+      titleKeyword,
+      isExactMatch
     });
     currentTotal.value = total
     // 再次清空列表，避免并发请求导致数据异常
@@ -384,6 +386,15 @@ async function handleBatchDelet() {
     });
   }
 }
+
+// 根据关键词搜索标题
+const searchKeyword = debounce((keyword: string) => {
+  console.log('keyword', keyword)
+  clearList();
+  page.value = 1;
+  getOutputs(page.value, false, keyword, true)
+  updateKeyword(keyword)
+}, 500)
 watch(sortOption, () => {
   debouncedGetRecords();
 });
