@@ -26,6 +26,7 @@ interface ComGraphData {
   isNodeRectLock: boolean;
   stableRect:boolean;
   fixedNodeId: string;
+  historyPath: string[];
   layoutDirection: string;
   svgExportMode: boolean;
   isCached?: boolean,
@@ -53,6 +54,7 @@ export const comGraphStore: DataStore = reactive({
   data: {
     jsonData: '',
     fixedNodeId: '',
+    historyPath: [],
     selectedNodeSemanticLabel: '',
     pathNodesSet: [],
     selectCustom: [],
