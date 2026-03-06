@@ -26,7 +26,7 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
     subGraphId = nameParts[0];
   }
 
-  return Number(subGraphId) || defaultValue;
+  return Number(subGraphId) ?? defaultValue;
 };
 
 

@@ -180,36 +180,25 @@
         <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist && iniComplete" />
       </div>
       </d-tab>
-      <d-tab id="tab2" title="Time-consuming" v-if="false">
-        <div class="time-statistics-container">
-          <div class="time-statistics-title">
-            <div class="time-statistics-title-left">任务耗时极差</div>
-            <div>
-              <d-select class="time-statistic-option" v-model="option1" :options="timeOptions1111" size="md"></d-select>
-            </div>
-          </div>
-          <div class="time-statistics-graph-container"></div>
-        </div>
+      <d-tab id="tab2" :title="$t('executionTime')">
+        <time-statistics/>
       </d-tab>
     </d-tabs>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, provide, inject, onMounted, watch } from 'vue';
+import { ref, reactive, nextTick, provide, inject, onMounted, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BigNumber from 'bignumber.js';
 import { buildEventMap } from '../swimGraphProcesses/render/utils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
-
-
+import TimeStatistics from './timeStatistics/timeStatistics.vue';
+import { executionTimeData } from './utils';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
 const reportTabId = ref('tab1');
-const timeOptionsList = ['按子图', '按语义标签'];
-const option1 = ref('按子图');
-const timeOptions1111 = reactive(timeOptionsList);
 
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
@@ -264,7 +253,6 @@ const maxTimeTask = ref([]);
 const maxTimeTaskVal = ref(0);
 const minTimeTask = ref([]);
 const minTimeTaskVal = ref(0);
-
 const {
   pmuTotal
 } = inject('swimGraphPmuTotal');
@@ -312,6 +300,7 @@ const {
   showMaxScheduleEvent,
   resetMaxScheduleState,
   scrollToEvent,
+  canvasStatusReset
 } = inject('swimGraphMethods');
 
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
@@ -580,9 +569,38 @@ const initializePerformance = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
   iniComplete.value = true;
 };
-
+const handleClickOutside = (e) => {
+  const composedPath = e.composedPath();
+  const index = composedPath.findIndex(
+    (item) =>
+      item.classList?.contains('time-consuming-task') ||
+      item.classList?.contains('max-scheduling-gap-item-task')||
+      item.classList?.contains('time-range-marker') || 
+      item.classList?.contains('time-statistics-table') ||
+      item.classList?.contains('event-container')
+  );
+  if (index !== -1) {
+    return;
+  }
+  canvasStatusReset();
+};
 onMounted(() => {
   initializePerformance();
+  document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  clearExecutionTimeData();
+});
+const clearExecutionTimeData = () => {
+  executionTimeData.echartsMap.clear();       
+  executionTimeData.tableData.length = 0;      
+  executionTimeData.ticks.length = 0;
+  executionTimeData.timelineGroupsMap.clear();     
+};
+// 提供方法给子组件
+provide('swimGraphPmuBarMethod', {
+  clickTask
 });
 </script>
 
@@ -929,34 +947,5 @@ onMounted(() => {
   bottom: 6px;
   z-index: 1;
   color: white;
-}
-
-.time-statistics-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.time-statistics-title {
-  height: 28px;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.time-statistics-title-left {
-  height: 20px;
-  font-size: 13px;
-  text-align: left;
-}
-
-.time-statistics-graph-container {
-  height: 802px;
-  box-sizing: border-box;
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
 }
 </style>

@@ -2076,7 +2076,8 @@ addChildContext('threadEvent', {
   drawBoundary: threeRender.drawBoundary,
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,
-  distanceMeasurementResize
+  distanceMeasurementResize,
+  canvasStatusReset
 });
 watch(isHoverLockStatus, () => {
   sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
