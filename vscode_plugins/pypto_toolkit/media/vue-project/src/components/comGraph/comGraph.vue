@@ -154,6 +154,7 @@ const nodeDisplayConfig = (type: 'op' | 'all') => {
     openMode: props.openMode, nodeMagic: props.nodeMagic
   })
   showType.value = type;
+  comGraphStore.setData("historyPath", []);
 }
 
 
@@ -462,6 +463,8 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
       (window as any).ascEventBus.emit('message_notice', (window as any).ascLang === 'en' ? 'Please select the node first' : '请先选中节点');
       return;
     }
+    const disabledFlag = comGraphStore.data.inFixedComGraphFlow || 
+                       (comGraphStore.data?.pathNodesSet && (comGraphStore.data.pathNodesSet.size > 0));
     (window as any).ascEventBus.emit('jump2SiblingNodeByHotKey', {nodeId: selectedNodeId, eventKey: e.key});
     return;
   }
