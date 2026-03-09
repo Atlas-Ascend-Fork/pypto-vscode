@@ -113,14 +113,14 @@ export function createTensorMaps(actualData: FunctionData) {
 }
 
 // 处理 copy 类操作
-export function parseCopyOp(labelAttr: string[], reader: AttrReader, isCopyOut: boolean, version: string): void {
-    reader.readNumber(); // skip isCopyOut flag (already known from opcode)
-    const memType = reader.readNumber();
+export function parseCopyOp(labelAttr: string[], reader: AttrReader, isCopyOut: boolean, version: string, diffType?: 'before' | 'after'): void {
+    reader.readNumber(diffType); // skip isCopyOut flag (already known from opcode)
+    const memType = reader.readNumber(diffType);
     const memTypeStr = MEMTYPE_MAP[memType] || 'MEM_UNKNOWN';
 
-    const offsetSize = reader.readNumber();
-    const offset = parseSymbolicOrIntList(reader, offsetSize, version);
-    const shape = parseSymbolicOrIntList(reader, offsetSize, version);
+    const offsetSize = reader.readNumber(diffType);
+    const offset = parseSymbolicOrIntList(reader, offsetSize, version, diffType);
+    const shape = parseSymbolicOrIntList(reader, offsetSize, version, diffType);
 
     labelAttr.push(`shape: [${shape.join(',')}]`);
     if (isCopyOut) {
@@ -133,9 +133,9 @@ export function parseCopyOp(labelAttr: string[], reader: AttrReader, isCopyOut: 
 }
 
 // 处理 convert 操作
-export function parseConvertOp(labelAttr: string[], reader: AttrReader): void {
-    const fromMemType = reader.readNumber();
-    const toMemType = reader.readNumber();
+export function parseConvertOp(labelAttr: string[], reader: AttrReader, diffType?: 'before' | 'after'): void {
+    const fromMemType = reader.readNumber(diffType);
+    const toMemType = reader.readNumber(diffType);
 
     const fromStr = MEMTYPE_MAP[fromMemType] || 'MEM_UNKNOWN';
     const toStr = MEMTYPE_MAP[toMemType] || 'MEM_UNKNOWN';
@@ -145,21 +145,21 @@ export function parseConvertOp(labelAttr: string[], reader: AttrReader): void {
 }
 
 // 处理 assemble/view 操作
-export function parseAssembleViewOp(labelAttr: string[], reader: AttrReader, isAssemble: boolean, version: string): void {
-    const toMemType = reader.readNumber();
+export function parseAssembleViewOp(labelAttr: string[], reader: AttrReader, isAssemble: boolean, version: string, diffType?: 'before' | 'after'): void {
+    const toMemType = reader.readNumber(diffType);
     const toMemStr = MEMTYPE_MAP[toMemType] || 'MEM_UNKNOWN';
 
-    const offsetSize = reader.readNumber();
+    const offsetSize = reader.readNumber(diffType);
     const offset: number[] = [];
     for (let i = 0; i < offsetSize; i++) {
-        offset.push(reader.readNumber());
+        offset.push(reader.readNumber(diffType));
     }
 
-    const dynOffsetSize = reader.readNumber();
-    const dynOffsetParse = parseExprList(reader, dynOffsetSize, version);
+    const dynOffsetSize = reader.readNumber(diffType);
+    const dynOffsetParse = parseExprList(reader, dynOffsetSize, version, diffType);
 
-    const dynShapeSize = reader.readNumber();
-    const dynShapeParse = parseExprList(reader, dynShapeSize, version);
+    const dynShapeSize = reader.readNumber(diffType);
+    const dynShapeParse = parseExprList(reader, dynShapeSize, version, diffType);
 
     labelAttr.push(`shape: [${dynShapeParse.join(',')}]`);
     if (isAssemble) {

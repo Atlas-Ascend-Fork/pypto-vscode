@@ -11,10 +11,10 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   protected static override async loadMainData(server: any): Promise<boolean> {
     const fsPath = server.query._path;
     // 原图
-    await DiffGraphHandler.loadGraphData(server, server.query, fsPath, 'comGraphData');
+    await DiffGraphHandler.loadGraphData(server, server.query, fsPath, 'comGraphData', 'before');
     // 对比图
     server.query.otherFsPath = getOtherFilePath(fsPath);
-    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData');
+    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData', 'after');
     return true;
   }
 
@@ -34,12 +34,12 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     const gd = this.getGraphData(server);
     const diffgd = this.getDiffGraphData(server);
     // 1. 取数据
-    const { json } = await this.fetchGraphJson(gd, server);
+    const { json } = await this.fetchGraphJson(gd, server, 'before');
     if (!json) {
-      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash, message: '' });
+      this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash, message: '' }, 'before');
       return;
     }
-    const { json: diffJson } = await this.fetchGraphJson(diffgd, server);
+    const { json: diffJson } = await this.fetchGraphJson(diffgd, server, 'after');
     // 组合数据
     const postInfo = getDiffInfo(gd.fsPath, json);
     if (server.diffGraphData) {
@@ -65,18 +65,18 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
 
     // 2. 校验
     const gd = this.getGraphData(server);
-    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph')) return;
+    if (!this.checkFuncHash(server, gd, 'pypto.canNotGetFuncHashOnOpenOriginGraph', 'before')) return;
     const diffgd = this.getDiffGraphData(server);
     if (diffgd) {
-      if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) return;
+      if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph', 'after')) return;
     }
 
     // 3. 缓存判断&读取文件数据
     console.debug('DiffGraphHandler getInitialData 开始读json数据');
-    const oriJsonDataResult = await this.getJsonData(gd, server);
+    const oriJsonDataResult = await this.getJsonData(gd, server, 'before');
     if (!oriJsonDataResult) return;
     if (diffgd) {
-      const diffJsonDataResult = await this.getJsonData(diffgd, server);
+      const diffJsonDataResult = await this.getJsonData(diffgd, server, 'after');
       if (!diffJsonDataResult) return;
     }
     // 4. 加载FuncHashMap
@@ -89,7 +89,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   }
 
   /** 5. 获取comGraphData和EntryHash 并挂到面板上 */
-  private static async loadGraphData(server: any, query: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData') {
+  private static async loadGraphData(server: any, query: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData', diffType: 'before' | 'after') {
     if (!fsPath) return;
     if (!server[prop]) {
       server[prop] = new DiffGraphData(fsPath, (prop == 'diffGraphData') ? undefined : query.funcHash);
@@ -101,13 +101,13 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
         gd.funcHash = entryhash;
       } catch (err: any) {
         if (err.code === 'FILE_READ_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
           return false;
         } else if (err.code === 'JSON_PARSE_ERROR') {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
           return false;
         } else {
-          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+          server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
           return false;
         }
       }
@@ -128,18 +128,18 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   public static override async loadDiffData(server: any, otherFsPath: string) {
     server.query.otherFsPath = otherFsPath;
     // 1. 初始化
-    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData');
+    await DiffGraphHandler.loadGraphData(server, server.query, server.query.otherFsPath, 'diffGraphData', 'after');
     // 2. 校验
     const gd = this.getGraphData(server);
     const diffgd = this.getDiffGraphData(server);
     if (!diffgd) {
       return;
     }
-    if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph')) {
+    if (!this.checkFuncHash(server, diffgd, 'pypto.canNotGetFuncHashOnOpenComparisonGraph', 'after')) {
       return;
     }
     // 3.读取文件数据
-    const jsonContent = await this.getJsonData(diffgd, server);
+    const jsonContent = await this.getJsonData(diffgd, server, 'after');
     if (!jsonContent) {
       return;
     }
@@ -147,7 +147,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     await this.loadFuncHashMap(server, gd);
     // 5. 解析json并返回
     const otherFileName = basename(server.diffGraphData.fsPath).replace('.json', '');
-    const { json } = await DiffGraphHandler.fetchGraphJson(diffgd, server);
+    const { json } = await DiffGraphHandler.fetchGraphJson(diffgd, server, 'after');
     const postInfo = {
       fileName: otherFileName,
       fileContent: json,

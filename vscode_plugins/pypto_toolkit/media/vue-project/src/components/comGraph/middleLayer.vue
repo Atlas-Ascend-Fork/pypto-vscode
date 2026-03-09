@@ -16,6 +16,7 @@ import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
 import { threadCache } from '../../components/swimGraph/swimGraphUtils';
 import { useI18n } from 'vue-i18n';
+import type { IDiffErrorInfo } from '../diffComGraph/type';
 const { t: $t } = useI18n();
 const graphName = ref('');
 const isHovered = ref(false);
@@ -32,6 +33,7 @@ const passIndex = ref('');
 const pathName = ref('');
 const fileName = ref('');
 const diffInfo = ref<Record<string, any>>({});
+const diffErrorInfo = ref<IDiffErrorInfo>();
 const openMode = ref('all');
 const nodeMagic = ref(0);
 const searchLevel = ref(-1);
@@ -90,6 +92,11 @@ function setupComWatchers(server: any) {
     comErrorMessage.value = newValue.data;
     jsonContent.value = '';
     errorLog.value = newValue.log;
+    diffErrorInfo.value = {
+      message: newValue.data,
+      log: newValue.log,
+      diffType: newValue.diffType ?? '',
+    };
   });
 
   watch(server.ComData, (newValue) => {
@@ -467,7 +474,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
 </script>
 
 <template>
-  <template v-if="graphType !== 'threeColumnGraph' && (comErrorMessage || swimErrorMessage)">
+  <template v-if="graphType !== 'threeColumnGraph' && graphType !== 'diffGraph' && (comErrorMessage || swimErrorMessage)">
     <ErrorView style="height: 100vh" :jsonContent="(comErrorMessage || swimErrorMessage)" :errorLog="errorLog" />
   </template>
   <template v-else>
@@ -490,7 +497,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
       :pass-index="passIndex" :path-name="pathName" :file-name="fileName" />
     <DiffComGraph v-if="graphType === 'diffGraph'" :afterJson="diffInfo.afterJson"
       :afterFileName="diffInfo.afterFileName" :beforeJson="diffInfo.beforeJson"
-      :beforeFileName="diffInfo.beforeFileName" :beforeFilePath="diffInfo.beforeFilePath" :loadingStep="loadingStep" />
+      :beforeFileName="diffInfo.beforeFileName" :beforeFilePath="diffInfo.beforeFilePath" :loadingStep="loadingStep" :error-info="diffErrorInfo" />
     <SearchEntry v-if="graphType === 'computeGraph' && searchMode === 1" :disabled-search-mode="disabledSearchMode"
       @full-render="onFullRender" @search-mode="entrySearchModeSet" />
     <SearchMode v-if="graphType === 'computeGraph' && searchMode === 2 && jsonContent.hash" :jsonContent="jsonContent"
