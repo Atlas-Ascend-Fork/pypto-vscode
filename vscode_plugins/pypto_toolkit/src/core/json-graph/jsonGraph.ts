@@ -1577,7 +1577,7 @@ export class AscppDagBuilder {
             let graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
             // check duplicate Nodes
-            if (this.nodeSet.has(nodeId)) {
+            if (this.nodeSet.has(nodeId) && !tensorName.startsWith("Middle")) {
                 graphId = -2;
                 nodeId = `tensor-${tensorMagic}-${graphId}`;
                 this.nodeSet.add(nodeId);
