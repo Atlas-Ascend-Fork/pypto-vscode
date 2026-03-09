@@ -454,6 +454,18 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
     return;
   }
 
+  // 4. 左右键跳转
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    const selectedNodeId = await getSelectedNodeId()
+    if (!selectedNodeId) {
+      (window as any).ascEventBus.emit('message_notice', (window as any).ascLang === 'en' ? 'Please select the node first' : '请先选中节点');
+      return;
+    }
+    (window as any).ascEventBus.emit('jump2SiblingNodeByHotKey', {nodeId: selectedNodeId, eventKey: e.key});
+    return;
+  }
+
 });
 
 </script>

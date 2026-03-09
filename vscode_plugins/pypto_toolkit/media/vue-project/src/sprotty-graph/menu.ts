@@ -61,7 +61,7 @@ export class AstgrContextMenuService implements IContextMenuService {
     }
   }
 
-  jumpNodeButtonStyleFit(buttonPos: string, buttonText: string, nodeId: string, isBootStep = false): HTMLDivElement {
+  jumpNodeButtonStyleFit(buttonPos: string, buttonText: string, selectedNodeId: string, nodeId: string, isBootStep = false): HTMLDivElement {
     const nodeWrap = document.createElement('div');
     nodeWrap.style.cssText = 'transition:background-color .15s;border-radius:4px;padding:2px 4px;cursor:pointer;display:flex;flex-direction:row;align-items:center;margin-top:6px;gap:3px';
     nodeWrap.classList.add('jump-button-item');
@@ -79,14 +79,14 @@ export class AstgrContextMenuService implements IContextMenuService {
     if (!nodeId) {
       nodeWrap.style.cursor = 'not-allowed';
     } else {
+      if (isBootStep || !nodeId) {
+        return;
+      }
       nodeWrap.onclick = () => {
-        if (isBootStep) {
-          return;
-        }
-        (window as any).ascEventBus.emit('jump2SiblingNode', nodeId);
-      };
+        const newNodeId = findDestNode(selectedNodeId, buttonPos, nodeId);
+        (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
+      }
     }
-
     return nodeWrap;
   }
 
@@ -104,9 +104,9 @@ export class AstgrContextMenuService implements IContextMenuService {
     shortCutTitle.textContent = `${(window as any).ascLang === 'en' ? 'Switch Node': '切换节点'}`;
     shortCutContainer.appendChild(shortCutTitle);
 
-    const [previousNode, nextNode] = findNeighborNode(selectedNodeId);
-    const leftWrap = this.jumpNodeButtonStyleFit('left', `${(window as any).ascLang === 'en' ? 'Previous Node': '上一个'}`, previousNode, isBootStep);
-    const rightWrap = this.jumpNodeButtonStyleFit('right', `${(window as any).ascLang === 'en' ? 'Next Node': '下一个'}`, nextNode, isBootStep);
+    const [previousNode, nextNode] = findNeighborNode(selectedNodeId, rootNodes);
+    const leftWrap = this.jumpNodeButtonStyleFit('left', `${(window as any).ascLang === 'en' ? 'Previous Node': '上一个'}`, selectedNodeId, previousNode, isBootStep);
+    const rightWrap = this.jumpNodeButtonStyleFit('right', `${(window as any).ascLang === 'en' ? 'Next Node': '下一个'}`, selectedNodeId, nextNode, isBootStep);
 
     const findSibling = document.createElement('div');
     findSibling.style.cssText = 'display:flex;align-items:center;gap:16px;fontSize:12px;color:var(--devui-primary-text)';
@@ -253,7 +253,39 @@ export class AstgrContextMenuService implements IContextMenuService {
   }
 }
 
-function findNeighborNode(selectedNode: string): string[] {
+export function findDestNode(selectedNodeId: string, buttonPos: string, nodeId: string): string {
+  let tracePath = comGraphStore.data.historyPath;
+
+  const nodePos = tracePath.findIndex(item => item === selectedNodeId);
+  let newNodeId = nodeId;
+  if (nodePos === -1) {
+    tracePath = [];
+    tracePath.push(selectedNodeId);
+    if (buttonPos === 'left') {
+      tracePath.unshift(nodeId);
+    } else {
+      tracePath.push(nodeId);
+    }
+    comGraphStore.setData('historyPath', tracePath);
+  } else {
+    if (buttonPos === 'left') {
+      if (nodePos - 1 >= 0) {
+        newNodeId = tracePath[nodePos - 1];
+      } else {
+        tracePath.unshift(newNodeId);
+      }
+    } else {
+      if ((nodePos + 1) < tracePath.length) {
+        newNodeId = tracePath[nodePos + 1];
+      } else {
+        tracePath.push(newNodeId);
+      }
+    }
+  }
+  return newNodeId;
+}
+
+export function findNeighborNode(selectedNode: string, rootNodes: Readonly<SModelRootImpl>): string[] {
   if (!rootNodes) {
     return [];
   }
@@ -397,8 +429,8 @@ export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
       },
       {
         id: 'JumpToSibling',
-        label: `${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}[Ctrl+G]`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}[Ctrl+G]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
+        label: `${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}`,
+        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
       },
       //   new LabeledAction('', []), // 后续需要再打开
       //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),

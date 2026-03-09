@@ -67,7 +67,7 @@ import Collapse from 'vue-devui/collapse';
 import 'vue-devui/collapse/style.css';
 import Pagination from 'vue-devui/pagination';
 import 'vue-devui/pagination/style.css';
-
+import Echarts from 'vue-devui/echarts';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
@@ -134,4 +134,5 @@ createApp(App)
   .use(Radio)
   .use(Collapse)
   .use(Pagination)
+  .use(Echarts)
   .mount('#app');

@@ -73,7 +73,7 @@ export interface StoreQuery<Item extends Data, Keys extends keyof Item> {
   filter(condition: { [key in Keys]?: Item[key] }): this;
 
   /** 搜索（模糊条件） */
-  search(prop: Keys, keyword: string): this;
+  search(prop: Keys, keyword: string, isExactMatch?: boolean): this;
 
   /** 非空 */
   notNull(props: string[]): this;

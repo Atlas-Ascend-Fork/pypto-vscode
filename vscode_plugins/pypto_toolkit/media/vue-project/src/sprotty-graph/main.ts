@@ -2,6 +2,7 @@ import 'reflect-metadata'; // Sprotty's DI relies on this
 import { LocalModelSource, SModelRootImpl, TYPES, SCompartmentImpl } from 'sprotty';
 import { createDiContainer } from './di.config';
 import { createSvg } from './svgExport';
+import { findDestNode, findNeighborNode } from './menu';
 
 import { FitToScreenAction, SNode, SelectAction, CenterAction, SetViewportAction, UpdateModelAction,
   HoverFeedbackAction } from 'sprotty-protocol';
@@ -252,6 +253,19 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     selectAction([args]);
   }
 
+  const jump2SiblingNodeByHotKeyListener = (args: any) => {
+    const selectedNodeId = args.nodeId;
+    const eventKey = args.eventKey;
+    const [previousNodeId, nextNodeId] = findNeighborNode(selectedNodeId, modelSource.currentRoot as unknown as Readonly<SModelRootImpl>);
+
+    const buttonPos = (eventKey === 'ArrowLeft') ? 'left': 'right';
+    const destNode = (eventKey === 'ArrowLeft') ? previousNodeId : nextNodeId;
+    let newNodeId = '';
+    newNodeId = findDestNode(selectedNodeId, buttonPos, destNode);
+    
+    (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
+  }
+
   const SearchModeOpenListener = (args: any) => {
     const data = {
       nodeMagic: args,
@@ -296,6 +310,8 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
   (window as any).ascEventBus.on('SearchModeOpen', SearchModeOpenListener);
 
   (window as any).ascEventBus.on('OpenSubGraphInThreeColumn', openSubGraphInThreeColumn);
+
+  (window as any).ascEventBus.on('jump2SiblingNodeByHotKey', jump2SiblingNodeByHotKeyListener);
 
   // Handle subgraph coloring
   const colorBySubGraph = (colorBySubgraph: boolean) => {

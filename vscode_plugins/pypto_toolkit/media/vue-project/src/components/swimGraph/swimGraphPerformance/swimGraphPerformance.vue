@@ -15,7 +15,7 @@
           <div class="left-scheduling-gap-container">
             <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title">{{maxSchedulingGap}}(μs)</div>
-              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap}}</div>
+              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap / 1000}}</div>
             </div>
           </div>
           <div class="split-line" :style="{ height: `${54 + 52 * (maxGap.length -1 )}px` }"/>
@@ -36,7 +36,7 @@
                   </div>
                 </d-tooltip>
                 <div class="max-scheduling-gap-item-middle-container">
-                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap}} μs</div>
+                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / 1000}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
                       '--left-color': getBaseColor(item.parent),
@@ -180,36 +180,25 @@
         <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist && iniComplete" />
       </div>
       </d-tab>
-      <d-tab id="tab2" title="Time-consuming" v-if="false">
-        <div class="time-statistics-container">
-          <div class="time-statistics-title">
-            <div class="time-statistics-title-left">任务耗时极差</div>
-            <div>
-              <d-select class="time-statistic-option" v-model="option1" :options="timeOptions1111" size="md"></d-select>
-            </div>
-          </div>
-          <div class="time-statistics-graph-container"></div>
-        </div>
+      <d-tab id="tab2" :title="$t('executionTime')">
+        <time-statistics/>
       </d-tab>
     </d-tabs>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, provide, inject, onMounted, watch } from 'vue';
+import { ref, reactive, nextTick, provide, inject, onMounted, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BigNumber from 'bignumber.js';
 import { buildEventMap } from '../swimGraphProcesses/render/utils';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
-
-
+import TimeStatistics from './timeStatistics/timeStatistics.vue';
+import { executionTimeData } from './utils';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
 const reportTabId = ref('tab1');
-const timeOptionsList = ['按子图', '按语义标签'];
-const option1 = ref('按子图');
-const timeOptions1111 = reactive(timeOptionsList);
 
 const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
@@ -264,7 +253,6 @@ const maxTimeTask = ref([]);
 const maxTimeTaskVal = ref(0);
 const minTimeTask = ref([]);
 const minTimeTaskVal = ref(0);
-
 const {
   pmuTotal
 } = inject('swimGraphPmuTotal');
@@ -312,6 +300,7 @@ const {
   showMaxScheduleEvent,
   resetMaxScheduleState,
   scrollToEvent,
+  canvasStatusReset
 } = inject('swimGraphMethods');
 
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
@@ -359,20 +348,6 @@ aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
 rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
 gapLineWidth.value = isWideScreen.value? 173.5 : 66.5;
 
-
-const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
-    return {
-      key,
-      ...value
-    };
-  });
-
-const globalEventMap = {};
-
-for (const process of processesArray) {
-  globalEventMap[process.pid] = buildEventMap(process);
-}
-
 const getBaseColor = (event) => {
   if (isDarkTheme.value) {
     return event.color.dark.base;
@@ -394,7 +369,33 @@ const closeStatistics = () => {
   performanceWidth.value = 0;
 };
 
+const buildTaskEventMap = (process) => {
+  const eventMap = new Map();
+  for (const [, thread] of process.threads) {
+    if (thread.isCounter || thread.isFakeCore) {
+      continue;
+    }
+    for (const event of thread.events) {
+      eventMap.set(event.id, event);
+    }
+  }
+  return eventMap;
+};
+
 const calculateStatistics = () => {
+  const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
+    return {
+      key,
+      ...value
+    };
+  });
+
+  const globalEventMap = {};
+
+  for (const process of processesArray) {
+    globalEventMap[process.pid] = buildTaskEventMap(process);
+  }
+    
   let tMaxGap = -Infinity;
   let tMaxTimeTask = -Infinity;
   let tMinTimeTask = Infinity;
@@ -403,18 +404,15 @@ const calculateStatistics = () => {
   let curMaxTimeTask = [];
   let curMinTimeTask = [];
 
+  const mod = 1000;
+
   for (const eventMap of Object.values(globalEventMap)) {
     for (const event of eventMap.values()) {
-      if (event.isFakeCore || event.ph == 'C') {
-        continue;
-      }
-
       let taskDur = 0;
-      const mod = 1000;
       if (event.duration) {
-        taskDur = event.duration / mod;
+        taskDur = event.duration;
       } else {
-        taskDur = (event.endTime - event.startTime) / mod;
+        taskDur = event.endTime - event.startTime;
       }
       
       if (taskDur > tMaxTimeTask) {
@@ -436,7 +434,7 @@ const calculateStatistics = () => {
         if (!child) {
           continue;
         }
-        const gap = (child.startTime - event.endTime) / mod;
+        const gap = child.startTime - event.endTime;
         if (gap > tMaxGap) {
           tMaxGap = gap;
           let printGap = 0;
@@ -458,6 +456,9 @@ const calculateStatistics = () => {
       }
     }
   }
+
+  tMaxTimeTask = tMaxTimeTask / mod;
+  tMinTimeTask = tMinTimeTask / mod;
 
   maxGap.value = curMaxGap;
   maxTimeTask.value = curMaxTimeTask;
@@ -568,9 +569,38 @@ const initializePerformance = () => {
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
   iniComplete.value = true;
 };
-
+const handleClickOutside = (e) => {
+  const composedPath = e.composedPath();
+  const index = composedPath.findIndex(
+    (item) =>
+      item.classList?.contains('time-consuming-task') ||
+      item.classList?.contains('max-scheduling-gap-item-task')||
+      item.classList?.contains('time-range-marker') || 
+      item.classList?.contains('time-statistics-table') ||
+      item.classList?.contains('event-container')
+  );
+  if (index !== -1) {
+    return;
+  }
+  canvasStatusReset();
+};
 onMounted(() => {
   initializePerformance();
+  document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  clearExecutionTimeData();
+});
+const clearExecutionTimeData = () => {
+  executionTimeData.echartsMap.clear();       
+  executionTimeData.tableData.length = 0;      
+  executionTimeData.ticks.length = 0;
+  executionTimeData.timelineGroupsMap.clear();     
+};
+// 提供方法给子组件
+provide('swimGraphPmuBarMethod', {
+  clickTask
 });
 </script>
 
@@ -917,34 +947,5 @@ onMounted(() => {
   bottom: 6px;
   z-index: 1;
   color: white;
-}
-
-.time-statistics-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.time-statistics-title {
-  height: 28px;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.time-statistics-title-left {
-  height: 20px;
-  font-size: 13px;
-  text-align: left;
-}
-
-.time-statistics-graph-container {
-  height: 802px;
-  box-sizing: border-box;
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
 }
 </style>

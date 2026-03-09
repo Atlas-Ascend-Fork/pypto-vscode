@@ -654,10 +654,17 @@ export abstract class BaseGraphMsgHandler {
     io?: any;
   }> {
     if (!gd) return { json: undefined };
+    let funcHash = gd.funcHash;
+    if (server.title === 'multiple graph') {
+      if (gd.firstExecFuncHash !== '') {
+        funcHash = gd.firstExecFuncHash;
+      }
+    }
+
     let ret: string | undefined = undefined;
     if (gd.isUsedDB && gd.funcHash) {
       const row = await retryUntil(
-        () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: gd.funcHash || '' }),
+        () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || '' }),
         {
           maxRetries: 3,
           delayMs: 50,
@@ -678,7 +685,7 @@ export abstract class BaseGraphMsgHandler {
     }
     const json = JSON.parse(ret);
     await this.returnCalleeMap(gd, server, json, diffType);
-    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
+    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(funcHash!);
     return { json, io };
   }
 

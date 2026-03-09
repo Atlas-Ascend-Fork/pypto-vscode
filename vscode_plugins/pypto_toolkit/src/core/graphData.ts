@@ -20,6 +20,7 @@ export interface AbstractGraphData {
   calleeOpAttrMap: Record<string, string>;
   curPath?: string;
   magicName?: string;
+  firstExecFuncHash?: string;
   readFileAndSetCache(fsPath: string): Promise<void>;
   getCompleteData(fsPath: string): Promise<any>;
 }
@@ -45,6 +46,7 @@ export abstract class GraphData {
     public curPath?: string,
     public magicName?: string,
     public parentInfo?: any,
+    public firstExecFuncHash?: string,
   ) { }
 
   // 读取json文件并存入缓存 并返回大小文件判断
@@ -116,6 +118,7 @@ export abstract class GraphData {
   private async processFunctions(fsPath: string, value: any): Promise<void> {
     try {
       const sqlJobs: (() => Promise<void>)[] = [];
+      let findExecFunc = true;
       /* 1. 汇总 funcHashMap */
       for (const funcItem of value.functions) {
         const hash = String(funcItem.hash);
@@ -124,6 +127,10 @@ export abstract class GraphData {
           func_magicname: funcItem.func_magicname || null,
           graphtype: funcItem.graphtype ?? null,
         };
+        if (findExecFunc && funcItem.graphtype?.toString() === '2' && funcItem.semantic_label?.[0] !== '') {
+          this.firstExecFuncHash = hash;
+          findExecFunc = false;
+        }
       }
       if (this.isUsedDB) {
         sqlJobs.push(() => getComGraphFileHashMapStore().set({ filePath: fsPath, data: JSON.stringify(this.funcHashMap) }));
@@ -226,7 +233,7 @@ export abstract class GraphData {
         }
       };
 
-      stream.on('data', (chunk: string) => {
+      stream.on('data', (chunk: string | Buffer) => {
         buffer += chunk;
         // 尽快尝试匹配（避免 buffer 过大）
         tryExtract(buffer);

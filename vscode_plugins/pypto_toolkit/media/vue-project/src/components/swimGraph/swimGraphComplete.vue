@@ -7,7 +7,7 @@
       <swim-graph-header ref="swimgraphHeaderComponent" v-if="isThreeColumn"/>
     </div>
     <div :style="{display: 'flex',height: isSwimGraphActive ? 'calc(100% - 40px)' : '100%' }">
-    <div class="container"   
+    <div class="container event-container"   
       :style="containerStyle">
       <Loading v-if="loading" :loadingText="loadingText" :warningText="warningText" />
       <div class="head-container" v-show="!loading">
@@ -976,9 +976,13 @@ const showMaxScheduleEvent = (startEvent, endEvent) => {
     measureDragEndY.value = timeToX(endEvent.startTime);
     measureDragStartTime.value = xToTime(measureDragStartX.value);
     measureDragEndTime.value = xToTime(measureDragEndY.value);
-    measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
-    document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
+    setMeasureDragHeight();
   }
+};
+
+const setMeasureDragHeight = () => {
+  measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+  document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
 };
 
 const calculateHighlightedPaths = (event) => {
@@ -1267,10 +1271,9 @@ const resizeCanvases = (processKey, needResizeTimeline = true) => {
 
 const resizeMeasure = () => {
   showDragAreaBorders.value = false;
-  measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
+  setMeasureDragHeight();
   document.documentElement.style.setProperty('--maskstart', `${measureDragStartX.value}px`);
   document.documentElement.style.setProperty('--maskend', `${measureDragEndX.value}px`);
-  document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
 };
 
 const dragAreaStyle = () => {
@@ -1939,6 +1942,9 @@ provide('swimGraphState', {
   isMeasureModel,
   measureDragStartX,
   measureDragEndX,
+  measureDragEndY,
+  measureDragStartTime,
+  measureDragEndTime,
   isDarkTheme,
   mulDetailsExpanded,
   measureDetailsExpanded,
@@ -1992,6 +1998,11 @@ provide('swimGraphMethods', {
   guideRestore,
   showMaxScheduleEvent,
   resetMaxScheduleState,
+  drawMeasureTime,
+  setMeasureDragHeight,
+  resetsearchState: () => {
+    return swimgraphHeaderComponent?.value.resetsearchState();
+  },
   showDependencies: (e, mode) => {
     return detailComponent?.value.showDependencies(e, mode);
   },
@@ -2017,6 +2028,9 @@ provide('swimGraphMethods', {
     timelineComponent?.value.changeScale(zoomFactor, centerPositionX, needRender, isManual);
   },
   onToggleSwimFullscreenFunction,
+  canvasStatusReset: () => {
+    childContextMap.threadEvent.canvasStatusReset();
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();
@@ -2061,8 +2075,7 @@ const listenExtensionMessage = () => {
           const element = document.querySelector('.zoom-controls');
           element.style.border = '';
           measureMouseUp();
-          measureDragHeight.value = graphProcessesComponent.value.getProcessContainerHeight();
-          document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
+          setMeasureDragHeight();
           break;
         }
         case 'zoomControls': {

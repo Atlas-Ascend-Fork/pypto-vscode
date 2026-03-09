@@ -359,6 +359,10 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
 };
 
 export const clearWholeProcess = (ctx: any, viewState: any, processKey: string) => {
-  const { clearWidth, clearHeight } = viewState.clearInfo[processKey];
+  const clearInfo = viewState.clearInfo[processKey];
+  if (!clearInfo) {
+    return;
+  }
+  const { clearWidth, clearHeight } = clearInfo;
   ctx.clearRect(0, 0, clearWidth, clearHeight);
 }
