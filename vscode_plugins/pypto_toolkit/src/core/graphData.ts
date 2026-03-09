@@ -186,7 +186,7 @@ export abstract class GraphData {
           return;
         }
         sqlJobs.push(() =>
-          getComGraphFuncDataStore().set({ filePath: fsPath, funcHash: String(funcItem.hash), lastChangeTime: lastChangeTime, callHashArr: callHashArr.toString(), data: data }),
+          getComGraphFuncDataStore().set({ filePath: fsPath, funcHash: String(funcItem.hash), lastChangeTime: lastChangeTime, callHashArr: callHashArr.toString(), data: data, firstEntryHash: this.firstExecFuncHash || '' }),
         );
       }
       // 等所有 INSERT 真正进内存 DB

@@ -250,6 +250,9 @@ export abstract class BaseGraphMsgHandler {
     try {
       if (gd.isUsedDB) {
         const result = await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).count();
+        const hashFuncItem = (await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).exec()).filter(
+                                  t => t.firstEntryHash !== '' && t.funcHash === '0');
+        server.comGraphData.firstExecFuncHash = hashFuncItem?.[0]?.firstEntryHash;
         if (result === 0) {
           await gd.readFileAndSetCache(gd.fsPath);
         } else {
@@ -655,8 +658,9 @@ export abstract class BaseGraphMsgHandler {
     if (!gd) return { json: undefined };
     let funcHash = gd.funcHash;
     if (server.title === 'multiple graph') {
-      if (gd.firstExecFuncHash !== '') {
+      if (gd.firstExecFuncHash && (gd.firstExecFuncHash !== '')) {
         funcHash = gd.firstExecFuncHash;
+        server.comGraphData.firstExecFuncHash = funcHash;
       }
     }
 

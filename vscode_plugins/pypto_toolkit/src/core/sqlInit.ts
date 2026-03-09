@@ -59,6 +59,7 @@ export interface comGraphFuncDataCache {
     lastChangeTime: string;
     data: string;
     callHashArr: string;
+    firstEntryHash: string;
 }
 
 const COM_GRAPH_FUNC_DATA_ATTRIBUTES = defineAttributes<comGraphFuncDataCache>({
@@ -67,6 +68,7 @@ const COM_GRAPH_FUNC_DATA_ATTRIBUTES = defineAttributes<comGraphFuncDataCache>({
     lastChangeTime: { type: String, isQuery: true },
     data: { type: String },
     callHashArr: { type: String },
+    firstEntryHash: { type: String },
 });
 
 let comGraphFuncDataStore: Store<comGraphFuncDataCache, 'filePath' | 'funcHash', 'lastChangeTime'>;
