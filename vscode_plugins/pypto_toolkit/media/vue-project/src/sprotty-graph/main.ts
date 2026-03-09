@@ -263,6 +263,9 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
     let newNodeId = '';
     newNodeId = findDestNode(selectedNodeId, buttonPos, destNode);
     
+    if (newNodeId === "") {
+      return;
+    }
     (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
   }
 
