@@ -200,6 +200,7 @@ export default {
     summary: 'Summary',
     executionTime: 'Execution Time',
     timeRange: 'range',
+    noDataText: 'No Data',
     comGraph: {
         copy: 'Copy',
         copied: 'Copied',

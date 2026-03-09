@@ -11,7 +11,7 @@
       margin-top: 0;
     }
     .time-group-height {
-      height: 60px;
+      height: 58px;
     }
 }
 .timeline-container {
@@ -150,7 +150,7 @@
   text-overflow: ellipsis;
 }
 .time-statistics-title {
-  margin: 20px 0 16px 0;
+  margin: 20px 0 4px 0;
   font-size: 13px;
   font-weight: 700;
   color: var(--devui-swim-text-title);
@@ -158,5 +158,12 @@
 .time-statistics-title-sub {
   font-size: 12px;
   font-weight: 400;
+  color: var(--devui-thread-text);
+}
+.no-data-style {
+  height: calc(100vh - 268px);
+  display: flex; 
+  align-items: center;
+  justify-content: center;
   color: var(--devui-thread-text);
 }

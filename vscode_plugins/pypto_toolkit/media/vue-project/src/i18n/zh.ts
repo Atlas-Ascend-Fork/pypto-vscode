@@ -201,6 +201,7 @@ export default {
    summary: '概览',
    executionTime: '耗时',
    timeRange: '极差',
+   noDataText: '暂无数据',
    comGraph: {
       copy: '复制',
       copied: '复制成功',

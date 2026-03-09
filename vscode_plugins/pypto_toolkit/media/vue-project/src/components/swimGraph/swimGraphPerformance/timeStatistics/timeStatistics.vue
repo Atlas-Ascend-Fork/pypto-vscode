@@ -11,16 +11,19 @@
         <div v-if="timeType === 'label'">
             <div class="time-statistics-title">{{ $t('totalTime') }}</div>
             <d-table :data="dataSource" class="time-statistics-table" @cell-click="onCellClick">
-                <d-column field="semanticLabel" class="ml0">
+                <d-column field="semanticLabel" :style="{width: isWideScreen ? `148px` : '100px' }" show-overflow-tooltip>
                     <template #header>
-                        <span class="header-label-color">{{ $t('taskLabel') }}</span>
+                        <d-tooltip :content="$t('taskLabel')">
+                            <div class="header-label-color" :style="{width: isWideScreen ? `100%` : '60px' }">{{ $t('taskLabel') }}</div>
+                        </d-tooltip>
                     </template>
                 </d-column>
-                <d-column>
+                <d-column :style="{width: isWideScreen ? `146px` : '100px' }" show-overflow-tooltip>
                     <template #header>
                         <div class="header-label-content">
-                            <div class="header-label-color mr4">{{ $t('cumulativeTime') }}
-                            </div>
+                            <d-tooltip :content="$t('cumulativeTime')">
+                            <div class="header-label-color mr4" :style="{width: isWideScreen ? `100%` : '50px' }">{{ $t('cumulativeTime') }}</div>
+                            </d-tooltip>
                             <d-popover trigger="hover" :position="['top']">
                                 <template #content>
                                     <div>
@@ -35,11 +38,12 @@
                         <div class="cursor-style">{{ scope.row.cumulativeTime }}</div>
                     </template>
                 </d-column>
-                <d-column>
+                <d-column :style="{width: isWideScreen ? `146px` : '100px' }" show-overflow-tooltip>
                     <template #header>
                         <div class="header-label-content">
-                            <div class="header-label-color mr4">{{ $t('cycleDuration') }}
-                            </div>
+                            <d-tooltip :content="$t('cycleDuration')">
+                            <div class="header-label-color mr4" :style="{width: isWideScreen ? `100%` : '50px' }">{{ $t('cycleDuration') }}</div>
+                            </d-tooltip>
                             <d-popover trigger="hover" :position="['top']">
                                 <template #content>
                                     <div>
@@ -54,15 +58,18 @@
                         <div class="cursor-style">{{ scope.row.cycleDuration }}</div>
                     </template>
                 </d-column>
+                <template #empty>
+                    <div style="text-align: center;">{{  $t('noDataText') }}</div>
+                </template>
             </d-table>
         </div>
         <div v-if="timeType === 'id' && showSubGraphTimingChart" class="time-statistics-graph-content">
-            <div class="padding16"><d-icon name="back" @click="drillDownSubGraphTiming" class="cursor-style"></d-icon>
-                <span class="time-distribution-text">{{ $t('latencyDistribution') }}</span> <span
-                    class="time-distribution-line">|</span><span
-                    class="time-distribution-text">{{ $t('subGraphId') }}</span> <span
-                    class="time-distribution-id">{{ subGraphId
-                    }}</span>
+            <div class="padding16">
+                <d-icon name="back" @click="drillDownSubGraphTiming" class="cursor-style back-color"></d-icon>
+                <span class="time-distribution-text">{{ $t('latencyDistribution') }}</span> 
+                <span class="time-distribution-line">|</span>
+                <span class="time-distribution-text">{{ $t('subGraphId') }}</span> 
+                <span class="time-distribution-id">{{ subGraphId }}</span>
             </div>
             <d-chart :option="option" class="chart-containner"></d-chart>
         </div>
@@ -93,6 +100,13 @@ const option = reactive({
         type: 'value',
         name: window.ascLang === 'zh' ? `(${$t('subgraphs')})` : $t('subgraphs'),
         nameLocation: 'end'
+    },
+    grid: {
+        top: '10%',
+        left: '3%',
+        right: '11%',
+        bottom: '2%',
+        containLabel: true
     },
     tooltip: {
         trigger: 'axis',
@@ -142,7 +156,8 @@ const {
     measureDragStartTime,
     measureDragEndTime,
     selectedEvent,
-    processExpanded
+    processExpanded,
+    isWideScreen
 } = inject('swimGraphState');
 const {
     render,
@@ -270,9 +285,11 @@ const onUpdateData = (data) => {
   }
   subGraphDuration.sort((a, b) => a - b);
   const maxDuration = subGraphDuration[subGraphDuration.length - 1];
-  option.xAxis.data = getRanges(maxDuration);
-  option.series[0].data = countDurationsInRanges(subGraphDuration);
-    executionTimeData.echartsMap.set(subGraphId.value, {
+  const barCount = Math.min(maxDuration / 10, 20);
+  const step = Math.ceil(maxDuration / barCount);
+  option.xAxis.data = getRanges(maxDuration, step);
+  option.series[0].data = countDurationsInRanges(subGraphDuration, step);
+  executionTimeData.echartsMap.set(subGraphId.value, {
         xAxisData: [...option.xAxis.data],
         seriesData: [...option.series[0].data]
     });
@@ -392,19 +409,17 @@ const getTableData = () => {
 </script>
 <style lang="scss">
 .time-statistics-table {
-    top: 0;
-
+    top: 10px;
     .devui-table__thead>tr>th:nth-child(1) .header-container {
         margin-left: 0;
     }
 }
-
 .text-wrap {
-    white-space: normal;
-    word-wrap: break-word;
-    word-break: break-all;
-    overflow-wrap: break-word;
-    max-width: 132px;
+  white-space: normal;
+  max-width: 132px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;        
 }
 </style>
 <style lang="scss">

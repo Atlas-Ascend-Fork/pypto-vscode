@@ -1,6 +1,6 @@
 <template>
   <div class="time-range-graph-content">
-    <div ref="timelineContainer" class="timeline-container" :style="{ 'max-height': `calc(100vh - ${maxHeight}px)` }">
+    <div v-if="timelineGroups.length > 0" ref="timelineContainer" class="timeline-container" :style="{ 'max-height': `calc(100vh - ${maxHeight}px)` }">
       <div class="timeline-header mr20">
         <div class="label">{{ timeConsumingLabel }}</div>
         <div class="ticks">
@@ -43,6 +43,7 @@
         </div>
       </div>
     </div>
+    <div v-else class="no-data-style">{{ $t('noDataText') }}</div>
   </div>
 </template>
 <script setup>
@@ -153,7 +154,7 @@ const processEvent = (event, groups) => {
     const match = event.name.match(/\((?<opName>[^)]+)\)/);
     leafIndex = match?.groups?.opName ?? '';
   }
-  if (!leafIndex) {
+  if (leafIndex === '') {
     return;
   }
   const taskDur = event.duration ?? (event.endTime - event.startTime);
@@ -241,13 +242,14 @@ const truncateWithEllipsis = (str, maxLength = 2) => {
 };
 const getTicks = (globalMaxDuration) => {
   return Array.from({ length: 4 }, (_, i) => {
-    const rawVal = i === 3 
+    const isLast = i === 3;
+    const rawVal = isLast 
       ? globalMaxDuration 
       : Math.round(i * globalMaxDuration / 3);
-    const val = Math.ceil(rawVal / 10) * 10;
+    const val = Math.ceil(rawVal / mod / 10) * 10;
     return {
       pos: `${(i / 3 * 100).toFixed(2)}%`,
-      label: `+${val / mod} us`
+      label: isLast ? `+${val} us` : `+${val}`
     };
   });
 };
