@@ -14,6 +14,8 @@ const symsSymNameDict: Record<SymType, string> = {
 // 操作名称映射
 let symsOpNameDict: Record<number, string>;
 let ssopCall = 16;
+let ssopMMin = 17;
+let ssopMMax = 18;
 let uopArr = [0, 1, 2];
 
 const oldSymsOpNameDict: Record<number, string> = {
@@ -34,6 +36,8 @@ const oldSymsOpNameDict: Record<number, string> = {
   14: 'ssop_min',
   15: 'ssop_max',
   16: 'ssop_call',
+  17: 'ssop_mmin',
+  18: 'ssop_mmax'
 };
 
 const newSymsOpNameDict: Record<number, string> = {
@@ -53,9 +57,7 @@ const newSymsOpNameDict: Record<number, string> = {
   29: 'ssop_gt',
   30: 'ssop_ge',
   31: 'ssop_and',
-  32: 'ssop_or',
-  33: 'ssop_min',
-  34: 'ssop_max',
+  32: 'ssop_or'
 };
 
 const oldCallOp = 16;
@@ -86,6 +88,8 @@ const opMap: Record<string, string> = {
   ssop_and: '&',
   ssop_or: '|',
   ssop_call: '',
+  ssop_mmin: 'mmin',
+  ssop_mmax: 'mmax',
 };
 
 // 一元操作符列表
@@ -103,7 +107,7 @@ interface OpInfo {
 function symsOpGetInfo(op: number, symList: string[], symListReadable: any[], server?: any, diffType?: 'before' | 'after'): OpInfo | undefined {
   if (uopArr.includes(op)) {
     return { argNum: 1, opName: symsOpNameDict[op] };
-  } else if (op === ssopCall) {
+  } else if (op === ssopCall || op === ssopMMin || op === ssopMMax) {
     const argNumStr = symList.shift();
     if (argNumStr === undefined) {
       if (server) {
@@ -231,6 +235,12 @@ function parseExpr(expr: string): string {
     const funcName = args[0];
     const funcArgs = args.slice(1).join(', ');
     return `${funcName}(${funcArgs})`;
+  }
+
+  if (opType === 'ssop_mmin' || opType === 'ssop_mmax') {
+    const opChar = opMap[opType];
+    const funcArgs = args.join(', ');
+    return `${opChar}(${funcArgs})`;
   }
 
   if (opType in opMap) {
