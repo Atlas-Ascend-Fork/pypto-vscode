@@ -97,8 +97,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
   background-color: var(--devui-category-search-dropdown-item-bg);
+  overflow: visible;
 }
 .progress-bar .text {
   position: absolute;
@@ -118,6 +118,7 @@
   transform: translateX(-50%);
   background: var(--base-bg-range-color, #cccccc);
   transition: background-color 0.3s ease;
+  border: 1px solid var(--base-bg-range-color, #cccccc);
 }
 .markers {
   height: 16px;

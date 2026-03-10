@@ -18,15 +18,15 @@
             </div>
           </d-tooltip>
           <div class="progress-container mt0">
-            <div class="progress-bar" :style="{ left: group.start + '%', width: group.width }">
-              <d-tooltip :content="group.text">
+            <div class="progress-bar" :style="{ left: group.start + '%', width: group.width }" v-if="group.showMarker">
+              <d-tooltip :content="group.tooltipText">
                 <div class="text">{{ group.text }}</div>
               </d-tooltip>
             </div>
-            <d-tooltip :content="group.text">
+            <d-tooltip :content="group.tooltipText" v-if="group.showMarker">
               <div class="dot" :style="{ left: group.start + '%', '--base-bg-range-color': getBaseColor(group.event)}"></div>
             </d-tooltip>
-            <d-tooltip :content="group.text">
+            <d-tooltip :content="group.tooltipText">
               <div class="dot" :style="{ left: group.width , '--base-bg-range-color': getBaseColor(group.event) }"></div>
             </d-tooltip>
           </div>
@@ -34,10 +34,12 @@
         <div class="marker-row">
           <div class="label"></div>
           <div class="markers">
-            <div v-for="(marker, idx) in group.markers" :key="idx" class="marker time-range-marker" :style="{ left: marker.left, '--base-bg-range-color': getBaseColor(group.event) }">
+            <div v-for="(marker, idx) in group.markers" :key="idx" class="time-range-marker">
+              <div v-if="marker.showMarker" class="marker" :style="{ left: marker.left, '--base-bg-range-color': getBaseColor(group.event) }">
               <d-tooltip :content="marker.globalText">
                 <div class="text" @click="clickTask(marker.event)">{{ marker.text }}</div>
               </d-tooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -189,35 +191,55 @@ const buildTimelineGroups = (groups) => {
     globalMaxDuration = 1;
   }
   globalMaxDuration = Math.ceil(globalMaxDuration / 10) * 10;
+  const TEXT_FULL_THRESHOLD_PERCENT = 34;
+  const TEXT_SHORT_THRESHOLD_PERCENT = 24;
+  const TEXT_NUMBER_THRESHOLD_PERCENT = 18;
   const timelineList = Array.from(groups.entries()).map(([leafIndex, data]) => {
     const { min, max, nameMin, nameMax, eventMin, eventMax } = data;
-    const diff = max - min;
+    const showMarkerFlag = nameMin !== nameMax;
+    const diff = !showMarkerFlag ? max : max - min;
     const diffWidthPercent = (diff / globalMaxDuration) * 100;
     const diffClampedWidth = Math.min(diffWidthPercent, 100);
-    const shouldOffset = diffClampedWidth < 30;
+    const MIN_PIXEL_DISTANCE = 82;
+    const minDiffForSpacing = (MIN_PIXEL_DISTANCE / 100) * globalMaxDuration;
+    const needsOffset = diff < minDiffForSpacing;
     const minText = min / mod;
     const maxText = max / mod;
-    const diffText = diff / mod;
+    const diffText = showMarkerFlag ? diff / mod : 0;
+    let displayText = '';
+    if (diffClampedWidth >= TEXT_FULL_THRESHOLD_PERCENT) {
+      displayText = `${$t('timeRange')} ${diffText.toFixed(3)} us`;
+    } else if (diffClampedWidth >= TEXT_SHORT_THRESHOLD_PERCENT) {
+      displayText = `${diffText.toFixed(3)} us`;
+    } else if (diffClampedWidth >= TEXT_NUMBER_THRESHOLD_PERCENT) {
+      displayText = `${diffText.toFixed(3)}`;
+    } else {
+      displayText = '';
+    }
     return {
       id: leafIndex,
       start: 0,
-      width: `calc(${diffClampedWidth}% - 10px)`,
-      text: `${$t('timeRange')} ${diffText.toFixed(3)} us`,
+      width: `calc(${diffClampedWidth}%)`,
+      tooltipText: `${$t('timeRange')} ${diffText.toFixed(3)} us`,
+      text: displayText, 
       event: eventMin,
+      showMarker: showMarkerFlag,
       markers: [
         {
           globalText: `${nameMin} (${minText} us)`,
           text: `${truncateWithEllipsis(nameMin)} (${minText} us)`,
           left: `calc(0% - 41px)`,
-          event: eventMin
+          event: eventMin,
+          showMarker: showMarkerFlag
         },
         {
           globalText: `${nameMax} (${maxText} us)`,
           text: `${truncateWithEllipsis(nameMax)} (${maxText} us)`,
-          left: shouldOffset
-            ? `calc(0% + 43px)`
+          left: needsOffset && showMarkerFlag
+            ? `calc(0% + 42px)`
             : `calc(${diffClampedWidth}% - 10px - 41px)`,
-          event: eventMax
+          event: eventMax,
+          showMarker: true
         }
       ]
     };
