@@ -1,5 +1,4 @@
 .time-range-graph-content {
-  margin-top: 16px;
   box-sizing: border-box;
   border: var(--devui-nest-bg);
   border-radius: 12px;
@@ -17,14 +16,6 @@
 .timeline-container {
   padding: 16px;
   --container-height: auto;
-  overflow: auto;
-}
-.timeline-container::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.timeline-container::-webkit-scrollbar-thumb {
-  border-radius: 999px;
 }
 .timeline-header,
 .id-row,
@@ -125,6 +116,8 @@
   border-radius: 50%;
   top: 4px;
   transform: translateX(-50%);
+  background: var(--base-bg-range-color, #cccccc);
+  transition: background-color 0.3s ease;
 }
 .markers {
   height: 16px;
@@ -139,6 +132,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  background: var(--base-bg-range-color, #cccccc);
+  transition: background-color 0.3s ease;
 }
 .marker .text {
   color: var(--devui-category-search-font-color);
@@ -159,9 +154,10 @@
   font-size: 12px;
   font-weight: 400;
   color: var(--devui-thread-text);
+  padding-bottom: 16px;
 }
 .no-data-style {
-  height: calc(100vh - 268px);
+  height: 300px;
   display: flex; 
   align-items: center;
   justify-content: center;

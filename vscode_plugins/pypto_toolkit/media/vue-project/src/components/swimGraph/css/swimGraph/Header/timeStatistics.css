@@ -74,3 +74,19 @@
     background: var(--devui-swim-split-line);
     margin-top: 10px;
 }
+.scroll-container {
+    max-height: 80vh;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+    }
+}
+
+#scroll-container-id>* {
+    margin-top: 0;
+}

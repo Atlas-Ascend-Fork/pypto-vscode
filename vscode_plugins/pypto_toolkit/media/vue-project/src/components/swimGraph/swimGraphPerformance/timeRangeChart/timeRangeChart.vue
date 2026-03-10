@@ -1,6 +1,6 @@
 <template>
   <div class="time-range-graph-content">
-    <div v-if="timelineGroups.length > 0" ref="timelineContainer" class="timeline-container" :style="{ 'max-height': `calc(100vh - ${maxHeight}px)` }">
+    <div v-if="timelineGroups.length > 0" ref="timelineContainer" class="timeline-container">
       <div class="timeline-header mr20">
         <div class="label">{{ timeConsumingLabel }}</div>
         <div class="ticks">
@@ -24,17 +24,17 @@
               </d-tooltip>
             </div>
             <d-tooltip :content="group.text">
-              <div class="dot" :style="{ left: group.start + '%', background: group.color}"></div>
+              <div class="dot" :style="{ left: group.start + '%', '--base-bg-range-color': getBaseColor(group.event)}"></div>
             </d-tooltip>
             <d-tooltip :content="group.text">
-              <div class="dot" :style="{ left: group.width , background: group.color }"></div>
+              <div class="dot" :style="{ left: group.width , '--base-bg-range-color': getBaseColor(group.event) }"></div>
             </d-tooltip>
           </div>
         </div>
         <div class="marker-row">
           <div class="label"></div>
           <div class="markers">
-            <div v-for="(marker, idx) in group.markers" :key="idx" class="marker time-range-marker" :style="{ left: marker.left, background: group.color }">
+            <div v-for="(marker, idx) in group.markers" :key="idx" class="marker time-range-marker" :style="{ left: marker.left, '--base-bg-range-color': getBaseColor(group.event) }">
               <d-tooltip :content="marker.globalText">
                 <div class="text" @click="clickTask(marker.event)">{{ marker.text }}</div>
               </d-tooltip>
@@ -56,9 +56,6 @@ const state = inject('subGraphTimingState');
 const { isDarkTheme } = inject('root');
 const timeConsumingLabel = computed(() =>
   state.timeType.value === 'id' ? $t('subGraphId') : $t('taskLabel')
-);
-const maxHeight = computed(() =>
-  state.timeType.value === 'id' ? 232 : 600
 );
 const ticks = ref([
   { pos: '0%', label: '+0us' },
@@ -158,12 +155,10 @@ const processEvent = (event, groups) => {
     return;
   }
   const taskDur = event.duration ?? (event.endTime - event.startTime);
-  const colorInfo = isDarkTheme.value ? event.color.dark.base : event.color.light.base;
   if (!groups.has(leafIndex)) {
     groups.set(leafIndex, {
       min: taskDur,
       max: taskDur,
-      color: colorInfo,
       nameMin: event.name,
       nameMax: event.name,
       eventMin: event,
@@ -195,7 +190,7 @@ const buildTimelineGroups = (groups) => {
   }
   globalMaxDuration = Math.ceil(globalMaxDuration / 10) * 10;
   const timelineList = Array.from(groups.entries()).map(([leafIndex, data]) => {
-    const { min, max, color, nameMin, nameMax, eventMin, eventMax } = data;
+    const { min, max, nameMin, nameMax, eventMin, eventMax } = data;
     const diff = max - min;
     const diffWidthPercent = (diff / globalMaxDuration) * 100;
     const diffClampedWidth = Math.min(diffWidthPercent, 100);
@@ -208,7 +203,7 @@ const buildTimelineGroups = (groups) => {
       start: 0,
       width: `calc(${diffClampedWidth}% - 10px)`,
       text: `${$t('timeRange')} ${diffText.toFixed(3)} us`,
-      color,
+      event: eventMin,
       markers: [
         {
           globalText: `${nameMin} (${minText} us)`,
@@ -258,11 +253,25 @@ watch(
   () => state.timeType.value,
   (newVal, oldVal) => {
     initData();
+    if (!timelineContainer.value) {
+      return;
+    }
+    timelineContainer.value.style.removeProperty('--container-height');
   }
 );
 onUnmounted(() => {
   window.removeEventListener('resize', updateLineHeight);
 });
+const getBaseColor = (event) => {
+  if (!event) {
+    return undefined;
+  }
+  if (isDarkTheme.value) {
+    return event.color.dark.base;
+  } else {
+    return event.color.light.base;
+  }
+};
 const {
     clickTask
 } = inject('swimGraphPmuBarMethod');

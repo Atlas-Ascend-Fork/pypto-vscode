@@ -4,8 +4,9 @@
             <d-select v-model="timeType" :options="timeOptions" size="md" class="time-type-width"
                 @value-change="handleTimeChange" @update:modelValue="OnModeChange"></d-select>
         </div>
-        <div class="time-statistics-title">{{ $t('executionTimeRange') }}</div>
+        <div class="time-statistics-title" :style="{'padding-bottom': timeType === 'label' ? `16px` : '0' }">{{ $t('executionTimeRange') }}</div>
         <div class="time-statistics-title-sub" v-if="timeType === 'id'">{{ leafIndexName }}</div>
+        <div id="scroll-container-id" class="scroll-container">
         <time-range-chart v-if="(!showSubGraphTimingChart && timeType === 'id') || timeType === 'label'"
             @update-data="onUpdateData" />
         <div v-if="timeType === 'label'">
@@ -62,6 +63,7 @@
                     <div style="text-align: center;">{{  $t('noDataText') }}</div>
                 </template>
             </d-table>
+        </div>
         </div>
         <div v-if="timeType === 'id' && showSubGraphTimingChart" class="time-statistics-graph-content">
             <div class="padding16">
