@@ -137,7 +137,7 @@ export abstract class BaseGraphMsgHandler {
       data['isFinial'] = true;
       isCached = true;
     } else {
-      data = this.createJsonGraphData(message.data, server, errNodeList);
+      data = this.createJsonGraphData(message.data, server, errNodeList, message.diffType);
     }
     this.postJsonGraphData(server, message, data, isCached);
   }
@@ -219,9 +219,9 @@ export abstract class BaseGraphMsgHandler {
     });
   }
 
-  static createJsonGraphData(data, server, errNodeList) {
+  static createJsonGraphData(data, server, errNodeList, diffType?: 'before' | 'after') {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, searchLevel, version, threeMode } = data;
-    const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap);
+    const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap, diffType);
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
       currentData,
@@ -245,7 +245,7 @@ export abstract class BaseGraphMsgHandler {
     server.setRef(cmd, { step: 'readJson' });
   }
 
-  protected static async getJsonData(gd: AbstractGraphData, server: any) {
+  protected static async getJsonData(gd: AbstractGraphData, server: any, diffType?: 'before' | 'after') {
     gd.isUsedDB = globalConfig.IS_USE_DB;
     try {
       if (gd.isUsedDB) {
@@ -263,19 +263,19 @@ export abstract class BaseGraphMsgHandler {
       }
     } catch (err: any) {
       if (err.code === 'FILE_READ_ERROR') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' });
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType });
         return;
       } else if (err.code === 'JSON_PARSE_ERROR') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.jsonParse'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
         return;
       } else if (err.code === 'STREAM_PROCESSING_ERROR') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streamProcessing'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.streamProcessing'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
         return;
       } else if (err.code === 'DATA_VALIDATION_OP_MAGIC_ERROR') {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.dataOpMagicDuplication'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.dataOpMagicDuplication'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
         return;
       } else {
-        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' })
+        server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.readJsonUnknown'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph', diffType })
         return;
       }
     }
@@ -324,7 +324,7 @@ export abstract class BaseGraphMsgHandler {
         child.kill();
       }
       if (res.type === 'error') {
-        this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data });
+        this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data }, gd.layoutOptions['PyPTO.filePath']);
         return;
       }
     });
@@ -651,6 +651,7 @@ export abstract class BaseGraphMsgHandler {
   protected static async fetchGraphJson(
     gd: AbstractGraphData,
     server: any,
+    diffType?: 'before' | 'after'
   ): Promise<{
     json: any;
     io?: any;
@@ -680,14 +681,14 @@ export abstract class BaseGraphMsgHandler {
     }
     if (!ret) {
       if (gd.isUsedDB) {
-        this.returnError(server, 'pypto.comGraph.errorMessage.dbQueryError', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
+        this.returnError(server, 'pypto.comGraph.errorMessage.dbQueryError', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' }, diffType);
       } else {
-        this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' });
+        this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' }, diffType);
       }
       return { json: undefined };
     }
     const json = JSON.parse(ret);
-    await this.returnCalleeMap(gd, server, json);
+    await this.returnCalleeMap(gd, server, json, diffType);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(funcHash!);
     return { json, io };
   }
@@ -737,7 +738,7 @@ export abstract class BaseGraphMsgHandler {
     return tempCalleemap;
   }
 
-  private static async returnCalleeMap(gd: AbstractGraphData, server: any, filejson: any) {
+  private static async returnCalleeMap(gd: AbstractGraphData, server: any, filejson: any, diffType?: 'before' | 'after') {
     let calleeMap = graphFileHashMap[gd.fsPath];
     if (gd.isUsedDB) {
       const result = await retryUntil(
@@ -752,7 +753,7 @@ export abstract class BaseGraphMsgHandler {
       if (result?.data) {
         calleeMap = JSON.parse(result.data);
       } else {
-        this.returnError(server, 'pypto.comGraph.errorMessage.error', { processName: 'getCalleeMap' }, 'pypto.comGraph.errorLogMessage.error', { logText: 'not get calleeMap' });
+        this.returnError(server, 'pypto.comGraph.errorMessage.error', { processName: 'getCalleeMap' }, 'pypto.comGraph.errorLogMessage.error', { logText: 'not get calleeMap' }, diffType);
       }
     }
     calleeMap = this.subGraphFileSearch(filejson, gd, calleeMap);
@@ -826,18 +827,18 @@ export abstract class BaseGraphMsgHandler {
     this.initTheme(server);
   }
 
-  protected static checkFuncHash(server: any, gd: AbstractGraphData, cmd: string): boolean {
+  protected static checkFuncHash(server: any, gd: AbstractGraphData, cmd: string, diffType?: 'before' | 'after'): boolean {
     if (gd && !gd.funcHash) {
-      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: 'not found', message: '' });
+      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: 'not found', message: '' }, diffType);
       return false;
     }
     return true;
   }
 
-  public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>) {
+  public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>, diffType?: 'before' | 'after') {
     const data = cmdArgs ? t(cmd, cmdArgs) : t(cmd);
     const log = logCmd ? (logCmdArgs ? t(logCmd, logCmdArgs) : t(logCmd)) : null;
-    server.setRef('ErrorMessage', { data: data, log: log });
+    server.setRef('ErrorMessage', { data: data, log: log, diffType });
   }
 
   /** 前端一次性把整图的张量输入输出关系推过来 */

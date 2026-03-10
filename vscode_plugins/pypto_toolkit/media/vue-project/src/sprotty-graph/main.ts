@@ -22,7 +22,7 @@ const MINIMAP_TYPE = 2;
 const MAINMAP_WHEEL = 3;
 const MAINMAP_FIT_SCREEN = 4;
 
-export function useSprottyLoad(containerId?: string, filePath?: string) {
+export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'after') {
   const SPROTTY_CONTAINER_ID = containerId ?? 'sprotty';
   const renderType = filePath ?? '';
   const MINIMAP_ID = `${renderType}_minimap`;
@@ -189,7 +189,7 @@ export function useSprottyLoad(containerId?: string, filePath?: string) {
       version: comGraphStore.data.version,
       threeMode: isThreeMode
     };
-    server.getJsonGraphData({ data: data });
+    server.getJsonGraphData({ data: data, diffType: filePath });
     jsonGraphWatchHandle = watch(server.JsonGraphData, (newValue: any) => {
       comGraphStore.setData("isCached", newValue.isCached);
       if (!filePath || filePath === newValue.data.filePath) {

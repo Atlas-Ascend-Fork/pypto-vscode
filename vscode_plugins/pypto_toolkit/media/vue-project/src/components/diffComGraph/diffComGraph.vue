@@ -14,27 +14,33 @@
       />
       <div :class="['diff-wrap', `diff-layout-${currentLayout}`]">
         <div class="diff-before-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
-          <DiffHeader :file-name="beforeFileName" />
-          <div id="sprotty-before"></div>
-          <MiniMap
-            ref="beforeMinimapEl"
-            type="before"
-            @mousedown="() => (isDragging = true)"
-            @mousemove="(e) => onMinimapMove(e, 'before')"
-            @mouseup="() => (isDragging = false)"
-          />
+          <ErrorView v-if="errorInfo?.diffType === 'before'" :json-content="errorInfo?.message" :error-log="errorInfo?.log" />
+          <template v-else>
+            <DiffHeader :file-name="beforeFileName" />
+            <div id="sprotty-before"></div>
+            <MiniMap
+              ref="beforeMinimapEl"
+              type="before"
+              @mousedown="() => (isDragging = true)"
+              @mousemove="(e) => onMinimapMove(e, 'before')"
+              @mouseup="() => (isDragging = false)"
+            />
+          </template>
         </div>
         <div class="diff-after-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
-          <DiffHeader :file-name="realAfterFileName" />
-          <SelectFile v-if="showSelectFile && !isLoading" :before-file-path="beforeFilePath" @change="renderGraph" />
-          <div id="sprotty-after"></div>
-          <MiniMap
-            ref="afterMinimapEl"
-            type="after"
-            @mousedown="() => (isDragging = true)"
-            @mousemove="(e) => onMinimapMove(e, 'after')"
-            @mouseup="() => (isDragging = false)"
-          />
+          <ErrorView v-if="errorInfo?.diffType === 'after'" :json-content="errorInfo?.message" :error-log="errorInfo?.log" />
+          <template v-else>
+            <DiffHeader :file-name="realAfterFileName" />
+            <SelectFile v-if="showSelectFile && !isLoading" :before-file-path="beforeFilePath" @change="renderGraph" />
+            <div id="sprotty-after"></div>
+            <MiniMap
+              ref="afterMinimapEl"
+              type="after"
+              @mousedown="() => (isDragging = true)"
+              @mousemove="(e) => onMinimapMove(e, 'after')"
+              @mouseup="() => (isDragging = false)"
+            />
+          </template>
         </div>
         <Loading v-if="isLoading" :loadingText="loadingText" />
       </div>
@@ -45,14 +51,14 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, inject, ref, onBeforeMount, onMounted, Ref, provide } from 'vue';
+import { watch, computed, inject, ref, onBeforeMount, onMounted, Ref, provide, PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSprottyLoad } from '../../sprotty-graph/main';
 import DiffHeader from './diffHeader.vue';
 import DiffLayout from './diffLayout.vue';
 import SelectFile from './select-file.vue';
 import Loading from '../comGraph/loading.vue';
-import type { SelectFileChangeEventParam, TDiffLayout } from './type';
+import type { SelectFileChangeEventParam, TDiffLayout, IDiffErrorInfo } from './type';
 import { compareJsonData } from '../../utils';
 import MiniMap from '../comGraph/comGraphMinimap.vue';
 import DiffList from './diffList.vue';
@@ -63,6 +69,7 @@ import ShowTip from '../util/showTip.vue';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import DiffModal from './diffModal.vue';
+import ErrorView from '../comGraph/error.vue';
 
 const { server } = useViewServer<IComViewServer>();
 const props = defineProps({
@@ -72,6 +79,7 @@ const props = defineProps({
   beforeFileName: String,
   beforeFilePath: String,
   loadingStep: { type: String, default: '' },
+  errorInfo: Object as PropType<IDiffErrorInfo>
 });
 const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 const { t } = useI18n();
@@ -111,6 +119,9 @@ function onLayoutChange(e) {
 }
 
 const renderGraph = (e: SelectFileChangeEventParam) => {
+  if (!e.fileContent) {
+    return;
+  }
   realAfterFileName.value = e.fileName;
   showSelectFile.value = false;
   afterJsonContent.value = e.fileContent;

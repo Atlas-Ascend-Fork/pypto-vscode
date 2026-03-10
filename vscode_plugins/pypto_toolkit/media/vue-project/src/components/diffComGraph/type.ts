@@ -12,6 +12,12 @@ export interface DiffListItem {
   nodeId: string;
 }
 
+export interface IDiffErrorInfo {
+  message: string;
+  log: string;
+  diffType: 'before' | 'after';
+}
+
 export type TDiffLayout = 'horizontal' | 'vertical';
 
 export interface DiffComGraphContext {
