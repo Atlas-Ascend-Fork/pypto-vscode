@@ -1452,6 +1452,9 @@ export class AscppDagBuilder {
         index,
         inPortId,
     ): void {
+        if (index >= actualData.inouttensors!.inTensors.length) {
+            return;
+        }
         const tensor = actualData.inouttensors!.inTensors[index].tensor;
         const rawTensor = actualData.inouttensors!.inTensors[index].rawTensor;
         if (!tensor || !rawTensor) {
@@ -1534,7 +1537,7 @@ export class AscppDagBuilder {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
         }
-
+        let parentIndex = 0;
         for (let outcastIndex = 0; outcastIndex < actualData.outcasts.length; outcastIndex++) {
             const outcast = actualData.outcasts[outcastIndex];
             const tensorMagic = String(Array.isArray(outcast) ? outcast[0] : outcast);
@@ -1604,7 +1607,10 @@ export class AscppDagBuilder {
             node.children!.push(outPort);
             if (actualData.inouttensors) {
                 nodes.push(node);
-                this.createParentOutCastNodes(actualData, nodes, edges, outcastIndex, outPortId);
+                if (!this.recordInOutCastMap.get(tensorMagic)) {
+                    this.createParentOutCastNodes(actualData, nodes, edges, parentIndex, outPortId);
+                    parentIndex++;
+                }
             } else {
                 nodes.push(node);
             }
@@ -1679,6 +1685,9 @@ export class AscppDagBuilder {
                     outTensors: []
                 };
                 for (const v of op.ioperands) {
+                    if (op.ooperands.includes(v)) {
+                        continue;
+                    }
                     const tensor = magicToTensorMap.get(String(v));
                     if (!tensor) {
                         continue;
@@ -1686,8 +1695,11 @@ export class AscppDagBuilder {
                     const rawTensor = rawTensorMap.get(String(tensor.rawtensor))!;
                     callInOutTensor.inTensors.push({ tensor, rawTensor });
                 }
-                for (const v of op.ooperands) {
-                    const tensor = magicToTensorMap.get(String(v));
+                for (const o of op.ooperands) {
+                    if (op.ioperands.includes(o)) {
+                        continue;
+                    }
+                    const tensor = magicToTensorMap.get(String(o));
                     if (!tensor) {
                         continue;
                     }
