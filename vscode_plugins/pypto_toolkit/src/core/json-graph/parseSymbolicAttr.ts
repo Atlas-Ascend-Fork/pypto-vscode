@@ -88,8 +88,8 @@ const opMap: Record<string, string> = {
   ssop_and: '&',
   ssop_or: '|',
   ssop_call: '',
-  ssop_mmin: 'mmin',
-  ssop_mmax: 'mmax',
+  ssop_mmin: 'multiMin',
+  ssop_mmax: 'multiMax',
 };
 
 // 一元操作符列表
