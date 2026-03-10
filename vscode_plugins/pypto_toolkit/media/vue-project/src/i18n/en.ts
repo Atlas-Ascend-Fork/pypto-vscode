@@ -1,5 +1,5 @@
 export default {
-    delete:'delete',
+    delete:'Delete',
     'zoomIn': 'Zoom In',
     'zoomOut': 'Zoom Out',
     'resizeWindow': 'Resize Window',

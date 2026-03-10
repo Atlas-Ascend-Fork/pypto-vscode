@@ -17,7 +17,7 @@
           <d-icon name="batch-delete"></d-icon>
         </div>
       </d-popover>
-      <SideBarSearch :class="{ hidden: isExpanded }" @search="searchKeyword"></SideBarSearch>
+      <SideBarSearch :class="{ hidden: isExpanded }" @search="setKeyword"></SideBarSearch>
     </div>
     <!-- 筛选区 -->
     <div class="filters" :class="{ hidden: isExpanded }">
@@ -386,17 +386,20 @@ async function handleBatchDelet() {
     });
   }
 }
-
+const keyword = ref('');
+function setKeyword(val: string) {
+  keyword.value = val;
+  searchKeyword();
+}
 // 根据关键词搜索标题
-const searchKeyword = debounce((keyword: string) => {
-  console.log('keyword', keyword)
+const searchKeyword = debounce(() => {
   clearList();
   page.value = 1;
-  getOutputs(page.value, false, keyword, true)
-  updateKeyword(keyword)
+  getOutputs(page.value, false, keyword.value, true);
+  updateKeyword(keyword.value);
 }, 500)
 watch(sortOption, () => {
-  debouncedGetRecords();
+  searchKeyword();
 });
 </script>
 
@@ -560,6 +563,8 @@ watch(sortOption, () => {
   border: 1px solid var(--devui-line);
   border-radius: 12px;
   font-size: 14px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 
   .empty-rect {
     width: 1px;

@@ -170,6 +170,10 @@ function handleViewSourceFile() {
     font-size: 12px;
     color: var(--pto-font-color-sub);
   }
+
+  &__right {
+    white-space: nowrap;
+  }
 }
 
 .custom-tabs {
@@ -201,6 +205,7 @@ function handleViewSourceFile() {
   height: calc(100% - 58px - 34px);
 
   .sub-form {
+    min-width: 585px;
     height: 100%;
     padding: 8px;
     overflow-y: auto;
