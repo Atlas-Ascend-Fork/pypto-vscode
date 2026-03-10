@@ -153,7 +153,7 @@ const processEvent = (event, groups) => {
     const match = event.name.match(/\((?<opName>[^)]+)\)/);
     leafIndex = match?.groups?.opName ?? '';
   }
-  if (leafIndex === '') {
+  if (leafIndex === '' || (typeof leafIndex === 'number' && Number.isNaN(leafIndex))) {
     return;
   }
   const taskDur = event.duration ?? (event.endTime - event.startTime);
