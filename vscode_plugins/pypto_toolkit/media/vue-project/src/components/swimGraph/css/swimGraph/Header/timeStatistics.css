@@ -28,7 +28,7 @@
         cursor: pointer;
     }
     .chart-containner {
-        width: 100%;
+        width: 99%;
         height: 400px;
     }
     .time-distribution-text {
@@ -73,6 +73,16 @@
     border-radius: 12px;
     background: var(--devui-swim-split-line);
     margin-top: 10px;
+    max-height: calc(100vh - 230px);
+    overflow-y: auto;
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+    }
 }
 .scroll-container {
     max-height: 80vh;
@@ -80,6 +90,7 @@
 
     &::-webkit-scrollbar {
         width: 6px;
+        height: 6px;
     }
 
     &::-webkit-scrollbar-thumb {

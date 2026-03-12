@@ -18,11 +18,11 @@
             </div>
           </d-tooltip>
           <div class="progress-container mt0">
+            <d-tooltip :content="group.tooltipText" v-if="group.showMarker">
             <div class="progress-bar" :style="{ left: group.start + '%', width: group.width }" v-if="group.showMarker">
-              <d-tooltip :content="group.tooltipText">
                 <div class="text">{{ group.text }}</div>
-              </d-tooltip>
             </div>
+            </d-tooltip>
             <d-tooltip :content="group.tooltipText" v-if="group.showMarker">
               <div class="dot" :style="{ left: group.start + '%', '--base-bg-range-color': getBaseColor(group.event)}"></div>
             </d-tooltip>
@@ -191,9 +191,9 @@ const buildTimelineGroups = (groups) => {
     globalMaxDuration = 1;
   }
   globalMaxDuration = Math.ceil(globalMaxDuration / 10) * 10;
-  const TEXT_FULL_THRESHOLD_PERCENT = 34;
-  const TEXT_SHORT_THRESHOLD_PERCENT = 24;
-  const TEXT_NUMBER_THRESHOLD_PERCENT = 18;
+  const TEXT_FULL_THRESHOLD_PERCENT = state.isWideScreen.value ?  34 : 65;
+  const TEXT_SHORT_THRESHOLD_PERCENT = state.isWideScreen.value ? 24 : 46;
+  const TEXT_NUMBER_THRESHOLD_PERCENT = state.isWideScreen.value ? 18 : 34;
   const timelineList = Array.from(groups.entries()).map(([leafIndex, data]) => {
     const { min, max, nameMin, nameMax, eventMin, eventMax } = data;
     const showMarkerFlag = nameMin !== nameMax;
@@ -216,10 +216,18 @@ const buildTimelineGroups = (groups) => {
     } else {
       displayText = '';
     }
+    let maxMarkerLeft;
+    if (!showMarkerFlag) {
+      maxMarkerLeft = '-41px';
+    } else if (needsOffset) {
+      maxMarkerLeft = '42px';
+    } else {
+      maxMarkerLeft = `calc(${diffClampedWidth}% - 51px)`;
+    }
     return {
       id: leafIndex,
       start: 0,
-      width: `calc(${diffClampedWidth}%)`,
+      width: showMarkerFlag ? `calc(${diffClampedWidth}%)` : 0,
       tooltipText: `${$t('timeRange')} ${diffText.toFixed(3)} us`,
       text: displayText, 
       event: eventMin,
@@ -235,9 +243,7 @@ const buildTimelineGroups = (groups) => {
         {
           globalText: `${nameMax} (${maxText} us)`,
           text: `${truncateWithEllipsis(nameMax)} (${maxText} us)`,
-          left: needsOffset && showMarkerFlag
-            ? `calc(0% + 42px)`
-            : `calc(${diffClampedWidth}% - 10px - 41px)`,
+          left: maxMarkerLeft,
           event: eventMax,
           showMarker: true
         }
@@ -260,13 +266,28 @@ const truncateWithEllipsis = (str, maxLength = 2) => {
 const getTicks = (globalMaxDuration) => {
   return Array.from({ length: 4 }, (_, i) => {
     const isLast = i === 3;
-    const rawVal = isLast 
+    const rawValScaled = isLast 
       ? globalMaxDuration 
       : Math.round(i * globalMaxDuration / 3);
-    const val = Math.ceil(rawVal / mod / 10) * 10;
+    let val;
+    const stepUnit = mod * 10; 
+    if (globalMaxDuration < stepUnit) {
+      const rawValOriginal = rawValScaled / mod;
+      val = Math.ceil(rawValOriginal);
+    } else {
+      val = Math.ceil(rawValScaled / stepUnit) * 10;
+    }
+    let label;
+    if (val === 0) {
+      label = '0';
+    } else if (isLast) {
+      label = `+${val} us`;
+    } else {
+      label = `+${val}`;
+    }
     return {
       pos: `${(i / 3 * 100).toFixed(2)}%`,
-      label: isLast ? `+${val} us` : `+${val}`
+      label
     };
   });
 };

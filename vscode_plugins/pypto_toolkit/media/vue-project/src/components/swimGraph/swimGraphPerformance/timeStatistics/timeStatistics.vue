@@ -25,7 +25,7 @@
                             <d-tooltip :content="$t('cumulativeTime')">
                             <div class="header-label-color mr4" :style="{width: isWideScreen ? `100%` : '50px' }">{{ $t('cumulativeTime') }}</div>
                             </d-tooltip>
-                            <d-popover trigger="hover" :position="['top']">
+                            <d-popover trigger="hover" :position="['top-start']">
                                 <template #content>
                                     <div>
                                         <div class="text-wrap">{{ $t('totalSubtaskTime') }} </div>
@@ -45,7 +45,7 @@
                             <d-tooltip :content="$t('cycleDuration')">
                             <div class="header-label-color mr4" :style="{width: isWideScreen ? `100%` : '50px' }">{{ $t('cycleDuration') }}</div>
                             </d-tooltip>
-                            <d-popover trigger="hover" :position="['top']">
+                            <d-popover trigger="hover" :position="['top-start']">
                                 <template #content>
                                     <div>
                                         <div class="text-wrap">{{ $t('subtaskTimeSpan') }} </div>
@@ -91,6 +91,7 @@ let subGraphId = ref('');
 const dataSource = ref([]);
 const leafIndexName = ref($t('subgraphBasedLeafIndex'));
 const mod = 1000;
+const barStep = ref(1);
 const option = reactive({
     xAxis: {
         type: 'category',
@@ -112,11 +113,12 @@ const option = reactive({
     },
     tooltip: {
         trigger: 'axis',
+        confine: true,
         axisPointer: {
             type: 'shadow'
         },
         formatter(params) {
-            let result = `<div class="time-statistics-color">${params[0].name - 10} ~ ${params[0].name}us</div>`;
+            let result = `<div class="time-statistics-color">${Number(params[0].name) - barStep.value} ~ ${params[0].name}us</div>`;
             params.forEach((item) => {
                 result += `
       <div class="echarts-tooltip-containner">
@@ -175,7 +177,8 @@ provide('subGraphTimingState', {
     timeType,
     processes,
     processExpanded,
-    leafIndexName
+    leafIndexName,
+    isWideScreen
 });
 
 const {
@@ -287,10 +290,10 @@ const onUpdateData = (data) => {
   }
   subGraphDuration.sort((a, b) => a - b);
   const maxDuration = subGraphDuration[subGraphDuration.length - 1];
-  const barCount = Math.min(maxDuration / 10, 20);
-  const step = Math.ceil(maxDuration / barCount);
-  option.xAxis.data = getRanges(maxDuration, step);
-  option.series[0].data = countDurationsInRanges(subGraphDuration, step);
+  const barCount = Math.min(Math.ceil(maxDuration / 10), 20);
+  barStep.value = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
+  option.xAxis.data = getRanges(maxDuration);
+  option.series[0].data = countDurationsInRanges(subGraphDuration);
   executionTimeData.echartsMap.set(subGraphId.value, {
         xAxisData: [...option.xAxis.data],
         seriesData: [...option.series[0].data]
@@ -323,15 +326,15 @@ const collectSubGraphEvents = (targetId) => {
   }
   return { durations };
 };
-const countDurationsInRanges = (durations, step = 10) => {
+const countDurationsInRanges = (durations) => {
     if (durations.length === 0) {
         return [];
     }
     const maxVal = Math.max(...durations);
-    const numBuckets = Math.ceil(maxVal / step); // 桶的数量
+    const numBuckets = Math.ceil(maxVal / barStep.value); // 桶的数量
     const counts = new Array(numBuckets).fill(0);
     for (const dur of durations) {
-        const bucketIndex = Math.floor(dur / step);
+        const bucketIndex = Math.floor(dur / barStep.value);
         if (bucketIndex < numBuckets) {
             counts[bucketIndex]++;
         }
@@ -340,9 +343,9 @@ const countDurationsInRanges = (durations, step = 10) => {
         return count;
     });
 };
-const getRanges = (max, step = 10) => {
-    const n = Math.ceil(max / step);
-    return Array.from({ length: n }, (_, i) => `${(i + 1) * step}`);
+const getRanges = (max) => {
+    const n = Math.ceil(max / barStep.value);
+    return Array.from({ length: n }, (_, i) => `${(i + 1) * barStep.value}`);
 };
 const handleTimeChange = (val) => {
     if (val.value === 'id') {
