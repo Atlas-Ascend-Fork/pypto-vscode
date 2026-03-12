@@ -318,6 +318,9 @@ export abstract class BaseGraphMsgHandler {
       if (res.type === 'result') {
         const layoutJsonStr = JSON.stringify(res.data);
         if (comGraphData?.isUsedDB && renderMode !== 'path') {
+          if (server.title === 'multiple graph') {
+            funcHash+="_threeMode";
+          }
           await getComGraphLayoutStore().set({ filePath: filePath, funcHash: funcHash, lastChangeTime: lastChangeTime, layoutResult: layoutJsonStr });
         }
         this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
@@ -361,7 +364,9 @@ export abstract class BaseGraphMsgHandler {
     if (filePath) {
       lastChangeTime = await getMTime(filePath);
     }
-
+    if (server.title === 'multiple graph') {
+      funcHash+="_threeMode";
+    }
     let cache: any;
     if (comGraphData?.isUsedDB) {
       cache = await getComGraphLayoutStore().find({ filePath: filePath, funcHash: funcHash });
@@ -412,6 +417,9 @@ export abstract class BaseGraphMsgHandler {
     funcHash += gd.layoutOptions['PyPTO.filePath'] || '';
     this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
     if (comGraphData?.isUsedDB && renderMode !== 'path') {
+      if (server.title === 'multiple graph') {
+        funcHash+="_threeMode";
+      }
       await getComGraphLayoutStore().set({ filePath: filePath, funcHash: funcHash, lastChangeTime: lastChangeTime, layoutResult: layoutJsonStr });
     }
   }
@@ -662,6 +670,7 @@ export abstract class BaseGraphMsgHandler {
       if (gd.firstExecFuncHash && (gd.firstExecFuncHash !== '')) {
         funcHash = gd.firstExecFuncHash;
         server.comGraphData.firstExecFuncHash = funcHash;
+        server.comGraphData.funcHash = funcHash;
       }
     }
 
