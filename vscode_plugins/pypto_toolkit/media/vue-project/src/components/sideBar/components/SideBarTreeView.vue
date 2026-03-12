@@ -43,6 +43,7 @@
         <template #content="{ nodeData }">
           <div
             class="tree-container-content"
+            :class="{ 'indentation': nodeData.level !== 1 }"
             @mouseenter="nodeData.showSingleDelete = true"
             @mouseleave="nodeData.showSingleDelete = false"
           >
@@ -661,12 +662,15 @@ watch(sortOption, () => {
         height: max-content !important;
         width: 100%;
 
+        .indentation{
+          margin-left: 4px;
+        }
+
         .tree-container-content {
           display: flex;
           width: 100%;
           align-items: center;
           gap: 4px;
-          margin-left: 4px;
 
           .icon {
             font-size: 16px;
