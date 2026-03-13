@@ -566,8 +566,8 @@ function calculateRect() {
     preData: { x: x1, y },
     lastData: { x: x2 }
   } = flagHoverData;
-  const leftX = Math.min(x1, x2);
-  const rightX = Math.max(x1, x2);
+  const leftX = (Math.min(x1, x2)) * devicePixelRatio;
+  const rightX = (Math.max(x1, x2)) * devicePixelRatio;
   const width = boxWidth * devicePixelRatio;
   const height = fixedtimelineCanvas.value.offsetHeight;
   const rectX = leftX + ((rightX - leftX - width) / 2);
