@@ -1,5 +1,5 @@
   export const executionTimeData = {
-    ticks: [],
+    ticksMap: new Map(),
     timelineGroupsMap: new Map(),
     echartsMap: new Map(),
     tableData: []

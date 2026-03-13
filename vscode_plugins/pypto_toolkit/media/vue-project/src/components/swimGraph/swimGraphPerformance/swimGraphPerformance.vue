@@ -181,7 +181,9 @@
       </div>
       </d-tab>
       <d-tab id="tab2" :title="$t('executionTime')">
-        <time-statistics/>
+        <div class="time-statistics-tab-content">
+          <time-statistics/>
+        </div>
       </d-tab>
     </d-tabs>
   </div>
@@ -593,10 +595,10 @@ onUnmounted(() => {
   clearExecutionTimeData();
 });
 const clearExecutionTimeData = () => {
-  executionTimeData.echartsMap.clear();       
-  executionTimeData.tableData.length = 0;      
-  executionTimeData.ticks.length = 0;
-  executionTimeData.timelineGroupsMap.clear();     
+  executionTimeData.echartsMap.clear();
+  executionTimeData.tableData.length = 0;
+  executionTimeData.ticksMap.clear();
+  executionTimeData.timelineGroupsMap.clear();
 };
 // 提供方法给子组件
 provide('swimGraphPmuBarMethod', {
@@ -947,5 +949,10 @@ provide('swimGraphPmuBarMethod', {
   bottom: 6px;
   z-index: 1;
   color: white;
+}
+
+.time-statistics-tab-content {
+  height: calc(100vh - 110px);
+  overflow-y: auto;
 }
 </style>

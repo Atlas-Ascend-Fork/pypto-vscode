@@ -84,17 +84,13 @@
         border-radius: 999px;
     }
 }
+
 .scroll-container {
-    max-height: 80vh;
+    max-height: calc(100vh - 110px);
     overflow-y: auto;
 
     &::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        border-radius: 999px;
+        display: none;
     }
 }
 

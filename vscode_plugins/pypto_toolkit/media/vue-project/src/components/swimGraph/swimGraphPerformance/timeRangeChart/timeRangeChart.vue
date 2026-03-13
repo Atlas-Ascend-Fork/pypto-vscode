@@ -112,13 +112,11 @@ onMounted(() => {
   initData();
 });
 const initData = () => {
-  if (
-    executionTimeData.ticks.length !== 0 &&
-    executionTimeData.timelineGroupsMap.size > 0 &&
-    executionTimeData.timelineGroupsMap.has(state.timeType.value)
-  ) {
+  const validatedTimelineGroup = executionTimeData.timelineGroupsMap.size > 0 && executionTimeData.timelineGroupsMap.has(state.timeType.value);
+  const validatedTick = executionTimeData.ticksMap.size > 0 && executionTimeData.ticksMap.has(state.timeType.value);
+  if (validatedTimelineGroup && validatedTick) {
     timelineGroups.value = executionTimeData.timelineGroupsMap.get(state.timeType.value);
-    ticks.value = executionTimeData.ticks;
+    ticks.value = executionTimeData.ticksMap.get(state.timeType.value);
     return;
   }
   const groups = new Map();
@@ -139,7 +137,7 @@ const initData = () => {
   timelineGroups.value = timelineList;
   executionTimeData.timelineGroupsMap.set(state.timeType.value, [...timelineGroups.value]);
   ticks.value = getTicks(globalMaxDuration);
-  executionTimeData.ticks = [...ticks.value];
+  executionTimeData.ticksMap.set(state.timeType.value, [...ticks.value]);
 };
 const processEvent = (event, groups) => {
   if (event.isFakeCore || event.ph === 'C') {
@@ -190,7 +188,16 @@ const buildTimelineGroups = (groups) => {
   if (globalMaxDuration === 0) {
     globalMaxDuration = 1;
   }
-  globalMaxDuration = Math.ceil(globalMaxDuration / 10) * 10;
+  const maxDurationUs = globalMaxDuration / mod;
+  let maxAxisUs;
+  if (maxDurationUs <= 5) {
+    maxAxisUs = Math.ceil(maxDurationUs);
+  } else if (maxDurationUs <= 10) {
+    maxAxisUs = 10;
+  } else {
+    maxAxisUs = Math.ceil(maxDurationUs / 10) * 10;
+  }
+  globalMaxDuration = maxAxisUs * mod;
   const TEXT_FULL_THRESHOLD_PERCENT = state.isWideScreen.value ?  34 : 65;
   const TEXT_SHORT_THRESHOLD_PERCENT = state.isWideScreen.value ? 24 : 46;
   const TEXT_NUMBER_THRESHOLD_PERCENT = state.isWideScreen.value ? 18 : 34;
@@ -208,11 +215,11 @@ const buildTimelineGroups = (groups) => {
     const diffText = showMarkerFlag ? diff / mod : 0;
     let displayText = '';
     if (diffClampedWidth >= TEXT_FULL_THRESHOLD_PERCENT) {
-      displayText = `${$t('timeRange')} ${diffText.toFixed(3)} us`;
+      displayText = `${$t('timeRange')} ${formatMicroseconds(diffText)} us`;
     } else if (diffClampedWidth >= TEXT_SHORT_THRESHOLD_PERCENT) {
-      displayText = `${diffText.toFixed(3)} us`;
+      displayText = `${formatMicroseconds(diffText)} us`;
     } else if (diffClampedWidth >= TEXT_NUMBER_THRESHOLD_PERCENT) {
-      displayText = `${diffText.toFixed(3)}`;
+      displayText = `${formatMicroseconds(diffText)}`;
     } else {
       displayText = '';
     }
@@ -228,21 +235,21 @@ const buildTimelineGroups = (groups) => {
       id: leafIndex,
       start: 0,
       width: showMarkerFlag ? `calc(${diffClampedWidth}%)` : 0,
-      tooltipText: `${$t('timeRange')} ${diffText.toFixed(3)} us`,
+      tooltipText: `${$t('timeRange')} ${formatMicroseconds(diffText)} us`,
       text: displayText, 
       event: eventMin,
       showMarker: showMarkerFlag,
       markers: [
         {
-          globalText: `${nameMin} (${minText} us)`,
-          text: `${truncateWithEllipsis(nameMin)} (${minText} us)`,
+          globalText: `${nameMin} (${formatMicroseconds(minText)} us)`,
+          text: `${truncateWithEllipsis(nameMin)} (${formatMicroseconds(minText)} us)`,
           left: `calc(0% - 41px)`,
           event: eventMin,
           showMarker: showMarkerFlag
         },
         {
-          globalText: `${nameMax} (${maxText} us)`,
-          text: `${truncateWithEllipsis(nameMax)} (${maxText} us)`,
+          globalText: `${nameMax} (${formatMicroseconds(maxText)} us)`,
+          text: `${truncateWithEllipsis(nameMax)} (${formatMicroseconds(maxText)} us)`,
           left: maxMarkerLeft,
           event: eventMax,
           showMarker: true
@@ -263,30 +270,40 @@ const truncateWithEllipsis = (str, maxLength = 2) => {
   }
   return str.substring(0, maxLength) + '...';
 };
+const formatMicroseconds = (value) => {
+  return parseFloat(value.toFixed(3));
+};
 const getTicks = (globalMaxDuration) => {
-  return Array.from({ length: 4 }, (_, i) => {
-    const isLast = i === 3;
-    const rawValScaled = isLast 
-      ? globalMaxDuration 
-      : Math.round(i * globalMaxDuration / 3);
-    let val;
-    const stepUnit = mod * 10; 
-    if (globalMaxDuration < stepUnit) {
-      const rawValOriginal = rawValScaled / mod;
-      val = Math.ceil(rawValOriginal);
+  const maxDurationUs = globalMaxDuration / mod;
+  let numTicks;
+  let stepUs;
+  if (maxDurationUs <= 5) {
+    numTicks = Math.ceil(maxDurationUs) + 1;
+    stepUs = maxDurationUs / (numTicks - 1);
+  } else if (maxDurationUs <= 10) {
+    numTicks = 6;
+    stepUs = 2;
+  } else {
+    if (maxDurationUs % 3 === 0) {
+      numTicks = 4;
     } else {
-      val = Math.ceil(rawValScaled / stepUnit) * 10;
+      numTicks = 6;
     }
+    stepUs = maxDurationUs / (numTicks - 1);
+  }
+  return Array.from({ length: numTicks }, (_, i) => {
+    const valUs = Math.round(i * stepUs);
+    const isLast = i === numTicks - 1;
     let label;
-    if (val === 0) {
+    if (valUs === 0) {
       label = '0';
     } else if (isLast) {
-      label = `+${val} us`;
+      label = `+${valUs} us`;
     } else {
-      label = `+${val}`;
+      label = `+${valUs}`;
     }
     return {
-      pos: `${(i / 3 * 100).toFixed(2)}%`,
+      pos: `${(i / (numTicks - 1) * 100).toFixed(2)}%`,
       label
     };
   });
