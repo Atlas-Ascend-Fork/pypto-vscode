@@ -73,12 +73,13 @@
                 <span class="time-distribution-text">{{ $t('subGraphId') }}</span> 
                 <span class="time-distribution-id">{{ subGraphId }}</span>
             </div>
-            <d-chart :option="option" class="chart-containner"></d-chart>
+            <d-chart :option="option" class="chart-containner" :id="`bar-chart-container-${subGraphId}`"></d-chart>
         </div>
     </div>
 </template>
 <script setup>
-import { ref, reactive, provide, inject } from 'vue';
+import { ref, reactive, provide, inject, watch, onUnmounted } from 'vue';
+import * as echarts from 'echarts';
 import TimeRangeChart from '../timeRangeChart/timeRangeChart.vue';
 import { getSubGraphId } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
@@ -109,10 +110,15 @@ const {
     isWideScreen,
     isDarkTheme
 } = inject('swimGraphState');
+const {
+  modeOption
+} = inject('swimGraphCfg');
+const chartInstance = ref(null);
 const option = reactive({
     xAxis: {
         type: 'value',
         name: '(us)',
+        nameGap: 10,
         min: 0,
         max: 0,
         interval: 1,
@@ -124,7 +130,8 @@ const option = reactive({
         },
         axisLabel: {
             interval: 'auto',
-            hideOverlap: true
+            hideOverlap: true,
+            rotate: 45
         }
     },
     yAxis: {
@@ -238,7 +245,7 @@ const {
 provide('swimGraphPmuBarMethod', {
     clickTask
 });
-
+const customBarCount = isWideScreen.value ? ref(20) : ref(10);
 const onCellClick = (params) => {
     if (isSearchActive.value) {
         resetsearchState();
@@ -336,7 +343,6 @@ const onUpdateData = (data) => {
         barStep.value = cachedItem.barStepData;
         option.xAxis.interval = cachedItem.barStepData;
         option.xAxis.max = cachedItem.maxDurationData;
-        barColor.value = cachedItem.barColorData;
         return;
     }
     const { durations: subGraphDuration } = collectSubGraphEvents(mapKey);
@@ -348,7 +354,7 @@ const onUpdateData = (data) => {
     }
     subGraphDuration.sort((a, b) => a - b);
     const maxDuration = subGraphDuration[subGraphDuration.length - 1];
-    const barCount = Math.min(Math.ceil(maxDuration / 10), 20);
+    const barCount = Math.min(Math.ceil(maxDuration / 10), customBarCount.value);
     const calculatedStep = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
     barStep.value = calculatedStep || 1; 
     const histogramData = getHistogramData(subGraphDuration);
@@ -360,8 +366,7 @@ const onUpdateData = (data) => {
     cache.set(mapKey, {
         seriesData: histogramData,
         barStepData: barStep.value,
-        maxDurationData: xAxisMax,
-        barColorData: barColor.value
+        maxDurationData: xAxisMax
     });
 };
 const collectSubGraphEvents = (targetId) => {
@@ -481,6 +486,39 @@ const getTableData = () => {
     dataSource.value.sort((a, b) => a.semanticLabel.localeCompare(b.semanticLabel));
     executionTimeData.tableData = [...dataSource.value];
 };
+watch(
+    [isDarkTheme, modeOption],
+    ([newTheme, newMode], [oldTheme, oldMode]) => {
+        if (timeType.value !== 'id' || !showSubGraphTimingChart.value) {
+            return;
+        }
+        clearEchartInstance();
+        const mapKey = timeType.value;
+        const cache = executionTimeData.timelineGroupsMap;
+        if (cache.size > 0 && cache.has(mapKey)) {
+            const cachedItem = cache.get(mapKey);
+            const result = cachedItem.find(item => item.id === subGraphId.value);
+            barColor.value = isDarkTheme.value ? result.event.color.dark.base : result.event.color.light.base;
+            option.yAxis.splitLine.lineStyle.color = isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            chartInstance.value.setOption(option, true);
+        }
+    }
+);
+ 
+const clearEchartInstance = () => {
+    if (chartInstance.value) {
+        chartInstance.value.dispose();
+    }
+    const fullId = `bar-chart-container-${subGraphId.value}`;
+    const chartDom = document.getElementById(fullId);
+    chartInstance.value = echarts.init(chartDom);
+};
+onUnmounted(() => {
+    if (chartInstance.value) {
+        chartInstance.value.dispose();
+        chartInstance.value = null;
+    }
+});
 </script>
 <style lang="scss">
 .time-statistics-table {

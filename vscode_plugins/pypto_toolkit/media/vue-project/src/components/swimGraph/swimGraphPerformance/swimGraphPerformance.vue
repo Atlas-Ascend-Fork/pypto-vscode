@@ -606,7 +606,7 @@ provide('swimGraphPmuBarMethod', {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .pmu-report {
   padding: 20px;
   position: fixed;
@@ -954,5 +954,13 @@ provide('swimGraphPmuBarMethod', {
 .time-statistics-tab-content {
   height: calc(100vh - 110px);
   overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+  }
 }
 </style>

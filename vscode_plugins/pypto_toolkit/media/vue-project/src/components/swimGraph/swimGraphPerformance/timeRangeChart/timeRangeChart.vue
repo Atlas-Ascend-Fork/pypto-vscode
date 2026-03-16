@@ -94,7 +94,7 @@ const drillDownSubGraphTiming = (group) => {
   emit('update-data', {
     id: group.id,
     timelineGroups,
-    color: group.event.color.dark.base
+    color: isDarkTheme.value ? group.event.color.dark.base :  group.event.color.light.base
   });
 };
 const timelineContainer = ref(null);
