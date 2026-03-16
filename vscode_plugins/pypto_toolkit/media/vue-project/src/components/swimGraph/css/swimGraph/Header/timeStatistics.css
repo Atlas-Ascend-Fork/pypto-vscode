@@ -65,6 +65,8 @@
     .echarts-tooltip-containner {
         display:flex; 
         justify-content:space-between;
+        margin-top: 4px;
+        align-items:center;
     }
 }
 .time-statistics-graph-content {

@@ -92,62 +92,7 @@ const dataSource = ref([]);
 const leafIndexName = ref($t('subgraphBasedLeafIndex'));
 const mod = 1000;
 const barStep = ref(1);
-const option = reactive({
-    xAxis: {
-        type: 'category',
-        name: '(us)',
-        nameGap: 10,
-        data: []
-    },
-    yAxis: {
-        type: 'value',
-        name: window.ascLang === 'zh' ? `(${$t('subgraphs')})` : $t('subgraphs'),
-        nameLocation: 'end'
-    },
-    grid: {
-        top: '10%',
-        left: '3%',
-        right: '11%',
-        bottom: '2%',
-        containLabel: true
-    },
-    tooltip: {
-        trigger: 'axis',
-        confine: true,
-        axisPointer: {
-            type: 'shadow'
-        },
-        formatter(params) {
-            let result = `<div class="time-statistics-color">${Number(params[0].name) - barStep.value} ~ ${params[0].name}us</div>`;
-            params.forEach((item) => {
-                result += `
-      <div class="echarts-tooltip-containner">
-        <span style="color:${item.color};" class="font-size-20">●</span>
-        <span class="ml4">${$t('taskCount')}</span>
-        <span class="time-statistics-color ml10">${item.value}${$t('subgraphs')}</span>
-      </div>
-    `;
-            });
-            return result;
-        }
-    },
-    series: [
-        {
-            data: [],
-            type: 'bar',
-            barWidth: 12,
-            itemStyle: {
-                color: 'rgba(0, 117, 102, 1)',
-                borderRadius: [4, 4, 0, 0]
-            }
-        }
-    ]
-});
-let showSubGraphTimingChart = ref(false);
-const stats = new Map();
-const {
-    isSearchActive,
-} = inject('swimGraphSearch');
+const barColor = ref('rgba(0, 117, 102, 1)');
 const {
     highlightedPaths,
     detailsPanelExpanded,
@@ -161,8 +106,113 @@ const {
     measureDragEndTime,
     selectedEvent,
     processExpanded,
-    isWideScreen
+    isWideScreen,
+    isDarkTheme
 } = inject('swimGraphState');
+const option = reactive({
+    xAxis: {
+        type: 'value',
+        name: '(us)',
+        min: 0,
+        max: 0,
+        interval: 1,
+        axisTick: {
+            alignWithLabel: false
+        },
+        splitLine: {
+            show: false
+        },
+        axisLabel: {
+            interval: 'auto',
+            hideOverlap: true
+        }
+    },
+    yAxis: {
+        type: 'value',
+        name: window.ascLang === 'zh' ? `(${$t('subgraphs')})` : $t('subgraphs'),
+        nameLocation: 'end',
+        splitLine: {
+            show: true,
+            lineStyle: {       
+                type: 'solid',
+                color: isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            }
+        }
+    },
+    grid: {
+        top: '10%',
+        left: '3%',
+        right: '11%',
+        bottom: '2%',
+        containLabel: true
+    },
+    tooltip: {
+        trigger: 'item',
+        confine: true,
+        axisPointer: {
+            type: 'shadow'
+        },
+        formatter(params) {
+            if (!params || !Array.isArray(params.data) || params.data.length < 3) {
+                return '';
+            }
+            const [left, right, count] = params.data;
+            const color = barColor.value;
+            let result = `
+            <div class="time-statistics-color font-weight-bold">
+                ${left} ~ ${right} us
+            </div>
+            <div class="echarts-tooltip-containner">
+                <span style="color:${color}" class="font-size-20">●</span>
+                <span class="ml4">${$t('taskCount')}</span>
+                <span class="time-statistics-color ml10 font-weight-bold">${count}${$t('subgraphs')}</span>
+            </div>
+        `;
+            return result;
+        }
+    },
+    series: [
+        {
+            data: [],
+            type: 'custom',
+            renderItem(params, api) {
+                const xStart = api.value(0);
+                const xEnd = api.value(1);
+                const yValue = api.value(2);
+                const startCoord = api.coord([xStart, yValue]);
+                const endCoord = api.coord([xEnd, 0]);
+                const width = endCoord[0] - startCoord[0];
+                const height = endCoord[1] - startCoord[1];
+                return {
+                    type: 'rect',
+                    shape: {
+                        x: startCoord[0],
+                        y: startCoord[1],
+                        width,
+                        height,
+                        r: [4, 4, 0, 0]
+                    },
+                    style: api.style({
+                        fill: barColor.value,
+                        stroke: isDarkTheme.value ? 'rgba(255,255,255,0.1)' : 'rgba(174,174,174,1)',
+                        lineWidth: 1
+                    })
+                };
+            },
+            encode: {
+                x: [0, 1],
+                y: 2,
+                tooltip: 2,
+                itemName: 0
+            }
+        }
+    ]
+});
+let showSubGraphTimingChart = ref(false);
+const stats = new Map();
+const {
+    isSearchActive,
+} = inject('swimGraphSearch');
 const {
     render,
     drawMeasureTime,
@@ -276,27 +326,42 @@ const OnModeChange = () => {
     showSubGraphTimingChart.value = false;
 };
 const onUpdateData = (data) => {
-  subGraphId.value = data.id;
-    if (executionTimeData.echartsMap.size > 0 && executionTimeData.echartsMap.has(subGraphId.value)) {
-        option.xAxis.data = executionTimeData.echartsMap.get(subGraphId.value).xAxisData;
-        option.series[0].data = executionTimeData.echartsMap.get(subGraphId.value).seriesData;
+    subGraphId.value = data.id;
+    barColor.value = data.color; 
+    const mapKey = subGraphId.value;
+    const cache = executionTimeData.echartsMap;
+    if (cache.size > 0 && cache.has(mapKey)) {
+        const cachedItem = cache.get(mapKey);
+        option.series[0].data = cachedItem.seriesData;
+        barStep.value = cachedItem.barStepData;
+        option.xAxis.interval = cachedItem.barStepData;
+        option.xAxis.max = cachedItem.maxDurationData;
+        barColor.value = cachedItem.barColorData;
         return;
     }
-  const {durations: subGraphDuration } = collectSubGraphEvents(subGraphId.value);
-  if (subGraphDuration.length === 0) {
-    option.xAxis.data = [];
-    option.series[0].data = [];
-    return;
-  }
-  subGraphDuration.sort((a, b) => a - b);
-  const maxDuration = subGraphDuration[subGraphDuration.length - 1];
-  const barCount = Math.min(Math.ceil(maxDuration / 10), 20);
-  barStep.value = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
-  option.xAxis.data = getRanges(maxDuration);
-  option.series[0].data = countDurationsInRanges(subGraphDuration);
-  executionTimeData.echartsMap.set(subGraphId.value, {
-        xAxisData: [...option.xAxis.data],
-        seriesData: [...option.series[0].data]
+    const { durations: subGraphDuration } = collectSubGraphEvents(mapKey);
+    if (!subGraphDuration || subGraphDuration.length === 0) {
+        option.series[0].data = [];
+        option.xAxis.max = 4;
+        option.xAxis.interval = 1;
+        return;
+    }
+    subGraphDuration.sort((a, b) => a - b);
+    const maxDuration = subGraphDuration[subGraphDuration.length - 1];
+    const barCount = Math.min(Math.ceil(maxDuration / 10), 20);
+    const calculatedStep = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
+    barStep.value = calculatedStep || 1; 
+    const histogramData = getHistogramData(subGraphDuration);
+    const lastItem = histogramData[histogramData.length - 1];
+    const xAxisMax = lastItem ? lastItem[1] : (Math.ceil(maxDuration / calculatedStep) * calculatedStep);
+    option.series[0].data = histogramData;
+    option.xAxis.interval = barStep.value;
+    option.xAxis.max = xAxisMax;
+    cache.set(mapKey, {
+        seriesData: histogramData,
+        barStepData: barStep.value,
+        maxDurationData: xAxisMax,
+        barColorData: barColor.value
     });
 };
 const collectSubGraphEvents = (targetId) => {
@@ -326,26 +391,31 @@ const collectSubGraphEvents = (targetId) => {
   }
   return { durations };
 };
-const countDurationsInRanges = (durations) => {
-    if (durations.length === 0) {
+const getHistogramData = (durations) => {
+    if (!durations || durations.length === 0) {
         return [];
     }
     const maxVal = Math.max(...durations);
-    const numBuckets = Math.ceil(maxVal / barStep.value); // 桶的数量
+    const step = barStep.value;
+    const numBuckets = Math.ceil(maxVal / step);
     const counts = new Array(numBuckets).fill(0);
     for (const dur of durations) {
-        const bucketIndex = Math.floor(dur / barStep.value);
-        if (bucketIndex < numBuckets) {
+        if (dur < 0) {
+            continue;
+        }
+        let bucketIndex = Math.floor(dur / step);
+        if (bucketIndex >= numBuckets) {
+            bucketIndex = numBuckets - 1;
+        }
+        if (bucketIndex >= 0 && bucketIndex < numBuckets) {
             counts[bucketIndex]++;
         }
     }
     return counts.map((count, i) => {
-        return count;
+        const left = i * step;
+        const right = (i + 1) * step;
+        return [left, right, count];
     });
-};
-const getRanges = (max) => {
-    const n = Math.ceil(max / barStep.value);
-    return Array.from({ length: n }, (_, i) => `${(i + 1) * barStep.value}`);
 };
 const handleTimeChange = (val) => {
     if (val.value === 'id') {

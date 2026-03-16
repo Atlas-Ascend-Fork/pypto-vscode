@@ -13,7 +13,7 @@
       <div v-for="group in timelineGroups" :key="group.id" class="timeline-group mr20 time-group-height">
         <div class="id-row">
           <d-tooltip :content="group.id">
-            <div class="label-header" @click="drillDownSubGraphTiming(group.id)" :class="{ 'label-cursor': state.timeType.value === 'id' }">
+            <div class="label-header" @click="drillDownSubGraphTiming(group)" :class="{ 'label-cursor': state.timeType.value === 'id' }">
             {{ group.id }}
             </div>
           </d-tooltip>
@@ -89,11 +89,12 @@ const timelineGroups = ref([
   },
 ]);
 const emit = defineEmits(['update-data']);
-const drillDownSubGraphTiming = (id) => {
+const drillDownSubGraphTiming = (group) => {
   state.showSubGraphTimingChart.value = !state.showSubGraphTimingChart.value;
   emit('update-data', {
-    id,
-    timelineGroups
+    id: group.id,
+    timelineGroups,
+    color: group.event.color.dark.base
   });
 };
 const timelineContainer = ref(null);

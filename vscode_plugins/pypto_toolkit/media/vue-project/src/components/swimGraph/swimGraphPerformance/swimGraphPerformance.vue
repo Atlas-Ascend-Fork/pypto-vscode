@@ -180,7 +180,7 @@
         <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist && iniComplete" />
       </div>
       </d-tab>
-      <d-tab id="tab2" :title="$t('executionTime')" v-if="false">
+      <d-tab id="tab2" :title="$t('executionTime')">
         <div class="time-statistics-tab-content">
           <time-statistics/>
         </div>
