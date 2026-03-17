@@ -5,7 +5,7 @@
         <div class="label">{{ timeConsumingLabel }}</div>
         <div class="ticks">
           <div v-for="(tick, index) in ticks" :key="index" class="tick" :style="{ '--pos': tick.pos }">
-            <span>{{ tick.label }}</span>
+            <span :style="{ 'padding-left': index === ticks.length  - 1 ? '15px' : '' }">{{ tick.label }}</span>
             <div class="line"></div>
           </div>
         </div>
