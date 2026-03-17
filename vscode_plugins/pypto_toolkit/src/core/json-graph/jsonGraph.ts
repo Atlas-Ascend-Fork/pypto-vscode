@@ -1744,10 +1744,10 @@ export class AscppDagBuilder {
                 parseConvertOp(labelAttr, reader, this.diffType);
                 break;
             case 'assemble':
-                parseAssembleViewOp(labelAttr, reader, opcodeStr === 'assemble', this.version, this.diffType);
+                parseAssembleViewOp(labelAttr, reader, true, this.version, this.diffType);
                 break;
             case 'view':
-                parseAssembleViewOp(labelAttr, reader, opcodeStr === 'view', this.version, this.diffType);
+                parseAssembleViewOp(labelAttr, reader, false, this.version, this.diffType);
                 break;
             default:
                 // 可选：处理未知 opcode
