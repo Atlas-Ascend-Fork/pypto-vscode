@@ -144,11 +144,11 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
-- **PMU performance panel**
+- **Performance panel**
 
-    Click the report button in the upper left corner to view the PMU performance.
+    Click the report button in the upper left corner to view the performance report. Clicking on a node on the page will automatically locate it to the corresponding position on the graph, making it convenient for users to quickly view performance issues.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/pmu.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
 
 - **Core utilization statistics**
 

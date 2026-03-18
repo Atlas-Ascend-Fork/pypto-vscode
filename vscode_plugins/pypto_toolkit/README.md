@@ -144,11 +144,11 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
-- **PMU性能看板**
+- **性能看板**
 
-    点击左上角的报告按钮，即可查看PMU性能
+    点击左上角的报告按钮，即可查看性能报告，在页面点击节点可以自动定位到图上对应位置，便于用户快速查看性能问题。
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/swim/pmu.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
 
 - **核利用率统计**
 
