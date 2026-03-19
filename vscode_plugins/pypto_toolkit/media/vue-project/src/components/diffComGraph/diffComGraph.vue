@@ -30,7 +30,7 @@
         <div class="diff-after-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
           <ErrorView v-if="errorInfo?.diffType === 'after'" :json-content="errorInfo?.message" :error-log="errorInfo?.log" />
           <template v-else>
-            <DiffHeader :file-name="realAfterFileName" />
+            <DiffHeader :is-changeable="!!realAfterFileName" :file-name="realAfterFileName" @click="changeFile"/>
             <SelectFile v-if="showSelectFile && !isLoading" :before-file-path="beforeFilePath" @change="renderGraph" />
             <div id="sprotty-after"></div>
             <MiniMap
@@ -132,6 +132,9 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
   if (beforeIns) {
     beforeIns.resetModelSource();
+  }
+  if (afterIns) {
+    afterIns.resetModelSource(true);
   }
   isLoading.value = true;
   loadingText.value = t(LoadingStatusMap.rendering);
@@ -437,6 +440,20 @@ onBeforeMount(() => {
     }
   });
 });
+watch(server.AfterDiffData, (newValue: Record<string, any>) => {
+  if (newValue?.fileContent) {
+    renderGraph({ fileContent: newValue.fileContent, fileName: newValue.fileName })
+  }
+});
+watch(server.SameDiffFile, () => {
+  Message({
+    type: 'warning',
+    message: t('sameDiffFileTips'),
+  });
+});
+const changeFile = () => {
+  server.selectFile(props.beforeFilePath)
+}
 onMounted(() => {
   if (props.loadingStep === 'readJson') {
     isLoading.value = true;

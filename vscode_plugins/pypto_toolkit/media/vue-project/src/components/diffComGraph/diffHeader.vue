@@ -1,15 +1,24 @@
 <template>
-  <div class="diff-header" :title="fileName">{{ fileName }}</div>
+  <div class="diff-header">
+    <div class="file-name" :title="fileName">{{ fileName }}</div>
+    <d-icon v-if="isChangeable" name="icon-sequence-new" size="16px"></d-icon>
+  </div>
 </template>
 
 <script setup lang="ts">
 const props = defineProps({
   fileName: String,
+  isChangeable: {
+    type: Boolean,
+    default: false
+  }
 });
 </script>
 
 <style scoped lang="scss">
 .diff-header {
+  display: flex;
+  align-items: center;
   position: absolute;
   top: 0;
   z-index: 10;
@@ -22,9 +31,11 @@ const props = defineProps({
   padding: 16px;
   box-sizing: border-box;
   background: var(--devui-header-gradient-bg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   user-select: none;
+  .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>

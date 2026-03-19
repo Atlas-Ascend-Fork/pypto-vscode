@@ -91,7 +91,7 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
   /** 5. 获取comGraphData和EntryHash 并挂到面板上 */
   private static async loadGraphData(server: any, query: any, fsPath: string | undefined, prop: 'comGraphData' | 'diffGraphData', diffType: 'before' | 'after') {
     if (!fsPath) return;
-    if (!server[prop]) {
+    if (!server[prop] || server[prop].fsPath !== fsPath) {
       server[prop] = new DiffGraphData(fsPath, (prop == 'diffGraphData') ? undefined : query.funcHash);
     }
     const gd = server[prop] as DiffGraphData;
