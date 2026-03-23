@@ -11,11 +11,12 @@
     <span v-if="props.errorLog" class="error-text">{{ props.errorLog }}</span>
     <span v-if="props.swimErrorLog" class="error-text">{{ props.swimErrorLog }}</span>
     <d-button variant="solid" v-if="isThreeColumnStage" @click="openSelectedFileWindow" class="mt10">{{ $t('openFile') }}</d-button>
+    <d-button v-if="isShowSelectFile" @click="emit('clickSelectFile')">{{ $t('selectFile') }}</d-button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, inject, onMounted } from 'vue';
+import { defineProps, ref, inject, onMounted, defineEmits } from 'vue';
 import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 import { useViewServer } from '../../core/use-view-server';
@@ -40,8 +41,13 @@ const props = defineProps({
   swimErrorLog: {
     type: String,
     default: ''
+  },
+  isShowSelectFile: {
+    type: Boolean,
+    default: false
   }
 })
+const emit = defineEmits(['clickSelectFile'])
 
 onMounted(() => {
   if(currentActiveBlock === undefined) {

@@ -560,6 +560,18 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     return modelSource.model.children ?? [];
   }
 
+  const removeEventListeners = () => {
+    (window as any).ascEventBus.remove(`${renderType}_minimap_rect_move`, minimapRectMoveListener);
+    (window as any).ascEventBus.remove('minimap_center', minimapCenterListener);
+    (window as any).ascEventBus.remove(`${renderType}_mainmap_wheel`, mainMapWheelListener);
+    (window as any).ascEventBus.remove(`${renderType}_mainmap_fitscreen`, mainMapFitscreenListener);
+    (window as any).ascEventBus.remove(`svgOutput`, svgExportRequestListener);
+    (window as any).ascEventBus.remove(`jump2SiblingNode`, jump2SiblingNodeListener);
+    (window as any).ascEventBus.remove('SearchModeOpen', SearchModeOpenListener);
+    (window as any).ascEventBus.remove('OpenSubGraphInThreeColumn', openSubGraphInThreeColumn);
+    (window as any).ascEventBus.remove('jump2SiblingNodeByHotKey', jump2SiblingNodeByHotKeyListener);
+  }
+
   return {
     fitToScreenAction,
     initComDocText,
@@ -576,6 +588,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     resetModelSource,
     hoverFeedbackAction,
     updateDiffViewport,
-    getModelSourceChildren
+    getModelSourceChildren,
+    removeEventListeners
   };
 }

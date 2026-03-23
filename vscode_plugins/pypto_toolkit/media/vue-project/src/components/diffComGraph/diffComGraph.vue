@@ -6,7 +6,7 @@
     </div>
     <div class="diff-container" style="height: calc(100% - 40px)">
       <DiffList
-        v-if="showDiffList"
+        v-if="showDiffList && errorInfo?.diffType !== 'after'"
         :is-loading="loadedType.size !== 2"
         :list="diffList"
         @click="onDiffItemClick"
@@ -28,7 +28,7 @@
           </template>
         </div>
         <div class="diff-after-wrap" :style="{ backgroundImage: 'url(' + svgPath + ')' }">
-          <ErrorView v-if="errorInfo?.diffType === 'after'" :json-content="errorInfo?.message" :error-log="errorInfo?.log" />
+          <ErrorView v-if="errorInfo?.diffType === 'after'" :json-content="errorInfo?.message" :error-log="errorInfo?.log" :is-show-select-file="true" @clickSelectFile="changeFile"/>
           <template v-else>
             <DiffHeader :is-changeable="!!realAfterFileName" :file-name="realAfterFileName" @click="changeFile"/>
             <SelectFile v-if="showSelectFile && !isLoading" :before-file-path="beforeFilePath" @change="renderGraph" />
@@ -131,9 +131,11 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   showDiffList.value = showDiff;
   const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
   if (beforeIns) {
+    beforeIns.removeEventListeners?.()
     beforeIns.resetModelSource();
   }
   if (afterIns) {
+    afterIns.removeEventListeners?.()
     afterIns.resetModelSource(true);
   }
   isLoading.value = true;
@@ -187,11 +189,17 @@ watch([() => props.afterJson, () => props.beforeJson], () => {
     showDiffList.value = showDiff;
   }
   if (props.beforeJson) {
+    if(beforeIns){
+      beforeIns.removeEventListeners()
+    }
     const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
     beforeIns = useSprottyLoad(`sprotty-before`, 'before');
     beforeIns.initComDocText(jsonValue, isDarkTheme.value);
   }
   if (props.afterJson) {
+    if(afterIns){
+      afterIns.removeEventListeners()
+    }
     const jsonValue = JSON.parse(JSON.stringify(props.afterJson));
     realAfterFileName.value = props.afterFileName || '';
     afterIns = useSprottyLoad(`sprotty-after`, 'after');
@@ -442,6 +450,9 @@ onBeforeMount(() => {
 });
 watch(server.AfterDiffData, (newValue: Record<string, any>) => {
   if (newValue?.fileContent) {
+    if(props.errorInfo){
+      props.errorInfo.diffType = ''
+    }
     renderGraph({ fileContent: newValue.fileContent, fileName: newValue.fileName })
   }
 });
