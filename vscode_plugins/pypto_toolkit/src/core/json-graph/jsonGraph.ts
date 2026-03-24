@@ -1735,10 +1735,10 @@ export class AscppDagBuilder {
 
         switch (opcodeStr) {
             case 'copy_in':
-                parseCopyOp(labelAttr, reader, opcodeStr === 'copy_in', this.version, this.diffType);
+                parseCopyOp(labelAttr, reader, false, this.version, this.diffType);
                 break;
             case 'copy_out':
-                parseCopyOp(labelAttr, reader, opcodeStr === 'copy_out', this.version, this.diffType);
+                parseCopyOp(labelAttr, reader, true, this.version, this.diffType);
                 break;
             case 'convert':
                 parseConvertOp(labelAttr, reader, this.diffType);
