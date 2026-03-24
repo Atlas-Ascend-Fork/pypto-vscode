@@ -384,6 +384,11 @@ const calculateDependencies = (events, connections) => {
   
     // 预处理 events，按 tid 分组并排序
     events.forEach(event => {
+      if (!event.isCounter) {
+        event.dependencies = {};
+        event.dependencies.predecessors = [];
+        event.dependencies.successors = [];
+      }
       if (!eventIndex.has(event.tid)) {
         eventIndex.set(event.tid, []);
       }
@@ -671,8 +676,17 @@ const calculateDependencies = (events, connections) => {
     processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
   
     // 计算依赖关系
+
+    let calcTopoDepRes = false;
+
+    try {
+      calcTopoDepRes = calculateDependenciesBytopo(processedTasks, task2topo);
+    } catch (error) {
+      console.log(error);
+    }
+
     const useTopo = !isAicpuData && Object.keys(task2topo).length > 0;
-    const status = useTopo ? calculateDependenciesBytopo(processedTasks, task2topo) : false;
+    const status = useTopo ? calcTopoDepRes : false;
     if (!status) {
       calculateDependencies(processedTasks, connections);
     }
