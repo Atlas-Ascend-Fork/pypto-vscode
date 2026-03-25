@@ -1,7 +1,7 @@
 <template>
   <div class="diff-header">
     <div class="file-name" :title="fileName">{{ fileName }}</div>
-    <d-icon v-if="isChangeable" name="icon-sequence-new" size="16px"></d-icon>
+    <d-icon class="change-icon" v-if="isChangeable" name="icon-sequence-new" size="16px"></d-icon>
   </div>
 </template>
 
@@ -36,6 +36,9 @@ const props = defineProps({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .change-icon {
+    cursor: pointer;
   }
 }
 </style>
