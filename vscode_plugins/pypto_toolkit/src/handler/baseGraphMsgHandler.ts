@@ -709,7 +709,7 @@ export abstract class BaseGraphMsgHandler {
     tempCalleemap: Record<string, { functype: string; func_magicname: string; graphtype: string }>,
   ): Record<string, { functype: string; func_magicname: string; graphtype: string }> {
     const fileList = fs.readdirSync(dirName);
-    const matchedFiles = fileList.filter((f) => f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix));
+    const matchedFiles = fileList.filter((f) => f.endsWith('.json') && f.includes(funcHash) && f.startsWith(filePrefix) && (!f.includes("Health_Report")));
     for (const matchedFile of matchedFiles) {
       const targetPath = path.join(dirName, matchedFile);
       const targetFile = fs.readFileSync(targetPath, 'utf8');
