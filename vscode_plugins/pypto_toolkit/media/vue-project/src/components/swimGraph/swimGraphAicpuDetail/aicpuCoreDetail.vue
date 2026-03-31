@@ -337,8 +337,9 @@ const extractAicAiv = (str) => {
 const handleMouseMove = (e) => {
   const mousePosition = { x: e.clientX, y: e.clientY };
   if (!coreDetailKernelCanvas.value || !mousePosition) { return };
-  const localPosition = computeLocalXY(coreDetailKernelCanvas.value, mousePosition, viewState);
-  const { x, y } = localPosition;
+  const rect = coreDetailKernelCanvas.value.getBoundingClientRect();
+  const x = mousePosition.x - rect.left;
+  const y = mousePosition.y - rect.top;
   const info = findEventAtPosition(x, y, kernalProcessKey.value);
   const hoveredEvent = info?.event;
   if (!hoveredEvent) {
@@ -383,8 +384,7 @@ const searchEventsInThread = (thread, x, y) => {
     if (!event.renderInfo) {
       continue;
     }
-    const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
-    const { width } = event.renderInfo;
+    const { x: eventX, y: eventY, height: eventHeight, width } = event.renderInfo;
     if (y < eventY || y > eventY + eventHeight) {
       continue;
     }

@@ -377,13 +377,7 @@ const handleMountedKeyDown = (e) => {
           isClickedPath.value = false;
         }
       } else {
-        // 多个process只发一条消息
-        for (const [processkey, process] of processes.entries()) {
-          if (processkey === props.processKey) {
-            selectNoNodeWarm();
-          }
-          break;
-        }
+        selectNoNodeWarm();
       }
     }
 
@@ -1568,6 +1562,12 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
   return true;
 };
 
+const updateDrawDataColor = (event, deps, processKey) => {
+  const colors = getEventColor(event, deps, processKey);
+  const { fillColor, fontColor, strokeColor } = colors;
+  Object.assign(event.drawData, {rectColor: fillColor, strokeColor, fontColor});
+};
+
 const updateProcessDrawData = (process, processKey) => {
   if (!processExpanded.get(processKey)) {
     return;
@@ -2081,6 +2081,7 @@ addChildContext('threadEvent', {
   getEventColor: (event, processKey, highlight = false, stroke = true) => {
     return getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
   },
+  updateDrawDataColor,
   drawBoundary: threeRender.drawBoundary,
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,

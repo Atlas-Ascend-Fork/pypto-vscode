@@ -1035,6 +1035,7 @@ const selectEvent = (event, processKey) => {
   if (event) {
     const process = processes.get(processKey);
     if (process.type === 'aicpu') {
+      highlightedPaths.clear();
       const { threadName } = event;
       const isCtrl = threadName.includes('AICPU-CTRL');
       const isSched = threadName.includes('AICPU-SCHED');
@@ -1123,8 +1124,9 @@ const highlightAicpu = (process, processKey, isResize) => {
     aicpuSchedTask.value = `AICPU-SCHED-${schedNo}`;
   }
   for (const eventItme of aicpuEventsData) {
-    drawDatas.push(eventItme.drawData);
     highlightedPaths.add(eventItme.id);
+    childContextMap.threadEvent.updateDrawDataColor(eventItme, childContextMap.threadEvent.eventRenderer.deps, processKey);
+    drawDatas.push(eventItme.drawData);
   }
   childContextMap.threadEvent.eventRenderer.drawEvent(drawDatas, ctx);
   childContextMap.threadEvent.eventRenderer.drawEventText(drawDatas, ctx);
