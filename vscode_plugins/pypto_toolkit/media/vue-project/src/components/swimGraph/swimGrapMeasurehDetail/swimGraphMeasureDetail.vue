@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="z-index: 11;">
     <div class="measure-details" :class="{ expanded: mulDetailsExpanded }">
       <div class="measure-details-content">
         <div class="measure-detail-left-section">

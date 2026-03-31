@@ -7,32 +7,50 @@
                 <d-button icon="icon-close" style="border:none; background-color: transparent" @click="togglecfgEditModel"></d-button>
             </div>
         </div>
-        <div class="cfg-Shading-mode">
-            <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
-            <d-select v-model="modeOption" :options="modeOptions" size="sm" @update:modelValue="OnModeChange" :disabled=isThreeColumn></d-select>
-        </div>
-        <div class="task-content" v-if="!isAicpu">
-            <div class="task-content-t">{{ $t('eventTask') }} </div>
-            <d-select :class="[textOption.length === 1 && 'singleOption']" :menu-class="[textOption.length === 1 && 'singleOptionMenu']" v-model="textOption" :options="textOptions" :multiple="true" size="sm" @update:modelValue="OnTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
-        </div>
-        <div class="cfg-line"></div>
-        <div class="task-connection-level">
-            <div class="cfg-head">
-                <div class="task-connection-level-t mb6">{{ $t('taskConnectionLevel') }}</div>
-                <d-tooltip :content="$t('connectionLevel')">
-                    <d-icon name="icon-helping" class="help-font"></d-icon>
-                </d-tooltip>
+        
+        <div class="cfg-section">
+            <div class="cfg-line"></div>
+            <div class="cfg-section-title">{{ $t('globalConfig') }}</div>
+            <div class="task-connection-level">
+                <div class="cfg-head">
+                    <div class="task-connection-level-t mb6">{{ $t('taskConnectionLevel') }}</div>
+                    <d-tooltip :content="$t('connectionLevel')">
+                        <d-icon name="icon-helping" class="help-font"></d-icon>
+                    </d-tooltip>
+                </div>
+                <d-input-number class="connection-level-input" :class="{'locked-style': isPathLockStatus}" v-model="connectionLevel" :disabled=isPathLockStatus :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
             </div>
-            <d-input-number class="connection-level-input" :class="{'locked-style': isPathLockStatus}" v-model="connectionLevel" :disabled=isPathLockStatus :step="1" :precision="0" :min="-1" @change="onInputChange"></d-input-number>
-        </div>
-        <div class="performance-panel-config">
-            <div class="cfg-head">
-                <div class="performance-panel-config-t mb6">{{ $t('showPerformancePanel') }}</div>
-                <d-tooltip :content="$t('showPerformancePanelTip')">
-                    <d-icon name="icon-helping" class="help-font"></d-icon>
-                </d-tooltip>
+            <div class="performance-panel-config">
+                <div class="cfg-head">
+                    <div class="performance-panel-config-t mb6">{{ $t('showPerformancePanel') }}</div>
+                    <d-tooltip :content="$t('showPerformancePanelTip')">
+                        <d-icon name="icon-helping" class="help-font"></d-icon>
+                    </d-tooltip>
+                </div>
+                <d-switch v-model="showPerformancePanel" @change="onPerformanceChange"></d-switch>
             </div>
-            <d-switch v-model="showPerformancePanel" @change="onPerformanceChange"></d-switch>
+        </div>
+
+        <div class="cfg-section" v-if="showAicpuConfig">
+            <div class="cfg-line"></div>
+            <div class="cfg-section-title">{{ $t('aicpuConfig') }}</div>
+            <div class="cfg-Shading-mode">
+                <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
+                <d-select v-model="aicpuModeOption" :options="aicpuModeOptions" size="sm" @update:modelValue="OnAicpuModeChange"></d-select>
+            </div>
+        </div>
+
+        <div class="cfg-section" v-if="showKernelConfig">
+            <div class="cfg-line"></div>
+            <div class="cfg-section-title">{{ $t('kernelConfig') }}</div>
+            <div class="cfg-Shading-mode">
+                <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
+                <d-select v-model="kernelModeOption" :options="kernelModeOptions" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
+            </div>
+            <div class="task-content">
+                <div class="task-content-t">{{ $t('eventTask') }} </div>
+                <d-select :class="[kernelTextOption.length === 1 && 'singleOption']" :menu-class="kernelTextOption.length === 1 ? 'singleOptionMenu' : ''" v-model="kernelTextOption" :options="kernelTextOptions" :multiple="true" size="sm" @update:modelValue="OnKernelTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
+            </div>
         </div>
     </div>
   </div>
@@ -56,6 +74,7 @@ const {
     isThreeColumn,
     isPathLockStatus,
     isAicpu,
+    isMixedAicpuKernel,
 } = inject('swimGraphState');
 
 const {
@@ -64,10 +83,10 @@ const {
   getDisplayName,
 } = inject('swimGraphMethods');
 
+const { pinnedThreadsList } = inject('swimGraphPinnedState');
+
 const {
   userConfig,
-  textOption,
-  modeOption,
 } = inject('swimGraphCfg');
 
 const connectionLevel = computed({
@@ -84,31 +103,36 @@ const showPerformancePanel = computed({
   }
 });
 
-const shadingOp = [
-    {name: $t('colorRendering'), value: 'colorRendering', disabled: true},
-];
+const showAicpuConfig = computed(() => {
+  return isAicpu.value || isMixedAicpuKernel.value;
+});
 
-const shadingOptions = reactive(shadingOp);
-const shadingOption = ref('colorRendering');
+const showKernelConfig = computed(() => {
+  return !isAicpu.value;
+});
 
-const modeOp = [
+const aicpuModeOptions = computed(() => {
+  return [{name: $t('name'), value: 'name'}];
+});
+
+const aicpuModeOption = ref('name');
+
+const kernelModeOptions = computed(() => {
+  return [
     {name: $t('subGraph'), value: 'subGraph'},
     {name: $t('stichedFunc'), value: 'stichedFunc'},
     {name: $t('label'), value: 'label'},
-];
-
-const modeOptions = computed(() => {
-    if (isAicpu.value) {
-        return [{name: $t('name'), value: 'name'}];
-    }
-    return modeOp;
+  ];
 });
 
-const textOp = [
-    {name: $t('taskName'), value: 'taskName', disabled: false},
-    {name: $t('taskLabel'), value: 'taskLabel', disabled: false},
-];
-const textOptions = reactive(textOp);
+const kernelModeOption = ref('subGraph');
+
+const kernelTextOptions = computed(() => [
+  {name: $t('taskName'), value: 'taskName', disabled: false},
+  {name: $t('taskLabel'), value: 'taskLabel', disabled: false},
+]);
+
+const kernelTextOption = ref(['taskName', 'taskLabel']);
 
 const togglecfgEditModel = () => {
     if (isCfgEditing.value) {
@@ -116,34 +140,8 @@ const togglecfgEditModel = () => {
     }
 };
 
-function saveRendingMode(colorRenderMode, textRenderMode) {
-    server.saveRendingMode({paramObj: JSON.stringify({ colorRending: colorRenderMode, textRending: textRenderMode})});
-};
-
 function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
-};
-
-const OnTextChange = (value) => {
-    const updateEventText = (mode) => {
-        for (const process of processes.values()) {
-            for (const thread of process.threads.values()) {
-                for (const event of thread.events) {
-                    if (!event.isCounter) {
-                        event.drawData.text = mode === 'allText' ? event.name : getDisplayName(event);
-                    }
-                }
-            }
-        }
-    };
-    if (textOption.value.length === 1) {
-        const [selectedTextOption] = textOption.value;
-        updateEventText(selectedTextOption);
-    } else if (textOption.value.length === 2) {
-        updateEventText('allText');
-    }
-    transform();
-    saveRendingMode(modeOption.value, textOption.value);
 };
 
 const configGetEventColor = (colorEvent, mode) => {
@@ -158,39 +156,77 @@ const configGetEventColor = (colorEvent, mode) => {
     return colors;
 };
 
-const OnModeChange = () => {
-    const updateEventColor = (event, mode) => {
-        const color = getEventColorByMode(event, mode);
-        event.color = color;
-        const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
-        event.drawData.rectColor = fillColor;
-        event.drawData.strokeColor = strokeColor;
-        event.drawData.fontColor = fontColor;
-    };
-    const updateEvents = (mode) => {
-        for (const process of processes.values()) {
-            for (const thread of process.threads.values()) {
-                for (const event of thread.events) {
-                    if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
-                        updateEventColor(event, mode);
-                    }
+const updateAicpuEvents = (mode) => {
+    for (const process of processes.values()) {
+        if (process.type !== 'aicpu' || !process.isRendered) {
+            continue;
+        }
+        for (const thread of process.threads.values()) {
+            for (const event of thread.events) {
+                if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
+                    const color = getEventColorByMode(event, mode);
+                    event.color = color;
+                    const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
+                    event.drawData.rectColor = fillColor;
+                    event.drawData.strokeColor = strokeColor;
+                    event.drawData.fontColor = fontColor;
                 }
             }
         }
-    };
-    if (modeOption.value === 'subGraph') {
-        updateEvents('subGraph');
-    } else if (modeOption.value === 'stichedFunc') {
-        updateEvents('stichedFunc');
-    } else if (modeOption.value === 'label') {
-        updateEvents('label');
-    } else if (modeOption.value === 'name') {
-        updateEvents('name');
-    } else {
-        return; 
     }
+};
+
+const OnAicpuModeChange = () => {
+    updateAicpuEvents(aicpuModeOption.value);
     transform();
-    saveRendingMode(modeOption.value, textOption.value);
+    saveAicpuRendingMode(aicpuModeOption.value);
+};
+
+function saveAicpuRendingMode(colorRenderMode) {
+    server.saveRendingMode({paramObj: JSON.stringify({ aicpuColorRending: colorRenderMode })});
+};
+
+const updateKernelEvents = (mode) => {
+    const {startTime, endTime} = timelineState;
+    const updateEventColors = (event) => {
+        if (!event.isCounter && event.endTime >= startTime && event.startTime <= endTime) {
+            const color = getEventColorByMode(event, mode);
+            event.color = color;
+            const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
+            event.drawData.rectColor = fillColor;
+            event.drawData.strokeColor = strokeColor;
+            event.drawData.fontColor = fontColor;
+        }
+    };
+    pinnedThreadsList.value.filter(pinThread => pinThread.process.type === 'kernel')
+    .forEach((pinThread) => {
+        pinThread.thread.events.forEach(updateEventColors);
+    });
+    for (const process of processes.values()) {
+        if (process.type === 'aicpu' || !process.isRendered) {
+            continue;
+        }
+        process.threads.forEach((thread) => {
+            thread.events.forEach(updateEventColors);
+        });
+    }
+};
+
+const OnKernelModeChange = (mode) => {
+    userConfig.value.kernelColorRending = mode;
+    updateKernelEvents(kernelModeOption.value);
+    transform();
+    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value);
+};
+
+const OnKernelTextChange = (value) => {
+    userConfig.value.kernelTextRending = value;
+    transform();
+    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value);
+};
+
+function saveKernelRendingMode(colorRenderMode, textRenderMode) {
+    server.saveRendingMode({paramObj: JSON.stringify({ kernelColorRending: colorRenderMode, kernelTextRending: textRenderMode })});
 };
 
 const onInputChange = (newValue) => {
@@ -206,12 +242,16 @@ const onPerformanceChange = (newValue) => {
     userConfig.set('showPerformancePanel', newValue);
     server.changeUserCfgPerformance({paramObj: {show: newValue}});
 };
-// 暴露方法给父组件
 defineExpose({
   connectionLevel,
   showPerformancePanel
 });
 
+watch(userConfig, () => {
+    aicpuModeOption.value = userConfig.value.aicpuColorRending;
+    kernelModeOption.value = userConfig.value.kernelColorRending;
+    kernelTextOption.value = userConfig.value.kernelTextRending;
+});
 </script>
 
 <style lang="scss">

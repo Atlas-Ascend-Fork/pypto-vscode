@@ -27,10 +27,10 @@
             <div class="max-scheduling-gap">
               <div v-for="(item, index) in maxGap" :key="index" class="max-scheduling-gap-item">
                 <d-tooltip :content="item.parent.name">
-                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item)"
+                  <div class="max-scheduling-gap-item-task" :class="{ 'disabled': isPathLockStatus }" @click="showMaxSchedule(item)"
                   :style="{
-                    '--base-bg-color': getBaseColor(item.parent),
-                    '--hover-bg-color': getLightColor(item.parent)
+                    '--base-bg-color': baseColor(item.parent),
+                    '--hover-bg-color': lightColor(item.parent)
                   }">
                     <div class="max-scheduling-gap-item-task-text">{{item.parent.name}}</div>
                   </div>
@@ -39,16 +39,16 @@
                   <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / 1000}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
-                      '--left-color': getBaseColor(item.parent),
-                      '--right-color': getBaseColor(item.child),
+                      '--left-color': baseColor(item.parent),
+                      '--right-color': baseColor(item.child),
                       width: gapLineWidth + 'px'
                     }"></div>
                 </div>
                 <d-tooltip :content="item.child.name">
-                  <div class="max-scheduling-gap-item-task" @click="showMaxSchedule(item, true)"
+                  <div class="max-scheduling-gap-item-task" :class="{ 'disabled': isPathLockStatus }" @click="showMaxSchedule(item, true)"
                     :style="{
-                    '--base-bg-color': getBaseColor(item.child),
-                    '--hover-bg-color': getLightColor(item.child)
+                    '--base-bg-color': baseColor(item.child),
+                    '--hover-bg-color': lightColor(item.child)
                   }">
                   <div class="max-scheduling-gap-item-task-text">{{item.child.name}}</div>
                   </div>
@@ -59,7 +59,7 @@
         </div>
 
         <div class="time-consuming-container-perform"
-        :style="{width: subContainerWidth + 'px'}">
+        :style="{width: subContainerWidth + 'px'}" v-if="maxTimeTask.length > 0">
 
           <div class="task-statistic-item">
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
@@ -78,10 +78,11 @@
                   <div 
                     class="time-consuming-task"
                     :style="{
-                    '--base-bg-color': getBaseColor(item),
-                     '--hover-bg-color': getLightColor(item),
+                    '--base-bg-color': baseColor(item),
+                     '--hover-bg-color': lightColor(item),
                      width: timeConsumingTaskWidth +'px'
                     }"
+                    :class="{ 'disabled': isPathLockStatus }"
                     @click="clickTask(item)">{{item.name}}</div>
                 </d-tooltip>
               </div>
@@ -105,10 +106,11 @@
                   <div 
                     class="time-consuming-task"
                     :style="{
-                    '--base-bg-color': getBaseColor(item),
-                     '--hover-bg-color': getLightColor(item),
+                    '--base-bg-color': baseColor(item),
+                     '--hover-bg-color': lightColor(item),
                      width: timeConsumingTaskWidth +'px'
                     }"
+                    :class="{ 'disabled': isPathLockStatus }"
                     @click="clickTask(item)">{{item.name}}</div>
                 </d-tooltip>
               </div>
@@ -127,7 +129,7 @@
             <div class="task-data">{{ icacheHitRate }}</div>
           </div>
         </div>
-        <div class="aicore-container" :style="{width: subContainerWidth + 'px'}">
+        <div class="aicore-container" :style="{width: subContainerWidth + 'px'}" v-if="!isAicpu">
           <div class="aicore-container-column" :style="{gap: aiCoreContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
@@ -180,7 +182,7 @@
         <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist && iniComplete" />
       </div>
       </d-tab>
-      <d-tab id="tab2" :title="$t('executionTime')">
+      <d-tab id="tab2" v-if="!isAicpu" :title="$t('executionTime')">
         <div class="time-statistics-tab-content">
           <time-statistics/>
         </div>
@@ -194,6 +196,7 @@ import { ref, reactive, nextTick, provide, inject, onMounted, watch, onUnmounted
 import { useI18n } from 'vue-i18n';
 import BigNumber from 'bignumber.js';
 import { buildEventMap } from '../swimGraphProcesses/render/utils';
+import { getBaseColor, getLightColor } from '../swimGraphProcesses/processInfo';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import TimeStatistics from './timeStatistics/timeStatistics.vue';
 import { executionTimeData } from './utils';
@@ -292,7 +295,10 @@ const {
   performanceVisible,
   performanceWidth,
   isWideScreen,
-  isMaxSchedule
+  isMaxSchedule,
+  isMixedAicpuKernel,
+  childContextMap,
+  kernelColorRending,
 } = inject('swimGraphState');
 
 const {
@@ -302,7 +308,8 @@ const {
   showMaxScheduleEvent,
   resetMaxScheduleState,
   scrollToEvent,
-  canvasStatusReset
+  canvasStatusReset,
+  autoExpandkernelProcess
 } = inject('swimGraphMethods');
 
 provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
@@ -315,17 +322,20 @@ const TaskMinDuration = ref($t('TaskMinDuration'));
 const TaskMaxDuration = ref($t('TaskMaxDuration'));
 const PerformanceSummary = ref($t('PerformanceSummary'));
 
-const clickTask = (event) => {
+const clickTask = async (event) => {
   if (isMaxSchedule.value) {
     resetMaxScheduleState();
+  }
+  if (isMixedAicpuKernel.value) {
+    await autoExpandkernelProcess();
   }
   showDependencies(event, 'both');
   selectEvent(event, String(event.pid));
   scrollToEvent(event);
 };
 
-const showMaxSchedule = (item, isChild = false) => {
-  showMaxScheduleEvent(item.parent, item.child);
+const showMaxSchedule = async (item, isChild = false) => {
+  await showMaxScheduleEvent(item.parent, item.child);
   scrollToEvent(isChild ? item.child : item.parent);
 };
 
@@ -350,20 +360,12 @@ aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
 rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
 gapLineWidth.value = isWideScreen.value? 173.5 : 66.5;
 
-const getBaseColor = (event) => {
-  if (isDarkTheme.value) {
-    return event.color.dark.base;
-  } else {
-    return event.color.light.base;
-  }
+const baseColor = (event) => {
+  return getBaseColor(event, { processes, kernelColorRending, isDarkTheme });
 };
 
-const getLightColor = (event) => {
-  if (isDarkTheme.value) {
-    return event.color.dark.light;
-  } else {
-    return event.color.light.light;
-  }
+const lightColor = (event) => {
+  return getLightColor(event, { processes, kernelColorRending, isDarkTheme });
 };
 
 const closeStatistics = () => {
@@ -385,7 +387,9 @@ const buildTaskEventMap = (process) => {
 };
 
 const calculateStatistics = () => {
-  const processesArray =  Array.from(processes.entries()).map(([key, value]) => {
+  const processesArray =  Array.from(processes.entries())
+  .filter(([key, value]) => !isMixedAicpuKernel.value || value.type === 'kernel')
+  .map(([key, value]) => {
     return {
       key,
       ...value
@@ -395,7 +399,9 @@ const calculateStatistics = () => {
   const globalEventMap = {};
 
   for (const process of processesArray) {
-    globalEventMap[process.pid] = buildTaskEventMap(process);
+    if (['kernel', ''].includes(process.type)) {
+      globalEventMap[process.pid] = buildTaskEventMap(process);
+    }
   }
     
   let tMaxGap = -Infinity;
@@ -473,22 +479,33 @@ const calculateStatistics = () => {
 const calculateAicoreInfo = () => {
   let aicTaskTimeSum = 0;
   let totalCnt = 0;
+  const kernelTimeInfo = [];
+  let minTs = Infinity;
+  let maxTs = -Infinity;
   for (const [processKey, processVal] of processes) {
+    if (!['kernel', ''].includes(processVal.type)) {
+      continue;
+    }
+    kernelTimeInfo.push(processVal.timeInfo);
     for (const [threadKey, threadVal] of processVal.threads) {
-      if (threadVal.isCounter == false) {
-        totalCnt = totalCnt + 1;
+      if (threadVal.isCounter || threadVal.isFakeCore) {
+        continue;
       }
       if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
         continue;
       }
+      totalCnt = totalCnt + 1;
       for (const event of threadVal.events) {
         aicTaskTimeSum = aicTaskTimeSum + (event.duration ? event.duration : 0);
+        minTs = Math.min(event.startTime, minTs);
+        maxTs = Math.max(event.endTime, maxTs);
       }
     }
   }
 
   aicoreTime.value = parseFloat((aicTaskTimeSum / 1000).toFixed(2));
-  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value))).div(new BigNumber('1000'));
+  const range = (maxTs - minTs) / 1000;
+  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * range))).div(new BigNumber('1000'));
   aicoreRate.value = parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
 };
 
@@ -572,6 +589,9 @@ const initializePerformance = () => {
   iniComplete.value = true;
 };
 const handleClickOutside = (e) => {
+  if (isPathLockStatus.value) {
+    return;
+  }
   const composedPath = e.composedPath();
   const index = composedPath.findIndex(
     (item) =>
@@ -579,7 +599,8 @@ const handleClickOutside = (e) => {
       item.classList?.contains('max-scheduling-gap-item-task')||
       item.classList?.contains('time-range-marker') || 
       item.classList?.contains('time-statistics-table') ||
-      item.classList?.contains('event-container')
+      item.classList?.contains('event-container') ||
+      ['tab1', 'tab2'].includes(item.id)
   );
   if (index !== -1) {
     return;
@@ -706,6 +727,13 @@ provide('swimGraphPmuBarMethod', {
 
 .max-scheduling-gap-item-task:hover {
   background: var(--hover-bg-color);
+}
+
+.disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
 }
 
 .max-scheduling-gap-item-task-text {

@@ -1,8 +1,11 @@
 .process-header {
+  background-color: var(--devui-global-bg);
   display: flex;
   height: 30px;
   cursor: pointer;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .process-header-label {
@@ -39,8 +42,8 @@
   border-bottom: 1px solid var(--devui-swim-split-line);
 }
 
-.process-header:hover .process-header-label,
-.process-header:hover .process-header-line {
+.process-header-label,
+.process-header-line {
   background-color: var(--devui-input-hover-bg);
 }
 
@@ -62,9 +65,6 @@
   width: 16px;
   height: 16px;
   margin-top: 8px;
-}
-.process-header-width {
-  width: calc(100% - 10px);
 }
 
 .process-header-canvas {

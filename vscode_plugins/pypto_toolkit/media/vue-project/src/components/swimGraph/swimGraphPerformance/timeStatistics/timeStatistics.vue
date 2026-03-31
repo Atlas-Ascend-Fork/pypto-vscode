@@ -11,7 +11,7 @@
             @update-data="onUpdateData" />
         <div v-if="timeType === 'label'">
             <div class="time-statistics-title">{{ $t('totalTime') }}</div>
-            <d-table :data="dataSource" class="time-statistics-table" @cell-click="onCellClick">
+            <d-table :data="dataSource" class="time-statistics-table" @cell-click="onCellClick" :class="{ 'disabled': isPathLockStatus }">
                 <d-column field="semanticLabel" :style="{width: isWideScreen ? `148px` : '100px' }" show-overflow-tooltip>
                     <template #header>
                         <d-tooltip :content="$t('taskLabel')">
@@ -95,24 +95,9 @@ const mod = 1000;
 const barStep = ref(1);
 const barColor = ref('rgba(0, 117, 102, 1)');
 const {
-    highlightedPaths,
-    detailsPanelExpanded,
-    mulDetailsExpanded,
-    childContextMap,
-    processes,
-    isMaxSchedule,
-    measureDragStartX,
-    measureDragEndY,
-    measureDragStartTime,
-    measureDragEndTime,
-    selectedEvent,
-    processExpanded,
-    isWideScreen,
-    isDarkTheme
-} = inject('swimGraphState');
-const {
   modeOption
 } = inject('swimGraphCfg');
+const { isDarkTheme } = inject('root');
 const chartInstance = ref(null);
 const option = reactive({
     xAxis: {
@@ -217,9 +202,24 @@ const option = reactive({
 });
 let showSubGraphTimingChart = ref(false);
 const stats = new Map();
+const { isSearchActive } = inject('swimGraphSearch');
 const {
-    isSearchActive,
-} = inject('swimGraphSearch');
+    highlightedPaths,
+    detailsPanelExpanded,
+    mulDetailsExpanded,
+    childContextMap,
+    processes,
+    isMaxSchedule,
+    measureDragStartX,
+    measureDragEndY,
+    measureDragStartTime,
+    measureDragEndTime,
+    selectedEvent,
+    isPathLockStatus,
+    processExpanded,
+    isWideScreen,
+    isMixedAicpuKernel,
+} = inject('swimGraphState');
 const {
     render,
     drawMeasureTime,
@@ -228,6 +228,7 @@ const {
     timeToX,
     xToTime,
     scrollToEvent,
+    autoExpandkernelProcess,
 } = inject('swimGraphMethods');
 provide('subGraphTimingState', {
     showSubGraphTimingChart,
@@ -246,7 +247,7 @@ provide('swimGraphPmuBarMethod', {
     clickTask
 });
 const customBarCount = isWideScreen.value ? ref(20) : ref(10);
-const onCellClick = (params) => {
+const onCellClick = async (params) => {
     if (isSearchActive.value) {
         resetsearchState();
     }
@@ -255,7 +256,7 @@ const onCellClick = (params) => {
     }
     highlightedPaths.clear();
     selectedEvent.value = null;
-    const processKey = findProcessKey(params.row.semanticLabel);
+    const processKey = await findProcessKey(params.row.semanticLabel);
     if (!processKey) {
         return;
     }
@@ -273,19 +274,19 @@ const onCellClick = (params) => {
         handleColumnClick(params.row.semanticLabel);
     }
 };
-const findProcessKey = (label) => {
+const findProcessKey = async (label) => {
   for (const [processKey, process] of processes.entries()) {
-    if (!processExpanded.get(processKey)) {
+    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
         continue;
     }
-    const foundKey = findInProcess(process, label);
+    const foundKey = await findInProcess(process, label);
     if (foundKey != null) {
         return foundKey; 
     }
   }
   return null; 
 };
-const findInProcess = (process, label) => {
+const findInProcess = async (process, label) => {
   let processKeyInfo = null;
   let processKeySet = false;
   for (const [, thread] of process.threads.entries()) {
@@ -304,6 +305,9 @@ const findInProcess = (process, label) => {
       highlightedPaths.add(event.id);
       if (!processKeySet) {
         processKeyInfo = String(event.pid);
+        if (!processExpanded.get(processKeyInfo) && isMixedAicpuKernel.value) {
+            await autoExpandkernelProcess();
+        }
         processKeySet = true;
         scrollToEvent(event);
       }
@@ -372,7 +376,7 @@ const onUpdateData = (data) => {
 const collectSubGraphEvents = (targetId) => {
   const durations = [];
   for (const [processKey, process] of processes.entries()) {
-    if (!processExpanded.get(processKey)) {
+    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
         continue;
     }
     for (const [, thread] of process.threads.entries()) {
@@ -434,7 +438,7 @@ const getTableData = () => {
         return;
     }
     for (const [processKey, process] of processes.entries()) {
-        if (!processExpanded.get(processKey)) {
+        if (isMixedAicpuKernel.value && process.type === 'aicpu') {
             continue;
         }
         for (const [threadKey, thread] of process.threads.entries()) {

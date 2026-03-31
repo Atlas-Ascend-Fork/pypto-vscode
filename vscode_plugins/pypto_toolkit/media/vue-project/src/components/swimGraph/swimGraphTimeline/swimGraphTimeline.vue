@@ -69,7 +69,8 @@ const {
   initialScale,
   loading,
   timelineState,
-  childContextMap
+  childContextMap,
+  isMixedAicpuKernel,
 } = inject('swimGraphState');
 
 const {
@@ -80,6 +81,8 @@ const {
   timeToX,
   xToTime,
   transform,
+  pinnedDrawLine,
+  pinnedEraseLine
 } = inject('swimGraphMethods');
 
 let isTimelineDragging = false;
@@ -442,6 +445,9 @@ const handleWheel = throttle((e) => {
   const mouseX = e.clientX - rect.left;
   // 如果没有按住 ctrl 键，则允许默认滚动行为（不阻止事件）
   if (!isZooming) {
+    if (isMixedAicpuKernel.value) {
+      childContextMap.process.measureMaskHandleWheel(e);
+    }
     return;
   }
   const zoomFactor = e.deltaY > 0 ? 0.8 : 1.25;
@@ -480,10 +486,12 @@ const flagMouseMove = (e) => {
   hoverLineErase();
   childContextMap.threadEvent.eraseEventLine("over");
   childContextMap.processHeaderEvent.eraseProcessHeadLine("over");
+  pinnedEraseLine("over");
   const flag = drawFlag(ctx, mouseX, 1, color, '');
   hoverCurFlag.value = flag;
   childContextMap.threadEvent.drawEventLine(mouseX, color, "over");
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
+  pinnedDrawLine(mouseX, color, "over");
   const isBetweenAnyAdjacentFlags = isMouseXBetweenAnyAdjacentFlags(mouseX);
   if (!isBetweenAnyAdjacentFlags) {
     return;
@@ -596,6 +604,7 @@ const flagMouseOver = (e) => {
   const flag = drawFlag(ctx, mouseX, 1, color, '');
   childContextMap.threadEvent.drawEventLine(mouseX, color, 'over');
   childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, color, "over");
+  pinnedDrawLine(mouseX, color, "over");
   hoverCurFlag.value = flag;
 };
 
@@ -605,6 +614,7 @@ const hoverLineErase = () => {
   }
   childContextMap.threadEvent.eraseEventLine('over');
   childContextMap.processHeaderEvent.eraseProcessHeadLine('over');
+  pinnedEraseLine('over');
   const ctx = hoverFlagsCtx.value;
   const canvas = hoverFlagsCanvas.value;
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
@@ -648,6 +658,7 @@ const flagMouseClick = (e) => {
     const flagId = drawFlag(ctx, mouseX, 1, refColor.value, refLabel.value);
     childContextMap.threadEvent.drawEventLine(mouseX, refColor.value, '');
     childContextMap.processHeaderEvent.drawProcessHeadLine(mouseX, refColor.value, '');
+    pinnedDrawLine(mouseX, refColor.value, '');
     let labelWidth = getTextWidth((refLabel.value), 12);
     flags.value.push({id: flagId, x: mouseX, y: 1, color: refColor.value, label: refLabel.value, labelW: labelWidth, time: flagTime, overflow: false});
     return ;
@@ -690,6 +701,7 @@ const clearFlagCanvas = (clearFlags=false) => {
   ctx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   childContextMap.threadEvent.eraseEventLine('');
   childContextMap.processHeaderEvent.eraseProcessHeadLine('');
+  pinnedEraseLine('');
   if (clearFlags) {
     flags.value = [];
   }
@@ -711,6 +723,7 @@ const flagRender = () => {
       drawFlag(ctx, flag.x, 1, flag.color, flag.label);
       childContextMap.threadEvent.drawEventLine(flag.x, flag.color, '');
       childContextMap.processHeaderEvent.drawProcessHeadLine(flag.x, flag.color, '');
+      pinnedDrawLine(flag.x, flag.color, '');
     }
   }
 }
@@ -784,7 +797,7 @@ const renderCurFlag = () => {
   drawFlag(flagsCtx.value, currentFlag.value.x, currentFlag.value.y, currentFlag.value.color, currentFlag.value.label);
   childContextMap.threadEvent.drawEventLine(currentFlag.value.x, currentFlag.value.color, '');
   childContextMap.processHeaderEvent.drawProcessHeadLine(currentFlag.value.x, currentFlag.value.color, '');
-  
+  pinnedDrawLine(currentFlag.value.x, currentFlag.value.color, '');
 }
 
 const onColorChange = () => {

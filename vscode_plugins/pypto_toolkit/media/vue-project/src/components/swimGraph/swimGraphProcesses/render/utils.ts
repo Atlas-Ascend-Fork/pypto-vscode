@@ -13,7 +13,8 @@ export interface Dependencies {
   layout: any;
   isKeyPressed: any;
   searchedEvent: any;
-  colorRending: any;
+  userConfig: any;
+  processes: Map<string, any>;
 }
 
 export function selectNoNodeWarm(): any {
@@ -90,8 +91,10 @@ export function getNoZoomX(x: number, viewState: any) {
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, colorRending } = deps;
-  const color = getEventColorByMode(event, colorRending.value);
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes } = deps;
+  const process = processes.get(processKey);
+  const processType = process?.type || process?.args?.type || 'kernel';
+  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
   event.color = color;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
@@ -123,12 +126,13 @@ export function getEventColor(event: any, deps: Dependencies, processKey: string
 }
 
 export function renderInfo2pixelData(renderInfo: any, viewState: any) {
-  const { x, width, y, height } = renderInfo;
+  const { x, width, y, height, pinnedEventY } = renderInfo;
   return {
     x: getNoZoomX(x, viewState),
     width: width * viewState.pixelScale,
     y: y * devicePixelRatio,
     height: height * devicePixelRatio,
+    pinnedEventY: pinnedEventY * devicePixelRatio || 0,
   };
 }
 

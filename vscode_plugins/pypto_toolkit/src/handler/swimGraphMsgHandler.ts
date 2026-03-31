@@ -5,7 +5,7 @@ import { accessSync, constants, existsSync, readFileSync, readdirSync } from 'fs
 import { t } from 'i18next';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
-import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, getSavedSwimDataFileStreamByKey, getSavedSwimDataFileStreamAll} from '../process';
+import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, getSavedSwimDataFileStreamAll} from '../process';
 import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
@@ -92,9 +92,11 @@ export abstract class SwimGraphMsgHandler {
       const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
       const colorRending = isThreeServer ? 'label' : colorRendingMode;
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
+      const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
       const config = Util.getSwimGraphCustomCfg();
-      config['colorRending'] = colorRending;
-      config['textRending'] = textRending;
+      config['kernelTextRending'] = textRending;
+      config['aicpuColorRending'] = aicpuColorRending;
+      config['kernelColorRending'] = colorRending;
       return {
         configuration: config,
         comGraphPath,
@@ -136,7 +138,7 @@ export abstract class SwimGraphMsgHandler {
       return sendList;
     }
 
-    static async getSwimData(server: any) {
+    static async getSwimData(server: any, isThreeColumn: boolean = false) {
         const swimPath = server.swimDataPath;
         try {
           accessSync(swimPath, constants.R_OK);
@@ -147,16 +149,6 @@ export abstract class SwimGraphMsgHandler {
 
         const swimFileStat = await fs.stat(swimPath);
         const useCacheStream = swimFileStat.size < CACHE_LARGE_FILE_SIZE * 1024 * 1024;
-
-        this.cacheCfgPath = Util.getCachePath('swimRenderingCfg.json');
-        const cache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
-        const colorRendingMode = cache['colorRending'] ?? 'subGraph';
-        const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
-        const colorRending = isThreeServer ? 'label' : colorRendingMode;
-        const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
-        const config = Util.getSwimGraphCustomCfg();
-        config['colorRending'] = colorRending;
-        config['textRending'] = textRending;
         let savedParsedDataPath = '';
     
         const parsedInfoRow = await getSwimGraphParsedInfoStore().find({filePath: swimPath});
@@ -187,22 +179,18 @@ export abstract class SwimGraphMsgHandler {
           //数据库有数据且文件未修改，直接从数据库读取
           console.log(parsedInfoRow.infoPath);
           savedParsedDataPath = parsedInfoRow.infoPath;
-          if (false) {
-            swimData = await getSavedSwimDataFileStreamAll(savedParsedDataPath);
-          } else {
-            this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
-            const fileUri = vscode.Uri.file(parsedInfoRow.infoPath);
-            const fileData = await vscode.workspace.fs.readFile(fileUri);
-            const content = new TextDecoder().decode(fileData);
-            swimData = JSON.parse(content);
-            if (typeof swimData.processes != 'object' || typeof swimData.lane2line != 'object' || typeof swimData.pmu_total != 'object') {
-              const title = t('pypto.swimGraph.validate.parseError');
-              const msg = t('pypto.swimGraph.validate.savedData');
-              server.setRef('dataError', { msg: title + msg});
-              return; 
-            }
-          }
           
+          this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
+          const fileUri = vscode.Uri.file(parsedInfoRow.infoPath);
+          const fileData = await vscode.workspace.fs.readFile(fileUri);
+          const content = new TextDecoder().decode(fileData);
+          swimData = JSON.parse(content);
+          if (typeof swimData.processes != 'object' || typeof swimData.lane2line != 'object' || typeof swimData.pmu_total != 'object') {
+            const title = t('pypto.swimGraph.validate.parseError');
+            const msg = t('pypto.swimGraph.validate.savedData');
+            server.setRef('dataError', { msg: title + msg});
+            return; 
+          }
         } else {
           //解析数据
           //处理tilefwk_prof_pmu.csv
@@ -214,41 +202,16 @@ export abstract class SwimGraphMsgHandler {
             //tilefwk_prof_pmu.csv文件存在
             pmuExist = true;
             let pmuData = '';
-              try {
-                pmuData = readFileSync(pmuPath, 'utf8');
-                console.log('读取pmu文件');
-          
-              } catch (err) {
-                console.error('读取pmu文件时发生错误:', err);
-              }
-              if (pmuData != '') {
-                pmuInfo = parsePmuInfo(pmuData);
-              }
-    
-            //计算pmu Total
-            pmuTotal = {
-              'total cycle': 0n,
-              vec_busy_cycles: 0n,
-              cube_busy_cycles: 0n,
-              scalar_busy_cycles: 0n,
-              mte1_busy_cycles: 0n,
-              mte2_busy_cycles: 0n,
-              mte3_busy_cycles: 0n,
-              icache_miss: 0n,
-              icache_req: 0n
-            };
-            for (const uniqueKey in pmuInfo) {
-              pmuTotal['total cycle'] += BigInt(pmuInfo[uniqueKey]['total cycle']);
-              pmuTotal.cube_busy_cycles += BigInt(pmuInfo[uniqueKey].cube_busy_cycles);
-              pmuTotal.vec_busy_cycles += BigInt(pmuInfo[uniqueKey].vec_busy_cycles);
-              pmuTotal.scalar_busy_cycles += BigInt(pmuInfo[uniqueKey].scalar_busy_cycles);
-              pmuTotal.mte1_busy_cycles += BigInt(pmuInfo[uniqueKey].mte1_busy_cycles);
-              pmuTotal.mte2_busy_cycles += BigInt(pmuInfo[uniqueKey].mte2_busy_cycles);
-              pmuTotal.mte3_busy_cycles += BigInt(pmuInfo[uniqueKey].mte3_busy_cycles);
-              pmuTotal.icache_miss += BigInt(pmuInfo[uniqueKey].icache_miss);
-              pmuTotal.icache_req += BigInt(pmuInfo[uniqueKey].icache_req);
+            try {
+              pmuData = readFileSync(pmuPath, 'utf8');
+              console.log('读取pmu文件');
+        
+            } catch (err) {
+              console.error('读取pmu文件时发生错误:', err);
             }
-            processTotalPmuCalc(pmuTotal);
+            if (pmuData != '') {
+              pmuInfo = parsePmuInfo(pmuData);
+            }
           }
           
           //处理merged_swimlane.json
@@ -288,8 +251,34 @@ export abstract class SwimGraphMsgHandler {
           } 
     
           const swimDataObj = swimlaneData;
-          swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, colorRending);
-
+          const effectPmu = {};
+          swimData = await parseSwimLaneInfo(swimDataObj, pmuInfo, task2topo, effectPmu);
+          if (Object.keys(effectPmu).length > 0) {
+            //计算pmu Total
+            pmuTotal = {
+              'total cycle': 0n,
+              vec_busy_cycles: 0n,
+              cube_busy_cycles: 0n,
+              scalar_busy_cycles: 0n,
+              mte1_busy_cycles: 0n,
+              mte2_busy_cycles: 0n,
+              mte3_busy_cycles: 0n,
+              icache_miss: 0n,
+              icache_req: 0n
+            };
+            for (const uniqueKey in effectPmu) {
+              pmuTotal['total cycle'] += BigInt(effectPmu[uniqueKey]['total cycle']);
+              pmuTotal.cube_busy_cycles += BigInt(effectPmu[uniqueKey].cube_busy_cycles);
+              pmuTotal.vec_busy_cycles += BigInt(effectPmu[uniqueKey].vec_busy_cycles);
+              pmuTotal.scalar_busy_cycles += BigInt(effectPmu[uniqueKey].scalar_busy_cycles);
+              pmuTotal.mte1_busy_cycles += BigInt(effectPmu[uniqueKey].mte1_busy_cycles);
+              pmuTotal.mte2_busy_cycles += BigInt(effectPmu[uniqueKey].mte2_busy_cycles);
+              pmuTotal.mte3_busy_cycles += BigInt(effectPmu[uniqueKey].mte3_busy_cycles);
+              pmuTotal.icache_miss += BigInt(effectPmu[uniqueKey].icache_miss);
+              pmuTotal.icache_req += BigInt(effectPmu[uniqueKey].icache_req);
+            }
+            processTotalPmuCalc(pmuTotal);
+          }
           if ('errMsg' in swimData) {
             const title = t('pypto.swimGraph.validate.parseError');
             server.setRef('dataError', { msg: title + swimData.errMsg});

@@ -35,7 +35,7 @@
           <div class="label"></div>
           <div class="markers">
             <div v-for="(marker, idx) in group.markers" :key="idx" class="time-range-marker">
-              <div v-if="marker.showMarker" class="marker" :style="{ left: marker.left, '--base-bg-range-color': getBaseColor(group.event) }">
+              <div v-if="marker.showMarker" class="marker" :class="{ 'disabled': isPathLockStatus }" :style="{ left: marker.left, '--base-bg-range-color': getBaseColor(group.event) }">
               <d-tooltip :content="marker.globalText">
                 <div class="text" @click="clickTask(marker.event)">{{ marker.text }}</div>
               </d-tooltip>
@@ -50,11 +50,18 @@
 </template>
 <script setup>
 import { ref, inject, onMounted, watch, onUnmounted, computed } from 'vue';
-import { getSubGraphId } from '../../swimGraphProcesses/processInfo';
+import { getSubGraphId, getEventColorByMode } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
 import { executionTimeData } from '../utils';
 const { t: $t } = useI18n();
 const state = inject('subGraphTimingState');
+const { clickTask } = inject('swimGraphPmuBarMethod');
+const {
+  isMixedAicpuKernel,
+  kernelColorRending,
+  processes,
+  isPathLockStatus,
+} = inject('swimGraphState');
 const { isDarkTheme } = inject('root');
 const timeConsumingLabel = computed(() =>
   state.timeType.value === 'id' ? $t('subGraphId') : $t('taskLabel')
@@ -122,7 +129,7 @@ const initData = () => {
   }
   const groups = new Map();
   for (const [processKey, process] of state.processes.entries()) {
-    if (!state.processExpanded.get(processKey)) {
+    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
       continue;
     }
     for (const [threadKey, thread] of process.threads.entries()) {
@@ -327,15 +334,17 @@ const getBaseColor = (event) => {
   if (!event) {
     return undefined;
   }
+  if (!event.color.dark) {
+    const process = Array.from(processes.values()).find(p => p.pid === event.pid);
+    const processType = process?.type || process?.args?.type || 'kernel';
+    event.color = getEventColorByMode(event, kernelColorRending.value, processType);
+  }
   if (isDarkTheme.value) {
     return event.color.dark.base;
   } else {
     return event.color.light.base;
   }
 };
-const {
-    clickTask
-} = inject('swimGraphPmuBarMethod');
 </script>
 <style lang="scss">
 @import url("../../css/swimGraph/Header/timeRangeChart.css");

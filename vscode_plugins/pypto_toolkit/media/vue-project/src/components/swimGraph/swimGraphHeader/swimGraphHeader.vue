@@ -62,8 +62,8 @@
           <d-icon name="icon-download" size="15px" color="var(--devui-overlay-icon)"></d-icon>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="isAicpu ? $t('configButtonDisTip') : $t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
-        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;" :disabled="isAicpu">
+      <d-tooltip :content="$t('configButtonTip')" :mouse-enter-delay="100" overlay-class="corner-tips">
+        <d-button class="cfg-button" @click="showSwimCfg()" style="height: 28px; width: 28px; padding: 0 4px;">
           <LayerControlIcon :active="isCfgEditing"/>
         </d-button>
       </d-tooltip>
@@ -128,6 +128,7 @@ const {
   isThreeColumn,
   fileName,
   isAicpu,
+  isMixedAicpuKernel,
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
@@ -138,6 +139,7 @@ const {
   performanceWidth,
   isWideScreen,
   isMaxSchedule,
+  pinnedthreadsComponent,
 } = inject('swimGraphState');
 
 const {
@@ -147,6 +149,12 @@ const {
   isSearchActive,
   isCaseSensitive,
 } = inject('swimGraphSearch');
+
+const {
+  pinnedThreadsList
+} = inject('swimGraphPinnedState', {
+  pinnedThreadsList: { value: [] }
+});
 
 const {
   transform,
@@ -294,7 +302,7 @@ const exportSwimGraph = () => {
     const { processLabelWidth } = layout;
     const { canvasCssWidth } = viewState;
     // 1. 计算总尺寸
-    const { totalWidth, totalHeight, timelineHeight } = calculateCanvasSize(
+    const { totalWidth, totalHeight, timelineHeight, pinnedHeight } = calculateCanvasSize(
       processLabelWidth,
       canvasCssWidth,
       timelineComponent.value.$el
@@ -303,13 +311,16 @@ const exportSwimGraph = () => {
     const { canvas, ctx } = createExportCanvas(totalWidth, totalHeight, dpr);
     // 3. 绘制顶部时间轴（fixed + scroll + flags）
     drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr);
-    // 4. 绘制所有 Process 块
+    // 4. 绘制置顶泳道
+    const startY = timelineHeight;
+    drawPinnedThreads(ctx, processLabelWidth, canvasCssWidth, startY, dpr);
+    // 5. 绘制所有 Process 块
     drawProcessBlocks(
       ctx,
       canvasCssWidth,
-      timelineHeight
+      startY + pinnedHeight
     );
-    // 5. 导出图片
+    // 6. 导出图片
     dataUrl.value = canvas.toDataURL('image/png');
     server.checkSys();
   } catch (error) {
@@ -326,6 +337,10 @@ function calculateCanvasSize(
   timelineEl
 ) {
   const timelineHeight = timelineEl ? timelineEl.offsetHeight : 40;
+  let pinnedHeight = 0;
+  if (pinnedthreadsComponent?.value) {
+    pinnedHeight = pinnedthreadsComponent.value.getPinnedHeight();
+  }
   let totalProcessHeight = 0;
   for (const [key, process] of processes) {
     totalProcessHeight += layout.processHeaderHeight;
@@ -339,9 +354,9 @@ function calculateCanvasSize(
     }
     totalProcessHeight += layout.processMargin;
   }
-  const totalHeight = timelineHeight + totalProcessHeight;
+  const totalHeight = timelineHeight + pinnedHeight + totalProcessHeight;
   const totalWidth = processLabelWidth + canvasCssWidth;
-  return { totalWidth, totalHeight, timelineHeight };
+  return { totalWidth, totalHeight, timelineHeight, pinnedHeight };
 }
 
 // 辅助函数 2：创建并初始化画布
@@ -378,7 +393,94 @@ function drawTimelineArea(ctx, processLabelWidth, canvasCssWidth, dpr) {
   }
 }
 
-// 辅助函数 4：绘制所有 Process 块
+// 辅助函数 4：绘制置顶泳道区域
+function drawPinnedThreads(ctx, processLabelWidth, canvasCssWidth, startY, dpr) {
+  if (!pinnedthreadsComponent?.value) {
+    return;
+  }
+  const pinnedContainer = pinnedthreadsComponent.value.$el;
+  if (!pinnedContainer) {
+    return;
+  }
+  const pinnedHeight = pinnedContainer.offsetHeight;
+  if (pinnedHeight === 0) {
+    return;
+  }
+  // 绘制置顶泳道标签区域背景
+  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
+  ctx.fillRect(0, startY, processLabelWidth, pinnedHeight);
+  // 绘制置顶泳道事件区域背景
+  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
+  ctx.fillRect(processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  // 获取置顶泳道的canvas元素
+  const pinnedEventsCanvas = pinnedContainer.querySelector('.pinned-events-canvas');
+  const pinnedDepCanvas = pinnedContainer.querySelector('.pinned-dep-canvas');
+  const pinnedUiCanvas = pinnedContainer.querySelector('.pinned-ui-canvas');
+  const pinnedHoverCanvas = pinnedContainer.querySelector('.pinned-hover-canvas');
+  const pinnedLineCanvas = pinnedContainer.querySelector('.pinned-line-canvas');
+  // 绘制置顶泳道事件层
+  if (pinnedEventsCanvas) {
+    ctx.drawImage(pinnedEventsCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  }
+  // 绘制置顶泳道依赖层
+  if (pinnedDepCanvas) {
+    ctx.drawImage(pinnedDepCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  }
+  // 绘制置顶泳道UI层
+  if (pinnedUiCanvas) {
+    ctx.drawImage(pinnedUiCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  }
+  // 绘制置顶泳道Hover层
+  if (pinnedHoverCanvas) {
+    ctx.drawImage(pinnedHoverCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  }
+  // 绘制置顶泳道连接线层
+  if (pinnedLineCanvas) {
+    ctx.drawImage(pinnedLineCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
+  }
+  // 绘制置顶泳道标签
+  const pinnedLabels = pinnedContainer.querySelectorAll('.pinned-thread-label');
+  let labelY = startY;
+  ctx.font = '12px Arial';
+  ctx.textBaseline = 'middle';
+  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
+  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  const iconColor = isDarkTheme.value ? '#0066cc' : '#0066cc';
+  // 绘制置顶泳道标签区域右侧边框
+  ctx.beginPath();
+  ctx.moveTo(processLabelWidth, startY);
+  ctx.lineTo(processLabelWidth, startY + pinnedHeight);
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  pinnedLabels.forEach((label, index) => {
+    const labelHeight = label.offsetHeight;
+    const threadName = label.querySelector('.thread-name')?.textContent || '';
+    // 绘制置顶图标
+    const iconX = 10;
+    const iconY = labelY + (labelHeight / 2);
+    const iconSize = 16;
+    ctx.fillStyle = iconColor;
+    ctx.save();
+    ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
+    const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
+    ctx.fill(path);
+    ctx.restore();
+    // 绘制线程名称
+    ctx.fillStyle = textColor;
+    ctx.fillText(threadName, 30, labelY + (labelHeight / 2));
+    // 绘制分割线
+    ctx.beginPath();
+    ctx.moveTo(0, labelY + labelHeight);
+    ctx.lineTo(processLabelWidth + canvasCssWidth, labelY + labelHeight);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    labelY += labelHeight;
+  });
+}
+
+// 辅助函数 5：绘制所有 Process 块
 function drawProcessBlocks(
   ctx,
   canvasCssWidth,
@@ -398,7 +500,7 @@ function drawProcessBlocks(
   }
 }
 
-// 辅助函数 5：绘制单个 Process（Header + Body）
+// 绘制单个 Process（Header + Body）
 function drawProcess(
   ctx,
   key,
@@ -441,11 +543,12 @@ function drawProcess(
   return bottomY;
 }
 
-// 辅助函数 6：绘制 Thread Labels
+// 绘制 Thread Labels
 function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
   const { processLabelWidth } = layout;
   const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
   const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  const iconColor = isDarkTheme.value ? '#0066cc' : '#0066cc';
   ctx.save();
   // 分割线
   ctx.beginPath();
@@ -458,14 +561,30 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
     const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
     const tStartY = getThreadStartY(process, processKey, tKey, lane2line, layout);
     const labelY = startY + tStartY;
+    // 检查线程是否被置顶
+    const { isPinned } = thread;
+    // 如果线程被置顶，绘制置顶图标
+    if (isPinned) {
+      const iconX = 10;
+      const iconY = labelY + (tHeight / 2);
+      const iconSize = 16;
+      ctx.fillStyle = iconColor;
+      ctx.save();
+      ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
+      const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
+      ctx.fill(path);
+      ctx.restore();
+    }
     ctx.fillStyle = textColor;
     let labelText = thread.threadName || thread.tid;
-    if (ctx.measureText(labelText).width > processLabelWidth - 20) {
+    const textStartX = 30;
+    const maxTextWidth = processLabelWidth - textStartX - 10;
+    if (ctx.measureText(labelText).width > maxTextWidth) {
       const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-      const maxChars = Math.floor((processLabelWidth - 20) / widthPerChar);
+      const maxChars = Math.floor(maxTextWidth / widthPerChar);
       labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
     }
-    ctx.fillText(labelText, 20, labelY + (tHeight / 2));
+    ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
     // 底部分割线
     ctx.beginPath();
     ctx.moveTo(0, labelY + tHeight);
@@ -476,7 +595,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
   ctx.restore();
 }
 
-// 辅助函数 7：绘制 Process 的各图层（bg, event, dep 等）
+// 绘制 Process 的各图层（bg, event, dep 等）
 function drawProcessLayers(ctx, processKey, y, width, height) {
   const { processLabelWidth } = layout;
   const selectors = [
@@ -659,6 +778,9 @@ const searchByComHash = (rootHash, leafHash) => {
   const rootRegex = new RegExp(`rootHash:(?<hash>\\d+)`);
   const leafRegex = new RegExp(`leafHash:(?<hash>\\d+)`);
   performSearch((event) => {
+    if (!event.args) {
+      return false;
+    }
     const eventHint = event.args['event-hint'];
     if (!eventHint) {
       return false; 
@@ -682,6 +804,9 @@ const searchByComHash = (rootHash, leafHash) => {
 const searchBySingleHash = (hashCate, hash) => {
   const regex = new RegExp(`${hashCate.toLowerCase()}Hash:(?<hash>\\d+)`);
   performSearch((event) => {
+    if (!event.args) {
+      return false;
+    }
     const eventHint = event.args['event-hint'];
     if (!eventHint) { 
       return false; 
@@ -857,10 +982,22 @@ const rightmove = (step=30, forceTransform=false) => {
 };
 
 const scrollToEventByDom = (event) => {
-  swimlaneContainer.value.scrollTo({
-    top: event.renderInfo.y,
+  let container;
+  if (isMixedAicpuKernel.value) {
+    let pid = event?.pid;
+    let isAicpuKernel = processes.get(String(pid))?.type === 'aicpu';
+    container = isAicpuKernel ? swimlaneContainer.value.querySelector('.aicpu-section') : swimlaneContainer.value.querySelector('.kernel-section');
+  } else {
+    container = swimlaneContainer.value;
+  }
+  if (!container) {
+    return;
+  }
+  const targetScrollTop = isMixedAicpuKernel.value ? (event.renderInfo.y || container.offsetTop) : event.renderInfo.y;
+  container.scrollTo({
+    top: targetScrollTop,
     behavior: 'smooth'
-  })
+  });
 };
 
 const ShortcutKeyShow = () => {

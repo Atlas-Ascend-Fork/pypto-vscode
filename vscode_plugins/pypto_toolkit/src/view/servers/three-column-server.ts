@@ -217,7 +217,7 @@ export class ThreeColumnServer
     if(message.swimDataPath){
       this.swimDataPath = message.swimDataPath;
     }
-    const packages = await SwimGraphMsgHandler.getSwimData(this);
+    const packages = await SwimGraphMsgHandler.getSwimData(this, true);
     if (packages) {
       return stream.Readable.toWeb(stream.Readable.from(packages));
     }

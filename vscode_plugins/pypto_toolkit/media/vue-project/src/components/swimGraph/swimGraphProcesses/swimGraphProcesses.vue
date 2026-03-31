@@ -1,38 +1,40 @@
 <template>
-  <div class="processes-container" ref="processesContainer">
-    <div v-for="(process, index) in processesArray" :key="index" class="process-section">
-      <!-- 进程头部 -->
-      <span :data-processKey="process.key" :data-process="process.key"></span>
-      <swim-graph-process-header 
-        v-if="labelRender"
-        :process-key="process.key" 
-        :process="process"
-      />
-
-      <!-- 线程和事件区域 -->
-      <div class="threads-container" v-show="processExpanded.get(process.key)">
-        <!-- 线程标签区域 -->
-        <swim-graph-thread-labels 
-          v-if="labelRender"
-          :process-key="process.key" 
-          :process="process"
-        />
-
-        <!-- 线程事件区域 -->
-        <swim-graph-thread-events 
-          :process-key="process.key" 
-          :process="process"
+  <div class="processes-container" ref="processesContainer" :style="containerStyle">
+    <template v-if="isMixedAicpuKernel">
+      <div class="process-section aicpu-section" :style="aicpuContainerStyle" ref="aicpuSection">
+        <swim-graph-process-item 
+          v-for="(processEntry, index) in aicpuProcesses" 
+          :key="processEntry[0]"
+          :process-key="processEntry[0]"
+          :process="processEntry[1]"
+          :labelRender="labelRender"
         />
       </div>
-    </div>
+      <div class="process-section kernel-section" :style="kernelContainerStyle" ref="kernelSection">
+        <swim-graph-process-item 
+          v-for="(processEntry, index) in kernelProcesses" 
+          :key="processEntry[0]"
+          :process-key="processEntry[0]"
+          :process="processEntry[1]"
+          :labelRender="labelRender"
+        />
+      </div>
+    </template>
+    <template v-else>
+      <swim-graph-process-item 
+        v-for="(processEntry, index) in processes" 
+        :key="processEntry[0]"
+        :process-key="processEntry[0]"
+        :process="processEntry[1]"
+        :labelRender="labelRender"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, inject, provide, ref, defineExpose, watch } from 'vue';
-import SwimGraphProcessHeader from './swimGraphProcessHeader.vue';
-import SwimGraphThreadLabels from './swimGraphThreadLabels.vue';
-import SwimGraphThreadEvents from './swimGraphThreadEvents.vue';
+import { inject, provide, ref, defineExpose, watch, computed } from 'vue';
+import SwimGraphProcessItem from './SwimGraphProcessItem.vue';
 import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 
 // 注入父组件提供的状态
@@ -44,6 +46,8 @@ const {
   lane2line,
   swimlaneContainer,
   selectedEvent,
+  canvasclickedEvent,
+  pathLockedEvent,
   highlightedPaths,
   detailsPanelExpanded,
   timeLineX,
@@ -65,16 +69,82 @@ const {
   dependencyLinesInfo,
   isThreeColumn,
   searchedEvent,
-  colorRending,
+  kernelColorRending,
   labelRender,
   childContextMap,
   isPathLockStatus,
   isAicpu,
+  isMixedAicpuKernel,
   isMaxSchedule,
+  aicpuControlDetailsExpanded,
+  aicpuScheduleDetailsExpanded,
+  aicpuCoreDetailsExpanded
 } = inject('swimGraphState');
 
 const curThread = ref('');
+const aicpuSection = ref(null);
+const kernelSection = ref(null);
 provide('curThread', curThread);
+
+const aicpuProcesses = computed(() => {
+  const result = [];
+  for (const entry of processes) {
+    if (entry[1].type === 'aicpu') {
+      result.push(entry);
+    }
+  }
+  return result;
+});
+
+const kernelProcesses = computed(() => {
+  const result = [];
+  for (const entry of processes) {
+    if (entry[1].type !== 'aicpu') {
+      result.push(entry);
+    }
+  }
+  return result;
+});
+
+const hasAicpuExpanded = computed(() => {
+  return aicpuProcesses.value.some(([key]) => processExpanded.get(key));
+});
+
+const hasKernelExpanded = computed(() => {
+  return kernelProcesses.value.some(([key]) => processExpanded.get(key));
+});
+
+const aicpuContainerStyle = computed(() => {
+  return {
+    flex: hasAicpuExpanded.value ? '1' : 'none',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    maxHeight: hasAicpuExpanded.value ? 'none' : '50%',
+    scrollbarGutter: isMixedAicpuKernel.value ? 'stable': 'auto',
+  };
+});
+
+const kernelContainerStyle = computed(() => {
+  return {
+    flex: hasKernelExpanded.value ? '1' : 'none',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    maxHeight: hasKernelExpanded.value ? 'none' : '50%',
+    scrollbarGutter: isMixedAicpuKernel.value ? 'stable': 'auto',
+  };
+});
+
+const containerStyle = computed(() => {
+  if (isMixedAicpuKernel.value) {
+    return {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    };
+  }
+  return {};
+});
 
 provide('swimGraphState', {
   viewState,
@@ -84,6 +154,8 @@ provide('swimGraphState', {
   lane2line,
   swimlaneContainer,
   selectedEvent,
+  canvasclickedEvent,
+  pathLockedEvent,
   highlightedPaths,
   detailsPanelExpanded,
   timeLineX,
@@ -105,11 +177,15 @@ provide('swimGraphState', {
   dependencyLinesInfo,
   isThreeColumn,
   searchedEvent,
-  colorRending,
+  kernelColorRending,
   childContextMap,
   isPathLockStatus,
   isAicpu,
+  isMixedAicpuKernel,
   isMaxSchedule,
+  aicpuControlDetailsExpanded,
+  aicpuScheduleDetailsExpanded,
+  aicpuCoreDetailsExpanded
 });
 
 const {
@@ -168,15 +244,6 @@ provide('swimGraphContext', {
   addChildContext,
 });
 
-// 将Map转换为数组以便在模板中使用v-for
-const processesArray = computed(() => {
-  return Array.from(processes.entries()).map(([key, value]) => {
-    return {
-      key,
-      ...value
-    };
-  });
-});
 
 const getProcessContainerHeight = () => {
   if (!processesContainer.value) return 1000;
@@ -232,6 +299,27 @@ watch( curThread, (newValue, oldValue) => {
   backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
 });
 
+const measureMaskHandleWheel = (e) => {
+  const aicpuRect = aicpuSection.value.getBoundingClientRect();
+  if (isPointInRect(e.clientX, e.clientY, aicpuRect)) {
+    e.preventDefault();
+    aicpuSection.value.scrollTop += e.deltaY;
+    return;
+  }
+  const kernelRect = kernelSection.value.getBoundingClientRect();
+  if (isPointInRect(e.clientX, e.clientY, kernelRect)) {
+    e.preventDefault();
+    kernelSection.value.scrollTop += e.deltaY;
+    return;
+  }
+};
+
+const isPointInRect = (x, y, rect) => {
+  return (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
+};
+addChildContext('process', {
+  measureMaskHandleWheel
+});
 defineExpose({
   getProcessContainerHeight,
 });

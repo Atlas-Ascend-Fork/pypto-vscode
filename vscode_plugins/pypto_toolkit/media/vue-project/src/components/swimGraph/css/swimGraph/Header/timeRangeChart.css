@@ -164,3 +164,9 @@
   justify-content: center;
   color: var(--devui-thread-text);
 }
+.disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}

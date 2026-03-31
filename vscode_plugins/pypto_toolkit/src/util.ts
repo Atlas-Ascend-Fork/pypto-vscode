@@ -104,9 +104,12 @@ export class Util {
   static writeSwimConfigMap(cachePath: string, paramObj: string) {
     try {
       const JsedparamObj = JSON.parse(paramObj);
+      const existingData = this.readSwim2ComGraphMap(cachePath);
       const data = {
-        colorRending: JsedparamObj.colorRending,
-        textRending: JsedparamObj.textRending,
+        ...existingData,
+        colorRending: JsedparamObj.kernelColorRending,
+        textRending: JsedparamObj.kernelTextRending,
+        aicpuColorRending: JsedparamObj.aicpuColorRending,
       }
       writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {

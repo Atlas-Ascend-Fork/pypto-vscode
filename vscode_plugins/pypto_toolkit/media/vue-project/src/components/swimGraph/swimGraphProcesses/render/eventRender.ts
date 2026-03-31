@@ -8,7 +8,7 @@ export class EventRender {
     this.deps = dependencies;
   }
 
-  drawEvent(eventDatas: any, ctx: CanvasRenderingContext2D, isDimmed = false) {
+  drawEvent(eventDatas: any, ctx: CanvasRenderingContext2D, isDimmed = false, isPinned = false) {
     const { viewState, colorCfg } = this.deps;
     const devicePixelRatio = window.devicePixelRatio || 1;
     // 当偏移量过大时，Canvas的float32变换矩阵会出现精度丢失，导致图形抖动或消失，此时切换到js手动计算坐标的高精度模式。
@@ -36,12 +36,13 @@ export class EventRender {
       ctx.beginPath();
       if (useHighPrecision) {
         const x = drawData.rectX * viewState.pixelScale + viewState.pixelOffsetX;
-        const y = drawData.rectY * devicePixelRatio;
+        let y = isPinned ? drawData.pinnedEventY * devicePixelRatio : drawData.rectY * devicePixelRatio;
         const w = width * viewState.pixelScale;
         const h = drawData.height * devicePixelRatio;
         ctx.rect(x, y, w, h);
       } else {
-        ctx.rect(drawData.rectX, drawData.rectY, width, drawData.height);
+        let drawY = isPinned ? drawData.pinnedEventY : drawData.rectY;
+        ctx.rect(drawData.rectX, drawY, width, drawData.height);
       }
       ctx.fill();
       if (drawData.strokeColor && width * viewState.scale > 10) {
@@ -51,17 +52,30 @@ export class EventRender {
     ctx.restore();
   }
 
-  drawEventText(drawDatas: any, ctx: CanvasRenderingContext2D, isDimmed = false) {
+  drawEventText(drawDatas: any, ctx: CanvasRenderingContext2D, isDimmed = false, isPinned = false) {
     const { colorCfg } = this.deps;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    for (const { show, text, textX, textY, fontColor } of drawDatas) {
+    for (const { show, text, textX, textY, fontColor, pinnedTextY } of drawDatas) {
       if (!show || !text) { continue }
       ctx.fillStyle = isDimmed ? colorCfg.eventFontNoColor : fontColor;
       ctx.font = getFontStyle(eventTextSize);
-      ctx.fillText(text, textX, textY);
+      ctx.fillText(text, textX, isPinned ? pinnedTextY : textY);
     }
 
+    ctx.restore();
+  }
+
+  drawFlagLine(ctx: CanvasRenderingContext2D, color: string, drawX: number, lineTo: number) {
+    const devicePixelRatioVlaue = window.devicePixelRatio || 1;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1 * devicePixelRatioVlaue;
+    ctx.beginPath();
+    ctx.moveTo(drawX, 0);
+    ctx.lineTo(drawX, lineTo);
+    ctx.stroke();
     ctx.restore();
   }
 }

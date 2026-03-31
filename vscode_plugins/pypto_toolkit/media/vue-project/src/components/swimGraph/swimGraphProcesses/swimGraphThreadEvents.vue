@@ -1,5 +1,5 @@
 <template>
-  <div class="thread-events" :data-process-container="process.key" tabindex="0">
+  <div ref="containerRef" class="thread-events" :data-process-container="processKey" tabindex="0" @keydown="handleMountedKeyDown" @keyup="handleMountedKeyup" @mouseenter="handleMouseEnter">
     <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
          class="lock-indicator"
          @click="lockClick"
@@ -40,13 +40,13 @@
       @wheel="handleWheel"
       @contextmenu="handleCanvasRightClick"
     ></canvas>
-    <canvas class="ui-events-canvas" :data-ui-process-key="process.key"></canvas>
-    <canvas class="dependency-events-canvas" :data-dep-process-key="process.key"></canvas>
-    <canvas class="hover-events-canvas" :data-hover-process-key="process.key"></canvas>
-    <canvas class="background-events-canvas" :data-background-process-key="process.key"></canvas>
-    <canvas class="line-events-canvas" :data-line-process-key="process.key"></canvas>
-    <canvas class="selection-events-canvas" :data-selection-process-key="process.key"></canvas>
-    <canvas class="three-column-events-canvas" :data-three-column-process-key="process.key"></canvas>
+    <canvas class="ui-events-canvas" :data-ui-process-key="processKey"></canvas>
+    <canvas class="dependency-events-canvas" :data-dep-process-key="processKey"></canvas>
+    <canvas class="hover-events-canvas" :data-hover-process-key="processKey"></canvas>
+    <canvas class="background-events-canvas" :data-background-process-key="processKey"></canvas>
+    <canvas class="line-events-canvas" :data-line-process-key="processKey"></canvas>
+    <canvas class="selection-events-canvas" :data-selection-process-key="processKey"></canvas>
+    <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey"></canvas>
     <swim-graph-thread-lock-menu/>
   </div>
 </template>
@@ -67,10 +67,10 @@ import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
 import { getQuery } from '@/core/query';
 import { Message } from 'vue-devui/message';
+import { getPositionByTime, getWidthByDuration, collectRelevantEdges } from './processInfo';
+const containerRef = ref(null);
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
-const canvasclickedEvent = ref(null);
-const pathLockedEvent = ref(null);
 const curThread = inject('curThread');
 const lockPosition = ref(null);
 let switchLockInformationFlag = ref(false);
@@ -84,11 +84,14 @@ let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false); // 选定状态
+let pinnedStatus = ref(false);
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
   layout,
   selectedEvent,
+  canvasclickedEvent,
+  pathLockedEvent,
   highlightedPaths,
   swimlaneContainer,
   lane2line,
@@ -114,33 +117,31 @@ const {
   dependencyLinesInfo,
   isThreeColumn,
   searchedEvent,
-  colorRending,
   isPathLockStatus,
-  isMaxSchedule
+  isMaxSchedule,
+  aicpuControlDetailsExpanded,
+  aicpuCoreDetailsExpanded,
+  aicpuScheduleDetailsExpanded,
 } = swimGraphState;
 
 const {
   findEventAtPosition,
   selectEvent,
-  timeToX,
   handleWheel,
   leftmove,
   rightmove,
   flagRender,
-  durationToWidth,
   transform,
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
   getDisplayName,
   changeScale,
-  resetState,
   resetMaxScheduleState,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
-const { isSearchActive } = inject('swimGraphSearch');
 let mousePosition = null;
 let isKeyPressed = ref(false);
 let keyTimeOut;
@@ -150,7 +151,7 @@ let moveStep = 30;
 let scaleStepIncrement = 0.05;
 let moveStepIncrement = 30;
 // 创建渲染实例
-const eventRenderer = new EventRender({...swimGraphState, colorCfg});
+const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
 const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
 const threeRender = new ThreeRender({...swimGraphState, isKeyPressed});
 // 定义props
@@ -189,6 +190,9 @@ const canvasStatusReset = () => {
   measureState.isMeasureFixed = false;
   highlightedPaths.clear();
   detailsPanelExpanded.value = false;
+  aicpuControlDetailsExpanded.value = false;
+  aicpuScheduleDetailsExpanded.value = false;
+  aicpuCoreDetailsExpanded.value = false;
   selectEvent(null, props.processKey);
   const ctx = clearDependencyLines(props.processKey);
   highlightEvent(ctx, searchedEvent.value, props.processKey, true);
@@ -277,7 +281,7 @@ const pathLockedMethod = (clickedEvent) => {
 };
 
 const handleCanvasRightClick = (e) => {
-  if (isThreeColumn) {
+  if (isThreeColumn || !mousePosition) {
     return;
   }
   const refs = getCanvasRefs(props.processKey);
@@ -369,7 +373,7 @@ const handleMountedKeyDown = (e) => {
     }
     const isModifierKeyPressed = e.ctrlKey && !(e.shiftKey || e.altKey || e.metaKey);
     const isLKey = e.key.toLowerCase() === 'l';
-    if (isModifierKeyPressed && isLKey) {
+    if (!isThreeColumn && isModifierKeyPressed && isLKey) {
       if (canvasclickedEvent.value) {
         pathLockedEvent.value = canvasclickedEvent.value;
         isPathLockStatus.value = true;
@@ -399,16 +403,12 @@ const handleMountedKeyup = (e) => {
   e.stopPropagation();
 };
 onMounted(() => {
-  document.addEventListener('keydown', handleMountedKeyDown);
-  document.addEventListener('keyup', handleMountedKeyup);
   listenExtensionMessage();
   listenExtensionClearMessage();
   window.ascEventBus.on('message_notice', onMessageNotice);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleMountedKeyDown);
-  document.removeEventListener('keyup', handleMountedKeyup);
   throttledRender.cancel();
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
@@ -459,6 +459,11 @@ const onKeyUp = (e) => {
   }
 };
 
+const handleMouseEnter = (event) => {
+  pinnedStatus.value = false;
+  containerRef?.value.focus({ preventScroll: true });
+};
+
 const handlekeydown = (event) => {
   clearTimeout(wheelDebounceTimer);
   const key = event.key.toLowerCase();
@@ -467,7 +472,7 @@ const handlekeydown = (event) => {
     return;
   }
   const rect = canvasRef.getBoundingClientRect();
-  const mouseX = mousePosition?.x - rect.left;
+  const mouseX = mousePosition?.x - layout.processLabelWidth;
   const mouseY = mousePosition?.y - rect.top;
   const canvasCSSWidth = viewState.canvasCssWidth;
   const canvasCSSHeight = getCanvasCSSHeight(canvasRef);
@@ -481,7 +486,7 @@ const handlekeydown = (event) => {
     }, 100);
     return;
   }
-  if(viewState.scale === 1 && matchKey(key, userConfig?.value.ZoomOutShortcut)) {
+  if (viewState.scale === 1 && viewState.offsetX >= 0 && matchKey(key, userConfig?.value.ZoomOutShortcut)) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMinInfo'));
     }, 100);
@@ -546,7 +551,7 @@ function highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx) {
     backgroundCanvasCtx.fillRect(0, curY, viewState.canvasCssWidth, curHeight);
   }
 }
-
+ // 手动测距
 function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
   const manual = altClickData.preData && measureState.isMeasureFirst && !measureState.isMeasureFixed;
   if (!(hoveredEvent && e.altKey && manual)) {
@@ -571,11 +576,11 @@ function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
   if (!preData || !lastData || measureState.isMeasureFixed) { return };
   const divElement = document.getElementsByClassName('swimlane-container');
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth;
-  const actSpacingX = nodeSpacingX * viewState.scale;
+  const actSpacingX = nodeSpacingX * viewState.pixelScale;
   if (actSpacingX <= 3) { return };
   const { canvasWidth } = viewState;
   const noZoomLastX = getNoZoomX(lastData?.renderInfo?.x, viewState);
-  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x, viewState) + (preData?.renderInfo?.width * viewState.scale);
+  const noZoomPreX = getNoZoomX(preData?.renderInfo?.x, viewState) + (preData?.renderInfo?.width * viewState.pixelScale);
   if (noZoomLastX < (canvasWidth - scrollWidth) && noZoomPreX > 0 ) {
     altClickData.preData = preData;
     altClickData.lastData = lastData;
@@ -608,15 +613,14 @@ const findLineAtPoint = (ctx, point) => {
 };
 
 const handleLineTooltipAndCursor = (e, x, y) => {
-  let cursor = '';
   if (dependencyLinesInfo.value.length === 0) {
-    return cursor;
+    return '';
   }
   const point = { x, y };
 
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${props.processKey}"]`);
   if (!dependencyCanvasRef) {
-    return cursor;
+    return '';
   }
 
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
@@ -624,11 +628,11 @@ const handleLineTooltipAndCursor = (e, x, y) => {
 
   if (line && !e.altKey && !e.ctrlKey) {
     lineShowTooltip(e, line.fromEvent, line.toEvent);
-    cursor = 'pointer';
+    return 'pointer';
   } else {
     hideLineTooltip();
   }
-  return cursor;
+  return '';
 };
 
 function handleCtrlDragPan(e, canvasRef) {
@@ -675,7 +679,7 @@ const handlePureMove = (hoverInfo, refs, localPosition) => {
   const { x, y } = localPosition;
   if (!isLockStatus.value) {
     onHoverEvent(hoveredEvent);
-    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx);
+    maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx); // 自动测距
     if (isDragging.value) {
       selection.endLocalX = x;
       selection.endY = y;
@@ -705,16 +709,22 @@ const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
   }
 };
 
-const handleMouseMove = throttle((e) => {
+const handleMouseMove = (e) => {
+  mousePosition = { x: e.clientX, y: e.clientY };
+  if (e.isTrusted) {
+    handleMouseMoveThrottle(e);
+  }
+};
+
+const handleMouseMoveThrottle = throttle((e) => {
   const refs = getCanvasRefs(props.processKey);
-  if (!refs) { return };
+  if (!refs || !mousePosition) { return };
   const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
 
   if (altClickData.preData && altClickData.lastData && !e.altKey && !measureState.isMeasureFixed) {
     measureRenderer.clearDrawConnector(uiCtx, props.processKey);
   }
 
-  mousePosition = { x: e.clientX, y: e.clientY };
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
   const info = findEventAtPosition(x, y, props.processKey);
@@ -943,7 +953,7 @@ const checkInSelection = () => {
 
   // 遍历进程
   processes.forEach((process, processKey) => {
-    if (!processExpanded.get(processKey)) {
+    if (!processExpanded.get(processKey) || process.type === 'aicpu') {
       return;
     }
     // 遍历线程
@@ -959,12 +969,12 @@ const checkInSelection = () => {
         return;
       }
       const processThreadEventSearchTemp = processThreadEventSearch(thread, start, end);
-      if (threadName.includes('AIC_')) {
+      if (threadName.startsWith('AIC_')) {
         if (processThreadEventSearchTemp.length) {
           AICCount++;
         }
         matchingAICEvents.push(...processThreadEventSearchTemp);
-      } else if (threadName.includes('AIV_')) {
+      } else if (threadName.startsWith('AIV_')) {
         if (processThreadEventSearchTemp.length) {
           AIVCount++;
         }
@@ -1017,7 +1027,7 @@ function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
 const handleMouseDown = (e) => {
   hideLineTooltip();
   const canvasRef = getActiveEventCanvas(props.processKey);
-  if (!canvasRef) {
+  if (!canvasRef || !mousePosition) {
     return;
   }
   if (!isLockStatus.value) {
@@ -1031,7 +1041,7 @@ const handleMouseDown = (e) => {
     }
 
     isClick.value = true;
-    isDragging.value = true;
+    isDragging.value = !(props.process.type === 'aicpu');
 
     measureDetailsData.value = [];
     rootHashes.value = [];
@@ -1046,7 +1056,12 @@ const handleMouseUp = throttle((e) => {
   selectionFinished(e);
 }, 16);
 
-const handleMouseLeave = throttle((e) => {
+const handleMouseLeave = (e) => {
+  mousePosition = null;
+  handleMouseLeaveThrottle(e);
+};
+
+const handleMouseLeaveThrottle = throttle((e) => {
   hideTooltip();
   if (isDragging.value) {
     selectionFinished(e);
@@ -1054,11 +1069,15 @@ const handleMouseLeave = throttle((e) => {
   e.stopPropagation();
 }, 16);
 const selectionFinished = (e) => {
-  if(isLockStatus.value) {
+  if (isLockStatus.value || !mousePosition) {
     return;
   }
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
+    return;
+  }
+  if (props.process.type === 'aicpu') {
+    isDragging.value = false;
     return;
   }
   const rect = canvasRef.getBoundingClientRect();
@@ -1105,19 +1124,32 @@ const transformEvents = (process, processKey) => {
   }
   
   for (const [threadKey, thread] of process.threads.entries()) {
+    drawTransformEvent(thread, eventCtx, false);
+  }
+
+  if ((selectedEvent.value || searchedEvent.value) && !drawColorDatas.length) {
+    changeNodeColor(processKey, true, false);
+  }
+
+  highlightThread(process, processKey, backgroundCtx);
+  drawThreadSeparators(eventCtx, process, processKey);
+};
+
+const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
     if (thread.isCounter) {
       eventCtx.save();
       eventCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
       eventCtx.beginPath();
       eventCtx.strokeStyle = '#4aaad6ff';
       eventCtx.lineWidth = 1;
-
       const { drawData } = thread;
       for (const element of drawData) {
-        const [x, y] = element;
+        let [x, y] = element;
+        if (isPinned && thread.isPinned) {
+          y -= thread.offsetY;
+        }
         eventCtx.lineTo(getNoZoomX(x, viewState), y);
       }
-
       eventCtx.stroke();
       eventCtx.closePath();
       eventCtx.restore();
@@ -1132,16 +1164,8 @@ const transformEvents = (process, processKey) => {
         drawData.show = true;
         eventDatas.push(drawData);
       }
-      eventRenderer.drawEvent(eventDatas, eventCtx, false);
+      eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
     }
-  }
-
-  if ((selectedEvent.value || searchedEvent.value) && !drawColorDatas.length) {
-    changeNodeColor(processKey, true, false);
-  }
-
-  highlightThread(process, processKey, backgroundCtx);
-  drawThreadSeparators(eventCtx, process, processKey);
 };
 
 const renderProcessEvents = (process, processKey) => {
@@ -1156,9 +1180,7 @@ const renderProcessEvents = (process, processKey) => {
     const containerRect = swimlaneContainer.value.getBoundingClientRect();
     updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState);
   }
-
   let { eventCtx, backgroundCtx } = ctxs[processKey];
-
   for (const ctx of Object.values(ctxs[processKey])) {
     if (ctx) {
       clearWholeProcess(ctx, viewState, processKey);
@@ -1169,6 +1191,15 @@ const renderProcessEvents = (process, processKey) => {
   highlightThread(process, processKey, backgroundCtx);
   drawThreadSeparators(eventCtx, process, processKey);
 }
+
+const renderProcessPinEvents = (thread, eventCtx, threadY, processKey) => {
+  pinnedStatus.value = true;
+  if (thread.isCounter) {
+    drawCounterThread(thread, eventCtx, threadY, true);
+  } else {
+    drawEventThread(thread, eventCtx, threadY, processKey);
+  }
+};
 
 const highlightThread = (process, processKey, backgroundCtx) => {
   if (curThread.value != '') {
@@ -1181,7 +1212,6 @@ const highlightThread = (process, processKey, backgroundCtx) => {
       for (const [threadKey, thread] of process.threads.entries()) {
         threads.push(thread);
       }
-
       for (let index = 0; index < threads.length; index++) {
         let thread = threads[index];
         const threadKey = thread.isCounter ? thread.threadName : thread.tid;
@@ -1249,7 +1279,9 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
 };
 
 const clearDependencyLines = (processKey) => {
-  dependencyLinesInfo.value = [];
+  dependencyLinesInfo.value = dependencyLinesInfo.value.filter(line =>
+    line.processKey !== processKey
+  );
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${processKey}"]`);
   if (!dependencyCanvasRef) return false;
   
@@ -1298,44 +1330,6 @@ const drawMaxScheduleLine = (startEvent, endEvent, process, processKey) => {
   }
 };
 
-
-const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
-  const edgesToDraw = new Set();
-  
-  const bfsTraversal = (currentId, depth, direction) => {
-    if (depth === 0 || !eventMap.has(currentId)) {
-      return;
-    }
-    
-    const currentEvent = eventMap.get(currentId);
-    let neighbors;
-
-    if (direction === 'pre') {
-      neighbors = currentEvent.dependencies.predecessors || [];
-    } else {
-      neighbors = currentEvent.dependencies.successors || [];
-    }
-
-    for (const neighborId of neighbors) {
-      const symbol = direction === 'pre' ? `${neighborId}->${currentId}` : `${currentId}->${neighborId}`;
-      if (!edgesToDraw.has(symbol)) {
-        edgesToDraw.add(symbol);
-        bfsTraversal(neighborId, depth - 1, direction);
-      }
-    }
-  };
-
-  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
-    bfsTraversal(startNodeId, level, 'pre'); // 遍历前驱方向
-  }
-  
-  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
-    bfsTraversal(startNodeId, level, 'next'); // 遍历后继方向
-  }
-
-  return Array.from(edgesToDraw);
-};
-
 /**
  * 收集并绘制所有在层级内的依赖边
  */
@@ -1378,7 +1372,7 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
 
   const linePath = drawArrow(ctx, pos, sourceColor, targetColor, viewState.scale, viewState.offsetX);
 
-  dependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
+  dependencyLinesInfo.value.push({fromEvent, toEvent, linePath, processKey: props.processKey});
   eventRenderer.drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
   eventRenderer.drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
@@ -1394,23 +1388,16 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
   const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
   const width = renderInfo.width;
   const drawData = {
-    rectX: renderInfo.x,
-    rectY: renderInfo.y,
-    rectPixelX: renderInfo.x * devicePixelRatio,
-    rectPixelY: renderInfo.y * devicePixelRatio,
-    eventWidth: width,
-    height: renderInfo.height,
-    rectColor: fillColor,
-    strokeColor: '',
-    text: '',
-    textX: 0,
-    textY: 0,
-    fontColor: fontColor,
-    show: true,
+    rectX: renderInfo.x, rectY: renderInfo.y,
+    rectPixelX: renderInfo.x * devicePixelRatio, rectPixelY: renderInfo.y * devicePixelRatio,
+    eventWidth: width, height: renderInfo.height,
+    rectColor: fillColor, strokeColor: '', text: '', textX: 0, textY: 0,
+    fontColor: fontColor, show: true, width: width,
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
-  fillTextInfo(event, ctx, width, drawData, true);
+  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
   if (!drawData.text) { return };
   eventRenderer.drawEventText([drawData], ctx);
 };
@@ -1448,8 +1435,11 @@ const drawThreadSeparators = (ctx, process, processKey) => {
   }
 };
 
-const drawCounterThread = (thread, ctx, threadY) => {
-  thread.drawData = [];
+const drawCounterThread = (thread, ctx, threadY, isPinned = false) => {
+  let drawData = [];
+  if (!isPinned) {
+    thread.drawData = drawData;
+  }
   
   // 预计算常量，避免重复计算
   const argKey = thread.argKey;
@@ -1477,10 +1467,10 @@ const drawCounterThread = (thread, ctx, threadY) => {
   let targetY = lastLineY;
 
   ctx.moveTo(0, lastLineY);
-  thread.drawData.push([0, lastLineY]);
+  drawData.push([0, lastLineY]);
 
   for (const event of thread.events) {
-    const x = timeToX(event.ts) - processLabelWidth;
+    const x = getPositionByTime(event.ts, viewState, layout) - processLabelWidth;
     
     if (x < offsetX || x > canvasWidth) {
       break;
@@ -1492,9 +1482,9 @@ const drawCounterThread = (thread, ctx, threadY) => {
     
     if (lastSegment === undefined || currentSegment !== lastSegment) {
       ctx.lineTo(x, lastLineY);
-      thread.drawData.push([x, lastLineY]);
+      drawData.push([x, lastLineY]);
       ctx.lineTo(x, targetY);
-      thread.drawData.push([x, targetY]);
+      drawData.push([x, targetY]);
       lastSegment = currentSegment;
       lastLineX = x;
       lastLineY = targetY;
@@ -1502,7 +1492,7 @@ const drawCounterThread = (thread, ctx, threadY) => {
   }
 
   ctx.lineTo(canvasCssWidth, targetY);
-  thread.drawData.push([canvasCssWidth, targetY]);
+  drawData.push([canvasCssWidth, targetY]);
   ctx.stroke();
   ctx.closePath();
 };
@@ -1522,7 +1512,7 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
   const createDrawData = () => ({
     rectX: 0, rectY: 0, eventWidth: 0, height: 0, 
     rectColor: '', strokeColor: '', text: '', 
-    textX: 0, textY: 0, fontColor: '', show: true
+    textX: 0, textY: 0, fontColor: '', show: true, pinnedEventY: 0,
   });
   
   thread.events.forEach((event, index, array) => {
@@ -1539,7 +1529,7 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     }
     previousEventData = event;
   });
-  eventRenderer.drawEvent(eventDatas, ctx);
+  eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
 };
 
 // 全部的节点数据包括坐标和初始颜色
@@ -1549,34 +1539,32 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     console.warn('Canvas context not available for drawing event');
     return false;
   }
-  let x = timeToX(event.renderStartTime) - processLabelWidth;
+  let x = getPositionByTime(event.renderStartTime, viewState, layout) - processLabelWidth;
   if (x > viewState.canvasCssWidth) {
     x = viewState.canvasCssWidth - 1;
   }
-  const eventWidth = durationToWidth(event.renderDuration);
+  const eventWidth = getWidthByDuration(event.renderDuration, viewState);
+  const originalY = event.renderInfo?.y ?? eventY;
+  const originalX = event.renderInfo?.x ?? x;
+  const originalWidth = event.renderInfo?.width ?? eventWidth;
 
   // 存储事件的位置信息，用于点击检测
   event.renderInfo = {
-    x: x,
-    y: eventY,
-    width: eventWidth,
-    height: eventHeight,
-    processKey: processKey,
+    x: x, y: eventY, width: eventWidth,
+    height: eventHeight, processKey: processKey, pinnedEventY: eventY,
   };
 
   const colors = getEventColor(event, eventRenderer.deps, processKey);
   const { fillColor, fontColor, strokeColor } = colors;
-
-  // 直接赋值，避免重复访问
-  drawData.rectX = x;
-  drawData.rectY = eventY;
-  drawData.rectPixelX = x * devicePixelRatio;
-  drawData.rectPixelY = eventY * devicePixelRatio;
-  drawData.eventWidth = eventWidth;
-  drawData.height = eventHeight;
-  drawData.rectColor = fillColor;
-  drawData.strokeColor = strokeColor;
-  drawData.fontColor = fontColor;
+  Object.assign(drawData, {
+    rectX: x, rectY: eventY, rectPixelX: x * devicePixelRatio, rectPixelY: eventY * devicePixelRatio,
+    eventWidth: eventWidth, height: eventHeight, rectColor: fillColor, strokeColor: strokeColor,
+    fontColor, fontColor, pinnedEventY: eventY});
+  if (pinnedStatus.value) {
+    Object.assign(event.renderInfo, {x: originalX, y: originalY, width: originalWidth});
+    Object.assign(drawData, {rectX: originalX, rectY: originalY, rectPixelX: originalX * devicePixelRatio, 
+      rectPixelY: originalY * devicePixelRatio, eventWidth: originalWidth});
+  }
 
   return true;
 };
@@ -1601,13 +1589,13 @@ const updateProcessDrawData = (process, processKey) => {
 };
 
 // 调用之前需确认画布已还原成初始状态
-const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
+const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess = false) => {
   // 预计算常量，避免重复计算
   const { scale, offsetX, canvasCssWidth } = viewState;
   const absOffsetX = Math.abs(offsetX);
   
   const rectStartX = drawData.rectX * scale;
-  const rectEndX = rectStartX + width * scale;
+  const rectEndX = rectStartX + drawData.width * scale;
   
   // 计算可见范围
   const visibleStartX = Math.max(rectStartX, absOffsetX);
@@ -1620,7 +1608,7 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   }
 
   const actualPixWidth = actualWidth * devicePixelRatio;
-  let displayName = getDisplayName(event);
+  let displayName = isAicpuProcess ? event.name : getDisplayName(event);
   let textWidth = ctx.measureText(displayName).width;
 
   let displayText = '';
@@ -1646,10 +1634,11 @@ const fillTextInfo = (event, ctx, width, drawData, isTextXChange = true) => {
   drawData.text = displayText;
   drawData.textX = isTextXChange ? textStartX : event.drawData.textX;
   drawData.textY = drawData.rectPixelY + eventTextSize;
+  drawData.pinnedTextY = (drawData.pinnedEventY * devicePixelRatio) + eventTextSize;
   return true;
 };
 
-const renderProcessText = async (process, ctx) => {
+const renderProcessText = async (process, ctx, isPinned = false) => {
   ctx.font = getFontStyle(eventTextSize);
   ctx.textRenderingOptimization = 'optimizeLegibility';
   ctx.save();
@@ -1657,51 +1646,70 @@ const renderProcessText = async (process, ctx) => {
   const selectedEventId = selectEvent.value ? selectEvent.value.id : null;
   const selectedDep = selectEvent.value ? [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors] : [];
   const isHighlighting = highlightedPaths.size > 0;
-
-  for (const [threadKey, thread] of process.threads.entries()) {
-    if (thread.isCounter) {
-      break;
+  let isAicpuProcess = process.type === 'aicpu';
+  const selectedInfo = { selectedEventId, selectedDep };
+  if (isPinned) {
+    for (const item of process.value) {
+      pinnedStatus.value = true;
+      isAicpuProcess = item.process.type === 'aicpu';
+      renderThreadText(item.thread, ctx, selectedInfo, isHighlighting, isAicpuProcess);
     }
-    // 批量处理事件，减少重复的样式设置
-    const visibleEvents = [];
-    for (const event of thread.events) {
-      const { drawData } = event;
-      if (!drawData || !drawData.show) {
-        continue;
+  } else {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      if (!renderThreadText(thread, ctx, selectedInfo, isHighlighting, isAicpuProcess)) {
+        break;
       }
-      
-      // 预计算文本信息，避免在循环中重复调用
-      fillTextInfo(event, ctx, drawData.eventWidth, drawData);
-      if (!drawData.text) { continue };
-      
-      visibleEvents.push({ event, drawData });
     }
-    let preData;
-    let nextData;
-    // 批量渲染文本，减少样式切换
-    for (const { event, drawData } of visibleEvents) {
-      const isSelf = selectedEventId === event.id;
-      
-      // 优化颜色判断逻辑
-      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
-      if (isHighlighting && !isSelf && !hasCurrent) {
-        ctx.fillStyle = colorCfg.eventFontNoColor;
-      } else {
-        ctx.fillStyle = drawData.fontColor;
-      }
-      if (event.name === swimConfig.sampleEventNamePre) {
-        preData = drawData;
-      }
-      if (event.name === swimConfig.sampleEventNameNext) {
-        nextData = drawData;
-      }
-      ctx.fillText(drawData.text, drawData.textX, drawData.textY);
-    }
-    if (preData && nextData) {
-      drawVirtualDom(preData, nextData, ctx);
-    } 
   }
+  pinnedStatus.value = false;
   ctx.restore();
+};
+
+const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProcess) => {
+  const { selectedEventId, selectedDep } = selectedInfo;
+  if (thread.isCounter) {
+    return false;
+  }
+  // 批量处理事件，减少重复的样式设置
+  const visibleEvents = [];
+  for (const event of thread.events) {
+    const { drawData } = event;
+    if (!drawData || !drawData.show) {
+      continue;
+    }
+      
+    // 预计算文本信息，避免在循环中重复调用
+    drawData.width = drawData.eventWidth;
+    fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
+    if (!drawData.text) { continue };
+      
+    visibleEvents.push({ event, drawData });
+  }
+  let preData;
+  let nextData;
+  // 批量渲染文本，减少样式切换
+  for (const { event, drawData } of visibleEvents) {
+    const isSelf = selectedEventId === event.id;
+      
+    // 优化颜色判断逻辑
+    const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+    if (isHighlighting && !isSelf && !hasCurrent) {
+      ctx.fillStyle = colorCfg.eventFontNoColor;
+    } else {
+      ctx.fillStyle = drawData.fontColor;
+    }
+    if (event.name === swimConfig.sampleEventNamePre) {
+      preData = drawData;
+    }
+    if (event.name === swimConfig.sampleEventNameNext) {
+      nextData = drawData;
+    }
+    ctx.fillText(drawData.text, drawData.textX, pinnedStatus.value ? drawData.pinnedTextY : drawData.textY);
+  }
+  if (preData && nextData) {
+    drawVirtualDom(preData, nextData, ctx);
+  }
+  return true;
 };
 
 // 引导页定位测距的虚拟dom
@@ -1720,9 +1728,8 @@ const drawVirtualDom = (preData, nextData, ctx) => {
   domRect.style.backgroundColor = 'transparent';
   ctx.canvas.parentNode.appendChild(domRect);
 };
-const showTooltip = (e, event, canvasRef) => {
+const showTooltip = (e, event) => {
   if (!tooltip.value) return;
-
   const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("title")}</span><span class="tooltip-value">${displayName}</span></div>`;
@@ -1735,13 +1742,32 @@ const showTooltip = (e, event, canvasRef) => {
   tooltipContent += "</div>"; 
   tooltip.value.innerHTML = tooltipContent;
   tooltipStyle.display = 'block';
-  const canvasCSSWidth = viewState.canvasCssWidth;
-  if(getNoZoomX(event.renderInfo.x, viewState) + 200  > canvasCSSWidth){
-      tooltipStyle.left = (e.clientX - 100) + 'px';
+  // 获取气泡的真实尺寸
+  const tooltipWidth = tooltip.value.offsetWidth;
+  const tooltipHeight = tooltip.value.offsetHeight;
+  // 获取视口边界
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+  // 计算水平位置 (防止超出左右边界)
+  let leftPos;
+  // 如果 鼠标X + 气泡宽 + 偏移量 > 屏幕宽，说明右边放不下，要放左边
+  if (mouseX + tooltipWidth + 15 > viewportWidth) {
+    leftPos = mouseX - tooltipWidth - 10; // 显示在鼠标左侧
   } else {
-      tooltipStyle.left = (e.clientX + 10) + 'px';
+    leftPos = mouseX + 10; // 显示在鼠标右侧
   }
-  tooltipStyle.top = (e.clientY + 10) + 'px';
+  // 计算垂直位置 (防止超出底部边界)
+  let topPos;
+  // 如果 鼠标Y + 气泡高 + 偏移量 > 屏幕高，说明下面放不下，要放上面
+  if (mouseY + tooltipHeight + 15 > viewportHeight) {
+    topPos = mouseY - tooltipHeight - 10; // 显示在鼠标上方
+  } else {
+    topPos = mouseY + 10; // 显示在鼠标下方
+  }
+  tooltipStyle.left = `${leftPos}px`;
+  tooltipStyle.top = `${topPos}px`;
 };
 
 const lineShowTooltip = (e, startEvent, endEvent) => {
@@ -1789,13 +1815,9 @@ const lineShowTooltip = (e, startEvent, endEvent) => {
   lineTooltipStyle.top = (e.clientY - 10) + 'px';
 };
 
-const hideTooltip = () => {
-  tooltipStyle.display = 'none';
-};
+const hideTooltip = () => { tooltipStyle.display = 'none' };
 
-const hideLineTooltip = () => {
-  lineTooltipStyle.display = 'none';
-};
+const hideLineTooltip = () => { lineTooltipStyle.display = 'none' };
 
 const drawNodeHeight = (event, processKey) => {
   const uiCtx = getUIContext(processKey);
@@ -1811,9 +1833,7 @@ const measureDistanceZoom = (event, processKey) => {
   measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey, true);
 };
 
-const renderEvents = () => {
-  renderProcessEvents(props.process, props.processKey);
-};
+const renderEvents = () => { renderProcessEvents(props.process, props.processKey) };
 
 const realCoordinateY = (y) => {
   let realY = y;
@@ -1837,15 +1857,7 @@ const drawEventLine = (x, color, flag) => {
       canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
     }
     let ctx = canvasRef.getContext('2d');
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(drawX, 0);
-    ctx.lineTo(drawX, canvasRef.height);
-    ctx.stroke();
-    ctx.restore();
+    eventRenderer.drawFlagLine(ctx, color, drawX, canvasRef.height);
   }
 }
 
@@ -2010,12 +2022,8 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     }
   }
 };
-window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => {
-  handleOutline(label);
-});
-window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => {
-  handleOutline(label, true, false);
-});
+window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => { handleOutline(label) });
+window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => { handleOutline(label, true, false) });
 window.ascEventBus.on('activeLock', ({ label }) => {
   lockedLabel = label;
   handleOutline(label, false, true, true);
@@ -2054,6 +2062,7 @@ addChildContext('threadEvent', {
   getCanvasHeight,
   renderProcessEvents,
   renderProcessText,
+  fillTextInfo,
   resizeCanvas,
   renderEvents,
   realCoordinateY,
@@ -2077,11 +2086,16 @@ addChildContext('threadEvent', {
   animate: threeRender.animate,
   stopAnimate: threeRender.stopAnimate,
   distanceMeasurementResize,
-  canvasStatusReset
+  canvasStatusReset,
+  renderProcessPinEvents,
+  drawTransformEvent,
+  highlightEvent,
+  eventRenderer,
+  drawEventThread,
+  showTooltip,
+  renderThreadText
 });
-watch(isHoverLockStatus, () => {
-  sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
-});
+watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
 // 每个事件画布都会走一遍
 watch(isDarkTheme, () => {
   colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
@@ -2172,7 +2186,6 @@ const clearDistanceMeasurement = () => {
     measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
 };
-
 provide('swimGraphThreadState', {
   switchLockInformationFlag,
   isPathLockStatus,
@@ -2182,7 +2195,6 @@ provide('swimGraphThreadState', {
   isClickedPath,
   pathLockedEvent
 });
-
 provide('swimGraphThreadMethods', {
   pathLockedMethod
 });

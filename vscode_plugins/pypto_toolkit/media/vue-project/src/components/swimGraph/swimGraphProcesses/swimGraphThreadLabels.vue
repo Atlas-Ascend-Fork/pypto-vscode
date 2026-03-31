@@ -1,21 +1,48 @@
 <template>
   <div class="thread-labels" :style="{ width: layout.processLabelWidth + 'px' }">
-    <div v-for="(thread, threadIndex) in threadsArray" :key="threadIndex"  
+    <div 
+      v-for="(threadEntry, index) in process.threads" 
+      :key="threadEntry[0]"  
       class="thread-labels-loop" 
-      :class="{'active': `${props.processKey}-${threadIndex}` === curThread, 'activeS': activeThreadName === (thread.threadName)}"
-      @mouseover="handleLabelHover(threadIndex)">
+      :class="{'active': `${props.processKey}-${index}` === curThread, 'activeS': activeThreadName === (threadEntry[1].threadName)}"
+      @mouseover="handleLabelHover(index)"
+      @mouseleave="handleLabelLeave(index)"
+    >
+    <!-- 取消置顶图标 -->
+    <d-tooltip :content="$t('unpinThread')" position="right" v-if="threadEntry[1].isPinned">
+      <d-icon
+        name="icon-pushpin-fill"
+        class="pin-icon-position unpin-icon"
+        @click="handleUnpin(threadEntry[0])"
+      >
+      </d-icon>
+    </d-tooltip>
+    <!-- 置顶图标 -->
+    <d-tooltip :content="$t('pinThread')" position="right" v-if="!isThreeColumn && hoveredThreadIndex === index && !threadEntry[1].isPinned">
+      <d-icon 
+        :name="isHoveringPinIcon ? 'icon-pushpin-fill' : 'icon-pushpin'"
+        class="pin-icon-position pin-icon"
+        @click="handlePinThread(threadEntry[0])"
+        @mouseenter="isHoveringPinIcon = true"
+        @mouseleave="isHoveringPinIcon = false"
+      >
+      </d-icon>
+    </d-tooltip>
       <div 
         class="thread-label-item"
-        :class="[{ 'has-threads-box': thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') }]"
-        :style="{ height: getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter) + 'px' }"
+        :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') }]"
+        :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
       >
-        {{ thread.threadName }}
+        {{ threadEntry[1].threadName }}
       </div>
-      <div class="threads-box" v-if="isAicpu || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')" 
-        :style="{'--thread-fill-width': threadFillWidth(thread.threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(thread.threadName, selectedOption)) + '%', 
-          'display':cycleDisplay}">
-        <div class="threads-fill" :style="{ width: threadFillWidth(thread.threadName, selectedOption) + '%', 'background': getBackground(thread.threadName, selectedOption)}"></div>
-        <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(thread.threadName, selectedOption) }}</div>
+      <div 
+        class="threads-box" 
+        v-if="isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')" 
+        :style="{'--thread-fill-width': threadFillWidth(threadEntry[1].threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].threadName, selectedOption)) + '%', 
+        }"
+      >
+        <div class="threads-fill" :style="{ width: threadFillWidth(threadEntry[1].threadName, selectedOption) + '%', 'background': getBackground(threadEntry[1].threadName, selectedOption)}"></div>
+        <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(threadEntry[1].threadName, selectedOption) }}</div>
         <div class="average-line" :style="{ left: averageValue + '%'}"></div>
       </div>
     </div>
@@ -24,14 +51,17 @@
 
 <script setup>
 import { computed, inject, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getThreadHeight } from '../swimGraphUtils';
+
+const { t: $t } = useI18n();
 
 // 注入父组件提供的状态
 const {
   layout,
   lane2line,
   processes,
-  isAicpu,
+  isThreeColumn,
   viewState,
 } = inject('swimGraphState');
 
@@ -42,6 +72,9 @@ const {
 
 const curThread = inject('curThread');
 const { cycleDisplay, selectedOption, options } = inject('swimCycleDisplay');
+
+// 注入置顶线程状态
+const { pinThread, unpinThread, pinnedThreadsList } = inject('swimGraphPinnedState');
 
 // 定义props
 const props = defineProps({
@@ -56,9 +89,19 @@ const props = defineProps({
 });
 
 const averageValue = ref(0);
+const hoveredThreadIndex = ref(-1);
+const isHoveringPinIcon = ref(false);
+
+const isAicpuProcess = computed(() => {
+  const process = processes.get(props.processKey);
+  if (process) {
+    return process.type === 'aicpu';
+  }
+  return false;
+});
 
 const calculateThreadCycles = (allProcesses, proKey) => {
-  if (isAicpu.value) {
+  if (isAicpuProcess.value) {
     cycleDisplay.value = 'none';
     options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
     return [null, null];
@@ -66,6 +109,7 @@ const calculateThreadCycles = (allProcesses, proKey) => {
   const threadCyclesMap = new Map();
   const threadCacheHitMap = new Map();
   const { threads = new Map() } = allProcesses.get(proKey) || {};
+  let hasPmu = false;
   for(const [threadKey, thread] of threads) {
     let totleCycles = 0n;
     let icacheMiss = 0n;
@@ -73,10 +117,9 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
         if (!event['pmu_info']) {
-          cycleDisplay.value = 'none';
-          options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
-          return [null, null];
+          continue;
         }
+        hasPmu = true;
         totleCycles += BigInt(event['pmu_info']['total cycle']);
         icacheMiss += BigInt(event['pmu_info']['icache_miss']);
         icacheReq += BigInt(event['pmu_info']['icache_req']);
@@ -87,31 +130,44 @@ const calculateThreadCycles = (allProcesses, proKey) => {
       threadCacheHitMap.set(thread.threadName, (1 - missRate).toString());
     }
   }
+  if (!hasPmu) {
+    cycleDisplay.value = 'none';
+    options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
+    return [null, null];
+  }
   return [threadCyclesMap, threadCacheHitMap];
 };
 
 const calculateThreadTask = (allProcesses, proKey) => {
   const threadTaskMap = new Map();
-  const { threads = new Map() } = allProcesses.get(proKey) || {};
-  for(const [threadKey, thread] of threads) {
-    if (isAicpu.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+  const currentProcess = allProcesses.get(proKey);
+  const { threads = new Map() } = currentProcess || {};
+  
+  for (const [threadKey, thread] of threads) {
+    if (isAicpuProcess.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       threadTaskMap.set(thread.threadName, thread.events.length);
     }
   }
   if (cycleDisplay.value === 'none') {
-    cycleDisplay.value = 'flex';
-    selectedOption.value = 'task';
+    // 设置默认显示选项
+    if (isAicpuProcess.value) {
+       selectedOption.value = 'utilization';
+    } else {
+       selectedOption.value = 'task';
+    }
   }
   return threadTaskMap;
 };
 
 const calculateThreadUtilization = (allProcesses, proKey) => {
   const threadUtilizationMap = new Map();
-  const { threads = new Map() } = allProcesses.get(proKey) || {};
+  const currentProcess = allProcesses.get(proKey);
+  const { threads = new Map() } = currentProcess || {};
+  
   let utilization = 0;
   let eventTime = 0;
   for(const [threadKey, thread] of threads) {
-    if (isAicpu.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+    if (isAicpuProcess.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
         eventTime = eventTime + (event.endTime - event.startTime);
       }
@@ -220,6 +276,36 @@ const handleLabelHover = (threadIndex) => {
   if (hoverId != curThread.value) {
     curThread.value = hoverId;
   }
+  hoveredThreadIndex.value = threadIndex;
+};
+
+const handleLabelLeave = (threadIndex) => {
+  hoveredThreadIndex.value = -1;
+  isHoveringPinIcon.value = false;
+};
+
+const handlePinThread = (threadKey) => {
+  const thread = props.process.threads.get(threadKey);
+  if (!thread) {
+    return;
+  }
+  let pinnedY = 0;
+  for (const pinnedThread of pinnedThreadsList.value) {
+    const t = pinnedThread.thread;
+    const tk = t.isCounter ? t.threadName : t.tid;
+    const lc = lane2line.get(`${pinnedThread.processKey}@${tk}`) || 1;
+    pinnedY += layout.threadHeight * lc;
+  }
+
+  const lc = thread.isCounter ? 1 : (lane2line.get(`${props.processKey}@${threadKey}`) || 1);
+  const originalY = thread.bottomY - (layout.threadHeight * lc);
+
+  const offsetY = originalY - pinnedY;
+  pinThread(props.processKey, threadKey, offsetY);
+};
+
+const handleUnpin = (threadKey) => {
+  unpinThread(props.processKey, threadKey);
 };
 
 const activeThreadName = computed(() => {
@@ -231,16 +317,6 @@ const activeThreadName = computed(() => {
   } else {
     return "";
   }
-});
-
-// 将线程Map转换为数组
-const threadsArray = computed(() => {
-  return Array.from(props.process.threads.entries()).map(([key, value]) => {
-    return {
-      key,
-      ...value
-    };
-  });
 });
 </script>
 
@@ -256,8 +332,28 @@ const threadsArray = computed(() => {
   font-weight: 400;
   line-height: 20px;
   text-align: left;
+  position: relative;
 }
 
+.pin-icon-position {
+  position: absolute;
+  right: 223px;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.pin-icon {
+  color: var(--devui-thread-text);
+}
+
+.unpin-icon {
+  color: var(--devui-primary-button-bg);
+}
+
+.pin-icon:hover {
+  color: var(--devui-primary-button-hover-bg);
+}
+ 
 .threads-box::before {
   content: '';
   position: absolute;

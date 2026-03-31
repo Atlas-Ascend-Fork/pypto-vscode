@@ -1,5 +1,5 @@
 <template>
-  <div class="process-header" @click="handleToggleProcess" :class="{'process-header-width': resetWidth}">
+  <div class="process-header" @click="handleToggleProcess">
     <div class="process-header-label" @mouseover.stop="handleMouseOver">
       <div class="label_one">
         <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
@@ -11,18 +11,20 @@
       </div>
     </div>
     <div class="process-header-line">
-      <canvas ref="headerCanvasRef" class="process-header-canvas" :data-process-header-key="process.key"></canvas>
-      <canvas ref="hoverHeaderCanvasRef" class="process-hover-header-canvas" :data-process-hover-header-key="process.key"></canvas>
+      <canvas ref="headerCanvasRef" class="process-header-canvas" :data-process-header-key="processKey"></canvas>
+      <canvas ref="hoverHeaderCanvasRef" class="process-hover-header-canvas" :data-process-hover-header-key="processKey"></canvas>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch, nextTick} from 'vue';
+import { ref, computed, inject, onMounted, watch, nextTick, provide} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { setupHighDPICanvas } from '../swimGraphUtils';
+
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
+const swimGraphState = inject('swimGraphState');
 const {
   viewState,
   layout,
@@ -30,8 +32,9 @@ const {
   swimlaneContainer,
   isDarkTheme,
   processes,
-  childContextMap
-} = inject('swimGraphState');
+  childContextMap,
+  isMixedAicpuKernel
+} = swimGraphState;
 
 const {
   toggleProcess
@@ -127,6 +130,9 @@ const eraseProcessHeadLine = (flag) => {
       `[data-process-header-key="${key}"]`)
   });
   canvasRefs.forEach(canvasRef => {
+    if (!canvasRef) {
+      return;
+    }
     const ctx = canvasRef.getContext('2d');
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
   });
@@ -147,6 +153,7 @@ onMounted(() => {
 addChildContext('processHeaderEvent', {
   drawProcessHeadLine,
   eraseProcessHeadLine,
+  handleToggleProcess,
 });
 
 watch(isDarkTheme, () => {

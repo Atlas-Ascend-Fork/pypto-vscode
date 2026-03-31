@@ -31,15 +31,15 @@ export class MeatureRender extends EventRender {
     const { viewState } = this.deps;
     ctx.lineWidth = 2;
     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    clearWholeProcess(ctx, viewState, processKey);
     altClickData = {
       preData: null,
       lastData: null,
       largeSpacing: false
     };
+    clearWholeProcess(ctx, viewState, processKey);
   }
 
-  clearDrawConnectorHover(uiCtx: CanvasRenderingContext2D, processKey: string) {
+  clearDrawConnectorHover(uiCtx: CanvasRenderingContext2D, processKey: string, isPinned=false) {
     const { isDarkTheme, viewState } = this.deps;
     //先清空画布
     uiCtx.lineWidth = 2;
@@ -48,7 +48,7 @@ export class MeatureRender extends EventRender {
     // 补画第一个手动测距的节点
     uiCtx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
     uiCtx.lineWidth = 2 / viewState.scale;
-    this.strokeRoundRect(uiCtx, altClickData.preData, processKey);
+    this.strokeRoundRect(uiCtx, altClickData.preData, processKey, isPinned);
   }
 
   drawNodeRoundedRect = (uiCtx: CanvasRenderingContext2D, event: any, processKey: string) => {
@@ -56,7 +56,7 @@ export class MeatureRender extends EventRender {
     this.drawRoundedRect(uiCtx, event, processKey);
   };
 
-  handleDistanceMeasurement = (uiCtx: CanvasRenderingContext2D, event: any, processKey: string, isZoomMode = false) => {
+  handleDistanceMeasurement = (uiCtx: CanvasRenderingContext2D, event: any, processKey: string, isZoomMode = false, isPinned=false) => {
     const shouldClearDrawConnector = !isZoomMode && altClickData.preData && altClickData.lastData && (measureState.isMeasureFixed || !measureState.isMeasureFirst);
     if (shouldClearDrawConnector) {
       this.clearDrawConnector(uiCtx, processKey);
@@ -73,14 +73,14 @@ export class MeatureRender extends EventRender {
         altClickData.lastData = event;
       }
     }
-    this.drawRoundedRect(uiCtx, event, processKey);
+    this.drawRoundedRect(uiCtx, event, processKey, isPinned);
     if (isZoomMode && altClickData.preData) {
-      this.drawRoundedRect(uiCtx, altClickData.preData, processKey);
+      this.drawRoundedRect(uiCtx, altClickData.preData, processKey, isPinned);
     }
-    this.calculateAndDrawConnection(uiCtx);
+    this.calculateAndDrawConnection(uiCtx, isPinned);
   };
 
-  measureDistanceHover(uiCtx: CanvasRenderingContext2D) {
+  measureDistanceHover(uiCtx: CanvasRenderingContext2D, isPinned=false) {
     const { viewState } = this.deps;
     if (altClickData.preData && altClickData.lastData){
       const { renderInfo: preRenderInfo } = altClickData.preData;
@@ -100,10 +100,10 @@ export class MeatureRender extends EventRender {
       }
       // 同泳道
       if (lastY === preY){
-        this.drawConnector(uiCtx, largeSpacing);
+        this.drawConnector(uiCtx, largeSpacing, isPinned);
       } else {
         largeSpacing = nodeSpacingX > 60;
-        this.drawDiffConnector(uiCtx, largeSpacing);
+        this.drawDiffConnector(uiCtx, largeSpacing, isPinned);
       }
     }
   }
@@ -111,6 +111,8 @@ export class MeatureRender extends EventRender {
   private fillText(ctx: CanvasRenderingContext2D, rect: any, scrollY = 0) {
     const measureY = scrollY === 0 ? rect.y : scrollY;
     ctx.font = getFontStyle(meaureTextSize);
+    const oriTextAlign = ctx.textAlign;
+    const oriTextBaseline = ctx.textBaseline;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const centerX = rect.x + rect.width / 2;
@@ -128,16 +130,18 @@ export class MeatureRender extends EventRender {
     const textHeight = ascent + descent;
     const textY = centerY + (ascent - textHeight / 2);
     ctx.fillText(rect.text, centerX, textY);
+    ctx.textAlign = oriTextAlign;
+    ctx.textBaseline = oriTextBaseline;
   }
 
-  drawConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean) {
+  drawConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean, isPinned=false) {
     let scrollTop = 0;
     const scrollableDiv = document.querySelector('.scroller-container');
     if (scrollableDiv) {
       scrollTop = scrollableDiv.scrollTop;
     }
     const { isDarkTheme } = this.deps;
-    const rect = this.calculateRect(largeSpacing);
+    const rect = this.calculateRect(largeSpacing, isPinned);
     // 填充矩形
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -145,7 +149,10 @@ export class MeatureRender extends EventRender {
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
     ctx.beginPath();
     const { layout } = this.deps;
-    const scrollY = scrollTop > 0 && scrollTop - rect.y > layout.threadHeight && !largeSpacing ? rect.y + layout.threadHeight * 2 : rect.y;
+    let scrollY = scrollTop > 0 && scrollTop - rect.y > layout.threadHeight && !largeSpacing ? rect.y + layout.threadHeight * 2 : rect.y;
+    if (isPinned) {
+      scrollY = rect.y;
+    }
     ctx.roundRect(rect.x, scrollY, rect.width, rect.height, 4);
     ctx.fill();
     ctx.stroke();
@@ -155,19 +162,19 @@ export class MeatureRender extends EventRender {
     if (largeSpacing){
       this.drawDoubleArrow(rect, ctx);
     } else {
-      this.drawDistanceSelectionBox(ctx);
+      this.drawDistanceSelectionBox(ctx, isPinned);
     }
     ctx.restore();
   }
 
-  private drawRoundedRect(ctx: CanvasRenderingContext2D, event: any, processKey: string) {
+  private drawRoundedRect(ctx: CanvasRenderingContext2D, event: any, processKey: string, isPinned=false) {
     const { isDarkTheme, viewState } = this.deps;
     ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
     ctx.lineWidth = 2 / viewState.scale;
-    this.strokeRoundRect(ctx, event, processKey);
+    this.strokeRoundRect(ctx, event, processKey, isPinned);
   }
 
-  private calculateAndDrawConnection = (uiCtx: CanvasRenderingContext2D) => {
+  private calculateAndDrawConnection = (uiCtx: CanvasRenderingContext2D, isPinned=false) => {
     const { viewState } = this.deps;
     if (!altClickData.preData || !altClickData.lastData) {
       return;
@@ -188,16 +195,16 @@ export class MeatureRender extends EventRender {
     }
     // 同泳道
     if (lastDataY === preY) {
-      this.drawConnector(uiCtx, largeSpacing);
+      this.drawConnector(uiCtx, largeSpacing, isPinned);
     } else {
       largeSpacing = nodeSpacingX > 60;
-      this.drawDiffConnector(uiCtx, largeSpacing);
+      this.drawDiffConnector(uiCtx, largeSpacing, isPinned);
     }
   };
 
-  private drawDiffConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean) {
+  private drawDiffConnector(ctx: CanvasRenderingContext2D, largeSpacing: boolean, isPinned=false) {
     const { isDarkTheme, viewState } = this.deps;
-    const rect = this.calculateDiffRect(largeSpacing);
+    const rect = this.calculateDiffRect(largeSpacing, isPinned);
     // 填充矩形
     ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
@@ -210,12 +217,19 @@ export class MeatureRender extends EventRender {
     ctx.fillStyle = '#ffffff';
     this.fillText(ctx, rect);
     if(!largeSpacing){
+      console.log('000');
       return;
     }
     // 绘制线水平实线部分
     ctx.beginPath();
-    let {x: preX, y: preY, width: preWidth, height: preHeight} = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
-    let {x: lastX, y: lastY} = renderInfo2pixelData(altClickData.lastData.renderInfo, viewState);
+    let {x: preX, y: preY, width: preWidth, height: preHeight, pinnedEventY: prePinnY} = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
+    if (isPinned) {
+      preY = prePinnY;
+    }
+    let {x: lastX, y: lastY, pinnedEventY: lastPinY} = renderInfo2pixelData(altClickData.lastData.renderInfo, viewState);
+    if (isPinned) {
+      lastY = lastPinY;
+    }
     const arrowLeftStartX = preX + preWidth;
     const leftLineWidth = lastX;
     const leftLineHeight = preY + preHeight / 2;
@@ -254,9 +268,12 @@ export class MeatureRender extends EventRender {
     ctx.restore();
   }
 
-  private calculateDiffRect(largeSpacing: boolean) {
+  private calculateDiffRect(largeSpacing: boolean, isPinned=false) {
     const { viewState, layout } = this.deps;
-    let { x: preX, width: preWidth, y: preY, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
+    let { x: preX, width: preWidth, y: preY, height: preHeight, pinnedEventY } = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
+    if (isPinned) {
+      preY = pinnedEventY;
+    }
     if (!largeSpacing) {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
     }
@@ -268,9 +285,10 @@ export class MeatureRender extends EventRender {
     const end = altClickData.preData.endTime;
     const diffTime = Math.abs(start - end);
     const text = this.getMeasureDistance(diffTime);
+    const rectY = preY - height < 0 ? preY + height : preY - height; 
     return {
       x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
-      y: preY + height,
+      y: rectY,
       width: width,
       height: height,
       text: text,
@@ -278,9 +296,13 @@ export class MeatureRender extends EventRender {
   }
 
   // 计算矩形位置
-  private calculateRect(largeSpacing: boolean) {
+  private calculateRect(largeSpacing: boolean, isPinned=false) {
     const { viewState, layout } = this.deps;
     let { x: preX, width: preWidth, y: preY, height: preHeight } = altClickData.preData.renderInfo;
+    // 对于置顶泳道，使用 pinnedEventY 而不是 y
+    if (isPinned) {
+      preY = altClickData.preData.renderInfo.pinnedEventY;
+    }
     if (!largeSpacing) {
       preY = preY < layout.threadHeight ? preY + layout.threadHeight : preY - layout.threadHeight;
     }
@@ -317,7 +339,7 @@ export class MeatureRender extends EventRender {
     return timeInfo.value + timeInfo.unit;
   }
 
-  private strokeRoundRect(ctx: CanvasRenderingContext2D, event: any, processKey: string) {
+  private strokeRoundRect(ctx: CanvasRenderingContext2D, event: any, processKey: string, isPinned=false) {
     const { viewState } = this.deps;
     const { x, y, width, height } = event.renderInfo;
     ctx.save();
@@ -329,10 +351,8 @@ export class MeatureRender extends EventRender {
     temp.drawData.rectColor = fillColor;
     temp.drawData.strokeColor = strokeColor;
     temp.drawData.fontColor = fontColor;
-    const { eventCtx } = ctxs[processKey];
-    eventCtx.lineWidth = ctx.lineWidth;
-    this.drawEvent([temp.drawData], eventCtx, false);
-    this.drawEventText([temp.drawData], eventCtx, false);
+    this.drawEvent([temp.drawData], ctx, false, isPinned);
+    this.drawEventText([temp.drawData], ctx, false, isPinned);
     ctx.restore();
   }
 
@@ -380,9 +400,12 @@ export class MeatureRender extends EventRender {
     ctx.fill();
   }
 
-  private drawDistanceSelectionBox(ctx: CanvasRenderingContext2D) {
+  private drawDistanceSelectionBox(ctx: CanvasRenderingContext2D, isPinned=false) {
     const { isDarkTheme, viewState } = this.deps;
-    const {x: preX, y: preY, width: preWidth, height: preHeight } = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
+    let { x: preX, y: preY, width: preWidth, height: preHeight, pinnedEventY } = renderInfo2pixelData(altClickData.preData.renderInfo, viewState);
+    if (isPinned) {
+      preY = pinnedEventY;
+    }
     const {x: lastX} = renderInfo2pixelData(altClickData.lastData.renderInfo, viewState);
     // 填充矩形
     ctx.fillStyle = 'rgba(49, 122, 247, 0.4)';
