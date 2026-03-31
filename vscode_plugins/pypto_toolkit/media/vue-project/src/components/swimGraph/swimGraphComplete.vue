@@ -1122,7 +1122,7 @@ const highlightAicpu = (process, processKey, isResize) => {
   }
   for (const eventItme of aicpuEventsData) {
     drawDatas.push(eventItme.drawData);
-    highlightedPaths.add(eventItme);
+    highlightedPaths.add(eventItme.id);
   }
   childContextMap.threadEvent.eventRenderer.drawEvent(drawDatas, ctx);
   childContextMap.threadEvent.eventRenderer.drawEventText(drawDatas, ctx);
