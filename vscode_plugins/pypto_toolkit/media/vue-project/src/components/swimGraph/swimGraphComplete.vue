@@ -114,6 +114,7 @@
       {{ pinnedMeasureInfo.text }}
     </div>
   </div>
+  <global-message></global-message>
 </template>
 
 <script setup>
@@ -129,6 +130,7 @@ import SwimGraphShortCutKeyDescrition from './swimGraphShortCutKeyDescripiton/sw
 import swimGraphPerformance from './swimGraphPerformance/swimGraphPerformance.vue';
 import aicpuControlDetail from './swimGraphAicpuDetail/aicpuControlDetail.vue';
 import aicpuScheduleDetail from './swimGraphAicpuDetail/aicpuScheduleDetail.vue';
+import globalMessage from './globalMessage.vue';
 import aicpuCoreDetail from './swimGraphAicpuDetail/aicpuCoreDetail.vue';
 import Navbar from '@/components/navbar/navbar.vue';
 import PinnedThreadsContainer from './swimGraphPinnedThreads/PinnedThreadsContainer.vue';

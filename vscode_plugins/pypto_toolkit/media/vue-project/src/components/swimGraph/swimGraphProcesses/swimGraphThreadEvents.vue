@@ -66,7 +66,6 @@ import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
 import { getQuery } from '@/core/query';
-import { Message } from 'vue-devui/message';
 import { getPositionByTime, getWidthByDuration, collectRelevantEdges } from './processInfo';
 const containerRef = ref(null);
 const { isDarkTheme } = inject('root');
@@ -354,12 +353,7 @@ const scaleCanvas = (mouseX, scale) => {
   throttledRender();
 };
 
-function onMessageNotice(text) {
-  Message({
-    type:'warning',
-    message:text
-  });
-};
+
 const handleMountedKeyDown = (e) => {
     if (e.key === 'Escape' || e.code === 'Escape') {
       e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
@@ -383,7 +377,13 @@ const handleMountedKeyDown = (e) => {
           isClickedPath.value = false;
         }
       } else {
-        selectNoNodeWarm();
+        // 多个process只发一条消息
+        for (const [processkey, process] of processes.entries()) {
+          if (processkey === props.processKey) {
+            selectNoNodeWarm();
+          }
+          break;
+        }
       }
     }
 
@@ -405,7 +405,6 @@ const handleMountedKeyup = (e) => {
 onMounted(() => {
   listenExtensionMessage();
   listenExtensionClearMessage();
-  window.ascEventBus.on('message_notice', onMessageNotice);
 });
 
 onUnmounted(() => {
