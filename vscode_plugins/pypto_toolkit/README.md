@@ -112,13 +112,25 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     在泳道图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可打开
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+    - **Kernel泳道图**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+
+    - **端到端（AICPU + Kernel）泳道图**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
   
 - **查看节点详情**
 
     点击节点可以在下方面板查看节点详情
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+    - **Kernel View**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+
+    - **AICPU View**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
 
 - **节点搜索**
 
@@ -155,6 +167,12 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
     点击左上角的度量模式按钮，或者鼠标框选节点，可查看核利用率统计信息
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
+
+- **泳道置顶**
+
+    鼠标悬浮泳道左侧区域，会显示置顶图标，点击即可将本泳道置顶
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
 
 - **快捷键列表**
 

@@ -112,13 +112,25 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     Right-click on the swimlane diagram json file and select `PyPTO Toolkit: Open file`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+    - **Kernel Swimlane Diagram**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+
+    - **End To End (AICPU + Kernel) Swimlane Diagram**
   
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+
 - **View Node Details**
 
     Click on the node to view its details in the lower panel
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+    - **Kernel View**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+
+    - **AICPU View**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
 
 - **Node Search**
 
@@ -155,6 +167,12 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
     Click the metric mode button in the upper left corner, or use the mouse to select nodes to view core utilization statistics.
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
+
+- **Swimlane Topped**
+
+    Move the mouse over the left area of the lane. The top icon will be displayed. Click to top the lane.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
 
 - **Shortcut Key List**
 
