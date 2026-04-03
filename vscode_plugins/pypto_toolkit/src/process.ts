@@ -530,7 +530,7 @@ const calculateDependencies = (events, connections) => {
     let aicpuPid = new Set<number>();
     for (let index = 0; index < traceData.traceEvents.length; index++) {
       const event = traceData.traceEvents[index];
-      event.ts = Math.round((event.ts - minThresh) * 1000);
+      event.ts = event.ts * 1000 - minThresh * 1000;
 
       errorMsg = await validate(event);
       if ('errMsg' in errorMsg) {
