@@ -25,6 +25,8 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
     }
   } else if (mode === "stichedFunc") {
     subGraphId = nameParts[0];
+  } else if (mode === 'mixSubGraph') {
+    subGraphId = event.args.wrapId;
   }
 
   subGraphId = Number(subGraphId);

@@ -92,6 +92,7 @@ export default {
     'eventTask':'Task Content Display',
     'colorRendering':'Task Color Rendering',
     'subGraph':'By SubGraph',
+    "mixSubGraph":'By Mix SubGraph',
     'stichedFunc':'By Stitched Function',
     'label':'By Semantic Label',
     'name':'By Name',

@@ -92,6 +92,7 @@ export default {
    'eventTask':'Task内容展示',
    'colorRendering':'Task颜色渲染',
    'subGraph':'按子图',
+   "mixSubGraph":'按mix子图',
    'stichedFunc':'按Stitched Function',
    'label':'按语义标签',
    'name':'按名称',
