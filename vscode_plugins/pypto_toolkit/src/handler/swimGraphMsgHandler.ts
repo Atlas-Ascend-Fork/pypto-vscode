@@ -232,14 +232,19 @@ export abstract class SwimGraphMsgHandler {
           const task2topo = {};
           try {
             const dynTopoContent = readFileSync(dynTopoPath, 'utf-8');
-            const dynTopoLines = dynTopoContent.split('\n').slice(1);
-            for (const line of dynTopoLines) {
+            const dynTopoLines = dynTopoContent.split('\n');
+            const headers = dynTopoLines[0].split(',').map(h => h.trim());
+            const headerMap = new Map();
+            headers.forEach((name, index) => {
+              headerMap.set(name, index);
+            });
+            for (const line of dynTopoLines.slice(1)) {
               const curLine = line.split(',');
               if (curLine.length >= 10) {
-                const seqNo = curLine[0];
-                const taskId = curLine[1];
-                const leafIndex = curLine[5];
-                const successors = curLine.slice(9)
+                const seqNo = curLine[headerMap.get('seqNo')];
+                const taskId = curLine[headerMap.get('taskId')];
+                const leafIndex = curLine[headerMap.get('leafIndex')];
+                const successors = curLine.slice(headerMap.get('successors')) // 需要确保successors是最后一列，且前面的title和值都是一一对应的
                                           .map(item => item.trim())
                                           .filter(item => item !== '')
                                           .map(item => `${seqNo}-${item}`);
