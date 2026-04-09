@@ -25,6 +25,10 @@
             @selectedTagsChange="onSelectChange"
             @searchKeyChange="onSearchKeyChange"
             @clearAll="onClearAll">
+            <template #RootTag="scope">
+              <span>{{ scope.tag.label }}: </span>
+              <span class="swim-header-search">{{ scope.tag.value.value }}</span>
+            </template>
           </d-category-search>
           <d-tooltip :content="$t('caseSensitive')" v-if="searchedKey" position="bottom">
             <button class="case-sensitive" @click="toggleCaseSensitivity" :class="{'case-dark': isCaseSensitive}">

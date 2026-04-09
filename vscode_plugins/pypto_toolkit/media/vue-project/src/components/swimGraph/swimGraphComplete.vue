@@ -176,6 +176,7 @@ import { pushState, pullState } from '../../core/state';
 import { swimConfig } from '../welcome/guideStepsConfig';
 import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
+import { getKernalEventColor } from './swimGraphProcesses/render/utils';
 
 const { server } = useViewServer();
 
@@ -305,6 +306,7 @@ const initialScale = ref(1);
 const isMaxSchedule = ref(false);
 let startEventId;
 let endEventId;
+const kernelThreadData = ref(new Map());
 const viewState = reactive({
   offsetX: 0,
   offsetY: 0,
@@ -1027,10 +1029,42 @@ const toggleProcess = (processKey) => {
     childContextMap.threadEvent.transformEvents(process, processKey);
     childContextMap.threadEvent.renderProcessText(process, ctx);
     timelineComponent.value.flagRender();
+    drawKernalEvents();
   });
 };
-
-const selectEvent = (event, processKey) => {
+const drawKernalEvents = () => {
+  let processKey = '';
+  for (const [key, processItem] of processes) {
+    if (processItem.type === 'kernel') {
+      processKey = key;
+      break;
+    }
+  }
+  const ctxInfo = ctxs[processKey];
+  if (!ctxInfo) {
+    return;
+  }
+  const ctx = ctxInfo.eventCtx;
+  const kernalEvents = kernelThreadData.value.events || [];
+  if (!aicpuCoreDetailsExpanded.value && kernalEvents.length === 0) {
+    return;
+  }
+  let eventDatas = [];
+  kernalEvents.forEach((event, index, array) => {
+    const colors = handleKernalEventColors(event, processKey, false, false);
+    const { fillColor, fontColor, strokeColor } = colors;
+    event.drawData.rectColor = fillColor;
+    event.drawData.strokeColor = strokeColor;
+    event.drawData.fontColor = fontColor;
+    eventDatas.push(event.drawData);
+  });
+  childContextMap.threadEvent.eventRenderer.drawEvent(eventDatas, ctx);
+  childContextMap.threadEvent.eventRenderer.drawEventText(eventDatas, ctx);
+};
+const handleKernalEventColors = (event, processKey, highlight = false, stroke = true) => {
+  return getKernalEventColor(event, childContextMap.threadEvent.eventRenderer.deps, processKey, highlight, stroke);
+};
+const selectEvent = (event, processKey, showkernelDetail = true) => {
   selectedEvent.value = event;
   if (event) {
     const process = processes.get(processKey);
@@ -1047,9 +1081,9 @@ const selectEvent = (event, processKey) => {
     } else {
       aicpuControlDetailsExpanded.value = false;
       aicpuScheduleDetailsExpanded.value = false;
-      aicpuCoreDetailsExpanded.value = false;
+      aicpuCoreDetailsExpanded.value = !showkernelDetail;
       calculateHighlightedPaths(event);
-      showDetailsPanel();
+      showDetailsPanel(showkernelDetail);
       childContextMap.threadEvent.changeNodeColor(processKey, true);
       renderDependencyLines(processKey);
     }
@@ -1066,7 +1100,7 @@ const selectEvent = (event, processKey) => {
     }
   }
   for (const [key, process] of processes.entries()) {
-    if (!process.isRendered) {
+    if (!process.isRendered || !ctxs[key]) {
       continue;
     }
     if (key !== processKey) {
@@ -1114,7 +1148,7 @@ const highlightAicpu = (process, processKey, isResize) => {
     aicpuBuildTask.value = findBuildTaskByNo(schedMap);
   } else {
     if (aicpuCoreDetailComponent.value && !isResize) {
-      aicpuCoreDetailComponent.value.renderCoreDetailCanvas(selectedEvent.value);
+      aicpuCoreDetailComponent.value.renderCoreDetailCanvas();
     }
     const threadNameMatch = threadName.match(/SCHED(?<schedNo>\d+)/);
     const schedNo = threadNameMatch?.groups?.schedNo;
@@ -1131,6 +1165,22 @@ const highlightAicpu = (process, processKey, isResize) => {
   childContextMap.threadEvent.eventRenderer.drawEvent(drawDatas, ctx);
   childContextMap.threadEvent.eventRenderer.drawEventText(drawDatas, ctx);
   childContextMap.threadEvent.highlightEvent(ctx, selectedEvent.value, processKey, true, true);
+  if (!kernelThreadData.value || typeof kernelThreadData.value !== 'object' || Object.keys(kernelThreadData.value).length === 0) {
+    return;
+  }
+  shadingKernal();
+};
+const shadingKernal = () => {
+  let processKey = '';
+  for (const [key, processItem] of processes) { 
+    const {type, pid} = processItem;
+    if (type === 'kernel') {
+      processKey = pid.toString();
+      break; 
+    }
+  }
+  processExpanded.set(processKey, false);
+  toggleProcess(processKey);
 };
 const resetMaxScheduleState = () => {
   isMaxSchedule.value = false;
@@ -1405,7 +1455,10 @@ const dynamicWidthStyle = (event) => {
   return {};
 };
 
-const showDetailsPanel = () => {
+const showDetailsPanel = (showkernelDetail) => {
+  if (!showkernelDetail) {
+    return;
+  }
   detailsPanelExpanded.value = true;
 };
 
@@ -1476,7 +1529,11 @@ const doResize = () => {
   timelineComponent.value.observationLineResize();
   childContextMap.threadEvent.distanceMeasurementResize();
   if (aicpuCoreDetailsExpanded.value) {
-    aicpuCoreDetailComponent.value.renderCoreDetailCanvas(selectedEvent.value);
+    aicpuCoreDetailComponent.value.renderCoreDetailCanvas();
+    drawKernalEvents();
+    setTimeout(() => {
+      aicpuCoreDetailComponent.value.handleHighKernelEvents();
+    });
   }
 };
 
@@ -2170,7 +2227,8 @@ provide('swimGraphState', {
   aicpuHasRelevent,
   aicpuScheduleEventMaps,
   pinnedthreadsComponent,
-  aicpuScheduleMaps
+  aicpuScheduleMaps,
+  kernelThreadData,
 });
 
 // 提供方法给子组件
@@ -2253,7 +2311,8 @@ provide('swimGraphMethods', {
   },
   renderThreadText: (thread, ctx, selectedInfo, isHighlighting, isAicpuProcess) => {
     childContextMap.threadEvent.renderThreadText(thread, ctx, selectedInfo, isHighlighting, isAicpuProcess);
-  }
+  },
+  handleKernalEventColors
 });
 watch(isDarkTheme, () => {
   updateTheme();

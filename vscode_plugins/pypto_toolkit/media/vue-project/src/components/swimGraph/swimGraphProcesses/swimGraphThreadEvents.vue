@@ -1232,7 +1232,7 @@ const drawThreads = (process, processKey, ctx) => {
 };
 
 const changeNodeColor = (processKey, isDimmed, needText=true) => {
-  if (!processKey) return;
+  if (!processKey || !ctxs[processKey]) return;
   const { eventCtx } = ctxs[processKey];
   const drawDatas = [];
   const process = processes.get(processKey);
@@ -1538,6 +1538,7 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
   }
   const eventWidth = getWidthByDuration(event.renderDuration, viewState);
   const originalY = event.renderInfo?.y ?? eventY;
+  const originalPinnedEventY = event.renderInfo?.pinnedEventY ?? eventY;
   const originalX = event.renderInfo?.x ?? x;
   const originalWidth = event.renderInfo?.width ?? eventWidth;
 
@@ -1557,6 +1558,9 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     Object.assign(event.renderInfo, {x: originalX, y: originalY, width: originalWidth});
     Object.assign(drawData, {rectX: originalX, rectY: originalY, rectPixelX: originalX * devicePixelRatio, 
       rectPixelY: originalY * devicePixelRatio, eventWidth: originalWidth});
+  } else {
+    Object.assign(event.renderInfo, { pinnedEventY: originalPinnedEventY });
+    Object.assign(drawData, { pinnedEventY: originalPinnedEventY });
   }
 
   return true;

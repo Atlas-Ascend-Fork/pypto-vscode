@@ -90,6 +90,25 @@ export function getNoZoomX(x: number, viewState: any) {
   return viewState.pixelOffsetX + (x * viewState.pixelScale)
 }
 
+export function getKernalEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
+  const { colorCfg, isDarkTheme, userConfig, processes } = deps;
+  const process = processes.get(processKey);
+  const processType = process?.type || process?.args?.type || 'kernel';
+  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
+  event.color = color;
+  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
+  let fillColor = eventColor ? eventColor.base : '';
+  let fontColor = colorCfg.eventFont;
+  let strokeColor = '';
+  if (highlight) {
+    fillColor = eventColor.light;
+    fontColor = colorCfg.eventFontHighLight;
+    if (stroke) strokeColor = colorCfg.eventHighLightStroke;
+  }
+  const colors = { fillColor, fontColor, strokeColor };
+  return colors;
+}
+
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
   const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes } = deps;
   const process = processes.get(processKey);

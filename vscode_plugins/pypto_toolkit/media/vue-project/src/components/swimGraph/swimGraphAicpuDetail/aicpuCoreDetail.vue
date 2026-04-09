@@ -26,10 +26,10 @@
                     <div class="mt10 ml12 event-name-font">{{t('apiCpuView')}}</div>
                     <div class="mt20 ml12 event-name-font">{{t('kernelCpuView')}}</div>
                   </div>
-                  <div id="current-container" class="detail-canvas-right-container" > 
+                  <div id="current-container" class="detail-canvas-right-container" ref="canvasContainerRef"> 
                     <canvas id="core-detail-timeline" ref="coreDetailTimelineCanvas"></canvas>
-                    <canvas id="core-detail-aicpu" ref="coreDetailAicpuCanvas"></canvas>
-                    <canvas id="core-detail-kernel" ref="coreDetailKernelCanvas" @mousemove="handleMouseMove"  @mouseleave="handleMouseLeave"></canvas>
+                    <canvas id="core-detail-aicpu" ref="coreDetailAicpuCanvas" @click="handleAicpuCanvasClick" @mousemove="handleAicpuMouseMove" @mouseleave="handleMouseLeave"></canvas>
+                    <canvas id="core-detail-kernel" ref="coreDetailKernelCanvas" @mousemove="handleMouseMove"  @mouseleave="handleMouseLeave"  @click="handleCanvasClick"></canvas>
                   </div>
                 </div>
               </div>
@@ -49,13 +49,12 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, nextTick, watch} from 'vue';
+import { ref, inject, computed, watch} from 'vue';
 import { useI18n } from 'vue-i18n';
 import aicpuDetailContent from './aicpuDetailContent.vue';
 import aicpuDetailNodata from './aicpuDetailNoData.vue';
 import gradientDashedLine from './gradientDashedLine.vue';
-import { COLOR_CFG, setupHighDPICanvas, TimelineWithUnit, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD, formatTimeWithUnit} from '../swimGraphUtils';
-import { computeLocalXY, getNoZoomX } from '../swimGraphProcesses/render/utils';
+import { COLOR_CFG, setupHighDPICanvas, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD} from '../swimGraphUtils';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
 const { t } = useI18n();
 const {
@@ -72,7 +71,8 @@ const {
     tooltipStyle,
     kernelColorRending,
     performanceVisible,
-    selectedEvent
+    selectedEvent,
+    kernelThreadData
 } = inject('swimGraphState');
 
 const {
@@ -80,6 +80,9 @@ const {
   getEventDisplayName,
   getEventColor,
   showTooltip,
+  handleKernalEventColors,
+  selectEvent,
+  scrollToEvent
 } = inject('swimGraphMethods');
 const coreDetailTimelineCanvas = ref(null);
 const coreDetailTimelineCtx = ref(null);
@@ -88,16 +91,19 @@ const coreDetailAicpuCtx = ref(null);
 const coreDetailKernelCanvas = ref(null);
 const coreDetailKernelCtx = ref(null);
 const kernalProcessKey = ref('');
+const aiCpuProcessKey = ref('');
 const kernelCloneThreadData = ref('');
 const CANVAS_HEIGHT = ref(20);
 const containerWidth = ref(0);
 let TOTAL_TICKS = ref(10);
 let hasClicked = ref(false);
+let clickedEvent = ref(null);
+const selectedOriginEvent = ref(null);
+const canvasContainerRef = ref(null);
 const AicpuCoreDetailsPanel = () => {
   aicpuCoreDetailsExpanded.value = !aicpuCoreDetailsExpanded.value;
 };
 const kernalName = ref('');
-const kernelThreadData = ref(new Map());
 let buildTaskColor = computed(() => {
   return getEventColor(aicpuBuildTask.value);
 });
@@ -172,7 +178,13 @@ const renderCoreDetailTimeline = (startTimeInfo, endTimeInfo) => {
     ctx.fillText(text, x, 4);
   }
 };
-const renderCoreDetailAicpu = (fontColor, rectColor, eventName) => {
+const renderCoreDetailAicpu = () => {
+  const event = selectedOriginEvent.value;
+  const themeColors = isDarkTheme.value ? event.color.dark : event.color.light;
+  const rectColor = clickedEvent.value ? themeColors.base : themeColors.light;
+  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  const fontColor = clickedEvent.value ? colorCfg.eventFont : colorCfg.eventFontHighLight;
+  const { name } = event;
   const canvas = coreDetailAicpuCanvas.value;
   const canvasContainer = document.getElementById('current-container');
   if (!canvas || !canvasContainer) {
@@ -189,7 +201,7 @@ const renderCoreDetailAicpu = (fontColor, rectColor, eventName) => {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = fontColor; 
-  ctx.fillText(eventName, canvasWidth / 2, canvasHeight / 2);
+  ctx.fillText(name, canvasWidth / 2, canvasHeight / 2);
 };
 const drawKernelEvents = (ctx, events, canvasWidth, canvasHeight, { timelineStart, timelineEnd }) => {
   const timeRange = timelineEnd - timelineStart;
@@ -269,7 +281,12 @@ const renderCoreDetailKernel = ({ startTime, endTime }) => {
   }
   drawKernelEvents(ctx, events, canvasWidth, canvasHeight, { timelineStart: startTime, timelineEnd: endTime });
 };
-const renderCoreDetailCanvas = (event) => {
+const renderCoreDetailCanvas = () => {
+  const isCore = selectedEvent.value.threadName.includes('-AIC-') || selectedEvent.value.threadName.includes('-AIV-');
+  if (isCore) {
+    selectedOriginEvent.value = JSON.parse(JSON.stringify(selectedEvent.value));
+  }
+  const event = selectedOriginEvent.value;
   if (coreDetailTimelineCtx.value) {
     coreDetailTimelineCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailTimelineCanvas.value.height);
   }
@@ -279,21 +296,18 @@ const renderCoreDetailCanvas = (event) => {
   if (coreDetailKernelCtx.value) {
     coreDetailKernelCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailKernelCanvas.value.height);
   }
-  const { name, threadName } = event;
+  const { threadName } = event;
   const targetThreadName = extractAicAiv(threadName).replace('-','_');
   kernalName.value = targetThreadName;
   const {startTime, endTime} = event;
   getKernelEventsData(startTime, endTime);
-  const rectColor = isDarkTheme.value ? event.color.dark.light : event.color.light.light;
-  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-  const fontColor = colorCfg.eventFontHighLight;
   setTimeout(() => {
     const canvasContainer = document.getElementById('current-container');
     const baseWidth = canvasContainer.clientWidth;
     containerWidth.value = hasClicked.value ? baseWidth - 10 : baseWidth;
     initCanvases();
     renderCoreDetailTimeline(startTime, endTime);
-    renderCoreDetailAicpu(fontColor, rectColor, name);
+    renderCoreDetailAicpu();
     renderCoreDetailKernel({ startTime, endTime });
     hasClicked.value = true;
   });
@@ -304,7 +318,9 @@ const getKernelEventsData = (startTime, endTime) => {
     if (processItem.type === 'kernel') {
       kernalProcessKey.value = key;
       kernelThreads = processItem.threads;
-      break; 
+    }
+    if (processItem.type === 'aicpu') {
+      aiCpuProcessKey.value = key;
     }
   }
   if (kernelThreads) {
@@ -342,13 +358,142 @@ const handleMouseMove = (e) => {
   const y = mousePosition.y - rect.top;
   const info = findEventAtPosition(x, y, kernalProcessKey.value);
   const hoveredEvent = info?.event;
-  if (!hoveredEvent) {
-    return;
+  updateCursorState(e, hoveredEvent);
+};
+const handleAicpuMouseMove = (e) => {
+  canvasContainerRef.value.style.cursor = 'pointer';
+  showTooltip(e, selectedOriginEvent.value);
+};
+const updateCursorState = (e, event) => {
+  const cursor = handleTooltipAndCursor(e, event) || '';
+  canvasContainerRef.value.style.cursor = cursor;
+};
+const handleTooltipAndCursor = (e, event) => {
+  let cursor = '';
+  if (event && !e.altKey && !e.ctrlKey) {
+    showTooltip(e, event);
+    cursor = 'pointer';
+  } else {
+    tooltipStyle.display = 'none';
   }
-  showTooltip(e, hoveredEvent, coreDetailKernelCanvas.value);
+  return cursor;
 };
 const handleMouseLeave = (e) => {
   tooltipStyle.display = 'none';
+  canvasContainerRef.value.style.cursor = '';
+};
+const handleCanvasClick = (e) => {
+  if (!kernelThreadData.value || typeof kernelThreadData.value !== 'object' || Object.keys(kernelThreadData.value).length === 0) {
+    return;
+  }
+  const canvas = coreDetailKernelCanvas.value;
+  const ctx = coreDetailKernelCtx.value;
+  if (!canvas || !ctx) {
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const events = kernelCloneThreadData.value?.events || [];
+  if (events.length === 0) {
+    return;
+  }
+  const info = findEventAtPosition(x, y, kernalProcessKey.value);
+  clickedEvent.value = info?.event;
+  if (!clickedEvent.value) {
+    return;
+  }
+  ctx.clearRect(0, 0, containerWidth.value, CANVAS_HEIGHT.value);
+  handleHighKernelEvents();
+  renderCoreDetailAicpu();
+  selectKernelEvent();
+};
+const selectKernelEvent = () => {
+  const process = processes.get(kernalProcessKey.value);
+  const kernelThreads = process.threads;
+  for (const [key, thread] of kernelThreads) {
+    if (thread.threadName === kernelThreadData.value.threadName) {
+      const { events } = thread;
+      const targetEvent = events.find(event => event.id === clickedEvent.value.id);
+      selectEvent(targetEvent, kernalProcessKey.value, false);
+      scrollToEvent(targetEvent);
+    }
+  }
+};
+const handleAicpuCanvasClick = (e) => {
+  if (!kernelThreadData.value || typeof kernelThreadData.value !== 'object' || Object.keys(kernelThreadData.value).length === 0) {
+    return;
+  }
+  const canvas = coreDetailKernelCanvas.value;
+  const ctx = coreDetailKernelCtx.value;
+  if (!canvas || !ctx) {
+    return;
+  }
+  ctx.clearRect(0, 0, containerWidth.value, CANVAS_HEIGHT.value);
+  clickedEvent.value = null;
+  selectEvent(selectedOriginEvent.value, aiCpuProcessKey.value);
+  scrollToEvent(selectedOriginEvent.value);
+}; 
+const handleHighKernelEvents = () => {
+  const ctx = coreDetailKernelCtx.value;
+  if (!ctx || !clickedEvent.value) {
+    return;
+  }
+  ctx.clearRect(0, 0, containerWidth.value, CANVAS_HEIGHT.value);
+  const events = kernelCloneThreadData.value?.events || [];
+  const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  const fillNoStyle = colorCfg.eventRectNoColor;
+  const fontNoColor = colorCfg.eventFontNoColor;
+  for (const event of events) {
+    let colors;
+    if (clickedEvent.value?.id === event.id) {
+      colors = handleKernalEventColors(event, kernalProcessKey.value, true, true);
+    } else {
+      if (clickedEvent.value) {
+        colors = {
+          fillColor: fillNoStyle,
+          strokeColor: 'transparent',
+          fontColor: fontNoColor
+        };
+      } else {
+        colors = handleKernalEventColors(event, kernalProcessKey.value, false, false);
+      }
+    }
+    event.drawData.rectColor = colors.fillColor;
+    event.drawData.strokeColor = colors.strokeColor ?? 'transparent';
+    event.drawData.fontColor = colors.fontColor;
+    drawHighKernelEvents(event);
+  }
+};
+const drawHighKernelEvents = (event) => {
+  const ctx = coreDetailKernelCtx.value;
+  const { name, drawData, renderInfo } = event;
+  const { width, x, y, height } = renderInfo;
+  const { rectColor, fontColor } = drawData;
+  ctx.fillStyle = rectColor;
+  ctx.fillRect(x, y, width, height);
+  if (width > 15) {
+    ctx.fillStyle = fontColor;
+    const textWidth = ctx.measureText(name).width;
+    let displayText = name;
+    if (textWidth > width) {
+      const widthPerChar = textWidth / name.length;
+      const ellipsisWidth = ctx.measureText('...').width;
+      const availableWidth = width - ellipsisWidth;
+      let maxCharsToFit = Math.floor(availableWidth / widthPerChar);
+      if (maxCharsToFit > 0) {
+        displayText = name.substring(0, maxCharsToFit) + '...';
+      } else {
+        displayText = '';
+      }
+    }
+    if (displayText) {
+      const displayTextWidth = ctx.measureText(displayText).width;
+      const textX = x + ((width - displayTextWidth) / 2);
+      const textY = y + ((height - 12) / 2);
+      ctx.fillText(displayText, textX, textY);
+    }
+  }
 };
 const findEventAtPosition = (x, y, processKey) => {
   let processObj = {
@@ -415,10 +560,11 @@ watch(performanceVisible, () => {
   if (!aicpuCoreDetailsExpanded.value) {
     return;
   }
-  renderCoreDetailCanvas(selectedEvent.value);
+  renderCoreDetailCanvas();
 });
 defineExpose({
-  renderCoreDetailCanvas  
+  renderCoreDetailCanvas,
+  handleHighKernelEvents
 });
 </script>
 

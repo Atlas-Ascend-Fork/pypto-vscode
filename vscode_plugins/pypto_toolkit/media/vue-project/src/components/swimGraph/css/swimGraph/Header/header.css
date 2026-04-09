@@ -539,3 +539,7 @@
 .zoom-controls::-webkit-scrollbar {
   height: 2px;
 }
+
+.swim-header-search {
+  max-width: 60px;
+}
