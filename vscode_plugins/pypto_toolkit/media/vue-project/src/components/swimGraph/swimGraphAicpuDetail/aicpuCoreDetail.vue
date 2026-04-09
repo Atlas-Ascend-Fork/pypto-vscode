@@ -21,10 +21,16 @@
               <div class="title current canvas-title">Current</div>
               <div class="sched"> 
                 <div class="detail-canvas-container">
-                  <div class="detail-canvas-left-container"> 
-                    <div class="thread-name-font">{{ kernalName }}</div>
-                    <div class="mt10 ml12 event-name-font">{{t('apiCpuView')}}</div>
-                    <div class="mt20 ml12 event-name-font">{{t('kernelCpuView')}}</div>
+                  <div class="detail-canvas-left-container" ref="containerRef"> 
+                    <div class="thread-name-font node-item source-node" ref="sourceRef">{{ kernalName }}</div>
+                    <div class="mt10 ml12 event-name-font node-item target-node"  ref="targetRef">{{t('apiCpuView')}}</div>
+                    <svg class="connection-svg">
+                      <path :d="smoothPath" class="line-style" />
+                    </svg>
+                    <div class="mt20 ml12 event-name-font" ref="targetRefKernel">{{t('kernelCpuView')}}</div>
+                    <svg class="connection-svg">
+                      <path :d="smoothPathKernel" class="line-style" />
+                    </svg>
                   </div>
                   <div id="current-container" class="detail-canvas-right-container" ref="canvasContainerRef"> 
                     <canvas id="core-detail-timeline" ref="coreDetailTimelineCanvas"></canvas>
@@ -49,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, watch} from 'vue';
+import { ref, inject, computed, watch, onMounted, onUpdated} from 'vue';
 import { useI18n } from 'vue-i18n';
 import aicpuDetailContent from './aicpuDetailContent.vue';
 import aicpuDetailNodata from './aicpuDetailNoData.vue';
@@ -100,6 +106,12 @@ let hasClicked = ref(false);
 let clickedEvent = ref(null);
 const selectedOriginEvent = ref(null);
 const canvasContainerRef = ref(null);
+const containerRef = ref(null);
+const sourceRef = ref(null);
+const targetRef = ref(null);
+const smoothPath = ref('');
+const targetRefKernel = ref(null);
+const smoothPathKernel = ref('');
 const AicpuCoreDetailsPanel = () => {
   aicpuCoreDetailsExpanded.value = !aicpuCoreDetailsExpanded.value;
 };
@@ -565,6 +577,56 @@ watch(performanceVisible, () => {
 defineExpose({
   renderCoreDetailCanvas,
   handleHighKernelEvents
+});
+const drawSmoothLine = () => {
+  if (!containerRef.value) {
+    return;
+  }
+  const containerRect = containerRef.value.getBoundingClientRect();
+  const sourceRect = sourceRef.value.getBoundingClientRect();
+  const startX = sourceRect.left - containerRect.left + 4;
+  const startY = ((sourceRect.top + (sourceRect.height / 2)) - containerRect.top) + 8;
+  const targetRect = targetRef.value.getBoundingClientRect();
+  const endX = targetRect.left - containerRect.left;
+  const endY = (targetRect.top + (targetRect.height / 2)) - containerRect.top;
+  const radius = 4;
+  const cornerX = startX;
+  const cornerY = endY;
+  const arcStartX = cornerX;
+  const arcStartY = cornerY - radius;
+  const arcEndX = cornerX + radius;
+  const arcEndY = cornerY;
+  smoothPath.value = `
+    M ${startX} ${startY} 
+    L ${arcStartX} ${arcStartY} 
+    A ${radius} ${radius} 0 0 0 ${arcEndX} ${arcEndY} 
+    L ${endX} ${endY}
+  `;
+  const targetKernelRect = targetRefKernel.value.getBoundingClientRect();
+  const endKernelX = targetKernelRect.left - containerRect.left;
+  const endKernelY = (targetKernelRect.top + (targetKernelRect.height / 2)) - containerRect.top;
+  const secondX = endX - 8;
+  const secondY = endY - 2;
+  const cornerKernelX = secondX;
+  const cornerKernelY = endKernelY;
+  const arcKernelStartX = cornerKernelX;
+  const arcKernelStartY = cornerKernelY - radius;
+  const arcKernelEndX = cornerKernelX + radius;
+  const arcKernelEndY = cornerKernelY;
+  smoothPathKernel.value = `
+    M ${secondX} ${secondY} 
+    L ${arcKernelStartX} ${arcKernelStartY} 
+    A ${radius} ${radius} 0 0 0 ${arcKernelEndX} ${arcKernelEndY} 
+    L ${endKernelX} ${endKernelY}
+  `;
+};
+onMounted(() => {
+  drawSmoothLine();
+  window.addEventListener('resize', drawSmoothLine);
+});
+
+onUpdated(() => {
+  drawSmoothLine();
 });
 </script>
 
