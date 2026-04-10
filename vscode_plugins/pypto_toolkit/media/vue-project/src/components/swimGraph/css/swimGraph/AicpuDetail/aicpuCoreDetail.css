@@ -108,6 +108,8 @@
   background: var(--devui-swim-split-line);
   height:120px;
   display: flex;
+  min-width: 200px;
+  overflow-x: auto;
 }
 .mt10 {
   margin-top: 10px;

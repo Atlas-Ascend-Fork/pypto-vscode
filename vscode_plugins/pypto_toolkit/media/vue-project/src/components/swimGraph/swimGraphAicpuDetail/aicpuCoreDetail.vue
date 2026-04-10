@@ -153,6 +153,10 @@ const renderCoreDetailTimeline = (startTimeInfo, endTimeInfo) => {
   const ctx = coreDetailTimelineCtx.value;
   const canvasWidth = containerWidth.value;
   const canvasHeight = CANVAS_HEIGHT.value;
+  if (canvasWidth < 60) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
   setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = isDarkTheme.value ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
@@ -165,14 +169,16 @@ const renderCoreDetailTimeline = (startTimeInfo, endTimeInfo) => {
   const USE_NS = timeRange < 1000;
   const UNIT_DIVISOR = USE_NS ? 1 : 1000;
   const UNIT_LABEL = USE_NS ? 'ns' : 'μs';
-  const stepX = (canvasWidth - 60) / (TOTAL_TICKS.value - 1);
-  for (let i = 0; i < TOTAL_TICKS.value; i++) {
-    let x = i * stepX;
-    let time = getTimeByIndex(i, x, timePerPixel, { startTimeInfo, endTimeInfo });
+  const totalTicks = TOTAL_TICKS.value;
+  const availableWidth = canvasWidth - 60;
+  const stepX = availableWidth / (totalTicks - 1);
+  const MIN_SPACING = 80;
+  const drawTick = (index, x) => {
+    let time = getTimeByIndex(index, x, timePerPixel, { startTimeInfo, endTimeInfo });
     let displayValue;
-    if (i === 0) {
+    if (index === 0) {
       displayValue = Math.floor(startTimeInfo / UNIT_DIVISOR);
-    } else if (i === TOTAL_TICKS.value - 1) {
+    } else if (index === totalTicks - 1) {
       displayValue = Math.ceil(endTimeInfo / UNIT_DIVISOR);
     } else {
       displayValue = Math.round(time / UNIT_DIVISOR);
@@ -188,6 +194,25 @@ const renderCoreDetailTimeline = (startTimeInfo, endTimeInfo) => {
     ctx.font = '12px Arial';
     ctx.textBaseline = 'top';
     ctx.fillText(text, x, 4);
+  };
+  const startX = 0;
+  drawTick(0, startX);
+  const endX = availableWidth;
+  if (endX - startX >= MIN_SPACING) {
+    drawTick(totalTicks - 1, endX);
+    if (totalTicks > 2) {
+      let stepMultiplier = Math.max(1, Math.ceil(MIN_SPACING / stepX));
+      for (let i = 1; i < totalTicks - 1; i += stepMultiplier) {
+        let x = i * stepX;
+        if (x - startX < MIN_SPACING) {
+          continue;
+        }
+        if (endX - x < MIN_SPACING) {
+          continue;
+        }
+        drawTick(i, x);
+      }
+    }
   }
 };
 const renderCoreDetailAicpu = () => {
