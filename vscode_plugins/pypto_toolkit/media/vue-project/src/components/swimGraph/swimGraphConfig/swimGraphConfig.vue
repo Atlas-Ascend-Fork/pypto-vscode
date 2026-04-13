@@ -118,6 +118,11 @@ const aicpuModeOptions = computed(() => {
 const aicpuModeOption = ref('name');
 
 const kernelModeOptions = computed(() => {
+  if (isThreeColumn) {
+    return [
+        {name: $t('label'), value: 'label'},
+    ];
+  }
   return [
     {name: $t('subGraph'), value: 'subGraph'},
     {name: $t('stichedFunc'), value: 'stichedFunc'},
@@ -126,7 +131,7 @@ const kernelModeOptions = computed(() => {
   ];
 });
 
-const kernelModeOption = ref('subGraph');
+const kernelModeOption = ref(isThreeColumn ? 'label' : 'subGraph');
 
 const kernelTextOptions = computed(() => [
   {name: $t('taskName'), value: 'taskName', disabled: false},
