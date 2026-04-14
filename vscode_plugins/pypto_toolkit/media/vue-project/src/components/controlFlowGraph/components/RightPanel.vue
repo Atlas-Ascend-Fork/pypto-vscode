@@ -562,6 +562,10 @@ const passStageTitle = {
   block: { label: 'Block Graph', color: 'var(--control-flow-panel-table-block)' },
 };
 
+const lastMagicName = ref<string>('');
+const lastFinalList = ref<any[] | null>(null);
+const pendingPassesData = ref<{ passes: PassesType[]; resolve: (list: any[]) => void } | null>(null);
+
 // 处理magicName后缀，后端适配LIKE后删除
 const processData = (data, magicName) => {
   // 检查是否包含 "_hiddenfunc0_"
@@ -664,25 +668,21 @@ async function transFormPanelData(nodeData: ControlFlowNodesType, path: string, 
   if (nodeData.data.source.meta?.passes) {
     if (props.isHaveCsv) {
       const magicName = nodeData.data.source.magicName + processData(nodeData.data.source.meta?.passes[0].graphFilePath, nodeData.data.source.magicName);
-      const res = await getQuery();
-      const filePath = res._path;
-      const { server } = useViewServer<ControlFlowViewServer>();
-      server.getPathPassResult({ controwFlowFilePath: filePath, funcMagicName: magicName });
-      let list: any[] | undefined;
-      let resolveList: ((value: any[]) => void) | null = null;
 
-      const listPromise = new Promise<any[]>((resolve) => {
-        resolveList = resolve;
-      });
-
-      watch(server.pathPassResult, (newValue) => {
-        if (Array.isArray(newValue)) {
-          list = newValue;
-          resolveList?.(newValue);
-        }
-      }, { immediate: true });
-      const finalList = list ?? await listPromise;
-      passList.value = getPassList(nodeData.data.source.meta?.passes, finalList);
+      if (lastMagicName.value !== magicName) {
+        lastMagicName.value = magicName;
+        const res = await getQuery();
+        const filePath = res._path;
+        server.getPathPassResult({ controwFlowFilePath: filePath, funcMagicName: magicName });
+        const finalList = await new Promise<any[]>((resolve) => {
+          pendingPassesData.value = { passes: nodeData.data.source.meta?.passes, resolve };
+        });
+        pendingPassesData.value = null;
+        lastFinalList.value = finalList;
+        passList.value = getPassList(nodeData.data.source.meta?.passes, finalList);
+      } else {
+        passList.value = getPassList(nodeData.data.source.meta?.passes, lastFinalList.value ?? undefined);
+      }
     } else {
       passList.value = getPassList(nodeData.data.source.meta?.passes);
     }
@@ -703,6 +703,12 @@ watch(
   { deep: true },
 );
 
+const { server } = useViewServer<ControlFlowViewServer>();
+watch(server.pathPassResult,(newValue) => {
+  if(Array.isArray(newValue) && pendingPassesData.value) {
+    pendingPassesData.value.resolve(newValue);
+  }
+});
 // ========================== 7. 计算图moke数据 ==========================
 
 function getColor(type: string) {

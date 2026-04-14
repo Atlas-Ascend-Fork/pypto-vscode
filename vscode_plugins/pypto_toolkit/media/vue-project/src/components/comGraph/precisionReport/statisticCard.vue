@@ -1,7 +1,10 @@
 <template>
   <div :class="['statistic-card', type, { active: activeType === type }]" @click="handleCard">
     <div class="text-wrap">
-      <div class="title">{{ type }}</div>
+      <div class="title">
+        {{ type }}
+        <span style="color:rgba(128,128,128,1)">{{ t(`controlFlows.accuracyVerificationResultsTips.${type}`) }}</span>
+      </div>
       <div :class="['count', type]">{{ count }}</div>
     </div>
     <div class="icon-wrap">
@@ -25,7 +28,8 @@
 </template>
 
 <script setup lang="ts">
-
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 const props = defineProps({
   type: String,
   count: Number,
@@ -89,10 +93,12 @@ const handleCard = () => {
   .text-wrap {
     display: flex;
     flex-direction: column;
-    gap: 8px;
     color: var(--devui-primary-text);
+    height: 100%;
+    justify-content: space-between;
 
     .title {
+      width: 145px;
       font-size: 12px;
     }
 
@@ -106,7 +112,7 @@ const handleCard = () => {
       }
 
       &.SKIP {
-        color: rgba(230,230, 230, 1);
+        color: rgba(179,179, 179, 1);
       }
 
       &.EXCEPTION {
@@ -124,8 +130,8 @@ const handleCard = () => {
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 100%;
       background-color: rgba(231, 98, 93, 0.2);
 

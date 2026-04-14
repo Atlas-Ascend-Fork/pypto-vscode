@@ -351,6 +351,12 @@ export default {
         cancelSelection:'取消选择',
         firstError:'首错',
         firstErrorPath:'首错PATH',
+        accuracyVerificationResultsTips:{
+          PASS:'(精度校验通过)',
+          FAIL:'(精度校验失败)',
+          EXCEPTION:'(精度校验异常)',
+          SKIP:'(精度校验跳过)',
+        },
 },
     runConfig:{
         scanning:'扫描中...',
