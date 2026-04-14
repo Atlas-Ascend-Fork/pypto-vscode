@@ -190,6 +190,7 @@ export function transformData(rootNodes: GroupNode[]): {
           let leftLeafX = startX - offsetIf;
           let rightLeafX = startX + offsetIf;
           // 只有一个子节点时放在正下方
+          console.log('root.children', root.children)
           if (!root.children[0]) {
             rightLeafX = startX
           }

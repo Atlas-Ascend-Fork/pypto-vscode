@@ -7,7 +7,6 @@
     :offset="7"
     class="path-list-menu-wrap"
     :appendToBody="false"
-    :style="{ '--menu-width': `${menuWidth}px` }"
     @toggle="onToggle"
   >
     <div :class="['path-list-container', isOpen && 'is-open']" @click="() => (isOpen = !isOpen)">
@@ -48,9 +47,9 @@ import { computed, inject, nextTick, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getQuery } from '@/core/query';
 import { NavbarProvideKey } from './navbar-types';
-import type { NavbarContext, PathTreeData, ControlFlowData } from './navbar-types';
+import type { NavbarContext, PathTreeData } from './navbar-types';
 import type { ControlFlowPath } from '../../../../../src/types/control-flow/path';
-import { transformAndFlatTreeData, parsePathMagicName, pruneControlFlowData, getMaxDepth } from './util';
+import { transformAndFlatTreeData, parsePathMagicName } from './util';
 import LoopIcon from './icons/loop-icon.vue';
 import PathIcon from './icons/path-icon.vue';
 import IfIcon from './icons/if-icon.vue';
@@ -65,8 +64,6 @@ const currentData = ref<PathTreeData>();
 const searchNoRes = ref(false);
 const pathName = ref('')
 const pathTitle = ref('');
-const prunedDataRef = ref<ControlFlowData[]>([]);
-
 const parentData = computed(() => {
   if (currentData.value) {
     return TreeDataMap[currentData.value.label]?.parentNode?.label;
@@ -74,25 +71,11 @@ const parentData = computed(() => {
   return '';
 });
 
-const menuWidth = computed(() => {
-  const depth = getMaxDepth(prunedDataRef.value);
-  const baseWidth = 400;
-  const widthPerLevel = 30;
-  const maxWidth = 800;
-  const threshold = 12;
-  if (depth <= threshold) {
-    return baseWidth;
-  }
-  return Math.min(baseWidth + (depth - threshold) * widthPerLevel, maxWidth);
-});
-
 watch(
   controlFlowList,
   (val) => {
     if (val?.length) {
-      const prunedData = pruneControlFlowData(val);
-      prunedDataRef.value = prunedData;
-      treeData.value = transformAndFlatTreeData(prunedData, TreeDataMap);
+      treeData.value = transformAndFlatTreeData(val, TreeDataMap);
     }
   },
   { immediate: true },
@@ -235,7 +218,7 @@ onMounted(async () => {
 }
 
 .path-list-menu-wrap {
-  width: var(--menu-width, 400px);
+  width: 400px;
   padding: 8px;
   border-radius: 8px;
   background-color: var(--devui-select-bg);

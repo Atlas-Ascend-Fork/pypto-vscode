@@ -347,13 +347,7 @@ export default {
         accuracyPassDistributionOverview: 'Accuracy Pass Distribution Overview',
         cancelSelection:'Cancel Selection',
         firstError:'First Error',
-        firstErrorPath:'First Error PATH',
-        accuracyVerificationResultsTips:{
-          PASS:'(Accuracy verification passed)',
-          FAIL:'(Accuracy verification failed)',
-          EXCEPTION:'(Accuracy verification exception)',
-          SKIP:'(Accuracy verification skipped)',
-        },
+        firstErrorPath:'First Error PATH'
     },
     runConfig:{
         scanning:'Scanning...',

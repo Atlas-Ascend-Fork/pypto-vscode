@@ -98,8 +98,8 @@ async function getPassDistribution(filePath: string) {
     let listSkipCnt = (allPassCnt - PASS - FAIL - EXCEPTION) > 0 ? (allPassCnt - PASS - FAIL - EXCEPTION) : 0;
     let dbSkipCnt = SKIP;
     let skipCnt = listSkipCnt > 0 ? listSkipCnt : dbSkipCnt;
-    let finalSkipCnt = skipCnt > 0 ? skipCnt : '--'
-    const fullDistribution = Object.assign({}, passDistribution, {'SKIP': finalSkipCnt});
+
+    const fullDistribution = Object.assign({}, passDistribution, {'SKIP': skipCnt});
 
     return fullDistribution;
 }
