@@ -17,6 +17,8 @@ import { getHealthReport } from '../utils/health-report';
 import { readdirSync, promises } from 'fs';
 import * as vscode from 'vscode';
 import { getComGraphLayoutStore, getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
+import { getComGraphDataDetail, getComGraphDataSum, getComGraphRawMagic } from '../common/accurancyAnylasis'
+
 
 enum RequestSourceType {
   NodeOverLimit = 1,
@@ -46,6 +48,8 @@ export abstract class BaseGraphMsgHandler {
     'searchAllFunc',
     'jumpToCodeLine',
     'getHealthyReport',
+    'getAccurancyReport',
+    'getAccurancyDetail',
     'getInitialData',
     'callInOutTensorMap',
     'getSubgraph',
@@ -139,7 +143,11 @@ export abstract class BaseGraphMsgHandler {
     } else {
       data = this.createJsonGraphData(message.data, server, errNodeList, message.diffType);
     }
-    this.postJsonGraphData(server, message, data, isCached);
+    const failRawMagicList = server.comGraphData.failRawMagicList ? [...server.comGraphData.failRawMagicList] : [];
+    const fakeMessage = {loopInfo: 'm_idx=0@n_idx=0@loop_idx_0=0', rawMagic: '52'};
+    const testAAA = await this.getAccurancyReport(server);
+    const testBBB = await this.getAccurancyDetail(server, fakeMessage);
+    this.postJsonGraphData(server, message, data, isCached, failRawMagicList);
   }
 
   static findFileHere(dir: string, name: string): string | null {
@@ -222,6 +230,7 @@ export abstract class BaseGraphMsgHandler {
   static createJsonGraphData(data, server, errNodeList, diffType?: 'before' | 'after') {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, searchLevel, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap, diffType);
+    const failRawMagicList = server.comGraphData.failRawMagicList;
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
       currentData,
@@ -234,6 +243,7 @@ export abstract class BaseGraphMsgHandler {
       searchLevel,
       threeMode,
       errNodeList,
+      failRawMagicList
     );
 
     (this as any).graphLastRenderData = data;
@@ -653,6 +663,46 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('HealthyReport', { data: reports });
   }
 
+  static async getAccurancyReport(server: any) {
+    const graphData = server.comGraphData;
+    const filePath = graphData.fsPath ?? undefined;
+    if (!filePath) {
+      return;
+    }
+
+    const curPassName = path.basename((path.dirname(filePath)));
+    const graphFileName = path.basename(filePath, path.extname(filePath));
+    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+    const rootSuffix = '_ROOT';
+    if (curFuncMagicNameString.endsWith(rootSuffix)) {
+      curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
+    }
+    // const match = curFuncMagicNameString.match(/^(.*PATH\d{1,2})/);
+    // const curFuncMagic = match ? match[1] : '';
+    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!);
+    server.setRef('AccurancyReport', { data: errorRawInfo });
+  }
+
+  static async getAccurancyDetail(server: any, message) {
+    const graphData = server.comGraphData;
+    const filePath = graphData.fsPath ?? undefined;
+    if (!filePath) {
+      return;
+    }
+    const curPassName = path.basename((path.dirname(filePath)));
+    const graphFileName = path.basename(filePath, path.extname(filePath));
+    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR')) ?? "";
+    const rootSuffix = '_ROOT';
+    if (curFuncMagicNameString.endsWith(rootSuffix)) {
+      curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
+    }
+    const loopInfo = message.loopInfo;
+    const rawMagic = message.rawMagic;
+    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic);
+
+    server.setRef('AccurancyDetail', { data: errorRawInfo });
+  }
+
   /* ===================================================
    * 5. 公共方法：
    * =================================================== */
@@ -696,6 +746,16 @@ export abstract class BaseGraphMsgHandler {
       }
       return { json: undefined };
     }
+    const curPassName = path.basename((path.dirname(gd.fsPath)));
+    const graphFileName = path.basename(gd.fsPath, path.extname(gd.fsPath));
+    const curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+    let readAccurancyCsv = false;
+    if (!server.comGraphData.failRawMagicList) {
+      readAccurancyCsv = true;
+      const failRawMagicList = await getComGraphRawMagic(readAccurancyCsv, gd.fsPath, curPassName, curFuncMagicNameString!);
+      server.comGraphData.failRawMagicList = failRawMagicList;
+    }
+
     const json = JSON.parse(ret);
     await this.returnCalleeMap(gd, server, json, diffType);
     const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(funcHash!);
@@ -912,14 +972,15 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
   }
 
-  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean) {
-    server.setRef('JsonGraphData', { data, isCached });
+  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, failRawMagicList?: any) {
+    server.setRef('JsonGraphData', { data, isCached, failRawMagicList });
   }
 
   // graphData elkFactory 给子类重写预留
   static getElkLayoutComGraghData(server: any, graphData: any, elkFactory?: any) {
     return server.comGraphData;
   }
+
 }
 
 async function getMTime(filePath: string): Promise<string> {

@@ -184,6 +184,14 @@ export class ThreeColumnServer
     await ComGraphHandler.getHealthyReport(this);
   };
   @viewApi()
+  public getAccurancyReport = async () => {
+    await ComGraphHandler.getAccurancyReport(this);
+  };
+  @viewApi()
+  public getAccurancyDetail = async (message) => {
+    await ComGraphHandler.getAccurancyDetail(this, message);
+  };
+  @viewApi()
   public innerGetSubgraph = async (message) => {
     await ComGraphHandler.innerGetSubgraph(this, message.paramObj);
   };

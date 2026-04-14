@@ -29,6 +29,16 @@
         "title": "%pypto.OpenRenderGraphForCurrent%"
       },
       {
+        "command": "PyPTO.readCsv",
+        "title": "读取csv数据",
+        "category": "PyPTO.readCsv"
+      },
+      {
+        "command": "PyPTO.getCsvData",
+        "title": "查询csv数据",
+        "category": "PyPTO.getCsvData"
+      },
+      {
         "command": "PyPTO.Open.deletePersistFile",
         "title": "Delete Cache DB File",
         "category": "PyPTO.comGraph"
@@ -229,6 +239,7 @@
     "bignumber.js": "9.3.1",
     "child_process": "^1.0.2",
     "core-js": "^3.47.0",
+    "csv-parse": "^6.2.0",
     "d3": "^3.5.16",
     "dagre": "0.8.5",
     "dayjs": "^1.11.19",

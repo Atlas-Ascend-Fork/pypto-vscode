@@ -6,6 +6,7 @@ const readline = require('readline');
 import { useView } from '../view';
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { readCsv,getCsvData } from '../common/csvReader';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -44,6 +45,19 @@ export class RegisterCommand {
 
   getCommands() {
     return [
+      commands.registerCommand('PyPTO.readCsv', async () => {
+        const fileUri = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          filters: { 'CSV Files': ['csv'] },
+          openLabel: '选择 CSV 文件'
+        }); 
+        const filePath = fileUri?.[0].fsPath ?? undefined;
+        if (!filePath || filePath.length === 0) return;
+        readCsv(filePath);
+      }),
+      commands.registerCommand('PyPTO.getCsvData', async () => {
+        getCsvData();
+      }),
       commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) {

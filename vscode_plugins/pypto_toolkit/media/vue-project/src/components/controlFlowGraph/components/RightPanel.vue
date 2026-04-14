@@ -154,19 +154,22 @@
                   <i class="group-line-icon icon-management-new"></i>
                   <span class="group-line-title"> {{ group.name }}</span>
                 </div>
-                <div
-                  v-for="(item, index) in group.members"
-                  :key="index"
-                  class="group-line"
-                  :style="getColor(item.type)"
-                  @click="openGraph(item)"
-                  :title="item.passName"
-                >
-                  <div class="line-group">
-                    <span class="group-line-index"> {{ item.passIndex }}</span>
-                    <span class="group-line-name"> {{ item.passName }}</span>
-                  </div>
-                  <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon" /></span>
+                <div class="overview-blocks">
+                  <template v-for="item in group.members">
+                    <div :class="[
+                      'block',
+                      `block-${item.status ?? 'SKIP'}`,
+                      item?.firstError && 'first-error'
+                    ]" @click="openGraph(item)" :title="item.passName">
+                      <span class="block-number">{{ item.passIndex }}</span>
+                      <span>{{ item.passName }}</span>
+                      <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon" /></span>
+                      <span v-if="item?.firstError" class="tag">
+                        <WarningIcon />
+                        <span style="margin-left: 4px;">{{ t('controlFlows.firstError') }}</span>
+                      </span>
+                    </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -178,7 +181,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, watch, defineProps } from 'vue';
+import { getQuery } from '@/core/query';
+import { useViewServer } from '@/core/use-view-server';
+import WarningIcon from '@/components/icons/warning-icon.vue'
 import {
   CalledRecordsType,
   CalleeRecordsType,
@@ -196,6 +202,11 @@ import {
 } from '@/components/controlFlowGraph/type/node-detail-types';
 import { useI18n } from 'vue-i18n';
 import { openComputeGraph } from '@/apis/opener';
+import { ControlFlowViewServer } from '../../../../../../src/view/servers/controlFlow-server';
+
+const props = defineProps({
+  isHaveCsv: Boolean
+})
 
 const healthIcon = ref(`${window.staticPath}/static-assets/control_flow_health.svg`);
 const sortIcon = ref(`${window.staticPath}/static-assets/control_flow_panel_sort.svg`);
@@ -432,6 +443,12 @@ const calleeMaxFrequency = ref(0);
  */
 function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledRecordsType[]): TableRowData[] {
   calledMaxFrequency.value = 0;
+  if(!leafFunctions || !Array.isArray(leafFunctions)) {
+    return [];
+  }
+  if(!calledRecords || !Array.isArray(calledRecords)){
+    calledRecords = [];
+  }
   // 统计被调用数据
   const calledRecordObj = {};
   let index = 0;
@@ -505,6 +522,9 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
  * @param calleeRecords path中calleeRecords列表
  */
 function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeRecordsType[]): TableRowData[] {
+  if(!calleeRecords || !Array.isArray(calleeRecords)){
+    return []
+  }
   const calleeFunctionObj = {};
   calleeMaxFrequency.value = 0;
   let index = 0;
@@ -542,15 +562,47 @@ const passStageTitle = {
   block: { label: 'Block Graph', color: 'var(--control-flow-panel-table-block)' },
 };
 
+// 处理magicName后缀，后端适配LIKE后删除
+const processData = (data, magicName) => {
+  // 检查是否包含 "_hiddenfunc0_"
+  const hiddenFuncPattern = /_hiddenfunc0_(\d{1,2})(?:_|\.json)/;
+  const hiddenFuncMatch = data.match(hiddenFuncPattern);
+  if (hiddenFuncMatch) {
+    // 包含 "_hiddenfunc0_"，返回 "_hiddenfunc0_" + 数字
+    return `_hiddenfunc0_${hiddenFuncMatch[1]}`;
+  }
+  // 不包含 "_hiddenfunc0_"，尝试匹配 magicName
+  const magicPattern = new RegExp(`${magicName}_(\\d{1,2})(?:_|\\.json)`);
+  const magicMatch = data.match(magicPattern);
+  if (magicMatch) {
+    // 匹配到 magicName，返回 "_" + 数字
+    return `_${magicMatch[1]}`;
+  }
+  // 都没有匹配到，返回 null 或默认值
+  return null;
+};
+
 /**
  *  计算图列表数据转换
  * @param passes path中passes列表
  */
-function getPassList(passes: PassesType[]) {
+function getPassList(passes: PassesType[], finalList?: any[]) {
   const passGroups: GroupItem[] = [];
   let nowState = '';
   let item: GroupItem = {};
 
+  if (finalList?.length > 0) {
+    let isFoundFirstError = false
+    passes.map(val => {
+      const status: string = finalList.find(it => it.passName === val.passName)?.status ?? 'SKIP';
+      val.status = status.includes('FAIL') ? 'FAIL' : status;
+
+      if (!isFoundFirstError && val.status === 'FAIL') {
+        val.firstError = true
+        isFoundFirstError = true
+      }
+    })
+  }
   for (let i = 0; i < passes.length; i++) {
     if (passes[i].passStage !== nowState) {
       if (nowState !== '') {
@@ -579,7 +631,7 @@ function getPassList(passes: PassesType[]) {
  * @param path 打开计算图所需outPutPath值
  * @param tabIndex 首次打开抽屉时查看标签页值
  */
-function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabIndex: number) {
+async function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabIndex: number) {
   outPutPath.value = path;
   const { leafFunctions, calledRecords, calleeRecords } = nodeData.data.source.meta;
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
@@ -610,7 +662,30 @@ function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabInd
   if ((calleeList.length === 0 || calledList.length === 0) && tabIndex !== 2) tabIndex = 0;
 
   if (nodeData.data.source.meta?.passes) {
-    passList.value = getPassList(nodeData.data.source.meta?.passes);
+    if (props.isHaveCsv) {
+      const magicName = nodeData.data.source.magicName + processData(nodeData.data.source.meta?.passes[0].graphFilePath, nodeData.data.source.magicName);
+      const res = await getQuery();
+      const filePath = res._path;
+      const { server } = useViewServer<ControlFlowViewServer>();
+      server.getPathPassResult({ controwFlowFilePath: filePath, funcMagicName: magicName });
+      let list: any[] | undefined;
+      let resolveList: ((value: any[]) => void) | null = null;
+
+      const listPromise = new Promise<any[]>((resolve) => {
+        resolveList = resolve;
+      });
+
+      watch(server.pathPassResult, (newValue) => {
+        if (Array.isArray(newValue)) {
+          list = newValue;
+          resolveList?.(newValue);
+        }
+      }, { immediate: true });
+      const finalList = list ?? await listPromise;
+      passList.value = getPassList(nodeData.data.source.meta?.passes, finalList);
+    } else {
+      passList.value = getPassList(nodeData.data.source.meta?.passes);
+    }
   }
   openDrawer(tabIndex);
 }
@@ -705,6 +780,8 @@ defineExpose({
       font-size: 13px;
       font-weight: 400;
       max-width: 380px;
+      align-items: center;
+      justify-content: center;
 
       .group-line-name {
         font-size: 13px;
@@ -720,11 +797,143 @@ defineExpose({
       width: 16px;
       height: 16px;
     }
+  }
 
-    .group-member-icon {
+  .overview-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .block {
+      height: 28px;
+      width: 100%;
+      border-radius: 8px;
+      font-size: 13px;
+      padding: 4px;
+      border: 1px solid transparent;
       display: flex;
-      align-items: center;
-      width: 16px;
+
+
+      .group-member-icon {
+        display: flex;
+        align-items: center;
+        width: 16px;
+      }
+
+
+      &.block-PASS {
+        border-left-color: rgba(135, 200, 89, 1);
+        background: rgba(135, 200, 89, 0.02);
+
+        .block-number {
+          color: rgba(135, 200, 89, 1);
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          background: rgba(135, 200, 89, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 6px;
+          padding: 0 0 4px 0;
+        }
+
+        &:hover {
+          border-color: rgba(135, 200, 89, 1);
+        }
+      }
+
+      &.block-FAIL {
+        border-left-color: rgba(231, 67, 74, 1);
+        background: rgba(231, 67, 74, 0.02);
+
+        .block-number {
+          color: rgba(231, 67, 74, 1);
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          background: rgba(231, 67, 74, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 6px;
+          padding: 0 0 4px 0;
+        }
+
+        &:hover {
+          border-color: rgba(199, 91, 96, 1);
+        }
+
+        .tag {
+          margin-left: auto;
+          display: flex;
+          background-color: rgba(231, 67, 74, 0.1);
+          border-radius: 4px;
+          height: 20px;
+          justify-content: center;
+          align-items: center;
+          padding: 0 8px;
+          color: rgba(231, 67, 74, 1);
+        }
+      }
+
+      &.block-SKIP {
+        border-left-color: rgba(153, 153, 153, 1);
+        background: rgba(153, 153, 153, 0.02);
+
+        .block-number {
+          color: rgba(153, 153, 153, 1);
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          background: rgba(153, 153, 153, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 6px;
+          padding: 0 0 4px 0;
+        }
+
+        &:hover {
+          border-color: rgba(153, 153, 153, 1);
+        }
+      }
+
+      &.block-EXCEPTION {
+        border-left-color: rgba(246, 158, 57, 1);
+        background: rgba(246, 158, 57, 0.02);
+
+        .block-number {
+          color: rgba(246, 158, 57, 1);
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          background: rgba(246, 158, 57, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 6px;
+          padding: 0 0 4px 0;
+        }
+
+        &:hover {
+          border-color: rgba(246, 158, 57, 1);
+        }
+      }
+      &.first-error {
+        background: rgba(231, 67, 74, 0.16);
+        .block-number {
+          color: var(--devui-text);
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          background: rgba(231, 67, 74, 1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 6px;
+        }
+      }
     }
   }
 }

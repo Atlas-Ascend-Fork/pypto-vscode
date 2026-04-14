@@ -15,6 +15,33 @@ export function transformData(rootNodes: GroupNode[]): {
   let loopLastPathCount = 0;
   let lastPathBottomCount = 0;
 
+  // 对子节点都为空的节点进行剪枝
+  function pruneIfNodes(node: GroupNode): GroupNode | null {
+    if (node.nodeType !== 'IF') {
+      return node;
+    }
+    if (!node.children || node.children.length === 0) {
+      return null;
+    }
+    const prunedChildren: (GroupNode | null)[] = [];
+    for (const child of node.children) {
+      if (child) {
+        const pruned = pruneIfNodes(child);
+        prunedChildren.push(pruned);
+      } else {
+        prunedChildren.push(null);
+      }
+    }
+    const hasValidChild = prunedChildren.some(child => child !== null);
+    if (!hasValidChild) {
+      return null;
+    }
+    return {
+      ...node,
+      children: prunedChildren,
+    };
+  }
+
   function traverse(node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number) {
     let comboWidth = 0;
     const id = node.magicName.substring('TENSOR_'.length);
@@ -103,11 +130,14 @@ export function transformData(rootNodes: GroupNode[]): {
 
           for (let i = 0; i < childCount; i++) {
             const child = node.children[i];
-            queue.push({ node: child, level: nextLevel });
+            if (child) {
+              queue.push({ node: child, level: nextLevel });
+            }
           }
         }
         maxLever = Math.max(maxLever, level);
       }
+      maxLever = levelWidths[levelWidths.length - 2]
       return { levelWidths, maxLever };
     }
 
@@ -134,25 +164,45 @@ export function transformData(rootNodes: GroupNode[]): {
     }
 
     function drawNode(root: GroupNode) {
+      const prunedRoot = pruneIfNodes(root);
+      if (!prunedRoot) {
+        return 0;
+      }
       const verticalSpacing = -40;
       const nodeHeight = 220;
-      const { maxLever } = calculateIfNode(node);
+      const { levelWidths, maxLever } = calculateIfNode(prunedRoot);
       const starY = lastNodeY + loopTopCount * 40 + loopLastPathCount * 25 + 30;
       const maxWidth = Math.pow(2, maxLever) * 200 + Math.pow(2, maxLever) * 50;
       const leverEdgeWidth = [maxWidth / 4];
-      for (let i = 0; i < maxLever; i++) {
-        const offsetWidth = leverEdgeWidth[i];
-        leverEdgeWidth.push(offsetWidth / 2);
+      for (let i = 0; i < levelWidths.length - 1; i++) {
+        if (levelWidths[i + 1] > levelWidths[i]) {
+          const offsetWidth = leverEdgeWidth[i];
+          leverEdgeWidth.push(offsetWidth / 2);
+        } else {
+          const offsetWidth = leverEdgeWidth[i];
+          leverEdgeWidth.push(offsetWidth);
+        }
       }
-
       function layoutTree(root: GroupNode, level: number = 0, startX: number) {
         root.y = level;
         if (root.children && root.children.length !== 0) {
           const offsetIf = leverEdgeWidth[level];
-          const leftLeafX = startX - offsetIf;
-          const rightLeafX = startX + offsetIf;
-          layoutTree(root.children[0], level + 1, leftLeafX);
-          layoutTree(root.children[1], level + 1, rightLeafX);
+          let leftLeafX = startX - offsetIf;
+          let rightLeafX = startX + offsetIf;
+          // 只有一个子节点时放在正下方
+          console.log('root.children', root.children)
+          if (!root.children[0]) {
+            rightLeafX = startX
+          }
+          if (!root.children[1]) {
+            leftLeafX = startX
+          }
+          if (root.children[0]) {
+            layoutTree(root.children[0], level + 1, leftLeafX);
+          }
+          if (root.children[1]) {
+            layoutTree(root.children[1], level + 1, rightLeafX);
+          }
         }
         let name = '';
         if (root.nodeType === 'PATH') {
@@ -167,7 +217,7 @@ export function transformData(rootNodes: GroupNode[]): {
         //     计算errorStats（todo:本版本无err，预留接口）
         const errorStats = {};
         if (root.x !== undefined && root.y !== undefined) {
-          root.hash = root.hash === '' ? `${root.x}${root.y}${parentId}` : root.hash;
+          root.hash = root.hash === '' ? `${root.x}_${root.y}_${parentId}` : root.hash;
           let newNode: ControlFlowNodesType = {
             id: root.hash,
             type: root.nodeType === 'PATH' ? 'path-card-node' : 'if-card-node',
@@ -202,7 +252,7 @@ export function transformData(rootNodes: GroupNode[]): {
         }
       }
 
-      layoutTree(root, 0, maxWidth / 2);
+      layoutTree(prunedRoot, 0, maxWidth / 2);
       return maxWidth - 50;
     }
     //  如果是if嵌套节点
@@ -289,23 +339,25 @@ export function transformData(rootNodes: GroupNode[]): {
   for (const node of nodes) {
     if (node.type === 'if-card-node' && node.data.source.children) {
       for (const child of node.data.source.children) {
-        const childId = child.hash;
-        edges.push({
-          source: node.id,
-          target: childId,
-          type: 'polyline',
-          style: {
-            lineWidth: 1,
-            radius: 20,
-            stroke: '#666666',
-            opacity: 0.8,
-            controlPoints: [[node.style.x, (node.style.y + child.y) / 2]],
-            endArrow: true,
-            router: {
-              type: 'orth',
+        if (child) {
+          const childId = child.hash;
+          edges.push({
+            source: node.id,
+            target: childId,
+            type: 'polyline',
+            style: {
+              lineWidth: 1,
+              radius: 20,
+              stroke: '#666666',
+              opacity: 0.8,
+              controlPoints: [[node.style.x, (node.style.y + child.y) / 2]],
+              endArrow: true,
+              router: {
+                type: 'orth',
+              },
             },
-          },
-        });
+          });
+        }
       }
     }
   }

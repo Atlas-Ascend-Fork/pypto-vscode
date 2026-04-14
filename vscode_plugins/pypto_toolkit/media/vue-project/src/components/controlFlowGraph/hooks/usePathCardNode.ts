@@ -11,7 +11,7 @@ import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
  * @param sideBarRef 右侧抽屉
  * @param outPutPath 用于打开计算图
  */
-export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
+export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstErrorPass) {
   const { t } = useI18n();
   const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
@@ -59,11 +59,31 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
       const [width, height] = this.getSize(attributes);
 
       const fillColor = getThemeColorTool('control-flow-tab-active-bg', isDarkTheme.value);
+      const states = this.context.graph.getElementState(this.id);
+      // 边框高亮样式
+      const statusColors = {
+        'highlight-PASS': '#87c859',
+        'highlight-FAIL': '#D94838',
+        'highlight-EXCEPTION': '#f69e39',
+      }
+      let strokeColor = 'transparent';
+      let lineWidth = 0
+      if(states) {
+        for (const state of states) {
+          if(statusColors[state]) {
+            strokeColor = statusColors[state];
+            lineWidth = 3;
+            break;
+          }
+        }
+      }
       return {
         width,
         height,
         fill: fillColor, // 卡片背景色
         radius: 8, // 卡片圆角
+        stroke: strokeColor,
+        lineWidth,
       };
     }
 
@@ -149,12 +169,13 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
     /**
      * 打开图
      */
-    openGraph() {
+    openGraph(passIndex?) {
       if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const length = this.nodeData.data.source.meta?.passes.length;
+      const index = Number(passIndex ? passIndex: length -1)
       openComputeGraph({
         outputPath: outPutPath.value as string,
-        computeGraphPath: this.nodeData.data.source.meta?.passes[length - 1].graphFilePath,
+        computeGraphPath: this.nodeData.data.source.meta?.passes[index].graphFilePath,
         pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
       });
     }
@@ -401,6 +422,60 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
       this.upsert('hole', 'rect', holeStyle, container);
     }
 
+    drawFirstErrorTag(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+      const states = this.context.graph.getElementState(this.id);
+      if (!states || !states.includes('first-error')) {
+        this.upsert('first-error-tag-bg', 'rect', false, container)
+        this.upsert('first-error-tag-text', 'rect', false, container)
+        return
+      }
+      const currentLanguage = (window as any).ascLang
+      const [width] = this.getSize(attributes);
+      const topY = -this.getSize(attributes)[1] / 2 - 20;
+      const tagWidth = {
+        'zh': 69,
+        'en': 95
+      };
+      const tagHeight = 24;
+      const tagBg = this.upsert('first-error-tag-bg', 'rect', {
+        x: width / 2 + 4,
+        y: topY+tagHeight,
+        width: tagWidth[currentLanguage] || 95,
+        height: tagHeight,
+        fill: '#D94838',
+        radius: 4,
+        cursor: 'pointer',
+        pointerEvents: 'all'
+      }, container);
+      const tagText = this.upsert('first-error-tag-text', 'text', {
+        x: width / 2 + (tagWidth[currentLanguage] || 95) /2 + 4,
+        y: topY + tagHeight*1.5,
+        text: t('controlFlows.firstErrorPath'),
+        fontSize: 12,
+        fill: '#fff',
+        textBaseline:'middle',
+        textAlign:'center',
+        cursor: 'pointer',
+        pointerEvents: 'all'
+      }, container)
+      const handleTagClick = (e) => {
+          // 阻止事件冒泡，避免触发节点的点击事件
+          e.stopPropagation();
+          this.openGraph(firstErrorPass.value);
+          // 如果数据中有回调函数，则调用
+          if (typeof attributes.onButtonClick === 'function') {
+            attributes.onButtonClick(this.id, this.data);
+          }
+      }
+      if (tagBg && !tagBg.__clickBound) {
+        tagBg.addEventListener('click', handleTagClick);
+        tagBg.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      }
+      if (tagText && !tagText.__clickBound) {
+        tagText.addEventListener('click', handleTagClick);
+        tagText.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      }
+    }
     // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
     render(attributes = this.parsedAttributes, container: Group | undefined) {
       // 1. 合并基础样式（覆盖 Rect 默认样式）
@@ -416,6 +491,7 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme) {
       this.drawRightIconContainer(mergedAttrs, container); // 顶部图片容器
       this.drawFunctionStats(mergedAttrs, container); // 函数统计项
       this.drawErrorStats(mergedAttrs, container); // 错误统计项
+      this.drawFirstErrorTag(mergedAttrs, container); // 首错PATH标签
     }
   }
   return {

@@ -192,6 +192,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     server.getJsonGraphData({ data: data, diffType: filePath });
     jsonGraphWatchHandle = watch(server.JsonGraphData, (newValue: any) => {
       comGraphStore.setData("isCached", newValue.isCached);
+      comGraphStore.setData("failRawMagicList", newValue.failRawMagicList);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = toRaw(newValue.data) ;
