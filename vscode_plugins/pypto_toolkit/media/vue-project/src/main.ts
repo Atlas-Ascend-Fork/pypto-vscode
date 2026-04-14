@@ -2,8 +2,6 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import Skeleton from 'vue-devui/skeleton';
 import 'vue-devui/skeleton/style.css';
-import DataGrid from 'vue-devui/data-grid';
-import 'vue-devui/data-grid/style.css';
 import Message from 'vue-devui/message';
 import 'vue-devui/message/style.css';
 import Tooltip from 'vue-devui/tooltip';
@@ -137,5 +135,4 @@ createApp(App)
   .use(Collapse)
   .use(Pagination)
   .use(Echarts)
-  .use(DataGrid)
   .mount('#app');

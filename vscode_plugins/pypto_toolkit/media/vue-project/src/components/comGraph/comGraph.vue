@@ -17,7 +17,7 @@
 
     <ShowTip></ShowTip>
     <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
-    <ComGraphReport v-model="showComGraphReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
+    <HealthReport v-model="showHealthReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
       @open="(e) => (healthReportGraphName = e)" />
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
@@ -36,7 +36,7 @@ import { onMounted, watch, defineProps, ref, provide, inject, computed, onBefore
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
-import ComGraphReport from './comGraphReport.vue';
+import HealthReport from './healthReport/healthReport.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
@@ -99,7 +99,7 @@ const props = defineProps({
 });
 
 const { isDarkTheme } = inject('root');
-const showComGraphReport = ref(false);
+const showHealthReport = ref(false);
 const showNodeDetail = ref(false);
 const showLayerControl = ref(false);
 const showLeafCalledRecord = ref(false);
@@ -121,8 +121,8 @@ const headerEl = ref();
 const minimapOffsetRight = computed(() => {
   if (showNodeDetail.value || showLeafCalledRecord.value) {
     return 480;
-  } else if (showComGraphReport.value) {
-    return 488;
+  } else if (showHealthReport.value) {
+    return healthReportGraphName.value === 'BlockGraph' ? 488 : 400;
   } else {
     return 0;
   }
@@ -215,7 +215,7 @@ const colorSubgraph = (isColor: boolean) => {
 }
 
 const toggleHealthReport = (status: boolean) => {
-  showComGraphReport.value = status;
+  showHealthReport.value = status;
 }
 const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
   showLeafCalledRecord.value = status;

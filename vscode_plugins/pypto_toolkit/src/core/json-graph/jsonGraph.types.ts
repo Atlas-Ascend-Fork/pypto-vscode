@@ -36,7 +36,6 @@ export interface AstgrNode extends SNode {
     codeLine?: string | number;
     isError?: boolean;
     isEmptyNode?: boolean;
-    isAccuracyError?: boolean;
 }
 
 /**
@@ -70,7 +69,6 @@ export interface AstgrTensorNode extends AstgrNode {
     lightColor?: string;
     isError?: boolean;
     isMiddle?: boolean;
-    isAccuracyError?: boolean;
 }
 
 /**

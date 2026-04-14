@@ -1053,8 +1053,6 @@ export class AstgrTensorView extends RectangularNodeView {
           </g>
         );
       } else if (node.role === 'output' && !node.isMiddle) {
-        let nodeFillColor = node.isError ? errorColor: inoutBackgroundFillColor;
-        nodeFillColor = node.isAccuracyError ? node.lightColor : node.baseColor;
         rectNode = (
           <g>
             <path
@@ -1068,7 +1066,7 @@ export class AstgrTensorView extends RectangularNodeView {
                 ${width / 2} ${height + correctHeight - waveOffset1}
               T 0 ${height + correctHeight - waveOffset1}
               Z`}
-              fill={nodeFillColor}
+              fill={node.isError ? errorColor: inoutBackgroundFillColor}
               class-tensor-inout-background-label={true}
               filter={backgroundFilter}
               class-tensor-diff-add={node.compareType === 'add'}

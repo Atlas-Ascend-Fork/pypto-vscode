@@ -36,10 +36,6 @@ export const dataListProps = {
     type: Number,
     default: 5,
   },
-  disableCollapsePanel: {
-    type: Boolean,
-    default: false
-  }
 };
 
 // "最大"信息

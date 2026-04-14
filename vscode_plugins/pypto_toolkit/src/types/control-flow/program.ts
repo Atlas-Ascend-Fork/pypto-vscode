@@ -24,7 +24,6 @@ export const enum FunctionType {
 /** 函数节点 */
 export interface FunctionNode {
   functype: FunctionType;
-  graphtype: number;
 
   /** 执行图id（唯一） */
   funcmagic: number;

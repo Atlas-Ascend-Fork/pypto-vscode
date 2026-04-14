@@ -23,8 +23,6 @@ type Refs = IComRefs & ICommonRefs;
   'FuncTree',
   'GlobalSearchResult',
   'HealthyReport',
-  'AccurancyReport',
-  'AccurancyDetail',
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
@@ -118,14 +116,6 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getHealthyReport = async () => {
     await this.handler.getHealthyReport(this);
-  };
-  @viewApi()
-  public getAccurancyReport = async () => {
-    await this.handler.getAccurancyReport(this);
-  };
-  @viewApi()
-  public getAccurancyDetail = async (message) => {
-    await this.handler.getAccurancyDetail(this, message);
   };
   @viewApi()
   public innerGetSubgraph = async (message) => {

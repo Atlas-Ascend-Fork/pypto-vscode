@@ -146,8 +146,7 @@ export class AscppDagBuilder {
         tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
         magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
-        inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, showSyncNodes: boolean = false, threeMode: boolean = false, 
-        errNodeList?: any, failRawMagicList?: any
+        inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, showSyncNodes: boolean = false, threeMode: boolean = false, errNodeList?: any
     ) {
             // Create tensor nodes if enabled
         if (showTensorNodes) {
@@ -167,7 +166,7 @@ export class AscppDagBuilder {
 
         // Create input and output nodes
         this.createIncastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorProducers, showTensorNodes, errNodeList);
-        this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList, failRawMagicList);
+        this.createOutcastNodes(actualData, nodes, edges, portMap, magicToTensorMap, rawTensorMap, rawTensorConsumers, showTensorNodes, errNodeList);
 
         // Create operation nodes
         this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
@@ -221,7 +220,7 @@ export class AscppDagBuilder {
      * @returns The Sprotty graph model
      */
     public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
-                              filterSubgraphId?: number, nodeMagic?: string, nodeSearchLevel?: string, threeMode: boolean = false, errNodeList?: any, failRawMagicList?: any): ExtendedSModelRoot {
+                              filterSubgraphId?: number, nodeMagic?: string, nodeSearchLevel?: string, threeMode: boolean = false, errNodeList?: any): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
         this.isSearch = nodeMagic ? true : false;
@@ -244,7 +243,7 @@ export class AscppDagBuilder {
         } else {
             this.createGraphFullNodes(actualData, nodes, edges, portMap,
                                       tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                                      magicToTensorMap, tensorMap, inoutMap, showTensorNodes, showSyncNodes, threeMode, errNodeList, failRawMagicList);
+                                      magicToTensorMap, tensorMap, inoutMap, showTensorNodes, showSyncNodes, threeMode, errNodeList);
         }
 
         //record call input output nodes
@@ -1236,7 +1235,7 @@ export class AscppDagBuilder {
      */
     private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined,
         nodeId: string, portId: string, tensorMagic: string, tensorName: string, slotId: string[],
-        nodeRole: "operation" | "tensor" | "input" | "output" | "sync", errNodeList?: any, failRawMagicList?: any): AstgrTensorNode {
+        nodeRole: "operation" | "tensor" | "input" | "output" | "sync", errNodeList?: any): AstgrTensorNode {
         // Create metadata parts for the tensor
         const metadataParts: string[] = [];
         try {
@@ -1260,12 +1259,6 @@ export class AscppDagBuilder {
             baseColor = 'rgba(231, 67, 74, 1)';
             lightColor = 'rgba(250, 189, 193, 1)';
         }
-        let isAccuracyError = false;
-        if (failRawMagicList?.has(rawTensor?.rawmagic) && (nodeRole === 'output')) {
-            isAccuracyError = true;
-            baseColor = 'rgba(185, 54, 59, 1)';
-            lightColor = 'rgba(231, 67, 74, 1)';
-        }
         let isMiddle = false;
         if(tensorName.includes('Middle')) {
             isMiddle = true;
@@ -1282,7 +1275,6 @@ export class AscppDagBuilder {
             lightColor: lightColor,
             isError: isError,
             isMiddle: isMiddle,
-            isAccuracyError: isAccuracyError,
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',
@@ -1542,8 +1534,7 @@ export class AscppDagBuilder {
         rawTensorMap: Map<string, RawTensor>,
         rawTensorConsumers: Map<string, PortReference[]>,
         showTensorNodes: boolean,
-        errNodeList?: any,
-        failRawMagicList?: any
+        errNodeList?: any
     ): void {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
@@ -1614,8 +1605,7 @@ export class AscppDagBuilder {
 
             const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
-            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList, failRawMagicList);
-
+            const node: AstgrTensorNode = this.createCastNode(tensor!, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList);
             node.children!.push(outPort);
             if (actualData.inouttensors) {
                 nodes.push(node);

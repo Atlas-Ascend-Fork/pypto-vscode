@@ -30,7 +30,6 @@ interface ComGraphData {
   layoutDirection: string;
   svgExportMode: boolean;
   isCached?: boolean,
-  failRawMagicList?: any[],
   nodeCount?: number,
   version: string;
   selectedNodeSemanticLabel: string;

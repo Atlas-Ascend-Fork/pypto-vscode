@@ -30,19 +30,3 @@ export interface DrillDownPathItem {
   calleehash: string;
   subFuncmagicname: string;
 }
-export enum TabName {
-  healthReport = 'healthReport',
-  precisionReport = 'precisionReport',
-}
-export enum GraphName {
-  TensorGraph = 'TensorGraph',
-  TileGraph = 'TileGraph',
-  ExecuteGraph = 'ExecuteGraph',
-  BlockGraph = 'BlockGraph',
-}
-export interface ComGraphReportContext {
-  jsonData: Ref<Record<string, any>>;
-  graphName: Ref<GraphName>;
-  rootEmits: (event: 'update:modelValue' | 'onLocate' | 'open' | 'locateSubgraph', ...args: any[]) => void;
-}
-export const ComGraphReportProvideKey = 'com-graph-report' as unknown as InjectionKey<ComGraphReportContext>;
