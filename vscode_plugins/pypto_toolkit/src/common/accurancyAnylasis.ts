@@ -271,18 +271,50 @@ function formatDetailData(resultLog: string[]): any[] {
         return [];
     }
 
-    const headers = resultLog[1].split(',').map(s => s.trim());
+    function smartSplit(line: string): string[] {
+        const result: string[] = [];
+        let current = '';
+        let inBracket = false; 
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '[') {
+                inBracket = true;
+                current += char;
+            } else if (char === ']') {
+                inBracket = false;
+                current += char;
+            } else if (char === ',' && !inBracket) {
+                // 只有在方括号外，逗号才是分隔符
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+
+        if (current.trim() !== '') {
+            result.push(current.trim());
+        }
+
+        return result;
+    }
+
+    const headers = smartSplit(resultLog[1]);
 
     const res: Record<string, any>[] = [];
     for (let i = 2; i < resultLog.length; i++) {
-        const singleValue = resultLog[i].split(',').map(s => s.trim());
+        const singleValue = smartSplit(resultLog[i]);
         const singleLine: Record<string, any> = {};
 
         for (let j = 0; j < headers.length; j++) {
             let lineValue: any = singleValue[j] ?? null;
 
-            if (lineValue !== undefined && lineValue !== '' && !isNaN(Number(lineValue))) {
-                lineValue = Number(lineValue);
+            if (lineValue !== undefined && lineValue !== '') {
+                if (!lineValue.startsWith('[') && !isNaN(Number(lineValue))) {
+                    lineValue = Number(lineValue);
+                }
             }
             singleLine[headers[j]] = lineValue;
         }
