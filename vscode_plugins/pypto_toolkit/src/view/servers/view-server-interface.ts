@@ -145,6 +145,7 @@ export type ISwimApis =
   | 'getInitialData'
   | 'getOtherData'
   | 'getSwimData'
+  | 'getData'
   | 'bindComGraphJson'
   | 'unbindComGraph'
   | 'jumpToComGraph'
@@ -154,7 +155,8 @@ export type ISwimApis =
   | 'saveRendingMode'
   | 'changeUserCfgConnection'
   | 'changeUserCfgPerformance'
-  | 'getShortCutKeyCfg';
+  | 'getShortCutKeyCfg'
+  | 'getCompressedData';
 export type ISwimRefs = {
   returnSwim: unknown;
   noSwimFile: unknown;
@@ -166,7 +168,9 @@ export type ISwimRefs = {
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
+  getData: (message: { swimDataPath: any }) => Promise<any>;
   getSwimData: (message: { swimDataPath: any }) => Promise<any>;
+  getCompressedData: (message: { swimDataPath: any }) => Promise<any>;
   getOtherData: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;

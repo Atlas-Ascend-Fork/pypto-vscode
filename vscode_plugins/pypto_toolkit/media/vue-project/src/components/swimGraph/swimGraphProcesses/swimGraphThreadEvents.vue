@@ -67,6 +67,8 @@ import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
 import { getQuery } from '@/core/query';
 import { getPositionByTime, getWidthByDuration, collectRelevantEdges } from './processInfo';
+import { swimDataManager } from '../swimData';
+import { Animation } from './animation';
 const containerRef = ref(null);
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -87,7 +89,9 @@ let pinnedStatus = ref(false);
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
+  tsScale,
   layout,
+  lastSelected,
   selectedEvent,
   canvasclickedEvent,
   pathLockedEvent,
@@ -147,8 +151,36 @@ let keyTimeOut;
 let keyInterval;
 let scaleStep = 0.1; 
 let moveStep = 30;
-let scaleStepIncrement = 0.05;
-let moveStepIncrement = 30;
+
+const SNAP_FACTOR = 0.4;
+const ACCELERATION_PER_MS = 1 / 50;
+const DEFAULT_ANIMATION_DURATION = 700;
+const ZOOM_RATIO_PER_FRAME = 0.008;
+const KEYBOARD_PAN_PX_PER_FRAME = 8;
+const INITIAL_ZOOM_STEP = 0.1;
+
+const Zoom = {
+  None: 0,
+  In: 1,
+  Out: -1,
+};
+
+const Pan = {
+  None: 0,
+  Left: -1,
+  Right: 1,
+};
+
+let zooming = Zoom.None;
+let panning = Pan.None;
+let targetZoomRatio = 0;
+let currentZoomRatio = 0;
+let targetPanOffsetPx = 0;
+let currentPanOffsetPx = 0;
+let zoomAnimation = null;
+let panAnimation = null;
+let animationFrameCount = 0;
+const FRAME_SKIP = 2;
 // 创建渲染实例
 const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
 const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
@@ -238,7 +270,8 @@ const handleCanvasClick = (e) => {
       selectedEvent.value = clickedEvent;
       detailsPanelExpanded.value = true;
       onHoverEvent();
-      changeNodeColor(props.processKey, selectedEvent.value);
+      clearOtherProcessCanvas();
+      changeNodeColor(props.processKey);
       drawNodeHeight(clickedEvent, props.processKey);
     }
     return;
@@ -278,7 +311,39 @@ const pathLockedMethod = (clickedEvent) => {
   selectEvent(clickedEvent, props.processKey);
   detailsPanelExpanded.value = false;
 };
-
+const clearOtherProcessCanvas = () => {
+  const selectedKey = selectedEvent.value?.pid?.toString();
+  for (const [key, process] of swimDataManager.processInfo.entries()) {
+    const isExpanded = processExpanded.get(key);
+    if (isExpanded || selectedKey === key) {
+      continue;
+    }
+    const { threads } = process;
+    const drawDatas = [];
+    for (const [threadKey, thread] of threads.entries()) {
+      const { eventIds } = thread;
+      for (const eventId of eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (!event.drawData) {
+          continue;
+        }
+        if (event.drawData.rectColor != colorCfg.eventRectNoColor) {
+          event.drawData.rectColor = colorCfg.eventRectNoColor;
+          event.drawData.fontColor = colorCfg.eventFontNoColor;
+        }
+        drawDatas.push(event.drawData);
+      }
+      const canvas = document.querySelector(`[data-process-key="${key}"]`);
+      const eventCtx = canvas.getContext('2d');
+      const uiCanvas = document.querySelector(`[data-ui-process-key="${key}"]`);
+      const uiCtx = uiCanvas.getContext('2d');
+      uiCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
+      eventCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
+      eventRenderer.drawEvent(drawDatas, eventCtx, false);
+      eventRenderer.drawEventText(drawDatas, eventCtx, false);
+    }
+  }
+};
 const handleCanvasRightClick = (e) => {
   if (isThreeColumn || !mousePosition) {
     return;
@@ -406,7 +471,84 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
+  if (zoomAnimation) {
+    zoomAnimation.stop();
+  }
+  if (panAnimation) {
+    panAnimation.stop();
+  }
 });
+
+const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
+  animationFrameCount++;
+  
+  if (animationFrameCount % FRAME_SKIP !== 0) {
+    return;
+  }
+  
+  const canvasRef = getActiveEventCanvas(props.processKey);
+  if (!canvasRef) {
+    return;
+  }
+  
+  const mouseX = savedMousePosition?.x - layout.processLabelWidth;
+  
+  if (mouseX === null || mouseX === undefined) {
+    return;
+  }
+  const step = (targetZoomRatio - currentZoomRatio) * SNAP_FACTOR;
+  
+  if (zooming !== Zoom.None) {
+    const velocity = 1 + (msSinceStartOfAnimation * ACCELERATION_PER_MS);
+    const targetStep = Math.max(ZOOM_RATIO_PER_FRAME * velocity, step);
+    targetZoomRatio += zooming * targetStep;
+  }
+  
+  currentZoomRatio += step;
+  if (Math.abs(step) > 1e-6) {
+    scaleCanvas(mouseX, 1 + step);
+    if (measureState.isMeasureFixed) {
+      measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
+    }
+  } else {
+    if (zoomAnimation) {
+      zoomAnimation.stop();
+      animationFrameCount = 0;
+      transform();
+    }
+  }
+};
+
+const onPanAnimationStep = (msSinceStartOfAnimation) => {
+  animationFrameCount++;
+  
+  if (animationFrameCount % FRAME_SKIP !== 0) {
+    return;
+  }
+  
+  if (panning !== Pan.None) {
+    const velocity = 1 + (msSinceStartOfAnimation * ACCELERATION_PER_MS);
+    const targetStep = Math.max(KEYBOARD_PAN_PX_PER_FRAME * velocity, Math.abs((targetPanOffsetPx - currentPanOffsetPx) * SNAP_FACTOR));
+    targetPanOffsetPx += panning * targetStep;
+  }
+  
+  const step = (targetPanOffsetPx - currentPanOffsetPx) * SNAP_FACTOR;
+  currentPanOffsetPx += step;
+  
+  if (Math.abs(step) > 1e-1) {
+    if (step > 0) {
+      leftmove(Math.abs(step), false);
+    } else {
+      rightmove(Math.abs(step), false);
+    }
+  } else {
+    if (panAnimation) {
+      panAnimation.stop();
+      animationFrameCount = 0;
+      transform();
+    }
+  }
+};
 
 const onKeyDown = (e) => {
   const activeElement = document.activeElement;
@@ -434,6 +576,22 @@ const onKeyUp = (e) => {
   if (activeElement.nodeName === 'INPUT') {
     return;
   }
+  
+  const key = e.key.toLowerCase();
+  
+  if (matchKey(key, userConfig?.value.ZoomInShortcut) && zooming === Zoom.In) {
+    zooming = Zoom.None;
+  }
+  if (matchKey(key, userConfig?.value.ZoomOutShortcut) && zooming === Zoom.Out) {
+    zooming = Zoom.None;
+  }
+  if (matchKey(key, userConfig?.value.leftmoveShortcut) && panning === Pan.Left) {
+    panning = Pan.None;
+  }
+  if (matchKey(key, userConfig?.value.rightmoveShortcut) && panning === Pan.Right) {
+    panning = Pan.None;
+  }
+  
   if (isKeyPressed.value) {
     isKeyPressed.value = false;
     threeRender.enableAnimate();
@@ -457,61 +615,93 @@ const handleMouseEnter = (event) => {
   containerRef?.value.focus({ preventScroll: true });
 };
 
-const handlekeydown = (event) => {
-  clearTimeout(wheelDebounceTimer);
-  const key = event.key.toLowerCase();
-  const canvasRef = getActiveEventCanvas(props.processKey);
+const isMouseInCanvas = (canvasRef) => {
   if (!canvasRef) {
-    return;
+    return false;
   }
   const rect = canvasRef.getBoundingClientRect();
   const mouseX = mousePosition?.x - layout.processLabelWidth;
   const mouseY = mousePosition?.y - rect.top;
   const canvasCSSWidth = viewState.canvasCssWidth;
   const canvasCSSHeight = getCanvasCSSHeight(canvasRef);
-  // 由于每个process都会走一遍这个keydown事件，当鼠标不在当前画布时，mouseX和mouseY就是空
-  if (!mouseX || !mouseY || mouseX < 0 || mouseY < 0 || mouseX > canvasCSSWidth || mouseY > canvasCSSHeight) {
-    return;
-  }
-  if(viewState.scale * 10 >= sliderMax.value && matchKey(key, userConfig?.value.ZoomInShortcut)) {
+  
+  return mouseX && mouseY && mouseX >= 0 && mouseY >= 0 && mouseX <= canvasCSSWidth && mouseY <= canvasCSSHeight;
+};
+
+const checkScaleLimits = (key) => {
+  if (viewState.scale * 10 >= sliderMax.value && matchKey(key, userConfig?.value.ZoomInShortcut)) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMaxInfo'));
     }, 100);
-    return;
+    return true;
   }
   if (viewState.scale === 1 && viewState.offsetX >= 0 && matchKey(key, userConfig?.value.ZoomOutShortcut)) {
     wheelDebounceTimer = setTimeout(() => {
       postMessage($t('scaleMinInfo'));
     }, 100);
+    return true;
+  }
+  return false;
+};
+
+const initZoomAnimation = (direction, currentMousePosition) => {
+  if (zooming !== direction) {
+    if (zoomAnimation) {
+      zoomAnimation.stop();
+    }
+    currentZoomRatio = 0;
+    targetZoomRatio = direction * INITIAL_ZOOM_STEP;
+    
+    // 使用闭包保存鼠标位置
+    const savedMousePosition = currentMousePosition;
+    zoomAnimation = new Animation((msSinceStartOfAnimation) => {
+      onZoomAnimationStep(msSinceStartOfAnimation, savedMousePosition);
+    });
+  }
+  zooming = direction;
+  zoomAnimation.start(DEFAULT_ANIMATION_DURATION);
+};
+
+const initPanAnimation = (direction) => {
+  if (panning !== direction) {
+    if (panAnimation) {
+      panAnimation.stop();
+    }
+    currentPanOffsetPx = 0;
+    targetPanOffsetPx = 0;
+    panAnimation = new Animation(onPanAnimationStep);
+  }
+  panning = direction;
+  panAnimation.start(DEFAULT_ANIMATION_DURATION);
+};
+
+const handleKeyAction = (key, currentMousePosition) => {
+  if (matchKey(key, userConfig?.value.ZoomInShortcut)) {
+    initZoomAnimation(Zoom.In, currentMousePosition);
+  } else if (matchKey(key, userConfig?.value.ZoomOutShortcut)) {
+    initZoomAnimation(Zoom.Out, currentMousePosition);
+  } else if (matchKey(key, userConfig?.value.leftmoveShortcut)) {
+    initPanAnimation(Pan.Left);
+  } else {
+    initPanAnimation(Pan.Right);
+  }
+};
+
+const handlekeydown = (event) => {
+  clearTimeout(wheelDebounceTimer);
+  const key = event.key.toLowerCase();
+  const canvasRef = getActiveEventCanvas(props.processKey);
+  
+  if (!isMouseInCanvas(canvasRef)) {
     return;
   }
-  switch(true) {
-    case matchKey(key, userConfig?.value.ZoomInShortcut):
-      scaleCanvas(mouseX, 1 + scaleStep);
-      scaleStep += scaleStepIncrement;
-      if (measureState.isMeasureFixed) {
-        measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
-      }
-      break;
-    case matchKey(key, userConfig?.value.ZoomOutShortcut):
-      scaleCanvas(mouseX, 1 - scaleStep);
-      scaleStep += scaleStepIncrement;
-      if (measureState.isMeasureFixed) {
-        measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
-      }
-      break;
-    case matchKey(key, userConfig?.value.leftmoveShortcut):
-      rightmove(moveStep, false);
-      moveStep += moveStepIncrement;
-      break;
-    case matchKey(key, userConfig?.value.rightmoveShortcut):
-      leftmove(moveStep, false);
-      moveStep += moveStepIncrement;
-      break;
-    default:
-      break;
+  
+  if (checkScaleLimits(key)) {
+    return;
   }
-}
+  
+  handleKeyAction(key, mousePosition ? { x: mousePosition.x, y: mousePosition.y } : null);
+};
 const postMessage = (message) => {
   if (window.vscode) {
     window.vscode.postMessage({ command: 'showMessage' , paramObj: { text: message}});
@@ -1110,10 +1300,15 @@ const resizeCanvas = () => {
 };
 
 const transformEvents = (process, processKey) => {
+  if (!ctxs[processKey]) {
+    return;
+  }
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
   for (const ctx of Object.values(ctxs[processKey])) {
-    clearWholeProcess(ctx, viewState, processKey);
+    if (ctx) {
+      clearWholeProcess(ctx, viewState, processKey);
+    }
   }
   
   for (const [threadKey, thread] of process.threads.entries()) {
@@ -1124,8 +1319,12 @@ const transformEvents = (process, processKey) => {
     changeNodeColor(processKey, true, false);
   }
 
-  highlightThread(process, processKey, backgroundCtx);
-  drawThreadSeparators(eventCtx, process, processKey);
+  if (backgroundCtx) {
+    highlightThread(process, processKey, backgroundCtx);
+  }
+  if (eventCtx) {
+    drawThreadSeparators(eventCtx, process, processKey);
+  }
 };
 
 const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
@@ -1136,12 +1335,14 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
       eventCtx.strokeStyle = '#4aaad6ff';
       eventCtx.lineWidth = 1;
       const { drawData } = thread;
-      for (const element of drawData) {
-        let [x, y] = element;
-        if (isPinned && thread.isPinned) {
-          y -= thread.offsetY;
+      if (drawData) {
+        for (const element of drawData) {
+          let [x, y] = element;
+          if (isPinned && thread.isPinned) {
+            y -= thread.offsetY;
+          }
+          eventCtx.lineTo(getNoZoomX(x, viewState), y);
         }
-        eventCtx.lineTo(getNoZoomX(x, viewState), y);
       }
       eventCtx.stroke();
       eventCtx.closePath();
@@ -1150,6 +1351,9 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
       let eventDatas = [];
       for (const event of thread.events) {
         const { drawData } = event;
+        if (!drawData) {
+          continue;
+        }
         if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
           drawData.show = false;
           continue;
@@ -1181,8 +1385,10 @@ const renderProcessEvents = (process, processKey) => {
   }
 
   drawThreads(process, processKey, eventCtx);
-  highlightThread(process, processKey, backgroundCtx);
-  drawThreadSeparators(eventCtx, process, processKey);
+  if (processExpanded.get(processKey)) {
+    highlightThread(process, processKey, backgroundCtx);
+    drawThreadSeparators(eventCtx, process, processKey);
+  }
 }
 
 const renderProcessPinEvents = (thread, eventCtx, threadY, processKey) => {
@@ -1223,7 +1429,7 @@ const drawThreads = (process, processKey, ctx) => {
   for (const [threadKey, thread] of process.threads.entries()) {
     const key = thread.isCounter ? thread.threadName : thread.tid;
     const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
-    if (thread.isCounter) {
+    if (thread.isCounter && processExpanded.get(processKey)) {
       drawCounterThread(thread, ctx, threadY);
     } else {
       drawEventThread(thread, ctx, threadY, processKey);
@@ -1231,7 +1437,7 @@ const drawThreads = (process, processKey, ctx) => {
   }
 };
 
-const changeNodeColor = (processKey, isDimmed, needText=true) => {
+const changeNodeColor = (processKey, isDimmed=false, needText=true) => {
   if (!processKey || !ctxs[processKey]) return;
   const { eventCtx } = ctxs[processKey];
   const drawDatas = [];
@@ -1248,9 +1454,8 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
       if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime ) {
         event.drawData.show = false;
         event.drawData.text = '';
+        swimDataManager.updateEvent(event.id, { drawData: event.drawData });
         continue;
-      } else {
-        event.drawData.show = true;
       }
       if (event.drawData) {
         if (!isDimmed) {
@@ -1259,15 +1464,18 @@ const changeNodeColor = (processKey, isDimmed, needText=true) => {
           event.drawData.strokeColor = strokeColor;
           event.drawData.fontColor = fontColor;
         }
+        event.drawData.show = true;
+        swimDataManager.updateEvent(event.id, { drawData: event.drawData });
         drawDatas.push(event.drawData);
       }
     }
   }
-
-  eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 1);
-  eventRenderer.drawEvent(drawDatas, eventCtx, isDimmed);
-  if (needText) {
-    eventRenderer.drawEventText(drawDatas, eventCtx, isDimmed);
+  if (processExpanded.get(processKey)) {
+    eventCtx.clearRect(0, 0, viewState.clearWidth, maxThreadY + 1);
+    eventRenderer.drawEvent(drawDatas, eventCtx, isDimmed);
+    if (needText) {
+      eventRenderer.drawEventText(drawDatas, eventCtx, isDimmed);
+    }
   }
 };
 
@@ -1292,7 +1500,7 @@ const drawDependencyLines = (process, processKey, mode) => {
     if (isPathLockStatus.value) {
       selectedEvent.value = pathLockedEvent.value;
     }
-    const eventMap = buildEventMap(process);
+    const { eventMap } = swimDataManager;
     let level = userConfig.value.connectionLevel;
     const edgesToDraw = collectRelevantEdges(
       selectedEvent.value.id,
@@ -1516,13 +1724,16 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     const drawData = createDrawData();
     if (getDrawData(ctx, event, eventY, drawData, processKey)) {
       event.drawData = drawData;
+      swimDataManager.updateEvent(event.id, { drawData, renderInfo: event.renderInfo });
       eventDatas.push(drawData);
     } else {
       return;
     }
     previousEventData = event;
   });
-  eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
+  if (processExpanded.get(processKey)) {
+    eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
+  }
 };
 
 // 全部的节点数据包括坐标和初始颜色
@@ -1736,11 +1947,11 @@ const showTooltip = (e, event) => {
   const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("title")}</span><span class="tooltip-value">${displayName}</span></div>`;
-  tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("start")}</span><span class="tooltip-value">${formatTimeWithUnit(event.startTime - viewState.minTime).value}${formatTimeWithUnit(event.startTime - viewState.minTime).unit}</span></div>`;
+  tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("start")}</span><span class="tooltip-value">${formatTimeWithUnit((event.startTime - viewState.minTime) * 1000 / tsScale.value).value}${formatTimeWithUnit((event.startTime - viewState.minTime)* 1000 / tsScale.value).unit}</span></div>`;
   if (event.isCounter) {
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("countValue")}</span><span class="tooltip-value">${event.counterSize}</span></div>`;
   } else {
-    tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("duration")}</span><span class="tooltip-value">${formatTimeWithUnit(event.duration).value}${formatTimeWithUnit(event.duration).unit}</span></div>`;
+    tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t("duration")}</span><span class="tooltip-value">${formatTimeWithUnit(event.duration * 1000 / tsScale.value).value}${formatTimeWithUnit(event.duration * 1000 / tsScale.value).unit}</span></div>`;
   }
   tooltipContent += "</div>"; 
   tooltip.value.innerHTML = tooltipContent;
@@ -2045,6 +2256,7 @@ window.ascEventBus.on('clearSearchEvent', () => {
   const isDimmed = lockedLabel !== color;
   drawEvent([selectedEvent.value.drawData], eventCtx, isDimmed);
   selectedEvent.value = null;
+  lastSelected.value = null;
 });
 const sendMsg = (command, param) => {
   Promise.resolve().then(() => {

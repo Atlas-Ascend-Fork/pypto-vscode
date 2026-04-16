@@ -39,6 +39,7 @@ import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 
 // 注入父组件提供的状态
 const {
+  tsScale,
   processes,
   processExpanded,
   viewState,
@@ -147,6 +148,7 @@ const containerStyle = computed(() => {
 });
 
 provide('swimGraphState', {
+  tsScale,
   viewState,
   layout,
   processExpanded,

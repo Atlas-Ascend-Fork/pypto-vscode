@@ -314,10 +314,10 @@ const calculateDependencies = (events, connections) => {
         event.dependencies.predecessors = [];
         event.dependencies.successors = [];
       }
-      if (!eventIndex.has(event.tid)) {
-        eventIndex.set(event.tid, []);
+      if (!eventIndex.has(`${event.pid}_${event.tid}`)) {
+        eventIndex.set(`${event.pid}_${event.tid}`, []);
       }
-      eventIndex.get(event.tid).push(event);
+      eventIndex.get(`${event.pid}_${event.tid}`).push(event);
     });
   
     // 对每个 tid 的事件列表按 startTime 排序
@@ -329,15 +329,15 @@ const calculateDependencies = (events, connections) => {
     while (cIndex < connections.length) {
       const start = connections[cIndex];
       const end = connections[cIndex + 1];
-      const tid1 = start.tid;
-      const tid2 = end.tid;
+      const key1 = `${start.pid}_${start.tid}`;
+      const key2 = `${end.pid}_${end.tid}`;
   
       // 使用索引快速查找 parent 事件
-      const parentEvents = eventIndex.get(tid1);
+      const parentEvents = eventIndex.get(key1);
       const parent = parentEvents ? findEvent(parentEvents, start.ts) : null;
   
       // 使用索引快速查找 child 事件
-      const childEvents = eventIndex.get(tid2);
+      const childEvents = eventIndex.get(key2);
       const child = childEvents ? findEvent(childEvents, end.ts) : null;
   
       if (parent && child && start.ts <= end.ts) {
@@ -633,7 +633,6 @@ const calculateDependencies = (events, connections) => {
       //处理带dur的event
       const lineCount = calculateLine(event, lable2lines);
       lane2line.set(`${event.pid}@${event.tid}`, lineCount);
-      
       //pmu info process
       if (!isAicpuData && Object.keys(pmuInfo).length > 0) {
         processTaskPmuCalc(event, pmuInfo, pmuNotFoundList, effectPmu);
@@ -746,50 +745,96 @@ const calculateDependencies = (events, connections) => {
     }
   }
 
-
-
-
-
-  
-  export async function readSwimlaneFileStream(swimPath: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      try {
-        console.log(`开始流式读取 ${swimPath} 文件`);
-        
-        const stream = createReadStream(swimPath, { encoding: 'utf8' });
-        const parser = JSONStream.parse('*'); 
-        
-        let jsonData: any = null;
-        
-        parser.on('data', (data) => {
-          jsonData = data;
-        });
-        
-        parser.on('end', () => {
-          console.log('文件流式读取完成');
-          resolve(jsonData);
-        });
-        
-        parser.on('error', (error) => {
-          console.error('JSON 解析错误:', error);
-          reject(error);
-        });
-        
-        stream.on('error', (error) => {
-          console.error('文件读取错误:', error);
-          reject(error);
-        });
-        
-        stream.pipe(parser);
-        
-      } catch (err) {
-        console.error(`${swimPath} 读取文件时发生错误:`, err);
-        reject(err);
-      }
-    });
+  export async function saveCompressedDataPathToDB(swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string, compressedPath: string) {
+    await getSwimGraphParsedInfoStore().set({filePath: swimPath, lastChangeTime: lastChangeTime, dynTopoLastChangeTime: dynTopoLastChangeTime, pmuLastChangeTime: pmuLastChangeTime, infoPath: compressedPath});
+    console.log(`${compressedPath} save done`);
   }
 
-  async function writeLargeObjectToFileThreadGranular(obj: any, filePath: string): Promise<void> {
+   export async function readSwimlaneFileStream(swimPath: string, isPerfSwim = false): Promise<any> {
+     if (isPerfSwim) {
+       return readPerfSwimlaneFileStream(swimPath);
+     } else {
+       return readMergedSwimlaneFileStream(swimPath);
+     }
+   }
+
+   async function readPerfSwimlaneFileStream(swimPath: string): Promise<any> {
+     return new Promise((resolve, reject) => {
+       try {
+         console.log(`开始流式读取 perf_swimlane.json 文件: ${swimPath}`);
+         
+         const stream = createReadStream(swimPath, { encoding: 'utf8' });
+         const parser = JSONStream.parse(); 
+         
+         let jsonData: any = null;
+         
+         parser.on('data', (data) => {
+           jsonData = data;
+         });
+         
+         parser.on('end', () => {
+           console.log('perf_swimlane.json 文件流式读取完成');
+           resolve(jsonData);
+         });
+         
+         parser.on('error', (error) => {
+           console.error('JSON 解析错误:', error);
+           reject(error);
+         });
+         
+         stream.on('error', (error) => {
+           console.error('文件读取错误:', error);
+           reject(error);
+         });
+         
+         stream.pipe(parser);
+         
+       } catch (err) {
+         console.error(`${swimPath} 读取文件时发生错误:`, err);
+         reject(err);
+       }
+     });
+   }
+
+   async function readMergedSwimlaneFileStream(swimPath: string): Promise<any> {
+     return new Promise((resolve, reject) => {
+       try {
+         console.log(`开始流式读取 merged_swimlane.json 文件: ${swimPath}`);
+         
+         const stream = createReadStream(swimPath, { encoding: 'utf8' });
+         const parser = JSONStream.parse('traceEvents.*'); 
+         
+         let traceEvents: any[] = [];
+         
+         parser.on('data', (data) => {
+           traceEvents.push(data);
+         });
+         
+         parser.on('end', () => {
+           console.log('merged_swimlane.json 文件流式读取完成');
+           resolve(traceEvents);
+         });
+         
+         parser.on('error', (error) => {
+           console.error('JSON 解析错误:', error);
+           reject(error);
+         });
+         
+         stream.on('error', (error) => {
+           console.error('文件读取错误:', error);
+           reject(error);
+         });
+         
+         stream.pipe(parser);
+         
+       } catch (err) {
+         console.error(`${swimPath} 读取文件时发生错误:`, err);
+         reject(err);
+       }
+     });
+   }
+
+  export async function writeLargeObjectToFileThreadGranular(obj: any, filePath: string): Promise<void> {
     const directory = dirname(filePath);
     if(!existsSync(directory)) {
       mkdirSync(directory, { recursive: true});

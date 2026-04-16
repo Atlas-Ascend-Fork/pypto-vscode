@@ -39,7 +39,7 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
 
 export const getBaseColor = (event, dep) => {
   const { processes, kernelColorRending, isDarkTheme } = dep;
-  if (!event.color.dark) {
+  if (!event.color || !event.color.dark) {
     const process = Array.from(processes.values()).find(p => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType);
@@ -67,10 +67,20 @@ export const getLightColor = (event, dep) => {
 
 export const getEventColorByMode = (event: any, mode: string, processType = 'kernel') => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
-  if (mode === 'name' || processType === 'aicpu') {
+  const isPerfSwimMode = mode === 'perfName' || processType === 'PerfSwim';
+  const isAicpuOrPerfSwim = mode === 'name' || processType === 'aicpu';
+  if (isPerfSwimMode || isAicpuOrPerfSwim) {
     const label = event.name || '';
-    const dres = getColorByString(label, darkThemeBaseColors, darkThemeLightColors);
-    const lres = getColorByString(label, lightThemeBaseColors, lightThemeLightColors);
+    let processedLabel = label;
+    if (isPerfSwimMode) {
+      const leftParenIndex = label.indexOf('(');
+      const rightParenIndex = label.indexOf(')');
+      if (leftParenIndex !==-1 && rightParenIndex !== -1 && leftParenIndex < rightParenIndex) {
+        processedLabel = label.substring(0, leftParenIndex);
+      }
+    }
+    const dres = getColorByString(processedLabel, darkThemeBaseColors, darkThemeLightColors);
+    const lres = getColorByString(processedLabel, lightThemeBaseColors, lightThemeLightColors);
     dBaseColor = dres.baseColor;
     dLightColor = dres.lightColor;
     lBaseColor = lres.baseColor;
@@ -131,6 +141,54 @@ export const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
     }
     
     const currentEvent = eventMap.get(currentId);
+    let neighbors;
+
+    if (direction === 'pre') {
+      neighbors = currentEvent.dependencies.predecessors || [];
+    } else {
+      neighbors = currentEvent.dependencies.successors || [];
+    }
+
+    for (const neighborId of neighbors) {
+      const symbol = direction === 'pre' ? `${neighborId}->${currentId}` : `${currentId}->${neighborId}`;
+      if (!edgesToDraw.has(symbol)) {
+        edgesToDraw.add(symbol);
+        bfsTraversal(neighborId, depth - 1, direction);
+      }
+    }
+  };
+
+  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
+    bfsTraversal(startNodeId, level, 'pre'); // 遍历前驱方向
+  }
+  
+  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
+    bfsTraversal(startNodeId, level, 'next'); // 遍历后继方向
+  }
+
+  return Array.from(edgesToDraw);
+};
+
+// 收集跨 process 的相关边
+export const collectCrossProcessRelevantEdges = (startNodeId, processes, mode, level) => {
+  const edgesToDraw = new Set();
+  
+  // 构建全局事件映射
+  const globalEventMap = new Map();
+  for (const [processKey, process] of processes.entries()) {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      for (const event of thread.events) {
+        globalEventMap.set(event.id, { ...event, processKey, threadKey });
+      }
+    }
+  }
+  
+  const bfsTraversal = (currentId, depth, direction) => {
+    if (depth === 0 || !globalEventMap.has(currentId)) {
+      return;
+    }
+    
+    const currentEvent = globalEventMap.get(currentId);
     let neighbors;
 
     if (direction === 'pre') {

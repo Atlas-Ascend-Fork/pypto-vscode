@@ -1,8 +1,7 @@
 import { ExtensionContext, Uri, commands, window } from 'vscode';
 import { t as _ } from 'i18next';
-const fs = require('fs');
-const readline = require('readline');
 
+import { readFirstNLines } from '../utils/file-system';
 import { useView } from '../view';
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -14,33 +13,6 @@ export class RegisterCommand {
 
   constructor(context: ExtensionContext) {
     this.context = context;
-  }
-
-  readFirstNLines(filePath, n) {
-    return new Promise((resolve, reject) => {
-      const stream = fs.createReadStream(filePath);
-      const lineReader = readline.createInterface({
-        input: stream,
-        crlfDelay: Infinity, // 正确处理不同平台的换行符
-      });
-      let lines: string[] = [];
-      let lineCount = 0;
-      lineReader.on('line', (line) => {
-        lines.push(line);
-        lineCount++;
-        if (lineCount >= n) {
-          lineReader.close(); // 达到所需行数，停止读取
-          lineReader.removeAllListeners();
-          stream.destroy();
-        }
-      });
-      lineReader.on('close', () => {
-        resolve(lines); // 返回读取的行
-      });
-      lineReader.on('error', (err) => {
-        reject(err); // 处理读取过程中可能出现的错误
-      });
-    });
   }
 
   getCommands() {
@@ -103,7 +75,7 @@ export class RegisterCommand {
   }
 
   async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string) {
-    const content = ((await this.readFirstNLines(uri.fsPath, 10)) as string[]).join('');
+    const content = ((await readFirstNLines(uri.fsPath, 10)) as string[]).join('');
     const { editorView } = useView();
     if (content.includes('entryhash')) {
       const finalQuery = {
@@ -115,8 +87,9 @@ export class RegisterCommand {
         query: finalQuery,
         title:  getBasenameWithoutExt(uri.fsPath),
       });
-    } else if (content.includes('traceEvents')) {
-      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath) });
+    } else if (content.includes('traceEvents') || (content.includes('version') && content.includes('tasks'))) {
+      const isPerfSwim = !content.includes('traceEvents');
+      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath), query: { isPerfSwim } });
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }

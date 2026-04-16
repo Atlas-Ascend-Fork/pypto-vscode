@@ -40,7 +40,7 @@
                   <div class="pipe-line"></div>
                   <div class="pipe-hit">
                     <span>{{ $t('hitRate')}}</span>
-                    <span class="start-value-key">{{ getEventCacheHit(selectedEvent)}}</span>
+                    <span class="start-value-key">{{eventCacheHit}}</span>
                   </div>
                 </div>
               </div>
@@ -220,6 +220,7 @@ import { clone } from 'lodash-es';
 import { formatTimeWithUnit, COLOR_CFG, DEP_MODE, setupHighDPICanvas } from '../swimGraphUtils';
 import { getSubGraphId } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
+import { swimDataManager } from '../swimData';
 
 const { server } = useViewServer();
 const { t: $t } = useI18n();
@@ -231,11 +232,11 @@ const ooperandHtml = ref('');
 const releventDisplay = ref(DEP_MODE.all);
 // 注入父组件提供的状态和方法
 const {
+  tsScale,
   selectedEvent,
   viewState,
   detailsPanelExpanded,
   detailsCoresExpanded,
-  id2event,
   bindFile,
   bindButton,
   isDarkTheme,
@@ -254,6 +255,10 @@ const isAicpuEvent = computed(() => {
 
 const shouldShowBindButton = computed(() => {
   return !isAicpuEvent.value && selectedView.value === 'args';
+});
+
+const eventCacheHit = computed(() => {
+  return getEventCacheHit(selectedEvent.value);
 });
 
 const {
@@ -313,11 +318,11 @@ const selectView = (view) => {
   selectedView.value = view;
 };
 const getEventCacheHit = (event) => {
-  if (event.pmu_calc_info) {
+  if (event.pmu_calc_info?.icache_hit) {
     let hitRate = event.pmu_calc_info.icache_hit * 100;
     return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
   }
-  if (event.pmu_info) {
+  if (event.pmu_info?.icache_hit) {
     let hitRate = event.pmu_info.icache_hit * 100;
     return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
   }
@@ -415,14 +420,14 @@ const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 const predecessors = computed(() => {
   if (!selectedEvent.value) return [];
   return selectedEvent.value.dependencies.predecessors.map(id =>
-    id2event[id]
+    swimDataManager.getEventById(id)
   ).filter(e => e);
 });
 
 const successors = computed(() => {
   if (!selectedEvent.value) return [];
   return selectedEvent.value.dependencies.successors.map(id =>
-    id2event[id]
+    swimDataManager.getEventById(id)
   ).filter(e => e);
 });
 
@@ -430,7 +435,7 @@ const formatDuration = (value, minTime = 0) => {
   if (!value) {
     return '0';
   }
-  let duration = (value - minTime) / 1000;
+  let duration = (value - minTime) / tsScale.value;
   const decimalPlaces = duration.toString().split('.')[1]?.length || 0;
   const placesToKeep = Math.min(decimalPlaces, 3);
   return placesToKeep === 0 ? duration.toString() : duration.toFixed(placesToKeep);
@@ -476,11 +481,11 @@ const createHint = (event, operate) => {
 // 监听选中事件变化，更新依赖图
 watch(selectedEvent, (newEvent) => {
   if (newEvent) {
-    startTimeInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).value;
-    startTimeUnitInfo.value = formatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).unit;
+    startTimeInfo.value = formatTimeWithUnit((selectedEvent.value.startTime - viewState.minTime) * 1000 / tsScale.value).value;
+    startTimeUnitInfo.value = formatTimeWithUnit((selectedEvent.value.startTime - viewState.minTime) * 1000 / tsScale.value).unit;
     startTimeInfoAll.value = startTimeInfo.value + startTimeUnitInfo.value;
-    durationInfo.value = formatTimeWithUnit(selectedEvent.value.duration).value;
-    durationUnitInfo.value = formatTimeWithUnit(selectedEvent.value.duration).unit;
+    durationInfo.value = formatTimeWithUnit(selectedEvent.value.duration * 1000 / tsScale.value).value;
+    durationUnitInfo.value = formatTimeWithUnit(selectedEvent.value.duration * 1000 / tsScale.value).unit;
     durationInfoAll.value = durationInfo.value + durationUnitInfo.value;
     nextTick(() => {
       createHint(newEvent, 'ioperand-hint');
@@ -529,9 +534,9 @@ const resetReleventState = () => {
 
 const showDependencies = (event, type) => {
   const displayName = event.isCounter ? event.displayName : event.name || 'Event';
-  const eventPredecessors = event.dependencies.predecessors.map((id) => id2event[id]).filter((e) => e);
+  const eventPredecessors = event.dependencies.predecessors.map((id) => swimDataManager.getEventById(id)).filter((e) => e);
 
-  const eventSuccessors = event.dependencies.successors.map((id) => id2event[id]).filter((e) => e);
+  const eventSuccessors = event.dependencies.successors.map((id) => swimDataManager.getEventById(id)).filter((e) => e);
   const canvas = document.getElementById('dependency-canvas');
   const canvasContainer = document.getElementById('canvas-container');
   if (!canvas)  {

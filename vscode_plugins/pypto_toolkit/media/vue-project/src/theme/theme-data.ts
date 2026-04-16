@@ -185,8 +185,9 @@ export const ideLightTheme = new Theme({
     'welcome-banner-point': 'rgba(0, 0, 0, 0.2)',
     'devui-table-body-bg': '#rgba(0, 0, 0, 0)',
     'devui-page-active-bg': 'rgba(0,0,0,0.15)',
+    'core-detail-connect-line': '#C9C9C9',
+    'devui-performance-bg': '#c9c9c9',
     'devui-feedback-overlay-text': 'rgba(25, 25, 25, 1)',
-    'core-detail-connect-line': '#C9C9C9'
   },
   isDark: false,
 });
@@ -375,7 +376,8 @@ export const ideDarkTheme = new Theme({
     'welcome-banner-point': 'rgba(255, 255, 255, 0.2)',
     'devui-table-body-bg': '#3A3A3A',
     'devui-page-active-bg': 'rgba(255,255,255,0.15)',
-    'core-detail-connect-line': '#404040'
+    'core-detail-connect-line': '#404040',
+    'devui-performance-bg': '#262626',
   },
   isDark: true,
 });

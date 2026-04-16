@@ -110,6 +110,7 @@ export class Util {
         colorRending: JsedparamObj.kernelColorRending,
         textRending: JsedparamObj.kernelTextRending,
         aicpuColorRending: JsedparamObj.aicpuColorRending,
+        perfColorReding: JsedparamObj.perfColorReding,
       }
       writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {

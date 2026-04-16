@@ -5,6 +5,7 @@ import { ISwimViewServer, ICommonViewServer, ISwimApis, ISwimRefs, ICommonApis, 
 import fs from 'node:fs';
 import stream from 'node:stream';
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
+import { hismartliteEx } from '../../hismarliteEx';
 
 
 type Apis = ISwimApis | ICommonApis;
@@ -41,6 +42,14 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     await this.handler.getInitialData(this);
   };
   @viewApi()
+  public getData = async () => {
+    const data = await this.handler.getData(this);
+    if (Array.isArray(data)) {
+      return stream.Readable.toWeb(stream.Readable.from(data!));
+    }
+    return data;
+  };
+  @viewApi()
   public getSwimData = async () => {
     const packages = await this.handler.getSwimData(this);
     return stream.Readable.toWeb(stream.Readable.from(packages!));
@@ -48,6 +57,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public getOtherData = async () => {
     return await this.handler.getOtherData(this);
+  };
+  @viewApi()
+  public getCompressedData = async () => {
+    return await this.handler.getCompressedData(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {

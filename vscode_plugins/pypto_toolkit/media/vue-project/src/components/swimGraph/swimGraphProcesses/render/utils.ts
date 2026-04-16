@@ -1,3 +1,4 @@
+import { swimDataManager } from '../../swimData';
 import { devicePixelRatio } from '../../swimGraphUtils';
 import { getEventColorByMode } from '../processInfo';
 
@@ -15,6 +16,8 @@ export interface Dependencies {
   searchedEvent: any;
   userConfig: any;
   processes: Map<string, any>;
+  colorRending: any;
+  tsScale: any;
 }
 
 export function selectNoNodeWarm(): any {
@@ -113,25 +116,26 @@ export function getEventColor(event: any, deps: Dependencies, processKey: string
   const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes } = deps;
   const process = processes.get(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
-  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
-  event.color = color;
+  if (!event.color?.dark) {
+    const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
+    event.color = color;
+    swimDataManager.updateEvent(event.id, { color });
+  }
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
   let fontColor = colorCfg.eventFont;
   let strokeColor = '';
 
-  if (event.renderInfo.processKey === processKey) {
-    const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
-    const issearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
-    const isSelf = isSelectedValue || issearchedEvent;
-    let selectedDep: any[] = [];
-    if (selectedEvent.value) {
-      selectedDep = [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors];
-    }
-    if (highlightedPaths.size > 0 && !isSelf && !highlightedPaths.has(event.id) && !selectedDep.includes(event.id)) {
-      fillColor = colorCfg.eventRectNoColor;
-      fontColor = colorCfg.eventFontNoColor;
-    }
+  const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
+  const issearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
+  const isSelf = isSelectedValue || issearchedEvent;
+  let selectedDep: any[] = [];
+  if (selectedEvent.value) {
+    selectedDep = [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors];
+  }
+  if (highlightedPaths.size > 0 && !isSelf && !highlightedPaths.has(event.id) && !selectedDep.includes(event.id)) {
+    fillColor = colorCfg.eventRectNoColor;
+    fontColor = colorCfg.eventFontNoColor;
   }
 
   if (highlight) {

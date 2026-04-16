@@ -332,7 +332,8 @@ export class MeatureRender extends EventRender {
   }
 
   private getMeasureDistance(diffTime: any) {
-    const timeInfo = formatTimeWithUnit(diffTime);
+    const { tsScale } = this.deps;
+    const timeInfo = formatTimeWithUnit(diffTime * 1000 / tsScale.value);
     if (Number(timeInfo.value) === 0){
       return this.lessThan0usMsg;
     }

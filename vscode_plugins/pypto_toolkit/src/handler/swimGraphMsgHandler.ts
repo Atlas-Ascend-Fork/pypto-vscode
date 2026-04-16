@@ -1,11 +1,12 @@
 import { Uri, commands, window, workspace, ConfigurationTarget } from 'vscode';
 import { Util } from '../util';
-import { dirname, join, extname, resolve } from 'path';
+import { dirname, join, extname, resolve, basename } from 'path';
 import { accessSync, constants, existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
+import { readCompressedFile, runCompress } from '@pypto/data-compress';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
-import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, getSavedSwimDataFileStreamAll} from '../process';
+import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, saveCompressedDataPathToDB, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll} from '../process';
 import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
@@ -13,6 +14,8 @@ import { getBasenameWithoutExt } from '../command/registerCommand';
 import { hismartliteEx } from '../hismarliteEx';
 import { useService } from '../services';
 import { getSwimGraphParsedInfoStore, swimGraphPasedInfoCache } from '../core/swimSqlInit';
+import { FormatValidator, PerfSwimlaneConverter } from '../converter';
+
 const CACHE_LARGE_FILE_SIZE = 500;
 
 export abstract class SwimGraphMsgHandler {
@@ -21,7 +24,9 @@ export abstract class SwimGraphMsgHandler {
 
     public static readonly WHITE_COMMANDS = new Set([
         'getSwimData',
+        'getData',
         'getOtherData',
+        'getCompressedData',
         'bindComGraphJson',
         'unbindComGraph',
         'jumpToComGraph',
@@ -93,15 +98,18 @@ export abstract class SwimGraphMsgHandler {
       const colorRending = isThreeServer ? 'label' : colorRendingMode;
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
+      const perfColorReding = cfgCache['perfColorReding'] || 'perfName';
       const config = Util.getSwimGraphCustomCfg();
       config['kernelTextRending'] = textRending;
       config['aicpuColorRending'] = aicpuColorRending;
+      config['perfColorReding'] = perfColorReding;
       config['kernelColorRending'] = colorRending;
       return {
         configuration: config,
         comGraphPath,
         swimPath,
-        title: getBasenameWithoutExt(swimPath)
+        title: getBasenameWithoutExt(swimPath),
+        isPerfSwim: server.query.isPerfSwim
       };
     }
 
@@ -214,13 +222,30 @@ export abstract class SwimGraphMsgHandler {
             }
           }
           
-          //处理merged_swimlane.json
+          //处理merged_swimlane.json 或 perf_swimlane.json
           let swimlaneData: any = {};
     
           try {
-
-            swimlaneData.traceEvents = await readSwimlaneFileStream(swimPath);
-            console.log('读取merged_swimlane.json文件');
+            console.log('读取swimlane文件');
+            if (server.query.isPerfSwim) {
+              console.log('使用 perf_swimlane.json 格式处理');
+              const rawData = await readSwimlaneFileStream(swimPath, true);
+              const validation = FormatValidator.validatePerfSwimlane(rawData);
+              if (!validation.valid) {
+                server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: validation.error });
+                console.error('perf_swimlane.json 验证失败:', validation.error);
+                return [];
+              }
+              
+              const converter = new PerfSwimlaneConverter();
+              const convertedData = converter.convert(rawData);
+              swimlaneData.traceEvents = convertedData.traceEvents;
+              console.log('perf_swimlane.json 转换完成');
+            } else {
+              console.log('使用 merged_swimlane.json 格式处理');
+              const rawData = await readSwimlaneFileStream(swimPath);
+              swimlaneData.traceEvents = rawData;
+            }
     
           } catch (err: any) {
             server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: err.message} );
@@ -316,6 +341,152 @@ export abstract class SwimGraphMsgHandler {
 
         return await this.splitJson(swimData);
       }
+
+
+
+      static async getCompressedData(server: any) {       
+        let swimInfo: any;
+        const swimPath = server.swimDataPath;
+        try {
+          accessSync(swimPath, constants.R_OK);
+        } catch (err: any) {
+          server.setRef('noSwimFile', { errMsg: err.message });
+          return;
+        }
+
+        const swimFileStat = await fs.stat(swimPath);
+
+        this.cacheCfgPath = Util.getCachePath('swimRenderingCfg.json');
+        const cache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
+        const colorRendingMode = cache['colorRending'] ?? 'subGraph';
+        const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
+        const colorRending = isThreeServer ? 'label' : colorRendingMode;
+        const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
+        const config = Util.getSwimGraphCustomCfg();
+        config['colorRending'] = colorRending;
+        config['textRending'] = textRending;
+        let savedCompressedDataPath = '';
+    
+        const parsedInfoRow = await getSwimGraphParsedInfoStore().find({filePath: swimPath});
+        let swimData: any = {};
+        const swimLastChangeTime = await getMTime(swimPath);
+
+        const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
+        let pmuLastChangeTime = '';
+        if (existsSync(pmuPath)) {
+          pmuLastChangeTime = await getMTime(pmuPath);
+        }
+        const dynTopoPath = join(dirname(swimPath), 'dyn_topo.txt');
+        let dynTopoLastChangeTime = '';
+        if (existsSync(dynTopoPath)) {
+          dynTopoLastChangeTime = await getMTime(dynTopoPath);
+        }
+
+        let fileChanged = false;
+        if (parsedInfoRow) {
+          if (swimLastChangeTime != parsedInfoRow.lastChangeTime || 
+              dynTopoLastChangeTime != parsedInfoRow.dynTopoLastChangeTime ||
+              pmuLastChangeTime != parsedInfoRow.pmuLastChangeTime) {
+            fileChanged = true;
+          }
+        }
+    
+        if (parsedInfoRow && !fileChanged) {
+          //数据库有数据且文件未修改，直接从数据库读取
+          console.log(parsedInfoRow.infoPath);
+          savedCompressedDataPath = parsedInfoRow.infoPath;
+          this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
+          swimInfo = await readCompressedFile(savedCompressedDataPath);          
+        } else {
+          const swimUri = vscode.Uri.file(swimPath);
+          this.warnPerformance(server, swimFileStat.size, hismartliteEx.swimPerformanceBase.useCache);
+          const swimFsPath = swimUri.fsPath;
+          const swimFileName = swimFsPath.replace(/[\\/:*?"<>|]/g, '_');
+          const pmuFsPath = join(dirname(swimFsPath), 'tilefwk_prof_pmu.csv');
+          const topoFsPath = join(dirname(swimFsPath), 'dyn_topo.txt');
+          const compressedDataPath = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', `${swimFileName}.compressed`);
+          const extensionOutput = vscode.window.createOutputChannel("Swimlane compressed");
+          const logger = {
+            log: (value) => extensionOutput.appendLine(`[${new Date().toISOString().split('.')[0]}][LOG] ${value}`),
+            error: (value) => extensionOutput.appendLine(`[${new Date().toISOString().split('.')[0]}][ERR] ${value}`),
+            warn: (value) => extensionOutput.appendLine(`[${new Date().toISOString().split('.')[0]}][WARN] ${value}`),
+          }
+          
+          console.log(topoFsPath, existsSync(topoFsPath));
+          console.log(pmuFsPath, existsSync(pmuFsPath) );
+
+          // //适配3.0
+          // let swimlaneData: any = {};
+          // let newSwimFile;
+    
+          // try {
+          //   console.log('读取swimlane文件');
+          //   if (server.query.isPerfSwim) {
+          //     console.log('使用 perf_swimlane.json 格式处理');
+          //     const rawData = await readSwimlaneFileStream(swimPath, true);
+          //     const validation = FormatValidator.validatePerfSwimlane(rawData);
+          //     if (!validation.valid) {
+          //       server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: validation.error });
+          //       console.error('perf_swimlane.json 验证失败:', validation.error);
+          //       return [];
+          //     }
+              
+          //     const converter = new PerfSwimlaneConverter();
+          //     const convertedData = converter.convert(rawData);
+          //     swimlaneData.traceEvents = convertedData.traceEvents;
+          //     console.log('perf_swimlane.json 转换完成');
+
+          //     const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
+          //     const dbSwimStore = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', sanitizedPath);
+          //     await writeLargeObjectToFileThreadGranular(convertedData.traceEvents, dbSwimStore);
+          //     newSwimFile = dbSwimStore;
+          //     console.log('3.0file saved', dbSwimStore);
+          //   } else {
+          //     console.log('使用 merged_swimlane.json 格式处理');
+          //   }
+    
+          // } catch (err: any) {
+          //   server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: err.message} );
+          //   console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
+          //   return [];
+          // }
+
+          await runCompress({
+            inputPath: swimFsPath, 
+            outputPath: compressedDataPath,
+            topoFile: existsSync(topoFsPath) ? topoFsPath : undefined,
+            pmuFile: existsSync(pmuFsPath) ? pmuFsPath : undefined
+            }, logger);
+
+          swimInfo = await readCompressedFile(compressedDataPath);
+          
+          if (parsedInfoRow  && fileChanged) {
+            //数据库有数据，但文件已被修改，删除数据
+            await getSwimGraphParsedInfoStore().delete({filePath: swimPath});
+          }
+          //插入数据
+          saveCompressedDataPathToDB(swimPath, swimLastChangeTime, dynTopoLastChangeTime, pmuLastChangeTime, compressedDataPath);
+        }
+        
+        console.log('returnSwimData message send');
+
+        return swimInfo;
+      }
+
+    static async getData(server: any) {
+      if(server.query.isPerfSwim) {
+        return await this.getSwimData(server);
+      }
+      let getCompressSuc = false;
+      try {
+        const data = await this.getCompressedData(server);
+        getCompressSuc = true;
+        return data;
+      } catch (error) {
+        console.log('get compressed data fail', error);
+      }
+      return await this.getSwimData(server);
+    }
     
     static async validateFile(server: any) {
       const content = readFileSync(server.swimDataPath, 'utf8');

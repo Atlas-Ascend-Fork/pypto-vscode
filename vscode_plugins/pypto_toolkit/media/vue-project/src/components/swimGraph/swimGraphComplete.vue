@@ -76,6 +76,13 @@
         <!-- 置顶线程区域 -->
         <pinned-threads-container v-if="!isThreeColumn && pinnedThreadsList.length > 0" ref="pinnedthreadsComponent"/>
         <div id="main-swim" class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer" :style="containerStyles">
+          <!-- 全局跨 process 连接线画布 -->
+          <global-connection-canvas 
+            v-if="!isMixedAicpuKernel"
+            ref="globalConnectionCanvas"
+            :container-width="containerWidth"
+            :container-height="containerHeight"
+          />
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
         </div>
@@ -120,6 +127,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject, toRef, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getReader } from '@pypto/data-compress/reader';
 import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
 import SwimGraphProcesses from './swimGraphProcesses/swimGraphProcesses.vue';
@@ -135,8 +143,10 @@ import aicpuCoreDetail from './swimGraphAicpuDetail/aicpuCoreDetail.vue';
 import Navbar from '@/components/navbar/navbar.vue';
 import PinnedThreadsContainer from './swimGraphPinnedThreads/PinnedThreadsContainer.vue';
 import { usePinnedThreads } from './swimGraphPinnedThreads/usePinnedThreads';
+import GlobalConnectionCanvas from './swimGraphProcesses/GlobalConnectionCanvas.vue';
+import { swimDataManager } from './swimData';
 import { getQuery } from '@/core/query';
-import { getTextWidth } from '../../utils';
+import { getTextWidth, layoutFakeCoreEvent } from '../../utils';
 import {
   calculateGridInterval,
   ctxs,
@@ -215,14 +225,17 @@ const detailComponent = ref(null);
 const measureDetailComponent = ref(null);
 const graphProcessesComponent = ref(null);
 const swimgraphHeaderComponent = ref(null);
-const aicpuCoreDetailComponent = ref(null); 
+const aicpuCoreDetailComponent = ref(null);
+const globalConnectionCanvas = ref(null); 
 const configComponent = ref(null);
 const shortCutKeyDescritionComponent = ref(null);
 const pinnedthreadsComponent = ref(null);
 const timeLineX = ref(null);
 const traceData = ref(null);
+const tsScale = ref(1000);
 const processes = reactive(new Map());
 const counterEvents = ref([]);
+const lastSelected = ref(null);
 const selectedEvent = ref(null);
 const canvasclickedEvent = ref(null);
 const pathLockedEvent = ref(null);
@@ -261,6 +274,7 @@ const modeOption = ref('');
 const isCfgEditing = ref(false);
 const isShortcutKeyShow = ref(false);
 const isAicpu = ref(false);
+const isPerfSwim = ref(false);
 const aicpuControlDetailsExpanded = ref(false);
 const aicpuScheduleDetailsExpanded = ref(false);
 const aicpuCoreDetailsExpanded = ref(false);
@@ -361,7 +375,6 @@ const formattedTime = computed(() => {
 });
 
 const lane2line = reactive(new Map());
-const id2event = {};
 const userConfig = reactive(new Map());
 
 const childContextMap = {};
@@ -597,8 +610,11 @@ const processTraceData = (data) => {
   }
 
   if (props.isThreeColumn) {
-    isMixedAicpuKernel.value = false;  // 三栏模式只展示kernel process
     processTimeInfo(timeInfo, data);
+  }
+  
+  if (data.tsScale) {
+    tsScale.value = data.tsScale;
   }
 
   counterEvents.value = data.counterEvents;
@@ -613,13 +629,15 @@ const processTraceData = (data) => {
     viewState.timeRange = viewState.maxTime - viewState.minTime;
   }
 
-  // 对线程进行排序
   processes.forEach((value) => {
     const cThread = new Map([...value.threads.entries()].filter((item) => item[1].isCounter).sort());
     const eThread = new Map([...value.threads.entries()].filter((item) => !item[1].isCounter).sort((a, b) => {
       return Number(a[0].split('-')[1]) - Number(b[0].split('-')[1]);
     }));
     value.threads = new Map([...eThread.entries(), ...cThread.entries()]);
+    if (isPerfSwim.value) {
+      value.type = 'PerfSwim';
+    }
   });
 
   let allAicpu = true;
@@ -631,11 +649,21 @@ const processTraceData = (data) => {
   }
   isAicpu.value = allAicpu;
 
-  // 初始化画布
+  swimDataManager.initialize(processes);
+
+  isMixedAicpuKernel.value = swimDataManager.isMixedData();
+
+   if (props.isThreeColumn) {
+     isMixedAicpuKernel.value = false;
+  }
+
   nextTick(() => {
     initCanvases();
     resizeCanvases();
-    render();
+ 
+    if (!userConfig.value.showPerformancePanel || props.isThreeColumn || isGuidePage.value) {
+      render();
+    }
     // 恢复置顶状态
     restorePinnedState();
   });
@@ -689,38 +717,47 @@ const renderTwoTimeline = () => {
 
 const renderEvent = () => {
   for (const [processKey, process] of processes.entries()) {
+    childContextMap.threadEvent.renderProcessEvents(process, processKey);
+    const ctx = ctxs[processKey].eventCtx;
     if (processExpanded.get(processKey)) {
-      childContextMap.threadEvent.renderProcessEvents(process, processKey);
-      const ctx = ctxs[processKey].eventCtx;
       childContextMap.threadEvent.renderProcessText(process, ctx);
     }
   }
 };
 
 const renderDependencyLines = (processKey) => {
-  const mode = viewState.depMode;
-  if (processKey) {
-    const process = processes.get(processKey);
-    if (isMaxSchedule.value) {
-      childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
-    } else {
-      childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+  if (!processKey && !selectedEvent.value && !searchedEvent.value) {
+    if (globalConnectionCanvas.value) {
+      globalConnectionCanvas.value.clearCanvas();
     }
     return;
   }
-  for (const [processKey, process] of processes.entries()) {
-    if (processExpanded.get(processKey)) {
+  const mode = viewState.depMode;
+  const key = processKey || selectedEvent.value?.pid?.toString() || searchedEvent.value?.pid?.toString();
+  if (key) {
+    const process = processes.get(key);
+    if (!globalConnectionCanvas.value) {
       if (isMaxSchedule.value) {
-        childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, processKey);
+        childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, key);
       } else {
-        childContextMap.threadEvent.drawDependencyLines(process, processKey, mode);
+        childContextMap.threadEvent.drawDependencyLines(process, key, mode);
+      }
+    } else {
+      if (isMaxSchedule.value) {
+        globalConnectionCanvas.value.drawMaxScheduleLine(startEventId, endEventId);
+      } else {
+        globalConnectionCanvas.value.drawGlobalConnectionLines();
       }
     }
   }
 };
 
 const clearDependencyLines = (processKey) => {
-  childContextMap.threadEvent.clearDependencyLines(processKey);
+  if (globalConnectionCanvas.value) {
+    globalConnectionCanvas.value.clearCanvas();
+  } else {
+    childContextMap.threadEvent.clearDependencyLines(processKey);
+  }
   return;
 };
 const getAicpuDependencyCanvas = (processKey) => {
@@ -864,7 +901,7 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange, (time - viewState.minTime) * 1000 / tsScale.value);
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
@@ -925,7 +962,7 @@ const renderTimeline = () => {
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange, (time - viewState.minTime) * 1000 / tsScale.value);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       ctx.fillText(`${value}${unit}`, x + 2, 15);
@@ -1064,12 +1101,10 @@ const drawKernalEvents = () => {
 const handleKernalEventColors = (event, processKey, highlight = false, stroke = true) => {
   return getKernalEventColor(event, childContextMap.threadEvent.eventRenderer.deps, processKey, highlight, stroke);
 };
-const selectEvent = (event, processKey, showkernelDetail = true) => {
-  selectedEvent.value = event;
+const updatePanelState = (event, processKey, showkernelDetail) => {
   if (event) {
     const process = processes.get(processKey);
     if (process.type === 'aicpu') {
-      highlightedPaths.clear();
       const { threadName } = event;
       const isCtrl = threadName.includes('AICPU-CTRL');
       const isSched = threadName.includes('AICPU-SCHED');
@@ -1077,13 +1112,31 @@ const selectEvent = (event, processKey, showkernelDetail = true) => {
       aicpuScheduleDetailsExpanded.value = isSched;
       aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
       detailsPanelExpanded.value = false;
-      highlightAicpu(process, processKey, false);
     } else {
       aicpuControlDetailsExpanded.value = false;
       aicpuScheduleDetailsExpanded.value = false;
       aicpuCoreDetailsExpanded.value = !showkernelDetail;
-      calculateHighlightedPaths(event);
       showDetailsPanel(showkernelDetail);
+    }
+  } else {
+    detailsPanelExpanded.value = false;
+  }
+};
+const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false) => {
+  updatePanelState(event, processKey, showkernelDetail);
+  const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
+  if (!forceExec && noChange) {
+    return;
+  }
+  selectedEvent.value = event;
+  if (event) {
+    lastSelected.value = event.id;
+    const process = processes.get(processKey);
+    if (process.type === 'aicpu') {
+      highlightedPaths.clear();
+      highlightAicpu(process, processKey, false);
+    } else {
+      calculateHighlightedPaths(event);
       childContextMap.threadEvent.changeNodeColor(processKey, true);
       renderDependencyLines(processKey);
     }
@@ -1092,20 +1145,22 @@ const selectEvent = (event, processKey, showkernelDetail = true) => {
       pinnedthreadsComponent.value.highlightPinnedEvent(event);
     }
   } else {
-    childContextMap.threadEvent.changeNodeColor(processKey, searchedEvent.value);
+    lastSelected.value = null;
+    childContextMap.threadEvent.changeNodeColor(processKey);
     clearDependencyLines(processKey);
-    detailsPanelExpanded.value = false;
     if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
       pinnedthreadsComponent.value.changePinnedColor(false);
     }
   }
   for (const [key, process] of processes.entries()) {
-    if (!process.isRendered || !ctxs[key]) {
+    if (!process.isRendered || !processExpanded.get(key) || !ctxs[key]) {
       continue;
     }
     if (key !== processKey) {
-      childContextMap.threadEvent.changeNodeColor(key, Boolean(event));
-      clearDependencyLines(key);
+      childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+      if (!globalConnectionCanvas.value) {
+        clearDependencyLines(key);
+      }
     }
     const { eventCtx } = ctxs[key];
     childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(key), key);
@@ -1217,6 +1272,7 @@ const showMaxScheduleEvent = async (startEvent, endEvent) => {
   highlightedPaths.clear();
   highlightedPaths.add(startEventId);
   highlightedPaths.add(endEventId);
+  lastSelected.value = selectedEvent.value;
   selectedEvent.value = startEvent;
   const processKey = String(startEvent.pid);
   const process = processes.get(processKey);
@@ -1244,12 +1300,7 @@ const setMeasureDragHeight = () => {
 };
 
 const calculateHighlightedPaths = (event) => {
-  if (!Object.keys(id2event).length) {
-    processesToMap(processes, id2event);
-  }
   highlightedPaths.clear();
-  // 获取事件位置的辅助函数
-  const getEventById = (eventId) => id2event[eventId];
 
   const addAllAncestors = (eventId, maxDepth) => {
     const visited = new Set();
@@ -1263,7 +1314,7 @@ const calculateHighlightedPaths = (event) => {
       }
 
       visited.add(currentId);
-      const currentEvent = getEventById(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
       if (currentEvent) {
         highlightedPaths.add(currentEvent.id);
         currentEvent.dependencies.predecessors.forEach((predId) => {
@@ -1287,7 +1338,7 @@ const calculateHighlightedPaths = (event) => {
       }
 
       visited.add(currentId);
-      const currentEvent = getEventById(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
       if (currentEvent) {
         highlightedPaths.add(currentEvent.id);
         currentEvent.dependencies.successors.forEach((succId) => {
@@ -1353,6 +1404,8 @@ const findEventAtPosition = (x, y, processKey) => {
 
 const searchEventsInThread = (thread, x, y) => {
   let fallbackAltClickData = null;
+  const eventsOnCurrentLine = [];
+  
   for (let index = 0; index < thread.events.length; index++) {
     const event = thread.events[index];
     if (!event.renderInfo) {
@@ -1360,15 +1413,15 @@ const searchEventsInThread = (thread, x, y) => {
     }
     const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
     const { eventWidth } = event.drawData;
-    if (y < eventY || y > eventY + eventHeight) {
-      continue;
-    }
-    if (x >= eventX && x <= eventX + eventWidth) {
-      return {
-        foundEvent: event,
-        fallback: null
-      };
-    } else {
+    
+    if (y >= eventY && y <= eventY + eventHeight) {
+      if (x >= eventX && x <= eventX + eventWidth) {
+        return {
+          foundEvent: event,
+          fallback: null
+        };
+      }
+      
       const { pixelScale } = viewState;
       const isNarrow = eventWidth * pixelScale <= NARROW_WIDTH_THRESHOLD;
       if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
@@ -1382,19 +1435,29 @@ const searchEventsInThread = (thread, x, y) => {
           };
         }
       }
-      // 间隙检测
-      const nextEvent = thread.events[index + 1];
-      if (nextEvent) {
-        const { x: nextEventX } = nextEvent.renderInfo;
-        if (x >= eventX + eventWidth && x <= nextEventX) {
-          // 记录间隙，但不立即返回！因为后面可能有吸附
-          fallbackAltClickData = {
-            preData: event,
-            lastData: nextEvent,
-            nodeSpacingX: nextEventX - (eventX + eventWidth),
-          };
-        }
-      }
+      
+      eventsOnCurrentLine.push({ event, eventX, eventWidth });
+    }
+  }
+  
+  if (eventsOnCurrentLine.length < 2) {
+    return {
+      foundEvent: null,
+      fallback: null
+    };
+  }
+  
+  for (let i = 0; i < eventsOnCurrentLine.length - 1; i++) {
+    const { event, eventX, eventWidth } = eventsOnCurrentLine[i];
+    const { event: nextEvent, eventX: nextEventX } = eventsOnCurrentLine[i + 1];
+    
+    if (x >= eventX + eventWidth && x <= nextEventX) {
+      fallbackAltClickData = {
+        preData: event,
+        lastData: nextEvent,
+        nodeSpacingX: nextEventX - (eventX + eventWidth),
+      };
+      break;
     }
   }
   return {
@@ -1559,9 +1622,7 @@ const resizeCanvases = (processKey, needResizeTimeline = true) => {
   }
 
   for (const [key, process] of processes.entries()) {
-    if (processExpanded.get(key)) {
-      updateProcessSize(process, key, containerRect, layout, lane2line, viewState);
-    }
+    updateProcessSize(process, key, containerRect, layout, lane2line, viewState);
   }
 };
 
@@ -1722,7 +1783,7 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
   }
   const range = Math.abs(endx - startx);
   const timerange = Math.abs(xToTime(endx) - xToTime(startx));
-  let { value, unit } = formatTimeWithUnit(timerange);
+  let { value, unit } = formatTimeWithUnit(timerange * 1000 / tsScale.value);
   const RectWidth = 35;
   const RectHigh = 12;
 
@@ -2038,11 +2099,7 @@ const setPageState = (message) => {
   if (message.config && message.config.showPerformancePanel !== undefined) {
     performanceVisible.value = message.config.showPerformancePanel && !props.isThreeColumn && !isGuidePage.value;
   }
-  if (message.swimData && message.swimData.isMixedAicpuKernel) {
-    isMixedAicpuKernel.value = true;
-  } else {
-    isMixedAicpuKernel.value = false;
-  }
+
   modeOption.value = userConfig.value.kernelColorRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
@@ -2066,6 +2123,86 @@ const onJumpCom = () => {
   server.jumpToComGraph({paramObj: { hash: jumpType }});
 };
 
+const parseCompressedData = (swimInfo) => {
+  const swimData = getReader(swimInfo);
+
+    swimData.lane2line = swimData.computeLane2Line();
+    
+    let processedTasks = [];
+
+    let expandSet = false;
+    for (const processId in swimData.processes) {
+      if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
+      if (!expandSet) {
+        processExpanded.set(processId, true);
+        expandSet = true;
+      } else {
+        processExpanded.set(processId, false);
+      }
+      
+      const process = swimData.processes[processId];
+      for (const threadId in process.threads) {
+        if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
+        const thread = process.threads[threadId];
+        const isCounter = thread.ph === 'C';
+        process.threads[threadId].isCounter = isCounter;
+        
+        let events = [];
+        for (let idx = 0; idx < thread.eventCount; idx++) {
+          const event = thread.getEvent(idx);
+          if (!isCounter) {
+            const dependencies = event.getDependencies();
+            event.dependencies = {};
+            event.dependencies.predecessors = dependencies.predecessors.map(it => it.id);
+            event.dependencies.successors = dependencies.successors.map(it => it.id);
+          } else {
+            processedTasks.push(event);
+          }
+          events.push(event);
+        }
+        process.threads[threadId].events = events;
+      }
+    }
+
+    processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
+    const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
+    const globalMaxTime = processedTasks.reduce((max, e) => {
+      return e.endTime > max ? e.endTime : max;
+    }, -Infinity); 
+
+    for (const processId in swimData.processes) {
+      if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
+      const process = swimData.processes[processId];
+      if (!['kernel', '', undefined].includes(process.type)) { continue }
+      
+      for (const threadId in process.threads) {
+        if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
+        const thread = process.threads[threadId];
+        if (!thread.isFakeCore) { continue }
+        
+        for (let idx = 0; idx < thread.eventCount; idx++) {
+          const event = thread.events[idx];
+          const label = `${event.pid}@${event.tid}`;
+          let lines = [];
+          layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime);
+        }
+      }
+    }
+
+    const computedPmuTotal = swimData.computePmuTotal();
+    computedPmuTotal.icache_hit = 1 - (computedPmuTotal.icache_miss / computedPmuTotal.icache_req);
+    computedPmuTotal.vec_ratio = computedPmuTotal.vec_busy_cycles / computedPmuTotal['total cycle'];
+    computedPmuTotal.cube_ratio = computedPmuTotal.cube_busy_cycles / computedPmuTotal['total cycle'];
+    computedPmuTotal.scalar_ratio = computedPmuTotal.scalar_busy_cycles / computedPmuTotal['total cycle'];
+    computedPmuTotal.mte1_ratio = computedPmuTotal.mte1_busy_cycles / computedPmuTotal['total cycle'];
+    computedPmuTotal.mte2_ratio = computedPmuTotal.mte2_busy_cycles / computedPmuTotal['total cycle'];
+    computedPmuTotal.mte3_ratio = computedPmuTotal.mte3_busy_cycles / computedPmuTotal['total cycle'];
+
+    swimData.pmu_total = computedPmuTotal;
+    
+    return swimData;
+};  
+
 // 生命周期钩子
 onMounted(async () => {
   setupSwimWatchers();
@@ -2073,15 +2210,12 @@ onMounted(async () => {
   loading.value = true;
   labelRender.value = true;
   const {
-    server: { getSwimData, getOtherData },
+    server: { getCompressedData, getOtherData, getData },
   } = useViewServer();
 
   loading.value = true;
   let data = {};
   const state = pullState();
-  const Reader = await getSwimData({swimDataPath:state.swimDataPath});
-  const originalReader = Reader.getReader();
-  let result = await originalReader.read();
   loadingText.value = $t('receiveTraceData');
 
   const resData = await getQuery();
@@ -2092,30 +2226,41 @@ onMounted(async () => {
   }
   isGuidePage.value = resData?.isBootStep;
 
-  while (!result.done) {
-    const val = result.value;
-    if (val.type == 'first') {
-      data.swimData = val.data;
-    } else {
-      data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
-    }
-    result = await originalReader.read();
-  }
-
   try {
     const res = await getOtherData();
     data.config = res.configuration;
     data.comGraphPath = res.comGraphPath;
     data.swimPath = res.swimPath;
     fileName.value = res.title;
+    isPerfSwim.value = res.isPerfSwim;
   } catch (err) {
     console.log('parse other data error:', err);
+  }
+
+  const swimInfo = await getData({swimDataPath:state.swimDataPath}); 
+
+  loadingText.value = $t('receiveTraceData');
+
+  if (swimInfo.meta) {
+    data.swimData = parseCompressedData(swimInfo);
+  } else {
+    const originalReader = swimInfo.getReader();
+    let result = await originalReader.read();
+    while (!result.done) {
+      const val = result.value;
+      if (val.type == 'first') {
+        data.swimData = val.data;
+      } else {
+        data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
+      }
+      result = await originalReader.read();
+    }
   }
 
   setPageState(data);
   loadTraceData(data.swimData);
 
-  if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
+  if (BlockToGraphMap.value[currentActiveBlock.value] && BlockToGraphMap.value[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
 
@@ -2127,6 +2272,20 @@ const containerStyles = computed(() => ({
   overflowY: isMixedAicpuKernel.value ? 'hidden' : 'auto',
   scrollbarGutter: !isMixedAicpuKernel.value ? 'stable' : 'auto'
 }));
+
+const containerWidth = computed(() => {
+  if (!swimlaneContainer.value) {
+    return 0;
+  }
+  return swimlaneContainer.value.clientWidth || 0;
+});
+
+const containerHeight = computed(() => {
+  if (!swimlaneContainer.value) {
+    return 0;
+  }
+  return swimlaneContainer.value.clientHeight || 0;
+});
 
 defineExpose({
   setPageState,
@@ -2159,6 +2318,7 @@ provide('swimGraphPinnedState', {
  
 // 提供状态给子组件
 provide('swimGraphState', {
+  tsScale,
   timelineComponent,
   viewState,
   layout,
@@ -2167,6 +2327,7 @@ provide('swimGraphState', {
   sliderMax,
   sliderMaxCount,
   initialScale,
+  lastSelected,
   selectedEvent,
   canvasclickedEvent,
   pathLockedEvent,
@@ -2178,7 +2339,6 @@ provide('swimGraphState', {
   detailsCoresExpanded,
   swimlaneContainer,
   lane2line,
-  id2event,
   timelineState,
   childContextMap,
   tooltip,
@@ -2229,6 +2389,7 @@ provide('swimGraphState', {
   pinnedthreadsComponent,
   aicpuScheduleMaps,
   kernelThreadData,
+  isPerfSwim
 });
 
 // 提供方法给子组件

@@ -91,7 +91,6 @@ const timeType = ref('id');
 let subGraphId = ref('');
 const dataSource = ref([]);
 const leafIndexName = ref($t('subgraphBasedLeafIndex'));
-const mod = 1000;
 const barStep = ref(1);
 const barColor = ref('rgba(0, 117, 102, 1)');
 const {
@@ -204,6 +203,7 @@ let showSubGraphTimingChart = ref(false);
 const stats = new Map();
 const { isSearchActive } = inject('swimGraphSearch');
 const {
+    tsScale,
     highlightedPaths,
     detailsPanelExpanded,
     mulDetailsExpanded,
@@ -215,6 +215,7 @@ const {
     measureDragStartTime,
     measureDragEndTime,
     selectedEvent,
+    lastSelected,
     isPathLockStatus,
     processExpanded,
     isWideScreen,
@@ -246,6 +247,7 @@ const {
 provide('swimGraphPmuBarMethod', {
     clickTask
 });
+const mod = tsScale.value;
 const customBarCount = isWideScreen.value ? ref(20) : ref(10);
 const onCellClick = async (params) => {
     if (isSearchActive.value) {
@@ -256,6 +258,7 @@ const onCellClick = async (params) => {
     }
     highlightedPaths.clear();
     selectedEvent.value = null;
+    lastSelected.value = null;
     const processKey = await findProcessKey(params.row.semanticLabel);
     if (!processKey) {
         return;

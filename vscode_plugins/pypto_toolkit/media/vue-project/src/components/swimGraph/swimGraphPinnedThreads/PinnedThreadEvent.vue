@@ -307,10 +307,10 @@ const pinnedRender = () => {
   clearCanvases();
   // 实现渲染逻辑
   let threadY = 0;
-  const { threadHeight, eventHeight } = layout;
   pinnedThreadsList.value.forEach(item => {
     childContextMap.threadEvent.renderProcessPinEvents(item.thread, eventsCtx, threadY, item.processKey);
-    const lineCount = lane2line.get(`${item.processKey}@${item.threadKey}`) || 1;
+    const threadKey = item.thread.isCounter ? item.thread.threadName : item.thread.tid;
+    const lineCount = lane2line.get(`${item.processKey}@${threadKey}`) || 1;
     threadY += layout.threadHeight * lineCount;
   });
   childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, true);

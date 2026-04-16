@@ -30,6 +30,7 @@ import {
   ISwimApis,
   ISwimRefs,
 } from './view-server-interface';
+import { readFirstNLines } from '../../utils/file-system';
 
 type Apis = IComApis | ICommonApis | IThreeApis | ISwimApis;
 
@@ -229,8 +230,17 @@ export class ThreeColumnServer
   };
   @viewApi()
   public getSwimData = async (message) => {
-    if(message.swimDataPath){
+    if (message.swimDataPath) {
       this.swimDataPath = message.swimDataPath;
+    }
+    if (!this.swimDataPath) {
+      return;
+    }
+    const content = ((await readFirstNLines(this.swimDataPath, 10)) as string[]).join('');
+    const isGoogleFormat = content.includes('traceEvents');
+    if (!isGoogleFormat) {
+      this.setRef('dataError', { msg: t('pypto.threeCol.notTraceFormat')});
+      return;
     }
     const packages = await SwimGraphMsgHandler.getSwimData(this, true);
     if (packages) {
@@ -239,8 +249,36 @@ export class ThreeColumnServer
     return;
   };
   @viewApi()
+  public getData = async (message) => {
+    if (message.swimDataPath) {
+      this.swimDataPath = message.swimDataPath;
+    }
+    if (!this.swimDataPath) {
+      return;
+    }
+    const content = ((await readFirstNLines(this.swimDataPath, 10)) as string[]).join('');
+    const isGoogleFormat = content.includes('traceEvents');
+    if (!isGoogleFormat) {
+      this.setRef('dataError', { msg: t('pypto.threeCol.notTraceFormat')});
+      return;
+    }
+    const data = await SwimGraphMsgHandler.getData(this);
+    if (Array.isArray(data)) {
+      return stream.Readable.toWeb(stream.Readable.from(data!));
+    }
+    return data;
+    return;
+  };
+  @viewApi()
   public getOtherData = async () => {
     return await SwimGraphMsgHandler.getOtherData(this);
+  };
+  @viewApi()
+  public getCompressedData = async (message) => {
+    if(message.swimDataPath){
+      this.swimDataPath = message.swimDataPath;
+    }
+    return await SwimGraphMsgHandler.getCompressedData(this);
   };
   @viewApi()
   public bindComGraphJson = async () => {

@@ -137,6 +137,7 @@ export default {
     'renderConfig': '渲染配置',
     'globalConfig': '全局配置',
     'aicpuConfig': 'AICPU 视图',
+    'pypto3Config':'pypto3.0 视图',
     'kernelConfig': 'Kernel 视图',
     'clockCycle': '时钟周期',
    'throughout': '吞吐量',

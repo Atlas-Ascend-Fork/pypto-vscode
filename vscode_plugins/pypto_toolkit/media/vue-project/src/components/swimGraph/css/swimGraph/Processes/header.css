@@ -42,6 +42,10 @@
   border-bottom: 1px solid var(--devui-swim-split-line);
 }
 
+.process-header-line-collapsed {
+  z-index: 0;
+}
+
 .process-header-label,
 .process-header-line {
   background-color: var(--devui-input-hover-bg);

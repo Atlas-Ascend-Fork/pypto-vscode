@@ -15,7 +15,7 @@
           <div class="left-scheduling-gap-container">
             <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title">{{maxSchedulingGap}}(μs)</div>
-              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap / 1000}}</div>
+              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap / tsScale}}</div>
             </div>
           </div>
           <div class="split-line" :style="{ height: `${54 + 52 * (maxGap.length -1 )}px` }"/>
@@ -36,7 +36,7 @@
                   </div>
                 </d-tooltip>
                 <div class="max-scheduling-gap-item-middle-container">
-                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / 1000}} μs</div>
+                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / tsScale}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
                       '--left-color': baseColor(item.parent),
@@ -200,6 +200,7 @@ import { getBaseColor, getLightColor } from '../swimGraphProcesses/processInfo';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import TimeStatistics from './timeStatistics/timeStatistics.vue';
 import { executionTimeData } from './utils';
+import { swimDataManager } from '../swimData';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -263,6 +264,7 @@ const {
 } = inject('swimGraphPmuTotal');
 
 const {
+  tsScale,
   viewState,
   sliderValue,
   sliderMax,
@@ -373,139 +375,147 @@ const closeStatistics = () => {
   performanceWidth.value = 0;
 };
 
-const buildTaskEventMap = (process) => {
-  const eventMap = new Map();
-  for (const [, thread] of process.threads) {
-    if (thread.isCounter || thread.isFakeCore) {
+const formatGapValue = (gap) => {
+  return Number.isInteger(gap) ? gap : parseFloat(gap.toFixed(3));
+};
+
+const getEventDuration = (event) => {
+  return event.duration || (event.endTime - event.startTime);
+};
+
+const updateExtremeValues = (
+  event,
+  taskDur,
+  stats
+) => {
+  if (taskDur > stats.maxTime) {
+    stats.maxTime = taskDur;
+    stats.maxTimeEvents = [event];
+  } else if (taskDur === stats.maxTime) {
+    stats.maxTimeEvents.push(event);
+  }
+
+  if (taskDur < stats.minTime) {
+    stats.minTime = taskDur;
+    stats.minTimeEvents = [event];
+  } else if (taskDur === stats.minTime) {
+    stats.minTimeEvents.push(event);
+  }
+};
+
+const calculateGapStatistics = (
+  event,
+  stats
+) => {
+  for (const childId of event.dependencies.successors) {
+    const child = swimDataManager.getEventById(childId);
+    if (!child) {
       continue;
     }
-    for (const event of thread.events) {
-      eventMap.set(event.id, event);
+
+    const gap = child.startTime - event.endTime;
+    
+    if (gap > stats.maxGap) {
+      stats.maxGap = gap;
+      stats.maxGapEvents = [{
+        parent: event,
+        child,
+        gap: formatGapValue(gap)
+      }];
+    } else if (gap === stats.maxGap) {
+      stats.maxGapEvents.push({
+        parent: event,
+        child,
+        gap: formatGapValue(gap)
+      });
     }
   }
-  return eventMap;
 };
 
 const calculateStatistics = () => {
-  const processesArray =  Array.from(processes.entries())
-  .filter(([key, value]) => !isMixedAicpuKernel.value || value.type === 'kernel')
-  .map(([key, value]) => {
-    return {
-      key,
-      ...value
-    };
-  });
+  const stats = {
+    maxTime: -Infinity,
+    minTime: Infinity,
+    maxGap: -Infinity,
+    maxTimeEvents: [],
+    minTimeEvents: [],
+    maxGapEvents: []
+  };
 
-  const globalEventMap = {};
+  const mod = tsScale.value;
 
-  for (const process of processesArray) {
-    if (['kernel', ''].includes(process.type)) {
-      globalEventMap[process.pid] = buildTaskEventMap(process);
+  for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
+    if (isMixedAicpuKernel.value && processInfo.type !== 'kernel') {
+      continue;
     }
-  }
-    
-  let tMaxGap = -Infinity;
-  let tMaxTimeTask = -Infinity;
-  let tMinTimeTask = Infinity;
-      
-  let curMaxGap = [];
-  let curMaxTimeTask = [];
-  let curMinTimeTask = [];
 
-  const mod = 1000;
-
-  for (const eventMap of Object.values(globalEventMap)) {
-    for (const event of eventMap.values()) {
-      let taskDur = 0;
-      if (event.duration) {
-        taskDur = event.duration;
-      } else {
-        taskDur = event.endTime - event.startTime;
-      }
-      
-      if (taskDur > tMaxTimeTask) {
-        tMaxTimeTask = taskDur;
-        curMaxTimeTask = [event];
-      } else if (taskDur == tMaxTimeTask) {
-        curMaxTimeTask.push(event);
+    for (const threadInfo of Array.from(processInfo.threads.values())) {
+      if (threadInfo.isCounter || threadInfo.threadName.includes('Fake Core')) {
+        continue;
       }
 
-      if (taskDur < tMinTimeTask) {
-        tMinTimeTask = taskDur;
-        curMinTimeTask = [event];
-      } else if (taskDur == tMinTimeTask) {
-        curMinTimeTask.push(event);
-      }
-
-      for (const childId of event.dependencies.successors) {
-        const child = eventMap.get(childId);
-        if (!child) {
+      for (const eventId of threadInfo.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (!event) {
           continue;
         }
-        const gap = child.startTime - event.endTime;
-        if (gap > tMaxGap) {
-          tMaxGap = gap;
-          let printGap = 0;
-          if (Number.isInteger(gap)) {
-            printGap = gap;
-          } else {
-            printGap = parseFloat(gap.toFixed(3));
-          }
-          curMaxGap = [{parent: event, child, gap: printGap}];
-        } else if (gap == tMaxGap) {
-          let printGap = 0;
-          if (Number.isInteger(gap)) {
-            printGap = gap;
-          } else {
-            printGap = parseFloat(gap.toFixed(3));
-          }
-          curMaxGap.push({parent: event, child, gap: printGap});
-        }
+
+        const taskDur = getEventDuration(event);
+        updateExtremeValues(event, taskDur, stats);
+        calculateGapStatistics(event, stats);
       }
     }
   }
 
-  tMaxTimeTask = tMaxTimeTask / mod;
-  tMinTimeTask = tMinTimeTask / mod;
+  const maxTimeTaskValue = stats.maxTime / mod;
+  const minTimeTaskValue = stats.minTime / mod;
 
-  maxGap.value = curMaxGap;
-  maxTimeTask.value = curMaxTimeTask;
-  maxTimeTaskVal.value = Number.isInteger(tMaxTimeTask) ? tMaxTimeTask : parseFloat(tMaxTimeTask.toFixed(3));
-  minTimeTask.value = curMinTimeTask;
-  minTimeTaskVal.value = Number.isInteger(tMinTimeTask) ? tMinTimeTask : parseFloat(tMinTimeTask.toFixed(3));
+  maxGap.value = stats.maxGapEvents;
+  maxTimeTask.value = stats.maxTimeEvents;
+  maxTimeTaskVal.value = Number.isInteger(maxTimeTaskValue) ? maxTimeTaskValue : parseFloat(maxTimeTaskValue.toFixed(3));
+  minTimeTask.value = stats.minTimeEvents;
+  minTimeTaskVal.value = Number.isInteger(minTimeTaskValue) ? minTimeTaskValue : parseFloat(minTimeTaskValue.toFixed(3));
 };
 
 
 const calculateAicoreInfo = () => {
   let aicTaskTimeSum = 0;
   let totalCnt = 0;
-  const kernelTimeInfo = [];
   let minTs = Infinity;
   let maxTs = -Infinity;
-  for (const [processKey, processVal] of processes) {
-    if (!['kernel', ''].includes(processVal.type)) {
+
+  for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
+    if (!['kernel', '', 'PerfSwim', undefined].includes(processInfo.type)) {
       continue;
     }
-    kernelTimeInfo.push(processVal.timeInfo);
-    for (const [threadKey, threadVal] of processVal.threads) {
-      if (threadVal.isCounter || threadVal.isFakeCore) {
+
+    for (const threadInfo of Array.from(processInfo.threads.values())) {
+      if (threadInfo.isCounter || threadInfo.isFakeCore) {
         continue;
       }
-      if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
+
+      const threadName = threadInfo.threadName.toLowerCase();
+      if (!threadName.startsWith('aic') && !threadName.startsWith('aiv')) {
         continue;
       }
-      totalCnt = totalCnt + 1;
-      for (const event of threadVal.events) {
-        aicTaskTimeSum = aicTaskTimeSum + (event.duration ? event.duration : 0);
+
+      totalCnt += 1;
+
+      for (const eventId of threadInfo.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (!event) {
+          continue;
+        }
+
+        aicTaskTimeSum += event.duration || 0;
         minTs = Math.min(event.startTime, minTs);
         maxTs = Math.max(event.endTime, maxTs);
       }
     }
   }
 
-  aicoreTime.value = parseFloat((aicTaskTimeSum / 1000).toFixed(2));
-  const range = (maxTs - minTs) / 1000;
-  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * range))).div(new BigNumber('1000'));
+  aicoreTime.value = parseFloat((aicTaskTimeSum / tsScale.value).toFixed(2));
+  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value))).div(new BigNumber(tsScale.value));
   aicoreRate.value = parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
 };
 
@@ -515,10 +525,12 @@ const initializePerformance = () => {
   isCfgEditing.value = false;
   isShortcutKeyShow.value = false;
 
+  const mod = tsScale.value;
+
   if (Number.isInteger(viewState.timeRange)) {
-    taskTime.value = viewState.timeRange / 1000;
+    taskTime.value = viewState.timeRange / mod;
   } else {
-    taskTime.value = (viewState.timeRange / 1000).toFixed(2);
+    taskTime.value = (viewState.timeRange / mod).toFixed(2);
   }
 
   if (isAicpu.value) {
@@ -528,7 +540,7 @@ const initializePerformance = () => {
     calculateAicoreInfo();
   }
   
-  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0) {
+  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0 || pmuTotal.value['total cycle'] === 0) {
     cubeRateCycle.value = '/';
     vectorRateCycle.value = '/';
     cubeTimePercentage.value = '/';

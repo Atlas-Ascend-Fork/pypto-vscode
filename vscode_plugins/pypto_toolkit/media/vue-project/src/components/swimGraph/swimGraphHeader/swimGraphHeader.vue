@@ -109,6 +109,7 @@ const { t: $t } = useI18n();
 const { server } = useViewServer();
 // 注入父组件提供的状态和方法
 const {
+  tsScale,
   viewState,
   sliderValue,
   sliderMax,
@@ -118,6 +119,7 @@ const {
   processes,
   detailsPanelExpanded,
   selectedEvent,
+  lastSelected,
   highlightedPaths,
   swimlaneContainer,
   isMeasureModel,
@@ -280,7 +282,7 @@ const calculateAicoreInfo = () => {
     }
   }
 
-  aicoreTime.value = betterShow(aicTaskTimeSum / 1000);
+  aicoreTime.value = betterShow(aicTaskTimeSum / tsScale.value);
   const aicoreRateValue = aicTaskTimeSum / (totalCnt * viewState.timeRange);
   aicoreRate.value = betterShow(aicoreRateValue * 100) + '%';
 };
@@ -602,18 +604,34 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
 // 绘制 Process 的各图层（bg, event, dep 等）
 function drawProcessLayers(ctx, processKey, y, width, height) {
   const { processLabelWidth } = layout;
-  const selectors = [
+  let selectors = [
     `[data-background-process-key="${processKey}"]`,
     `[data-process-key="${processKey}"]`,
-    `[data-dep-process-key="${processKey}"]`,
+    isMixedAicpuKernel.value ? `[data-dep-process-key="${processKey}"]` : `.global-connection-canvas`,
     `[data-selection-process-key="${processKey}"]`,
     `[data-ui-process-key="${processKey}"]`,
     `[data-line-process-key="${processKey}"]`
   ];
+  const selectedProcessKey = selectedEvent.value?.pid?.toString() ?? null;
+  if (!isMixedAicpuKernel.value && selectedProcessKey && processKey != selectedProcessKey) {
+    selectors = [
+      `[data-background-process-key="${processKey}"]`,
+      `[data-process-key="${processKey}"]`,
+      `[data-selection-process-key="${processKey}"]`,
+      `[data-ui-process-key="${processKey}"]`,
+      `[data-line-process-key="${processKey}"]`
+    ];
+  }
+  const globalRef = document.querySelector('.global-connection-canvas');
+  const globalHeight = globalRef ? globalRef.height : 0;
+  const offsetHeight = globalRef ? getCanvasOffsetHeight() : 0;
   for (const selector of selectors) {
     const canvasEl = document.querySelector(selector);
     if (canvasEl) {
-      ctx.drawImage(canvasEl, processLabelWidth, y, width, height);
+      const isGlobalCanvas = (selector === '.global-connection-canvas');
+      const drawY = isGlobalCanvas ? y - offsetHeight : y;
+      const drawHeight = isGlobalCanvas ? globalHeight : height;
+      ctx.drawImage(canvasEl, processLabelWidth, drawY, width, drawHeight);
       if (isMeasureModel.value && canvasEl.hasAttribute('data-process-key')) {
         const totalExportWidth = processLabelWidth + width;
         const g = ctx.createLinearGradient(0, 0, totalExportWidth, 0);
@@ -626,16 +644,38 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
         ctx.save();
         // 限制绘制区域为当前 Process 的 body 区域（避免影响其他部分）
         ctx.beginPath();
-        ctx.rect(processLabelWidth, y, width, height);
+        ctx.rect(processLabelWidth, drawY, width, drawHeight);
         ctx.clip();
         // 绘制遮罩
         ctx.fillStyle = g;
-        ctx.fillRect(processLabelWidth, y, width, height);
+        ctx.fillRect(processLabelWidth, drawY, width, drawHeight);
         // 恢复
         ctx.restore();
       }
     }
   }
+}
+function getCanvasOffsetHeight() {
+  const ROW_GAP = 30; 
+  const selectedKey = selectedEvent.value?.pid?.toString();
+  if (!selectedKey) {
+    return 0;
+  }
+  let currentOffset = 0;
+  for (const [key, process] of processes.entries()) {
+    const isExpanded = processExpanded.get(key);
+    const canvasRef = document.querySelector(`[data-process-key="${key}"]`);
+    const canvasHeight = canvasRef ? canvasRef.height : 0;
+    if (selectedKey === key) {
+      return currentOffset + ROW_GAP; 
+    }
+    if (isExpanded) {
+      currentOffset += (canvasHeight + ROW_GAP);
+    } else {
+      currentOffset += ROW_GAP;
+    }
+  }
+  return currentOffset;
 }
 function drawProcessHeaderLayers(ctx, processKey, y, width) {
   const { processLabelWidth } = layout;
@@ -852,7 +892,7 @@ const clearSearchData = () => {
     if (!processExpanded.get(processkey)) {
       continue;
     }
-    selectEvent(null, processkey);
+    selectEvent(null, processkey, false, true);
     if (detailsPanelExpanded.value) {
       detailsPanelExpanded.value = false;
     }
@@ -881,6 +921,7 @@ const navigateResults = (direction) => {
 const selectEventChild = (event) => {
   searchedEvent.value = event;
   selectedEvent.value = null;
+  lastSelected.value = null;
   detailsPanelExpanded.value = false;
   highlightedPaths.clear();
   highlightedPaths.add(event.id);

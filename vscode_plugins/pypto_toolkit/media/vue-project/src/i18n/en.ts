@@ -135,6 +135,7 @@ export default {
     'renderConfig': 'Render Config',
     'globalConfig': 'Global Config',
     'aicpuConfig': 'AICPU View',
+    'pypto3Config':'pypto3.0 View',
     'kernelConfig': 'Kernel View',
     'clockCycle': 'Clock Cycle',
     'throughout': 'throughout',

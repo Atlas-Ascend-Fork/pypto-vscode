@@ -40,6 +40,15 @@
             </div>
         </div>
 
+        <div class="cfg-section" v-if="showPerfConfig">
+            <div class="cfg-line"></div>
+            <div class="cfg-section-title">{{ $t('pypto3Config') }}</div>
+            <div class="cfg-Shading-mode">
+                <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
+                <d-select v-model="perfModeOption" :options="perfModeOptions" size="sm" @update:modelValue="OnPerfModeChange"></d-select>
+            </div>
+        </div>
+
         <div class="cfg-section" v-if="showKernelConfig">
             <div class="cfg-line"></div>
             <div class="cfg-section-title">{{ $t('kernelConfig') }}</div>
@@ -75,6 +84,7 @@ const {
     isPathLockStatus,
     isAicpu,
     isMixedAicpuKernel,
+    isPerfSwim
 } = inject('swimGraphState');
 
 const {
@@ -107,15 +117,25 @@ const showAicpuConfig = computed(() => {
   return isAicpu.value || isMixedAicpuKernel.value;
 });
 
+const showPerfConfig = computed(() => {
+  return isPerfSwim.value;
+});
+
 const showKernelConfig = computed(() => {
-  return !isAicpu.value;
+  return !isAicpu.value && !isPerfSwim.value;
 });
 
 const aicpuModeOptions = computed(() => {
   return [{name: $t('name'), value: 'name'}];
 });
 
+const perfModeOptions = computed(() => {
+  return [{name: $t('name'), value: 'perfName'}];
+});
+
 const aicpuModeOption = ref('name');
+
+const perfModeOption = ref('perfName');
 
 const kernelModeOptions = computed(() => {
   if (isThreeColumn) {
@@ -192,6 +212,36 @@ function saveAicpuRendingMode(colorRenderMode) {
     server.saveRendingMode({paramObj: JSON.stringify({ aicpuColorRending: colorRenderMode })});
 };
 
+const updatePerfEvents = (mode) => {
+    for (const process of processes.values()) {
+        if (!process.isRendered) {
+            continue;
+        }
+        for (const thread of process.threads.values()) {
+            for (const event of thread.events) {
+                if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
+                    const color = getEventColorByMode(event, mode);
+                    event.color = color;
+                    const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
+                    event.drawData.rectColor = fillColor;
+                    event.drawData.strokeColor = strokeColor;
+                    event.drawData.fontColor = fontColor;
+                }
+            }
+        }
+    }
+};
+
+const OnPerfModeChange = () => {
+    updatePerfEvents(perfModeOption.value);
+    transform();
+    savePerfRendingMode(perfModeOption.value); 
+};
+
+function savePerfRendingMode(colorRenderMode) {
+    server.saveRendingMode({paramObj: JSON.stringify({ perfColorReding: colorRenderMode })});
+};
+
 const updateKernelEvents = (mode) => {
     const {startTime, endTime} = timelineState;
     const updateEventColors = (event) => {
@@ -255,6 +305,7 @@ defineExpose({
 
 watch(userConfig, () => {
     aicpuModeOption.value = userConfig.value.aicpuColorRending;
+    perfModeOption.value = userConfig.value.perfColorReding;
     kernelModeOption.value = userConfig.value.kernelColorRending;
     kernelTextOption.value = userConfig.value.kernelTextRending;
 });

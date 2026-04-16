@@ -37,7 +37,7 @@
       </div>
       <div 
         class="threads-box" 
-        v-if="isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')" 
+        v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')" 
         :style="{'--thread-fill-width': threadFillWidth(threadEntry[1].threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].threadName, selectedOption)) + '%', 
         }"
       >
@@ -100,6 +100,14 @@ const isAicpuProcess = computed(() => {
   return false;
 });
 
+const isPrefProcess = computed(() => {
+  const process = processes.get(props.processKey);
+  if (process) {
+    return process.type === 'PerfSwim';
+  }
+  return false;
+});
+
 const calculateThreadCycles = (allProcesses, proKey) => {
   if (isAicpuProcess.value) {
     cycleDisplay.value = 'none';
@@ -116,7 +124,12 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     let icacheReq = 0n;
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
       for (const event of thread.events) {
-        if (!event['pmu_info']) {
+        if (!event['pmu_info'] || Object.keys(event['pmu_info']).length === 0) {
+          cycleDisplay.value = 'none';
+          options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
+          return [null, null];
+        }
+        if (event['pmu_info']['total cycle'] == 0 || event['pmu_info']['total cycle']==undefined) {
           continue;
         }
         hasPmu = true;
@@ -144,7 +157,9 @@ const calculateThreadTask = (allProcesses, proKey) => {
   const { threads = new Map() } = currentProcess || {};
   
   for (const [threadKey, thread] of threads) {
-    if (isAicpuProcess.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+    const typeValided = isPrefProcess.value || isAicpuProcess.value;
+    const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
+    if (typeValided || nameValided) {
       threadTaskMap.set(thread.threadName, thread.events.length);
     }
   }
@@ -166,8 +181,10 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
   
   let utilization = 0;
   let eventTime = 0;
-  for(const [threadKey, thread] of threads) {
-    if (isAicpuProcess.value || thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+  for (const [threadKey, thread] of threads) {
+    const typeValided = isPrefProcess.value || isAicpuProcess.value;
+    const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
+    if (typeValided || nameValided) {
       for (const event of thread.events) {
         eventTime = eventTime + (event.endTime - event.startTime);
       }

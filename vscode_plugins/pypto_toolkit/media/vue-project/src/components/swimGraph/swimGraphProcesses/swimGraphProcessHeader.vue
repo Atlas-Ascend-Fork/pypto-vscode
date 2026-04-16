@@ -1,5 +1,5 @@
 <template>
-  <div class="process-header" @click="handleToggleProcess">
+  <div class="process-header" :class="{'process-header-line-collapsed': !isExpanded}" @click="handleToggleProcess">
     <div class="process-header-label" @mouseover.stop="handleMouseOver">
       <div class="label_one">
         <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>

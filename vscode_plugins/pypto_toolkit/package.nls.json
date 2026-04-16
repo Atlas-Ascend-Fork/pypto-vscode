@@ -121,6 +121,7 @@
   "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
   "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph",
   "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration",
+  "pypto.threeCol.notTraceFormat": "The three-column view only allows selection of swimlane plots using the Google Trace Array Format.",
   "pypto.swimGraph.validate.processWithPid": "Missing Required keys in process pid:{{pid}}",
   "pypto.swimGraph.validate.process": "Missing Required keys in processes",
   "pypto.entry.fileTooLarge": "The file is too large, command-line tools can't retrieve its info. Please right-click the JSON file and select 'PyPTO Toolkit: Open File' from the context menu to visualize it.",
