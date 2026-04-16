@@ -44,8 +44,8 @@
             <PathList v-if="currentStep === 'comGraph'" />
             <div v-if="currentStep === 'comGraph' && pathName !== 'program'" class="pass-leaf-wrap">
               <PassList ref="passEl" />
-              <div v-if="leafFunctions.length" class="dividing-line"></div>
-              <LeafFunctionCom v-if="leafFunctions.length" />
+              <div v-if="leafFunctions?.length" class="dividing-line"></div>
+              <LeafFunctionCom v-if="leafFunctions?.length" />
             </div>
           </template>
         </div>

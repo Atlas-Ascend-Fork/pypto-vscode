@@ -11,11 +11,20 @@ const MINIMAP_HEIGHT = 160;
 const MINIMAP_PADDING = 10;
 
 /** 缩略图 */
-export function useMinimap(graph: Ref<Graph>) {
+export function useMinimap(graph: Ref<Graph>, offsetRight: Ref<number> = ref(0)) {
   const minimapRef = ref<HTMLElement | null>(null);
   /** 缩略图容器 */
   const MinimapContainer: Component = () =>
-    h('div', { ref: minimapRef, style: { width: `${MINIMAP_WIDTH}px`, height: `${MINIMAP_HEIGHT}px` }, onClick: handleClickMinimap });
+    h('div', {
+      ref: minimapRef,
+      style: {
+        width: `${MINIMAP_WIDTH}px`,
+        height: `${MINIMAP_HEIGHT}px`,
+        '--minimap-offset-right':`${offsetRight.value}px`
+      },
+      onClick: handleClickMinimap,
+      class:'minimap-container'
+    });
 
   /** G6缩略图插件配置 */
   const minimapPluginOptions = computed<MinimapOptions>(() => {

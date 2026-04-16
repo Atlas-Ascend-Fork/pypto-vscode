@@ -51,6 +51,8 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'FuncTree',
   'GlobalSearchResult',
   'HealthyReport',
+  'AccurancyReport',
+  'AccurancyDetail',
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
@@ -182,6 +184,18 @@ export class ThreeColumnServer
   @viewApi()
   public getHealthyReport = async () => {
     await ComGraphHandler.getHealthyReport(this);
+  };
+  @viewApi()
+  public getAccurancyReport = async (message) => {
+    await ComGraphHandler.getAccurancyReport(this, message);
+  };
+  @viewApi()
+  public searchAccurancySumList = async (message) => {
+    await ComGraphHandler.searchAccurancySumList(this, message);
+  };
+  @viewApi()
+  public getAccurancyDetail = async (message) => {
+    await ComGraphHandler.getAccurancyDetail(this, message);
   };
   @viewApi()
   public innerGetSubgraph = async (message) => {

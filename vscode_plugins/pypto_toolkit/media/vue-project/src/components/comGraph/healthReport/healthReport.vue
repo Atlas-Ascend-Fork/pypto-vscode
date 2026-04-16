@@ -1,25 +1,15 @@
 <template>
-  <Teleport to="body">
-    <Transition name="drawer-fade">
-      <div v-if="modelValue" ref="drawerEl" :class="['health-report', graphName]">
-        <div class="health-report-header">
-          <span class="title">{{ t('healthReport') }}{{ graphName && ` - ${GraphMap[graphName]}` }}</span>
-          <em class="icon icon-close" @click="() => emits('update:modelValue', false)"></em>
-        </div>
-        <div :class="['health-report-content', !graphName && 'no-report']">
-          <TensorGraph v-if="graphName === 'TensorGraph'" />
-          <TileGraph v-if="graphName === 'TileGraph'" />
-          <BlockGraph v-if="graphName === 'BlockGraph'" />
-          <ExecuteGraph v-if="graphName === 'ExecuteGraph'" />
-          <div v-if="!graphName" class="no-data">{{ t('comGraph.noHealthReport') }}</div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <div :class="['health-report-content', !graphName && 'no-report']">
+    <TensorGraph v-if="graphName === 'TensorGraph'" />
+    <TileGraph v-if="graphName === 'TileGraph'" />
+    <BlockGraph v-if="graphName === 'BlockGraph'" />
+    <ExecuteGraph v-if="graphName === 'ExecuteGraph'" />
+    <div v-if="!graphName" class="no-data">{{ t('comGraph.noHealthReport') }}</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { watch, ref, provide } from 'vue';
+import { provide, inject, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { HealthReportProvideKey } from './types';
 import TensorGraph from './tensorGraph.vue';
@@ -27,41 +17,16 @@ import TileGraph from './tileGraph.vue';
 import BlockGraph from './blockGraph.vue';
 import ExecuteGraph from './executeGraph.vue';
 import { comGraphStore } from '../../../service/com-graph-store';
-import { useClickOutside } from '../hooks/use-click-outside';
-import { useViewServer } from '../../../core/use-view-server';
-import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { ComGraphReportProvideKey } from '../type';
+import type { ComGraphReportContext } from '../type';
 
-const { server } = useViewServer<IComViewServer>();
 const { t } = useI18n();
-const props = defineProps({
-  modelValue: Boolean,
-});
-const emits = defineEmits(['update:modelValue', 'onLocate', 'open', 'locateSubgraph']);
+const { graphName, jsonData, rootEmits } = inject(ComGraphReportProvideKey) as ComGraphReportContext;
 
-const { drawerEl } = useClickOutside(props, emits);
-const graphName = ref('');
-const jsonData = ref();
-
-const GraphMap = {
-  TensorGraph: 'Tensor Graph',
-  TileGraph: 'Tile Graph',
-  ExecuteGraph: 'Execute Graph',
-  BlockGraph: 'Block Graph',
-};
 let OpMap: Record<number, string> = {};
 let TensorMap: Record<number, string> = {};
 let OpSubgraphMap: Record<number, any> = {};
 let TensorSubgraphMap: Record<number, any> = {};
-watch(server.HealthyReport, (newValue) => {
-  Object.keys(newValue.data).forEach((key) => {
-    if (newValue.data[key]) {
-      graphName.value = key;
-      jsonData.value = newValue.data[key];
-      emits('open', key);
-    }
-  });
-});
-
 
 const generateOpMap = (operations: Array<Record<string, any>>) => {
   if (!Array.isArray(operations)) {
@@ -93,18 +58,6 @@ const generateTensorMap = (jsonData: Record<string, any>) => {
   }
 };
 
-watch(
-  () => props.modelValue,
-  (val) => {
-    if (val) {
-      server.getHealthyReport();
-      const jsonData: any = comGraphStore.data.jsonData;
-      generateOpMap(jsonData.operations);
-      generateTensorMap(jsonData);
-    }
-  },
-);
-
 const getNodesBySubgraphId = (id: number) => {
   return [
     ...(TensorSubgraphMap[id] ? Object.values(TensorSubgraphMap[id]) : []),
@@ -115,14 +68,14 @@ const getNodesBySubgraphId = (id: number) => {
 const locateNode = (nodeId: number, type: 'op' | 'tensor' | 'subgraph') => {
   if (type === 'op') {
     if (OpMap[nodeId]) {
-      emits('onLocate', OpMap[nodeId]);
+      rootEmits('onLocate', OpMap[nodeId]);
     } else {
       (window as any).ascEventBus.emit('message_notice', t('comGraph.locateNodeError'));
     }
   }
   if (type === 'tensor') {
     if (TensorMap[nodeId]) {
-      emits('onLocate', TensorMap[nodeId]);
+      rootEmits('onLocate', TensorMap[nodeId]);
     } else {
       (window as any).ascEventBus.emit('message_notice', t('comGraph.locateNodeError'));
     }
@@ -130,7 +83,7 @@ const locateNode = (nodeId: number, type: 'op' | 'tensor' | 'subgraph') => {
   if (type === 'subgraph') {
     const nodes = getNodesBySubgraphId(nodeId) as Record<string, any>;
     if (nodes.length) {
-      emits(
+      rootEmits(
         'locateSubgraph',
         nodes.map((item) => item.node_id),
       );
@@ -138,92 +91,44 @@ const locateNode = (nodeId: number, type: 'op' | 'tensor' | 'subgraph') => {
   }
 };
 
+onMounted(() => {
+  const jsonData: any = comGraphStore.data.jsonData;
+  generateOpMap(jsonData.operations);
+  generateTensorMap(jsonData);
+});
+
 provide(HealthReportProvideKey, { jsonData, locateNode });
 </script>
 
 <style lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
 
-.health-report {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1040;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 400px;
-  border-radius: 16px;
-  background-color: var(--devui-card-bg);
-  box-shadow: -1px 0 0 0 var(--devui-split-line);
+.health-report-content {
+  flex: 1;
+  padding: 0 16px 16px;
   box-sizing: border-box;
+  overflow: auto;
 
-  &.BlockGraph {
-    width: 488px;
-  }
-
-  .health-report-header {
+  &.no-report {
     display: flex;
+    justify-content: center;
     align-items: center;
-    justify-content: space-between;
-    height: 24px;
-    padding: 20px 20px 0;
-    box-sizing: content-box;
-
-    .title {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--devui-title-text);
-      line-height: 24px;
-    }
-
-    .icon-close {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 24px;
-      height: 24px;
-      color: var(--devui-icon);
-      border-radius: 8px;
-      transition: background-color $devui-animation-duration-base $devui-animation-ease-in-out-smooth,
-        color $devui-animation-duration-base $devui-animation-ease-in-out-smooth;
-      cursor: pointer;
-
-      &:hover {
-        color: var(--devui-title-text);
-        background-color: var(--devui-input-hover-bg);
-      }
-    }
   }
 
-  .health-report-content {
-    flex: 1;
-    padding: 0 20px 20px;
-    box-sizing: border-box;
-    overflow: auto;
-
-    &.no-report {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .no-data {
-      font-size: 14px;
-      color: var(--devui-primary-text);
-    }
+  .no-data {
+    font-size: 14px;
+    color: var(--devui-primary-text);
   }
+}
 
-  .devui-alert.devui-alert--danger.health-report-alert {
-    padding: 4px;
-    margin: 12px 0;
-    line-height: 20px;
-  }
+.devui-alert.devui-alert--danger.health-report-alert {
+  padding: 4px;
+  margin: 12px 0;
+  line-height: 20px;
+}
 
-  .statistic-info-box {
-    display: flex;
-    gap: 36px;
-  }
+.statistic-info-box {
+  display: flex;
+  gap: 36px;
 }
 </style>

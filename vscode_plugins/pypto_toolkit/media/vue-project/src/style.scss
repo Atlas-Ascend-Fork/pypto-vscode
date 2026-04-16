@@ -24,7 +24,9 @@ html {
     border-radius: 8px !important;
   }
 }
+.custom-sort-modal-wrap .custom-sort-modal-content,
 .devui-data-grid.devui-scroll-overlay,
+.devui-data-grid__body-wrapper.devui-scroll-overlay,
 .devui-drawer .health-report-content {
   scrollbar-color: unset !important;
 

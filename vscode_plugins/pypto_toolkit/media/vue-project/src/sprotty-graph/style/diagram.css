@@ -396,6 +396,10 @@ g.call-operation:hover rect.sprotty-node {
   fill: rgba(87, 60, 59, 1);
 }
 
+path.accuracy-error-border {
+  stroke: rgba(231, 67, 74, 0.3) !important;
+  stroke-width: 2px !important;
+}
 
 /* Dim only non-traced elements when there is an active trace */
 .sprotty-graph.has-trace .op-not-traced,

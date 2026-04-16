@@ -85,25 +85,64 @@ export class FlowTreeAnalyzer {
 
   /**
    * 读取 叶子节点 or 串行动态方法
+   * 全是叶子节点返回单个PATH / 全是自动调用返回多个LOOP / 混合（第一个是动态）所有操作按动态处理 / 混合（第一个为叶子节点）逐个判断
    * @param functionNode
    * @param context
    * @returns
    */
-  private readPathFunction(functionNode: FunctionNode): ControlFlowPath[] | ControlFlowLoop[] {
-    const testOperation = functionNode.operations[0];
-    const noCalleeHash = !Reflect.has(testOperation, 'calleehash');
-    const noDynamicCalleeFunction = this.getCalleeFunctionByOperation(testOperation)?.functype !== FunctionType.DYNAMIC;
-    const isLeafPath = noCalleeHash || noDynamicCalleeFunction;
+  private readPathFunction(functionNode: FunctionNode): (ControlFlowPath | ControlFlowLoop)[] {
+    const operations = functionNode.operations;
 
-    if (isLeafPath) {
-      const pathFunction: ControlFlowPath = this.pathLeafAnalyzer.makePathFunction(functionNode);
-      return [pathFunction];
-    } else {
-      return functionNode.operations.map((operation) => {
+    const firstOperation = operations[0];
+    const firstCalleeFunction = this.getCalleeFunctionByOperation(firstOperation);
+    const firstNoCalleeHash = !Reflect.has(firstOperation, 'calleehash');
+    const firstIsLeaf = firstNoCalleeHash || !firstCalleeFunction || firstCalleeFunction.functype !== FunctionType.DYNAMIC;
+
+    const allLeaf = operations.every((operation) => {
+      const calleeFunction = this.getCalleeFunctionByOperation(operation);
+      const noCalleeHash = !Reflect.has(operation, 'calleehash');
+      return noCalleeHash || !calleeFunction || calleeFunction.functype !== FunctionType.DYNAMIC;
+    });
+
+    const allDynamic = operations.every((operation) => {
+      const calleeFunction = this.getCalleeFunctionByOperation(operation);
+      return Reflect.has(operation, 'calleehash') && calleeFunction && calleeFunction.functype === FunctionType.DYNAMIC;
+    });
+
+    if (allLeaf) {
+      return [this.pathLeafAnalyzer.makePathFunction(functionNode)];
+    }
+
+    if (allDynamic) {
+      return operations.map((operation) => {
         const calleeFunction = this.getCalleeFunctionByOperation(operation)!;
         return this.readDynamicFunction(calleeFunction);
       });
     }
+
+    if (firstIsLeaf && functionNode.graphtype === 2) {
+      const results: (ControlFlowPath | ControlFlowLoop)[] = [];
+      for (const operation of operations) {
+        const calleeFunction = this.getCalleeFunctionByOperation(operation);
+        const noCalleeHash = !Reflect.has(operation, 'calleehash');
+        const isLeaf = noCalleeHash || !calleeFunction || calleeFunction.functype !== FunctionType.DYNAMIC;
+
+        if (isLeaf) {
+          results.push(this.pathLeafAnalyzer.makePathFunction(functionNode));
+        } else {
+          results.push(this.readDynamicFunction(calleeFunction!));
+        }
+      }
+      return results;
+    }
+
+    return operations.map((operation) => {
+      const calleeFunction = this.getCalleeFunctionByOperation(operation);
+      if (calleeFunction && calleeFunction.functype === FunctionType.DYNAMIC) {
+        return this.readDynamicFunction(calleeFunction);
+      }
+      return this.pathLeafAnalyzer.makePathFunction(functionNode);
+    });
   }
 
   private getCalleeFunctionByOperation(operation: FunctionNode['operations'][number]): FunctionNode | undefined {

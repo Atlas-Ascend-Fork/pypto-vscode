@@ -5,6 +5,9 @@ export type IComApis =
   | 'getJsonGraphData'
   | 'openSearchMode'
   | 'getHealthyReport'
+  | 'getAccurancyReport'
+  | 'searchAccurancySumList'
+  | 'getAccurancyDetail'
   | 'getInitialData'
   | 'getSubgraph'
   | 'jumpToCodeLine'
@@ -24,6 +27,8 @@ export type IComRefs = {
   FuncTree: unknown;
   GlobalSearchResult: unknown;
   HealthyReport: unknown;
+  AccurancyReport: unknown,
+  AccurancyDetail: unknown,
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
@@ -51,6 +56,9 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   searchAllFunc: (message: { data: any }) => Promise<void>;
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
+  getAccurancyReport: (message: { data: any }) => Promise<void>;
+  searchAccurancySumList: (message: { data: any }) => Promise<void>;
+  getAccurancyDetail: (message: { data: any }) => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;
   returnFuncTree: () => Promise<void>;
   selectFile: (beforeFilePath: string) => Promise<void>;
@@ -188,4 +196,22 @@ export interface ICommonViewServer extends ViewServer<ICommonApis, ICommonRefs> 
   checkSys: () => Promise<void>;
   saveFile: (message: { dataUrl: any, fileName?: any, filePath?: any, }) => Promise<void>;
   checkFilePath: (message: { filePath: any, }) => Promise<void>;
+}
+
+export type IControlFlowApis =
+  | 'getAccurancyResult'
+  | 'getPathPassResult'
+  | 'savePyCode'
+  | 'getInitialData'
+  | 'fetchVscodeState';
+export type IControlFlowRefs = {
+  parseFlag: unknown;
+  SetParsingMode: unknown;
+  accurancyResult: unknown;
+  pathPassResult: unknown;
+};
+
+export interface IControlFlowViewServer extends ViewServer<IControlFlowApis, IControlFlowRefs> {
+  getAccurancyResult: (data: {controwFlowFilePath: string}) => Promise<void>;
+  getPathPassResult: (data: {controwFlowFilePath: string}) => Promise<void>;
 }

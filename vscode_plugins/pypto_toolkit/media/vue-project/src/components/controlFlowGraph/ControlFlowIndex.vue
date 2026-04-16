@@ -4,17 +4,24 @@
     <CodeSnippetPreview :config="codePreviewState" :theme="isDarkTheme ? 'vs-dark' : 'vs'" @close="codePreviewState.isVisible = false" />
   </div>
   <div class="g6-flow-chart" ref="graphContainerRef">
-    <RightPanel ref="sideBarRef"></RightPanel>
+    <RightPanel ref="sideBarRef" :is-have-csv="isHaveCSV"></RightPanel>
     <div class="tool-navbar">
       <Navbar :control-flow-data="rootData" :current-record-directory-path="outPutPath" />
-      <SearchSelect
-        ref="searchSelectRef"
-        :options="options"
-        @matched-results="handleMatchedResults"
-        @selected-value="handleSelectedValue"
-        @activeEvent="handHoverEvent"
-        class="tool-select"
-      />
+      <div class="navbar-right">
+        <SearchSelect
+          ref="searchSelectRef"
+          :options="options"
+          @matched-results="handleMatchedResults"
+          @selected-value="handleSelectedValue"
+          @activeEvent="handHoverEvent"
+          class="tool-select"
+        />
+        <d-tooltip v-if="isHaveCSV" :content="t('controlFlows.openAccuracyReport')" :mouse-enter-delay="100" position="left">
+          <div class="accuracy-report-btn" @click="openAccuracyReport">
+            <d-icon name="icon-diagnose" size="16px"></d-icon>
+          </div>
+        </d-tooltip>
+      </div>
     </div>
     <div
       id="controlGraph"
@@ -32,7 +39,7 @@
     </template>
     <template v-else>
       <MinimapContainer class="minimap-type"></MinimapContainer>
-      <div class="tool-bar">
+      <div class="tool-bar" :style="{right: `${minimapOffsetRight + 16}px`}">
         <button
           class="icon-minus"
           style="width: 16px; height: 16px; left: 32px; color: var(--devui-text)"
@@ -59,6 +66,7 @@
     </template>
   </div>
   <Loading class="loading-index" v-if="isLoading" :loadingText="t('public.loading')" />
+  <AccuracyReport v-model="showAccuracyReport" :data="accuracyReportData" @block-click="handleBlockClick"></AccuracyReport>
 </template>
 
 <script lang="ts" setup>
@@ -85,7 +93,9 @@ import CodeSnippetPreview from './components/CodeSnippetPreview.vue';
 import { openComputeGraph } from '@/apis/opener';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { useViewServer } from '@/core/use-view-server';
+import { ControlFlowViewServer } from 'ext:/view/servers/controlFlow-server';
 import { JsxEmit } from 'typescript';
+import AccuracyReport from './components/AccuracyReport.vue';
 
 const { isDarkTheme } = inject('root');
 const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
@@ -105,6 +115,14 @@ const options = ref([]);
 const combosNode = ref(null);
 const isBoot = ref(false);
 const graphContainerRef = ref(null);
+const showAccuracyReport = ref(false) // 显示精度执行报告
+const isHaveCSV = ref(false) // 是否有CSV文件
+const allNodes = ref<ControlFlowNodesType[]>([]) // 已渲染的所有节点
+const currentHighlightNodeIds = ref<string[]>([]) // 当前边框高亮的节点
+const currentHightLightState = ref('') // 高亮状态-pass/fail/exception
+const firstErrorNodeId = ref('') // 首错节点
+const accuracyReportData = ref() // 精度执行报告数据
+const firstErrorPass = ref() // 首错PATH的对应pass
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -116,7 +134,7 @@ const codePreviewState = reactive<PreviewState>({
   line: 0,
   language: '',
 });
-const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme);
+const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstErrorPass);
 const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme, codePreviewState);
@@ -182,6 +200,7 @@ const handleMatchedResults = (results: SearchSelectItem[]) => {
   } else {
     graph.setElementState(clearAllNodeState);
   }
+  setHighLight()
 };
 
 /**
@@ -196,6 +215,7 @@ const handleSelectedValue = (value: SearchSelectItem) => {
     graph.setElementState(selectedValue.value.value, 'selected');
     graph.focusElement(selectedValue.value.value);
     graph.draw();
+    setHighLight()
   }
 };
 
@@ -223,7 +243,11 @@ async function updateGraphSize() {
 }
 
 const graphRef = ref<Graph>();
-const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef);
+// 打开精度执行报告时小地图左移
+const minimapOffsetRight = computed(() => {
+  return showAccuracyReport.value ? 480 : 0;
+})
+const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef,minimapOffsetRight);
 
 /**
  * 初始化 G6 图表
@@ -251,6 +275,10 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
       graph.setElementZIndex(zIndex.value);
       const nodes = await graph.getElementDataByState('combo', 'selected');
       if (nodes.length > 0) await graph.setElementZIndex(nodes[0].id, Infinity);
+      // 首错节点PATH处于最高级，避免tag被遮挡
+      if(firstErrorNodeId.value) {
+        await graph.setElementZIndex(firstErrorNodeId.value,Infinity)
+      }
     }
   });
 
@@ -309,6 +337,7 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
       // 已选中的层级处于最高层级
       await graph.setElementZIndex(event.target.id, Infinity);
     }
+    setHighLight()
   }
 
   // 监听点击事件
@@ -415,6 +444,72 @@ const listenExtensionMessage = () => {
   });
 };
 
+// 打开精度执行报告
+const openAccuracyReport = () => {
+  showAccuracyReport.value = true
+}
+
+// 点击精度执行报告中的pass block，高亮对应PATH节点
+const handleBlockClick = (item) => {
+  if (!graph) return;
+  currentHighlightNodeIds.value.forEach(id => {
+    graph.setElementState(id, []);
+    if(id === firstErrorNodeId.value){
+      graph.setElementZIndex(id,zIndex.value[id] ?? -1 )
+    }
+  })
+  // 目前点击高亮node节点只支持fail状态
+  if(!item || item.status !== 'FAIL'){
+    currentHighlightNodeIds.value = [];
+    graph.draw();
+    currentHightLightState.value = '';
+    firstErrorNodeId.value = '';
+    return;
+  }
+
+  const highlightState = `highlight-${item.status}`;
+  currentHightLightState.value = highlightState;
+  firstErrorNodeId.value = ''
+  if (item.func_magicName.length > 0) {
+    const magicNames = item.func_magicName.map(name => name.replace( /_hiddenfunc0(_\d+)?$/, ''));
+    const targetNodes = allNodes.value.filter(node => magicNames.includes(node.data.source?.magicName));
+    if (targetNodes.length > 0) {
+      targetNodes.sort((a, b) => {
+        const indexA = magicNames.indexOf(a.data.source?.magicName);
+        const indexB = magicNames.indexOf(b.data.source?.magicName);
+        return indexA - indexB;
+      });
+      currentHighlightNodeIds.value = targetNodes.map(node => node.id);
+      targetNodes.forEach((node,index) => {
+        const states = [highlightState];
+        if(item.status === 'FAIL' && index === 0) {
+          states.push('first-error')
+          firstErrorNodeId.value = node.id
+          firstErrorPass.value = Number(item.index) + 1
+          graph.setElementZIndex(node.id, Infinity)
+        }
+        graph.setElementState(node.id, states);
+      })
+      graph.focusElement(targetNodes[0].id)
+      graph.draw();
+    }
+  }
+}
+
+// 根据handleBlockClick的数据高亮对应PATH节点的边框
+const setHighLight = () => {
+    if (currentHighlightNodeIds.value.length > 0 && currentHightLightState.value) {
+      currentHighlightNodeIds.value.forEach(id => {
+        const states = [currentHightLightState.value];
+        if(id === firstErrorNodeId.value) {
+          states.push('first-error')
+          graph.setElementZIndex(id, Infinity)
+        }
+        graph.setElementState(id,states)
+      })
+    }
+}
+
 const dataError = ref(false);
 const dataErrorMessage = ref('');
 const zIndex = ref({}); //保存所有节点的初始层级
@@ -424,6 +519,16 @@ onMounted(async () => {
   }
   const res = await getQuery();
   outPutPath.value = res.url;
+  const { server } = useViewServer<ControlFlowViewServer>();
+  // 通知后端，查询是否有csv，获取精度执行报告数据
+  server.getAccurancyResult({controwFlowFilePath: res._path});
+  watch(server.accurancyResult, (newValue) => {
+      isHaveCSV.value = newValue.parseResult === 'Success' ? true : false
+      if(newValue.parseResult){
+        accuracyReportData.value = newValue.allResultSum
+      }
+    }
+  );
   try {
     const data = await getControlFlow(
       { outputDirPath: outPutPath.value, controlFlowFilePath: res._uri.path },
@@ -436,6 +541,7 @@ onMounted(async () => {
     dataErrorMessage.value = e.name.includes('EntryNotFound') ? t('controlFlows.fileNotFoundError') : t('controlFlows.dataParseError');
   }
   const { nodes, edges, combos } = transformData(rootData.value);
+  allNodes.value = nodes;
   combosNode.value = [...combos, ...nodes];
   stepOpenSidebaNode.value = nodes[0];
   await initG6Graph(nodes, edges, combos);
@@ -472,6 +578,15 @@ onMounted(async () => {
   });
 });
 
+watch(
+  () => sideBarRef.value?.drawerVisible,
+  val => {
+    if(val){
+      showAccuracyReport.value = false
+    }
+  }
+)
+
 onUnmounted(() => {
   window.removeEventListener('resize', updateGraphSize);
 });
@@ -503,7 +618,40 @@ onUnmounted(() => {
   .tool-select {
     pointer-events: all;
     position: relative;
-    top: 16px;
+  }
+}
+
+.navbar-right {
+  display: flex;
+  flex-direction: row;
+  align-self: flex-start;  /* 固定在顶部 */
+  gap: 8px;
+  position: relative;
+  top: 16px;
+  pointer-events: all;
+}
+
+.accuracy-report-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background-color: var(--devui-secondary-button-bg);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  .devui-icon__container {
+    color: var(--devui-icon);
+  }
+
+  &:hover {
+    background-color: var(--devui-secondary-button-hover-bg);
+
+    .devui-icon__container {
+      color: var(--devui-operation-text-hover);
+    }
   }
 }
 
@@ -525,11 +673,12 @@ onUnmounted(() => {
 
 .minimap-type {
   position: absolute !important;
-  background-color: var(--control-flow-table-minimap-bg) !important; // 设
+  background-color: var(--control-flow-table-minimap-bg) !important;
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   border-radius: 20px 20px 0 0 !important;
-  right: 16px;
+  right: calc(var(--minimap-offset-right, 0px) + 16px);
   bottom: 48px;
+  transition: right 0.3s ease;
 }
 
 .tool-select-focus {
@@ -564,7 +713,6 @@ onUnmounted(() => {
 
 .tool-bar {
   position: absolute;
-  right: 16px;
   bottom: 15px;
   display: flex;
   align-items: center;
@@ -576,7 +724,7 @@ onUnmounted(() => {
   padding: 4px 12px;
   gap: 32;
   border-radius: 0 0 12px 12px;
-  transition: right $devui-animation-duration-slow $devui-animation-ease-in-out-smooth;
+  transition: right 0.3s ease;
 
   button {
     font-size: 12px;

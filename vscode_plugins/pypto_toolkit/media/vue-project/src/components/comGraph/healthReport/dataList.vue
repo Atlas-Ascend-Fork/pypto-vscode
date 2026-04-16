@@ -23,7 +23,7 @@
             </d-tooltip>
           </div>
         </div>
-        <CollapsePanel :is-open="row.isOpen" :data-list="row.detail" :type="row.type" :column-count="columnCount" />
+        <CollapsePanel v-if="!disableCollapsePanel" :is-open="row.isOpen" :data-list="row.detail" :type="row.type" :column-count="columnCount" />
       </template>
     </div>
   </div>
