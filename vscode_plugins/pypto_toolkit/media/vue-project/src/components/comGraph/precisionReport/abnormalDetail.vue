@@ -22,7 +22,7 @@
     <template v-if="activeTab === 'detail'">
       <AbnormalCompare ref="compareEl" :tableData="compareTableData" @sort="onSingleColumnSort" />
     </template>
-    <CustomSortModal v-model="showSortModal" @confirm="onCustomSort" />
+    <CustomSortModal v-model="showSortModal" @confirm="onCustomSortConfirm" />
   </div>
 </template>
 
@@ -63,12 +63,14 @@ const tolInfo = computed(() => {
     { label: 'atol', value: aTol },
   ];
 });
+let originTableData: AbnormalNodeCompareListItem[] = [];
 
 const openSortModal = () => {
-  if (!isCustomSorting.value) {
-    showSortModal.value = true;
+  if (isCustomSorting.value) {
+    isCustomSorting.value = false;
+    compareTableData.value = JSON.parse(JSON.stringify(originTableData));
   } else {
-    isCustomSorting.value = !isCustomSorting.value;
+    showSortModal.value = true;
   }
 };
 
@@ -76,10 +78,10 @@ const onSingleColumnSort = () => {
   isCustomSorting.value = false;
 };
 
-const onCustomSort = (e: SelectedSortCol[]) => {
+const onCustomSortConfirm = (e: SelectedSortCol[]) => {
   isCustomSorting.value = true;
   compareEl.value.clearAllSort();
-  const temp = JSON.parse(JSON.stringify(compareTableData.value));
+  const temp = JSON.parse(JSON.stringify(originTableData));
   temp.sort((a, b) => {
     for (const { field, direction } of e) {
       if (a[field] !== b[field]) {
@@ -92,7 +94,8 @@ const onCustomSort = (e: SelectedSortCol[]) => {
 
 watch(server.AccurancyDetail, (val: Record<string, any>) => {
   summaryInfo.value = val?.data?.failSummary ?? {};
-  compareTableData.value = transferCompareTableData(val?.data?.failDetailList);
+  originTableData = transferCompareTableData(val?.data?.failDetailList);
+  compareTableData.value = JSON.parse(JSON.stringify(originTableData));
 });
 
 function transferCompareTableData(data: Record<string, any>[]) {

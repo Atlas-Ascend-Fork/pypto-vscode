@@ -112,6 +112,7 @@ watch(
   (val) => {
     if (val) {
       selectedCols.value = [{ field: 'offset', direction: 'asc' }];
+      updateFieldOptions();
     }
   },
 );
