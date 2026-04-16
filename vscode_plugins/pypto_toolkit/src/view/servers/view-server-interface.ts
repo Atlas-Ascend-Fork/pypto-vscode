@@ -28,6 +28,7 @@ export type IComRefs = {
   GlobalSearchResult: unknown;
   HealthyReport: unknown;
   AccurancyReport: unknown,
+  AccurancyList: unknown,
   AccurancyDetail: unknown,
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
@@ -56,7 +57,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   searchAllFunc: (message: { data: any }) => Promise<void>;
   jumpToCodeLine: (message: { data: any }) => Promise<void>;
   getHealthyReport: () => Promise<void>;
-  getAccurancyReport: (message: { data: any }) => Promise<void>;
+  getAccurancyReport: () => Promise<void>;
   searchAccurancySumList: (message: { data: any }) => Promise<void>;
   getAccurancyDetail: (message: { data: any }) => Promise<void>;
   innerGetSubgraph: (message: { paramObj: any }) => Promise<void>;

@@ -661,7 +661,7 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('HealthyReport', { data: reports });
   }
 
-  static async getAccurancyReport(server: any, message) {
+  static async getAccurancyReport(server: any) {
     const graphData = server.comGraphData;
     const filePath = graphData.fsPath ?? undefined;
     if (!filePath) {
@@ -676,10 +676,8 @@ export abstract class BaseGraphMsgHandler {
       curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
     }
 
-    const pageSize = message.data.pageSize ?? 30;
-    const startOffset = message.data.startOffset ?? 0;
 
-    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!, pageSize, startOffset);
+    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!);
     server.setRef('AccurancyReport', { data: errorRawInfo });
   }
 
@@ -699,11 +697,11 @@ export abstract class BaseGraphMsgHandler {
     }
 
     const pageSize = message.data.pageSize ?? 30;
-    const startOffset = message.data.startOffset ?? 0;
+    const startOffset = (message.data.startOffset * pageSize);
     const keyword = message.data.keyword ?? '';
 
     const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset);
-    server.setRef('AccurancyReport', { data: errorRawInfo });
+    server.setRef('AccurancyList', { data: errorRawInfo });
   }
 
 

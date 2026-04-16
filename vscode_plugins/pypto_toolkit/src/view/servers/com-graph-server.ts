@@ -24,6 +24,7 @@ type Refs = IComRefs & ICommonRefs;
   'GlobalSearchResult',
   'HealthyReport',
   'AccurancyReport',
+  'AccurancyList',
   'AccurancyDetail',
   'InitComGraph',
   'InitDiffComGraph',
@@ -120,8 +121,8 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     await this.handler.getHealthyReport(this);
   };
   @viewApi()
-  public getAccurancyReport = async (message) => {
-    await this.handler.getAccurancyReport(this, message);
+  public getAccurancyReport = async () => {
+    await this.handler.getAccurancyReport(this);
   };
   @viewApi()
   public searchAccurancySumList = async (message) => {

@@ -1193,9 +1193,6 @@ export class AstgrTensorView extends RectangularNodeView {
         >{currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal'}</text>
       </g>
     ) : null;
-    if (node.isAccuracyError) {
-      debugger;
-    }
     return (
       <g
         class-op-incoming={incoming}
