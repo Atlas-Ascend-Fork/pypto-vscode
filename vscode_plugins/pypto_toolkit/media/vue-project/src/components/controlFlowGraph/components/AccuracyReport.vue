@@ -396,6 +396,7 @@ const handleCancelSelect = () => {
                     align-items: center;
                     justify-content: center;
                     margin-right: 6px;
+                    padding-bottom: 1px;
                 }
             }
         }

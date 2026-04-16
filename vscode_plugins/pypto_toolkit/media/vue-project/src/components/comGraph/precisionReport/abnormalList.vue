@@ -1,11 +1,11 @@
 <template>
   <div>
     <div class="statistic-card-wrap">
-      <StatisticCard :count="cardData.PASS" type="PASS" />
-      <StatisticCard :count="cardData.FAIL" type="FAIL" />
+      <StatisticCard :count="cardData.PASS" type="PASS" :clickable="false"/>
+      <StatisticCard :count="cardData.FAIL" type="FAIL" :clickable="false"/>
     </div>
     <div>精度异常列表</div>
-    <AccuracyErrorList :data="errorListData" @inputSearch="search" @row-click="rowClick" />
+    <AccuracyErrorList :data="errorListData" @row-click="rowClick" />
   </div>
 </template>
 
@@ -29,10 +29,6 @@ const initData = (data) => {
   cardData.value.FAIL = data?.comgraphFailSum?.FAIL || 0
   cardData.value.PASS = data?.comgraphFailSum?.PASS || 0
   errorListData.value = data?.comgraphFailList || []
-}
-// 列表根据loopInfo进行关键词搜索
-const search = () => {
-  server.getAccurancyReport();
 }
 
 // 点击列表数据行

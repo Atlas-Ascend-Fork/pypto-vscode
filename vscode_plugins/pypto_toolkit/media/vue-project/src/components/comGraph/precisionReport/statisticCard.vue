@@ -1,5 +1,5 @@
 <template>
-  <div :class="['statistic-card', type, { active: activeType === type }]" @click="handleCard">
+  <div :class="['statistic-card', type, { active: activeType === type,clickable: clickable }]" @click="handleCard">
     <div class="text-wrap">
       <div class="title">
         {{ type }}
@@ -18,7 +18,7 @@
         <i class="icon icon-forbidding"></i>
       </div>
       <div v-if="type === 'EXCEPTION'" class="warning-icon-wrap">
-        <svg width="40" height="40" viewBox="-8 -8 48 48">
+        <svg width="32" height="32" viewBox="-8 -8 48 48">
           <polygon stroke-linejoin="round" points="16,0 0,32 32,32"></polygon>
         </svg>
         <i class="icon icon-warning"></i>
@@ -33,7 +33,11 @@ const { t } = useI18n();
 const props = defineProps({
   type: String,
   count: Number,
-  activeType: String
+  activeType: String,
+  clickable: {
+    type: Boolean,
+    default: true
+  }
 });
 
 const emits = defineEmits(['handleCard'])
@@ -52,7 +56,10 @@ const handleCard = () => {
   padding: 16px;
   margin-bottom: 8px;
   border-radius: 12px;
-  cursor: pointer;
+
+  &.clickable {
+    cursor: pointer;
+  }
 
   &.active {
     border: 2px solid;
@@ -145,8 +152,8 @@ const handleCard = () => {
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 100%;
       background-color: rgba(135, 200, 89, 0.2);
 
@@ -160,8 +167,8 @@ const handleCard = () => {
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 25%;
       background-color: rgba(179, 179, 179, 0.2);
 
