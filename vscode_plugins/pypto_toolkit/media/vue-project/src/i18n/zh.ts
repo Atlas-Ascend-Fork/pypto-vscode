@@ -47,7 +47,6 @@ export default {
    'meanTop8AbsoluteError': '绝对误差top8的均值',
    'meanTop1PerMilAbsoluteError': '绝对误差top1/1000的均值',
    'filter': '筛选',
-   'enterKeyword': '输入关键字...',
    'errorJudgmentTolerance': '误差判断容忍度',
    'viewInspectionStandards': '查看检测标准',
    'healthReport': '健康度报告',
@@ -313,7 +312,9 @@ export default {
       advancedSearch: '高级搜索',
       nodeSearchLevelTips1: '-1: 展示全链路',
       nodeSearchLevelTips2: '其余数字：展示关联层级',
-      nodeSearchLevel: '链路关联层级'
+      nodeSearchLevel: '链路关联层级',
+      precisionExceptionList: '精度异常列表',
+      enterKeywordSearchForLoopInfo: '请输入关键词搜索LOOP_INFO',
    },
     sideBar: {
         title: '运行结果',

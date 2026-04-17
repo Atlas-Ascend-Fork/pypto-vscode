@@ -154,6 +154,11 @@ export interface AccuracyToolData {
   bTimestamp?: string;
 }
 
+export interface PaginatedResult<T> {
+  total: number;
+  list: T[];
+}
+
 export class SQLiteCache {
   private static _instance: SQLiteCache;
   private db: Database | undefined;
@@ -1175,8 +1180,18 @@ export class SQLiteCache {
     keyWord: string,
     pageSize: number,
     startOffset: number,
-  ): Promise<AccuracyToolData[]> {
-    const sql = `
+  ): Promise<PaginatedResult<AccuracyToolData>> {
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM accuracy_tool
+      WHERE 
+        file_path = ? AND 
+        "B>PHASE_NAME" = ? AND 
+        "PATH_FUNC:func_magicname" = ? AND 
+        "LOOP_INFO" LIKE ? AND 
+        "AB>RESULT" IN ('FAIL', 'EXCEPTION')
+    `;
+    const dataSql = `
       SELECT 
         file_path,
         "NO." AS no,
@@ -1193,21 +1208,35 @@ export class SQLiteCache {
         file_path = ? AND 
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
-        "LOOP_INFO" LIKE = ?
+        "LOOP_INFO" LIKE ? AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
       ORDER BY "B>TIMESTAMP" ASC
       LIMIT ? OFFSET ?
     `;
 
-    const stmt = this.db!.prepare(sql);
-    const result: AccuracyToolData[] = [];
+    const bindParams = [filePath, phaseName, funcMagicName, `%${keyWord}%`];
+
+    let total = 0;
+    const countStmt = this.db!.prepare(countSql);
+    try {
+      countStmt.bind(bindParams);
+      if (countStmt.step()) {
+        const row = countStmt.getAsObject();
+        total = row.total as number;
+      }
+    } finally {
+      countStmt.free();
+    }
+
+    const dataStmt = this.db!.prepare(dataSql);
+    const list: AccuracyToolData[] = [];
 
     try {
-      stmt.bind([filePath, phaseName, funcMagicName, keyWord, pageSize, startOffset]);
+      dataStmt.bind([...bindParams, pageSize, startOffset]);
 
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        result.push({
+      while (dataStmt.step()) {
+        const row = dataStmt.getAsObject();
+        list.push({
           filePath: row.file_path as string,
           no: row.no as string,
           phaseName: row.phaseName as string,
@@ -1221,10 +1250,10 @@ export class SQLiteCache {
         });
       }
     } finally {
-      stmt.free();
+      dataStmt.free();
     }
 
-    return result;
+    return { total, list };
   }
 
   /****************** com_graph_layout 表 ******************/

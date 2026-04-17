@@ -1,7 +1,9 @@
 <template>
   <div class="precision-report-wrap">
-    <AbnormalList v-if="!showDetail" @row-click="jumpDetail"/>
-    <AbnormalDetail v-else :rawMagic="rawMagic" :loopInfo="loopInfo" @back="() => (showDetail = false)" />
+    <KeepAlive>
+      <AbnormalList v-if="!showDetail" @row-click="jumpDetail" />
+    </KeepAlive>
+    <AbnormalDetail v-if="showDetail" :rawMagic="rawMagic" :loopInfo="loopInfo" @back="() => (showDetail = false)" />
   </div>
 </template>
 

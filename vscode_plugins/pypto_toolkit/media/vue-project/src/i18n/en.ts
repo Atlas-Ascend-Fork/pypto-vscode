@@ -46,7 +46,6 @@ export default {
     'meanTop8AbsoluteError': 'Mean of the top 8 absolute errors',
     'meanTop1PerMilAbsoluteError': 'Mean of the top 1/1000 absolute errors',
     'filter': 'Filter',
-    'enterKeyword': 'Enter keywords...',
     'errorJudgmentTolerance': 'Tolerance for error judgment',
     'healthReport': 'Health Report',
     'customSort': 'Custom sort',
@@ -311,6 +310,8 @@ export default {
         nodeSearchLevelTips1: '-1: show full layers',
         nodeSearchLevelTips2: 'else: show selected layers',
         nodeSearchLevel: 'Relative layers of searching node',
+        precisionExceptionList: 'Precision exception list',
+        enterKeywordSearchForLoopInfo: 'Please enter the keyword to search for LOOP_INFO',
     },
     sideBar: {
         title: 'Compilation result',

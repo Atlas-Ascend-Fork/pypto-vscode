@@ -1,12 +1,13 @@
 <template>
     <div class="search-filter">
-        <!-- <d-search v-model="searchKey" icon-position="left" :placeholder="t('enterKeyword')" :show-glow-style="false"
-            class="search-wrap"></d-search> -->
+        <d-search v-model="searchKey" icon-position="left" :placeholder="t('comGraph.enterKeywordSearchForLoopInfo')" :show-glow-style="false"
+            class="search-wrap"></d-search>
     </div>
     <d-data-grid :data="tableData" :columns="columnData" size="xs" fix-header @row-click="onRowClick"
         class="detail-compare-data-list"></d-data-grid>
-    <!-- <d-pagination class="runDataPage" size="sm" :total="pagetotal" :pageSize="pageSize" :pageIndex="pageIndex"
-        :can-jump-page="true" :cann-view-total="true" :max-items="5" @page-index-change="pageIndexChange" /> -->
+    <d-pagination class="runDataPage" size="sm" :pageSize="pageConfig.pageSize" :pageIndex="pageConfig.currentPage"
+        :total="pageConfig.total" :can-jump-page="true" :cann-view-total="true" :max-items="5"
+        @page-index-change="pageIndexChange" />
 </template>
 
 <script setup lang="ts">
@@ -15,28 +16,33 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const tableData = ref([])
 const searchKey = ref('')
-const pageIndex = ref(1);
-const pageSize = 10;
-const pagetotal = 30
 
 const columnData = ref([
     { width: 60, field: 'no', header: 'NO.' },
-    { width: 100, field: 'loopInfo', header: 'LOOP_INFO',resizable: true,   showOverflowTooltip: true },
+    { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
     { width: 100, field: 'rawMagic', header: 'rawmagicID' },
-    { width: 100, field: 'dataType', header: 'datatype' },
+    { width: 90, field: 'dataType', header: 'datatype' },
     { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth:100},
 ]);
 
 const props = defineProps({
     data: {
-    type: Array<any>,
-    default: []
-  }
+        type: Array<any>,
+        default: []
+    },
+    pageConfig: {
+        type: Object,
+        default: {
+            pageSize: 30,
+            currentPage: 1,
+            total: 0
+        }
+    }
 })
-const emits = defineEmits(['inputSearch', 'rowClick'])
+const emits = defineEmits(['inputSearch', 'rowClick', 'pageIndexChange'])
 
-const pageIndexChange = () => {
-
+const pageIndexChange = (pageIndex) => {
+    emits('pageIndexChange', pageIndex)
 }
 
 const onRowClick = (rowData) => {
@@ -59,10 +65,7 @@ watch(
 
 <style lang="scss" scoped>
 .search-filter {
-    display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
 
     .search-wrap.devui-search {
         flex: 1;
@@ -92,46 +95,19 @@ watch(
             }
         }
     }
-
-    .filter-button.devui-button {
-        height: 28px;
-        font-size: 13px;
-        padding: 0 8px;
-        border: none;
-        color: var(--devui-secondary-text);
-        background-color: var(--devui-input-hover-bg);
-
-        .devui-icon__container {
-            color: var(--devui-secondary-text);
-        }
-
-        .clear-right-5 {
-            margin-right: 4px;
-        }
-
-        &:hover {
-            color: var(--devui-title-text);
-
-            i {
-                color: var(--devui-title-text);
-            }
-        }
-    }
-
 }
 
 .runDataPage {
-    position: fixed;
+    display: flex;
+    justify-content: flex-end;
     bottom: 0;
-    margin-bottom: 26px;
+    margin-bottom: 15px;
 }
 
 .detail-compare-data-list {
     margin-top: 4px;
     padding: 0;
     flex: 1;
-    width: 100%;
-    height: 1050px;
 
     .devui-data-grid__head {
         border-top-left-radius: 8px;
