@@ -215,7 +215,7 @@ let down_16px = ref(`${window.staticPath}/static-assets/down_16px.svg`);
 const {
   isSwimFullscreen = ref(false),
   currentActiveBlock = ref(''),
-  BlockToGraphMap = ref({}),
+  BlockToGraphMap = {},
   onToggleSwimFullscreen = () => {},
 } = inject(ThreeColumnProvideKey, {});
 // 响应式状态
@@ -2260,7 +2260,7 @@ onMounted(async () => {
   setPageState(data);
   loadTraceData(data.swimData);
 
-  if (BlockToGraphMap.value[currentActiveBlock.value] && BlockToGraphMap.value[currentActiveBlock.value] === 'swimGraph') {
+  if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;
   }
 

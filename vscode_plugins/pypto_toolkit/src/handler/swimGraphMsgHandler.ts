@@ -15,6 +15,7 @@ import { hismartliteEx } from '../hismarliteEx';
 import { useService } from '../services';
 import { getSwimGraphParsedInfoStore, swimGraphPasedInfoCache } from '../core/swimSqlInit';
 import { FormatValidator, PerfSwimlaneConverter } from '../converter';
+import { readFirstNLines } from '../utils/file-system';
 
 const CACHE_LARGE_FILE_SIZE = 500;
 
@@ -104,6 +105,11 @@ export abstract class SwimGraphMsgHandler {
       config['aicpuColorRending'] = aicpuColorRending;
       config['perfColorReding'] = perfColorReding;
       config['kernelColorRending'] = colorRending;
+      if (!server.query) {
+        const content = ((await readFirstNLines(swimPath, 10)) as string[]).join('');
+        server.query = {};
+        server.query.isPerfSwim = !content.includes('traceEvents');
+      }
       return {
         configuration: config,
         comGraphPath,
