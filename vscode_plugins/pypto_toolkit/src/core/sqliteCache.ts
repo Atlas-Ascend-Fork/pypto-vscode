@@ -1141,7 +1141,7 @@ export class SQLiteCache {
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
-      ORDER BY "B>TIMESTAMP" ASC
+      ORDER BY "B>TIMESTAMP" ASC, "NO." DESC
       LIMIT ? OFFSET ?
     `;
 

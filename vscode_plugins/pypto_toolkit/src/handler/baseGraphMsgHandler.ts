@@ -770,7 +770,8 @@ export abstract class BaseGraphMsgHandler {
     }
     const curPassName = path.basename((path.dirname(gd.fsPath)));
     const graphFileName = path.basename(gd.fsPath, path.extname(gd.fsPath));
-    const curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+    curFuncMagicNameString = curFuncMagicNameString.endsWith('_ROOT') ? curFuncMagicNameString.replace('_ROOT', '') : curFuncMagicNameString;
     let readAccurancyCsv = false;
     if (!server.comGraphData.failRawMagicList) {
       readAccurancyCsv = true;
