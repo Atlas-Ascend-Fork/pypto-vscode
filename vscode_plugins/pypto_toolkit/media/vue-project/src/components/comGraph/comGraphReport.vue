@@ -12,12 +12,14 @@
             <template #title>
               <div v-if="showAccuracyReport" class="precision-tab-title">
                 <span>{{ t('precisionReport') }}</span>
-                <d-tooltip overlay-class="com-graph-report-standard-tips">
+                <!-- 暂无文档，有文档再放开 -->
+                <d-tooltip v-if="false" overlay-class="com-graph-report-standard-tips">
                   <i class="icon icon-helping"></i>
                   <template #content>
                     <span>{{ t('viewInspectionStandards') }}</span>
                   </template>
                 </d-tooltip>
+                <!--  -->
               </div>
             </template>
           </d-tab>

@@ -1154,7 +1154,7 @@ export class AstgrTensorView extends RectangularNodeView {
     const iconGap = 4;
     const tagPadding = 6;
     const iconPaddingTop = (24 - iconSize) / 2;
-    const accuracyTagTextWidth = currentLanguage === 'zh' ? 69 : 95;
+    const accuracyTagTextWidth = currentLanguage === 'zh' ? 69 : 120;
     const accuracyTagWidth = accuracyTagTextWidth + iconSize + iconGap + tagPadding * 2;
     const accuracyTagHeight = 24;
     const tagStartX = width + 6;
