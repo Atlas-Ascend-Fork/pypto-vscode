@@ -232,10 +232,9 @@ export function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
     }
   }
 
-  // const linesBN = lines.map(line => {
-  //   return line || 0;
-  // });
-  const linesBN = new Map(Object.entries(lines));
+  const linesBN = lines.map(line => {
+    return line || 0;
+  });
 
   // --- Step 2: 尝试放入已有行 ---
   for (let i = 0; i < linesBN.length; i++) {

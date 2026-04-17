@@ -233,6 +233,7 @@ const pinnedthreadsComponent = ref(null);
 const timeLineX = ref(null);
 const traceData = ref(null);
 const tsScale = ref(1000);
+const minTs = ref(0);
 const processes = reactive(new Map());
 const counterEvents = ref([]);
 const lastSelected = ref(null);
@@ -616,6 +617,8 @@ const processTraceData = (data) => {
   if (data.tsScale) {
     tsScale.value = data.tsScale;
   }
+  
+  if (data.minTs) { minTs.value = data.minTs }
 
   counterEvents.value = data.counterEvents;
   for (const key in data.lane2line) {
@@ -2125,82 +2128,79 @@ const onJumpCom = () => {
 
 const parseCompressedData = (swimInfo) => {
   const swimData = getReader(swimInfo);
-
-    swimData.lane2line = swimData.computeLane2Line();
-    
-    let processedTasks = [];
-
-    let expandSet = false;
-    for (const processId in swimData.processes) {
-      if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
-      if (!expandSet) {
-        processExpanded.set(processId, true);
-        expandSet = true;
-      } else {
-        processExpanded.set(processId, false);
-      }
+  const label2lines = {};
+  swimData.lane2line = swimData.computeLane2Line();
+  let processedTasks = [];
+  let expandSet = false;
+  for (const processId in swimData.processes) {
+    if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
+    if (!expandSet) {
+      processExpanded.set(processId, true);
+      expandSet = true;
+    } else {
+      processExpanded.set(processId, false);
+    }
+    const process = swimData.processes[processId];
+    for (const threadId in process.threads) {
+      if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
+      const thread = process.threads[threadId];
+      const isCounter = thread.ph === 'C';
+      process.threads[threadId].isCounter = isCounter;
       
-      const process = swimData.processes[processId];
-      for (const threadId in process.threads) {
-        if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
-        const thread = process.threads[threadId];
-        const isCounter = thread.ph === 'C';
-        process.threads[threadId].isCounter = isCounter;
-        
-        let events = [];
-        for (let idx = 0; idx < thread.eventCount; idx++) {
-          const event = thread.getEvent(idx);
-          if (!isCounter) {
-            const dependencies = event.getDependencies();
-            event.dependencies = {};
-            event.dependencies.predecessors = dependencies.predecessors.map(it => it.id);
-            event.dependencies.successors = dependencies.successors.map(it => it.id);
-          } else {
-            processedTasks.push(event);
-          }
-          events.push(event);
+      let events = [];
+      for (let idx = 0; idx < thread.eventCount; idx++) {
+        const event = thread.getEvent(idx);
+        if (!isCounter) {
+          const dependencies = event.getDependencies();
+          event.dependencies = {};
+          event.dependencies.predecessors = dependencies.predecessors.map(it => it.id);
+          event.dependencies.successors = dependencies.successors.map(it => it.id);
+          processedTasks.push(event);
         }
-        process.threads[threadId].events = events;
+        events.push(event);
+      }
+      process.threads[threadId].events = events;
+    }
+  }
+
+  processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
+  const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
+  const globalMaxTime = processedTasks.reduce((max, e) => {
+    return e.endTime > max ? e.endTime : max;
+  }, -Infinity); 
+
+  for (const processId in swimData.processes) {
+    if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
+    const process = swimData.processes[processId];
+    if (!['kernel', '', undefined].includes(process.type)) { continue }
+    for (const threadId in process.threads) {
+      if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
+      const thread = process.threads[threadId];
+      if (!thread.threadName.includes('Fake Core')) { continue }
+      
+      for (let idx = 0; idx < thread.eventCount; idx++) {
+        const event = thread.events[idx];
+        const label = `${event.pid}@${event.tid}`;
+        let lines = label2lines[label];
+        if (!lines) {
+          label2lines[label] = lines = [];
+        }
+        layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime);
       }
     }
+  }
 
-    processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
-    const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
-    const globalMaxTime = processedTasks.reduce((max, e) => {
-      return e.endTime > max ? e.endTime : max;
-    }, -Infinity); 
+  const computedPmuTotal = swimData.computePmuTotal();
+  computedPmuTotal.icache_hit = 1 - (computedPmuTotal.icache_miss / computedPmuTotal.icache_req);
+  computedPmuTotal.vec_ratio = computedPmuTotal.vec_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.cube_ratio = computedPmuTotal.cube_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.scalar_ratio = computedPmuTotal.scalar_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte1_ratio = computedPmuTotal.mte1_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte2_ratio = computedPmuTotal.mte2_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte3_ratio = computedPmuTotal.mte3_busy_cycles / computedPmuTotal['total cycle'];
 
-    for (const processId in swimData.processes) {
-      if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue }
-      const process = swimData.processes[processId];
-      if (!['kernel', '', undefined].includes(process.type)) { continue }
-      
-      for (const threadId in process.threads) {
-        if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue }
-        const thread = process.threads[threadId];
-        if (!thread.isFakeCore) { continue }
-        
-        for (let idx = 0; idx < thread.eventCount; idx++) {
-          const event = thread.events[idx];
-          const label = `${event.pid}@${event.tid}`;
-          let lines = [];
-          layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime);
-        }
-      }
-    }
-
-    const computedPmuTotal = swimData.computePmuTotal();
-    computedPmuTotal.icache_hit = 1 - (computedPmuTotal.icache_miss / computedPmuTotal.icache_req);
-    computedPmuTotal.vec_ratio = computedPmuTotal.vec_busy_cycles / computedPmuTotal['total cycle'];
-    computedPmuTotal.cube_ratio = computedPmuTotal.cube_busy_cycles / computedPmuTotal['total cycle'];
-    computedPmuTotal.scalar_ratio = computedPmuTotal.scalar_busy_cycles / computedPmuTotal['total cycle'];
-    computedPmuTotal.mte1_ratio = computedPmuTotal.mte1_busy_cycles / computedPmuTotal['total cycle'];
-    computedPmuTotal.mte2_ratio = computedPmuTotal.mte2_busy_cycles / computedPmuTotal['total cycle'];
-    computedPmuTotal.mte3_ratio = computedPmuTotal.mte3_busy_cycles / computedPmuTotal['total cycle'];
-
-    swimData.pmu_total = computedPmuTotal;
-    
-    return swimData;
+  swimData.pmu_total = computedPmuTotal;
+  return swimData;
 };  
 
 // 生命周期钩子
@@ -2319,6 +2319,7 @@ provide('swimGraphPinnedState', {
 // 提供状态给子组件
 provide('swimGraphState', {
   tsScale,
+  minTs,
   timelineComponent,
   viewState,
   layout,

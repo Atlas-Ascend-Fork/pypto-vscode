@@ -229,6 +229,16 @@ const canvasStatusReset = () => {
   highlightEvent(ctx, searchedEvent.value, props.processKey, true);
 };
 
+const canDragSelect = (process) => {
+  if (process.type === 'aicpu') {
+    return false;
+  }
+  if (process.type === 'PerfSwim') {
+    return process.processName === 'AICore View';
+  }
+  return true;
+};
+
 const handleCanvasClick = (e) => {
   if(!isClick.value){
     return;
@@ -1136,7 +1146,7 @@ const checkInSelection = () => {
 
   // 遍历进程
   processes.forEach((process, processKey) => {
-    if (!processExpanded.get(processKey) || process.type === 'aicpu') {
+    if (!processExpanded.get(processKey) || !canDragSelect(process)) {
       return;
     }
     // 遍历线程
@@ -1224,7 +1234,7 @@ const handleMouseDown = (e) => {
     }
 
     isClick.value = true;
-    isDragging.value = !(props.process.type === 'aicpu');
+    isDragging.value = canDragSelect(props.process);
 
     measureDetailsData.value = [];
     rootHashes.value = [];
@@ -1259,7 +1269,7 @@ const selectionFinished = (e) => {
   if (!canvasRef) {
     return;
   }
-  if (props.process.type === 'aicpu') {
+  if (!canDragSelect(props.process)) {
     isDragging.value = false;
     return;
   }

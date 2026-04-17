@@ -83,7 +83,7 @@ class SwimDataManager {
             threadName: thread.threadName || '',
             eventIds,
             isCounter: thread.isCounter,
-            isFakeCore: thread.isFakeCore
+            isFakeCore: thread.threadName.includes('Fake Core')
           };
           
           threadInfoMap.set(threadKey, threadInfo);

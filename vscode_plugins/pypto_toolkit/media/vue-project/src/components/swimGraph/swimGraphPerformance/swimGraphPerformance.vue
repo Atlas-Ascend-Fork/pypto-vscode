@@ -490,7 +490,7 @@ const calculateAicoreInfo = () => {
     }
 
     for (const threadInfo of Array.from(processInfo.threads.values())) {
-      if (threadInfo.isCounter || threadInfo.isFakeCore) {
+      if (threadInfo.isCounter || threadInfo.threadName.includes('Fake Core')) {
         continue;
       }
 

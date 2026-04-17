@@ -116,7 +116,19 @@
                       <span v-else class="args-value main-text"> {{ value }} </span>
                     </span>
 
-                    <span v-if="value !== '' && key !== 'event-hint' && key !== 'ioperand-hint' && key !== 'ooperand-hint' ">
+                    <span>
+                      <template v-if="['dispatch-time-us', 'finish-time-us'].includes(key)">
+                        <span>{{ subMintsFormat(value) }}</span>
+                      </template>
+                    </span>
+
+                    <span>
+                      <template v-if="['aicpu-duration-us', 'kernel-ready-time-us'].includes(key)">
+                        <span>{{ parseFloat(value.toFixed(3)) }}</span>
+                      </template>
+                    </span>
+                    
+                    <span v-if="!['', 'event-hint', 'ioperand-hint', 'ooperand-hint', 'dispatch-time-us', 'finish-time-us', 'aicpu-duration-us', 'kernel-ready-time-us'].includes(key)">
                       <span class="args-value main-text">{{ value }}</span>
                     </span>
 
@@ -233,6 +245,7 @@ const releventDisplay = ref(DEP_MODE.all);
 // 注入父组件提供的状态和方法
 const {
   tsScale,
+  minTs,
   selectedEvent,
   viewState,
   detailsPanelExpanded,
@@ -327,6 +340,12 @@ const getEventCacheHit = (event) => {
     return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
   }
   return '/';
+};
+
+const subMintsFormat = (time) => {
+  const ns = Math.round((time * 1000) - (minTs.value * 1000));
+  const us = (ns / 1000).toFixed(3);
+  return parseFloat(us);
 };
 
 const updateEventPmu = (event) => {

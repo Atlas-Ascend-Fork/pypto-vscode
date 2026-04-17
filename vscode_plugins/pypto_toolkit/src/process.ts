@@ -717,6 +717,7 @@ const calculateDependencies = (events, connections) => {
     data['processExpanded'] = processExpanded;
     data['lane2line'] = lane2line;
     data['timeInfo'] = { maxTime: maxTime, minTime: minTime};
+    data['minTs'] = minThresh;
     if (isAicpuData) {
       data['isAicpu'] = true;
     }

@@ -368,6 +368,9 @@
   white-space: nowrap;
   flex-shrink: 0;
   color: rgba(153, 153, 153, 1);
+  margin-right: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .args-item span:last-child {

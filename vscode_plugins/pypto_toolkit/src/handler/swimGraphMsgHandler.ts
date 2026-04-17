@@ -105,7 +105,7 @@ export abstract class SwimGraphMsgHandler {
       config['aicpuColorRending'] = aicpuColorRending;
       config['perfColorReding'] = perfColorReding;
       config['kernelColorRending'] = colorRending;
-      if (!server.query) {
+      if (!server.query || server.query.isPerfSwim === undefined) {
         const content = ((await readFirstNLines(swimPath, 10)) as string[]).join('');
         server.query = {};
         server.query.isPerfSwim = !content.includes('traceEvents');
