@@ -126,7 +126,7 @@ const clearCanvas = (drawPre = false) => {
   measureResult.visible = false;
   // 补画第一个手动测距的节点
   if (drawPre && altClickData.preData) {
-    ctx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
+    ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
     ctx.lineWidth = 2 / viewState.scale;
     drawRoundedRect(altClickData.preData, altClickData.preData.pid.toString());
   }
@@ -185,11 +185,8 @@ const getMeasureDistance = (diffTime) => {
 };
 
 const drawConnector = (preCoords, lastCoords, largeSpacing) => {
-  let scrollTop = 0;
   const scrollableDiv = document.querySelector('.scroller-container');
-  if (scrollableDiv) {
-    scrollTop = scrollableDiv.scrollTop;
-  }
+  const scrollTop = scrollableDiv ? scrollableDiv.scrollTop : 0;
   
   const rect = calculateRect(preCoords, lastCoords, largeSpacing);
   
@@ -217,7 +214,7 @@ const calculateRect = (preCoords, lastCoords, largeSpacing) => {
   const preWidth = preCoords.eventWidth;
   const preY = preCoords.eventY;
   const preHeight = preCoords.eventHeight;
-  const processOffsetY = preCoords.processOffsetY;
+  const offsetY = preCoords.processOffsetY;
   
   let rectY = preY;
   if (!largeSpacing) {
@@ -238,19 +235,19 @@ const calculateRect = (preCoords, lastCoords, largeSpacing) => {
   const rightX = getNoZoomX(lastX, viewState);
   const rectX = leftX + (rightX - leftX - width) / 2;
   
-  const centerY = processOffsetY + rectY + height / 2;
+  const centerY = offsetY + rectY + height / 2;
   
   return {
-    leftX: leftX,
-    rightX: rightX,
     x: rectX,
-    y: (processOffsetY + rectY) * devicePixelRatio,
-    width: width,
+    y: (offsetY + rectY) * devicePixelRatio,
     height: height * devicePixelRatio,
     centerX: rectX + (width / 2 - text.length) / 2,
     centerY: centerY * devicePixelRatio,
-    text: text,
-    arrowWidth: (rightX - leftX - width - 6) / 2
+    arrowWidth: (rightX - leftX - width - 6) / 2,
+    text,
+    width,
+    leftX,
+    rightX,
   };
 };
 
@@ -297,7 +294,7 @@ const drawDistanceSelectionBox = (preCoords, lastCoords) => {
   const preWidth = preCoords.eventWidth;
   const preY = preCoords.eventY;
   const preHeight = preCoords.eventHeight;
-  const processOffsetY = preCoords.processOffsetY;
+  const offsetY = preCoords.processOffsetY;
   
   const lastX = lastCoords.eventX;
   
@@ -308,7 +305,7 @@ const drawDistanceSelectionBox = (preCoords, lastCoords) => {
   ctx.strokeStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.roundRect(noZoomPreX + 1, (processOffsetY + preY - 2) * devicePixelRatio, noZoomLastX - noZoomPreX, (preHeight + 4) * devicePixelRatio, 4);
+  ctx.roundRect(noZoomPreX + 1, (offsetY + preY - 2) * devicePixelRatio, noZoomLastX - noZoomPreX, (preHeight + 4) * devicePixelRatio, 4);
   ctx.fill();
   ctx.stroke();
 };
@@ -333,14 +330,14 @@ const drawDiffConnector = (preCoords, lastCoords, largeSpacing) => {
   const preWidth = preCoords.eventWidth * viewState.pixelScale;
   const preY = preCoords.eventY;
   const preHeight = preCoords.eventHeight;
-  const processOffsetY = preCoords.processOffsetY;
+  const offsetY = preCoords.processOffsetY;
   
   const lastX = getNoZoomX(lastCoords.eventX, viewState);
   const lastY = lastCoords.eventY;
   const lastProcessOffsetY = lastCoords.processOffsetY;
   
   const arrowLeftStartX = preX + preWidth;
-  const leftLineHeight = (processOffsetY + preY + preHeight / 2) * devicePixelRatio;
+  const leftLineHeight = (offsetY + preY + preHeight / 2) * devicePixelRatio;
   
   ctx.beginPath();
   ctx.moveTo(arrowLeftStartX, leftLineHeight);
@@ -383,7 +380,7 @@ const calculateDiffRect = (preCoords, lastCoords, largeSpacing) => {
   const preWidth = preCoords.eventWidth;
   const preY = preCoords.eventY;
   const preHeight = preCoords.eventHeight;
-  const processOffsetY = preCoords.processOffsetY;
+  const offsetY = preCoords.processOffsetY;
   
   let rectY = preY;
   if (!largeSpacing) {
@@ -404,14 +401,14 @@ const calculateDiffRect = (preCoords, lastCoords, largeSpacing) => {
   const noZoomLastX = getNoZoomX(lastX, viewState);
   
   const rectX = noZoomPreX + (noZoomLastX - noZoomPreX) / 2 - width / 2;
-  const finalRectY = (processOffsetY + rectY - height < 0 ? processOffsetY + rectY + height : processOffsetY + rectY - height) * devicePixelRatio;
+  const finalRectY = (offsetY + rectY - height < 0 ? offsetY + rectY + height : offsetY + rectY - height) * devicePixelRatio;
   
   return {
     x: rectX,
     y: finalRectY,
-    width: width,
     height: height * devicePixelRatio,
-    text: text,
+    text,
+    width,
   };
 };
 
