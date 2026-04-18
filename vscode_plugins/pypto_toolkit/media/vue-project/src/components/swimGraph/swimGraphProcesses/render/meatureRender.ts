@@ -216,8 +216,7 @@ export class MeatureRender extends EventRender {
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     this.fillText(ctx, rect);
-    if(!largeSpacing){
-      console.log('000');
+    if (!largeSpacing){
       return;
     }
     // 绘制线水平实线部分

@@ -83,6 +83,12 @@
             :container-width="containerWidth"
             :container-height="containerHeight"
           />
+          <!-- 全局测距画布 -->
+          <global-measure-canvas 
+            ref="globalMeasureCanvas"
+            :container-width="containerWidth"
+            :container-height="containerHeight"
+          />
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
         </div>
@@ -144,6 +150,7 @@ import Navbar from '@/components/navbar/navbar.vue';
 import PinnedThreadsContainer from './swimGraphPinnedThreads/PinnedThreadsContainer.vue';
 import { usePinnedThreads } from './swimGraphPinnedThreads/usePinnedThreads';
 import GlobalConnectionCanvas from './swimGraphProcesses/GlobalConnectionCanvas.vue';
+import GlobalMeasureCanvas from './swimGraphProcesses/GlobalMeasureCanvas.vue';
 import { swimDataManager } from './swimData';
 import { getQuery } from '@/core/query';
 import { getTextWidth, layoutFakeCoreEvent } from '../../utils';
@@ -227,6 +234,7 @@ const graphProcessesComponent = ref(null);
 const swimgraphHeaderComponent = ref(null);
 const aicpuCoreDetailComponent = ref(null);
 const globalConnectionCanvas = ref(null); 
+const globalMeasureCanvas = ref(null);
 const configComponent = ref(null);
 const shortCutKeyDescritionComponent = ref(null);
 const pinnedthreadsComponent = ref(null);
@@ -2390,7 +2398,8 @@ provide('swimGraphState', {
   pinnedthreadsComponent,
   aicpuScheduleMaps,
   kernelThreadData,
-  isPerfSwim
+  isPerfSwim,
+  globalMeasureCanvas,
 });
 
 // 提供方法给子组件
