@@ -11,6 +11,8 @@
     :style="{
       left: measureResult.x + 'px',
       top: measureResult.y + 'px',
+      width: measureResult.width + 'px',
+      height: measureResult.height + 'px',
     }"
   >
     {{ measureResult.text }}
@@ -47,6 +49,8 @@ const measureResult = reactive({
   visible: false,
   x: 0,
   y: 0,
+  width: boxWidth,
+  height: 0,
   text: ''
 });
 
@@ -194,6 +198,7 @@ const drawConnector = (preCoords, lastCoords, largeSpacing) => {
   measureResult.visible = true;
   measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
   measureResult.y = scrollY / devicePixelRatio;
+  measureResult.height = rect.height / devicePixelRatio;
   measureResult.text = rect.text;
   
   ctx.save();
@@ -314,6 +319,7 @@ const drawDiffConnector = (preCoords, lastCoords, largeSpacing) => {
   measureResult.visible = true;
   measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
   measureResult.y = rect.y / devicePixelRatio;
+  measureResult.height = rect.height / devicePixelRatio;
   measureResult.text = rect.text;
   
   if (!largeSpacing) {
@@ -641,11 +647,13 @@ defineExpose({
   position: absolute;
   background-color: #317af7;
   color: #ffffff;
-  padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
   pointer-events: none;
   z-index: 100;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
