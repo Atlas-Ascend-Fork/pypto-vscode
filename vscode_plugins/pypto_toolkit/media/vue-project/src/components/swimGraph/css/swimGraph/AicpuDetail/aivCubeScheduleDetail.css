@@ -14,7 +14,7 @@
   background: transparent;
   min-width: fit-content; 
   min-height: fit-content;
-  width: 342px;
+  width: calc((var(--aiv-thread-num) / 2) * 14 + 6);
 }
 
 .dispatch-aiv-area .row{

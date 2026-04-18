@@ -26,14 +26,16 @@
               <div class="schedule-title">{{$t('aiCubeSched')}}</div>
               <aic-cube-schedule-detail
               :aic-dispatch-numstart="aicCubeStart" 
-              :aic-dispatch-numend="aicCubeEnd"/>
+              :aic-dispatch-numend="aicCubeEnd"
+              :aic-thread-num="aicThreadNum"/>
             </div>
             <div class="vec-content">
               <div class="schedule-title">{{$t('aiVectorSched')}}</div>
               <aiv-cube-schedule-detail 
               :aiv-dispatch-numstart="aivCubeStart" 
               :aiv-dispatch-numend="aivCubeEnd"
-              :aic-end-num="aicEndmax"/>
+              :aic-end-num="aicEndmax"
+              :aiv-thread-num="aivThreadNum"/>
             </div>
           </div>
           <template v-else>
@@ -85,6 +87,9 @@ const aivmin = ref(0);
 const aicmax = ref(0);
 const aivmax = ref(0);
 const aicendmax = ref(0);
+let aicThreadNum = 0;
+let aivThreadNum = 0;
+
 
 let buildTaskColor = computed(() => {
   return getEventColor(aicpuBuildTask.value);
@@ -181,6 +186,10 @@ const scheduleGraphData = () => {
       }
     }
   }
+  const keyNumName = `AICPU-CTRL-3`;
+  const currentNum = result.get(keyNumName);
+  aicThreadNum = currentNum.aic.max - 1;
+  aivThreadNum = currentNum.aiv.max - aicThreadNum - 1;
   return result;
 };
 

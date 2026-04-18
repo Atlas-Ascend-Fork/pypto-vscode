@@ -1,9 +1,9 @@
 <template>
   <div class="dispatch-aiv-status-area">
-      <div class="dispatch-aiv-area">
+      <div class="dispatch-aiv-area" :style="{ '--aiv-thread-num': aivThreadNum}">
         <div class="row">
           <div
-            v-for="(item, index) in 24"
+            v-for="(item, index) in Math.floor(aivThreadNum / 2)"
             :key="`aiv-${(index + aicEndNum)}`"
            >
            <d-tooltip :content="'AIV_' + (index + aicEndNum)">
@@ -13,11 +13,11 @@
         </div>
         <div class="row">
           <div
-            v-for="(item, index) in 24"
-            :key="`aiv-${index + aicEndNum + 24}`"
+            v-for="(item, index) in Math.floor(aivThreadNum / 2)"
+            :key="`aiv-${index + aicEndNum + Math.floor(aivThreadNum / 2)}`"
           >
-          <d-tooltip :content="'AIV_' + (index + aicEndNum + 24)">
-            <div :class = "{ active : index + aicEndNum + 24 >= aivDispatchNumstart && index + aicEndNum + 24 < aivDispatchNumend}"></div>
+          <d-tooltip :content="'AIV_' + (index + aicEndNum + Math.floor(aivThreadNum / 2))">
+            <div :class = "{ active : index + aicEndNum + Math.floor(aivThreadNum / 2) >= aivDispatchNumstart && index + aicEndNum + Math.floor(aivThreadNum / 2) < aivDispatchNumend}"></div>
            </d-tooltip>
            </div>
         </div>
@@ -42,6 +42,10 @@ const props = defineProps({
     aicEndNum: {
         type:Number,
         default: 0
+    },
+    aivThreadNum: {
+        type:Number,
+        default: 48
     }
 });
 

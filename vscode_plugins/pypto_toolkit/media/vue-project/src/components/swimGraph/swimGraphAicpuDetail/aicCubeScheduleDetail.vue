@@ -1,9 +1,9 @@
 <template>
   <div class="dispatch-aic-status-area">
-      <div class="dispatch-aic-area">
+      <div class="dispatch-aic-area" :style="{ '--aic-thread-num': aicThreadNum}">
         <div class="row">
           <div
-            v-for="(item, index) in 12"
+            v-for="(item, index) in Math.floor(aicThreadNum / 2)"
             :key="`aic-${(index + 1)}`"
            >
            <d-tooltip :content="'AIC_' + (index + 1)">
@@ -13,11 +13,11 @@
         </div>
         <div class="row">
           <div
-            v-for="(item, index) in 12"
-            :key="`aic-${index + 13}`"
+            v-for="(item, index) in Math.floor(aicThreadNum / 2)"
+            :key="`aic-${index + Math.floor(aicThreadNum / 2) + 1}`"
           >
-          <d-tooltip :content="'AIC_' + (index + 13)">
-            <div :class = "{ active : index + 13 >= aicDispatchNumstart && index + 13 < aicDispatchNumend}"></div>
+          <d-tooltip :content="'AIC_' + (index + Math.floor(aicThreadNum / 2) + 1)">
+            <div :class = "{ active : index + Math.floor(aicThreadNum / 2) + 1 >= aicDispatchNumstart && index + Math.floor(aicThreadNum / 2) + 1 < aicDispatchNumend}"></div>
            </d-tooltip>
            </div>
         </div>
@@ -44,7 +44,11 @@ const props = defineProps({
     aicDispatchNumend: {
         type:Number,
         default: 16
-    }
+    },
+    aicThreadNum: {
+        type:Number,
+        default: 24
+    },
 });
 
 const updateTheme = () => {

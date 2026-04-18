@@ -56,7 +56,8 @@
               <template v-for="(key, index) in sortedResultKeys.slice(0, 3)" :key="key">
                 <aic-cube-schedule-detail 
                   :aic-dispatch-numstart="aicpuScheduleData.get(key).aic.min" 
-                  :aic-dispatch-numend="aicpuScheduleData.get(key).aic.max"/>
+                  :aic-dispatch-numend="aicpuScheduleData.get(key).aic.max"
+                  :aic-thread-num="aicpuScheduleData.get(sortedResultKeys[2]).aic.max"/>
               </template>
             </div>
             <div class="vec-content">
@@ -65,7 +66,8 @@
                 <aiv-cube-schedule-detail 
                   :aiv-dispatch-numstart="aicpuScheduleData.get(key).aiv.min" 
                   :aiv-dispatch-numend="aicpuScheduleData.get(key).aiv.max"
-                  :aic-end-num="aicpuScheduleData.get(sortedResultKeys[2]).aic.max"/>
+                  :aic-end-num="aicpuScheduleData.get(sortedResultKeys[2]).aic.max"
+                  :aiv-thread-num="aivThreadNum"/>
               </template>
             </div>
           </div>
@@ -114,6 +116,7 @@ const {
 } = inject('swimGraphMethods');
 
 const aicpuScheduleData = ref(new Map());
+let aivThreadNum = 0;
 
 const AicpuControlDetailsPanel = () => {
   aicpuControlDetailsExpanded.value = !aicpuControlDetailsExpanded.value;
@@ -242,6 +245,7 @@ const scheduleGraphData = () => {
       }
     }
   }
+  aivThreadNum = result.get('AICPU-CTRL-3')?.aiv.max - result.get('AICPU-CTRL-3')?.aic.max || 0;
   return result;
 };
 
