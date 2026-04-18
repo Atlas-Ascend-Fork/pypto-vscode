@@ -125,6 +125,7 @@ const {
   aicpuControlDetailsExpanded,
   aicpuCoreDetailsExpanded,
   aicpuScheduleDetailsExpanded,
+  globalMeasureCanvas,
 } = swimGraphState;
 
 const {
@@ -760,8 +761,13 @@ function handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx) {
     return true; // consumed
   }
   altClickData.lastData = hoveredEvent;
-  measureRenderer.clearDrawConnectorHover(uiCtx, props.processKey);
-  measureRenderer.measureDistanceHover(uiCtx);
+  if (globalMeasureCanvas.value) {
+    globalMeasureCanvas.value.clearCanvas(true);
+    globalMeasureCanvas.value.measureDistanceHover();
+  } else {
+    measureRenderer.clearDrawConnectorHover(uiCtx, props.processKey);
+    measureRenderer.measureDistanceHover(uiCtx);
+  }
   return false;
 }
 
@@ -778,7 +784,11 @@ function maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx) {
     altClickData.preData = preData;
     altClickData.lastData = lastData;
     altClickData.largeSpacing = actSpacingX > nodeSpaceMin;
-    measureRenderer.drawConnector(uiCtx, altClickData.largeSpacing);
+    if (globalMeasureCanvas.value) {
+      globalMeasureCanvas.value.drawMeasurePreview(preData, lastData, nodeSpacingX);
+    } else {
+      measureRenderer.drawConnector(uiCtx, altClickData.largeSpacing);
+    }
   }
 }
 
@@ -915,7 +925,11 @@ const handleMouseMoveThrottle = throttle((e) => {
   const { canvasRef, uiCtx, backgroundCanvasRef, backgroundCanvasCtx } = refs;
 
   if (altClickData.preData && altClickData.lastData && !e.altKey && !measureState.isMeasureFixed) {
-    measureRenderer.clearDrawConnector(uiCtx, props.processKey);
+    if (globalMeasureCanvas.value) {
+      globalMeasureCanvas.value.clearMeasure();
+    } else {
+      measureRenderer.clearDrawConnector(uiCtx, props.processKey);
+    }
   }
 
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
@@ -2049,12 +2063,20 @@ const drawNodeHeight = (event, processKey) => {
 };
 
 const measureDistance = (event, processKey) => {
-  const uiCtx = getUIContext(processKey);
-  measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey);
+  if (globalMeasureCanvas.value) {
+    globalMeasureCanvas.value.handleDistanceMeasurement(event, processKey);
+  } else {
+    const uiCtx = getUIContext(processKey);
+    measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey);
+  }
 }
 const measureDistanceZoom = (event, processKey) => {
-  const uiCtx = getUIContext(processKey);
-  measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey, true);
+  if (globalMeasureCanvas.value) {
+    globalMeasureCanvas.value.handleDistanceMeasurement(event, processKey, true);
+  } else {
+    const uiCtx = getUIContext(processKey);
+    measureRenderer.handleDistanceMeasurement(uiCtx, event, processKey, true);
+  }
 };
 
 const renderEvents = () => { renderProcessEvents(props.process, props.processKey) };
@@ -2396,20 +2418,28 @@ const guideDistanceMeasurement = () => {
       const lastData = events[preIndex + 1];
       altClickData.preData = preData;
       altClickData.lastData = lastData;
-      const uiCtx = getUIContext(processKey);
-      measureRenderer.drawRoundedRect(uiCtx, lastData, processKey);
-      measureRenderer.calculateAndDrawConnection(uiCtx);
+      if (globalMeasureCanvas.value) {
+        globalMeasureCanvas.value.handleDistanceMeasurement(lastData, processKey);
+      } else {
+        const uiCtx = getUIContext(processKey);
+        measureRenderer.drawRoundedRect(uiCtx, lastData, processKey);
+        measureRenderer.calculateAndDrawConnection(uiCtx);
+      }
       break;
     }
   }
 };
 const clearDistanceMeasurement = () => {
-  for (const [processkey, process] of processes.entries()) {
-    if (!processExpanded.get(processkey)) {
-      continue;
+  if (globalMeasureCanvas.value) {
+    globalMeasureCanvas.value.clearMeasure();
+  } else {
+    for (const [processkey, process] of processes.entries()) {
+      if (!processExpanded.get(processkey)) {
+        continue;
+      }
+      const uiCtx = getUIContext(processkey);
+      measureRenderer.clearDrawConnector(uiCtx, processkey);
     }
-    const uiCtx = getUIContext(processkey);
-    measureRenderer.clearDrawConnector(uiCtx, processkey);
   }
 };
 provide('swimGraphThreadState', {
