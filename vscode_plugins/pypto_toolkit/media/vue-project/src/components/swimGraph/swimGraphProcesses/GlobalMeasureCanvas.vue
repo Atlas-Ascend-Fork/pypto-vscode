@@ -5,10 +5,20 @@
     :data-global-measure="true"
     :style="{ left: layout.processLabelWidth + 'px' }"
   ></canvas>
+  <div
+    v-if="measureResult.visible"
+    class="measure-info-box"
+    :style="{
+      left: measureResult.x + 'px',
+      top: measureResult.y + 'px',
+    }"
+  >
+    {{ measureResult.text }}
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, inject, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, inject, watch, nextTick, reactive } from 'vue';
 import { isEqual } from 'lodash-es';
 import { devicePixelRatio, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, COLOR_CFG, eventTextSize } from '../swimGraphUtils';
 import { getNoZoomX, getEventColor } from './render/utils';
@@ -32,6 +42,13 @@ const emit = defineEmits(['canvas-ready']);
 const globalMeasureCanvas = ref(null);
 let ctx = null;
 const processDomCache = new Map();
+
+const measureResult = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  text: ''
+});
 
 const swimGraphState = inject('swimGraphState');
 const {
@@ -102,6 +119,7 @@ const clearCanvas = (drawPre = false) => {
     return;
   }
   ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+  measureResult.visible = false;
   // 补画第一个手动测距的节点
   if (drawPre && altClickData.preData) {
     ctx.strokeStyle = isDarkTheme.value ? "#FFFFFF" : '#191919';
@@ -162,31 +180,6 @@ const getMeasureDistance = (diffTime) => {
   return timeInfo.value + timeInfo.unit;
 };
 
-const fillText = (rect, scrollY = 0) => {
-  const measureY = scrollY === 0 ? rect.y : scrollY;
-  ctx.font = getFontStyle(meaureTextSize);
-  const oriTextAlign = ctx.textAlign;
-  const oriTextBaseline = ctx.textBaseline;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const centerX = rect.x + rect.width / 2;
-  const centerY = measureY + rect.height / 2;
-  const metrics = ctx.measureText(rect.text);
-  let ascent = metrics.actualBoundingBoxAscent;
-  let descent = metrics.actualBoundingBoxDescent;
-
-  if (ascent === undefined || descent === undefined) {
-    const fontSize = parseFloat(ctx.font);
-    ascent = fontSize * 0.8;
-    descent = fontSize * 0.2;
-  }
-  const textHeight = ascent + descent;
-  const textY = centerY + (ascent - textHeight / 2);
-  ctx.fillText(rect.text, centerX, textY);
-  ctx.textAlign = oriTextAlign;
-  ctx.textBaseline = oriTextBaseline;
-};
-
 const drawConnector = (preCoords, lastCoords, largeSpacing) => {
   let scrollTop = 0;
   const scrollableDiv = document.querySelector('.scroller-container');
@@ -196,18 +189,15 @@ const drawConnector = (preCoords, lastCoords, largeSpacing) => {
   
   const rect = calculateRect(preCoords, lastCoords, largeSpacing);
   
+  let scrollY = scrollTop > 0 && scrollTop - rect.y > layout.threadHeight && !largeSpacing ? rect.y + layout.threadHeight * 2 : rect.y;
+  
+  measureResult.visible = true;
+  measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
+  measureResult.y = scrollY / devicePixelRatio;
+  measureResult.text = rect.text;
+  
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-  ctx.beginPath();
-  
-  let scrollY = scrollTop > 0 && scrollTop - rect.y > layout.threadHeight && !largeSpacing ? rect.y + layout.threadHeight * 2 : rect.y;
-  ctx.roundRect(rect.x, scrollY, rect.width, rect.height, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  fillText(rect, scrollY);
   
   if (largeSpacing) {
     drawDoubleArrow(rect);
@@ -321,21 +311,17 @@ const drawDistanceSelectionBox = (preCoords, lastCoords) => {
 const drawDiffConnector = (preCoords, lastCoords, largeSpacing) => {
   const rect = calculateDiffRect(preCoords, lastCoords, largeSpacing);
   
-  ctx.fillStyle = isDarkTheme.value ? '#317af7' : '#0a59f7';
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-  ctx.beginPath();
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  fillText(rect);
+  measureResult.visible = true;
+  measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
+  measureResult.y = rect.y / devicePixelRatio;
+  measureResult.text = rect.text;
   
   if (!largeSpacing) {
-    ctx.restore();
     return;
   }
+  
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   
   const preX = getNoZoomX(preCoords.eventX, viewState);
   const preWidth = preCoords.eventWidth * viewState.pixelScale;
@@ -649,5 +635,17 @@ defineExpose({
   top: 0;
   pointer-events: none;
   z-index: 2;
+}
+
+.measure-info-box {
+  position: absolute;
+  background-color: #317af7;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
 }
 </style>
