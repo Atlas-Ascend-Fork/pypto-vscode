@@ -303,9 +303,8 @@ const getEventCoordinates = (event, isFrom) => {
   
   const eventX = isFrom ? event.renderInfo.x + eventWidth : event.renderInfo.x;
   const eventY = event.renderInfo.y + (eventHeight / 2);
-  
-  const logicalX = (processOffsetX / viewState.scale) + eventX;
-  const x = logicalX * devicePixelRatio;
+
+  const x = eventX * devicePixelRatio;
   const y = (processOffsetY + eventY) * devicePixelRatio;
   
   return { x, y, processKey };

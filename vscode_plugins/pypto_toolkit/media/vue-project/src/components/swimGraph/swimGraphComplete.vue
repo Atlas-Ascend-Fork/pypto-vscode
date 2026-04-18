@@ -688,6 +688,9 @@ const transform = (needClean=false) => {
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
   }
+  if (GlobalMeasureCanvas.value) {
+    GlobalConnectionCanvas.value.clearMeasure();
+  }
   // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {

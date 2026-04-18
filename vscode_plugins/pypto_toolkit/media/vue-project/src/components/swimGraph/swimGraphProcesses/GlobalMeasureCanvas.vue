@@ -148,8 +148,7 @@ const getEventCoordinates = (event) => {
   const eventX = event.renderInfo.x;
   const eventY = event.renderInfo.y;
   
-  const logicalX = (processOffsetX / viewState.scale) + eventX;
-  const x = logicalX * devicePixelRatio;
+  const x = eventX * devicePixelRatio;
   const y = (processOffsetY + eventY + eventHeight / 2) * devicePixelRatio;
   
   return { x, y, processKey, eventX, eventY, eventWidth, eventHeight, processOffsetX, processOffsetY };
@@ -339,7 +338,7 @@ const drawDiffConnector = (preCoords, lastCoords, largeSpacing) => {
   }
   
   const preX = getNoZoomX(preCoords.eventX, viewState);
-  const preWidth = preCoords.eventWidth * devicePixelRatio;
+  const preWidth = preCoords.eventWidth * viewState.pixelScale;
   const preY = preCoords.eventY;
   const preHeight = preCoords.eventHeight;
   const processOffsetY = preCoords.processOffsetY;
@@ -435,15 +434,13 @@ const drawRoundedRect = (event, processKey) => {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.strokeStyle = isDarkTheme.value ? '#FFFFFF' : '#191919';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2 / viewState.scale;
   ctx.beginPath();
-  
-  const noZoomX = getNoZoomX(eventX / devicePixelRatio, viewState);
+
   const rectY = (processOffsetY + eventY) * devicePixelRatio;
   const rectWidth = eventWidth * viewState.scale;
   const rectHeight = eventHeight * devicePixelRatio;
-  
-  ctx.rect(noZoomX, rectY, rectWidth, rectHeight);
+  ctx.rect(eventX, rectY, rectWidth, rectHeight);
   
   const temp = JSON.parse(JSON.stringify(event));
   const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes };
@@ -457,9 +454,9 @@ const drawRoundedRect = (event, processKey) => {
   
   const drawData = {
     ...temp.drawData,
-    rectX: noZoomX,
+    rectX: eventX,
     rectY: rectY / devicePixelRatio,
-    rectPixelX: noZoomX,
+    rectPixelX: eventX,
     rectPixelY: rectY,
     eventWidth: rectWidth / viewState.scale,
     height: rectHeight / devicePixelRatio,
