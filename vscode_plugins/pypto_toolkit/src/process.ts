@@ -886,6 +886,7 @@ const calculateDependencies = (events, connections) => {
       writeStream.write('\n},\n');
       
       writeStream.write(`"processExpanded": ${JSON.stringify(obj.processExpanded)},\n`);
+      writeStream.write(`"minTs": ${obj.minTs}, \n`);
       writeStream.write(`"lane2line": ${JSON.stringify(obj.lane2line)},\n`);
       writeStream.write(`"pmu_total": ${JSON.stringify(obj.pmu_total)},\n`);
       writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}`);
