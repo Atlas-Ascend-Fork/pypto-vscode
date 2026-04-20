@@ -116,7 +116,8 @@ export class AscppDagBuilder {
                                     tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
                                     rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
                                     magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
-                                    inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, threeMode: boolean = false, errNodeList?: any, nodeSearchLevel?: string
+                                    inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, threeMode: boolean = false, 
+                                    errNodeList?: any, nodeSearchLevel?: string, failRawMagicList?: any
     ) {
         const startNode = nodeMagic.toString();
         const searchLevel = (nodeSearchLevel !== undefined) ? (Number(nodeSearchLevel) + 1) : -1;
@@ -125,18 +126,18 @@ export class AscppDagBuilder {
             // tensorType = 'operation';
             this.opSearchForward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, failRawMagicList);
             this.opSearchBackward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, failRawMagicList);
         } else {
             // tensorType = 'tensor';
             this.tensorSearchForward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, failRawMagicList);
             this.tensorSearchBackward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, failRawMagicList);
         }
         this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
     }
@@ -240,7 +241,7 @@ export class AscppDagBuilder {
             const searchLevel  = nodeSearchLevel ?? (Number(nodeSearchLevel)> -1 ? nodeSearchLevel : undefined);
             this.createGraphSingleSearch(nodeMagic, actualData, nodes, edges, portMap,
                                          tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                                         magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel);
+                                         magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, failRawMagicList);
         } else {
             this.createGraphFullNodes(actualData, nodes, edges, portMap,
                                       tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
@@ -388,7 +389,8 @@ export class AscppDagBuilder {
         showTensorNodes: boolean,
         threeMode: boolean = false, 
         errNodeList?: any, 
-        nodeSearchLevel?: number
+        nodeSearchLevel?: number,
+        failRawMagicList?: any
     ) {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
@@ -419,7 +421,7 @@ export class AscppDagBuilder {
             }
             this.tensorSearchForward(String(incastNode), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, curSearchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, curSearchLevel, failRawMagicList);
         }
     }
 
@@ -439,7 +441,8 @@ export class AscppDagBuilder {
         showTensorNodes: boolean,
         threeMode: boolean = false, 
         errNodeList?: any, 
-        nodeSearchLevel?: number
+        nodeSearchLevel?: number,
+        failRawMagicList?: any
     ) {
         if (!actualData.operations || !Array.isArray(actualData.operations)) {
             return;
@@ -470,7 +473,7 @@ export class AscppDagBuilder {
             }
             this.tensorSearchBackward(String(outcastNode), actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
-                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, curSearchLevel);
+                magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, curSearchLevel, failRawMagicList);
         }
     }
 
@@ -580,7 +583,8 @@ export class AscppDagBuilder {
         rawTensorConsumers: Map<string, PortReference[]>,
         rawTensorMap: Map<string, RawTensor>,
         showTensorNodes: boolean,
-        errNodeList?: any
+        errNodeList?: any,
+        failRawMagicList?: any
     ): void {
         if (!actualData.outcasts || !Array.isArray(actualData.outcasts)) {
             return;
@@ -645,7 +649,7 @@ export class AscppDagBuilder {
         const outPortId = `tensor-${tensorMagic}-${graphId}-out`;
         const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
 
-        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList);
+        const node: AstgrTensorNode = this.createCastNode(tensor, rawTensor, nodeId, portId, tensorMagic.toString(), tensorName, slotId, 'output', errNodeList, failRawMagicList);
         node.children!.push(outPort);
         this.singlePathNodeSet.add(nodeId);
         this.pathNodesSet.add(tensorMagic);
@@ -691,14 +695,15 @@ export class AscppDagBuilder {
         showTensorNodes: boolean,
         threeMode: boolean = false, 
         errNodeList?: any, 
-        nodeSearchLevel?: number
+        nodeSearchLevel?: number,
+        failRawMagicList?: any
     ) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
         if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList);
         } else if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
-            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList);
+            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList, failRawMagicList);
         } else {
             this.createTensorNode(startNode, tensor, actualData, nodes, portMap, rawTensorMap, inoutMap, errNodeList);
         }
@@ -740,12 +745,13 @@ export class AscppDagBuilder {
         showTensorNodes: boolean,
         threeMode: boolean = false, 
         errNodeList?: any, 
-        nodeSearchLevel?: number
+        nodeSearchLevel?: number,
+        failRawMagicList?: any
     ) {
         const castNodeIndex = this.tensorListMap.get(startNode);
         const tensor = actualData.tensors![castNodeIndex!];
         if (actualData.outcasts?.some(([n]) => n === Number(startNode))) {
-            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList);
+            this.createOutcastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList, failRawMagicList);
         } else if (actualData.incasts?.some((t) => t[0] === Number(startNode))) {
             this.createIncastNode(startNode, tensor, actualData, nodes, edges, portMap, rawTensorProducers, rawTensorMap, showTensorNodes, errNodeList);
         } else {

@@ -270,15 +270,15 @@ function formatDetailData(resultLog: string[]): any[] {
     if (!resultLog || resultLog.length < 3) {
         return [];
     }
-
+ 
     function smartSplit(line: string): string[] {
         const result: string[] = [];
         let current = '';
         let inBracket = false; 
-
+ 
         for (let i = 0; i < line.length; i++) {
             const char = line[i];
-
+ 
             if (char === '[') {
                 inBracket = true;
                 current += char;
@@ -286,44 +286,37 @@ function formatDetailData(resultLog: string[]): any[] {
                 inBracket = false;
                 current += char;
             } else if (char === ',' && !inBracket) {
-                // 只有在方括号外，逗号才是分隔符
                 result.push(current.trim());
                 current = '';
             } else {
                 current += char;
             }
         }
-
+ 
         if (current.trim() !== '') {
             result.push(current.trim());
         }
-
+ 
         return result;
     }
-
+ 
     const headers = smartSplit(resultLog[1]);
-
-    const res: Record<string, any>[] = [];
+ 
+    const res: Record<string, string>[] = [];
     for (let i = 2; i < resultLog.length; i++) {
         const singleValue = smartSplit(resultLog[i]);
-        const singleLine: Record<string, any> = {};
-
+        const singleLine: Record<string, string> = {};
+ 
         for (let j = 0; j < headers.length; j++) {
-            let lineValue: any = singleValue[j] ?? null;
-
-            if (lineValue !== undefined && lineValue !== '') {
-                if (!lineValue.startsWith('[') && !isNaN(Number(lineValue))) {
-                    lineValue = Number(lineValue);
-                }
-            }
-            singleLine[headers[j]] = lineValue;
+            // 所有值都按字符串处理
+            singleLine[headers[j]] = singleValue[j] ?? '';
         }
         res.push(singleLine);
     }
+    
     const uniqRes = dedupByOffset(res);
     return uniqRes;
-}
-
+ }
 
 export async function getComGraphDataDetail(filePath: string, phaseName: string, funcMagicName: string, 
                                             loopInfo: string, rawMagic: string, pageSize: number = 10000, startOffset: number = 0) {
@@ -354,3 +347,4 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
 
     return res;
 }
+

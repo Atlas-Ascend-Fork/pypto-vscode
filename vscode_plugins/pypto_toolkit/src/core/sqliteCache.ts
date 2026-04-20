@@ -1141,7 +1141,7 @@ export class SQLiteCache {
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
-      ORDER BY "B>TIMESTAMP" ASC, "NO." DESC
+      ORDER BY "B>TIMESTAMP" ASC, CAST("NO." AS INTEGER) ASC
       LIMIT ? OFFSET ?
     `;
 
@@ -1208,9 +1208,9 @@ export class SQLiteCache {
         file_path = ? AND 
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
-        "LOOP_INFO" LIKE ? AND 
+        ("LOOP_INFO" LIKE ? OR ".datatype" LIKE ? ) AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
-      ORDER BY "B>TIMESTAMP" ASC
+      ORDER BY "B>TIMESTAMP" ASC, CAST("NO." AS INTEGER) ASC
       LIMIT ? OFFSET ?
     `;
 
