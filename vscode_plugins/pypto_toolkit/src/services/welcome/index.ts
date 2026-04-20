@@ -89,10 +89,10 @@ export function getMockDataPath() {
   // 适配打包和调试的路径
   if (mode === 'development') {
     // 调试
-    mockDataFilePath = path.join(extensionRoot, 'src', 'boot-mock-data', 'rundata_20251224101342');
+    mockDataFilePath = path.join(extensionRoot, 'src', 'boot-mock-data', 'rundata_20251224101343');
   } else {
     // 打包
-    mockDataFilePath = path.join(extensionRoot, 'webview-dist', 'boot-mock-data', 'rundata_20251224101342');
+    mockDataFilePath = path.join(extensionRoot, 'webview-dist', 'boot-mock-data', 'rundata_20251224101343');
   }
 
   return mockDataFilePath;

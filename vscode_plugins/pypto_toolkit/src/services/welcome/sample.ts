@@ -30,9 +30,9 @@ export class SampleManager {
     
     // 源数据路径（只读，在安装包内）
     if (mode === 'development') {
-      this.sourceDataPath = join(extensionRoot, 'src', 'boot-mock-data', 'rundata_20251224101342');
+      this.sourceDataPath = join(extensionRoot, 'src', 'boot-mock-data', 'rundata_20251224101343');
     } else {
-      this.sourceDataPath = join(extensionRoot, 'webview-dist', 'boot-mock-data', 'rundata_20251224101342');
+      this.sourceDataPath = join(extensionRoot, 'webview-dist', 'boot-mock-data', 'rundata_20251224101343');
     }
 
     // 目标数据路径（可写，在 globalStorage 内）
@@ -43,7 +43,7 @@ export class SampleManager {
       fs.mkdirSync(storagePath, { recursive: true });
     }
 
-    this.targetDataPath = join(storagePath, 'rundata_20251224101342');
+    this.targetDataPath = join(storagePath, 'rundata_20251224101343');
     this.statusFile = join(this.targetDataPath, 'status');
     this.lockDir = join(storagePath, 'sample_data.lock');
     
