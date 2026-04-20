@@ -1007,6 +1007,18 @@ const handleSelection = () => {
     clearSelectionCanvas('data-selection-process-key');
     return;
   }
+  // 清掉其他泳道的框选
+  processes.forEach((process, processKey) => {
+    if (!processExpanded.get(processKey) || process.type === 'aicpu' || processKey === props.processKey) {
+      return;
+    }
+    const canvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
+    if (!canvasRef) {
+      return;
+    }
+    const ctx = canvasRef.getContext('2d');
+    clearWholeProcess(ctx, viewState, processKey);
+  }); 
   drawSelectionHightlight();
   mulDetailsExpanded.value = true;
   detailsPanelExpanded.value = false;
@@ -1159,11 +1171,9 @@ const checkInSelection = () => {
   const selectMaxY = Math.max(startY, endY);
 
   // 遍历进程
-  processes.forEach((process, processKey) => {
-    if (!processExpanded.get(processKey) || !canDragSelect(process)) {
-      return;
-    }
-    // 遍历线程
+  const process = processes.get(props.processKey);
+  // 遍历线程
+  if (processExpanded.get(props.processKey) && canDragSelect(props.processKey)) {
     process.threads.forEach((thread, threadKey) => {
       const { threadName, events } = thread;
       const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
@@ -1188,7 +1198,7 @@ const checkInSelection = () => {
         matchingAIVEvents.push(...processThreadEventSearchTemp);
       }
     });
-  });
+  }
   selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
   const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
     ([min, max], { startTime, endTime }) => [
@@ -1201,7 +1211,6 @@ const checkInSelection = () => {
   // 最终统计
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
 };
-
 function onHoverEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);
   if (!canvasRef) {
@@ -1755,9 +1764,7 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     }
     previousEventData = event;
   });
-  if (processExpanded.get(processKey)) {
-    eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
-  }
+  eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
 };
 
 // 全部的节点数据包括坐标和初始颜色
@@ -2341,7 +2348,8 @@ addChildContext('threadEvent', {
   eventRenderer,
   drawEventThread,
   showTooltip,
-  renderThreadText
+  renderThreadText,
+  drawNodeHeight
 });
 watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
 // 每个事件画布都会走一遍

@@ -40,6 +40,8 @@ const {
   layout,
   searchedEvent,
   swimlaneContainer,
+  isPathLockStatus,
+  pathLockedEvent
 } = swimGraphState;
 
 const { userConfig } = inject('swimGraphCfg');
@@ -191,6 +193,9 @@ const drawGlobalConnectionLines = () => {
   clearCanvas();
   
   if (selectedEvent.value) {
+    if (isPathLockStatus.value) {
+      selectedEvent.value = pathLockedEvent.value;
+    }
     drawDep();
   }
   if (searchedEvent.value) {
