@@ -938,6 +938,7 @@ provide('swimGraphPmuBarMethod', {
   justify-content: flex-start;
   align-items: flex-start;
   gap: 8px;
+  margin-right: 6px;
 }
 
 .task-title {

@@ -38,11 +38,11 @@
       <div 
         class="threads-box" 
         v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')" 
-        :style="{'--thread-fill-width': threadFillWidth(threadEntry[1].threadName, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].threadName, selectedOption)) + '%', 
+        :style="{'--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%', 
         }"
       >
-        <div class="threads-fill" :style="{ width: threadFillWidth(threadEntry[1].threadName, selectedOption) + '%', 'background': getBackground(threadEntry[1].threadName, selectedOption)}"></div>
-        <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(threadEntry[1].threadName, selectedOption) }}</div>
+        <div class="threads-fill" :style="{ width: threadFillWidth(threadEntry[1].tid, selectedOption) + '%', 'background': getBackground(threadEntry[1].tid, selectedOption)}"></div>
+        <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(threadEntry[1].tid, selectedOption) }}</div>
         <div class="average-line" :style="{ left: averageValue + '%'}"></div>
       </div>
     </div>
@@ -138,9 +138,9 @@ const calculateThreadCycles = (allProcesses, proKey) => {
         icacheReq += BigInt(event['pmu_info']['icache_req']);
       }
       cycleDisplay.value = 'flex';
-      threadCyclesMap.set(thread.threadName, totleCycles.toString());
+      threadCyclesMap.set(thread.tid, totleCycles.toString());
       const missRate = Number(icacheMiss) / Number(icacheReq);
-      threadCacheHitMap.set(thread.threadName, (1 - missRate).toString());
+      threadCacheHitMap.set(thread.tid, (1 - missRate).toString());
     }
   }
   if (!hasPmu) {
@@ -160,7 +160,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
     const typeValided = isPrefProcess.value || isAicpuProcess.value;
     const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
     if (typeValided || nameValided) {
-      threadTaskMap.set(thread.threadName, thread.events.length);
+      threadTaskMap.set(thread.tid, thread.events.length);
     }
   }
   if (cycleDisplay.value === 'none') {
@@ -193,7 +193,7 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
       if (utilization === '0') {
         utilization = '1';
       }
-      threadUtilizationMap.set(thread.threadName, utilization);
+      threadUtilizationMap.set(thread.tid, utilization);
       eventTime = 0;
     }
   }
@@ -343,7 +343,6 @@ const activeThreadName = computed(() => {
   padding-left: 36px;
   align-items: center;
   display: flex;
-  width: 240px;
   height: 24px;
   font-size: 13px;
   font-weight: 400;

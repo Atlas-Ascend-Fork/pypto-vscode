@@ -2088,19 +2088,6 @@ const measureDistanceZoom = (event, processKey) => {
 
 const renderEvents = () => { renderProcessEvents(props.process, props.processKey) };
 
-const realCoordinateY = (y) => {
-  let realY = y;
-  const canvasRef = getActiveEventCanvas(props.processKey);
-  if (!canvasRef) {
-    console.warn(`Canvas for process ${props.processKey} not found during click handling`);
-    return { realY, processKey: props.processKey };
-  }
-
-  const rect = canvasRef.getBoundingClientRect();
-  realY = y - rect.top;
-  return { realY, processKey: props.processKey };
-}
-
 const drawEventLine = (x, color, flag) => {
   const devicePixelRatioValue = window.devicePixelRatio !== undefined ? window.devicePixelRatio : 1;
   const drawX = x * devicePixelRatioValue;
@@ -2319,7 +2306,6 @@ addChildContext('threadEvent', {
   fillTextInfo,
   resizeCanvas,
   renderEvents,
-  realCoordinateY,
   drawDependencyLines,
   clearDependencyLines,
   drawMaxScheduleLine,

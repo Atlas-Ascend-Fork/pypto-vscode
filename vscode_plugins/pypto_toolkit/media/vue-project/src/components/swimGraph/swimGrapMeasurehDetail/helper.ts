@@ -71,6 +71,27 @@ export const measureTimeSearch = (
   }
   return null;
 };
+/**
+ * 获取鼠标所在画布和画布内的y坐标
+ * @param y 鼠标所在y坐标
+ * @returns processKey: 鼠标所在画布所属的processKey, realY: 画布内的相对y坐标
+ */
+const realCoordinateY = (y: number) => {
+  const processContainers = document.querySelectorAll('[data-process-container]');
+  
+  for (let i = 0; i < processContainers.length; i++) {
+    const container = processContainers[i];
+    const rect = container.getBoundingClientRect();
+    
+    if (y >= rect.top && y <= rect.bottom) {
+      const processKey = container.getAttribute('data-process-container');
+      const realY = y - rect.top;
+      return { realY, processkey: processKey };
+    }
+  }
+  
+  return { realY: 0, processkey: '' };
+}
 
 export const measureEventSearch = (options: MeasureEventSearchOptions): number | null => {
   const {
@@ -122,11 +143,11 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
       }
     }
   } else {
-    result = childContextMap.threadEvent.realCoordinateY(mouseY);
+    result = realCoordinateY(mouseY);
     yLayer = result.realY;
     
     for (const [processKey, process] of processes.entries()) {
-      if (result.processkey && processExpanded.get(processKey) && processKey !== result.processkey) {
+      if ((result.processkey && processKey !== result.processkey) || !processExpanded.get(processKey)) {
         continue;
       }
       const threads = process.threads;

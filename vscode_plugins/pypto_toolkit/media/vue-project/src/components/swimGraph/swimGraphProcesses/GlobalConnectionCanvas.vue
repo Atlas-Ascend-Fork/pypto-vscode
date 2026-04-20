@@ -402,6 +402,6 @@ defineExpose({
   position: absolute;
   top: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
 }
 </style>

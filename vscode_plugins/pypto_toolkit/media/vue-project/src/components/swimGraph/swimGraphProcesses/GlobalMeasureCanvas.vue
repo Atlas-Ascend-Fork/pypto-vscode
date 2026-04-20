@@ -483,7 +483,7 @@ const calculateAndDrawConnection = () => {
   const preY = altClickData.preData.renderInfo.y;
   const lastY = altClickData.lastData.renderInfo.y;
   
-  if (preY === lastY) {
+  if (preCoords.y === lastCoords.y) {
     drawConnector(preCoords, lastCoords, largeSpacing);
   } else {
     largeSpacing = nodeSpacingX > 60;
@@ -557,8 +557,7 @@ const measureDistanceHover = () => {
   if (!preCoords || !lastCoords) {
     return;
   }
-  
-  if (lastY === preY) {
+  if (preCoords.y === lastCoords.y) {
     drawConnector(preCoords, lastCoords, largeSpacing);
   } else {
     largeSpacing = nodeSpacingX > 60;
@@ -637,7 +636,7 @@ defineExpose({
   position: absolute;
   top: 0;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .measure-info-box {
