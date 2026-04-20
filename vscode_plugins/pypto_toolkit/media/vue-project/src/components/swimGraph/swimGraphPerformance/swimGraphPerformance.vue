@@ -286,7 +286,7 @@ const {
 const {
   tsScale,
   viewState,
-  sliderValue,
+  isPerfSwim,
   sliderMax,
   sliderMaxCount,
   timeLineX,
@@ -321,13 +321,12 @@ const {
   isMixedAicpuKernel,
   childContextMap,
   kernelColorRending,
-  isPerfSwim
 } = inject('swimGraphState');
 
 const {
   showDependencies,
   selectEvent,
-  findEventAtPosition,
+  toggleProcess,
   showMaxScheduleEvent,
   resetMaxScheduleState,
   scrollToEvent,
@@ -349,11 +348,16 @@ const clickTask = async (event) => {
   if (isMaxSchedule.value) {
     resetMaxScheduleState();
   }
+  const key = event.pid.toString();
   if (isMixedAicpuKernel.value) {
     await autoExpandkernelProcess();
+  } else if (isPerfSwim.value && !processExpanded.get(key)) {
+    toggleProcess(key);
+    childContextMap.threadEvent.eraseEventLine('over');
+    await nextTick();
   }
   showDependencies(event, 'both');
-  selectEvent(event, String(event.pid));
+  selectEvent(event, key);
   scrollToEvent(event);
 };
 

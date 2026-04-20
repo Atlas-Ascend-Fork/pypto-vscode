@@ -1270,6 +1270,18 @@ const autoExpandkernelProcess = async () => {
   }
 };
 
+const autoExpandProcess = async (processKeys) => {
+  for (const [key,] of swimDataManager.processInfo.entries()) {
+    const isExpanded = processExpanded.get(key);
+    if (isExpanded || !processKeys.includes(key)) {
+      continue;
+    }
+    toggleProcess(key);
+    childContextMap.threadEvent.eraseEventLine('over');
+    await nextTick();
+  }
+};
+
 const showMaxScheduleEvent = async (startEvent, endEvent) => {
   if (!startEvent || !endEvent) {
     return;
@@ -1279,6 +1291,8 @@ const showMaxScheduleEvent = async (startEvent, endEvent) => {
   }
   if (isMixedAicpuKernel.value) {
     await autoExpandkernelProcess();
+  } else if (isPerfSwim.value) {
+    await autoExpandProcess([startEvent.pid.toString(), endEvent.pid.toString()]);
   }
   isMaxSchedule.value = true;
   startEventId = startEvent.id;
