@@ -2,7 +2,7 @@
   <div class="abnormal-detail-wrap">
     <div class="detail-magic-id">
       <i class="icon icon-chevron-left-2" @click="() => emits('back')"></i>
-      <span>Magic ID: {{ rawMagic }}</span>
+      <span>Raw Magic ID: {{ rawMagic }}</span>
     </div>
     <OverviewCard :data="typeShapeThresholdInfo" />
     <OverviewCard :data="tolInfo" />

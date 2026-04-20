@@ -64,7 +64,6 @@ const directionOptions = [
 const selectedCols = ref<SelectedSortCol[]>([{ field: 'offset', direction: 'asc' }]);
 const fieldOptions = ref([
   { name: 'OFFSET', value: 'offset', show: true },
-  { name: 'OFFSET_RAW', value: 'offsetRaw', show: true },
   { name: 'A>VALUE', value: 'aValue', show: true },
   { name: 'B>VALUE', value: 'bValue', show: true },
   { name: `AB${t('relativeError')}`, value: 'abRe', show: true },

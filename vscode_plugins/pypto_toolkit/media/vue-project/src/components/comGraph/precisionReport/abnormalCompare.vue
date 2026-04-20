@@ -45,11 +45,12 @@ const columnData = ref([
     headRender: () => h(TableHead, { head: 'OFFSET', direction: headSortMap.offset, onSort: () => onTableSort('offset') }),
   },
   { width: 108, field: 'offsetRaw', header: 'OFFSET_RAW' },
-  { width: 88, field: 'aValue', header: 'A>VALUE' },
-  { width: 88, field: 'bValue', header: 'B>VALUE' },
+  { width: 88, field: 'aValue', header: 'A>VALUE', showOverflowTooltip: true },
+  { width: 88, field: 'bValue', header: 'B>VALUE', showOverflowTooltip: true },
   {
     width: 118,
     field: 'abRe',
+    showOverflowTooltip: true,
     sortable: true,
     sortMethod: (a, b) => a.abRe > b.abRe,
     headRender: () =>
@@ -64,6 +65,7 @@ const columnData = ref([
     width: 118,
     field: 'abAe',
     sortable: true,
+    showOverflowTooltip: true,
     sortMethod: (a, b) => a.abAe > b.abAe,
     headRender: () =>
       h(TableHead, {
@@ -73,7 +75,12 @@ const columnData = ref([
         onSort: () => onTableSort('abAe'),
       }),
   },
-  { width: 118, field: 'abTol', headRender: () => h('span', { title: t('errorJudgmentTolerance') }, t('errorJudgmentTolerance')) },
+  {
+    width: 118,
+    field: 'abTol',
+    showOverflowTooltip: true,
+    headRender: () => h('span', { title: t('errorJudgmentTolerance') }, t('errorJudgmentTolerance')),
+  },
 ]);
 
 function onTableSort(field: string) {

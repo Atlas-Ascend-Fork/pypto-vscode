@@ -3,14 +3,13 @@
   <OverviewCard :data="warnFailInfo" />
   <OverviewCard :data="relativeErrorInfo" />
   <OverviewCard :data="absoluteErrorInfo" />
-  <DataList :data="overviewList" :columns="overviewListColumns" disable-collapse-panel class="overview-data-list" />
+  <d-data-grid :data="overviewList" :columns="overviewListColumns" size="xs" class="overview-data-list"></d-data-grid>
 </template>
 
 <script setup lang="ts">
 import { computed, PropType, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import OverviewCard from './overviewCard.vue';
-import DataList from '../healthReport/dataList.vue';
 import type { AbnormalNodeOverviewListItem, AbnormalNodeOverviewInfo } from './precisionReport.types';
 
 const props = defineProps({
@@ -63,23 +62,33 @@ const overviewList = computed<AbnormalNodeOverviewListItem[]>(() => [
   },
 ]);
 const overviewListColumns = ref([
-  { field: 'id', header: '' },
-  { field: 'max', header: 'Max' },
-  { field: 'min', header: 'Min' },
-  { field: 'avg', header: 'Avg' },
-  { field: 'aavg', header: 'Aavg' },
-  { field: 'infnan', header: 'Infnan' },
+  { field: 'id', header: '', width: 30 },
+  { field: 'max', header: 'Max', showOverflowTooltip: true },
+  { field: 'min', header: 'Min', showOverflowTooltip: true },
+  { field: 'avg', header: 'Avg', showOverflowTooltip: true },
+  { field: 'aavg', header: 'Aavg', showOverflowTooltip: true },
+  { field: 'infnan', header: 'Infnan', showOverflowTooltip: true },
 ]);
 </script>
 
 <style lang="scss">
-.overview-data-list.data-list {
-  .head {
-    padding-top: 8px;
-    padding-bottom: 8px;
-    .head-item {
-      color: var(--devui-placeholder-text);
+.overview-data-list {
+  .devui-data-grid__head {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    background-color: var(--devui-nest-bg);
+    .th-sort-icon {
+      display: none;
     }
+  }
+  .devui-data-grid__tr {
+    background-color: transparent;
+    &.hover-tr {
+      background-color: var(--devui-input-hover-bg) !important;
+    }
+  }
+  .devui-data-grid__body-wrapper.devui-scroll-overlay {
+    overflow: auto;
   }
 }
 </style>
