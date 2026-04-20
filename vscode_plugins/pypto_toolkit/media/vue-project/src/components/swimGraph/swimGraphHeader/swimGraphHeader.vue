@@ -170,7 +170,8 @@ const {
   selectEvent,
   getDisplayName,
   onToggleSwimFullscreenFunction,
-  resetMaxScheduleState
+  resetMaxScheduleState,
+  toggleProcess
 } = inject('swimGraphMethods');
 
 const {
@@ -778,22 +779,24 @@ const onClearAll = (e) => {
   searchedKey.value = '';
   resetsearchState();
 };
-
+const processThreadEvents = (thread, processKey, filterFn) => {
+  for (const event of thread.events) {
+    if (!filterFn(event, thread, processKey)) {
+      return; 
+    }
+    searchResult.value.push([event, thread.threadName, processKey]);
+    if (!processExpanded.get(processKey)) {
+      toggleProcess(processKey);
+    }
+  }
+};
 const performSearch = (filterFn) => {
   searchResult.value = [];
   searchResultCount.value = 0;
   currentResultIndex.value = 0;
   for (const [processKey, process] of processes.entries()) {
-    if (!processExpanded.get(processKey)) {
-      continue; 
-    }
-    
     for (const [threadKey, thread] of process.threads.entries()) {
-      for (const event of thread.events) {
-        if (filterFn(event, thread, processKey)) {
-          searchResult.value.push([event, thread.threadName, processKey]);
-        }
-      }
+      processThreadEvents(thread, processKey, filterFn);
     }
   }
   if (isMaxSchedule.value) {

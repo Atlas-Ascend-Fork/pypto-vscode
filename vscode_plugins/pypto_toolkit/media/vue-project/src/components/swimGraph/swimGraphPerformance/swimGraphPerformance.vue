@@ -119,12 +119,28 @@
 
         </div>
 
-        <div class="task-container" :style="{width: subContainerWidth + 'px', gap: aiCoreContainerColumnGap + 'px'}">
+        <div class="task-container" :style="{width: subContainerWidth + 'px'}">
+          <div class="top-row-group" :style="{width: subContainerWidth + 'px', gap: aiCoreContainerColumnGap + 'px'}">
           <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
-            <div class="task-title">Task Time (μs)</div>
-            <div class="task-data">{{ taskTime }}</div>
+            <div class="task-title-container">
+              <div class="task-title">{{ taskOnBoardTimeTitle }} (μs)</div>
+                <d-tooltip :content="taskOnBoardTimeTip">
+                  <d-icon name="helping" size="16px"></d-icon>
+                </d-tooltip>
+              </div>
+            <div class="task-data">{{ taskOnBoardTime }}</div>
           </div>
           <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+            <div class="task-title-container">
+              <div class="task-title">{{ totalTimeTitle }} (μs)</div>
+                <d-tooltip :content="totalTimeTip">
+                  <d-icon name="helping" size="16px"></d-icon>
+                </d-tooltip>
+              </div>
+            <div class="task-data">{{ taskTime }}</div>
+          </div>
+          </div>
+          <div class="task-item-container mt10" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title">{{ icacheHitRateTitle }}</div>
             <div class="task-data">{{ icacheHitRate }}</div>
           </div>
@@ -182,7 +198,7 @@
         <swim-graph-bar-chart ref="swimGraphBarChartComponent" v-if="pmuExist && iniComplete" />
       </div>
       </d-tab>
-      <d-tab id="tab2" v-if="!isAicpu" :title="$t('executionTime')">
+      <d-tab id="tab2" v-if="!isAicpu && !isPerfSwim" :title="$t('executionTime')">
         <div class="time-statistics-tab-content">
           <time-statistics/>
         </div>
@@ -219,8 +235,12 @@ const reportTitle = ref($t('ReportTitle'));
 const icacheHitRateTitle = ref($t('ICacheHitRate'));
 const aicoreRateTitle = ref($t('aiCoreUtilization'));
 const occupyRateTitle = ref($t('occupyRateTitle'));
-
+const taskOnBoardTimeTitle = ref($t('taskOnBoardTimeTitle'));
+const taskOnBoardTimeTip = ref($t('taskOnBoardTimeTip'));
+const totalTimeTitle = ref($t('totalTime'));
+const totalTimeTip = ref($t('totalTimeTip'));
 const taskTime = ref(0);
+const taskOnBoardTime = ref(0);
 const aicoreTime = ref(0);
 const aicoreRate = ref(0);
 const icacheHitRate = ref('/');
@@ -537,7 +557,7 @@ const initializePerformance = () => {
   } else {
     taskTime.value = (viewState.timeRange / mod).toFixed(2);
   }
-
+  taskOnBoardTime.value = getTaskOnBoardTime();
   if (isAicpu.value) {
     aicoreTime.value = '/';
     aicoreRate.value = '/';
@@ -604,6 +624,35 @@ const initializePerformance = () => {
   pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
                               mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
   iniComplete.value = true;
+};
+const getTaskOnBoardTime = () => {
+  let minStart = 0;
+  let maxEnd = 0;
+  const mod = tsScale.value;
+  for (const [, process] of processes.entries()) {
+    const isValidType = ['kernel', '', undefined].includes(process.type);
+    const isNotExcludedPerfSwim = process.type === 'PerfSwim' && process.processName === 'AICore View';
+    if (isValidType || isNotExcludedPerfSwim) {
+      for (const [, thread] of process.threads.entries()) {
+        if (thread.isCounter || thread.threadName.includes('Fake Core')) {
+          continue;
+        }
+        const { events } = thread;
+        if (!events || events.length === 0) {
+          continue;
+        }
+        const [firstEvent] = events;
+        const lastEvent = events[events.length - 1];
+        if (firstEvent.startTime < minStart) {
+          minStart = firstEvent.startTime;
+        }
+        if (lastEvent.endTime > maxEnd) {
+          maxEnd = lastEvent.endTime;
+        }
+      }
+    }
+  }
+  return (maxEnd - minStart) / mod;
 };
 const handleClickOutside = (e) => {
   if (isPathLockStatus.value) {
@@ -858,13 +907,19 @@ provide('swimGraphPmuBarMethod', {
   background: var(--hover-bg-color);
   color: black;
 }
-
+.top-row-group {
+  display: flex;
+  flex-direction: row;
+}
+.mt10 {
+  margin-top: 10px;
+}
 .task-container {
   margin-top: 12px;
   width: 440px;
-  height: 90px;
+  height: 176px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   gap: 16px;

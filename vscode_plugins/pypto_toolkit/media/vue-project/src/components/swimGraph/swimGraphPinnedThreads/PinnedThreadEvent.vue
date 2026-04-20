@@ -59,6 +59,7 @@ const {
   processes,
   highlightedPaths,
   timeLineX,
+  detailsPanelExpanded
 } = swimGraphState;
 
 const { 
@@ -68,6 +69,7 @@ const {
   selectEvent,
   setMeasureDragHeight,
   transform,
+  drawNodeHeight
 } = inject('swimGraphMethods');
 
 const { pinnedThreadsList, pinnedMeasureInfo } = inject('swimGraphPinnedState');
@@ -579,7 +581,9 @@ const computeLocalXY = (canvasRef, mousePos) => {
 
 const handleTooltipAndCursor = (e, event) => {
   let cursor = '';
-  if (event && !e.altKey && !e.ctrlKey) {
+  const isNoModifierKey = !e.altKey && !e.ctrlKey;
+  const isUnlock = !isPathLockStatus.value;
+  if (event && isNoModifierKey && isUnlock) {
     showTooltip(e, event);
     cursor = 'pointer';
   } else {
@@ -756,11 +760,6 @@ const handleMouseDown = (e) => {
   if (!canvasContainerRef.value || e.altKey) {
     return;
   }
-
-  if (isPathLockStatus.value) {
-    return;
-  }
-  
   if (e.ctrlKey && e.buttons === 1) {
     isPinnedCtrlDragging = true;
     pinnedCtrlDragStartX = e.clientX;
@@ -770,9 +769,18 @@ const handleMouseDown = (e) => {
   mousePosition = { x: e.clientX, y: e.clientY };
   const localPosition = computeLocalXY(canvasContainerRef.value, mousePosition);
   const { event } = findEventAtPosition(localPosition.x, localPosition.y);
+  canvasclickedEvent.value = event;
   if (event) {
+    if (isPathLockStatus.value) {
+      selectedEvent.value = event;
+      detailsPanelExpanded.value = true;
+      drawHoverHighlight(event);
+      childContextMap.threadEvent.changeNodeColor(event.renderInfo?.processKey || event.pid.toString());
+      drawNodeHeight(event, event.renderInfo?.processKey || event.pid.toString());
+      selectEvent(event, event.renderInfo?.processKey || event.pid.toString());
+      return;
+    }
     selectEvent(event, event.renderInfo?.processKey || event.pid.toString());
-    canvasclickedEvent.value = event;
     pathLockedEvent.value = event;
   } else {
     highlightedPaths.clear();
