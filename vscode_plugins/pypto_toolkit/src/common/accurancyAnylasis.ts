@@ -335,7 +335,7 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
     }
     const extractor = new SmartLogExtractor();
     const detailStart = `[VERIFY:FAIL] ${phaseName}, ${funcMagicName}, ${loopInfo}, ${rawMagic}`;
-    const detailEnd = `[VERIFY:FAIL] ${phaseName}, ${funcMagicName}`;
+    const detailEnd = `[VERIFY:FAIL] `;
     const resultLog = await extractor.extract(logPath, detailStart, detailEnd);
     const formatLog = formatDetailData(resultLog);
 
