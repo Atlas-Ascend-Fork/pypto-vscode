@@ -259,7 +259,7 @@ const handleCanvasClick = (e) => {
     return;
   }
   if(!isDragging.value){
-    clearSelectionCanvas('data-selection-process-key');
+    clearAllSelectionCanvas('data-selection-process-key');
   } 
   const rect = canvasRef.getBoundingClientRect();
   const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
@@ -1236,6 +1236,17 @@ const clearSelectionCanvas = (key) => {
   boundaries = [];
   lockPosition.value = isLockStatus.value ? lockPosition.value : null;
   threeRender.stopAnimate();
+};
+const clearAllSelectionCanvas = (key) => {
+  mulDetailsExpanded.value = false;
+  for (const [processKey] of processes.entries()) {
+    const canvasRef = document.querySelector(`[${key}="${processKey}"]`);
+    if (!canvasRef) {
+      return;
+    }
+    const ctx = canvasRef.getContext('2d');
+    clearWholeProcess(ctx, viewState, processKey);
+  }
 };
 function onSelectionEvent(hoveredEvent, ctx, processKey, highlight) {
   highlightEvent(ctx, hoveredEvent, processKey, false, highlight);

@@ -4,7 +4,9 @@
       <div class="label_one">
         <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
         <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
-        <span>{{ process.processName }}</span>
+        <d-tooltip :content="process.processName">
+          <span>{{ process.processName }}</span>
+        </d-tooltip>
       </div>
       <div class="label_two" v-if="isExpanded">
         <d-select class="labelSelect" menu-class="globalSelect" v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm" @toggle-change="onMenuChange"></d-select>

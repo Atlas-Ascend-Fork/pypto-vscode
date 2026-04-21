@@ -2064,7 +2064,8 @@ const measureDetailSearch = () => {
 
   for (const [processKey, process] of processes.entries()) {
     const processType = process.type || 'kernel';
-    if (!processExpanded.get(processKey) || processType != 'kernel') {
+    const isNotExcludedPerfSwim = processType === 'PerfSwim' && process.processName === 'AICore View';
+    if (!(processExpanded.get(processKey) && (processType === 'kernel' || isNotExcludedPerfSwim))) {
       continue;
     }
     const { threads } = process;

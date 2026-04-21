@@ -320,7 +320,7 @@ const {
   isMaxSchedule,
   isMixedAicpuKernel,
   childContextMap,
-  kernelColorRending,
+  kernelColorRending
 } = inject('swimGraphState');
 
 const {

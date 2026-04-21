@@ -65,7 +65,7 @@
             </div>
           </div>
         </div>
-        <div class="measure-detail-right-section">
+        <div class="measure-detail-right-section" v-if="!isPerfSwim">
           <div class="measure-detail-search-area">
             <d-category-search class="measure-detail-category-search" :category="category" :extend-config="{ save: { show: false } }"  @selectedTagsChange="onMeasureSearch" style="width: 58%;" :default-search-field="defaultSearchField" @search="onSearch" :placeholder="$t('measureCategoryPlaceholder')"  :text-config="textConfig" :show-search-category="searchConfig">
             </d-category-search>
@@ -81,6 +81,7 @@
             </d-table>
           </div>
         </div>
+        <div v-else class="measure-detail-right-section no-file-container"><img :src="iconPath" alt="" class="no-file-icon" /></div>
         <div class="close-button">
           <d-button icon="icon-close" style="width: 16px; font-size: 16px; border: none; background-color: transparent"
             @click="measureDetailsPanel()"></d-button>
@@ -91,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch} from 'vue';
+import { ref, inject, watch, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 // 注入父组件提供的状态和方法
@@ -102,12 +103,13 @@ const {
   rootHashes,
   leafHashes,
   leafHashMap,
+  isPerfSwim
 } = inject('swimGraphState');
 
 const {
 } = inject('swimGraphMethods');
-
-
+const { isDarkTheme } = inject('root');
+let iconPath = computed(() => `${window.staticPath}/static-assets/noFile${isDarkTheme.value ? 'Dark' : ''}.png`);
 const AICoreUsage = ref('0');
 const AICUsage = ref('0');
 const AIVUsage = ref('0');
@@ -366,5 +368,19 @@ const transformToOptions = (source) =>
 .measure-detail-data-table::-webkit-scrollbar {
   width: 4px;
   height: 4px;
+}
+.no-file-icon {
+  width: 160px;
+  height: 160px;
+}
+.no-file-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100%;
+    .devui-button {
+        border-radius: 8px;
+    }
 }
 </style>

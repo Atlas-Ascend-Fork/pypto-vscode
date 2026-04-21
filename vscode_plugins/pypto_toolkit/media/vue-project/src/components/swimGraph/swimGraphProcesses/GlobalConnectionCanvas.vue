@@ -134,8 +134,7 @@ const clearCanvas = () => {
   ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
 };
 
-const drawDep = () => {
-  const event = selectedEvent.value;
+const drawDep = (event) => {
   const mode = viewState.depMode;
   let level = 1;
   
@@ -193,10 +192,10 @@ const drawGlobalConnectionLines = () => {
   clearCanvas();
   
   if (selectedEvent.value) {
-    if (isPathLockStatus.value) {
-      selectedEvent.value = pathLockedEvent.value;
-    }
-    drawDep();
+    drawDep(selectedEvent.value);
+  }
+  if (isPathLockStatus.value) {
+    drawDep(pathLockedEvent.value);
   }
   if (searchedEvent.value) {
     drawSearchedValue();

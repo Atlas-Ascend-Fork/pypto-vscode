@@ -780,15 +780,16 @@ const onClearAll = (e) => {
   resetsearchState();
 };
 const processThreadEvents = (thread, processKey, filterFn) => {
+  const results = [];
   for (const event of thread.events) {
-    if (!filterFn(event, thread, processKey)) {
-      return; 
-    }
-    searchResult.value.push([event, thread.threadName, processKey]);
-    if (!processExpanded.get(processKey)) {
-      toggleProcess(processKey);
+    if (filterFn(event, thread, processKey)) {
+      results.push([event, thread.threadName, processKey]);
+      if (!processExpanded.get(processKey)) {
+        toggleProcess(processKey);
+      }
     }
   }
+  return results;
 };
 const performSearch = (filterFn) => {
   searchResult.value = [];
@@ -796,7 +797,8 @@ const performSearch = (filterFn) => {
   currentResultIndex.value = 0;
   for (const [processKey, process] of processes.entries()) {
     for (const [threadKey, thread] of process.threads.entries()) {
-      processThreadEvents(thread, processKey, filterFn);
+      const results = processThreadEvents(thread, processKey, filterFn);
+      searchResult.value.push(...results);
     }
   }
   if (isMaxSchedule.value) {
