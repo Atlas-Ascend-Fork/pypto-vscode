@@ -34,15 +34,38 @@ const warnFailInfo = computed(() => {
   ];
 });
 const relativeErrorInfo = computed(() => [
-  { label: 'mre', value: props.summaryInfo.mre, desc: t('meanRelativeError') },
-  { label: 'mre_top8', value: props.summaryInfo.mreTop8, desc: t('meanTop8RelativeError') },
-  { label: 'mre_top1premil', value: props.summaryInfo.mreTop1permil, desc: t('meanTop1PerMilRelativeError') },
+  { label: 'mre', value: convertData(props.summaryInfo.mre), desc: t('meanRelativeError') },
+  { label: 'mre_top8', value: convertData(props.summaryInfo.mreTop8), desc: t('meanTop8RelativeError') },
+  { label: 'mre_top1premil', value: convertData(props.summaryInfo.mreTop1permil), desc: t('meanTop1PerMilRelativeError') },
 ]);
 const absoluteErrorInfo = computed(() => [
-  { label: 'mae', value: props.summaryInfo.mae, desc: t('meanAbsoluteError') },
-  { label: 'mae_top8', value: props.summaryInfo.maeTop8, desc: t('meanTop8AbsoluteError') },
-  { label: 'mae_top1premil', value: props.summaryInfo.maeTop1permil, desc: t('meanTop1PerMilAbsoluteError') },
+  { label: 'mae', value: convertData(props.summaryInfo.mae), desc: t('meanAbsoluteError') },
+  { label: 'mae_top8', value: convertData(props.summaryInfo.maeTop8), desc: t('meanTop8AbsoluteError') },
+  { label: 'mae_top1premil', value: convertData(props.summaryInfo.maeTop1permil), desc: t('meanTop1PerMilAbsoluteError') },
 ]);
+function convertData(val?: string) {
+  if (!val) {
+    return val;
+  }
+  const [intVal, decimalVal] = val.split('.');
+  if (val.length <= 11) {
+    // 11位内直接展示
+    return val;
+  } else if (decimalVal.length >= 12) {
+    if (decimalVal.toLocaleLowerCase().includes('e')) {
+      // 小数位大于12字符且为科学计数
+      const [val1, val2] = decimalVal.toLocaleLowerCase().split('e');
+      return `${intVal}.${val1.slice(0, 5)}e${val2}`;
+    } else {
+      // 小数位大于12字符，转科学计数
+      return Number(val).toExponential(7);
+    }
+  } else if (intVal.length >= 9) {
+    return Number(val).toExponential(7);
+  } else {
+    return val;
+  }
+}
 const overviewList = computed<AbnormalNodeOverviewListItem[]>(() => [
   {
     id: 'A',

@@ -8,12 +8,12 @@ export interface AbnormalNodeOverviewInfo {
   tolCnt: string | number; // tol_cnt(容差个数)
   warn: string | number; // warn(实际差异个数)
   fail: string | number; // fail(错误个数)
-  mre: string | number; // mre(平均相对误差)
-  mreTop8: string | number; // mre_top8(相对误差top8的均值)
-  mreTop1permil: string | number; // mre_top1premil(相对误差top1/1000的均值)
-  mae: string | number; // mae(平均绝对误差)
-  maeTop8: string | number; // mae_top8(绝对误差top8的均值)
-  maeTop1permil: string | number; // mae_top1premil(绝对误差top1/1000的均值)
+  mre: string; // mre(平均相对误差)
+  mreTop8: string; // mre_top8(相对误差top8的均值)
+  mreTop1permil: string; // mre_top1premil(相对误差top1/1000的均值)
+  mae: string; // mae(平均绝对误差)
+  maeTop8: string; // mae_top8(绝对误差top8的均值)
+  maeTop1permil: string; // mae_top1premil(绝对误差top1/1000的均值)
   cntTotalZeroInfnanCnt: string; // total_cnt/zero_cnt/infnan_cnt
   cntFailWarnTol: string; // fail_cnt/warn_cnt/tol_cnt
   // 小表格的A行

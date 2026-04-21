@@ -13,8 +13,8 @@ import AbnormalList from './abnormalList.vue';
 import AbnormalDetail from './abnormalDetail.vue';
 
 const showDetail = ref(false);
-const loopInfo = ref('m_idx=1@n_idx=0@loop_idx_0=0');
-const rawMagic = ref('52');
+const loopInfo = ref('');
+const rawMagic = ref('');
 
 const jumpDetail = (rowData) => {
   rawMagic.value = rowData.rawMagic
