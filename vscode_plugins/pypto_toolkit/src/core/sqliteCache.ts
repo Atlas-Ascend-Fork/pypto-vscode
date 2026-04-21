@@ -1188,7 +1188,7 @@ export class SQLiteCache {
         file_path = ? AND 
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
-        "LOOP_INFO" LIKE ? AND 
+        ("LOOP_INFO" LIKE ? OR ":datatype" LIKE ? ) AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
     `;
     const dataSql = `
@@ -1208,18 +1208,18 @@ export class SQLiteCache {
         file_path = ? AND 
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
-        ("LOOP_INFO" LIKE ? OR ".datatype" LIKE ? ) AND 
+        ("LOOP_INFO" LIKE ? OR ":datatype" LIKE ? ) AND 
         "AB>RESULT" IN ('FAIL', 'EXCEPTION')
       ORDER BY "B>TIMESTAMP" ASC, CAST("NO." AS INTEGER) ASC
       LIMIT ? OFFSET ?
     `;
 
-    const bindParams = [filePath, phaseName, funcMagicName, `%${keyWord}%`];
+    const countParams = [filePath, phaseName, funcMagicName, `%${keyWord}%`, `%${keyWord}%`];
 
     let total = 0;
     const countStmt = this.db!.prepare(countSql);
     try {
-      countStmt.bind(bindParams);
+      countStmt.bind(countParams);
       if (countStmt.step()) {
         const row = countStmt.getAsObject();
         total = row.total as number;
@@ -1232,7 +1232,7 @@ export class SQLiteCache {
     const list: AccuracyToolData[] = [];
 
     try {
-      dataStmt.bind([...bindParams, pageSize, startOffset]);
+      dataStmt.bind([...countParams, pageSize, startOffset]);
 
       while (dataStmt.step()) {
         const row = dataStmt.getAsObject();
