@@ -317,7 +317,7 @@ export default {
       nodeSearchLevelTips2: '其余数字：展示关联层级',
       nodeSearchLevel: '链路关联层级',
       precisionExceptionList: '精度异常列表',
-      enterKeywordSearchForLoopInfo: '请输入LOOP_INFO或datetype字段关键词进行搜索',
+      enterKeywordSearchForLoopInfo: '请输入LOOP_INFO或datatype字段关键词进行搜索',
    },
     sideBar: {
         title: '运行结果',

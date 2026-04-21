@@ -314,7 +314,7 @@ export default {
         nodeSearchLevelTips2: 'else: show selected layers',
         nodeSearchLevel: 'Relative layers of searching node',
         precisionExceptionList: 'Precision Exception List',
-        enterKeywordSearchForLoopInfo: 'Please enter the LOOP_INFO or datetype field keyword to search',
+        enterKeywordSearchForLoopInfo: 'Please enter the LOOP_INFO or datatype field keyword to search',
     },
     sideBar: {
         title: 'Compilation result',
