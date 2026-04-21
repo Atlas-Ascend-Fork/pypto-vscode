@@ -313,8 +313,8 @@ export default {
         nodeSearchLevelTips1: '-1: show full layers',
         nodeSearchLevelTips2: 'else: show selected layers',
         nodeSearchLevel: 'Relative layers of searching node',
-        precisionExceptionList: 'Precision exception list',
-        enterKeywordSearchForLoopInfo: 'Please enter the keyword to search for LOOP_INFO',
+        precisionExceptionList: 'Precision Exception List',
+        enterKeywordSearchForLoopInfo: 'Please enter the LOOP_INFO or datetype field keyword to search',
     },
     sideBar: {
         title: 'Compilation result',
