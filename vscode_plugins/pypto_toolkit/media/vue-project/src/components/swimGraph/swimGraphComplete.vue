@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 100vh;" class="swim-global-container">
+  <div :style="{height: isThreeColumn ? '100%' : '100vh'}" class="swim-global-container">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="drag-icon-container">
         <DragIcon v-if="isThreeColumn" />
@@ -915,7 +915,7 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, (time - viewState.minTime) * 1000 / tsScale.value);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000 / tsScale.value, (time - viewState.minTime) * 1000 / tsScale.value);
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
@@ -976,7 +976,7 @@ const renderTimeline = () => {
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange, (time - viewState.minTime) * 1000 / tsScale.value);
+      const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000 / tsScale.value, (time - viewState.minTime) * 1000 / tsScale.value);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       ctx.fillText(`${value}${unit}`, x + 2, 15);
@@ -1788,15 +1788,14 @@ const drawMeasureTimeTip = (ctx, rect, value, unit) => {
   ctx.stroke();
   ctx.fillStyle = '#ffffff';
   ctx.font = '9px sans-serif';
-  let textStart = rect.x + 2;
   let displayValue = value;
-  if (unit === 'μs') {
-    textStart += 2;
-    if (value < 1) {
-      displayValue = '<1';
-    }
+  if (unit === 'ns' && value < 1) {
+    displayValue = '<1';
   }
-  ctx.fillText(`${displayValue}${unit}`, textStart, 25);
+  const text = `${displayValue}${unit}`;
+  const textWidth = ctx.measureText(text).width;
+  const textStart = rect.x + ((rect.width - textWidth) / 2);
+  ctx.fillText(text, textStart, 25);
 };
 
 const drawMeasureTimeRange = (ctx, startx, endx) => {

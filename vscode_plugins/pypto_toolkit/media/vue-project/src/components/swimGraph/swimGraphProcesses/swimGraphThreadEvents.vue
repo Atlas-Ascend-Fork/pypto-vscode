@@ -119,6 +119,7 @@ const {
   isLockStatus,
   dependencyLinesInfo,
   isThreeColumn,
+  isPerfSwim,
   searchedEvent,
   isPathLockStatus,
   isMaxSchedule,
@@ -803,32 +804,32 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
   }
   return cursor;
 }
-
 const findLineAtPoint = (ctx, point) => {
   // 还原传入坐标为绘制算法
-  const pointX = ((point.x * viewState.scale * viewState.scale) + viewState.pixelOffsetX) * devicePixelRatio;
+  const pointX = point.x * viewState.pixelScale;
+  const pointY = point.y * devicePixelRatio;
   for (const line of dependencyLinesInfo.value) {
-    if (ctx.isPointInStroke(line.linePath, pointX, point.y)) {
+    if (ctx.isPointInStroke(line.linePath, pointX, pointY)) {
       return { fromEvent: line.fromEvent, toEvent: line.toEvent };
     }
   }
   return null;
 };
-
 const handleLineTooltipAndCursor = (e, x, y) => {
-  if (dependencyLinesInfo.value.length === 0) {
+  if (dependencyLinesInfo.value.length === 0 || isPerfSwim.value) {
     return '';
   }
   const point = { x, y };
-
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${props.processKey}"]`);
   if (!dependencyCanvasRef) {
     return '';
   }
-
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
+  dependencyCtx.save();
+  dependencyCtx.setTransform(1, 0, 0, 1, 0, 0);
+  dependencyCtx.lineWidth = 2 * devicePixelRatio;
   const line = findLineAtPoint(dependencyCtx, point);
-
+  dependencyCtx.restore();
   if (line && !e.altKey && !e.ctrlKey) {
     lineShowTooltip(e, line.fromEvent, line.toEvent);
     return 'pointer';
@@ -1815,7 +1816,6 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
     Object.assign(event.renderInfo, { pinnedEventY: originalPinnedEventY });
     Object.assign(drawData, { pinnedEventY: originalPinnedEventY });
   }
-
   return true;
 };
 
