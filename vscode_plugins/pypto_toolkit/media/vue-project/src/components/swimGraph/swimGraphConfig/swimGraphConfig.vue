@@ -400,3 +400,13 @@ watch(userConfig, () => {
     border-color: var(--devui-brand) !important;
 }
 </style>
+<style scoped lang="scss">
+:deep() {
+    .connection-level-input.locked-style {
+        .disabled {
+            opacity: 0.8;
+            color: rgba(153, 153, 153, 1);
+        }
+    }
+}
+</style>

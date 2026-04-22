@@ -118,13 +118,13 @@
 
                     <span>
                       <template v-if="['dispatch-time-us', 'finish-time-us'].includes(key)">
-                        <span>{{ subMintsFormat(value) }}</span>
+                        <span class="main-text">{{ subMintsFormat(value) }}</span>
                       </template>
                     </span>
 
                     <span>
                       <template v-if="['aicpu-duration-us', 'kernel-ready-time-us'].includes(key)">
-                        <span>{{ parseFloat(value.toFixed(3)) }}</span>
+                        <span class="main-text">{{ parseFloat(value.toFixed(3)) }}</span>
                       </template>
                     </span>
                     
@@ -783,6 +783,10 @@ defineExpose({
     input {
       background-color: transparent !important;
       border-color: transparent;
+    }
+    .disabled {
+      opacity: 0.8;
+      color: rgba(153, 153, 153, 1);
     }
   }
   .argsTabs {
