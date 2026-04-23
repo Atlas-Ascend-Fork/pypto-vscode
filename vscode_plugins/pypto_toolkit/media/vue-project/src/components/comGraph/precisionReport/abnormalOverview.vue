@@ -34,36 +34,41 @@ const warnFailInfo = computed(() => {
   ];
 });
 const relativeErrorInfo = computed(() => [
-  { label: 'mre', value: convertData(props.summaryInfo.mre), desc: t('meanRelativeError') },
-  { label: 'mre_top8', value: convertData(props.summaryInfo.mreTop8), desc: t('meanTop8RelativeError') },
-  { label: 'mre_top1premil', value: convertData(props.summaryInfo.mreTop1permil), desc: t('meanTop1PerMilRelativeError') },
+  { label: 'mre', ...convertData(props.summaryInfo.mre), desc: t('meanRelativeError') },
+  { label: 'mre_top8', ...convertData(props.summaryInfo.mreTop8), desc: t('meanTop8RelativeError') },
+  { label: 'mre_top1premil', ...convertData(props.summaryInfo.mreTop1permil), desc: t('meanTop1PerMilRelativeError') },
 ]);
 const absoluteErrorInfo = computed(() => [
-  { label: 'mae', value: convertData(props.summaryInfo.mae), desc: t('meanAbsoluteError') },
-  { label: 'mae_top8', value: convertData(props.summaryInfo.maeTop8), desc: t('meanTop8AbsoluteError') },
-  { label: 'mae_top1premil', value: convertData(props.summaryInfo.maeTop1permil), desc: t('meanTop1PerMilAbsoluteError') },
+  { label: 'mae', ...convertData(props.summaryInfo.mae), desc: t('meanAbsoluteError') },
+  { label: 'mae_top8', ...convertData(props.summaryInfo.maeTop8), desc: t('meanTop8AbsoluteError') },
+  { label: 'mae_top1premil', ...convertData(props.summaryInfo.maeTop1permil), desc: t('meanTop1PerMilAbsoluteError') },
 ]);
+const maxLength = 11;
 function convertData(val?: string) {
   if (!val) {
-    return val;
+    return { value: val, tooltip: undefined };
   }
-  const [intVal, decimalVal] = val.split('.');
-  if (val.length <= 11) {
+  if (val.length <= maxLength) {
     // 11位内直接展示
-    return val;
-  } else if (decimalVal.length >= 12) {
-    if (decimalVal.toLocaleLowerCase().includes('e')) {
-      // 小数位大于12字符且为科学计数
-      const [val1, val2] = decimalVal.toLocaleLowerCase().split('e');
-      return `${intVal}.${val1.slice(0, 5)}e${val2}`;
-    } else {
-      // 小数位大于12字符，转科学计数
-      return Number(val).toExponential(7);
-    }
-  } else if (intVal.length >= 9) {
-    return Number(val).toExponential(7);
+    return { value: val, tooltip: undefined };
   } else {
-    return val;
+    const eIndex = val.search(/[Ee]/);
+    const res = { value: val, tooltip: val };
+    if (eIndex !== -1) {
+      const mantissa = val.slice(0, eIndex);
+      const exponent = val.slice(eIndex);
+      const expLength = exponent.length;
+      const mantissaAvail = maxLength - expLength;
+      if (mantissaAvail >= 1) {
+        res.value = mantissa.slice(0, mantissaAvail) + '...' + exponent;
+      } else {
+        const mantissaLen = val.startsWith('-') ? 2 : 1;
+        res.value = val.slice(0, mantissaLen) + '...' + exponent;
+      }
+    } else {
+      res.value = val.slice(0, maxLength) + '...';
+    }
+    return res;
   }
 }
 const overviewList = computed<AbnormalNodeOverviewListItem[]>(() => [

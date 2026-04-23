@@ -56,6 +56,7 @@ export interface OverviewCardData {
   label: string;
   value: string | number;
   desc?: string;
+  tooltip?: string;
 }
 
 export interface SelectedSortCol {

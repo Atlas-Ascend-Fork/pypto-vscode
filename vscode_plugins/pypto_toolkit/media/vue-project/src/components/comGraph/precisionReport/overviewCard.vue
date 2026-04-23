@@ -10,7 +10,14 @@
           </template>
         </d-tooltip>
       </div>
-      <span class="value-text">{{ item.value }}</span>
+      <d-tooltip
+        :content="item.tooltip"
+        :disabled="!item.tooltip"
+        overlay-class="com-graph-report-standard-tips"
+        :position="['top', 'top-start', 'top-end']"
+      >
+        <span class="value-text">{{ item.value }}</span>
+      </d-tooltip>
     </div>
   </div>
 </template>
