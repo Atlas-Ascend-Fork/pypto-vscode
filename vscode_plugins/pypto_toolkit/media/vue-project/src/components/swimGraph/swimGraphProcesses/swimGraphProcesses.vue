@@ -81,7 +81,8 @@ const {
   isMaxSchedule,
   aicpuControlDetailsExpanded,
   aicpuScheduleDetailsExpanded,
-  aicpuCoreDetailsExpanded
+  aicpuCoreDetailsExpanded,
+  globalDependencyLinesInfo
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -191,7 +192,8 @@ provide('swimGraphState', {
   isMaxSchedule,
   aicpuControlDetailsExpanded,
   aicpuScheduleDetailsExpanded,
-  aicpuCoreDetailsExpanded
+  aicpuCoreDetailsExpanded,
+  globalDependencyLinesInfo
 });
 
 const {

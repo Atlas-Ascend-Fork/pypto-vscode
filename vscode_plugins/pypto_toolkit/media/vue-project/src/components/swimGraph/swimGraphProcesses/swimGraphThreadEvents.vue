@@ -127,6 +127,7 @@ const {
   aicpuCoreDetailsExpanded,
   aicpuScheduleDetailsExpanded,
   globalMeasureCanvas,
+  globalDependencyLinesInfo
 } = swimGraphState;
 
 const {
@@ -806,9 +807,21 @@ function handleTooltipAndCursor(e, hoveredEvent, canvasRef) {
 }
 const findLineAtPoint = (ctx, point) => {
   // 还原传入坐标为绘制算法
-  const pointX = point.x * viewState.pixelScale;
-  const pointY = point.y * devicePixelRatio;
-  for (const line of dependencyLinesInfo.value) {
+  let pointX = point.x * viewState.pixelScale;
+  let pointY = point.y * devicePixelRatio;
+  let linesToCheck;
+  if (globalDependencyLinesInfo.value.length > 0) {
+    // 全局画布依赖
+    linesToCheck = globalDependencyLinesInfo.value;
+    pointY = (point.y + layout.processHeaderHeight) * devicePixelRatio;
+  } else if (dependencyLinesInfo.value.length > 0) {
+    // 原始画布依赖
+    linesToCheck = dependencyLinesInfo.value;
+  } else {
+    linesToCheck = [];
+  }
+
+  for (const line of linesToCheck) {
     if (ctx.isPointInStroke(line.linePath, pointX, pointY)) {
       return { fromEvent: line.fromEvent, toEvent: line.toEvent };
     }
@@ -816,7 +829,8 @@ const findLineAtPoint = (ctx, point) => {
   return null;
 };
 const handleLineTooltipAndCursor = (e, x, y) => {
-  if (dependencyLinesInfo.value.length === 0 || isPerfSwim.value) {
+  const dependencyLinesChange = globalDependencyLinesInfo.value.length === 0 && dependencyLinesInfo.value.length === 0；
+  if (dependencyLinesChange || isPerfSwim.value) {
     return '';
   }
   const point = { x, y };

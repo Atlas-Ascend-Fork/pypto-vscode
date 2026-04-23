@@ -41,7 +41,9 @@ const {
   searchedEvent,
   swimlaneContainer,
   isPathLockStatus,
-  pathLockedEvent
+  pathLockedEvent,
+  globalDependencyLinesInfo,
+  isPerfSwim,
 } = swimGraphState;
 
 const { userConfig } = inject('swimGraphCfg');
@@ -152,6 +154,7 @@ const drawDep = (event) => {
     level
   );
   
+  globalDependencyLinesInfo.value = [];
   for (const edge of edgesToDraw) {
     const [fromId, toId] = edge.split('->');
     const fromEvent = swimDataManager.eventMap.get(fromId);
@@ -264,7 +267,10 @@ const drawSingleConnectionLine = (fromEvent, toEvent) => {
     endY: toCoords.y
   };
   
-  drawArrow(ctx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+  const linePath = drawArrow(ctx, position, sourceColor, targetColor, viewState.scale, viewState.offsetX);
+  if (!isPerfSwim.value) {
+    globalDependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
+  }
   
   drawEventNode(fromEvent, fromCoords, isFromProcessExpanded);
   drawEventNode(toEvent, toCoords, isToProcessExpanded);

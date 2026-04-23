@@ -321,6 +321,7 @@ const dependencyLinesInfo = ref([]);
 const outPutPath = ref();
 const aicpuScheduleEventMaps = ref([]);
 const aicpuScheduleMaps = ref(new Map());
+const globalDependencyLinesInfo = ref([]);
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -2417,6 +2418,7 @@ provide('swimGraphState', {
   kernelThreadData,
   isPerfSwim,
   globalMeasureCanvas,
+  globalDependencyLinesInfo,
 });
 
 // 提供方法给子组件
