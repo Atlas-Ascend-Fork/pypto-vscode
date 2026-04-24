@@ -8,6 +8,10 @@
   z-index: 2;
 }
 
+.process-header.no-sticky {
+  position: relative;
+}
+
 .process-header-label {
   background: var(--devui-header-label);
   display: flex;

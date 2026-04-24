@@ -92,7 +92,7 @@ class SwimDataManager {
       
       const processInfoItem: ProcessInfo = {
         pid: process.pid || processKey,
-        name: process.name || '',
+        name: process.processName || '',
         type: process.type || 'kernel',
         threads: threadInfoMap
       };

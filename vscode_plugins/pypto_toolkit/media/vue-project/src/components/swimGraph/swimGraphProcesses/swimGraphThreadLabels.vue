@@ -4,7 +4,7 @@
       v-for="(threadEntry, index) in process.threads" 
       :key="threadEntry[0]"  
       class="thread-labels-loop" 
-      :class="{'active': `${props.processKey}-${index}` === curThread, 'activeS': activeThreadName === (threadEntry[1].threadName)}"
+      :class="{'active': `${props.processKey}-${index}` === curThread, 'activeS': activeThreadId === `${props.processKey}-${threadEntry[1].tid}`}"
       @mouseover="handleLabelHover(index)"
       @mouseleave="handleLabelLeave(index)"
     >
@@ -325,12 +325,15 @@ const handleUnpin = (threadKey) => {
   unpinThread(props.processKey, threadKey);
 };
 
-const activeThreadName = computed(() => {
+const activeThreadId = computed(() => {
   if(searchResult.value.length === 0) {
     return "";
   }
   if (searchResult.value[currentResultIndex.value - 1]) {
-    return searchResult.value[currentResultIndex.value - 1].at(1);
+    const result = searchResult.value[currentResultIndex.value - 1];
+    const processKey = result.at(2);
+    const tid = result.at(3);
+    return `${processKey}-${tid}`;
   } else {
     return "";
   }

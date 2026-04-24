@@ -783,7 +783,7 @@ const processThreadEvents = (thread, processKey, filterFn) => {
   const results = [];
   for (const event of thread.events) {
     if (filterFn(event, thread, processKey)) {
-      results.push([event, thread.threadName, processKey]);
+      results.push([event, thread.threadName, processKey, thread.tid]);
       if (!processExpanded.get(processKey)) {
         toggleProcess(processKey);
       }
@@ -911,16 +911,23 @@ const toggleCaseSensitivity = () => {
   icon?.click();
 };
 // 导航搜索结果
-const navigateResults = (direction) => {
-  if (searchResultCount.value === 0) return;
+const navigateResults = async (direction) => {
+  if (searchResultCount.value === 0) { return };
   if (direction === 'prev') {
     currentResultIndex.value = currentResultIndex.value > 1 ? currentResultIndex.value - 1 : searchResultCount.value;
-  } else if (direction === "next") {
+  } else if (direction === 'next') {
     currentResultIndex.value = currentResultIndex.value < searchResultCount.value ? currentResultIndex.value + 1 : 1;
   }
   const target = searchResult.value.at(currentResultIndex.value - 1);
-  selectEventChild(target.at(0));
-  scrollToEvent(target.at(0));
+  const event = target.at(0);
+  const processKey = target.at(2);
+  const isExpanded = processExpanded.get(processKey);
+  if (!isExpanded) {
+    toggleProcess(processKey);
+    await nextTick();
+  }
+  selectEventChild(event);
+  scrollToEvent(event);
 };
 
 const selectEventChild = (event) => {
@@ -1033,9 +1040,13 @@ const rightmove = (step=30, forceTransform=false) => {
 
 const scrollToEventByDom = (event) => {
   let container;
+  let isAicpuKernel = false;
+  const pid = event?.pid;
+  const processKey = String(pid);
+  const process = processes.get(processKey);
+  
   if (isMixedAicpuKernel.value) {
-    let pid = event?.pid;
-    let isAicpuKernel = processes.get(String(pid))?.type === 'aicpu';
+    isAicpuKernel = process?.type === 'aicpu';
     container = isAicpuKernel ? swimlaneContainer.value.querySelector('.aicpu-section') : swimlaneContainer.value.querySelector('.kernel-section');
   } else {
     container = swimlaneContainer.value;
@@ -1043,7 +1054,27 @@ const scrollToEventByDom = (event) => {
   if (!container) {
     return;
   }
-  const targetScrollTop = isMixedAicpuKernel.value ? (event.renderInfo.y || container.offsetTop) : event.renderInfo.y;
+  
+  const processSectionElement = document.querySelector(`[data-process="${processKey}"]`);
+  if (!processSectionElement) {
+    return;
+  }
+  
+  const processSection = processSectionElement.closest('.process-section');
+  if (!processSection) {
+    return;
+  }
+  
+  const containerRect = container.getBoundingClientRect();
+  const processRect = processSection.getBoundingClientRect();
+  
+  const eventY = event.renderInfo?.y || 0;
+  const processOffsetInContainer = processRect.top - containerRect.top + container.scrollTop;
+  const targetPosition = processOffsetInContainer + eventY;
+  const containerHeight = container.clientHeight;
+  
+  const targetScrollTop = Math.max(0, targetPosition - containerHeight / 2);
+  
   container.scrollTo({
     top: targetScrollTop,
     behavior: 'smooth'

@@ -7,7 +7,7 @@
 
     <div class="details-panel" :class="{ expanded: detailsPanelExpanded }">
       <div class="details-content" ref="detailsContent" id="details-content">
-        <div class="details-title" v-if="!selectedEvent">{{ $t("nodeDetailsView") }}</div>
+        <div class="details-title" v-if="!selectedEvent && !canvasclickedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
           <div class="detail-content">
               <div class="content-one-pipe">
@@ -16,11 +16,11 @@
                     <img class="picture" :src="tPath" alt="picture">
                   </div>
                   <div class="pipe-name">
-                    <d-tooltip :content="getEventDisplayName(selectedEvent)">
-                      <div>{{ getEventTruncateText(selectedEvent) }}</div>
+                    <d-tooltip :content="getEventDisplayName(canvasclickedEvent)">
+                      <div>{{ getEventTruncateText(canvasclickedEvent) }}</div>
                     </d-tooltip>
                     <div class="pipe-subgraph">
-                      <span :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(selectedEvent, 'subGraph', '/') }}</span>
+                      <span :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">Subgraphid: {{ getSubGraphId(canvasclickedEvent, 'subGraph', '/') }}</span>
                     </div>
                   </div>
                 </div>
@@ -61,8 +61,8 @@
                 </div>
               </div>
               <div class="content-two" v-if="selectedView === 'args'">
-                <template v-if="selectedEvent.isCounter">
-                  <strong>{{ $t("countValue") }}</strong> {{ selectedEvent.counterSize }}<br>
+                <template v-if="canvasclickedEvent.isCounter">
+                  <strong>{{ $t("countValue") }}</strong> {{ canvasclickedEvent.counterSize }}<br>
                   <strong>{{ $t("type") }}</strong> {{ $t("counterEvent") }}<br>
                 </template>
                 <template v-else>
@@ -98,7 +98,7 @@
                     <span>subgraph_min</span>
                     <span>569</span>
                   </div>
-                  <div v-for="(value, key) in selectedEvent.args" :key="key" :id="key" class="args-item">
+                  <div v-for="(value, key) in canvasclickedEvent.args" :key="key" :id="key" class="args-item">
                     <d-tooltip :content="key" v-if="value !== ''">
                       <span class="args-key third-text">{{ key }}</span>
                     </d-tooltip>
@@ -147,7 +147,7 @@
                 </template>
               </div>
               <template v-else>
-                <div class="pipe-bar-chart" v-if="selectedEvent.pmu_info">
+                <div class="pipe-bar-chart" v-if="canvasclickedEvent.pmu_info">
                   <div class="row-coord" :class="{'row-coord-active': selectedView === 'pipeStat'}">
                     <div class="row-coord-num" 
                       v-for="(coordIt, index) in rowCoordList" 
@@ -247,6 +247,7 @@ const {
   tsScale,
   minTs,
   selectedEvent,
+  canvasclickedEvent,
   viewState,
   detailsPanelExpanded,
   detailsCoresExpanded,
@@ -260,10 +261,10 @@ const {
 } = inject('swimGraphState');
 
 const isAicpuEvent = computed(() => {
-  if (!selectedEvent.value) return false;
-  const processKey = String(selectedEvent.value.pid);
+  if (!canvasclickedEvent.value) return false;
+  const processKey = String(canvasclickedEvent.value.pid);
   const process = processes.get(processKey);
-  return process?.type === 'aicpu' || selectedEvent.value.isAicpuProcess; // 兼容旧逻辑
+  return process?.type === 'aicpu' || canvasclickedEvent.value.isAicpuProcess; // 兼容旧逻辑
 });
 
 const shouldShowBindButton = computed(() => {
@@ -271,7 +272,7 @@ const shouldShowBindButton = computed(() => {
 });
 
 const eventCacheHit = computed(() => {
-  return getEventCacheHit(selectedEvent.value);
+  return getEventCacheHit(canvasclickedEvent.value);
 });
 
 const {
@@ -437,15 +438,15 @@ let aPath = isDarkTheme.value ? ref(`${window.staticPath}/static-assets/swim_all
 const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 
 const predecessors = computed(() => {
-  if (!selectedEvent.value) return [];
-  return selectedEvent.value.dependencies.predecessors.map(id =>
+  if (!canvasclickedEvent.value) return [];
+  return canvasclickedEvent.value.dependencies.predecessors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);
 });
 
 const successors = computed(() => {
-  if (!selectedEvent.value) return [];
-  return selectedEvent.value.dependencies.successors.map(id =>
+  if (!canvasclickedEvent.value) return [];
+  return canvasclickedEvent.value.dependencies.successors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);
 });
@@ -459,9 +460,9 @@ const formatDuration = (value, minTime = 0) => {
   const placesToKeep = Math.min(decimalPlaces, 3);
   return placesToKeep === 0 ? duration.toString() : duration.toFixed(placesToKeep);
 };
-const formattedDuration = computed(() => formatDuration(selectedEvent.value?.duration));
-const formattedStartTime = computed(() => formatDuration(selectedEvent.value?.startTime, viewState.minTime));
-const formattedEndTime = computed(() => formatDuration(selectedEvent.value?.endTime, viewState.minTime));
+const formattedDuration = computed(() => formatDuration(canvasclickedEvent.value?.duration));
+const formattedStartTime = computed(() => formatDuration(canvasclickedEvent.value?.startTime, viewState.minTime));
+const formattedEndTime = computed(() => formatDuration(canvasclickedEvent.value?.endTime, viewState.minTime));
 
 const getEventDisplayName = (event) => {
   return event.isCounter ? event.displayName : (event.name || 'Event');
@@ -497,22 +498,31 @@ const createHint = (event, operate) => {
   }
 };
 
-// 监听选中事件变化，更新依赖图
-watch(selectedEvent, (newEvent) => {
+const showEventDetail = (newEvent) => {
   if (newEvent) {
-    startTimeInfo.value = formatTimeWithUnit((selectedEvent.value.startTime - viewState.minTime) * 1000 / tsScale.value).value;
-    startTimeUnitInfo.value = formatTimeWithUnit((selectedEvent.value.startTime - viewState.minTime) * 1000 / tsScale.value).unit;
+    startTimeInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).value;
+    startTimeUnitInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).unit;
     startTimeInfoAll.value = startTimeInfo.value + startTimeUnitInfo.value;
-    durationInfo.value = formatTimeWithUnit(selectedEvent.value.duration * 1000 / tsScale.value).value;
-    durationUnitInfo.value = formatTimeWithUnit(selectedEvent.value.duration * 1000 / tsScale.value).unit;
+    durationInfo.value = formatTimeWithUnit(newEvent.duration * 1000 / tsScale.value).value;
+    durationUnitInfo.value = formatTimeWithUnit(newEvent.duration * 1000 / tsScale.value).unit;
     durationInfoAll.value = durationInfo.value + durationUnitInfo.value;
     nextTick(() => {
       createHint(newEvent, 'ioperand-hint');
       createHint(newEvent, 'ooperand-hint');
-      showDependencies(newEvent, "both");
+      showDependencies(newEvent, 'both');
       updateEventPmu(newEvent);
       getEventCacheHit(newEvent);
     });
+  }
+};
+
+// 监听选中事件变化，更新依赖图
+watch(selectedEvent, (newEvent) => {
+  showEventDetail(newEvent);
+});
+watch(canvasclickedEvent, (newEvent) => {
+  if (isPathLockStatus.value) {
+    showEventDetail(newEvent);
   }
 });
 watch(isDarkTheme, () => {

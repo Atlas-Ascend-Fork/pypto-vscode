@@ -2492,6 +2492,7 @@ provide('swimGraphMethods', {
   pinnedEraseLine: (flag) => {
     pinnedthreadsComponent?.value?.pinnedEraseLine(flag);
   },
+  highlightPinnedEvent: (event, isTemp) => {pinnedthreadsComponent?.value?.highlightPinnedEvent(event, true, true, isTemp)},
   drawFixedTimelineSlider,
   drawEventThread: (thread, eventCtx, threadY, processKey) => {
     childContextMap.threadEvent.drawEventThread(thread, eventCtx, threadY, processKey);

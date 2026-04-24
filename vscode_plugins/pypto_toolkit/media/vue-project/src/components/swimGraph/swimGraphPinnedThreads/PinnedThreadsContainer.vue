@@ -60,8 +60,8 @@ const changePinnedColor = (isDimmed) => {
   pinnedthreadsEventComponent.value.changePinnedColor(isDimmed);
 };
 
-const highlightPinnedEvent = (event) => {
-  pinnedthreadsEventComponent.value.highlightPinnedEvent(event);
+const highlightPinnedEvent = (event, isTemp) => {
+  pinnedthreadsEventComponent.value.highlightPinnedEvent(event, true, true, isTemp);
 };
 
 const getPinnedHeight = () => {

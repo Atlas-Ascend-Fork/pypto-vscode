@@ -510,7 +510,9 @@ const calculateAicoreInfo = () => {
   let maxTs = -Infinity;
 
   for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
-    if (!['kernel', '', 'PerfSwim', undefined].includes(processInfo.type)) {
+    const isValidType = ['kernel', '', undefined].includes(processInfo.type);
+    const isNotExcludedPerfSwim = processInfo.type === 'PerfSwim' && processInfo.name === 'AICore View';
+    if (!isValidType && !isNotExcludedPerfSwim) {
       continue;
     }
 
@@ -540,7 +542,7 @@ const calculateAicoreInfo = () => {
   }
 
   aicoreTime.value = parseFloat((aicTaskTimeSum / tsScale.value).toFixed(2));
-  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskTime.value))).div(new BigNumber(tsScale.value));
+  const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskOnBoardTime.value))).div(new BigNumber(tsScale.value));
   aicoreRate.value = parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
 };
 
@@ -626,7 +628,7 @@ const initializePerformance = () => {
   iniComplete.value = true;
 };
 const getTaskOnBoardTime = () => {
-  let minStart = 0;
+  let minStart = Infinity;
   let maxEnd = 0;
   const mod = tsScale.value;
   for (const [, process] of processes.entries()) {

@@ -24,6 +24,8 @@
     <canvas ref="hoverCanvasRef" class="pinned-hover-canvas"></canvas>
     <!-- 连接线层 -->
     <canvas ref="lineCanvasRef" class="pinned-line-canvas"></canvas>
+    <!-- 临时高亮层 -->
+    <canvas ref="tempHighlightRef" class="pinned-highlit-canvas"></canvas>
   </div>
 </template>
 
@@ -32,7 +34,8 @@ import { ref, inject, onMounted, onUnmounted, watch, computed, provide, reactive
 import { useI18n } from 'vue-i18n';
 import { isEqual, throttle } from 'lodash-es';
 import { devicePixelRatio, getThreadHeight, getDevicePixelRatio, 
-          formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin } from '../swimGraphUtils';
+          formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin, 
+          clearWholeProcess} from '../swimGraphUtils';
 import { EventRender } from '../swimGraphProcesses/render/eventRender';
 import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
@@ -82,12 +85,14 @@ const depCanvasRef = ref(null);
 const uiCanvasRef = ref(null);
 const hoverCanvasRef = ref(null);
 const lineCanvasRef = ref(null);
+const tempHighlightRef = ref(null);
 
 let eventsCtx = null;
 let depCtx = null;
 let uiCtx = null;
 let hoverCtx = null;
 let lineCtx = null;
+let highlightCtx = null;
 
 const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
 const measureRenderer = new MeatureRender({...swimGraphState, colorCfg, userConfig}, $t('lessThan0us'));
@@ -121,7 +126,8 @@ const pinnedInitCanvases = () => {
     { canvasRef: depCanvasRef, ctx: 'depCtx' },
     { canvasRef: uiCanvasRef, ctx: 'uiCtx' },
     { canvasRef: hoverCanvasRef, ctx: 'hoverCtx' },
-    { canvasRef: lineCanvasRef, ctx: 'lineCtx' }
+    { canvasRef: lineCanvasRef, ctx: 'lineCtx' },
+    { canvasRef: tempHighlightRef, ctx: 'highlightCtx' },
   ];
   
   canvases.forEach(({ canvasRef, ctx }) => {
@@ -155,6 +161,9 @@ const pinnedInitCanvases = () => {
     if (ctx === 'lineCtx') {
       lineCtx = context;
     }
+    if (ctx === 'highlightCtx') {
+      highlightCtx = context;
+    }
   });
 };
 
@@ -172,6 +181,7 @@ const clearCanvases = () => {
   uiCtx.clearRect(0, 0, eventWidth, height);
   hoverCtx.clearRect(0, 0, eventWidth, height);
   lineCtx.clearRect(0, 0, eventWidth, height);
+  highlightCtx.clearRect(0, 0, eventWidth, height);
 };
 
 const clearEventCanvas = () => {
@@ -203,7 +213,8 @@ const transformPinned = () => {
     events: eventsCtx,
     ui: uiCtx,
     hover: hoverCtx,
-    line: lineCtx
+    line: lineCtx,
+    highlight: highlightCtx,
   };
 
   for (const [key, ctx] of Object.entries(ctxs)) {
@@ -223,6 +234,7 @@ const transformPinned = () => {
   }
   changePinnedColor(true);
   highlightPinnedEvent(selectedEvent.value || searchedEvent.value);
+  highlightPinnedEvent(canvasclickedEvent.value, true, true, true);
 };
 
 const changePinnedColor = (isDimmed) => {
@@ -257,9 +269,15 @@ const changePinnedColor = (isDimmed) => {
   eventRenderer.drawEventText(drawDatas, eventsCtx, isDimmed, true);
 };
 
-const highlightPinnedEvent = (event, stroke=true, highlight=true) => {
+const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) => {
   if (!event || !event.renderInfo) {
     return;
+  }
+  const ctx = isTemp ? highlightCtx : depCtx;
+  if (isTemp) {
+    const eventWidth = eventsCanvasRef.value.offsetWidth;
+    const height = containerHeight.value;
+    ctx.clearRect(0, 0, eventWidth, height);
   }
   let threadPinned = false;
   const pinnedKey = `${event.pid}-${event.pid}-${event.tid}`;
@@ -292,13 +310,13 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true) => {
     fontColor,
     show: true,
   };
-  eventRenderer.drawEvent([drawData], depCtx, false, true);
-  depCtx.font = getFontStyle(eventTextSize);
+  eventRenderer.drawEvent([drawData], ctx, false, true);
+  ctx.font = getFontStyle(eventTextSize);
   const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   drawData.width = width;
-  childContextMap.threadEvent.fillTextInfo(event, depCtx, drawData, true, isAicpuProcess);
+  childContextMap.threadEvent.fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
   if (!drawData.text) { return };
-  eventRenderer.drawEventText([drawData], depCtx, false, true);
+  eventRenderer.drawEventText([drawData], ctx, false, true);
 };
 
 // 渲染置顶线程事件
@@ -355,11 +373,6 @@ const handleCanvasClick = (e) => {
       const rect = measureRenderer.calculateRect(altClickData.largeSpacing, true);
       showMeasureInfo(rect);
     }
-  } else {
-    measureState.isMeasureFirst = false;
-    measureState.isMeasureFixed = false;
-    measureState.isMeasureChange = false;
-    clearPinnedMeasureCanvas();
   }
 };
 
@@ -444,12 +457,12 @@ const findEventAtPosition = (x, y) => {
   return processObj;
 };
 
-const drawHoverHighlight = (event) => {
-  if (!hoverCtx) {
+const drawHoverHighlight = (event, ctx) => {
+  if (!ctx) {
     return;
   }
   
-  hoverCtx.clearRect(0, 0, eventsCanvasRef.value.offsetWidth, containerHeight.value);
+  ctx.clearRect(0, 0, eventsCanvasRef.value.offsetWidth, containerHeight.value);
   
   if (!event || !event.renderInfo) {
     return;
@@ -492,7 +505,7 @@ const drawHoverHighlight = (event) => {
     show: true,
   };
   
-  eventRenderer.drawEvent([drawData], hoverCtx, false, true);
+  eventRenderer.drawEvent([drawData], ctx, false, true);
   
   const { scale, offsetX, canvasCssWidth } = viewState;
   const absOffsetX = Math.abs(offsetX);
@@ -508,8 +521,8 @@ const drawHoverHighlight = (event) => {
     const actualPixWidth = actualWidth * devicePixelRatio;
     const displayName = event.isCounter ? event.displayName : getDisplayName(event);
     
-    hoverCtx.font = getFontStyle(eventTextSize);
-    let textWidth = hoverCtx.measureText(displayName).width;
+    ctx.font = getFontStyle(eventTextSize);
+    let textWidth = ctx.measureText(displayName).width;
     
     let displayText = '';
     if (textWidth > actualPixWidth) {
@@ -531,11 +544,11 @@ const drawHoverHighlight = (event) => {
       const textStartX = (visibleRectXOnScreen * devicePixelRatio) + ((actualPixWidth - textWidth) / 2);
       const textY = ( pinnedEventY * devicePixelRatio) + eventTextSize;
       
-      hoverCtx.save();
-      hoverCtx.setTransform(1, 0, 0, 1, 0, 0);
-      hoverCtx.fillStyle = fontColor;
-      hoverCtx.fillText(displayText, textStartX, textY);
-      hoverCtx.restore();
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = fontColor;
+      ctx.fillText(displayText, textStartX, textY);
+      ctx.restore();
     }
   }
 };
@@ -601,7 +614,7 @@ const handlePureMove = (mData, event) => {
   const { preData, lastData, nodeSpacingX } = mData || {};
   if (event !== hoveredEvent.value) {
     hoveredEvent.value = event;
-    drawHoverHighlight(event);
+    drawHoverHighlight(event, hoverCtx);
   }
   const validateMData = preData && lastData && nodeSpacingX;
   if (validateMData && !measureState.isMeasureFixed) {
@@ -720,7 +733,7 @@ function handleAltMeasureHoverBranch(e, event) {
 
 const handleMouseLeave = () => {
   hoveredEvent.value = null;
-  drawHoverHighlight(null);
+  drawHoverHighlight(null, hoverCtx);
   hideTooltip();
 };
 
@@ -772,17 +785,14 @@ const handleMouseDown = (e) => {
   canvasclickedEvent.value = event;
   if (event) {
     if (isPathLockStatus.value) {
-      selectedEvent.value = event;
       detailsPanelExpanded.value = true;
-      drawHoverHighlight(event);
-      childContextMap.threadEvent.changeNodeColor(event.renderInfo?.processKey || event.pid.toString());
+      drawHoverHighlight(event, highlightCtx);
       drawNodeHeight(event, event.renderInfo?.processKey || event.pid.toString());
-      selectEvent(event, event.renderInfo?.processKey || event.pid.toString());
       return;
     }
     selectEvent(event, event.renderInfo?.processKey || event.pid.toString());
     pathLockedEvent.value = event;
-  } else {
+  } else if (!isPathLockStatus.value) {
     highlightedPaths.clear();
     for (const [processKey, process] of processes.entries()) {
       if (process.isRendered) {
