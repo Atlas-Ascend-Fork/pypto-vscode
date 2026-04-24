@@ -126,5 +126,9 @@ watch(
     .devui-data-grid__body-wrapper.devui-scroll-overlay {
         overflow: auto;
     }
+
+    :deep(.devui-data-grid__td--xs) {
+        cursor: pointer;
+    }
 }
 </style>
