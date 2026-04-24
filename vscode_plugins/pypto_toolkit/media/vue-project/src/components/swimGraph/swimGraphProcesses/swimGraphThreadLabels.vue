@@ -350,6 +350,7 @@ const activeThreadId = computed(() => {
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
+  min-width: 140px;
   text-align: left;
   position: relative;
 }

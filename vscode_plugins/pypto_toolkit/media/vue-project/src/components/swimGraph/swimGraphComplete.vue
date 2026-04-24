@@ -60,6 +60,8 @@
           <swim-graph-shortCutKey-descrition ref="shortCutKeyDescritionComponent" />
         </div>
       </div>
+      <!-- 置顶线程区域 -->
+      <pinned-threads-container v-if="!isThreeColumn && pinnedThreadsList.length > 0" ref="pinnedthreadsComponent"/>
       <div class="main-view" v-show="!loading">
         <!-- 度量蒙板 -->
         <div
@@ -73,8 +75,6 @@
           >
             <div class="measure-drag-area"></div>
         </div>
-        <!-- 置顶线程区域 -->
-        <pinned-threads-container v-if="!isThreeColumn && pinnedThreadsList.length > 0" ref="pinnedthreadsComponent"/>
         <div id="main-swim" class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer" :style="containerStyles">
           <!-- 全局跨 process 连接线画布 -->
           <global-connection-canvas 

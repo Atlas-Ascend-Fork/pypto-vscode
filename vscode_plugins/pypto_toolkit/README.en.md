@@ -128,6 +128,10 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
   
         ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
 
+    - **pypto3.0 Swimlane Diagram**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
+
 - **View Node Details**
 
     Click on the node to view its details in the lower panel
@@ -139,6 +143,10 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
     - **AICPU View**
 
         ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+
+    - **pypto3.0 Swimlane Diagram**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
 - **Node Search**
 

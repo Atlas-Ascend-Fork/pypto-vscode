@@ -128,6 +128,10 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
     - **端到端（AICPU + Kernel）泳道图**
 
         ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+
+    - **pypto3.0泳道图**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
   
 - **查看节点详情**
 
@@ -140,6 +144,10 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
     - **AICPU View**
 
         ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+
+    - **pypto3.0泳道图**
+
+        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
 - **节点搜索**
 

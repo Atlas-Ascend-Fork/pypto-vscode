@@ -3,6 +3,7 @@
     v-if="pinnedThreadsList.length > 0"
     ref="pinnedContainer"
     class="pinned-threads-container"
+    :class="{ 'no-shadow': isMixedAicpuKernel || !hasScrolled }"
   >
     <!-- 置顶线程标签区域 -->
     <div class="pinned-threads-labels">
@@ -22,19 +23,40 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
+import { ref, inject, onMounted, onUnmounted } from 'vue';
 import PinnedThreadLabel from './PinnedThreadLabel.vue';
 import PinnedThreadEvent from './PinnedThreadEvent.vue';
 
 const pinnedthreadsEventComponent = ref(null);
 const pinnedContainer = ref(null);
+const hasScrolled = ref(false);
 const { pinnedThreadsList } = inject('swimGraphPinnedState', {
   pinnedThreadsList: { value: [] }
 });
 
 const {
-  childContextMap
+  childContextMap,
+  isMixedAicpuKernel,
+  swimlaneContainer
 } = inject('swimGraphState');
+
+const handleScroll = () => {
+  if (swimlaneContainer && swimlaneContainer.value) {
+    hasScrolled.value = swimlaneContainer.value.scrollTop > 0;
+  }
+};
+
+onMounted(() => {
+  if (swimlaneContainer && swimlaneContainer.value) {
+    swimlaneContainer.value.addEventListener('scroll', handleScroll);
+  }
+});
+
+onUnmounted(() => {
+  if (swimlaneContainer && swimlaneContainer.value) {
+    swimlaneContainer.value.removeEventListener('scroll', handleScroll);
+  }
+});
 
 const Pinnedtransform = () => {
   pinnedthreadsEventComponent.value.transformPinned();
@@ -88,6 +110,13 @@ defineExpose({
 .pinned-threads-container {
   display: flex;
   scrollbar-gutter: stable;
+  border-bottom: 1px solid var(--devui-swim-split-line);
+  box-shadow: 0 8px 8px -2px var(--devui-page-bg);
+  z-index: 4;
+}
+
+.pinned-threads-container.no-shadow {
+  box-shadow: none;
 }
 
 .pinned-threads-labels {
