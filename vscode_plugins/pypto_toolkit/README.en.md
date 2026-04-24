@@ -48,6 +48,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     If the file contains an accuracy execution report, once it is successfully read and imported, click `Open Accuracy Execution Report` at the top right of the page to view the details. Clicking on a PASS that signifies an accuracy check failure will highlight and focus on the corresponding node.
 
+
 ## Computation Graph
 
 - **Open Computation Graph**
@@ -83,6 +84,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 - **Accuracy Report**
 
     Click the health report button in the upper right corner. If the current data contains accuracy anomaly data, the accuracy report will be displayed; click to show the relevant content. Clicking on any item in the accuracy anomaly list will navigate to the details page.
+
   
 - **Layer Control**
 
