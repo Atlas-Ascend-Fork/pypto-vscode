@@ -81,7 +81,7 @@
             </d-table>
           </div>
         </div>
-        <div v-else class="measure-detail-right-section no-file-container"><img :src="iconPath" alt="" class="no-file-icon" /></div>
+        <div v-else class="measure-detail-right-section no-file-container"><div><img :src="iconPath" alt="" class="no-file-icon" /></div><div class="no-file-title">{{ $t('noDataText')}}</div></div>
         <div class="close-button">
           <d-button icon="icon-close" style="width: 16px; font-size: 16px; border: none; background-color: transparent"
             @click="measureDetailsPanel()"></d-button>
@@ -370,8 +370,13 @@ const transformToOptions = (source) =>
   height: 4px;
 }
 .no-file-icon {
-  width: 160px;
-  height: 160px;
+  width: 100px;
+  height: 100px;
+}
+.no-file-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--devui-category-search-font-color)
 }
 .no-file-container {
     display: flex;
