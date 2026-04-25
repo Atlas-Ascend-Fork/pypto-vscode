@@ -121,9 +121,11 @@
 
         <div class="task-container" :style="{width: subContainerWidth + 'px'}">
           <div class="top-row-group" :style="{width: subContainerWidth + 'px', gap: aiCoreContainerColumnGap + 'px'}">
-          <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+          <div class="task-item-container aicore-e2e-time" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">
-              <div class="task-title">{{ taskOnBoardTimeTitle }} (μs)</div>
+              <d-tooltip :content="taskOnBoardTimeTitle + ' (μs)'">
+                <div class="task-title">{{ taskOnBoardTimeTitle }} (μs)</div>
+              </d-tooltip>
                 <d-tooltip :content="taskOnBoardTimeTip">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
@@ -962,6 +964,23 @@ provide('swimGraphPmuBarMethod', {
   gap: 1px;
   display: flex;
   flex-direction: row;
+}
+
+.aicore-e2e-time .task-title-container {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.aicore-e2e-time .task-title-container .task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.aicore-e2e-time .task-title-container d-icon {
+  flex-shrink: 0;
 }
 
 .task-data {

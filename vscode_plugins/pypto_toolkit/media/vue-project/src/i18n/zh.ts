@@ -74,7 +74,7 @@ export default {
    'Measure': '度量',
    'ReportTitle' : '总体性能统计',
    'ICacheHitRate' : 'iCache命中率',
-   'taskOnBoardTimeTitle': '任务上板时间',
+   'taskOnBoardTimeTitle': 'AICore 端到端时间',
    'taskOnBoardTimeTip': 'AICore上的端到端执行时间',
    'totalTimeTip': '泳道图时间轴的总时长',
    'aiCoreUtilization' : 'AICore利用率',

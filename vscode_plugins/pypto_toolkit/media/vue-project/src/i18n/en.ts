@@ -72,7 +72,7 @@ export default {
     'Measure': 'measure',
     'ReportTitle' : 'Overall Performance Statistics',
     'ICacheHitRate' : 'iCache Hit Rate',
-    'taskOnBoardTimeTitle': 'On-Board Time',
+    'taskOnBoardTimeTitle': 'AICore E2E Time',
     'taskOnBoardTimeTip': 'AICore end-to-end execution time',
     'totalTimeTip': 'Timeline total duration',
     'aiCoreUtilization' : 'AICore Utilization',
