@@ -1,9 +1,11 @@
 import { ExtensionContext } from 'vscode';
+import { IS_DEBUG } from './env';
 
 export const hismartliteEx = {
   context: null as ExtensionContext | null,
   extensionPath: '',
   webviews: {},
+  isDebug: IS_DEBUG,
   swimPerformanceBase: {
     first: {
       vsOpen: {
