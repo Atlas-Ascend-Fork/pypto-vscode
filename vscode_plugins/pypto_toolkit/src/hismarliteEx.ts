@@ -6,6 +6,8 @@ export const hismartliteEx = {
   extensionPath: '',
   webviews: {},
   isDebug: IS_DEBUG,
+  startTime: 0,
+  transformStartTime: 0,
   swimPerformanceBase: {
     first: {
       vsOpen: {
