@@ -274,6 +274,10 @@ export class ThreeColumnServer
     return await SwimGraphMsgHandler.getOtherData(this);
   };
   @viewApi()
+  public getPerformanceInfo = async () => {
+    return await SwimGraphMsgHandler.getPerformanceInfo(this);
+  };
+  @viewApi()
   public getCompressedData = async (message) => {
     if(message.swimDataPath){
       this.swimDataPath = message.swimDataPath;

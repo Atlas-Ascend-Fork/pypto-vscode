@@ -194,6 +194,7 @@ import { swimConfig } from '../welcome/guideStepsConfig';
 import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
 import { getKernalEventColor } from './swimGraphProcesses/render/utils';
+import { perfLogger, setDebugMode, setTotalStartTime, setTransformTime, isDebugEnabled } from './perfLogger';
 
 const { server } = useViewServer();
 
@@ -800,6 +801,7 @@ const guideRestore = async () => {
 };
 
 const render = () => {
+  perfLogger.time('render');
   resetState();
   renderTwoTimeline();
   renderEvent();
@@ -811,6 +813,8 @@ const render = () => {
   if (props.isThreeColumn) {
     childContextMap.threadEvent.drawLockedOutline();
   }
+  perfLogger.timeEnd('render');
+  perfLogger.measure('end to end', perfLogger.getStartTime());
 };
 
 const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
@@ -2153,7 +2157,10 @@ const onJumpCom = () => {
 };
 
 const parseCompressedData = (swimInfo) => {
+  perfLogger.time('Compressor Frontend Read');
   const swimData = getReader(swimInfo);
+  perfLogger.timeEnd('Compressor Frontend Read');
+  perfLogger.time('Compressor Frontend Process');
   const label2lines = {};
   swimData.lane2line = swimData.computeLane2Line();
   let processedTasks = [];
@@ -2226,6 +2233,7 @@ const parseCompressedData = (swimInfo) => {
   computedPmuTotal.mte3_ratio = computedPmuTotal.mte3_busy_cycles / computedPmuTotal['total cycle'];
 
   swimData.pmu_total = computedPmuTotal;
+  perfLogger.timeEnd('Compressor Frontend Process');
   return swimData;
 };  
 
@@ -2236,7 +2244,7 @@ onMounted(async () => {
   loading.value = true;
   labelRender.value = true;
   const {
-    server: { getCompressedData, getOtherData, getData },
+    server: { getOtherData, getData, getPerformanceInfo },
   } = useViewServer();
 
   loading.value = true;
@@ -2259,11 +2267,19 @@ onMounted(async () => {
     data.swimPath = res.swimPath;
     fileName.value = res.title;
     isPerfSwim.value = res.isPerfSwim;
+    setDebugMode(res.isDebug || false);
   } catch (err) {
     console.log('parse other data error:', err);
   }
 
   const swimInfo = await getData({swimDataPath:state.swimDataPath}); 
+
+  if (isDebugEnabled()) {
+    const perfInfo = await getPerformanceInfo();
+    setTotalStartTime(perfInfo.startTime);
+    setTransformTime(perfInfo.transformStartTime);
+    perfLogger.measure('transform data', perfInfo.transformStartTime);
+  }
 
   loadingText.value = $t('receiveTraceData');
 

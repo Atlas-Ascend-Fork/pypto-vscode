@@ -144,6 +144,7 @@ export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
 export type ISwimApis =
   | 'getInitialData'
   | 'getOtherData'
+  | 'getPerformanceInfo'
   | 'getSwimData'
   | 'getData'
   | 'bindComGraphJson'
@@ -172,6 +173,7 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getSwimData: (message: { swimDataPath: any }) => Promise<any>;
   getCompressedData: (message: { swimDataPath: any }) => Promise<any>;
   getOtherData: () => Promise<any>;
+  getPerformanceInfo: () => Promise<any>;
   bindComGraphJson: () => Promise<void>;
   unbindComGraph: () => Promise<void>;
   jumpToComGraph: (message: { paramObj: any }) => Promise<void>;

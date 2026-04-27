@@ -43,10 +43,13 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   };
   @viewApi()
   public getData = async () => {
+    hismartliteEx.startTime = new Date().getTime();
     const data = await this.handler.getData(this);
     if (Array.isArray(data)) {
+      hismartliteEx.transformStartTime = new Date().getTime();
       return stream.Readable.toWeb(stream.Readable.from(data!));
     }
+    hismartliteEx.transformStartTime = new Date().getTime();
     return data;
   };
   @viewApi()
@@ -57,6 +60,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
   @viewApi()
   public getOtherData = async () => {
     return await this.handler.getOtherData(this);
+  };
+  @viewApi()
+  public getPerformanceInfo = async () => {
+    return await this.handler.getPerformanceInfo(this);
   };
   @viewApi()
   public getCompressedData = async () => {

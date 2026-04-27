@@ -27,6 +27,7 @@ export abstract class SwimGraphMsgHandler {
         'getSwimData',
         'getData',
         'getOtherData',
+        'getPerformanceInfo',
         'getCompressedData',
         'bindComGraphJson',
         'unbindComGraph',
@@ -111,11 +112,19 @@ export abstract class SwimGraphMsgHandler {
         server.query.isPerfSwim = !content.includes('traceEvents');
       }
       return {
+        isDebug: hismartliteEx.isDebug,
         configuration: config,
         comGraphPath,
         swimPath,
         title: getBasenameWithoutExt(swimPath),
         isPerfSwim: server.query.isPerfSwim
+      };
+    }
+
+    static async getPerformanceInfo(server: any) {
+      return {
+        startTime: hismartliteEx.startTime,
+        transformStartTime: hismartliteEx.transformStartTime,
       };
     }
 
@@ -148,6 +157,9 @@ export abstract class SwimGraphMsgHandler {
             sendList.push(eventPackage);
           }
         }
+      }
+      if (hismartliteEx.isDebug) {
+        console.timeEnd('[Performance] backend parse');
       }
       return sendList;
     }
@@ -476,10 +488,17 @@ export abstract class SwimGraphMsgHandler {
         
         console.log('returnSwimData message send');
 
+        if (hismartliteEx.isDebug) {
+          console.timeEnd('[Performance] backend parse');
+        }
+
         return swimInfo;
       }
 
     static async getData(server: any) {
+      if (hismartliteEx.isDebug) {
+        console.time('[Performance] backend parse');
+      }
       if(server.query.isPerfSwim) {
         return await this.getSwimData(server);
       }
