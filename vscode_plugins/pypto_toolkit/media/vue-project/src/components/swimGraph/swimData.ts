@@ -58,7 +58,7 @@ class SwimDataManager {
     this.processInfo.clear();
     this.eventMap.clear();
     
-    for (const [processKey, process] of Array.from(processes.entries())) {
+    for (const [processKey, process] of processes.entries()) {
       const threadInfoMap = new Map<string, ThreadInfo>();
       
       if (process.threads) {
@@ -69,12 +69,9 @@ class SwimDataManager {
             for (const event of thread.events) {
               eventIds.push(event.id);
               
-              const eventDetail: EventDetail = {
-                ...event,
-                processKey,
-                threadKey
-              };
-              this.eventMap.set(event.id, eventDetail);
+              event.processKey = processKey;
+              event.threadKey = threadKey;
+              this.eventMap.set(event.id, event as EventDetail);
             }
           }
           
@@ -133,7 +130,7 @@ class SwimDataManager {
     if (!process) return [];
     
     const events: EventDetail[] = [];
-    for (const threadInfo of Array.from(process.threads.values())) {
+    for (const threadInfo of process.threads.values()) {
       for (const eventId of threadInfo.eventIds) {
         const event = this.eventMap.get(eventId);
         if (event) {

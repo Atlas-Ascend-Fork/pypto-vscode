@@ -662,7 +662,9 @@ const processTraceData = (data) => {
   }
   isAicpu.value = allAicpu;
 
+  perfLogger.time('swimDataManager.initialize');
   swimDataManager.initialize(processes);
+  perfLogger.timeEnd('swimDataManager.initialize');
 
   isMixedAicpuKernel.value = swimDataManager.isMixedData();
 
