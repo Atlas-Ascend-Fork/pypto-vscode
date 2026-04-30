@@ -21,8 +21,8 @@ const { t } = useI18n();
 const countInfo = computed(() => {
   const [totalCount, zeroCount] = props.summaryInfo.cntTotalZeroInfnanCnt?.split('/') ?? [];
   return [
-    { label: `TotalCount`, value: totalCount, desc: t('totalDataVolume') },
-    { label: `ZeroCount`, value: zeroCount, desc: t('zeroCount') },
+    { label: `total_count`, value: totalCount, desc: t('totalDataVolume') },
+    { label: `zero_count`, value: zeroCount, desc: t('zeroCount') },
   ];
 });
 const warnFailInfo = computed(() => {

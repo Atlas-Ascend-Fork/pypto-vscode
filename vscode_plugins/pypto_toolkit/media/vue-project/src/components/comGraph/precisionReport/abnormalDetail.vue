@@ -53,8 +53,8 @@ const compareEl = ref();
 const detailTabTitle = computed(() => `${t('precisionDetail')} (${compareTableData.value.length})`);
 const summaryInfo = ref<AbnormalNodeOverviewInfo>({});
 const typeShapeThresholdInfo = computed(() => [
-  { label: 'Dtype', value: summaryInfo.value.dataType },
-  { label: 'Shape', value: summaryInfo.value.validShape },
+  { label: 'dtype', value: summaryInfo.value.dataType },
+  { label: 'shape', value: summaryInfo.value.validShape },
 ]);
 const tolInfo = computed(() => {
   const [rTol, aTol] = summaryInfo.value.rtolAtol?.split('/') ?? [];

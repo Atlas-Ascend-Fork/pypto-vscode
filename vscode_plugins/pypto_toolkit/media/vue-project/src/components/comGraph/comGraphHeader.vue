@@ -1,7 +1,7 @@
 <template>
   <div class="com-graph-header">
     <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
-      <d-tooltip :content="t('healthReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+      <d-tooltip :content="t('comGraphReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
         overlay-class="corner-tips">
         <div :class="['corner-icon-container', isLoading && 'corner-icon-disabled']" @click="openHealthReport">
           <d-icon name="icon-line-chart" class="corner-icon" size="16px"></d-icon>
