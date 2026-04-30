@@ -48,6 +48,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     若文件有精度执行报告，读取并导入成功后可点击页面右上角`打开精度执行报告`查看详情。点击精度校验失败的PASS可高亮并聚焦对应节点
 
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
 
 ## 计算图
 
@@ -85,6 +86,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     点击右上角健康度报告按钮，若当前数据拥有精度异常数据，将显示精度报告，点击展示相关内容。精度异常列表数据点击可跳转详情。
 
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromComGraph.gif)
 
 - **图层控制**
 
