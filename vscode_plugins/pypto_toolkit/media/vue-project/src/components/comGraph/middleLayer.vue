@@ -101,6 +101,7 @@ function setupComWatchers(server: any) {
 
   watch(server.ComData, (newValue) => {
     comGraphStore.setData('version', newValue.version || '2.0');
+    comGraphStore.setData('isLeaf', newValue.isLeaf || false);
     shouldUpdateComGraphHashList.value = true;
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;

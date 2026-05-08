@@ -849,6 +849,7 @@ export abstract class BaseGraphMsgHandler {
       }
     }
     calleeMap = this.subGraphFileSearch(filejson, gd, calleeMap);
+    this.checkIsLeaf(server, calleeMap);
     graphFileHashMap[gd.fsPath] = calleeMap;
     server.setRef('CalleeMap', { data: graphFileHashMap[gd.fsPath] || {} });
     return calleeMap;
@@ -877,6 +878,7 @@ export abstract class BaseGraphMsgHandler {
         pathName: server.comGraphData.pathName,
         fileName: basename(server.comGraphData.fsPath || server.comGraphData.comPath),
         version: server.comGraphData.version,
+        isLeaf: server.isLeaf || false,
       });
     } else if (cmd == 'returnDiffCom') {
       server.setRef('DiffComData', { step: 'convertData', diffInfo: json });
@@ -925,6 +927,16 @@ export abstract class BaseGraphMsgHandler {
       return false;
     }
     return true;
+  }
+
+  protected static checkIsLeaf(server: any, calleeMap): void {
+    const curFuncHash = server.comGraphData?.funcHash;
+    if (!curFuncHash) {
+      server.isLeaf = false;
+      return;
+    }
+    const curFuncName = calleeMap[curFuncHash]?.func_magicname;
+    server.isLeaf = curFuncName?.toLowerCase().includes("leaf") ?? false;
   }
 
   public static returnError(server: any, cmd: string, cmdArgs?: Record<string, any>, logCmd?: string, logCmdArgs?: Record<string, any>, diffType?: 'before' | 'after') {

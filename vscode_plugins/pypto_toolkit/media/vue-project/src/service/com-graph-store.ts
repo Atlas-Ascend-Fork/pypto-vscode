@@ -37,6 +37,7 @@ interface ComGraphData {
   traceTensors: any[];
   traceOperations: any[];
   searchLevel: string;
+  isLeaf: boolean;
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -80,6 +81,7 @@ export const comGraphStore: DataStore = reactive({
     unVisibleOtherNodes:false,
     layoutDirection: 'RIGHT',
     svgExportMode: false,
+    isLeaf: false,
   },
 
   setData(key: string, value: any) {
