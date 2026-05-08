@@ -31,11 +31,13 @@ export class AscppDagBuilder {
     uniqueKeySet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
+    isLeaf = false;
     isSearch = false;
     comGraphData;
     server;
     callInOutTensorMap: ((data) => any) | undefined;
     callInOutMap = new Map<string, CallInOutItems>();
+    mixOpTypeList = ['UNKNOWN', 'AIC', 'AIV0', 'AIV1'];
     /*
     *   SinglePath Search Data
     */
@@ -89,7 +91,8 @@ export class AscppDagBuilder {
 
     public setColorConfig(isDark: boolean) {
         this.isDefinedDark = isDark;
-        const colorList = generateColorList(360, isDark);
+        const colorStride = this.isLeaf ? 4 : 360;
+        const colorList = generateColorList(colorStride, isDark);
         this.baseColorList = colorList.baseColorList;
         this.lightColorList = colorList.lightColorList;
         this.vscodeConfig = Util.getComGraphCustomCfg();
@@ -221,11 +224,12 @@ export class AscppDagBuilder {
      * @param nodeMagic - Whether to show single node and its relative nodes in the graph (undefined = show all)
      * @returns The Sprotty graph model
      */
-    public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, 
+    public createSprottyGraph(funcData: FunctionData, showTensorNodes: boolean = true, showSyncNodes: boolean = false, colorBySubgraph: boolean = false, isDark = true, isLeaf = false,
                               filterSubgraphId?: number, nodeMagic?: string, nodeSearchLevel?: string, threeMode: boolean = false, errNodeList?: any, failRawMagicList?: any): ExtendedSModelRoot {
         // Handle potential data structure variations
         let actualData = funcData;
         this.isSearch = nodeMagic ? true : false;
+        this.isLeaf = isLeaf;
         this.setColorConfig(isDark);
 
         // Check if the data might be nested under a property
@@ -1835,6 +1839,12 @@ export class AscppDagBuilder {
 
         let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
+        if(this.isLeaf) {
+            const colorIndex = this.mixOpTypeList.indexOf(op.mixSubgraphCore ?? '');
+            baseColor = colorIndex >= 0 ? this.baseColorList[colorIndex % 360] : `var(--devui-op-node-base-color)`;
+            lightColor = colorIndex >= 0 ? this.lightColorList[colorIndex % 360] : `var(--devui-op-node-light-color)`;
+        }
+
         let isError = false;
         if(threeMode) {
             const semanticColor: SemanticLab = {

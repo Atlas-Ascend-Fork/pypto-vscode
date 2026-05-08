@@ -229,6 +229,7 @@ export abstract class BaseGraphMsgHandler {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, searchLevel, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap, diffType);
     const failRawMagicList = server.comGraphData.failRawMagicList;
+    const isLeaf = comGraphData.isLeaf ?? false;
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
       currentData,
@@ -236,12 +237,13 @@ export abstract class BaseGraphMsgHandler {
       showSyncNodes,
       colorBySubgraph,
       isDark,
+      isLeaf,
       selectedSubgraphId,
       nodeMagic,
       searchLevel,
       threeMode,
       errNodeList,
-      failRawMagicList
+      failRawMagicList,
     );
 
     (this as any).graphLastRenderData = data;

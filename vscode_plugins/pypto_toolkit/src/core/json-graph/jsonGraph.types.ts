@@ -160,6 +160,7 @@ export interface Operation {
     file?: string;
     line?: string;
     attr?: (number | (number | string)[])[];
+    mixSubgraphCore?: string;
 }
 
 /**
