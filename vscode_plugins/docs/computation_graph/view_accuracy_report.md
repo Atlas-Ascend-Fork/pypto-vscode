@@ -15,25 +15,25 @@
     点击右上角`计算图报告`按钮。切换`精度报告`。
 
     **图 1**  查看精度报告
-    <!-- 计算图1 -->
+    ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromCom.png)
 
 2.  搜索精度异常列表
     
     在输入框中输入关键词，精度异常列表将按LOOP_INFO字段或datatype字段根据关键词进行模糊搜索。
 
     **图 2**  搜索精度异常列表
-    <!-- 计算图2 -->
+    ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracySearch.png)
 
 3.  查看精度异常详情
     
     - 鼠标点击精度异常列表的节点，跳转查看对应精度异常详情。
 
      **图 3**  查看精度异常详情
-        <!-- 计算图3 -->
+    ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyDetail.png)
 
     - 鼠标点击`精度异常详细对比`，可查看精度异常详细对比列表。列表支持自定义排序。
 
         **图 4**  搜索精度异常列表
-        <!-- 计算图4 -->
+        ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracySortCustom.png)
 
 
