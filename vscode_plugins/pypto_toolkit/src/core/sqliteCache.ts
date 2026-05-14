@@ -963,7 +963,7 @@ export class SQLiteCache {
     return result;
   }
 
-    /**
+  /**
    * 统计指定文件、指定阶段和函数下的各结果数量
    * @param filePath 文件路径
    * @param phaseName 阶段名称 (对应 B>PHASE_NAME)
@@ -1008,7 +1008,7 @@ export class SQLiteCache {
     return stats;
   }
 
-    /**
+  /**
    * 查询指定文件、阶段和函数的所有失败或异常数据详情
    * @param filePath 文件路径
    * @param phaseName 阶段名称

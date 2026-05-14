@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync'; // 同步解析，简单场景可用
-import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache'; // 同步解析，简单场景可用
+import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache';
 import * as readline from 'readline';
 import { t } from 'i18next';
 
@@ -24,8 +24,7 @@ export async function readCsv(oriFilePath: string) {
         const recordLength = records.length;
         vscode.window.showInformationMessage(t('pypto.accuracyCsvParseSucc', { recordLength }));
 
-        // 3. 遍历并转换数据
-        // 建议使用循环而非 forEach，以便处理异步或错误捕获
+        // 使用循环而非 forEach，以便处理异步或错误捕获
         for (const row of records) {
             // 数据映射：将 CSV 的特殊键名映射到标准的驼峰命名接口
             const dataToSave: AccuracyToolData = {
@@ -94,22 +93,10 @@ export async function getCsvData() {
     const filePath = "";
     const phaseName = "";
     const funcMagicName = "";
-    // const result1 = await SQLiteCache.getInstance().getAccuracyStatsByFile(filePath);
-    // console.log('CSV 接口1查询数据:', result1);
-    // const result2 = await SQLiteCache.getInstance().getDistinctPhaseResults(filePath);
-    // console.log('CSV 接口2查询数据:', result2);
-    // const result3 = await SQLiteCache.getInstance().getFirstFailByPhase(filePath);
-    // console.log('CSV 接口3查询数据:', result3);
-    // const result4 = await SQLiteCache.getInstance().getAccuracyStatsByFunc(filePath,phaseName,funcMagicName);
-    // console.log('CSV 接口4查询数据:', result4);
-    // const result5 = await SQLiteCache.getInstance().getErrorDetailsByFunc(filePath,phaseName,funcMagicName);
-    // console.log('CSV 接口5查询数据:', result5);
-    // const result6 = await SQLiteCache.getInstance().getPhaseStatusListByFunc(filePath,funcMagicName);
-    // console.log('CSV 接口6查询数据:', result6);
     const start = "";
     const end = "";
     const extractor = new SmartLogExtractor();
-    const resultLog = extractor.extract(filePath, start, end).then(console.log); // 等价于 .then((result) => console.log(result))
+    const resultLog = extractor.extract(filePath, start, end).then(console.log);
     console.log('日志读取数据:', resultLog);
  
 }
@@ -128,7 +115,6 @@ export class SmartLogExtractor {
             let isRecording = false;
             let isFinished = false;
     
-            // 安全检查：文件是否存在
             if (!fs.existsSync(filePath)) {
                 reject(new Error(`文件不存在: ${filePath}`));
                 return;

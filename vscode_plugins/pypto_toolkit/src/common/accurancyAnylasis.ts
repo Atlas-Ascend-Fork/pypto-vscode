@@ -28,8 +28,6 @@ export async function getResDataSum(filePath: string | undefined) {
     if (!readCsvStatus) {
         return {parseResult: 'Fail', allResultSum: [], controlFlowFilepath: filePath};
     }
-
-    // 接口1 查询PASS结果分布总览
     const oriPassDistribution = await getPassDistribution(csvPath);
     const passDistribution = {
         pass_cnt: oriPassDistribution.PASS ?? 0,
@@ -37,11 +35,9 @@ export async function getResDataSum(filePath: string | undefined) {
         exception_cnt: oriPassDistribution.EXCEPTION ?? 0,
         skip_cnt: oriPassDistribution.SKIP ?? 0
     }
-    // 接口2 查询PASS首错记录
     const passDetail = await getPassList(outputDirPath, csvPath);
 
     const finalRes = {...passDetail, ...passDistribution};
-    // const failKeyList = await SQLiteCache.getInstance().getErrorListByPage(csvPath, "Pass_04_ExpandFunction", "TENSOR_LOOP_L0_nIdx_Unroll1_PATH0_hiddenfunc0_11", 'n_idx=3', 30, 0);
     return {parseResult: 'Success', allResultSum: finalRes, controlFlowFilepath: filePath};
 }
 
@@ -174,7 +170,6 @@ async function getPassList(dirPath: string, filePath: string) {
     return passResult;
 }
 
-// 首错path跳转接口
 export async function getComGraphRawMagic(readAccurancyCsv: boolean, filePath: string, phaseName: string, funcMagicName: string) {
     const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
 
@@ -187,15 +182,12 @@ export async function getComGraphRawMagic(readAccurancyCsv: boolean, filePath: s
         console.log('文件不存在');
         return;
     }
-    // 接口5.1 查询图3 只查 精度异常列表 里这几个 值 —— 前端页面要查询拿整条记录做key
     const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, 10000, 0);
     let errorRawMagicList = new Set(failSumListofGraph.map(failRecord => failRecord.rawMagic));
 
     return errorRawMagicList;
 }
 
-
-// ———————————————— 页面3接口
 export async function getComGraphDataSum(filePath: string, phaseName: string, funcMagicName: string, pageSize: number = 30, startOffset: number = 0) {
     const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
 
@@ -209,13 +201,10 @@ export async function getComGraphDataSum(filePath: string, phaseName: string, fu
         console.log('文件不存在');
         return;
     }
-    // 接口4 查询当前计算图结果总览
+
     const failSum = await SQLiteCache.getInstance().getAccuracyStatsByFunc(csvPath, phaseName, funcMagicName);
-    // 接口5.1 查询图3 只查 精度异常列表 里这几个 值 —— 前端页面要查询拿整条记录做key
     const newPageSize = 'FAIL' in failSum ? failSum['FAIL'] : 30;
     const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, newPageSize, startOffset);
-    
-    console.log('test failSumListofGraph', failSumListofGraph);
     
     const comAccuracyData = {
         comgraphFailSum: failSum,
@@ -240,7 +229,6 @@ export async function searchKeyword(filePath: string, phaseName: string, funcMag
     }
 
     const failKeyList = await SQLiteCache.getInstance().getErrorListByPage(csvPath, phaseName, funcMagicName, keyword, pageSize, startOffset);
-    console.log('test failKeyList', failKeyList);
 
     const comAccuracyData = {
         comgraphFailList: failKeyList
@@ -248,8 +236,6 @@ export async function searchKeyword(filePath: string, phaseName: string, funcMag
 
     return comAccuracyData;
 }
-
-// —————————— 页面4接口
 
 function dedupByOffset(res: Record<string, any>[]) {
     const seen = new Set<number>();
@@ -308,7 +294,6 @@ function formatDetailData(resultLog: string[]): any[] {
         const singleLine: Record<string, string> = {};
  
         for (let j = 0; j < headers.length; j++) {
-            // 所有值都按字符串处理
             singleLine[headers[j]] = singleValue[j] ?? '';
         }
         res.push(singleLine);
