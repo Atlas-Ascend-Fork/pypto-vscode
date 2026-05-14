@@ -20,6 +20,8 @@ export class AscppDagBuilder {
     */
     baseColorList: string[];
     lightColorList: string[];
+    leafBaseColorList: string[];
+    leafLightColorList: string[];
     nodeSet = new Set<string>();
     outcastUnique = new Set<string>();
     incastUniqueSingle = new Set<string>();
@@ -91,10 +93,12 @@ export class AscppDagBuilder {
 
     public setColorConfig(isDark: boolean) {
         this.isDefinedDark = isDark;
-        const colorStride = this.isLeaf ? 4 : 360;
-        const colorList = generateColorList(colorStride, isDark);
+        const colorList = generateColorList(360, isDark);
         this.baseColorList = colorList.baseColorList;
         this.lightColorList = colorList.lightColorList;
+        const leafColorList = generateColorList(4, isDark);
+        this.leafBaseColorList = leafColorList.baseColorList;
+        this.leafLightColorList = leafColorList.lightColorList;
         this.vscodeConfig = Util.getComGraphCustomCfg();
     }
 
@@ -229,7 +233,7 @@ export class AscppDagBuilder {
         // Handle potential data structure variations
         let actualData = funcData;
         this.isSearch = nodeMagic ? true : false;
-        this.isLeaf = isLeaf;
+        this.isLeaf = isLeaf && (!threeMode);
         this.setColorConfig(isDark);
 
         // Check if the data might be nested under a property
@@ -1841,8 +1845,8 @@ export class AscppDagBuilder {
         let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
         if(this.isLeaf) {
             const colorIndex = this.mixOpTypeList.indexOf(op.mixSubgraphCore ?? '');
-            baseColor = colorIndex >= 0 ? this.baseColorList[colorIndex % 360] : `var(--devui-op-node-base-color)`;
-            lightColor = colorIndex >= 0 ? this.lightColorList[colorIndex % 360] : `var(--devui-op-node-light-color)`;
+            baseColor = colorIndex >= 0 ? this.leafBaseColorList[colorIndex % 360] : `var(--devui-op-node-base-color)`;
+            lightColor = colorIndex >= 0 ? this.leafLightColorList[colorIndex % 360] : `var(--devui-op-node-light-color)`;
         }
 
         let isError = false;
