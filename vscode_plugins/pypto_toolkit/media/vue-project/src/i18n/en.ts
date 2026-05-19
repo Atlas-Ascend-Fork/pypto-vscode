@@ -392,7 +392,7 @@ export default {
         nextStep: 'Next Step',
         preStep: 'Previous step',
         startExperience: 'Start Experience',
-        showGuideOnStartup: 'Show quik start page on startup',
+        showGuideOnStartup: 'Show quick start page on startup',
         copyCode: 'Copy Code',
         copiedSuccessfully:'Cpied Successfully',   
       },
