@@ -181,6 +181,11 @@ export class MeatureRender extends EventRender {
     }
     const { renderInfo: preRenderInfo } = altClickData.preData;
     const { renderInfo: lastRenderInfo } = altClickData.lastData;
+    
+    if (!preRenderInfo || !lastRenderInfo) {
+      return;
+    }
+    
     const { x: preX, y: preY, width: preWidth} = preRenderInfo;
     const { x: lastDataX, y: lastDataY} = lastRenderInfo;
     const nodeSpacingX = Math.min(Math.abs(lastDataX - (preX + preWidth)), Math.abs(lastDataX - preX)) * viewState.scale;
@@ -285,8 +290,12 @@ export class MeatureRender extends EventRender {
     const diffTime = Math.abs(start - end);
     const text = this.getMeasureDistance(diffTime);
     const rectY = preY - height < 0 ? preY + height : preY - height; 
+    
+    const leftX = preX + preWidth;  // 连线左端点
+    const rectX = leftX + (lastX - leftX - width) / 2;
+    
     return {
-      x: preX + preWidth + (lastX- (preX + preWidth)) / 2,
+      x: rectX,
       y: rectY,
       width: width,
       height: height,

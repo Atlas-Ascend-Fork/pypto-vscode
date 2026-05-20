@@ -1,9 +1,9 @@
 <template>
-  <div v-if="isCfgEditing" id="cfgEdit" class="cfgEdit" :style="{ top: isThreeColumn ? '0px': '60px'}">
+  <div v-if="isCfgEditing" id="cfgEdit" class="cfgEdit"  :class="{ 'fixed-height': isThreeColumn }" :style="{ top: isThreeColumn ? '0px': '60px'}">
     <div class="cfg-content">
         <div class="cfg-head">
             <div class="cfg-title"> {{ $t('swimRenderCfg') }} </div>
-            <div class="cfg-close-button">
+            <div class="cfg-close-button" :class="{ 'three-column': isThreeColumn }">
                 <d-button icon="icon-close" style="border:none; background-color: transparent" @click="togglecfgEditModel"></d-button>
             </div>
         </div>
@@ -28,6 +28,12 @@
                     </d-tooltip>
                 </div>
                 <d-switch v-model="showPerformancePanel" @change="onPerformanceChange"></d-switch>
+            </div>
+            <div class="mix-model-config">
+                <div class="cfg-head">
+                    <div class="mix-model-config-t mb6">{{ $t('mixMode') }}</div>
+                </div>
+                <d-switch v-model="showIsMixMode" :disabled=isThreeColumn @change="onIsMixModelchange"></d-switch>
             </div>
         </div>
 
@@ -67,9 +73,11 @@
 <script setup>
 import { ref, inject, watch, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { clone } from 'lodash-es';
 import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
 import { COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { swimDataManager } from '../swimData';
 const { isDarkTheme } = inject('root');
 
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
@@ -83,17 +91,35 @@ const {
     isThreeColumn,
     isPathLockStatus,
     isAicpu,
-    isMixedAicpuKernel,
-    isPerfSwim
+    isE2ESwim,
+    isPerfSwim,
+    isMixMode,
+    selectedEvent,
+    highlightedPaths,
+    mixRelatedPaths,
+    searchedEvent,
+    isMaxSchedule,
+    isMeasureModel,
+    mulDetailsExpanded,
+    measureDetailsExpanded,
+    detailsPanelExpanded,
+    aicpuControlDetailsExpanded,
+    aicpuScheduleDetailsExpanded,
+    aicpuCoreDetailsExpanded,
 } = inject('swimGraphState');
 
 const {
   transform,
   postMessage,
   getDisplayName,
+  resetState,
+  resetMaxScheduleState,
+  selectEvent,
+  resetsearchState,
+  clearHeadState,
 } = inject('swimGraphMethods');
 
-const { pinnedThreadsList } = inject('swimGraphPinnedState');
+const { pinnedThreadsList, recalculateOffsetY } = inject('swimGraphPinnedState');
 
 const {
   userConfig,
@@ -113,8 +139,21 @@ const showPerformancePanel = computed({
   }
 });
 
+const showIsMixMode = computed({
+  get: () => {
+    if (isThreeColumn) {
+        return false;
+    } else {
+        return userConfig.get('showIsMixMode') ?? false;
+    }
+  },
+  set: (value) => {
+    userConfig.set('showIsMixMode', value);
+  }
+});
+
 const showAicpuConfig = computed(() => {
-  return isAicpu.value || isMixedAicpuKernel.value;
+  return isAicpu.value || isE2ESwim.value;
 });
 
 const showPerfConfig = computed(() => {
@@ -248,12 +287,26 @@ const updateKernelEvents = (mode) => {
         if (!event.isCounter && event.endTime >= startTime && event.startTime <= endTime) {
             const color = getEventColorByMode(event, mode);
             event.color = color;
-            const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
-            event.drawData.rectColor = fillColor;
-            event.drawData.strokeColor = strokeColor;
-            event.drawData.fontColor = fontColor;
+            if (event.drawData) {
+                const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
+                event.drawData.rectColor = fillColor;
+                event.drawData.strokeColor = strokeColor;
+                event.drawData.fontColor = fontColor;
+            }
         }
     };
+    
+    const updateSubEventColors = (parentEvent) => {
+        const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+        for (const subEvent of subEvents) {
+            if (subEvent.drawData) {
+                const { fillColor, fontColor, strokeColor } = configGetEventColor(parentEvent, mode);
+                subEvent.drawData.rectColor = fillColor;
+                subEvent.drawData.fontColor = fontColor;
+            }
+        }
+    };
+    
     pinnedThreadsList.value.filter(pinThread => pinThread.process.type === 'kernel')
     .forEach((pinThread) => {
         pinThread.thread.events.forEach(updateEventColors);
@@ -265,6 +318,16 @@ const updateKernelEvents = (mode) => {
         process.threads.forEach((thread) => {
             thread.events.forEach(updateEventColors);
         });
+    }
+    
+    if (swimDataManager.hasMixConfig()) {
+        for (const config of swimDataManager.mixConfig) {
+            const parentEvent = swimDataManager.getEventById(config.parentEventId);
+            if (parentEvent) {
+                updateEventColors(parentEvent);
+                updateSubEventColors(parentEvent);
+            }
+        }
     }
 };
 
@@ -287,7 +350,11 @@ function saveKernelRendingMode(colorRenderMode, textRenderMode) {
 
 const onInputChange = (newValue) => {
     userConfig.value.connectionLevel = newValue;
-    transform();
+    const selectedEventTemp = clone(selectedEvent);
+    highlightedPaths.clear();
+    const processKey = String(selectedEventTemp.value.pid);
+    selectEvent(null, processKey);
+    selectEvent(selectedEventTemp.value, processKey);
     changeUserCfgConnection(newValue);
 };
 
@@ -298,9 +365,51 @@ const onPerformanceChange = (newValue) => {
     userConfig.set('showPerformancePanel', newValue);
     server.changeUserCfgPerformance({paramObj: {show: newValue}});
 };
+
+const onIsMixModelchange = async (newValue) => {
+    if (userConfig.value) {
+        userConfig.value.showIsMixMode = newValue;
+    }
+    userConfig.set('showIsMixMode', newValue);
+    
+    // Reset all relevant states when switching mix mode
+    selectedEvent.value = null;
+    highlightedPaths.clear();
+    mixRelatedPaths.clear();
+    searchedEvent.value = null;
+    isPathLockStatus.value = false;
+    isMeasureModel.value = false;
+    
+    // Reset search state and clear search box
+    await clearHeadState();
+    resetsearchState(false);
+    
+    if (isMaxSchedule.value) {
+        resetMaxScheduleState();
+    }
+    
+    mulDetailsExpanded.value = false;
+    measureDetailsExpanded.value = false;
+    detailsPanelExpanded.value = false;
+    aicpuControlDetailsExpanded.value = false;
+    aicpuScheduleDetailsExpanded.value = false;
+    aicpuCoreDetailsExpanded.value = false;
+    
+    if (pinnedThreadsList.value && pinnedThreadsList.value.length > 0) {
+        recalculateOffsetY(newValue);
+    }
+    
+    // Reset view state (scale and offset)
+    resetState();
+
+    isMixMode.value = newValue;
+    server.changeUserCfgIsMixMode({paramObj: {show: newValue}});
+};
+
 defineExpose({
   connectionLevel,
-  showPerformancePanel
+  showPerformancePanel,
+  showIsMixMode
 });
 
 watch(userConfig, () => {

@@ -4,19 +4,6 @@ export class FormatValidator {
       return { valid: false, error: 'Invalid data: not an object' };
     }
 
-    if (!('version' in data)) {
-      return { valid: false, error: 'Missing required field: version' };
-    }
-
-    if (!('tasks' in data)) {
-      return { valid: false, error: 'Missing required field: tasks' };
-    }
-
-    const version = data.version;
-    if (version !== 1 && version !== 2) {
-      return { valid: false, error: `Unsupported version: ${version} (expected 1 or 2)` };
-    }
-
     if (!Array.isArray(data.tasks)) {
       return { valid: false, error: 'Invalid tasks field: must be an array' };
     }

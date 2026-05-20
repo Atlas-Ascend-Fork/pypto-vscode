@@ -48,7 +48,7 @@
             <div class="content-args">
               <div class="content-args-head">
                 <div class="main-text">
-                  <d-tabs v-model="selectedView" class="argsTabs" show-content="false" @active-tab-change="selectView">
+                  <d-tabs v-model="selectedView" class="argsTabs" :show-content="false" @active-tab-change="selectView">
                     <d-tab id="args" :title="$t('args')"></d-tab>
                     <d-tab id="pipeStat" :title="$t('pipeStat')"></d-tab>
                   </d-tabs>
@@ -61,7 +61,7 @@
                 </div>
               </div>
               <div class="content-two" v-if="selectedView === 'args'">
-                <template v-if="canvasclickedEvent.isCounter">
+                <template v-if="canvasclickedEvent?.isCounter">
                   <strong>{{ $t("countValue") }}</strong> {{ canvasclickedEvent.counterSize }}<br>
                   <strong>{{ $t("type") }}</strong> {{ $t("counterEvent") }}<br>
                 </template>
@@ -98,7 +98,7 @@
                     <span>subgraph_min</span>
                     <span>569</span>
                   </div>
-                  <div v-for="(value, key) in canvasclickedEvent.args" :key="key" :id="key" class="args-item">
+                  <div v-for="(value, key) in canvasclickedEvent?.args ?? []" :key="key" :id="key" class="args-item">
                     <d-tooltip :content="key" v-if="value !== ''">
                       <span class="args-key third-text">{{ key }}</span>
                     </d-tooltip>
@@ -258,6 +258,7 @@ const {
   isPathLockStatus,
   layout,
   processes,
+  isMixMode
 } = inject('swimGraphState');
 
 const isAicpuEvent = computed(() => {
@@ -332,6 +333,9 @@ const selectView = (view) => {
   selectedView.value = view;
 };
 const getEventCacheHit = (event) => {
+  if (!event) {
+    return '/';
+  }
   if (event.pmu_calc_info?.icache_hit) {
     let hitRate = event.pmu_calc_info.icache_hit * 100;
     return hitRate === 100 ? '100%' : hitRate.toFixed(2) + '%';
@@ -385,7 +389,12 @@ const dynamicWidthStyle = (event) => {
   }
   const eventName = getEventTruncateText(event);
   const width = `${((eventName.length * 7) + 4)}px`;
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
+  let eventColor = '';
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && event?.parentEventId) {
+    eventColor = event?.drawData?.rectColor;
+  } else {
+    eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
+  }
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
   let fillColor = eventColor ? eventColor.base : 'rgba(10, 89, 247, 0.3)';
   const fontColor = colorCfg.eventFont;
@@ -438,14 +447,14 @@ let aPath = isDarkTheme.value ? ref(`${window.staticPath}/static-assets/swim_all
 const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 
 const predecessors = computed(() => {
-  if (!canvasclickedEvent.value) return [];
+  if (!canvasclickedEvent.value?.dependencies?.predecessors) return [];
   return canvasclickedEvent.value.dependencies.predecessors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);
 });
 
 const successors = computed(() => {
-  if (!canvasclickedEvent.value) return [];
+  if (!canvasclickedEvent.value?.dependencies?.successors) return [];
   return canvasclickedEvent.value.dependencies.successors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);
@@ -465,6 +474,9 @@ const formattedStartTime = computed(() => formatDuration(canvasclickedEvent.valu
 const formattedEndTime = computed(() => formatDuration(canvasclickedEvent.value?.endTime, viewState.minTime));
 
 const getEventDisplayName = (event) => {
+  if (!event) {
+    return '';
+  }
   return event.isCounter ? event.displayName : (event.name || 'Event');
 };
 const getEventTruncateText = (event) => {
@@ -563,9 +575,9 @@ const resetReleventState = () => {
 
 const showDependencies = (event, type) => {
   const displayName = event.isCounter ? event.displayName : event.name || 'Event';
-  const eventPredecessors = event.dependencies.predecessors.map((id) => swimDataManager.getEventById(id)).filter((e) => e);
+  const eventPredecessors = event.dependencies?.predecessors?.map((id) => swimDataManager.getEventById(id)).filter((e) => e) || [];
 
-  const eventSuccessors = event.dependencies.successors.map((id) => swimDataManager.getEventById(id)).filter((e) => e);
+  const eventSuccessors = event.dependencies?.successors?.map((id) => swimDataManager.getEventById(id)).filter((e) => e) || [];
   const canvas = document.getElementById('dependency-canvas');
   const canvasContainer = document.getElementById('canvas-container');
   if (!canvas)  {
@@ -585,9 +597,14 @@ const showDependencies = (event, type) => {
     width: actualWidth,
     height: 16,
   };
-  const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
+  let fillColor = '';
   const colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-  let fillColor = eventColor ? eventColor.light : 'rgba(10, 89, 247, 0.3)';
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && event?.parentEventId) {
+    fillColor = event.drawData?.rectColor || '';
+  } else {
+    const eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
+    fillColor = eventColor?.light || '';
+  }
   ctx.fillStyle = fillColor;
   ctx.roundRect(currentNode.x, currentNode.y, currentNode.width, currentNode.height, 4);
   ctx.fill();

@@ -156,6 +156,7 @@ export type ISwimApis =
   | 'saveRendingMode'
   | 'changeUserCfgConnection'
   | 'changeUserCfgPerformance'
+  | 'changeUserCfgIsMixMode'
   | 'getShortCutKeyCfg'
   | 'getCompressedData';
 export type ISwimRefs = {
@@ -183,6 +184,7 @@ export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   saveRendingMode: (message: { paramObj: any }) => Promise<void>;
   changeUserCfgConnection: (message: { paramObj: any }) => Promise<void>;
   changeUserCfgPerformance: (message: { paramObj: any }) => Promise<void>;
+  changeUserCfgIsMixMode: (message: { paramObj: any }) => Promise<void>;
   getShortCutKeyCfg: () => Promise<any>;
 }
 

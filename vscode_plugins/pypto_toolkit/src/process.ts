@@ -532,6 +532,12 @@ const calculateDependencies = (events, connections) => {
       const event = traceData.traceEvents[index];
       event.ts = Math.round(event.ts * 1000 - minThresh * 1000);
 
+      if (event.args?.syncEvents) {
+        for (let i = 0; i < event.args.syncEvents.length; i++) {
+          event.args.syncEvents[i].time = Math.round(event.args.syncEvents[i].time * 1000 - minThresh * 1000)
+        }
+      }
+
       errorMsg = await validate(event);
       if ('errMsg' in errorMsg) {
         return errorMsg;
@@ -604,7 +610,7 @@ const calculateDependencies = (events, connections) => {
         else hasKernel = true;
     }
     const isAicpuData = hasAicpu && !hasKernel;
-    const isMixedAicpuKernel = hasAicpu && hasKernel;
+    const isE2ESwim = hasAicpu && hasKernel;
   
     // 计算依赖关系
 
@@ -722,8 +728,8 @@ const calculateDependencies = (events, connections) => {
       data['isAicpu'] = true;
     }
     
-    if (isMixedAicpuKernel) {
-        data['isMixedAicpuKernel'] = true;
+    if (isE2ESwim) {
+        data['isE2ESwim'] = true;
     }
 
     return data;
@@ -896,8 +902,8 @@ const calculateDependencies = (events, connections) => {
       if (obj.isAicpu) {
         writeStream.write(`,\n"isAicpu": ${JSON.stringify(obj.isAicpu)}`);
       }
-      if (obj.isMixedAicpuKernel) {
-        writeStream.write(`,\n"isMixedAicpuKernel": ${JSON.stringify(obj.isMixedAicpuKernel)}`);
+      if (obj.isE2ESwim) {
+        writeStream.write(`,\n"isE2ESwim": ${JSON.stringify(obj.isE2ESwim)}`);
       }
       writeStream.write('\n}');
       

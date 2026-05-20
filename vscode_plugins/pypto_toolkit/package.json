@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "2.0.11",
+  "version": "2.0.13",
   "icon": "media/images/logo.png",
   "engines": {
     "vscode": "^1.82.0"
@@ -184,6 +184,11 @@
             "type": "boolean",
             "default": true,
             "description": "%PyPTOToolkit.showPerformancePanel.description%"
+          },
+          "PyPTOToolkitOpen.showIsMixMode": {
+            "type": "boolean",
+            "default": false,
+            "description": "%PyPTOToolkit.showIsMixMode.description%"
           }
         }
       }
@@ -256,7 +261,7 @@
     "stream-chain": "^2.2.5",
     "stream-json": "^1.9.1",
     "typescript": "^5.8.3",
-    "@pypto/data-compress": "^0.0.3"
+    "@pypto/data-compress": "^0.0.7"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",

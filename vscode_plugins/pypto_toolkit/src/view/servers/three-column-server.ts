@@ -321,6 +321,10 @@ export class ThreeColumnServer
     await SwimGraphMsgHandler.changeUserCfgPerformance(this, message.paramObj);
   };
   @viewApi()
+  public changeUserCfgIsMixMode = async (message: any) => {
+    await SwimGraphMsgHandler.changeUserCfgIsMixMode(this, message.paramObj);
+  };
+  @viewApi()
   public getShortCutKeyCfg = async () => {
     return await SwimGraphMsgHandler.getShortCutKeyCfg(this);
   };

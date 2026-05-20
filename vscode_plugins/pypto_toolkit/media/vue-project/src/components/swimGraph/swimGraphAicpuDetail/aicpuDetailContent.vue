@@ -101,7 +101,11 @@ const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
   const milliseconds = microseconds / 1000;
   const seconds = milliseconds / 1000;
   const minutes = seconds / 60;
-
+  if (!nanoseconds) {
+     return {
+      value: '', unit: ''
+     };
+  }
   if (minutes >= 1) {
     return { value: minutes.toFixed(0), unit: 'min' };
   } else if (seconds >= 1) {

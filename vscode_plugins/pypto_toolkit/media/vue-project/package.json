@@ -30,7 +30,7 @@
     "vue": "^3.4.21",
     "vue-devui": "^1.6.37-alpha.2",
     "vue-i18n": "11.1.10",
-    "@pypto/data-compress": "^0.0.3"
+    "@pypto/data-compress": "^0.0.7"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.2",

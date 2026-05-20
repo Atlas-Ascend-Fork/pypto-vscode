@@ -39,6 +39,7 @@ import { devicePixelRatio, getThreadHeight, getDevicePixelRatio,
 import { EventRender } from '../swimGraphProcesses/render/eventRender';
 import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
+import { swimDataManager } from '../swimData';
 
 const { t: $t } = useI18n();
 
@@ -95,7 +96,7 @@ let lineCtx = null;
 let highlightCtx = null;
 
 const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
-const measureRenderer = new MeatureRender({...swimGraphState, colorCfg, userConfig}, $t('lessThan0us'));
+const measureRenderer = new MeatureRender({...swimGraphState, colorCfg, userConfig}, $t('lessThan0'));
 
 let hoveredEvent = ref(null);
 let mousePosition = { x: 0, y: 0 };
@@ -208,7 +209,6 @@ const clearPinnedMeasureCanvas = () => {
 
 // 置顶区缩放
 const transformPinned = () => {
-  // canvas处理
   const ctxs = {
     events: eventsCtx,
     ui: uiCtx,
@@ -218,53 +218,288 @@ const transformPinned = () => {
   };
 
   for (const [key, ctx] of Object.entries(ctxs)) {
-    if (!ctx) {
-      continue;
-    }
+    if (!ctx) { continue };
     ctx.save();
     ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
   }
+  
   if (!selectedEvent.value && !searchedEvent.value) {
     clearCanvases();
     pinnedThreadsList.value.forEach(item => {
-      childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
+      const isMixMode = swimGraphState.isMixMode?.value;
+      const hasMixConfig = swimDataManager?.hasMixConfig();
+      
+      if (isMixMode && hasMixConfig) {
+        if (item.thread.isCounter) {
+          childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
+        } else {
+          drawTransformMixEvent(item.thread, eventsCtx, item.processKey);
+        }
+      } else {
+        childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
+      }
     });
     childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, true);
     return;
   }
+  
   changePinnedColor(true);
   highlightPinnedEvent(selectedEvent.value || searchedEvent.value);
   highlightPinnedEvent(canvasclickedEvent.value, true, true, true);
 };
 
-const changePinnedColor = (isDimmed) => {
-  clearEventCanvas();
+// Mix 模式下绘制置顶线程 - 直接使用已有的 drawData
+const drawTransformMixEvent = (thread, eventCtx, processKey) => {
+  const processInfo = swimDataManager.processInfo.get(processKey);
+  if (!processInfo) { return };
+  
+  let threadInfo = null;
+  for (const [key, t] of processInfo.threads.entries()) {
+    if (t.tid === thread.tid) {
+      threadInfo = t;
+      break;
+    }
+  }
+  if (!threadInfo) { return };
+  
   const drawDatas = [];
+  
+  let threadY = 0;
   for (const pinnedThread of pinnedThreadsList.value) {
-    const { thread, processKey } = pinnedThread;
-    for (const event of thread.events) {
-      if (!event.renderInfo) {
-        continue;
+    if (pinnedThread.thread?.tid === thread.tid) { break };
+    const t = pinnedThread.thread;
+    const tk = t.isCounter ? t.threadName : t.tid;
+    const lc = lane2line.get(`${pinnedThread.processKey}@${tk}`) || 1;
+    threadY += layout.threadHeight * lc;
+  }
+  
+  const eventY = threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+  
+  const parentEvents = threadInfo.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && swimDataManager.isMixParentEvent(e));
+  
+  for (const parentEvent of parentEvents) {
+    const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+
+    // Fix: In mix subgraph mode, subEvents should inherit parent's color
+    const { fillColor, fontColor, strokeColor } = getEventColor(parentEvent, eventRenderer.deps, processKey, false, false);
+
+    for (const subEvent of subEvents) {
+      if (!subEvent.drawData) { continue };
+      
+      // 设置 renderInfo.pinnedEventY
+      if (subEvent.renderInfo) {
+        subEvent.renderInfo.pinnedEventY = eventY;
       }
       
-      if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime ) {
-        event.drawData.show = false;
-        event.drawData.text = '';
-        continue;
-      } else {
-        event.drawData.show = true;
+      const pinnedDrawData = {
+        ...subEvent.drawData,
+        rectColor: fillColor,       // Apply parent's color
+        fontColor,       // Apply parent's font color
+        strokeColor,   // Apply parent's stroke color
+        pinnedEventY: eventY,
+        pinnedTextY: eventY * devicePixelRatio + eventTextSize,
+      };
+      drawDatas.push(pinnedDrawData);
+    }
+    
+    const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
+    for (const waitTask of waitTasks) {
+      if (!waitTask.drawData) { continue };
+      
+      // 设置 renderInfo.pinnedEventY
+      if (waitTask.renderInfo) {
+        waitTask.renderInfo.pinnedEventY = eventY;
       }
-      if (event.drawData) {
-        if (!isDimmed) {
-          const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
-          event.drawData.rectColor = fillColor;
-          event.drawData.strokeColor = strokeColor;
-          event.drawData.fontColor = fontColor;
-        }
-        drawDatas.push(event.drawData);
+      
+      const pinnedDrawData = {
+        ...waitTask.drawData,
+        pinnedEventY: eventY,
+        pinnedTextY: eventY * devicePixelRatio + eventTextSize,
+      };
+      drawDatas.push(pinnedDrawData);
+    }
+  }
+  
+  const normalEvents = threadInfo.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && !swimDataManager.isMixParentEvent(e));
+  
+  for (const event of normalEvents) {
+    if (!event.drawData) { continue };
+    
+    // 设置 renderInfo.pinnedEventY
+    if (event.renderInfo) {
+      event.renderInfo.pinnedEventY = eventY;
+    }
+    
+    const pinnedDrawData = {
+      ...event.drawData,
+      pinnedEventY: eventY,
+      pinnedTextY: eventY * devicePixelRatio + eventTextSize,
+    };
+    drawDatas.push(pinnedDrawData);
+  }
+  
+  if (drawDatas.length > 0) {
+    eventRenderer.drawEvent(drawDatas, eventCtx, false, true);
+    eventRenderer.drawEventText(drawDatas, eventCtx, false, true);
+  }
+};
+
+const createPinnedDrawData = (event, eventY) => {
+  if (event.renderInfo) {
+    event.renderInfo.pinnedEventY = eventY;
+  }
+  
+  return {
+    ...event.drawData,
+    pinnedEventY: eventY,
+    pinnedTextY: eventY * devicePixelRatio + eventTextSize,
+  };
+};
+
+const processSubEventForPinned = (eventY, isDimmed, drawDatas, processKey, parentEvent) => {
+  const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+  for (const subEvent of subEvents) {
+    if (!subEvent.drawData) { return };
+  
+    if (subEvent.renderInfo) {
+      subEvent.renderInfo.pinnedEventY = eventY;
+    }
+    
+    if (!isDimmed) {
+      // Fix: SubEvents should inherit color from parentEvent, not use their own
+      // In mix subgraph mode, subEvents don't have their own color - they belong to a parent task
+      const eventToColor = parentEvent || subEvent;
+      const { fillColor, fontColor, strokeColor } = getEventColor(eventToColor, eventRenderer.deps, processKey, false, false);
+      subEvent.drawData.rectColor = fillColor;
+      subEvent.drawData.strokeColor = strokeColor;
+      subEvent.drawData.fontColor = fontColor;
+    }
+    
+    drawDatas.push(createPinnedDrawData(subEvent, eventY));
+  }
+};
+
+const processWaitTaskForPinned = (waitTask, eventY, drawDatas) => {
+  if (!waitTask.drawData) { return };
+  
+  if (waitTask.renderInfo) {
+    waitTask.renderInfo.pinnedEventY = eventY;
+  }
+  
+  drawDatas.push(createPinnedDrawData(waitTask, eventY));
+};
+
+const processMixParentEventForPinned = (parentEvent, eventY, isDimmed, drawDatas, processKey) => {
+  // Fix: Pass parentEvent so subEvent inherits parent's color in mix mode
+  processSubEventForPinned(eventY, isDimmed, drawDatas, processKey, parentEvent);
+  
+  const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
+  for (const waitTask of waitTasks) {
+    processWaitTaskForPinned(waitTask, eventY, drawDatas);
+  }
+};
+
+const processNormalEventForPinned = (event, eventY, isDimmed, drawDatas, processKey) => {
+  if (!event.renderInfo) { return };
+  
+  if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
+    event.drawData.show = false;
+    event.drawData.text = '';
+    return;
+  }
+  
+  event.drawData.show = true;
+  
+  if (!isDimmed) {
+    const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
+    event.drawData.rectColor = fillColor;
+    event.drawData.strokeColor = strokeColor;
+    event.drawData.fontColor = fontColor;
+  }
+  
+  drawDatas.push(createPinnedDrawData(event, eventY));
+};
+
+const processMixModePinnedThread = (thread, processKey, eventY, isDimmed, drawDatas) => {
+  const processInfo = swimDataManager.processInfo.get(processKey);
+  if (!processInfo) { return };
+  
+  for (const [threadKey, tInfo] of processInfo.threads.entries()) {
+    if (tInfo.tid !== thread.tid) { continue };
+    
+    for (const eventId of tInfo.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
+      if (!event) { continue };
+      
+      const isMixParent = swimDataManager.isMixParentEvent(event);
+      
+      if (isMixParent) {
+        processMixParentEventForPinned(event, eventY, isDimmed, drawDatas, processKey);
+      } else {
+        processNormalEventForPinned(event, eventY, isDimmed, drawDatas, processKey);
       }
     }
   }
+};
+
+const processNormalModePinnedThread = (thread, processKey, eventY, isDimmed, drawDatas) => {
+  for (const event of thread.events) {
+    if (!event.renderInfo) { continue };
+    
+    if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
+      event.drawData.show = false;
+      event.drawData.text = '';
+      continue;
+    }
+    
+    event.drawData.show = true;
+    
+    if (!isDimmed) {
+      const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
+      event.drawData.rectColor = fillColor;
+      event.drawData.strokeColor = strokeColor;
+      event.drawData.fontColor = fontColor;
+    }
+    
+    drawDatas.push(createPinnedDrawData(event, eventY));
+  }
+};
+
+const changePinnedColor = (isDimmed) => {
+  clearEventCanvas();
+  const drawDatas = [];
+  
+  const isMixModeValue = swimGraphState.isMixMode?.value;
+  const hasMixConfig = swimDataManager?.hasMixConfig();
+  
+  let threadY = 0;
+  
+  for (const pinnedThread of pinnedThreadsList.value) {
+    const { thread, processKey } = pinnedThread;
+    
+    const t = thread;
+    const tk = t.isCounter ? t.threadName : t.tid;
+    const lc = lane2line.get(`${processKey}@${tk}`) || 1;
+    
+    const eventY = threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+    
+    if (thread.isCounter) {
+      childContextMap.threadEvent.drawTransformEvent(thread, eventsCtx, true);
+    } else {
+      if (isMixModeValue && hasMixConfig) {
+        processMixModePinnedThread(thread, processKey, eventY, isDimmed, drawDatas);
+      } else {
+        processNormalModePinnedThread(thread, processKey, eventY, isDimmed, drawDatas);
+      }
+    }
+    
+    threadY += layout.threadHeight * lc;
+  }
+  
   eventRenderer.drawEvent(drawDatas, eventsCtx, isDimmed, true);
   eventRenderer.drawEventText(drawDatas, eventsCtx, isDimmed, true);
 };
@@ -325,6 +560,7 @@ const pinnedRender = () => {
     return;
   }
   clearCanvases();
+
   // 实现渲染逻辑
   let threadY = 0;
   pinnedThreadsList.value.forEach(item => {
@@ -333,6 +569,7 @@ const pinnedRender = () => {
     const lineCount = lane2line.get(`${item.processKey}@${threadKey}`) || 1;
     threadY += layout.threadHeight * lineCount;
   });
+  
   childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, true);
   flagRender();
 };
@@ -365,14 +602,44 @@ const handleCanvasClick = (e) => {
   mousePosition = { x: e.clientX, y: e.clientY };
   const localPosition = computeLocalXY(canvasContainerRef.value, mousePosition);
   const { event } = findEventAtPosition(localPosition.x, localPosition.y);
-  if (event && e.altKey) {
-    highlightEvent(depCtx, event);
-    measureRenderer.handleDistanceMeasurement(uiCtx, event, event.renderInfo?.processKey || event.pid.toString(), false, true);
-    // 如果需要在上方显示测距信息
-    if (!altClickData.largeSpacing && pinnedThreadsList.value.length === 1) {
-      const rect = measureRenderer.calculateRect(altClickData.largeSpacing, true);
-      showMeasureInfo(rect);
+  if (event) {
+    canvasclickedEvent.value = event;
+    
+    if (e.altKey) {
+      // 测距模式
+      highlightEvent(depCtx, event);
+      measureRenderer.handleDistanceMeasurement(uiCtx, event, event.renderInfo?.processKey || event.pid.toString(), false, true);
+      // 如果需要在上方显示测距信息
+      if (!altClickData.largeSpacing && pinnedThreadsList.value.length === 1) {
+        const rect = measureRenderer.calculateRect(altClickData.largeSpacing, true);
+        showMeasureInfo(rect);
+      }
+    } else {
+      // 普通点击 - 选择事件
+      measureState.isMeasureFirst = false;
+      measureState.isMeasureFixed = false;
+      const processKey = event.renderInfo?.processKey || event.pid.toString();
+      selectEvent(event, processKey);
     }
+  } else {
+    canvasclickedEvent.value = null;
+    measureState.isMeasureFirst = false;
+    measureState.isMeasureFixed = false;
+    
+    // 清除测距数据
+    altClickData.preData = null;
+    altClickData.lastData = null;
+    altClickData.largeSpacing = false;
+
+    const canvasWidth = uiCanvasRef.value?.width || 0;
+    const canvasHeight = uiCanvasRef.value?.height || 0;
+    uiCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    const depWidth = depCanvasRef.value?.width || 0;
+    const depHeight = depCanvasRef.value?.height || 0;
+    depCtx.clearRect(0, 0, depWidth, depHeight);
+
+    hideMeasureInfo();
   }
 };
 
@@ -400,95 +667,246 @@ const highlightEvent = (ctx, event, stroke=true, highlight=true) => {
   eventRenderer.drawEventText([drawData], ctx);
 };
 
+// 获取线程信息
+const getThreadInfoByTid = (processKey, tid) => {
+  const processInfo = swimDataManager.processInfo.get(processKey);
+  if (!processInfo) { return null };
+  
+  for (const [key, t] of processInfo.threads.entries()) {
+    if (t.tid === tid) { return t };
+  }
+  return null;
+};
+
+// Mix 模式下查找事件
+const getEventPinnedY = (event, threadY) => {
+  return event.renderInfo.pinnedEventY || threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+};
+
+const isEventInYRange = (y, pinnedEventY, eventHeight) => {
+  return y >= pinnedEventY && y <= pinnedEventY + eventHeight;
+};
+
+const isEventInXRange = (x, eventX, eventWidth) => {
+  return x >= eventX && x <= eventX + eventWidth;
+};
+
+const collectEventsOnLane = (threadInfo, threadY, x, y) => {
+  const allEvents = [];
+  let matchedEvent = null;
+  
+  for (const eventId of threadInfo.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event) { continue };
+    
+    const isParent = swimDataManager.isMixParentEvent(event);
+    
+    if (isParent) {
+      const subEvents = swimDataManager.getSubEvents(event.id);
+      
+      for (const subEvent of subEvents) {
+        if (!subEvent.renderInfo) { continue };
+        
+        const { x: subX, width: subWidth, height: subHeight } = subEvent.renderInfo;
+        const subPinnedY = getEventPinnedY(subEvent, threadY);
+        if (!isEventInYRange(y, subPinnedY, subHeight)) { continue };
+        if (!matchedEvent && isEventInXRange(x, subX, subWidth)) {
+          matchedEvent = subEvent;
+        }
+        allEvents.push({ event: subEvent, eventX: subX, eventWidth: subWidth });
+      }
+      
+      const waitTasks = swimDataManager.getWaitTasks(event.id);
+      for (const waitTask of waitTasks) {
+        if (!waitTask.renderInfo) { continue };
+        
+        const { x: waitX, width: waitWidth, height: waitHeight } = waitTask.renderInfo;
+        const waitPinnedY = getEventPinnedY(waitTask, threadY);
+        
+        if (isEventInYRange(y, waitPinnedY, waitHeight) && (!matchedEvent && isEventInXRange(x, waitX, waitWidth))) {
+          matchedEvent = waitTask;
+        }
+      }
+    } else {
+      if (!event.renderInfo) { continue };
+      
+      const { x: eventX, width: eventWidth, height: eventHeight } = event.renderInfo;
+      const pinnedEventY = getEventPinnedY(event, threadY);
+      
+      if (isEventInYRange(y, pinnedEventY, eventHeight)) {
+        if (!matchedEvent && isEventInXRange(x, eventX, eventWidth)) {
+          matchedEvent = event;
+        }
+        allEvents.push({ event, eventX, eventWidth });
+      }
+    }
+  }
+  
+  if (matchedEvent) {
+    return { event: matchedEvent, autoMeasureData: null };
+  }
+  
+  return { event: null, autoMeasureData: allEvents };
+};
+
+const checkAutoMeasure = (allEvents, x) => {
+  if (allEvents.length < 2) { return null };
+  
+  allEvents.sort((a, b) => a.eventX - b.eventX);
+  
+  for (let i = 0; i < allEvents.length - 1; i++) {
+    const { event, eventX, eventWidth } = allEvents[i];
+    const { event: nextEvent, eventX: nextEventX } = allEvents[i + 1];
+    
+    if (x >= eventX + eventWidth && x <= nextEventX) {
+      const nodeSpacingX = nextEventX - (eventX + eventWidth);
+      return {
+        event: null,
+        mData: {
+          preData: event,
+          lastData: nextEvent,
+          nodeSpacingX,
+        },
+      };
+    }
+  }
+  
+  return null;
+};
+
+const findMixEventAtPosition = (x, y, threadInfo, threadY) => {
+  const { event, autoMeasureData } = collectEventsOnLane(threadInfo, threadY, x, y);
+  
+  if (event) {
+    return { event };
+  }
+  
+  if (autoMeasureData && autoMeasureData.length >= 2) {
+    return checkAutoMeasure(autoMeasureData, x);
+  }
+  
+  return null;
+};
+
+// 非 Mix 模式下查找事件
+const findNormalEventAtPosition = (x, y, thread) => {
+  for (let index = 0; index < thread.events.length; index++) {
+    const event = thread.events[index];
+    if (!event.renderInfo) {
+      continue;
+    }
+    
+    const eventX = event.renderInfo.x;
+    const eventY = event.renderInfo.pinnedEventY;
+    const eventWidth = event.drawData?.eventWidth || 0;
+    const eventHeight = event.renderInfo.height || layout.eventHeight;
+    
+    const validateX = x >= eventX && x <= eventX + eventWidth;
+    const validateY = y >= eventY && y <= eventY + eventHeight;
+    
+    if (validateX && validateY) {
+      return { event, mData: {} };
+    }
+    if (!validateY) { continue };
+    
+    // 检查节点间隙
+    const nextEvent = thread.events[index + 1];
+    if (!nextEvent) { continue };
+    
+    const { x: nextEventX } = nextEvent.renderInfo;
+    if (x >= eventX + eventWidth && x <= nextEventX) {
+      return {
+        event: null,
+        mData: {
+          preData: event,
+          lastData: nextEvent,
+          nodeSpacingX: nextEventX - (eventX + eventWidth),
+        },
+      };
+    }
+  }
+  return null;
+};
+
 const findEventAtPosition = (x, y) => {
   let processObj = {
     event: null,
     mData: {
-      preData: null, // 鼠标位置左侧的节点
-      lastData: null, // 鼠标位置右侧的节点
-      nodeSpacingX: 0, // 左右节点的x坐标间隙
+      preData: null,
+      lastData: null,
+      nodeSpacingX: 0,
     },
   };
+  
+  const isMixMode = swimGraphState.isMixMode?.value;
+  const hasMixConfig = swimDataManager?.hasMixConfig();
+  
   let threadY = 0;
+  
   for (const pinnedThread of pinnedThreadsList.value) {
     const { thread, processKey } = pinnedThread;
     const threadKey = thread.isCounter ? thread.threadName : thread.tid;
     const lineCount = lane2line.get(`${processKey}@${threadKey}`) || 1;
     const threadHeight = layout.threadHeight * lineCount;
-    
+    let result = null;
     if (y >= threadY && y <= threadY + threadHeight) {
-      for (let index = 0; index < thread.events.length; index++) {
-        const event = thread.events[index];
-        if (!event.renderInfo) {
-          continue;
-        }
-        
-        const eventX = event.renderInfo.x;
-        const eventY = event.renderInfo.pinnedEventY;
-        const eventWidth = event.drawData?.eventWidth || 0;
-        const eventHeight = event.renderInfo.height || layout.eventHeight;
-        
-        const validateX = x >= eventX && x <= eventX + eventWidth;
-        const validateY = y >= eventY && y <= eventY + eventHeight;
-        if (validateX && validateY) {
-          processObj.event = event;
-          return processObj;
-        }
-        if (!validateY) {
-          continue;
-        }
-        const nextEvent = thread.events[index + 1];
-        if (!nextEvent) {
-          continue;
-        }
-        const { x: nextEventX } = nextEvent.renderInfo;
-        if (x >= eventX + eventWidth && x <= nextEventX) {
-          processObj.mData = {
-            preData: event,
-            lastData: nextEvent,
-            nodeSpacingX: nextEventX - (eventX + eventWidth),
-          };
-          return processObj;
-        }
+      if (isMixMode && hasMixConfig) {
+        const threadInfo = getThreadInfoByTid(processKey, thread.tid);
+        if (!threadInfo) { continue };
+        result = findMixEventAtPosition(x, y, threadInfo, threadY);
+      } else {
+        result = findNormalEventAtPosition(x, y, thread);
+      }
+      if (result && result.event) {
+        processObj.event = result.event;
+        return processObj;
+      }
+      if (result && result.mData) {
+        processObj.mData = result.mData;
+        return processObj;
       }
     }
+    
     threadY += threadHeight;
   }
+  
   return processObj;
 };
 
 const drawHoverHighlight = (event, ctx) => {
-  if (!ctx) {
-    return;
-  }
+  if (!ctx) { return };
   
   ctx.clearRect(0, 0, eventsCanvasRef.value.offsetWidth, containerHeight.value);
   
-  if (!event || !event.renderInfo) {
-    return;
-  }
+  if (!event || !event.renderInfo) { return };
   
   const processKey = String(event.pid);
   const thread = pinnedThreadsList.value.find(p => p.processKey == processKey)?.thread;
-  if (!thread) {
-    return;
-  }
-  
-  let threadY = 0;
-  for (const pinnedThread of pinnedThreadsList.value) {
-    if (pinnedThread.processKey == processKey) {
-      break;
-    }
-    const t = pinnedThread.thread;
-    const tk = t.isCounter ? t.threadName : t.tid;
-    const lc = lane2line.get(`${pinnedThread.processKey}@${tk}`) || 1;
-    threadY += layout.threadHeight * lc;
-  }
-  
+  if (!thread) { return };
   const { renderInfo } = event;
-  const { fillColor, fontColor } = getEventColor(event, {...swimGraphState, userConfig, colorCfg}, processKey, true, true);
-  const { width } = renderInfo;
-  const pinnedEventY = renderInfo.pinnedEventY || 0;
+  const { width, pinnedEventY } = renderInfo;
+  
+  // 特殊处理 Wait 节点和 SubEvent 的颜色
+  let fillColor = '';
+  let fontColor = '';
+  
+  if (event.name === 'Wait') {
+    // Wait 节点使用灰色高亮
+    fillColor = colorCfg.eventRectNoColorHighlight;
+    fontColor = colorCfg.eventFontHighLight;
+  } else if (event.parentEventId) {
+    // SubEvent 使用父节点的颜色
+    const parentEvent = swimDataManager.getEventById(event.parentEventId);
+    if (parentEvent) {
+      const colors = getEventColor(parentEvent, {...swimGraphState, userConfig, colorCfg}, processKey, true, true);
+      ({ fillColor, fontColor } = colors);
+    }
+  } else {
+    // 普通事件
+    const colors = getEventColor(event, {...swimGraphState, userConfig, colorCfg}, processKey, true, true);
+    ({ fillColor, fontColor } = colors);
+  }
+  
   const drawData = {
     rectX: renderInfo.x, 
     pinnedEventY,
@@ -558,14 +976,22 @@ const showTooltip = (e, event) => {
     return;
   }
   
-  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
+  const startTime = event.startTime || event.drawData?.startTime;
+  const endTime = event.endTime || event.drawData?.endTime;
+  const duration = event.duration || (endTime && startTime ? endTime - startTime : 0);
+  
+  if (!startTime) {
+    return;
+  }
+  
+  const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || event.name || 'Event');
   let tooltipContent = `<div class="tooltip-container">`;
   tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('title')}</span><span class="tooltip-value">${displayName}</span></div>`;
-  tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('start')}</span><span class="tooltip-value">${formatTimeWithUnit(event.startTime - viewState.minTime).value}${formatTimeWithUnit(event.startTime - viewState.minTime).unit}</span></div>`;
+  tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('start')}</span><span class="tooltip-value">${formatTimeWithUnit(startTime - viewState.minTime).value}${formatTimeWithUnit(startTime - viewState.minTime).unit}</span></div>`;
   if (event.isCounter) {
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('countValue')}</span><span class="tooltip-value">${event.counterSize}</span></div>`;
   } else {
-    tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(event.duration).value}${formatTimeWithUnit(event.duration).unit}</span></div>`;
+    tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(duration).value}${formatTimeWithUnit(duration).unit}</span></div>`;
   }
   tooltipContent += '</div>';
   

@@ -57,7 +57,7 @@ const { t: $t } = useI18n();
 const state = inject('subGraphTimingState');
 const { clickTask } = inject('swimGraphPmuBarMethod');
 const {
-  isMixedAicpuKernel,
+  isE2ESwim,
   kernelColorRending,
   processes,
   isPathLockStatus,
@@ -129,7 +129,7 @@ const initData = () => {
   }
   const groups = new Map();
   for (const [processKey, process] of state.processes.entries()) {
-    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
+    if (isE2ESwim.value && process.type === 'aicpu') {
       continue;
     }
     for (const [threadKey, thread] of process.threads.entries()) {

@@ -97,6 +97,7 @@
 import { ref, inject, computed, watch, onMounted, provide, nextTick, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
+import { swimDataManager } from '../swimData';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
@@ -134,7 +135,7 @@ const {
   isThreeColumn,
   fileName,
   isAicpu,
-  isMixedAicpuKernel,
+  isE2ESwim,
   isSwimGraphActive,
   isSwimFullscreen,
   isPathLockStatus,
@@ -146,6 +147,7 @@ const {
   isWideScreen,
   isMaxSchedule,
   pinnedthreadsComponent,
+  isMixMode,
 } = inject('swimGraphState');
 
 const {
@@ -337,6 +339,28 @@ const exportSwimGraph = () => {
   }
 };
 
+const calculateContentHeight = (params) => {
+  const {key, process,  isMixModeValue} = params;
+  let contentHeight = 0;
+  if (isMixModeValue && swimDataManager.hasMixConfig()) {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'wrap-label') {
+        contentHeight += lane.height;
+      } else if (lane.type === 'thread') {
+        contentHeight += lane.height;
+      }
+    }
+  } else {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const tKey = thread.isCounter ? thread.threadName : thread.tid;
+      contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+    }
+  }
+
+  return contentHeight;
+};
+
 // 辅助函数 1：计算画布总尺寸
 function calculateCanvasSize(
   processLabelWidth,
@@ -352,11 +376,11 @@ function calculateCanvasSize(
   for (const [key, process] of processes) {
     totalProcessHeight += layout.processHeaderHeight;
     if (processExpanded.get(key)) {
-      let contentHeight = 0;
-      for (const [threadKey, thread] of process.threads.entries()) {
-        const tKey = thread.isCounter ? thread.threadName : thread.tid;
-        contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
-      }
+      const contentHeight = calculateContentHeight({
+        key,
+        process,
+        isMixModeValue: isMixMode.value
+      });
       totalProcessHeight += contentHeight;
     }
     totalProcessHeight += layout.processMargin;
@@ -527,9 +551,19 @@ function drawProcess(
   // Body
   if (processExpanded.get(key)) {
     let contentHeight = 0;
-    for (const [threadKey, thread] of process.threads.entries()) {
-      const tKey = thread.isCounter ? thread.threadName : thread.tid;
-      contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+    
+    if (isMixMode.value && swimDataManager.hasMixConfig()) {
+      const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+      for (const lane of swimLaneOrder) {
+        if (lane.type === 'wrap-label' || lane.type === 'thread') {
+          contentHeight += lane.height;
+        }
+      }
+    } else {
+      for (const [threadKey, thread] of process.threads.entries()) {
+        const tKey = thread.isCounter ? thread.threadName : thread.tid;
+        contentHeight += getThreadHeight(key, tKey, lane2line, layout, thread.isCounter);
+      }
     }
     // 绘制左侧 labels
     drawThreadLabels(ctx, process, key, y, contentHeight);
@@ -563,42 +597,101 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
   ctx.lineTo(processLabelWidth, startY + contentHeight);
   ctx.strokeStyle = lineColor;
   ctx.stroke();
-  for (const [threadKey, thread] of process.threads.entries()) {
-    const tKey = thread.isCounter ? thread.threadName : thread.tid;
-    const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
-    const tStartY = getThreadStartY(process, processKey, tKey, lane2line, layout);
-    const labelY = startY + tStartY;
-    // 检查线程是否被置顶
-    const { isPinned } = thread;
-    // 如果线程被置顶，绘制置顶图标
-    if (isPinned) {
-      const iconX = 10;
-      const iconY = labelY + (tHeight / 2);
-      const iconSize = 16;
-      ctx.fillStyle = iconColor;
-      ctx.save();
-      ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
-      const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
-      ctx.fill(path);
-      ctx.restore();
+  
+  if (isMixMode.value && swimDataManager.hasMixConfig()) {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    let labelY = startY;
+    let isFirstWrapLabel = true;
+    
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'wrap-label') {
+        const laneHeight = lane.height;
+        if (isFirstWrapLabel) {
+          ctx.fillStyle = isDarkTheme.value ? '#666666' : '#C9C9C9';
+          ctx.fillText($t('mixTasks'), 30, labelY + laneHeight / 2);
+          isFirstWrapLabel = false;
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, labelY + laneHeight);
+        ctx.lineTo(processLabelWidth, labelY + laneHeight);
+        ctx.strokeStyle = lineColor;
+        ctx.stroke();
+        labelY += laneHeight;
+      } else if (lane.type === 'thread') {
+        const { thread } = lane;
+        const tHeight = lane.height;
+        const { isPinned } = thread;
+        
+        if (isPinned) {
+          const iconX = 10;
+          const iconY = labelY + (tHeight / 2);
+          const iconSize = 16;
+          ctx.fillStyle = iconColor;
+          ctx.save();
+          ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
+          const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
+          ctx.fill(path);
+          ctx.restore();
+        }
+        
+        ctx.fillStyle = textColor;
+        let labelText = thread.threadName || thread.tid;
+        const textStartX = 30;
+        const maxTextWidth = processLabelWidth - textStartX - 10;
+        if (ctx.measureText(labelText).width > maxTextWidth) {
+          const widthPerChar = ctx.measureText(labelText).width / labelText.length;
+          const maxChars = Math.floor(maxTextWidth / widthPerChar);
+          labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
+        }
+        ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
+        
+        ctx.beginPath();
+        ctx.moveTo(0, labelY + tHeight);
+        ctx.lineTo(processLabelWidth, labelY + tHeight);
+        ctx.strokeStyle = lineColor;
+        ctx.stroke();
+        labelY += tHeight;
+      }
     }
-    ctx.fillStyle = textColor;
-    let labelText = thread.threadName || thread.tid;
-    const textStartX = 30;
-    const maxTextWidth = processLabelWidth - textStartX - 10;
-    if (ctx.measureText(labelText).width > maxTextWidth) {
-      const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-      const maxChars = Math.floor(maxTextWidth / widthPerChar);
-      labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
+  } else {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const tKey = thread.isCounter ? thread.threadName : thread.tid;
+      const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
+      const tStartY = getThreadStartY(process, processKey, tKey, lane2line, layout);
+      const labelY = startY + tStartY;
+      const { isPinned } = thread;
+      
+      if (isPinned) {
+        const iconX = 10;
+        const iconY = labelY + (tHeight / 2);
+        const iconSize = 16;
+        ctx.fillStyle = iconColor;
+        ctx.save();
+        ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
+        const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
+        ctx.fill(path);
+        ctx.restore();
+      }
+      
+      ctx.fillStyle = textColor;
+      let labelText = thread.threadName || thread.tid;
+      const textStartX = 30;
+      const maxTextWidth = processLabelWidth - textStartX - 10;
+      if (ctx.measureText(labelText).width > maxTextWidth) {
+        const widthPerChar = ctx.measureText(labelText).width / labelText.length;
+        const maxChars = Math.floor(maxTextWidth / widthPerChar);
+        labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
+      }
+      ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
+      
+      ctx.beginPath();
+      ctx.moveTo(0, labelY + tHeight);
+      ctx.lineTo(processLabelWidth, labelY + tHeight);
+      ctx.strokeStyle = lineColor;
+      ctx.stroke();
     }
-    ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
-    // 底部分割线
-    ctx.beginPath();
-    ctx.moveTo(0, labelY + tHeight);
-    ctx.lineTo(processLabelWidth, labelY + tHeight);
-    ctx.strokeStyle = lineColor;
-    ctx.stroke();
   }
+  
   ctx.restore();
 }
 
@@ -607,19 +700,25 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
   const { processLabelWidth } = layout;
   let selectors = [
     `[data-background-process-key="${processKey}"]`,
+    `[data-wrap-container-process-key="${processKey}"]`,
     `[data-process-key="${processKey}"]`,
-    isMixedAicpuKernel.value ? `[data-dep-process-key="${processKey}"]` : `.global-connection-canvas`,
+    `[data-mix-dep-process-key="${processKey}"]`,
+    isE2ESwim.value ? `[data-dep-process-key="${processKey}"]` : `.global-connection-canvas`,
     `[data-selection-process-key="${processKey}"]`,
     `[data-ui-process-key="${processKey}"]`,
+    `[data-hover-wrap-container-process-key="${processKey}"]`,
     `[data-line-process-key="${processKey}"]`
   ];
   const selectedProcessKey = selectedEvent.value?.pid?.toString() ?? null;
-  if (!isMixedAicpuKernel.value && selectedProcessKey && processKey != selectedProcessKey) {
+  if (!isE2ESwim.value && selectedProcessKey && processKey != selectedProcessKey) {
     selectors = [
       `[data-background-process-key="${processKey}"]`,
+      `[data-wrap-container-process-key="${processKey}"]`,
       `[data-process-key="${processKey}"]`,
+      `[data-mix-dep-process-key="${processKey}"]`,
       `[data-selection-process-key="${processKey}"]`,
       `[data-ui-process-key="${processKey}"]`,
+      `[data-hover-wrap-container-process-key="${processKey}"]`,
       `[data-line-process-key="${processKey}"]`
     ];
   }
@@ -791,13 +890,92 @@ const processThreadEvents = (thread, processKey, filterFn) => {
   }
   return results;
 };
+
+const handleSubEvents = (params) => {
+ 	const { subEvents, thread, processKey, results, parentName } = params;
+ 	for (const subEvent of subEvents) {
+ 	  results.push([subEvent, thread.threadName, processKey, thread.tid, parentName]);
+ 	  if (!processExpanded.get(processKey)) {
+ 	    toggleProcess(processKey);
+ 	  }
+ 	}
+};
+ 	 
+const handleWaitTasks = (params) => {
+ 	const { waitTasks, thread, processKey, filterFn, results } = params;
+ 	for (const waitTask of waitTasks) {
+ 	  if (filterFn(waitTask, thread, processKey)) {
+ 	    results.push([waitTask, thread.threadName, processKey, thread.tid]);
+ 	    if (!processExpanded.get(processKey)) {
+ 	      toggleProcess(processKey);
+ 	    }
+ 	  }
+ 	}
+};
+
+const processMixThreadEvents = (thread, processKey, filterFn) => {
+  const results = [];
+  
+  const processInfo = swimDataManager.processInfo.get(processKey);
+  if (!processInfo) { 
+    return results; 
+  }
+  
+  let threadInfo = null;
+  for (const [threadKey, t] of processInfo.threads.entries()) {
+    if (t.tid === thread.tid) {
+      threadInfo = t;
+      break;
+    }
+  }
+  
+  if (!threadInfo) { 
+    return results; 
+  }
+  
+  const parentEvents = threadInfo.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && swimDataManager.isMixParentEvent(e));
+  
+  for (const parentEvent of parentEvents) {
+    const parentName = parentEvent.name;
+    if (filterFn(parentEvent, thread, processKey)) {
+      const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+      handleSubEvents({subEvents, thread, processKey, results, parentName});
+
+      const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
+      handleWaitTasks({waitTasks, thread, processKey, filterFn, results});
+    }
+  }
+  
+  const normalEvents = threadInfo.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && !swimDataManager.isMixParentEvent(e));
+  
+  for (const event of normalEvents) {
+    if (filterFn(event, thread, processKey)) {
+      results.push([event, thread.threadName, processKey, thread.tid]);
+      if (!processExpanded.get(processKey)) {
+        toggleProcess(processKey);
+      }
+    }
+  }
+  
+  return results;
+};
+
 const performSearch = (filterFn) => {
   searchResult.value = [];
   searchResultCount.value = 0;
   currentResultIndex.value = 0;
   for (const [processKey, process] of processes.entries()) {
     for (const [threadKey, thread] of process.threads.entries()) {
-      const results = processThreadEvents(thread, processKey, filterFn);
+      let results;
+      if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+        results = processMixThreadEvents(thread, processKey, filterFn);
+      } else {
+        results = processThreadEvents(thread, processKey, filterFn);
+      }
       searchResult.value.push(...results);
     }
   }
@@ -885,6 +1063,7 @@ const fuzzSearch = (e) => {
     }
   }
   const searchKeyL = isCaseSensitive.value ? searchKey : searchKey.toLowerCase();
+  
   performSearch((event) => {
     const eventName = isCaseSensitive.value ? event.name : event.name.toLowerCase();
     return eventName.includes(isCaseSensitive.value ? searchKey : searchKeyL);
@@ -1045,7 +1224,7 @@ const scrollToEventByDom = (event) => {
   const processKey = String(pid);
   const process = processes.get(processKey);
   
-  if (isMixedAicpuKernel.value) {
+  if (isE2ESwim.value) {
     isAicpuKernel = process?.type === 'aicpu';
     container = isAicpuKernel ? swimlaneContainer.value.querySelector('.aicpu-section') : swimlaneContainer.value.querySelector('.kernel-section');
   } else {
@@ -1137,13 +1316,15 @@ const handleClickOutsize = (event) => {
   }
 };
 
-const resetsearchState = () => {
+const resetsearchState = (needSelectEvent=true) => {
   searchResultCount.value = 0;
   currentResultIndex.value = 0;
   isSearchActive.value = false;
   detailsPanelExpanded.value = false;
   searchedEvent.value = null;
-  clearSearchData();
+  if (needSelectEvent) {
+    clearSearchData();
+  }
 };
 
 const getTooltipContent = () => {

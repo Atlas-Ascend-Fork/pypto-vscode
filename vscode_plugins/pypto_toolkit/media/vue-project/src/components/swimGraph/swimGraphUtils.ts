@@ -1,26 +1,47 @@
 // 工具函数和共享方法
 import { getEventColorByMode } from './swimGraphProcesses/processInfo';
+import { swimDataManager } from './swimData';
 
 export const COLOR_CFG = {
   dark: {
     backGround: '#1F1F1F',
     eventFont: '#ffffff',
-    eventRectNoColor: 'rgba(125, 125, 125, 0.5)',
-    eventFontNoColor: '#999999',
+    eventRectNoColor: 'rgba(77, 77, 77, 1)',
+    eventFontNoColor: 'rgba(153, 153, 153, 1)',
+    eventRectNoColorHighlight: 'rgba(102, 102, 102, 1)',
     eventFontHighLight: '#000000',
     eventHighLightStroke: '#ffffff',
     lightlyCompareBkgColor: 'rgba(255, 255, 255, 0.05)',
-    splitLineColor: 'rgba(255, 255, 255, 0.1)'
+    splitLineColor: 'rgba(255, 255, 255, 0.1)',
+    wrapLineColor: '#B3B3B3',
+    wrapLineHover: '#4D4D4D',
+    wrapTextColorDefault: 'rgba(179, 179, 179, 1)',
+    wrapBgColorDefault: 'rgba(77, 77, 77, 1)',
+    wrapBorderBgColorDefault: 'rgba(77, 77, 77, 0.1)',
+    wrapTextColorHover: 'rgba(0, 0, 0, 1)',
+    wrapBgColorHover: 'rgba(102, 102, 102, 1)',
+    wrapBorderBgColorHover: 'rgba(102, 102, 102, 0.1)',
+    wrapBoxBgColor: 'rgba(102, 102, 102, 0.5)'
   },
   light: {
     backGround: '#ffffff',
     eventFont: '#000000',
     eventRectNoColor: 'rgba(0, 0, 0, 0.05)',
     eventFontNoColor: '#999999',
+    eventRectNoColorHighlight: 'rgba(119, 119, 119, 1)',
     eventFontHighLight: '#ffffff',
     eventHighLightStroke: '#191919',
     lightlyCompareBkgColor: 'rgba(0, 0, 0, 0.05)',
-    splitLineColor: 'rgba(98, 98, 98, 0.2)'
+    splitLineColor: 'rgba(98, 98, 98, 0.2)',
+    wrapLineColor: '#393939',
+    wrapLineHover: '#A1A1A1',
+    wrapTextColorDefault: 'rgba(25, 25, 25, 1)',
+    wrapBgColorDefault: 'rgba(174, 174, 174, 1)',
+    wrapBorderBgColorDefault: 'rgba(147, 147, 147, 0.05)',
+    wrapTextColorHover: 'rgba(255, 255, 255, 1)',
+    wrapBgColorHover: 'rgba(119, 119, 119, 1)',
+    wrapBorderBgColorHover: 'rgba(119, 119, 119, 0.05)',
+    wrapBoxBgColor: 'rgba(119, 119, 119, 0.25)',
   }
 };
 
@@ -117,13 +138,13 @@ export const formatTimeWithUnit = (timeInNanoseconds) => {
   const minutes = seconds / 60;
 
   if (minutes >= 1) {
-    return { value: minutes.toFixed(2), unit: 'min' };
+    return { value: parseFloat(minutes.toFixed(2)), unit: 'min' };
   } else if (seconds >= 1) {
-    return { value: seconds.toFixed(2), unit: 's' };
+    return { value: parseFloat(seconds.toFixed(2)), unit: 's' };
   } else if (milliseconds >= 1) {
-    return { value: milliseconds.toFixed(2), unit: 'ms' };
+    return { value: parseFloat(milliseconds.toFixed(2)), unit: 'ms' };
   } else if (microseconds >= 1) {
-    return { value: microseconds.toFixed(0), unit: 'μs' };
+    return { value: parseFloat(microseconds.toFixed(3)), unit: 'μs' };
   } else {
     return { value: nanoseconds.toFixed(0), unit: 'ns' };
   }
@@ -335,7 +356,7 @@ export const getCanvasCSSHeight = (canvas: any) => {
   return parseFloat(canvas.style.height) || canvas.offsetHeight;
 };
 
-export const updateProcessSize = (process: any, processKey: string, containerRect: any, layout: any, lane2line: any, viewState: any) => {
+export const updateProcessSize = (process: any, processKey: string, containerRect: any, layout: any, lane2line: any, viewState: any, isMixMode: boolean = false) => {
   ctxs[processKey] = {
     eventCtx: document.querySelector(`[data-process-key="${processKey}"]`),
     uiCtx: document.querySelector(`[data-ui-process-key="${processKey}"]`),
@@ -345,14 +366,23 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
     lineCanvasCtx:  document.querySelector(`[data-line-process-key="${processKey}"]`),
     selectionCanvasCtx:  document.querySelector(`[data-selection-process-key="${processKey}"]`),
     threeColumnCanvasCtx:  document.querySelector(`[data-three-column-process-key="${processKey}"]`),
+    wrapContainerCtx: document.querySelector(`[data-wrap-container-process-key="${processKey}"]`),
+    mixDependencyCtx: document.querySelector(`[data-mix-dep-process-key="${processKey}"]`),
+    hoverWrapContainerCtx: document.querySelector(`[data-hover-wrap-container-process-key="${processKey}"]`),
   };
   const processCtxs = ctxs[processKey];
   const availableWidth = containerRect.width;
   const canvasWidth = availableWidth - layout.processLabelWidth - layout.marginRight;
+  
   let canvasHeight = 0;
-  for (const [threadKey, thread] of process.threads.entries()) {
-    canvasHeight += getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
+  if (isMixMode && swimDataManager.hasMixConfig()) {
+    canvasHeight = swimDataManager.getTotalLaneHeight();
+  } else {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      canvasHeight += getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
+    }
   }
+  
   for (const key of Object.keys(processCtxs)) {
     if (processCtxs[key]) {
       processCtxs[key] = setupHighDPICanvas(processCtxs[key], canvasWidth, canvasHeight);
@@ -778,4 +808,498 @@ export const findBuildTaskByNo = (schedCoreMap) => {
     }
   }
   return null;
+};
+
+export const renderWrapLabelRow = (
+  ctx: CanvasRenderingContext2D,
+  laneItem: any,
+  getPositionByTime: any,
+  globalConnectionCanvas: any,
+  { colorCfg, layout, viewState, isHover = false, hoverWrapId = -1 }
+) => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const isGlobalCanvas = ctx.canvas.classList.contains('global-connection-canvas');
+  const selectedCoords = globalConnectionCanvas.value.getMixEventCoordinates(laneItem, false);
+  const startY = selectedCoords - ((laneItem.height * devicePixelRatio) / 2);
+  const rectY = startY / devicePixelRatio;
+  const laneY = isGlobalCanvas ? rectY * devicePixelRatio : laneItem.y * devicePixelRatio;
+  const laneHeight = laneItem.height * devicePixelRatio;
+  
+  const labelHeight = 20 * devicePixelRatio;
+  const labelY = laneY + (laneHeight - labelHeight) / 2;
+  
+  ctx.font = `${12 * devicePixelRatio}px Arial`;
+  const padding = 8 * devicePixelRatio;
+  const canvaWidth = viewState.canvasWidth;
+  
+  const wrapIds = laneItem.wrapIds || [laneItem.wrapId];
+  const wrapStartTimes = laneItem.wrapStartTimes || [laneItem.startTime];
+  
+  for (let i = 0; i < wrapIds.length; i++) {
+    const wrapId = wrapIds[i];
+    const wrapStartTime = wrapStartTimes[i];
+    
+    const startX = getPositionByTime(wrapStartTime, viewState, layout) - layout.processLabelWidth;
+    const labelX = startX * viewState.pixelScale + viewState.pixelOffsetX;
+    
+    if (labelX >= canvaWidth) {
+      continue;
+    }
+    
+    const maxWidth = canvaWidth - labelX;
+    const isCurrentHover = wrapId === hoverWrapId;
+    
+    let label = '';
+    let textWidth = 0;
+    
+    const minWidthForW = ctx.measureText('W...').width + padding * 2;
+    
+    if (maxWidth >= minWidthForW) {
+      label = `Wrap ${wrapId}`;
+      textWidth = ctx.measureText(label).width;
+      
+      if (textWidth + padding * 2 > maxWidth) {
+        const ellipsis = '...';
+        const ellipsisWidth = ctx.measureText(ellipsis).width;
+        const availableWidth = maxWidth - padding * 2 - ellipsisWidth;
+        
+        let truncatedText = '';
+        for (const char of label) {
+          if (ctx.measureText(truncatedText + char).width > availableWidth) {
+            break;
+          }
+          truncatedText += char;
+        }
+        
+        if (truncatedText.length === 0) {
+          truncatedText = 'W';
+        }
+        
+        label = truncatedText + ellipsis;
+        textWidth = ctx.measureText(label).width;
+      }
+    }
+    
+    const boxWidth = label ? Math.min(textWidth + padding * 2, maxWidth) : Math.min(minWidthForW, maxWidth);
+    
+    ctx.fillStyle = isCurrentHover ? colorCfg.wrapBgColorHover : colorCfg.wrapBgColorDefault;
+    ctx.lineWidth = 1;
+    
+    ctx.beginPath();
+    ctx.roundRect(labelX - padding, labelY, boxWidth, labelHeight, 4 * devicePixelRatio);
+    ctx.fill();
+    
+    if (label) {
+      ctx.fillStyle = isCurrentHover ? colorCfg.wrapTextColorHover : colorCfg.wrapTextColorDefault;
+      const drawTextYTemp = labelY + labelHeight / 2 + 4 * devicePixelRatio;
+      ctx.fillText(label, labelX, drawTextYTemp);
+    }
+  }
+  
+  ctx.restore();
+};
+
+export const renderWrapContainerBox = (
+  ctx: CanvasRenderingContext2D,
+  wrapContainer: any,
+  swimLaneOrder: any[],
+  getPositionByTime: any,
+  globalConnectionCanvas: any,
+  { colorCfg, layout, viewState, isHover = false }
+) => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  
+  const startX = getPositionByTime(wrapContainer.minStartTime, viewState, layout) - layout.processLabelWidth;
+  const endX = getPositionByTime(wrapContainer.maxEndTime, viewState, layout) - layout.processLabelWidth;
+  
+  const scaledStartX = startX * viewState.pixelScale + viewState.pixelOffsetX;
+  const scaledEndX = endX * viewState.pixelScale + viewState.pixelOffsetX;
+  
+  let minY = Infinity;
+  let maxY = 0;
+  const isGlobalCanvas = ctx.canvas.classList.contains('global-connection-canvas');
+  for (const lane of swimLaneOrder) {
+    if (lane.type === 'thread' && wrapContainer.threadTids.includes(lane.thread.tid)) {
+      const selectedCoords = globalConnectionCanvas.value.getMixEventCoordinates(lane, false);
+      const startY = selectedCoords - ((lane.height * devicePixelRatio) / 2);
+      const rectY = startY / devicePixelRatio;
+      const laneY = isGlobalCanvas ? rectY : lane.y;
+      minY = Math.min(minY, laneY);
+      maxY = Math.max(maxY, laneY + lane.height);
+    }
+  }
+  
+  if (minY === Infinity) {
+    ctx.restore();
+    return;
+  }
+  
+  const scaledMinY = minY * devicePixelRatio;
+  const scaledMaxY = maxY * devicePixelRatio;
+  const scaledWidth = scaledEndX - scaledStartX;
+  const scaledHeight = scaledMaxY - scaledMinY;
+  
+  const { canvasWidth } = viewState;
+  const padding = 8 * devicePixelRatio;
+  
+  const leftPadding = scaledStartX < padding ? 0 : padding;
+  const rightPadding = scaledEndX + padding > canvasWidth ? 0 : padding;
+  
+  ctx.strokeStyle = isHover ? colorCfg.wrapBgColorHover : colorCfg.wrapBgColorDefault;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4 * devicePixelRatio, 4 * devicePixelRatio]);
+  ctx.fillStyle = isHover ? colorCfg.wrapBoxBgColor : colorCfg.wrapBorderBgColorDefault;
+  ctx.beginPath();
+  
+  ctx.roundRect(scaledStartX - leftPadding, scaledMinY, scaledWidth + leftPadding + rightPadding, scaledHeight, 4 * devicePixelRatio);
+  ctx.fill();
+  ctx.stroke();
+  
+  ctx.restore();
+};
+
+export const renderWrapLabel = (
+  wrapCtx: CanvasRenderingContext2D,
+  getPositionByTime: any,
+  globalConnectionCanvas: any,
+  { colorCfg, layout, viewState, wrapId = -1 }
+) => {
+  const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  if (swimLaneOrder.length === 0) return;
+  
+  if (!wrapCtx) return;
+  
+  
+  for (const lane of swimLaneOrder) {
+    if (lane.type === 'wrap-label') {
+      const wrapIds = lane.wrapIds || [lane.wrapId];
+      const isHover = wrapIds.includes(wrapId);
+      renderWrapLabelRow(wrapCtx, lane, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, isHover, hoverWrapId: wrapId });
+    }
+  }
+};
+
+export const getSubEventColor = (subEvent: any, isDarkTheme: boolean): string => {
+  const parentEvent = swimDataManager.getEventById(subEvent.parentEventId);
+  if (!parentEvent || !parentEvent.color) {
+    return 'rgba(10, 89, 247, 0.3)';
+  }
+  return isDarkTheme ? parentEvent.color.dark?.base : parentEvent.color.light?.base;
+};
+
+export const detectWaitTasks = (parentEventId: string): any[] => {
+  const subEvents = swimDataManager.getSubEvents(parentEventId);
+  if (subEvents.length < 2) return [];
+  
+  const sortedSubEvents = [...subEvents].sort((a, b) => a.startTime - b.startTime);
+  const waitTasks: any[] = [];
+  
+  for (let i = 0; i < sortedSubEvents.length - 1; i++) {
+    const currentEnd = sortedSubEvents[i].endTime;
+    const nextStart = sortedSubEvents[i + 1].startTime;
+    
+    if (nextStart > currentEnd) {
+      waitTasks.push({
+        parentEventId,
+        id: `${parentEventId}_wait_${i}`,
+        startTime: currentEnd,
+        endTime: nextStart,
+        duration: nextStart - currentEnd,
+        name: 'Wait',
+        isWait: true,
+        tid: sortedSubEvents[i].tid,
+        pid: sortedSubEvents[i].pid,
+        threadName: sortedSubEvents[i].threadName,
+      });
+    }
+  }
+  
+  return waitTasks;
+};
+
+export const collectSubEventDependencyPathNodes = (event: any): Set<string> => {
+  const relatedEvents = new Set<string>();
+  
+  const collectPredecessors = (currentEvent: any) => {
+    const deps = swimDataManager.getSubEventDependencies(currentEvent.id);
+    for (const pred of deps.predecessors) {
+      if (!pred.renderInfo) continue;
+      if (pred === event) continue;
+      if (relatedEvents.has(pred.id)) continue;
+      
+      relatedEvents.add(pred.id);
+      collectPredecessors(pred);
+    }
+  };
+  
+  const collectSuccessors = (currentEvent: any) => {
+    const deps = swimDataManager.getSubEventDependencies(currentEvent.id);
+    for (const succ of deps.successors) {
+      if (!succ.renderInfo) continue;
+      if (succ === event) continue;
+      if (relatedEvents.has(succ.id)) continue;
+      
+      relatedEvents.add(succ.id);
+      collectSuccessors(succ);
+    }
+  };
+  
+  collectPredecessors(event);
+  collectSuccessors(event);
+  
+  return relatedEvents;
+};
+
+export const calculateHighlightedPaths = (
+  event: any,
+  highlightedPaths: Set<string>,
+  connectionLevel: number
+): void => {
+  highlightedPaths.clear();
+  
+  const addAllAncestors = (eventId: string, maxDepth: number) => {
+    const visited = new Set<string>();
+    const queue: Array<{ id: string; depth: number }> = [{ id: eventId, depth: 0 }];
+    
+    while (queue.length > 0) {
+      const { id: currentId, depth } = queue.shift()!;
+      
+      if (visited.has(currentId) || (depth > maxDepth && maxDepth !== -1)) {
+        continue;
+      }
+      
+      visited.add(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
+      if (currentEvent) {
+        highlightedPaths.add(currentEvent.id);
+        currentEvent.dependencies?.predecessors?.forEach((predId: string) => {
+          if (!visited.has(predId)) {
+            queue.push({ id: predId, depth: depth + 1 });
+          }
+        });
+      }
+    }
+  };
+  
+  const addAllDescendants = (eventId: string, maxDepth: number) => {
+    const visited = new Set<string>();
+    const queue: Array<{ id: string; depth: number }> = [{ id: eventId, depth: 0 }];
+    
+    while (queue.length > 0) {
+      const { id: currentId, depth } = queue.shift()!;
+      
+      if (visited.has(currentId) || (depth > maxDepth && maxDepth !== -1)) {
+        continue;
+      }
+      
+      visited.add(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
+      if (currentEvent) {
+        highlightedPaths.add(currentEvent.id);
+        currentEvent.dependencies?.successors?.forEach((succId: string) => {
+          if (!visited.has(succId)) {
+            queue.push({ id: succId, depth: depth + 1 });
+          }
+        });
+      }
+    }
+  };
+  
+  addAllAncestors(event.id, connectionLevel);
+  addAllDescendants(event.id, connectionLevel);
+  highlightedPaths.add(event.id);
+};
+
+export const calculateMixMacroPaths = (
+  parentEventId: string,
+  highlightedPaths: Set<string>,
+  connectionLevel: number
+): void => {
+  const addAllAncestors = (eventId: string, maxDepth: number) => {
+    const visited = new Set<string>();
+    const queue: Array<{ id: string; depth: number }> = [{ id: eventId, depth: 0 }];
+    
+    while (queue.length > 0) {
+      const { id: currentId, depth } = queue.shift()!;
+      
+      if (visited.has(currentId) || (depth > maxDepth && maxDepth !== -1)) {
+        continue;
+      }
+      
+      visited.add(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
+      if (currentEvent) {
+        highlightedPaths.add(currentEvent.id);
+        currentEvent.dependencies?.predecessors?.forEach((predId: string) => {
+          if (!visited.has(predId)) {
+            queue.push({ id: predId, depth: depth + 1 });
+          }
+        });
+      }
+    }
+  };
+  
+  const addAllDescendants = (eventId: string, maxDepth: number) => {
+    const visited = new Set<string>();
+    const queue: Array<{ id: string; depth: number }> = [{ id: eventId, depth: 0 }];
+    
+    while (queue.length > 0) {
+      const { id: currentId, depth } = queue.shift()!;
+      
+      if (visited.has(currentId) || (depth > maxDepth && maxDepth !== -1)) {
+        continue;
+      }
+      
+      visited.add(currentId);
+      const currentEvent = swimDataManager.getEventById(currentId);
+      if (currentEvent) {
+        highlightedPaths.add(currentEvent.id);
+        currentEvent.dependencies?.successors?.forEach((succId: string) => {
+          if (!visited.has(succId)) {
+            queue.push({ id: succId, depth: depth + 1 });
+          }
+        });
+      }
+    }
+  };
+  
+  addAllAncestors(parentEventId, connectionLevel);
+  addAllDescendants(parentEventId, connectionLevel);
+  highlightedPaths.add(parentEventId);
+};
+
+export const drawBezierDashedLine = (
+  ctx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  scale: number,
+  offsetX: number,
+  devicePixelRatio: number,
+  isDarkTheme: boolean = false,
+  isHover: boolean = false,
+) => {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  
+  const scaledStartX = startX * scale * devicePixelRatio + offsetX * devicePixelRatio;
+  const scaledEndX = endX * scale * devicePixelRatio + offsetX * devicePixelRatio;
+  const scaledStartY = startY * devicePixelRatio;
+  const scaledEndY = endY * devicePixelRatio;
+  let lineColor = '';
+  if (isHover) {
+    lineColor = isDarkTheme ? COLOR_CFG.dark.wrapLineColor : COLOR_CFG.light.wrapLineColor;
+  } else {
+    lineColor = isDarkTheme ? COLOR_CFG.dark.wrapLineHover : COLOR_CFG.light.wrapLineHover;
+  }
+  
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4 * devicePixelRatio, 4 * devicePixelRatio]);
+  
+  const cp1x = scaledStartX + (scaledEndX - scaledStartX) * 0.3;
+  const cp1y = scaledStartY;
+  const cp2x = scaledStartX + (scaledEndX - scaledStartX) * 0.7;
+  const cp2y = scaledEndY;
+  
+  ctx.beginPath();
+  ctx.moveTo(scaledStartX, scaledStartY);
+  ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, scaledEndX, scaledEndY);
+  ctx.stroke();
+  
+  ctx.setLineDash([]);
+  ctx.fillStyle = lineColor;
+  
+  const arrowSize = 6 * devicePixelRatio;
+  let arrowAngle: number;
+  
+  if (Math.abs(scaledEndX - scaledStartX) < 1) {
+    arrowAngle = scaledEndY > scaledStartY ? Math.PI / 2 : -Math.PI / 2;
+  } else {
+    arrowAngle = Math.atan2(scaledEndY - scaledStartY, scaledEndX - scaledStartX);
+  }
+  
+  const halfAngle = Math.PI / 6;
+  
+  ctx.beginPath();
+  ctx.moveTo(scaledEndX, scaledEndY);
+  ctx.lineTo(
+    scaledEndX - arrowSize * Math.cos(arrowAngle - halfAngle),
+    scaledEndY - arrowSize * Math.sin(arrowAngle - halfAngle)
+  );
+  ctx.lineTo(
+    scaledEndX - arrowSize * Math.cos(arrowAngle + halfAngle),
+    scaledEndY - arrowSize * Math.sin(arrowAngle + halfAngle)
+  );
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.restore();
+};
+
+export const renderMixDependenciesAll = (
+  processKey: string,
+  viewState: any,
+  layout: any,
+  eventCtx: any,
+  getPositionByTime: any,
+  isDarkTheme: boolean = false
+) => {
+  const wrapContainers = swimDataManager.getWrapContainers();
+  if (wrapContainers.length === 0) { return; }
+
+  for (const wrapContainer of wrapContainers) {
+    const subEvents = swimDataManager.getSubEventsByWrapId(wrapContainer.wrapId);
+    
+    for (const subEvent of subEvents) {
+      if (!subEvent.renderInfo) { continue; }
+      
+      const deps = swimDataManager.getSubEventDependencies(subEvent.id);
+      
+      for (const successor of deps.successors) {
+        if (!successor.renderInfo) { continue; }
+        
+        const fromEvent = subEvent;
+        const toEvent = successor;
+        
+        const fromX = getPositionByTime(fromEvent.endTime, viewState, layout) - layout.processLabelWidth;
+        const toX = getPositionByTime(toEvent.startTime, viewState, layout) - layout.processLabelWidth;
+        
+        const fromY = fromEvent.renderInfo.y;
+        const fromHeight = fromEvent.renderInfo.height;
+        const toY = toEvent.renderInfo.y;
+        const toHeight = toEvent.renderInfo.height;
+        
+        let startY: number;
+        let endY: number;
+        
+        if (fromY < toY) {
+          startY = fromY + fromHeight;
+          endY = toY;
+        } else if (fromY > toY) {
+          startY = fromY;
+          endY = toY + toHeight;
+        } else {
+          startY = fromY + fromHeight / 2;
+          endY = toY + toHeight / 2;
+        }
+        
+        drawBezierDashedLine(
+          eventCtx,
+          fromX,
+          startY,
+          toX,
+          endY,
+          viewState.scale,
+          viewState.offsetX,
+          getDevicePixelRatio(),
+          isDarkTheme,
+          false,
+        );
+      }
+    }
+  }
 };

@@ -87,7 +87,7 @@ export class RegisterCommand {
         query: finalQuery,
         title:  getBasenameWithoutExt(uri.fsPath),
       });
-    } else if (content.includes('traceEvents') || (content.includes('version') && content.includes('tasks'))) {
+    } else if (content.includes('traceEvents') || content.includes('tasks')) {
       const isPerfSwim = !content.includes('traceEvents');
       await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath), query: { isPerfSwim } });
     } else {

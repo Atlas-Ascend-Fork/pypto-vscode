@@ -14,6 +14,7 @@
   "PyPTOToolkit.rightmove.description": "配置泳道图右移快捷键",
   "PyPTOToolkit.connectionLevel.description": "配置泳道图最大显示层级(-1: 表示不使能)",
   "PyPTOToolkit.showPerformancePanel.description": "打开泳道图时是否默认显示性能统计面板",
+  "PyPTOToolkit.showIsMixMode.description": "打开泳道图时是否默认为mix模式",
   "pypto.selectComGraph": "请选择要绑定的计算图json文件",
   "pypto.noFileSelect": "没有选择文件",
   "pypto.emptyNodeList": "当前节点仅有引用而无定义",

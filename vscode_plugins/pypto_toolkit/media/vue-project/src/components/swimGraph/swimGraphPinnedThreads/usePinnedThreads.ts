@@ -1,7 +1,9 @@
 import { reactive, computed } from 'vue';
 import { pushState, pullState } from '../../../core/state';
+import { swimDataManager } from '../swimData';
+import { getThreadStartY } from '../swimGraphUtils';
 
-export function usePinnedThreads(processes) {
+export function usePinnedThreads(processes, lane2line, layout) {
   // 置顶线程状态
   const pinnedThreads = reactive(new Map());
 
@@ -47,10 +49,21 @@ export function usePinnedThreads(processes) {
   // 置顶线程
   const pinThread = (processKey, threadKey, offsetY) => {
     const process = processes.get(processKey);
-    if (!process) return;
+    if (!process) { return; }
     
-    const thread = process.threads.get(threadKey);
-    if (!thread) return;
+    let thread = process.threads.get(threadKey);
+    
+    if (!thread) {
+      for (const [key, t] of process.threads.entries()) {
+        if (t.tid === threadKey || t.threadName === threadKey) {
+          thread = t;
+          threadKey = key;
+          break;
+        }
+      }
+    }
+    
+    if (!thread) { return; }
     
     const key = `${processKey}-${threadKey}`;
     pinnedThreads.set(key, {
@@ -60,11 +73,21 @@ export function usePinnedThreads(processes) {
       process
     });
     
-    // 标记线程为置顶状态
     thread.isPinned = true;
     thread.offsetY = offsetY;
     
-    // 保存状态
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    const threadIdentifier = thread.isCounter ? thread.threadName : thread.tid;
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'thread' && lane.thread) {
+        const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+        if (laneIdentifier === threadIdentifier) {
+          lane.thread.isPinned = true;
+          break;
+        }
+      }
+    }
+    
     savePinnedState();
   };
 
@@ -72,14 +95,76 @@ export function usePinnedThreads(processes) {
   const unpinThread = (processKey, threadKey) => {
     const key = `${processKey}-${threadKey}`;
     const pinnedData = pinnedThreads.get(key);
+    
     if (pinnedData) {
       pinnedData.thread.isPinned = false;
       delete pinnedData.thread.offsetY;
+      
+      const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+      const threadIdentifier = pinnedData.thread.isCounter ? pinnedData.thread.threadName : pinnedData.thread.tid;
+      for (const lane of swimLaneOrder) {
+        if (lane.type === 'thread' && lane.thread) {
+          const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+          if (laneIdentifier === threadIdentifier) {
+            lane.thread.isPinned = false;
+            break;
+          }
+        }
+      }
     }
+    
     pinnedThreads.delete(key);
     
-    // 保存状态
     savePinnedState();
+  };
+  
+  // 重新计算所有置顶线程的offsetY（用于mix模式切换）
+  const recalculateOffsetY = (isMixMode: Boolean) => {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    const pinnedArray = Array.from(pinnedThreads.entries());
+    
+    for (const [key, pinnedData] of pinnedArray) {
+      const thread = pinnedData.thread;
+      const threadIdentifier = thread.isCounter ? thread.threadName : thread.tid;
+      let heightIdentifier = '';
+      
+      // 计算已置顶线程占用的总高度
+      let pinnedY = 0;
+      for (const [pk, pd] of pinnedArray) {
+        if (pk === key) break;
+        const t = pd.thread;
+        const tk = t.isCounter ? t.threadName : t.tid;
+        heightIdentifier = `${pd.processKey}@${tk}`;
+        const lc = lane2line.get(heightIdentifier) || 1;
+        pinnedY += layout.threadHeight * lc;
+      }
+      
+      // 从swimLaneOrder获取新的laneY
+      let laneY = 0;
+      if (isMixMode) {
+        for (const lane of swimLaneOrder) {
+          if (lane.type === 'thread') {
+            const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+            if (laneIdentifier === threadIdentifier) {
+              laneY = lane.y;
+              break;
+            }
+          }
+        }
+      } else {
+        if (thread.isCounter) {
+          const process = pinnedData.process;
+          const threadKey = thread.threadName;
+          laneY = getThreadStartY(process, pinnedData.processKey, threadKey, lane2line, layout);
+        } else {
+          const lc = lane2line.get(heightIdentifier) || 1;
+          laneY = thread.bottomY - (layout.threadHeight * lc);
+        }
+      }
+      
+      // 重新计算offsetY
+      thread.offsetY = laneY - pinnedY;
+    }
   };
 
   return {
@@ -87,6 +172,7 @@ export function usePinnedThreads(processes) {
     pinnedThreadsList,
     pinThread,
     unpinThread,
-    restorePinnedState
+    restorePinnedState,
+    recalculateOffsetY
   };
 }

@@ -6,7 +6,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  background: var(--devui-swim-global-bg);
+  z-index: 1;
 }
 
 .ui-events-canvas {
@@ -21,6 +21,7 @@
   top: 0;
   left: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
 .hover-events-canvas {
@@ -28,6 +29,7 @@
   top: 0;
   left: 0;
   pointer-events: none;
+  z-index: 2;
 }
 
 .background-events-canvas {
@@ -36,6 +38,29 @@
   left: 0;
   pointer-events: none;
   z-index: 0;
+  background: var(--devui-swim-global-bg);
+}
+
+.wrap-container-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.hover-wrap-container-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mix-dependency-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
 .line-events-canvas {

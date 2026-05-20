@@ -15,7 +15,7 @@
           <div class="left-scheduling-gap-container">
             <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title">{{maxSchedulingGap}}(μs)</div>
-              <div class="task-data" v-if="maxGap.length > 0">{{maxGap[0].gap / tsScale}}</div>
+              <div class="task-data" v-if="maxGap.length > 0">{{parseFloat((maxGap[0].gap / tsScale).toFixed(3))}}</div>
             </div>
           </div>
           <div class="split-line" :style="{ height: `${54 + 52 * (maxGap.length -1 )}px` }"/>
@@ -36,7 +36,7 @@
                   </div>
                 </d-tooltip>
                 <div class="max-scheduling-gap-item-middle-container">
-                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{item.gap / tsScale}} μs</div>
+                  <div class="max-scheduling-gap-item-time">{{SchedulingGap}}{{parseFloat((item.gap / tsScale).toFixed(3))}} μs</div>
                   <div class="max-scheduling-gap-item-line"
                       :style="{
                       '--left-color': baseColor(item.parent),
@@ -320,9 +320,12 @@ const {
   performanceWidth,
   isWideScreen,
   isMaxSchedule,
-  isMixedAicpuKernel,
+  isE2ESwim,
   childContextMap,
-  kernelColorRending
+  kernelColorRending,
+  isMixMode,
+  canvasclickedEvent,
+  isFromPerformanceClick
 } = inject('swimGraphState');
 
 const {
@@ -346,12 +349,19 @@ const TaskMinDuration = ref($t('TaskMinDuration'));
 const TaskMaxDuration = ref($t('TaskMaxDuration'));
 const PerformanceSummary = ref($t('PerformanceSummary'));
 
-const clickTask = async (event) => {
+const clickTask = async (clickEvent) => {
+  isFromPerformanceClick.value = true;
+  let event = JSON.parse(JSON.stringify(clickEvent));
+  const hasSubEvents = clickEvent.subEventIds && clickEvent.subEventIds.length > 0;
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && hasSubEvents) {
+    const [subEvent] = swimDataManager.getSubEvents(clickEvent.id);
+    event = JSON.parse(JSON.stringify(subEvent));
+  }
   if (isMaxSchedule.value) {
     resetMaxScheduleState();
   }
   const key = event.pid.toString();
-  if (isMixedAicpuKernel.value) {
+  if (isE2ESwim.value) {
     await autoExpandkernelProcess();
   } else if (isPerfSwim.value && !processExpanded.get(key)) {
     toggleProcess(key);
@@ -364,8 +374,18 @@ const clickTask = async (event) => {
 };
 
 const showMaxSchedule = async (item, isChild = false) => {
-  await showMaxScheduleEvent(item.parent, item.child);
-  scrollToEvent(isChild ? item.child : item.parent);
+  canvasclickedEvent.value = isChild ? item.child : item.parent;
+  const subParentEvents = swimDataManager.getSubEvents(item.parent.id);
+  const subChildEvents = swimDataManager.getSubEvents(item.child.id);
+  const useSubEvent = isMixMode?.value && swimDataManager.hasMixConfig();
+  const parentEvent = useSubEvent && subParentEvents.length > 0
+    ? subParentEvents[subParentEvents.length - 1]
+    : item.parent;
+  const childEvent = useSubEvent && subChildEvents.length > 0
+    ? subChildEvents[subChildEvents.length - 1]
+    : item.child;
+  await showMaxScheduleEvent(parentEvent, childEvent);
+  scrollToEvent(isChild ? childEvent : parentEvent);
 };
 
 const subContainerWidth = ref(440);
@@ -472,7 +492,7 @@ const calculateStatistics = () => {
   const mod = tsScale.value;
 
   for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
-    if (isMixedAicpuKernel.value && processInfo.type !== 'kernel') {
+    if (isE2ESwim.value && processInfo.type !== 'kernel') {
       continue;
     }
 
@@ -557,11 +577,11 @@ const initializePerformance = () => {
   const mod = tsScale.value;
 
   if (Number.isInteger(viewState.timeRange)) {
-    taskTime.value = viewState.timeRange / mod;
+    taskTime.value = parseFloat((viewState.timeRange / mod).toFixed(3));
   } else {
     taskTime.value = (viewState.timeRange / mod).toFixed(2);
   }
-  taskOnBoardTime.value = getTaskOnBoardTime();
+  taskOnBoardTime.value = parseFloat(getTaskOnBoardTime().toFixed(3));
   if (isAicpu.value) {
     aicoreTime.value = '/';
     aicoreRate.value = '/';
@@ -977,6 +997,7 @@ provide('swimGraphPmuBarMethod', {
   white-space: nowrap;
   flex-shrink: 1;
   min-width: 0;
+  display: block;
 }
 
 .aicore-e2e-time .task-title-container d-icon {

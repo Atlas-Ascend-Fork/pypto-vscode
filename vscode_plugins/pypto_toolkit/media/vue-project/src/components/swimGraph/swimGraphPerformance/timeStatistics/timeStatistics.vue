@@ -219,7 +219,7 @@ const {
     isPathLockStatus,
     processExpanded,
     isWideScreen,
-    isMixedAicpuKernel,
+    isE2ESwim,
 } = inject('swimGraphState');
 const {
     render,
@@ -279,7 +279,7 @@ const onCellClick = async (params) => {
 };
 const findProcessKey = async (label) => {
   for (const [processKey, process] of processes.entries()) {
-    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
+    if (isE2ESwim.value && process.type === 'aicpu') {
         continue;
     }
     const foundKey = await findInProcess(process, label);
@@ -308,7 +308,7 @@ const findInProcess = async (process, label) => {
       highlightedPaths.add(event.id);
       if (!processKeySet) {
         processKeyInfo = String(event.pid);
-        if (!processExpanded.get(processKeyInfo) && isMixedAicpuKernel.value) {
+        if (!processExpanded.get(processKeyInfo) && isE2ESwim.value) {
             await autoExpandkernelProcess();
         }
         processKeySet = true;
@@ -379,7 +379,7 @@ const onUpdateData = (data) => {
 const collectSubGraphEvents = (targetId) => {
   const durations = [];
   for (const [processKey, process] of processes.entries()) {
-    if (isMixedAicpuKernel.value && process.type === 'aicpu') {
+    if (isE2ESwim.value && process.type === 'aicpu') {
         continue;
     }
     for (const [, thread] of process.threads.entries()) {
@@ -441,7 +441,7 @@ const getTableData = () => {
         return;
     }
     for (const [processKey, process] of processes.entries()) {
-        if (isMixedAicpuKernel.value && process.type === 'aicpu') {
+        if (isE2ESwim.value && process.type === 'aicpu') {
             continue;
         }
         for (const [threadKey, thread] of process.threads.entries()) {

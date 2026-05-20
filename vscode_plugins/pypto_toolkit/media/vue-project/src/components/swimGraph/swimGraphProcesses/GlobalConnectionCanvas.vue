@@ -13,6 +13,7 @@ import { throttle } from 'lodash-es';
 import { COLOR_CFG, DEP_MODE, drawArrow, eventTextSize } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
 import { EventRender } from './render/eventRender';
+import { getEventColor } from './render/utils';
 const { isDarkTheme } = inject('root');
 const props = defineProps({
   containerWidth: {
@@ -39,13 +40,21 @@ const {
   selectedEvent,
   layout,
   searchedEvent,
-  swimlaneContainer,
+  isMixMode,
   isPathLockStatus,
   pathLockedEvent,
   globalDependencyLinesInfo,
   isPerfSwim,
+  isMaxSchedule,
+  highlightedPaths,
+  isFromPerformanceClick
 } = swimGraphState;
-
+const swimGraphMethods = inject('swimGraphMethods');
+const {
+  drawClickWrapContainner,
+  renderDimmedNodesInWrap,
+  changeNodeColor
+} = swimGraphMethods;
 const { userConfig } = inject('swimGraphCfg');
 const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
 const processDomCache = new Map();
@@ -174,7 +183,31 @@ const drawDep = (event) => {
     }
   }
 };
-
+const drawMixDep = (event) => {
+  clearCanvas();
+  drawClickWrapContainner(event, ctx);
+  if (isMaxSchedule.value) {
+    const subEvents = swimDataManager.getSubEvents(event.parentEventId);
+    for (const subEvent of subEvents) {
+      if (!subEvent.drawData) { 
+        continue; 
+      }
+      const selectedCoords = getEventCoordinates(subEvent, false);
+      if (selectedCoords) {
+        highlightEventNode(subEvent, selectedCoords, true);
+      }
+    }
+  } else {
+    const selectedCoords = getEventCoordinates(event, false);
+    if (selectedCoords) {
+      highlightEventNode(event, selectedCoords, true);
+    }
+  }
+  if (event?.isWait || isMaxSchedule.value) {
+    return;
+  }
+  renderDimmedNodesInWrap(event, ctx);
+};
 const drawSearchedValue = () => {
   const event = searchedEvent.value;
   const selectedProcessKey = event.pid.toString();
@@ -197,6 +230,7 @@ const drawGlobalConnectionLines = () => {
   if (selectedEvent.value) {
     drawDep(selectedEvent.value);
   }
+
   if (isPathLockStatus.value) {
     drawDep(pathLockedEvent.value);
   }
@@ -209,7 +243,6 @@ const drawEventNode = (event, coords, isExpanded) => {
   if (!isExpanded || !event.drawData) {
     return;
   }
-  
   const drawData = JSON.parse(JSON.stringify(event.drawData));
   const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
   
@@ -219,7 +252,31 @@ const drawEventNode = (event, coords, isExpanded) => {
   eventRenderer.drawEvent([drawData], ctx);
   eventRenderer.drawEventText([drawData], ctx);
 };
-
+const drawNormalEventNode = (event, coords, isExpanded) => {
+  if (!isExpanded || !event.drawData) {
+    return;
+  }
+  
+  const drawData = JSON.parse(JSON.stringify(event.drawData));
+  const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
+  
+  drawData.rectY = startY / devicePixelRatio;
+  drawData.textY = startY + eventTextSize;
+  
+  let eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
+  
+  if (!eventColor && event.parentEventId) {
+    const parentEvent = swimDataManager.getEventById(event.parentEventId);
+    if (parentEvent) {
+      eventColor = isDarkTheme.value ? parentEvent.color?.dark : parentEvent.color?.base;
+    }
+  }
+  drawData.rectColor = eventColor.base;
+  drawData.fontColor = isDarkTheme.value ? COLOR_CFG.dark.eventFont : COLOR_CFG.light.eventFont;
+  
+  eventRenderer.drawEvent([drawData], ctx);
+  eventRenderer.drawEventText([drawData], ctx);
+};
 const highlightEventNode = (event, coords, isExpanded) => {
   if (!isExpanded || !event.drawData) {
     return;
@@ -231,8 +288,15 @@ const highlightEventNode = (event, coords, isExpanded) => {
   drawData.rectY = startY / devicePixelRatio;
   drawData.textY = startY + eventTextSize;
   
-  const eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
-  drawData.rectColor = eventColor.light;
+  let eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
+  
+  if (!eventColor && event.parentEventId) {
+    const parentEvent = swimDataManager.getEventById(event.parentEventId);
+    if (parentEvent) {
+      eventColor = isDarkTheme.value ? parentEvent.color?.dark : parentEvent.color?.light;
+    }
+  }
+  drawData.rectColor = event?.isWait ? 'rgba(102, 102, 102, 1)' : eventColor.light;
   drawData.fontColor = isDarkTheme.value ? COLOR_CFG.dark.eventFontHighLight : COLOR_CFG.light.eventFontHighLight;
   
   eventRenderer.drawEvent([drawData], ctx);
@@ -319,7 +383,41 @@ const getEventCoordinates = (event, isFrom) => {
   
   return { x, y, processKey };
 };
+const getMixEventCoordinates = (event, isFrom) => {
+  const processKey = '1';
+  const isExpanded = processExpanded.get(processKey);
+  
+  if (!isExpanded) {
+    return getProcessHeaderCoordinates(processKey, event, isFrom);
+  }
+  
+  const process = processes.get(processKey);
+  if (!process) {
+    return null;
+  }
+  
+  const processElement = getProcessDomElement(processKey);
+  if (!processElement) {
+    return null;
+  }
+  
+  const processRect = processElement.getBoundingClientRect();
+  const containerRect = globalConnectionCanvas.value?.getBoundingClientRect();
+  
+  if (!containerRect) {
+    return null;
+  }
+  
+  const processOffsetY = processRect.top - containerRect.top;
+  
+  const eventHeight = event.height;
+  
+  const eventY = event.y + (eventHeight / 2);
 
+  const y = (processOffsetY + eventY) * devicePixelRatio;
+  
+  return y;
+};
 const getProcessHeaderCoordinates = (processKey, event, isFrom) => {
   const process = processes.get(processKey);
   if (!process) {
@@ -351,37 +449,96 @@ const getProcessHeaderCoordinates = (processKey, event, isFrom) => {
   return { x, y, processKey };
 };
 
+const drawMaxScheduleLineHighlightEvent = (subEvent) => {
+ 	if (subEvent) {
+ 	  const selectedProcessKey = subEvent.pid.toString();
+ 	  const isSelectedProcessExpanded = processExpanded.get(selectedProcessKey);
+ 	  if (isSelectedProcessExpanded) {
+ 	    const selectedCoords = getEventCoordinates(subEvent, false);
+ 	    if (selectedCoords) {
+ 	      highlightEventNode(subEvent, selectedCoords, isSelectedProcessExpanded);
+ 	    }
+ 	  }
+ 	}
+};
+ 	 
+const drawMaxScheduleLinedrawNormalEvent = (subEvent) => {
+ 	if (subEvent) {
+ 	  const selectedProcessKey = subEvent.pid.toString();
+ 	  const isSelectedProcessExpanded = processExpanded.get(selectedProcessKey);
+ 	  if (isSelectedProcessExpanded) {
+ 	    const selectedCoords = getEventCoordinates(subEvent, false);
+ 	    if (selectedCoords) {
+ 	      drawNormalEventNode(subEvent, selectedCoords, isSelectedProcessExpanded);
+ 	    }
+ 	  }
+ 	}
+};
+
 const drawMaxScheduleLine = (startEventId, endEventId) => {
   clearCanvas();
-  const startEvent = swimDataManager.eventMap.get(startEventId);
-  const endEvent = swimDataManager.eventMap.get(endEventId);
+  const useSubEvent = isMixMode?.value && swimDataManager.hasMixConfig();
+  let startEvent = swimDataManager.eventMap.get(startEventId);
+  let endEvent = swimDataManager.eventMap.get(endEventId);
+  let subStartEvents = [];
+  let subEndEvents = [];
+  startEvent = updateEvent(startEvent, useSubEvent);
+  endEvent = updateEvent(endEvent, useSubEvent);
+  if (startEvent?.parentEventId) {
+    subStartEvents = swimDataManager.getSubEvents(startEvent.parentEventId);
+  }
+  if (endEvent?.parentEventId) {
+    subEndEvents = swimDataManager.getSubEvents(endEvent.parentEventId);
+  }
   if (startEvent && endEvent) {
     drawSingleConnectionLine(startEvent, endEvent);
   }
-  const event = selectedEvent.value;
-  if (event) {
-    const selectedProcessKey = event.pid.toString();
-    const isSelectedProcessExpanded = processExpanded.get(selectedProcessKey);
-    if (isSelectedProcessExpanded) {
-      const selectedCoords = getEventCoordinates(event, false);
-      if (selectedCoords) {
-        highlightEventNode(event, selectedCoords, isSelectedProcessExpanded);
-      }
+  if (subStartEvents.length > 0) {
+    for (const subEvent of subStartEvents) {
+      drawMaxScheduleLineHighlightEvent(subEvent);
     }
   }
+  if (subEndEvents.length > 0) {
+    for (const subEvent of subEndEvents) {
+      drawMaxScheduleLinedrawNormalEvent(subEvent);
+    }
+  }
+  if (subStartEvents.length === 0 ) {
+    let event = JSON.parse(JSON.stringify(selectedEvent.value));
+    event = updateEvent(event, useSubEvent);
+    drawMaxScheduleLineHighlightEvent(event);
+  }
+};
+const updateEvent = (event, useSubEvent) => {
+  if (useSubEvent && !event.parentEventId) {
+    const lastSubId = event.subEventIds?.[event.subEventIds.length - 1];
+    return lastSubId ? swimDataManager.eventMap.get(lastSubId) : event;
+  }
+  if (!useSubEvent && event.parentEventId) {
+    return swimDataManager.eventMap.get(event.parentEventId);
+  }
+  return event;
 };
 
 watch([() => props.containerWidth, () => props.containerHeight], () => {
   clearDomCache();
   initCanvas();
-  drawGlobalConnectionLines();
+  if (isMixMode.value) {
+    drawMacroDependencyLines();
+  } else {
+    drawGlobalConnectionLines();
+  }
 });
 
 watch(processExpanded, () => {
   clearDomCache();
   nextTick(() => {
     initCanvas();
-    drawGlobalConnectionLines();
+    if (isMixMode.value) {
+      drawMacroDependencyLines();
+    } else {
+      drawGlobalConnectionLines();
+    }
   });
 }, { deep: true });
 
@@ -395,10 +552,236 @@ onUnmounted(() => {
   }
 });
 
+const drawMacroDependencyLines = () => {
+  if (!ctx || (!selectedEvent.value && !searchedEvent.value)) {
+    return;
+  }
+  
+  const drawnNodes = new Set();
+  const coordsCache = new Map();
+  
+  let level = 1;
+  try {
+    if (userConfig && userConfig.value && userConfig.value.connectionLevel !== undefined) {
+      level = userConfig.value.connectionLevel;
+    }
+  } catch (error) {
+    level = 1;
+  }
+  
+  const startEvent = isPathLockStatus.value ? pathLockedEvent.value : (selectedEvent.value || searchedEvent.value);
+  const startNodeId = startEvent.parentEventId || startEvent.id;
+  
+  const edgesToDraw = collectMacroEdges(startNodeId, swimDataManager.eventMap, viewState.depMode, level);
+  
+  if (isPathLockStatus.value) {
+    drawMixDep(pathLockedEvent.value);
+  } else {
+    drawMixDep(selectedEvent.value || searchedEvent.value);
+  }
+  
+  for (const edge of edgesToDraw) {
+    const [fromId, toId] = edge.split('->');
+    const fromEvent = swimDataManager.eventMap.get(fromId);
+    const toEvent = swimDataManager.eventMap.get(toId);
+    
+    if (fromEvent && toEvent) {
+      drawSingleMacroConnectionLine(fromEvent, toEvent, drawnNodes, coordsCache);
+    }
+  }
+};
+
+const collectMacroEdges = (startNodeId, eventMap, mode, level) => {
+  const edgesToDraw = new Set();
+  
+  const bfsTraversal = (currentId, depth, direction) => {
+    if (depth === 0 || !eventMap.has(currentId)) {
+      return;
+    }
+    
+    const currentEvent = eventMap.get(currentId);
+    if (!currentEvent || !currentEvent.dependencies) {
+      return;
+    }
+    
+    let neighbors;
+    if (direction === 'pre') {
+      neighbors = currentEvent.dependencies.predecessors || [];
+    } else {
+      neighbors = currentEvent.dependencies.successors || [];
+    }
+
+    for (const neighborId of neighbors) {
+      if (!highlightedPaths.has(neighborId)) {
+        continue;
+      }
+      
+      const symbol = direction === 'pre' ? `${neighborId}->${currentId}` : `${currentId}->${neighborId}`;
+      if (!edgesToDraw.has(symbol)) {
+        edgesToDraw.add(symbol);
+        bfsTraversal(neighborId, depth - 1, direction);
+      }
+    }
+  };
+
+  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
+    bfsTraversal(startNodeId, level, 'pre');
+  }
+  
+  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
+    bfsTraversal(startNodeId, level, 'next');
+  }
+
+  return Array.from(edgesToDraw);
+};
+
+const getDependencyNodeEdgeCoordinatesCached = (event, edge, coordsCache) => {
+  const cacheKey = `${event.id}-${edge}`;
+  if (coordsCache.has(cacheKey)) {
+    return coordsCache.get(cacheKey);
+  }
+  
+  const isMixParent = swimDataManager.isMixParentEvent(event);
+  
+  let coords;
+  if (isMixParent) {
+    const subEvents = swimDataManager.getSubEvents(event.id);
+    if (subEvents.length === 0) {
+      coords = getEventCoordinates(event, edge === 'right');
+    } else {
+      const edgeEvent = edge === 'right' 
+        ? subEvents[subEvents.length - 1] 
+        : subEvents[0];
+      
+      if (!edgeEvent?.renderInfo) {
+        coords = getEventCoordinates(event, edge === 'right');
+      } else {
+        coords = getEventCoordinates(edgeEvent, edge === 'right');
+      }
+    }
+  } else {
+    coords = getEventCoordinates(event, edge === 'right');
+  }
+  
+  if (coords) {
+    coordsCache.set(cacheKey, coords);
+  }
+  return coords;
+};
+
+const drawSingleMacroConnectionLine = (fromEvent, toEvent, drawnNodes, coordsCache) => {
+  const fromCoords = getDependencyNodeEdgeCoordinatesCached(fromEvent, 'right', coordsCache);
+  const toCoords = getDependencyNodeEdgeCoordinatesCached(toEvent, 'left', coordsCache);
+  
+  if (!fromCoords || !toCoords) {
+    return;
+  }
+  
+  const fromColor = (isDarkTheme.value ? fromEvent.color?.dark?.base : fromEvent.color?.light?.base) || getEventColor(fromEvent, eventRenderer.deps, fromEvent.processKey).fillColor;
+  const toColor = (isDarkTheme.value ? toEvent.color?.dark?.base : toEvent.color?.light?.base) || getEventColor(toEvent, eventRenderer.deps, toEvent.processKey).fillColor;
+  
+  const position = {
+    startX: fromCoords.x,
+    startY: fromCoords.y,
+    endX: toCoords.x,
+    endY: toCoords.y
+  };
+  
+  drawArrow(ctx, position, fromColor, toColor, viewState.scale, viewState.offsetX);
+  
+  drawMacroEventNodeCached(fromEvent, fromCoords, drawnNodes);
+  drawMacroEventNodeCached(toEvent, toCoords, drawnNodes);
+};
+
+const getDrawMacroEventNodeDrawData = () => {
+  const clickedSubEvent = selectedEvent.value;
+  if (clickedSubEvent?.drawData) {
+    let subEvents = [clickedSubEvent];
+    if (isFromPerformanceClick.value) {
+      subEvents = swimDataManager.getSubEvents(clickedSubEvent.parentEventId);
+    }
+    for (const subEvent of subEvents) {
+      const subCoords = getEventCoordinates(subEvent, false);
+      if (subCoords) {
+        const drawData = JSON.parse(JSON.stringify(subEvent.drawData));
+        const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
+        drawData.rectY = startY / devicePixelRatio;
+        drawData.textY = startY + eventTextSize;
+        const parentEvent = swimDataManager.getEventById(subEvent.parentEventId);
+        const eventColor = isDarkTheme.value ? parentEvent?.color?.dark : parentEvent?.color?.light;
+        drawData.rectColor = eventColor?.light || '#90b8f9';
+        drawData.fontColor = isDarkTheme.value ? COLOR_CFG.dark.eventFontHighLight : COLOR_CFG.light.eventFontHighLight;
+        eventRenderer.drawEvent([drawData], ctx);
+        eventRenderer.drawEventText([drawData], ctx);
+      }
+    }
+  }
+};
+
+const drawMacroEventNodeCached = (event, coords, drawnNodes) => {
+  if (drawnNodes.has(event.id)) {
+    return;
+  }
+  drawnNodes.add(event.id);
+  
+  const isSelectedParent = event.id === selectedEvent.value?.parentEventId;
+  
+  if (isSelectedParent) {
+    getDrawMacroEventNodeDrawData();
+    return;
+  }
+  
+  const isMixParent = swimDataManager.isMixParentEvent(event);
+  
+  if (isMixParent) {
+    const subEvents = swimDataManager.getSubEvents(event.id);
+    const eventColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
+    
+    for (const subEvent of subEvents) {
+      if (!subEvent.drawData) {
+        continue;
+      };
+      
+      const subCoords = getEventCoordinates(subEvent, false);
+      if (subCoords) {
+        const drawData = JSON.parse(JSON.stringify(subEvent.drawData));
+        const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
+        drawData.rectY = startY / devicePixelRatio;
+        drawData.textY = startY + eventTextSize;
+        drawData.rectColor = eventColor;
+        
+        eventRenderer.drawEvent([drawData], ctx);
+        eventRenderer.drawEventText([drawData], ctx);
+      }
+    }
+  } else {
+    if (!event.drawData) {
+      return;
+    };
+    
+    const drawData = JSON.parse(JSON.stringify(event.drawData));
+    const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
+    drawData.rectY = startY / devicePixelRatio;
+    drawData.textY = startY + eventTextSize;
+    const isSelected = event.id === selectedEvent.value.id;
+    const eventColor = (isDarkTheme.value ? event.color?.dark : event.color?.light) || '#90b8f9';
+    drawData.rectColor = isSelected ? eventColor.light : eventColor.base;
+    const fontColor = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+    drawData.fontColor = isSelected ? fontColor.eventFontHighLight : fontColor.eventFont;
+    eventRenderer.drawEvent([drawData], ctx);
+    eventRenderer.drawEventText([drawData], ctx);
+  }
+};
+
 defineExpose({
   drawGlobalConnectionLines,
   clearCanvas,
   drawMaxScheduleLine,
+  getEventCoordinates,
+  highlightEventNode,
+  globalConnectionCanvas,
+  getMixEventCoordinates,
+  drawMacroDependencyLines
 });
 </script>
 

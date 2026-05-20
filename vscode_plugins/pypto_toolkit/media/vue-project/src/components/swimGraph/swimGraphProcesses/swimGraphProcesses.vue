@@ -1,6 +1,6 @@
 <template>
   <div class="processes-container" ref="processesContainer" :style="containerStyle">
-    <template v-if="isMixedAicpuKernel">
+    <template v-if="isE2ESwim">
       <div class="process-section aicpu-section" :style="aicpuContainerStyle" ref="aicpuSection">
         <swim-graph-process-item 
           v-for="(processEntry, index) in aicpuProcesses" 
@@ -36,6 +36,7 @@
 import { inject, provide, ref, defineExpose, watch, computed } from 'vue';
 import SwimGraphProcessItem from './SwimGraphProcessItem.vue';
 import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
+import { swimDataManager } from '../swimData';
 
 // 注入父组件提供的状态
 const {
@@ -51,6 +52,7 @@ const {
   canvasclickedEvent,
   pathLockedEvent,
   highlightedPaths,
+  mixRelatedPaths,
   detailsPanelExpanded,
   timeLineX,
   sliderValue,
@@ -77,12 +79,17 @@ const {
   childContextMap,
   isPathLockStatus,
   isAicpu,
-  isMixedAicpuKernel,
+  isE2ESwim,
+  isMixMode,
   isMaxSchedule,
   aicpuControlDetailsExpanded,
   aicpuScheduleDetailsExpanded,
   aicpuCoreDetailsExpanded,
-  globalDependencyLinesInfo
+  globalDependencyLinesInfo,
+  globalConnectionCanvas,
+  isMeasureModel,
+  measureDetailsExpanded,
+  isFromPerformanceClick
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -124,7 +131,7 @@ const aicpuContainerStyle = computed(() => {
     overflowY: 'auto',
     overflowX: 'hidden',
     maxHeight: hasAicpuExpanded.value ? 'none' : '50%',
-    scrollbarGutter: isMixedAicpuKernel.value ? 'stable': 'auto',
+    scrollbarGutter: isE2ESwim.value ? 'stable': 'auto',
   };
 });
 
@@ -134,12 +141,12 @@ const kernelContainerStyle = computed(() => {
     overflowY: 'auto',
     overflowX: 'hidden',
     maxHeight: hasKernelExpanded.value ? 'none' : '50%',
-    scrollbarGutter: isMixedAicpuKernel.value ? 'stable': 'auto',
+    scrollbarGutter: isE2ESwim.value ? 'stable': 'auto',
   };
 });
 
 const containerStyle = computed(() => {
-  if (isMixedAicpuKernel.value) {
+  if (isE2ESwim.value) {
     return {
       height: '100%',
       display: 'flex',
@@ -163,6 +170,7 @@ provide('swimGraphState', {
   canvasclickedEvent,
   pathLockedEvent,
   highlightedPaths,
+  mixRelatedPaths,
   detailsPanelExpanded,
   timeLineX,
   sliderValue,
@@ -188,12 +196,17 @@ provide('swimGraphState', {
   childContextMap,
   isPathLockStatus,
   isAicpu,
-  isMixedAicpuKernel,
+  isE2ESwim,
+  isMixMode,
   isMaxSchedule,
   aicpuControlDetailsExpanded,
   aicpuScheduleDetailsExpanded,
   aicpuCoreDetailsExpanded,
-  globalDependencyLinesInfo
+  globalDependencyLinesInfo,
+  globalConnectionCanvas,
+  isMeasureModel,
+  measureDetailsExpanded,
+  isFromPerformanceClick
 });
 
 const {
@@ -218,6 +231,7 @@ const {
   changeScale,
   resetState,
   resetMaxScheduleState,
+  findWrapAtPosition
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -242,6 +256,7 @@ provide('swimGraphMethods', {
   changeScale,
   resetState,
   resetMaxScheduleState,
+  findWrapAtPosition
 });
 
 const processesContainer = ref(null);
@@ -286,21 +301,31 @@ watch( curThread, (newValue, oldValue) => {
   let threadIdx = parseInt(newValue.split('-')[1]);
   let curY = 0;
   let curHeight = 0;
-  const threads = [];
-  const curProcess = processes.get(processKeyStr);
-  for (const [threadKey, thread] of curProcess.threads.entries()) {
-    threads.push(thread);
-  }
+  
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    if (threadIdx >= 0 && threadIdx < swimLaneOrder.length) {
+      curY = swimLaneOrder[threadIdx].y;
+      curHeight = swimLaneOrder[threadIdx].height;
+    }
+  } else {
+    const threads = [];
+    const curProcess = processes.get(processKeyStr);
+    for (const [threadKey, thread] of curProcess.threads.entries()) {
+      threads.push(thread);
+    }
 
-  for (let index = 0; index < threads.length; index++) {
-    let thread = threads[index];
-    if (index >= threadIdx) {
-      const key = thread.isCounter ? thread.threadName : thread.tid;
-      curY = getThreadStartY(curProcess, processKey, key, lane2line, layout);
-      curHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
-      break;
+    for (let index = 0; index < threads.length; index++) {
+      let thread = threads[index];
+      if (index >= threadIdx) {
+        const key = thread.isCounter ? thread.threadName : thread.tid;
+        curY = getThreadStartY(curProcess, processKey, key, lane2line, layout);
+        curHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
+        break;
+      }
     }
   }
+  
   const backgroundCanvasRef = document.querySelector(`[data-background-process-key="${processKey}"]`);
   if (!backgroundCanvasRef) return;
   const backgroundCanvasCtx = backgroundCanvasRef.getContext('2d');

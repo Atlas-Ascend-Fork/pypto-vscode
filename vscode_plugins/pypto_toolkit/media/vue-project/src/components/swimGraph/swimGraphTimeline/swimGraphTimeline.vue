@@ -70,7 +70,7 @@ const {
   loading,
   timelineState,
   childContextMap,
-  isMixedAicpuKernel,
+  isE2ESwim,
 } = inject('swimGraphState');
 
 const {
@@ -445,7 +445,7 @@ const handleWheel = throttle((e) => {
   const mouseX = e.clientX - rect.left;
   // 如果没有按住 ctrl 键，则允许默认滚动行为（不阻止事件）
   if (!isZooming) {
-    if (isMixedAicpuKernel.value) {
+    if (isE2ESwim.value) {
       childContextMap.process.measureMaskHandleWheel(e);
     }
     return;

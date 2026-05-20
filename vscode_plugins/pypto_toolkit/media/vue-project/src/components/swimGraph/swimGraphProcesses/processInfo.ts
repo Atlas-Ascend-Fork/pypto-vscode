@@ -10,6 +10,9 @@ const lightThemeLightColors = lithtThemeColors.lightColorList;
 
 export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
   let subGraphId;
+  if (!event) {
+    return defaultValue;
+  }
   const nameParts = event.name.split('(')[0].split('-').map(part => part.trim());
 
   if (mode === "subGraph") {

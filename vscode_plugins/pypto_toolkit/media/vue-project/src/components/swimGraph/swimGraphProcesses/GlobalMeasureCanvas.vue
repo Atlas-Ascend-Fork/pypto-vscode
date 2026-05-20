@@ -70,7 +70,8 @@ const { userConfig } = inject('swimGraphCfg');
 const eventRenderer = new EventRender({...swimGraphState, userConfig});
 
 const boxWidth = 45;
-const lessThan0usMsg = 'less than 1μs';
+const boxPadding = 8;
+const lessThan0usMsg = 'less than 1ns';
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 
 const getProcessDomElement = (processKey) => {
@@ -195,6 +196,7 @@ const drawConnector = (preCoords, lastCoords, largeSpacing) => {
   measureResult.visible = true;
   measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
   measureResult.y = scrollY / devicePixelRatio;
+  measureResult.width = rect.width / devicePixelRatio;
   measureResult.height = rect.height / devicePixelRatio;
   measureResult.text = rect.text;
   
@@ -207,6 +209,12 @@ const drawConnector = (preCoords, lastCoords, largeSpacing) => {
     drawDistanceSelectionBox(preCoords, lastCoords);
   }
   ctx.restore();
+};
+
+const calculateBoxWidth = (text) => {
+  ctx.font = getFontStyle(meaureTextSize);
+  const textWidth = ctx.measureText(text).width;
+  return Math.max(boxWidth, textWidth + boxPadding * 2);
 };
 
 const calculateRect = (preCoords, lastCoords, largeSpacing) => {
@@ -223,13 +231,13 @@ const calculateRect = (preCoords, lastCoords, largeSpacing) => {
   
   const lastX = lastCoords.eventX;
   
-  const width = boxWidth * devicePixelRatio;
-  const height = preHeight;
-  
   const start = altClickData.lastData.startTime;
   const end = altClickData.preData.endTime;
   const diffTime = Math.abs(start - end);
   const text = getMeasureDistance(diffTime);
+  
+  const width = calculateBoxWidth(text);
+  const height = preHeight;
   
   const leftX = getNoZoomX(preX + preWidth, viewState);
   const rightX = getNoZoomX(lastX, viewState);
@@ -316,6 +324,7 @@ const drawDiffConnector = (preCoords, lastCoords, largeSpacing) => {
   measureResult.visible = true;
   measureResult.x = rect.x / devicePixelRatio + layout.processLabelWidth;
   measureResult.y = rect.y / devicePixelRatio;
+  measureResult.width = rect.width / devicePixelRatio;
   measureResult.height = rect.height / devicePixelRatio;
   measureResult.text = rect.text;
   
@@ -389,13 +398,13 @@ const calculateDiffRect = (preCoords, lastCoords, largeSpacing) => {
   
   const lastX = lastCoords.eventX;
   
-  const width = boxWidth * devicePixelRatio;
-  const height = preHeight;
-  
   const start = altClickData.lastData.startTime;
   const end = altClickData.preData.endTime;
   const diffTime = Math.abs(start - end);
   const text = getMeasureDistance(diffTime);
+  
+  const width = calculateBoxWidth(text);
+  const height = preHeight;
   
   const noZoomPreX = getNoZoomX(preX + preWidth, viewState);
   const noZoomLastX = getNoZoomX(lastX, viewState);

@@ -1,3 +1,5 @@
+import SwimDataManager from "../swimData";
+
 export interface MeasureEventSearchOptions {
   lineRange: [number, number];
   type: 'start' | 'end';
@@ -8,6 +10,8 @@ export interface MeasureEventSearchOptions {
   processExpanded: Map<any, boolean>;
   pinnedThreads: Map<any, any>;
   pinnedthreadsComponent: any;
+  swimDataManager: SwimDataManager;
+  isMixMode: { value: boolean};
 }
 
 export interface IntelligentSearchOptions {
@@ -26,6 +30,8 @@ export interface IntelligentSearchOptions {
   pinnedthreadsComponent: any;
   renderFixedTimeline: () => void;
   renderTimeline: () => void;
+  swimDataManager: SwimDataManager;
+  isMixMode: { value: boolean};
 }
 
 export const measureTimeSearch = (
@@ -103,7 +109,9 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     processes,
     processExpanded,
     pinnedThreads,
-    pinnedthreadsComponent
+    pinnedthreadsComponent,
+    swimDataManager,
+    isMixMode
   } = options;
 
   const lineRangeStart = lineRange[0];
@@ -157,7 +165,16 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
             (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
             (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
           ) {
-            matchingEvents.push(event);
+            if (isMixMode.value) {
+              const subEvent = swimDataManager.getSubEvents(event.id);
+              if (subEvent.length > 0 ) {
+                matchingEvents.push(...subEvent);
+              } else {
+                matchingEvents.push(event);
+              }
+            } else {
+              matchingEvents.push(event);
+            }
           }
         }
       }
@@ -181,7 +198,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     pinnedThreads,
     pinnedthreadsComponent,
     renderFixedTimeline,
-    renderTimeline
+    renderTimeline,
+    swimDataManager,
+    isMixMode
   } = options;
 
   let start = measureDragStartX.value;
@@ -199,7 +218,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     processes,
     processExpanded,
     pinnedThreads,
-    pinnedthreadsComponent
+    pinnedthreadsComponent,
+    swimDataManager,
+    isMixMode
   });
   const foundEndTime = measureEventSearch({
     lineRange: endlineRange,
@@ -210,7 +231,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     processes,
     processExpanded,
     pinnedThreads,
-    pinnedthreadsComponent
+    pinnedthreadsComponent,
+    swimDataManager,
+    isMixMode
   });
 
   if (foundStartTime !== null) {

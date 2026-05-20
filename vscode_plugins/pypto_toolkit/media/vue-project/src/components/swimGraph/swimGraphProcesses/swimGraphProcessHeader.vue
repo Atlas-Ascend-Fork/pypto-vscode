@@ -1,5 +1,5 @@
 <template>
-  <div :class="['process-header', { 'no-sticky': !isMixedAicpuKernel }]" @click="handleToggleProcess">
+  <div :class="['process-header', { 'no-sticky': !isE2ESwim }]" @click="handleToggleProcess">
     <div class="process-header-label" @mouseover.stop="handleMouseOver">
       <div class="label_one">
         <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
@@ -35,7 +35,7 @@ const {
   isDarkTheme,
   processes,
   childContextMap,
-  isMixedAicpuKernel
+  isE2ESwim
 } = swimGraphState;
 
 const {

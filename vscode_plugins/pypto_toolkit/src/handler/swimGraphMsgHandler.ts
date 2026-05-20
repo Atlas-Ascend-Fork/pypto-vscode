@@ -38,6 +38,7 @@ export abstract class SwimGraphMsgHandler {
         'saveRendingMode',
         'changeUserCfgConnection',
         'changeUserCfgPerformance',
+        'changeUserCfgIsMixMode',
         'getShortCutKeyCfg',
     ]);
 
@@ -723,6 +724,10 @@ export abstract class SwimGraphMsgHandler {
     static async changeUserCfgPerformance(server: any, paramObj: { show: boolean }) {
         const config = workspace.getConfiguration('PyPTOToolkitOpen');
         config.update('showPerformancePanel', paramObj.show, ConfigurationTarget.Global);
+    }
+    static async changeUserCfgIsMixMode(server: any, paramObj: { show: boolean }) {
+        const config = workspace.getConfiguration('PyPTOToolkitOpen');
+        config.update('showIsMixMode', paramObj.show, ConfigurationTarget.Global);
     }
     static async getShortCutKeyCfg(server: any) {
       const config = Util.getSwimGraphCustomCfg();

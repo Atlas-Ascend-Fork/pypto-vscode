@@ -10,6 +10,7 @@ export interface Dependencies {
   colorCfg: any;
   selectedEvent: any;
   highlightedPaths: any;
+  mixRelatedPaths: any;
   devicePixelRatio: number;
   layout: any;
   isKeyPressed: any;
@@ -113,10 +114,10 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes } = deps;
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, processes } = deps;
   const process = processes.get(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
-  if (!event.color?.dark) {
+  if (!event.color?.dark || event.parentEventId) {
     const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
@@ -126,14 +127,30 @@ export function getEventColor(event: any, deps: Dependencies, processKey: string
   let fontColor = colorCfg.eventFont;
   let strokeColor = '';
 
+  const eventParentId = event.parentEventId;
+  const selectParentId = selectedEvent.value?.parentEventId;
+
   const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
   const issearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
   const isSelf = isSelectedValue || issearchedEvent;
-  let selectedDep: any[] = [];
-  if (selectedEvent.value) {
-    selectedDep = [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors];
+
+  let keepColor = true;
+  if (!isSelf) {
+    if (selectedEvent.value) {
+      if (eventParentId && selectParentId) {
+        const sameWrap = event.args.wrapId === selectedEvent.value.args.wrapId;
+        keepColor = sameWrap ? mixRelatedPaths.has(event.id) || eventParentId === selectParentId : highlightedPaths.has(eventParentId);
+      } else if (eventParentId) {
+        keepColor = highlightedPaths.has(eventParentId);
+      } else  {
+        keepColor = highlightedPaths.has(event.id);
+      }
+    } else if (searchedEvent.value) {
+      keepColor = false;
+    }
   }
-  if (highlightedPaths.size > 0 && !isSelf && !highlightedPaths.has(event.id) && !selectedDep.includes(event.id)) {
+
+  if (!keepColor) {
     fillColor = colorCfg.eventRectNoColor;
     fontColor = colorCfg.eventFontNoColor;
   }

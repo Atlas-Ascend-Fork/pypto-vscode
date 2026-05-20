@@ -78,7 +78,7 @@
         <div id="main-swim" class="swimlane-container scroller-container swimlane-scroller-container" ref="swimlaneContainer" :style="containerStyles">
           <!-- 全局跨 process 连接线画布 -->
           <global-connection-canvas 
-            v-if="!isMixedAicpuKernel"
+            v-if="!isE2ESwim"
             ref="globalConnectionCanvas"
             :container-width="containerWidth"
             :container-height="containerHeight"
@@ -181,6 +181,9 @@ import {
   findCoreMapByNo,
   findCoreEventsByNo,
   parseSuffixNumbers,
+  collectSubEventDependencyPathNodes,
+  calculateHighlightedPaths,
+  calculateMixMacroPaths,
 } from './swimGraphUtils';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -251,6 +254,7 @@ const canvasclickedEvent = ref(null);
 const pathLockedEvent = ref(null);
 const isPathLockStatus = ref(false);
 const highlightedPaths = reactive(new Set());
+const mixRelatedPaths = reactive(new Set());
 const processExpanded = reactive(new Map());
 const loading = ref(false);
 const loadingComplete = ref(true);
@@ -276,6 +280,8 @@ const pinnedMeasureInfo = reactive({
   y: 0,
   text: ''
 });
+const isMixMode = ref(true);
+const isFromPerformanceClick = ref(false);
 const bindFile = ref(false);
 const bindButton = ref($t('bindComGraphJson'));
 const isSwimGraphActive = ref(false);
@@ -293,7 +299,7 @@ const aicpuBuildTask = ref();
 const aicpuSchedTask = ref('');
 const aicpuHasRelevent = ref(false);
 
-const isMixedAicpuKernel = ref(false);
+const isE2ESwim = ref(false);
 const isGuidePage = ref(false);
 
 const isMeasureModel = ref(false);
@@ -438,8 +444,10 @@ const containerStyle = computed(() => ({
 }));
 
 // 使用置顶线程 composable
-const { pinnedThreads, pinnedThreadsList, pinThread, unpinThread, restorePinnedState } = usePinnedThreads(
-  processes
+const { pinnedThreads, pinnedThreadsList, pinThread, unpinThread, restorePinnedState, recalculateOffsetY } = usePinnedThreads(
+  processes,
+  lane2line,
+  layout
 );
 
 const handleGlobalMouseMove = (e) => {
@@ -666,10 +674,27 @@ const processTraceData = (data) => {
   swimDataManager.initialize(processes);
   perfLogger.timeEnd('swimDataManager.initialize');
 
-  isMixedAicpuKernel.value = swimDataManager.isMixedData();
+  swimDataManager.splitAllEvents();
+  
+  const subEventsWithDeps = swimDataManager.getAllSubEvents().map(se => ({
+    id: se.id,
+    name: se.name,
+    parentEventId: se.parentEventId,
+    startTime: se.startTime,
+    endTime: se.endTime,
+    predecessors: se.dependencies?.predecessors || [],
+    successors: se.dependencies?.successors || []
+  }));
+
+  isE2ESwim.value = swimDataManager.isMixedData();
 
    if (props.isThreeColumn) {
-     isMixedAicpuKernel.value = false;
+     isE2ESwim.value = false;
+  }
+
+  if (swimDataManager.hasMixConfig()) {
+    swimDataManager.setMixMode(true);
+    swimDataManager.calculateMixLayout(layout, lane2line);
   }
 
   nextTick(() => {
@@ -764,7 +789,11 @@ const renderDependencyLines = (processKey) => {
       if (isMaxSchedule.value) {
         globalConnectionCanvas.value.drawMaxScheduleLine(startEventId, endEventId);
       } else {
-        globalConnectionCanvas.value.drawGlobalConnectionLines();
+        if (isMixMode?.value) {
+          globalConnectionCanvas.value.drawMacroDependencyLines();
+        } else {
+          globalConnectionCanvas.value.drawGlobalConnectionLines();
+        }
       }
     }
   }
@@ -1136,6 +1165,9 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
     } else {
       aicpuControlDetailsExpanded.value = false;
       aicpuScheduleDetailsExpanded.value = false;
+      if (isMixMode?.value && swimDataManager.hasMixConfig() && event?.parentEventId) {
+        return;
+      }
       aicpuCoreDetailsExpanded.value = !showkernelDetail;
       showDetailsPanel(showkernelDetail);
     }
@@ -1143,36 +1175,74 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
     detailsPanelExpanded.value = false;
   }
 };
-const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false) => {
-  updatePanelState(event, processKey, showkernelDetail);
-  const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
-  if (!forceExec && noChange) {
-    return;
+
+const handleMixSubEventClick = (event, processKey) => {
+  detailsPanelExpanded.value = false;
+  mixRelatedPaths.clear();
+  highlightedPaths.clear();
+  
+  const relatedEvents = collectSubEventDependencyPathNodes(event);
+  for (const pathId of relatedEvents) {
+    mixRelatedPaths.add(pathId);
   }
-  selectedEvent.value = event;
-  if (event) {
-    lastSelected.value = event.id;
-    const process = processes.get(processKey);
-    if (process.type === 'aicpu') {
-      highlightedPaths.clear();
-      highlightAicpu(process, processKey, false);
-    } else {
-      calculateHighlightedPaths(event);
-      childContextMap.threadEvent.changeNodeColor(processKey, true);
-      renderDependencyLines(processKey);
-    }
-    if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
-      pinnedthreadsComponent.value.changePinnedColor(true);
-      pinnedthreadsComponent.value.highlightPinnedEvent(event);
+  mixRelatedPaths.add(event.id);
+  
+  calculateMixMacroPaths(event.parentEventId, highlightedPaths, userConfig.value.connectionLevel);
+  
+  childContextMap.threadEvent.changeNodeColor(processKey, false);
+  globalConnectionCanvas.value.clearCanvas();
+  const wrapCtx = globalConnectionCanvas.value.globalConnectionCanvas.getContext('2d');
+  childContextMap.threadEvent.drawClickWrapContainner(event, wrapCtx);
+  if (isMaxSchedule.value) {
+    const subEvents = swimDataManager.getSubEvents(event.parentEventId);
+    for (const subEvent of subEvents) {
+      if (!subEvent.drawData) { 
+        continue; 
+      }
+      const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(subEvent, false);
+      if (selectedCoords) {
+        globalConnectionCanvas.value.highlightEventNode(subEvent, selectedCoords, true);
+      }
     }
   } else {
-    lastSelected.value = null;
-    childContextMap.threadEvent.changeNodeColor(processKey);
-    clearDependencyLines(processKey);
-    if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
-      pinnedthreadsComponent.value.changePinnedColor(false);
+    const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(event, false);
+    if (selectedCoords) {
+      globalConnectionCanvas.value.highlightEventNode(event, selectedCoords, true);
     }
   }
+  if (event?.isWait) {
+    return;
+  }
+  if (!isMaxSchedule.value) {
+    childContextMap.threadEvent.renderDimmedNodesInWrap(event, wrapCtx);
+  }
+  globalConnectionCanvas.value.drawMacroDependencyLines();
+};
+
+const handleMixNormalEventClick = (event, processKey) => {
+  highlightedPaths.clear();
+  mixRelatedPaths.clear();
+  calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+  childContextMap.threadEvent.changeNodeColor(processKey, false);
+  renderDependencyLines(processKey);
+};
+
+const handleNormalEventClick = (event, processKey) => {
+  calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+  childContextMap.threadEvent.changeNodeColor(processKey, true);
+  renderDependencyLines(processKey);
+};
+
+const clearSelection = (processKey) => {
+  lastSelected.value = null;
+  childContextMap.threadEvent.changeNodeColor(processKey);
+  clearDependencyLines(processKey);
+  if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
+    pinnedthreadsComponent.value.changePinnedColor(false);
+  }
+};
+
+const updateOtherProcesses = (processKey) => {
   for (const [key, process] of processes.entries()) {
     if (!process.isRendered || !processExpanded.get(key) || !ctxs[key]) {
       continue;
@@ -1186,6 +1256,49 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
     const { eventCtx } = ctxs[key];
     childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(key), key);
   }
+};
+
+const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false) => {
+  updatePanelState(event, processKey, showkernelDetail);
+  const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
+  if (!forceExec && noChange) {
+    return;
+  }
+  mixRelatedPaths.clear();
+  highlightedPaths.clear();
+  globalConnectionCanvas?.value?.clearCanvas();
+  selectedEvent.value = event;
+  canvasclickedEvent.value = event;
+  
+  if (event) {
+    lastSelected.value = event.id;
+    const process = processes.get(processKey);
+    
+    if (process.type === 'aicpu') {
+      highlightedPaths.clear();
+      highlightAicpu(process, processKey, false);
+    } else if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+      if (event?.parentEventId) {
+        handleMixSubEventClick(event, processKey);
+        if (event?.isWait) {
+          return;
+        }
+      } else {
+        handleMixNormalEventClick(event, processKey);
+      }
+    } else {
+      handleNormalEventClick(event, processKey);
+    }
+    
+    if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
+      pinnedthreadsComponent.value.changePinnedColor(true);
+      pinnedthreadsComponent.value.highlightPinnedEvent(event);
+    }
+  } else {
+    clearSelection(processKey);
+  }
+  
+  updateOtherProcesses(processKey);
 };
 
 const highlightAicpu = (process, processKey, isResize) => {
@@ -1262,6 +1375,7 @@ const resetMaxScheduleState = () => {
   isMaxSchedule.value = false;
   selectedEvent.value = null;
   highlightedPaths.clear();
+  mixRelatedPaths.clear();
   transform();
 };
 
@@ -1296,7 +1410,7 @@ const showMaxScheduleEvent = async (startEvent, endEvent) => {
   if (isSearchActive.value) {
     swimgraphHeaderComponent?.value.resetsearchState();
   }
-  if (isMixedAicpuKernel.value) {
+  if (isE2ESwim.value) {
     await autoExpandkernelProcess();
   } else if (isPerfSwim.value) {
     await autoExpandProcess([startEvent.pid.toString(), endEvent.pid.toString()]);
@@ -1334,65 +1448,6 @@ const setMeasureDragHeight = () => {
   document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
 };
 
-const calculateHighlightedPaths = (event) => {
-  highlightedPaths.clear();
-
-  const addAllAncestors = (eventId, maxDepth) => {
-    const visited = new Set();
-    const queue = [{ id: eventId, depth: 0 }];
-
-    while (queue.length > 0) {
-      const { id: currentId, depth } = queue.shift();
-
-      if (visited.has(currentId) || (depth > maxDepth && maxDepth != -1)) {
-        continue;
-      }
-
-      visited.add(currentId);
-      const currentEvent = swimDataManager.getEventById(currentId);
-      if (currentEvent) {
-        highlightedPaths.add(currentEvent.id);
-        currentEvent.dependencies.predecessors.forEach((predId) => {
-          if (!visited.has(predId)) {
-            queue.push({ id: predId, depth: depth + 1 });
-          }
-        });
-      }
-    }
-  };
-
-  const addAllDescendants = (eventId, maxDepth) => {
-    const visited = new Set();
-    const queue = [{ id: eventId, depth: 0 }];
-
-    while (queue.length > 0) {
-      const { id: currentId, depth } = queue.shift();
-
-      if (visited.has(currentId) || (depth > maxDepth && maxDepth != -1)) {
-        continue;
-      }
-
-      visited.add(currentId);
-      const currentEvent = swimDataManager.getEventById(currentId);
-      if (currentEvent) {
-        highlightedPaths.add(currentEvent.id);
-        currentEvent.dependencies.successors.forEach((succId) => {
-          if (!visited.has(succId)) {
-            queue.push({ id: succId, depth: depth + 1 });
-          }
-        });
-      }
-    }
-  };
-
-  // 从选定事件开始，分别向前后遍历，设置最大层级
-  addAllAncestors(event.id, userConfig.value.connectionLevel);
-  addAllDescendants(event.id, userConfig.value.connectionLevel);
-
-  // 确保选择的事件本身也被高亮显示
-  highlightedPaths.add(event.id);
-};
-
 const findEventAtPosition = (x, y, processKey) => {
   let processObj = {
     event: null,
@@ -1404,6 +1459,18 @@ const findEventAtPosition = (x, y, processKey) => {
   };
   const process = processes.get(processKey);
   if (!process) return null;
+  
+  if (isMixMode.value && swimDataManager.hasMixConfig()) {
+    const result = findSubEventAtPosition(x, y);
+    if (result) {
+      processObj.event = result.event;
+      if (result.altClickData) {
+        processObj.altClickData = result.altClickData;
+      }
+      return processObj;
+    }
+  }
+  
   // 用于记录最后一个有效的间隙（仅当无吸附时使用）
   let fallbackAltClickData = null;
   // 遍历进程中的所有事件，检查点击位置
@@ -1437,13 +1504,196 @@ const findEventAtPosition = (x, y, processKey) => {
   return processObj;
 };
 
+const findWrapAtPosition = (x, y, ctx, getPositionByTime) => {
+  const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  for (const lane of swimLaneOrder) {
+    if (lane.type !== 'wrap-label') { continue };
+    if (y < lane.y || y > lane.y + lane.height) { continue };
+    const { startTime } = lane;
+    const startX = getPositionByTime(startTime, viewState, layout) - layout.processLabelWidth;
+    const labelX = startX * viewState.pixelScale + viewState.pixelOffsetX;
+    const padding = 8 * devicePixelRatio;
+    const textWidth = ctx.measureText(lane.label).width;
+    const boxWidth = textWidth + padding * 2;
+    const wrapX = labelX - padding;
+    if (x >= wrapX && x <= wrapX + boxWidth) {
+      return lane;
+    }
+  }
+  return null;
+};
+
+const isPositionInEventBounds = ({ x, y, renderInfo }) => {
+  if (!renderInfo) {
+    return false;
+  }
+  
+  const { x: eventX, y: eventY, width: eventWidth, height: eventHeight } = renderInfo;
+  
+  if (y < eventY || y > eventY + eventHeight) {
+    return false;
+  }
+  
+  if (x < eventX || x > eventX + eventWidth) {
+    return false;
+  }
+  
+  return true;
+};
+
+const isPositionOnSameLineAsEvent = ({ y, renderInfo }) => {
+  if (!renderInfo) {
+    return false;
+  }
+  
+  const { y: eventY, height: eventHeight } = renderInfo;
+  
+  return y >= eventY && y <= eventY + eventHeight;
+};
+
+const collectNormalEvents = (thread) => {
+  return thread.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && !swimDataManager.isMixParentEvent(e));
+};
+
+const collectParentEvents = (thread) => {
+  return thread.eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && swimDataManager.isMixParentEvent(e));
+};
+
+const checkEventCollision = ({ event, x, y, allEventsOnLane }) => {
+  if (!isPositionOnSameLineAsEvent({ y, renderInfo: event.renderInfo })) {
+    return null;
+  }
+  
+  if (isPositionInEventBounds({ x, y, renderInfo: event.renderInfo })) {
+    return { event };
+  }
+  
+  const { x: eventX, width: eventWidth, y: eventY, height: eventHeight } = event.renderInfo;
+  allEventsOnLane.push({ event, eventX, eventWidth, eventY, eventHeight });
+  
+  return null;
+};
+
+const checkSubEventsCollision = ({ parentEvent, x, y, allEventsOnLane }) => {
+  const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+  
+  for (const subEvent of subEvents) {
+    const result = checkEventCollision({ event: subEvent, x, y, allEventsOnLane });
+    if (result) {
+      return result;
+    }
+  }
+  
+  return null;
+};
+
+const checkWaitTasksCollision = ({ parentEvent, x, y }) => {
+  const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
+  
+  for (const waitTask of waitTasks) {
+    if (isPositionInEventBounds({ x, y, renderInfo: waitTask.renderInfo })) {
+      return { event: waitTask };
+    }
+  }
+  
+  return null;
+};
+
+const findGapBetweenEvents = ({ allEventsOnLane, x }) => {
+  if (allEventsOnLane.length < 2) {
+    return null;
+  }
+  
+  allEventsOnLane.sort((a, b) => a.eventX - b.eventX);
+  
+  for (let i = 0; i < allEventsOnLane.length - 1; i++) {
+    const { event, eventX, eventWidth } = allEventsOnLane[i];
+    const { event: nextEvent, eventX: nextEventX } = allEventsOnLane[i + 1];
+    
+    if (x >= eventX + eventWidth && x <= nextEventX) {
+      const nodeSpacingX = nextEventX - (eventX + eventWidth);
+      return {
+        event: null,
+        altClickData: {
+          preData: event,
+          lastData: nextEvent,
+          nodeSpacingX,
+        },
+      };
+    }
+  }
+  
+  return null;
+};
+
+const findEventsInThread = ({ thread, lane, x, y }) => {
+  const allEventsOnLane = [];
+  
+  const normalEvents = collectNormalEvents(thread);
+  for (const event of normalEvents) {
+    const result = checkEventCollision({ event, x, y, allEventsOnLane });
+    if (result) {
+      return result;
+    }
+  }
+  
+  if (lane.wrapIds.length === 0) {
+    return findGapBetweenEvents({ allEventsOnLane, x });
+  }
+  
+  const parentEvents = collectParentEvents(thread);
+  for (const parentEvent of parentEvents) {
+    const subEventResult = checkSubEventsCollision({ parentEvent, x, y, allEventsOnLane });
+    if (subEventResult) {
+      return subEventResult;
+    }
+    
+    const waitTaskResult = checkWaitTasksCollision({ parentEvent, x, y });
+    if (waitTaskResult) {
+      return waitTaskResult;
+    }
+  }
+  
+  return findGapBetweenEvents({ allEventsOnLane, x });
+};
+
+const findLaneAtPosition = ({ y, swimLaneOrder }) => {
+  for (const lane of swimLaneOrder) {
+    if (lane.type !== 'thread') {
+      continue;
+    }
+    
+    if (y >= lane.y && y <= lane.y + lane.height) {
+      return lane;
+    }
+  }
+  
+  return null;
+};
+
+const findSubEventAtPosition = (x, y) => {
+  const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  
+  const lane = findLaneAtPosition({ y, swimLaneOrder });
+  if (!lane) {
+    return null;
+  }
+  
+  return findEventsInThread({ thread: lane.thread, lane, x, y });
+};
+
+
 const searchEventsInThread = (thread, x, y) => {
   let fallbackAltClickData = null;
   const eventsOnCurrentLine = [];
   
   for (let index = 0; index < thread.events.length; index++) {
     const event = thread.events[index];
-    if (!event.renderInfo) {
+    if (!event.renderInfo || !event.drawData) {
       continue;
     }
     const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
@@ -1501,11 +1751,27 @@ const searchEventsInThread = (thread, x, y) => {
   };
 };
 
+const getMixModeDisplayName = (name) => {
+  let displayName = name;
+  const firstParenthesesIndex = name.indexOf('(');
+  if (firstParenthesesIndex !== -1) {
+    const secondParenthesesIndex = name.indexOf(')', firstParenthesesIndex);
+    if (secondParenthesesIndex !== -1) {
+      displayName = name.substring(0, firstParenthesesIndex) + name.substring(secondParenthesesIndex + 1);
+    }
+  }
+  return displayName;
+};
+
 const getDisplayName = (event) => {
   let { name: displayName } = event;
   const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
   if (textOption.length === 1 && textOption[0] === 'taskName') {
-    displayName = displayName.split('(')[0].trim();
+    if(isMixMode?.value) {
+      displayName = getMixModeDisplayName(displayName);
+    } else {
+      displayName = displayName.split('(')[0].trim();
+    }
   } else if (textOption.length === 1 && textOption[0] === 'taskLabel') {
     const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
     displayName = labelPart ? labelPart.groups.label.trim() : '';
@@ -1652,12 +1918,12 @@ const resizeCanvases = (processKey, needResizeTimeline = true) => {
   if (processKey) {
     const process = processes.get(processKey);
     if (!process) return;
-    updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState);
+    updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState, isMixMode.value);
     return;
   }
 
   for (const [key, process] of processes.entries()) {
-    updateProcessSize(process, key, containerRect, layout, lane2line, viewState);
+    updateProcessSize(process, key, containerRect, layout, lane2line, viewState, isMixMode.value);
   }
 };
 
@@ -1912,8 +2178,10 @@ const measureMouseUp = () => {
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
-    mulDetailsExpanded.value = true;
-    measureDetailsExpanded.value = true;
+    if (!isMixMode.value) {
+      mulDetailsExpanded.value = true;
+      measureDetailsExpanded.value = true;
+    }
     detailsPanelExpanded.value = false;
     aicpuControlDetailsExpanded.value = false;
     aicpuScheduleDetailsExpanded.value = false;
@@ -1940,8 +2208,10 @@ const measureMouseLeave = (e) => {
   measureDetailSearch();
   isMeasureDragging.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
-    mulDetailsExpanded.value = true;
-    measureDetailsExpanded.value = true;
+    if (!isMixMode.value) {
+      mulDetailsExpanded.value = true;
+      measureDetailsExpanded.value = true;
+    }
     detailsPanelExpanded.value = false;
     return;
   }
@@ -2125,7 +2395,9 @@ const intelligentSearch = () => {
     pinnedThreads,
     pinnedthreadsComponent,
     renderFixedTimeline,
-    renderTimeline
+    renderTimeline,
+    swimDataManager,
+    isMixMode
   });
 };
 
@@ -2139,6 +2411,14 @@ const setPageState = (message) => {
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
   configComponent.value.showPerformancePanel = userConfig.value.showPerformancePanel;
+  configComponent.value.showIsMixMode = userConfig.value.showIsMixMode;
+  nextTick(() => {
+    if (!props.isThreeColumn) {
+      isMixMode.value = userConfig.value.showIsMixMode;
+    } else {
+      isMixMode.value = false;
+    }
+  });
   if (message.comGraphPath) {
     bindFile.value = message.comGraphPath;
     bindButton.value = $t('unbindComGraph');
@@ -2313,8 +2593,8 @@ onMounted(async () => {
 });
 
 const containerStyles = computed(() => ({
-  overflowY: isMixedAicpuKernel.value ? 'hidden' : 'auto',
-  scrollbarGutter: !isMixedAicpuKernel.value ? 'stable' : 'auto'
+  overflowY: isE2ESwim.value ? 'hidden' : 'auto',
+  scrollbarGutter: !isE2ESwim.value ? 'stable' : 'auto'
 }));
 
 const containerWidth = computed(() => {
@@ -2357,6 +2637,7 @@ provide('swimGraphPinnedState', {
   pinnedThreadsList,
   pinThread,
   unpinThread,
+  recalculateOffsetY,
   pinnedMeasureInfo
 });
  
@@ -2377,6 +2658,7 @@ provide('swimGraphState', {
   canvasclickedEvent,
   pathLockedEvent,
   highlightedPaths,
+  mixRelatedPaths,
   processes,
   processExpanded,
   loading,
@@ -2418,7 +2700,7 @@ provide('swimGraphState', {
   isSwimFullscreen,
   isPathLockStatus,
   isAicpu,
-  isMixedAicpuKernel,
+  isE2ESwim,
   performanceVisible,
   performanceWidth,
   isWideScreen,
@@ -2437,6 +2719,9 @@ provide('swimGraphState', {
   isPerfSwim,
   globalMeasureCanvas,
   globalDependencyLinesInfo,
+  isMixMode,
+  globalConnectionCanvas,
+  isFromPerformanceClick
 });
 
 // 提供方法给子组件
@@ -2470,11 +2755,14 @@ provide('swimGraphMethods', {
   setMeasureDragHeight,
   autoExpandkernelProcess,
   getEventColor,
+  clearHeadState: () => {
+    return swimgraphHeaderComponent?.value.clearHeadState();
+  },
   dynamicWidthStyle,
   getEventDisplayName,
   getThreadDisplayName,
-  resetsearchState: () => {
-    return swimgraphHeaderComponent?.value.resetsearchState();
+  resetsearchState: (needSelectEvent=true) => {
+    return swimgraphHeaderComponent?.value.resetsearchState(needSelectEvent);
   },
   showDependencies: (e, mode) => {
     return detailComponent?.value.showDependencies(e, mode);
@@ -2524,10 +2812,26 @@ provide('swimGraphMethods', {
   handleKernalEventColors,
   drawNodeHeight: (event, processKey)=> {
     childContextMap.threadEvent.drawNodeHeight(event, processKey);
-  }
+  },
+  findWrapAtPosition,
+  drawClickWrapContainner: (event, ctx) => {
+    childContextMap.threadEvent.drawClickWrapContainner(event, ctx);
+  },
+  renderDimmedNodesInWrap: (event, ctx)=> {
+    childContextMap.threadEvent.renderDimmedNodesInWrap(event, ctx);
+  },
+  changeNodeColor: (processKey, isDimmed)=> {
+    childContextMap.threadEvent.changeNodeColor(processKey, isDimmed);
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();
+  transform();
+});
+
+watch(isMixMode, () => {
+  initCanvases();
+  resizeCanvases();
   transform();
 });
 

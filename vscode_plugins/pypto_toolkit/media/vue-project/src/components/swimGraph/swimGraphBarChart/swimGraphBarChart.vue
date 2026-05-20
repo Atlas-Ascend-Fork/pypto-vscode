@@ -93,6 +93,7 @@ for (const percent of pmuChartDataRight.value) {
 <style scoped>
 .occupy-rate-container {
   width: 440;
+  overflow-x: auto;
 }
 
 .occupy-rate-title {

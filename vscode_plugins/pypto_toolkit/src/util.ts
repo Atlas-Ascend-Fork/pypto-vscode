@@ -66,6 +66,7 @@ export class Util {
     // 添加connectionLevel配置
     result['connectionLevel'] = config.get('connectionLevel');
     result['showPerformancePanel'] = config.get('showPerformancePanel');
+    result['showIsMixMode'] = config.get('showIsMixMode');
     return result;
   }
 
