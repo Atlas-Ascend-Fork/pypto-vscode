@@ -57,7 +57,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, 
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess,
   renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodes
 } from '../swimGraphUtils';
@@ -1196,6 +1196,8 @@ const shouldUpdateOutline = (color) => {
 
 const detectWrapLabelHover = (x, y) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  const mouseXInCanvas = getNoZoomX(x, viewState);
+  
   for (const lane of swimLaneOrder) {
     if (lane.type !== 'wrap-label') { continue };
     
@@ -1203,20 +1205,24 @@ const detectWrapLabelHover = (x, y) => {
     const laneHeight = lane.height;
     if (y < laneY || y > laneY + laneHeight) { continue };
     
-    const wrapIds = lane.wrapIds || [lane.wrapId];
-    const wrapStartTimes = lane.wrapStartTimes || [lane.startTime];
+    const laneKey = lane.wrapId || lane.wrapIds?.join('-');
+    const cachedData = getWrapLabelCache(laneKey);
     
-    for (let i = 0; i < wrapIds.length; i++) {
-      const wrapId = wrapIds[i];
-      const wrapStartTime = wrapStartTimes[i];
+    if (!cachedData) { continue };
+    
+    const { labelBoxes, padding } = cachedData;
+    
+    for (const boxInfo of labelBoxes) {
+      const { wrapId, labelX, boxWidth } = boxInfo;
+      const boxStartX = labelX - padding;
+      const boxEndX = boxStartX + boxWidth;
       
-      const labelStartTime = getPositionByTime(wrapStartTime, viewState, layout) - layout.processLabelWidth;
-      const labelWidth = 80 / viewState.scale;
-      if (x >= labelStartTime && x <= labelStartTime + labelWidth) {
+      if (mouseXInCanvas >= boxStartX && mouseXInCanvas <= boxEndX) {
         return wrapId;
       }
     }
   }
+  
   return null;
 };
 
@@ -2813,6 +2819,11 @@ const hideTooltip = () => { tooltipStyle.display = 'none' };
 const hideLineTooltip = () => { lineTooltipStyle.display = 'none' };
 
 const drawNodeHeight = (event, processKey) => {
+  if (globalMeasureCanvas.value) {
+    globalMeasureCanvas.value.clearCanvas();
+    globalMeasureCanvas.value.drawRoundedRect(event, processKey);
+    return;
+  }
   const uiCtx = getUIContext(processKey);
   measureRenderer.drawNodeRoundedRect(uiCtx, event, processKey);
 };

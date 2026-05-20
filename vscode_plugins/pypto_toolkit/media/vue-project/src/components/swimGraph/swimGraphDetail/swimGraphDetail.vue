@@ -102,6 +102,10 @@
                     <d-tooltip :content="key" v-if="value !== ''">
                       <span class="args-key third-text">{{ key }}</span>
                     </d-tooltip>
+                    <span v-if="value !== '' && key === 'syncEvents'">
+                      <span class="args-value main-text">{{ formatSyncEvents(value) }}</span>
+                    </span>
+
                     <span v-if="value !== '' && key === 'ioperand-hint' ">
                       <template v-if="value.includes('rawmagic')">
                         <span class="args-value main-text" v-html="ioperandHtml"></span>
@@ -128,7 +132,7 @@
                       </template>
                     </span>
                     
-                    <span v-if="!['', 'event-hint', 'ioperand-hint', 'ooperand-hint', 'dispatch-time-us', 'finish-time-us', 'aicpu-duration-us', 'kernel-ready-time-us'].includes(key)">
+                    <span v-if="!['', 'event-hint', 'ioperand-hint', 'ooperand-hint', 'syncEvents', 'dispatch-time-us', 'finish-time-us', 'aicpu-duration-us', 'kernel-ready-time-us'].includes(key)">
                       <span class="args-value main-text">{{ value }}</span>
                     </span>
 
@@ -351,6 +355,45 @@ const subMintsFormat = (time) => {
   const ns = Math.round((time * 1000) - (minTs.value * 1000));
   const us = (ns / 1000).toFixed(3);
   return parseFloat(us);
+};
+
+const formatSyncEvents = (value) => {
+  if (!value) {
+    return '';
+  }
+  
+  try {
+    let syncEventsArray;
+    
+    if (typeof value === 'string') {
+      syncEventsArray = JSON.parse(value);
+    } else if (Array.isArray(value)) {
+      syncEventsArray = value;
+    } else {
+      return value;
+    }
+    
+    if (!Array.isArray(syncEventsArray)) {
+      return value;
+    }
+    
+    const formattedEvents = syncEventsArray.map(event => {
+      if (event && typeof event.time !== 'undefined') {
+        const scaledTime = event.time / tsScale.value;
+        const formattedTime = parseFloat(scaledTime.toFixed(3));
+        
+        return {
+          ...event,
+          time: formattedTime,
+        };
+      }
+      return event;
+    });
+    
+    return JSON.stringify(formattedEvents, null, 2);
+  } catch (error) {
+    return value;
+  }
 };
 
 const updateEventPmu = (event) => {

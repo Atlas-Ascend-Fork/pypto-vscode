@@ -79,6 +79,9 @@ export const nodeSpaceMin = 58;
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
 
+// mix模式下wrap Label信息
+const wrapLabelCache = new Map();
+
 export const setDevicePixelRatio = (ratio: number) => {
   devicePixelRatio = ratio;
   eventTextSize = 12 * devicePixelRatio;
@@ -810,6 +813,14 @@ export const findBuildTaskByNo = (schedCoreMap) => {
   return null;
 };
 
+export const getWrapLabelCache = (laneKey) => {
+  return wrapLabelCache.get(laneKey);
+};
+
+export const clearWrapLabelCache = () => {
+  wrapLabelCache.clear();
+};
+
 export const renderWrapLabelRow = (
   ctx: CanvasRenderingContext2D,
   laneItem: any,
@@ -819,6 +830,7 @@ export const renderWrapLabelRow = (
 ) => {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  
   const isGlobalCanvas = ctx.canvas.classList.contains('global-connection-canvas');
   const selectedCoords = globalConnectionCanvas.value.getMixEventCoordinates(laneItem, false);
   const startY = selectedCoords - ((laneItem.height * devicePixelRatio) / 2);
@@ -836,6 +848,8 @@ export const renderWrapLabelRow = (
   const wrapIds = laneItem.wrapIds || [laneItem.wrapId];
   const wrapStartTimes = laneItem.wrapStartTimes || [laneItem.startTime];
   
+  const labelBoxes = [];
+  
   for (let i = 0; i < wrapIds.length; i++) {
     const wrapId = wrapIds[i];
     const wrapStartTime = wrapStartTimes[i];
@@ -848,40 +862,38 @@ export const renderWrapLabelRow = (
     }
     
     const maxWidth = canvaWidth - labelX;
-    const isCurrentHover = wrapId === hoverWrapId;
-    
-    let label = '';
-    let textWidth = 0;
-    
     const minWidthForW = ctx.measureText('W...').width + padding * 2;
     
-    if (maxWidth >= minWidthForW) {
-      label = `Wrap ${wrapId}`;
-      textWidth = ctx.measureText(label).width;
-      
-      if (textWidth + padding * 2 > maxWidth) {
-        const ellipsis = '...';
-        const ellipsisWidth = ctx.measureText(ellipsis).width;
-        const availableWidth = maxWidth - padding * 2 - ellipsisWidth;
-        
-        let truncatedText = '';
-        for (const char of label) {
-          if (ctx.measureText(truncatedText + char).width > availableWidth) {
-            break;
-          }
-          truncatedText += char;
-        }
-        
-        if (truncatedText.length === 0) {
-          truncatedText = 'W';
-        }
-        
-        label = truncatedText + ellipsis;
-        textWidth = ctx.measureText(label).width;
-      }
-    }
+    const labelInfo = calculateWrapLabelText({ ctx, wrapId, maxWidth, minWidthForW, padding });
     
-    const boxWidth = label ? Math.min(textWidth + padding * 2, maxWidth) : Math.min(minWidthForW, maxWidth);
+    const boxWidth = labelInfo.label ? Math.min(labelInfo.textWidth + padding * 2, maxWidth) : Math.min(minWidthForW, maxWidth);
+    
+    labelBoxes.push({
+      wrapId,
+      labelX,
+      boxWidth,
+      label: labelInfo.label,
+      textWidth: labelInfo.textWidth,
+      maxWidth,
+      minWidthForW,
+      padding,
+    });
+  }
+  
+  adjustOverlappingLabels({ labelBoxes, padding, ctx });
+  
+  wrapLabelCache.set(laneItem.wrapId || laneItem.wrapIds?.join('-'), {
+    labelBoxes,
+    laneY,
+    laneHeight,
+    padding,
+  });
+  
+  for (const boxInfo of labelBoxes) {
+    const { wrapId, labelX, boxWidth, label, minWidthForW } = boxInfo;
+    const isCurrentHover = wrapId === hoverWrapId;
+    
+    const shouldDrawText = boxWidth >= minWidthForW && label;
     
     ctx.fillStyle = isCurrentHover ? colorCfg.wrapBgColorHover : colorCfg.wrapBgColorDefault;
     ctx.lineWidth = 1;
@@ -890,7 +902,7 @@ export const renderWrapLabelRow = (
     ctx.roundRect(labelX - padding, labelY, boxWidth, labelHeight, 4 * devicePixelRatio);
     ctx.fill();
     
-    if (label) {
+    if (shouldDrawText) {
       ctx.fillStyle = isCurrentHover ? colorCfg.wrapTextColorHover : colorCfg.wrapTextColorDefault;
       const drawTextYTemp = labelY + labelHeight / 2 + 4 * devicePixelRatio;
       ctx.fillText(label, labelX, drawTextYTemp);
@@ -898,6 +910,96 @@ export const renderWrapLabelRow = (
   }
   
   ctx.restore();
+};
+
+const calculateWrapLabelText = ({ ctx, wrapId, maxWidth, minWidthForW, padding }) => {
+  let label = '';
+  let textWidth = 0;
+  
+  if (maxWidth >= minWidthForW) {
+    label = `Wrap ${wrapId}`;
+    textWidth = ctx.measureText(label).width;
+    
+    if (textWidth + padding * 2 > maxWidth) {
+      const availableTextWidth = maxWidth - padding * 2;
+      const truncated = truncateTextToFit({ ctx, text: label, availableTextWidth });
+      label = truncated.text;
+      textWidth = truncated.textWidth;
+    }
+  }
+  
+  return { label, textWidth };
+};
+
+const truncateTextToFit = ({ ctx, text, availableTextWidth }) => {
+  const ellipsis = '...';
+  const ellipsisWidth = ctx.measureText(ellipsis).width;
+  
+  if (availableTextWidth <= ellipsisWidth) {
+    const newText = 'W...';
+    const newTextWidth = ctx.measureText(newText).width;
+    return { text: newText, textWidth: newTextWidth };
+  }
+  
+  const availableForChars = availableTextWidth - ellipsisWidth;
+  let truncatedText = '';
+  
+  for (const char of text) {
+    if (ctx.measureText(truncatedText + char).width > availableForChars) {
+      break;
+    }
+    truncatedText += char;
+  }
+  
+  if (truncatedText.length === 0) {
+    truncatedText = 'W';
+  }
+  
+  const finalText = truncatedText + ellipsis;
+  const textWidth = ctx.measureText(finalText).width;
+  
+  return { text: finalText, textWidth };
+};
+
+const adjustOverlappingLabels = ({ labelBoxes, padding, ctx }) => {
+  if (labelBoxes.length < 2) {
+    return;
+  }
+  
+  const overlapThreshold = 4 * devicePixelRatio;
+  
+  for (let i = 1; i < labelBoxes.length; i++) {
+    const prevBox = labelBoxes[i - 1];
+    const currentBox = labelBoxes[i];
+    
+    const prevBoxEndX = prevBox.labelX - padding + prevBox.boxWidth;
+    const currentBoxStartX = currentBox.labelX - padding;
+    
+    const gap = currentBoxStartX - prevBoxEndX;
+    
+    if (gap < overlapThreshold) {
+      const neededWidth = currentBoxStartX - (prevBox.labelX - padding) - overlapThreshold;
+      
+      if (neededWidth < prevBox.boxWidth) {
+        const absoluteMinWidth = 20 * devicePixelRatio;
+        const newBoxWidth = Math.max(neededWidth, absoluteMinWidth);
+        
+        if (newBoxWidth < prevBox.boxWidth) {
+          prevBox.boxWidth = newBoxWidth;
+          
+          if (newBoxWidth < prevBox.minWidthForW) {
+            prevBox.label = '';
+            prevBox.textWidth = 0;
+          } else if (prevBox.label && newBoxWidth > padding * 2) {
+            const availableTextWidth = newBoxWidth - padding * 2;
+            const truncated = truncateTextToFit({ ctx, text: prevBox.label, availableTextWidth });
+            prevBox.label = truncated.text;
+            prevBox.textWidth = truncated.textWidth;
+          }
+        }
+      }
+    }
+  }
 };
 
 export const renderWrapContainerBox = (
@@ -971,6 +1073,7 @@ export const renderWrapLabel = (
   
   if (!wrapCtx) return;
   
+  clearWrapLabelCache();
   
   for (const lane of swimLaneOrder) {
     if (lane.type === 'wrap-label') {
