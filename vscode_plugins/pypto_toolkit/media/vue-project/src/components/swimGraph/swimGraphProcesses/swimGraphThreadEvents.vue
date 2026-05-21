@@ -294,11 +294,18 @@ const handleCanvasClick = (e) => {
         measureDistance(clickedEvent, props.processKey);
         return;
       }
+      if (globalMeasureCanvas.value) {
+        globalMeasureCanvas.value.clearMeasure();
+      }
       detailsPanelExpanded.value = !clickedEvent.parentEventId;
       onHoverEvent();
       clearOtherProcessCanvas();
       drawNodeHeight(clickedEvent, props.processKey);
       highlightPinnedEvent(clickedEvent, true);
+    } else {
+      if (globalMeasureCanvas.value) {
+        globalMeasureCanvas.value.clearMeasure();
+      }
     }
     return;
   }

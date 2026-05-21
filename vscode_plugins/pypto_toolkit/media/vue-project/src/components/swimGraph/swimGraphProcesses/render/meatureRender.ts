@@ -1,7 +1,8 @@
-import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio, clearWholeProcess } from '../../swimGraphUtils';
+import { ctxs, formatTimeWithUnit, meaureTextSize, getFontStyle, nodeSpaceMin, devicePixelRatio, clearWholeProcess, eventTextSize } from '../../swimGraphUtils';
 import { Dependencies, getEventColor, getNoZoomX, renderInfo2pixelData } from './utils';
 import { isEqual } from 'lodash-es';
 import { EventRender } from './eventRender';
+import { swimDataManager } from '../../swimData';
 export let altClickData = {
   preData: null,
   lastData: null,
@@ -36,6 +37,7 @@ export class MeatureRender extends EventRender {
       lastData: null,
       largeSpacing: false
     };
+    measureState = {isMeasureFirst: false, isMeasureFixed: false, isMeasureChange: false};
     clearWholeProcess(ctx, viewState, processKey);
   }
 
@@ -349,17 +351,21 @@ export class MeatureRender extends EventRender {
   }
 
   private strokeRoundRect(ctx: CanvasRenderingContext2D, event: any, processKey: string, isPinned=false) {
-    const { viewState } = this.deps;
-    const { x, y, width, height } = event.renderInfo;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.beginPath();
-    ctx.rect(getNoZoomX(x, viewState), y, width * viewState.scale, height);
     const temp = JSON.parse(JSON.stringify(event));
     const { fillColor, fontColor, strokeColor } = getEventColor(temp, this.deps, processKey, true, true);
     temp.drawData.rectColor = fillColor;
     temp.drawData.strokeColor = strokeColor;
     temp.drawData.fontColor = fontColor;
+    if (isPinned && !temp.drawData.pinnedEventY && temp.parentEventId) {
+      const pEvent = swimDataManager.getEventById(temp.parentEventId);
+      const eventY = pEvent.drawData.pinnedEventY;
+      if (eventY) {
+        temp.drawData.pinnedEventY = eventY;
+        temp.drawData.pinnedTextY = eventY * devicePixelRatio + eventTextSize;
+      }
+    }
     this.drawEvent([temp.drawData], ctx, false, isPinned);
     this.drawEventText([temp.drawData], ctx, false, isPinned);
     ctx.restore();

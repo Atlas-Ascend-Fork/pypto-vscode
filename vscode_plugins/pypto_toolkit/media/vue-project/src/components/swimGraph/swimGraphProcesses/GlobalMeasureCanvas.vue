@@ -62,6 +62,7 @@ const {
   layout,
   selectedEvent,
   highlightedPaths,
+  mixRelatedPaths,
   searchedEvent,
   tsScale,
 } = swimGraphState;
@@ -441,7 +442,7 @@ const drawRoundedRect = (event, processKey) => {
   ctx.rect(eventX, rectY, rectWidth, rectHeight);
   
   const temp = JSON.parse(JSON.stringify(event));
-  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes };
+  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes, mixRelatedPaths };
   const { fillColor, fontColor, strokeColor } = getEventColor(temp, dep, processKey, true, true);
   temp.drawData.rectColor = fillColor;
   temp.drawData.strokeColor = strokeColor;
@@ -504,7 +505,7 @@ const handleDistanceMeasurement = (event, processKey, isZoomMode = false) => {
   const shouldClearDrawConnector = !isZoomMode && altClickData.preData && altClickData.lastData && (measureState.isMeasureFixed || !measureState.isMeasureFirst);
   
   if (shouldClearDrawConnector) {
-    clearCanvas();
+    clearMeasure();
   }
   
   if (!isZoomMode) {

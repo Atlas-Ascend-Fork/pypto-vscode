@@ -615,7 +615,7 @@ const handleCanvasClick = (e) => {
     
     if (e.altKey) {
       // 测距模式
-      highlightEvent(depCtx, event);
+      highlightEvent(uiCtx, event);
       measureRenderer.handleDistanceMeasurement(uiCtx, event, event.renderInfo?.processKey || event.pid.toString(), false, true);
       // 如果需要在上方显示测距信息
       if (!altClickData.largeSpacing && pinnedThreadsList.value.length === 1) {
