@@ -579,6 +579,8 @@ const drawMacroDependencyLines = () => {
   } else {
     drawMixDep(selectedEvent.value || searchedEvent.value);
   }
+
+  globalDependencyLinesInfo.value = [];
   
   for (const edge of edgesToDraw) {
     const [fromId, toId] = edge.split('->');
@@ -687,7 +689,10 @@ const drawSingleMacroConnectionLine = (fromEvent, toEvent, drawnNodes, coordsCac
     endY: toCoords.y
   };
   
-  drawArrow(ctx, position, fromColor, toColor, viewState.scale, viewState.offsetX);
+  const linePath = drawArrow(ctx, position, fromColor, toColor, viewState.scale, viewState.offsetX);
+  if (!isPerfSwim.value) {
+    globalDependencyLinesInfo.value.push({fromEvent, toEvent, linePath});
+  }
   
   drawMacroEventNodeCached(fromEvent, fromCoords, drawnNodes);
   drawMacroEventNodeCached(toEvent, toCoords, drawnNodes);
