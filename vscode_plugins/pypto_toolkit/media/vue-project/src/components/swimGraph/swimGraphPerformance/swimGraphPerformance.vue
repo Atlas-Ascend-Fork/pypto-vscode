@@ -382,7 +382,7 @@ const showMaxSchedule = async (item, isChild = false) => {
     ? subParentEvents[subParentEvents.length - 1]
     : item.parent;
   const childEvent = useSubEvent && subChildEvents.length > 0
-    ? subChildEvents[subChildEvents.length - 1]
+    ? subChildEvents[0]
     : item.child;
   await showMaxScheduleEvent(parentEvent, childEvent);
   scrollToEvent(isChild ? childEvent : parentEvent);

@@ -36,7 +36,7 @@
                         </div>
                     </template>
                     <template #default="scope">
-                        <div class="cursor-style">{{ scope.row.cumulativeTime }}</div>
+                        <div class="cursor-style table-overflow">{{ scope.row.cumulativeTime }}</div>
                     </template>
                 </d-column>
                 <d-column :style="{width: isWideScreen ? `146px` : '100px' }" show-overflow-tooltip>
@@ -56,7 +56,7 @@
                         </div>
                     </template>
                     <template #default="scope">
-                        <div class="cursor-style">{{ scope.row.cycleDuration }}</div>
+                        <div class="cursor-style table-overflow">{{ scope.row.cycleDuration }}</div>
                     </template>
                 </d-column>
                 <template #empty>
@@ -530,6 +530,8 @@ onUnmounted(() => {
 <style lang="scss">
 .time-statistics-table {
     top: 10px;
+    padding-bottom: 10px; 
+    width: calc(100% - 4px) !important;
     .devui-table__thead>tr>th:nth-child(1) .header-container {
         margin-left: 0;
     }

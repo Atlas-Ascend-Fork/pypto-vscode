@@ -27,6 +27,11 @@
     .cursor-style {
         cursor: pointer;
     }
+    .table-overflow {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     .chart-containner {
         width: 99%;
         height: 400px;
