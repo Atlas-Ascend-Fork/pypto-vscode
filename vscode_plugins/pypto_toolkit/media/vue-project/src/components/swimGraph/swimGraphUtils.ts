@@ -1,6 +1,8 @@
 // 工具函数和共享方法
 import { getEventColorByMode } from './swimGraphProcesses/processInfo';
 import { swimDataManager } from './swimData';
+import { layoutFakeCoreEvent } from '@/utils';
+import { getReader } from '@pypto/data-compress/reader';
 
 export const COLOR_CFG = {
   dark: {
@@ -812,6 +814,87 @@ export const findBuildTaskByNo = (schedCoreMap) => {
   }
   return null;
 };
+
+export const parseCompressedData = (swimInfo, processExpanded, perfLogger) => {
+  perfLogger.time('Compressor Frontend Read');
+  const swimData = getReader(swimInfo);
+  perfLogger.timeEnd('Compressor Frontend Read');
+  perfLogger.time('Compressor Frontend Process');
+  const label2lines = {};
+  swimData.lane2line = swimData.computeLane2Line();
+  let processedTasks = [];
+  let expandSet = false;
+  for (const processId in swimData.processes) {
+    if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue };
+    if (!expandSet) {
+      processExpanded.set(processId, true);
+      expandSet = true;
+    } else {
+      processExpanded.set(processId, false);
+    }
+    const process = swimData.processes[processId];
+    for (const threadId in process.threads) {
+      if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue };
+      const thread = process.threads[threadId];
+      const isCounter = thread.ph === 'C';
+      process.threads[threadId].isCounter = isCounter;
+      
+      let events = [];
+      for (let idx = 0; idx < thread.eventCount; idx++) {
+        const event = thread.getEvent(idx);
+        if (!isCounter) {
+          const dependencies = event.getDependencies();
+          event.dependencies = {};
+          event.dependencies.predecessors = dependencies.predecessors.map(it => it.id);
+          event.dependencies.successors = dependencies.successors.map(it => it.id);
+          processedTasks.push(event);
+        }
+        events.push(event);
+      }
+      process.threads[threadId].events = events;
+    }
+  }
+
+  processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
+  const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
+  const globalMaxTime = processedTasks.reduce((max, e) => {
+    return e.endTime > max ? e.endTime : max;
+  }, -Infinity); 
+
+  for (const processId in swimData.processes) {
+    if (!Object.prototype.hasOwnProperty.call(swimData.processes, processId)) { continue };
+    const process = swimData.processes[processId];
+    if (!['kernel', '', undefined].includes(process.type)) { continue };
+    for (const threadId in process.threads) {
+      if (!Object.prototype.hasOwnProperty.call(process.threads, threadId)) { continue };
+      const thread = process.threads[threadId];
+      if (!thread.threadName.includes('Fake Core')) { continue };
+      
+      for (let idx = 0; idx < thread.eventCount; idx++) {
+        const event = thread.events[idx];
+        const label = `${event.pid}@${event.tid}`;
+        let lines = label2lines[label];
+        if (!lines) {
+          label2lines[label] = lines = [];
+        }
+        layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime);
+      }
+    }
+  }
+
+  const computedPmuTotal = swimData.computePmuTotal();
+  computedPmuTotal.icache_hit = 1 - (computedPmuTotal.icache_miss / computedPmuTotal.icache_req);
+  computedPmuTotal.vec_ratio = computedPmuTotal.vec_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.cube_ratio = computedPmuTotal.cube_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.scalar_ratio = computedPmuTotal.scalar_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte1_ratio = computedPmuTotal.mte1_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte2_ratio = computedPmuTotal.mte2_busy_cycles / computedPmuTotal['total cycle'];
+  computedPmuTotal.mte3_ratio = computedPmuTotal.mte3_busy_cycles / computedPmuTotal['total cycle'];
+
+  swimData.pmu_total = computedPmuTotal;
+  perfLogger.timeEnd('Compressor Frontend Process');
+  return swimData;
+}; 
 
 export const getWrapLabelCache = (laneKey) => {
   return wrapLabelCache.get(laneKey);

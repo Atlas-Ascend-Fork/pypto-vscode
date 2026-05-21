@@ -14,9 +14,10 @@ import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import { pushState, pullState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
-import { threadCache } from '../../components/swimGraph/swimGraphUtils';
+import { parseCompressedData, threadCache } from '../../components/swimGraph/swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import type { IDiffErrorInfo } from '../diffComGraph/type';
+import { perfLogger } from '../swimGraph/perfLogger';
 const { t: $t } = useI18n();
 const graphName = ref('');
 const isHovered = ref(false);
@@ -417,32 +418,33 @@ const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCach
   if (swimErrorMessage.value) {
     swimErrorMessage.value = '';
   }
-  let data = {};
+  let data: any = {};
   const state = pullState();
-  const Reader = await server.getSwimData({ swimDataPath: state.swimDataPath });
-  const originalReader = Reader.getReader();
-  let result = await originalReader.read();
   swimGrahRef.value.loadingText = $t('receiveTraceData');
   swimGrahRef.value.processExpanded?.clear();
   swimGrahRef.value.processes?.clear();
 
-  while (!result.done) {
-    const val = result.value;
-    if (val.type == 'first') {
-      data.swimData = val.data;
-    } else {
-      data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
-    }
-    result = await originalReader.read();
-  }
+  const res = await server.getOtherData();
+  data.config = res.configuration;
+  data.comGraphPath = res.comGraphPath;
+  data.swimPath = res.swimPath;
 
-  try {
-    const res = await server.getOtherData();
-    data.config = res.configuration;
-    data.comGraphPath = res.comGraphPath;
-    data.swimPath = res.swimPath;
-  } catch (err) {
-    console.log('parse other data error:', err);
+  const swimInfo = await server.getData({swimDataPath:state.swimDataPath});
+
+  if (swimInfo.meta) {
+    data.swimData = parseCompressedData(swimInfo, swimGrahRef.value.processExpanded, perfLogger);
+  } else {
+    const originalReader = swimInfo.getReader();
+    let result = await originalReader.read();
+    while (!result.done) {
+      const val = result.value;
+      if (val.type == 'first') {
+        data.swimData = val.data;
+      } else {
+        data.swimData.processes[val.processId].threads[val.threadId].events.push(...val.data);
+      }
+      result = await originalReader.read();
+    }
   }
 
   threadCache.clear();
