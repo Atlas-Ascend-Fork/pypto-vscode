@@ -49,6 +49,7 @@ export interface MixConfig {
   parentEventId: string;
   subEventIds: string[];
   waitTaskIds: string[];
+  discardIntervals: [number, number][];
 }
 
 export interface SyncEvent {
@@ -372,6 +373,48 @@ class SwimDataManager {
     return syncEvents.filter(se => this.isValidSyncEvent(se)) as SyncEvent[];
   }
 
+  private mergeIntervals(intervals: [number, number][]): [number, number][] {
+    if (intervals.length === 0) return [];
+    const sorted = intervals.sort((a, b) => a[0] - b[0]);
+    const merged: [number, number][] = [sorted[0]];
+    for (let i = 1; i < sorted.length; i++) {
+      const current = sorted[i];
+      const last = merged[merged.length - 1];
+      if (current[0] <= last[1]) {
+        last[1] = Math.max(last[1], current[1]);
+      } else {
+        merged.push(current);
+      }
+    }
+    return merged;
+  }
+
+  private getWaitDependencyTime(
+    waitTime: number,
+    setTime: number,
+    discardIntervals: [number, number][]
+  ): number {
+    if (waitTime > setTime) {
+      for (const [start, end] of discardIntervals) {
+        if (start <= waitTime && waitTime <= end) {
+          return end;
+        }
+      }
+      return waitTime;
+    } else if (waitTime < setTime) {
+      const allIntervals: [number, number][] = [...discardIntervals, [waitTime, setTime]];
+      const merged = this.mergeIntervals(allIntervals);
+      for (const [start, end] of merged) {
+        if (start <= waitTime && waitTime <= end) {
+          return end;
+        }
+      }
+      return setTime;
+    } else {
+      return waitTime;
+    }
+  }
+
   private splitSingleEvent(parentEventId: string): void {
     const parentEvent = this.eventMap.get(parentEventId);
     if (!parentEvent || parentEvent.subEventIds) {
@@ -382,8 +425,11 @@ class SwimDataManager {
     const rawSyncEvents: any[] = parentEvent.args?.syncEvents || [];
     const syncEvents = this.filterValidSyncEvents(rawSyncEvents);
 
+    const pool = this.buildSyncEventPool(wrapId);
+
     const subEvents: EventDetail[] = [];
     const subEventIds: string[] = [];
+    const discardIntervals: [number, number][] = [];
 
     if (syncEvents.length === 0) {
       const subEventId = `${parentEventId}_sub_0`;
@@ -399,46 +445,78 @@ class SwimDataManager {
       this.eventMap.set(subEventId, subEvent);
     } else {
       const sortedSyncEvents = [...syncEvents].sort((a, b) => a.time - b.time);
-      let currentStartTime = parentEvent.startTime;
-      let subEventIndex = 0;
-
-      for (let i = 0; i < sortedSyncEvents.length; i++) {
-        const syncEvent = sortedSyncEvents[i];
-        const endTime = syncEvent.time;
-
-        if (endTime > currentStartTime) {
-          const subEventId = `${parentEventId}_sub_${subEventIndex}`;
-          const subEvent = this.createMinimalSubEvent(
-            parentEvent,
-            subEventId,
-            `${parentEvent.name}_${subEventIndex}`,
-            currentStartTime,
-            endTime
-          );
-          subEvents.push(subEvent);
-          subEventIds.push(subEventId);
-          this.eventMap.set(subEventId, subEvent);
-          subEventIndex++;
-        }
-
+      
+      for (const syncEvent of sortedSyncEvents) {
         if (syncEvent.type === 'CV_SYNC_WAIT') {
-          const pairSetEvent = this.findSyncEventPair(wrapId, syncEvent.eventid, 'CV_SYNC_SET');
+          const pairSetEvent = this.findAndRemoveSyncEventPair(pool, syncEvent.eventid, 'CV_SYNC_SET');
           if (pairSetEvent && pairSetEvent.time > syncEvent.time) {
-            currentStartTime = Math.min(pairSetEvent.time, parentEvent.endTime);
-          } else {
-            currentStartTime = endTime;
+            discardIntervals.push([syncEvent.time, Math.min(pairSetEvent.time, parentEvent.endTime)]);
           }
+        }
+      }
+      
+      const mergedDiscardIntervals = this.mergeIntervals(discardIntervals);
+      
+      let currentStartTime = parentEvent.startTime;
+
+      for (let si = 0; si < sortedSyncEvents.length; si++) {
+        const syncEvent = sortedSyncEvents[si];
+        const syncTime = syncEvent.time;
+        
+        let inDiscardInterval = false;
+        let matchedDiscardIdx = -1;
+        for (let di = 0; di < mergedDiscardIntervals.length; di++) {
+          const [start, end] = mergedDiscardIntervals[di];
+          if (start <= syncTime && syncTime <= end) {
+            inDiscardInterval = true;
+            matchedDiscardIdx = di;
+            break;
+          }
+        }
+        
+        if (inDiscardInterval) {
+          const [start, end] = mergedDiscardIntervals[matchedDiscardIdx];
+          if (currentStartTime < start) {
+            const nameIndex = si;
+            const subEventId = `${parentEventId}_sub_${nameIndex}`;
+            const subEvent = this.createMinimalSubEvent(
+              parentEvent,
+              subEventId,
+              `${parentEvent.name}_${nameIndex}`,
+              currentStartTime,
+              start
+            );
+            subEvents.push(subEvent);
+            subEventIds.push(subEventId);
+            this.eventMap.set(subEventId, subEvent);
+          }
+          currentStartTime = end;
         } else {
-          currentStartTime = endTime;
+          if (syncTime > currentStartTime) {
+            const nameIndex = si;
+            const subEventId = `${parentEventId}_sub_${nameIndex}`;
+            const subEvent = this.createMinimalSubEvent(
+              parentEvent,
+              subEventId,
+              `${parentEvent.name}_${nameIndex}`,
+              currentStartTime,
+              syncTime
+            );
+            subEvents.push(subEvent);
+            subEventIds.push(subEventId);
+            this.eventMap.set(subEventId, subEvent);
+          }
+          currentStartTime = syncTime;
         }
       }
 
       if (currentStartTime < parentEvent.endTime) {
-        const subEventId = `${parentEventId}_sub_${subEventIndex}`;
+        const nameIndex = sortedSyncEvents.length;
+        const subEventId = `${parentEventId}_sub_${nameIndex}`;
         const subEvent = this.createMinimalSubEvent(
           parentEvent,
           subEventId,
-          `${parentEvent.name}_${subEventIndex}`,
+          `${parentEvent.name}_${nameIndex}`,
           currentStartTime,
           parentEvent.endTime
         );
@@ -457,11 +535,13 @@ class SwimDataManager {
       waitTaskIds.push(waitTask.id);
     }
 
+    const mergedDiscardIntervals = discardIntervals.length > 0 ? this.mergeIntervals(discardIntervals) : [];
     this.mixConfig.push({
       wrapId: wrapId ?? -1,
       parentEventId,
       subEventIds,
       waitTaskIds,
+      discardIntervals: mergedDiscardIntervals,
     });
   }
 
@@ -498,21 +578,47 @@ class SwimDataManager {
     return waitTasks;
   }
 
-  private findSyncEventPair(wrapId: number, eventid: number, targetType: 'CV_SYNC_SET' | 'CV_SYNC_WAIT'): SyncEvent | null {
+  private buildSyncEventPool(wrapId: number): Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }> {
+    const pool = new Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>();
     const events = this.eventsByWrapId.get(wrapId);
-    if (!events) {
-      return null;
-    }
+    if (!events) return pool;
+
     for (const event of events) {
       if (event.args?.syncEvents) {
-        const syncEvents: SyncEvent[] = event.args.syncEvents;
-        const pair = syncEvents.find(se => se.eventid === eventid && se.type === targetType);
-        if (pair) {
-          return pair;
+        for (const se of event.args.syncEvents) {
+          if (!this.isValidSyncEvent(se)) continue;
+          if (!pool.has(se.eventid)) {
+            pool.set(se.eventid, { sets: [], waits: [] });
+          }
+          const entry = pool.get(se.eventid)!;
+          if (se.type === 'CV_SYNC_SET') {
+            entry.sets.push(se);
+          } else {
+            entry.waits.push(se);
+          }
         }
       }
     }
-    return null;
+    
+    for (const entry of pool.values()) {
+      entry.sets.sort((a, b) => a.time - b.time);
+      entry.waits.sort((a, b) => a.time - b.time);
+    }
+    return pool;
+  }
+
+  private findAndRemoveSyncEventPair(
+    pool: Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>,
+    eventid: number,
+    targetType: 'CV_SYNC_SET' | 'CV_SYNC_WAIT'
+  ): SyncEvent | null {
+    const entry = pool.get(eventid);
+    if (!entry) return null;
+    
+    const targetList = targetType === 'CV_SYNC_SET' ? entry.sets : entry.waits;
+    if (targetList.length === 0) return null;
+    
+    return targetList.shift()!;
   }
 
   private findEventBySyncEvent(wrapId: number, syncEvent: SyncEvent): EventDetail | null {
@@ -543,6 +649,8 @@ class SwimDataManager {
   }
 
   private generateAllDependencies(): void {
+    const poolByWrapId = new Map<number, Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>>();
+
     for (const config of this.mixConfig) {
       const wrapId = config.wrapId;
       const parentEventId = config.parentEventId;
@@ -551,12 +659,17 @@ class SwimDataManager {
         continue;
       }
 
+      if (!poolByWrapId.has(wrapId)) {
+        poolByWrapId.set(wrapId, this.buildSyncEventPool(wrapId));
+      }
+      const pool = poolByWrapId.get(wrapId)!;
+
       const rawSyncEvents: any[] = parentEvent.args.syncEvents;
       const syncEvents = this.filterValidSyncEvents(rawSyncEvents);
       const setEvents = syncEvents.filter(se => se.type === 'CV_SYNC_SET');
 
       for (const setEvent of setEvents) {
-        const pairWaitEvent = this.findSyncEventPair(wrapId, setEvent.eventid, 'CV_SYNC_WAIT');
+        const pairWaitEvent = this.findAndRemoveSyncEventPair(pool, setEvent.eventid, 'CV_SYNC_WAIT');
         if (!pairWaitEvent) {
           continue;
         }
@@ -571,7 +684,16 @@ class SwimDataManager {
           continue;
         }
 
-        const subEventC = this.findSubEventByStartTime(waitParentEvent.id, setEvent.time);
+        const waitConfig = this.getSplitConfig(waitParentEvent.id);
+        const waitDiscardIntervals = waitConfig?.discardIntervals || [];
+
+        const dependencyTime = this.getWaitDependencyTime(
+          pairWaitEvent.time,
+          setEvent.time,
+          waitDiscardIntervals
+        );
+
+        const subEventC = this.findSubEventByStartTime(waitParentEvent.id, dependencyTime);
         if (!subEventC) {
           continue;
         }
