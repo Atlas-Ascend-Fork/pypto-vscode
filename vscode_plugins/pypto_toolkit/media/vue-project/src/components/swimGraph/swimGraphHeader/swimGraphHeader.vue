@@ -695,7 +695,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
   ctx.restore();
 }
 
-// 绘制 Process 的各图层（bg, event, dep 等）
+// 绘制 Process 的各图层（bg, event, dep 等）, E2ESwim和单aicpu的依赖节点用的是data-dep，其他用的是global
 function drawProcessLayers(ctx, processKey, y, width, height) {
   const { processLabelWidth } = layout;
   let selectors = [
@@ -703,7 +703,8 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
     `[data-wrap-container-process-key="${processKey}"]`,
     `[data-process-key="${processKey}"]`,
     `[data-mix-dep-process-key="${processKey}"]`,
-    isE2ESwim.value ? `[data-dep-process-key="${processKey}"]` : `.global-connection-canvas`,
+    `[data-dep-process-key="${processKey}"]`,
+    `.global-connection-canvas`,
     `[data-selection-process-key="${processKey}"]`,
     `[data-ui-process-key="${processKey}"]`,
     `[data-hover-wrap-container-process-key="${processKey}"]`,
@@ -723,7 +724,7 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
     ];
   }
   const globalRef = document.querySelector('.global-connection-canvas');
-  const globalHeight = globalRef ? globalRef.height : 0;
+  const globalHeight = globalRef ? globalRef.offsetHeight : 0;
   const offsetHeight = globalRef ? getCanvasOffsetHeight() : 0;
   for (const selector of selectors) {
     const canvasEl = document.querySelector(selector);
@@ -765,7 +766,7 @@ function getCanvasOffsetHeight() {
   for (const [key, process] of processes.entries()) {
     const isExpanded = processExpanded.get(key);
     const canvasRef = document.querySelector(`[data-process-key="${key}"]`);
-    const canvasHeight = canvasRef ? canvasRef.height : 0;
+    const canvasHeight = canvasRef ? canvasRef.offsetHeight : 0;
     if (selectedKey === key) {
       return currentOffset + ROW_GAP; 
     }
