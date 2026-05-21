@@ -78,7 +78,8 @@ const {
     kernelColorRending,
     performanceVisible,
     selectedEvent,
-    kernelThreadData
+    kernelThreadData,
+    lastSelected
 } = inject('swimGraphState');
 
 const {
@@ -468,6 +469,7 @@ const handleAicpuCanvasClick = (e) => {
   }
   ctx.clearRect(0, 0, containerWidth.value, CANVAS_HEIGHT.value);
   clickedEvent.value = null;
+  lastSelected.value = null;
   selectEvent(selectedOriginEvent.value, aiCpuProcessKey.value);
   scrollToEvent(selectedOriginEvent.value);
 }; 
