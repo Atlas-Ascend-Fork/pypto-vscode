@@ -1763,6 +1763,16 @@ const getMixModeDisplayName = (name) => {
   return displayName;
 };
 
+const getMixModeTaskLabelName = (labelPart, name) => {
+  let displayName = '';
+  if (labelPart) {
+    const laberContent = labelPart.groups.label.trim();
+    const rightPart = name.substring(labelPart.index + labelPart[0].length).trim();
+    displayName = laberContent + (rightPart ? String(rightPart) : '');
+  }
+  return displayName;
+};
+
 const getDisplayName = (event) => {
   let { name: displayName } = event;
   const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
@@ -1774,7 +1784,11 @@ const getDisplayName = (event) => {
     }
   } else if (textOption.length === 1 && textOption[0] === 'taskLabel') {
     const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
-    displayName = labelPart ? labelPart.groups.label.trim() : '';
+    if (isMixMode?.value) {
+      displayName = getMixModeTaskLabelName(labelPart, displayName);
+    } else {
+      displayName = labelPart ? labelPart.groups.label.trim() : '';
+    }
   }
   return displayName;
 };

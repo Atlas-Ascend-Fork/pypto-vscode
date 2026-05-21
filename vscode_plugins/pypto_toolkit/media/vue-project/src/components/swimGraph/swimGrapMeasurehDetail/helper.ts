@@ -116,7 +116,7 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
 
   const lineRangeStart = lineRange[0];
   const lineRangeEnd = lineRange[1];
-  const matchingEvents = [];
+  let matchingEvents = [];
   let yLayer = 0;
   let result;
   let isPinnedArea = false;
@@ -179,6 +179,11 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
         }
       }
     }
+  }
+  if (type === 'end' && isMixMode.value) {
+    matchingEvents = matchingEvents.filter(event =>
+      event.endTime > lineRangeStart && event.endTime < lineRangeEnd
+    );
   }
   const measureTime = measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
   return measureTime;

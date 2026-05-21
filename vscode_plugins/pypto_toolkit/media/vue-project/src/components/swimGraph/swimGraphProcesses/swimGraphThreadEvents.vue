@@ -2799,7 +2799,12 @@ const lineShowTooltip = (e, startEvent, endEvent) => {
   let lineTooltipContent = `<div class="linetooltip-container">`;
   for (const [key, value] of interSectionMap) {
     const { shape, dtype, rawmagic, mem_usage } = value[key];
-    const valueString = `{${key}: {shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}}}`;
+    let valueString;
+    if (mem_usage !== undefined) {
+      valueString = `{${key}: {shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}, mem_usage:${mem_usage}}}`;
+    } else {
+      valueString = `{${key}: {shape:${JSON.stringify(shape)}, dtype:${dtype}, rawmagic:${rawmagic}}}`;
+    }
     lineTooltipContent += `<div class="linetooltip-item"><span class="linetooltip-value">${valueString}</span></div>`;
   }
   lineTooltipContent += '</div>';

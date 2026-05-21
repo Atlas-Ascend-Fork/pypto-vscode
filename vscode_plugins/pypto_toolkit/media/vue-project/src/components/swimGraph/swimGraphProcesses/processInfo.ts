@@ -102,9 +102,13 @@ export const getEventColorByMode = (event: any, mode: string, processType = 'ker
      lLightColor = lightThemeLightColors[subGraphId % 360];
    }
   } else {
-    const label = event.args?.color || '';
-    const dres = getColorByString(label, darkThemeBaseColors, darkThemeLightColors);
-    const lres = getColorByString(label, lightThemeBaseColors, lightThemeLightColors);
+    const labelPart = event.name.match(/\((?<label>[^)]+)\)/);
+    let labelname = labelPart ? labelPart.groups.label.trim() : '';
+    if (labelname === '') {
+      labelname = event.args?.color || '';
+    }
+    const dres = getColorByString(labelname, darkThemeBaseColors, darkThemeLightColors);
+    const lres = getColorByString(labelname, lightThemeBaseColors, lightThemeLightColors);
     dBaseColor = dres.baseColor;
     dLightColor = dres.lightColor;
     lBaseColor = lres.baseColor;

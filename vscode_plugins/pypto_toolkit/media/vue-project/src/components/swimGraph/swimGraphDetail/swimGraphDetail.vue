@@ -538,6 +538,7 @@ const createHint = (event, operate) => {
   }
   let value = event.args[operate];
   let eventhint = event.args['event-hint'];
+  eventhint = eventhint.replace(/\n/g, '');
   const regex = /'rawmagic':\s*(?<rawmagic>\d+)/g;
   let matches;
   let result = value;
