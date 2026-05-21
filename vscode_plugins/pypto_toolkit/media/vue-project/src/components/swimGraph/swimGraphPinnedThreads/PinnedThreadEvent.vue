@@ -193,6 +193,7 @@ const clearEventCanvas = () => {
   const height = containerHeight.value;
   eventsCtx.clearRect(0, 0, eventWidth, height);
   depCtx.clearRect(0, 0, eventWidth, height);
+  highlightCtx.clearRect(0, 0, eventWidth, height);
 };
 
 // 清空测距画布
@@ -436,11 +437,13 @@ const processMixModePinnedThread = (thread, processKey, eventY, isDimmed, drawDa
       if (!event) { continue };
       
       const isMixParent = swimDataManager.isMixParentEvent(event);
-      
+      const isOnPath = highlightedPaths.has(eventId) || 
+                      (event.parentEventId && highlightedPaths.has(event.parentEventId));
+      const adjustedIsDimmed = isOnPath ? false : isDimmed;
       if (isMixParent) {
-        processMixParentEventForPinned(event, eventY, isDimmed, drawDatas, processKey);
+        processMixParentEventForPinned(event, eventY, adjustedIsDimmed, drawDatas, processKey);
       } else {
-        processNormalEventForPinned(event, eventY, isDimmed, drawDatas, processKey);
+        processNormalEventForPinned(event, eventY, adjustedIsDimmed, drawDatas, processKey);
       }
     }
   }
@@ -458,11 +461,17 @@ const processNormalModePinnedThread = (thread, processKey, eventY, isDimmed, dra
     
     event.drawData.show = true;
     
-    if (!isDimmed) {
-      const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
+    const isOnPath = highlightedPaths.has(event.id) || 
+                    (event.parentEventId && highlightedPaths.has(event.parentEventId));
+    
+    if (!isDimmed || isOnPath) {
+      const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
       event.drawData.rectColor = fillColor;
-      event.drawData.strokeColor = strokeColor;
+      event.drawData.strokeColor = '';
       event.drawData.fontColor = fontColor;
+    } else {
+      event.drawData.rectColor = colorCfg.eventRectNoColor;
+      event.drawData.fontColor = colorCfg.eventFontNoColor;
     }
     
     drawDatas.push(createPinnedDrawData(event, eventY));
@@ -499,9 +508,8 @@ const changePinnedColor = (isDimmed) => {
     
     threadY += layout.threadHeight * lc;
   }
-  
-  eventRenderer.drawEvent(drawDatas, eventsCtx, isDimmed, true);
-  eventRenderer.drawEventText(drawDatas, eventsCtx, isDimmed, true);
+  eventRenderer.drawEvent(drawDatas, eventsCtx, false, true);
+  eventRenderer.drawEventText(drawDatas, eventsCtx, false, true);
 };
 
 const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) => {
