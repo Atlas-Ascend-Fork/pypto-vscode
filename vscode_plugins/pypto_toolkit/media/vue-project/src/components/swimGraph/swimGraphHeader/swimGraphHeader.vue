@@ -710,19 +710,21 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
     `[data-hover-wrap-container-process-key="${processKey}"]`,
     `[data-line-process-key="${processKey}"]`
   ];
-  const selectedProcessKey = selectedEvent.value?.pid?.toString() ?? null;
-  if (!isE2ESwim.value && selectedProcessKey && processKey != selectedProcessKey) {
-    selectors = [
-      `[data-background-process-key="${processKey}"]`,
-      `[data-wrap-container-process-key="${processKey}"]`,
-      `[data-process-key="${processKey}"]`,
-      `[data-mix-dep-process-key="${processKey}"]`,
-      `[data-selection-process-key="${processKey}"]`,
-      `[data-ui-process-key="${processKey}"]`,
-      `[data-hover-wrap-container-process-key="${processKey}"]`,
-      `[data-line-process-key="${processKey}"]`
-    ];
-  }
+const selectedProcessKey = selectedEvent.value?.pid?.toString() ?? null;
+const searchedProcessKey = searchedEvent.value?.pid?.toString() ?? null;
+const activeProcessKey = selectedProcessKey || searchedProcessKey;
+if (!isE2ESwim.value && activeProcessKey && processKey != activeProcessKey) {
+  selectors = [
+    `[data-background-process-key="${processKey}"]`,
+    `[data-wrap-container-process-key="${processKey}"]`,
+    `[data-process-key="${processKey}"]`,
+    `[data-mix-dep-process-key="${processKey}"]`,
+    `[data-selection-process-key="${processKey}"]`,
+    `[data-ui-process-key="${processKey}"]`,
+    `[data-hover-wrap-container-process-key="${processKey}"]`,
+    `[data-line-process-key="${processKey}"]`
+  ];
+}
   const globalRef = document.querySelector('.global-connection-canvas');
   const globalHeight = globalRef ? globalRef.offsetHeight : 0;
   const offsetHeight = globalRef ? getCanvasOffsetHeight() : 0;
@@ -759,7 +761,9 @@ function drawProcessLayers(ctx, processKey, y, width, height) {
 function getCanvasOffsetHeight() {
   const ROW_GAP = 30; 
   const selectedKey = selectedEvent.value?.pid?.toString();
-  if (!selectedKey) {
+  const searchedKey = searchedEvent.value?.pid?.toString();
+  const activeKey = selectedKey || searchedKey;
+  if (!activeKey) {
     return 0;
   }
   let currentOffset = 0;
@@ -767,7 +771,7 @@ function getCanvasOffsetHeight() {
     const isExpanded = processExpanded.get(key);
     const canvasRef = document.querySelector(`[data-process-key="${key}"]`);
     const canvasHeight = canvasRef ? canvasRef.offsetHeight : 0;
-    if (selectedKey === key) {
+    if (activeKey === key) {
       return currentOffset + ROW_GAP; 
     }
     if (isExpanded) {
