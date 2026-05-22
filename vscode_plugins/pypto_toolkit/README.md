@@ -194,6 +194,12 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
 
+- **Mix子图**
+
+    在渲染配置界面中启用Mix模式，即可查看Mix子图
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
+
 - **快捷键列表**
 
   | 快捷键 | 功能描述 |

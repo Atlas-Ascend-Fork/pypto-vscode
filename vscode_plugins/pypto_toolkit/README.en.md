@@ -193,6 +193,12 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
     Move the mouse over the left area of the lane. The top icon will be displayed. Click to top the lane.
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
+    
+- **Mix Subgraph**
+
+    Enable Mix mode in the Swimlane Rendering Configuration panel to view the Mix subgraph.
+
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
 
 - **Shortcut Key List**
 
