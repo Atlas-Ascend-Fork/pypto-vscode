@@ -451,7 +451,7 @@ const calculateDependencies = (events, connections) => {
     }
         
     if (event.ph == 'X' || event.ph == 'B' || event.ph == 'E') {
-      if (!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || (event.ts) ) {
+      if (!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || Number.isNaN(event.ts) ) {
         if (event.name) {
           errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
         } else {
