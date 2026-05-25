@@ -64,8 +64,8 @@ watch(server.AccurancyReport, (newValue) => {
 
 // 获取下方列表数据
 watch(server.AccurancyList, (val: Record<string, any>) => {
-  errorListData.value = val.data.comgraphFailList.list || []
-  pageConfig.value.total = val.data.comgraphFailList.total
+  errorListData.value = val.data?.comgraphFailList?.list || [];
+  pageConfig.value.total = val.data?.comgraphFailList?.total || 0;
 });
 
 onMounted(() => {

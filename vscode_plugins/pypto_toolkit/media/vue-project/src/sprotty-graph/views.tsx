@@ -448,6 +448,7 @@ export class AstgrNodeLabelView extends ShapeView {
       const isParentNode = label.id.startsWith('parent');
       let node = label.parent.parent;
       let titleTxtFillColor = 'var(--devui-primary-text)';
+      const isRunningNode = node.id === comGraphStore.data.runningNodeId;
       if (((node.role !== 'input') && (node.role !== 'output')) || node.isError || node.isEmptyNode) {
         // if(label.id.includes("operation")) node = label.parent;
         if (node.isEmptyNode) {
@@ -459,14 +460,23 @@ export class AstgrNodeLabelView extends ShapeView {
       }
       // 创建第一个text节点
       const titleText = (
-        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} fill={titleTxtFillColor}>
+        <text
+          class-sprotty-label={true}
+          class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+          class-parent-node={isParentNode}
+          fill={isRunningNode ? 'var(--devui-running-node-title-text)' : titleTxtFillColor}>
           {label.text}
         </text>
       );
 
       // 创建第二个text节点，并设置其位置在第一个text的下方
       const idText = subgraphId && label.text.startsWith('CALL') ? (
-        <text class-sprotty-label={true} class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail} class-parent-node={isParentNode} dy="2em" fill={titleTxtFillColor}>
+        <text
+          class-sprotty-label={true}
+          class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+          class-parent-node={isParentNode}
+          dy="2em"
+          fill={isRunningNode ? 'devui-running-node-value-text' : titleTxtFillColor}>
           {subgraphId}
         </text>
       ) : null;
@@ -485,6 +495,7 @@ export class AstgrNodeLabelView extends ShapeView {
       let keyFillColor = 'var(--devui-text)';
       let keyFillOpacity = '0.6';
       let valueFillColor = 'var(--devui-primary-text)';
+      const isRunningNode = node.id === comGraphStore.data.runningNodeId;
       
       if (((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') 
         || ((node.role === 'input' || node.role === 'output') && node.isError && node.selected)) {
@@ -497,7 +508,7 @@ export class AstgrNodeLabelView extends ShapeView {
       let originTextSplit = label.originText?.split(':');
       // 创建第一个text标签
       const keyText = (
-        <text class-sprotty-label={true} fill={keyFillColor} fill-opacity={keyFillOpacity} x={20}>
+        <text class-sprotty-label={true} fill={isRunningNode ? 'var(--devui-running-node-key-text)' : keyFillColor} fill-opacity={keyFillOpacity} x={20}>
           {split[0] + ':'}
         </text>
       );
@@ -505,7 +516,7 @@ export class AstgrNodeLabelView extends ShapeView {
       let renderSecondStr = split[1].trim();
       const originTextSecondStr = originTextSplit[1].trim();
       let valueText = (
-        <text class-sprotty-label={true} class-tensor-value-label={subType} fill={valueFillColor} x={80}>
+        <text class-sprotty-label={true} class-tensor-value-label={subType} fill={isRunningNode ? 'var(--devui-running-node-value-text)' : valueFillColor} x={80}>
           {renderSecondStr}
         </text>
       );
@@ -513,7 +524,7 @@ export class AstgrNodeLabelView extends ShapeView {
         valueText = (
           <g>
             <title>{originTextSecondStr}</title>
-            <text class-sprotty-label={true} class-tensor-value-label={subType} fill={valueFillColor} x={80}>
+            <text class-sprotty-label={true} class-tensor-value-label={subType} fill={isRunningNode ? 'var(--devui-running-node-value-text)' : valueFillColor} x={80}>
               {renderSecondStr}
             </text>
           </g>
@@ -553,6 +564,7 @@ function getBadgeDom(node) {
   /* 右上角角标区域的宽高 */
   const badgeWidth = badgeTextWidth + badgePadding;
   const badgeHeight = 20;
+  const isRunningNode = node.id === comGraphStore.data.runningNodeId;
   let magicIdBgFillColor =  'var(--devui-node-badge-bg)';
   let magicIdTextFillColor = 'var(--devui-node-badge-text)';
   let badgeX = 5;
@@ -579,7 +591,6 @@ function getBadgeDom(node) {
       badgeX = 4;
       badgeY = 14;
     }
-    
   }
 
   const inputRightPosY = (node.role === 'input' || node.isMiddle) ? 5 : 0;
@@ -596,9 +607,16 @@ function getBadgeDom(node) {
         badgeWidth - badgePaddingRight - radius
       } ${badgePaddingTop} L -${badgePaddingRight} ${badgePaddingTop} Z`}
       class-magicId-background-label={true}
-      fill={magicIdBgFillColor}
+      fill={isRunningNode ? 'var(--devui-running-node-badge-bg)' : magicIdBgFillColor}
     ></path>
-    <text x={badgeX} y={badgeY} font-size="10px" line-height="12px" font-weight="400" fill={magicIdTextFillColor}>
+    <text
+      x={badgeX}
+      y={badgeY}
+      font-size="10px"
+      line-height="12px"
+      font-weight="400"
+      fill={isRunningNode ? 'var(--devui-running-node-badge-text)' : magicIdTextFillColor}
+    >
       {node.magic}
     </text>
   </g>)
@@ -666,6 +684,22 @@ export class AstgrOpView extends RectangularNodeView {
     const rectWidth = Math.max(node.size.width, 0);
     const rectHeight = Math.min(node.size.height, 150);
 
+    // 内存可视化高亮节点
+    const runningNodeRectOffset = 16;
+    const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+    const rectNode = isRunningNode ? (
+      <rect
+        width={rectWidth + runningNodeRectOffset}
+        height={rectHeight + runningNodeRectOffset}
+        rx="10px"
+        stroke-width="3"
+        fill='transparent'
+        style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
+        class-running-node={true}
+      ></rect>
+    ) : null;
+    const rectBgNode = isRunningNode ? <rect width={rectWidth} height={rectHeight} rx="8px" fill="var(--devui-base-invert-color)"></rect> : null;
+
     /* root节点的类型判断 是否使用亮色 */
     let backgroundFillColor = node.baseColor;
     let backgroundFilter = '';
@@ -705,6 +739,8 @@ export class AstgrOpView extends RectangularNodeView {
         style={isCallOperation ? { cursor: 'pointer' } : undefined}
         on-dblclick={isCallOperation ? handleDoubleClick : undefined}
       >
+        {rectNode}
+        {rectBgNode}
         <rect
           class-op={true}
           class-sprotty-node={true}
@@ -712,7 +748,7 @@ export class AstgrOpView extends RectangularNodeView {
           class-call-operation={isCallOperation}
           width={rectWidth}
           height={rectHeight}
-          fill={backgroundFillColor}
+          fill={isRunningNode ? 'var(--devui-running-node-bg)' : backgroundFillColor}
           filter={backgroundFilter}
           class-op-diff-add={node.compareType === 'add'}
           class-op-diff-delete={node.compareType === 'delete'}
@@ -940,6 +976,21 @@ export class AstgrTensorView extends RectangularNodeView {
 
     const blurBgRectHeight = 30;
 
+    // 内存可视化高亮节点
+    const runningNodeRectOffset = 16;
+    const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+    const runningRectNode = isRunningNode ? (
+      <rect
+        width={Math.max(node.size.width + runningNodeRectOffset, 0)}
+        height={Math.max(node.size.height + runningNodeRectOffset + 4, 0)}
+        rx="10px"
+        stroke-width="3"
+        fill='transparent'
+        style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
+        class-running-node={true}
+      ></rect>
+    ) : null;
+
     /* root节点的类型判断，是否使用亮色 */
     let titleBackgroundFillColor = node.baseColor;
     let inoutBackgroundFillColor = 'var(--devui-node-bg)';
@@ -967,6 +1018,7 @@ export class AstgrTensorView extends RectangularNodeView {
     if ((node.role !== 'input') && (node.role !== 'output')) {
       rectNode = (
         <g>
+          {runningRectNode}
           <rect
             class-sprotty-node={true}
             class-tensor={true}
@@ -977,7 +1029,7 @@ export class AstgrTensorView extends RectangularNodeView {
             height={Math.max(node.size.height + 4, 0)}
             rx="8"
             ry="8"
-            fill={inoutBackgroundFillColor}
+            fill={isRunningNode ? 'var(--devui-base-invert-color)' : inoutBackgroundFillColor}
             filter={backgroundFilter}
             data-type={node.compareType}
             class-tensor-diff-add={node.compareType === 'add'}
@@ -992,7 +1044,7 @@ export class AstgrTensorView extends RectangularNodeView {
             } ${blueBgRectPaddingTop} Q ${blueBgRectWidth - blueBgRectPaddingLeft} ${blueBgRectPaddingTop} ${
               blueBgRectWidth - blueBgRectPaddingLeft
             } ${radius + blueBgRectPaddingTop} L ${blueBgRectWidth - blueBgRectPaddingLeft} ${blurBgRectHeight} Z`}
-            fill={titleBackgroundFillColor}
+            fill={isRunningNode ? 'var(--devui-running-node-bg)' : titleBackgroundFillColor}
             class-tensor-title-background-label={true}
             filter={backgroundFilter}
           ></path>
@@ -1019,10 +1071,32 @@ export class AstgrTensorView extends RectangularNodeView {
           inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
         }
       }
+      if (isRunningNode) {
+        inoutBackgroundFillColor = 'var(--devui-base-invert-color)';
+      }
       const errorColor = node.selected ? node.lightColor : node.baseColor;
       if (node.role === 'input' && !node.isMiddle) {
+        let pathNode = null;
+        if (isRunningNode) {
+          const runningNodeHeight = height + 12;
+          const runningNodeWidth = width + 12;
+          pathNode = (
+            <path
+              d={`M 0 ${runningNodeHeight + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
+                runningNodeWidth - radius
+              } 0 Q ${runningNodeWidth} 0 ${runningNodeWidth} ${radius} L ${runningNodeWidth} ${runningNodeHeight + correctHeight} Q ${(runningNodeWidth / 4) * 3} ${runningNodeHeight + correctHeight - waveOffset1 * 3} ${
+                runningNodeWidth / 2
+              } ${runningNodeHeight + correctHeight} T 0 ${runningNodeHeight + correctHeight} Z`}
+              stroke-width="3"
+              fill='transparent'
+              class-running-node={true}
+              style={{transform: 'translate(-6px, -6px)'}}
+            ></path>
+          );
+        }
         rectNode = (
           <g>
+            {pathNode}
             <path
               d={`M 0 ${height + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
                 width - radius
@@ -1054,8 +1128,32 @@ export class AstgrTensorView extends RectangularNodeView {
         );
       } else if (node.role === 'output' && !node.isMiddle) {
         let nodeFillColor = node.isError ? errorColor: inoutBackgroundFillColor;
+        let pathNode = null;
+        if (isRunningNode) {
+          const runningNodeHeight = height + 12;
+          const runningNodeWidth = width + 12;
+          pathNode = (
+            <path
+              d={`M 0 ${runningNodeHeight + correctHeight - waveOffset1}
+              L 0 ${radius}
+              Q 0 0 ${radius} 0
+              L ${runningNodeWidth - radius} 0
+              Q ${runningNodeWidth} 0 ${runningNodeWidth} ${radius}
+              L ${runningNodeWidth} ${runningNodeHeight + correctHeight - waveOffset1}
+              Q ${(runningNodeWidth / 4) * 3} ${runningNodeHeight + correctHeight - waveOffset1 - waveOffset1 * 3}
+                ${runningNodeWidth / 2} ${runningNodeHeight + correctHeight - waveOffset1}
+              T 0 ${runningNodeHeight + correctHeight - waveOffset1}
+              Z`}
+              stroke-width="3"
+              fill='transparent'
+              class-running-node={true}
+              style={{ transform: 'translate(-6px, -6px)' }}
+            ></path>
+          );
+        }
         rectNode = (
           <g>
+            {pathNode}
             <path
               d={`M 0 ${height + correctHeight - waveOffset1}
               L 0 ${radius}

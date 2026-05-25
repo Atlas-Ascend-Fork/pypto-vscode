@@ -94,6 +94,13 @@ export const ideLightTheme = new Theme({
     'devui-tips-shadow': '0 1px 6px 0px rgba(0,0,0,0.08)', // 卡片一级阴影
     'devui-select-shadow': '0 4px 12px 0 rgba(0,0,0,0.16)', // 下拉菜单阴影
     'devui-modal-shadow': '0 16px 48px 0 rgba(0,0,0,0.16)', // 弹窗阴影
+    'devui-running-node-bg': 'rgba(187,214,255,0.2)', // 运行中节点背景色
+    'devui-running-node-badge-bg': 'rgba(147,147,147,1)', // 运行中节点徽标背景色
+    'devui-running-node-badge-text': 'rgba(255,255,255,0.6)', // 运行中节点徽标字体色
+    'devui-running-node-title-text': 'rgba(255,255,255,0.9)', // 运行中节点字体色
+    'devui-running-node-key-text': 'rgba(255,255,255,0.6)', // 运行中节点的key字体色
+    'devui-running-node-value-text': 'rgba(255,255,255,1)', // 运行中节点的value字体色
+    'devui-base-invert-color': '#2f2f2f', // 反色
     'devui-rose-60': '#e61866',
     'devui-red-60': '#e02128',
     'devui-orange-60': '#f4840c',
@@ -285,6 +292,13 @@ export const ideDarkTheme = new Theme({
     'devui-tips-shadow': '0 1px 6px 0px rgba(38,38,38,0.08)', // 卡片一级阴影
     'devui-select-shadow': '0 0 16px 0 rgba(0,0,0,0.2)', // 下拉菜单阴影
     'devui-modal-shadow': '0 10px 70px 0 rgba(0,0,0,0.5)', // 弹窗阴影
+    'devui-running-node-bg': 'rgba(55,84,185,0.2)', // 运行中节点背景色
+    'devui-running-node-badge-bg': 'rgba(0,0,0,0.1)', // 运行中节点徽标背景色
+    'devui-running-node-badge-text': 'rgba(0,0,0,0.6)', // 运行中节点徽标字体色
+    'devui-running-node-title-text': 'rgba(0,0,0,0.9)', // 运行中节点字体色
+    'devui-running-node-key-text': 'rgba(0,0,0,0.6)', // 运行中节点的key字体色
+    'devui-running-node-value-text': 'rgba(0,0,0,1)', // 运行中节点的value字体色
+    'devui-base-invert-color': '#ffffff', // 反色
     'devui-rose-60': '#c40054',
     'devui-red-60': '#c7000b',
     'devui-orange-60': '#c76207',

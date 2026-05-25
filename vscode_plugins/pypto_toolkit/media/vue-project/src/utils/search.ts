@@ -1,3 +1,5 @@
+import { comGraphStore } from "@/service/com-graph-store";
+
 export function extractOutcasts(jsonData) {
   const outcasts = {};
   if (jsonData.outcasts) {
@@ -32,6 +34,7 @@ export function extractRawTensors(jsonData) {
 
 export function extractOperationNodes(jsonData) {
   const opMap = {};
+  const magicNodeIdMap = {};
   if (jsonData && jsonData.operations && Array.isArray(jsonData.operations)) {
     jsonData.operations.forEach((operation, index) => {
       const subgraphId = operation.subgraphid !== undefined ? operation.subgraphid : -1;
@@ -44,13 +47,16 @@ export function extractOperationNodes(jsonData) {
       operation['subgraphid'] = subgraphId;
       operation['node_type'] = 'operation';
       opMap[operation.subgraphid][operation.opmagic] = operation;
+      magicNodeIdMap[operation.opmagic] = operation['node_id'];
     });
   }
+  comGraphStore.setData('magicNodeIdMap', { ...comGraphStore.data.magicNodeIdMap, ...magicNodeIdMap });
   return opMap;
 }
 
 export function extractTensorNodes(jsonData, incasts, outcasts, rawtensorMap) {
   const tensorMap = {};
+  const magicNodeIdMap = {};
   if (jsonData && jsonData.tensors && Array.isArray(jsonData.tensors)) {
     jsonData.tensors.forEach(tensor => {
       const subgraphId = tensor.subgraphid !== undefined ? tensor.subgraphid : -1;
@@ -66,8 +72,10 @@ export function extractTensorNodes(jsonData, incasts, outcasts, rawtensorMap) {
       tensor['rawtensor_info'] = rawtensorMap[tensor.rawtensor];
 
       tensorMap[tensor.subgraphid][tensor.magic] = tensor;
+      magicNodeIdMap[tensor.magic] = tensor['node_id'];
     });
   }
+  comGraphStore.setData('magicNodeIdMap', { ...comGraphStore.data.magicNodeIdMap, ...magicNodeIdMap });
   return tensorMap;
 }
 

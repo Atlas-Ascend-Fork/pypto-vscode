@@ -468,6 +468,9 @@ circle {
 .tensor-diff-normal {
   opacity: 0.5;
 }
+.running-node {
+  stroke: var(--devui-base-invert-color);
+}
 
 
 /* 右键菜单样式 */

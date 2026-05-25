@@ -6,6 +6,7 @@ import { useView } from '../view';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { readCsv,getCsvData } from '../common/csvReader';
+import * as fs from 'fs';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -64,6 +65,18 @@ export class RegisterCommand {
       commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
         this.closeAllToolPages();
       }),
+      // commands.registerCommand('PyPTO.Open.OpenMemoryTrace', async (uri: Uri | undefined) => {
+      //   if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      //   if (!uri) return;
+      //   // 校验文件名：必须以 _OoO_Memory_Trace.json 结尾
+      //   const fileName = path.basename(uri.fsPath);
+      //   if (!fileName.endsWith('_OoO_Memory_Trace.json')) {
+      //     window.showErrorMessage('此文件不是有效的内存追踪文件，文件名需以 _OoO_Memory_Trace.json 结尾');
+      //     return;
+      //   }
+      //   const { editorView } = useView();
+      //   await editorView.open('memoryTrace', uri, { title: getBasenameWithoutExt(uri.fsPath) });
+      // }),
       commands.registerCommand('PyPto.Open.postLayoutData', (id: string, data: any) => {
         const [serverId, infoStr] = id.split('&&');
         const server = this.editorView.editorView.openServer.get(serverId);
@@ -90,6 +103,21 @@ export class RegisterCommand {
     } else if (content.includes('traceEvents') || content.includes('tasks')) {
       const isPerfSwim = !content.includes('traceEvents');
       await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath), query: { isPerfSwim } });
+    } else if (/_OoO_Memory_Trace\.json$/.test(uri.fsPath)) {
+      let comGraphPath = uri.fsPath.replace('_OoO_Memory_Trace.json', '.json');
+      if (!fs.existsSync(comGraphPath)) {
+        window.showErrorMessage('此文件内存追踪文件，对应计算图未找到，不予单独展示');
+      }
+      const finalQuery = {
+        funcHash: funcHash,
+        isSearch: isSearch,
+        nodeMagic: nodeMagic,
+        memoryPath: uri.fsPath
+      };
+      await editorView.open(routeName, vscode.Uri.file(comGraphPath), {
+        query: finalQuery,
+        title:  getBasenameWithoutExt(comGraphPath),
+      });
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));
     }

@@ -6,6 +6,7 @@ import { SwimGraphServer } from './servers/swim-graph-server';
 import { RunConfigViewServer } from './servers/run-config-view-server';
 import { WelcomeViewServer } from './servers/welcom-server';
 import { ControlFlowViewServer } from './servers/controlFlow-server';
+import { MemoryTraceServer } from './servers/memory-trace-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
   // 控制流
@@ -43,5 +44,11 @@ export const routes: EditorViewRoutes = {
   welcome: {
     title: ()=>t('PyPTOToolkit.welcome.page'),
     viewServer: WelcomeViewServer,
-  },  
+  },
+
+  // 内存追踪
+  memoryTrace: {
+    title: 'Memory Trace',
+    viewServer: MemoryTraceServer,
+  },
 };

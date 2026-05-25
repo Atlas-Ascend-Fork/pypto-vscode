@@ -16,3 +16,8 @@ icomoon
 codicon
 .DS_Store
 *.vsix
+.opencode
+.sisyphus
+docs
+openspec
+.gitignore

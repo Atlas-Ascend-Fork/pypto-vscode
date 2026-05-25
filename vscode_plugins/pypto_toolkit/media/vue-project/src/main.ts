@@ -69,6 +69,8 @@ import Collapse from 'vue-devui/collapse';
 import 'vue-devui/collapse/style.css';
 import Pagination from 'vue-devui/pagination';
 import 'vue-devui/pagination/style.css';
+import Splitter from 'vue-devui/splitter';
+import 'vue-devui/splitter/style.css';
 import Echarts from 'vue-devui/echarts';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
@@ -138,4 +140,5 @@ createApp(App)
   .use(Pagination)
   .use(Echarts)
   .use(DataGrid)
+  .use(Splitter)
   .mount('#app');

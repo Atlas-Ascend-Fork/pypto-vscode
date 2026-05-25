@@ -20,7 +20,7 @@ export async function getResDataSum(filePath: string | undefined) {
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        console.log('verify_graph_result_brief.csv文件不存在');
         return;
     }
 

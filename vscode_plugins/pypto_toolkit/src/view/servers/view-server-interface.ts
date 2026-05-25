@@ -17,7 +17,10 @@ export type IComApis =
   | 'innerGetSubgraph'
   | 'selectFile'
   | 'returnFuncTree'
-  | 'getSprottyGraphWithLevel';
+  | 'getSprottyGraphWithLevel'  
+  | 'getMetadata'
+  | 'getTimelineEvents'
+  | 'getInitialMemoryData';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -43,6 +46,9 @@ export type IComRefs = {
   SameDiffFile: unknown;
   AfterDiffData: unknown;
   JsonContent: unknown;
+  Metadata: unknown;
+  Timeline: unknown;
+  InitMemoryTraceFlag: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
@@ -64,6 +70,9 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   returnFuncTree: () => Promise<void>;
   selectFile: (beforeFilePath: string) => Promise<void>;
   getSprottyGraphWithLevel: (message: { data: any }) => Promise<void>;
+  getMetadata: () => Promise<any>;
+  getTimelineEvents: () => Promise<void>;
+  getInitialMemoryData: () => Promise<void>;
 }
 
 export type IThreeApis =
@@ -223,4 +232,40 @@ export type IControlFlowRefs = {
 export interface IControlFlowViewServer extends ViewServer<IControlFlowApis, IControlFlowRefs> {
   getAccurancyResult: (data: {controwFlowFilePath: string}) => Promise<void>;
   getPathPassResult: (data: {controwFlowFilePath: string}) => Promise<void>;
+}
+
+// 内存追踪视图服务接口
+export type IMemoryTraceApis =
+  | 'getMetadata'
+  | 'getTimeline'
+  | 'getTimelineEvents'
+  | 'getEventDetail'
+  | 'getBufferState'
+  | 'getBufferStateAt'
+  | 'searchOps'
+  | 'getInitialData'
+  | 'getClockList'
+  | 'getEventsAtClock';
+
+export type IMemoryTraceRefs = {
+  Metadata: unknown;
+  Timeline: unknown;
+  BufferState: unknown;
+  ErrorMessage: unknown;
+  InitMemoryTraceFlag: unknown;
+  ClockList: unknown;
+  EventsAtClock: unknown;
+};
+
+export interface IMemoryTraceViewServer extends ViewServer<IMemoryTraceApis, IMemoryTraceRefs> {
+  getMetadata: () => Promise<any>;
+  getTimeline: (message: { start?: number; limit?: number }) => Promise<any[]>;
+  getTimelineEvents: () => Promise<any[]>;
+  getEventDetail: (message: { clock: number }) => Promise<any>;
+  getBufferState: (message: { clock: number }) => Promise<any[]>;
+  getBufferStateAt: (message: { clock: number }) => Promise<any[]>;
+  searchOps: (message: { opMagic: number }) => Promise<any>;
+  getInitialData: () => Promise<void>;
+  getClockList: () => Promise<any[]>;
+  getEventsAtClock: (message: { clock: number }) => Promise<any[]>;
 }

@@ -2,8 +2,11 @@ import type { InjectionKey, Ref } from 'vue';
 
 export interface ComGraphContext {
   toggleHealthReport: (status: boolean) => void;
+  toggleMemoryAllocation: (status: boolean) => void;
   toggleLeafCalledRecord: (status: boolean, leafName: string) => void;
+  updateRunningNode: (id: number | string) => void;
   showLayerControl: Ref<boolean>;
+  showMemoryAllocation: Ref<boolean>;
   leafCalledRecordMap: Ref<Record<string, number>>;
 }
 export const ComGraphProvideKey = 'comGraph' as unknown as InjectionKey<ComGraphContext>;

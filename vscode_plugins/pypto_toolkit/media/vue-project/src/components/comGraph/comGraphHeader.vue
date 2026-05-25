@@ -29,6 +29,14 @@
           <d-icon name="icon-download" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
+
+      <d-tooltip :content="t('comGraph.viewMemoryAllocation')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+        overlay-class="corner-tips">
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]"
+          @click="openMeoryAllocation">
+          <d-icon name="icon-codecheck-plugin" :color="comGraphCtx?.showMemoryAllocation?.value ? '#317af7' : '#b3b3b3'" class="corner-icon" size="16px"></d-icon>
+        </div>
+      </d-tooltip>
       <div>
         <export-modal :data-url="dataUrl" :file-name="svgfileName" />
       </div>
@@ -600,6 +608,13 @@ const openHealthReport = () => {
     return;
   }
   comGraphCtx?.toggleHealthReport(true);
+};
+
+const openMeoryAllocation = () => {
+  if (props.isLoading) {
+    return;
+  }
+  comGraphCtx?.toggleMemoryAllocation(true);
 };
 
 const openLeafCalledRecord = () => {

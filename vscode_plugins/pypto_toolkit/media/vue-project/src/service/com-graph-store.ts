@@ -15,6 +15,7 @@ interface ComGraphData {
   comGraphNodeData: any;
   calleeMap: any;
   CalleeOpAttrMap: any;
+  magicNodeIdMap: Record<number, string>;
   pathNodesSet: any,
   selectCustom: any,
   curPath: any;
@@ -38,6 +39,7 @@ interface ComGraphData {
   traceOperations: any[];
   searchLevel: string;
   isLeaf: boolean;
+  runningNodeId: string; // 内存可视化运行中节点的id
   tensorAttrFunc?: (node) => Array<string>;
   operationAttrFunc?: (node) => Array<string>;
   tensorColorFunc?: (node, list: Array<string>) => string;
@@ -63,6 +65,7 @@ export const comGraphStore: DataStore = reactive({
     comGraphNodeData: {},
     calleeMap: {},
     CalleeOpAttrMap: {},
+    magicNodeIdMap: {},
     curPath: [],
     version: '2.0',
     isDiffGraph: false,
@@ -80,6 +83,7 @@ export const comGraphStore: DataStore = reactive({
     inFixedComGraphFlow:false,
     unVisibleOtherNodes:false,
     layoutDirection: 'RIGHT',
+    runningNodeId: '',
     svgExportMode: false,
     isLeaf: false,
   },

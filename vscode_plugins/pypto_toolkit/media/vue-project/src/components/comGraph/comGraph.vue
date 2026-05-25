@@ -1,33 +1,61 @@
 <template>
-  <div class="com-graph-container">
-    <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath"
-      :pathName="pathName" :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
-      :openMode="props.openMode"></ComGraphHeader>
-    <div :style="{
-      backgroundImage: 'url(' + svgPath + ')',
-      backgroundRepeat: 'repeat',
-      height: '100%',
-      cursor: isDragging ? 'grabbing' : 'auto'
-    }">
-      <div id="sprotty"></div>
-    </div>
-    <div class="lock-information" v-if="switchLockInformationFlag">
-      <div class="lock-information-item">{{ lockText }}，{{ t('comGraph.pressEscExit') }}</div>
-    </div>
 
-    <ShowTip></ShowTip>
-    <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
-    <ComGraphReport v-model="showComGraphReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
-      @open="(e) => (healthReportGraphName = e)" />
-    <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
-    <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
-    <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)"
-      @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)"
-      @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
-    <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
-    <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent"
-      :nodeErrorList="nodeErrorList"></ErrorNode>
+  <div class="congraph">
+    <d-splitter class="splitter-border" :orientation="orientation" :splitBarSize="splitBarSize" :showCollapseButton="false">
+      <template v-slot:DSplitterPane>
+        <d-splitter-pane
+        >
+          <div class="pane-content">
+            <div class="com-graph-container">
+              <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath"
+                :pathName="pathName" :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
+                :openMode="props.openMode"></ComGraphHeader>
+              <div :style="{
+                backgroundImage: 'url(' + svgPath + ')',
+                backgroundRepeat: 'repeat',
+                height: '100%',
+                cursor: isDragging ? 'grabbing' : 'auto'
+              }">
+                <div id="sprotty"></div>
+              </div>
+              <div class="lock-information" v-if="switchLockInformationFlag">
+                <div class="lock-information-item">{{ lockText }}，{{ t('comGraph.pressEscExit') }}</div>
+              </div>
+          
+              <ShowTip></ShowTip>
+              <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
+              <ComGraphReport v-model="showComGraphReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
+                @open="(e) => (healthReportGraphName = e)" />
+              <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
+              <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
+              <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)"
+                @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)"
+                @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
+              <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
+              <ErrorNode v-if="nodeErrorList?.length" :showType="showType" :jsonContent="props.jsonContent"
+                :nodeErrorList="nodeErrorList"></ErrorNode>
+            </div>
+          </div>
+        </d-splitter-pane>
+        <d-splitter-pane 
+          :collapseDirection="after"
+          :size="'50%'"
+          :minSize="minSize"
+          :collapsible="true"
+          :resizable="false"
+          ref="splitterPane"
+          @sizeChange="sizeChange"
+          @collapsedChange="collapsedChange"
+        >
+          <div class="pane-content">
+            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
+          </div>
+        </d-splitter-pane>
+      </template>
+    </d-splitter>
+    <PlaybackProgress v-if="showMemoryAllocation" :clocks="timelineData" @clock-select="handleClockSelect" @speed-change="handleSpeedChange" />
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -37,6 +65,7 @@ import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
 import ComGraphReport from './comGraphReport.vue';
+import MemoryAllocation from './memoryAllocation.vue';
 import NodeDetail from './nodeDetail/nodeDetail.vue';
 import Loading from './loading.vue';
 import LayerControl from './layerControl/layerControl.vue';
@@ -49,6 +78,7 @@ import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { ComGraphProvideKey } from './type';
 import ErrorNode from './error-node.vue';
+import PlaybackProgress from './PlaybackProgress.vue';
 import { openSwimlaneGraph } from "@/apis/opener";
 import { getSwimPath, getUserRunRoot } from "@/apis/welcome";
 import { getQuery } from '@/core/query';
@@ -100,6 +130,9 @@ const props = defineProps({
 
 const { isDarkTheme } = inject('root');
 const showComGraphReport = ref(false);
+const showMemoryAllocation = ref(false);
+const splitterPane = ref();
+const collapsed = ref(false);
 const showNodeDetail = ref(false);
 const showLayerControl = ref(false);
 const showLeafCalledRecord = ref(false);
@@ -118,6 +151,54 @@ const leafCalledRecordMap = ref<Record<string, number>>({});
 const currentLeafName = ref('');
 const nodeErrorList = ref([]);
 const headerEl = ref();
+const orientation = ref('horizontal');
+const splitBarSize = '2px';
+const minSize = ref('20%');
+const maxSize = ref('60%');
+
+interface Event {
+  id: string
+  eventType: string
+  startTime: number
+  endTime: number
+  animationData: any[]
+}
+
+const selectedEvents = ref<Event[]>([]);
+const selectedGraphData = ref<any>(null);
+const animationSpeed = ref<number>(1);
+const timelineData = ref<any[]>([]);
+const onlyUpdateSpeed = ref<boolean>(false);
+const speedChangeCount = ref(0);
+
+const handleClockSelect = (events: Event[], graphData: any, speed: number, onlyUpdateSpeedFlag: boolean) => {
+  selectedEvents.value = events;
+  selectedGraphData.value = graphData;
+  animationSpeed.value = speed;
+  onlyUpdateSpeed.value = false;
+  speedChangeCount.value = 0;
+};
+
+const handleSpeedChange = (speed: number, onlyUpdateSpeedFlag: boolean) => {
+  animationSpeed.value = speed;
+  onlyUpdateSpeed.value = onlyUpdateSpeedFlag;
+  speedChangeCount.value++;
+};
+
+const handleTimelineChange = (timeline: any[]) => {
+  timelineData.value = timeline;
+};
+
+const handlePlayAnimation = () => {
+  onlyUpdateSpeed.value = false;
+};
+
+const sizeChange = (size) => {
+  console.log(size);
+};
+const collapsedChange = (event) => {
+  console.log(event);
+};
 const minimapOffsetRight = computed(() => {
   if (showNodeDetail.value || showLeafCalledRecord.value) {
     return 480;
@@ -127,6 +208,7 @@ const minimapOffsetRight = computed(() => {
     return 0;
   }
 })
+
 let lockText = '';
 
 let fitToScreenAction;
@@ -216,7 +298,17 @@ const colorSubgraph = (isColor: boolean) => {
 
 const toggleHealthReport = (status: boolean) => {
   showComGraphReport.value = status;
+  
 }
+const toggleMemoryAllocation = () => {
+  splitterPane.value.updateCollapsed();
+  collapsed.value = !collapsed.value;
+  setTimeout(() => {
+    showMemoryAllocation.value = !showMemoryAllocation.value;
+    window.dispatchEvent(new Event('resize'));
+  }, 50);
+}
+
 const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
   showLeafCalledRecord.value = status;
   currentLeafName.value = leafName;
@@ -232,7 +324,19 @@ watch(server.nodeErrorList, (newValue) => {
   nodeErrorList.value = newValue.data;
 });
 
-provide(ComGraphProvideKey, { toggleHealthReport, showLayerControl, leafCalledRecordMap, toggleLeafCalledRecord });
+const updateRunningNode = (id: number | string) => {
+  const nodeId = comGraphStore.data.magicNodeIdMap[Number(id)];
+  if (id === '') {
+    comGraphStore.setData('runningNodeId', '');
+  } else if (nodeId) {
+    centerNodeAction([nodeId]);
+    comGraphStore.setData('runningNodeId', nodeId);
+  } else {
+    onMessageNotice(t('comGraph.nodeNotExist'));
+  }
+};
+
+provide(ComGraphProvideKey, { updateRunningNode, toggleHealthReport, showLayerControl, showMemoryAllocation, leafCalledRecordMap, toggleLeafCalledRecord, toggleMemoryAllocation });
 
 const LoadingStatusMap = {
   readJson: 'comGraph.readJson',
@@ -402,6 +506,9 @@ onMounted(() => {
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
   (window as any).addEventListener('resize', fitToScreen);
+  if (splitterPane.value) {
+    splitterPane.value.updateCollapsed();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -478,7 +585,7 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
 
 .com-graph-container {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   position: relative;
   background-color: var(--devui-global-bg);
 
@@ -492,6 +599,15 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
 
   #sprotty {
     height: 100%;
+    padding-bottom: 50px;
+  }
+
+  :deep(.playback-progress-container) {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
   }
 }
 
@@ -500,5 +616,19 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
     display: flex;
     align-items: center;
   }
+}
+
+.pane-content {
+  height: 100%;
+}
+
+.devui-splitter {
+  flex: 1;
+}
+
+.congraph {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 </style>

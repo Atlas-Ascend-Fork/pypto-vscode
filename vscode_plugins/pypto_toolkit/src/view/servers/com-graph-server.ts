@@ -9,6 +9,7 @@ import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
+import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
 
 type Apis = IComApis | ICommonApis;
 
@@ -42,7 +43,10 @@ type Refs = IComRefs & ICommonRefs;
   'SaveFileResult',
   'CheckSysResult', 
   'SaveDirPath',
-  'CheckFilePathResult'
+  'CheckFilePathResult',
+  'Metadata', 
+  'Timeline', 
+  'InitMemoryTraceFlag'
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -59,7 +63,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     magicName?: string,
   ) => AbstractGraphData;
   handler: typeof BaseGraphMsgHandler;
-  query?: string;
+  query?: any;
 
   public override created(ctx: ViewServerContext): void {
     this.viewType = ctx.viewType;
@@ -189,6 +193,46 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
       this.handler.loadDiffData(this, fileUris[0].fsPath);
     }
   };
+
+  @viewApi()
+  public getInitialMemoryData = async () => {
+    let fsPath = this.query?._path ?? '';
+    if(fsPath == '')return;
+    if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
+      fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
+    }
+    console.log('[MemoryTrace] Step 2: Loading file:', fsPath);
+    await MemoryTraceHandler.parse(fsPath);
+    const metadata = await MemoryTraceHandler.getMetadata(fsPath);
+    this.setRef('Metadata', metadata);
+    console.log('[MemoryTrace] Step 3: Data loaded');
+    this.setRef('InitMemoryTraceFlag', 'true');
+  };
+
+  @viewApi()
+  public getMetadata = async () => {
+    let fsPath = this.query?._path ?? '';
+    if(fsPath == '')return;
+    if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
+      fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
+    }
+    const metadata = await MemoryTraceHandler.getMetadata(fsPath);
+    this.setRef('Metadata', metadata);
+  };
+
+
+  // 按clock分好事件
+  @viewApi()
+  public getTimelineEvents = async () => {
+    let fsPath = this.query?._path ?? '';
+    if(fsPath == '')return;
+    if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
+      fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
+    }
+    const events = await MemoryTraceHandler.getTimelineEvents(fsPath);
+    this.setRef('Timeline', events);
+  };
+
 
   safeParse(str) {
     try {
