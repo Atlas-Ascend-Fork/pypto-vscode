@@ -223,10 +223,10 @@ export class MemoryTraceHandler {
         // 暂无样例数据
       }else if(e.eventType == "ALLOC_FAIL"){
         // 暂无样例数据
-      }else if(e.eventType == "INIT"){
+      }else if(e.eventType == "INIT_DDR_BUFFER"){
         targetBufferList.push({
           memId: e.memId,
-          memType:e.memType,
+          memType:"MEM_GM",
           addrStart:gmIndex * 32 *1024 * 1024,
           size: 32 *1024 * 1024,
           status: 2
@@ -242,7 +242,7 @@ export class MemoryTraceHandler {
         });
         originBufferList.push({
           memId: e.memId,
-          memType:e.memType,
+          memType:"MEM_GM",
           addrStart:gmIndex * 32 *1024 * 1024,
           size: 32 * 1024 * 1024,
           status: 2
@@ -267,59 +267,7 @@ export class MemoryTraceHandler {
     };
   }
 
-  // static async getClockList(fsPath: string): Promise<{ clock: number; eventCount: number }[]> {
-  //   const records = await getMemoryTraceBufferStateStore().query()
-  //     .filter({ filePath: fsPath })
-  //     .sort('clock', 'asc')
-  //     .exec();
-
-  //   return records.map(r => ({
-  //     clock: r.clock,
-  //     eventCount: JSON.parse(r.bufferData || '[]').length,
-  //   }));
-  // }
-
-  // static async getBufferState(fsPath: string, clock: number): Promise<BufferState[]> {
-  //   const records = await getMemoryTraceBufferStateStore().query()
-  //     .filter({ filePath: fsPath, clock })
-  //     .exec();
-
-  //   if (records.length === 0) {
-  //     return [];
-  //   }
-
-  //   const tensors: TensorInfo[] = JSON.parse(records[0].bufferData || '[]');
-  //   return tensors.map(t => ({
-  //     memId: t.memId,
-  //     memType: t.memType,
-  //     addrStart: 0,
-  //     addrEnd: t.rawSize,
-  //     size: t.rawSize,
-  //     status: 'allocated',
-  //     bornClock: t.bornClock,
-  //     diedClock: t.diedClock,
-  //   }));
-  // }
-
-  // static toFrontendBuffer(bufferState: BufferState): FrontendBuffer {
-  //   let status: 'initialized' | 'valid' = 'initialized';
-  //   if (bufferState.status === 'allocated') {
-  //     status = 'valid';
-  //   }
-
-  //   return {
-  //     memoryId: bufferState.memId.toString(),
-  //     startLocation: bufferState.addrStart,
-  //     size: bufferState.size,
-  //     status,
-  //     address: bufferState.addrStart.toString(16),
-  //   };
-  // }
-
-  // static async getFrontendBufferState(fsPath: string, clock: number): Promise<FrontendBuffer[]> {
-  //   const bufferStates = await this.getBufferState(fsPath, clock);
-  //   return bufferStates.map(b => this.toFrontendBuffer(b));
-  // }
+  
 
  
   static async getTimeline(fsPath: string): Promise<ClockEvents[]> {
@@ -354,29 +302,4 @@ export class MemoryTraceHandler {
     return timeline;
   }
 
-  // static toFrontendEvent(timelineEvent: TimelineEvent): FrontendEvent {
-  //   return {
-  //     id: timelineEvent.id || `event-${timelineEvent.clock}-${timelineEvent._index || 0}`,
-  //     eventType: timelineEvent.eventType,
-  //     startTime: timelineEvent.startTime || timelineEvent.clock,
-  //     endTime: timelineEvent.endTime || timelineEvent.clock,
-  //     clock: timelineEvent.clock,
-  //     animationData: {
-  //       inputMemIds: timelineEvent.inputMemIds,
-  //       outputMemIds: timelineEvent.outputMemIds,
-  //     },
-  //   };
-  // }
-
-  // static async getEventsAtClock(fsPath: string, clock: number): Promise<FrontendEvent[]> {
-  //   const events = await getMemoryTraceEventStore().query()
-  //     .filter({ filePath: fsPath, clock: clock })
-  //     .exec();
-
-  //   return events.map((e: any) => this.toFrontendEvent({
-  //     ...JSON.parse(e.eventData || '{}'),
-  //     clock: e.clock,
-  //     eventType: e.eventType,
-  //   }));
-  // }
 }

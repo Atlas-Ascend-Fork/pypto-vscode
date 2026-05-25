@@ -100,9 +100,9 @@ export class ThreeColumnServer
   constructor(ctx: ViewServerContext) {
     super(ctx);
   }
+  getTimelineEvents: () => Promise<void>;
 
   getMetadata: () => Promise<any>;
-  getTimeLineEvents: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
 
   public override created(ctx: ViewServerContext): void { 

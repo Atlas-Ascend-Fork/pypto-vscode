@@ -49,25 +49,6 @@ export class MemoryTraceServer extends ViewServer<import('./view-server-interfac
     this.setRef('Timeline', events);
   };
 
-  // @viewApi()
-  // public getBufferState = async (message: { clock: number }) => {
-  //   const { clock } = message || {};
-  //   if (clock === undefined) {
-  //     return;
-  //   }
-  //   const bufferState = await MemoryTraceHandler.getBufferState(this.query._path,clock);
-  //   this.setRef('BufferState', bufferState);
-  // };
-
-  // @viewApi()
-  // public getEventsAtClock = async (message: { clock: number | undefined; }) => {
-  //   if (message.clock === undefined) {
-  //     return;
-  //   }
-  //   const events = await MemoryTraceHandler.getEventsAtClock(this.query._path,message.clock);
-  //   this.setRef('EventsAtClock', events);
-  // };
-
 
   safeParse(str: string) {
     try {

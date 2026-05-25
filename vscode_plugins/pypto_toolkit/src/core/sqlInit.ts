@@ -185,6 +185,10 @@ export interface MemoryTraceEvent {
       spillCopyoutOpMagic?:number;
       triggerOpMagic?:number;
       triggerTensorSIze?:number;
+      kind?:string;
+      magic?:number;
+      dtype?:string;
+      shape?:[];
       action?:{
         targetBufferList:BufferState[],
         originBufferList:BufferState[]

@@ -106,7 +106,7 @@ export class RegisterCommand {
     } else if (/_OoO_Memory_Trace\.json$/.test(uri.fsPath)) {
       let comGraphPath = uri.fsPath.replace('_OoO_Memory_Trace.json', '.json');
       if (!fs.existsSync(comGraphPath)) {
-        window.showErrorMessage('此文件内存追踪文件，对应计算图未找到，不予单独展示');
+        window.showErrorMessage('此文件为内存追踪文件，对应计算图未找到，不予单独展示');
       }
       const finalQuery = {
         funcHash: funcHash,
