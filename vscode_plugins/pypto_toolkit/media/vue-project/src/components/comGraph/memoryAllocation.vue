@@ -41,7 +41,7 @@
         <d-splitter-pane :resizable="false">
           <div class="pane-content">
             <div v-if="events.length > 0" class="event-header">
-              <span class="header-title">Clock ({{ events.length }})</span>
+              <span class="header-title">Clock: {{ clockName }} ({{ events.length }})</span>
               <button class="header-play-btn" @click="handlePlayAllEvents">
                 <d-icon name="icon-run-o" size="16px"></d-icon>
               </button>
@@ -123,9 +123,11 @@ const props = withDefaults(defineProps<{
   clock?: number
   animationSpeed?: number
   onlyUpdateSpeed?: boolean
+  clockName?: number
 }>(), {
   events: () => [],
   onlyUpdateSpeed: false,
+  clockName: 0,
 });
 
 const memoryTypeKeyNames = ['MEM_GM', 'MEM_L2', 'MEM_L1', 'MEM_L0A', 'MEM_L0B', 'MEM_BT', 'MEM_FP', 'MEM_L0C', 'MEM_UB'];

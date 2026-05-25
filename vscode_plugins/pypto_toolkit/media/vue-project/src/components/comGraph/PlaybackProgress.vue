@@ -252,7 +252,8 @@ const handleDotClick = (clockIndex: number) => {
     selectedClockIndex.value = clockIndex
     const events = props.clocks[clockIndex]?.events || []
     const graphData = props.clocks[clockIndex]?.events[0]?.graphData || null
-    emit('clock-select', events, graphData, selectedSpeed.value, false)
+    const clockName = props.clocks[clockIndex]?.clock;
+    emit('clock-select', events, graphData, selectedSpeed.value, false, clockName)
   }
 }
 
@@ -262,7 +263,8 @@ const prevClock = () => {
     selectedClockIndex.value--
     const events = props.clocks[selectedClockIndex.value].events
     const graphData = events[0]?.graphData || null
-    emit('clock-select', events, graphData, selectedSpeed.value, false)
+    const clockName = props.clocks[selectedClockIndex.value]?.clock;
+    emit('clock-select', events, graphData, selectedSpeed.value, false, clockName)
   }
 }
 
@@ -272,14 +274,16 @@ const nextClock = () => {
     selectedClockIndex.value++
     const events = props.clocks[selectedClockIndex.value].events
     const graphData = events[0]?.graphData || null
-    emit('clock-select', events, graphData, selectedSpeed.value, false)
+    const clockName = props.clocks[selectedClockIndex.value]?.clock;
+    emit('clock-select', events, graphData, selectedSpeed.value, false, clockName)
   }
 }
 
 const emitClockSelect = (clockIndex: number) => {
   const events = props.clocks?.[clockIndex]?.events || []
   const graphData = events[0]?.graphData || null
-  emit('clock-select', events, graphData, selectedSpeed.value, false)
+  const clockName = props.clocks?.[clockIndex]?.clock;
+  emit('clock-select', events, graphData, selectedSpeed.value, false, clockName)
 }
 
 onMounted(() => {

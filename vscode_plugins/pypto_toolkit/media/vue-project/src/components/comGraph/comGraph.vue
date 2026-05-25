@@ -48,7 +48,7 @@
           @collapsedChange="collapsedChange"
         >
           <div class="pane-content">
-            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
+            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
           </div>
         </d-splitter-pane>
       </template>
@@ -171,12 +171,15 @@ const timelineData = ref<any[]>([]);
 const onlyUpdateSpeed = ref<boolean>(false);
 const speedChangeCount = ref(0);
 
-const handleClockSelect = (events: Event[], graphData: any, speed: number, onlyUpdateSpeedFlag: boolean) => {
+const currentClockName = ref('');
+
+const handleClockSelect = (events: Event[], graphData: any, speed: number, onlyUpdateSpeedFlag: boolean, clockName: string = '') => {
   selectedEvents.value = events;
   selectedGraphData.value = graphData;
   animationSpeed.value = speed;
   onlyUpdateSpeed.value = false;
   speedChangeCount.value = 0;
+  currentClockName.value = clockName;
 };
 
 const handleSpeedChange = (speed: number, onlyUpdateSpeedFlag: boolean) => {
