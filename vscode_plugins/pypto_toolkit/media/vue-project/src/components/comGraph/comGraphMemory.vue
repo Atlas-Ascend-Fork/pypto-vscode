@@ -1,21 +1,21 @@
 <template>
   <div ref="flowContainer" style="width: 100%; height: 100%; background: #1a1a1a; position: relative;">
-    <div v-if="isTransitioning" class="transition-overlay">
+    <!-- <div v-if="isTransitioning" class="transition-overlay">
       <div class="loading-spinner"></div>
       <div class="loading-text">Loading...</div>
-    </div>
+    </div> -->
     <VueFlow
-      :key="flowKey"
-      v-model="updatedNodes"
+      :nodes="updatedNodes"
       class="flow-canvas"
+      @nodes-change="onNodesChange"
       :nodes-draggable="false"
       :nodes-connectable="false"
-      :pan-on-drag="true"
+      :pan-on-drag="false"
       :pan-on-scroll="false"
       :selection-on-drag="false"
-      :zoom-on-scroll="true"
+      :zoom-on-scroll="false"
       :zoom-on-double-click="false"
-      :no-pan-on-node-drag="true"
+      :no-pan-on-node-drag="false"
       :fit-view-on-init="true"
       :min-zoom="0.001"
       :max-zoom="100"
@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue';
+import { ref, markRaw, watch, watchEffect, onMounted, nextTick, onBeforeUnmount, computed } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -69,34 +69,12 @@ const emit = defineEmits<{
   (e: 'initialized'): void
 }>();
 
-const { fitView } = useVueFlow();
+const { fitView, applyNodeChanges } = useVueFlow();
 const flowContainer = ref(null);
 let resizeObserver: ResizeObserver | null = null;
 
-const flowKey = ref(0);
 const isTransitioning = ref(false);
 const transitionStartTime = ref(0);
-
-watch(() => props.graphData, () => {
-  if (!props.disableLoading) {
-    isTransitioning.value = true;
-    transitionStartTime.value = Date.now();
-  }
-  flowKey.value++;
-}, { deep: true });
-
-watch(flowKey, () => {
-  setTimeout(() => {
-    fitView({ padding: 0.05, duration: 0 });
-    if (!props.disableLoading) {
-      const elapsed = Date.now() - transitionStartTime.value;
-      const remaining = Math.max(0, 1000 - elapsed);
-      setTimeout(() => {
-        isTransitioning.value = false;
-      }, remaining);
-    }
-  }, 100);
-});
 
 const HEXAGON_SIZE = 8192;
 const CIRCULAR_SIEE = 128;
@@ -331,7 +309,7 @@ const elements = ref([
         { id: 'aic-l0a-l-15', type: 'target', edge: 'left', pct: 15 },
         { id: 'aic-l0a-l', type: 'target', edge: 'left', pct: 50 },
         { id: 'aic-l0a-l-75', type: 'target', edge: 'left', pct: 75 },
-        { id: 'aic-l0a-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aic-l0a-r', type: 'source', edge: 'right', pct: 45 },
       ],
     },
   },
@@ -365,7 +343,7 @@ const elements = ref([
       handles: [
         { id: 'aic-l0b-l-30', type: 'target', edge: 'left', pct: 30 },
         { id: 'aic-l0b-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aic-l0b-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aic-l0b-r', type: 'source', edge: 'right', pct: 45 },
       ],
     },
   },
@@ -388,7 +366,7 @@ const elements = ref([
         access: 'read_write',
       },
       cols: 12,
-      rows: 4,
+      rows: 2,
       filledCount: 2,
       speed: 30,
       showHeader: true,
@@ -400,8 +378,8 @@ const elements = ref([
         marginRight: '3rem',
       },
       handles: [
-        { id: 'aic-bt-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aic-bt-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aic-bt-l', type: 'target', edge: 'left', pct: 70 },
+        { id: 'aic-bt-r', type: 'source', edge: 'right', pct: 63 },
       ],
     },
   },
@@ -461,7 +439,7 @@ const elements = ref([
         { id: 'aic-cube-l-80', type: 'target', edge: 'left', pct: 80 },
         { id: 'aic-cube-l-92', type: 'target', edge: 'left', pct: 92 },
         { id: 'aic-cube-r-15', type: 'source', edge: 'right', pct: 15 },
-        { id: 'aic-cube-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aic-cube-r', type: 'source', edge: 'right', pct: 35.2 },
       ],
     },
   },
@@ -494,7 +472,7 @@ const elements = ref([
     data: {
       label: 'L0C',
       cols: 16,
-      rows: 16,
+      rows: 8,
       filledCount: 0,
       speed: 30,
       showHeader: true,
@@ -527,7 +505,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'transparent',
       handles: [
-        { id: 'aic-dcache-l', type: 'target', edge: 'left', pct: 50 },
+        { id: 'aic-dcache-l', type: 'target', edge: 'left', pct: 44 },
         { id: 'aic-dcache-r', type: 'source', edge: 'right', pct: 50 },
       ],
     },
@@ -548,7 +526,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'transparent',
       handles: [
-        { id: 'aic-icache-l', type: 'target', edge: 'left', pct: 50 },
+        { id: 'aic-icache-l', type: 'target', edge: 'left', pct: 44 },
         { id: 'aic-icache-r', type: 'source', edge: 'right', pct: 50 },
       ],
     },
@@ -574,8 +552,8 @@ const elements = ref([
         backgroundColor: 'transparent',
       },
       handles: [
-        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 22.7 },
-        { id: 'aic-scalar-l-80', type: 'target', edge: 'left', pct: 79 },
+        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 27 },
+        { id: 'aic-scalar-l-80', type: 'target', edge: 'left', pct: 83 },
         { id: 'aic-scalar-l', type: 'target', edge: 'left', pct: 50 },
         { id: 'aic-scalar-r', type: 'source', edge: 'right', pct: 50 },
       ],
@@ -618,8 +596,8 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'transparent',
       handles: [
-        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aiv2b-dcache-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aiv2b-dcache-r', type: 'source', edge: 'right', pct: 44 },
       ],
     },
   },
@@ -639,8 +617,8 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'transparent',
       handles: [
-        { id: 'aiv2b-icache-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aiv2b-icache-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aiv2b-icache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aiv2b-icache-r', type: 'source', edge: 'right', pct: 44 },
       ],
     },
   },
@@ -682,7 +660,7 @@ const elements = ref([
     data: {
       label: 'UB',
       cols: 32,
-      rows: 8,
+      rows: 6,
       filledCount: 0,
       speed: 30,
       showHeader: true,
@@ -691,9 +669,9 @@ const elements = ref([
       showStats: true,
       bgColor: 'rgb(60,129,209)',
       handles: [
-        { id: 'aiv2b-ub-l-in', type: 'target', edge: 'left', pct: 40 }, 
-        { id: 'aiv2b-ub-l-70', type: 'source', edge: 'left', pct: 70 },
-        { id: 'aiv2b-ub-r', type: 'source', edge: 'right', pct: 50 },
+        { id: 'aiv2b-ub-l-in', type: 'target', edge: 'left', pct: 50 }, 
+        { id: 'aiv2b-ub-l-70', type: 'source', edge: 'left', pct: 75 },
+        { id: 'aiv2b-ub-r', type: 'source', edge: 'right', pct: 57.5 },
       ],
     },
   },
@@ -1163,36 +1141,24 @@ const getMemIdValue = (memIds, path) => {
 
 const getTierColor = (status: number, index: number): string => {
   const colorPairs = [
-    { light: '#98C6F3', dark: '#2E619C' },
-    { light: '#6DD0B6', dark: '#13746F' },
-    { light: '#F5D5A0', dark: '#9B6E2D' },
-    { light: '#D4A5E8', dark: '#6B3FA0' },
-    { light: '#B3E5FC', dark: '#0288D1' },
-    { light: '#C8E6C9', dark: '#2E7D32' },
-    { light: '#DCEDC8', dark: '#388E3C' },
-    { light: '#FFE0B2', dark: '#F57C00' },
-    { light: '#E1BEE7', dark: '#7B1FA2' },
-    { light: '#CE93D8', dark: '#6A1B9A' },
-    { light: '#B39DDB', dark: '#5E35B1' },
-    { light: '#9FA8DA', dark: '#4527A0' },
-    { light: '#90CAF9', dark: '#1565C0' },
-    { light: '#81D4FA', dark: '#0288D1' },
-    { light: '#80DEEA', dark: '#00838F' },
-    { light: '#80CBC4', dark: '#00695C' },
-    { light: '#A5D6A7', dark: '#2E7D32' },
-    { light: '#C5E1A5', dark: '#388E3C' },
-    { light: '#E6EE9C', dark: '#827717' },
-    { light: '#FFF59D', dark: '#F9A825' },
-    { light: '#FFE082', dark: '#F57F17' },
-    { light: '#FFCC80', dark: '#EF6C00' },
-    { light: '#E8F5E9', dark: '#2E7D32' },
-    { light: '#E3F2FD', dark: '#1565C0' },
-    { light: '#F3E5F5', dark: '#7B1FA2' },
-    { light: '#FFF3E0', dark: '#E65100' },
-    { light: '#E0F7FA', dark: '#006064' },
-    { light: '#FCE4EC', dark: '#880E4F' },
-    { light: '#E8EAF6', dark: '#3F51B5' },
-    { light: '#F1F8E9', dark: '#33691E' },
+    { light: '#98C6F3', dark: '#2E619C' },          // 蓝色
+    { light: '#6DD0B6', dark: '#13746F' },          // 青色
+    { light: '#F5D5A0', dark: '#9B6E2D' },           // 橙色
+    { light: '#E8D5F5', dark: '#8E44AD' },           // 紫色
+    { light: '#A8D4F5', dark: '#2E86AB' },           // 蓝色
+    { light: '#C5E8C5', dark: '#2E7D32' },           // 绿色
+    { light: '#B5E5E5', dark: '#00796B' },           // 青色
+    { light: '#FFF5C5', dark: '#8B6914' },           // 黄色（暗）
+    { light: '#FFD9B3', dark: '#8B3A00' },           // 橙色（暗）
+    { light: '#E8D5C4', dark: '#795548' },          // 棕色
+    { light: '#E8E0F0', dark: '#7D5BA6' },          // 薰衣草紫
+    { light: '#D5E5D5', dark: '#5D8A5D' },          // 灰绿
+    { light: '#FFE4B5', dark: '#7D5A00' },          // 土黄色（暗）
+    { light: '#D4C4E8', dark: '#6A5ACD' },          // 紫罗兰
+    { light: '#C4E8F0', dark: '#4682B4' },          // 钢蓝
+    { light: '#E8E8D4', dark: '#6B6B00' },          // 橄榄绿（暗）
+    { light: '#F0E4D4', dark: '#6B3A00' },          // 赭色（暗）
+    { light: '#FFD4CC', dark: '#8B4D5C' },          // 桃色（暗）
   ];
   const pairIndex = index % colorPairs.length;
   const pair = colorPairs[pairIndex];
@@ -1258,7 +1224,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
             bufferData.push(buffer);  
           } else {
             if (buffer.status === 0) {
-              bufferData = bufferData.filter(b => b.status !== 0);
+              bufferData = bufferData.filter(b => b.memId !== buffer.memId);
             } else {
               bufferData[targetIndex] = buffer;
             }
@@ -1271,7 +1237,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
             bufferData.push(buffer);
           } else {
             if (buffer.status === 0) {
-              bufferData = bufferData.filter(b => b.status !== 0);
+              bufferData = bufferData.filter(b => b.memId !== buffer.memId);
             } else {
               bufferData[targetIndex] = buffer;
             }
@@ -1306,6 +1272,9 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                     startLocation: (b.addrStart / 1024) / HEXAGON_SIZE,
                     size: (b.size / 1024) / HEXAGON_SIZE,
                     color: color,
+                    bufferMsg: {
+                      ...b,
+                    }
                   }
                 }) || [],
               splitData: {
@@ -1320,6 +1289,9 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                     startLocation: (b.addrStart / 1024) / CIRCULAR_SIEE,
                     size: (b.size / 1024) / CIRCULAR_SIEE,
                     color: color,
+                    bufferMsg: {
+                      ...b,
+                    }
                   }
                 }) || [],
                 animationData: animate ? {
@@ -1350,6 +1322,9 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                   startLocation: (b.addrStart / 1024) / QUADRATE_SIZE,
                   size: (b.size / 1024) / QUADRATE_SIZE,
                   color: color,
+                  bufferMsg: {
+                    ...b,
+                  }
                 }
               }) || [],
               animationData: animate ? {
@@ -1386,22 +1361,34 @@ const getTiers = (bufferList, size) => {
       startLocation: (b.addrStart / 1024) / size,
       size: (b.size / 1024) / size,
       color: color,
+      bufferMsg: {
+        ...b,
+      }
     }
   }) || []
 }
 
 
 
-const updatedNodes = computed(() => {
-  if (!props.graphData) return elements.value;
+const updatedNodes = ref<any[]>([]);
 
+watchEffect(() => {
+  const graphData = props.graphData;
+  if (!graphData) {
+    updatedNodes.value = [...elements.value];
+    return;
+  }
   if (props.onlyUpdateSpeed) {
     return;
-  };
-  // const flattened = flattenMemoryData(props.graphData);
-  const _animation = props.animationData; 
-  return transformAndMapData(props.graphData, elements.value, _animation);
+  }
+  const _animation = props.animationData;
+  const newNodes = transformAndMapData(graphData, elements.value, _animation);
+  updatedNodes.value = newNodes.map(n => ({ ...n }));
 });
+
+const onNodesChange = (changes) => {
+  applyNodeChanges(changes);
+};
 const handleResize = () => {
   fitView({ padding: 0.05, duration: 800 });
 };

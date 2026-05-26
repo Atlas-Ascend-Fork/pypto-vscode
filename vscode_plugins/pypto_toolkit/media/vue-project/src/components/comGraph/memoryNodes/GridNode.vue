@@ -9,39 +9,33 @@
       :style="getHandleStyle(h)"
     />
 
-    <div v-if="hovered" class="node-popup">
+    <Teleport to="body">
+      <div v-if="hovered && hoveredBufferInfo" class="node-popup" :style="popupStyle">
       <div class="popup-header">
-        <span class="popup-title">{{ data.label || 'Node' }}</span>
-        <span class="popup-dot">•</span>
-        <span class="popup-type">{{ data.detail?.subType || 'Tensor' }}</span>
+        <span class="popup-title">Buffer Info</span>
       </div>
       <div class="popup-row">
-        <span class="popup-key">Name</span>
-        <span class="popup-val">{{ data.detail?.name || 'a_10' }}</span>
+        <span class="popup-key">memId</span>
+        <span class="popup-val">{{ hoveredBufferInfo.memId }}</span>
       </div>
       <div class="popup-row">
-        <span class="popup-key">Shape</span>
-        <span class="popup-val">{{ data.detail?.shape || '[16, 1024]' }}</span>
+        <span class="popup-key">memType</span>
+        <span class="popup-val">{{ hoveredBufferInfo.memType }}</span>
       </div>
       <div class="popup-row">
-        <span class="popup-key">Type</span>
-        <span class="popup-val">{{ data.detail?.type || 'BF16' }}</span>
+        <span class="popup-key">addrStart</span>
+        <span class="popup-val">{{ hoveredBufferInfo.addrStart }}</span>
       </div>
       <div class="popup-row">
-        <span class="popup-key">Size</span>
-        <span class="popup-val">{{ data.detail?.size || '32' }} {{ data.detail?.sizeType || 'KB' }}</span>
+        <span class="popup-key">size</span>
+        <span class="popup-val">{{ hoveredBufferInfo.size }}KB</span>
       </div>
       <div class="popup-row">
-        <span class="popup-key">Addr</span>
-        <span class="popup-val">{{ data.detail?.addr || '0x000000' }}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-key">Access</span>
-        <span class="popup-val"
-          ><span :class="`popup-badge ${accessType}`">{{ accessType }}</span></span
-        >
+        <span class="popup-key">status</span>
+        <span class="popup-val">{{ hoveredBufferInfo.status }}</span>
       </div>
     </div>
+    </Teleport>
 
     <div class="grid-layout-wrapper" :style="layoutStyles(data.layoutStyles)">
       <div v-if="data.showHeader" class="node-header">
@@ -70,7 +64,7 @@
       </div>
       <div class="grid-section" :style="getGridSectionStyles(data)">
         <div class="grid-wrapper" :style="getGridStyles(data)">
-          <div v-for="index in mainTotalCells" :key="'g1-' + index" class="grid-cell">
+          <div v-for="index in mainTotalCells" :key="'g1-' + index" class="grid-cell" @mouseenter="(e) => hoverCell(index, e)" @mouseleave="hoverCell(null, null)">
             <svg v-if="data.shape === 'hexagon'" viewBox="0 0 100 100" class="hexagon-svg">
               <path
                 d="M25,2 L75,2 Q80,2 85,10 L100,45 Q102,50 100,55 L85,90 Q80,98 75,98 L25,98 Q20,98 15,90 L0,55 Q-2,50 0,45 L15,10 Q20,2 25,2 Z"
@@ -149,10 +143,14 @@ export default {
     data: { type: Object, required: true },
   },
   data() {
-    return {
-      Position,
-      hovered: false,
-      mainAnimatedCount: 0,
+        return {
+          Position,
+          hovered: false,
+          hoveredCellIndex: null,
+          hoveredBufferInfo: null,
+          mouseX: 0,
+          mouseY: 0,
+          mainAnimatedCount: 0,
       splitAnimatedCount: 0,
       mainAnimatedCells: new Set(),
       splitAnimatedCells: new Set(),
@@ -178,6 +176,13 @@ export default {
     accessType() {
       return this.data.detail?.access || 'read';
     },
+    popupStyle() {
+      return {
+        left: `${this.mouseX + 5}px`,
+        top: `${this.mouseY + 5}px`,
+        transform: 'none'
+      };
+    },
   },
   mounted() {
     this.initAnimations();
@@ -188,6 +193,47 @@ export default {
     },
     hoverFunc(isHover) {
       this.hovered = isHover;
+    },
+    hoverCell(index, event) {
+      if (this.data.splitData) {
+        this.hoveredBufferInfo = null;
+        return;
+      }
+      if (index === null) {
+        this.hoveredCellIndex = null;
+        this.hoveredBufferInfo = null;
+      } else {
+        this.hoveredCellIndex = index;
+        if (event) {
+          this.mouseX = event.clientX;
+          this.mouseY = event.clientY;
+        }
+        const statusMap = {
+          0: '未分配',
+          1: '已分配未占用',
+          2: '已分配且已占用',
+        }
+        const tiers = this.data.animate === true 
+          ? (this.data.animationData?.targetTiers || [])
+          : (this.data.tiers || []);
+        for (let i = 0; i < tiers.length; i++) {
+          const tier = tiers[i];
+          const startLocation = Math.floor(tier.startLocation ?? 0);
+          const size = Math.round(tier.size ?? 0);
+          if (index > startLocation && index <= startLocation + size) {
+            const bufferMsg = tier.bufferMsg || {};
+            this.hoveredBufferInfo = {
+              memId: bufferMsg.memId || '',
+              addrStart: bufferMsg.addrStart / 1024 || 0,
+              memType: bufferMsg.memType || '',
+              size: bufferMsg.size / 1024 || 0,
+              status: statusMap[bufferMsg.status || 0],
+            };
+            return;
+          }
+        }
+        this.hoveredBufferInfo = null;
+      }
     },
     getHandlePosition(edge) {
       return (
@@ -501,6 +547,24 @@ export default {
         this.splitAnimatedCount = v != null ? v : this.splitTotalCells;
       }
     },
+    'data.tiers': function(newTiers) {
+      if (this.data.animate !== true) {
+        this.mainAnimatedCells = this.getCellsFromTiers(newTiers || [], this.mainTotalCells);
+        this.mainAnimatedColors = this.getCellsWithColor(newTiers || [], this.mainTotalCells);
+      }
+    },
+    'data.splitData.tiers': function(newTiers) {
+      if (this.data.splitData?.animate !== true) {
+        this.splitAnimatedCells = this.getCellsFromTiers(newTiers || [], this.splitTotalCells);
+        this.splitAnimatedColors = this.getCellsWithColor(newTiers || [], this.splitTotalCells);
+      }
+    },
+    data: {
+      handler() {
+        this.initAnimations();
+      },
+      deep: true
+    }
   },
 };
 </script>
@@ -538,7 +602,7 @@ export default {
 }
 .header-label {
   font-weight: bold;
-  font-size: 11px;
+  font-size: 16px;
 }
 .header-sublabel {
   font-size: 9px;
@@ -548,7 +612,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 16px;
 }
 .header-badge {
   display: inline-flex;
@@ -616,7 +680,7 @@ export default {
   border-radius: 6px;
   flex-direction: column;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 24px;
   z-index: 10;
   pointer-events: none;
 }
@@ -624,30 +688,28 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 8px;
 }
 .sub-badge {
   display: flex;
-  font-size: 8px;
+  font-size: 14px;
   font-weight: 700;
   color: rgba(220, 220, 220, 1);
   letter-spacing: 0.06em;
   border-radius: 999px;
   padding: 2px 4px;
+  margin-top: 2px;
 }
 
 /* POPUP */
 .node-popup {
-  position: absolute;
-  bottom: calc(50% + 8px);
-  left: 50%;
-  transform: translateX(-20%);
+  position: fixed;
   z-index: 999999;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
   border-radius: 12px;
-  padding: 16px;
-  min-width: 220px;
+  padding: 12px;
+  min-width: 140px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
@@ -658,8 +720,8 @@ export default {
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid #555;
-  margin-left: 6px;
-  margin-right: 6px;
+  margin-left: 2px;
+  margin-right: 2px;
 }
 
 .popup-row {
@@ -669,17 +731,17 @@ export default {
   padding: 6px 0;
 }
 .popup-title {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   color: #ffffff;
   font-family: 'Inter', sans-serif;
 }
 .popup-dot {
   color: #888;
-  font-size: 16px;
+  font-size: 12px;
 }
 .popup-type {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   color: #ffffff;
   font-family: 'Inter', sans-serif;
@@ -689,11 +751,11 @@ export default {
   border-bottom: none;
 }
 .popup-key {
-  font-size: 13px;
+  font-size: 10px;
   color: #888;
 }
 .popup-val {
-  font-size: 13px;
+  font-size: 8px;
   color: #fff;
 }
 .popup-badge {

@@ -5,7 +5,8 @@
             :size="size" 
             minSize="50%" 
             :collapsible="false" 
-            :resizable="false"
+            :resizable="true"
+            :maxSize="'80%'"
             @sizeChange="sizeChange"
         >
           <div class="pane-content">
@@ -38,7 +39,7 @@
             </div>
           </div>
         </d-splitter-pane>
-        <d-splitter-pane :resizable="false">
+        <d-splitter-pane>
           <div class="pane-content">
             <div v-if="events.length > 0" class="event-header">
               <span class="header-title">Clock: {{ clockName }} ({{ events.length }})</span>
@@ -47,7 +48,7 @@
               </button>
             </div>
             <div v-if="events.length > 0" class="event-list-container">
-              <div v-for="event in events" :key="event.id" class="event-item">
+              <div v-for="event in events" :key="event.id" class="event-item" :class="{ 'playing': playingEventId === event.id }">
                 <div class="event-info" @click="openDetailModal(event)">
                   <span class="event-type">{{ event.eventType }}</span>
                   <span class="event-id">Magic ID: {{ event.id }}</span>
@@ -197,6 +198,7 @@ const localOnlyUpdateSpeed = ref(false);
 const isPlayingAll = ref(false);
 const currentPlayingIndex = ref(0);
 let playTimer: ReturnType<typeof setTimeout> | null = null;
+const playingEventId = ref<string | null>(null);
 
 const { dragEl, rootEl, styles } = useMoveable({ modelValue: showDetailModal });
 
@@ -246,18 +248,20 @@ watch(server.Timeline, (newVal) => {
   const timelineData = newVal.filter(item => item.clock !== -1);
   const GMClock = newVal.filter(item => item.clock === -1)[0];
   
-  const GMOriginBufferList = [...GMClock.events[GMClock.events.length - 1].action.originBufferList || []];
-  const GMTargetBufferList = GMClock.events[GMClock.events.length - 1].action.targetBufferList || [];
-  GMTargetBufferList.forEach((item, index) => {
-    const targetIndex = GMOriginBufferList.findIndex(originItem => originItem.memId === item.memId);
-    if (targetIndex === -1) {
-      GMOriginBufferList.push(item);
-
-    } else {
-      GMOriginBufferList[targetIndex] = item;
-    }
-  })
-  GMData.value.bufferList = GMOriginBufferList;
+  if (GMClock) {
+    const GMOriginBufferList = [...GMClock.events[GMClock.events.length - 1].action.originBufferList || []];
+    const GMTargetBufferList = GMClock.events[GMClock.events.length - 1].action.targetBufferList || [];
+    GMTargetBufferList.forEach((item, index) => {
+      const targetIndex = GMOriginBufferList.findIndex(originItem => originItem.memId === item.memId);
+      if (targetIndex === -1) {
+        GMOriginBufferList.push(item);
+  
+      } else {
+        GMOriginBufferList[targetIndex] = item;
+      }
+    })
+    GMData.value.bufferList = GMOriginBufferList;
+  }
 
   console.log('[MemoryTrace] GMData changed, count:', newVal?.length || 0);
   if (timelineData?.length > 0) {
@@ -341,6 +345,17 @@ const handlePlayEvent = (event: Event) => {
     };
     updateRunningNode(event.id);
   }
+  
+  const startTime = event.clock || 0;
+  const endTime = event.cycleEnd || startTime + 100;
+  const duration = (endTime - startTime) * 10;
+  
+  playingEventId.value = event.id;
+  setTimeout(() => {
+    if (playingEventId.value === event.id) {
+      playingEventId.value = null;
+    }
+  }, duration + 1000);
 };
 
 const handlePlayAllEvents = () => {
@@ -552,6 +567,11 @@ watch(showDetailModal, (val) => {
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  &.playing {
+    border-color: #336EB2;
+    background-color: rgba(51, 110, 178, 0.15);
   }
 }
 

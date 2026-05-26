@@ -42,7 +42,8 @@
           :size="'50%'"
           :minSize="minSize"
           :collapsible="true"
-          :resizable="false"
+          :resizable="true"
+          :maxSize="'67%'"
           ref="splitterPane"
           @sizeChange="sizeChange"
           @collapsedChange="collapsedChange"
@@ -197,7 +198,7 @@ const handlePlayAnimation = () => {
 };
 
 const sizeChange = (size) => {
-  console.log(size);
+  window.dispatchEvent(new Event('resize'));
 };
 const collapsedChange = (event) => {
   console.log(event);

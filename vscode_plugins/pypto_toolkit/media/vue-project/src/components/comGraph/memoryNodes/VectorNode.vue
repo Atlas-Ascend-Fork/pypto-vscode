@@ -59,7 +59,7 @@ const containerStyle = computed(() => {
 const labelStyle = computed(() => {
   const styles: any = {
     color: props.data.textColor || '#ffffff',
-    fontSize: `${props.data.fontSize || 16}px`,
+    fontSize: `${props.data.fontSize || 26}px`,
     position: 'absolute',
     left: '50%',
     top: '50%',
