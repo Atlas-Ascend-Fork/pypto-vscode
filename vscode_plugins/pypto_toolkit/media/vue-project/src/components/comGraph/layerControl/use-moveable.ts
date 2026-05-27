@@ -1,4 +1,4 @@
-import { ref, reactive, watch, onBeforeUnmount } from 'vue';
+import { ref, reactive, watch, onBeforeUnmount, nextTick } from 'vue';
 
 export function useMoveable(props: Record<string, any>) {
   const rootEl = ref<HTMLElement>();
@@ -54,7 +54,7 @@ export function useMoveable(props: Record<string, any>) {
   };
 
   function updatePosition() {
-    const left = Math.max(window.innerWidth - ModalWidth - OffsetRight, 0);
+    const left = Math.max(window.innerWidth - ModalWidth - props.rightOffset - OffsetRight, 0);
     if (left < parseInt(styles.left)) {
       styles.left = `${left}px`;
     }
@@ -71,11 +71,13 @@ export function useMoveable(props: Record<string, any>) {
   );
 
   watch(
-    () => props.modelValue,
-    (val) => {
+    [() => props.modelValue, () => props.rightOffset],
+    ([val]) => {
       if (val) {
-        styles.left = `${window.innerWidth - ModalWidth - OffsetRight}px`;
-        styles.top = '56px';
+        nextTick(() => {
+          styles.left = `${window.innerWidth - ModalWidth - props.rightOffset - OffsetRight}px`;
+          styles.top = '56px';
+        });
       }
     },
   );

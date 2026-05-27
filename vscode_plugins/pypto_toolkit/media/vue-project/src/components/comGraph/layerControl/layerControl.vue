@@ -112,9 +112,10 @@ const props = defineProps({
     default: false,
   },
   openMode: {
-  type: String,
-  default: 'all'
-},
+    type: String,
+    default: 'all'
+  },
+  rightOffset: { type: Number, default: 0 }
 });
 
 const { t } = useI18n();

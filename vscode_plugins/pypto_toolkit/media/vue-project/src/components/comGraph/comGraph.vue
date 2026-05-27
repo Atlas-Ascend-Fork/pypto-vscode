@@ -28,7 +28,7 @@
                 @open="(e) => (healthReportGraphName = e)" />
               <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
               <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
-              <LayerControl v-model="showLayerControl" @graph-layout-change="(e) => setDirection(e)"
+              <LayerControl v-model="showLayerControl" :rightOffset="rightPanelWidth" @graph-layout-change="(e) => setDirection(e)"
                 @node-display-change="(e) => nodeDisplayConfig(e)" @select-nodes-change="(e) => hoverFeedbackAction(e)"
                 @node-search-level-change="(e) => nodeSearchLevelChange(e)" :openMode="openMode" />
               <LeafCalledRecord v-model="showLeafCalledRecord" :called-map="leafCalledRecordMap" :leaf-name="currentLeafName" />
@@ -38,7 +38,6 @@
           </div>
         </d-splitter-pane>
         <d-splitter-pane 
-          :collapseDirection="after"
           :size="'50%'"
           :minSize="minSize"
           :collapsible="true"
@@ -48,7 +47,7 @@
           @sizeChange="sizeChange"
           @collapsedChange="collapsedChange"
         >
-          <div class="pane-content">
+          <div ref="rightPanelEl" class="pane-content">
             <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
           </div>
         </d-splitter-pane>
@@ -133,6 +132,8 @@ const { isDarkTheme } = inject('root');
 const showComGraphReport = ref(false);
 const showMemoryAllocation = ref(false);
 const splitterPane = ref();
+const rightPanelEl = ref<HTMLElement>();
+const rightPanelWidth = ref(0);
 const collapsed = ref(false);
 const showNodeDetail = ref(false);
 const showLayerControl = ref(false);
@@ -302,7 +303,9 @@ const colorSubgraph = (isColor: boolean) => {
 
 const toggleHealthReport = (status: boolean) => {
   showComGraphReport.value = status;
-  
+  if (status && showMemoryAllocation.value) {
+    toggleMemoryAllocation();
+  }
 }
 const toggleMemoryAllocation = () => {
   splitterPane.value.updateCollapsed();
@@ -317,6 +320,11 @@ const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
   showLeafCalledRecord.value = status;
   currentLeafName.value = leafName;
 }
+watch(showMemoryAllocation, (val) => {
+  nextTick(() => {
+    rightPanelWidth.value =  rightPanelEl.value.offsetWidth;
+  });
+});
 watch(server.LayoutResult, (newValue) => {
   isLoading.value = false;
   waitingFlag.value = false;
@@ -413,6 +421,9 @@ function onViewMouseUp(node) {
   } else if (node.id.endsWith('label-main') && !node.isEmptyLabel) {
     nodeId.value = node.id;
     showNodeDetail.value = true;
+    if (showMemoryAllocation.value) {
+      toggleMemoryAllocation();
+    }
   }
 }
 function onSwitchLockInfo(attr) {

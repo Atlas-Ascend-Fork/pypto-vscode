@@ -27,18 +27,18 @@
           }"
           @click="handleDotClick(index)"
         ></div>
-        <div
-          v-for="(dot, index) in dots"
-          :key="index"
-          class="progress-dot"
-          :class="{ 
-            'large-dot': dot.isLarge, 
-            'selected': dot.isLarge && selectedClockIndex === dot.clockIndex,
-            'in-selected-clock': selectedClockIndex === dot.clockIndex
-          }"
-          :style="{ left: dot.position + '%' }"
-          @click="handleDotClick(dot.clockIndex)"
-        ></div>
+        <d-tooltip v-for="(dot, index) in dots" :key="index" :content="`Clock: ${dot.clock}`" position="top">
+          <div
+            class="progress-dot"
+            :class="{
+              'large-dot': dot.isLarge,
+              'selected': dot.isLarge && selectedClockIndex === dot.clockIndex,
+              'in-selected-clock': selectedClockIndex === dot.clockIndex
+            }"
+            :style="{ left: dot.position + '%' }"
+            @click="handleDotClick(dot.clockIndex)"
+          ></div>
+        </d-tooltip>
       </div>
     </div>
     <div class="track-line"></div>
@@ -92,6 +92,7 @@ interface Event {
 }
 
 interface Clock {
+  clock: number;
   events: Event[]
 }
 
@@ -99,6 +100,7 @@ interface Dot {
   isLarge: boolean
   position: number
   clockIndex: number
+  clock: number
 }
 
 const emit = defineEmits<{
@@ -183,7 +185,8 @@ const dots = computed(() => {
     result.push({
       isLarge: true,
       position,
-      clockIndex
+      clockIndex,
+      clock: clock.clock
     })
     currentIndex++
 
@@ -192,7 +195,8 @@ const dots = computed(() => {
       result.push({
         isLarge: false,
         position,
-        clockIndex
+        clockIndex,
+        clock: clock.clock
       })
       currentIndex++
     }
