@@ -34,7 +34,7 @@
         overlay-class="corner-tips">
         <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]"
           @click="openMeoryAllocation">
-          <d-icon name="icon-codecheck-plugin" :color="comGraphCtx?.showMemoryAllocation?.value ? '#317af7' : '#b3b3b3'" class="corner-icon" size="16px"></d-icon>
+          <d-icon name="icon-codecheck-plugin" class="corner-icon" size="16px"></d-icon>
         </div>
       </d-tooltip>
       <div>

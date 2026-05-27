@@ -1,5 +1,5 @@
 <template>
-    <d-splitter style="height: 100%;background-color: rgba(26, 26, 26, 1);" class="splitter-border" :showCollapseButton="false" orientation="vertical" :disableBarSize="disableBarSize">
+    <d-splitter class="splitter-border" :showCollapseButton="false" orientation="vertical" :disableBarSize="disableBarSize">
       <template v-slot:DSplitterPane>
         <d-splitter-pane 
             :size="size" 
@@ -203,6 +203,10 @@ const playingEventId = ref<string | null>(null);
 const { dragEl, rootEl, styles } = useMoveable({ modelValue: showDetailModal });
 
 watch(() => props.events, (newEvents) => {
+  // 切换 clock 事件列表时自动关闭详情弹窗
+  showDetailModal.value = false;
+  selectedEvent.value = null;
+  
   if (newEvents && newEvents.length > 0) {
     const firstEvent = newEvents[0];
     if (firstEvent?.action?.originBufferList) {
@@ -408,6 +412,10 @@ watch(showDetailModal, (val) => {
 
 <style scoped lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
+.splitter-border {
+  height:100%;
+  background-color: var(--devui-global-bg);
+}
 
 .pane-content {
   display: flex;
@@ -503,7 +511,6 @@ watch(showDetailModal, (val) => {
   flex-shrink: 0;
 
   .header-title {
-    color: #cccccc;
     font-size: 14px;
     font-weight: 500;
   }
@@ -517,7 +524,7 @@ watch(showDetailModal, (val) => {
     align-items: center;
     flex-direction: row;
     padding: 8px;
-    background-color: rgba(51, 51, 51, 0.4);
+    background-color: var(--pto-background-disable);
     border: none;
     border-radius: 6px;
     font-size: 12px;
@@ -543,12 +550,7 @@ watch(showDetailModal, (val) => {
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 999px;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
   }
 }
 
@@ -558,15 +560,15 @@ watch(showDetailModal, (val) => {
   align-items: center;
   height: 36px;
   padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--pto-background);
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--pto-background-disable);
   margin-bottom: 6px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--pto-background);
   }
   
   &.playing {
@@ -585,14 +587,14 @@ watch(showDetailModal, (val) => {
   font-size: 12px;
   font-weight: 700;
   font-style: bold;
-  color: rgba(230, 230, 230, 1);
+  color: var(--pto-font-color-main);
 }
 
 .event-id {
   font-size: 12px;
   font-weight: 400;
   font-style: regular;
-  color: rgba(136, 136, 136, 1);
+  color: var(--pto-font-color-placeholder);
 }
 
 .event-play-btn {
@@ -603,7 +605,7 @@ watch(showDetailModal, (val) => {
   align-items: center;
   padding: 4px;
   border: none;
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--pto-background-disable);
   font-size: 11px;
   cursor: pointer;
   border-radius: 6px;
@@ -616,7 +618,7 @@ watch(showDetailModal, (val) => {
   justify-content: center;
   align-items: center;
   flex: 1;
-  color: #6e6e6e;
+  color: var(--pto-font-color-disabled);
   font-size: 12px;
 }
 
@@ -689,12 +691,12 @@ watch(showDetailModal, (val) => {
       pre {
         margin: 0;
         padding: 12px;
-        background-color: #1e1e1e;
+        background-color: var(--devui-global-bg);
         border-radius: 4px;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         font-size: 12px;
         line-height: 1.5;
-        color: #cccccc;
+        color: var(--pto-font-color-main);
         white-space: pre-wrap;
         word-break: break-all;
       }

@@ -308,8 +308,8 @@ watch(() => props.clocks, (newClocks) => {
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
-  background-color: #1e1e1e;
-  border-top: 1px solid #3c3c3c;
+  background-color: var(--devui-global-bg);
+  border-top: 1px solid var(--pto-border-default);
 }
 
 .progress-left-controls {
@@ -326,20 +326,16 @@ watch(() => props.clocks, (newClocks) => {
   height: 28px;
   gap: 4px;
   border: none;
-  background: rgba(51, 51, 51, 1);
-  color: rgba(230, 230, 230, 1);
+  background: var(--pto-background);
+  color:  var(--pto-font-color-sub);;
   font-size: 12px;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 
-  &:hover {
-    background-color: #2d2d2d;
-    color: #cccccc;
-  }
-
+  &:hover,
   &:active {
-    background-color: #3c3c3c;
+    background-color: var(--pto-background-hover);
   }
 
   svg {
@@ -374,7 +370,7 @@ watch(() => props.clocks, (newClocks) => {
 .progress-track {
   position: relative;
   height: 16px;
-  background-color: rgba(38, 38, 38, 1);
+  background-color: var(--pto-background);
   border-radius: 122px;
   cursor: pointer;
 }
@@ -382,7 +378,7 @@ watch(() => props.clocks, (newClocks) => {
 .track-line {
   width: 0px;
   height: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--pto-border-default);
 }
 
 .progress-dot {
@@ -391,7 +387,7 @@ watch(() => props.clocks, (newClocks) => {
   transform: translate(-50%, -50%);
   width: 4px;
   height: 4px;
-  background-color: #6e6e6e;
+  background-color: var(--pto-font-color-disabled);
   border: none;
   border-radius: 50%;
   cursor: default;
@@ -402,7 +398,7 @@ watch(() => props.clocks, (newClocks) => {
     width: 8px;
     height: 8px;
     background-color: transparent;
-    border: 2px solid #6e6e6e;
+    border: 2px solid var(--pto-font-color-disabled);
     cursor: pointer;
 
     &:hover {
@@ -558,7 +554,7 @@ watch(() => props.clocks, (newClocks) => {
   padding: 4px 8px;
   border: none;
   background: transparent;
-  color: #858585;
+  color: var(--pto-font-color-placeholder);
   font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
@@ -566,8 +562,8 @@ watch(() => props.clocks, (newClocks) => {
   width: 42px;
 
   &:hover {
-    background-color: #2d2d2d;
-    color: #cccccc;
+    background-color: var(--pto-background);
+    color: var(--pto-font-color-main);
   }
 
   &.active {

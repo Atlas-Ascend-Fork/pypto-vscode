@@ -637,3 +637,9 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
   height: 100vh;
 }
 </style>
+
+<style lang="scss" scoped>
+:deep(.devui-splitter__bar) {
+  background-color: var(--pto-border-default);
+}
+</style>

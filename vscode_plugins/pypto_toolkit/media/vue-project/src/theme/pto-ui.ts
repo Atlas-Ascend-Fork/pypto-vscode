@@ -33,6 +33,8 @@ const ptoBackgroundTheme: Theme = {
   'pto-background': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.05)'],
   // 悬浮背景
   'pto-background-hover': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
+  // 禁用背景
+  'pto-background-disable': ['rgba(0, 0, 0, 0.02)', 'rgba(255, 255, 255, 0.02)'],
 };
 
 const ptoButtonTheme: Theme = {
