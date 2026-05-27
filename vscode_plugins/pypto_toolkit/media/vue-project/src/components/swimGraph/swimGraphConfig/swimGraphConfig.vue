@@ -62,6 +62,10 @@
                 <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
                 <d-select v-model="kernelModeOption" :options="kernelModeOptions" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
             </div>
+            <div class="cfg-Shading-mode">
+                <div class="cfg-Shading-mode-t">{{ $t('cubeSubGraphHashOrderType') }} </div>
+                <d-select v-model="HashOrderOption" :options="HashOrderOptions" size="sm" @update:modelValue="OnHashOrderOptionsModeChange"></d-select>
+            </div>
             <div class="task-content">
                 <div class="task-content-t">{{ $t('eventTask') }} </div>
                 <d-select :class="[kernelTextOption.length === 1 && 'singleOption']" :menu-class="kernelTextOption.length === 1 ? 'singleOptionMenu' : ''" v-model="kernelTextOption" :options="kernelTextOptions" :multiple="true" size="sm" @update:modelValue="OnKernelTextChange" :multiple-limit="2" option-disabled-key="disabled"></d-select>
@@ -187,10 +191,20 @@ const kernelModeOptions = computed(() => {
     {name: $t('stichedFunc'), value: 'stichedFunc'},
     {name: $t('label'), value: 'label'},
     {name: $t('mixSubGraph'), value: 'mixSubGraph'},
+    {name: $t('isomorphicSubGraph'), value: 'isomorphicSubGraph'},
   ];
 });
 
 const kernelModeOption = ref(isThreeColumn ? 'label' : 'subGraph');
+
+const HashOrderOptions = computed(() => {
+  return [
+    {name: 'CubeMergeHashOrder', value: 'cubeMergeHashOrder'},
+    {name: 'L1ReuseHashOrder', value: 'L1ReuseHashOrder'},
+  ];
+});
+
+const HashOrderOption = ref('cubeMergeHashOrder');
 
 const kernelTextOptions = computed(() => [
   {name: $t('taskName'), value: 'taskName', disabled: false},
@@ -209,8 +223,8 @@ function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
 
-const configGetEventColor = (colorEvent, mode) => {
-    const color = getEventColorByMode(colorEvent, mode);
+const configGetEventColor = (colorEvent, mode, hashOrderType='') => {
+    const color = getEventColorByMode(colorEvent, mode, '', hashOrderType);
     colorEvent.color = color;
     const eventColor = isDarkTheme.value ? colorEvent.color.dark : colorEvent.color.light;
     let fillColor = eventColor ? eventColor.base : '';
@@ -281,14 +295,14 @@ function savePerfRendingMode(colorRenderMode) {
     server.saveRendingMode({paramObj: JSON.stringify({ perfColorReding: colorRenderMode })});
 };
 
-const updateKernelEvents = (mode) => {
+const updateKernelEvents = (mode, hashOrderOption) => {
     const {startTime, endTime} = timelineState;
     const updateEventColors = (event) => {
         if (!event.isCounter && event.endTime >= startTime && event.startTime <= endTime) {
-            const color = getEventColorByMode(event, mode);
+            const color = getEventColorByMode(event, mode, 'kernel', hashOrderOption);
             event.color = color;
             if (event.drawData) {
-                const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode);
+                const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode, hashOrderOption) ;
                 event.drawData.rectColor = fillColor;
                 event.drawData.strokeColor = strokeColor;
                 event.drawData.fontColor = fontColor;
@@ -300,7 +314,7 @@ const updateKernelEvents = (mode) => {
         const subEvents = swimDataManager.getSubEvents(parentEvent.id);
         for (const subEvent of subEvents) {
             if (subEvent.drawData) {
-                const { fillColor, fontColor, strokeColor } = configGetEventColor(parentEvent, mode);
+                const { fillColor, fontColor, strokeColor } = configGetEventColor(parentEvent, mode, hashOrderOption);
                 subEvent.drawData.rectColor = fillColor;
                 subEvent.drawData.fontColor = fontColor;
             }
@@ -333,9 +347,16 @@ const updateKernelEvents = (mode) => {
 
 const OnKernelModeChange = (mode) => {
     userConfig.value.kernelColorRending = mode;
-    updateKernelEvents(kernelModeOption.value);
+    updateKernelEvents(kernelModeOption.value, HashOrderOption.value);
     transform();
-    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value);
+    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value, HashOrderOption.value);
+};
+
+const OnHashOrderOptionsModeChange = (mode) => {
+    userConfig.value.hashOrderRending = mode;
+    updateKernelEvents(kernelModeOption.value, HashOrderOption.value);
+    transform();
+    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value, HashOrderOption.value);
 };
 
 const OnKernelTextChange = (value) => {
@@ -344,8 +365,8 @@ const OnKernelTextChange = (value) => {
     saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value);
 };
 
-function saveKernelRendingMode(colorRenderMode, textRenderMode) {
-    server.saveRendingMode({paramObj: JSON.stringify({ kernelColorRending: colorRenderMode, kernelTextRending: textRenderMode })});
+function saveKernelRendingMode(colorRenderMode, textRenderMode, hashOrderMode) {
+    server.saveRendingMode({paramObj: JSON.stringify({ kernelColorRending: colorRenderMode, kernelTextRending: textRenderMode, hashOrderRending: hashOrderMode})});
 };
 
 const onInputChange = (newValue) => {
@@ -417,6 +438,7 @@ watch(userConfig, () => {
     perfModeOption.value = userConfig.value.perfColorReding;
     kernelModeOption.value = userConfig.value.kernelColorRending;
     kernelTextOption.value = userConfig.value.kernelTextRending;
+    HashOrderOption.value = userConfig.value.hashOrderRending;
 });
 </script>
 

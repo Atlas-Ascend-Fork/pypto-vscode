@@ -61,6 +61,7 @@ const {
   kernelColorRending,
   processes,
   isPathLockStatus,
+  hashOrderRending,
 } = inject('swimGraphState');
 const { isDarkTheme } = inject('root');
 const timeConsumingLabel = computed(() =>
@@ -337,7 +338,7 @@ const getBaseColor = (event) => {
   if (!event.color || !event.color.dark) {
     const process = Array.from(processes.values()).find(p => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
-    event.color = getEventColorByMode(event, kernelColorRending.value, processType);
+    event.color = getEventColorByMode(event, kernelColorRending.value, processType, hashOrderRending.value);
   }
   if (isDarkTheme.value) {
     return event.color.dark.base;
