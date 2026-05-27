@@ -19,6 +19,7 @@ export type IComApis =
   | 'returnFuncTree'
   | 'getSprottyGraphWithLevel'  
   | 'getMetadata'
+  | 'getMemTraceFile'
   | 'getTimelineEvents'
   | 'getInitialMemoryData';
 export type IComRefs = {
@@ -49,6 +50,7 @@ export type IComRefs = {
   Metadata: unknown;
   Timeline: unknown;
   InitMemoryTraceFlag: unknown;
+  MemTraceFileFlag: unknown;
 };
 
 export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
@@ -70,7 +72,8 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   returnFuncTree: () => Promise<void>;
   selectFile: (beforeFilePath: string) => Promise<void>;
   getSprottyGraphWithLevel: (message: { data: any }) => Promise<void>;
-  getMetadata: () => Promise<any>;
+  getMetadata: () => Promise<void>;
+  getMemTraceFile: () => Promise<void>;
   getTimelineEvents: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
 }

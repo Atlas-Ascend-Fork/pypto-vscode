@@ -10,7 +10,7 @@ import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
-
+import * as fs from 'fs';
 type Apis = IComApis | ICommonApis;
 
 type Refs = IComRefs & ICommonRefs;
@@ -46,7 +46,8 @@ type Refs = IComRefs & ICommonRefs;
   'CheckFilePathResult',
   'Metadata', 
   'Timeline', 
-  'InitMemoryTraceFlag'
+  'InitMemoryTraceFlag',
+  'MemTraceFileFlag'
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -191,6 +192,16 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
         return;
       }
       this.handler.loadDiffData(this, fileUris[0].fsPath);
+    }
+  };
+
+  @viewApi()
+  public getMemTraceFile = async () => {
+    let fsPath = this.query?._path ?? '';
+    if(fsPath == '' && !/_OoO_Memory_Trace\.json$/.test(fsPath))return;
+    let memTracePath = fsPath.replace('.json', '_OoO_Memory_Trace.json');
+    if (fs.existsSync(memTracePath)) {
+      this.setRef('MemTraceFileFlag', 'true');
     }
   };
 

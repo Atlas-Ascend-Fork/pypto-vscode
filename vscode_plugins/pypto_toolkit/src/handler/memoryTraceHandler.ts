@@ -2,7 +2,7 @@ import { createReadStream } from 'fs';
 const { parser } = require('stream-json');
 const { streamValues } = require('stream-json/streamers/StreamValues');
 import * as fs from 'fs/promises';
-import { getMemoryTraceCacheStore, getMemoryTraceEventStore, MemoryTraceEvent,BufferState } from '../core/sqlInit';
+import { getMemoryTraceCacheStore, getMemoryTraceEventStore, MemoryTraceEvent, BufferState } from '../core/sqlInit';
 
 export interface MemoryTraceMetadata {
   totalCycles: number;
@@ -33,13 +33,12 @@ export interface TensorInfo {
   }>;
 }
 
-
 export interface ClockEvents {
-  clock:number;
-  events:MemoryTraceEvent[];
+  clock: number;
+  events: MemoryTraceEvent[];
 }
 export interface FrontendEvent {
-  clockEvents:ClockEvents[];
+  clockEvents: ClockEvents[];
 }
 
 export interface FrontendBuffer {
@@ -126,20 +125,20 @@ export class MemoryTraceHandler {
     await getMemoryTraceCacheStore().set(cacheRecord);
 
     // 写入 events 表（保留原有功能）
-    let originBufferList:BufferState[] = []; // 记录初始所有buffer的情况
-    let gmIndex = 0; 
+    let originBufferList: BufferState[] = []; // 记录初始所有buffer的情况
+    let gmIndex = 0;
     for (let index = 0; index < timeline.length; index++) {
       const e = timeline[index];
-      let targetBufferList:BufferState[] =  []; // 记录当前变化buffer的情况
-      if(e.eventType == "ALLOC_EXEC"){
+      let targetBufferList: BufferState[] = []; // 记录当前变化buffer的情况
+      if (e.eventType == 'ALLOC_EXEC') {
         targetBufferList.push({
           memId: e.memId,
-          memType:e.memType,
-          addrStart:e.addrStart,
+          memType: e.memType,
+          addrStart: e.addrStart,
           size: e.size,
-          status: 1
+          status: 1,
         });
-        
+
         await getMemoryTraceEventStore().set({
           id: index,
           filePath: fsPath,
@@ -152,26 +151,27 @@ export class MemoryTraceHandler {
 
         originBufferList.push({
           memId: e.memId,
-          memType:e.memType,
-          addrStart:e.addrStart,
+          memType: e.memType,
+          addrStart: e.addrStart,
           size: e.size,
-          status: 1
+          status: 1,
         });
-      }else if(e.eventType == "OP_LAUNCH"){
-        if(e.inputMemIds.length != 0){
-          for(let i = 0; i < e.inputMemIds.length; i++){
-            const inputBuffer = originBufferList.find(item => item.memId === e.inputMemIds[i]);
-            if(inputBuffer) {
+      } else if (e.eventType == 'OP_LAUNCH') {
+        if (e.inputMemIds.length != 0) {
+          for (let i = 0; i < e.inputMemIds.length; i++) {
+            const inputBuffer = originBufferList.find((item) => item.memId === e.inputMemIds[i]);
+            if (inputBuffer) {
               targetBufferList.push({ ...inputBuffer });
             }
           }
         }
-        if(e.outputMemIds.length != 0){
-          for(let i = 0; i < e.outputMemIds.length; i++){
-            const outputBuffer = originBufferList.find(item => item.memId === e.outputMemIds[i]);
-            if(outputBuffer) {
-              outputBuffer.status = 2;
-              targetBufferList.push({ ...outputBuffer });
+        if (e.outputMemIds.length != 0) {
+          for (let i = 0; i < e.outputMemIds.length; i++) {
+            const outputBuffer = originBufferList.find((item) => item.memId === e.outputMemIds[i]);
+            if (outputBuffer) {
+              let buffer = { ...outputBuffer };
+              buffer.status = 2;
+              targetBufferList.push(buffer);
             }
           }
         }
@@ -185,19 +185,20 @@ export class MemoryTraceHandler {
           },
         });
         // 修改 originBufferList
-        for(let i = 0; i < targetBufferList.length; i++){
-          const outputBuffer = originBufferList.find(item => item.memId === targetBufferList[i].memId);
-          if(outputBuffer) {
+        for (let i = 0; i < targetBufferList.length; i++) {
+          const outputBuffer = originBufferList.find((item) => item.memId === targetBufferList[i].memId);
+          if (outputBuffer) {
             outputBuffer.status = 2;
           }
         }
-      }else if(e.eventType == "OP_RETIRE"){
-        if(e.freedMemIds.length != 0){
-          for(let i = 0; i < e.freedMemIds.length; i++){
-            const freedBuffer = originBufferList.find(item => item.memId === e.freedMemIds[i]);
-            if(freedBuffer) {
-              freedBuffer.status = 0;
-              targetBufferList.push({ ...freedBuffer });
+      } else if (e.eventType == 'OP_RETIRE') {
+        if (e.freedMemIds.length != 0) {
+          for (let i = 0; i < e.freedMemIds.length; i++) {
+            const freedBuffer = originBufferList.find((item) => item.memId === e.freedMemIds[i]);
+            if (freedBuffer) {
+              let buffer = { ...freedBuffer };
+              buffer.status = 0;
+              targetBufferList.push(buffer);
             }
           }
         }
@@ -211,25 +212,90 @@ export class MemoryTraceHandler {
           },
         });
         // 修改 originBufferList
-        for(let i = 0; i < targetBufferList.length; i++){
-          const freedBufferIndex = originBufferList.findIndex(item => item.memId === targetBufferList[i].memId);
-          if(freedBufferIndex !== -1) {
-            originBufferList.splice(freedBufferIndex,1);
+        for (let i = 0; i < targetBufferList.length; i++) {
+          const freedBufferIndex = originBufferList.findIndex((item) => item.memId === targetBufferList[i].memId);
+          if (freedBufferIndex !== -1) {
+            originBufferList.splice(freedBufferIndex, 1);
           }
         }
-      }else if(e.eventType == "SPILL"){
-        // 暂无样例数据
-      }else if(e.eventType == "BUFFER_REARRANGE"){
-        // 暂无样例数据
-      }else if(e.eventType == "ALLOC_FAIL"){
-        // 暂无样例数据
-      }else if(e.eventType == "INIT_DDR_BUFFER"){
+      } else if (e.eventType == 'SPILL') {
+        const freedBuffer = originBufferList.find((item) => item.memId === e.memId);
+        if (freedBuffer) {
+          let buffer = { ...freedBuffer };
+          buffer.status = 0;
+          targetBufferList.push(buffer);
+        }
+        targetBufferList.push({
+          memId: e.spillDdrMemId,
+          memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024,
+          size: 32 * 1024 * 1024,
+          status: 2,
+        });
+        await getMemoryTraceEventStore().set({
+          id: index,
+          filePath: fsPath,
+          ...e,
+          action: {
+            targetBufferList: targetBufferList,
+            originBufferList: originBufferList,
+          },
+        });
+        const freedBufferIndex = originBufferList.findIndex((item) => item.memId === e.memId);
+        if (freedBufferIndex !== -1) {
+          originBufferList.splice(freedBufferIndex, 1);
+        }
+        originBufferList.push({
+          memId: e.spillDdrMemId,
+          memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024,
+          size: 32 * 1024 * 1024,
+          status: 2,
+        });
+        gmIndex++;
+      } else if (e.eventType == 'BUFFER_REARRANGE') {
+        for(let i = 0; i < e.changes.length; i++){
+          const changeBuffer = originBufferList.find((item) => item.memId === e.changes[i].memId);
+          if (changeBuffer) {
+            let buffer = { ...changeBuffer };
+              buffer.addrStart = e.changes[i].newStart;
+              targetBufferList.push(buffer);
+          }
+        }
+        await getMemoryTraceEventStore().set({
+          id: index,
+          filePath: fsPath,
+          ...e,
+          action: {
+            targetBufferList: targetBufferList,
+            originBufferList: originBufferList,
+          },
+        });
+        // 修改 originBufferList
+        for(let i = 0; i < e.changes.length; i++){
+          const changeBuffer = originBufferList.find((item) => item.memId === e.changes[i].memId);
+          if (changeBuffer) {
+            changeBuffer.addrStart = e.changes[i].newStart;
+          }
+        }
+      } else if (e.eventType == 'ALLOC_FAIL') {
+        await getMemoryTraceEventStore().set({
+          id: index,
+          filePath: fsPath,
+          ...e,
+          action: {
+            targetBufferList: targetBufferList,
+            originBufferList: originBufferList,
+            errorMemType:[e.memType]
+          },
+        });
+      } else if (e.eventType == 'INIT_DDR_BUFFER') {
         targetBufferList.push({
           memId: e.memId,
-          memType:"MEM_GM",
-          addrStart:gmIndex * 32 *1024 * 1024,
-          size: 32 *1024 * 1024,
-          status: 2
+          memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024,
+          size: 32 * 1024 * 1024,
+          status: 2,
         });
         await getMemoryTraceEventStore().set({
           id: index,
@@ -242,10 +308,10 @@ export class MemoryTraceHandler {
         });
         originBufferList.push({
           memId: e.memId,
-          memType:"MEM_GM",
-          addrStart:gmIndex * 32 *1024 * 1024,
+          memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024,
           size: 32 * 1024 * 1024,
-          status: 2
+          status: 2,
         });
         gmIndex++;
       }
@@ -263,17 +329,12 @@ export class MemoryTraceHandler {
     return {
       totalCycles: cached.totalCycles,
       scheduleResult: '',
-      chipArch: cached.chipArch
+      chipArch: cached.chipArch,
     };
   }
 
-  
-
- 
   static async getTimeline(fsPath: string): Promise<ClockEvents[]> {
-    const allEvents = await getMemoryTraceEventStore().query()
-      .filter({ filePath: fsPath })
-      .exec();
+    const allEvents = await getMemoryTraceEventStore().query().filter({ filePath: fsPath }).exec();
     // 1. 创建一个 Map，key 是 clock，value 是该 clock 下的事件数组
     const clockMap = new Map<number, MemoryTraceEvent[]>();
 
@@ -288,7 +349,7 @@ export class MemoryTraceHandler {
     // 3. 将 Map 转换成你需要的 ClockEvents[] 数组格式
     const clockEvents: ClockEvents[] = Array.from(clockMap.entries()).map(([clock, events]) => ({
       clock,
-      events
+      events,
     }));
 
     // 4. 如果需要按时间顺序排序（可选）
@@ -301,5 +362,4 @@ export class MemoryTraceHandler {
     const timeline = await this.getTimeline(fsPath);
     return timeline;
   }
-
 }

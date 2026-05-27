@@ -100,9 +100,9 @@ export class ThreeColumnServer
   constructor(ctx: ViewServerContext) {
     super(ctx);
   }
+  getMemTraceFile: () => Promise<void>;
   getTimelineEvents: () => Promise<void>;
-
-  getMetadata: () => Promise<any>;
+  getMetadata: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
 
   getMetadata: () => Promise<any>;

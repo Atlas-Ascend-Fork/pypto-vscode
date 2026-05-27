@@ -235,7 +235,7 @@ watch(server.InitMemoryTraceFlag, (newVal) => {
   console.log('[MemoryTrace] InitMemoryTraceFlag changed:', newVal);
   if (newVal) {
     console.log('[MemoryTrace] ===== Server ready, 开始调用后端接口 =====');
-
+    server.getMemTraceFile();
     console.log('[MemoryTrace]  调用 getMetadata()');
     // InitMemoryTraceFlag触发前已经调用getMetadata()
 
@@ -275,30 +275,18 @@ watch(server.Timeline, (newVal) => {
   emit('timeline-change', timelineData);
 });
 
+watch(server.MemTraceFileFlag, (newVal) => {
+  if (newVal) {
+    console.log('[MemoryTrace] MemTraceFileFlag：' + newVal);
+  }
+});
+
 watch(server.Metadata, (newVal) => {
   console.log('[MemoryTrace] Metadata changed:', newVal);
 });
 
 
-watch(server.BufferState, (newVal) => {
-  console.log('[MemoryTrace] BufferState changed, count:', newVal?.length || 0);
-  if (newVal?.length > 0) {
-    console.log('[MemoryTrace] BufferState first item:', JSON.stringify(newVal[0]));
-    const processedGraphData = dealGraphData(newVal);
-    console.log('[MemoryTrace] Processed graphData:', JSON.stringify(processedGraphData));
-    pendingGraphData.value = processedGraphData;
-  }
-});
 
-watch(() => props.clock, (newClock) => {
-  console.log('[MemoryTrace] Clock changed:', newClock);
-  if (newClock !== undefined && server.InitMemoryTraceFlag.value) {
-    console.log('[MemoryTrace] Calling getEventsAtClock with clock:', newClock);
-    server.getEventsAtClock({clock: newClock});
-    console.log('[MemoryTrace] Calling getBufferState with clock:', newClock);
-    server.getBufferState({clock: newClock});
-  }
-}); 
 
 const dealGraphData = (bufferList: any[]) => {
   const graphData = {};

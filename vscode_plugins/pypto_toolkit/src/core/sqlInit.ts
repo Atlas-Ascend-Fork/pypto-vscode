@@ -163,46 +163,69 @@ export interface BufferState {
   size: number;
   status: number;
 }
+
+export interface FailBufferState {
+  memId: number;
+  ownerOpMagic: number;
+  addrStart: number;
+  size: number;
+  status: number;
+}
 // memory_trace_events 表
 export interface MemoryTraceEvent {
-    id: string;
-      filePath: string,
-      eventType: string;
-      coreType?: string;
-      clock: number;
-      cycleEnd?: number;
-      size?: string;
-      memType?: string;
-      addrStart?: number;
-      addrEnd?: number;
-      inputMemIds?:number[];
-      outputMemIds?:number[];
-      freedMemIds?:number[];
-      opMagic?:number;
-      coreIdx?:number;
-      reloadAllocOpMagic?:number;
-      reloadCopyInOpMagic?:number;
-      spillCopyoutOpMagic?:number;
-      triggerOpMagic?:number;
-      triggerTensorSIze?:number;
-      kind?:string;
-      magic?:number;
-      dtype?:string;
-      shape?:[];
-      action?:{
+    id: number;
+    filePath: string,
+    eventType: string;
+    coreType?: string;
+    clock: number;
+    cycleEnd?: number;
+    size?: string;
+    memType?: string;
+    addrStart?: number;
+    addrEnd?: number;
+    inputMemIds?:number[];
+    outputMemIds?:number[];
+    freedMemIds?:number[];
+    opMagic?:number;
+    coreIdx?:number;
+    ddrMemType?:string,
+    ddrAddrStart?:number,
+    ddrAddrEnd?:number,
+    ddrSize?:number,
+    reloadAllocOpMagic?:number;
+    reloadCopyInOpMagic?:number;
+    spillCopyoutOpMagic?:number;
+    spillCopyoutSize?:number;
+    spillTensorMagic?:number;
+    spillDdrMemId?:number;
+    triggerOpMagic?:number;
+    triggerTensorSize?:number;
+    requestSize?:number;
+    kind?:string;
+    magic?:number;
+    dtype?:string;
+    shape?:[];
+    changes?:[];
+    bufferSnapshot?:{
+        capacity:number,
+        occupiedSlices:FailBufferState[],
+        freeIntervals:[]
+    };
+    action?:{
         targetBufferList:BufferState[],
-        originBufferList:BufferState[]
-      };
+        originBufferList:BufferState[],
+        errorMemType?:[]
+    };
 }
 
 const MEMORY_TRACE_EVENT_ATTRIBUTES = defineAttributes<MemoryTraceEvent>({
-    id: { type: String, isPrimary: true },
+    id: { type: Number, isPrimary: true },
     
     filePath: { type: String, isQuery: true },
     eventType: { type: String, isQuery: true },
     clock: { type: Number, isQuery: true },
     
-    // 基础可选字段
+    // ========== 基础可选字段 ==========
     coreType: { type: String },
     cycleEnd: { type: Number },
     size: { type: String },
@@ -210,21 +233,42 @@ const MEMORY_TRACE_EVENT_ATTRIBUTES = defineAttributes<MemoryTraceEvent>({
     addrStart: { type: Number },
     addrEnd: { type: Number },
     
-    // 数组类型字段（底层通常会自动处理为 JSON 字符串存储）
+    // ========== 数组类型字段 ==========
     inputMemIds: { type: Array },
     outputMemIds: { type: Array },
     freedMemIds: { type: Array },
     
-    // 其他数字类型字段
+    // ========== 其他数字类型字段 ==========
     opMagic: { type: Number },
     coreIdx: { type: Number },
     reloadAllocOpMagic: { type: Number },
     reloadCopyInOpMagic: { type: Number },
     spillCopyoutOpMagic: { type: Number },
     triggerOpMagic: { type: Number },
-    triggerTensorSIze: { type: Number },
+    triggerTensorSize: { type: Number },
     
-    // 复杂的嵌套对象
+    // ========== 🆕 本次新增的字段 ==========
+    // DDR 相关字段
+    ddrMemType: { type: String },
+    ddrAddrStart: { type: Number },
+    ddrAddrEnd: { type: Number },
+    ddrSize: { type: Number },
+    
+    // Spill 相关字段
+    spillCopyoutSize: { type: Number },
+    spillTensorMagic: { type: Number },
+    spillDdrMemId: { type: Number },
+    
+    // 其他零散字段
+    requestSize: { type: Number },
+    kind: { type: String },
+    magic: { type: Number },
+    dtype: { type: String },
+    shape: { type: Array },
+    changes: { type: Array },
+    
+    // 复杂的嵌套对象（底层会自动进行 JSON 序列化/反序列化）
+    bufferSnapshot: { type: Object },
     action: { type: Object },
 });
 
