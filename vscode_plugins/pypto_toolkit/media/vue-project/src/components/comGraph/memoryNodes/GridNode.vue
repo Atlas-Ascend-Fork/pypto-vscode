@@ -177,9 +177,25 @@ export default {
       return this.data.detail?.access || 'read';
     },
     popupStyle() {
+      const offset = 5;
+      
+      // 默认：popup 左上角在鼠标右下方
+      let left = this.mouseX + offset;
+      let top = this.mouseY + offset;
+      
+      // 右边界不够时，popup 左上角移动到鼠标左下方
+      if (left + 140 > window.innerWidth) {
+        left = this.mouseX - 140 - offset;
+      }
+      
+      // 下边界不够时，popup 左上角移动到鼠标左上方
+      if (top + 180 > window.innerHeight) {
+        top = this.mouseY - 180 - offset;
+      }
+      
       return {
-        left: `${this.mouseX + 5}px`,
-        top: `${this.mouseY + 5}px`,
+        left: `${left}px`,
+        top: `${top}px`,
         transform: 'none'
       };
     },

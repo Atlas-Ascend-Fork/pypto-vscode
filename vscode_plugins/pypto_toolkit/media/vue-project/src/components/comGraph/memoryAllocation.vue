@@ -107,6 +107,7 @@ interface Event {
   animationData: any[];
   action: any;
   clock: number;
+  filePath: string;
   _index: number;
 }
 
@@ -304,14 +305,13 @@ const dealGraphData = (bufferList: any[]) => {
   Object.keys(memoryTypeSizeMap).forEach(key => {
     graphData[key] = {
       size: memoryTypeSizeMap[key].size,
-      bufferList: bufferList.filter(item => item.memType === key) || [],
+      bufferList: bufferList.filter(item => item.memType === key).filter(item => item.status !== 0) || [],
     }
   })
   return graphData;
 }
 
 const sizeChange = (newSize: number) => {
-  console.log(newSize);
 };
 
 const handleGraphMemoryInitialized = () => {
@@ -331,7 +331,11 @@ const finalOnlyUpdateSpeed = computed(() => {
 
 const openDetailModal = (event: Event) => {
   selectedEvent.value = event;
-  selectedEventJson.value = JSON.stringify(event, null, 2);
+  const eventJson = {...event}
+  delete eventJson.action;  
+  delete eventJson.id;
+  delete eventJson.filePath;
+  selectedEventJson.value = JSON.stringify(eventJson, null, 2);
   showDetailModal.value = true;
 };
 
@@ -404,8 +408,14 @@ const stopPlayAll = () => {
 
 watch(showDetailModal, (val) => {
   if (val) {
-    styles.left = '20px';
-    styles.top = '20px';
+    setTimeout(() => {
+      const modalWidth = 360;
+      const modalHeight = 400;
+      const left = Math.max(0, (window.innerWidth - modalWidth) / 2);
+      const top = Math.max(0, (window.innerHeight - modalHeight) / 2);
+      styles.left = `${left}px`;
+      styles.top = `${top}px`;
+    }, 0);
   }
 });
 </script>
@@ -569,6 +579,11 @@ watch(showDetailModal, (val) => {
 
   &:hover {
     background-color: var(--pto-background);
+  }
+  
+  &.playing {
+    border-color: #336EB2;
+    background-color: rgba(51, 110, 178, 0.15);
   }
   
   &.playing {

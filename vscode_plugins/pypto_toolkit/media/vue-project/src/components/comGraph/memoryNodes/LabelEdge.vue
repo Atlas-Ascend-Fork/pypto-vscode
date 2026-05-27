@@ -223,6 +223,7 @@ watch(isActive, (active) => {
 
 watch(() => [props.data.startTime, props.data.endTime], () => {
   setupTimeBounds();
+  if (inFlow.value) registerFlowEdge(flowGroup.value, props.id, flowStage.value);
 }, { deep: true });
 
 onBeforeUnmount(() => {

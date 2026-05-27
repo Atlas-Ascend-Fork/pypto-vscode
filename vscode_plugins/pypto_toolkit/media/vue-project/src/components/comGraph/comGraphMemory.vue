@@ -6,6 +6,7 @@
     </div> -->
     <VueFlow
       :nodes="updatedNodes"
+      :edges="updatedNodes"
       class="flow-canvas"
       @nodes-change="onNodesChange"
       :nodes-draggable="false"
@@ -482,7 +483,7 @@ const elements = ref([
       bgColor: 'rgb(60,129,209)',
       handles: [
         { id: 'aic-l0c-l-20', type: 'target', edge: 'left', pct: 20.5 },
-        { id: 'aic-l0c-l', type: 'target', edge: 'left', pct: 50 },
+        { id: 'aic-l0c-l', type: 'target', edge: 'left', pct: 49.9     },
         { id: 'aic-l0c-b', type: 'source', edge: 'bottom', pct: 50 },
         { id: 'aic-l0c-b-80', type: 'source', edge: 'bottom', pct: 80 },
         { id: 'aic-l0c-t', type: 'source', edge: 'top', pct: 50 },
@@ -552,7 +553,7 @@ const elements = ref([
         backgroundColor: 'transparent',
       },
       handles: [
-        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 27 },
+        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 26.5 },
         { id: 'aic-scalar-l-80', type: 'target', edge: 'left', pct: 83 },
         { id: 'aic-scalar-l', type: 'target', edge: 'left', pct: 50 },
         { id: 'aic-scalar-r', type: 'source', edge: 'right', pct: 50 },
@@ -596,7 +597,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'transparent',
       handles: [
-        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 44.5  },
         { id: 'aiv2b-dcache-r', type: 'source', edge: 'right', pct: 44 },
       ],
     },
@@ -1200,53 +1201,55 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
     startT = Number(startTime);
     endT = Number(endTime);
     errorMemoType.push(...errorMemType);
-    if (eventType !== 'BUFFER_REARRANGE') {
 
-      // 处理边数据
-      inputMenIds.forEach(input => {
-        outputMenIds.forEach(output => {
-          const inputMem = originBufferList.find(buffer => buffer?.memId === input);
-          const outputMem = originBufferList.find(buffer => buffer?.memId === output);
-          if (inputMem && outputMem) {
-            const inputName = inputMem.memType === 'MEM_GM' ? 'MEM_L2' : inputMem.memType;
-            const outputName = outputMem.memType === 'MEM_GM' ? 'MEM_L2' : outputMem.memType;
-            myEdges.push(`E-${inputName}-${outputName}`);
+    // 处理边数据
+    inputMenIds.forEach(input => {
+      outputMenIds.forEach(output => {
+        const inputMem = originBufferList.find(buffer => buffer?.memId === input);
+        const outputMem = originBufferList.find(buffer => buffer?.memId === output);
+        if (inputMem && outputMem) {
+          const inputName = inputMem.memType === 'MEM_GM' ? 'MEM_L2' : inputMem.memType;
+          const outputName = outputMem.memType === 'MEM_GM' ? 'MEM_L2' : outputMem.memType;
+          if (outputName === 'MEM_L0C') {
+            myEdges.push(`E-${inputName}-MEM_CUBE`);
+            myEdges.push(`E-MEM_CUBE-MEM_L0C`);
           }
-        })
-      })
-
-      // 处理内存块数据
-      targetBufferList.forEach(buffer => {
-        if (animationMap.has(buffer.memType)) {
-          let bufferData = animationMap.get(buffer.memType);
-          const targetIndex = bufferData.findIndex((item) => item?.memId === buffer?.memId);
-          if (targetIndex === -1) {
-            bufferData.push(buffer);  
-          } else {
-            if (buffer.status === 0) {
-              bufferData = bufferData.filter(b => b.memId !== buffer.memId);
-            } else {
-              bufferData[targetIndex] = buffer;
-            }
-          }
-          animationMap.set(buffer.memType, bufferData);
-        } else {
-          let bufferData = [...(flattenedData[buffer.memType]?.bufferList || [])];
-          const targetIndex = bufferData.findIndex((item) => item?.memId === buffer?.memId);
-          if (targetIndex === -1) {
-            bufferData.push(buffer);
-          } else {
-            if (buffer.status === 0) {
-              bufferData = bufferData.filter(b => b.memId !== buffer.memId);
-            } else {
-              bufferData[targetIndex] = buffer;
-            }
-          }
-          animationMap.set(buffer.memType, bufferData);
+          myEdges.push(`E-${inputName}-${outputName}`);
         }
       })
+    })
 
-    }
+    // 处理内存块数据
+    targetBufferList.forEach(buffer => {
+      if (animationMap.has(buffer.memType)) {
+        let bufferData = animationMap.get(buffer.memType);
+        const targetIndex = bufferData.findIndex((item) => item?.memId === buffer?.memId);
+        if (targetIndex === -1 && buffer.status !== 0) {
+          bufferData.push(buffer);  
+        } else {
+          if (buffer.status === 0) {
+            bufferData = bufferData.filter(b => b.memId !== buffer.memId);
+          } else {
+            bufferData[targetIndex] = buffer;
+          }
+        }
+        animationMap.set(buffer.memType, bufferData);
+      } else {
+        let bufferData = [...(flattenedData[buffer.memType]?.bufferList || [])];
+        const targetIndex = bufferData.findIndex((item) => item?.memId === buffer?.memId);
+        if (targetIndex === -1 && buffer.status !== 0) {
+          bufferData.push(buffer);
+        } else {
+          if (buffer.status === 0) {
+            bufferData = bufferData.filter(b => b.memId !== buffer.memId);
+          } else {
+            bufferData[targetIndex] = buffer;
+          }
+        }
+        animationMap.set(buffer.memType, bufferData);
+      }
+    })
+
 
   }
 
@@ -1257,9 +1260,9 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
       if (key === node.memId) {
         if (key === 'MEM_GM') {
           const gmFilled = props.GMData?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
-          const l2Filled = flattenedData.MEM_L2?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           const error = errorMemoType.includes('MEM_L2');
           const animate = animationMap.has('MEM_L2');
+          const l2Filled = animate ? animationMap.get('MEM_L2')?.reduce((acc, b) => acc + b.size, 0) || 0 : flattenedData.MEM_L2?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           node = {
             ...node,
             data: {
@@ -1305,9 +1308,9 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
           }
         } else {
           const memoryTypeData = flattenedData[key];
-          const filled = memoryTypeData.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           const error = errorMemoType.includes(key);
           const animate = animationMap.has(key);
+          const filled = animate ? animationMap.get(key)?.reduce((acc, b) => acc + b.size, 0) || 0 : memoryTypeData.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           node = {
             ...node,
             data: {
