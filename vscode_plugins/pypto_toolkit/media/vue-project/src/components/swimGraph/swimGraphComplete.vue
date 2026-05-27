@@ -1774,6 +1774,48 @@ const getMixModeTaskLabelName = (labelPart, name) => {
   return displayName;
 };
 
+const getHashOrderContent = (hashOrderStr, key) => {
+  const hashOrdermatch = hashOrderStr.match(new RegExp(`${key} hashOrder: (\\S+), subGraphCount: (\\d+)`));
+  const hashOrdertext = hashOrdermatch ? hashOrdermatch[1] : null;
+  return hashOrdertext;
+};
+
+const gethashOrderName = (event) => {
+  let displayName = 'Event'
+  if (event.args['hashOrder-hint'] !== undefined) {
+    const hashOrderStr = event.args['hashOrder-hint'];
+    console.log(hashOrderRending.value);
+    if (hashOrderStr.includes('cubeMergeInfo')) {
+      if (hashOrderRending.value === 'L1ReuseHashOrder') {
+        displayName = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
+      } else if (hashOrderRending.value === 'cubeMergeHashOrder') {
+        displayName = getHashOrderContent(hashOrderStr, 'cubeMergeInfo');
+      }
+    } else if (hashOrderStr.includes('vecMergeInfo')) {
+      displayName = getHashOrderContent(hashOrderStr, 'vecMergeInfo');
+    }
+  }
+  return displayName;
+};
+
+const getTwoConfigName = (event) => {
+  let { name: displayName } = event;
+  let hashOrderName = '';
+  const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
+  if (textOption.includes('isomorphicSubGraphGroup')) {
+    hashOrderName = gethashOrderName(event);
+    if (textOption.includes('taskName')) {
+      const taskName = displayName.split('(')[0].trim();
+      displayName = `${taskName}(${hashOrderName})`;
+    } else if (textOption.includes('taskLabel')) {
+      const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
+      const taskLabelName = labelPart ? labelPart.groups.label.trim() : '';
+      displayName = `${taskLabelName}(${hashOrderName})`;
+    }
+  }
+  return displayName;
+};
+
 const getDisplayName = (event) => {
   let { name: displayName } = event;
   const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
@@ -1790,6 +1832,12 @@ const getDisplayName = (event) => {
     } else {
       displayName = labelPart ? labelPart.groups.label.trim() : '';
     }
+  } else if (textOption.length === 1 && textOption[0] === 'isomorphicSubGraphGroup') {
+    displayName = gethashOrderName(event);
+  }
+
+  if(textOption.length === 2) {
+    displayName = getTwoConfigName(event);
   }
   return displayName;
 };
