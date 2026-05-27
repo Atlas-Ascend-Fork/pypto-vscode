@@ -13,7 +13,7 @@
   font-size: 12px;
   pointer-events: none;
   z-index: 1000;
-  max-width: 300px;
+  max-width: 500px;
   word-wrap: break-word;
   color: var(--devui-tooltip-text);
 }
@@ -29,6 +29,23 @@
   align-items: baseline;
   gap: 6px;
   min-width: 0;
+}
+
+.tooltip-line{
+  height: 0;
+  border: 1px solid var(--devui-slider-container-bg);
+  margin-bottom: 8px;
+  margin-top: 8px;
+}
+
+.hashOrder-tooltip-key {
+  white-space: nowrap;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--devui-detail-text);
+  flex-shrink: 0;
 }
 
 .tooltip-key {
@@ -48,6 +65,81 @@
   flex: 1;
   min-width: 0;
 }
+
+.hashOrder-tooltip-value {
+  white-space: normal;
+  word-wrap: break-word;
+  color: var(--devui-primary-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.hashOrder-tooltip-value-L1 {
+  white-space: normal;
+  max-width: 200px;
+  word-wrap: break-word;
+  color: var(--hashOrder-color-l1);
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hashOrder-tooltip-value-Cube {
+  white-space: normal;
+  max-width: 200px;
+  word-wrap: break-word;
+  color: var(--hashOrder-color-cube);
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hashOrder-tooltip-value-vec {
+  white-space: normal;
+  max-width: 200px;
+  word-wrap: break-word;
+  color: var(--hashOrder-color-vec);
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hashOrder-tooltip-type-L1 {
+  color: var(--hashOrder-color-l1);
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: 4px;
+  border: 1px solid var(--hashOrder-color-l1);
+  border-radius: 4px;
+  padding: 0px 4px 0px 4px;
+  max-width: 100px;
+}
+
+.hashOrder-tooltip-type-Cube {
+  color: var(--hashOrder-color-cube);
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: 4px;
+  border: 1px solid var(--hashOrder-color-cube);
+  border-radius: 4px;
+  padding: 0px 4px 0px 4px;
+  max-width: 100px;
+}
+
+.hashOrder-tooltip-type-vec {
+  color: var(--hashOrder-color-vec);
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: 4px;
+  border: 1px solid var(--hashOrder-color-vec);
+  border-radius: 4px;
+  padding: 0px 4px 0px 4px;
+  max-width: 100px;
+}
+
 
 .linetooltip {
   position: absolute;

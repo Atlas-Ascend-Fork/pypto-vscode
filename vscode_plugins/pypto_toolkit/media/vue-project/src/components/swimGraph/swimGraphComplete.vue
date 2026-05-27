@@ -287,6 +287,7 @@ const bindButton = ref($t('bindComGraphJson'));
 const isSwimGraphActive = ref(false);
 const fileName = ref('');
 const modeOption = ref('');
+const hashOrderRending = ref('');
 const isCfgEditing = ref(false);
 const isShortcutKeyShow = ref(false);
 const isAicpu = ref(false);
@@ -2422,6 +2423,7 @@ const setPageState = (message) => {
   }
 
   modeOption.value = userConfig.value.kernelColorRending;
+  hashOrderRending.value = userConfig.value.hashOrderRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
   configComponent.value.showPerformancePanel = userConfig.value.showPerformancePanel;
@@ -2654,7 +2656,8 @@ provide('swimGraphState', {
   globalDependencyLinesInfo,
   isMixMode,
   globalConnectionCanvas,
-  isFromPerformanceClick
+  isFromPerformanceClick,
+  hashOrderRending
 });
 
 // 提供方法给子组件
@@ -2781,6 +2784,15 @@ const updateTheme = () => {
   down_16px.value = isDarkTheme.value
     ? `${window.staticPath}/static-assets/down_16px.svg`
     : `${window.staticPath}/static-assets/down_16px_light.svg`;
+  if (isDarkTheme.value) {
+    document.documentElement.style.setProperty('--hashOrder-color-l1', `#D5BBFF`);
+    document.documentElement.style.setProperty('--hashOrder-color-cube', `#81D0F6`);
+    document.documentElement.style.setProperty('--hashOrder-color-vec', `#C4C6D4`);
+  } else {
+    document.documentElement.style.setProperty('--hashOrder-color-l1', `#7456A7`);
+    document.documentElement.style.setProperty('--hashOrder-color-cube', `#007092`);
+    document.documentElement.style.setProperty('--hashOrder-color-vec', `#626571`);
+  }
 };
 // 监听引导模式的消息
 const listenExtensionMessage = () => {

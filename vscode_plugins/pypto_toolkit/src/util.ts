@@ -110,6 +110,7 @@ export class Util {
         ...existingData,
         colorRending: JsedparamObj.kernelColorRending,
         textRending: JsedparamObj.kernelTextRending,
+        hashOrderRending: JsedparamObj.hashOrderRending,
         aicpuColorRending: JsedparamObj.aicpuColorRending,
         perfColorReding: JsedparamObj.perfColorReding,
       }

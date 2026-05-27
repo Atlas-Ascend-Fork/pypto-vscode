@@ -102,11 +102,13 @@ export abstract class SwimGraphMsgHandler {
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
       const perfColorReding = cfgCache['perfColorReding'] || 'perfName';
+      const hashOrderRending = cfgCache['hashOrderRending'] || 'cubeMergeHashOrder';
       const config = Util.getSwimGraphCustomCfg();
       config['kernelTextRending'] = textRending;
       config['aicpuColorRending'] = aicpuColorRending;
       config['perfColorReding'] = perfColorReding;
       config['kernelColorRending'] = colorRending;
+      config['hashOrderRending'] = hashOrderRending;
       if (!server.query || server.query.isPerfSwim === undefined) {
         const content = ((await readFirstNLines(swimPath, 10)) as string[]).join('');
         server.query = {};

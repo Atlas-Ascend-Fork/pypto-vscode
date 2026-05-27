@@ -2735,6 +2735,15 @@ const drawVirtualDom = (preData, nextData, ctx) => {
   domRect.style.backgroundColor = 'transparent';
   ctx.canvas.parentNode.appendChild(domRect);
 };
+
+const getHashOrderContent = (hashOrderStr, key) => {
+  const hashOrdermatch = hashOrderStr.match(new RegExp(`${key} hashOrder: (\\S+), subGraphCount: (\\d+)`));
+  const result = {};
+  result.hashOrder = hashOrdermatch ? hashOrdermatch[1] : null;
+  result.subGraphCount = hashOrdermatch ? hashOrdermatch[2] : null;
+  return result
+};
+
 const showTooltip = (e, event) => {
   if (!tooltip.value) { return };
   const displayName = event.isCounter ? event.displayName : (getDisplayName(event) || 'Event');
@@ -2745,7 +2754,25 @@ const showTooltip = (e, event) => {
     const duration = event.duration ?? (event.endTime - event.startTime);
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(duration * 1000 / tsScale.value).value}${formatTimeWithUnit(duration * 1000 / tsScale.value).unit}</span></div>`;
   }
-  tooltipContent += '</div>'; 
+  if (event.args['hashOrder-hint'] !== undefined) {
+    const hashOrderStr = event.args['hashOrder-hint'];
+    let result = {};
+    if (hashOrderStr.includes('cubeMergeInfo')) {
+      result = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
+      tooltipContent += `<div class="tooltip-line"></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-L1">L1 Reuse</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-L1">${result.subGraphCount}</span></div>`;
+      result = getHashOrderContent(hashOrderStr, 'cubeMergeInfo');
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-Cube">Cube NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-Cube">${result.subGraphCount}</span></div>`;
+    } else if (hashOrderStr.includes('vecMergeInfo')) { 
+      result = getHashOrderContent(hashOrderStr, 'vecMergeInfo');
+      tooltipContent += `<div class="tooltip-line"></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-vec">vec NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-vec">${result.subGraphCount}</span></div>`;
+    }
+  }
+  tooltipContent += '</div>';
   tooltip.value.innerHTML = tooltipContent;
   tooltipStyle.display = 'block';
   // 获取气泡的真实尺寸

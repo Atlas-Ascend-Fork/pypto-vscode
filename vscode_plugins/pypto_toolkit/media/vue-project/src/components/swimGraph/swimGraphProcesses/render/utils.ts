@@ -98,7 +98,7 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
   const { colorCfg, isDarkTheme, userConfig, processes } = deps;
   const process = processes.get(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
-  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
+  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType, userConfig?.value.hashOrderRending);
   event.color = color;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
@@ -118,7 +118,7 @@ export function getEventColor(event: any, deps: Dependencies, processKey: string
   const process = processes.get(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
   if (!event.color?.dark || event.parentEventId) {
-    const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType);
+    const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType, userConfig?.value.hashOrderRending);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
   }

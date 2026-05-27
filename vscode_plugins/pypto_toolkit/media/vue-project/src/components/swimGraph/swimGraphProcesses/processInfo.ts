@@ -8,7 +8,7 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
-export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
+export const getSubGraphId = (event: any, mode: string, defaultValue=15,  hashOrderType='') => {
   let subGraphId;
   if (!event) {
     return defaultValue;
@@ -31,7 +31,28 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
   } else if (mode === 'mixSubGraph') {
     subGraphId = event.args.wrapId;
   }
-
+  else if (mode === 'isomorphicSubGraph') {
+    if (event.args['hashOrder-hint'] !== undefined) {
+      const hashOrderStr = event.args['hashOrder-hint'];
+      if (hashOrderType === 'cubeMergeHashOrder') {
+        if (hashOrderStr.includes('cubeMergeInfo')) {
+          const cubeMatch = hashOrderStr.match(/cubeMergeInfo hashOrder: \w+_(\d+)/);
+          subGraphId = cubeMatch ? cubeMatch[1] : null;
+        } else if (hashOrderStr.includes('vecMergeInfo')) {
+          const vecMatch = hashOrderStr.match(/vecMergeInfo hashOrder: \w+_(\d+)/);
+          subGraphId = vecMatch ? vecMatch[1] : null;
+        }
+      } else if (hashOrderType === 'L1ReuseHashOrder') {
+        if (hashOrderStr.includes('l1ReuseInfo')) {
+          const l1Match = hashOrderStr.match(/l1ReuseInfo hashOrder: \w+_(\d+)/);
+          subGraphId = l1Match ? l1Match[1] : null;
+        } else if (hashOrderStr.includes('vecMergeInfo')) {
+          const vecMatch = hashOrderStr.match(/vecMergeInfo hashOrder: \w+_(\d+)/);
+          subGraphId = vecMatch ? vecMatch[1] : null;
+        }
+      }
+    }
+  }
   subGraphId = Number(subGraphId);
   if (Number.isNaN(subGraphId)) {
     return defaultValue;
@@ -68,7 +89,7 @@ export const getLightColor = (event, dep) => {
   }
 };
 
-export const getEventColorByMode = (event: any, mode: string, processType = 'kernel') => {
+export const getEventColorByMode = (event: any, mode: string, processType = 'kernel', hashOrderType='') => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
   const isPerfSwimMode = mode === 'perfName' || processType === 'PerfSwim';
   const isAicpuOrPerfSwim = mode === 'name' || processType === 'aicpu';
@@ -89,7 +110,7 @@ export const getEventColorByMode = (event: any, mode: string, processType = 'ker
     lBaseColor = lres.baseColor;
     lLightColor = lres.lightColor;
   } else if (mode !== "label") {
-    const subGraphId = getSubGraphId(event, mode);
+    const subGraphId = getSubGraphId(event, mode, 15, hashOrderType);
     dBaseColor = darkThemeBaseColors[subGraphId];
     dLightColor = darkThemeLightColors[subGraphId];
     lBaseColor = lightThemeBaseColors[subGraphId];
