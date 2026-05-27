@@ -51,7 +51,7 @@
               <div v-for="event in events" :key="event.id" class="event-item" :class="{ 'playing': playingEventId === event.id }">
                 <div class="event-info" @click="openDetailModal(event)">
                   <span class="event-type">{{ event.eventType }}</span>
-                  <span class="event-id">Magic ID: {{ event.id }}</span>
+                  <span class="event-id">#{{ event.id }}</span>
                 </div>
                 <button class="event-play-btn" @click="handlePlayEvent(event)">
                   <d-icon name="icon-run-o" size="16px"></d-icon>
@@ -343,7 +343,7 @@ const handlePlayEvent = (event: Event) => {
       ...graphData,
       _timestamp: Date.now()
     };
-    updateRunningNode(event.id);
+    updateRunningNode(event.opMagic ?? '');
   }
   
   const startTime = event.clock || 0;

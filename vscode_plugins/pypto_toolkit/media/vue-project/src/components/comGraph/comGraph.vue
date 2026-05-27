@@ -332,6 +332,7 @@ const updateRunningNode = (id: number | string) => {
   const nodeId = comGraphStore.data.magicNodeIdMap[Number(id)];
   if (id === '') {
     comGraphStore.setData('runningNodeId', '');
+    fitToScreenAction();
   } else if (nodeId) {
     centerNodeAction([nodeId]);
     comGraphStore.setData('runningNodeId', nodeId);
