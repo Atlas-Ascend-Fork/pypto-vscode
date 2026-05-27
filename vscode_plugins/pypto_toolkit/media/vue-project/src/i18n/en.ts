@@ -120,7 +120,7 @@ export default {
     'shadingMode':'Shading Mode',
     'eventTask':'Task Content Display',
     'colorRendering':'Task Color Rendering',
-    'leafNo':'Leaf NO',
+    'leafNo':'Leaf NO.',
     'subGraph':'By Leaf NO.',
     "mixSubGraph":'By Mix SubGraph',
     "isomorphicSubGraph":'By Isomorphic SubGraph',
