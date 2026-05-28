@@ -30,9 +30,9 @@
         </div>
       </d-tooltip>
 
-      <d-tooltip :content="t('comGraph.viewMemoryAllocation')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
+      <d-tooltip v-if="isShowMemoryAllocationIcon" :content="t('comGraph.viewMemoryAllocation')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
         overlay-class="corner-tips">
-        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting) }]"
+        <div :class="['corner-icon-container', { 'corner-icon-disabled': (isLoading || isExporting), 'corner-icon-active': showMemoryAllocation }]"
           @click="openMeoryAllocation">
           <d-icon name="icon-codecheck-plugin" class="corner-icon" size="16px"></d-icon>
         </div>
@@ -153,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick } from 'vue';
+import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { GraphType, ComGraphProvideKey } from './type';
 import type { ComGraphContext } from './type';
@@ -198,7 +198,9 @@ const props = defineProps({
   outputDirPath: { type: String, default: '' },
   passIndex: { type: String, default: '' },
   pathName: { type: String, default: '' },
-  fileName: { type: String, default: '' }
+  fileName: { type: String, default: '' },
+  existTraceFile: { type: Boolean, default: false },
+  showMemoryAllocation: { type: Boolean, default: false }
 })
 
 let funcTree = {}
@@ -228,6 +230,10 @@ let showSearchIcon = ref(1);
 let showOperation = ref(false);
 let dataUrl = ref('');
 let svgfileName = ref('');
+
+const isShowMemoryAllocationIcon = computed(() => {
+  return props.existTraceFile;
+});
 
 const categoryCurrent = [
   {
@@ -1195,6 +1201,20 @@ onMounted(() => {
   &:not(.corner-icon-disabled):hover {
     cursor: pointer;
 
+    .devui-icon__container {
+      color: var(--devui-operation-text-hover);
+    }
+
+    svg {
+      :deep() {
+        path {
+          stroke: var(--devui-operation-text-hover);
+        }
+      }
+    }
+  }
+
+  &.corner-icon-active {
     .devui-icon__container {
       color: var(--devui-operation-text-hover);
     }

@@ -7,15 +7,12 @@
       <button class="control-btn" title="下一个" @click="nextClock">
         <d-icon name="icon-run-o" size="16px"></d-icon>
       </button>
-      <!-- <button class="control-btn" title="重播" style="width: 80px;">
-        <d-icon name="icon-recover" size="16px"></d-icon>
-        <span>Replay</span>
-      </button> -->
     </div>
 
     <div class="track-line"></div>
-    <div class="progress-bar-wrapper">
-      <div class="progress-track">
+    <div ref="progressBarWrapper" class="progress-bar-wrapper">
+      <div class="progress-track-container">
+        <div class="progress-track" :style="{ width: trackTotalWidth + 'px' }">
         <div
           v-for="(clockBox, index) in clockBoxes"
           :key="'box-' + index"
@@ -39,6 +36,7 @@
             @click="handleDotClick(dot.clockIndex)"
           ></div>
         </d-tooltip>
+        </div>
       </div>
     </div>
     <div class="track-line"></div>
@@ -110,6 +108,48 @@ const emit = defineEmits<{
 
 const selectedClockIndex = ref<number>(0)
 const selectedSpeed = ref<number>(1)
+const containerWidth = ref<number>(0)
+const progressBarWrapper = ref<HTMLElement | null>(null)
+
+const minDistance = 12
+const trackPadding = 16
+const wrapperPadding = 8
+
+const totalDotCount = computed(() => {
+  if (!props.clocks || props.clocks.length === 0) {
+    return 0
+  }
+  let count = props.clocks.length
+  props.clocks.forEach(clock => {
+    count += clock.events.length
+  })
+  return count
+})
+
+const minRequiredWidth = computed(() => {
+  if (totalDotCount.value === 0) {
+    return 0
+  }
+  return trackPadding * 2 + (totalDotCount.value - 1) * minDistance
+})
+
+const availableWidth = computed(() => {
+  if (containerWidth.value <= 0) {
+    return 0
+  }
+  return containerWidth.value - wrapperPadding * 2
+})
+
+const needScroll = computed(() => {
+  return minRequiredWidth.value > availableWidth.value && availableWidth.value > 0
+})
+
+const trackTotalWidth = computed(() => {
+  if (totalDotCount.value === 0) {
+    return 0
+  }
+  return needScroll.value ? minRequiredWidth.value : (availableWidth.value || minRequiredWidth.value)
+})
 
 const props = withDefaults(defineProps<{
   clocks?: Clock[]
@@ -166,41 +206,62 @@ const props = withDefaults(defineProps<{
 const dots = computed(() => {
   const result: Dot[] = []
 
-  if (!props.clocks || props.clocks.length === 0) {
+  if (!props.clocks || props.clocks.length === 0 || totalDotCount.value === 0) {
     return result
   }
 
-  let totalDotCount = props.clocks.length
-  props.clocks.forEach(clock => {
-    totalDotCount += clock.events.length
-  })
-
-  if (totalDotCount === 0) {
-    return result
-  }
-
-  let currentIndex = 0
-  props.clocks.forEach((clock, clockIndex) => {
-    const position = 1 + (currentIndex / (totalDotCount - 1)) * 98
-    result.push({
-      isLarge: true,
-      position,
-      clockIndex,
-      clock: clock.clock
-    })
-    currentIndex++
-
-    for (let i = 0; i < clock.events.length; i++) {
-      const position = 1 + (currentIndex / (totalDotCount - 1)) * 98
+  let currentPosition = trackPadding
+  
+  if (needScroll.value) {
+    // 需要滚动时，使用最小间距
+    props.clocks.forEach((clock, clockIndex) => {
+      const position = (currentPosition / trackTotalWidth.value) * 100
       result.push({
-        isLarge: false,
+        isLarge: true,
+        position,
+        clockIndex,
+        clock: clock.clock
+      })
+
+      for (let i = 0; i < clock.events.length; i++) {
+        currentPosition += minDistance
+        const position = (currentPosition / trackTotalWidth.value) * 100
+        result.push({
+          isLarge: false,
+          position,
+          clockIndex,
+          clock: clock.clock
+        })
+      }
+      
+      // 移动到下一个时钟
+      currentPosition += minDistance
+    })
+  } else {
+    // 不需要滚动时，均匀分布
+    let currentIndex = 0
+    props.clocks.forEach((clock, clockIndex) => {
+      const position = 1 + (currentIndex / (totalDotCount.value - 1)) * 98
+      result.push({
+        isLarge: true,
         position,
         clockIndex,
         clock: clock.clock
       })
       currentIndex++
-    }
-  })
+
+      for (let i = 0; i < clock.events.length; i++) {
+        const position = 1 + (currentIndex / (totalDotCount.value - 1)) * 98
+        result.push({
+          isLarge: false,
+          position,
+          clockIndex,
+          clock: clock.clock
+        })
+        currentIndex++
+      }
+    })
+  }
 
   return result
 })
@@ -208,38 +269,76 @@ const dots = computed(() => {
 const clockBoxes = computed(() => {
   const result: { left: number; width: number }[] = []
 
-  if (!props.clocks || props.clocks.length === 0) {
+  if (!props.clocks || props.clocks.length === 0 || totalDotCount.value === 0) {
     return result
   }
 
-  let totalDotCount = props.clocks.length
-  props.clocks.forEach(clock => {
-    totalDotCount += clock.events.length
-  })
+  if (needScroll.value) {
+    // 需要滚动时，使用最小间距
+    let currentPosition = trackPadding
+    props.clocks.forEach((clock, clockIndex) => {
+      // 计算大圆点的位置（像素）
+      const largeDotPos = currentPosition
+      const largeDotPosition = (largeDotPos / trackTotalWidth.value) * 100
+      
+      // 计算最后一个事件圆点的位置（像素）
+      const lastPos = currentPosition + clock.events.length * minDistance
+      
+      // 计算选中框宽度（像素）：从大圆点中心到最后一个事件圆点中心，左右各加4px
+      let boxWidth = clock.events.length * minDistance + 6 + 8 // 6px覆盖大圆点 + 8px额外宽度（左右各4px）
+      
+      // 如果没有事件，选中区域只覆盖大圆点本身，左右各加4px
+      if (clock.events.length === 0) {
+        boxWidth = 6 + 8
+      }
+      
+      // 转换为百分比
+      const width = (boxWidth / trackTotalWidth.value) * 100
+      const left = ((largeDotPos - 7) / trackTotalWidth.value) * 100 // 向左偏移7px以居中覆盖大圆点（包含额外4px）
 
-  if (totalDotCount === 0) {
-    return result
-  }
-
-  let currentIndex = 0
-  props.clocks.forEach((clock, clockIndex) => {
-    const largeDotPosition = 1 + (currentIndex / (totalDotCount - 1)) * 98
-    currentIndex++
-
-    let lastDotPosition = largeDotPosition
-    for (let i = 0; i < clock.events.length; i++) {
-      lastDotPosition = 1 + (currentIndex / (totalDotCount - 1)) * 98
-      currentIndex++
-    }
-
-    const width = lastDotPosition - largeDotPosition + 2
-    const left = largeDotPosition - 1
-
-    result.push({
-      left,
-      width
+      result.push({
+        left,
+        width
+      })
+      
+      // 更新位置到下一个时钟
+      currentPosition = lastPos + minDistance
     })
-  })
+  } else {
+    // 不需要滚动时，均匀分布
+    let currentIndex = 0
+    props.clocks.forEach((clock, clockIndex) => {
+      const largeDotPosition = 1 + (currentIndex / (totalDotCount.value - 1)) * 98
+      const startIndex = currentIndex
+      currentIndex++
+
+      let lastIndex = currentIndex + clock.events.length - 1
+      if (lastIndex >= totalDotCount.value) {
+        lastIndex = totalDotCount.value - 1
+      }
+      
+      // 根据事件数量计算宽度（非滚动模式保持原有逻辑）
+      let width: number
+      if (clock.events.length === 0) {
+        // 没有事件时，选中框只覆盖大圆点
+        width = 1.5
+      } else {
+        // 有事件时，覆盖从大圆点到最后一个事件圆点的区域
+        const lastDotPosition = 1 + (lastIndex / (totalDotCount.value - 1)) * 98
+        width = lastDotPosition - largeDotPosition + 2
+      }
+
+      const left = largeDotPosition - 0.75
+
+      result.push({
+        left,
+        width
+      })
+      
+      // 跳过所有事件索引
+      currentIndex += clock.events.length
+    })
+  }
 
   return result
 })
@@ -290,10 +389,18 @@ const emitClockSelect = (clockIndex: number) => {
   emit('clock-select', events, graphData, selectedSpeed.value, false, clockName)
 }
 
+const updateContainerWidth = () => {
+  if (progressBarWrapper.value) {
+    containerWidth.value = progressBarWrapper.value.offsetWidth
+  }
+}
+
 onMounted(() => {
   if (props.clocks && props.clocks.length > 0) {
     emitClockSelect(0)
   }
+  updateContainerWidth()
+  window.addEventListener('resize', updateContainerWidth)
 })
 
 watch(() => props.clocks, (newClocks) => {
@@ -368,7 +475,29 @@ watch(() => props.clocks, (newClocks) => {
 
 .progress-bar-wrapper {
   flex: 1;
-  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: clip;
+  scrollbar-gutter: stable;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+  padding-bottom: 2px;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+  }
+}
+
+.progress-track-container {
+  height: 16px;
 }
 
 .progress-track {

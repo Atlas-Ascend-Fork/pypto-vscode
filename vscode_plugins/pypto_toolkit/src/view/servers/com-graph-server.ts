@@ -198,16 +198,18 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getMemTraceFile = async () => {
     let fsPath = this.query?._path ?? '';
+    const memoryPath = this.query?.memoryPath;
     if (fsPath == '') return;
-    if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
+    if (/_OoO_Memory_Trace\.json$/.test(memoryPath)) {
       this.setRef('MemTraceFileFlag', { isComFile: false, existTraceFile: true });
       return;
-    }
-    let memTracePath = fsPath.replace('.json', '_OoO_Memory_Trace.json');
-    if (fs.existsSync(memTracePath)) {
-      this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: true });
-    }else{
-      this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: false });
+    } else {
+      let memTracePath = fsPath.replace('.json', '_OoO_Memory_Trace.json');
+      if (fs.existsSync(memTracePath)) {
+        this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: true });
+      }else{
+        this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: false });
+      }
     }
   };
 

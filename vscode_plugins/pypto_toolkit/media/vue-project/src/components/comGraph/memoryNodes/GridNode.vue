@@ -399,6 +399,7 @@ export default {
     const colorsKey = type === 'main' ? 'mainAnimatedColors' : 'splitAnimatedColors';
     const cfg = type === 'main' ? this.data : this.data.splitData || {};
     const totalCells = type === 'main' ? this.mainTotalCells : this.splitTotalCells;
+    const animationSpeed = cfg.animationData?.animationSpeed || 1;
     
     const originTiers = cfg.animationData?.originTiers || [];
     const targetTiers = cfg.animationData?.targetTiers || [];
@@ -445,7 +446,7 @@ export default {
               }
             }
           }
-        }, 300);
+        }, 300 / animationSpeed);
       };
       
       tick();

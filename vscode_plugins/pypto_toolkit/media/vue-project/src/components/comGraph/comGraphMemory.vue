@@ -212,7 +212,7 @@ const elements = ref([
       borderColor: 'rgba(0, 0, 0, 1)',
       glowColor: 'rgba(0, 0, 0, 1)',
       width: 1570,
-      height: 635,
+      height: 645,
       fontSize: 16,
     },
     position: {
@@ -565,7 +565,7 @@ const elements = ref([
       borderColor: 'rgba(0, 0, 0, 1)',
       glowColor: 'rgba(0, 0, 0, 1)',
       width: 1570,
-      height: 300,
+      height: 310,
       fontSize: 16,
     },
     position: {
@@ -1307,7 +1307,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
           const memoryTypeData = flattenedData[key];
           const error = errorMemoType.includes(key);
           const animate = animationMap.has(key);
-          const filled = animate ? animationMap.get(key)?.reduce((acc, b) => acc + b.size, 0) || 0 : memoryTypeData.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
+          const filled = animate ? animationMap.get(key)?.filter(b => b.status !== 0)?.reduce((acc, b) => acc + b.size, 0) || 0 : memoryTypeData.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           node = {
             ...node,
             data: {
@@ -1328,10 +1328,11 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                 }
               }) || [],
               animationData: animate || error ? {
-                stepCount: 1,
+                stepCount: props.animationSpeed === 4 ? 4 : 1,
                 originTiers: getTiers(flattenedData[key]?.bufferList || [], QUADRATE_SIZE),
                 targetTiers: getTiers(animationMap.get(key) || [], QUADRATE_SIZE),
                 error,
+                animationSpeed: props.animationSpeed,
               } : {}
             }
           }
@@ -1351,7 +1352,8 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
 const getSpeed = (time, key, bufferList, size) => {
   const changeBufferList = bufferList.filter(b => b.memType === key);
   const total = changeBufferList.reduce((acc, b) => acc + b.size, 0) || 0;
-  return (time * 10 / props.animationSpeed) / (total / 1024 / size);
+  const several = props.animationSpeed === 4 ? 2 : props.animationSpeed;
+  return (time * 10 / several) / (total / 1024 / size);
 }
 
 const getTiers = (bufferList, size) => {

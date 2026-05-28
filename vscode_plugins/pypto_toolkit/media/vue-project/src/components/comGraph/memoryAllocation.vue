@@ -178,6 +178,7 @@ const { server } = useViewServer<IComViewServer>();
 const emit = defineEmits<{
   (e: 'timeline-change', timeline: any[]): void
   (e: 'play-animation'): void
+  (e: 'mem-trace-file-change', data: { existTraceFile: boolean; isComFile: boolean }): void
 }>();
 
 
@@ -197,6 +198,10 @@ const graphMemoryInitialized = ref(false);
 const pendingGraphData = ref<any>(null);
 const localOnlyUpdateSpeed = ref(false);
 const isPlayingAll = ref(false);
+
+// 存储从 server.getMemTraceFile 获取的值
+const existTraceFile = ref(false);
+const isComFile = ref(false);
 const currentPlayingIndex = ref(0);
 let playTimer: ReturnType<typeof setTimeout> | null = null;
 const playingEventId = ref<string | null>(null);
@@ -277,7 +282,15 @@ watch(server.Timeline, (newVal) => {
 
 watch(server.MemTraceFileFlag, (newVal) => {
   if (newVal) {
-    console.log('[MemoryTrace] MemTraceFileFlag：' + newVal);
+    // 存储到本地变量
+    existTraceFile.value = newVal.existTraceFile ?? false;
+    isComFile.value = newVal.isComFile ?? false;
+
+    // 发送给父组件
+    emit('mem-trace-file-change', {
+      existTraceFile: existTraceFile.value,
+      isComFile: isComFile.value
+    });
   }
 });
 
@@ -285,7 +298,12 @@ watch(server.Metadata, (newVal) => {
   console.log('[MemoryTrace] Metadata changed:', newVal);
 });
 
+watch(server.getMemTraceFile, (newVal) => {
+  console.log('[MemoryTrace] getMemTraceFile changed:', newVal);
+  if (newVal) {
 
+  }
+});
 
 
 const dealGraphData = (bufferList: any[]) => {
@@ -344,7 +362,7 @@ const handlePlayEvent = (event: Event) => {
   
   const startTime = event.clock || 0;
   const endTime = event.cycleEnd || startTime + 100;
-  let duration = (endTime - startTime) * 10;
+  let duration = (endTime - startTime) * 10 ;
   if (event.eventType === 'ALLOC_FAIL') {
     duration = 3200;
   }
@@ -355,7 +373,7 @@ const handlePlayEvent = (event: Event) => {
       playingEventId.value = null;
     }
     updateRunningNode('');
-  }, duration + 1000);
+  }, (duration + 1000) / props.animationSpeed);
 };
 
 const handlePlayAllEvents = () => {

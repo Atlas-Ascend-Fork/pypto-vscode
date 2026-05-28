@@ -9,7 +9,7 @@
             <div class="com-graph-container">
               <ComGraphHeader ref="headerEl" @onLocate="onLocate" :showType="showType" :outputDirPath="outputDirPath"
                 :pathName="pathName" :passIndex="passIndex" :fileName="fileName" :is-loading="isLoading" :graph-type="graphType"
-                :openMode="props.openMode"></ComGraphHeader>
+                :openMode="props.openMode" :exist-trace-file="existTraceFile" :show-memory-allocation="showMemoryAllocation"></ComGraphHeader>
               <div :style="{
                 backgroundImage: 'url(' + svgPath + ')',
                 backgroundRepeat: 'repeat',
@@ -48,7 +48,7 @@
           @collapsedChange="collapsedChange"
         >
           <div ref="rightPanelEl" class="pane-content">
-            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
+            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation" @mem-trace-file-change="handleMemTraceFileChange"></MemoryAllocation>
           </div>
         </d-splitter-pane>
       </template>
@@ -156,6 +156,7 @@ const headerEl = ref();
 const orientation = ref('horizontal');
 const splitBarSize = '2px';
 const minSize = ref('20%');
+const comGraphInit = ref(false);
 const maxSize = ref('60%');
 
 interface Event {
@@ -174,6 +175,10 @@ const onlyUpdateSpeed = ref<boolean>(false);
 const speedChangeCount = ref(0);
 
 const currentClockName = ref('');
+
+// 存储从 MemoryAllocation 组件获取的 memTraceFile 信息
+const existTraceFile = ref(false);
+const isComFile = ref(false);
 
 const handleClockSelect = (events: Event[], graphData: any, speed: number, onlyUpdateSpeedFlag: boolean, clockName: string = '') => {
   selectedEvents.value = events;
@@ -196,6 +201,20 @@ const handleTimelineChange = (timeline: any[]) => {
 
 const handlePlayAnimation = () => {
   onlyUpdateSpeed.value = false;
+};
+
+const handleMemTraceFileChange = (data: { existTraceFile: boolean; isComFile: boolean }) => {
+  if (comGraphInit.value) {
+    return;
+  }
+  
+  comGraphInit.value = true;
+  existTraceFile.value = data.existTraceFile;
+  isComFile.value = data.isComFile;
+
+  if (!isComFile.value) {
+    toggleMemoryAllocation();
+  }
 };
 
 const sizeChange = (size) => {
