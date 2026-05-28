@@ -62,7 +62,7 @@
                 <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
                 <d-select v-model="kernelModeOption" :options="kernelModeOptions" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
             </div>
-            <div class="cfg-Shading-mode">
+            <div class="cfg-hash-mode" v-if="kernelModeOption === 'isomorphicSubGraph'">
                 <div class="cfg-Shading-mode-t">{{ $t('cubeSubGraphHashOrderType') }} </div>
                 <d-select v-model="HashOrderOption" :options="HashOrderOptions" size="sm" @update:modelValue="OnHashOrderOptionsModeChange"></d-select>
             </div>
@@ -448,6 +448,29 @@ watch(userConfig, () => {
 <style lang="scss">
 @import url("../css/swimGraph/Config/config.css");
 .cfg-Shading-mode {
+    .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
+        border-color: var(--devui-select-hover-border-color);
+    }
+    .devui-select--open .devui-select__selection.devui-select__selection--glow-style {
+        border-color: var(--devui-select-active-border-color) !important;
+    }
+
+    .devui-select__selection {
+        height: 28px;
+        background-color: var(--devui-input-bg);
+        border-color: transparent;
+        input {
+            display:flex;
+            align-items: center;
+        }
+    }
+    .devui-select--disabled .devui-select__selection {
+        background-color: var(--devui-input-disabled-bg);
+        border-color: transparent;
+    }
+}
+
+.cfg-hash-mode {
     .devui-select:not(.devui-select--disabled):not(.devui-select--underlined) .devui-select__selection.devui-select__selection--glow-style:hover {
         border-color: var(--devui-select-hover-border-color);
     }

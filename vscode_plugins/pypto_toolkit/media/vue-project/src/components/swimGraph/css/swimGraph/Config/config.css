@@ -54,6 +54,10 @@
     margin-top: 16px;
 }
 
+.cfg-hash-mode {
+    margin-top: 16px;
+}
+
 .cfg-Shading-mode-t {
     color: var(--devui-secondary-text);
     height: 20px;
