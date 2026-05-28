@@ -110,6 +110,7 @@ const {
     aicpuControlDetailsExpanded,
     aicpuScheduleDetailsExpanded,
     aicpuCoreDetailsExpanded,
+    hashOrderRending
 } = inject('swimGraphState');
 
 const {
@@ -209,6 +210,7 @@ const HashOrderOption = ref('cubeMergeHashOrder');
 const kernelTextOptions = computed(() => [
   {name: $t('taskName'), value: 'taskName', disabled: false},
   {name: $t('taskLabel'), value: 'taskLabel', disabled: false},
+  {name: $t('isomorphicSubGraphGroup'), value: 'isomorphicSubGraphGroup', disabled: false},
 ]);
 
 const kernelTextOption = ref(['taskName', 'taskLabel']);
@@ -354,6 +356,7 @@ const OnKernelModeChange = (mode) => {
 
 const OnHashOrderOptionsModeChange = (mode) => {
     userConfig.value.hashOrderRending = mode;
+    hashOrderRending.value = mode;
     updateKernelEvents(kernelModeOption.value, HashOrderOption.value);
     transform();
     saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value, HashOrderOption.value);
