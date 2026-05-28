@@ -238,6 +238,10 @@ export default {
           const size = Math.round(tier.size ?? 0);
           if (index > startLocation && index <= startLocation + size) {
             const bufferMsg = tier.bufferMsg || {};
+            if (bufferMsg.status === 0) {
+              this.hoveredBufferInfo = null;
+              return;
+            } 
             this.hoveredBufferInfo = {
               memId: bufferMsg.memId || '',
               addrStart: bufferMsg.addrStart / 1024 || 0,
@@ -413,11 +417,11 @@ export default {
     this[countKey] = originCells.size;
     
     if (isError) {
-      const errorColor = '#E46B74';
+      const errorColor = '#FF0000';
       const emptyColor = cfg.emptyColor || '#4a90e244';
       let isErrorState = false;
       let flashCount = 0;
-      const maxFlashes = 10;
+      const maxFlashes = 8;
       
       const tick = () => {
         this.intervals[type] = setInterval(() => {
@@ -441,7 +445,7 @@ export default {
               }
             }
           }
-        }, 500);
+        }, 300);
       };
       
       tick();

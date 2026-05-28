@@ -344,8 +344,11 @@ const handlePlayEvent = (event: Event) => {
   
   const startTime = event.clock || 0;
   const endTime = event.cycleEnd || startTime + 100;
-  const duration = (endTime - startTime) * 10;
-  
+  let duration = (endTime - startTime) * 10;
+  if (event.eventType === 'ALLOC_FAIL') {
+    duration = 3200;
+  }
+
   playingEventId.value = event.id;
   setTimeout(() => {
     if (playingEventId.value === event.id) {

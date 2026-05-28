@@ -1133,6 +1133,9 @@ const getMemIdValue = (memIds, path) => {
 
 
 const getTierColor = (status: number, index: number): string => {
+  if (status === 0) {
+    return '#626263';
+  }
   const colorPairs = [
     { light: '#98C6F3', dark: '#2E619C' },          // 蓝色
     { light: '#6DD0B6', dark: '#13746F' },          // 青色
@@ -1219,11 +1222,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
         if (targetIndex === -1 && buffer.status !== 0) {
           bufferData.push(buffer);  
         } else {
-          if (buffer.status === 0) {
-            bufferData = bufferData.filter(b => b.memId !== buffer.memId);
-          } else {
-            bufferData[targetIndex] = buffer;
-          }
+          bufferData[targetIndex] = buffer;
         }
         animationMap.set(buffer.memType, bufferData);
       } else {
@@ -1232,11 +1231,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
         if (targetIndex === -1 && buffer.status !== 0) {
           bufferData.push(buffer);
         } else {
-          if (buffer.status === 0) {
-            bufferData = bufferData.filter(b => b.memId !== buffer.memId);
-          } else {
-            bufferData[targetIndex] = buffer;
-          }
+          bufferData[targetIndex] = buffer;
         }
         animationMap.set(buffer.memType, bufferData);
       }
@@ -1251,32 +1246,42 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
     Object.keys(flattenedData).forEach((key) => {
       if (key === node.memId) {
         if (key === 'MEM_GM') {
-          const gmFilled = props.GMData?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
+
+          const l2animate = animationMap.has('MEM_L2');
+          const l2Filled = l2animate ? animationMap.get('MEM_L2')?.reduce((acc, b) => acc + b.size, 0) || 0 : flattenedData.MEM_L2?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           const error = errorMemoType.includes('MEM_L2');
-          const animate = animationMap.has('MEM_L2');
-          const l2Filled = animate ? animationMap.get('MEM_L2')?.reduce((acc, b) => acc + b.size, 0) || 0 : flattenedData.MEM_L2?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
+
+          const gmanimate = animationMap.has('MEM_GM');
+          const gmFilled = gmanimate ? animationMap.get('MEM_GM')?.reduce((acc, b) => acc + b.size, 0) || 0 : flattenedData.MEM_GM?.bufferList?.reduce((acc, b) => acc + b.size, 0) || 0;
           node = {
             ...node,
             data: {
               ...node.data,
               filledCount: Math.ceil(gmFilled / 1024 / HEXAGON_SIZE),
-              bufferList: props.GMData?.bufferList || [],
-              tiers: props.GMData.bufferList?.map((b, index) => {
-                  const color = getTierColor(b.status, index);
-                  return {
-                    startLocation: (b.addrStart / 1024) / HEXAGON_SIZE,
-                    size: (b.size / 1024) / HEXAGON_SIZE,
-                    color: color,
-                    bufferMsg: {
-                      ...b,
-                    }
+              bufferList: flattenedData.MEM_GM?.bufferList || [],
+              tiers: flattenedData.MEM_GM?.bufferList?.map((b, index) => {
+                const color = getTierColor(b.status, index);
+                return {
+                  startLocation: (b.addrStart / 1024) / HEXAGON_SIZE,
+                  size: (b.size / 1024) / HEXAGON_SIZE,
+                  color: color,
+                  bufferMsg: {
+                    ...b,
                   }
-                }) || [],
+                }
+              }) || [],
+              animate: gmanimate,
+              speed: getSpeed(endT - startT, 'MEM_GM', changeBufferList, HEXAGON_SIZE),
+              animationData: gmanimate ? {
+                stepCount: 1,
+                originTiers: getTiers(flattenedData['MEM_GM']?.bufferList || [], HEXAGON_SIZE),
+                targetTiers: getTiers(animationMap.get('MEM_GM') || [], HEXAGON_SIZE),
+              } : {},
               splitData: {
                 ...node.data.splitData,
                 filledCount: Math.ceil(l2Filled / 1024 / CIRCULAR_SIEE),
                 bufferList: flattenedData.MEM_L2?.bufferList || [],
-                animate,
+                animate: l2animate,
                 speed: getSpeed(endT - startT, 'MEM_L2', changeBufferList, CIRCULAR_SIEE),
                 tiers: flattenedData.MEM_L2?.bufferList?.map((b, index) => {
                   const color = getTierColor(b.status, index);
@@ -1289,7 +1294,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                     }
                   }
                 }) || [],
-                animationData: animate ? {
+                animationData: l2animate ? {
                   stepCount: 1,
                   originTiers: getTiers(flattenedData['MEM_L2']?.bufferList || [], CIRCULAR_SIEE),
                   targetTiers: getTiers(animationMap.get('MEM_L2') || [], CIRCULAR_SIEE),
@@ -1307,7 +1312,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
             ...node,
             data: {
               ...node.data,
-              animate,
+              animate: animate || error,
               speed: getSpeed(endT - startT, key, changeBufferList, QUADRATE_SIZE),
               filledCount: Math.ceil(filled / 1024 / QUADRATE_SIZE),
               bufferList: memoryTypeData.bufferList || [],
@@ -1322,7 +1327,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                   }
                 }
               }) || [],
-              animationData: animate ? {
+              animationData: animate || error ? {
                 stepCount: 1,
                 originTiers: getTiers(flattenedData[key]?.bufferList || [], QUADRATE_SIZE),
                 targetTiers: getTiers(animationMap.get(key) || [], QUADRATE_SIZE),
