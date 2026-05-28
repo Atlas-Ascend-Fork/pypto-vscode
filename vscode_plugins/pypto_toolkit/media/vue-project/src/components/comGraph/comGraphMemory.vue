@@ -1,9 +1,9 @@
 <template>
-  <div ref="flowContainer" style="width: 100%; height: 100%; background: #1a1a1a; position: relative;">
-    <!-- <div v-if="isTransitioning" class="transition-overlay">
+  <div ref="flowContainer" style="width: 100%; height: 100%; background: var(--devui-global-bg); position: relative;">
+    <div v-if="isLoading" class="transition-overlay">
       <div class="loading-spinner"></div>
       <div class="loading-text">Loading...</div>
-    </div> -->
+    </div>
     <VueFlow
       :nodes="updatedNodes"
       :edges="updatedNodes"
@@ -23,6 +23,7 @@
       :node-types="nodeTypes"
       :elevate-edges-on-select="true"
       @dblclick.prevent
+      @nodes-initialized="onNodesInitialized"
     >
       <template #edge-labeled="props">
         <LabelEdge v-bind="props" />
@@ -74,7 +75,7 @@ const { fitView, applyNodeChanges } = useVueFlow();
 const flowContainer = ref(null);
 let resizeObserver: ResizeObserver | null = null;
 
-const isTransitioning = ref(false);
+const isLoading = ref(true);
 const transitionStartTime = ref(0);
 
 const HEXAGON_SIZE = 8192;
@@ -142,10 +143,6 @@ const elements = ref([
       },
       gridSectionStyle: { padding: `1px `, border: '1px solid rgba(255, 255, 255, 0.3)' },
       shape: 'hexagon',
-      subBadgeLabel: '4 GB',
-      subBadgeStyle: {
-        backgroundColor: 'rgba(30, 30, 30, 0.92)',
-      },
       badgeStyle: {
         backgroundColor: 'transparent',
         flexDirection: 'column',
@@ -177,10 +174,6 @@ const elements = ref([
           padding: 0,
         },
         gridSectionStyle: { height: '100%', display: 'flex', alignItems: 'center', border: 'none' },
-        subBadgeStyle: {
-          backgroundColor: 'rgba(0, 0, 0, 0.15)',
-          backdropFilter: 'blur(9.296957015991211px)',
-        },
         speed: 1000,
       },
       handles: [
@@ -1392,6 +1385,12 @@ watchEffect(() => {
 const onNodesChange = (changes) => {
   applyNodeChanges(changes);
 };
+
+// VueFlow 节点初始化完成后关闭加载状态
+const onNodesInitialized = () => {
+  isLoading.value = false;
+};
+
 const handleResize = () => {
   fitView({ padding: 0.05, duration: 800 });
 };
@@ -1429,7 +1428,6 @@ onBeforeUnmount(() => {
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
-  filter: drop-shadow(4px 6px 8px rgba(0, 0, 0, 0.6));
 }
 .vue-flow__handle {
   opacity: 0 !important;
@@ -1440,7 +1438,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(26, 26, 46, 0.95);
+  background: var(--devui-global-bg);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -1450,14 +1448,14 @@ onBeforeUnmount(() => {
 .loading-spinner {
   width: 30px;
   height: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--pto-border-default);
   border-top-color: #4a9eff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 .loading-text {
   margin-top: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--pto-font-color-main);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
 }
