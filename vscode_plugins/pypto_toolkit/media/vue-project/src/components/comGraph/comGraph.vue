@@ -522,6 +522,7 @@ onMounted(() => {
   }
   (window as any).ascEventBus.on('view_mousedown', onViewMouseDown);
   document.addEventListener('mouseup', onMouseup);
+  document.addEventListener('keydown', onDocumentKeyDown);
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
   (window as any).addEventListener('resize', fitToScreen);
@@ -538,6 +539,7 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('layoutEnding', onLayoutEnding);
   (window as any).ascEventBus.remove('view_mousedown', onViewMouseDown);
   document.removeEventListener('mouseup', onMouseup);
+  document.removeEventListener('keydown', onDocumentKeyDown);
   (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
   (window as any).removeEventListener('resize', fitToScreen);
 });
@@ -549,7 +551,7 @@ function releaseFixedFlow() {
 }
 
 // 在 document 上只绑定一次
-document.addEventListener('keydown', async (e: KeyboardEvent) => {
+async function onDocumentKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape' || e.code === 'Escape') {
     e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
     releaseFixedFlow();
@@ -583,6 +585,10 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
 
   // 4. 左右键跳转
   if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !e.altKey && !e.metaKey) {
+    const eTarget = e.target as HTMLElement;
+    if (eTarget.id !== 'sprotty_root') {
+      return;
+    }
     e.preventDefault();
     const selectedNodeId = await getSelectedNodeId()
     if (!selectedNodeId) {
@@ -594,8 +600,7 @@ document.addEventListener('keydown', async (e: KeyboardEvent) => {
     (window as any).ascEventBus.emit('jump2SiblingNodeByHotKey', {nodeId: selectedNodeId, eventKey: e.key});
     return;
   }
-
-});
+};
 
 </script>
 
