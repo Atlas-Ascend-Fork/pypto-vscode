@@ -62,7 +62,7 @@ watch(
 .grid-cell {
   width: 9.06px;
   height: 9.06px;
-  background: rgba(97, 97, 97, 1);
+  background: var(--ma-Gm-bg);
   border-radius: 50%;
 }
 

@@ -246,7 +246,6 @@ const edgeStyle = computed(() => {
     ...props.style,
     stroke: strokeColor,
     strokeDasharray,
-    filter: `drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))`,
     transition: 'stroke-width 0.3s ease',
   };
 });
@@ -291,7 +290,6 @@ const edgeStyle = computed(() => {
   letter-spacing: 0.02em;
   white-space: nowrap;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   font-family: 'Inter', sans-serif;
   min-width: 56px;
   z-index: 10;

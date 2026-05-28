@@ -26,7 +26,7 @@
                 </div>
                 <div class="legend-item">
                   <svg class="legend-hexagon" viewBox="0 0 24 24">
-                    <polygon points="12,2 22,8 22,18 12,24 2,18 2,8" fill="#626263"/>
+                    <polygon points="12,2 22,8 22,18 12,24 2,18 2,8" fill="var(--ma-legend-hexagon)" />
                   </svg>
                   <span class="legend-text">8192KB</span>
                 </div>
@@ -468,7 +468,7 @@ watch(showDetailModal, (val) => {
     margin-left: 14px;
     font-size: 13px;
     font-weight: 400;
-    color: rgba(153, 153, 153, 1);
+    color: var(--pto-font-color-sub);
   }
 
   .legend-container {
@@ -487,12 +487,12 @@ watch(showDetailModal, (val) => {
     height: 12px;
 
     &.square {
-      background-color: #336EB2;
+      background-color: var(--ma-legend-square);
       border-radius: 2px;
     }
 
     &.circle {
-      background-color: #6E7B8B;
+      background-color: var(--ma-legend-circle);
       border-radius: 50%;
     }
   }
@@ -504,7 +504,7 @@ watch(showDetailModal, (val) => {
 
   .legend-text {
     font-size: 12px;
-    color: rgba(136, 136, 136, 1);
+    color: var(--devui-thread-text);
   }
 }
 
@@ -544,8 +544,8 @@ watch(showDetailModal, (val) => {
     align-items: center;
     flex-direction: row;
     padding: 8px;
-    background-color: var(--pto-background-disable);
-    border: none;
+    background-color: var(--ma-playbtn-bg);
+    border: 1px solid var(--ma-playbtn-border);
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;

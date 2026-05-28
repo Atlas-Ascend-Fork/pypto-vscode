@@ -44,8 +44,8 @@ const props = defineProps<{ id: string; data: NodeData }>();
 
 const containerStyle = computed(() => {
   const bg = props.data.bgColor || '#22c55e';
-  const glow = props.data.glowColor || 'rgba(34, 197, 94, 0.55)';
-  const border = props.data.borderColor || 'rgba(34, 197, 94, 0.9)';
+  const glow = props.data.glowColor || 'var(--ma-cube-border)';
+  const border = props.data.borderColor || 'var(--ma-cube-bg)';
   return {
     width: `${props.data.width || 96}px`,
     height: `${props.data.height || 120}px`,
@@ -132,7 +132,6 @@ function getHandleStyle(h: HandleConfig): Record<string, string | undefined> {
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
 }
 </style>

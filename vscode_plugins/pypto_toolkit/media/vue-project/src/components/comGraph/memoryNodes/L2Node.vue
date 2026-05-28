@@ -90,7 +90,7 @@ watch(
 .grid-cell {
   width: 9.06px;
   height: 9.06px;
-  background: rgba(110, 123, 139, 1);
+  background: var(--ma-L2-cell);
   border-radius: 50%;
 }
 .node-overlay {

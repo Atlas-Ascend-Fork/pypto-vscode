@@ -46,7 +46,7 @@
         <div class="header-stats">
           <div class="header-stats" v-if="data.showStats">
             <span class="percentage">{{ mainPercentage }}%</span>
-            <span class="values">{{ data.filledCount || 0 }}KB / {{ mainTotalCells }}KB</span>
+            <span>{{ data.filledCount || 0 }}KB / {{ mainTotalCells }}KB</span>
           </div>
           <span
             v-if="data.headerBadge"
@@ -97,7 +97,7 @@
         <span class="header-label">{{ data.splitData.label || 'UB' }}</span>
         <div class="header-stats" v-if="data.splitData.headerStats">
           <span class="percentage">{{ mainPercentage }}%</span>
-          <span class="values">{{ data.filledCount || 0 }}KB / {{ mainTotalCells }}KB</span>
+          <span>{{ data.filledCount || 0 }}KB / {{ mainTotalCells }}KB</span>
         </div>
       </div>
       <div class="grid-section" :style="getGridSectionStyles(data.splitData)">
@@ -600,12 +600,11 @@ export default {
   position: relative;
 }
 .grid-layout-wrapper {
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: var(--devui-global-bg);
   border-radius: 12px;
   padding: 4px;
   position: relative;
-  color: white;
+  color: var(--pto-font-color-title);
   font-family: 'Inter', sans-serif;
 }
 .node-header {
@@ -655,14 +654,11 @@ export default {
   align-items: center;
 }
 .percentage {
-  color: #4ade80;
-}
-.values {
-  color: #ffffff;
+  color: var(--ma-percentage);
 }
 .grid-section {
   background: #4a90e211;
-  border: 1.5px solid #4a90e266;
+  border: 1.5px solid var(--ma-border);
   border-radius: 6px;
   padding: 2px;
   width: max-content;
@@ -696,7 +692,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   background: #3b82f6;
-  color: white;
+  color: var(--pto-font-color-title);
   padding: 4px 8px;
   border-radius: 6px;
   flex-direction: column;

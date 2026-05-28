@@ -1,5 +1,6 @@
 import { Theme, infinityTheme, galaxyTheme } from 'devui-theme';
 import { ptoDarkTheme, ptoLightTheme } from './pto-ui';
+import { memoryAllocationLightTheme, memoryAllocationDarkTheme } from './memory-allocation-theme';
 
 export const ideLightTheme = new Theme({
   id: 'ide-light-theme',
@@ -8,6 +9,7 @@ export const ideLightTheme = new Theme({
   data: {
     ...infinityTheme.data,
     ...ptoLightTheme,
+    ...memoryAllocationLightTheme,
     "devui-brand-foil": "#859bff",
     'devui-global-bg': '#f3f3f3', // 全局背景
     'devui-node-badge-bg': 'rgba(0,0,0,0.1)', // 节点右上角徽标背景色
@@ -206,6 +208,7 @@ export const ideDarkTheme = new Theme({
   data: {
     ...galaxyTheme.data,
     ...ptoDarkTheme,
+    ...memoryAllocationDarkTheme,
     "devui-brand-foil": "#F2F2F3",
     'devui-global-bg': '#1e1e1e', // 全局背景
     'devui-node-badge-bg': 'rgba(255,255,255,0.1)', // 节点右上角徽标背景色

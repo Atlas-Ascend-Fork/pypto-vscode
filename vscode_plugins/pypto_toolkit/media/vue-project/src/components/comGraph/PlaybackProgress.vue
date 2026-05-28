@@ -437,7 +437,7 @@ watch(() => props.clocks, (newClocks) => {
   height: 28px;
   gap: 4px;
   border: none;
-  background: var(--pto-background);
+  background: var(--ma-playbtn-bg);
   color:  var(--pto-font-color-sub);;
   font-size: 12px;
   cursor: pointer;
@@ -503,7 +503,7 @@ watch(() => props.clocks, (newClocks) => {
 .progress-track {
   position: relative;
   height: 16px;
-  background-color: var(--pto-background);
+  background-color: var(--devui-swim-detail-bg);
   border-radius: 122px;
   cursor: pointer;
 }
@@ -520,7 +520,7 @@ watch(() => props.clocks, (newClocks) => {
   transform: translate(-50%, -50%);
   width: 4px;
   height: 4px;
-  background-color: var(--pto-font-color-disabled);
+  background-color: var(--ma-progress-dot);
   border: none;
   border-radius: 50%;
   cursor: default;
@@ -531,7 +531,7 @@ watch(() => props.clocks, (newClocks) => {
     width: 8px;
     height: 8px;
     background-color: transparent;
-    border: 2px solid var(--pto-font-color-disabled);
+    border: 2px solid var(--ma-progress-dot);
     cursor: pointer;
 
     &:hover {
@@ -603,7 +603,7 @@ watch(() => props.clocks, (newClocks) => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #858585;
+  color: var(--pto-font-color-sub);
   font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
@@ -625,10 +625,6 @@ watch(() => props.clocks, (newClocks) => {
   align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid #3c3c3c;
-
-  &:last-child {
-    border-bottom: none;
-  }
 }
 
 .event-type {
@@ -645,7 +641,7 @@ watch(() => props.clocks, (newClocks) => {
   padding: 4px 8px;
   border: none;
   background-color: #3c3c3c;
-  color: #858585;
+  color: var(--pto-font-color-sub);
   font-size: 11px;
   cursor: pointer;
   border-radius: 4px;
@@ -677,7 +673,7 @@ watch(() => props.clocks, (newClocks) => {
 }
 
 .speed-label {
-  color: #858585;
+  color: var(--pto-font-color-sub);
   font-size: 12px;
   margin-right: 4px;
   margin-bottom: 1px;
@@ -687,12 +683,13 @@ watch(() => props.clocks, (newClocks) => {
   padding: 4px 8px;
   border: none;
   background: transparent;
-  color: var(--pto-font-color-placeholder);
+  color: var(--pto-font-color-sub);
   font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
   width: 42px;
+  background-color: var(--ma-speed-bg);
 
   &:hover {
     background-color: var(--pto-background);
@@ -700,8 +697,9 @@ watch(() => props.clocks, (newClocks) => {
   }
 
   &.active {
-    background-color: #007acc;
-    color: white;
+    background-color: var(--ma-speed-active-bg);
+    border: 1px solid #007acc;
+    color: var(--ma-speed-active-text);
   }
 }
 
@@ -712,7 +710,7 @@ watch(() => props.clocks, (newClocks) => {
   padding: 4px 8px;
   border: none;
   background: transparent;
-  color: #858585;
+  color: var(--pto-font-color-sub);
   font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
