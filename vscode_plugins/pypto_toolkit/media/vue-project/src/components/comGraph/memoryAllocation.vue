@@ -354,6 +354,7 @@ const handlePlayEvent = (event: Event) => {
     if (playingEventId.value === event.id) {
       playingEventId.value = null;
     }
+    updateRunningNode('');
   }, duration + 1000);
 };
 

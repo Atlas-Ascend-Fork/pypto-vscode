@@ -225,6 +225,7 @@ let selectAction;
 let getSelectedNodeId;
 let resetModelSource;
 let hoverFeedbackAction;
+let updateModelAction;
 let setDirection: (direction: 'RIGHT' | 'DOWN') => void;
 
 
@@ -340,8 +341,9 @@ const updateRunningNode = (id: number | string) => {
   const nodeId = comGraphStore.data.magicNodeIdMap[Number(id)];
   if (id === '') {
     comGraphStore.setData('runningNodeId', '');
-    fitToScreenAction();
+    updateModelAction();
   } else if (nodeId) {
+    selectAction([]);
     centerNodeAction([nodeId]);
     comGraphStore.setData('runningNodeId', nodeId);
   } else {
@@ -399,6 +401,7 @@ watch([() => props.jsonContent, isDarkTheme], ([val]) => {
     resetModelSource = sprottyLoadResult.resetModelSource;
     setDirection = sprottyLoadResult.setModelDirection;
     hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
+    updateModelAction = sprottyLoadResult.updateModelAction;
     initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, searchLevel);
     comGraphStore.setData('jsonData', jsonValue);
   }

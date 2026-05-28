@@ -590,6 +590,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     hoverFeedbackAction,
     updateDiffViewport,
     getModelSourceChildren,
-    removeEventListeners
+    removeEventListeners,
+    updateModelAction
   };
 }
