@@ -105,10 +105,6 @@ export class ThreeColumnServer
   getMetadata: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
 
-  getMetadata: () => Promise<any>;
-  getTimeLineEvents: () => Promise<void>;
-  getInitialMemoryData: () => Promise<void>;
-
   public override created(ctx: ViewServerContext): void { 
     if (!ctx.fileUri) {
       return;

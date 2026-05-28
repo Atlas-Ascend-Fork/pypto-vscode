@@ -1,5 +1,5 @@
 import { window, Uri } from 'vscode';
-import { t } from 'i18next';
+import { exists, t } from 'i18next';
 import { basename } from 'path';
 import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
@@ -41,13 +41,13 @@ type Refs = IComRefs & ICommonRefs;
   'AfterDiffData',
   'JsonContent',
   'SaveFileResult',
-  'CheckSysResult', 
+  'CheckSysResult',
   'SaveDirPath',
   'CheckFilePathResult',
-  'Metadata', 
-  'Timeline', 
+  'Metadata',
+  'Timeline',
   'InitMemoryTraceFlag',
-  'MemTraceFileFlag'
+  'MemTraceFileFlag',
 ])
 export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComViewServer, ICommonViewServer {
   comGraphData: AbstractGraphData;
@@ -68,7 +68,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
 
   public override created(ctx: ViewServerContext): void {
     this.viewType = ctx.viewType;
-    this.query = typeof ctx.fileUri?.query === 'string' ? this.safeParse(ctx.fileUri?.query) : ctx.fileUri?.query ?? {};
+    this.query = typeof ctx.fileUri?.query === 'string' ? this.safeParse(ctx.fileUri?.query) : (ctx.fileUri?.query ?? {});
     if (this.viewType === 'computeGraph') {
       this.handler = SingleGraphHandler;
     } else if (this.viewType === 'diffGraph') {
@@ -153,7 +153,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   };
   @viewApi()
   public setSaveDir = async () => {
-    const dir = await setSaveDir()
+    const dir = await setSaveDir();
     this.setRef('SaveDirPath', { dir: dir });
   };
   @viewApi()
@@ -198,17 +198,23 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getMemTraceFile = async () => {
     let fsPath = this.query?._path ?? '';
-    if(fsPath == '' && !/_OoO_Memory_Trace\.json$/.test(fsPath))return;
+    if (fsPath == '') return;
+    if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
+      this.setRef('MemTraceFileFlag', { isComFile: false, existTraceFile: true });
+      return;
+    }
     let memTracePath = fsPath.replace('.json', '_OoO_Memory_Trace.json');
     if (fs.existsSync(memTracePath)) {
-      this.setRef('MemTraceFileFlag', 'true');
+      this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: true });
+    }else{
+      this.setRef('MemTraceFileFlag', { isComFile: true, existTraceFile: false });
     }
   };
 
   @viewApi()
   public getInitialMemoryData = async () => {
     let fsPath = this.query?._path ?? '';
-    if(fsPath == '')return;
+    if (fsPath == '') return;
     if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
       fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
     }
@@ -223,7 +229,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
   @viewApi()
   public getMetadata = async () => {
     let fsPath = this.query?._path ?? '';
-    if(fsPath == '')return;
+    if (fsPath == '') return;
     if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
       fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
     }
@@ -231,19 +237,17 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     this.setRef('Metadata', metadata);
   };
 
-
   // 按clock分好事件
   @viewApi()
   public getTimelineEvents = async () => {
     let fsPath = this.query?._path ?? '';
-    if(fsPath == '')return;
+    if (fsPath == '') return;
     if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
       fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
     }
     const events = await MemoryTraceHandler.getTimelineEvents(fsPath);
     this.setRef('Timeline', events);
   };
-
 
   safeParse(str) {
     try {
