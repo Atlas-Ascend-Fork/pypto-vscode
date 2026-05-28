@@ -166,7 +166,6 @@ const elements = ref([
         filledColor: 'rgba(83, 85, 97, 1)',
         bgColor: 'rgb(137, 154, 174)',
         showHeader: false,
-        subBadgeLabel: '32M',
         layoutStyles: {
           justifyContent: 'center',
           background: 'transparent',
