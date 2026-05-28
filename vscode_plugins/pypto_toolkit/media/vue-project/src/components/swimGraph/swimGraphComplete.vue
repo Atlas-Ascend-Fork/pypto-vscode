@@ -1784,7 +1784,6 @@ const gethashOrderName = (event) => {
   let displayName = 'Event'
   if (event.args['hashOrder-hint'] !== undefined) {
     const hashOrderStr = event.args['hashOrder-hint'];
-    console.log(hashOrderRending.value);
     if (hashOrderStr.includes('cubeMergeInfo')) {
       if (hashOrderRending.value === 'L1ReuseHashOrder') {
         displayName = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
