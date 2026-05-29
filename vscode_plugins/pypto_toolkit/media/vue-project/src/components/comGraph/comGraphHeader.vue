@@ -1053,7 +1053,7 @@ onMounted(() => {
   padding: 16px 64px 18px 16px;
 
   .module-row {
-    width: 100%;
+    max-width: 100%;
     flex-shrink: 0;
   }
 
