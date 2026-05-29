@@ -52,7 +52,7 @@
               <div class="loading-spinner"></div>
               <div class="loading-text">Loading...</div>
             </div>
-            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
+            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation" @mem-trace-file-change="handleMemTraceFileChange"></MemoryAllocation>
           </div>
         </d-splitter-pane>
       </template>
