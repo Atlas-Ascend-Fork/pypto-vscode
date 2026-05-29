@@ -1,4 +1,9 @@
 export default {
+   'previous': '上一个',
+   'next': '下一个',
+   'simulatedExecutionMemoryAllocation': '模拟执行内存分配',
+   'pleaseSelectClockOnTimeline': '请选择时间轴上的Clock查看事件',
+   'eventDetail': '事件详情',
    delete: '删除',
    'zoomIn': '放大',
    'zoomOut': '缩小',

@@ -54,13 +54,13 @@
           <d-icon name="icon-arrow-left-l" class="module-icon" size="16px" @click="backwards"></d-icon>
         </div>
         <div class="navigation" ref="navigation">
-          <span v-for="(it, index) in curPath.slice(0, -1)" :key="index">{{ displayNav(it, index) }}</span>
+          <span v-for="(it, index) in curPath.slice(0, -1)" :key="index" :title="displayNav(it, index)">{{ displayNav(it, index) }}</span>
           <LeafList :func-map="funcMap" :cur-list="curList" :cur-path="curPath" @change="jumpBackGraph" />
         </div>
         <div v-if="graphType" :class="['module-row-graph-type', GraphType[graphType]]">{{ GraphType[graphType] }}</div>
       </div>
 
-      <Navbar v-if="outputDirPath && isLoadingFinish" current-step="comGraph"
+      <Navbar v-if="outputDirPath && isLoadingFinish && !showMemoryAllocation" current-step="comGraph"
         :current-record-directory-path="outputDirPath" :current-path-magic-name="pathName"
         :current-pass-index="passIndex" :current-leaf-name="fileName" @leaf-change="(e) => (currentLeafName = e)" />
       <div v-if="outputDirPath && !isLoadingFinish"></div>
@@ -1053,6 +1053,7 @@ onMounted(() => {
   padding: 16px 64px 18px 16px;
 
   .module-row {
+    width: 100%;
     flex-shrink: 0;
   }
 
@@ -1105,8 +1106,16 @@ onMounted(() => {
 .navigation {
   display: flex;
   gap: 4px;
+  flex: 1;
+  width: 0;
 
   &>span {
+    flex: 1;
+    width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: all;
     line-height: 18px;
   }
 }

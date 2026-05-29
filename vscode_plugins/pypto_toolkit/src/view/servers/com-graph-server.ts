@@ -220,11 +220,9 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
       fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
     }
-    console.log('[MemoryTrace] Step 2: Loading file:', fsPath);
     await MemoryTraceHandler.parse(fsPath);
     const metadata = await MemoryTraceHandler.getMetadata(fsPath);
     this.setRef('Metadata', metadata);
-    console.log('[MemoryTrace] Step 3: Data loaded');
     this.setRef('InitMemoryTraceFlag', 'true');
   };
 

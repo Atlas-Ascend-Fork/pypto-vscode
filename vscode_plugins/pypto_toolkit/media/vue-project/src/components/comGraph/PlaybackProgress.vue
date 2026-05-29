@@ -1,10 +1,10 @@
 <template>
   <div class="playback-progress-container">
     <div class="progress-left-controls">
-      <button class="control-btn" title="上一个" @click="prevClock">
+      <button class="control-btn" :title="$t('previous')" @click="prevClock">
         <d-icon name="icon-run-o" :rotate="180" size="16px"></d-icon>
       </button>
-      <button class="control-btn" title="下一个" @click="nextClock">
+      <button class="control-btn" :title="$t('next')" @click="nextClock">
         <d-icon name="icon-run-o" size="16px"></d-icon>
       </button>
     </div>
@@ -76,9 +76,12 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { mockMemoryGraphData1, mockMemoryGraphData2, mockMemoryGraphData3 } from './memoryGraph.type'
 import { mockAnimationItem, mockErrorAnimationItem, mockTidyAnimationItem } from './memoryGraph.type'
 import { MemoryGraphData } from './memoryGraph.type'
+
+const { t: $t } = useI18n()
 
 interface Event {
   id: string

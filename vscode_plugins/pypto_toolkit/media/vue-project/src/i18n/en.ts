@@ -1,4 +1,9 @@
 export default {
+    'previous': 'Previous',
+    'next': 'Next',
+    'simulatedExecutionMemoryAllocation': 'Simulated Execution Memory Allocation',
+    'pleaseSelectClockOnTimeline': 'Please select Clock on timeline to view events',
+    'eventDetail': 'Event Detail',
     delete:'Delete',
     'zoomIn': 'Zoom In',
     'zoomOut': 'Zoom Out',

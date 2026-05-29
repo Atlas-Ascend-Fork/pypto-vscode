@@ -38,6 +38,7 @@
   "pypto.configWarning": "警告：在配置中发现冲突的快捷键,会导致该快捷键不生效,建议修改。",
   "pypto.configImprove": "去修改",
   "pypto.cannotRender": "PyPTO Toolkit无法渲染此文件",
+  "pypto.memoryTraceFileNoComGraph": "此文件为内存追踪文件，对应计算图未找到，不予单独展示",
   "pypto.autoFinded": "自动找到最新输出目录中的文件",
   "pypto.useLatest": "使用最新输出目录: ",
   "pypto.selectCodeFile": "请选择算子文件",

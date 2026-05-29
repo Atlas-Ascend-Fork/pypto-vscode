@@ -847,6 +847,7 @@ export const parseCompressedData = (swimInfo, processExpanded, perfLogger) => {
           event.dependencies = {};
           event.dependencies.predecessors = dependencies.predecessors.map(it => it.id);
           event.dependencies.successors = dependencies.successors.map(it => it.id);
+          event.line = thread.lines[idx];
           processedTasks.push(event);
         }
         events.push(event);

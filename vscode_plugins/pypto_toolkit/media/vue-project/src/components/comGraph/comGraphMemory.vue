@@ -430,12 +430,12 @@ const elements = ref([
         color: 'var(--pto-font-color-title)'
       },
       handles: [
-        { id: 'aic-cube-l-12', type: 'target', edge: 'left', pct: 9.4 },
-        { id: 'aic-cube-l-10', type: 'target', edge: 'left', pct: 10 },
-        { id: 'aic-cube-l-38', type: 'target', edge: 'left', pct: 39.6 },
-        { id: 'aic-cube-l-45', type: 'target', edge: 'left', pct: 45 },
+        { id: 'aic-cube-l-12', type: 'target', edge: 'left', pct: 8.9 },
+        { id: 'aic-cube-l-10', type: 'target', edge: 'left', pct: 9.4 },
+        { id: 'aic-cube-l-38', type: 'target', edge: 'left', pct: 39 },
+        { id: 'aic-cube-l-45', type: 'target', edge: 'left', pct: 44.5 },
         { id: 'aic-cube-l-65', type: 'target', edge: 'left', pct: 65 },
-        { id: 'aic-cube-l-80', type: 'target', edge: 'left', pct: 80 },
+        { id: 'aic-cube-l-80', type: 'target', edge: 'left', pct: 79.3 },
         { id: 'aic-cube-l-92', type: 'target', edge: 'left', pct: 92 },
         { id: 'aic-cube-r-15', type: 'source', edge: 'right', pct: 15 },
         { id: 'aic-cube-r', type: 'source', edge: 'right', pct: 35.2 },
@@ -481,7 +481,7 @@ const elements = ref([
       bgColor: 'var(--ma-L1-square-bg)',
       handles: [
         { id: 'aic-l0c-l-20', type: 'target', edge: 'left', pct: 20.5 },
-        { id: 'aic-l0c-l', type: 'target', edge: 'left', pct: 49.9     },
+        { id: 'aic-l0c-l', type: 'target', edge: 'left', pct: 51      },
         { id: 'aic-l0c-b', type: 'source', edge: 'bottom', pct: 50 },
         { id: 'aic-l0c-b-80', type: 'source', edge: 'bottom', pct: 80 },
         { id: 'aic-l0c-t', type: 'source', edge: 'top', pct: 50 },
@@ -504,7 +504,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
-        { id: 'aic-dcache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aic-dcache-l', type: 'target', edge: 'left', pct: 46.2 },
         { id: 'aic-dcache-r', type: 'source', edge: 'right', pct: 50 },
       ],
     },
@@ -525,7 +525,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
-        { id: 'aic-icache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aic-icache-l', type: 'target', edge: 'left', pct: 46.8 },
         { id: 'aic-icache-r', type: 'source', edge: 'right', pct: 50 },
       ],
     },
@@ -551,8 +551,8 @@ const elements = ref([
         backgroundColor: 'transparent',
       },
       handles: [
-        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 26.5 },
-        { id: 'aic-scalar-l-80', type: 'target', edge: 'left', pct: 83 },
+        { id: 'aic-scalar-l-20', type: 'target', edge: 'left', pct: 25.8 },
+        { id: 'aic-scalar-l-80', type: 'target', edge: 'left', pct: 84 },
         { id: 'aic-scalar-l', type: 'target', edge: 'left', pct: 50 },
         { id: 'aic-scalar-r', type: 'source', edge: 'right', pct: 50 },
       ],
@@ -598,7 +598,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
-        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 44.5  },
+        { id: 'aiv2b-dcache-l', type: 'target', edge: 'left', pct: 46.5  },
         { id: 'aiv2b-dcache-r', type: 'source', edge: 'right', pct: 44 },
       ],
     },
@@ -619,7 +619,7 @@ const elements = ref([
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
-        { id: 'aiv2b-icache-l', type: 'target', edge: 'left', pct: 44 },
+        { id: 'aiv2b-icache-l', type: 'target', edge: 'left', pct: 46 },
         { id: 'aiv2b-icache-r', type: 'source', edge: 'right', pct: 44 },
       ],
     },
@@ -645,9 +645,9 @@ const elements = ref([
         backgroundColor: 'transparent',
       },
       handles: [
-        { id: 'aiv2b-scalar-l-15', type: 'target', edge: 'left', pct: 15 },
+        { id: 'aiv2b-scalar-l-15', type: 'target', edge: 'left', pct: 14 },
         { id: 'aiv2b-scalar-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aiv2b-scalar-l-85', type: 'target', edge: 'left', pct: 85 },
+        { id: 'aiv2b-scalar-l-85', type: 'target', edge: 'left', pct: 87 },
         { id: 'aiv2b-scalar-r', type: 'source', edge: 'right', pct: 50 },
         { id: 'aiv2b-scalar-t', type: 'source', edge: 'top', pct: 50 },
       ],
@@ -673,7 +673,7 @@ const elements = ref([
       handles: [
         { id: 'aiv2b-ub-l-in', type: 'target', edge: 'left', pct: 50 }, 
         { id: 'aiv2b-ub-l-70', type: 'source', edge: 'left', pct: 75 },
-        { id: 'aiv2b-ub-r', type: 'source', edge: 'right', pct: 57.5 },
+        { id: 'aiv2b-ub-r', type: 'source', edge: 'right', pct: 59.5 },
       ],
     },
   },
@@ -1446,6 +1446,7 @@ onBeforeUnmount(() => {
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
+  cursor: default !important;
 }
 .vue-flow__handle {
   opacity: 0 !important;

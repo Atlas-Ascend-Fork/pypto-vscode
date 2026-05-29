@@ -12,7 +12,7 @@
           <div class="pane-content">
             <div class="memory-header">
               <div class="header-left">
-                <span class="header-text">模拟执行内存分配</span>
+                <span class="header-text">{{ $t('simulatedExecutionMemoryAllocation') }}</span>
                 <span class="header-size">910B</span>
               </div>
               <div class="legend-container">
@@ -58,8 +58,11 @@
                 </button>
               </div>
             </div>
-            <div v-else class="empty-state">
-              <span>请选择时间轴上的Clock查看事件</span>
+            <div v-else>
+              <div class="transition-overlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading...</div>
+              </div>
             </div>
           </div>
         </d-splitter-pane>
@@ -74,7 +77,7 @@
         </div>
         <div class="content-wrap">
           <div class="header">
-            <span class="title">事件详情</span>
+            <span class="title">{{ $t('eventDetail') }}</span>
             <em class="icon icon-close" @click="showDetailModal = false"></em>
           </div>
           <div class="json-content">
@@ -87,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ComGraphMemory from './comGraphMemory.vue';
 import { mockMemoryGraphData } from './memoryGraph.type'
 import { mockAnimationItem } from './memoryGraph.type';
@@ -97,6 +101,7 @@ import type { IMemoryTraceViewServer } from 'ext:/view/servers/view-server-inter
 import { mockTimeList } from './memoryGraph.type';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
+const { t: $t } = useI18n();
 const { updateRunningNode } = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
 
 interface Event {
@@ -237,19 +242,10 @@ onMounted(async () => {
 
 // 监听 InitMemoryTraceFlag 变化 - 代表 server 准备好了，可以开始调用接口
 watch(server.InitMemoryTraceFlag, (newVal) => {
-  console.log('[MemoryTrace] InitMemoryTraceFlag changed:', newVal);
   if (newVal) {
-    console.log('[MemoryTrace] ===== Server ready, 开始调用后端接口 =====');
-    server.getMemTraceFile();
-    console.log('[MemoryTrace]  调用 getMetadata()');
     // InitMemoryTraceFlag触发前已经调用getMetadata()
-
-    console.log('[MemoryTrace]  调用 getTimelineEvents()');
+    server.getMemTraceFile();
     server.getTimelineEvents();
-    
-    // server.getChipConfig({chipArch:"DAV_2201"});  吗，目前感觉前端页面写死好一些 后端读配置文件 还得考虑配置文件打包问题
-
-    console.log('[MemoryTrace] ===== 接口调用完成，等待后端 setRef 触发 =====');
   }
 });
 
@@ -272,11 +268,6 @@ watch(server.Timeline, (newVal) => {
     })
     GMData.value.bufferList = GMOriginBufferList;
   }
-
-  console.log('[MemoryTrace] GMData changed, count:', newVal?.length || 0);
-  if (timelineData?.length > 0) {
-    console.log('[MemoryTrace] Timeline first item:', JSON.stringify(timelineData[0]));
-  }
   emit('timeline-change', timelineData);
 });
 
@@ -295,16 +286,7 @@ watch(server.MemTraceFileFlag, (newVal) => {
 });
 
 watch(server.Metadata, (newVal) => {
-  console.log('[MemoryTrace] Metadata changed:', newVal);
 });
-
-watch(server.getMemTraceFile, (newVal) => {
-  console.log('[MemoryTrace] getMemTraceFile changed:', newVal);
-  if (newVal) {
-
-  }
-});
-
 
 const dealGraphData = (bufferList: any[]) => {
   const graphData = {};
@@ -443,6 +425,36 @@ watch(showDetailModal, (val) => {
   height: 100%;
   padding: 8px;
   box-sizing: border-box;
+
+  .transition-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--devui-global-bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--pto-border-default);
+      border-top-color: #4a9eff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      color: var(--pto-font-color-main);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+  }
 }
 
 .memory-header {
@@ -636,15 +648,6 @@ watch(showDetailModal, (val) => {
   border-radius: 6px;
   transition: all 0.2s;
 
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  color: var(--pto-font-color-disabled);
-  font-size: 12px;
 }
 
 .detail-modal-container {

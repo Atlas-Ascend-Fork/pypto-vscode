@@ -48,11 +48,7 @@
           @collapsedChange="collapsedChange"
         >
           <div ref="rightPanelEl" class="pane-content">
-            <div v-if="timelineData.length !== 0 && selectedEvents.length === 0" class="transition-overlay">
-              <div class="loading-spinner"></div>
-              <div class="loading-text">Loading...</div>
-            </div>
-            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation"></MemoryAllocation>
+            <MemoryAllocation :events="selectedEvents" :graphData="selectedGraphData" :animationSpeed="animationSpeed" :onlyUpdateSpeed="onlyUpdateSpeed" :clockName="currentClockName" @timeline-change="handleTimelineChange" @play-animation="handlePlayAnimation" @mem-trace-file-change="handleMemTraceFileChange"></MemoryAllocation>
           </div>
         </d-splitter-pane>
       </template>
@@ -677,35 +673,6 @@ async function onDocumentKeyDown(e: KeyboardEvent) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-}
-.transition-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--devui-global-bg);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  .loading-spinner {
-    width: 30px;
-    height: 30px;
-    border: 2px solid var(--pto-border-default);
-    border-top-color: #4a9eff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  .loading-text {
-    margin-top: 16px;
-    color: var(--pto-font-color-main);
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-  }
 }
 </style>
 

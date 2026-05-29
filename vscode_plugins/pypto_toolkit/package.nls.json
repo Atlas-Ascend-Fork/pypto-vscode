@@ -38,6 +38,7 @@
   "pypto.configWarning": "Warning: Conflicting shortcut keys are found in the configuration. As a result, the shortcut keys do not take effect. you are advised to modify the shortcut keys",
   "pypto.configImprove": "go to modify it.",
   "pypto.cannotRender": "PyPTO Toolkit cannot render this file",
+  "pypto.memoryTraceFileNoComGraph": "This is a memory trace file. The corresponding computation graph was not found and cannot be displayed separately.",
   "pypto.autoFinded": "Automatically found files in the latest output directory",
   "pypto.useLatest": "Using latest output directory: ",
   "pypto.selectCodeFile": "Please select code file",
