@@ -12,7 +12,7 @@
           <div class="pane-content">
             <div class="memory-header">
               <div class="header-left">
-                <span class="header-text">模拟执行内存分配</span>
+                <span class="header-text">{{ $t('simulatedExecutionMemoryAllocation') }}</span>
                 <span class="header-size">910B</span>
               </div>
               <div class="legend-container">
@@ -59,7 +59,7 @@
               </div>
             </div>
             <div v-else class="empty-state">
-              <span>请选择时间轴上的Clock查看事件</span>
+              <span>{{ $t('pleaseSelectClockOnTimeline') }}</span>
             </div>
           </div>
         </d-splitter-pane>
@@ -74,7 +74,7 @@
         </div>
         <div class="content-wrap">
           <div class="header">
-            <span class="title">事件详情</span>
+            <span class="title">{{ $t('eventDetail') }}</span>
             <em class="icon icon-close" @click="showDetailModal = false"></em>
           </div>
           <div class="json-content">
@@ -87,6 +87,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ComGraphMemory from './comGraphMemory.vue';
 import { mockMemoryGraphData } from './memoryGraph.type'
 import { mockAnimationItem } from './memoryGraph.type';
@@ -97,6 +98,7 @@ import type { IMemoryTraceViewServer } from 'ext:/view/servers/view-server-inter
 import { mockTimeList } from './memoryGraph.type';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 
+const { t: $t } = useI18n();
 const { updateRunningNode } = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
 
 interface Event {
