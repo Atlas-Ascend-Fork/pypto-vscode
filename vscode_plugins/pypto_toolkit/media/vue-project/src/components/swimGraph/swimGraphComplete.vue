@@ -1809,7 +1809,7 @@ const combineNames = (firstpart, secondpart) => {
   return result;
 };
 
-const getTwoConfigName = (event) => {
+const getTwoConfigName = (event, name) => {
   let { name: displayName } = event;
   let hashOrderName = '';
   const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
@@ -1822,6 +1822,10 @@ const getTwoConfigName = (event) => {
       const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
       const taskLabelName = labelPart ? labelPart.groups.label.trim() : '';
       displayName = combineNames(taskLabelName, hashOrderName);
+    }
+    if (isMixMode.value) {
+      const rightPart = name.includes('_') ? name.split('_').pop() : '';
+      displayName = displayName + (rightPart ? '_' + String(rightPart) : '');
     }
   }
   return displayName;
@@ -1844,11 +1848,17 @@ const getDisplayName = (event) => {
       displayName = labelPart ? labelPart.groups.label.trim() : '';
     }
   } else if (textOption.length === 1 && textOption[0] === 'isomorphicSubGraphGroup') {
-    displayName = gethashOrderName(event);
+    if (isMixMode.value) {
+    const rightPart = displayName.includes('_') ? displayName.split('_').pop() : '';
+    displayName = gethashOrderName(event, displayName);
+    displayName = displayName + (rightPart ? '_' + String(rightPart) : '');
+    } else {
+      displayName = gethashOrderName(event, displayName);
+    }
   }
 
   if(textOption.length === 2) {
-    displayName = getTwoConfigName(event);
+    displayName = getTwoConfigName(event, displayName);
   }
   return displayName;
 };
