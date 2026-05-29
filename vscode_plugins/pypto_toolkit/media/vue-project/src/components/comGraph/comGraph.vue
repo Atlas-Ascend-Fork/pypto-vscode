@@ -363,6 +363,7 @@ const updateRunningNode = (id: number | string) => {
     updateModelAction();
   } else if (nodeId) {
     selectAction([]);
+    releaseFixedFlow();
     centerNodeAction([nodeId]);
     comGraphStore.setData('runningNodeId', nodeId);
   } else {
