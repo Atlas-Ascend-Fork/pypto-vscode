@@ -8,7 +8,32 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
-export const getSubGraphId = (event: any, mode: string, defaultValue=15,  hashOrderType='') => {
+export const getHashOrderGroup = (event: any, hashOrderType='') => {
+  let hashOrderGroup = '';
+  if (event.args['hashOrder-hint'] !== undefined || event.args.hashorder !== undefined) {
+    const hashOrderStr = event.args['hashOrder-hint'] ?? event.args.hashorder;
+    if (hashOrderType === 'cubeMergeHashOrder') {
+      if (hashOrderStr.includes('cubeMergeInfo')) {
+        const cubeMatch = hashOrderStr.match(new RegExp(`cubeMergeInfo hashOrder: (\\S+), subGraphCount: (\\d+)`));
+        hashOrderGroup = cubeMatch ? cubeMatch[1] : null;
+      } else if (hashOrderStr.includes('vecMergeInfo')) {
+        const vecMatch = hashOrderStr.match(new RegExp(`vecMergeInfo hashOrder: (\\S+), subGraphCount: (\\d+)`));
+        hashOrderGroup = vecMatch ? vecMatch[1] : null;
+      }
+   } else if (hashOrderType === 'L1ReuseHashOrder') {
+     if (hashOrderStr.includes('l1ReuseInfo')) {
+       const l1Match = hashOrderStr.match(new RegExp(`l1ReuseInfo hashOrder: (\\S+), subGraphCount: (\\d+)`));
+       hashOrderGroup = l1Match ? l1Match[1] : null;
+      } else if (hashOrderStr.includes('vecMergeInfo')) {
+        const vecMatch = hashOrderStr.match(new RegExp(`vecMergeInfo hashOrder: (\\S+), subGraphCount: (\\d+)`));
+        hashOrderGroup = vecMatch ? vecMatch[1] : null;
+      }
+    }
+  }
+  return hashOrderGroup
+}
+
+export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
   let subGraphId;
   if (!event) {
     return defaultValue;
@@ -31,28 +56,7 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15,  hashOr
   } else if (mode === 'mixSubGraph') {
     subGraphId = event.args.wrapId;
   }
-  else if (mode === 'isomorphicSubGraph') {
-    if (event.args['hashOrder-hint'] !== undefined) {
-      const hashOrderStr = event.args['hashOrder-hint'];
-      if (hashOrderType === 'cubeMergeHashOrder') {
-        if (hashOrderStr.includes('cubeMergeInfo')) {
-          const cubeMatch = hashOrderStr.match(/cubeMergeInfo hashOrder: \w+_(\d+)/);
-          subGraphId = cubeMatch ? cubeMatch[1] : null;
-        } else if (hashOrderStr.includes('vecMergeInfo')) {
-          const vecMatch = hashOrderStr.match(/vecMergeInfo hashOrder: \w+_(\d+)/);
-          subGraphId = vecMatch ? vecMatch[1] : null;
-        }
-      } else if (hashOrderType === 'L1ReuseHashOrder') {
-        if (hashOrderStr.includes('l1ReuseInfo')) {
-          const l1Match = hashOrderStr.match(/l1ReuseInfo hashOrder: \w+_(\d+)/);
-          subGraphId = l1Match ? l1Match[1] : null;
-        } else if (hashOrderStr.includes('vecMergeInfo')) {
-          const vecMatch = hashOrderStr.match(/vecMergeInfo hashOrder: \w+_(\d+)/);
-          subGraphId = vecMatch ? vecMatch[1] : null;
-        }
-      }
-    }
-  }
+
   subGraphId = Number(subGraphId);
   if (Number.isNaN(subGraphId)) {
     return defaultValue;
@@ -109,8 +113,17 @@ export const getEventColorByMode = (event: any, mode: string, processType = 'ker
     dLightColor = dres.lightColor;
     lBaseColor = lres.baseColor;
     lLightColor = lres.lightColor;
-  } else if (mode !== "label") {
-    const subGraphId = getSubGraphId(event, mode, 15, hashOrderType);
+  } else if (mode === 'isomorphicSubGraph'){
+    const laberName = getHashOrderGroup(event, hashOrderType)
+    const dres = getColorByString(laberName, darkThemeBaseColors, darkThemeLightColors);
+    const lres = getColorByString(laberName, lightThemeBaseColors, lightThemeLightColors);
+    dBaseColor = dres.baseColor;
+    dLightColor = dres.lightColor;
+    lBaseColor = lres.baseColor;
+    lLightColor = lres.lightColor;
+  } 
+  else if (mode !== "label") {
+    const subGraphId = getSubGraphId(event, mode);
     dBaseColor = darkThemeBaseColors[subGraphId];
     dLightColor = darkThemeLightColors[subGraphId];
     lBaseColor = lightThemeBaseColors[subGraphId];

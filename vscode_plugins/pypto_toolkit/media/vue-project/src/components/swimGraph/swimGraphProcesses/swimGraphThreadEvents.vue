@@ -153,7 +153,8 @@ const {
   getDisplayName,
   changeScale,
   resetMaxScheduleState,
-  findWrapAtPosition
+  findWrapAtPosition,
+  setHashOrderTipColor
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -2368,7 +2369,8 @@ const highlightMixEvent = (ctx, event, processKey) => {
     name: drawData.text,
     renderStartTime: 0,
     renderDuration: drawData.eventWidth / viewState.scale,
-    drawData
+    drawData,
+    hashorder: event.args.hashorder,
   };
   fillTextInfo(fakeEvent, ctx, drawData, true, false);
   if (!drawData.text) { return };
@@ -2754,22 +2756,23 @@ const showTooltip = (e, event) => {
     const duration = event.duration ?? (event.endTime - event.startTime);
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(duration * 1000 / tsScale.value).value}${formatTimeWithUnit(duration * 1000 / tsScale.value).unit}</span></div>`;
   }
-  if (event.args['hashOrder-hint'] !== undefined) {
-    const hashOrderStr = event.args['hashOrder-hint'];
+  if (event.args['hashOrder-hint'] !== undefined || event.args.hashorder !== undefined) {
+    setHashOrderTipColor(event);
+    const hashOrderStr = event.args['hashOrder-hint'] ?? event.args.hashorder;
     let result = {};
     if (hashOrderStr.includes('cubeMergeInfo')) {
       result = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
       tooltipContent += `<div class="tooltip-line"></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-L1">L1 Reuse</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-L1">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">L1 Reuse</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
       result = getHashOrderContent(hashOrderStr, 'cubeMergeInfo');
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-Cube">Cube NBuffer</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-Cube">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">Cube NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
     } else if (hashOrderStr.includes('vecMergeInfo')) { 
       result = getHashOrderContent(hashOrderStr, 'vecMergeInfo');
       tooltipContent += `<div class="tooltip-line"></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type-vec">vec NBuffer</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-vec">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">vec NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
     }
   }
   tooltipContent += '</div>';
@@ -3130,6 +3133,7 @@ const renderMixModeEvents = (process, processKey, ctx) => {
       name: drawData.text,
       renderStartTime: 0,
       renderDuration: drawData.eventWidth / viewState.scale,
+      hashorder: drawData.hashorder,
       drawData
     };
     fillTextInfo(fakeEvent, ctx, drawData, true, false);
@@ -3175,7 +3179,8 @@ const renderThreadNormalEvents = (thread, threadY, laneHeight, drawDatas, proces
       textX: 0,
       textY: eventY * devicePixelRatio + eventTextSize,
       startTime: event.startTime,
-      endTime: event.endTime
+      endTime: event.endTime,
+      hashorder: event.args?.['hashOrder-hint']
     };
     
     event.drawData = drawData;
@@ -3218,7 +3223,8 @@ const renderThreadSubEvents = (thread, threadY, laneHeight, drawDatas, processKe
         textX: 0,
         textY: eventY * devicePixelRatio + eventTextSize,
         startTime: subEvent.startTime,
-        endTime: subEvent.endTime
+        endTime: subEvent.endTime,
+        hashorder: subEvent.args.hashorder
       };
       
       subEvent.drawData = drawData;
