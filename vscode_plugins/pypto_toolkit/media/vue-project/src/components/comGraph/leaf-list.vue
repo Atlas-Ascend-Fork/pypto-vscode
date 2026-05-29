@@ -7,7 +7,7 @@
     class="layer-list-menu-wrap"
     @toggle="(val) => (isVisible = val)"
   >
-    <span @click="expandList" class="layer-cur">{{ funcMap[curPath[curPath.length - 1]]?.func_magicname }} </span>
+    <span @click="expandList" class="layer-cur" :title="funcMap[curPath[curPath.length - 1]]?.func_magicname">{{ funcMap[curPath[curPath.length - 1]]?.func_magicname }} </span>
     <template #menu>
       <div class="layer-list pypto-scrollbar">
         <div
@@ -53,6 +53,11 @@ const onJump = (it) => {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .layer-cur {
+  flex: 1;
+  width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
   font-weight: bold;
   pointer-events: all;
 
