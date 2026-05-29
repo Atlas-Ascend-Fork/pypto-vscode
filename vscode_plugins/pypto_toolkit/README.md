@@ -16,208 +16,208 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 - **查看历史运行结果**
 
-    点击VS Code侧边栏PyPTO图标，未显示图标可在侧边栏点击右键，勾选 `PyPTO Toolkit`
+  点击VS Code侧边栏PyPTO图标，未显示图标可在侧边栏点击右键，勾选 `PyPTO Toolkit`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
 
 - **搜索运行结果**
 
-    运行结果名称为 `执行方式 + 执行日期 + 执行时间`，可根据需要自行搜索
+  运行结果名称为 `执行方式 + 执行日期 + 执行时间`，可根据需要自行搜索
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
 
 ## 控制流
 
 - **查看控制流**
 
-    选择任意运行结果目录，展开后点击 `结果总览`，即可查看控制流相关信息，控制流从上到下表示实际执行的先后顺序
+  选择任意运行结果目录，展开后点击 `结果总览`，即可查看控制流相关信息，控制流从上到下表示实际执行的先后顺序
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
 
 - **搜索节点**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
 
 - **查看PATH详情**
 
-    点击PATH卡片右上角图标查看详情
+  点击PATH卡片右上角图标查看详情
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
 
 - **查看精度执行报告**
 
-    若文件有精度执行报告，读取并导入成功后可点击页面右上角`打开精度执行报告`查看详情。点击精度校验失败的PASS可高亮并聚焦对应节点
+  若文件有精度执行报告，读取并导入成功后可点击页面右上角`打开精度执行报告`查看详情。点击精度校验失败的PASS可高亮并聚焦对应节点
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
 
 ## 计算图
 
 - **打开计算图**
 
-    在计算图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可
+  在计算图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/openCom.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/openCom.gif)
 
 - **查看计算图**
 
-    支持页面拖拽查看、缩略图中查看，以及缩放查看节点、点击查看节点详情
+  支持页面拖拽查看、缩略图中查看，以及缩放查看节点、点击查看节点详情
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/optCom.gif)
-  
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/optCom.gif)
+
 - **节点搜索**
 
-    直接输入并回车，或者点击搜索按钮，可进行模糊搜索；点击搜索框选择相应分类，可进行分类搜索，节点点击可以查看json数据详情选择整图搜索，可搜索json内其他function中内容
+  直接输入并回车，或者点击搜索按钮，可进行模糊搜索；点击搜索框选择相应分类，可进行分类搜索，节点点击可以查看json数据详情选择整图搜索，可搜索json内其他function中内容
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comSearch.gif)
 
 - **子图跳转**
 
-    双击call节点可进行子图跳转，call节点右下角有FX图标标识
+  双击call节点可进行子图跳转，call节点右下角有FX图标标识
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comToSubgraph.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comToSubgraph.gif)
 
 - **健康报告**
 
-    点击右上角健康报告按钮，会搜索当前文件对应的健康报告相关json，并展示其内容，可通过健康报告快速定位相关节点
+  点击右上角健康报告按钮，会搜索当前文件对应的健康报告相关json，并展示其内容，可通过健康报告快速定位相关节点
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/healthReport.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/healthReport.gif)
 
 - **精度报告**
 
-    点击右上角健康度报告按钮，若当前数据拥有精度异常数据，将显示精度报告，点击展示相关内容。精度异常列表数据点击可跳转详情。
+  点击右上角健康度报告按钮，若当前数据拥有精度异常数据，将显示精度报告，点击展示相关内容。精度异常列表数据点击可跳转详情。
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromComGraph.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromComGraph.gif)
 
 - **图层控制**
 
-    右上角按钮可以开启图层控制面板，支持更改布局方向，更改节点显示模式, 控制节点显示数量
+  右上角按钮可以开启图层控制面板，支持更改布局方向，更改节点显示模式, 控制节点显示数量
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
 
 - **链路锁定**
 
-    选中节点后，右键可以锁定或仅显示该节点相关链路, 可以在新标签查看当前通路, 通过快捷键快速实现节点跳转到上一个和下一个
+  选中节点后，右键可以锁定或仅显示该节点相关链路, 可以在新标签查看当前通路, 通过快捷键快速实现节点跳转到上一个和下一个
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
 
 - **对比图开启**
 
-    右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit打开计算图差异对比”，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
+  右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit打开计算图差异对比”，会自动选择同文件夹下的关联对比文件，如果未找到，可以自行选择需要对比的文件路径
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
 
 - **按节点搜索开启**
 
-    右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit按节点搜索打开计算图”，可以通过搜索节点的关键字及属性打开计算图
-    
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
+  右键计算图文件，选择 “使用PyPTO Toolkit高级操作” 下级的 “PyPTO Toolkit按节点搜索打开计算图”，可以通过搜索节点的关键字及属性打开计算图
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
 
 - **局部搜索**
 
-    打开文件节点数超过1万时，允许选择全量渲染或者搜索某个节点，渲染其相关链路，建议在文件过大时按需使用
+  打开文件节点数超过1万时，允许选择全量渲染或者搜索某个节点，渲染其相关链路，建议在文件过大时按需使用
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
 
 - **内存可视化**
 
-    内存Trace文件生成由编译期开关控制，开启方式：framework/src/passes/statistics/memory_tracer.h 中设置ENABLE_MEMORY_TRACE为true。生成文件在dump_graph的同级目录下。
+  内存Trace文件生成由编译期开关控制，开启方式：framework/src/passes/statistics/memory_tracer.h 中设置ENABLE_MEMORY_TRACE为true。生成文件在dump_graph的同级目录下。
 
-    存在内存Trace文件时，计算图界面可以点击右上角内存可视化按钮，展示内存可视化界面。直接在内存Trace文件上右键选择`PyPTO Toolkit: 打开文件`，可以直接展示可视化界面。
+  存在内存Trace文件时，计算图界面可以点击右上角内存可视化按钮，展示内存可视化界面。直接在内存Trace文件上右键选择`PyPTO Toolkit: 打开文件`，可以直接展示可视化界面。
 
-    可视化界面主要分内存图、事件轴、事件列表。点击事件轴查看对应时间节点的事件列表。事件列表允许列表播放和单个事件播放。
+  可视化界面主要分内存图、事件轴、事件列表。点击事件轴查看对应时间节点的事件列表。事件列表允许列表播放和单个事件播放。
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memoryView.gif)
 
 ## 泳道图
 
 - **打开泳道图**
 
-    在泳道图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可打开
+  在泳道图 json 文件上右键选择`PyPTO Toolkit: 打开文件`即可打开
+  - **Kernel泳道图**
 
-    - **Kernel泳道图**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+  - **端到端（AICPU + Kernel）泳道图**
 
-    - **端到端（AICPU + Kernel）泳道图**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+  - **pypto3.0泳道图**
 
-    - **pypto3.0泳道图**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
-  
 - **查看节点详情**
 
-    点击节点可以在下方面板查看节点详情
+  点击节点可以在下方面板查看节点详情
+  - **Kernel View**
 
-    - **Kernel View**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+  - **AICPU View**
 
-    - **AICPU View**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+  - **pypto3.0泳道图**
 
-    - **pypto3.0泳道图**
-
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
 - **节点搜索**
 
-    在搜索框输入节点名称可以模糊搜索节点
+  在搜索框输入节点名称可以模糊搜索节点
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
 
 - **跳转计算图**
 
-    支持根据`rootHash`和`leafHash`跳转至计算图
+  支持根据`rootHash`和`leafHash`跳转至计算图
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
 
 - **泳道图导出**
 
-    支持导出泳道图为 png 图片
+  支持导出泳道图为 png 图片
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
 
 - **添加观测线**
 
-    在二段轴上点击可以添加观测线，点击观测线可以删除或修改
+  在二段轴上点击可以添加观测线，点击观测线可以删除或修改
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
 - **性能看板**
 
-    点击左上角的报告按钮，即可查看性能报告，在页面点击节点可以自动定位到图上对应位置，便于用户快速查看性能问题。
+  点击左上角的报告按钮，即可查看性能报告，在页面点击节点可以自动定位到图上对应位置，便于用户快速查看性能问题。
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
 
 - **核利用率统计**
 
-    点击左上角的度量模式按钮，或者鼠标框选节点，可查看核利用率统计信息
+  点击左上角的度量模式按钮，或者鼠标框选节点，可查看核利用率统计信息
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
 
 - **泳道置顶**
 
-    鼠标悬浮泳道左侧区域，会显示置顶图标，点击即可将本泳道置顶
+  鼠标悬浮泳道左侧区域，会显示置顶图标，点击即可将本泳道置顶
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
 
 - **Mix子图**
 
-    在渲染配置界面中启用Mix模式，即可查看Mix子图
+  在渲染配置界面中启用Mix模式，即可查看Mix子图
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
 
 - **快捷键列表**
 
-  | 快捷键 | 功能描述 |
-  | --- | --- |
-  | 鼠标滚轮 | **纵向**移动 |
-  | 鼠标左键 + CTRL | **横向**移动 |
-  | 鼠标滚轮 + CTRL | 缩放 |
-  | 鼠标左键 + ALT | 手动测距 |
-  | w / s（支持在配置页面配置） | 放大 / 缩小 |
-  | a / d（支持在配置页面配置） | 横向移动 |
+  | 快捷键                      | 功能描述     |
+  | --------------------------- | ------------ |
+  | 鼠标滚轮                    | **纵向**移动 |
+  | 鼠标左键 + CTRL             | **横向**移动 |
+  | 鼠标滚轮 + CTRL             | 缩放         |
+  | 鼠标左键 + ALT              | 手动测距     |
+  | w / s（支持在配置页面配置） | 放大 / 缩小  |
+  | a / d（支持在配置页面配置） | 横向移动     |
 
 ## 三栏联动视图
 
@@ -245,7 +245,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 ## 反馈渠道
 
-  如有任何问题和建议，欢迎提ISSUE：[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
+如有任何问题和建议，欢迎提ISSUE：[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
 
 ## 免责声明
 
