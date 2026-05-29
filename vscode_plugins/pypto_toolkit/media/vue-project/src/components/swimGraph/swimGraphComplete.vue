@@ -1781,9 +1781,9 @@ const getHashOrderContent = (hashOrderStr, key) => {
 };
 
 const gethashOrderName = (event) => {
-  let displayName = 'Event'
-  if (event.args['hashOrder-hint'] !== undefined) {
-    const hashOrderStr = event.args['hashOrder-hint'];
+  let displayName = ''
+  if (event.args?.['hashOrder-hint'] !== undefined || event.hashorder !== undefined || event.args?.hashorder !== undefined) {
+    const hashOrderStr = event.args?.['hashOrder-hint'] ?? event.hashorder ?? event.args?.hashorder;
     if (hashOrderStr.includes('cubeMergeInfo')) {
       if (hashOrderRending.value === 'L1ReuseHashOrder') {
         displayName = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
@@ -1797,6 +1797,18 @@ const gethashOrderName = (event) => {
   return displayName;
 };
 
+const combineNames = (firstpart, secondpart) => {
+  let result = ''
+  if (firstpart && secondpart) {
+    result = `${firstpart}(${secondpart})`;
+  } else if (firstpart) {
+    result = `${firstpart}()`;
+  } else if (secondpart) {
+    result = secondpart;
+  }
+  return result;
+};
+
 const getTwoConfigName = (event) => {
   let { name: displayName } = event;
   let hashOrderName = '';
@@ -1805,11 +1817,11 @@ const getTwoConfigName = (event) => {
     hashOrderName = gethashOrderName(event);
     if (textOption.includes('taskName')) {
       const taskName = displayName.split('(')[0].trim();
-      displayName = `${taskName}(${hashOrderName})`;
+      displayName = combineNames(taskName, hashOrderName);
     } else if (textOption.includes('taskLabel')) {
       const labelPart = displayName.match(/\((?<label>[^)]+)\)/);
       const taskLabelName = labelPart ? labelPart.groups.label.trim() : '';
-      displayName = `${taskLabelName}(${hashOrderName})`;
+      displayName = combineNames(taskLabelName, hashOrderName);
     }
   }
   return displayName;
@@ -1839,6 +1851,22 @@ const getDisplayName = (event) => {
     displayName = getTwoConfigName(event);
   }
   return displayName;
+};
+
+const setHashOrderTipColor = (event) => {
+  if (userConfig.value.kernelColorRending === 'isomorphicSubGraph') {
+    if (isDarkTheme.value) {
+      document.documentElement.style.setProperty('--hashOrder-color', `${event.color.dark['base']}`);
+    } else {
+      document.documentElement.style.setProperty('--hashOrder-color', `${event.color.dark['light']}`);
+    }
+  } else {
+    if (isDarkTheme.value) {
+      document.documentElement.style.setProperty('--hashOrder-color', `#999999`);
+    } else {
+      document.documentElement.style.setProperty('--hashOrder-color', `#AEAEAE`);
+    }
+  }
 };
 
 const overflowText = (actualWidth, text) => {
@@ -2806,6 +2834,7 @@ provide('swimGraphMethods', {
   changeNodeColor: (processKey, isDimmed)=> {
     childContextMap.threadEvent.changeNodeColor(processKey, isDimmed);
   },
+  setHashOrderTipColor,
 });
 watch(isDarkTheme, () => {
   updateTheme();
@@ -2831,15 +2860,6 @@ const updateTheme = () => {
   down_16px.value = isDarkTheme.value
     ? `${window.staticPath}/static-assets/down_16px.svg`
     : `${window.staticPath}/static-assets/down_16px_light.svg`;
-  if (isDarkTheme.value) {
-    document.documentElement.style.setProperty('--hashOrder-color-l1', `#D5BBFF`);
-    document.documentElement.style.setProperty('--hashOrder-color-cube', `#81D0F6`);
-    document.documentElement.style.setProperty('--hashOrder-color-vec', `#C4C6D4`);
-  } else {
-    document.documentElement.style.setProperty('--hashOrder-color-l1', `#7456A7`);
-    document.documentElement.style.setProperty('--hashOrder-color-cube', `#007092`);
-    document.documentElement.style.setProperty('--hashOrder-color-vec', `#626571`);
-  }
 };
 // 监听引导模式的消息
 const listenExtensionMessage = () => {

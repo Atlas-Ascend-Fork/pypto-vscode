@@ -20,7 +20,7 @@
                       <div>{{ getEventTruncateText(canvasclickedEvent) }}</div>
                     </d-tooltip>
                     <div class="pipe-subgraph">
-                      <span :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ $t("leafNo") }}: {{ getSubGraphId(canvasclickedEvent, 'subGraph', '/') }}</span>
+                      <span :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ $t("leafNo") }} : {{ getSubGraphId(canvasclickedEvent, 'subGraph', '/') }}</span>
                     </div>
                   </div>
                 </div>

@@ -231,7 +231,8 @@ const {
   changeScale,
   resetState,
   resetMaxScheduleState,
-  findWrapAtPosition
+  findWrapAtPosition,
+  setHashOrderTipColor
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -256,7 +257,8 @@ provide('swimGraphMethods', {
   changeScale,
   resetState,
   resetMaxScheduleState,
-  findWrapAtPosition
+  findWrapAtPosition,
+  setHashOrderTipColor
 });
 
 const processesContainer = ref(null);
