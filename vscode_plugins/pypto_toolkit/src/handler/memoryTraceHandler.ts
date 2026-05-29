@@ -102,8 +102,9 @@ export class MemoryTraceHandler {
   }
 
   static async isCacheValid(filePath: string): Promise<boolean> {
+    const eventRecords = await getMemoryTraceEventStore().query().filter({ filePath }).exec();
     const records = await getMemoryTraceCacheStore().query().filter({ filePath }).exec();
-    if (records.length === 0) {
+    if (records.length === 0 || eventRecords.length === 0) {
       return false;
     }
     const cached = records[0];

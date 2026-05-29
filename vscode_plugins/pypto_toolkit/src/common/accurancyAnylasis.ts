@@ -50,7 +50,7 @@ export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: s
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        // console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -179,7 +179,7 @@ export async function getComGraphRawMagic(readAccurancyCsv: boolean, filePath: s
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        // console.log(`文件不存在: ${csvPath}`);
         return;
     }
     const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, 10000, 0);
@@ -198,7 +198,7 @@ export async function getComGraphDataSum(filePath: string, phaseName: string, fu
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        // console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -224,7 +224,7 @@ export async function searchKeyword(filePath: string, phaseName: string, funcMag
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        // console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -315,7 +315,7 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(logPath) || !fs.existsSync(csvPath)) {
-        console.log('文件不存在');
+        // console.log(`文件不存在: ${logPath} || ${csvPath}`);
         return;
     }
     const extractor = new SmartLogExtractor();

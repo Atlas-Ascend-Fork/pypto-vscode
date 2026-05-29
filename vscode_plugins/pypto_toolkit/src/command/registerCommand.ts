@@ -65,18 +65,6 @@ export class RegisterCommand {
       commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
         this.closeAllToolPages();
       }),
-      // commands.registerCommand('PyPTO.Open.OpenMemoryTrace', async (uri: Uri | undefined) => {
-      //   if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-      //   if (!uri) return;
-      //   // 校验文件名：必须以 _OoO_Memory_Trace.json 结尾
-      //   const fileName = path.basename(uri.fsPath);
-      //   if (!fileName.endsWith('_OoO_Memory_Trace.json')) {
-      //     window.showErrorMessage('此文件不是有效的内存追踪文件，文件名需以 _OoO_Memory_Trace.json 结尾');
-      //     return;
-      //   }
-      //   const { editorView } = useView();
-      //   await editorView.open('memoryTrace', uri, { title: getBasenameWithoutExt(uri.fsPath) });
-      // }),
       commands.registerCommand('PyPto.Open.postLayoutData', (id: string, data: any) => {
         const [serverId, infoStr] = id.split('&&');
         const server = this.editorView.editorView.openServer.get(serverId);

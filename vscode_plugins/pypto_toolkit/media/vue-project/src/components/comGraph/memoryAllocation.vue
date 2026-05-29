@@ -237,19 +237,10 @@ onMounted(async () => {
 
 // 监听 InitMemoryTraceFlag 变化 - 代表 server 准备好了，可以开始调用接口
 watch(server.InitMemoryTraceFlag, (newVal) => {
-  console.log('[MemoryTrace] InitMemoryTraceFlag changed:', newVal);
   if (newVal) {
-    console.log('[MemoryTrace] ===== Server ready, 开始调用后端接口 =====');
-    server.getMemTraceFile();
-    console.log('[MemoryTrace]  调用 getMetadata()');
     // InitMemoryTraceFlag触发前已经调用getMetadata()
-
-    console.log('[MemoryTrace]  调用 getTimelineEvents()');
+    server.getMemTraceFile();
     server.getTimelineEvents();
-    
-    // server.getChipConfig({chipArch:"DAV_2201"});  吗，目前感觉前端页面写死好一些 后端读配置文件 还得考虑配置文件打包问题
-
-    console.log('[MemoryTrace] ===== 接口调用完成，等待后端 setRef 触发 =====');
   }
 });
 
@@ -272,11 +263,6 @@ watch(server.Timeline, (newVal) => {
     })
     GMData.value.bufferList = GMOriginBufferList;
   }
-
-  console.log('[MemoryTrace] GMData changed, count:', newVal?.length || 0);
-  if (timelineData?.length > 0) {
-    console.log('[MemoryTrace] Timeline first item:', JSON.stringify(timelineData[0]));
-  }
   emit('timeline-change', timelineData);
 });
 
@@ -295,16 +281,7 @@ watch(server.MemTraceFileFlag, (newVal) => {
 });
 
 watch(server.Metadata, (newVal) => {
-  console.log('[MemoryTrace] Metadata changed:', newVal);
 });
-
-watch(server.getMemTraceFile, (newVal) => {
-  console.log('[MemoryTrace] getMemTraceFile changed:', newVal);
-  if (newVal) {
-
-  }
-});
-
 
 const dealGraphData = (bufferList: any[]) => {
   const graphData = {};
