@@ -118,6 +118,14 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
 
+- **内存可视化**
+
+    内存Trace文件生成由编译期开关控制，开启方式：framework/src/passes/statistics/memory_tracer.h 中设置ENABLE_MEMORY_TRACE为true。生成文件在dump_graph的同级目录下。
+
+    存在内存Trace文件时，计算图界面可以点击右上角内存可视化按钮，展示内存可视化界面。直接在内存Trace文件上右键选择`PyPTO Toolkit: 打开文件`，可以直接展示可视化界面。
+
+    可视化界面主要分内存图、事件轴、事件列表。点击事件轴查看对应时间节点的事件列表。事件列表允许列表播放和单个事件播放。
+
 ## 泳道图
 
 - **打开泳道图**
