@@ -225,9 +225,9 @@ export default {
           this.mouseY = event.clientY;
         }
         const statusMap = {
-          0: '未分配',
-          1: '已分配未占用',
-          2: '已分配且已占用',
+          0: this.$t('gridNodeStatusUnallocated'),
+          1: this.$t('gridNodeStatusAllocatedUnoccupied'),
+          2: this.$t('gridNodeStatusAllocatedOccupied'),
         }
         const tiers = this.data.animate === true 
           ? (this.data.animationData?.targetTiers || [])
