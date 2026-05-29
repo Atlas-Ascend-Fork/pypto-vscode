@@ -58,8 +58,11 @@
                 </button>
               </div>
             </div>
-            <div v-else class="empty-state">
-              <span>{{ $t('pleaseSelectClockOnTimeline') }}</span>
+            <div v-else>
+              <div class="transition-overlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading...</div>
+              </div>
             </div>
           </div>
         </d-splitter-pane>
@@ -422,6 +425,36 @@ watch(showDetailModal, (val) => {
   height: 100%;
   padding: 8px;
   box-sizing: border-box;
+
+  .transition-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--devui-global-bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--pto-border-default);
+      border-top-color: #4a9eff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      color: var(--pto-font-color-main);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+  }
 }
 
 .memory-header {
@@ -615,15 +648,6 @@ watch(showDetailModal, (val) => {
   border-radius: 6px;
   transition: all 0.2s;
 
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  color: var(--pto-font-color-disabled);
-  font-size: 12px;
 }
 
 .detail-modal-container {

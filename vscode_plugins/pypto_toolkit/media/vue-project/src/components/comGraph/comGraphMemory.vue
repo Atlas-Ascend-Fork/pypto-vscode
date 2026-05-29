@@ -1446,6 +1446,7 @@ onBeforeUnmount(() => {
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
+  cursor: default !important;
 }
 .vue-flow__handle {
   opacity: 0 !important;
