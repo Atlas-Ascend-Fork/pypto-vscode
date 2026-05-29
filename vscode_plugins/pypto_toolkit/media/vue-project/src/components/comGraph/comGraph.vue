@@ -667,6 +667,7 @@ async function onDocumentKeyDown(e: KeyboardEvent) {
 
 .devui-splitter {
   flex: 1;
+  min-height: 0;
 }
 
 .congraph {

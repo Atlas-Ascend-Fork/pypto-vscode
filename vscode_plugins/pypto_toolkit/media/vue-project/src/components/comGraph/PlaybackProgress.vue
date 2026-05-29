@@ -421,7 +421,7 @@ watch(() => props.clocks, (newClocks) => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 16px 20px;
+  padding: 8px 16px;
   background-color: var(--devui-global-bg);
   border-top: 1px solid var(--pto-border-default);
 }

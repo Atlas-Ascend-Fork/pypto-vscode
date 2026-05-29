@@ -1451,6 +1451,12 @@ onBeforeUnmount(() => {
 .vue-flow__handle {
   opacity: 0 !important;
 }
+.vue-flow__edge {
+  cursor: default !important;
+}
+.vue-flow__edge-path {
+  cursor: default !important;
+}
 .transition-overlay {
   position: absolute;
   top: 0;
