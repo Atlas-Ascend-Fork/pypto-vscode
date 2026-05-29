@@ -219,6 +219,7 @@ const handleMemTraceFileChange = (data: { existTraceFile: boolean; isComFile: bo
 
 const sizeChange = (size) => {
   window.dispatchEvent(new Event('resize'));
+  updateRightPanelWidth();
 };
 const collapsedChange = (event) => {
   console.log(event);
@@ -340,11 +341,12 @@ const toggleLeafCalledRecord = (status: boolean, leafName: string) => {
   showLeafCalledRecord.value = status;
   currentLeafName.value = leafName;
 }
-watch(showMemoryAllocation, (val) => {
+function updateRightPanelWidth() {
   nextTick(() => {
     rightPanelWidth.value =  rightPanelEl.value.offsetWidth;
   });
-});
+}
+watch(showMemoryAllocation, updateRightPanelWidth);
 watch(server.LayoutResult, (newValue) => {
   isLoading.value = false;
   waitingFlag.value = false;

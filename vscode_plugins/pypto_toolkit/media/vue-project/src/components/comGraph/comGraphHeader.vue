@@ -1106,16 +1106,10 @@ onMounted(() => {
 .navigation {
   display: flex;
   gap: 4px;
-  flex: 1;
-  width: 0;
+  overflow: hidden;
 
   &>span {
-    flex: 1;
-    width: 0;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    overflow: hidden;
-    pointer-events: all;
     line-height: 18px;
   }
 }

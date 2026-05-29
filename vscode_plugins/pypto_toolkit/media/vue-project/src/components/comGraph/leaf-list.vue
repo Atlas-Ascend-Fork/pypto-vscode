@@ -53,12 +53,7 @@ const onJump = (it) => {
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .layer-cur {
-  flex: 1;
-  width: 0;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
-  font-weight: bold;
   pointer-events: all;
 
   &:hover {
