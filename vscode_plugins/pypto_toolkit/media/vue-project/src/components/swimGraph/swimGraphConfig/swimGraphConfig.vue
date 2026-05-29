@@ -504,9 +504,20 @@ watch(userConfig, () => {
         height: 28px;
         background-color: var(--devui-input-bg) !important;
         border-color: transparent;
+        overflow-x: hidden;
+        overflow-y: auto;
         .devui-select__multiple {
             height: 20px;
         }
+    }
+}
+
+.devui-select__dropdown {
+    .devui-checkbox.disabled label{
+        color: var(--devui-text);
+    }
+    .devui-checkbox.disabled.unchecked .devui-checkbox__material{
+        border-color: var(--devui-text);
     }
 }
 
