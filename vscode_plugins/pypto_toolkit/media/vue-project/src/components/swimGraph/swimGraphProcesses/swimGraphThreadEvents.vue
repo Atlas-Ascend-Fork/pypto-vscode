@@ -2781,16 +2781,16 @@ const showTooltip = (e, event) => {
     if (hashOrderStr.includes('cubeMergeInfo')) {
       result = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
       tooltipContent += `<div class="tooltip-line"></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">L1 Reuse</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">L1 Reuse</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
       result = getHashOrderContent(hashOrderStr, 'cubeMergeInfo');
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">Cube NBuffer</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item tooltip-item-cube-merge"><span class="tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">Cube NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
     } else if (hashOrderStr.includes('vecMergeInfo')) { 
       result = getHashOrderContent(hashOrderStr, 'vecMergeInfo');
       tooltipContent += `<div class="tooltip-line"></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">vec NBuffer</span></span></div>`;
-      tooltipContent += `<div class="tooltip-item"><span class="hashOrder-tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('isomorphicSubGraphGroup')}</span><span class="hashOrder-tooltip-value">${result.hashOrder}<span class="hashOrder-tooltip-type">vec NBuffer</span></span></div>`;
+      tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('isomorphicSubGraphNumber')}</span><span class="hashOrder-tooltip-value-group">${result.subGraphCount}</span></div>`;
     }
   }
   tooltipContent += '</div>';

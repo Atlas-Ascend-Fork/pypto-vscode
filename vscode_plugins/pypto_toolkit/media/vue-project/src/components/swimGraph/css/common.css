@@ -8,7 +8,7 @@
   position: absolute;
   background: var(--devui-tooltip-bg);
   border: 1px solid var(--devui-swim-split-line);
-  border-radius: 4px;
+  border-radius: 12px;
   padding: 8px;
   font-size: 12px;
   pointer-events: none;
@@ -38,19 +38,10 @@
   margin-top: 8px;
 }
 
-.hashOrder-tooltip-key {
-  white-space: nowrap;
-  max-width: 200px;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--devui-detail-text);
-  flex-shrink: 0;
-}
-
 .tooltip-key {
   white-space: nowrap;
-  width: 48px;
+  width: var(--tool-tip-key-width, 48px);
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--devui-detail-text);
@@ -94,6 +85,10 @@
   border-radius: 4px;
   padding: 0px 4px 0px 4px;
   max-width: 100px;
+}
+
+.tooltip-item-cube-merge {
+  margin-top: 12px;
 }
 
 .linetooltip {

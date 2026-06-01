@@ -1983,6 +1983,7 @@ const getDisplayName = (event) => {
 };
 
 const setHashOrderTipColor = (event) => {
+  document.documentElement.style.setProperty('--tool-tip-key-width', window.ascLang === 'zh' ? `80px` : `170px`);
   if (userConfig.value.kernelColorRending === 'isomorphicSubGraph') {
     if (isDarkTheme.value) {
       document.documentElement.style.setProperty('--hashOrder-color', `${event.color.dark['base']}`);
