@@ -98,7 +98,7 @@ export abstract class SwimGraphMsgHandler {
       const comGraphPath = swim2com[swimPath];
       const colorRendingMode = cfgCache['colorRending'] ?? 'subGraph';
       const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
-      const colorRending = isThreeServer ? 'label' : colorRendingMode;
+      const colorRending = isThreeServer ? 'label' : server.query?.isMsProf ? 'name' : colorRendingMode;
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
       const perfColorReding = cfgCache['perfColorReding'] || 'perfName';
@@ -109,10 +109,11 @@ export abstract class SwimGraphMsgHandler {
       config['perfColorReding'] = perfColorReding;
       config['kernelColorRending'] = colorRending;
       config['hashOrderRending'] = hashOrderRending;
-      if (!server.query || server.query.isPerfSwim === undefined) {
+      if (!server.query || server.query.isPerfSwim === undefined || server.query.isMsProf === undefined) {
         const content = ((await readFirstNLines(swimPath, 10)) as string[]).join('');
         server.query = {};
         server.query.isPerfSwim = !content.includes('traceEvents');
+        server.query.isMsProf = content.charAt(0) === '[' && content.includes('pid');
       }
       return {
         isDebug: hismartliteEx.isDebug,
@@ -120,7 +121,8 @@ export abstract class SwimGraphMsgHandler {
         comGraphPath,
         swimPath,
         title: getBasenameWithoutExt(swimPath),
-        isPerfSwim: server.query.isPerfSwim
+        isPerfSwim: server.query.isPerfSwim,
+        isMsProf: server.query.isMsProf
       };
     }
 

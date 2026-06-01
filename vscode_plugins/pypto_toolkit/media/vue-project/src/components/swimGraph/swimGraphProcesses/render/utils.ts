@@ -19,6 +19,7 @@ export interface Dependencies {
   processes: Map<string, any>;
   colorRending: any;
   tsScale: any;
+  isMsProf: any;
 }
 
 export function selectNoNodeWarm(): any {
@@ -114,11 +115,12 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, processes } = deps;
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, processes, isMsProf } = deps;
   const process = processes.get(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
   if (!event.color?.dark || event.parentEventId) {
-    const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType, userConfig?.value.hashOrderRending);
+    const colorMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
+    const color = getEventColorByMode(event, colorMode, processType, userConfig?.value.hashOrderRending);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
   }

@@ -185,6 +185,7 @@ import {
   calculateMixMacroPaths,
   parseCompressedData,
 } from './swimGraphUtils';
+import { ARROW_WIDTH } from './swimGraphProcesses/render/eventRender';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
@@ -292,6 +293,8 @@ const isCfgEditing = ref(false);
 const isShortcutKeyShow = ref(false);
 const isAicpu = ref(false);
 const isPerfSwim = ref(false);
+const isMsProf = ref(false);
+const hasSplitThreads = ref(false);
 const aicpuControlDetailsExpanded = ref(false);
 const aicpuScheduleDetailsExpanded = ref(false);
 const aicpuCoreDetailsExpanded = ref(false);
@@ -607,6 +610,106 @@ const loadTraceData = (data) => {
   }
 };
 
+const extractNamePrefix = (name) => {
+  if (!name) {
+    return '';
+  }
+  const leftParenIndex = name.indexOf('(');
+  if (leftParenIndex !== -1) {
+    return name.substring(0, leftParenIndex);
+  }
+  return name;
+};
+
+const calculateEventLines = (events) => {
+  if (!events || events.length === 0) {
+    return { events, lineCount: 0 };
+  }
+  
+  const lines = [];
+  
+  for (const event of events) {
+    event.renderStartTime = event.startTime;
+    event.renderEndTime = event.endTime;
+    event.renderDuration = event.duration || (event.endTime - event.startTime);
+    
+    let placed = false;
+    const isZeroDuration = event.renderDuration === 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (isZeroDuration && event.startTime === lines[i]) {
+        continue;
+      }
+      if (event.startTime >= lines[i]) {
+        event.line = i;
+        lines[i] = event.endTime;
+        placed = true;
+        break;
+      }
+    }
+    
+    if (!placed) {
+      event.line = lines.length;
+      lines.push(event.endTime);
+    }
+  }
+  
+  return { events, lineCount: lines.length };
+};
+
+const splitThreadsByEventName = (process, processKey) => {
+  const newThreads = new Map();
+  hasSplitThreads.value = true;
+  
+  const usedTids = new Set();
+  for (const thread of process.threads.values()) {
+    usedTids.add(Number(thread.tid));
+  }
+  
+  const tidArray = Array.from(usedTids.values());
+  const maxTid = tidArray.length > 0 ? Math.max(...tidArray) : 0;
+  let nextTid = maxTid + 1;
+  
+  for (const [threadKey, thread] of process.threads) {
+    const eventGroups = new Map();
+    
+    for (const event of thread.events) {
+      const namePrefix = extractNamePrefix(event.name);
+      if (!eventGroups.has(namePrefix)) {
+        eventGroups.set(namePrefix, []);
+      }
+      eventGroups.get(namePrefix).push(event);
+    }
+    
+    const originalThreadName = thread.threadName;
+    const originalTid = thread.tid;
+    
+    for (const [namePrefix, events] of eventGroups) {
+      while (usedTids.has(nextTid)) {
+        nextTid++;
+      }
+      
+      const { events: reorderedEvents, lineCount } = calculateEventLines(events);
+      
+      const newThread = {
+        ...thread,
+        threadName: namePrefix,
+        tid: nextTid,
+        events: reorderedEvents,
+        parentThreadName: originalThreadName,
+        parentTid: originalTid,
+      };
+      
+      newThreads.set(String(newThread.tid), newThread);
+      lane2line.set(`${processKey}@${nextTid}`, lineCount);
+      usedTids.add(nextTid);
+      nextTid++;
+    }
+  }
+  
+  process.threads = newThreads;
+};
+
 const processTraceData = (data) => {
   pmuTotal.value = data.pmu_total;
   timeInfo.value = data.timeInfo;
@@ -625,6 +728,11 @@ const processTraceData = (data) => {
       data.processes[key].isRendered = isFirst;
       isFirst = false;
       data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
+      
+      if (isMsProf.value && data.processes[key].processName === 'Biu Perf') {
+        splitThreadsByEventName(data.processes[key], key);
+      }
+      
       processes.set(key, data.processes[key]);
     }
   }
@@ -1524,7 +1632,7 @@ const findWrapAtPosition = (x, y, ctx, getPositionByTime) => {
   return null;
 };
 
-const isPositionInEventBounds = ({ x, y, renderInfo }) => {
+const isPositionInEventBounds = ({ x, y, renderInfo, duration }) => {
   if (!renderInfo) {
     return false;
   }
@@ -1534,9 +1642,17 @@ const isPositionInEventBounds = ({ x, y, renderInfo }) => {
   if (y < eventY || y > eventY + eventHeight) {
     return false;
   }
-  
-  if (x < eventX || x > eventX + eventWidth) {
-    return false;
+
+  if (duration === 0) {
+    const halfArrowWidth = (ARROW_WIDTH / 2) / viewState.scale;
+    const centerX = eventX + (eventWidth / 2);
+    if (x < centerX - halfArrowWidth || x > centerX + halfArrowWidth) {
+      return false;
+    }
+  } else {
+    if (x < eventX || x > eventX + eventWidth) {
+      return false;
+    }
   }
   
   return true;
@@ -1569,7 +1685,8 @@ const checkEventCollision = ({ event, x, y, allEventsOnLane }) => {
     return null;
   }
   
-  if (isPositionInEventBounds({ x, y, renderInfo: event.renderInfo })) {
+  const duration = event.duration ?? (event.endTime - event.startTime);
+  if (isPositionInEventBounds({ x, y, renderInfo: event.renderInfo, duration })) {
     return { event };
   }
   
@@ -1596,7 +1713,8 @@ const checkWaitTasksCollision = ({ parentEvent, x, y }) => {
   const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
   
   for (const waitTask of waitTasks) {
-    if (isPositionInEventBounds({ x, y, renderInfo: waitTask.renderInfo })) {
+    const duration = waitTask.duration ?? (waitTask.endTime - waitTask.startTime);
+    if (isPositionInEventBounds({ x, y, renderInfo: waitTask.renderInfo, duration })) {
       return { event: waitTask };
     }
   }
@@ -1699,13 +1817,17 @@ const searchEventsInThread = (thread, x, y) => {
     }
     const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
     const { eventWidth } = event.drawData;
+    const duration = event.duration ?? (event.endTime - event.startTime);
     
     if (y >= eventY && y <= eventY + eventHeight) {
-      if (x >= eventX && x <= eventX + eventWidth) {
-        return {
-          foundEvent: event,
-          fallback: null
-        };
+      if (duration === 0) {
+        const halfArrowWidth = (ARROW_WIDTH / 2) / viewState.scale;
+        const centerX = eventX + (eventWidth / 2);
+        if (x >= centerX - halfArrowWidth && x <= centerX + halfArrowWidth) {
+          return { foundEvent: event, fallback: null };
+        }
+      } else if (x >= eventX && x <= eventX + eventWidth) {
+        return { foundEvent: event, fallback: null };
       }
       
       const { pixelScale } = viewState;
@@ -1713,12 +1835,9 @@ const searchEventsInThread = (thread, x, y) => {
       if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
         // 吸附
         const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
-        const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth]; // 只扩充左边的吸附范围，避免右侧吸附范围包含了右侧节点时，选不中右侧节点的情况
+        const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth];
         if (x >= eventRange[0] && x <= eventRange[1]) {
-          return {
-            foundEvent: event,
-            fallback: null
-          };
+          return { foundEvent: event, fallback: null };
         }
       }
       
@@ -2569,6 +2688,7 @@ onMounted(async () => {
     data.swimPath = res.swimPath;
     fileName.value = res.title;
     isPerfSwim.value = res.isPerfSwim;
+    isMsProf.value = res.isMsProf || false;
     setDebugMode(res.isDebug || false);
   } catch (err) {
     console.log('parse other data error:', err);
@@ -2701,6 +2821,7 @@ provide('swimGraphState', {
   measureDragStartTime,
   measureDragEndTime,
   isDarkTheme,
+  hasSplitThreads,
   mulDetailsExpanded,
   measureDetailsExpanded,
   measureDetailsData,
@@ -2737,6 +2858,7 @@ provide('swimGraphState', {
   aicpuScheduleMaps,
   kernelThreadData,
   isPerfSwim,
+  isMsProf,
   globalMeasureCanvas,
   globalDependencyLinesInfo,
   isMixMode,

@@ -88,9 +88,10 @@ export class RegisterCommand {
         query: finalQuery,
         title:  getBasenameWithoutExt(uri.fsPath),
       });
-    } else if (content.includes('traceEvents') || content.includes('tasks')) {
-      const isPerfSwim = !content.includes('traceEvents');
-      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath), query: { isPerfSwim } });
+    } else if (content.includes('traceEvents') || content.includes('tasks') || (content.charAt(0) === '[' && content.includes('pid'))) {
+      const isPerfSwim = !content.includes('traceEvents') && !content.includes('pid');
+      const isMsProf = content.charAt(0) === '[' && content.includes('pid');
+      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(uri.fsPath), query: { isPerfSwim, isMsProf } });
     } else if (/_OoO_Memory_Trace\.json$/.test(uri.fsPath)) {
       let comGraphPath = uri.fsPath.replace('_OoO_Memory_Trace.json', '.json');
       if (!fs.existsSync(comGraphPath)) {

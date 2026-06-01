@@ -36,7 +36,7 @@ import { isEqual, throttle } from 'lodash-es';
 import { devicePixelRatio, getThreadHeight, getDevicePixelRatio, 
           formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin, 
           clearWholeProcess} from '../swimGraphUtils';
-import { EventRender } from '../swimGraphProcesses/render/eventRender';
+import { EventRender, ARROW_WIDTH } from '../swimGraphProcesses/render/eventRender';
 import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
 import { swimDataManager } from '../swimData';
@@ -274,7 +274,8 @@ const drawTransformMixEvent = (thread, eventCtx, processKey) => {
     threadY += layout.threadHeight * lc;
   }
   
-  const eventY = threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+  const baseY = threadY - layout.threadHeight / 2;
+  const halfEventHeight = layout.eventHeight / 2;
   
   const parentEvents = threadInfo.eventIds
     .map(id => swimDataManager.getEventById(id))
@@ -283,22 +284,23 @@ const drawTransformMixEvent = (thread, eventCtx, processKey) => {
   for (const parentEvent of parentEvents) {
     const subEvents = swimDataManager.getSubEvents(parentEvent.id);
 
-    // Fix: In mix subgraph mode, subEvents should inherit parent's color
     const { fillColor, fontColor, strokeColor } = getEventColor(parentEvent, eventRenderer.deps, processKey, false, false);
 
     for (const subEvent of subEvents) {
       if (!subEvent.drawData) { continue };
+      const lineOffset = (subEvent.line || 0) + 1;
+      const eventY = baseY + layout.threadHeight * lineOffset - halfEventHeight;
       
-      // 设置 renderInfo.pinnedEventY
       if (subEvent.renderInfo) {
         subEvent.renderInfo.pinnedEventY = eventY;
       }
       
       const pinnedDrawData = {
         ...subEvent.drawData,
-        rectColor: fillColor,       // Apply parent's color
-        fontColor,       // Apply parent's font color
-        strokeColor,   // Apply parent's stroke color
+        rectY: eventY,
+        rectColor: fillColor,
+        fontColor,
+        strokeColor,
         pinnedEventY: eventY,
         pinnedTextY: eventY * devicePixelRatio + eventTextSize,
       };
@@ -309,13 +311,16 @@ const drawTransformMixEvent = (thread, eventCtx, processKey) => {
     for (const waitTask of waitTasks) {
       if (!waitTask.drawData) { continue };
       
-      // 设置 renderInfo.pinnedEventY
+      const lineOffset = (waitTask.line || 0) + 1;
+      const eventY = baseY + layout.threadHeight * lineOffset - halfEventHeight;
+      
       if (waitTask.renderInfo) {
         waitTask.renderInfo.pinnedEventY = eventY;
       }
       
       const pinnedDrawData = {
         ...waitTask.drawData,
+        rectY: eventY,
         pinnedEventY: eventY,
         pinnedTextY: eventY * devicePixelRatio + eventTextSize,
       };
@@ -330,13 +335,16 @@ const drawTransformMixEvent = (thread, eventCtx, processKey) => {
   for (const event of normalEvents) {
     if (!event.drawData) { continue };
     
-    // 设置 renderInfo.pinnedEventY
+    const lineOffset = (event.line || 0) + 1;
+    const eventY = baseY + layout.threadHeight * lineOffset - halfEventHeight;
+    
     if (event.renderInfo) {
       event.renderInfo.pinnedEventY = eventY;
     }
     
     const pinnedDrawData = {
       ...event.drawData,
+      rectY: eventY,
       pinnedEventY: eventY,
       pinnedTextY: eventY * devicePixelRatio + eventTextSize,
     };
@@ -349,6 +357,11 @@ const drawTransformMixEvent = (thread, eventCtx, processKey) => {
   }
 };
 
+const getPinnedEventY = (event, baseY) => {
+  const lineOffset = (event.line || 0) + 1;
+  return baseY + (layout.threadHeight * lineOffset) - (layout.eventHeight / 2);
+};
+
 const createPinnedDrawData = (event, eventY) => {
   if (event.renderInfo) {
     event.renderInfo.pinnedEventY = eventY;
@@ -356,23 +369,24 @@ const createPinnedDrawData = (event, eventY) => {
   
   return {
     ...event.drawData,
+    rectY: eventY,
     pinnedEventY: eventY,
     pinnedTextY: eventY * devicePixelRatio + eventTextSize,
   };
 };
 
-const processSubEventForPinned = (eventY, isDimmed, drawDatas, processKey, parentEvent) => {
+const processSubEventForPinned = (baseY, isDimmed, drawDatas, processKey, parentEvent) => {
   const subEvents = swimDataManager.getSubEvents(parentEvent.id);
   for (const subEvent of subEvents) {
     if (!subEvent.drawData) { return };
+    
+    const eventY = getPinnedEventY(subEvent, baseY);
   
     if (subEvent.renderInfo) {
       subEvent.renderInfo.pinnedEventY = eventY;
     }
     
     if (!isDimmed) {
-      // Fix: SubEvents should inherit color from parentEvent, not use their own
-      // In mix subgraph mode, subEvents don't have their own color - they belong to a parent task
       const eventToColor = parentEvent || subEvent;
       const { fillColor, fontColor, strokeColor } = getEventColor(eventToColor, eventRenderer.deps, processKey, false, false);
       subEvent.drawData.rectColor = fillColor;
@@ -384,8 +398,10 @@ const processSubEventForPinned = (eventY, isDimmed, drawDatas, processKey, paren
   }
 };
 
-const processWaitTaskForPinned = (waitTask, eventY, drawDatas) => {
+const processWaitTaskForPinned = (waitTask, baseY, drawDatas) => {
   if (!waitTask.drawData) { return };
+  
+  const eventY = getPinnedEventY(waitTask, baseY);
   
   if (waitTask.renderInfo) {
     waitTask.renderInfo.pinnedEventY = eventY;
@@ -394,17 +410,16 @@ const processWaitTaskForPinned = (waitTask, eventY, drawDatas) => {
   drawDatas.push(createPinnedDrawData(waitTask, eventY));
 };
 
-const processMixParentEventForPinned = (parentEvent, eventY, isDimmed, drawDatas, processKey) => {
-  // Fix: Pass parentEvent so subEvent inherits parent's color in mix mode
-  processSubEventForPinned(eventY, isDimmed, drawDatas, processKey, parentEvent);
+const processMixParentEventForPinned = (parentEvent, baseY, isDimmed, drawDatas, processKey) => {
+  processSubEventForPinned(baseY, isDimmed, drawDatas, processKey, parentEvent);
   
   const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
   for (const waitTask of waitTasks) {
-    processWaitTaskForPinned(waitTask, eventY, drawDatas);
+    processWaitTaskForPinned(waitTask, baseY, drawDatas);
   }
 };
 
-const processNormalEventForPinned = (event, eventY, isDimmed, drawDatas, processKey) => {
+const processNormalEventForPinned = (event, baseY, isDimmed, drawDatas, processKey) => {
   if (!event.renderInfo) { return };
   
   if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
@@ -422,10 +437,11 @@ const processNormalEventForPinned = (event, eventY, isDimmed, drawDatas, process
     event.drawData.fontColor = fontColor;
   }
   
+  const eventY = getPinnedEventY(event, baseY);
   drawDatas.push(createPinnedDrawData(event, eventY));
 };
 
-const processMixModePinnedThread = (thread, processKey, eventY, isDimmed, drawDatas) => {
+const processMixModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
   const processInfo = swimDataManager.processInfo.get(processKey);
   if (!processInfo) { return };
   
@@ -441,15 +457,15 @@ const processMixModePinnedThread = (thread, processKey, eventY, isDimmed, drawDa
                       (event.parentEventId && highlightedPaths.has(event.parentEventId));
       const adjustedIsDimmed = isOnPath ? false : isDimmed;
       if (isMixParent) {
-        processMixParentEventForPinned(event, eventY, adjustedIsDimmed, drawDatas, processKey);
+        processMixParentEventForPinned(event, baseY, adjustedIsDimmed, drawDatas, processKey);
       } else {
-        processNormalEventForPinned(event, eventY, adjustedIsDimmed, drawDatas, processKey);
+        processNormalEventForPinned(event, baseY, adjustedIsDimmed, drawDatas, processKey);
       }
     }
   }
 };
 
-const processNormalModePinnedThread = (thread, processKey, eventY, isDimmed, drawDatas) => {
+const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
   for (const event of thread.events) {
     if (!event.renderInfo) { continue };
     
@@ -474,6 +490,7 @@ const processNormalModePinnedThread = (thread, processKey, eventY, isDimmed, dra
       event.drawData.fontColor = colorCfg.eventFontNoColor;
     }
     
+    const eventY = getPinnedEventY(event, baseY);
     drawDatas.push(createPinnedDrawData(event, eventY));
   }
 };
@@ -494,15 +511,15 @@ const changePinnedColor = (isDimmed) => {
     const tk = t.isCounter ? t.threadName : t.tid;
     const lc = lane2line.get(`${processKey}@${tk}`) || 1;
     
-    const eventY = threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+    const baseY = threadY - layout.threadHeight / 2;
     
     if (thread.isCounter) {
       childContextMap.threadEvent.drawTransformEvent(thread, eventsCtx, true);
     } else {
       if (isMixModeValue && hasMixConfig) {
-        processMixModePinnedThread(thread, processKey, eventY, isDimmed, drawDatas);
+        processMixModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);
       } else {
-        processNormalModePinnedThread(thread, processKey, eventY, isDimmed, drawDatas);
+        processNormalModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);
       }
     }
     
@@ -542,6 +559,7 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) 
   const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, highlight, stroke);
   const drawData = {
     rectX: renderInfo.x,
+    rectY: renderInfo.pinnedEventY,
     pinnedEventY: renderInfo.pinnedEventY,
     eventWidth: width,
     height: renderInfo.height,
@@ -552,6 +570,7 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) 
     textY: 0,
     fontColor,
     show: true,
+    duration: event.duration ?? (event.endTime - event.startTime),
   };
   eventRenderer.drawEvent([drawData], ctx, false, true);
   ctx.font = getFontStyle(eventTextSize);
@@ -665,6 +684,7 @@ const highlightEvent = (ctx, event, stroke=true, highlight=true) => {
     eventWidth: width, height,
     rectColor: fillColor, strokeColor: '', text: '', textX: 0, textY: 0,
     fontColor, show: true,
+    duration: event.duration ?? (event.endTime - event.startTime),
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
@@ -688,14 +708,19 @@ const getThreadInfoByTid = (processKey, tid) => {
 
 // Mix 模式下查找事件
 const getEventPinnedY = (event, threadY) => {
-  return event.renderInfo.pinnedEventY || threadY + layout.threadHeight / 2 - layout.eventHeight / 2;
+  return event.renderInfo.pinnedEventY || threadY + (layout.threadHeight / 2) - (layout.eventHeight / 2);
 };
 
 const isEventInYRange = (y, pinnedEventY, eventHeight) => {
   return y >= pinnedEventY && y <= pinnedEventY + eventHeight;
 };
 
-const isEventInXRange = (x, eventX, eventWidth) => {
+const isEventInXRange = (x, eventX, eventWidth, duration, scale = 1) => {
+  if (duration === 0) {
+    const halfArrowWidth = (ARROW_WIDTH / 2) / scale;
+    const centerX = eventX + (eventWidth / 2);
+    return x >= centerX - halfArrowWidth && x <= centerX + halfArrowWidth;
+  }
   return x >= eventX && x <= eventX + eventWidth;
 };
 
@@ -716,9 +741,10 @@ const collectEventsOnLane = (threadInfo, threadY, x, y) => {
         if (!subEvent.renderInfo) { continue };
         
         const { x: subX, width: subWidth, height: subHeight } = subEvent.renderInfo;
+        const subDuration = subEvent.duration ?? (subEvent.endTime - subEvent.startTime);
         const subPinnedY = getEventPinnedY(subEvent, threadY);
         if (!isEventInYRange(y, subPinnedY, subHeight)) { continue };
-        if (!matchedEvent && isEventInXRange(x, subX, subWidth)) {
+        if (!matchedEvent && isEventInXRange(x, subX, subWidth, subDuration, viewState.scale)) {
           matchedEvent = subEvent;
         }
         allEvents.push({ event: subEvent, eventX: subX, eventWidth: subWidth });
@@ -729,9 +755,10 @@ const collectEventsOnLane = (threadInfo, threadY, x, y) => {
         if (!waitTask.renderInfo) { continue };
         
         const { x: waitX, width: waitWidth, height: waitHeight } = waitTask.renderInfo;
+        const waitDuration = waitTask.duration ?? (waitTask.endTime - waitTask.startTime);
         const waitPinnedY = getEventPinnedY(waitTask, threadY);
         
-        if (isEventInYRange(y, waitPinnedY, waitHeight) && (!matchedEvent && isEventInXRange(x, waitX, waitWidth))) {
+        if (isEventInYRange(y, waitPinnedY, waitHeight) && (!matchedEvent && isEventInXRange(x, waitX, waitWidth, waitDuration, viewState.scale))) {
           matchedEvent = waitTask;
         }
       }
@@ -739,10 +766,11 @@ const collectEventsOnLane = (threadInfo, threadY, x, y) => {
       if (!event.renderInfo) { continue };
       
       const { x: eventX, width: eventWidth, height: eventHeight } = event.renderInfo;
+      const eventDuration = event.duration ?? (event.endTime - event.startTime);
       const pinnedEventY = getEventPinnedY(event, threadY);
       
       if (isEventInYRange(y, pinnedEventY, eventHeight)) {
-        if (!matchedEvent && isEventInXRange(x, eventX, eventWidth)) {
+        if (!matchedEvent && isEventInXRange(x, eventX, eventWidth, eventDuration, viewState.scale)) {
           matchedEvent = event;
         }
         allEvents.push({ event, eventX, eventWidth });
@@ -808,16 +836,16 @@ const findNormalEventAtPosition = (x, y, thread) => {
     const eventY = event.renderInfo.pinnedEventY;
     const eventWidth = event.drawData?.eventWidth || 0;
     const eventHeight = event.renderInfo.height || layout.eventHeight;
+    const duration = event.duration ?? (event.endTime - event.startTime);
     
-    const validateX = x >= eventX && x <= eventX + eventWidth;
     const validateY = y >= eventY && y <= eventY + eventHeight;
-    
-    if (validateX && validateY) {
+    if (!validateY) { continue };
+
+    const validateX = isEventInXRange(x, eventX, eventWidth, duration, viewState.scale);
+    if (validateX) {
       return { event, mData: {} };
     }
-    if (!validateY) { continue };
     
-    // 检查节点间隙
     const nextEvent = thread.events[index + 1];
     if (!nextEvent) { continue };
     
@@ -917,6 +945,7 @@ const drawHoverHighlight = (event, ctx) => {
   
   const drawData = {
     rectX: renderInfo.x, 
+    rectY: pinnedEventY,
     pinnedEventY,
     rectPixelX: renderInfo.x * devicePixelRatio, 
     rectPixelY: pinnedEventY * devicePixelRatio,
@@ -929,6 +958,7 @@ const drawHoverHighlight = (event, ctx) => {
     textY: 0,
     fontColor, 
     show: true,
+    duration: event.duration ?? (event.endTime - event.startTime),
   };
   
   eventRenderer.drawEvent([drawData], ctx, false, true);

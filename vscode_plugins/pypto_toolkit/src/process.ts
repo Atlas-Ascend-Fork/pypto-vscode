@@ -151,7 +151,11 @@ function createCalculateLine(allEventsMap, globalMaxTime) {
       event.renderDuration = event.duration;
 
       let placed = false;
+      const isZeroDuration = event.duration === 0;
       for (let i = 0; i < lines.length; i++) {
+        if (isZeroDuration && event.startTime === lines[i]) {
+          continue;
+        }
         if (event.startTime >= lines[i]) {
           event.line = i;
           lines[i] = event.endTime;
@@ -471,12 +475,12 @@ const calculateDependencies = (events, connections) => {
         return errorMsg;
         }
       }
-      if (!('size' in event.args || '/byte' in event.args)) {
+      if (!('size' in event.args || '/byte' in event.args || 'value' in event.args)) {
         errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
         return errorMsg;
       }
-      if (event.args.size) {
-        if (!(typeof event.args.size === 'number')) {
+      if (event.args.size || event.args.value) {
+        if (!(typeof event.args.size === 'number' || typeof event.args.value === 'number')) {
           errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
           return errorMsg;
         }
@@ -551,7 +555,7 @@ const calculateDependencies = (events, connections) => {
       } else if (event.name === 'thread_name') {
         threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
       } else if (['X', 'B', 'E', 'C'].includes(event.ph) && !(event.name.startsWith('OOO_'))) {
-        if (event.ph === 'C' && (typeof(event.args.size) === 'number' || typeof(event.args['/byte']) === 'number')) {
+        if (event.ph === 'C' && (typeof(event.args.size) === 'number' || typeof(event.args['/byte']) === 'number' || typeof(event.args.value) === 'number')) {
           const sId = event.name;
           if (!threadNames.has(sId)) {
             threadNames.set(sId, event.name);
@@ -809,30 +813,62 @@ const calculateDependencies = (events, connections) => {
          console.log(`开始流式读取 merged_swimlane.json 文件: ${swimPath}`);
          
          const stream = createReadStream(swimPath, { encoding: 'utf8' });
-         const parser = JSONStream.parse('traceEvents.*'); 
          
+         let buffer = '';
+         let formatDetected = false;
+         let parser: any;
          let traceEvents: any[] = [];
          
-         parser.on('data', (data) => {
-           traceEvents.push(data);
-         });
+         const detectFormat = (chunk: string) => {
+           if (formatDetected) return;
+           buffer += chunk;
+           const trimmed = buffer.trim();
+           if (trimmed.startsWith('{')) {
+             formatDetected = true;
+             parser = JSONStream.parse('traceEvents.*');
+             setupParser();
+             parser.write(buffer);
+             stream.pipe(parser, { end: true });
+           } else if (trimmed.startsWith('[')) {
+             formatDetected = true;
+             parser = JSONStream.parse('*');
+             setupParser();
+             parser.write(buffer);
+             stream.pipe(parser, { end: true });
+           } else if (trimmed.length > 10) {
+             reject(new Error('无法识别的JSON格式'));
+             stream.destroy();
+           }
+         };
          
-         parser.on('end', () => {
-           console.log('merged_swimlane.json 文件流式读取完成');
-           resolve(traceEvents);
-         });
+         const setupParser = () => {
+           parser.on('data', (data) => {
+             traceEvents.push(data);
+           });
+           
+           parser.on('end', () => {
+             console.log('merged_swimlane.json 文件流式读取完成');
+             resolve(traceEvents);
+           });
+           
+           parser.on('error', (error) => {
+             console.error('JSON 解析错误:', error);
+             reject(error);
+           });
+         };
          
-         parser.on('error', (error) => {
-           console.error('JSON 解析错误:', error);
-           reject(error);
-         });
+         stream.on('data', detectFormat);
          
          stream.on('error', (error) => {
            console.error('文件读取错误:', error);
            reject(error);
          });
          
-         stream.pipe(parser);
+         stream.on('end', () => {
+           if (!formatDetected) {
+             resolve(traceEvents);
+           }
+         });
          
        } catch (err) {
          console.error(`${swimPath} 读取文件时发生错误:`, err);

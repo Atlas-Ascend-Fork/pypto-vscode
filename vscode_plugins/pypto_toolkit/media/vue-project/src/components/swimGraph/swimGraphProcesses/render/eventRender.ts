@@ -1,6 +1,8 @@
 import { eventTextSize, getFontStyle } from '../../swimGraphUtils';
 import { Dependencies } from './utils';
 
+export const ARROW_WIDTH = 12;
+
 export class EventRender {
   deps: Dependencies;
 
@@ -24,6 +26,16 @@ export class EventRender {
       if (!drawData) {
         continue;
       }
+      
+      const isZeroDuration = drawData.duration === 0;
+
+      if (isZeroDuration) {
+        const arrowColor = isDimmed ? colorCfg.eventRectNoColor : drawData.rectColor;
+        const arrowDrawData = { ...drawData, rectColor: arrowColor };
+        this.drawArrowUp(arrowDrawData, ctx, useHighPrecision, isPinned);
+        continue;
+      }
+
       let width: number;
       if (drawData.eventWidth < viewState.minWidth) {
         width = viewState.minWidth;
@@ -76,6 +88,49 @@ export class EventRender {
     ctx.moveTo(drawX, 0);
     ctx.lineTo(drawX, lineTo);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  drawArrowUp(drawData: any, ctx: CanvasRenderingContext2D, useHighPrecision: boolean, isPinned: boolean) {
+    const { viewState } = this.deps;
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    ctx.save();
+    ctx.fillStyle = drawData.rectColor;
+    ctx.beginPath();
+
+    if (useHighPrecision) {
+      const scale = viewState.pixelScale;
+      const offsetX = viewState.pixelOffsetX;
+      const baseY = isPinned ? drawData.pinnedEventY : drawData.rectY;
+      const tipY = baseY * devicePixelRatio;
+      const bottomY = (baseY + drawData.height) * devicePixelRatio;
+      const centerX = ((drawData.rectX + (drawData.eventWidth / 2)) * scale) + offsetX;
+      const halfWidth = (ARROW_WIDTH / 2) * devicePixelRatio;
+      const shoulderY = bottomY - ((drawData.height / 3) * devicePixelRatio);
+
+      ctx.moveTo(centerX, tipY);
+      ctx.lineTo(centerX - halfWidth, bottomY);
+      ctx.lineTo(centerX, shoulderY);
+      ctx.lineTo(centerX + halfWidth, bottomY);
+      ctx.lineTo(centerX, tipY);
+    } else {
+      const baseY = isPinned ? drawData.pinnedEventY : drawData.rectY;
+      const tipY = baseY;
+      const bottomY = baseY + drawData.height;
+      const centerX = drawData.rectX + (drawData.eventWidth / 2);
+      const halfWidth = (ARROW_WIDTH / 2) / viewState.scale;
+      const shoulderY = bottomY - (drawData.height / 3);
+
+      ctx.moveTo(centerX, tipY);
+      ctx.lineTo(centerX - halfWidth, bottomY);
+      ctx.lineTo(centerX, shoulderY);
+      ctx.lineTo(centerX + halfWidth, bottomY);
+      ctx.lineTo(centerX, tipY);
+    }
+
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 }

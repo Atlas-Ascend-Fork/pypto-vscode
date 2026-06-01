@@ -148,6 +148,7 @@ const {
   isMaxSchedule,
   pinnedthreadsComponent,
   isMixMode,
+  hasSplitThreads,
 } = inject('swimGraphState');
 
 const {
@@ -241,13 +242,6 @@ const threeColumnHeaderVisible = ref(false);
 const threeColumnSearchVisible = ref(true);
 const zoomControl = ref('');
 
-const betterShow = (value) => {
-  if (Number.isInteger(value)) {
-    return value;
-  }
-  return value.toFixed(2);
-};
-
 const clearSearch = async () => {
   categorySearchKey.value = '';
   await nextTick();
@@ -266,28 +260,6 @@ const showSwimCfg = () => {
 
 const closeDrawer = () => {
   reportVisible.value = false;
-};
-
-const calculateAicoreInfo = () => {
-  let aicTaskTimeSum = 0;
-  let totalCnt = 0;
-  for (const [processKey, processVal] of processes) {
-    for (const [threadKey, threadVal] of processVal.threads) {
-      if (threadVal.isCounter == false) {
-        totalCnt += 1;
-      }
-      if (!threadVal.threadName.toLowerCase().startsWith('aic') && !threadVal.threadName.toLowerCase().startsWith('aiv')) {
-        continue;
-      }
-      for (const event of threadVal.events) {
-        aicTaskTimeSum += (event.duration || 0);
-      }
-    }
-  }
-
-  aicoreTime.value = betterShow(aicTaskTimeSum / tsScale.value);
-  const aicoreRateValue = aicTaskTimeSum / (totalCnt * viewState.timeRange);
-  aicoreRate.value = betterShow(aicoreRateValue * 100) + '%';
 };
 
 const showPerformance = () => {
@@ -360,6 +332,99 @@ const calculateContentHeight = (params) => {
 
   return contentHeight;
 };
+
+function getDrawingColors(isDarkTheme) {
+  return {
+    textColor: isDarkTheme ? '#e8e8e8' : '#333333',
+    lineColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    iconColor: '#0066cc',
+    bgColor: isDarkTheme ? '#1F1F1F' : '#ffffff',
+    headerBgColor: isDarkTheme ? '#2b2b2b' : '#f0f0f0'
+  };
+}
+
+function drawPinIcon(ctx, x, y, size = 16) {
+  ctx.save();
+  ctx.translate(x - (size / 2), y - (size / 2));
+  const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
+  ctx.fill(path);
+  ctx.restore();
+}
+
+function drawSeparator(ctx, startX, startY, endX, endY, lineColor, lineWidth = 1) {
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(endX, endY);
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = lineWidth;
+  ctx.stroke();
+}
+
+function drawTruncatedText(ctx, text, x, y, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  const widthPerChar = ctx.measureText(text).width / text.length;
+  const maxChars = Math.floor(maxWidth / widthPerChar);
+  const truncatedText = text.substring(0, Math.max(0, maxChars - 3)) + '...';
+  ctx.fillText(truncatedText, x, y);
+}
+
+function drawGroupThreadLabels(ctx, groupThreads, startY, processKey, layoutConfig) {
+  const { lane2line, layout, processLabelWidth, getThreadHeight } = layoutConfig;
+  const colors = getDrawingColors(isDarkTheme.value);
+  const PIN_COLUMN_WIDTH = 36;
+  const GROUP_COLUMN_WIDTH = 85;
+  
+  let groupTotalHeight = 0;
+  for (const pt of groupThreads) {
+    const height = getThreadHeight(processKey, pt.thread.tid, lane2line, layout, pt.thread.isCounter);
+    groupTotalHeight += height;
+  }
+  
+  const groupHeight = groupTotalHeight;
+  drawSeparator(ctx, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY + groupHeight, colors.lineColor);
+  
+  const iconX = 10;
+  const iconY = startY + (groupHeight / 2);
+  ctx.fillStyle = colors.iconColor;
+  drawPinIcon(ctx, iconX, iconY);
+  
+  ctx.fillStyle = colors.textColor;
+  ctx.fillText(groupThreads[0].thread.parentThreadName, PIN_COLUMN_WIDTH + 4, iconY);
+  
+  let threadY = startY;
+  for (const pt of groupThreads) {
+    const threadHeight = getThreadHeight(processKey, pt.thread.tid, lane2line, layout, pt.thread.isCounter);
+    ctx.fillStyle = colors.textColor;
+    ctx.fillText(pt.thread.threadName, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH + 8, threadY + (threadHeight / 2));
+    drawSeparator(ctx, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, threadY + threadHeight, processLabelWidth, threadY + threadHeight, colors.lineColor);
+    threadY += threadHeight;
+  }
+  
+  drawSeparator(ctx, 0, startY + groupHeight, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY + groupHeight, colors.lineColor);
+  return startY + groupHeight;
+}
+
+function drawSingleThreadLabel(ctx, thread, startY, height, processLabelWidth, hasPinIcon) {
+  const colors = getDrawingColors(isDarkTheme.value);
+  const PIN_COLUMN_WIDTH = 36;
+  
+  if (hasPinIcon) {
+    const iconX = 10;
+    const iconY = startY + (height / 2);
+    ctx.fillStyle = colors.iconColor;
+    drawPinIcon(ctx, iconX, iconY);
+  }
+  
+  ctx.fillStyle = colors.textColor;
+  const textStartX = PIN_COLUMN_WIDTH + 8;
+  const maxTextWidth = processLabelWidth - textStartX - 10;
+  const labelText = thread.threadName || thread.tid;
+  drawTruncatedText(ctx, labelText, textStartX, startY + (height / 2), maxTextWidth);
+  drawSeparator(ctx, 0, startY + height, processLabelWidth, startY + height, colors.lineColor);
+}
 
 // 辅助函数 1：计算画布总尺寸
 function calculateCanvasSize(
@@ -437,78 +502,78 @@ function drawPinnedThreads(ctx, processLabelWidth, canvasCssWidth, startY, dpr) 
   if (pinnedHeight === 0) {
     return;
   }
-  // 绘制置顶泳道标签区域背景
-  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
+  
+  const colors = getDrawingColors(isDarkTheme.value);
+  
+  ctx.fillStyle = colors.bgColor;
   ctx.fillRect(0, startY, processLabelWidth, pinnedHeight);
-  // 绘制置顶泳道事件区域背景
-  ctx.fillStyle = isDarkTheme.value ? '#1F1F1F' : '#ffffff';
   ctx.fillRect(processLabelWidth, startY, canvasCssWidth, pinnedHeight);
-  // 获取置顶泳道的canvas元素
+  
   const pinnedEventsCanvas = pinnedContainer.querySelector('.pinned-events-canvas');
   const pinnedDepCanvas = pinnedContainer.querySelector('.pinned-dep-canvas');
   const pinnedUiCanvas = pinnedContainer.querySelector('.pinned-ui-canvas');
   const pinnedHoverCanvas = pinnedContainer.querySelector('.pinned-hover-canvas');
   const pinnedLineCanvas = pinnedContainer.querySelector('.pinned-line-canvas');
-  // 绘制置顶泳道事件层
+  
   if (pinnedEventsCanvas) {
     ctx.drawImage(pinnedEventsCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
   }
-  // 绘制置顶泳道依赖层
   if (pinnedDepCanvas) {
     ctx.drawImage(pinnedDepCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
   }
-  // 绘制置顶泳道UI层
   if (pinnedUiCanvas) {
     ctx.drawImage(pinnedUiCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
   }
-  // 绘制置顶泳道Hover层
   if (pinnedHoverCanvas) {
     ctx.drawImage(pinnedHoverCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
   }
-  // 绘制置顶泳道连接线层
   if (pinnedLineCanvas) {
     ctx.drawImage(pinnedLineCanvas, processLabelWidth, startY, canvasCssWidth, pinnedHeight);
   }
-  // 绘制置顶泳道标签
-  const pinnedLabels = pinnedContainer.querySelectorAll('.pinned-thread-label');
-  let labelY = startY;
-  ctx.font = '12px Arial';
+  
+  drawSeparator(ctx, processLabelWidth, startY, processLabelWidth, startY + pinnedHeight, colors.lineColor);
+  
+  ctx.font = '13px Arial';
   ctx.textBaseline = 'middle';
-  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
-  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-  const iconColor = isDarkTheme.value ? '#0066cc' : '#0066cc';
-  // 绘制置顶泳道标签区域右侧边框
-  ctx.beginPath();
-  ctx.moveTo(processLabelWidth, startY);
-  ctx.lineTo(processLabelWidth, startY + pinnedHeight);
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  pinnedLabels.forEach((label, index) => {
-    const labelHeight = label.offsetHeight;
-    const threadName = label.querySelector('.thread-name')?.textContent || '';
-    // 绘制置顶图标
-    const iconX = 10;
-    const iconY = labelY + (labelHeight / 2);
-    const iconSize = 16;
-    ctx.fillStyle = iconColor;
-    ctx.save();
-    ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
-    const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
-    ctx.fill(path);
-    ctx.restore();
-    // 绘制线程名称
-    ctx.fillStyle = textColor;
-    ctx.fillText(threadName, 30, labelY + (labelHeight / 2));
-    // 绘制分割线
-    ctx.beginPath();
-    ctx.moveTo(0, labelY + labelHeight);
-    ctx.lineTo(processLabelWidth + canvasCssWidth, labelY + labelHeight);
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    labelY += labelHeight;
-  });
+  
+  const renderedGroups = new Set();
+  let currentY = startY;
+  
+  for (const pinnedThread of pinnedThreadsList.value) {
+    if (pinnedThread.thread.parentTid === undefined) {
+      const threadHeight = getThreadHeight(
+        pinnedThread.processKey,
+        pinnedThread.thread.tid,
+        lane2line,
+        layout,
+        pinnedThread.thread.isCounter
+      );
+      
+      drawSingleThreadLabel(ctx, pinnedThread.thread, currentY, threadHeight, processLabelWidth, true);
+      currentY += threadHeight;
+    } else {
+      const parentTid = pinnedThread.thread.parentTid;
+      if (!renderedGroups.has(parentTid)) {
+        renderedGroups.add(parentTid);
+        
+        const groupThreads = [];
+        for (const pt of pinnedThreadsList.value) {
+          if (pt.thread.parentTid === parentTid) {
+            groupThreads.push(pt);
+          }
+        }
+        
+        const layoutConfig = {
+          lane2line,
+          layout,
+          processLabelWidth,
+          getThreadHeight
+        };
+        
+        currentY = drawGroupThreadLabels(ctx, groupThreads, currentY, pinnedThread.processKey, layoutConfig);
+      }
+    }
+  }
 }
 
 // 辅助函数 5：绘制所有 Process 块
@@ -584,19 +649,22 @@ function drawProcess(
   return bottomY;
 }
 
-// 绘制 Thread Labels
+// 绘制 Thread Labels - 适配四栏布局
 function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
   const { processLabelWidth } = layout;
-  const textColor = isDarkTheme.value ? '#e8e8e8' : '#333333';
-  const lineColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-  const iconColor = isDarkTheme.value ? '#0066cc' : '#0066cc';
+  const { canvasCssWidth } = viewState;
+  const colors = getDrawingColors(isDarkTheme.value);
+  
+  let hasProcessSplitThreads = false;
+  for (const thread of process.threads.values()) {
+    if (thread.parentTid !== undefined) {
+      hasProcessSplitThreads = true;
+      break;
+    }
+  }
+  
   ctx.save();
-  // 分割线
-  ctx.beginPath();
-  ctx.moveTo(processLabelWidth, startY);
-  ctx.lineTo(processLabelWidth, startY + contentHeight);
-  ctx.strokeStyle = lineColor;
-  ctx.stroke();
+  drawSeparator(ctx, processLabelWidth, startY, processLabelWidth, startY + contentHeight, colors.lineColor);
   
   if (isMixMode.value && swimDataManager.hasMixConfig()) {
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
@@ -611,11 +679,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
           ctx.fillText($t('mixTasks'), 30, labelY + laneHeight / 2);
           isFirstWrapLabel = false;
         }
-        ctx.beginPath();
-        ctx.moveTo(0, labelY + laneHeight);
-        ctx.lineTo(processLabelWidth, labelY + laneHeight);
-        ctx.strokeStyle = lineColor;
-        ctx.stroke();
+        drawSeparator(ctx, 0, labelY + laneHeight, processLabelWidth, labelY + laneHeight, colors.lineColor);
         labelY += laneHeight;
       } else if (lane.type === 'thread') {
         const { thread } = lane;
@@ -623,37 +687,66 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
         const { isPinned } = thread;
         
         if (isPinned) {
-          const iconX = 10;
-          const iconY = labelY + (tHeight / 2);
-          const iconSize = 16;
-          ctx.fillStyle = iconColor;
-          ctx.save();
-          ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
-          const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
-          ctx.fill(path);
-          ctx.restore();
+          ctx.fillStyle = colors.iconColor;
+          drawPinIcon(ctx, 10, labelY + (tHeight / 2));
         }
         
-        ctx.fillStyle = textColor;
-        let labelText = thread.threadName || thread.tid;
-        const textStartX = 30;
-        const maxTextWidth = processLabelWidth - textStartX - 10;
-        if (ctx.measureText(labelText).width > maxTextWidth) {
-          const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-          const maxChars = Math.floor(maxTextWidth / widthPerChar);
-          labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
-        }
-        ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
+        ctx.fillStyle = colors.textColor;
+        const labelText = thread.threadName || thread.tid;
+        drawTruncatedText(ctx, labelText, 36, labelY + (tHeight / 2), processLabelWidth - 36 - 10);
         
-        ctx.beginPath();
-        ctx.moveTo(0, labelY + tHeight);
-        ctx.lineTo(processLabelWidth, labelY + tHeight);
-        ctx.strokeStyle = lineColor;
-        ctx.stroke();
+        drawSeparator(ctx, 0, labelY + tHeight, processLabelWidth, labelY + tHeight, colors.lineColor);
         labelY += tHeight;
       }
     }
+  } else if (hasProcessSplitThreads) {
+    const groups = new Map();
+    for (const [tid, thread] of process.threads) {
+      if (thread.parentTid !== undefined) {
+        if (!groups.has(thread.parentTid)) {
+          groups.set(thread.parentTid, {
+            parentThreadName: thread.parentThreadName,
+            parentTid: thread.parentTid,
+            threads: [],
+            totalHeight: 0
+          });
+        }
+        
+        const group = groups.get(thread.parentTid);
+        group.threads.push({ tid, thread });
+        
+        const height = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
+        group.totalHeight += height;
+      }
+    }
+    
+    const groupsArray = Array.from(groups.values());
+    
+    const PIN_COLUMN_WIDTH = 36;
+    const GROUP_COLUMN_WIDTH = 85;
+    drawSeparator(ctx, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY + contentHeight, colors.lineColor);
+    
+    let currentY = startY;
+    ctx.font = '13px Arial';
+    
+    for (const group of groupsArray) {
+      const groupThreads = group.threads.map(item => ({
+        thread: item.thread,
+        processKey
+      }));
+      
+      const layoutConfig = {
+        lane2line,
+        layout,
+        processLabelWidth,
+        getThreadHeight
+      };
+      
+      currentY = drawGroupThreadLabels(ctx, groupThreads, currentY, processKey, layoutConfig);
+    }
   } else {
+    ctx.font = '13px Arial';
+    
     for (const [threadKey, thread] of process.threads.entries()) {
       const tKey = thread.isCounter ? thread.threadName : thread.tid;
       const tHeight = getThreadHeight(processKey, tKey, lane2line, layout, thread.isCounter);
@@ -662,33 +755,15 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
       const { isPinned } = thread;
       
       if (isPinned) {
-        const iconX = 10;
-        const iconY = labelY + (tHeight / 2);
-        const iconSize = 16;
-        ctx.fillStyle = iconColor;
-        ctx.save();
-        ctx.translate(iconX - (iconSize / 2), iconY - (iconSize / 2));
-        const path = new Path2D('M11.5,1 C11.8993477,1 12.1375434,1.44507273 11.9160251,1.7773501 L11.9160251,1.7773501 L11.014,3.13 L11.485,8.075 L12.9160251,10.22264949 C13.1217207,10.5311932 12.9310302,10.9369937 12.5829991,10.993391 L12.5829991,10.993391 L12.5,11 L8.49915929,11 L8.5,15 L7.5,15 L7.49915929,11 L3.5,11 C3.12917714,11 2.89730677,10.6162383 3.04343429,10.2953753 L3.08397485,10.2226499 L4.514,8.075 L4.985,3.13 L4.08397485,1.7773501 C3.87827934,1.46880683 4.06896983,1.06300633 4.41700091,1.00660903 L4.41700091,1.00660903 L4.5,1 Z');
-        ctx.fill(path);
-        ctx.restore();
+        ctx.fillStyle = colors.iconColor;
+        drawPinIcon(ctx, 10, labelY + (tHeight / 2));
       }
       
-      ctx.fillStyle = textColor;
-      let labelText = thread.threadName || thread.tid;
-      const textStartX = 30;
-      const maxTextWidth = processLabelWidth - textStartX - 10;
-      if (ctx.measureText(labelText).width > maxTextWidth) {
-        const widthPerChar = ctx.measureText(labelText).width / labelText.length;
-        const maxChars = Math.floor(maxTextWidth / widthPerChar);
-        labelText = labelText.substring(0, Math.max(0, maxChars - 3)) + '...';
-      }
-      ctx.fillText(labelText, textStartX, labelY + (tHeight / 2));
+      ctx.fillStyle = colors.textColor;
+      const labelText = thread.threadName || thread.tid;
+      drawTruncatedText(ctx, labelText, 36, labelY + (tHeight / 2), processLabelWidth - 36 - 10);
       
-      ctx.beginPath();
-      ctx.moveTo(0, labelY + tHeight);
-      ctx.lineTo(processLabelWidth, labelY + tHeight);
-      ctx.strokeStyle = lineColor;
-      ctx.stroke();
+      drawSeparator(ctx, 0, labelY + tHeight, processLabelWidth, labelY + tHeight, colors.lineColor);
     }
   }
   

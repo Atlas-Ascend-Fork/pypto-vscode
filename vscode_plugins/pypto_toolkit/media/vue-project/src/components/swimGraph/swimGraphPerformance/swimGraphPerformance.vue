@@ -14,8 +14,8 @@
         :style="{width: subContainerWidth + 'px'}">
           <div class="left-scheduling-gap-container">
             <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
-              <div class="task-title">{{maxSchedulingGap}}(μs)</div>
-              <div class="task-data" v-if="maxGap.length > 0">{{parseFloat((maxGap[0].gap / tsScale).toFixed(3))}}</div>
+              <div class="task-title">{{maxSchedulingGap}}({{ formatGapUnit(maxGap[0]?.gap) }})</div>
+              <div class="task-data" v-if="maxGap.length > 0">{{ formatGapValueWithUnit(maxGap[0].gap) }}</div>
             </div>
           </div>
           <div class="split-line" :style="{ height: `${54 + 52 * (maxGap.length -1 )}px` }"/>
@@ -64,8 +64,8 @@
           <div class="task-statistic-item">
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
-                <div class="task-title">{{TaskMaxDuration}}(μs)</div>
-                <div class="task-data">{{maxTimeTaskVal}}</div>
+                <div class="task-title">{{TaskMaxDuration}}({{ formatTimeUnit(maxTimeTaskVal) }})</div>
+                <div class="task-data">{{ formatTimeValueWithUnit(maxTimeTaskVal) }}</div>
               </div>
             </div>
             <div class="time-consuming-split-line"/>
@@ -91,9 +91,9 @@
 
           <div class="task-statistic-item">
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
-              <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
-                <div class="task-title">{{TaskMinDuration}}(μs)</div>
-                <div class="task-data">{{minTimeTaskVal}}</div>
+<div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
+                <div class="task-title">{{TaskMinDuration}}({{ formatTimeUnit(minTimeTaskVal) }})</div>
+                <div class="task-data">{{ formatTimeValueWithUnit(minTimeTaskVal) }}</div>
               </div>
             </div>
             <div class="time-consuming-split-line"/>
@@ -123,23 +123,23 @@
           <div class="top-row-group" :style="{width: subContainerWidth + 'px', gap: aiCoreContainerColumnGap + 'px'}">
           <div class="task-item-container aicore-e2e-time" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">
-              <d-tooltip :content="taskOnBoardTimeTitle + ' (μs)'">
-                <div class="task-title">{{ taskOnBoardTimeTitle }} (μs)</div>
+              <d-tooltip :content="taskOnBoardTimeTitle + ' (' + formatTimeUnit(taskOnBoardTime) + ')'">
+                <div class="task-title">{{ taskOnBoardTimeTitle }} ({{ formatTimeUnit(taskOnBoardTime) }})</div>
               </d-tooltip>
                 <d-tooltip :content="taskOnBoardTimeTip">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-            <div class="task-data">{{ taskOnBoardTime }}</div>
+            <div class="task-data">{{ formatTimeValueWithUnit(taskOnBoardTime) }}</div>
           </div>
           <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">
-              <div class="task-title">{{ totalTimeTitle }} (μs)</div>
+              <div class="task-title">{{ totalTimeTitle }} ({{ formatTimeUnit(taskTime) }})</div>
                 <d-tooltip :content="totalTimeTip">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-            <div class="task-data">{{ taskTime }}</div>
+            <div class="task-data">{{ formatTimeValueWithUnit(taskTime) }}</div>
           </div>
           </div>
           <div class="task-item-container mt10" :style="{width: innerContainerWidth + 'px'}">
@@ -151,12 +151,12 @@
           <div class="aicore-container-column" :style="{gap: aiCoreContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <div class="task-title">AICore Time(μs)</div>
+                <div class="task-title">AICore Time({{ formatTimeUnit(aicoreTime) }})</div>
                 <d-tooltip :content="$t('AICoreTimeTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="task-data">{{ aicoreTime }}</div>
+              <div class="task-data">{{ formatTimeValueWithUnit(aicoreTime) }}</div>
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
@@ -281,6 +281,13 @@ const maxTimeTask = ref([]);
 const maxTimeTaskVal = ref(0);
 const minTimeTask = ref([]);
 const minTimeTaskVal = ref(0);
+
+const US_TO_MS_THRESHOLD = 1000;
+const US_TO_S_THRESHOLD = 1000000;
+const UNIT_US = 'μs';
+const UNIT_MS = 'ms';
+const UNIT_S = 's';
+
 const {
   pmuTotal
 } = inject('swimGraphPmuTotal');
@@ -424,6 +431,44 @@ const closeStatistics = () => {
 
 const formatGapValue = (gap) => {
   return Number.isInteger(gap) ? gap : parseFloat(gap.toFixed(3));
+};
+
+const formatGapUnit = (gap) => {
+  if (!gap) return UNIT_US;
+  const valueInUs = gap / tsScale.value;
+  if (valueInUs >= US_TO_S_THRESHOLD) return UNIT_S;
+  if (valueInUs >= US_TO_MS_THRESHOLD) return UNIT_MS;
+  return UNIT_US;
+};
+
+const formatGapValueWithUnit = (gap) => {
+  if (!gap) return 0;
+  const valueInUs = parseFloat((gap / tsScale.value).toFixed(3));
+  if (valueInUs >= US_TO_S_THRESHOLD) {
+    return parseFloat((valueInUs / US_TO_S_THRESHOLD).toFixed(3));
+  }
+  if (valueInUs >= US_TO_MS_THRESHOLD) {
+    return parseFloat((valueInUs / US_TO_MS_THRESHOLD).toFixed(3));
+  }
+  return valueInUs;
+};
+
+const formatTimeUnit = (valueInUs) => {
+  if (!valueInUs) return UNIT_US;
+  if (valueInUs >= US_TO_S_THRESHOLD) return UNIT_S;
+  if (valueInUs >= US_TO_MS_THRESHOLD) return UNIT_MS;
+  return UNIT_US;
+};
+
+const formatTimeValueWithUnit = (valueInUs) => {
+  if (!valueInUs) return 0;
+  if (valueInUs >= US_TO_S_THRESHOLD) {
+    return parseFloat((valueInUs / US_TO_S_THRESHOLD).toFixed(3));
+  }
+  if (valueInUs >= US_TO_MS_THRESHOLD) {
+    return parseFloat((valueInUs / US_TO_MS_THRESHOLD).toFixed(3));
+  }
+  return valueInUs;
 };
 
 const getEventDuration = (event) => {

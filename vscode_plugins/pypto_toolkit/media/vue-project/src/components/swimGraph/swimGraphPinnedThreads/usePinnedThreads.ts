@@ -77,10 +77,10 @@ export function usePinnedThreads(processes, lane2line, layout) {
     thread.offsetY = offsetY;
     
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
-    const threadIdentifier = thread.isCounter ? thread.threadName : thread.tid;
+    const threadIdentifier = thread.isCounter ? thread.threadName : String(thread.tid);
     for (const lane of swimLaneOrder) {
       if (lane.type === 'thread' && lane.thread) {
-        const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+        const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
         if (laneIdentifier === threadIdentifier) {
           lane.thread.isPinned = true;
           break;
@@ -101,10 +101,10 @@ export function usePinnedThreads(processes, lane2line, layout) {
       delete pinnedData.thread.offsetY;
       
       const swimLaneOrder = swimDataManager.getSwimLaneOrder();
-      const threadIdentifier = pinnedData.thread.isCounter ? pinnedData.thread.threadName : pinnedData.thread.tid;
+      const threadIdentifier = pinnedData.thread.isCounter ? pinnedData.thread.threadName : String(pinnedData.thread.tid);
       for (const lane of swimLaneOrder) {
         if (lane.type === 'thread' && lane.thread) {
-          const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+          const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
           if (laneIdentifier === threadIdentifier) {
             lane.thread.isPinned = false;
             break;
@@ -125,7 +125,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
     
     for (const [key, pinnedData] of pinnedArray) {
       const thread = pinnedData.thread;
-      const threadIdentifier = thread.isCounter ? thread.threadName : thread.tid;
+      const threadIdentifier = thread.isCounter ? thread.threadName : String(thread.tid);
       let heightIdentifier = '';
       
       // 计算已置顶线程占用的总高度
@@ -133,7 +133,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
       for (const [pk, pd] of pinnedArray) {
         if (pk === key) break;
         const t = pd.thread;
-        const tk = t.isCounter ? t.threadName : t.tid;
+        const tk = t.isCounter ? t.threadName : String(t.tid);
         heightIdentifier = `${pd.processKey}@${tk}`;
         const lc = lane2line.get(heightIdentifier) || 1;
         pinnedY += layout.threadHeight * lc;
@@ -144,7 +144,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
       if (isMixMode) {
         for (const lane of swimLaneOrder) {
           if (lane.type === 'thread') {
-            const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+            const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
             if (laneIdentifier === threadIdentifier) {
               laneY = lane.y;
               break;

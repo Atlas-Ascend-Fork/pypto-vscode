@@ -96,8 +96,8 @@ export const getLightColor = (event, dep) => {
 export const getEventColorByMode = (event: any, mode: string, processType = 'kernel', hashOrderType='') => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
   const isPerfSwimMode = mode === 'perfName' || processType === 'PerfSwim';
-  const isAicpuOrPerfSwim = mode === 'name' || processType === 'aicpu';
-  if (isPerfSwimMode || isAicpuOrPerfSwim) {
+  const isByNameSwim = mode === 'name' || processType === 'aicpu';
+  if (isPerfSwimMode || isByNameSwim) {
     const label = event.name || '';
     let processedLabel = label;
     if (isPerfSwimMode) {

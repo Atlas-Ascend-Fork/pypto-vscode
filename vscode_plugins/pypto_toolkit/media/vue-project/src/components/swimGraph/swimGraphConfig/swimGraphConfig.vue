@@ -60,7 +60,7 @@
             <div class="cfg-section-title">{{ $t('kernelConfig') }}</div>
             <div class="cfg-Shading-mode">
                 <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
-                <d-select v-model="kernelModeOption" :options="kernelModeOptions" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
+                <d-select v-model="kernelModeOption" :options="kernelModeOptions" :disabled="isMsProf" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
             </div>
             <div class="cfg-hash-mode" v-if="kernelModeOption === 'isomorphicSubGraph'">
                 <div class="cfg-Shading-mode-t">{{ $t('cubeSubGraphHashOrderType') }} </div>
@@ -97,6 +97,7 @@ const {
     isAicpu,
     isE2ESwim,
     isPerfSwim,
+    isMsProf,
     isMixMode,
     selectedEvent,
     highlightedPaths,
@@ -187,16 +188,22 @@ const kernelModeOptions = computed(() => {
         {name: $t('label'), value: 'label'},
     ];
   }
+  if (isMsProf.value) {
+    return [
+        {name: $t('name'), value: 'name'},
+    ];
+  }
   return [
     {name: $t('subGraph'), value: 'subGraph'},
     {name: $t('stichedFunc'), value: 'stichedFunc'},
     {name: $t('label'), value: 'label'},
     {name: $t('mixSubGraph'), value: 'mixSubGraph'},
     {name: $t('isomorphicSubGraph'), value: 'isomorphicSubGraph'},
+    {name: $t('name'), value: 'name'},
   ];
 });
 
-const kernelModeOption = ref(isThreeColumn ? 'label' : 'subGraph');
+const kernelModeOption = ref(isThreeColumn ? 'label' : (isMsProf.value ? 'name' : 'subGraph'));
 
 const HashOrderOptions = computed(() => {
   return [
@@ -348,10 +355,12 @@ const updateKernelEvents = (mode, hashOrderOption) => {
 };
 
 const OnKernelModeChange = (mode) => {
-    userConfig.value.kernelColorRending = mode;
+    if (!isMsProf.value) {
+        userConfig.value.kernelColorRending = mode;
+        saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value, HashOrderOption.value);
+    }
     updateKernelEvents(kernelModeOption.value, HashOrderOption.value);
     transform();
-    saveKernelRendingMode(kernelModeOption.value, kernelTextOption.value, HashOrderOption.value);
 };
 
 const OnHashOrderOptionsModeChange = (mode) => {
@@ -439,7 +448,11 @@ defineExpose({
 watch(userConfig, () => {
     aicpuModeOption.value = userConfig.value.aicpuColorRending;
     perfModeOption.value = userConfig.value.perfColorReding;
-    kernelModeOption.value = userConfig.value.kernelColorRending;
+    if (isMsProf.value) {
+        kernelModeOption.value = 'name';
+    } else {
+        kernelModeOption.value = userConfig.value.kernelColorRending;
+    }
     kernelTextOption.value = userConfig.value.kernelTextRending;
     HashOrderOption.value = userConfig.value.hashOrderRending;
 });

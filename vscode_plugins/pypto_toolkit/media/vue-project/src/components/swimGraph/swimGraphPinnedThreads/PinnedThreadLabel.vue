@@ -57,9 +57,8 @@ const handleUnpin = () => {
 
 .unpin-icon {
   position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 223px;
+  z-index: 1;
   cursor: pointer;
   color: var(--devui-primary-button-bg);
 }
@@ -73,5 +72,7 @@ const handleUnpin = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  font-size: 13px;
+  font-weight: 400;
 }
 </style>

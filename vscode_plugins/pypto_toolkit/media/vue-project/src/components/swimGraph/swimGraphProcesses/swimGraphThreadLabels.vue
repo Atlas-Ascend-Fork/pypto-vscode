@@ -40,14 +40,14 @@
           </d-tooltip>
           <div 
             class="thread-label-item"
-            :class="[{ 'has-threads-box': lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_') }]"
+            :class="[{ 'has-threads-box': lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_') || lane.thread.parentTid !== undefined }]"
             :style="{ height: lane.height + 'px' }"
           >
             {{ lane.thread.threadName }}
           </div>
           <div 
             class="threads-box" 
-            v-if="isPrefProcess || isAicpuProcess || lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_')" 
+            v-if="isPrefProcess || isAicpuProcess || lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_') || lane.thread.parentTid !== undefined" 
             :style="{'--thread-fill-width': threadFillWidth(lane.thread.tid, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(lane.thread.tid, selectedOption)) + '%', 
             }"
           >
@@ -58,52 +58,155 @@
       </div>
     </template>
     <template v-else>
-      <div 
-        v-for="(threadEntry, index) in process.threads" 
-        :key="threadEntry[0]"  
-        class="thread-labels-loop" 
-        :class="{'active': `${props.processKey}-${index}` === curThread, 'activeS': activeThreadId === `${props.processKey}-${threadEntry[1].tid}`}"
-        @mouseover="handleLabelHover(index)"
-        @mouseleave="handleLabelLeave(index)"
-      >
-      <!-- 取消置顶图标 -->
-      <d-tooltip :content="$t('unpinThread')" position="right" v-if="threadEntry[1].isPinned">
-        <d-icon
-          name="icon-pushpin-fill"
-          class="pin-icon-position unpin-icon"
-          @click="handleUnpin(threadEntry[0])"
-        >
-        </d-icon>
-      </d-tooltip>
-      <!-- 置顶图标 -->
-      <d-tooltip :content="$t('pinThread')" position="right" v-if="!isThreeColumn && hoveredThreadIndex === index && !threadEntry[1].isPinned">
-        <d-icon 
-          :name="isHoveringPinIcon ? 'icon-pushpin-fill' : 'icon-pushpin'"
-          class="pin-icon-position pin-icon"
-          @click="handlePinThread(threadEntry[0])"
-          @mouseenter="isHoveringPinIcon = true"
-          @mouseleave="isHoveringPinIcon = false"
-        >
-        </d-icon>
-      </d-tooltip>
-        <div 
-          class="thread-label-item"
-          :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') }]"
-          :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
-        >
-          {{ threadEntry[1].threadName }}
+      <!-- Conditional rendering for split threads vs normal threads -->
+      <template v-if="hasSplitThreads">
+        <!-- Four-column layout for split threads -->
+        <div class="thread-labels-container" :style="{ width: layout.processLabelWidth + 'px' }">
+          
+          <!-- Column 1: Pin buttons (36px) -->
+          <div class="pin-column">
+            <div 
+              v-for="group in threadGroups"
+              :key="group.parentTid"
+              class="pin-cell"
+              :style="{ height: group.totalHeight + 'px' }"
+            >
+              <!-- Pin/Unpin icon based on group state -->
+              <d-tooltip 
+                :content="isGroupPinned(group) ? $t('unpinThread') : $t('pinThread')"
+                position="right"
+              >
+                <d-icon
+                  :name="isGroupPinned(group) ? 'icon-pushpin-fill' : 'icon-pushpin'"
+                  :class="isGroupPinned(group) ? 'unpin-icon' : 'pin-icon'"
+                  @click="handlePinGroupThread(group)"
+                />
+              </d-tooltip>
+            </div>
+          </div>
+          
+          <!-- Column 2: Group headers (50px) -->
+          <div class="group-header-column">
+            <div 
+              v-for="group in threadGroups"
+              :key="group.parentTid"
+              class="group-header-cell"
+              :style="{ height: group.totalHeight + 'px' }"
+            >
+              <d-tooltip :content="group.parentThreadName" position="right">
+                <div class="group-header-text">
+                  {{ group.parentThreadName }}
+                </div>
+              </d-tooltip>
+            </div>
+          </div>
+          
+          <!-- Column 3+4: Thread content -->
+          <div class="threads-content-column">
+            <div 
+              v-for="(threadEntry, index) in process.threads"
+              :key="threadEntry[0]"
+              class="thread-row"
+              :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
+              :class="{
+                'active': `${props.processKey}-${index}` === curThread,
+                'activeS': activeThreadId === `${props.processKey}-${threadEntry[1].tid}`
+              }"
+              @mouseover="handleLabelHover(index)"
+              @mouseleave="handleLabelLeave(index)"
+            >
+              <!-- Column 3: Thread name -->
+              <div class="thread-name">
+                {{ threadEntry[1].threadName }}
+              </div>
+              
+              <!-- Column 4: Threads box -->
+              <div 
+                class="threads-box"
+                v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined"
+                :style="{
+                  '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
+                  '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
+                }"
+              >
+                <div 
+                  class="threads-fill"
+                  :style="{
+                    width: threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
+                    background: getBackground(threadEntry[1].tid, selectedOption)
+                  }"
+                />
+                <div 
+                  class="threads-text"
+                  :class="{ 'utilization-text': selectedOption === 'utilization' }"
+                >
+                  {{ threadTotaltime(threadEntry[1].tid, selectedOption) }}
+                </div>
+                <div 
+                  class="average-line"
+                  :style="{ left: averageValue + '%' }"
+                />
+              </div>
+            </div>
+          </div>
+          
         </div>
+      </template>
+      
+      <!-- Single-column layout for normal threads -->
+      <template v-else>
         <div 
-          class="threads-box" 
-          v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')" 
-          :style="{'--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%', 
+          v-for="(threadEntry, index) in process.threads"
+          :key="threadEntry[0]"
+          class="thread-labels-loop"
+          :class="{
+            'active': `${props.processKey}-${index}` === curThread,
+            'activeS': activeThreadId === `${props.processKey}-${threadEntry[1].tid}`
           }"
+          @mouseover="handleLabelHover(index)"
+          @mouseleave="handleLabelLeave(index)"
         >
-          <div class="threads-fill" :style="{ width: threadFillWidth(threadEntry[1].tid, selectedOption) + '%', 'background': getBackground(threadEntry[1].tid, selectedOption)}"></div>
-          <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }"> {{ threadTotaltime(threadEntry[1].tid, selectedOption) }}</div>
-          <div class="average-line" :style="{ left: averageValue + '%'}"></div>
+          <!-- 取消置顶图标 -->
+          <d-tooltip :content="$t('unpinThread')" position="right" v-if="threadEntry[1].isPinned">
+            <d-icon
+              name="icon-pushpin-fill"
+              class="pin-icon-position unpin-icon"
+              @click="handleUnpin(threadEntry[0])"
+            />
+          </d-tooltip>
+          <!-- 置顶图标 -->
+          <d-tooltip :content="$t('pinThread')" position="right" v-if="!isThreeColumn && hoveredThreadIndex === index && !threadEntry[1].isPinned">
+            <d-icon
+              :name="isHoveringPinIcon ? 'icon-pushpin-fill' : 'icon-pushpin'"
+              class="pin-icon-position pin-icon"
+              @click="handlePinThread(threadEntry[0])"
+              @mouseenter="isHoveringPinIcon = true"
+              @mouseleave="isHoveringPinIcon = false"
+            />
+          </d-tooltip>
+          
+          <div
+            class="thread-label-item"
+            :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined }]"
+            :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
+          >
+            {{ threadEntry[1].threadName }}
+          </div>
+          
+          <div
+            class="threads-box"
+            v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined"
+            :style="{
+              '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
+              '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
+            }"
+          >
+            <div class="threads-fill" :style="{ width: threadFillWidth(threadEntry[1].tid, selectedOption) + '%', background: getBackground(threadEntry[1].tid, selectedOption) }"/>
+            <div class="threads-text" :class="{ 'utilization-text': selectedOption === 'utilization' }">{{ threadTotaltime(threadEntry[1].tid, selectedOption) }}</div>
+            <div class="average-line" :style="{ left: averageValue + '%' }"/>
+          </div>
         </div>
-      </div>
+      </template>
     </template>
   </div>
 </template>
@@ -195,6 +298,58 @@ const isPrefProcess = computed(() => {
   return false;
 });
 
+const threadGroups = computed(() => {
+  let hasSplitThreads = false;
+  for (const thread of props.process.threads.values()) {
+    if (thread.parentTid !== undefined) {
+      hasSplitThreads = true;
+      break;
+    }
+  }
+  
+  if (!hasSplitThreads) {
+    return [];
+  }
+  
+  const groups = new Map();
+  
+  for (const [tid, thread] of props.process.threads) {
+    if (thread.parentTid !== undefined) {
+      if (!groups.has(thread.parentTid)) {
+        groups.set(thread.parentTid, {
+          parentThreadName: thread.parentThreadName,
+          parentTid: thread.parentTid,
+          threads: [],
+          totalHeight: 0
+        });
+      }
+      
+      const group = groups.get(thread.parentTid);
+      group.threads.push(thread);
+      
+      const height = getThreadHeight(
+        props.processKey,
+        thread.tid,
+        lane2line,
+        layout,
+        thread.isCounter
+      );
+      group.totalHeight += height;
+    }
+  }
+  
+  return Array.from(groups.values());
+});
+
+const hasSplitThreads = computed(() => {
+  for (const thread of props.process.threads.values()) {
+    if (thread.parentTid !== undefined) {
+      return true;
+    }
+  }
+  return false;
+});
+
 const calculateThreadCycles = (allProcesses, proKey) => {
   if (isAicpuProcess.value) {
     cycleDisplay.value = 'none';
@@ -209,7 +364,7 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     let totleCycles = 0n;
     let icacheMiss = 0n;
     let icacheReq = 0n;
-    if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_')) {
+    if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') || thread.parentTid !== undefined) {
       for (const event of thread.events) {
         if (!event['pmu_info'] || Object.keys(event['pmu_info']).length === 0) {
           cycleDisplay.value = 'none';
@@ -246,7 +401,8 @@ const calculateThreadTask = (allProcesses, proKey) => {
   for (const [threadKey, thread] of threads) {
     const typeValided = isPrefProcess.value || isAicpuProcess.value;
     const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
-    if (typeValided || nameValided) {
+    const isSplitThread = thread.parentTid !== undefined;
+    if (typeValided || nameValided || isSplitThread) {
       threadTaskMap.set(thread.tid, thread.events.length);
     }
   }
@@ -271,7 +427,8 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
   for (const [threadKey, thread] of threads) {
     const typeValided = isPrefProcess.value || isAicpuProcess.value;
     const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
-    if (typeValided || nameValided) {
+    const isSplitThread = thread.parentTid !== undefined;
+    if (typeValided || nameValided || isSplitThread) {
       for (const event of thread.events) {
         eventTime = eventTime + (event.endTime - event.startTime);
       }
@@ -408,11 +565,11 @@ const handleMixPinThread = (thread) => {
     return;
   }
   
-  const threadKey = thread.isCounter ? thread.threadName : thread.tid;
+  const threadKey = thread.isCounter ? thread.threadName : String(thread.tid);
   let pinnedY = 0;
   for (const pinnedThread of pinnedThreadsList.value) {
     const t = pinnedThread.thread;
-    const tk = t.isCounter ? t.threadName : t.tid;
+    const tk = t.isCounter ? t.threadName : String(t.tid);
     const lc = lane2line.get(`${pinnedThread.processKey}@${tk}`) || 1;
     pinnedY += layout.threadHeight * lc;
   }
@@ -420,10 +577,10 @@ const handleMixPinThread = (thread) => {
   const swimLaneOrderlist = swimDataManager.getSwimLaneOrder();
 
   let laneY = 0;
-  const threadIdentifier = thread.isCounter ? thread.threadName : thread.tid;
+  const threadIdentifier = thread.isCounter ? thread.threadName : String(thread.tid);
   for (const lane of swimLaneOrderlist) {
     if (lane.type === 'thread') {
-      const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+      const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
       if (laneIdentifier === threadIdentifier) {
         laneY = lane.y;
         lane.thread.isPinned = true;
@@ -442,12 +599,12 @@ const handleMixUnpin = (thread) => {
     return;
   }
   
-  const identifier = thread.isCounter ? thread.threadName : thread.tid;
+  const identifier = thread.isCounter ? thread.threadName : String(thread.tid);
   
   // 从 pinnedThreadsList 中找到对应的 threadKey
   const pinnedThread = pinnedThreadsList.value.find(p => {
     const t = p.thread;
-    const pinnedIdentifier = t.isCounter ? t.threadName : t.tid;
+    const pinnedIdentifier = t.isCounter ? t.threadName : String(t.tid);
     return pinnedIdentifier === identifier;
   });
   
@@ -458,7 +615,7 @@ const handleMixUnpin = (thread) => {
   const swimLaneOrderlist = swimDataManager.getSwimLaneOrder();
   for (const lane of swimLaneOrderlist) {
     if (lane.type === 'thread') {
-      const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : lane.thread.tid;
+      const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
       if (laneIdentifier === identifier) {
         lane.thread.isPinned = false;
         break;
@@ -470,10 +627,22 @@ const handleMixUnpin = (thread) => {
 };
 
 const handlePinThread = (threadKey) => {
-  const thread = props.process.threads.get(threadKey);
+  let thread = props.process.threads.get(threadKey);
+  
+  if (!thread) {
+    for (const [key, t] of props.process.threads.entries()) {
+      if (t.tid === threadKey || t.threadName === threadKey) {
+        thread = t;
+        threadKey = key;
+        break;
+      }
+    }
+  }
+  
   if (!thread) {
     return;
   }
+  
   let pinnedY = 0;
   for (const pinnedThread of pinnedThreadsList.value) {
     const t = pinnedThread.thread;
@@ -491,6 +660,42 @@ const handlePinThread = (threadKey) => {
 
 const handleUnpin = (threadKey) => {
   unpinThread(props.processKey, threadKey);
+};
+
+const isGroupPinned = (group) => {
+  if (!group?.threads) return false;
+  
+  return group.threads.some(thread => {
+    const threadKey = thread.isCounter ? thread.threadName : String(thread.tid);
+    return pinnedThreadsList.value.some(pinned => {
+      const pinnedKey = pinned.thread?.isCounter ? pinned.thread.threadName : String(pinned.thread?.tid);
+      return pinned.processKey === props.processKey && pinnedKey === threadKey;
+    });
+  });
+};
+
+const handlePinGroupThread = (group) => {
+  const isPinned = isGroupPinned(group);
+  
+  if (isPinned) {
+    for (const thread of group.threads) {
+      const threadKey = thread.isCounter ? thread.threadName : String(thread.tid);
+      handleUnpin(threadKey);
+    }
+  } else {
+    for (const thread of group.threads) {
+      const threadKey = thread.isCounter ? thread.threadName : String(thread.tid);
+      const threadHeight = getThreadHeight(
+        props.processKey,
+        threadKey,
+        lane2line,
+        layout,
+        thread.isCounter
+      );
+      
+      handlePinThread(threadKey);
+    }
+  }
 };
 
 const activeThreadId = computed(() => {
@@ -566,5 +771,121 @@ const activeThreadId = computed(() => {
   border-left: 1px dashed var(--devui-slider-bar);
   opacity: 0.1;
   z-index: 2;
+}
+
+/* NEW: Four-column layout for split threads */
+.thread-labels-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  position: relative;
+}
+
+/* Column 1: Pin buttons (36px) */
+.pin-column {
+  width: 36px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pin-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  border-bottom: 1px solid var(--devui-swim-split-line);
+}
+
+.pin-cell .pin-icon {
+  cursor: pointer;
+  color: var(--devui-text);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.pin-cell .pin-icon:hover {
+  opacity: 1;
+  color: var(--devui-primary);
+}
+
+.pin-cell .unpin-icon {
+  cursor: pointer;
+  color: var(--devui-primary);
+}
+
+/* Column 2: Group headers (50px) */
+.group-header-column {
+  width: 50px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.group-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--devui-swim-split-line);
+  border-right: 1px solid var(--devui-swim-split-line);
+}
+
+.group-header-text {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  line-height: 1.2;
+  color: var(--devui-thread-text);
+}
+
+/* Column 3+4: Thread content */
+.threads-content-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.thread-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  border-bottom: 1px solid var(--devui-swim-split-line);
+  color: var(--devui-thread-text);
+}
+
+.thread-row.active {
+  background-color: var(--devui-font-badge-bg);
+}
+
+.thread-name {
+  flex-shrink: 0;
+  min-width: 80px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--devui-thread-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threads-content-column .threads-box {
+  flex: 1;
+  position: relative;
+  min-width: 60px;
 }
 </style>
