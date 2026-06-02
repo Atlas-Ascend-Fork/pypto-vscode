@@ -97,3 +97,8 @@
   left: auto;
   text-align: right;
 }
+
+.fake-core-tip{
+  margin-left: 4px;
+  padding-top: 4px;
+}

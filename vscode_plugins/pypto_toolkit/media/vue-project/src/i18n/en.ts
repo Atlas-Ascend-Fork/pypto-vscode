@@ -146,6 +146,7 @@ export default {
     'configButtonTip':'Swimlane Rendering Configuration',
     'showPerformancePanel': 'Show Performance Panel by Default',
     'showPerformancePanelTip': 'When enabled, the performance statistics panel will be automatically displayed when opening the swimlane graph',
+    'FakeCoreTip':'The start and end times of the nodes in this swimlane are calculated, not the actual execution time, we only need to focus on their dependencies.',
     'mixMode':'Mix Mode',
     'PerformanceStatus':'Performance Statistics',
     'renderConfig': 'Render Config',

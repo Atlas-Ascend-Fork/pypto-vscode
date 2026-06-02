@@ -148,6 +148,7 @@ export default {
    'configButtonTip':'渲染配置',
    'showPerformancePanel': '默认显示性能统计面板',
    'showPerformancePanelTip': '开启后，打开泳道图时会自动显示性能统计面板',
+   'FakeCoreTip':'此泳道中节点的开始和结束时间都是计算得到的，不是实际执行时间，只关注其依赖即可。',
    'mixMode':'Mix 模式',
     'PerformanceStatus':'性能统计',
     'renderConfig': '渲染配置',

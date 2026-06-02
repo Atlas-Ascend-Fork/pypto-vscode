@@ -44,6 +44,11 @@
             :style="{ height: lane.height + 'px' }"
           >
             {{ lane.thread.threadName }}
+            <div class="fake-core-tip" v-if="lane.thread.threadName.includes('Fake')">
+              <d-tooltip :content="$t('FakeCoreTip')">
+                <d-icon name="helping" size="16px"></d-icon>
+              </d-tooltip>
+            </div>
           </div>
           <div 
             class="threads-box" 
@@ -191,6 +196,11 @@
             :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
           >
             {{ threadEntry[1].threadName }}
+            <div class="fake-core-tip" v-if="threadEntry[1].threadName.includes('Fake')">
+              <d-tooltip :content="$t('FakeCoreTip')">
+                <d-icon name="helping" size="16px"></d-icon>
+              </d-tooltip>
+            </div>
           </div>
           
           <div
