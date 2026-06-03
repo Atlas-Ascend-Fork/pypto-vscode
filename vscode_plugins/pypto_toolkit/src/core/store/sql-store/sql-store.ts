@@ -96,6 +96,63 @@ export class SqlStore<
     return;
   }
 
+  /**
+   * 批量设置/更新数据（支持分批提交与统一落盘）
+   * @param items 要批量插入的数据项数组
+   * @param batchSize 每批处理的数据量，默认 1000 条
+   */
+  public async batchSet(items: Item[], batchSize: number = 1000): Promise<void> {
+    if (!items || items.length === 0) return;
+
+    const db = await this._db;
+    const columns = this._attributeResolver.toColumnNames();
+    const columnStr = columns.join(',');
+
+    // 用于收集生成的文件名，以便后续统一保存文件
+    const fileSavePromises: Promise<void>[] = [];
+
+    try {
+      // 关闭自动提交，由我们手动控制整个大流程的事务边界
+      // （注意：如果 sql.js 没有直接的 setAutoCommit(false)，
+      // 则依靠最外层的 BEGIN TRANSACTION 包裹即可）
+      
+      for (let i = 0; i < items.length; i += batchSize) {
+        // 1. 安全切片，防止越界
+        const chunk = items.slice(i, i + batchSize);
+        
+        // 2. 开启当前批次的子事务
+        db.run("BEGIN TRANSACTION");
+
+        for (const item of chunk) {
+          // 3. 准备文件存储信息并异步写入文件
+          const conditions = this._attributeResolver.itemToPrimaryConditions(item);
+          const savingFileName = this.makeUniqueFileName(conditions.join(''));
+          fileSavePromises.push(this._dataFileController.write(item, savingFileName));
+
+          // 4. 拼接单条 VALUES 并在当前批次内执行
+          const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
+          const sql = `INSERT OR REPLACE INTO ${this.storeName}(${columnStr}) VALUES(${values.join(',')})`;
+          db.run(sql);
+        }
+
+        // 5. 提交当前批次的事务
+        db.run("COMMIT");
+      }
+
+      // 6. 等待所有文件并发写入完成
+      await Promise.all(fileSavePromises);
+
+      // 7. 【核心】所有批次完成后，统一将 SQLite 内存状态持久化到磁盘
+      db.save();
+
+    } catch (error) {
+      // 发生异常时回滚当前批次的事务
+      db.run("ROLLBACK");
+      console.error('Batch set failed and rolled back:', error);
+      throw error;
+    }
+  }
+
   public async delete(primaryConditions: { [key in P]: Item[key] }): Promise<boolean> {
     const conditions = this._attributeResolver.itemToPrimaryConditions(primaryConditions as Partial<Item>);
     const selectResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);

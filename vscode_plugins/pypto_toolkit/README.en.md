@@ -16,200 +16,207 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
 - **Check compilation result**
 
-    Click the icon in the VS Code sidebar, if the icon is not displayed, right-click in the sidebar and check `PyPTO Toolkit`.
+  Click the icon in the VS Code sidebar, if the icon is not displayed, right-click in the sidebar and check `PyPTO Toolkit`.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20openSidebar.gif)
 
 - **Search from compilation result**
 
-    The output file name is in the format of `Run Type + Execution Date + Execution Time`.
+  The output file name is in the format of `Run Type + Execution Date + Execution Time`.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.0%20sidebarSearch.gif)
 
 ## Control Flow
 
 - **Open result overview**
 
-    Select any result directory, expand it, and click `Result Overview`.
+  Select any result directory, expand it, and click `Result Overview`.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
 
 - **Search for nodes**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/nodeSearch.gif)
 
 - **Check PATH node detail**
 
-    Click the icon in the upper right corner of the PATH card to view details.
+  Click the icon in the upper right corner of the PATH card to view details.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/pathNodeDetail.gif)
 
 - **View Accuracy Execution Report**
 
-    If the file contains an accuracy execution report, once it is successfully read and imported, click `Open Accuracy Execution Report` at the top right of the page to view the details. Clicking on a PASS that signifies an accuracy check failure will highlight and focus on the corresponding node.
+  If the file contains an accuracy execution report, once it is successfully read and imported, click `Open Accuracy Execution Report` at the top right of the page to view the details. Clicking on a PASS that signifies an accuracy check failure will highlight and focus on the corresponding node.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
 
 ## Computation Graph
 
 - **Open Computation Graph**
 
-    Right-click on the computation graph json file and select `PyPTO Toolkit: Open file`
+  Right-click on the computation graph json file and select `PyPTO Toolkit: Open file`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/openCom.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/openCom.gif)
 
 - **View Computation Graph**
 
-    Support page dragging, thumbnail viewing, zooming to view nodes, and clicking to view node details
+  Support page dragging, thumbnail viewing, zooming to view nodes, and clicking to view node details
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/optCom.gif)
-  
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/optCom.gif)
+
 - **Node Search**
 
-    Enter directly and press Enter, or click the search button for fuzzy search; click the search box to select the corresponding category for category search. Click on nodes to view json data details. Select full graph search to search content in other functions within the json
+  Enter directly and press Enter, or click the search button for fuzzy search; click the search box to select the corresponding category for category search. Click on nodes to view json data details. Select full graph search to search content in other functions within the json
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comSearch.gif)
 
 - **Subgraph Navigation**
 
-    Double-click on call nodes to navigate to subgraphs. Call nodes are identified by an FX icon in the bottom right corner
+  Double-click on call nodes to navigate to subgraphs. Call nodes are identified by an FX icon in the bottom right corner
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comToSubgraph.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comToSubgraph.gif)
 
 - **Health Report**
 
-    Click the health report button in the upper right corner to search for the health report related json corresponding to the current file and display its content. You can quickly locate related nodes through the health report
+  Click the health report button in the upper right corner to search for the health report related json corresponding to the current file and display its content. You can quickly locate related nodes through the health report
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/healthReport.gif)
-    
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/healthReport.gif)
+
 - **Accuracy Report**
 
-    Click the health report button in the upper right corner. If the current data contains accuracy anomaly data, the accuracy report will be displayed; click to show the relevant content. Clicking on any item in the accuracy anomaly list will navigate to the details page.
+  Click the health report button in the upper right corner. If the current data contains accuracy anomaly data, the accuracy report will be displayed; click to show the relevant content. Clicking on any item in the accuracy anomaly list will navigate to the details page.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromComGraph.gif)
-  
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromComGraph.gif)
+
 - **Layer Control**
 
-    The button in the top right corner can open the layer control panel, which supports changing the layout direction and adjusting the node display mode, and control over the number of nodes displayed
+  The button in the top right corner can open the layer control panel, which supports changing the layout direction and adjusting the node display mode, and control over the number of nodes displayed
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comGraphSetting.gif)
 
 - **Link Locking**
 
-    After selecting a node, right-clicking allows you to lock or display only the links related to that node. You can view the current path in a new tab and quickly jump to the previous and next nodes using shortcut keys.
+  After selecting a node, right-clicking allows you to lock or display only the links related to that node. You can view the current path in a new tab and quickly jump to the previous and next nodes using shortcut keys.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/lockPath.gif)
 
 - **Comparison Mode Activation**
 
-    Right-click the calculation graph file and select "PyPTO Toolkit Advanced Operations" under it, then choose "PyPTO Toolkit Open Calculation Graph Difference Comparison". It will automatically select the associated comparison file in the same folder. If not found, you can manually select the file path for comparison.
+  Right-click the calculation graph file and select "PyPTO Toolkit Advanced Operations" under it, then choose "PyPTO Toolkit Open Calculation Graph Difference Comparison". It will automatically select the associated comparison file in the same folder. If not found, you can manually select the file path for comparison.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
- 
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/comgraphDiff.gif)
+
 - **Node search enabled**
 
-    Right-click the calculation graph file, select "Open Calculation Graph by Node Search Using PyPTO Toolkit" under the "Advanced Operations with PyPTO Toolkit" submenu, and open the calculation graph by searching for keywords and attributes of the nodes
+  Right-click the calculation graph file, select "Open Calculation Graph by Node Search Using PyPTO Toolkit" under the "Advanced Operations with PyPTO Toolkit" submenu, and open the calculation graph by searching for keywords and attributes of the nodes
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/nodeSearch.gif)
 
 - **Local Search**
 
-    When the number of open file nodes exceeds 10000, you can choose to render all nodes or search for a specific node and render its related linked. It is recommended to use this feature as needed when file size is too large.
+  When the number of open file nodes exceeds 10000, you can choose to render all nodes or search for a specific node and render its related linked. It is recommended to use this feature as needed when file size is too large.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/localSearch.gif)
+
+- **Memory Visualization**
+  Memory trace file generation is controlled by a knob. Enable it on the frontend by setting compile_debug_mode = 1.
+
+  When a memory trace file is available, you can click the Memory Visualization button in the top-right corner of the compute graph interface to open the visualization panel. Alternatively, right-click a memory trace file and select PyPTO Toolkit: Open File to launch the visualization
+
+  The visualization interface mainly consists of three components: the Memory Graph, the Event Timeline, and the Event List. Clicking on the Event Timeline will display the corresponding event list for that specific time node. The Event List supports both continuous playback and single-event step-by-step playback.
+
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memoryView.gif)
 
 ## Swimlane Diagram
 
 - **Open Swimlane Diagram**
 
-    Right-click on the swimlane diagram json file and select `PyPTO Toolkit: Open file`
+  Right-click on the swimlane diagram json file and select `PyPTO Toolkit: Open file`
+  - **Kernel Swimlane Diagram**
 
-    - **Kernel Swimlane Diagram**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
+  - **End To End (AICPU + Kernel) Swimlane Diagram**
 
-    - **End To End (AICPU + Kernel) Swimlane Diagram**
-  
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
 
-    - **pypto3.0 Swimlane Diagram**
+  - **pypto3.0 Swimlane Diagram**
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openPypto3.gif)
 
 - **View Node Details**
 
-    Click on the node to view its details in the lower panel
+  Click on the node to view its details in the lower panel
+  - **Kernel View**
 
-    - **Kernel View**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
+  - **AICPU View**
 
-    - **AICPU View**
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
 
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+  - **pypto3.0 Swimlane Diagram**
 
-    - **pypto3.0 Swimlane Diagram**
-
-        ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
 - **Node Search**
 
-    Inputting the node name in the search box allows for a fuzzy search of the node
+  Inputting the node name in the search box allows for a fuzzy search of the node
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimSearch.gif)
 
 - **Jump to Computation Graph**
 
-    Support jumping to computation graph based on `rootHash` and `leafHash`
+  Support jumping to computation graph based on `rootHash` and `leafHash`
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimToCom.gif)
 
 - **Swim Graph Export**
 
-    Support export swim graph to png image file
+  Support export swim graph to png image file
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/exportSwimGraph.gif)
 
 - **Add observation line**
 
-    Clicking on the second axis can add observation lines, and clicking on an observation line can delete or modify it
+  Clicking on the second axis can add observation lines, and clicking on an observation line can delete or modify it
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/addFlag.gif)
 
 - **Performance panel**
 
-    Click the report button in the upper left corner to view the performance report. Clicking on a node on the page will automatically locate it to the corresponding position on the graph, making it convenient for users to quickly view performance issues.
+  Click the report button in the upper left corner to view the performance report. Clicking on a node on the page will automatically locate it to the corresponding position on the graph, making it convenient for users to quickly view performance issues.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.6performanceReport.gif)
 
 - **Core utilization statistics**
 
-    Click the metric mode button in the upper left corner, or use the mouse to select nodes to view core utilization statistics.
+  Click the metric mode button in the upper left corner, or use the mouse to select nodes to view core utilization statistics.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/coreUti.gif)
 
 - **Swimlane Topped**
 
-    Move the mouse over the left area of the lane. The top icon will be displayed. Click to top the lane.
+  Move the mouse over the left area of the lane. The top icon will be displayed. Click to top the lane.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
-    
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
+
 - **Mix Subgraph**
 
-    Enable Mix mode in the Swimlane Rendering Configuration panel to view the Mix subgraph.
+  Enable Mix mode in the Swimlane Rendering Configuration panel to view the Mix subgraph.
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
 
 - **Shortcut Key List**
 
-  | Shortcut | Function Description |
-  | --- | --- |
-  | Mouse Wheel | **Vertical** movement |
-  | Left Mouse Button + CTRL | **Horizontal** movement |
-  | Mouse Wheel + CTRL | Zoom |
-  | Left Mouse Button + ALT | Manual distance measurement |
-  | w / s (configurable in settings page) | Zoom in / Zoom out |
-  | a / d (configurable in settings page) | Horizontal movement |
+  | Shortcut                              | Function Description        |
+  | ------------------------------------- | --------------------------- |
+  | Mouse Wheel                           | **Vertical** movement       |
+  | Left Mouse Button + CTRL              | **Horizontal** movement     |
+  | Mouse Wheel + CTRL                    | Zoom                        |
+  | Left Mouse Button + ALT               | Manual distance measurement |
+  | w / s (configurable in settings page) | Zoom in / Zoom out          |
+  | a / d (configurable in settings page) | Horizontal movement         |
 
 ## Three-Panel Linked View
 
@@ -237,7 +244,7 @@ The three-panel linked view simultaneously displays code, a computational graph,
 
 ## Feedback Channel
 
-  If you have any questions or suggestions, please submit an issue:[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
+If you have any questions or suggestions, please submit an issue:[https://gitcode.com/cann/pypto/issues](https://gitcode.com/cann/pypto/issues)
 
 ## Disclaimer
 

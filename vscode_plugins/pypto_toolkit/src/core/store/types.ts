@@ -48,6 +48,14 @@ export interface Store<Item extends Data, P extends keyof Item, Q extends keyof 
   set(item: Item): Promise<void>;
 
   /**
+   * 批量创建或更新数据
+   * @description 适用于大批量数据的写入，内部通常会采用事务和分批提交来优化性能并减少 I/O 开销
+   * @param items 要批量保存的数据项数组
+   * @param batchSize 可选，每批处理的数据量（具体取决于底层实现）
+   */
+  batchSet(items: Item[], batchSize?: number): Promise<void>;
+
+  /**
    * 删除单条数据
    * @param primaryConditions 所有主键构成的条件
    */

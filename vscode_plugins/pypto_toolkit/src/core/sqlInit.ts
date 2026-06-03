@@ -137,6 +137,7 @@ export interface MemoryTraceCache {
   chipArch: string;
   mtime: number; // 文件修改时间，用于缓存验证
   createdAt: number;
+  timelineData: string;
 }
 
 const MEMORY_TRACE_CACHE_ATTRIBUTES = defineAttributes<MemoryTraceCache>({
@@ -145,6 +146,7 @@ const MEMORY_TRACE_CACHE_ATTRIBUTES = defineAttributes<MemoryTraceCache>({
   chipArch: { type: String, isQuery: true },
   mtime: { type: Number, isQuery: true },
   createdAt: { type: Number },
+  timelineData: { type: String },
 });
 
 let memoryTraceCacheStore: Store<MemoryTraceCache, 'filePath', 'createdAt'>;

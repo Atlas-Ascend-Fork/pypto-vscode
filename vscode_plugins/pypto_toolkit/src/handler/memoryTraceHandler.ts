@@ -113,211 +113,130 @@ export class MemoryTraceHandler {
   }
 
   static async saveToCache(fsPath: string, data: any): Promise<void> {
-    const fileStat = await fs.stat(fsPath);
     const timeline = data.timeline || [];
+    if (timeline.length === 0) return;
 
+    const bufferMap = new Map<number, BufferState>(); 
+    let gmIndex = 0;
+    const eventsToSave: any[] = []; // 收集所有待入库的事件对象
+
+    for (let index = 0; index < timeline.length; index++) {
+      const e = timeline[index];
+      const targetBufferList: BufferState[] = [];
+      const originBufferListSnapshot: BufferState[] = []; // 用于快照当前状态
+
+      // 生成当前状态的快照
+      bufferMap.forEach(val => originBufferListSnapshot.push({ ...val }));
+
+      if (e.eventType === 'ALLOC_EXEC') {
+        const newBuffer: BufferState = {
+          memId: e.memId, memType: e.memType, addrStart: e.addrStart, size: e.size, status: 1,
+        };
+        targetBufferList.push(newBuffer);
+        bufferMap.set(e.memId, newBuffer);
+
+      } else if (e.eventType === 'OP_LAUNCH') {
+        // 处理输入
+        if (e.inputMemIds.length > 0) {
+          for (const id of e.inputMemIds) {
+            const inputBuffer = bufferMap.get(id);
+            if (inputBuffer) targetBufferList.push({ ...inputBuffer });
+          }
+        }
+        // 处理输出
+        if (e.outputMemIds.length > 0) {
+          for (const id of e.outputMemIds) {
+            const outputBuffer = bufferMap.get(id);
+            if (outputBuffer) {
+              const updatedBuffer = { ...outputBuffer, status: 2 };
+              targetBufferList.push(updatedBuffer);
+              bufferMap.set(id, updatedBuffer); // 更新 Map
+            }
+          }
+        }
+      } else if (e.eventType === 'OP_RETIRE') {
+        if (e.freedMemIds.length > 0) {
+          for (const id of e.freedMemIds) {
+            const freedBuffer = bufferMap.get(id);
+            if (freedBuffer) {
+              targetBufferList.push({ ...freedBuffer, status: 0 });
+              bufferMap.delete(id); // 释放后从 Map 移除
+            }
+          }
+        }
+      } else if (e.eventType === 'SPILL') {
+        const freedBuffer = bufferMap.get(e.memId);
+        if (freedBuffer) {
+          targetBufferList.push({ ...freedBuffer, status: 0 });
+          bufferMap.delete(e.memId);
+        }
+        const spillBuffer: BufferState = {
+          memId: e.spillDdrMemId, memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024, size: 32 * 1024 * 1024, status: 2,
+        };
+        targetBufferList.push(spillBuffer);
+        bufferMap.set(e.spillDdrMemId, spillBuffer);
+        gmIndex++;
+      } else if (e.eventType === 'BUFFER_REARRANGE') {
+        for (const change of e.changes) {
+          const changeBuffer = bufferMap.get(change.memId);
+          if (changeBuffer) {
+            const updatedBuffer = { ...changeBuffer, addrStart: change.newStart };
+            targetBufferList.push(updatedBuffer);
+            bufferMap.set(change.memId, updatedBuffer);
+          }
+        }
+      } else if (e.eventType === 'INIT_DDR_BUFFER') {
+        const initBuffer: BufferState = {
+          memId: e.memId, memType: 'MEM_GM',
+          addrStart: gmIndex * 32 * 1024 * 1024, size: 32 * 1024 * 1024, status: 2,
+        };
+        targetBufferList.push(initBuffer);
+        bufferMap.set(e.memId, initBuffer);
+        gmIndex++;
+      }
+
+      // 组装事件对象并加入待保存队列
+      const eventPayload: any = {
+        id: index,
+        filePath: fsPath,
+        ...e,
+        action: {
+          targetBufferList,
+          originBufferList: originBufferListSnapshot,
+        },
+      };
+      // ALLOC_FAIL 特殊字段处理
+      if (e.eventType === 'ALLOC_FAIL') {
+        eventPayload.errorMemType = [e.memType];
+      }
+      
+      eventsToSave.push(eventPayload);
+    }
+
+    // 使用批量接口统一落盘，内部会执行分批事务与统一 db.save()
+    await getMemoryTraceEventStore().batchSet(eventsToSave);
+    
+    console.log(`[MemoryTrace] Caching ${timeline.length} events for: ${fsPath}`);
+
+    const clockMap = new Map<number, MemoryTraceEvent[]>();
+    for (const e of eventsToSave) {
+      if (!clockMap.has(e.clock)) clockMap.set(e.clock, []);
+      clockMap.get(e.clock)!.push(e);
+    }
+
+    const fileStat = await fs.stat(fsPath);
     const cacheRecord = {
       filePath: fsPath,
       totalCycles: data.metadata?.totalCycles || 0,
       chipArch: data.metadata?.chipArch || '',
       mtime: fileStat.mtimeMs,
       createdAt: Date.now(),
+      timelineData: JSON.stringify(Array.from(clockMap.entries()))
     };
     await getMemoryTraceCacheStore().set(cacheRecord);
 
-    // 写入 events 表（保留原有功能）
-    let originBufferList: BufferState[] = []; // 记录初始所有buffer的情况
-    let gmIndex = 0;
-    for (let index = 0; index < timeline.length; index++) {
-      const e = timeline[index];
-      let targetBufferList: BufferState[] = []; // 记录当前变化buffer的情况
-      if (e.eventType == 'ALLOC_EXEC') {
-        targetBufferList.push({
-          memId: e.memId,
-          memType: e.memType,
-          addrStart: e.addrStart,
-          size: e.size,
-          status: 1,
-        });
 
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-
-        originBufferList.push({
-          memId: e.memId,
-          memType: e.memType,
-          addrStart: e.addrStart,
-          size: e.size,
-          status: 1,
-        });
-      } else if (e.eventType == 'OP_LAUNCH') {
-        if (e.inputMemIds.length != 0) {
-          for (let i = 0; i < e.inputMemIds.length; i++) {
-            const inputBuffer = originBufferList.find((item) => item.memId === e.inputMemIds[i]);
-            if (inputBuffer) {
-              targetBufferList.push({ ...inputBuffer });
-            }
-          }
-        }
-        if (e.outputMemIds.length != 0) {
-          for (let i = 0; i < e.outputMemIds.length; i++) {
-            const outputBuffer = originBufferList.find((item) => item.memId === e.outputMemIds[i]);
-            if (outputBuffer) {
-              let buffer = { ...outputBuffer };
-              buffer.status = 2;
-              targetBufferList.push(buffer);
-            }
-          }
-        }
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-        // 修改 originBufferList
-        for (let i = 0; i < targetBufferList.length; i++) {
-          const outputBuffer = originBufferList.find((item) => item.memId === targetBufferList[i].memId);
-          if (outputBuffer) {
-            outputBuffer.status = 2;
-          }
-        }
-      } else if (e.eventType == 'OP_RETIRE') {
-        if (e.freedMemIds.length != 0) {
-          for (let i = 0; i < e.freedMemIds.length; i++) {
-            const freedBuffer = originBufferList.find((item) => item.memId === e.freedMemIds[i]);
-            if (freedBuffer) {
-              let buffer = { ...freedBuffer };
-              buffer.status = 0;
-              targetBufferList.push(buffer);
-            }
-          }
-        }
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-        // 修改 originBufferList
-        for (let i = 0; i < targetBufferList.length; i++) {
-          const freedBufferIndex = originBufferList.findIndex((item) => item.memId === targetBufferList[i].memId);
-          if (freedBufferIndex !== -1) {
-            originBufferList.splice(freedBufferIndex, 1);
-          }
-        }
-      } else if (e.eventType == 'SPILL') {
-        const freedBuffer = originBufferList.find((item) => item.memId === e.memId);
-        if (freedBuffer) {
-          let buffer = { ...freedBuffer };
-          buffer.status = 0;
-          targetBufferList.push(buffer);
-        }
-        targetBufferList.push({
-          memId: e.spillDdrMemId,
-          memType: 'MEM_GM',
-          addrStart: gmIndex * 32 * 1024 * 1024,
-          size: 32 * 1024 * 1024,
-          status: 2,
-        });
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-        const freedBufferIndex = originBufferList.findIndex((item) => item.memId === e.memId);
-        if (freedBufferIndex !== -1) {
-          originBufferList.splice(freedBufferIndex, 1);
-        }
-        originBufferList.push({
-          memId: e.spillDdrMemId,
-          memType: 'MEM_GM',
-          addrStart: gmIndex * 32 * 1024 * 1024,
-          size: 32 * 1024 * 1024,
-          status: 2,
-        });
-        gmIndex++;
-      } else if (e.eventType == 'BUFFER_REARRANGE') {
-        for(let i = 0; i < e.changes.length; i++){
-          const changeBuffer = originBufferList.find((item) => item.memId === e.changes[i].memId);
-          if (changeBuffer) {
-            let buffer = { ...changeBuffer };
-              buffer.addrStart = e.changes[i].newStart;
-              targetBufferList.push(buffer);
-          }
-        }
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-        // 修改 originBufferList
-        for(let i = 0; i < e.changes.length; i++){
-          const changeBuffer = originBufferList.find((item) => item.memId === e.changes[i].memId);
-          if (changeBuffer) {
-            changeBuffer.addrStart = e.changes[i].newStart;
-          }
-        }
-      } else if (e.eventType == 'ALLOC_FAIL') {
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-            errorMemType:[e.memType]
-          },
-        });
-      } else if (e.eventType == 'INIT_DDR_BUFFER') {
-        targetBufferList.push({
-          memId: e.memId,
-          memType: 'MEM_GM',
-          addrStart: gmIndex * 32 * 1024 * 1024,
-          size: 32 * 1024 * 1024,
-          status: 2,
-        });
-        await getMemoryTraceEventStore().set({
-          id: index,
-          filePath: fsPath,
-          ...e,
-          action: {
-            targetBufferList: targetBufferList,
-            originBufferList: originBufferList,
-          },
-        });
-        originBufferList.push({
-          memId: e.memId,
-          memType: 'MEM_GM',
-          addrStart: gmIndex * 32 * 1024 * 1024,
-          size: 32 * 1024 * 1024,
-          status: 2,
-        });
-        gmIndex++;
-      }
-    }
-    console.log(`[MemoryTrace] Caching ${timeline.length} events for: ${fsPath}`);
   }
 
   static async getMetadata(fsPath: string): Promise<MemoryTraceMetadata | null> {
@@ -335,29 +254,13 @@ export class MemoryTraceHandler {
   }
 
   static async getTimeline(fsPath: string): Promise<ClockEvents[]> {
-    const allEvents = await getMemoryTraceEventStore().query().filter({ filePath: fsPath }).exec();
-    // 1. 创建一个 Map，key 是 clock，value 是该 clock 下的事件数组
-    const clockMap = new Map<number, MemoryTraceEvent[]>();
-
-    // 2. 遍历原始数据，进行分组
-    for (const event of allEvents) {
-      if (!clockMap.has(event.clock)) {
-        clockMap.set(event.clock, []);
-      }
-      clockMap.get(event.clock)!.push(event);
-    }
-
-    // 3. 将 Map 转换成你需要的 ClockEvents[] 数组格式
-    const clockEvents: ClockEvents[] = Array.from(clockMap.entries()).map(([clock, events]) => ({
-      clock,
-      events,
-    }));
-
-    // 4. 如果需要按时间顺序排序（可选）
-    clockEvents.sort((a, b) => a.clock - b.clock);
-
-    return clockEvents;
-  }
+  const cache = await getMemoryTraceCacheStore().find({filePath:fsPath});
+  if (!cache) return [];
+  
+  // 直接解析预聚合数据（无需分组计算）
+  const result = JSON.parse(cache.timelineData).map(([clock, events]) => ({ clock, events }));
+  return result;
+}
 
   static async getTimelineEvents(fsPath: string): Promise<any> {
     const timeline = await this.getTimeline(fsPath);
