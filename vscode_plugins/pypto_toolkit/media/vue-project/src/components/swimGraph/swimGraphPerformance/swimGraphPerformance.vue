@@ -375,7 +375,19 @@ const clickTask = async (clickEvent) => {
     await nextTick();
   }
   showDependencies(event, 'both');
+  const wasPanelClosed = !detailsPanelExpanded.value;
   selectEvent(event, key);
+  if (wasPanelClosed) {
+    await new Promise(resolve => {
+      const detailPanel = document.querySelector('.details-panel');
+      if (detailPanel) {
+        detailPanel.addEventListener('transitionend', resolve, { once: true });
+        setTimeout(resolve, 350);
+      } else {
+        resolve();
+      }
+    });
+  }
   scrollToEvent(event);
 };
 
