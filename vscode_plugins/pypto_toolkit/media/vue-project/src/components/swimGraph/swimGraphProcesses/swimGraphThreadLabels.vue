@@ -75,16 +75,21 @@
               :key="group.parentTid"
               class="pin-cell"
               :style="{ height: group.totalHeight + 'px' }"
+              @mouseover="hoveredGroupParentTid = group.parentTid"
+              @mouseleave="hoveredGroupParentTid = null; isHoveringPinIcon = false"
             >
-              <!-- Pin/Unpin icon based on group state -->
-              <d-tooltip 
-                :content="isGroupPinned(group) ? $t('unpinThread') : $t('pinThread')"
-                position="right"
-              >
+              <!-- Always show unpin icon when group is pinned -->
+              <d-tooltip v-if="isGroupPinned(group)" :content="$t('unpinThread')" position="right">
+                <d-icon name="icon-pushpin-fill" class="unpin-icon" @click="handlePinGroupThread(group)" />
+              </d-tooltip>
+              <!-- Show pin icon only on hover when not pinned -->
+              <d-tooltip v-else-if="hoveredGroupParentTid === group.parentTid" :content="$t('pinThread')" position="right">
                 <d-icon
-                  :name="isGroupPinned(group) ? 'icon-pushpin-fill' : 'icon-pushpin'"
-                  :class="isGroupPinned(group) ? 'unpin-icon' : 'pin-icon'"
+                  :name="isHoveringPinIcon ? 'icon-pushpin-fill' : 'icon-pushpin'"
+                  class="pin-icon"
                   @click="handlePinGroupThread(group)"
+                  @mouseenter="isHoveringPinIcon = true"
+                  @mouseleave="isHoveringPinIcon = false"
                 />
               </d-tooltip>
             </div>
@@ -97,6 +102,8 @@
               :key="group.parentTid"
               class="group-header-cell"
               :style="{ height: group.totalHeight + 'px' }"
+              @mouseover="hoveredGroupParentTid = group.parentTid"
+              @mouseleave="hoveredGroupParentTid = null"
             >
               <d-tooltip :content="group.parentThreadName" position="right">
                 <div class="group-header-text">
@@ -117,8 +124,8 @@
                 'active': `${props.processKey}-${index}` === curThread,
                 'activeS': activeThreadId === `${props.processKey}-${threadEntry[1].tid}`
               }"
-              @mouseover="handleLabelHover(index)"
-              @mouseleave="handleLabelLeave(index)"
+              @mouseover="handleLabelHover(index); hoveredGroupParentTid = threadEntry[1].parentTid"
+              @mouseleave="handleLabelLeave(index); hoveredGroupParentTid = null"
             >
               <!-- Column 3: Thread name -->
               <div class="thread-name">
@@ -291,6 +298,7 @@ const props = defineProps({
 const averageValue = ref(0);
 const hoveredThreadIndex = ref(-1);
 const isHoveringPinIcon = ref(false);
+const hoveredGroupParentTid = ref(null);
 
 const isAicpuProcess = computed(() => {
   const process = processes.get(props.processKey);

@@ -371,7 +371,7 @@ function drawTruncatedText(ctx, text, x, y, maxWidth) {
   ctx.fillText(truncatedText, x, y);
 }
 
-function drawGroupThreadLabels(ctx, groupThreads, startY, processKey, layoutConfig) {
+function drawGroupThreadLabels(ctx, groupThreads, startY, processKey, layoutConfig, showPinIcon = true) {
   const { lane2line, layout, processLabelWidth, getThreadHeight } = layoutConfig;
   const colors = getDrawingColors(isDarkTheme.value);
   const PIN_COLUMN_WIDTH = 36;
@@ -386,13 +386,15 @@ function drawGroupThreadLabels(ctx, groupThreads, startY, processKey, layoutConf
   const groupHeight = groupTotalHeight;
   drawSeparator(ctx, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, startY + groupHeight, colors.lineColor);
   
-  const iconX = 10;
-  const iconY = startY + (groupHeight / 2);
-  ctx.fillStyle = colors.iconColor;
-  drawPinIcon(ctx, iconX, iconY);
+  if (showPinIcon) {
+    const iconX = 10;
+    const iconY = startY + (groupHeight / 2);
+    ctx.fillStyle = colors.iconColor;
+    drawPinIcon(ctx, iconX, iconY);
+  }
   
   ctx.fillStyle = colors.textColor;
-  ctx.fillText(groupThreads[0].thread.parentThreadName, PIN_COLUMN_WIDTH + 4, iconY);
+  drawTruncatedText(ctx, groupThreads[0].thread.parentThreadName, PIN_COLUMN_WIDTH + 4, startY + (groupHeight / 2), GROUP_COLUMN_WIDTH - 8);
   
   let threadY = startY;
   for (const pt of groupThreads) {
@@ -498,7 +500,7 @@ function drawPinnedThreads(ctx, processLabelWidth, canvasCssWidth, startY, dpr) 
   if (!pinnedContainer) {
     return;
   }
-  const pinnedHeight = pinnedContainer.offsetHeight;
+  const pinnedHeight = pinnedContainer.scrollHeight;
   if (pinnedHeight === 0) {
     return;
   }
@@ -735,6 +737,8 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
         processKey
       }));
       
+      const isGroupPinned = groupThreads.some(pt => pt.thread.isPinned);
+      
       const layoutConfig = {
         lane2line,
         layout,
@@ -742,7 +746,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
         getThreadHeight
       };
       
-      currentY = drawGroupThreadLabels(ctx, groupThreads, currentY, processKey, layoutConfig);
+      currentY = drawGroupThreadLabels(ctx, groupThreads, currentY, processKey, layoutConfig, isGroupPinned);
     }
   } else {
     ctx.font = '13px Arial';

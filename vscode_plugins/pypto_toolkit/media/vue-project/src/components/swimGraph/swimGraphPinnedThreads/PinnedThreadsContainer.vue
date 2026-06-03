@@ -219,8 +219,7 @@ const getPinnedHeight = () => {
   if (!pinnedContainer.value) {
     return 0;
   }
-  const rect = pinnedContainer.value.getBoundingClientRect();
-  return rect.height;
+  return pinnedContainer.value.scrollHeight;
 };
 
 defineExpose({
@@ -257,7 +256,6 @@ defineExpose({
 
 .pinned-threads-events {
   flex: 1;
-  overflow: hidden;
   position: relative;
 }
 
