@@ -304,7 +304,7 @@ defineExpose({
 }
 
 .group-header-column {
-  width: 50px;
+  width: calc(50% - 36px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

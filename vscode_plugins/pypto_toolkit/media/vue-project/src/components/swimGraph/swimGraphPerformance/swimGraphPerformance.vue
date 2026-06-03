@@ -59,13 +59,13 @@
         </div>
 
         <div class="time-consuming-container-perform"
-        :style="{width: subContainerWidth + 'px'}" v-if="maxTimeTask.length > 0">
+        :style="{width: subContainerWidth + 'px'}" v-if="maxTimeTask.length > 0 && !isMsProf">
 
           <div class="task-statistic-item">
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
                 <div class="task-title">{{TaskMaxDuration}}({{ formatTimeUnit(maxTimeTaskVal) }})</div>
-                <div class="task-data">{{ formatTimeValueWithUnit(maxTimeTaskVal) }}</div>
+                <div class="task-data">{{ formatTimeValue(maxTimeTaskVal) }}</div>
               </div>
             </div>
             <div class="time-consuming-split-line"/>
@@ -93,7 +93,7 @@
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
 <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
                 <div class="task-title">{{TaskMinDuration}}({{ formatTimeUnit(minTimeTaskVal) }})</div>
-                <div class="task-data">{{ formatTimeValueWithUnit(minTimeTaskVal) }}</div>
+                <div class="task-data">{{ formatTimeValue(minTimeTaskVal) }}</div>
               </div>
             </div>
             <div class="time-consuming-split-line"/>
@@ -130,7 +130,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-            <div class="task-data">{{ formatTimeValueWithUnit(taskOnBoardTime) }}</div>
+            <div class="task-data">{{ formatTimeValue(taskOnBoardTime) }}</div>
           </div>
           <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">
@@ -139,7 +139,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-            <div class="task-data">{{ formatTimeValueWithUnit(taskTime) }}</div>
+            <div class="task-data">{{ formatTimeValue(taskTime) }}</div>
           </div>
           </div>
           <div class="task-item-container mt10" :style="{width: innerContainerWidth + 'px'}">
@@ -156,7 +156,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="task-data">{{ formatTimeValueWithUnit(aicoreTime) }}</div>
+              <div class="task-data">{{ formatTimeValue(aicoreTime) }}</div>
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
@@ -217,7 +217,7 @@ import { buildEventMap } from '../swimGraphProcesses/render/utils';
 import { getBaseColor, getLightColor } from '../swimGraphProcesses/processInfo';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import TimeStatistics from './timeStatistics/timeStatistics.vue';
-import { executionTimeData } from './utils';
+import { executionTimeData, formatTimeUnit, formatTimeValue, US_TO_MS_THRESHOLD, US_TO_S_THRESHOLD, UNIT_US, UNIT_MS, UNIT_S } from './utils';
 import { swimDataManager } from '../swimData';
 const swimGraphBarChartComponent = ref(null);
 
@@ -282,12 +282,6 @@ const maxTimeTaskVal = ref(0);
 const minTimeTask = ref([]);
 const minTimeTaskVal = ref(0);
 
-const US_TO_MS_THRESHOLD = 1000;
-const US_TO_S_THRESHOLD = 1000000;
-const UNIT_US = 'μs';
-const UNIT_MS = 'ms';
-const UNIT_S = 's';
-
 const {
   pmuTotal
 } = inject('swimGraphPmuTotal');
@@ -332,7 +326,8 @@ const {
   kernelColorRending,
   isMixMode,
   canvasclickedEvent,
-  isFromPerformanceClick
+  isFromPerformanceClick,
+  isMsProf
 } = inject('swimGraphState');
 
 const {
@@ -374,6 +369,10 @@ const clickTask = async (clickEvent) => {
     toggleProcess(key);
     childContextMap.threadEvent.eraseEventLine('over');
     await nextTick();
+  } else if (!processExpanded.get(key)){
+    toggleProcess(key);
+    childContextMap.threadEvent.eraseEventLine('over');
+    await nextTick();
   }
   showDependencies(event, 'both');
   selectEvent(event, key);
@@ -381,6 +380,12 @@ const clickTask = async (clickEvent) => {
 };
 
 const showMaxSchedule = async (item, isChild = false) => {
+  const key = item.child.pid.toString();
+  if (!processExpanded.get(key)){
+    toggleProcess(key);
+    childContextMap.threadEvent.eraseEventLine('over');
+    await nextTick();
+  }
   canvasclickedEvent.value = isChild ? item.child : item.parent;
   const subParentEvents = swimDataManager.getSubEvents(item.parent.id);
   const subChildEvents = swimDataManager.getSubEvents(item.child.id);
@@ -444,24 +449,6 @@ const formatGapUnit = (gap) => {
 const formatGapValueWithUnit = (gap) => {
   if (!gap) return 0;
   const valueInUs = parseFloat((gap / tsScale.value).toFixed(3));
-  if (valueInUs >= US_TO_S_THRESHOLD) {
-    return parseFloat((valueInUs / US_TO_S_THRESHOLD).toFixed(3));
-  }
-  if (valueInUs >= US_TO_MS_THRESHOLD) {
-    return parseFloat((valueInUs / US_TO_MS_THRESHOLD).toFixed(3));
-  }
-  return valueInUs;
-};
-
-const formatTimeUnit = (valueInUs) => {
-  if (!valueInUs) return UNIT_US;
-  if (valueInUs >= US_TO_S_THRESHOLD) return UNIT_S;
-  if (valueInUs >= US_TO_MS_THRESHOLD) return UNIT_MS;
-  return UNIT_US;
-};
-
-const formatTimeValueWithUnit = (valueInUs) => {
-  if (!valueInUs) return 0;
   if (valueInUs >= US_TO_S_THRESHOLD) {
     return parseFloat((valueInUs / US_TO_S_THRESHOLD).toFixed(3));
   }

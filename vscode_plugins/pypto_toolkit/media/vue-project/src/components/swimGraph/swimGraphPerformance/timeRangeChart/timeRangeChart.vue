@@ -52,7 +52,7 @@
 import { ref, inject, onMounted, watch, onUnmounted, computed } from 'vue';
 import { getSubGraphId, getEventColorByMode } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
-import { executionTimeData } from '../utils';
+import { executionTimeData, formatTimeUnit, formatTimeValue } from '../utils';
 const { t: $t } = useI18n();
 const state = inject('subGraphTimingState');
 const { clickTask } = inject('swimGraphPmuBarMethod');
@@ -224,11 +224,11 @@ const buildTimelineGroups = (groups) => {
     const diffText = showMarkerFlag ? diff / mod : 0;
     let displayText = '';
     if (diffClampedWidth >= TEXT_FULL_THRESHOLD_PERCENT) {
-      displayText = `${$t('timeRange')} ${formatMicroseconds(diffText)} us`;
+      displayText = `${$t('timeRange')} ${formatTimeValue(formatMicroseconds(diffText))} ${formatTimeUnit(formatMicroseconds(diffText))}`;
     } else if (diffClampedWidth >= TEXT_SHORT_THRESHOLD_PERCENT) {
-      displayText = `${formatMicroseconds(diffText)} us`;
+      displayText = `${formatTimeValue(formatMicroseconds(diffText))} ${formatTimeUnit(formatMicroseconds(diffText))}`;
     } else if (diffClampedWidth >= TEXT_NUMBER_THRESHOLD_PERCENT) {
-      displayText = `${formatMicroseconds(diffText)}`;
+      displayText = `${formatTimeValue(formatMicroseconds(diffText))}`;
     } else {
       displayText = '';
     }
@@ -244,21 +244,21 @@ const buildTimelineGroups = (groups) => {
       id: leafIndex,
       start: 0,
       width: showMarkerFlag ? `calc(${diffClampedWidth}%)` : 0,
-      tooltipText: `${$t('timeRange')} ${formatMicroseconds(diffText)} us`,
+      tooltipText: `${$t('timeRange')} ${formatTimeValue(formatMicroseconds(diffText))} ${formatTimeUnit(formatMicroseconds(diffText))}`,
       text: displayText, 
       event: eventMin,
       showMarker: showMarkerFlag,
       markers: [
         {
-          globalText: `${nameMin} (${formatMicroseconds(minText)} us)`,
-          text: `${truncateWithEllipsis(nameMin)} (${formatMicroseconds(minText)} us)`,
+          globalText: `${nameMin} (${formatTimeValue(formatMicroseconds(minText))} ${formatTimeUnit(formatMicroseconds(minText))})`,
+          text: `${truncateWithEllipsis(nameMin)} (${formatTimeValue(formatMicroseconds(minText))} ${formatTimeUnit(formatMicroseconds(minText))})`,
           left: `calc(0% - 41px)`,
           event: eventMin,
           showMarker: showMarkerFlag
         },
         {
-          globalText: `${nameMax} (${formatMicroseconds(maxText)} us)`,
-          text: `${truncateWithEllipsis(nameMax)} (${formatMicroseconds(maxText)} us)`,
+          globalText: `${nameMax} (${formatTimeValue(formatMicroseconds(maxText))} ${formatTimeUnit(formatMicroseconds(maxText))})`,
+          text: `${truncateWithEllipsis(nameMax)} (${formatTimeValue(formatMicroseconds(maxText))} ${formatTimeUnit(formatMicroseconds(maxText))})`,
           left: maxMarkerLeft,
           event: eventMax,
           showMarker: true
@@ -307,9 +307,9 @@ const getTicks = (globalMaxDuration) => {
     if (valUs === 0) {
       label = '0';
     } else if (isLast) {
-      label = `+${valUs} us`;
+      label = `+${formatTimeValue(valUs)} ${formatTimeUnit(valUs)}`;
     } else {
-      label = `+${valUs}`;
+      label = `+${formatTimeValue(valUs)}`;
     }
     return {
       pos: `${(i / (numTicks - 1) * 100).toFixed(2)}%`,

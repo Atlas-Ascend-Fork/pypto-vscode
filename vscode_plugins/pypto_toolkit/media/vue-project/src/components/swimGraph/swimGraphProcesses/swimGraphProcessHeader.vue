@@ -8,7 +8,7 @@
           <span>{{ process.processName }}</span>
         </d-tooltip>
       </div>
-      <div class="label_two" v-if="isExpanded">
+      <div class="label_two" v-if="isExpanded && !isMsProf">
         <d-select class="labelSelect" menu-class="globalSelect" v-model="selectedOption" :options="options" :placeholder="$t('clockCycle')" option-disabled-key="disabled" size="sm" @toggle-change="onMenuChange"></d-select>
       </div>
     </div>
@@ -35,7 +35,8 @@ const {
   isDarkTheme,
   processes,
   childContextMap,
-  isE2ESwim
+  isE2ESwim,
+  isMsProf
 } = swimGraphState;
 
 const {

@@ -199,7 +199,6 @@ const kernelModeOptions = computed(() => {
     {name: $t('label'), value: 'label'},
     {name: $t('mixSubGraph'), value: 'mixSubGraph'},
     {name: $t('isomorphicSubGraph'), value: 'isomorphicSubGraph'},
-    {name: $t('name'), value: 'name'},
   ];
 });
 

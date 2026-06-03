@@ -2304,7 +2304,7 @@ const drawMeasureTimeRange = (ctx, startx, endx) => {
   const range = Math.abs(endx - startx);
   const timerange = Math.abs(xToTime(endx) - xToTime(startx));
   let { value, unit } = formatTimeWithUnit(timerange * 1000 / tsScale.value);
-  const RectWidth = 35;
+  const RectWidth = 46;
   const RectHigh = 12;
 
   // 绘制边距线

@@ -128,7 +128,7 @@
               <!-- Column 4: Threads box -->
               <div 
                 class="threads-box"
-                v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined"
+                v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')"
                 :style="{
                   '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
                   '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
@@ -192,7 +192,7 @@
           
           <div
             class="thread-label-item"
-            :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined }]"
+            :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')}]"
             :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
           >
             {{ threadEntry[1].threadName }}
@@ -205,7 +205,7 @@
           
           <div
             class="threads-box"
-            v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_') || threadEntry[1].parentTid !== undefined"
+            v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')"
             :style="{
               '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
               '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
@@ -828,7 +828,7 @@ const activeThreadId = computed(() => {
 
 /* Column 2: Group headers (50px) */
 .group-header-column {
-  width: 50px;
+  width: calc(50% - 36px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
