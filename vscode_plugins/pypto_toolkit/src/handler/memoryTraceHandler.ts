@@ -208,7 +208,7 @@ export class MemoryTraceHandler {
       };
       // ALLOC_FAIL 特殊字段处理
       if (e.eventType === 'ALLOC_FAIL') {
-        eventPayload.errorMemType = [e.memType];
+        eventPayload.action.errorMemType = [e.memType];
       }
       
       eventsToSave.push(eventPayload);
