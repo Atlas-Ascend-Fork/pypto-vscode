@@ -2398,7 +2398,7 @@ const measureMouseUp = () => {
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
-    if (!isMixMode.value) {
+    if (!isMixMode.value && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
     }
@@ -2428,7 +2428,7 @@ const measureMouseLeave = (e) => {
   measureDetailSearch();
   isMeasureDragging.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
-    if (!isMixMode.value) {
+    if (!isMixMode.value && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
     }

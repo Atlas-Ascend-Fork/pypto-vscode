@@ -588,7 +588,9 @@ const calculateAicoreInfo = () => {
       }
 
       const threadName = threadInfo.threadName.toLowerCase();
-      if (!threadName.startsWith('aic') && !threadName.startsWith('aiv')) {
+      const parentThreadName = threadInfo.parentThreadName;
+      const isMsProfAicOrAiv = parentThreadName && (parentThreadName.includes('-aic') || parentThreadName.includes('-aiv'));
+      if (!threadName.startsWith('aic') && !threadName.startsWith('aiv') && !isMsProfAicOrAiv) {
         continue;
       }
 
@@ -609,7 +611,7 @@ const calculateAicoreInfo = () => {
 
   aicoreTime.value = parseFloat((aicTaskTimeSum / tsScale.value).toFixed(2));
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskOnBoardTime.value))).div(new BigNumber(tsScale.value));
-  aicoreRate.value = parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
+  aicoreRate.value = isMsProf.value ? '/' : parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
 };
 
 const initializePerformance = () => {
@@ -702,7 +704,7 @@ const getTaskOnBoardTime = () => {
     const isNotExcludedPerfSwim = process.type === 'PerfSwim' && process.processName === 'AICore View';
     if (isValidType || isNotExcludedPerfSwim) {
       for (const [, thread] of process.threads.entries()) {
-        if (thread.isCounter || thread.threadName.includes('Fake Core')) {
+        if (thread.isCounter || thread.threadName.includes('Fake Core') || (isMsProf.value && thread?.parentThreadName === undefined)) {
           continue;
         }
         const { events } = thread;
