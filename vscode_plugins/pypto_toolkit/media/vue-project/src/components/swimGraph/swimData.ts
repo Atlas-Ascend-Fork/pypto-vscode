@@ -760,6 +760,10 @@ class SwimDataManager {
     return Array.from(this.wrapContainers.values());
   }
 
+  public getWrapContainerByWrapId(wrapId: number): WrapContainerInfo | undefined {
+    return this.wrapContainers.get(wrapId);
+  }
+
   public getTotalLaneHeight(): number {
     let totalHeight = 0;
     for (const lane of this.swimLaneOrder) {
