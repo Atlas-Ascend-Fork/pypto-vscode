@@ -35,7 +35,7 @@ import { useI18n } from 'vue-i18n';
 import { isEqual, throttle } from 'lodash-es';
 import { devicePixelRatio, getThreadHeight, getDevicePixelRatio, 
           formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin, 
-          clearWholeProcess} from '../swimGraphUtils';
+          clearWholeProcess, SNAP_THRESHOLD, NARROW_WIDTH_THRESHOLD} from '../swimGraphUtils';
 import { EventRender, ARROW_WIDTH } from '../swimGraphProcesses/render/eventRender';
 import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
@@ -844,6 +844,16 @@ const findNormalEventAtPosition = (x, y, thread) => {
     const validateX = isEventInXRange(x, eventX, eventWidth, duration, viewState.scale);
     if (validateX) {
       return { event, mData: {} };
+    }
+    
+    const { pixelScale } = viewState;
+    const isNarrow = eventWidth * pixelScale <= NARROW_WIDTH_THRESHOLD;
+    if (isNarrow && event.renderEndTime >= timelineState.startTime && event.renderStartTime <= timelineState.endTime) {
+      const snapThresholdInTime = SNAP_THRESHOLD / pixelScale;
+      const eventRange = [eventX - snapThresholdInTime, eventX + eventWidth];
+      if (x >= eventRange[0] && x <= eventRange[1]) {
+        return { event, mData: {} };
+      }
     }
     
     const nextEvent = thread.events[index + 1];
