@@ -307,44 +307,65 @@ const calculateDependenciesBytopo = (events, task2topo) => {
 };
 
 const calculateDependencies = (events, connections) => {
-    // 构建索引：以 (tid, startTime, endTime) 为键，事件对象为值
-    // 由于 startTime 和 endTime 是范围，我们可以使用 Map 存储每个 tid 的事件列表，并按 startTime 排序
-    const eventIndex = new Map();
-  
-    // 预处理 events，按 tid 分组并排序
+    // 初始化所有事件的依赖结构
     events.forEach(event => {
       if (!event.isCounter) {
         event.dependencies = {};
         event.dependencies.predecessors = [];
         event.dependencies.successors = [];
       }
-      if (!eventIndex.has(`${event.pid}_${event.tid}`)) {
-        eventIndex.set(`${event.pid}_${event.tid}`, []);
-      }
-      eventIndex.get(`${event.pid}_${event.tid}`).push(event);
     });
-  
+
+    // 使用 Map 按 id 配对 start/finish 事件，O(n) 一次遍历
+    const connectionPairs = new Map();
+
+    for (const conn of connections) {
+      const id = conn.id;
+      if (!connectionPairs.has(id)) {
+        connectionPairs.set(id, { start: null, end: null });
+      }
+      const pair = connectionPairs.get(id);
+      if (conn.ph === 's') {
+        pair.start = conn;
+      } else if (conn.ph === 'f') {
+        pair.end = conn;
+      }
+    }
+
+    // 构建事件索引用于快速查找
+    const eventIndex = new Map();
+    events.forEach(event => {
+      const key = `${event.pid}_${event.tid}`;
+      if (!eventIndex.has(key)) {
+        eventIndex.set(key, []);
+      }
+      eventIndex.get(key).push(event);
+    });
+
     // 对每个 tid 的事件列表按 startTime 排序
     for (let eventsList of eventIndex.values()) {
       eventsList.sort((a, b) => a.startTime - b.startTime);
     }
-  
-    let cIndex = 0;
-    while (cIndex < connections.length) {
-      const start = connections[cIndex];
-      const end = connections[cIndex + 1];
+
+    // 遍历所有配对，建立依赖关系
+    for (const pair of connectionPairs.values()) {
+      if (!pair.start || !pair.end) continue;
+
+      const start = pair.start;
+      const end = pair.end;
+
+      if (start.ts > end.ts) continue;
+
       const key1 = `${start.pid}_${start.tid}`;
       const key2 = `${end.pid}_${end.tid}`;
-  
-      // 使用索引快速查找 parent 事件
+
       const parentEvents = eventIndex.get(key1);
       const parent = parentEvents ? findEvent(parentEvents, start.ts) : null;
-  
-      // 使用索引快速查找 child 事件
+
       const childEvents = eventIndex.get(key2);
       const child = childEvents ? findEvent(childEvents, end.ts) : null;
-  
-      if (parent && child && start.ts <= end.ts) {
+
+      if (parent && child) {
         if (!parent.dependencies.successors.includes(child.id)) {
           parent.dependencies.successors.push(child.id);
         }
@@ -352,8 +373,6 @@ const calculateDependencies = (events, connections) => {
           child.dependencies.predecessors.push(parent.id);
         }
       }
-  
-      cIndex += 2;
     }
   };
   
