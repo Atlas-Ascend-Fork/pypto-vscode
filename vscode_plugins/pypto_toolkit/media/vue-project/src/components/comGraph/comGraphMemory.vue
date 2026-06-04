@@ -1145,32 +1145,12 @@ const getMemIdValue = (memIds, path) => {
 
 
 const getTierColor = (status: number, index: number): string => {
-  if (status === 0) {
-    return '#626263';
+  const colorMap = {
+    0: '#626263',
+    1: '#2E619C',
+    2: '#98C6F3',
   }
-  const colorPairs = [
-    { light: '#98C6F3', dark: '#2E619C' },          // 蓝色
-    { light: '#6DD0B6', dark: '#13746F' },          // 青色
-    { light: '#F5D5A0', dark: '#9B6E2D' },           // 橙色
-    { light: '#E8D5F5', dark: '#8E44AD' },           // 紫色
-    { light: '#A8D4F5', dark: '#2E86AB' },           // 蓝色
-    { light: '#C5E8C5', dark: '#2E7D32' },           // 绿色
-    { light: '#B5E5E5', dark: '#00796B' },           // 青色
-    { light: '#FFF5C5', dark: '#8B6914' },           // 黄色（暗）
-    { light: '#FFD9B3', dark: '#8B3A00' },           // 橙色（暗）
-    { light: '#E8D5C4', dark: '#795548' },          // 棕色
-    { light: '#E8E0F0', dark: '#7D5BA6' },          // 薰衣草紫
-    { light: '#D5E5D5', dark: '#5D8A5D' },          // 灰绿
-    { light: '#FFE4B5', dark: '#7D5A00' },          // 土黄色（暗）
-    { light: '#D4C4E8', dark: '#6A5ACD' },          // 紫罗兰
-    { light: '#C4E8F0', dark: '#4682B4' },          // 钢蓝
-    { light: '#E8E8D4', dark: '#6B6B00' },          // 橄榄绿（暗）
-    { light: '#F0E4D4', dark: '#6B3A00' },          // 赭色（暗）
-    { light: '#FFD4CC', dark: '#8B4D5C' },          // 桃色（暗）
-  ];
-  const pairIndex = index % colorPairs.length;
-  const pair = colorPairs[pairIndex];
-  return status === 2 ? pair.light : pair.dark;
+  return colorMap[status] || '#626263';
 };
 
 const getUpdateBuffer = (memIds, nodeId, currentName) => {
@@ -1196,6 +1176,10 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
   let endT = 0;
   let speed = 0;
   let changeBufferList = [];
+  const errorMsg = {
+    freeSize: 0,
+    requestSize: 0,
+  }
 
   if (animation.value) {
     const { eventType, animationData, action } = animation.value;
@@ -1208,6 +1192,10 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
     startT = Number(startTime);
     endT = Number(endTime);
     errorMemoType.push(...errorMemType);
+    if (errorMemType.length > 0) {
+      errorMsg.freeSize = animation.value.bufferSnapshot.freeIntervals[0].size / 1024;
+      errorMsg.requestSize = animation.value.requestSize / 1024;
+    }
 
     // 处理边数据
     inputMenIds.forEach(input => {
@@ -1345,6 +1333,7 @@ const transformAndMapData = (flattenedData, existingNodes, animation) => {
                 targetTiers: getTiers(animationMap.get(key) || [], QUADRATE_SIZE),
                 error,
                 animationSpeed: props.animationSpeed,
+                errorMsg: errorMsg,
               } : {}
             }
           }

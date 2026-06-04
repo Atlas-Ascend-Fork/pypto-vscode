@@ -1,5 +1,5 @@
 <template>
-    <d-splitter class="splitter-border" :showCollapseButton="false" orientation="vertical" :disableBarSize="disableBarSize">
+    <d-splitter class="splitter-border" :class="{ 'fullscreen': isFullscreen }" :showCollapseButton="false" orientation="vertical" :disableBarSize="disableBarSize">
       <template v-slot:DSplitterPane>
         <d-splitter-pane 
             :size="size" 
@@ -8,6 +8,7 @@
             :resizable="true"
             :maxSize="'80%'"
             @sizeChange="sizeChange"
+            ref="splitterPane"
         >
           <div class="pane-content">
             <div class="memory-header">
@@ -30,6 +31,9 @@
                   </svg>
                   <span class="legend-text">8192KB</span>
                 </div>
+                <button class="fullscreen-btn" @click="toggleFullscreen">
+                  <d-icon :name="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" size="16px"></d-icon>
+                </button>
               </div>
             </div>
             <div class="memory-content">
@@ -193,11 +197,13 @@ const GMData = ref<any>({
 });
 
 const size = ref('60%');
+const splitterPane = ref();
 const disableBarSize = '2px';
 const showDetailModal = ref(false);
 const selectedEvent = ref<Event | null>(null);
 const selectedEventJson = ref('');
 const selectedAnimationData = ref<null>;
+const isFullscreen = ref(false);
 
 const graphMemoryInitialized = ref(false);
 const pendingGraphData = ref<any>(null);
@@ -398,6 +404,10 @@ const stopPlayAll = () => {
   }
 };
 
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value;
+};
+
 watch(showDetailModal, (val) => {
   if (val) {
     setTimeout(() => {
@@ -417,6 +427,17 @@ watch(showDetailModal, (val) => {
 .splitter-border {
   height:100%;
   background-color: var(--devui-global-bg);
+
+  &.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - 40px);
+    bottom: 60px;
+    z-index: 9999;
+    background-color: var(--devui-global-bg);
+  }
 }
 
 .pane-content {
@@ -512,6 +533,24 @@ watch(showDetailModal, (val) => {
   .legend-hexagon {
     width: 12px;
     height: 12px;
+  }
+
+  .fullscreen-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--pto-font-color-default);
+    display: flex;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: var(--pto-bg-color-hover);
+    }
+
+    &:active {
+      background-color: var(--pto-bg-color-active);
+    }
   }
 
   .legend-text {

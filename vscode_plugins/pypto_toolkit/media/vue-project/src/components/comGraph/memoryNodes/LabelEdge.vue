@@ -57,12 +57,14 @@
     <path :id="motionPathId" :d="edgePath" fill="none" stroke="none" />
 
     <circle
+      v-for="i in 4"
+      :key="i"
       v-if="isActive && isWithinTimeRange"
       :r="pulseRadius"
       class="edge-flow-dot"
       style="fill: #ffffff !important; stroke: none; filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))"
     >
-      <animateMotion :dur="`${pulseDuration}s`" repeatCount="indefinite" rotate="auto">
+      <animateMotion :dur="`${pulseDuration}s`" :begin="`${(i - 1) * 0.03}s`" repeatCount="indefinite" rotate="auto">
         <mpath :href="`#${motionPathId}`" />
       </animateMotion>
     </circle>
@@ -295,7 +297,7 @@ const edgeStyle = computed(() => {
   z-index: 10;
 }
 .custom-edge-label.first-pass-done {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 2px #ffffff, 0 0 8px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 2px #ffffff, 0 0 12px rgba(255, 255, 255, 0.7);
   animation: label-border-in 0.35s ease-out;
 }
 .side-circle {

@@ -11,33 +11,48 @@
 
     <Teleport to="body">
       <div v-if="hovered && hoveredBufferInfo" class="node-popup" :style="popupStyle">
-      <div class="popup-header">
-        <span class="popup-title">Buffer Info</span>
+        <div v-if="hoveredBufferInfo.isError" class="popup-error-content">
+          <div class="popup-header">
+            <span class="popup-title">{{ this.$t('gridNodeMemoryInsufficient') }}</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">{{ this.$t('gridNodeRequired') }}</span>
+            <span class="popup-val">{{ hoveredBufferInfo.requestSize }} KB</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">{{ this.$t('gridNodeCurrentRemaining') }}</span>
+            <span class="popup-val">{{ hoveredBufferInfo.freeSize }} KB</span>
+          </div>
+        </div>
+        <div v-else>
+          <div class="popup-header">
+            <span class="popup-title">Buffer Info</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">memId</span>
+            <span class="popup-val">{{ hoveredBufferInfo.memId }}</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">memType</span>
+            <span class="popup-val">{{ hoveredBufferInfo.memType }}</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">addrStart</span>
+            <span class="popup-val">{{ hoveredBufferInfo.addrStart }}</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">size</span>
+            <span class="popup-val">{{ hoveredBufferInfo.size }}KB</span>
+          </div>
+          <div class="popup-row">
+            <span class="popup-key">status</span>
+            <span class="popup-val">{{ hoveredBufferInfo.status }}</span>
+          </div>
+        </div>
       </div>
-      <div class="popup-row">
-        <span class="popup-key">memId</span>
-        <span class="popup-val">{{ hoveredBufferInfo.memId }}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-key">memType</span>
-        <span class="popup-val">{{ hoveredBufferInfo.memType }}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-key">addrStart</span>
-        <span class="popup-val">{{ hoveredBufferInfo.addrStart }}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-key">size</span>
-        <span class="popup-val">{{ hoveredBufferInfo.size }}KB</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-key">status</span>
-        <span class="popup-val">{{ hoveredBufferInfo.status }}</span>
-      </div>
-    </div>
     </Teleport>
 
-    <div class="grid-layout-wrapper" :style="layoutStyles(data.layoutStyles)">
+    <div class="grid-layout-wrapper" :style="layoutStyles(data.layoutStyles, true)">
       <div v-if="data.showHeader" class="node-header">
         <div class="header-left">
           <span class="header-label">{{ data.label || 'UB' }}</span>
@@ -92,7 +107,7 @@
       </div>
     </div>
 
-    <div v-if="data.splitData" class="grid-layout-wrapper" :style="layoutStyles(data.splitData.layoutStyles)">
+    <div v-if="data.splitData" class="grid-layout-wrapper" :style="layoutStyles(data.splitData.layoutStyles, false)">
       <div v-if="data.splitData.showHeader" class="node-header">
         <span class="header-label">{{ data.splitData.label || 'UB' }}</span>
         <div class="header-stats" v-if="data.splitData.headerStats">
@@ -160,6 +175,8 @@ export default {
       timeouts: { main: null, split: null },
       cellSize: 10,
       gap: 2,
+      isMainAnimating: false,
+      isSplitAnimating: false,
     };
   },
   computed: {
@@ -211,10 +228,6 @@ export default {
       this.hovered = isHover;
     },
     hoverCell(index, event) {
-      if (this.data.splitData) {
-        this.hoveredBufferInfo = null;
-        return;
-      }
       if (index === null) {
         this.hoveredCellIndex = null;
         this.hoveredBufferInfo = null;
@@ -224,12 +237,13 @@ export default {
           this.mouseX = event.clientX;
           this.mouseY = event.clientY;
         }
+        
         const statusMap = {
           0: this.$t('gridNodeStatusUnallocated'),
           1: this.$t('gridNodeStatusAllocatedUnoccupied'),
           2: this.$t('gridNodeStatusAllocatedOccupied'),
         }
-        const tiers = this.data.animate === true 
+        const tiers = this.data.animate === true && !this.data.animationData?.error
           ? (this.data.animationData?.targetTiers || [])
           : (this.data.tiers || []);
         for (let i = 0; i < tiers.length; i++) {
@@ -243,6 +257,7 @@ export default {
               return;
             } 
             this.hoveredBufferInfo = {
+              isError: false,
               memId: bufferMsg.memId || '',
               addrStart: bufferMsg.addrStart / 1024 || 0,
               memType: bufferMsg.memType || '',
@@ -252,7 +267,32 @@ export default {
             return;
           }
         }
-        this.hoveredBufferInfo = null;
+        
+        // 检查是否为错误状态（红色区域）
+        const isError = this.data.animationData?.error || false;
+        const errorMsg = this.data.animationData?.errorMsg || {};
+        
+        // 如果是错误状态且单元格颜色为红色，显示错误信息
+        if (isError && errorMsg.requestSize !== undefined) {
+          const cellColor = this.getCellColor(
+            this.data,
+            index,
+            this.mainAnimatedCount,
+            this.mainAnimatedCells,
+            this.mainAnimatedColors
+          );
+          
+          // 检查是否为红色（#FF0000）
+          if (cellColor === '#FF0000') {
+            this.hoveredBufferInfo = {
+              isError: true,
+              requestSize: errorMsg.requestSize || 0,
+              freeSize: errorMsg.freeSize || 0,
+            };
+            return;
+          }
+        }
+        
       }
     },
     getHandlePosition(edge) {
@@ -290,10 +330,22 @@ export default {
       return { flexDirection: config.splitType === 'horizontal' ? 'row' : 'column', ...config.nodeContainerStyle };
     },
     getGridSectionStyles(config) {
-      return { backgroundColor: config.bgColor || '', ...config.gridSectionStyle };
+      const styles = { backgroundColor: config.bgColor || '', ...config.gridSectionStyle };
+      // 只有在动画进行中才显示边框
+      const isAnimating = config === this.data ? this.isMainAnimating : this.isSplitAnimating;
+      if (isAnimating) {
+        styles.border = '3px solid rgba(255, 255, 255, 0.5)';
+      }
+      return styles;
     },
-    layoutStyles(styles) {
-      return { display: 'flex', flexDirection: 'column', gap: '4px', ...styles };
+    layoutStyles(styles, isMain = true) {
+      const baseStyles = { display: 'flex', flexDirection: 'column', gap: '4px', ...styles };
+      // 只有在动画进行中才显示阴影
+      const isAnimating = isMain ? this.isMainAnimating : this.isSplitAnimating;
+      if (isAnimating) {
+        baseStyles.boxShadow = '0 0 20px 5px rgba(255, 255, 255, 0.5)';
+      }
+      return baseStyles;
     },
     getCellColor(config, index, animatedCount, animatedCells, animatedColors) {
       const empty = config.emptyColor || '#4a90e244';
@@ -410,6 +462,13 @@ export default {
     if (this.intervals[type]) clearInterval(this.intervals[type]);
     if (this.timeouts[type]) clearTimeout(this.timeouts[type]);
     
+    // 设置动画状态为正在进行
+    if (type === 'main') {
+      this.isMainAnimating = true;
+    } else {
+      this.isSplitAnimating = true;
+    }
+    
     const originCellsWithColor = this.getCellsWithColor(originTiers, totalCells);
     const originCells = new Set(originCellsWithColor.keys());
     
@@ -435,17 +494,24 @@ export default {
           }
           
           if (isErrorState) {
-            flashCount++;
-            if (flashCount >= maxFlashes) {
-              clearInterval(this.intervals[type]);
-              this.intervals[type] = null;
-              for (let i = 1; i <= totalCells; i++) {
-                if (!this[cellsKey].has(i)) {
-                  this[colorsKey].delete(i);
+              flashCount++;
+              if (flashCount >= maxFlashes) {
+                clearInterval(this.intervals[type]);
+                this.intervals[type] = null;
+                // 动画结束，保持红色状态
+                for (let i = 1; i <= totalCells; i++) {
+                  if (!this[cellsKey].has(i)) {
+                    this[colorsKey].set(i, errorColor);
+                  }
+                }
+                // 动画结束，取消动画状态
+                if (type === 'main') {
+                  this.isMainAnimating = false;
+                } else {
+                  this.isSplitAnimating = false;
                 }
               }
             }
-          }
         }, 300 / animationSpeed);
       };
       
@@ -542,6 +608,12 @@ export default {
         if (!updated || !hasRemaining) {
           clearInterval(this.intervals[type]);
           this.intervals[type] = null;
+          // 动画结束，取消动画状态
+          if (type === 'main') {
+            this.isMainAnimating = false;
+          } else {
+            this.isSplitAnimating = false;
+          }
         }
       }, speed || 50);
     };
@@ -600,7 +672,7 @@ export default {
   position: relative;
 }
 .grid-layout-wrapper {
-  background: var(--devui-global-bg);
+  background: #303031 ;
   border-radius: 12px;
   padding: 4px;
   position: relative;
