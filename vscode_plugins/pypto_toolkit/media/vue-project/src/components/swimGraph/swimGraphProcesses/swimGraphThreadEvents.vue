@@ -1466,16 +1466,8 @@ const checkInSelection = () => {
   // 遍历线程
   if (processExpanded.get(props.processKey) && canDragSelect(props.processKey)) {
     process.threads.forEach((thread, threadKey) => {
-      const { threadName, events, parentThreadName } = thread;
-      let threadNameInfo =  threadName;
-      if (parentThreadName) {
-        if (parentThreadName.includes('-aic')) {
-          threadNameInfo = "AIC_";
-        } else if (parentThreadName.includes('-aiv')) {
-          threadNameInfo = "AIV_";
-        }
-      }
-      const isTargetEvent = threadNameInfo.startsWith('AIC_') || threadNameInfo.startsWith('AIV_');
+      const { threadName, events } = thread;
+      const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
       if (!isTargetEvent) {
         return;
       }

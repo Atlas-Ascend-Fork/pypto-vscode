@@ -9,6 +9,8 @@ export interface ThreadInfo {
     startY: number;
     height?: number;
   };
+  parentThreadName?: string;
+  parentTid?: string;
 }
 
 export interface ProcessInfo {
@@ -164,7 +166,9 @@ class SwimDataManager {
             threadName: thread.threadName || '',
             eventIds,
             isCounter: thread.isCounter,
-            isFakeCore: thread.threadName.includes('Fake Core')
+            isFakeCore: thread.threadName.includes('Fake Core'),
+            parentThreadName: thread.parentThreadName,
+            parentTid: thread.parentTid,
           };
           
           threadInfoMap.set(threadKey, threadInfo);
