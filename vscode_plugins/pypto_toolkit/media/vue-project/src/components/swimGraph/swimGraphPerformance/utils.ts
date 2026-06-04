@@ -1,4 +1,4 @@
-  export const executionTimeData = {
+export const executionTimeData = {
     ticksMap: new Map(),
     timelineGroupsMap: new Map(),
     echartsMap: new Map(),
@@ -6,7 +6,7 @@
   };
   export const US_TO_MS_THRESHOLD = 1000;
   export const US_TO_S_THRESHOLD = 1000000;
-  export const UNIT_US = '¦Ìs';
+  export const UNIT_US = '\u03BCs';
   export const UNIT_MS = 'ms';
   export const UNIT_S = 's';
   export const formatTimeUnit = (valueInUs) => {

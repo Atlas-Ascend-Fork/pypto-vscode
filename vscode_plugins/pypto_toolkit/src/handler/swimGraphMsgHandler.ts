@@ -250,7 +250,7 @@ export abstract class SwimGraphMsgHandler {
     
           try {
             console.log('读取swimlane文件');
-            if (server.query.isPerfSwim) {
+            if (server.query.isPerfSwim && !server.query.isMsProf) {
               console.log('使用 perf_swimlane.json 格式处理');
               const rawData = await readSwimlaneFileStream(swimPath, true);
               const validation = FormatValidator.validatePerfSwimlane(rawData);
@@ -504,7 +504,7 @@ export abstract class SwimGraphMsgHandler {
       if (hismartliteEx.isDebug) {
         console.time('[Performance] backend parse');
       }
-      if(server.query.isPerfSwim) {
+      if(server.query.isPerfSwim && !server.query.isMsProf) {
         return await this.getSwimData(server);
       }
       let getCompressSuc = false;
