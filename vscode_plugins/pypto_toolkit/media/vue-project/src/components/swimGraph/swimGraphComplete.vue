@@ -1274,9 +1274,6 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
     } else {
       aicpuControlDetailsExpanded.value = false;
       aicpuScheduleDetailsExpanded.value = false;
-      if (isMixMode?.value && swimDataManager.hasMixConfig() && event?.parentEventId) {
-        return;
-      }
       aicpuCoreDetailsExpanded.value = !showkernelDetail;
       showDetailsPanel(showkernelDetail);
     }
@@ -1286,7 +1283,6 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
 };
 
 const handleMixSubEventClick = (event, processKey) => {
-  detailsPanelExpanded.value = false;
   mixRelatedPaths.clear();
   highlightedPaths.clear();
   
@@ -1297,6 +1293,8 @@ const handleMixSubEventClick = (event, processKey) => {
   mixRelatedPaths.add(event.id);
   
   calculateMixMacroPaths(event.parentEventId, highlightedPaths, userConfig.value.connectionLevel);
+  
+  childContextMap.threadEvent.focusWrap(event.args.wrapId);
   
   childContextMap.threadEvent.changeNodeColor(processKey, false);
   globalConnectionCanvas.value.clearCanvas();
@@ -1326,6 +1324,11 @@ const handleMixSubEventClick = (event, processKey) => {
     childContextMap.threadEvent.renderDimmedNodesInWrap(event, wrapCtx);
   }
   globalConnectionCanvas.value.drawMacroDependencyLines();
+  
+  const parentEvent = swimDataManager.getEventById(event.parentEventId);
+  if (parentEvent) {
+    canvasclickedEvent.value = parentEvent;
+  }
 };
 
 const handleMixNormalEventClick = (event, processKey) => {

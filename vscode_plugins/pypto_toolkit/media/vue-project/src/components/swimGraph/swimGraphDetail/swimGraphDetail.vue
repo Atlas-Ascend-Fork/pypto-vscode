@@ -819,7 +819,8 @@ const showDependencies = (event, type) => {
 defineExpose({
   connectionLevel,
   resetReleventState,
-  showDependencies
+  showDependencies,
+  showEventDetail,
 });
 </script>
 

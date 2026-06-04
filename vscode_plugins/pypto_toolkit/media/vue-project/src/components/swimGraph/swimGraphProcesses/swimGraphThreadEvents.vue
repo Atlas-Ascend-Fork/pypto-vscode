@@ -90,6 +90,7 @@ let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false); // 选定状态
 let pinnedStatus = ref(false);
+let preFocusWrapState = null;
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -154,7 +155,7 @@ const {
   changeScale,
   resetMaxScheduleState,
   findWrapAtPosition,
-  setHashOrderTipColor
+  setHashOrderTipColor,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -336,6 +337,14 @@ const handleCanvasClick = (e) => {
       isClickedPath.value = true;
     }
   } else {
+    if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+      const wrapLabelHover = detectWrapLabelHover(x, y);
+      if (wrapLabelHover && focusWrap) {
+        focusWrap(wrapLabelHover);
+        return;
+      }
+    }
+    
     isClickedPath.value = false;
     canvasStatusReset();
   }
@@ -1676,7 +1685,6 @@ const transformEvents = (process, processKey) => {
         renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
       }
     }
-    renderMixDependenciesAll(processKey, viewState, layout, eventCtx, getPositionByTime, isDarkTheme.value);
   } else if (isMixMode && !isMixMode.value && swimDataManager.hasMixConfig() ) {
     drawMixTransformEvent(process, processKey, eventCtx);
   } else {
@@ -1777,7 +1785,6 @@ const renderProcessEvents = (process, processKey) => {
         renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
       }
     }
-    renderMixDependenciesAll(processKey, viewState, layout, eventCtx, getPositionByTime, isDarkTheme.value);
   } else {
     drawThreads(process, processKey, eventCtx);
   }
@@ -2210,10 +2217,6 @@ const changeNodeColor = (processKey, isDimmed=false, needText=true) => {
       if (needText) {
         eventRenderer.drawEventText(siblingDrawDatas, eventCtx, false);
       }
-    }
-    
-    if (isMixMode?.value && swimDataManager.hasMixConfig()) {
-      renderMixDependenciesAll(processKey, viewState, layout, eventCtx, getPositionByTime, isDarkTheme.value);
     }
   }
 };
@@ -2971,6 +2974,59 @@ const transformCanvas = ({ minX, maxX, startT, endT, minY }) => {
   });
 };
 
+const transformWrap = ({ minX, maxX, startT, endT, minY, targetWidth }) => {
+  let xRange = (maxX - minX) * viewState.pixelScale;
+  const widthValid = Math.abs(xRange - targetWidth) < viewState.canvasCssWidth * 0.1;
+  const viewValid = startT >= timelineState.startTime && endT <= timelineState.endTime;
+  if (widthValid && viewValid) {
+    return;
+  }
+  const zoomFactor = (targetWidth / (maxX - minX)) / viewState.scale;
+  changeScale(zoomFactor, 0, false, false);
+  
+  viewState.offsetX = 0 - (minX * viewState.scale);
+  if (viewState.offsetX > 0) {
+    viewState.offsetX = 0;
+  }
+  viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+  
+  transform();
+  
+  swimlaneContainer.value.scrollTo({
+    top: minY,
+    behavior: 'auto',
+  });
+};
+
+const focusWrap = (wrapId) => {
+  const wrapContainer = swimDataManager.getWrapContainerByWrapId(wrapId);
+  if (!wrapContainer) { return };
+  
+  if (!preFocusWrapState) {
+    preFocusWrapState = {
+      scale: viewState.scale,
+      offsetX: viewState.offsetX,
+    };
+  }
+  
+  const timeRange = viewState.maxTime - viewState.minTime;
+  const PADDING_PX = 2;
+  const minX = ((wrapContainer.minStartTime - viewState.minTime) / timeRange) * viewState.canvasCssWidth - PADDING_PX;
+  const maxX = ((wrapContainer.maxEndTime - viewState.minTime) / timeRange) * viewState.canvasCssWidth + PADDING_PX;
+  
+  let minY = Infinity;
+  const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  for (const lane of swimLaneOrder) {
+    if (lane.type === 'thread' && wrapContainer.threadTids.includes(lane.thread.tid)) {
+      if (lane.y < minY) {
+        minY = lane.y;
+      }
+    }
+  }
+  if (minY === Infinity) { minY = 0 };
+  transformWrap({ minX, maxX, startT: wrapContainer.minStartTime, endT: wrapContainer.maxEndTime, minY, targetWidth: viewState.canvasCssWidth * 0.95 });
+};
+
 const setSelectedData = (boundRange, label) => {
   points = [];
   drawColorDatas = {};
@@ -3332,7 +3388,8 @@ addChildContext('threadEvent', {
   drawNodeHeight,
   drawHoverWrapContainner,
   drawClickWrapContainner,
-  renderDimmedNodesInWrap
+  renderDimmedNodesInWrap,
+  focusWrap,
 });
 watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
 // 每个事件画布都会走一遍
