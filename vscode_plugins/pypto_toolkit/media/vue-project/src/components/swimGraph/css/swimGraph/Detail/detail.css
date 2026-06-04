@@ -306,6 +306,13 @@
   font-size: 24px;
   color: var(--devui-primary-text)
 }
+.start-value-key-truncate {
+  max-width: 71px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
 .ml5 {
   margin-left:5px;
 }

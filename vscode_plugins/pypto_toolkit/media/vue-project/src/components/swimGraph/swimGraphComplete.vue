@@ -1327,7 +1327,14 @@ const handleMixSubEventClick = (event, processKey) => {
   
   const parentEvent = swimDataManager.getEventById(event.parentEventId);
   if (parentEvent) {
-    canvasclickedEvent.value = parentEvent;
+    canvasclickedEvent.value = {
+      ...parentEvent,
+      id: event.id,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      duration: event.endTime - event.startTime,
+      renderInfo: event.renderInfo,
+    };
   }
 };
 

@@ -32,9 +32,13 @@
                       <span>Duration</span><span class="ml5">({{ durationUnitInfo }})</span>
                     </span>
                     <span class="pipe-start-down">
-                      <span class="start-value-key">{{ startTimeInfo }}</span>
+                      <d-tooltip :content="startTimeInfoAll">
+                        <span class="start-value-key start-value-key-truncate">{{ startTimeInfo }}</span>
+                      </d-tooltip>
                       <span class="arrow-right"><d-icon name="icon-arrow-right-l" class="right-button"></d-icon></span>
-                      <span class="start-value-key">{{ durationInfo }}</span>
+                      <d-tooltip :content="durationInfoAll">
+                        <span class="start-value-key start-value-key-truncate">{{ durationInfo }}</span>
+                      </d-tooltip>
                     </span>
                   </div>
                   <div class="pipe-line"></div>
@@ -556,11 +560,12 @@ const createHint = (event, operate) => {
 
 const showEventDetail = (newEvent) => {
   if (newEvent) {
+    const duration = newEvent.duration !== undefined ? newEvent.duration : (newEvent.endTime - newEvent.startTime);
     startTimeInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).value;
     startTimeUnitInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).unit;
     startTimeInfoAll.value = startTimeInfo.value + startTimeUnitInfo.value;
-    durationInfo.value = formatTimeWithUnit(newEvent.duration * 1000 / tsScale.value).value;
-    durationUnitInfo.value = formatTimeWithUnit(newEvent.duration * 1000 / tsScale.value).unit;
+    durationInfo.value = formatTimeWithUnit(duration * 1000 / tsScale.value).value;
+    durationUnitInfo.value = formatTimeWithUnit(duration * 1000 / tsScale.value).unit;
     durationInfoAll.value = durationInfo.value + durationUnitInfo.value;
     nextTick(() => {
       createHint(newEvent, 'ioperand-hint');
