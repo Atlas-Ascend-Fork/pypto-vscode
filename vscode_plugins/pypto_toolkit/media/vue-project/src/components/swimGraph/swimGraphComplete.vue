@@ -656,7 +656,41 @@ const calculateEventLines = (events) => {
   
   return { events, lineCount: lines.length };
 };
-
+const sortThreadsMap = (threadsMap) => {
+    const parseThreadName = (threadName) => {
+      const aicMatch = threadName.match(/^Group(\d+)-aic$/i);
+      if (aicMatch) {
+        return { type: 'aic', group: parseInt(aicMatch[1], 10), index: 0 };
+      }
+      const aivMatch = threadName.match(/^Group(\d+)-aiv(\d+)$/i);
+      if (aivMatch) {
+        return { type: 'aiv', group: parseInt(aivMatch[1], 10), index: parseInt(aivMatch[2], 10) };
+      }
+      return null;
+    };
+    const entries = Array.from(threadsMap.entries());
+    const sortedEntries = entries.sort((a, b) => {
+      const nameA = a[1].parentThreadName || a[1].threadName;
+      const nameB = b[1].parentThreadName || b[1].threadName;
+      const parsedA = parseThreadName(nameA);
+      const parsedB = parseThreadName(nameB);
+      if (!parsedA || !parsedB) {
+        return 0;
+      }
+      if (parsedA.type !== parsedB.type) {
+        const result = parsedA.type === 'aic' ? -1 : 1;
+        return result;
+      }
+      if (parsedA.group !== parsedB.group) {
+        const result = parsedA.group - parsedB.group;
+        return result;
+      }
+      const result = parsedA.index - parsedB.index;
+      return result;
+    });
+    return new Map(sortedEntries);
+  };
+ 
 const splitThreadsByEventName = (process, processKey) => {
   const newThreads = new Map();
   hasSplitThreads.value = true;
@@ -707,7 +741,7 @@ const splitThreadsByEventName = (process, processKey) => {
     }
   }
   
-  process.threads = newThreads;
+  process.threads = sortThreadsMap(newThreads);
 };
 
 const processTraceData = (data) => {

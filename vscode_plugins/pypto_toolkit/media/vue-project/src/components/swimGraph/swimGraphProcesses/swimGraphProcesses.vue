@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { inject, provide, ref, defineExpose, watch, computed } from 'vue';
+import { inject, provide, ref, defineExpose, watch, computed, onUnmounted } from 'vue';
 import SwimGraphProcessItem from './SwimGraphProcessItem.vue';
 import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
@@ -271,6 +271,50 @@ const {
 
 provide('swimGraphContext', {
   addChildContext,
+});
+
+const handleKernelScroll = () => {
+  clearMeasureFun();
+};
+
+const handleAicpuScroll = () => {
+  clearMeasureFun();
+};
+const clearMeasureFun = () => {
+  if (globalMeasureCanvas.value && globalMeasureCanvas.value.clearMeasure) {
+    globalMeasureCanvas.value.clearMeasure();
+  }
+};
+let kernelScrollHandler = null;
+let aicpuScrollHandler = null;
+
+watch(kernelSection, (newVal, oldVal) => {
+  if (oldVal && kernelScrollHandler) {
+    oldVal.removeEventListener('scroll', kernelScrollHandler);
+  }
+  if (newVal) {
+    kernelScrollHandler = handleKernelScroll;
+    newVal.addEventListener('scroll', kernelScrollHandler);
+  }
+});
+
+watch(aicpuSection, (newVal, oldVal) => {
+  if (oldVal && aicpuScrollHandler) {
+    oldVal.removeEventListener('scroll', aicpuScrollHandler);
+  }
+  if (newVal) {
+    aicpuScrollHandler = handleAicpuScroll;
+    newVal.addEventListener('scroll', aicpuScrollHandler);
+  }
+});
+
+onUnmounted(() => {
+  if (kernelSection.value && kernelScrollHandler) {
+    kernelSection.value.removeEventListener('scroll', kernelScrollHandler);
+  }
+  if (aicpuSection.value && aicpuScrollHandler) {
+    aicpuSection.value.removeEventListener('scroll', aicpuScrollHandler);
+  }
 });
 
 
