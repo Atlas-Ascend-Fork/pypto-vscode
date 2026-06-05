@@ -112,7 +112,7 @@ export abstract class SwimGraphMsgHandler {
       if (!server.query || server.query.isPerfSwim === undefined || server.query.isMsProf === undefined) {
         const content = ((await readFirstNLines(swimPath, 10)) as string[]).join('');
         server.query = {};
-        server.query.isPerfSwim = !content.includes('traceEvents');
+        server.query.isPerfSwim = !content.includes('traceEvents') && !content.includes('pid');
         server.query.isMsProf = content.charAt(0) === '[' && content.includes('pid');
       }
       return {
