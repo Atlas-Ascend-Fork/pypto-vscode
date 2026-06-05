@@ -798,7 +798,7 @@ export default {
   border: 1px solid #3a3a3a;
   border-radius: 12px;
   padding: 12px;
-  min-width: 140px;
+  min-width: 170px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
