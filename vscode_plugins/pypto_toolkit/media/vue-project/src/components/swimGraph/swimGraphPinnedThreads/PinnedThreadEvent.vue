@@ -35,7 +35,7 @@ import { useI18n } from 'vue-i18n';
 import { isEqual, throttle } from 'lodash-es';
 import { devicePixelRatio, getThreadHeight, getDevicePixelRatio, 
           formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin, 
-          clearWholeProcess, SNAP_THRESHOLD, NARROW_WIDTH_THRESHOLD} from '../swimGraphUtils';
+          clearWholeProcess, SNAP_THRESHOLD, NARROW_WIDTH_THRESHOLD, findVisibleEventRange} from '../swimGraphUtils';
 import { EventRender, ARROW_WIDTH } from '../swimGraphProcesses/render/eventRender';
 import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
@@ -466,20 +466,25 @@ const processMixModePinnedThread = (thread, processKey, baseY, isDimmed, drawDat
 };
 
 const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
-  for (const event of thread.events) {
+  const events = thread.events;
+  const { leftBound, rightBound } = findVisibleEventRange(
+    events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+  );
+  for (let i = leftBound; i < rightBound; i++) {
+    const event = events[i];
     if (!event.renderInfo) { continue };
-    
+
     if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
       event.drawData.show = false;
       event.drawData.text = '';
       continue;
     }
-    
+
     event.drawData.show = true;
-    
-    const isOnPath = highlightedPaths.has(event.id) || 
+
+    const isOnPath = highlightedPaths.has(event.id) ||
                     (event.parentEventId && highlightedPaths.has(event.parentEventId));
-    
+
     if (!isDimmed || isOnPath) {
       const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
       event.drawData.rectColor = fillColor;
@@ -489,8 +494,9 @@ const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, draw
       event.drawData.rectColor = colorCfg.eventRectNoColor;
       event.drawData.fontColor = colorCfg.eventFontNoColor;
     }
-    
+
     const eventY = getPinnedEventY(event, baseY);
+
     drawDatas.push(createPinnedDrawData(event, eventY));
   }
 };

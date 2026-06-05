@@ -1122,6 +1122,38 @@ class SwimDataManager {
     return Array.isArray(event.subEventIds) && event.subEventIds.length > 0;
   }
 
+  public getMixThreadFlattenedEvents(thread: ThreadInfo): EventDetail[] {
+    const parentEvents = thread.eventIds
+      .map(id => this.getEventById(id))
+      .filter(e => e && this.isMixParentEvent(e));
+
+    const events: EventDetail[] = [];
+
+    for (const parentEvent of parentEvents) {
+      const subEvents = this.getSubEvents(parentEvent.id);
+      for (const subEvent of subEvents) {
+        (subEvent as any)._mixEventType = 'subEvent';
+        events.push(subEvent);
+      }
+      const waitTasks = this.getWaitTasks(parentEvent.id);
+      for (const waitTask of waitTasks) {
+        (waitTask as any)._mixEventType = 'waitTask';
+        events.push(waitTask);
+      }
+    }
+
+    const normalEvents = thread.eventIds
+      .map(id => this.getEventById(id))
+      .filter(e => e && !this.isMixParentEvent(e));
+    for (const normalEvent of normalEvents) {
+      (normalEvent as any)._mixEventType = 'normalEvent';
+      events.push(normalEvent);
+    }
+
+    events.sort((a, b) => a.startTime - b.startTime);
+    return events;
+  }
+
   public getThreadYByTid(tid: string): number {
     for (const lane of this.swimLaneOrder) {
       if (lane.type === 'thread' && lane.thread.tid === tid) {

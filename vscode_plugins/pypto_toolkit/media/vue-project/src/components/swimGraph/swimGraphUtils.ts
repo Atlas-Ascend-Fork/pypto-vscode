@@ -1490,3 +1490,39 @@ export const renderMixDependenciesAll = (
     }
   }
 };
+
+export const findVisibleEventRange = (sortedEvents, viewportStartTime, viewportEndTime, maxRenderDuration) => {
+  if (!sortedEvents || sortedEvents.length === 0) {
+    return { leftBound: 0, rightBound: 0 };
+  }
+
+  let lo = 0;
+  let hi = sortedEvents.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sortedEvents[mid].startTime <= viewportEndTime) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  const rightBound = lo;
+
+  let leftBound = 0;
+  if (maxRenderDuration > 0) {
+    const earliestPossibleStart = viewportStartTime - maxRenderDuration;
+    lo = 0;
+    hi = rightBound;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (sortedEvents[mid].startTime >= earliestPossibleStart) {
+        hi = mid;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    leftBound = lo;
+  }
+
+  return { leftBound, rightBound };
+};

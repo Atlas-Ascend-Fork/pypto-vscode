@@ -59,10 +59,12 @@ import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess,
-  renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodes
+  renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodes,
+  findVisibleEventRange
 } from '../swimGraphUtils';
 import { isEqual, throttle } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
+import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets, MIPMAP_THRESHOLD } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
@@ -1706,39 +1708,105 @@ const transformEvents = (process, processKey) => {
 
 const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
     if (thread.isCounter) {
-      eventCtx.save();
-      eventCtx.setTransform(1, 0, 0, devicePixelRatio, 0, 0);
-      eventCtx.beginPath();
-      eventCtx.strokeStyle = '#4aaad6ff';
-      eventCtx.lineWidth = 1;
-      const { drawData } = thread;
-      if (drawData) {
-        for (const element of drawData) {
-          let [x, y] = element;
-          if (isPinned && thread.isPinned) {
-            y -= thread.offsetY;
+      if (thread._counterMipmap && timelineState.startTime && timelineState.endTime) {
+        const resolution = calcResolution(
+          timelineState.startTime, timelineState.endTime, viewState.canvasCssWidth
+        );
+        const buckets = thread._counterMipmap.query(
+          timelineState.startTime, timelineState.endTime, resolution
+        );
+        drawCounterMipmapBuckets(eventCtx, buckets, thread, isPinned, viewState, layout);
+      } else {
+        eventCtx.save();
+        eventCtx.setTransform(1, 0, 0, devicePixelRatio, 0, 0);
+        eventCtx.beginPath();
+        eventCtx.strokeStyle = '#4aaad6ff';
+        eventCtx.lineWidth = 1;
+        const { drawData } = thread;
+        if (drawData) {
+          for (const element of drawData) {
+            let [x, y] = element;
+            if (isPinned && thread.isPinned) {
+              y -= thread.offsetY;
+            }
+            eventCtx.lineTo(getNoZoomX(x, viewState), y);
           }
-          eventCtx.lineTo(getNoZoomX(x, viewState), y);
         }
+        eventCtx.stroke();
+        eventCtx.closePath();
+        eventCtx.restore();
       }
-      eventCtx.stroke();
-      eventCtx.closePath();
-      eventCtx.restore();
     } else if (!selectedEvent.value && !drawColorDatas.length) {
-      let eventDatas = [];
-      for (const event of thread.events) {
-        const { drawData } = event;
-        if (!drawData) {
-          continue;
+      const events = thread.events;
+      const { leftBound, rightBound } = findVisibleEventRange(
+        events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+      );
+      const visibleCount = rightBound - leftBound;
+      const canvasPixelWidth = viewState.canvasCssWidth;
+
+      if (thread._sliceMipmap && visibleCount / canvasPixelWidth > MIPMAP_THRESHOLD) {
+        const resolution = calcResolution(
+          timelineState.startTime, timelineState.endTime, canvasPixelWidth
+        );
+        const buckets = thread._sliceMipmap.query(
+          timelineState.startTime, timelineState.endTime, resolution
+        );
+        const eventDatas = [];
+        let durBucketCount = 0;
+        let zeroBucketCount = 0;
+        for (const bucket of buckets) {
+          const event = bucket.event;
+          if (!event.drawData) continue;
+
+          if (bucket.isZeroDuration) {
+            zeroBucketCount++;
+            const origX = getPositionByTime(event.renderStartTime || event.startTime, viewState, layout) - layout.processLabelWidth;
+            const origWidth = getWidthByDuration((event.renderEndTime || event.endTime) - (event.renderStartTime || event.startTime), viewState);
+            eventDatas.push({
+              ...event.drawData,
+              rectX: origX,
+              eventWidth: origWidth,
+              duration: 0,
+              show: true,
+              width: origWidth,
+              _mipmapEventId: event.id,
+            });
+          } else {
+            durBucketCount++;
+            const aggLogicalWidth = getWidthByDuration(bucket.aggEnd - bucket.aggStart, viewState);
+            const aggX = getPositionByTime(bucket.aggStart, viewState, layout) - layout.processLabelWidth;
+            eventDatas.push({
+              ...event.drawData,
+              rectX: aggX,
+              eventWidth: aggLogicalWidth,
+              show: true,
+              width: aggLogicalWidth,
+              _mipmapEventId: event.id,
+            });
+          }
         }
-        if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
-          drawData.show = false;
-          continue;
+        thread._visibleDrawDatas = eventDatas;
+        thread._isMipmapMode = true;
+        eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
+      } else {
+        let eventDatas = [];
+        for (let i = leftBound; i < rightBound; i++) {
+          const event = events[i];
+          const { drawData } = event;
+          if (!drawData) {
+            continue;
+          }
+          if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
+            drawData.show = false;
+            continue;
+          }
+          drawData.show = true;
+          eventDatas.push(drawData);
         }
-        drawData.show = true;
-        eventDatas.push(drawData);
+        thread._visibleDrawDatas = eventDatas;
+        thread._isMipmapMode = false;
+        eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
       }
-      eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
     }
 };
 
@@ -2171,7 +2239,12 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas) => {
     const threadHeight = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
     maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
     
-    for (const event of thread.events) {
+    const events = thread.events;
+    const { leftBound, rightBound } = findVisibleEventRange(
+      events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+    );
+    for (let i = leftBound; i < rightBound; i++) {
+      const event = events[i];
       if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
         event.drawData.show = false;
         event.drawData.text = '';
@@ -2459,6 +2532,10 @@ const collectCounterDrawData = (thread, threadY, isPinned) => {
   const { offsetX, canvasWidth, canvasCssWidth } = viewState;
   
   const baseY = threadY + counterHeight;
+  thread._counterBaseY = baseY;
+  if (isPinned) {
+    thread._pinnedCounterBaseY = baseY;
+  }
   const segmentStep = maxCount ? maxCount / segment : 0;
   
   let lastSegment = null;
@@ -2470,7 +2547,7 @@ const collectCounterDrawData = (thread, threadY, isPinned) => {
   for (const event of thread.events) {
     const x = getPositionByTime(event.ts, viewState, layout) - processLabelWidth;
     
-    if (x < offsetX || x > canvasWidth) {
+    if (x > canvasWidth) {
       break;
     }
     
@@ -2692,19 +2769,65 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
   if (thread.isCounter) {
     return false;
   }
-  // 批量处理事件，减少重复的样式设置
+
+  if (thread._isMipmapMode && thread._visibleDrawDatas) {
+    const visibleEvents = [];
+    for (const drawData of thread._visibleDrawDatas) {
+      if (!drawData || !drawData.show) continue;
+      if (drawData.duration === 0) { drawData.text = ''; continue; }
+      const pixelWidth = drawData.eventWidth * viewState.scale;
+      if (pixelWidth < 15) { drawData.text = ''; continue; }
+
+      const event = drawData._mipmapEventId
+        ? swimDataManager.getEventById(drawData._mipmapEventId)
+        : null;
+      if (!event) continue;
+
+      drawData.width = drawData.eventWidth;
+      fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
+      if (!drawData.text) continue;
+      visibleEvents.push({ event, drawData });
+    }
+    let preData;
+    let nextData;
+    for (const { event, drawData } of visibleEvents) {
+      const isSelf = selectedEventId === event.id;
+      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+      if (isHighlighting && !isSelf && !hasCurrent) {
+        ctx.fillStyle = colorCfg.eventFontNoColor;
+      } else {
+        ctx.fillStyle = drawData.fontColor;
+      }
+      if (event.name === swimConfig.sampleEventNamePre) { preData = drawData; }
+      if (event.name === swimConfig.sampleEventNameNext) { nextData = drawData; }
+      ctx.fillText(drawData.text, drawData.textX, pinnedStatus.value ? drawData.pinnedTextY : drawData.textY);
+    }
+    if (preData && nextData) { drawVirtualDom(preData, nextData, ctx); }
+    return true;
+  }
+
   const visibleEvents = [];
-  for (const event of thread.events) {
+  const events = thread.events;
+  const { leftBound, rightBound } = findVisibleEventRange(
+    events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+  );
+  for (let i = leftBound; i < rightBound; i++) {
+    const event = events[i];
     const { drawData } = event;
     if (!drawData || !drawData.show) {
       continue;
     }
-      
-    // 预计算文本信息，避免在循环中重复调用
+
+    const pixelWidth = drawData.eventWidth * viewState.scale;
+    if (pixelWidth < 15) {
+      drawData.text = '';
+      continue;
+    }
+
     drawData.width = drawData.eventWidth;
     fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
     if (!drawData.text) { continue };
-      
+
     visibleEvents.push({ event, drawData });
   }
   let preData;
@@ -3181,8 +3304,11 @@ const renderMixModeEvents = (process, processKey, ctx) => {
         }
       }
     } else if (lane.wrapIds.length > 0) {
-      renderThreadSubEvents(thread, threadY, laneHeight, drawDatas, processKey);
-      renderThreadNormalEvents(thread, threadY, laneHeight, drawDatas, processKey);
+      const mipmapRendered = renderMixThreadMipmap(thread, threadY, laneHeight, drawDatas, processKey);
+      if (!mipmapRendered) {
+        renderThreadSubEvents(thread, threadY, laneHeight, drawDatas, processKey);
+        renderThreadNormalEvents(thread, threadY, laneHeight, drawDatas, processKey);
+      }
     } else {
       for (const [threadKey, procThread] of process.threads.entries()) {
         if (procThread.tid === thread.tid) {
@@ -3257,6 +3383,109 @@ const renderThreadNormalEvents = (thread, threadY, laneHeight, drawDatas, proces
     event.drawData = drawData;
     drawDatas.push(drawData);
   }
+};
+
+const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKey) => {
+  const { processLabelWidth, eventHeight, threadHeight } = layout;
+  const halfEventHeight = eventHeight / 2;
+  const baseY = threadY - threadHeight / 2;
+
+  const flattenedEvents = swimDataManager.getMixThreadFlattenedEvents(thread);
+  const { leftBound, rightBound } = findVisibleEventRange(
+    flattenedEvents, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+  );
+  const visibleCount = rightBound - leftBound;
+  const canvasPixelWidth = viewState.canvasCssWidth;
+
+  if (!thread._mixSliceMipmap || visibleCount / canvasPixelWidth <= MIPMAP_THRESHOLD) {
+    return false;
+  }
+
+  const resolution = calcResolution(
+    timelineState.startTime, timelineState.endTime, canvasPixelWidth
+  );
+  const buckets = thread._mixSliceMipmap.query(
+    timelineState.startTime, timelineState.endTime, resolution
+  );
+
+  let durBucketCount = 0;
+  let zeroBucketCount = 0;
+
+  for (const bucket of buckets) {
+    const event = bucket.event;
+    const eventType = event._mixEventType || 'normalEvent';
+
+    let fillColor, fontColor, strokeColor;
+    if (eventType === 'waitTask') {
+      fillColor = colorCfg.eventRectNoColor;
+      fontColor = selectedEvent.value ? colorCfg.eventFontNoColor : colorCfg.eventFont;
+      strokeColor = fillColor;
+    } else {
+      const colors = getEventColor(event, eventRenderer.deps, processKey);
+      fillColor = colors.fillColor;
+      fontColor = colors.fontColor;
+      strokeColor = colors.strokeColor || fillColor;
+    }
+
+    const lineOffset = (bucket.line || 0) + 1;
+    const eventY = baseY + threadHeight * lineOffset - halfEventHeight;
+
+    if (bucket.isZeroDuration) {
+      zeroBucketCount++;
+      const origX = getPositionByTime(event.renderStartTime || event.startTime, viewState, layout) - processLabelWidth;
+      const origWidth = getWidthByDuration((event.renderEndTime || event.endTime) - (event.renderStartTime || event.startTime), viewState, layout);
+      drawDatas.push({
+        rectX: origX,
+        rectY: eventY,
+        rectPixelX: origX * devicePixelRatio,
+        rectPixelY: eventY * devicePixelRatio,
+        eventWidth: origWidth,
+        width: origWidth,
+        height: eventHeight,
+        rectColor: fillColor,
+        strokeColor,
+        fontColor,
+        text: event.name,
+        show: origWidth > viewState.minWidth,
+        textX: 0,
+        textY: eventY * devicePixelRatio + eventTextSize,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        duration: 0,
+        pinnedEventY: eventY,
+        _mipmapEventId: event.id,
+        hashorder: event.args?.['hashOrder-hint'],
+      });
+    } else {
+      durBucketCount++;
+      const aggLogicalWidth = getWidthByDuration(bucket.aggEnd - bucket.aggStart, viewState, layout);
+      const aggX = getPositionByTime(bucket.aggStart, viewState, layout) - processLabelWidth;
+      drawDatas.push({
+        rectX: aggX,
+        rectY: eventY,
+        rectPixelX: aggX * devicePixelRatio,
+        rectPixelY: eventY * devicePixelRatio,
+        eventWidth: aggLogicalWidth,
+        width: aggLogicalWidth,
+        height: eventHeight,
+        rectColor: fillColor,
+        strokeColor,
+        fontColor,
+        text: event.name,
+        show: aggLogicalWidth > viewState.minWidth,
+        textX: 0,
+        textY: eventY * devicePixelRatio + eventTextSize,
+        startTime: bucket.aggStart,
+        endTime: bucket.aggEnd,
+        duration: bucket.aggEnd - bucket.aggStart,
+        pinnedEventY: eventY,
+        _mipmapEventId: event.id,
+        hashorder: event.args?.['hashOrder-hint'],
+      });
+    }
+  }
+
+  return true;
 };
 
 const renderThreadSubEvents = (thread, threadY, laneHeight, drawDatas, processKey) => {

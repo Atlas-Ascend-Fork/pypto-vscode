@@ -184,8 +184,10 @@ import {
   calculateHighlightedPaths,
   calculateMixMacroPaths,
   parseCompressedData,
+  findVisibleEventRange,
 } from './swimGraphUtils';
 import { ARROW_WIDTH } from './swimGraphProcesses/render/eventRender';
+import { SliceMipmap, CounterMipmap } from './swimGraphProcesses/render/mipmapRender';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
@@ -817,6 +819,22 @@ const processTraceData = (data) => {
   swimDataManager.initialize(processes);
   perfLogger.timeEnd('swimDataManager.initialize');
 
+  for (const [processKey, process] of processes.entries()) {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      if (thread.events && thread.events.length > 0) {
+        if (!thread.isCounter) {
+          thread.events.sort((a, b) => a.startTime - b.startTime);
+          thread._maxRenderDuration = thread.events.reduce(
+            (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
+          );
+          thread._sliceMipmap = new SliceMipmap(thread.events);
+        } else {
+          thread._counterMipmap = new CounterMipmap(thread.events, thread.argKey);
+        }
+      }
+    }
+  }
+
   swimDataManager.splitAllEvents();
   
   const subEventsWithDeps = swimDataManager.getAllSubEvents().map(se => ({
@@ -838,6 +856,21 @@ const processTraceData = (data) => {
   if (swimDataManager.hasMixConfig()) {
     swimDataManager.setMixMode(true);
     swimDataManager.calculateMixLayout(layout, lane2line);
+
+    const mixLaneOrder = swimDataManager.getSwimLaneOrder();
+    for (const lane of mixLaneOrder) {
+      if (lane.type !== 'thread') continue;
+      const { thread, wrapIds } = lane;
+      if (wrapIds.length > 0 && !thread.isCounter) {
+        const flattenedEvents = swimDataManager.getMixThreadFlattenedEvents(thread);
+        if (flattenedEvents.length > 0) {
+          thread._maxRenderDuration = flattenedEvents.reduce(
+            (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
+          );
+          thread._mixSliceMipmap = new SliceMipmap(flattenedEvents);
+        }
+      }
+    }
   }
 
   nextTick(() => {
@@ -853,6 +886,7 @@ const processTraceData = (data) => {
 };
 
 const transform = (needClean=false) => {
+  perfLogger.time('time of transform');
   renderTwoTimeline();
   for (const [processKey, ctxInfo] of Object.entries(ctxs)) {
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
@@ -893,6 +927,7 @@ const transform = (needClean=false) => {
     childContextMap.threadEvent.drawSelectionBox();
     childContextMap.threadEvent.drawSelectionHightlight();
   }
+  perfLogger.timeEnd('time of transform');
 };
 
 const renderTwoTimeline = () => {
