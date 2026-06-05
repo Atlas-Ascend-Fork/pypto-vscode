@@ -37,17 +37,18 @@ export function extractOperationNodes(jsonData) {
   const magicNodeIdMap = {};
   if (jsonData && jsonData.operations && Array.isArray(jsonData.operations)) {
     jsonData.operations.forEach((operation, index) => {
-      const subgraphId = operation.subgraphid !== undefined ? operation.subgraphid : -1;
+      const curOperation = JSON.parse(JSON.stringify(operation));
+      const subgraphId = curOperation.subgraphid !== undefined ? curOperation.subgraphid : -1;
 
       if (!opMap[subgraphId]) {
        opMap[subgraphId] = {}
       }
 
-      operation['node_id'] = `operation-magic-${operation.opmagic}-${subgraphId}`;
-      operation['subgraphid'] = subgraphId;
-      operation['node_type'] = 'operation';
-      opMap[operation.subgraphid][operation.opmagic] = operation;
-      magicNodeIdMap[operation.opmagic] = operation['node_id'];
+      curOperation['node_id'] = `operation-magic-${curOperation.opmagic}-${subgraphId}`;
+      curOperation['subgraphid'] = subgraphId;
+      curOperation['node_type'] = 'operation';
+      opMap[curOperation.subgraphid][curOperation.opmagic] = curOperation;
+      magicNodeIdMap[curOperation.opmagic] = curOperation['node_id'];
     });
   }
   comGraphStore.setData('magicNodeIdMap', { ...comGraphStore.data.magicNodeIdMap, ...magicNodeIdMap });
@@ -59,20 +60,21 @@ export function extractTensorNodes(jsonData, incasts, outcasts, rawtensorMap) {
   const magicNodeIdMap = {};
   if (jsonData && jsonData.tensors && Array.isArray(jsonData.tensors)) {
     jsonData.tensors.forEach(tensor => {
-      const subgraphId = tensor.subgraphid !== undefined ? tensor.subgraphid : -1;
+      const curTensor = JSON.parse(JSON.stringify(tensor));
+      const subgraphId = curTensor.subgraphid !== undefined ? curTensor.subgraphid : -1;
 
       if (!tensorMap[subgraphId]) {
         tensorMap[subgraphId] = {}
       }
 
-      tensor['node_id'] = `tensor-${tensor.magic}-${subgraphId}`;
+      curTensor['node_id'] = `tensor-${curTensor.magic}-${subgraphId}`;
 
-      tensor['subgraphid'] = subgraphId;
-      tensor['node_type'] = 'tensor';
-      tensor['rawtensor_info'] = rawtensorMap[tensor.rawtensor];
+      curTensor['subgraphid'] = subgraphId;
+      curTensor['node_type'] = 'tensor';
+      curTensor['rawtensor_info'] = rawtensorMap[curTensor.rawtensor];
 
-      tensorMap[tensor.subgraphid][tensor.magic] = tensor;
-      magicNodeIdMap[tensor.magic] = tensor['node_id'];
+      tensorMap[curTensor.subgraphid][curTensor.magic] = curTensor;
+      magicNodeIdMap[curTensor.magic] = curTensor['node_id'];
     });
   }
   comGraphStore.setData('magicNodeIdMap', { ...comGraphStore.data.magicNodeIdMap, ...magicNodeIdMap });
