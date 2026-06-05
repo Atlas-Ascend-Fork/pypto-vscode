@@ -8,11 +8,6 @@
 
 PyPTO Toolkit插件的安装步骤如下：
 
-1.  单击[LINK](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/pypto-toolkit-1.1.0.vsix)下载插件。
-2.  打开Visual Studio Code，进入“扩展”选项卡界面，单击右上角的“...”，选择“从VSIX安装...”。
+1.  打开Visual Studio Code，进入“扩展”选项卡界面，在扩展搜索框里输入"pypto"搜索插件，点击安装即可。
 
-    **图 1**  安装PyPTO Toolkit插件  
-    ![](../figures/install.png "安装PyPTO-Toolkit插件")
-
-3.  选择.vsix插件文件，完成安装。
-
+    ![install](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/install.png)
