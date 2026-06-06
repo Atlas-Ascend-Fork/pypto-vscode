@@ -3347,6 +3347,7 @@ const renderThreadNormalEvents = (thread, threadY, laneHeight, drawDatas, proces
     .filter(e => e && !swimDataManager.isMixParentEvent(e));
   
   for (const event of normalEvents) {
+    if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) continue;
     const x = getPositionByTime(event.startTime, viewState, layout) - processLabelWidth;
     const width = getWidthByDuration(event.endTime - event.startTime, viewState, layout);
     const lineOffset = (event.line || 0) + 1;
@@ -3498,9 +3499,11 @@ const renderThreadSubEvents = (thread, threadY, laneHeight, drawDatas, processKe
   const baseY = threadY - threadHeight / 2;
   
   for (const parentEvent of parentEvents) {
+    if (parentEvent.endTime < timelineState.startTime || parentEvent.startTime > timelineState.endTime) continue;
     const subEvents = swimDataManager.getSubEvents(parentEvent.id);
     
     for (const subEvent of subEvents) {
+      if (subEvent.endTime < timelineState.startTime || subEvent.startTime > timelineState.endTime) continue;
       const colors = getEventColor(subEvent, eventRenderer.deps, processKey);
       const { fillColor, fontColor } = colors;
       const x = getPositionByTime(subEvent.startTime, viewState, layout) - processLabelWidth;
@@ -3537,6 +3540,7 @@ const renderThreadSubEvents = (thread, threadY, laneHeight, drawDatas, processKe
     }
     const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
     for (const waitTask of waitTasks) {
+      if (waitTask.endTime < timelineState.startTime || waitTask.startTime > timelineState.endTime) continue;
       const x = getPositionByTime(waitTask.startTime, viewState, layout) - processLabelWidth;
       const width = getWidthByDuration(waitTask.endTime - waitTask.startTime, viewState, layout);
       const duration = waitTask.duration ?? (waitTask.endTime - waitTask.startTime);
