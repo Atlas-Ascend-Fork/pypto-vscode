@@ -59,6 +59,7 @@ export interface SyncEvent {
   time: number;
   type: 'CV_SYNC_SET' | 'CV_SYNC_WAIT';
   eventid: number;
+  parentEventId?: string;
 }
 
 export interface SwimLaneWrapLabel {
@@ -595,10 +596,11 @@ class SwimDataManager {
             pool.set(se.eventid, { sets: [], waits: [] });
           }
           const entry = pool.get(se.eventid)!;
+          const enrichedSe: SyncEvent = { ...se, parentEventId: event.id };
           if (se.type === 'CV_SYNC_SET') {
-            entry.sets.push(se);
+            entry.sets.push(enrichedSe);
           } else {
-            entry.waits.push(se);
+            entry.waits.push(enrichedSe);
           }
         }
       }
@@ -643,7 +645,8 @@ class SwimDataManager {
 
   private findSubEventByEndTime(parentEventId: string, endTime: number): EventDetail | null {
     const subEvents = this.getSubEvents(parentEventId);
-    return subEvents.find(se => se.endTime === endTime) || null;
+    const sorted = [...subEvents].sort((a, b) => b.endTime - a.endTime);
+    return sorted.find(se => se.endTime <= endTime) || null;
   }
 
   private findSubEventByStartTime(parentEventId: string, startTime: number): EventDetail | null {
@@ -654,36 +657,38 @@ class SwimDataManager {
 
   private generateAllDependencies(): void {
     const poolByWrapId = new Map<number, Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>>();
+    const processedWrapIds = new Set<number>();
 
     for (const config of this.mixConfig) {
       const wrapId = config.wrapId;
-      const parentEventId = config.parentEventId;
-      const parentEvent = this.eventMap.get(parentEventId);
-      if (!parentEvent?.args?.syncEvents) {
-        continue;
-      }
+      if (processedWrapIds.has(wrapId)) continue;
+      processedWrapIds.add(wrapId);
 
       if (!poolByWrapId.has(wrapId)) {
         poolByWrapId.set(wrapId, this.buildSyncEventPool(wrapId));
       }
       const pool = poolByWrapId.get(wrapId)!;
 
-      const rawSyncEvents: any[] = parentEvent.args.syncEvents;
-      const syncEvents = this.filterValidSyncEvents(rawSyncEvents);
-      const setEvents = syncEvents.filter(se => se.type === 'CV_SYNC_SET');
+      const allSets: SyncEvent[] = [];
+      for (const entry of pool.values()) {
+        allSets.push(...entry.sets);
+      }
+      allSets.sort((a, b) => a.time - b.time);
 
-      for (const setEvent of setEvents) {
+      for (const setEvent of allSets) {
         const pairWaitEvent = this.findAndRemoveSyncEventPair(pool, setEvent.eventid, 'CV_SYNC_WAIT');
         if (!pairWaitEvent) {
           continue;
         }
 
-        const subEventA = this.findSubEventByEndTime(parentEventId, setEvent.time);
+        const setParentEventId = setEvent.parentEventId!;
+        const subEventA = this.findSubEventByEndTime(setParentEventId, setEvent.time);
         if (!subEventA) {
           continue;
         }
 
-        const waitParentEvent = this.findEventBySyncEvent(wrapId, pairWaitEvent);
+        const waitParentEventId = pairWaitEvent.parentEventId!;
+        const waitParentEvent = this.eventMap.get(waitParentEventId);
         if (!waitParentEvent) {
           continue;
         }
