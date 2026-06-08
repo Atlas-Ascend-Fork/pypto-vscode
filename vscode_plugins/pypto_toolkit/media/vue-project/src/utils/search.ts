@@ -241,12 +241,16 @@ export function findNodeIdsBySemanticLabel(jsonData: Object, semantic_label: str
   const ids: string[] = [];
   for (const op of jsonData.operations ?? []) {
     if (op.semantic_label?.label === semantic_label) {
-      ids.push(op.node_id);
+      const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
+      const opNodeId = `operation-magic-${op.opmagic}-${subgraphId}`;
+      ids.push(opNodeId);
     }
   }
   for (const t of jsonData.tensors ?? []) {
     if (t.semantic_label?.label === semantic_label) {
-      ids.push(t.node_id);
+      const subgraphId = t.subgraphid !== undefined ? t.subgraphid : -1;
+      const tensorNodeId = `tensor-${t.magic}-${subgraphId}`;
+      ids.push(tensorNodeId);
     }
   }
   return ids;
