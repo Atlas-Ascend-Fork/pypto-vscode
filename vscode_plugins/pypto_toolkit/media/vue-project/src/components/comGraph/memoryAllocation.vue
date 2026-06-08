@@ -435,7 +435,7 @@ watch(showDetailModal, (val) => {
     width: 100vw;
     height: calc(100vh - 40px);
     bottom: 60px;
-    z-index: 9999;
+    z-index: 999;
     background-color: var(--devui-global-bg);
   }
 }

@@ -672,7 +672,7 @@ export default {
   position: relative;
 }
 .grid-layout-wrapper {
-  background: #303031 ;
+  background: var(--devui-global-bg);
   border-radius: 12px;
   padding: 4px;
   position: relative;
