@@ -5,7 +5,7 @@ src/**
 .gitignore
 **/tsconfig.json
 **/.eslintrc.json
-/.map
+**/*.map
 **/.ts
 media/**
 !media/images/logo.png

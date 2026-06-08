@@ -31,5 +31,6 @@ export default defineConfig({
   build: {
     outDir: '../../webview-dist',
     emptyOutDir: true,
+    sourcemap: false,
   },
 });

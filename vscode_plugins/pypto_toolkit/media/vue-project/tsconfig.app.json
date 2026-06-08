@@ -18,7 +18,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "declaration": false,
-    "sourceMap": true,
+    "sourceMap": false,
     "noEmitOnError": false,
     "types": ["node"],
     "verbatimModuleSyntax": false
