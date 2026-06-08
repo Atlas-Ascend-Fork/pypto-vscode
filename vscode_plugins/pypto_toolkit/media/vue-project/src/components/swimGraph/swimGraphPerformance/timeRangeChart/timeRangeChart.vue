@@ -52,7 +52,7 @@
 import { ref, inject, onMounted, watch, onUnmounted, computed } from 'vue';
 import { getSubGraphId, getEventColorByMode } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
-import { executionTimeData, formatTimeUnit, formatTimeValue } from '../utils';
+import { executionTimeData, formatTimeUnit, formatTimeValue, US_TO_MS_THRESHOLD, US_TO_S_THRESHOLD, UNIT_MS, UNIT_S } from '../utils';
 const { t: $t } = useI18n();
 const state = inject('subGraphTimingState');
 const { clickTask } = inject('swimGraphPmuBarMethod');
@@ -284,6 +284,8 @@ const formatMicroseconds = (value) => {
 };
 const getTicks = (globalMaxDuration) => {
   const maxDurationUs = globalMaxDuration / mod;
+  const unit = formatTimeUnit(maxDurationUs);
+  const divisor = unit === UNIT_S ? US_TO_S_THRESHOLD : unit === UNIT_MS ? US_TO_MS_THRESHOLD : 1;
   let numTicks;
   let stepUs;
   if (maxDurationUs <= 5) {
@@ -302,14 +304,15 @@ const getTicks = (globalMaxDuration) => {
   }
   return Array.from({ length: numTicks }, (_, i) => {
     const valUs = Math.round(i * stepUs);
+    const displayValue = parseFloat((valUs / divisor).toFixed(3));
     const isLast = i === numTicks - 1;
     let label;
     if (valUs === 0) {
       label = '0';
     } else if (isLast) {
-      label = `+${formatTimeValue(valUs)} ${formatTimeUnit(valUs)}`;
+      label = `+${displayValue} ${unit}`;
     } else {
-      label = `+${formatTimeValue(valUs)}`;
+      label = `+${displayValue}`;
     }
     return {
       pos: `${(i / (numTicks - 1) * 100).toFixed(2)}%`,

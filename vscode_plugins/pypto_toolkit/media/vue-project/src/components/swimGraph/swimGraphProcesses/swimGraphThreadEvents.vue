@@ -1488,12 +1488,12 @@ const checkInSelection = () => {
         return;
       }
       const processThreadEventSearchTemp = processThreadEventSearch(thread, start, end);
-      if (threadNameInfo.startsWith('AIC_')) {
+      if (threadName.startsWith('AIC_')) {
         if (processThreadEventSearchTemp.length) {
           AICCount++;
         }
         matchingAICEvents.push(...processThreadEventSearchTemp);
-      } else if (threadNameInfo.startsWith('AIV_')) {
+      } else if (threadName.startsWith('AIV_')) {
         if (processThreadEventSearchTemp.length) {
           AIVCount++;
         }
