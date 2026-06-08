@@ -2477,6 +2477,7 @@ const measureMouseUp = () => {
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
+    isCoreUtilizationSupported(false);
     if (!isMixMode.value && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
@@ -2507,6 +2508,7 @@ const measureMouseLeave = (e) => {
   measureDetailSearch();
   isMeasureDragging.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
+    isCoreUtilizationSupported(false);
     if (!isMixMode.value && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
@@ -2830,7 +2832,30 @@ const containerHeight = computed(() => {
   }
   return swimlaneContainer.value.clientHeight || 0;
 });
-
+const postMessageInfo = (message) => {
+  if (window.vscode) {
+    server.showMessage({ paramObj: { text: message } });
+  }
+};
+const isCoreUtilizationSupported = (isSelection, process = null) => {
+  if (isMixMode.value) {
+    postMessageInfo($t('mixUnavailableInfo'));
+  }
+  if (isMsProf.value) {
+    postMessageInfo($t('MsProfUnavailableInfo'));
+  }
+  if (!isSelection) {
+    return;
+  }
+  if (process.type === 'aicpu') {
+    postMessageInfo($t('aicpuUnavailableInfo'));
+  }
+  if (process.type === 'PerfSwim') {
+    if (process.processName !== 'AICore View') {
+      postMessageInfo($t('perfSwimUnavailableInfo'));
+    }
+  }
+};
 defineExpose({
   setPageState,
   loadTraceData,
@@ -3047,6 +3072,7 @@ provide('swimGraphMethods', {
     childContextMap.threadEvent.changeNodeColor(processKey, isDimmed);
   },
   setHashOrderTipColor,
+  isCoreUtilizationSupported
 });
 watch(isDarkTheme, () => {
   updateTheme();

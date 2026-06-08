@@ -138,7 +138,8 @@ const {
   globalDependencyLinesInfo,
   isMixMode,
   globalConnectionCanvas,
-  isFromPerformanceClick
+  isFromPerformanceClick,
+  isMsProf
 } = swimGraphState;
 
 const {
@@ -158,6 +159,7 @@ const {
   resetMaxScheduleState,
   findWrapAtPosition,
   setHashOrderTipColor,
+  isCoreUtilizationSupported
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -249,6 +251,9 @@ const canvasStatusReset = () => {
 
 const canDragSelect = (process) => {
   if (isMixMode.value) {
+    return false;
+  }
+  if (isMsProf.value) {
     return false;
   }
   if (process.type === 'aicpu') {
@@ -1611,6 +1616,18 @@ const selectionFinished = (e) => {
     return;
   }
   if (!canDragSelect(props.process)) {
+    const rect = canvasRef.getBoundingClientRect();
+    let dragEndX = 0;
+    let dragEndY = 0;
+    if (!e.ctrlKey) {
+      dragEndX = e.clientX - rect.left;
+      dragEndY = e.clientY - rect.top;
+    }
+    const dx = Math.abs(dragEndX - selection.startX);
+    const dy = Math.abs(dragEndY - selection.startY);
+    if (dx >= 5 || dy >= 5) {
+      isCoreUtilizationSupported(true, props.process);
+    }
     isDragging.value = false;
     return;
   }
