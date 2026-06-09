@@ -35,6 +35,7 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 const swimGraphState = inject('swimGraphState');
 const {
   viewState,
+  timelineState,
   processes,
   processExpanded,
   selectedEvent,
@@ -243,6 +244,9 @@ const drawEventNode = (event, coords, isExpanded) => {
   if (!isExpanded || !event.drawData) {
     return;
   }
+  if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) {
+    return;
+  };
   const drawData = JSON.parse(JSON.stringify(event.drawData));
   const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
   

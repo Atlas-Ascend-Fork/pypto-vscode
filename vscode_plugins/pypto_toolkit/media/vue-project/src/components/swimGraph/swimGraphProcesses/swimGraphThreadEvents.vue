@@ -2800,6 +2800,7 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
         : null;
       if (!event) continue;
 
+      drawData.pinnedEventY = event.drawData.pinnedEventY;
       drawData.width = drawData.eventWidth;
       fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
       if (!drawData.text) continue;
@@ -3321,11 +3322,8 @@ const renderMixModeEvents = (process, processKey, ctx) => {
         }
       }
     } else if (lane.wrapIds.length > 0) {
-      const mipmapRendered = renderMixThreadMipmap(thread, threadY, laneHeight, drawDatas, processKey);
-      if (!mipmapRendered) {
-        renderThreadSubEvents(thread, threadY, laneHeight, drawDatas, processKey);
-        renderThreadNormalEvents(thread, threadY, laneHeight, drawDatas, processKey);
-      }
+      renderThreadSubEvents(thread, threadY, laneHeight, drawDatas, processKey);
+      renderThreadNormalEvents(thread, threadY, laneHeight, drawDatas, processKey);
     } else {
       for (const [threadKey, procThread] of process.threads.entries()) {
         if (procThread.tid === thread.tid) {
