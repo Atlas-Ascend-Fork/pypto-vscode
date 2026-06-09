@@ -1174,32 +1174,101 @@ const renderTimeline = () => {
   ctx.strokeStyle = isDarkTheme.value ? '#3e3e42' : 'rgba(0,0,0,0.1)';
   ctx.lineWidth = 1;
 
-  let x = 0;
   const timelineTimeRange = timelineState.endTime - timelineState.startTime;
   const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = timelineTimeRange / canvasWidth;
   const gridInterval = calculateGridInterval(timePerPixel);
+
+  const timelinePoints = [];
   for (let time = timelineState.startTime; time <= timelineState.endTime; time += gridInterval) {
-    x = timeToX(time, true) - layout.processLabelWidth;
+    let x = timeToX(time, true) - layout.processLabelWidth;
     if (x < 0) {
       x = 0;
     }
     if (x >= 0 && x <= viewState.canvasCssWidth) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-
-      const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000 / tsScale.value, (time - viewState.minTime) * 1000 / tsScale.value);
-      ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
-      ctx.font = '12px Arial';
-      ctx.fillText(`${value}${unit}`, x + 2, 15);
-      ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
-      ctx.font = '12px Arial';
-      const timeValue = xToTimeValue(time, true);
-      ctx.fillText(`${timeValue}`, x + 2, 35);
+      timelinePoints.push({ time, x });
     }
   }
+
+  const timelineLabels = timelinePoints.map(point => {
+    const { value, unit } = TimelineWithUnit(
+      viewState.timeRange * 1000 / tsScale.value,
+      (point.time - viewState.minTime) * 1000 / tsScale.value
+    );
+    return `${value}${unit}`;
+  });
+
+  const uniqueLabels = new Set(timelineLabels);
+  let shouldDowngradeUnit = uniqueLabels.size < timelineLabels.length;
+
+  const formatTimelineLabel = (timeInNanoseconds) => {
+    if (!shouldDowngradeUnit) {
+      const { value, unit } = TimelineWithUnit(
+        viewState.timeRange * 1000 / tsScale.value,
+        timeInNanoseconds
+      );
+      return `${value}${unit}`;
+    }
+
+    const unitPriority = ['min', 's', 'ms', 'μs', 'ns'];
+    const currentUnit = timelineLabels[0].match(/[a-zA-Zμ]+/)?.[0] || 'ns';
+    const currentUnitIndex = unitPriority.indexOf(currentUnit);
+
+    for (let downgradeLevel = 1; downgradeLevel <= 3; downgradeLevel++) {
+      const targetUnitIndex = currentUnitIndex + downgradeLevel;
+      if (targetUnitIndex >= unitPriority.length) break;
+
+      const targetUnit = unitPriority[targetUnitIndex];
+      const divisorMap = {
+        's': 1000000000,
+        'ms': 1000000,
+        'μs': 1000,
+        'ns': 1
+      };
+
+      const divisor = divisorMap[targetUnit] || 1;
+      const convertedValue = timeInNanoseconds / divisor;
+      
+      const intervalInTargetUnit = gridInterval / divisor;
+      let decimals = 1;
+      if (intervalInTargetUnit < 10) decimals = 2;
+      if (intervalInTargetUnit < 1) decimals = 3;
+
+      const label = `${convertedValue.toFixed(decimals)}${targetUnit}`;
+
+      const testLabels = timelinePoints.map(p => {
+        const testTime = (p.time - viewState.minTime) * 1000 / tsScale.value;
+        const testValue = testTime / divisor;
+        return `${testValue.toFixed(decimals)}${targetUnit}`;
+      });
+
+      if (new Set(testLabels).size === testLabels.length) {
+        return label;
+      }
+    }
+
+    const { value, unit } = TimelineWithUnit(
+      viewState.timeRange * 1000 / tsScale.value,
+      timeInNanoseconds
+    );
+    return `${value}${unit}`;
+  };
+
+  timelinePoints.forEach(point => {
+    ctx.beginPath();
+    ctx.moveTo(point.x, 0);
+    ctx.lineTo(point.x, canvas.height);
+    ctx.stroke();
+
+    const label = formatTimelineLabel((point.time - viewState.minTime) * 1000 / tsScale.value);
+    ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
+    ctx.font = '12px Arial';
+    ctx.fillText(label, point.x + 2, 15);
+    
+    const timeValue = xToTimeValue(point.time, true);
+    ctx.fillText(`${timeValue}`, point.x + 2, 35);
+  });
+
   if (isMeasureDragging.value) {
     const measureStartTimeX = measureDragStartX.value - layout.processLabelWidth;
     const measureEndTimeX = measureDragEndX.value - layout.processLabelWidth;
@@ -1209,14 +1278,18 @@ const renderTimeline = () => {
 
 const xToTimeValue = (time) => {
   const timeDelta = time - viewState.minTime;
-  const currentTime = Math.round(timeDelta);
-  let truncatedCurrentTime = currentTime;
-  if (currentTime.toString().length > 10) {
-    truncatedCurrentTime = parseInt(currentTime.toString().slice(-9));
+  if (timeDelta < 0) {
+    return '000 000 000';
   }
-  let str = truncatedCurrentTime.toString().padStart(9, '0');
-  str = str.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return str;
+  const timeInNs = Math.round(timeDelta * 1000 / tsScale.value);
+  const str = timeInNs.toString();
+  let formattedStr;
+  if (str.length < 9) {
+    formattedStr = str.padStart(9, '0');
+  } else {
+    formattedStr = str;
+  }
+  return formattedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
 
 const durationToWidth = (duration) => {
