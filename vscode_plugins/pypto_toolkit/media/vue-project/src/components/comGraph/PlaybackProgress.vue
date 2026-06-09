@@ -414,7 +414,7 @@ watch(() => props.clocks, (newClocks) => {
 }, { immediate: true, deep: true })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @import 'devui-theme/styles-var/devui-var.scss';
 
 .playback-progress-container {
