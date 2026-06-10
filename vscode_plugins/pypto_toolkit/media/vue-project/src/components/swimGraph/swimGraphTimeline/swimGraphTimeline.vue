@@ -49,7 +49,7 @@
 import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
 import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, COLOR_CFG } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
-import { throttle } from 'lodash-es';
+import { throttle, debounce } from 'lodash-es';
 import { getTextWidth } from '../../../utils';
 import { useViewServer } from '../../../core/use-view-server';
 import { getIsCompleteBoot } from '@/apis/welcome';
@@ -71,6 +71,7 @@ const {
   timelineState,
   childContextMap,
   isE2ESwim,
+  freezeVisibleRange,
 } = inject('swimGraphState');
 
 const {
@@ -346,10 +347,28 @@ const timelineMouseEventReset = () => {
   timelineInitEndX = timelineState.endTimeX;
 }
 
-// 防抖的渲染函数，避免频繁重绘
-const throttledRender = throttle(() => {
-  transform();
-}, 16); // 约60fps
+let zoomRafId = null;
+let zoomFullRenderTimer = null;
+
+const scheduleZoomRender = () => {
+  freezeVisibleRange.value = true;
+  if (zoomRafId !== null) {
+    return;
+  }
+  zoomRafId = requestAnimationFrame(() => {
+    zoomRafId = null;
+    transform();
+    scheduleZoomFullRender();
+  });
+};
+
+const scheduleZoomFullRender = () => {
+  clearTimeout(zoomFullRenderTimer);
+  zoomFullRenderTimer = setTimeout(() => {
+    freezeVisibleRange.value = false;
+    transform();
+  }, 150);
+};
 
 const changeScale = (zoomFactor, centerPositionX, needRender = true, isManual = true) => {
   if (viewState.scale * 10 >= sliderMax.value && zoomFactor > 1) {
@@ -398,7 +417,7 @@ const changeScale = (zoomFactor, centerPositionX, needRender = true, isManual = 
   viewState.minWidth = 1 / viewState.scale;
 
   if (needRender) {
-    throttledRender();
+    scheduleZoomRender();
   }
 };
 
@@ -911,7 +930,11 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  throttledRender.cancel();
+  if (zoomRafId !== null) {
+    cancelAnimationFrame(zoomRafId);
+    zoomRafId = null;
+  }
+  clearTimeout(zoomFullRenderTimer);
 });
 // 监听引导模式的消息
 const listenExtensionMessage = () => {

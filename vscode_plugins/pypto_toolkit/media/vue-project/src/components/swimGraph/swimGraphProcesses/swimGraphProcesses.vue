@@ -37,6 +37,7 @@ import { inject, provide, ref, defineExpose, watch, computed, onUnmounted } from
 import SwimGraphProcessItem from './SwimGraphProcessItem.vue';
 import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
+import { throttle } from 'lodash-es';
 
 // 注入父组件提供的状态
 const {
@@ -90,7 +91,8 @@ const {
   globalConnectionCanvas,
   isMeasureModel,
   measureDetailsExpanded,
-  isFromPerformanceClick
+  isFromPerformanceClick,
+  freezeVisibleRange
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -166,6 +168,8 @@ provide('swimGraphState', {
   processes,
   lane2line,
   swimlaneContainer,
+  aicpuSection,
+  kernelSection,
   selectedEvent,
   globalMeasureCanvas,
   canvasclickedEvent,
@@ -208,7 +212,8 @@ provide('swimGraphState', {
   globalConnectionCanvas,
   isMeasureModel,
   measureDetailsExpanded,
-  isFromPerformanceClick
+  isFromPerformanceClick,
+  freezeVisibleRange
 });
 
 const {
@@ -225,6 +230,7 @@ const {
   render,
   renderEvent,
   transform,
+  transformVerticalScroll,
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
@@ -235,7 +241,7 @@ const {
   resetMaxScheduleState,
   findWrapAtPosition,
   setHashOrderTipColor,
-  isCoreUtilizationSupported
+  isCoreUtilizationSupported,
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -252,6 +258,7 @@ provide('swimGraphMethods', {
   render,
   renderEvent,
   transform,
+  transformVerticalScroll,
   measureDetailGet,
   xToTime,
   processThreadEventSearch,
@@ -275,13 +282,15 @@ provide('swimGraphContext', {
   addChildContext,
 });
 
-const handleKernelScroll = () => {
+const handleKernelScroll = throttle(() => {
   clearMeasureFun();
-};
+  transformVerticalScroll();
+}, 32);
 
-const handleAicpuScroll = () => {
+const handleAicpuScroll = throttle(() => {
   clearMeasureFun();
-};
+  transformVerticalScroll();
+}, 32);
 const clearMeasureFun = () => {
   if (globalMeasureCanvas.value && globalMeasureCanvas.value.clearMeasure) {
     globalMeasureCanvas.value.clearMeasure();
@@ -311,6 +320,8 @@ watch(aicpuSection, (newVal, oldVal) => {
 });
 
 onUnmounted(() => {
+  handleKernelScroll.cancel();
+  handleAicpuScroll.cancel();
   if (kernelSection.value && kernelScrollHandler) {
     kernelSection.value.removeEventListener('scroll', kernelScrollHandler);
   }

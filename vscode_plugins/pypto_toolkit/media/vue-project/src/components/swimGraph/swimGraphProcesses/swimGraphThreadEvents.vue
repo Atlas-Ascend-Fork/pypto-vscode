@@ -58,11 +58,11 @@
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
-  getThreadHeight, getThreadStartY, eventTextSize, nodeSpaceMin, clearWholeProcess,
+  getThreadHeight, getThreadStartY, getVisibleYRange, isThreadInViewport, eventTextSize, nodeSpaceMin, clearWholeProcess,
   renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodes,
   findVisibleEventRange
 } from '../swimGraphUtils';
-import { isEqual, throttle } from 'lodash-es';
+import { isEqual, throttle, debounce } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets, MIPMAP_THRESHOLD } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
@@ -139,7 +139,11 @@ const {
   isMixMode,
   globalConnectionCanvas,
   isFromPerformanceClick,
-  isMsProf
+  isMsProf,
+  isE2ESwim,
+  aicpuSection,
+  kernelSection,
+  freezeVisibleRange
 } = swimGraphState;
 
 const {
@@ -433,12 +437,17 @@ const handleCanvasRightClick = (e) => {
   }
 };
 
-// 防抖的渲染函数，避免频繁重绘
-const throttledRender = throttle(() => {
+const throttledZoomRender = throttle(() => {
+  freezeVisibleRange.value = true;
   transform();
-}, 16); // 约60fps
+}, 16);
 
-const scaleCanvas = (mouseX, scale) => {
+const debouncedFullRender = debounce(() => {
+  freezeVisibleRange.value = false;
+  transform();
+}, 150);
+
+const scaleCanvas = (mouseX, scale, fromAnimation = false) => {
   const oldScale = viewState.scale;
   
   if (viewState.scale * scale < initialScale.value) {
@@ -464,8 +473,13 @@ const scaleCanvas = (mouseX, scale) => {
   viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
   viewState.minWidth = 1 / viewState.scale;
 
-  // 使用防抖渲染
-  throttledRender();
+  if (fromAnimation) {
+    freezeVisibleRange.value = true;
+    transform();
+  } else {
+    throttledZoomRender();
+    debouncedFullRender();
+  }
 };
 
 
@@ -517,7 +531,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  throttledRender.cancel();
+  throttledZoomRender.cancel();
+  debouncedFullRender.cancel();
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
@@ -556,7 +571,7 @@ const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
   
   currentZoomRatio += step;
   if (Math.abs(step) > 1e-6) {
-    scaleCanvas(mouseX, 1 + step);
+    scaleCanvas(mouseX, 1 + step, zooming !== Zoom.None);
     if (measureState.isMeasureFixed) {
       measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
     }
@@ -564,6 +579,7 @@ const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
     if (zoomAnimation) {
       zoomAnimation.stop();
       animationFrameCount = 0;
+      freezeVisibleRange.value = false;
       transform();
     }
   }
@@ -1685,8 +1701,9 @@ const transformEvents = (process, processKey) => {
   }
   let { eventCtx, backgroundCtx } = ctxs[processKey];
 
-  for (const ctx of Object.values(ctxs[processKey])) {
-    if (ctx) {
+  const preserveCtxs = ['dependencyCtx'];
+  for (const [ctxKey, ctx] of Object.entries(ctxs[processKey])) {
+    if (ctx && !preserveCtxs.includes(ctxKey)) {
       clearWholeProcess(ctx, viewState, processKey);
     }
   }
@@ -1707,7 +1724,18 @@ const transformEvents = (process, processKey) => {
   } else if (isMixMode && !isMixMode.value && swimDataManager.hasMixConfig() ) {
     drawMixTransformEvent(process, processKey, eventCtx);
   } else {
+    const canvasRef = getActiveEventCanvas(processKey);
+    const viewportContainer = isE2ESwim.value
+      ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
+      : swimlaneContainer.value;
+    const { top, bottom } = getVisibleYRange(canvasRef, viewportContainer);
     for (const [threadKey, thread] of process.threads.entries()) {
+      const key = thread.isCounter ? thread.threadName : thread.tid;
+      const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+      const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
+      if (!isThreadInViewport(threadY, threadHeight, top, bottom)) {
+        continue;
+      }
       drawTransformEvent(thread, eventCtx, false);
     }
     if ((selectedEvent.value || searchedEvent.value) && !drawColorDatas.length) {

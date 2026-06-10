@@ -115,6 +115,21 @@ export const getThreadHeight = (processKey: string, threadKey: any, lane2line: M
 };
 
 // 普通event threadKey是tid, counter的是threadName
+export const getVisibleYRange = (canvasRef: HTMLElement, containerRef: HTMLElement): { top: number; bottom: number } => {
+  if (!canvasRef || !containerRef) {
+    return { top: 0, bottom: Infinity };
+  }
+  const canvasRect = canvasRef.getBoundingClientRect();
+  const containerRect = containerRef.getBoundingClientRect();
+  const top = Math.max(0, containerRect.top - canvasRect.top);
+  const bottom = containerRect.bottom - canvasRect.top;
+  return { top, bottom };
+};
+
+export const isThreadInViewport = (threadStartY: number, threadHeight: number, viewportTop: number, viewportBottom: number): boolean => {
+  return threadStartY + threadHeight > viewportTop && threadStartY < viewportBottom;
+};
+
 export const getThreadStartY = (process: any, processKey: any, threadKey: string, lane2line: Map<string, number>, layout: any): number => {
   const cacheKey = `${processKey}@${threadKey}@startY`;
   

@@ -131,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick, provide, inject, toRef, toRaw } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick, provide, inject, toRef, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SwimGraphHeader from './swimGraphHeader/swimGraphHeader.vue';
 import SwimGraphTimeline from './swimGraphTimeline/swimGraphTimeline.vue';
@@ -344,6 +344,9 @@ const isMaxSchedule = ref(false);
 let startEventId;
 let endEventId;
 const kernelThreadData = ref(new Map());
+const freezeVisibleRange = ref(false);
+let _frozenStartTime = 0;
+let _frozenEndTime = 0;
 const viewState = reactive({
   offsetX: 0,
   offsetY: 0,
@@ -470,6 +473,9 @@ const initEventListeners = () => {
   window.addEventListener('mousemove', handleGlobalMouseMove);
   window.addEventListener('keydown', handleGlobalKeyDown);
   window.addEventListener('keyup', handleGlobalKeyUp);
+  if (swimlaneContainer.value) {
+    swimlaneContainer.value.addEventListener('scroll', onVerticalScroll);
+  }
 };
 
 function generateErrorMsg(msg) {
@@ -885,8 +891,7 @@ const processTraceData = (data) => {
   });
 };
 
-const transform = (needClean=false) => {
-  perfLogger.time('time of transform');
+const transformCanvasOnly = () => {
   renderTwoTimeline();
   for (const [processKey, ctxInfo] of Object.entries(ctxs)) {
     for (const [ctxKey, ctx] of Object.entries(ctxInfo)) {
@@ -894,10 +899,22 @@ const transform = (needClean=false) => {
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
   }
+};
+
+const transform = (needClean=false) => {
+  perfLogger.time('time of transform');
+  transformCanvasOnly();
+  const isFrozen = freezeVisibleRange.value;
+  if (isFrozen) {
+    timelineState.startTime = _frozenStartTime;
+    timelineState.endTime = _frozenEndTime;
+  } else {
+    _frozenStartTime = timelineState.startTime;
+    _frozenEndTime = timelineState.endTime;
+  }
   if (globalMeasureCanvas.value) {
     globalMeasureCanvas.value.clearMeasure();
   }
-  // 渲染进程事件
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey);
@@ -2277,6 +2294,26 @@ const onWindowResize = throttle(() => {
   doResize();
 }, 50);
 
+const transformVerticalScroll = () => {
+  perfLogger.time('time of transformVerticalScroll');
+  transformCanvasOnly();
+  for (const [processKey, process] of processes.entries()) {
+    if (processExpanded.get(processKey)) {
+      childContextMap.threadEvent.transformEvents(process, processKey);
+      const ctx = ctxs[processKey].eventCtx;
+      childContextMap.threadEvent.renderProcessText(process, ctx);
+    }
+  }
+  if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
+    pinnedthreadsComponent.value.Pinnedtransform();
+  }
+  perfLogger.timeEnd('time of transformVerticalScroll');
+};
+
+const onVerticalScroll = throttle(() => {
+  transformVerticalScroll();
+}, 32);
+
 const resizeCanvases = (processKey, needResizeTimeline = true) => {
   if (!swimlaneContainer.value) return;
 
@@ -2814,6 +2851,17 @@ const onJumpCom = () => {
 }; 
 
 // 生命周期钩子
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+  window.removeEventListener('mousemove', handleGlobalMouseMove);
+  window.removeEventListener('keydown', handleGlobalKeyDown);
+  window.removeEventListener('keyup', handleGlobalKeyUp);
+  if (swimlaneContainer.value) {
+    swimlaneContainer.value.removeEventListener('scroll', onVerticalScroll);
+  }
+  onVerticalScroll.cancel();
+});
+
 onMounted(async () => {
   setupSwimWatchers();
   initEventListeners();
@@ -3042,7 +3090,8 @@ provide('swimGraphState', {
   isMixMode,
   globalConnectionCanvas,
   isFromPerformanceClick,
-  hashOrderRending
+  hashOrderRending,
+  freezeVisibleRange
 });
 
 // 提供方法给子组件
@@ -3064,6 +3113,7 @@ provide('swimGraphMethods', {
   resizeMeasure,
   renderEvent,
   transform,
+  transformVerticalScroll,
   measureDetailGet,
   processThreadEventSearch,
   getDisplayName,
