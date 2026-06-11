@@ -240,7 +240,7 @@ const transformPinned = () => {
         childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
       }
     });
-    childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, true);
+    childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, null, true);
     return;
   }
   
@@ -603,7 +603,7 @@ const pinnedRender = () => {
     threadY += layout.threadHeight * lineCount;
   });
   
-  childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, true);
+  childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, null, true);
   flagRender();
 };
 

@@ -163,7 +163,7 @@ const {
   resetMaxScheduleState,
   findWrapAtPosition,
   setHashOrderTipColor,
-  isCoreUtilizationSupported
+  isCoreUtilizationSupported,
 } = inject('swimGraphMethods');
 
 const { addChildContext } = inject('swimGraphContext');
@@ -2782,7 +2782,7 @@ const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess
   return true;
 };
 
-const renderProcessText = async (process, ctx, isPinned = false) => {
+const renderProcessText = async (process, ctx, processKey, isPinned = false) => {
   ctx.font = getFontStyle(eventTextSize);
   ctx.textRenderingOptimization = 'optimizeLegibility';
   ctx.save();
@@ -2799,7 +2799,21 @@ const renderProcessText = async (process, ctx, isPinned = false) => {
       renderThreadText(item.thread, ctx, selectedInfo, isHighlighting, isAicpuProcess);
     }
   } else {
+    const canvasRef = getActiveEventCanvas(processKey);
+    const viewportContainer = isE2ESwim.value
+      ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
+      : swimlaneContainer.value;
+    const { top, bottom } = getVisibleYRange(canvasRef, viewportContainer);
     for (const [threadKey, thread] of process.threads.entries()) {
+      if (thread.isCounter) {
+        continue;
+      }
+      const key = thread.tid;
+      const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+      const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
+      if (!isThreadInViewport(threadY, threadHeight, top, bottom)) {
+        continue;
+      }
       if (!renderThreadText(thread, ctx, selectedInfo, isHighlighting, isAicpuProcess)) {
         break;
       }
@@ -3681,7 +3695,7 @@ watch(isDarkTheme, () => {
   if (processExpanded.get(props.processKey)) {
     transformEvents(props.process, props.processKey);
     const ctx = ctxInfo.eventCtx;
-    renderProcessText(props.process, ctx);
+    renderProcessText(props.process, ctx, props.processKey);
   }
   drawDependencyLines(props.process, props.processKey, viewState.depMode);
   flagRender();

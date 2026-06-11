@@ -906,6 +906,10 @@ const transform = (needClean=false) => {
   transformCanvasOnly();
   const isFrozen = freezeVisibleRange.value;
   if (isFrozen) {
+    if (_frozenStartTime === 0 || _frozenEndTime === 0) {
+      _frozenStartTime = timelineState.startTime;
+      _frozenEndTime = timelineState.endTime;
+    }
     timelineState.startTime = _frozenStartTime;
     timelineState.endTime = _frozenEndTime;
   } else {
@@ -919,7 +923,7 @@ const transform = (needClean=false) => {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
-      childContextMap.threadEvent.renderProcessText(process, ctx);
+      childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
     }
   }
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
@@ -958,7 +962,7 @@ const renderEvent = () => {
     childContextMap.threadEvent.renderProcessEvents(process, processKey);
     const ctx = ctxs[processKey].eventCtx;
     if (processExpanded.get(processKey)) {
-      childContextMap.threadEvent.renderProcessText(process, ctx);
+      childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
     }
   }
 };
@@ -1381,8 +1385,10 @@ const toggleProcess = (processKey) => {
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
     const ctx = ctxInfo.eventCtx;
-    childContextMap.threadEvent.transformEvents(process, processKey);
-    childContextMap.threadEvent.renderProcessText(process, ctx);
+    const isVisible = childContextMap.threadEvent.transformEvents(process, processKey);
+    if (isVisible) {
+      childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
+    }
     timelineComponent.value.flagRender();
     drawKernalEvents();
   });
@@ -2301,7 +2307,7 @@ const transformVerticalScroll = () => {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
-      childContextMap.threadEvent.renderProcessText(process, ctx);
+      childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
     }
   }
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
