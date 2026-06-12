@@ -1695,7 +1695,8 @@ const clearEventDrawdata = (process, processKey) => {
   }
 };
 
-const transformEvents = (process, processKey) => {
+// skipViewportFilter 导出图片时需要先全部渲染一遍，否则超出视口的thread没有节点
+const transformEvents = (process, processKey, skipViewportFilter = false) => {
   if (!ctxs[processKey]) {
     return;
   }
@@ -1728,13 +1729,19 @@ const transformEvents = (process, processKey) => {
     const viewportContainer = isE2ESwim.value
       ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
       : swimlaneContainer.value;
-    const { top, bottom } = getVisibleYRange(canvasRef, viewportContainer);
+    const { top, bottom } = skipViewportFilter ? { top: 0, bottom: Infinity } : getVisibleYRange(canvasRef, viewportContainer);
     for (const [threadKey, thread] of process.threads.entries()) {
       const key = thread.isCounter ? thread.threadName : thread.tid;
       const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
       const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
-      if (!isThreadInViewport(threadY, threadHeight, top, bottom)) {
+      if (!skipViewportFilter && !isThreadInViewport(threadY, threadHeight, top, bottom)) {
         continue;
+      }
+      if (thread.isCounter) {
+        thread._counterBaseY = threadY + layout.counterHeight;
+        if (!thread.drawData) {
+          collectCounterDrawData(thread, threadY, false);
+        }
       }
       drawTransformEvent(thread, eventCtx, false);
     }
@@ -2782,7 +2789,7 @@ const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess
   return true;
 };
 
-const renderProcessText = async (process, ctx, processKey, isPinned = false) => {
+const renderProcessText = async (process, ctx, processKey, isPinned = false, skipViewportFilter = false) => {
   ctx.font = getFontStyle(eventTextSize);
   ctx.textRenderingOptimization = 'optimizeLegibility';
   ctx.save();
@@ -2803,7 +2810,7 @@ const renderProcessText = async (process, ctx, processKey, isPinned = false) => 
     const viewportContainer = isE2ESwim.value
       ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
       : swimlaneContainer.value;
-    const { top, bottom } = getVisibleYRange(canvasRef, viewportContainer);
+    const { top, bottom } = skipViewportFilter ? { top: 0, bottom: Infinity } : getVisibleYRange(canvasRef, viewportContainer);
     for (const [threadKey, thread] of process.threads.entries()) {
       if (thread.isCounter) {
         continue;
@@ -2811,7 +2818,7 @@ const renderProcessText = async (process, ctx, processKey, isPinned = false) => 
       const key = thread.tid;
       const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
       const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
-      if (!isThreadInViewport(threadY, threadHeight, top, bottom)) {
+      if (!skipViewportFilter && !isThreadInViewport(threadY, threadHeight, top, bottom)) {
         continue;
       }
       if (!renderThreadText(thread, ctx, selectedInfo, isHighlighting, isAicpuProcess)) {

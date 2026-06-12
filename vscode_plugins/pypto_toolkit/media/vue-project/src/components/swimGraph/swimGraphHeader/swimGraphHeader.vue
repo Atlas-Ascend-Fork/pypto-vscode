@@ -167,6 +167,7 @@ const {
 
 const {
   transform,
+  exportRender,
   toggleDetailsCores,
   getTimelineCanvas,
   resizeMeasure,
@@ -279,6 +280,7 @@ const exportSwimGraph = () => {
   }
   isExporting.value = true;
   try {
+    exportRender();
     const dpr = window.devicePixelRatio || 1;
     const { processLabelWidth } = layout;
     const { canvasCssWidth } = viewState;

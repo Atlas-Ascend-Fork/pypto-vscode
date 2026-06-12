@@ -435,9 +435,9 @@ if (isWideScreen.value) {
 }
 
 watch(performanceWidth, async (newValue) => {
-    await nextTick();
-    doResize();
-  });
+  await nextTick();
+  scheduleResizeRender();
+});
 watch(performanceVisible, async (newValue) => {
   emit('update-shared-swim-data', {
     performanceWidth,
@@ -445,7 +445,7 @@ watch(performanceVisible, async (newValue) => {
   });
   if (newValue) {
     await nextTick();
-    doResize();
+    scheduleResizeRender();
   }
 });
 const containerStyle = computed(() => ({
@@ -469,7 +469,7 @@ const handleGlobalKeyUp = (e) => { globalKeyEvent(e, globalMousePosition, layout
 
 // 方法
 const initEventListeners = () => {
-  window.addEventListener('resize', onWindowResize);
+  initResizeObserver();
   window.addEventListener('mousemove', handleGlobalMouseMove);
   window.addEventListener('keydown', handleGlobalKeyDown);
   window.addEventListener('keyup', handleGlobalKeyUp);
@@ -529,7 +529,7 @@ let ERROR_MESSAGES = {
 };
 
 window.ascEventBus.on('threeColumnSizeChange', () => {
-  onWindowResize();
+  scheduleResizeRender();
 });
 
 const validData = (dataStr) => {
@@ -882,10 +882,7 @@ const processTraceData = (data) => {
   nextTick(() => {
     initCanvases();
     resizeCanvases();
- 
-    if (!userConfig.value.showPerformancePanel || props.isThreeColumn || isGuidePage.value) {
-      render();
-    }
+    render();
     // 恢复置顶状态
     restorePinnedState();
   });
@@ -899,6 +896,21 @@ const transformCanvasOnly = () => {
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
   }
+};
+
+const exportRender = () => {
+  transformCanvasOnly();
+  for (const [processKey, process] of processes.entries()) {
+    if (processExpanded.get(processKey)) {
+      childContextMap.threadEvent.transformEvents(process, processKey, true);
+      const ctx = ctxs[processKey].eventCtx;
+      childContextMap.threadEvent.renderProcessText(process, ctx, processKey, false, true);
+    }
+  }
+  if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
+    pinnedthreadsComponent.value.Pinnedtransform();
+  }
+  timelineComponent.value.flagRender();
 };
 
 const transform = (needClean=false) => {
@@ -1381,10 +1393,8 @@ const toggleProcess = (processKey) => {
       ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
     }
     const ctx = ctxInfo.eventCtx;
-    const isVisible = childContextMap.threadEvent.transformEvents(process, processKey);
-    if (isVisible) {
-      childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
-    }
+    childContextMap.threadEvent.transformEvents(process, processKey);
+    childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
     timelineComponent.value.flagRender();
     drawKernalEvents();
   });
@@ -2251,31 +2261,42 @@ const resetState = () => {
   sliderValue.value = 0;
 };
 
-const doResize = () => {
+let resizeRafId = null;
+let resizeFullRenderTimer = null;
+let resizeObserver = null;
+
+const doResizeFastPhase = () => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
-
   // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
   if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive) {
     return;
   }
 
-  // 更新状态
   setDevicePixelRatio(currentDevicePixelRatio);
+  const oldCanvasCssWidth = viewState.canvasCssWidth;
+  const oldOffsetX = viewState.offsetX;
   viewState.windowWidth = currentWindowWidth;
 
-  resetState();
-
-  // 重新计算容器尺寸和canvas尺寸
+  freezeVisibleRange.value = true;
   resizeCanvases();
-
-  // 重新计算时间轴相关参数
   if (timelineComponent.value) {
     timelineComponent.value.resizeCanvases();
   }
 
-  // 重新渲染所有内容
-  render();
+  const newCanvasCssWidth = viewState.canvasCssWidth;
+  if (oldCanvasCssWidth && newCanvasCssWidth && oldCanvasCssWidth !== newCanvasCssWidth) {
+    viewState.offsetX = oldOffsetX * (newCanvasCssWidth / oldCanvasCssWidth);
+    viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
+    viewState.pixelScale = viewState.scale * getDevicePixelRatio();
+  }
+
+  transform();
+};
+
+const doResizeFullPhase = () => {
+  freezeVisibleRange.value = false;
+  transform();
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     pinnedthreadsComponent.value.pinnedInitCanvases();
     pinnedthreadsComponent.value.pinnedRender();
@@ -2292,9 +2313,29 @@ const doResize = () => {
   }
 };
 
-const onWindowResize = throttle(() => {
-  doResize();
-}, 50);
+const scheduleResizeRender = () => {
+  if (resizeRafId !== null) { return };
+  resizeRafId = requestAnimationFrame(() => {
+    resizeRafId = null;
+    doResizeFastPhase();
+    scheduleResizeFullRender();
+  });
+};
+
+const scheduleResizeFullRender = () => {
+  clearTimeout(resizeFullRenderTimer);
+  resizeFullRenderTimer = setTimeout(() => {
+    doResizeFullPhase();
+  }, 150);
+};
+
+const initResizeObserver = () => {
+  if (!swimlaneContainer.value) { return };
+  resizeObserver = new ResizeObserver(() => {
+    scheduleResizeRender();
+  });
+  resizeObserver.observe(swimlaneContainer.value);
+};
 
 const transformVerticalScroll = () => {
   perfLogger.time('time of transformVerticalScroll');
@@ -2309,6 +2350,7 @@ const transformVerticalScroll = () => {
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     pinnedthreadsComponent.value.Pinnedtransform();
   }
+  timelineComponent.value.flagRender();
   perfLogger.timeEnd('time of transformVerticalScroll');
 };
 
@@ -2854,7 +2896,12 @@ const onJumpCom = () => {
 
 // 生命周期钩子
 onUnmounted(() => {
-  window.removeEventListener('resize', onWindowResize);
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+  cancelAnimationFrame(resizeRafId);
+  clearTimeout(resizeFullRenderTimer);
   window.removeEventListener('mousemove', handleGlobalMouseMove);
   window.removeEventListener('keydown', handleGlobalKeyDown);
   window.removeEventListener('keyup', handleGlobalKeyUp);
@@ -3109,6 +3156,7 @@ provide('swimGraphMethods', {
   selectEvent,
   findEventAtPosition,
   timeToX,
+  exportRender,
   xToTime,
   durationToWidth,
   renderDependencyLines,
