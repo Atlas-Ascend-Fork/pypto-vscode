@@ -1368,14 +1368,10 @@ const toggleProcess = (processKey) => {
 
   // 如果曾经打开过，为了保证缩放比例等正确，也需要再次绘制
   const process = processes.get(processKey);
-  let needRender = !process.isRendered;
   process.isRendered = true;
 
   nextTick(() => {
     resizeCanvases(processKey, false);
-    if (needRender) {
-      childContextMap.threadEvent.renderProcessEvents(process, processKey);
-    }
     const ctxInfo = ctxs[processKey];
     if (!ctxInfo) {
       return;

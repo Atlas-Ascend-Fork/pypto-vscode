@@ -2634,7 +2634,6 @@ const drawCounterThread = (thread, ctx, threadY, isPinned = false) => {
 const drawEventThread = (thread, ctx, threadY, processKey) => {
   // 绘制线程事件
   let eventDatas = [];
-  let previousEventData = null;
   
   // 预计算常量，避免在循环中重复计算
   const { threadHeight, eventHeight } = layout;
@@ -2662,9 +2661,10 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
     } else {
       return;
     }
-    previousEventData = event;
   });
-  eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
+  if (processExpanded.get(processKey)) {
+    eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
+  }
 };
 
 // 全部的节点数据包括坐标和初始颜色
