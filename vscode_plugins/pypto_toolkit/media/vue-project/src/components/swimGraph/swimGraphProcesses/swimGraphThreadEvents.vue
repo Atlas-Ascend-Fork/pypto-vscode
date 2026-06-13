@@ -2133,6 +2133,19 @@ const drawThreads = (process, processKey, ctx) => {
   }
 };
 
+const computeProcessDrawData = (process, processKey) => {
+  for (const [threadKey, thread] of process.threads.entries()) {
+    const key = thread.isCounter ? thread.threadName : thread.tid;
+    const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+    if (thread.isCounter) {
+      thread._counterBaseY = threadY + layout.counterHeight;
+      collectCounterDrawData(thread, threadY, false);
+    } else {
+      computeEventThreadDrawData(thread, threadY, processKey);
+    }
+  }
+};
+
 const getThreadInfo = (processKey, tid) => {
   const processInfo = swimDataManager.processInfo.get(processKey);
   if (!processInfo) { return null };
@@ -2638,37 +2651,33 @@ const drawCounterThread = (thread, ctx, threadY, isPinned = false) => {
   drawCounterThreadFromData(ctx, drawData);
 };
 
-const drawEventThread = (thread, ctx, threadY, processKey) => {
-  // 绘制线程事件
-  let eventDatas = [];
-  
-  // 预计算常量，避免在循环中重复计算
+const computeEventThreadDrawData = (thread, threadY, processKey) => {
   const { threadHeight, eventHeight } = layout;
   const halfThreadHeight = threadHeight / 2;
-  const baseY = threadY - halfThreadHeight; // 基础Y坐标
+  const baseY = threadY - halfThreadHeight;
   const halfEventHeight = eventHeight / 2;
-  
-  // 预创建 drawData 模板，避免重复对象创建
   const createDrawData = () => ({
-    rectX: 0, rectY: 0, eventWidth: 0, height: 0, 
-    rectColor: '', strokeColor: '', text: '', 
+    rectX: 0, rectY: 0, eventWidth: 0, height: 0,
+    rectColor: '', strokeColor: '', text: '',
     textX: 0, textY: 0, fontColor: '', show: true, pinnedEventY: 0,
   });
-  
-  thread.events.forEach((event, index, array) => {
+  const eventDatas = [];
+  thread.events.forEach((event) => {
     const lineOffset = (event.line || 0) + 1;
     const y = baseY + threadHeight * lineOffset;
     const eventY = y - halfEventHeight;
-    
     const drawData = createDrawData();
-    if (getDrawData(ctx, event, eventY, drawData, processKey)) {
+    if (getDrawData(null, event, eventY, drawData, processKey)) {
       event.drawData = drawData;
       swimDataManager.updateEvent(event.id, { drawData, renderInfo: event.renderInfo });
       eventDatas.push(drawData);
-    } else {
-      return;
     }
   });
+  return eventDatas;
+};
+
+const drawEventThread = (thread, ctx, threadY, processKey) => {
+  const eventDatas = computeEventThreadDrawData(thread, threadY, processKey);
   if (processExpanded.get(processKey)) {
     eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
   }
@@ -2677,9 +2686,6 @@ const drawEventThread = (thread, ctx, threadY, processKey) => {
 // 全部的节点数据包括坐标和初始颜色
 const getDrawData = (ctx, event, eventY, drawData, processKey) => {
   const { processLabelWidth, eventHeight } = layout;
-  if (!ctx || !ctx.canvas) {
-    return false;
-  }
   let x = getPositionByTime(event.renderStartTime, viewState, layout) - processLabelWidth;
   if (x > viewState.canvasCssWidth) {
     x = viewState.canvasCssWidth - 1;
@@ -3649,6 +3655,7 @@ addChildContext('threadEvent', {
   drawLockedOutline,
   getCanvasHeight,
   renderProcessEvents,
+  computeProcessDrawData,
   renderProcessText,
   fillTextInfo,
   resizeCanvas,

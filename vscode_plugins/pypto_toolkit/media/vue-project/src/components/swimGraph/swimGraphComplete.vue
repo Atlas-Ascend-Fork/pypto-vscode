@@ -2241,16 +2241,10 @@ let resizeObserver = null;
 
 const doResizeFastPhase = () => {
   const currentDevicePixelRatio = getDevicePixelRatio();
-  const currentWindowWidth = window.innerWidth;
-  // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
-  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive) {
-    return;
-  }
 
   setDevicePixelRatio(currentDevicePixelRatio);
   const oldCanvasCssWidth = viewState.canvasCssWidth;
   const oldOffsetX = viewState.offsetX;
-  viewState.windowWidth = currentWindowWidth;
 
   freezeVisibleRange.value = true;
   resizeCanvases();
@@ -2270,6 +2264,11 @@ const doResizeFastPhase = () => {
 
 const doResizeFullPhase = () => {
   freezeVisibleRange.value = false;
+  perfLogger.time('time of computeDrawData');
+  for (const [processKey, process] of processes.entries()) {
+    childContextMap.threadEvent.computeProcessDrawData(process, processKey);
+  }
+  perfLogger.timeEnd('time of computeDrawData');
   transform();
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     pinnedthreadsComponent.value.pinnedInitCanvases();
@@ -2288,11 +2287,18 @@ const doResizeFullPhase = () => {
 };
 
 const scheduleResizeRender = () => {
+  const currentDevicePixelRatio = getDevicePixelRatio();
+  const currentWindowWidth = window.innerWidth;
+  // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
+  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive.value) {
+    return;
+  }
   if (resizeRafId !== null) { return };
   resizeRafId = requestAnimationFrame(() => {
     resizeRafId = null;
     doResizeFastPhase();
     scheduleResizeFullRender();
+    viewState.windowWidth = currentWindowWidth;
   });
 };
 
