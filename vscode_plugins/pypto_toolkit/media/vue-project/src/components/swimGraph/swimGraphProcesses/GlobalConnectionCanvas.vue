@@ -14,6 +14,7 @@ import { COLOR_CFG, DEP_MODE, drawArrow, eventTextSize } from '../swimGraphUtils
 import { swimDataManager } from '../swimData';
 import { EventRender } from './render/eventRender';
 import { getEventColor } from './render/utils';
+import { calcResolution } from './render/mipmapRender';
 const { isDarkTheme } = inject('root');
 const props = defineProps({
   containerWidth: {
@@ -146,6 +147,48 @@ const clearCanvas = () => {
   ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
 };
 
+const drawFilteredEdges = (edgesToDraw) => {
+  const resolution = calcResolution(timelineState.startTime, timelineState.endTime, viewState.canvasCssWidth);
+  const drawnEdges = new Set();
+
+  const isValidPair = (f, t) => f && t && f.renderInfo && t.renderInfo;
+
+  for (const edge of edgesToDraw) {
+    const [fromId, toId] = edge.split('->');
+    const fromEvent = swimDataManager.eventMap.get(fromId);
+    const toEvent = swimDataManager.eventMap.get(toId);
+    if (!isValidPair(fromEvent, toEvent))
+    {
+        continue;
+    }
+
+    const fromVisible = fromEvent.startTime <= timelineState.endTime && fromEvent.endTime >= timelineState.startTime;
+    const toVisible = toEvent.startTime <= timelineState.endTime && toEvent.endTime >= timelineState.startTime;
+    if (!fromVisible && !toVisible)
+    {
+        continue;
+    }
+
+    const fromBucketIdx = Math.floor((fromEvent.startTime - timelineState.startTime) / resolution);
+    const toBucketIdx = Math.floor((toEvent.startTime - timelineState.startTime) / resolution);
+    const fromDur = fromEvent.endTime - fromEvent.startTime;
+    const toDur = toEvent.endTime - toEvent.startTime;
+    const shouldSkip = fromDur <= resolution && toDur <= resolution;
+    if (shouldSkip && fromBucketIdx === toBucketIdx && Math.abs(fromEvent.renderInfo.y - toEvent.renderInfo.y) < 1)
+    {
+        continue;
+    }
+    const dedupeKey = `${Math.round(fromEvent.renderInfo.y)}_${fromBucketIdx}->${Math.round(toEvent.renderInfo.y)}_${toBucketIdx}`;
+    if (drawnEdges.has(dedupeKey))
+    {
+        continue;
+    }
+    drawnEdges.add(dedupeKey);
+
+    drawSingleConnectionLine(fromEvent, toEvent);
+  }
+};
+
 const drawDep = (event) => {
   const mode = viewState.depMode;
   let level = 1;
@@ -165,15 +208,7 @@ const drawDep = (event) => {
   );
   
   globalDependencyLinesInfo.value = [];
-  for (const edge of edgesToDraw) {
-    const [fromId, toId] = edge.split('->');
-    const fromEvent = swimDataManager.eventMap.get(fromId);
-    const toEvent = swimDataManager.eventMap.get(toId);
-    
-    if (fromEvent && toEvent) {
-      drawSingleConnectionLine(fromEvent, toEvent);
-    }
-  }
+  drawFilteredEdges(edgesToDraw);
   
   const selectedProcessKey = event.pid.toString();
   const isSelectedProcessExpanded = processExpanded.get(selectedProcessKey);
@@ -247,7 +282,7 @@ const drawEventNode = (event, coords, isExpanded) => {
   if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) {
     return;
   };
-  const drawData = JSON.parse(JSON.stringify(event.drawData));
+  const drawData = { ...event.drawData };
   const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
   
   drawData.rectY = startY / devicePixelRatio;
@@ -261,7 +296,7 @@ const drawNormalEventNode = (event, coords, isExpanded) => {
     return;
   }
   
-  const drawData = JSON.parse(JSON.stringify(event.drawData));
+  const drawData = { ...event.drawData };
   const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
   
   drawData.rectY = startY / devicePixelRatio;
@@ -286,7 +321,7 @@ const highlightEventNode = (event, coords, isExpanded) => {
     return;
   }
   
-  const drawData = JSON.parse(JSON.stringify(event.drawData));
+  const drawData = { ...event.drawData };
   const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
   
   drawData.rectY = startY / devicePixelRatio;
@@ -712,7 +747,7 @@ const getDrawMacroEventNodeDrawData = () => {
     for (const subEvent of subEvents) {
       const subCoords = getEventCoordinates(subEvent, false);
       if (subCoords) {
-        const drawData = JSON.parse(JSON.stringify(subEvent.drawData));
+        const drawData = { ...subEvent.drawData };
         const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
         drawData.rectY = startY / devicePixelRatio;
         drawData.textY = startY + eventTextSize;
@@ -753,7 +788,7 @@ const drawMacroEventNodeCached = (event, coords, drawnNodes) => {
       
       const subCoords = getEventCoordinates(subEvent, false);
       if (subCoords) {
-        const drawData = JSON.parse(JSON.stringify(subEvent.drawData));
+        const drawData = { ...subEvent.drawData };
         const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
         drawData.rectY = startY / devicePixelRatio;
         drawData.textY = startY + eventTextSize;
@@ -768,7 +803,7 @@ const drawMacroEventNodeCached = (event, coords, drawnNodes) => {
       return;
     };
     
-    const drawData = JSON.parse(JSON.stringify(event.drawData));
+    const drawData = { ...event.drawData };
     const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
     drawData.rectY = startY / devicePixelRatio;
     drawData.textY = startY + eventTextSize;

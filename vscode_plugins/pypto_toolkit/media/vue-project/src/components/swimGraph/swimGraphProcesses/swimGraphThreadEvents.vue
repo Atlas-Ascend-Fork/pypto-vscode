@@ -40,16 +40,16 @@
       @wheel="handleWheel"
       @contextmenu="handleCanvasRightClick"
     ></canvas>
-    <canvas class="ui-events-canvas" :data-ui-process-key="processKey"></canvas>
-    <canvas class="dependency-events-canvas" :data-dep-process-key="processKey"></canvas>
-    <canvas class="hover-events-canvas" :data-hover-process-key="processKey"></canvas>
-    <canvas class="background-events-canvas" :data-background-process-key="processKey"></canvas>
-    <canvas class="wrap-container-canvas" :data-wrap-container-process-key="processKey"></canvas>
-    <canvas class="mix-dependency-canvas" :data-mix-dep-process-key="processKey"></canvas>
-    <canvas class="line-events-canvas" :data-line-process-key="processKey"></canvas>
-    <canvas class="selection-events-canvas" :data-selection-process-key="processKey"></canvas>
-    <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey"></canvas>
-    <canvas class="hover-wrap-container-canvas" :data-hover-wrap-container-process-key="processKey"></canvas>
+    <canvas class="ui-events-canvas" :data-ui-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="dependency-events-canvas" :data-dep-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="hover-events-canvas" :data-hover-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="background-events-canvas" :data-background-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="wrap-container-canvas" :data-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="mix-dependency-canvas" :data-mix-dep-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="line-events-canvas" :data-line-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="selection-events-canvas" :data-selection-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="hover-wrap-container-canvas" :data-hover-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
     <swim-graph-thread-lock-menu/>
   </div>
 </template>
@@ -64,7 +64,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithU
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
-import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets, MIPMAP_THRESHOLD } from './render/mipmapRender';
+import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
@@ -1187,7 +1187,7 @@ const handleMouseMoveThrottle = throttle((e) => {
   const info = findEventAtPosition(x, y, props.processKey);
   const hoveredEvent = info?.event;
 
-  if (isMixMode?.value) {
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     highlightMixThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
     const wrapCtx = ctxs[props.processKey]?.hoverWrapContainerCtx;
     drawHoverWrapContainner(hoveredEvent, x, y, wrapCtx);
@@ -1745,9 +1745,6 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
       }
       drawTransformEvent(thread, eventCtx, false);
     }
-    if ((selectedEvent.value || searchedEvent.value) && !drawColorDatas.length) {
-      changeNodeColor(processKey, true, false);
-    }
   }
 
   if (backgroundCtx) {
@@ -1788,15 +1785,14 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         eventCtx.closePath();
         eventCtx.restore();
       }
-    } else if (!selectedEvent.value && !drawColorDatas.length) {
+    } else if (!drawColorDatas.length) {
       const events = thread.events;
       const { leftBound, rightBound } = findVisibleEventRange(
         events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
       );
-      const visibleCount = rightBound - leftBound;
       const canvasPixelWidth = viewState.canvasCssWidth;
 
-      if (thread._sliceMipmap && visibleCount / canvasPixelWidth > MIPMAP_THRESHOLD) {
+      if (thread._sliceMipmap) {
         const resolution = calcResolution(
           timelineState.startTime, timelineState.endTime, canvasPixelWidth
         );
@@ -1839,7 +1835,8 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = true;
-        eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
+        const isDimmed = !!(selectedEvent.value || searchedEvent.value);
+        eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       } else {
         let eventDatas = [];
         for (let i = leftBound; i < rightBound; i++) {
@@ -1857,7 +1854,8 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = false;
-        eventRenderer.drawEvent(eventDatas, eventCtx, false, isPinned);
+        const isDimmed = !!(selectedEvent.value || searchedEvent.value);
+        eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       }
     }
 };
@@ -2303,7 +2301,27 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas) => {
     const threadY = getThreadStartY(process, processKey, thread.tid, lane2line, layout);
     const threadHeight = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
     maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
-    
+
+    if (thread._sliceMipmap && thread._visibleDrawDatas) {
+      for (const drawData of thread._visibleDrawDatas) {
+        if (!drawData || !drawData.show)
+        {
+            continue;
+        }
+        const event = drawData._mipmapEventId
+          ? swimDataManager.getEventById(drawData._mipmapEventId)
+          : null;
+        if (event) {
+          updateEventDrawData(event, isDimmed, processKey);
+          drawData.rectColor = event.drawData.rectColor;
+          drawData.fontColor = event.drawData.fontColor;
+          drawData.strokeColor = event.drawData.strokeColor;
+        }
+        drawDatas.push(drawData);
+      }
+      continue;
+    }
+
     const events = thread.events;
     const { leftBound, rightBound } = findVisibleEventRange(
       events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
@@ -2356,6 +2374,7 @@ const changeNodeColor = (processKey, isDimmed=false, needText=true) => {
         eventRenderer.drawEventText(siblingDrawDatas, eventCtx, false);
       }
     }
+    drawThreadSeparators(eventCtx, process, processKey);
   }
 };
 
@@ -2412,17 +2431,47 @@ const drawMaxScheduleLine = (startEvent, endEvent, process, processKey) => {
 };
 
 /**
- * 收集并绘制所有在层级内的依赖边
+ * 收集并绘制所有在层级内的依赖边（按桶去重）
  */
 const renderDependencyEdges = (edgesToDraw, eventMap, ctx) => {
+  const resolution = calcResolution(timelineState.startTime, timelineState.endTime, viewState.canvasCssWidth);
+  const drawnEdges = new Set();
+
+  const isValidPair = (f, t) => f && t && f.renderInfo && t.renderInfo;
+
   for (const edge of edgesToDraw) {
     const [fromId, toId] = edge.split('->');
     const fromEvent = eventMap.get(fromId);
     const toEvent = eventMap.get(toId);
-    const needDraw = fromEvent && toEvent && fromEvent.renderInfo && toEvent.renderInfo;
-    if (needDraw) {
-      drawSingleEdge(fromEvent, toEvent, ctx);
+    if (!isValidPair(fromEvent, toEvent))
+    {
+        continue;
     }
+
+    const fromVisible = fromEvent.startTime <= timelineState.endTime && fromEvent.endTime >= timelineState.startTime;
+    const toVisible = toEvent.startTime <= timelineState.endTime && toEvent.endTime >= timelineState.startTime;
+    if (!fromVisible && !toVisible)
+    {
+        continue;
+    }
+
+    const fromBucketIdx = Math.floor((fromEvent.startTime - timelineState.startTime) / resolution);
+    const toBucketIdx = Math.floor((toEvent.startTime - timelineState.startTime) / resolution);
+    const fromDur = fromEvent.endTime - fromEvent.startTime;
+    const toDur = toEvent.endTime - toEvent.startTime;
+    const shouldSkip = fromDur <= resolution && toDur <= resolution;
+    if (shouldSkip && fromBucketIdx === toBucketIdx && Math.abs(fromEvent.renderInfo.y - toEvent.renderInfo.y) < 1)
+    {
+        continue;
+    }
+    const dedupeKey = `${Math.round(fromEvent.renderInfo.y)}_${fromBucketIdx}->${Math.round(toEvent.renderInfo.y)}_${toBucketIdx}`;
+    if (drawnEdges.has(dedupeKey))
+    {
+        continue;
+    }
+    drawnEdges.add(dedupeKey);
+
+    drawSingleEdge(fromEvent, toEvent, ctx);
   }
 };
 
@@ -2455,7 +2504,6 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
 
   dependencyLinesInfo.value.push({fromEvent, toEvent, linePath, processKey: props.processKey});
   eventRenderer.drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
-  eventRenderer.drawEventText([fromEvent.drawData, toEvent.drawData], ctx);
 };
 
 const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => {
@@ -2761,6 +2809,7 @@ const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess
   
   if (actualWidth < 15) {
     drawData.text = '';
+    event.drawData.text = '';
     return false;
   }
 
@@ -2789,9 +2838,13 @@ const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess
   const textStartX = (visibleRectXOnScreen * devicePixelRatio) + (actualPixWidth - textWidth) / 2;
 
   drawData.text = displayText;
+  event.drawData.text = displayText;
   drawData.textX = isTextXChange ? textStartX : event.drawData.textX;
+  event.drawData.textX = isTextXChange ? textStartX : event.drawData.textX;
   drawData.textY = drawData.rectPixelY + eventTextSize;
+  event.drawData.textY = event.drawData.rectPixelY + eventTextSize;
   drawData.pinnedTextY = (drawData.pinnedEventY * devicePixelRatio) + eventTextSize;
+  event.drawData.pinnedTextY = (event.drawData.pinnedEventY * devicePixelRatio) + eventTextSize;
   return true;
 };
 
@@ -2801,7 +2854,7 @@ const renderProcessText = async (process, ctx, processKey, isPinned = false, ski
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const selectedEventId = selectEvent.value ? selectEvent.value.id : null;
-  const selectedDep = selectEvent.value ? [...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors] : [];
+  const selectedDep = selectEvent.value ? new Set([...selectedEvent.value.dependencies.predecessors, ...selectedEvent.value.dependencies.successors]) : new Set();
   const isHighlighting = highlightedPaths.size > 0;
   let isAicpuProcess = process.type === 'aicpu';
   const selectedInfo = { selectedEventId, selectedDep };
@@ -2865,7 +2918,7 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
     let nextData;
     for (const { event, drawData } of visibleEvents) {
       const isSelf = selectedEventId === event.id;
-      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+      const hasCurrent = highlightedPaths.has(event.id) || selectedDep.has(event.id);
       if (isHighlighting && !isSelf && !hasCurrent) {
         ctx.fillStyle = colorCfg.eventFontNoColor;
       } else {
@@ -2910,7 +2963,7 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
     const isSelf = selectedEventId === event.id;
       
     // 优化颜色判断逻辑
-    const hasCurrent = highlightedPaths.has(event.id) || selectedDep.includes(event.id);
+    const hasCurrent = highlightedPaths.has(event.id) || selectedDep.has(event.id);
     if (isHighlighting && !isSelf && !hasCurrent) {
       ctx.fillStyle = colorCfg.eventFontNoColor;
     } else {
@@ -3461,14 +3514,9 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;
 
-  const flattenedEvents = swimDataManager.getMixThreadFlattenedEvents(thread);
-  const { leftBound, rightBound } = findVisibleEventRange(
-    flattenedEvents, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
-  );
-  const visibleCount = rightBound - leftBound;
   const canvasPixelWidth = viewState.canvasCssWidth;
 
-  if (!thread._mixSliceMipmap || visibleCount / canvasPixelWidth <= MIPMAP_THRESHOLD) {
+  if (!thread._mixSliceMipmap) {
     return false;
   }
 

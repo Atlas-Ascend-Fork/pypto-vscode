@@ -257,6 +257,7 @@ const pathLockedEvent = ref(null);
 const isPathLockStatus = ref(false);
 const highlightedPaths = reactive(new Set());
 const mixRelatedPaths = reactive(new Set());
+let depLinesTimer = null;
 const processExpanded = reactive(new Map());
 const loading = ref(false);
 const loadingComplete = ref(true);
@@ -930,7 +931,10 @@ const transform = (needClean=false) => {
   if (needClean) {
     return;
   }
-  renderDependencyLines();
+  clearTimeout(depLinesTimer);
+  depLinesTimer = setTimeout(() => {
+    renderDependencyLines();
+  }, 160);
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
       highlightAicpu(process, processKey, true);
@@ -1439,74 +1443,102 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
   }
 };
 
+let selectEventToken = 0;
+
 const handleMixSubEventClick = (event, processKey) => {
   mixRelatedPaths.clear();
   highlightedPaths.clear();
-  
-  const relatedEvents = collectSubEventDependencyPathNodes(event);
-  for (const pathId of relatedEvents) {
-    mixRelatedPaths.add(pathId);
-  }
-  mixRelatedPaths.add(event.id);
-  
-  calculateMixMacroPaths(event.parentEventId, highlightedPaths, userConfig.value.connectionLevel);
-  
+
   childContextMap.threadEvent.focusWrap(event.args.wrapId);
-  
-  childContextMap.threadEvent.changeNodeColor(processKey, false);
   globalConnectionCanvas.value.clearCanvas();
-  const wrapCtx = globalConnectionCanvas.value.globalConnectionCanvas.getContext('2d');
-  childContextMap.threadEvent.drawClickWrapContainner(event, wrapCtx);
-  if (isMaxSchedule.value) {
-    const subEvents = swimDataManager.getSubEvents(event.parentEventId);
-    for (const subEvent of subEvents) {
-      if (!subEvent.drawData) { 
-        continue; 
+
+  const token = ++selectEventToken;
+  setTimeout(() => {
+    if (token !== selectEventToken)
+    {
+        return;
+    }
+
+    const relatedEvents = collectSubEventDependencyPathNodes(event);
+    for (const pathId of relatedEvents) {
+      mixRelatedPaths.add(pathId);
+    }
+    mixRelatedPaths.add(event.id);
+
+    calculateMixMacroPaths(event.parentEventId, highlightedPaths, userConfig.value.connectionLevel);
+
+    childContextMap.threadEvent.changeNodeColor(processKey, false);
+    const wrapCtx = globalConnectionCanvas.value.globalConnectionCanvas.getContext('2d');
+    childContextMap.threadEvent.drawClickWrapContainner(event, wrapCtx);
+    if (isMaxSchedule.value) {
+      const subEvents = swimDataManager.getSubEvents(event.parentEventId);
+      for (const subEvent of subEvents) {
+        if (!subEvent.drawData) { 
+          continue; 
+        }
+        const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(subEvent, false);
+        if (selectedCoords) {
+          globalConnectionCanvas.value.highlightEventNode(subEvent, selectedCoords, true);
+        }
       }
-      const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(subEvent, false);
+    } else {
+      const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(event, false);
       if (selectedCoords) {
-        globalConnectionCanvas.value.highlightEventNode(subEvent, selectedCoords, true);
+        globalConnectionCanvas.value.highlightEventNode(event, selectedCoords, true);
       }
     }
-  } else {
-    const selectedCoords = globalConnectionCanvas.value.getEventCoordinates(event, false);
-    if (selectedCoords) {
-      globalConnectionCanvas.value.highlightEventNode(event, selectedCoords, true);
+    if (event?.isWait) {
+      return;
     }
-  }
-  if (event?.isWait) {
-    return;
-  }
-  if (!isMaxSchedule.value) {
-    childContextMap.threadEvent.renderDimmedNodesInWrap(event, wrapCtx);
-  }
-  globalConnectionCanvas.value.drawMacroDependencyLines();
-  
-  const parentEvent = swimDataManager.getEventById(event.parentEventId);
-  if (parentEvent) {
-    canvasclickedEvent.value = {
-      ...parentEvent,
-      id: event.id,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      duration: event.endTime - event.startTime,
-      renderInfo: event.renderInfo,
-    };
-  }
+    if (!isMaxSchedule.value) {
+      childContextMap.threadEvent.renderDimmedNodesInWrap(event, wrapCtx);
+    }
+    globalConnectionCanvas.value.drawMacroDependencyLines();
+
+    const parentEvent = swimDataManager.getEventById(event.parentEventId);
+    if (parentEvent) {
+      canvasclickedEvent.value = {
+        ...parentEvent,
+        id: event.id,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        duration: event.endTime - event.startTime,
+        renderInfo: event.renderInfo,
+      };
+    }
+  }, 0);
 };
 
 const handleMixNormalEventClick = (event, processKey) => {
   highlightedPaths.clear();
   mixRelatedPaths.clear();
-  calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
   childContextMap.threadEvent.changeNodeColor(processKey, false);
-  renderDependencyLines(processKey);
+
+  const token = ++selectEventToken;
+  setTimeout(() => {
+    if (token !== selectEventToken)
+    {
+        return;
+    }
+    calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+    childContextMap.threadEvent.changeNodeColor(processKey, false);
+    renderDependencyLines(processKey);
+  }, 0);
 };
 
 const handleNormalEventClick = (event, processKey) => {
-  calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
   childContextMap.threadEvent.changeNodeColor(processKey, true);
-  renderDependencyLines(processKey);
+
+  const token = ++selectEventToken;
+  setTimeout(() => {
+    if (token !== selectEventToken)
+    {
+        return;
+    }
+    calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+    childContextMap.threadEvent.changeNodeColor(processKey, true);
+    renderDependencyLines(processKey);
+  }, 0);
 };
 
 const clearSelection = (processKey) => {
@@ -1540,6 +1572,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   if (!forceExec && noChange) {
     return;
   }
+  ++selectEventToken;
   mixRelatedPaths.clear();
   highlightedPaths.clear();
   globalConnectionCanvas?.value?.clearCanvas();
@@ -1974,6 +2007,38 @@ const findSubEventAtPosition = (x, y) => {
 
 
 const searchEventsInThread = (thread, x, y) => {
+  if (thread._sliceMipmap && thread._visibleDrawDatas) {
+    const halfArrowWidth = (ARROW_WIDTH / 2) / viewState.scale;
+    for (const drawData of thread._visibleDrawDatas) {
+      if (!drawData || !drawData.show)
+      {
+          continue;
+      }
+      const { rectX, rectY, eventWidth, height, duration } = drawData;
+      if (y < rectY || y > rectY + height)
+      {
+          continue;
+      }
+
+      if (duration === 0) {
+        const centerX = rectX + (eventWidth / 2);
+        if (x >= centerX - halfArrowWidth && x <= centerX + halfArrowWidth && drawData._mipmapEventId)
+        {
+            const event = swimDataManager.getEventById(drawData._mipmapEventId);
+            return { foundEvent: event, fallback: null };
+        }
+      } else {
+        const hitWidth = Math.max(eventWidth, viewState.minWidth);
+        if (x >= rectX && x <= rectX + hitWidth && drawData._mipmapEventId)
+        {
+            const event = swimDataManager.getEventById(drawData._mipmapEventId);
+            return { foundEvent: event, fallback: null };
+        }
+      }
+    }
+    return { foundEvent: null, fallback: null };
+  }
+
   let fallbackAltClickData = null;
   const eventsOnCurrentLine = [];
   

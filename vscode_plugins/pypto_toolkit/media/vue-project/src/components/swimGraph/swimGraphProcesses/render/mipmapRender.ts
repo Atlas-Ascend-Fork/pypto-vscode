@@ -1,8 +1,6 @@
 import { getPositionByTime, getWidthByDuration } from '../processInfo';
 import { getNoZoomX } from './utils';
 
-export const MIPMAP_THRESHOLD = 0.2;
-
 class ImplicitSegmentForest {
   values: any[];
   aggOp: (a: any, b: any) => any;
