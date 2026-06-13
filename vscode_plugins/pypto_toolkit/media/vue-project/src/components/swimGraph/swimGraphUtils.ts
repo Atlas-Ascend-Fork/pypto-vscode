@@ -612,6 +612,45 @@ export const getTaskNo = (schedStr, id, threads) => {
   }
   return '';
 };
+export const hashMatchDataGet = (eventHint, eventTime, { rootHashes, leafHashes, leafHashMap }) => {
+  const eventTimeMs = eventTime / 1000;
+  if (eventHint) {
+    const rootHashMatch = eventHint.match(/rootHash:(?<hash>\d+)/);
+    const leafHashMatch = eventHint.match(/leafHash:(?<hash>\d+)/);
+    if (leafHashMatch && rootHashMatch) {
+      const [, leafHash] = leafHashMatch;
+      const [, rootHash] = rootHashMatch;
+      if (!rootHashes.value.includes(rootHash)) {
+        rootHashes.value.push(rootHash);
+      }
+
+      if (!leafHashes.value.includes(leafHash)) {
+        leafHashes.value.push(leafHash);
+      }
+      const key = `${leafHash}_${rootHash}`;
+      if (leafHashMap.value.has(key)) {
+        const stats = leafHashMap.value.get(key);
+        stats.Occurrences++;
+        stats['Wall duration'] += eventTimeMs;
+        stats['Avg Wall duration'] = stats['Wall duration'] / stats.Occurrences;
+      } else {
+        leafHashMap.value.set(key, {
+          Occurrences: 1,
+          'Wall duration': eventTimeMs,
+          'Avg Wall duration': eventTimeMs,
+          'root hash': rootHash,
+          'leaf hash': leafHash,
+        });
+      }
+    }
+  }
+};
+export const getEventDisplayName = (e) => {
+  return (e?.name || '');
+};
+export const getThreadDisplayName = (e) => {
+  return (e?.threadName || '');
+};
 export const findAllCoreEvent = (events, roundNo, taskNo, schedThread) => {
   const result = getSchedRelatation(schedThread, roundNo, taskNo);
   const coreEventArr = [];

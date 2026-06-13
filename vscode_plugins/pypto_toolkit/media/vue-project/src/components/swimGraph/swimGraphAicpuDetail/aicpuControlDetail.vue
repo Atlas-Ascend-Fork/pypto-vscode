@@ -92,7 +92,8 @@ import aicpuDetailNodata from './aicpuDetailNoData.vue';
 import aicCubeScheduleDetail from './aicCubeScheduleDetail.vue';
 import aivCubeScheduleDetail from './aivCubeScheduleDetail.vue';
 const { t: $t } = useI18n();
-import { COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { getEventDisplayName } from '../swimGraphUtils';
+import { getBaseColor } from '../swimGraphProcesses/processInfo';
 // 注入父组件提供的状态和方法
 const currentContent = ref();
 const connectionSvg = ref();
@@ -110,9 +111,8 @@ const {
 
 const {
   dynamicWidthStyle,
-  getEventDisplayName,
-  getThreadDisplayName,
-  getEventColor,
+  kernelColorRending,
+  processes,
 } = inject('swimGraphMethods');
 
 const aicpuScheduleData = ref(new Map());
@@ -176,7 +176,7 @@ const getPathData = (index) => {
           ${endX},${endY}`;
 };
 let startColor = computed(() => {
-  return getEventColor(selectedEvent.value);
+  return getBaseColor(selectedEvent.value, { processes, isDarkTheme, kernelColorRending });
 });
 let stopColor = computed(() => {
   return isDarkTheme.value ? '#ffffff' : '#000000';

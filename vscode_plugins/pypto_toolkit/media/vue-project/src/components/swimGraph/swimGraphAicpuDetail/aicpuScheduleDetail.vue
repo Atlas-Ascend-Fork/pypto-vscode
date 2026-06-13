@@ -59,6 +59,9 @@ import aicpuDetailNodata from './aicpuDetailNoData.vue';
 import gradientDashedLine from './gradientDashedLine.vue';
 import aicCubeScheduleDetail from './aicCubeScheduleDetail.vue';
 import aivCubeScheduleDetail from './aivCubeScheduleDetail.vue';
+import { getBaseColor } from '../swimGraphProcesses/processInfo';
+import { getThreadDisplayName, getEventDisplayName } from '../swimGraphUtils';
+
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
 const {
@@ -66,16 +69,14 @@ const {
     selectedEvent,
     isDarkTheme,
     aicpuBuildTask,
-    aicpuScheduleEventMaps,
+    kernelColorRending,
+    processes,
     aicpuHasRelevent,
     aicpuScheduleMaps
 } = inject('swimGraphState');
 
 const {
   dynamicWidthStyle,
-  getEventDisplayName,
-  getThreadDisplayName,
-  getEventColor,
 } = inject('swimGraphMethods');
 
 const aicpuScheduleDetailsPanel = () => {
@@ -90,12 +91,11 @@ const aicendmax = ref(0);
 let aicThreadNum = 0;
 let aivThreadNum = 0;
 
-
 let buildTaskColor = computed(() => {
-  return getEventColor(aicpuBuildTask.value);
+  return getBaseColor(aicpuBuildTask.value, { processes, isDarkTheme, kernelColorRending });
 });
 let currentTaskColor = computed(() => {
-  return getEventColor(selectedEvent.value);
+  return getBaseColor(selectedEvent.value, { processes, isDarkTheme, kernelColorRending });
 });
 
 let stopColor = computed(() => {
