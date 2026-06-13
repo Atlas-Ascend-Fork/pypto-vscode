@@ -166,7 +166,6 @@ import {
   getCanvasCSSWidth,
   getDevicePixelRatio,
   COLOR_CFG,
-  processesToMap,
   SNAP_THRESHOLD,
   NARROW_WIDTH_THRESHOLD,
   findSchedTaskByNo,
@@ -184,7 +183,7 @@ import {
   calculateHighlightedPaths,
   calculateMixMacroPaths,
   parseCompressedData,
-  findVisibleEventRange,
+  hashMatchDataGet,
 } from './swimGraphUtils';
 import { ARROW_WIDTH } from './swimGraphProcesses/render/eventRender';
 import { SliceMipmap, CounterMipmap } from './swimGraphProcesses/render/mipmapRender';
@@ -267,22 +266,9 @@ const detailsPanelExpanded = ref(false);
 const detailsCoresExpanded = ref(false);
 const tooltip = ref(null);
 const lineTooltip = ref(null);
-const tooltipStyle = reactive({
-  display: 'none',
-  left: '0px',
-  top: '0px',
-});
-const lineTooltipStyle = reactive({
-  display: 'none',
-  left: '0px',
-  top: '0px',
-});
-const pinnedMeasureInfo = reactive({
-  show: false,
-  x: 0,
-  y: 0,
-  text: ''
-});
+const tooltipStyle = reactive({ display: 'none', left: '0px', top: '0px' });
+const lineTooltipStyle = reactive({ display: 'none', left: '0px', top: '0px' });
+const pinnedMeasureInfo = reactive({ show: false, x: 0, y: 0, text: '' });
 const isMixMode = ref(true);
 const isFromPerformanceClick = ref(false);
 const bindFile = ref(false);
@@ -2197,18 +2183,6 @@ const overflowText = (actualWidth, text) => {
   return [displayText, textStartX];
 };
 
-const getEventDisplayName = (e) => {
-  return (e?.name || '');
-};
-const getThreadDisplayName = (e) => {
-  return (e?.threadName || '');
-};
-const getEventColor = (e) => {
-  if (!e || !e.color) {
-    return 'rgba(10, 89, 247, 0.3)';
-  }
-  return isDarkTheme.value ? e.color.dark?.base : e.color.light?.base;
-};
 const dynamicWidthStyle = (event) => {
   if (event) {
     const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
@@ -2385,19 +2359,6 @@ const resizeMeasure = () => {
   setMeasureDragHeight();
   document.documentElement.style.setProperty('--maskstart', `${measureDragStartX.value}px`);
   document.documentElement.style.setProperty('--maskend', `${measureDragEndX.value}px`);
-};
-
-const dragAreaStyle = () => {
-  const width = Math.abs(measureDragEndX.value - measureDragStartX.value);
-  const left = Math.min(measureDragStartX.value, measureDragEndX.value);
-  const borderStyle = showDragAreaBorders.value ? '1px solid rgba(255, 255, 255, 0.2)' : 'none';
-  return {
-    left: `${left}px`,
-    width: `${width}px`,
-    height: '100%',
-    borderLeft: borderStyle,
-    borderRight: borderStyle,
-  };
 };
 
 const measureMouseDown = (e) => {
@@ -2683,40 +2644,6 @@ const processThreadEventSearch = (thread, startTime, endTime) => {
   return matchedEvents;
 };
 
-const hashMatchDataGet = (eventHint, eventTime) => {
-  const eventTimeMs = eventTime / 1000;
-  if (eventHint) {
-    const rootHashMatch = eventHint.match(/rootHash:(?<hash>\d+)/);
-    const leafHashMatch = eventHint.match(/leafHash:(?<hash>\d+)/);
-    if (leafHashMatch && rootHashMatch) {
-      const [, leafHash] = leafHashMatch;
-      const [, rootHash] = rootHashMatch;
-      if (!rootHashes.value.includes(rootHash)) {
-        rootHashes.value.push(rootHash);
-      }
-
-      if (!leafHashes.value.includes(leafHash)) {
-        leafHashes.value.push(leafHash);
-      }
-      const key = `${leafHash}_${rootHash}`;
-      if (leafHashMap.value.has(key)) {
-        const stats = leafHashMap.value.get(key);
-        stats.Occurrences++;
-        stats['Wall duration'] += eventTimeMs;
-        stats['Avg Wall duration'] = stats['Wall duration'] / stats.Occurrences;
-      } else {
-        leafHashMap.value.set(key, {
-          Occurrences: 1,
-          'Wall duration': eventTimeMs,
-          'Avg Wall duration': eventTimeMs,
-          'root hash': rootHash,
-          'leaf hash': leafHash,
-        });
-      }
-    }
-  }
-};
-
 const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount) => {
   let AICoretime = 0;
   let AICtime = 0;
@@ -2734,7 +2661,7 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
         vectorCycle += Number(event.pmu_info.vec_busy_cycles);
       }
       const eventHint = event.args['event-hint'];
-      hashMatchDataGet(eventHint, eventTime);
+      hashMatchDataGet(eventHint, eventTime, { rootHashes, leafHashes, leafHashMap });
     }
   }
 
@@ -2747,7 +2674,7 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
         vectorCycle += Number(event.pmu_info.vec_busy_cycles);
       }
       const eventHint = event.args['event-hint'];
-      hashMatchDataGet(eventHint, eventTime);
+      hashMatchDataGet(eventHint, eventTime, { rootHashes, leafHashes, leafHashMap });
     }
   }
 
@@ -3175,13 +3102,10 @@ provide('swimGraphMethods', {
   drawMeasureTime,
   setMeasureDragHeight,
   autoExpandkernelProcess,
-  getEventColor,
   clearHeadState: () => {
     return swimgraphHeaderComponent?.value.clearHeadState();
   },
   dynamicWidthStyle,
-  getEventDisplayName,
-  getThreadDisplayName,
   resetsearchState: (needSelectEvent=true) => {
     return swimgraphHeaderComponent?.value.resetsearchState(needSelectEvent);
   },

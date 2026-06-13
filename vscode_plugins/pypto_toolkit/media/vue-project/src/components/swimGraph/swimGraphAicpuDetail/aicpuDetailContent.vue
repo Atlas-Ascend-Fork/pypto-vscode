@@ -45,7 +45,7 @@
 <script setup>
 import { ref, inject, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { formatTimeWithUnit} from '../swimGraphUtils';
+import { getEventDisplayName } from '../swimGraphUtils';
 
 const { t } = useI18n();
 // 注入父组件提供的状态和方法
@@ -58,7 +58,6 @@ const {
 
 const {
     overflowText,
-    getEventDisplayName
 } = inject('swimGraphMethods');
 
 let tPath = isDarkTheme.value ? ref(`${window.staticPath}/static-assets/circle.svg`) : ref(`${window.staticPath}/static-assets/circle_light.svg`);

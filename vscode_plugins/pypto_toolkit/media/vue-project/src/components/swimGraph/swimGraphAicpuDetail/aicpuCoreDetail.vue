@@ -60,7 +60,7 @@ import { useI18n } from 'vue-i18n';
 import aicpuDetailContent from './aicpuDetailContent.vue';
 import aicpuDetailNodata from './aicpuDetailNoData.vue';
 import gradientDashedLine from './gradientDashedLine.vue';
-import { COLOR_CFG, setupHighDPICanvas, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD} from '../swimGraphUtils';
+import { COLOR_CFG, setupHighDPICanvas, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD, getEventDisplayName } from '../swimGraphUtils';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
 const { t } = useI18n();
 const {
@@ -84,8 +84,6 @@ const {
 
 const {
   dynamicWidthStyle,
-  getEventDisplayName,
-  getEventColor,
   showTooltip,
   handleKernalEventColors,
   selectEvent,
@@ -118,7 +116,7 @@ const AicpuCoreDetailsPanel = () => {
 };
 const kernalName = ref('');
 let buildTaskColor = computed(() => {
-  return getEventColor(aicpuBuildTask.value);
+  return getBaseColor(aicpuBuildTask.value, { processes, isDarkTheme, kernelColorRending });
 });
 let stopColor = computed(() => {
   return isDarkTheme.value ? '#ffffff' : '#000000';
