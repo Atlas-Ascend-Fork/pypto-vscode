@@ -1500,6 +1500,7 @@ const handleMixSubEventClick = (event, processKey) => {
       canvasclickedEvent.value = {
         ...parentEvent,
         id: event.id,
+        name: event.name,
         startTime: event.startTime,
         endTime: event.endTime,
         duration: event.endTime - event.startTime,
@@ -1757,7 +1758,7 @@ const setMeasureDragHeight = () => {
   document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
 };
 
-const findEventAtPosition = (x, y, processKey) => {
+const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
   let processObj = {
     event: null,
     altClickData: {
@@ -1769,7 +1770,7 @@ const findEventAtPosition = (x, y, processKey) => {
   const process = processes.get(processKey);
   if (!process) return null;
   
-  if (isMixMode.value && swimDataManager.hasMixConfig()) {
+  if (isMixMode.value && swimDataManager.hasMixConfig() && isfindMixSubEvents) {
     const result = findSubEventAtPosition(x, y);
     if (result) {
       processObj.event = result.event;

@@ -357,7 +357,7 @@ class SwimDataManager {
       threadKey: parentEvent.threadKey,
       startTime,
       endTime,
-      args: { wrapId: parentEvent.args?.wrapId, hashorder: parentEvent.args?.['hashOrder-hint'] },
+      args: { wrapId: parentEvent.args?.wrapId, hashorder: parentEvent.args?.['hashOrder-hint'], 'ioperand-hint':parentEvent.args?.['ioperand-hint'], 'ooperand-hint': parentEvent.args?.['ooperand-hint']},
       dependencies: { predecessors: [], successors: [] },
       parentEventId: parentEvent.id,
       leafIndex: parentEvent.leafIndex,
