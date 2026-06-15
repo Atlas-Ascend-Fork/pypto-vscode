@@ -334,6 +334,7 @@ const kernelThreadData = ref(new Map());
 const freezeVisibleRange = ref(false);
 let _frozenStartTime = 0;
 let _frozenEndTime = 0;
+const focusedWrapId = ref(null); 
 const viewState = reactive({
   offsetX: 0,
   offsetY: 0,
@@ -3139,7 +3140,8 @@ provide('swimGraphState', {
   globalConnectionCanvas,
   isFromPerformanceClick,
   hashOrderRending,
-  freezeVisibleRange
+  freezeVisibleRange,
+  focusedWrapId
 });
 
 // 提供方法给子组件

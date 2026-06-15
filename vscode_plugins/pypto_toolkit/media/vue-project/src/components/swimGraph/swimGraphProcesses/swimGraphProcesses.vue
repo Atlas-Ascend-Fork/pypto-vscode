@@ -92,7 +92,8 @@ const {
   isMeasureModel,
   measureDetailsExpanded,
   isFromPerformanceClick,
-  freezeVisibleRange
+  freezeVisibleRange,
+  focusedWrapId
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -213,7 +214,8 @@ provide('swimGraphState', {
   isMeasureModel,
   measureDetailsExpanded,
   isFromPerformanceClick,
-  freezeVisibleRange
+  freezeVisibleRange,
+  focusedWrapId
 });
 
 const {

@@ -608,8 +608,8 @@ const handleMixPinThread = (thread) => {
   }
   
   const offsetY = laneY - pinnedY;
-
-  pinThread(props.processKey, threadKey, offsetY);
+  const threadKeyInfo = `${props.processKey}-${threadKey}`;
+  pinThread(props.processKey, threadKeyInfo, offsetY);
 };
 
 const handleMixUnpin = (thread) => {

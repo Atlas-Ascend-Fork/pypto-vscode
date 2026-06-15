@@ -63,7 +63,8 @@ const {
   processes,
   highlightedPaths,
   timeLineX,
-  detailsPanelExpanded
+  detailsPanelExpanded,
+  focusedWrapId
 } = swimGraphState;
 
 const { 
@@ -223,24 +224,26 @@ const transformPinned = () => {
     ctx.save();
     ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
   }
-  
-  if (!selectedEvent.value && !searchedEvent.value) {
-    clearCanvases();
-    pinnedThreadsList.value.forEach(item => {
-      const isMixMode = swimGraphState.isMixMode?.value;
-      const hasMixConfig = swimDataManager?.hasMixConfig();
-      
-      if (isMixMode && hasMixConfig) {
-        if (item.thread.isCounter) {
-          childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
-        } else {
-          drawTransformMixEvent(item.thread, eventsCtx, item.processKey);
-        }
+
+  clearCanvases();
+  pinnedThreadsList.value.forEach(item => {
+    const isMixMode = swimGraphState.isMixMode?.value;
+    const hasMixConfig = swimDataManager?.hasMixConfig();
+    if (isMixMode && hasMixConfig) {
+      const currentWrapId = item.thread?.events?.[0]?.args?.wrapId;
+      if (item.thread.isCounter) {
+        childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
+      } else if (currentWrapId && currentWrapId === focusedWrapId.value) {
+        drawTransformMixEvent(item.thread, eventsCtx, item.processKey);
       } else {
         childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
       }
-    });
-    childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, null, true);
+    } else {
+      childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
+    }
+  });
+  childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, null, true);
+  if (!selectedEvent.value && !searchedEvent.value) {
     return;
   }
   
@@ -522,7 +525,9 @@ const changePinnedColor = (isDimmed) => {
     if (thread.isCounter) {
       childContextMap.threadEvent.drawTransformEvent(thread, eventsCtx, true);
     } else {
-      if (isMixModeValue && hasMixConfig) {
+      const currentWrapId = thread?.events?.[0]?.args?.wrapId;
+      const isFocusedWrapInMixMode = currentWrapId && currentWrapId === focusedWrapId.value;
+      if (isMixModeValue && hasMixConfig && isFocusedWrapInMixMode) {
         processMixModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);
       } else {
         processNormalModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);

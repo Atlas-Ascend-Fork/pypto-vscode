@@ -94,7 +94,6 @@ let isHoverLockStatus = ref(false); // 选定状态
 let pinnedStatus = ref(false);
 let preFocusWrapState = null;
 let preHoverMixWrapId = null;
-let focusedWrapId = null;
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -145,7 +144,8 @@ const {
   isE2ESwim,
   aicpuSection,
   kernelSection,
-  freezeVisibleRange
+  freezeVisibleRange,
+  focusedWrapId
 } = swimGraphState;
 
 const {
@@ -250,7 +250,7 @@ const canvasStatusReset = () => {
   aicpuControlDetailsExpanded.value = false;
   aicpuScheduleDetailsExpanded.value = false;
   aicpuCoreDetailsExpanded.value = false;
-  focusedWrapId = null;
+  focusedWrapId.value = null;
   selectEvent(null, props.processKey);
   const ctx = clearDependencyLines(props.processKey);
   highlightEvent(ctx, searchedEvent.value, props.processKey, true);
@@ -1187,7 +1187,7 @@ const handleMouseMoveThrottle = throttle((e) => {
 
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
-  let info = focusedWrapId ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
+  let info = focusedWrapId.value ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
   let hoveredEvent = info?.event;
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     let { eventCtx } = ctxs[props.processKey];
@@ -1961,9 +1961,10 @@ const renderProcessEvents = (process, processKey) => {
 };
 
 const renderProcessPinEvents = (thread, eventCtx, threadY, processKey) => {
+  const currentWrapId = thread?.events?.[0]?.args?.wrapId;
   pinnedStatus.value = true;
-  
-  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+  const isFocusedWrapInMixMode = currentWrapId && focusedWrapId.value === currentWrapId;
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && isFocusedWrapInMixMode) {
     renderMixPinnedThread(thread, eventCtx, threadY, processKey);
   } else {
     if (thread.isCounter) {
@@ -2410,7 +2411,7 @@ const changeWrapThreadNodeColor = (thread, processKey, isDimmed, drawDatas, sibl
     .filter(e => e && swimDataManager.isMixParentEvent(e));
   const currentWrapId = parentEvents[0]?.args?.wrapId;
   const { parentEventId, siblingDrawDatas = [] } = siblingContext;
-  const isFocusedWrap = currentWrapId === focusedWrapId;
+  const isFocusedWrap = currentWrapId === focusedWrapId.value;
   
   for (const parentEvent of parentEvents) {
     if (!isEventInTimeRange(parentEvent)) {
@@ -2984,6 +2985,9 @@ const updateProcessDrawData = (process, processKey) => {
 
 // 调用之前需确认画布已还原成初始状态
 const fillTextInfo = (event, ctx, drawData, isTextXChange = true, isAicpuProcess = false) => {
+  if (!event?.drawData) {
+    return false;
+  }
   // 预计算常量，避免在循环中重复计算
   const { scale, offsetX, canvasCssWidth } = viewState;
   const absOffsetX = Math.abs(offsetX);
@@ -3132,6 +3136,9 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
         ? swimDataManager.getEventById(drawData._mipmapEventId)
         : null;
       if (!event) continue;
+      if (!event?.drawData) {
+        continue;
+      }
 
       drawData.pinnedEventY = event.drawData.pinnedEventY;
       drawData.width = drawData.eventWidth;
@@ -3471,11 +3478,11 @@ const focusWrap = (wrapId) => {
   const wrapContainer = swimDataManager.getWrapContainerByWrapId(wrapId);
   if (!wrapContainer) { return };
   
-  if (focusedWrapId === wrapId) {
+  if (focusedWrapId.value === wrapId) {
     return;
   }
   
-  focusedWrapId = wrapId;
+  focusedWrapId.value = wrapId;
   if (!preFocusWrapState) {
     preFocusWrapState = {
       scale: viewState.scale,
@@ -3637,7 +3644,7 @@ const drawLockedOutline = () => {
 const renderMixModeEvents = (process, processKey, ctx) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
   const wrapContainers = swimDataManager.getWrapContainers();
-  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === focusedWrapId);
+  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === focusedWrapId.value);
   const { threadTids = [] } = currentWrapContainer || {};
   const drawDatas = [];
   
