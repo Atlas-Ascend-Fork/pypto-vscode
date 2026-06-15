@@ -260,8 +260,7 @@ export abstract class SwimGraphMsgHandler {
                 return [];
               }
               
-              const converter = new PerfSwimlaneConverter();
-              const convertedData = converter.convert(rawData);
+              const convertedData = PerfSwimlaneConverter.convertWithDeps(rawData, dirname(swimPath));
               swimlaneData.traceEvents = convertedData.traceEvents;
               console.log('perf_swimlane.json 转换完成');
             } else {

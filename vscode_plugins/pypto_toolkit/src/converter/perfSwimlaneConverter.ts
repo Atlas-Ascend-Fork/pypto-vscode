@@ -1,3 +1,7 @@
+import { existsSync, readFileSync, readdirSync } from 'fs';
+import { join } from 'path';
+
+
 export interface PerfSwimlaneData {
   version: number;
   tasks: TaskRecord[];
@@ -66,14 +70,113 @@ export interface ChromeTraceData {
   traceEvents: TraceEvent[];
 }
 
+export interface ConvertOptions {
+  depsEdges?: Map<number, number[]>;
+  funcIdToName?: Record<string, string>;
+}
+
+export interface ConvertFileOptions {
+  depsFilePath?: string;
+  nameMapFilePath?: string;
+  preloadedData?: PerfSwimlaneData;
+}
+
+
+
 export class PerfSwimlaneConverter {
   private eventIdCounter = 0;
   private flowIdCounter = 0;
 
-  convert(data: PerfSwimlaneData): ChromeTraceData {
+  static convertWithDeps(
+    data: PerfSwimlaneData,
+    fileDir: string,
+    options?: ConvertFileOptions
+  ): ChromeTraceData {
+
+    let depsEdges: Map<number, number[]> | undefined;
+    const depsPath = options?.depsFilePath || join(fileDir, 'deps.json');
+    if (existsSync(depsPath)) {
+      depsEdges = this.loadDepsEdges(depsPath);
+    }
+
+    let funcIdToName: Record<string, string> | undefined;
+    const nameMapPath = options?.nameMapFilePath || this.findNameMapFile(fileDir);
+    if (nameMapPath && existsSync(nameMapPath)) {
+      funcIdToName = this.loadFuncIdToName(nameMapPath);
+    }
+
+    const converter = new PerfSwimlaneConverter();
+    return converter.convert(data, { depsEdges, funcIdToName });
+  }
+
+  private static loadDepsEdges(depsPath: string): Map<number, number[]> {
+    const depsData = JSON.parse(readFileSync(depsPath, 'utf-8'));
+    const edges = depsData.edges || [];
+    
+    const depsEdges = new Map<number, number[]>();
+    const seen = new Set<[number, number]>();
+    
+    for (const edge of edges) {
+      if (!edge.pred || !edge.succ) {
+        continue;
+      }
+    
+      let pred = typeof edge.pred === 'number' ? edge.pred : parseInt(edge.pred);
+      let succ = typeof edge.succ === 'number' ? edge.succ : parseInt(edge.succ);
+    
+      if (pred < 0) {
+        pred = pred & ((1 << 64) - 1);
+      }
+    
+      if (succ < 0) {
+        succ = succ & ((1 << 64) - 1);
+      }
+    
+      const key: [number, number] = [pred, succ];
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      if (!depsEdges.has(pred)) {
+        depsEdges.set(pred, []);
+      }
+      depsEdges.get(pred)!.push(succ);
+    }
+    console.log('deps.json 加载成功, edges数量:', depsEdges.size);
+    return depsEdges;
+  }
+
+  private static loadFuncIdToName(nameMapPath: string): Record<string, string> {
+    const nameMapData = JSON.parse(readFileSync(nameMapPath, 'utf-8'));
+    console.log('name_map json 加载成功.')
+    const funcIdToName = nameMapData.callable_id_to_name;
+    return funcIdToName;
+  }
+
+  private static findNameMapFile(dir: string): string | null {
+    try {
+      const files = readdirSync(dir);
+      const nameMapFiles = files.filter(file => 
+        file.toLowerCase().includes('name_map') && file.endsWith('.json')
+      );
+      if (nameMapFiles.length > 0) {
+        console.log('找到 name_map 文件：', nameMapFiles[0]);
+        return join(dir, nameMapFiles[0]);
+      } else {
+        console.log('没有找到name_map文件');
+        return null;
+      }
+    } catch (err) {
+      console.error('读取路径失败');
+      return null;
+    }
+  }
+
+  convert(data: PerfSwimlaneData, options?: ConvertOptions): ChromeTraceData {
     const events: TraceEvent[] = [];
     const tasks = data.tasks;
     const version = data.version;
+    const depsEdges = options?.depsEdges;
 
     const uniqueCores = new Set<number>();
     tasks.forEach(task => uniqueCores.add(task.core_id));
@@ -88,8 +191,9 @@ export class PerfSwimlaneConverter {
                task.finish_time_us && task.finish_time_us > 0
     );
 
-    const taskToEventId = new Map<number | bigint, number>();
-    const taskToAicpuTid = new Map<number | bigint, number>();
+    const taskToEventId = new Map<string, number>();
+    const taskToAicpuEventId = new Map<string, number>();
+    const taskToAicpuTid = new Map<string, number>();
     const aicpuTidSet = new Set<number>();
     const coreAicpuTasks = new Map<number, TaskRecord[]>();
     
@@ -98,12 +202,12 @@ export class PerfSwimlaneConverter {
     }
 
     this.addMetadataEvents(events, tasks, coreToTid, version, aicpuTidSet, coreAicpuTasks);
-    this.addDurationEvents(events, tasks, coreToTid, taskToEventId, version);
+    this.addDurationEvents(events, tasks, coreToTid, taskToEventId, version, depsEdges, options?.funcIdToName);
     if (hasAicpuData) {
-      this.addAicpuViewEvents(events, tasks, taskToAicpuTid, coreToTid);
+      this.addAicpuViewEvents(events, tasks, taskToAicpuTid, coreToTid, taskToAicpuEventId, options?.funcIdToName);
     }
 
-    this.addFlowEvents(events, tasks, coreToTid, taskToEventId);
+    this.addFlowEvents(events, tasks, coreToTid, taskToEventId, depsEdges);
     if (data.aicpu_scheduler_phases) {
       this.addSchedulerPhaseEvents(events, data.aicpu_scheduler_phases);
     }
@@ -113,7 +217,7 @@ export class PerfSwimlaneConverter {
     }
 
     if (hasAicpuData) {
-      this.addAicpuFlowEvents(events, tasks, taskToAicpuTid, coreToTid);
+      this.addAicpuFlowEvents(events, tasks, taskToAicpuTid, coreToTid, taskToAicpuEventId, depsEdges);
     }
 
     if (hasAicpuData && data.aicpu_scheduler_phases) {
@@ -130,7 +234,7 @@ export class PerfSwimlaneConverter {
   private buildAicpuTidMapping(
     tasks: TaskRecord[],
     coreToTid: Map<number, number>,
-    taskToAicpuTid: Map<number | bigint, number>,
+    taskToAicpuTid: Map<string, number>,
     aicpuTidSet: Set<number>,
     coreAicpuTasks: Map<number, TaskRecord[]>
   ): void {
@@ -151,7 +255,7 @@ export class PerfSwimlaneConverter {
     }
 
     for (const [coreId, ctList] of coreAicpuTasks.entries()) {
-      const baseTid = coreToTid.get(coreId)! - 10000;
+      const baseTid = coreToTid.get(coreId)!;
       const laneFinish: number[] = [0];
       
       for (const task of ctList) {
@@ -172,7 +276,7 @@ export class PerfSwimlaneConverter {
         
         laneFinish[assigned] = task.finish_time_us!;
         const tid = assigned === 0 ? baseTid : baseTid + assigned;
-        taskToAicpuTid.set(task.task_id, tid);
+        taskToAicpuTid.set(this.getTaskKey(task.task_id, task.core_id), tid);
         aicpuTidSet.add(tid);
       }
     }
@@ -186,6 +290,13 @@ export class PerfSwimlaneConverter {
       ph: 'M',
       pid: 4
     });
+    events.push({
+      args: { sort_index: 4 },
+      cat: '__metadata',
+      name: 'process_sort_index',
+      ph: 'M',
+      pid: 4
+    });
 
     const hasAicpuData = aicpuTidSet.size > 0;
 
@@ -194,6 +305,13 @@ export class PerfSwimlaneConverter {
         args: { name: 'AICPU View' },
         cat: '__metadata',
         name: 'process_name',
+        ph: 'M',
+        pid: 3
+      });
+      events.push({
+        args: { sort_index: 3 },
+        cat: '__metadata',
+        name: 'process_sort_index',
         ph: 'M',
         pid: 3
       });
@@ -214,7 +332,7 @@ export class PerfSwimlaneConverter {
       });
 
       if (hasAicpuData) {
-        const aicpuBaseTid = baseTid - 10000;
+        const aicpuBaseTid = baseTid;
         
         if (aicpuTidSet.has(aicpuBaseTid) || aicpuTidSet.size === 0) {
           events.push({
@@ -242,17 +360,32 @@ export class PerfSwimlaneConverter {
     }
   }
 
-  private addDurationEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, taskToEventId: Map<number | bigint, number>, version: number): void {
+  private getTaskKey(taskId: number | bigint, coreId: number): string {
+    return `${taskId}_${coreId}`;
+  }
+
+  private addDurationEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, taskToEventId: Map<string, number>, version: number, depsEdges?: Map<number, number[]>, funcIdToName?: Record<string, string>): void {
     for (const task of tasks) {
       const tid = coreToTid.get(task.core_id)!;
       const ts = task.start_time_us;
       const dur = task.duration_us;
 
-      const fanoutStr = '[' + task.fanout.map(id => this.formatTaskDisplay(id)).join(', ') + ']';
+      let fanoutStr = '[]';
+      if (depsEdges) {
+        const taskIdNum = this.normalizePto2TaskIdInt(task.task_id);
+        if (taskIdNum !== null) {
+          const successors = depsEdges.get(taskIdNum);
+          if (successors && successors.length > 0) {
+            fanoutStr = '[' + successors.map(id => this.formatTaskDisplay(id)).join(', ') + ']';
+          }
+        }
+      } else if (task.fanout && task.fanout.length > 0) {
+        fanoutStr = '[' + task.fanout.map(id => this.formatTaskDisplay(id)).join(', ') + ']';
+      }
 
       const funcId = task.func_id;
       const tdisp = this.formatTaskDisplay(task.task_id);
-      const taskName = `Func_${funcId}(${tdisp})`;
+      const taskName = this.getTaskName(funcId, tdisp, funcIdToName);
 
       const eventId = this.eventIdCounter++;
 
@@ -261,7 +394,6 @@ export class PerfSwimlaneConverter {
           'event-hint': `Task:${tdisp}, FuncId:${funcId}, CoreId:${task.core_id}`,
           'fanout-hint': fanoutStr,
           'duration-us': dur,
-          'kernel-ready-time-us': task.kernel_ready_time_us,
           'taskId': task.task_id
         },
         cat: 'event',
@@ -274,11 +406,11 @@ export class PerfSwimlaneConverter {
         dur
       });
 
-      taskToEventId.set(task.task_id, eventId);
+      taskToEventId.set(this.getTaskKey(task.task_id, task.core_id), eventId);
     }
   }
 
-  private addAicpuViewEvents(events: TraceEvent[], tasks: TaskRecord[], taskToAicpuTid: Map<number | bigint, number>, coreToTid: Map<number, number>): void {
+  private addAicpuViewEvents(events: TraceEvent[], tasks: TaskRecord[], taskToAicpuTid: Map<string, number>, coreToTid: Map<number, number>, taskToAicpuEventId: Map<string, number>, funcIdToName?: Record<string, string>): void {
     for (const task of tasks) {
       const dispatchUs = task.dispatch_time_us || 0;
       const finishUs = task.finish_time_us || 0;
@@ -287,12 +419,12 @@ export class PerfSwimlaneConverter {
         continue;
       }
 
-      const tid = taskToAicpuTid.get(task.task_id) || (coreToTid.get(task.core_id)! - 10000);
+      const tid = taskToAicpuTid.get(this.getTaskKey(task.task_id, task.core_id)) ?? coreToTid.get(task.core_id);
       const aicpuDur = finishUs - dispatchUs;
 
       const funcId = task.func_id;
       const tdisp = this.formatTaskDisplay(task.task_id);
-      const taskName = `Func_${funcId}(${tdisp})`;
+      const taskName = this.getTaskName(funcId, tdisp, funcIdToName);
 
       const eventId = this.eventIdCounter++;
 
@@ -313,10 +445,12 @@ export class PerfSwimlaneConverter {
         ts: dispatchUs,
         dur: aicpuDur
       });
+
+      taskToAicpuEventId.set(this.getTaskKey(task.task_id, task.core_id), eventId);
     }
   }
 
-  private addFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, taskToEventId: Map<number | bigint, number>): void {
+  private addFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, taskToEventId: Map<string, number>, depsEdges?: Map<number, number[]>): void {
     const taskMap = new Map<number | bigint, TaskRecord>();
     tasks.forEach(task => taskMap.set(task.task_id, task));
 
@@ -324,7 +458,21 @@ export class PerfSwimlaneConverter {
       const srcTid = coreToTid.get(task.core_id)!;
       const srcTsEnd = task.end_time_us;
 
-      for (const succTaskId of task.fanout) {
+      //
+      let successorIds: (number | bigint)[] = [];
+      if (depsEdges) {
+        const taskIdNum = this.normalizePto2TaskIdInt(task.task_id);
+        if (taskIdNum !== null) {
+          const successors = depsEdges.get(taskIdNum);
+          if (successors) {
+            successorIds = successors;
+          }
+        }
+      } else {
+        successorIds = task.fanout || [];
+      }
+
+      for (const succTaskId of successorIds) {
         const succTask = taskMap.get(succTaskId);
         if (!succTask) {
           continue;
@@ -333,15 +481,18 @@ export class PerfSwimlaneConverter {
         const dstTid = coreToTid.get(succTask.core_id)!;
         const dstTsStart = succTask.start_time_us;
 
-        const srcEventId = taskToEventId.get(task.task_id)!;
-        const dstEventId = taskToEventId.get(succTask.task_id)!;
+        const srcEventId = taskToEventId.get(this.getTaskKey(task.task_id, task.core_id))!;
+        const dstEventId = taskToEventId.get(this.getTaskKey(succTask.task_id, succTask.core_id))!;
+
+        const hbViolated = srcTsEnd > dstTsStart;
+        const flowName = hbViolated ? 'hb_violation' : 'dependency';
 
         const flowStartUs = srcTsEnd - 0.01;
 
         events.push({
           cat: 'flow',
           id: this.flowIdCounter,
-          name: 'dependency',
+          name: flowName,
           ph: 's',
           pid: 4,
           tid: srcTid,
@@ -352,7 +503,7 @@ export class PerfSwimlaneConverter {
         events.push({
           cat: 'flow',
           id: this.flowIdCounter++,
-          name: 'dependency',
+          name: flowName,
           ph: 'f',
           pid: 4,
           tid: dstTid,
@@ -364,7 +515,7 @@ export class PerfSwimlaneConverter {
     }
   }
 
-  private addAicpuFlowEvents(events: TraceEvent[], tasks: TaskRecord[], taskToAicpuTid: Map<number | bigint, number>, coreToTid: Map<number, number>): void {
+  private addAicpuFlowEvents(events: TraceEvent[], tasks: TaskRecord[], taskToAicpuTid: Map<string, number>, coreToTid: Map<number, number>, taskToAicpuEventId: Map<string, number>, depsEdges?: Map<number, number[]>): void {
     const taskMap = new Map<number | bigint, TaskRecord>();
     tasks.forEach(task => taskMap.set(task.task_id, task));
 
@@ -374,9 +525,23 @@ export class PerfSwimlaneConverter {
         continue;
       }
 
-      const srcTid = taskToAicpuTid.get(task.task_id) || (coreToTid.get(task.core_id)! - 10000);
+      const srcTid = taskToAicpuTid.get(this.getTaskKey(task.task_id, task.core_id)) ?? coreToTid.get(task.core_id);
+      const srcAicpuEid = taskToAicpuEventId.get(this.getTaskKey(task.task_id, task.core_id));
 
-      for (const succTaskId of task.fanout) {
+      let successorIds: (number | bigint)[] = [];
+      if (depsEdges) {
+        const taskIdNum = this.normalizePto2TaskIdInt(task.task_id);
+        if (taskIdNum !== null) {
+          const successors = depsEdges.get(taskIdNum);
+          if (successors) {
+            successorIds = successors;
+          }
+        }
+      } else {
+        successorIds = task.fanout || [];
+      }
+
+      for (const succTaskId of successorIds) {
         const succTask = taskMap.get(succTaskId);
         if (!succTask) {
           continue;
@@ -387,28 +552,42 @@ export class PerfSwimlaneConverter {
           continue;
         }
 
-        const dstTid = taskToAicpuTid.get(succTaskId) || (coreToTid.get(succTask.core_id)! - 10000);
+        const dstTid = taskToAicpuTid.get(this.getTaskKey(succTaskId, succTask.core_id)) ?? coreToTid.get(succTask.core_id);
+        const dstAicpuEid = taskToAicpuEventId.get(this.getTaskKey(succTaskId, succTask.core_id));
 
-        events.push({
+        const aicpuHbViolated = srcFinishUs > dstDispatchUs;
+        const aicpuFlowName = aicpuHbViolated ? 'hb_violation' : 'dependency';
+
+        const flowStartEvent: TraceEvent = {
           cat: 'flow',
           id: this.flowIdCounter,
-          name: 'dependency',
+          name: aicpuFlowName,
           ph: 's',
           pid: 3,
           tid: srcTid,
           ts: srcFinishUs - 0.01
-        });
+        };
 
-        events.push({
+        if (srcAicpuEid !== undefined) {
+          flowStartEvent.bind_id = srcAicpuEid;
+        }
+        events.push(flowStartEvent);
+
+        const flowFinishEvent: TraceEvent = {
           cat: 'flow',
           id: this.flowIdCounter++,
-          name: 'dependency',
+          name: aicpuFlowName,
           ph: 'f',
           pid: 3,
           tid: dstTid,
           ts: dstDispatchUs,
           bp: 'e'
-        });
+        };
+
+        if (dstAicpuEid !== undefined) {
+          flowFinishEvent.bind_id = dstAicpuEid;
+        }
+        events.push(flowFinishEvent);
       }
     }
   }
@@ -421,12 +600,17 @@ export class PerfSwimlaneConverter {
       ph: 'M',
       pid: 2
     });
+    events.push({
+      args: { sort_index: 2 },
+      cat: '__metadata',
+      name: 'process_sort_index',
+      ph: 'M',
+      pid: 2
+    });
 
     const phaseColors: Record<string, string> = {
       'complete': 'good',
-      'dispatch': 'terrible',
-      'scan': 'thread_state_running',
-      'idle': 'yellow'
+      'dispatch': 'terrible'
     };
 
     for (let threadIdx = 0; threadIdx < schedulerPhases.length; threadIdx++) {
@@ -443,6 +627,11 @@ export class PerfSwimlaneConverter {
 
       for (const record of schedulerPhases[threadIdx]) {
         const phase = record.phase || 'unknown';
+
+        if (phase !== 'complete' && phase !== 'dispatch') {
+          continue;
+        }
+
         const startUs = record.start_time_us;
         const endUs = record.end_time_us;
         const dur = endUs - startUs;
@@ -475,6 +664,13 @@ export class PerfSwimlaneConverter {
       ph: 'M',
       pid: 1
     });
+    events.push({
+      args: { sort_index: 1 },
+      cat: '__metadata',
+      name: 'process_sort_index',
+      ph: 'M',
+      pid: 1
+    });
 
     if (orchestratorPhases && orchestratorPhases.length > 0) {
       for (let orchIdx = 0; orchIdx < orchestratorPhases.length; orchIdx++) {
@@ -490,6 +686,7 @@ export class PerfSwimlaneConverter {
         });
 
         const orchPhaseColors: Record<string, string> = {
+          'orch_submit': 'rail_animation',
           'orch_sync': 'thread_state_iowait',
           'orch_alloc': 'terrible',
           'orch_params': 'good',
@@ -572,7 +769,7 @@ export class PerfSwimlaneConverter {
     }
   }
 
-  private addDispatchFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, schedulerPhases: SchedulerPhaseRecord[][], coreToThread?: number[], taskToAicpuTid?: Map<number | bigint, number>): void {
+  private addDispatchFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, schedulerPhases: SchedulerPhaseRecord[][], coreToThread?: number[], taskToAicpuTid?: Map<string, number>): void {
     const coreToSchedThread = new Map<number, number>();
 
     if (coreToThread && coreToThread.length > 0) {
@@ -641,7 +838,7 @@ export class PerfSwimlaneConverter {
 
       const schedTid = 2000 + matchedThread;
       const coreTid = coreToTid.get(task.core_id)!;
-      const aicpuTid = taskToAicpuTid?.get(task.task_id) || (coreTid - 10000);
+      const aicpuTid = taskToAicpuTid?.get(this.getTaskKey(task.task_id, task.core_id)) ?? coreTid;
 
       events.push({
         cat: 'flow',
@@ -688,17 +885,33 @@ export class PerfSwimlaneConverter {
   }
 
   private addOrchestratorFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, orchestratorPhases: OrchestratorPhaseRecord[][], schedulerPhases: SchedulerPhaseRecord[][], coreToThread?: number[]): void {
-    const orchFaninByTask = new Map<number | bigint, { record: OrchestratorPhaseRecord; orchIdx: number }>();
+    const orchAnchorByTask = new Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>();
 
     for (let orchIdx = 0; orchIdx < orchestratorPhases.length; orchIdx++) {
       for (const record of orchestratorPhases[orchIdx]) {
-        if (record.phase === 'orch_fanin' && record.task_id !== undefined) {
-          orchFaninByTask.set(record.task_id, { record, orchIdx });
+        const phase = record.phase;
+        const taskId = record.task_id;
+        if (taskId === undefined || taskId < 0) {
+          continue;
+        }
+
+        const tidK = this.normalizePto2TaskIdInt(taskId);
+        if (tidK === null) {
+          continue;
+        }
+
+        const existing = orchAnchorByTask.get(tidK);
+        if (phase === 'orch_submit' && (existing === undefined || existing.flowName !== 'submit→dispatch')) {
+          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'submit→dispatch' });
+        } else if (existing === undefined && phase === 'orch_fanin') {
+          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'fanin→dispatch' });
+        } else if (existing === undefined && phase === 'orch_params') {
+          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'params→dispatch' });
         }
       }
     }
 
-    if (orchFaninByTask.size === 0) {
+    if (orchAnchorByTask.size === 0) {
       return;
     }
 
@@ -758,9 +971,13 @@ export class PerfSwimlaneConverter {
     }
 
     for (const task of tasks) {
-      const taskId = task.task_id;
-      const faninInfo = orchFaninByTask.get(taskId);
-      if (!faninInfo) {
+      const taskId = this.normalizePto2TaskIdInt(task.task_id);
+      if (taskId === null) {
+        continue;
+      }
+
+      const anchor = orchAnchorByTask.get(taskId);
+      if (!anchor) {
         continue;
       }
 
@@ -769,7 +986,7 @@ export class PerfSwimlaneConverter {
         continue;
       }
 
-      const faninEndUs = faninInfo.record.end_time_us;
+      const anchorUs = anchor.record.end_time_us;
       const matchedThread = coreToSchedThread.get(task.core_id);
 
       if (matchedThread === undefined) {
@@ -777,22 +994,22 @@ export class PerfSwimlaneConverter {
       }
 
       const schedTid = 2000 + matchedThread;
-      const orchTid = 1000 + faninInfo.orchIdx;
+      const orchTid = 1000 + anchor.orchIdx;
 
       events.push({
         cat: 'flow',
         id: this.flowIdCounter,
-        name: 'fanin→dispatch',
+        name: anchor.flowName,
         ph: 's',
         pid: 1,
         tid: orchTid,
-        ts: faninEndUs
+        ts: anchorUs
       });
 
       events.push({
         cat: 'flow',
         id: this.flowIdCounter++,
-        name: 'fanin→dispatch',
+        name: anchor.flowName,
         ph: 'f',
         pid: 2,
         tid: schedTid,
@@ -817,5 +1034,46 @@ export class PerfSwimlaneConverter {
       return `t${local}`;
     }
     return `r${ring}t${local}`;
+  }
+
+  private normalizePto2TaskIdInt(taskId: number | bigint): number | null {
+    try {
+      const tid = typeof taskId === 'bigint' ? taskId : BigInt(taskId);
+      let unsigned: bigint;
+      if (tid < 0n) {
+        unsigned = tid & ((1n << 64n) - 1n);
+      } else {
+        unsigned = tid;
+      }
+      if (unsigned > BigInt(Number.MAX_SAFE_INTEGER)) {
+        return null;
+      }
+      return Number(unsigned);
+    } catch {
+      return null;
+    }
+  }
+
+  private funcIdToLetter(funcId: number): string {
+    const n = Number(funcId);
+    if (isNaN(n) || n < 0) {
+      return String(funcId);
+    }
+    const letters: string[] = [];
+    let m = n + 1; // shift so that 0 maps to 'a' (1-based bijective base-26)
+    while (m > 0) {
+      m -= 1;
+      const rem = m % 26;
+      letters.push(String.fromCharCode('a'.charCodeAt(0) + rem));
+      m = Math.floor(m / 26);
+    }
+    return `${n}_${letters.reverse().join('')}`;
+  }
+
+  private getTaskName(funcId: number, tdisp: string, funcIdToName?: Record<string, string>): string {
+    if (funcIdToName && funcIdToName[String(funcId)]) {
+      return `${funcIdToName[String(funcId)]}(${tdisp})`;
+    }
+    return `func_${this.funcIdToLetter(funcId)}(${tdisp})`;
   }
 }
