@@ -117,22 +117,22 @@ interface SwimGraphParsedInfoRow {
   info: string;
 }
 
-  /**
+/**
  * 定义数据接口，对应 accuracy_tool 表的字段
  */
 export interface AccuracyToolData {
   filePath: string;
-  no?:string;
-  phaseName: string;           // 对应 "B>PHASE_NAME"
-  funcMagicName: string;       // 对应 "PATH_FUNC:func_magicname"
-  rawMagic: string;            // 对应 "B>:rawmagic"
-  result?: string;             // 对应 "AB>RESULT"
-  dataType?: string;           // 对应 ":datatype"
-  validShape?: string;         // 对应 ":validshape"
-  loopInfo?: string;           // 对应 "LOOP_INFO"
-  rtolAtol?: string;           // 对应 "AB>rtol/atol"
-  cntFailWarnTol?: string;     // 对应 "AB>fail_cnt/warn_cnt/tol_cnt"
-  cntTotalZeroInfnanCnt?: string;    // 对应 "AB>total_cnt/zero_cnt/infnan_cnt"
+  no?: string;
+  phaseName: string; // 对应 "B>PHASE_NAME"
+  funcMagicName: string; // 对应 "PATH_FUNC:func_magicname"
+  rawMagic: string; // 对应 "B>:rawmagic"
+  result?: string; // 对应 "AB>RESULT"
+  dataType?: string; // 对应 ":datatype"
+  validShape?: string; // 对应 ":validshape"
+  loopInfo?: string; // 对应 "LOOP_INFO"
+  rtolAtol?: string; // 对应 "AB>rtol/atol"
+  cntFailWarnTol?: string; // 对应 "AB>fail_cnt/warn_cnt/tol_cnt"
+  cntTotalZeroInfnanCnt?: string; // 对应 "AB>total_cnt/zero_cnt/infnan_cnt"
   mre?: string;
   mreTop1permil?: string;
   mreTop8?: string;
@@ -152,6 +152,74 @@ export interface AccuracyToolData {
   bZero?: string;
   bInfnan?: string;
   bTimestamp?: string;
+}
+
+export interface AccuracyToolCmpData {
+  filePath?: string;
+  no?: string;
+  pathFuncMagicName?: string;
+  loopInfo?: string;
+  symbol?: string;
+  validShape?: string;
+  dataType?: string;
+  opAttrSymOffset?: string;
+  aOpMagic?: string;
+  aPhaseName?: string;
+  aOpcode?: string;
+  aRawShape?: string;
+  aFormat?: string;
+  aFuncHash?: string;
+  aFuncMagic?: string;
+  aFileName?: string;
+  aMax?: string;
+  aMin?: string;
+  aAvg?: string;
+  aAavg?: string;
+  aZero?: string;
+  aInfnan?: string;
+  bPhaseName?: string;
+  bOpMagic?: string;
+  bOpcode?: string;
+  bRawShape?: string;
+  bFormat?: string;
+  bFuncMagic?: string;
+  bFuncHash?: string;
+  bFileName?: string;
+  bTimestamp?: string;
+  bMax?: string;
+  bMin?: string;
+  bAvg?: string;
+  bAavg?: string;
+  bZero?: string;
+  bInfnan?: string;
+  abResult?: string;
+  abRtolAtol?: string;
+  abFailWarnTol?: string;
+  abTotalZeroInfnanCnt?: string;
+  abMre?: string;
+  abMreTop8?: string;
+  abMreTop1permil?: string;
+  abMae?: string;
+  abMaeTop8?: string;
+  abMaeTop1permil?: string;
+}
+
+export interface AccuracyToolCmpDetailData {
+  filePath?: string;
+  group: string;
+  index: string;
+  offset: string;
+  offsetRaw: string;
+  aData: string;
+  bData: string;
+  abAe: string;
+  abRe: string;
+  abTol: string;
+}
+
+export interface accuFilePathData {
+  fileType: string;
+  filePath?: string;
 }
 
 export interface PaginatedResult<T> {
@@ -293,6 +361,81 @@ export class SQLiteCache {
         PRIMARY KEY (file_path, "NO.")
       );
   `);
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS accuracy_tool_cmp (
+        file_path TEXT NOT NULL,
+        "NO." TEXT NOT NULL,
+        "PATH_FUNC:func_magicname" TEXT NOT NULL,
+        "LOOP_INFO" TEXT,
+        ":symbol" TEXT,
+        ":validshape" TEXT,
+        ":datatype" TEXT,
+        "OP_ATTR_SYM_OFFSET" TEXT,
+        "B>PHASE_NAME" TEXT NOT NULL,
+        "B>TIMESTAMP" TEXT NOT NULL,
+        "B>FUNC:funcmagic" TEXT NOT NULL,
+        "B>FUNC:hash" TEXT NOT NULL,
+        "B>:opmagic" TEXT NOT NULL,
+        "B>:opcode" TEXT NOT NULL,
+        "B>:rawshape" TEXT NOT NULL,
+        "B>:format" TEXT NOT NULL,
+        "B>FILENAME" TEXT NOT NULL,
+        "B>max" TEXT,
+        "B>min" TEXT,
+        "B>avg" TEXT,
+        "B>aavg" TEXT,
+        "B>zero" TEXT,
+        "B>infnan" TEXT,
+        "A>PHASE_NAME" TEXT NOT NULL,
+        "A>FUNC:funcmagic" TEXT NOT NULL,
+        "A>FUNC:hash" TEXT NOT NULL,
+        "A>:opmagic" TEXT NOT NULL,
+        "A>:opcode" TEXT NOT NULL,
+        "A>:rawshape" TEXT NOT NULL,
+        "A>:format" TEXT NOT NULL,
+        "A>FILENAME" TEXT NOT NULL,
+        "A>max" TEXT,
+        "A>min" TEXT,
+        "A>avg" TEXT,
+        "A>aavg" TEXT,
+        "A>zero" TEXT,
+        "A>infnan" TEXT,
+        "AB>RESULT" TEXT,
+        "AB>rtol/atol" TEXT NOT NULL,
+        "AB>fail_cnt/warn_cnt/tol_cnt" TEXT NOT NULL,
+        "AB>total_cnt/zero_cnt/infnan_cnt" TEXT NOT NULL,
+        "AB>mre" TEXT NOT NULL,
+        "AB>mre_top8" TEXT NOT NULL,
+        "AB>mre_top1permil" TEXT NOT NULL,
+        "AB>mae" TEXT NOT NULL,
+        "AB>mae_top8" TEXT NOT NULL,
+        "AB>mae_top1permil" TEXT NOT NULL,
+        PRIMARY KEY (file_path, "NO.")
+      );
+    `);
+     this.db.run(`
+      CREATE TABLE IF NOT EXISTS accuracy_tool_cmp_detail (
+        file_path TEXT NOT NULL,
+        "GROUP" TEXT NOT NULL,
+        "INDEX" TEXT NOT NULL,
+        "OFFSET" TEXT NOT NULL,
+        "OFFSET_RAW" TEXT NOT NULL,
+        "A>data" TEXT,
+        "B>data" TEXT,
+        "AB>ae" TEXT,
+        "AB>re" TEXT,
+        "AB>tol" TEXT,
+        PRIMARY KEY (file_path, "INDEX")
+      );
+    `);
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS accu_file_path (
+        file_type TEXT NOT NULL,
+        file_path TEXT DEFAULT '',
+        id INTEGER PRIMARY KEY CHECK (id = 1)
+      );
+    `);
+
     // 需要添加表就继续 this.db.run();
 
     //swimGraph Table
@@ -503,7 +646,7 @@ export class SQLiteCache {
     this.db!.run(sql, params);
   }
 
-    /**
+  /**
    * 查询单条数据
    * @param filePath 文件路径 (主键之一)
    * @param phaseName 阶段名称 (主键之一)
@@ -512,12 +655,11 @@ export class SQLiteCache {
    * @returns 返回匹配的行对象，如果不存在则返回 undefined
    */
   public async accuracyToolGet(
-    filePath: string, 
-    phaseName: string, 
-    funcMagicName: string, 
-    rawMagic: string
+    filePath: string,
+    phaseName: string,
+    funcMagicName: string,
+    rawMagic: string,
   ): Promise<AccuracyToolData | undefined> {
-    
     // 使用 AS 为包含特殊字符的字段起别名，这样取出来的数据属性名更干净（例如用 result 代替 "AB>RESULT"）
     const sql = `
       SELECT 
@@ -566,7 +708,7 @@ export class SQLiteCache {
     if (stmt.step()) {
       const row = stmt.getAsObject();
       stmt.free();
-      
+
       // 将获取到的扁平数据重新组装成 AccuracyToolData 对象
       // 注意：这里需要把 file_path 映射回 filePath
       return {
@@ -605,7 +747,7 @@ export class SQLiteCache {
       return undefined;
     }
   }
-    /**
+  /**
    * 查询 accuracy_tool 表的所有数据
    * @returns 返回包含所有行的数组
    */
@@ -652,7 +794,7 @@ export class SQLiteCache {
       // 遍历所有结果
       while (stmt.step()) {
         const row = stmt.getAsObject();
-        
+
         // 手动组装对象，确保 file_path 映射为 filePath
         result.push({
           filePath: row.file_path as string,
@@ -684,7 +826,7 @@ export class SQLiteCache {
           bAavg: row.bAavg as string,
           bZero: row.bZero as string,
           bInfnan: row.bInfnan as string,
-          bTimestamp: row.bTimestamp as string
+          bTimestamp: row.bTimestamp as string,
         });
       }
     } finally {
@@ -694,7 +836,7 @@ export class SQLiteCache {
     return result;
   }
 
-    /**
+  /**
    * 根据文件路径统计不同结果的数据量
    * @param filePath 文件路径
    * @returns 返回一个对象，键为结果类型，值为数量。例如: { "PASS": 100, "FAIL": 5 }
@@ -705,8 +847,8 @@ export class SQLiteCache {
         SELECT 
           "B>PHASE_NAME",
           CASE 
-            WHEN SUM(CASE WHEN "AB>RESULT" = 'FAIL' THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
             WHEN SUM(CASE WHEN "AB>RESULT" = 'EXCEPTION' THEN 1 ELSE 0 END) > 0 THEN 'EXCEPTION'
+            WHEN SUM(CASE WHEN "AB>RESULT" = 'FAIL' THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
             WHEN SUM(CASE WHEN "AB>RESULT" = 'PASS' THEN 1 ELSE 0 END) > 0 THEN 'PASS'
             ELSE 'SKIP'
           END AS finalResult
@@ -721,7 +863,37 @@ export class SQLiteCache {
       GROUP BY finalResult
     `;
 
-    const stmt = this.db!.prepare(sql);
+    const newSql = `
+      WITH PhaseFlags AS (
+        SELECT 
+          "B>PHASE_NAME",
+          SUM(CASE WHEN "AB>RESULT" = 'EXCEPTION' THEN 1 ELSE 0 END) > 0 AS has_exception,
+          SUM(CASE WHEN "AB>RESULT" = 'FAIL' THEN 1 ELSE 0 END) > 0 AS has_fail,
+          SUM(CASE WHEN "AB>RESULT" = 'PASS' THEN 1 ELSE 0 END) > 0 AS has_pass
+        FROM accuracy_tool
+        WHERE 
+          file_path = ? AND
+          "B>PHASE_NAME" LIKE 'Pass_%'
+        GROUP BY "B>PHASE_NAME"
+      ),
+      PhaseStatus AS (
+        SELECT 
+          "B>PHASE_NAME",
+          CASE 
+            WHEN has_exception AND has_fail THEN 'FAIL_AND_EXCEPTION'
+            WHEN has_exception THEN 'EXCEPTION'
+            WHEN has_fail THEN 'FAIL'
+            WHEN has_pass THEN 'PASS'
+            ELSE 'SKIP'
+          END AS finalResult
+        FROM PhaseFlags
+      )
+      SELECT finalResult, COUNT(*) as count
+      FROM PhaseStatus
+      GROUP BY finalResult
+    `;
+
+    const stmt = this.db!.prepare(newSql);
     const stats: Record<string, number> = {};
 
     try {
@@ -746,56 +918,12 @@ export class SQLiteCache {
    * 1. 某阶段只要有 FAIL，状态即为 'FAIL'
    * 2. 否则，若有 EXCEPTION，状态即为 'EXCEPTION'
    * 3. 否则（即全为 PASS），状态为 'PASS'
-   * 
+   *
    * @param filePath 文件路径
    * @param funcMagicName 函数标识
    * @returns 返回包含阶段名和最终状态的数组
    */
-  public async getPhaseStatusListByFunc(
-    filePath: string, 
-    funcMagicName: string
-  ): Promise<{ phaseName: string; status: string }[]> {
-    const sql = `
-      SELECT 
-        "B>PHASE_NAME" AS phaseName,
-        CASE 
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'FAIL' THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'EXCEPTION' THEN 1 ELSE 0 END) > 0 THEN 'EXCEPTION'
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'PASS' THEN 1 ELSE 0 END) > 0 THEN 'PASS'
-          ELSE 'SKIP'
-        END AS status
-      FROM accuracy_tool
-      WHERE 
-        file_path = ? AND 
-        "PATH_FUNC:func_magicname" LIKE ?
-      GROUP BY "B>PHASE_NAME"
-      ORDER BY "B>PHASE_NAME"
-    `;
-
-    const stmt = this.db!.prepare(sql);
-    const result: { phaseName: string; status: string }[] = [];
-
-    try {
-      stmt.bind([filePath, `%{funcMagicName}%`]);
-
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        result.push({
-          phaseName: row.phaseName as string,
-          status: row.status as string
-        });
-      }
-    } finally {
-      stmt.free();
-    }
-
-    return result;
-  }
-
-  public async getPhaseStatusListByFuncTest(
-    filePath: string, 
-    funcMagicName: string
-  ): Promise<{ phaseName: string; status: string }[]> {
+  public async getPhaseStatusListByFunc(filePath: string, funcMagicName: string): Promise<{ phaseName: string; status: string }[]> {
     const sql = `
       SELECT 
         "B>PHASE_NAME" AS phaseName,
@@ -823,7 +951,7 @@ export class SQLiteCache {
         const row = stmt.getAsObject();
         result.push({
           phaseName: row.phaseName as string,
-          status: row.status as string
+          status: row.status as string,
         });
       }
     } finally {
@@ -858,7 +986,7 @@ export class SQLiteCache {
         const row = stmt.getAsObject();
         result.push({
           phaseName: row.phaseName as string,
-          result: row.result as string
+          result: row.result as string,
         });
       }
     } finally {
@@ -868,12 +996,12 @@ export class SQLiteCache {
     return result;
   }
 
-   /**
+  /**
    * 查询  指定文件 + 某个阶段(B>PHASE_NAME) 的 所有失败(AB>RESULT='FAIL')数据，返回按时间戳升序排列
    * @param filePath 文件路径
    * @returns 返回包含阶段名和对应失败详情的数组
    */
-  public async getFirstFailByPhaseOnTimestamp(filePath: string, phaseName: string): Promise<any[]> {
+  public async getFirstResByPhaseOnTimestamp(filePath: string, phaseName: string, resType: string): Promise<any[]> {
     const sql = `
       SELECT DISTINCT
         "B>PHASE_NAME" AS phaseName,
@@ -884,13 +1012,13 @@ export class SQLiteCache {
       FROM accuracy_tool
       WHERE file_path = ? 
         AND "B>PHASE_NAME" = ?
-        AND "AB>RESULT" = 'FAIL'
+        AND "AB>RESULT" = ?
         AND "B>TIMESTAMP" IN (
           SELECT MIN("B>TIMESTAMP") 
           FROM accuracy_tool
           WHERE file_path = ? 
             AND "B>PHASE_NAME" = ?
-            AND "AB>RESULT" = 'FAIL'
+            AND "AB>RESULT" = ?
           GROUP BY "PATH_FUNC:func_magicname"
         )
       ORDER BY "B>TIMESTAMP", "PATH_FUNC:func_magicname" ASC
@@ -900,7 +1028,7 @@ export class SQLiteCache {
     const result: any[] = [];
 
     try {
-      stmt.bind([filePath, phaseName, filePath, phaseName]);
+      stmt.bind([filePath, phaseName, resType, filePath, phaseName, resType]);
 
       while (stmt.step()) {
         const row = stmt.getAsObject();
@@ -909,7 +1037,7 @@ export class SQLiteCache {
           funcMagicName: row.funcMagicName,
           rawMagic: row.rawMagic,
           result: row.result,
-          timestamp: row.bTimestamp
+          timestamp: row.bTimestamp,
         });
       }
     } finally {
@@ -919,12 +1047,12 @@ export class SQLiteCache {
     return result;
   }
 
-   /**
+  /**
    * 查询指定文件下，每个阶段(B>PHASE_NAME)的第一条失败(AB>RESULT='FAIL')数据
    * @param filePath 文件路径
    * @returns 返回包含阶段名和对应失败详情的数组
    */
-   public async getFirstFailByPhase(filePath: string): Promise<any[]> {
+  public async getFirstFailByPhase(filePath: string): Promise<any[]> {
     const sql = `
       SELECT 
         "B>PHASE_NAME" AS phaseName,
@@ -953,7 +1081,7 @@ export class SQLiteCache {
           phaseName: row.phaseName,
           funcMagicName: row.funcMagicName,
           rawMagic: row.rawMagic,
-          result: row.result
+          result: row.result,
         });
       }
     } finally {
@@ -970,13 +1098,7 @@ export class SQLiteCache {
    * @param funcMagicName 函数标识 (对应 PATH_FUNC:func_magicname)
    * @returns 返回统计数组，例如: [{ result: 'PASS', count: 100 }, { result: 'FAIL', count: 5 }]
    */
-  public async getAccuracyStatsByFunc(
-    filePath: string, 
-    phaseName: string, 
-    funcMagicName: string
-  ): Promise<Record<string, number>> {
-    
-
+  public async getAccuracyStatsByFunc(filePath: string, phaseName: string, funcMagicName: string): Promise<Record<string, number>> {
     const sql = `
       SELECT 
         "AB>RESULT" AS resultType, 
@@ -1016,13 +1138,13 @@ export class SQLiteCache {
    * @returns 返回按时间排序的异常数据列表
    */
   public async getErrorDetailsByFunc(
-    filePath: string, 
-    phaseName: string, 
+    filePath: string,
+    phaseName: string,
     funcMagicName: string,
     rawMagic: string,
     loopInfo: string,
     pageSize: number,
-    startOffset: number
+    startOffset: number,
   ): Promise<AccuracyToolData[]> {
     const sql = `
       SELECT 
@@ -1106,7 +1228,7 @@ export class SQLiteCache {
           bAvg: row.bAvg as string,
           bAavg: row.bAavg as string,
           bZero: row.bZero as string,
-          bInfnan: row.bInfnan as string
+          bInfnan: row.bInfnan as string,
         });
       }
     } finally {
@@ -1117,11 +1239,11 @@ export class SQLiteCache {
   }
 
   public async getErrorDetailsOfGraphByFunc(
-    filePath: string, 
-    phaseName: string, 
-    funcMagicName: string, 
+    filePath: string,
+    phaseName: string,
+    funcMagicName: string,
     pageSize: number,
-    startOffset: number
+    startOffset: number,
   ): Promise<AccuracyToolData[]> {
     const sql = `
       SELECT 
@@ -1163,7 +1285,7 @@ export class SQLiteCache {
           result: row.result as string,
           dataType: row.dataType as string,
           validShape: row.validShape as string,
-          loopInfo: row.loopInfo as string
+          loopInfo: row.loopInfo as string,
         });
       }
     } finally {
@@ -1174,8 +1296,8 @@ export class SQLiteCache {
   }
 
   public async getErrorListByPage(
-    filePath: string, 
-    phaseName: string, 
+    filePath: string,
+    phaseName: string,
     funcMagicName: string,
     keyWord: string,
     pageSize: number,
@@ -1246,7 +1368,7 @@ export class SQLiteCache {
           result: row.result as string,
           dataType: row.dataType as string,
           validShape: row.validShape as string,
-          loopInfo: row.loopInfo as string
+          loopInfo: row.loopInfo as string,
         });
       }
     } finally {
@@ -1254,6 +1376,353 @@ export class SQLiteCache {
     }
 
     return { total, list };
+  }
+
+  public async accuracyToolCmpSet(data: AccuracyToolCmpData): Promise<void> {
+    const sql = `
+      INSERT OR REPLACE INTO accuracy_tool_cmp (
+        file_path,
+        "NO.",
+        "PATH_FUNC:func_magicname",
+        "LOOP_INFO",
+        ":symbol",
+        ":validshape",
+        ":datatype",
+        "OP_ATTR_SYM_OFFSET",
+        "A>:opmagic",
+        "B>PHASE_NAME",
+        "A>PHASE_NAME",
+        "A>:opcode",
+        "A>:rawshape",
+        "A>:format",
+        "A>FUNC:funcmagic",
+        "A>FUNC:hash",
+        "A>FILENAME",
+        "A>max",
+        "A>min",
+        "A>avg",
+        "A>aavg",
+        "A>zero",
+        "A>infnan",
+        "B>:opmagic",
+        "B>:opcode",
+        "B>:rawshape",
+        "B>:format",
+        "B>FUNC:funcmagic",
+        "B>FUNC:hash",
+        "B>FILENAME",
+        "B>max",
+        "B>min",
+        "B>avg",
+        "B>aavg",
+        "B>zero",
+        "B>infnan",
+        "AB>RESULT",
+        "AB>rtol/atol",
+        "AB>fail_cnt/warn_cnt/tol_cnt",
+        "AB>total_cnt/zero_cnt/infnan_cnt",
+        "AB>mre",
+        "AB>mre_top8",
+        "AB>mre_top1permil",
+        "AB>mae",
+        "AB>mae_top8",
+        "AB>mae_top1permil",
+        "B>TIMESTAMP"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+      data.filePath ?? '',
+      data.no ?? '',
+      data.pathFuncMagicName ?? '',
+      data.loopInfo ?? '',
+      data.symbol ?? '',
+      data.validShape ?? '',
+      data.dataType ?? '',
+      data.opAttrSymOffset ?? '',
+      data.aOpMagic ?? '',
+      data.bPhaseName ?? '',
+      data.aPhaseName ?? '',
+      data.aOpcode ?? '',
+      data.aRawShape ?? '',
+      data.aFormat ?? '',
+      data.aFuncMagic ?? '',
+      data.aFuncHash ?? '',
+      data.aFileName ?? '',
+      data.aMax ?? '',
+      data.aMin ?? '',
+      data.aAvg ?? '',
+      data.aAavg ?? '',
+      data.aZero ?? '',
+      data.aInfnan ?? '',
+      data.bOpMagic ?? '',
+      data.bOpcode ?? '',
+      data.bRawShape ?? '',
+      data.bFormat ?? '',
+      data.bFuncMagic ?? '',
+      data.bFuncHash ?? '',
+      data.bFileName ?? '',
+      data.bMax ?? '',
+      data.bMin ?? '',
+      data.bAvg ?? '',
+      data.bAavg ?? '',
+      data.bZero ?? '',
+      data.bInfnan ?? '',
+      data.abResult ?? '',
+      data.abRtolAtol ?? '',
+      data.abFailWarnTol ?? '',
+      data.abTotalZeroInfnanCnt ?? '',
+      data.abMre ?? '',
+      data.abMreTop8 ?? '',
+      data.abMreTop1permil ?? '',
+      data.abMae ?? '',
+      data.abMaeTop8 ?? '',
+      data.abMaeTop1permil ?? '',
+      data.bTimestamp ?? '',
+    ];
+    this.db!.run(sql, params);
+  }
+
+  public async accuracyToolCmpGetByFilePath(
+    filePath: string,
+    pageSize: number,
+    startOffset: number,
+    res?: string,
+    keyword?: string
+  ): Promise<AccuracyToolCmpData[]> {
+    const conditions: string[] = ['file_path = ?'];
+    const params: any[] = [filePath];
+    if (res) {
+      conditions.push('"AB>RESULT" = ?');
+      params.push(res);
+    }
+    if (keyword) {
+      conditions.push('("A>:opcode" = ? OR "B>:opcode" = ?)');
+      params.push(keyword, keyword);
+    }
+    const whereClause = conditions.join(' AND ');
+  
+    const sql = `
+      SELECT 
+        "PATH_FUNC:func_magicname" AS pathFuncMagicName,
+        "LOOP_INFO" AS loopInfo,
+        ":symbol" AS symbol,
+        ":validshape" AS validShape,
+        ":datatype" AS dataType,
+        "OP_ATTR_SYM_OFFSET" AS opAttrSymOffset,
+        "A>:opmagic" AS aOpMagic,
+        "B>PHASE_NAME" AS bPhaseName,
+        "A>PHASE_NAME" AS aPhaseName,
+        "A>:opcode" AS aOpcode,
+        "A>:rawshape" AS aRawShape,
+        "A>:format" AS aFormat,
+        "A>FUNC:funcmagic" AS aFuncMagic,
+        "A>FUNC:hash" AS aFuncHash,
+        "A>FILENAME" AS aFileName,
+        "A>max" AS aMax,
+        "A>min" AS aMin,
+        "A>avg" AS aAvg,
+        "A>aavg" AS aAavg,
+        "A>zero" AS aZero,
+        "A>infnan" AS aInfnan,
+        "B>:opmagic" AS bOpMagic,
+        "B>:opcode" AS bOpcode,
+        "B>:rawshape" AS bRawShape,
+        "B>:format" AS bFormat,
+        "B>FUNC:funcmagic" AS bFuncMagic,
+        "B>FUNC:hash" AS bFuncHash,
+        "B>FILENAME" AS bFileName,
+        "B>max" AS bMax,
+        "B>min" AS bMin,
+        "B>avg" AS bAvg,
+        "B>aavg" AS bAavg,
+        "B>zero" AS bZero,
+        "B>infnan" AS bInfnan,
+        "AB>RESULT" AS abResult,
+        "AB>rtol/atol" AS abRtolAtol,
+        "AB>fail_cnt/warn_cnt/tol_cnt" AS abFailWarnTol,
+        "AB>total_cnt/zero_cnt/infnan_cnt" AS abTotalZeroInfnanCnt,
+        "AB>mre" AS abMre,
+        "AB>mre_top8" AS abMreTop8,
+        "AB>mre_top1permil" AS abMreTop1permil,
+        "AB>mae" AS abMae,
+        "AB>mae_top8" AS abMaeTop8,
+        "AB>mae_top1permil" AS abMaeTop1permil,
+        "B>TIMESTAMP" AS bTimestamp 
+      FROM accuracy_tool_cmp WHERE ${whereClause} ORDER BY bTimestamp
+      LIMIT ? OFFSET ?
+    `;
+
+    params.push(pageSize, startOffset);
+    const stmt = this.db!.prepare(sql);
+    stmt.bind(params);
+    const result: AccuracyToolCmpData[] = [];
+
+    try {
+      // 遍历所有结果
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+
+        // 手动组装对象，确保 file_path 映射为 filePath
+        result.push({
+          pathFuncMagicName: row.pathFuncMagicName as string,
+          loopInfo: row.loopInfo as string,
+          symbol: row.symbol as string,
+          validShape: row.validShape as string,
+          dataType: row.dataType as string,
+          opAttrSymOffset: row.opAttrSymOffset as string,
+          aOpMagic: row.aOpMagic as string,
+          bPhaseName: row.bPhaseName as string,
+          aPhaseName: row.aPhaseName as string,
+          aOpcode: row.aOpcode as string,
+          aRawShape: row.aRawShape as string,
+          aFormat: row.aFormat as string,
+          aFuncMagic: row.aFuncMagic as string,
+          aFileName: row.aFileName as string,
+          aFuncHash: row.aFuncHash as string,
+          aMax: row.aMax as string,
+          aMin: row.aMin as string,
+          aAvg: row.aAvg as string,
+          aAavg: row.aAavg as string,
+          aZero: row.aZero as string,
+          aInfnan: row.aInfnan as string,
+          bOpMagic: row.bOpMagic as string,
+          bOpcode: row.bOpcode as string,
+          bRawShape: row.bRawShape as string,
+          bFormat: row.bFormat as string,
+          bFuncMagic: row.bFuncMagic as string,
+          bFuncHash: row.bFuncHash as string,
+          bFileName: row.bFileName as string,
+          bMax: row.bMax as string,
+          bMin: row.bMin as string,
+          bAvg: row.bAvg as string,
+          bAavg: row.bAavg as string,
+          bZero: row.bZero as string,
+          bInfnan: row.bInfnan as string,
+          abResult: row.abResult as string,
+          abRtolAtol: row.abRtolAtol as string,
+          abFailWarnTol: row.abFailWarnTol as string,
+          abTotalZeroInfnanCnt: row.abTotalZeroInfnanCnt as string,
+          abMre: row.abMre as string,
+          abMreTop8: row.abMreTop8 as string,
+          abMreTop1permil: row.abMreTop1permil as string,
+          abMae: row.abMae as string,
+          abMaeTop8: row.abMaeTop8 as string,
+          abMaeTop1permil: row.abMaeTop1permil as string,
+          bTimestamp: row.bTimestamp as string,
+        });
+      }
+    } finally {
+      stmt.free();
+    }
+
+    return result;
+  }
+
+  public async accuracyToolCmpGetCountByFilePath(
+    filePath: string,
+    res?: string,
+    keyword?: string
+  ): Promise<number> {
+    const conditions: string[] = ['file_path = ?'];
+    const params: any[] = [filePath];
+    if (res) {
+      conditions.push('"AB>RESULT" = ?');
+      params.push(res);
+    }
+    if (keyword) {
+      conditions.push('("A>:opcode" = ? OR "B>:opcode" = ?)');
+      params.push(keyword, keyword);
+    }
+    const whereClause = conditions.join(' AND ');
+
+    const sql = `SELECT COUNT(*) as total FROM accuracy_tool_cmp WHERE ${whereClause}`;
+    const stmt = this.db!.prepare(sql);
+    stmt.bind(params);
+
+    try {
+      if (stmt.step()) {
+        const row = stmt.getAsObject();
+        return row.total as number;
+      }
+      return 0;
+    } finally {
+      stmt.free();
+    }
+  }
+
+  public async accuracyToolCmpDetailSet(data: AccuracyToolCmpDetailData): Promise<void> {
+    const sql = `
+      INSERT OR REPLACE INTO accuracy_tool_cmp_detail (
+        file_path,
+        "GROUP",
+        "INDEX",
+        "OFFSET",
+        "OFFSET_RAW",
+        "A>data",
+        "B>data",
+        "AB>ae",
+        "AB>re",
+        "AB>tol"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+      data.filePath ?? '',
+      data.group ?? '',
+      data.index ?? '',
+      data.offset ?? '',
+      data.offsetRaw ?? '',
+      data.aData ?? '',
+      data.bData ?? '',
+      data.abAe ?? '',
+      data.abRe ?? '',
+      data.abTol ?? '',
+    ];
+    this.db!.run(sql, params);
+  }
+
+  public async accuracyToolCmpDetailGetByFilePath(filePath: string): Promise<AccuracyToolCmpDetailData[]> {
+    const sql = `
+      SELECT 
+        "GROUP" AS "group",        -- ✅ 用双引号包裹保留关键字别名
+        "INDEX" AS "index",       -- ✅ index 也是保留关键字
+        "OFFSET" AS "offset",     -- ✅ offset 也是保留关键字
+        "OFFSET_RAW" AS "offsetRaw",
+        "A>data" AS "aData",      -- ✅ 建议统一风格（即使非关键字也加引号）
+        "B>data" AS "bData",
+        "AB>ae" AS "abAe",
+        "AB>re" AS "abRe",
+        "AB>tol" AS "abTol"
+      FROM accuracy_tool_cmp_detail
+      WHERE file_path = ? 
+    `;
+
+    const stmt = this.db!.prepare(sql);
+    stmt.bind([filePath]);
+    const result: AccuracyToolCmpDetailData[] = [];
+
+    try {
+      // 遍历所有结果
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+
+        // 手动组装对象，确保 file_path 映射为 filePath
+        result.push({
+          group: row.group as string,
+          index: row.index as string,
+          offset: row.offset as string,
+          offsetRaw: row.offsetRaw as string,
+          aData: row.aData as string,
+          bData: row.bData as string,
+          abAe: row.abAe as string,
+          abRe: row.abRe as string,
+          abTol: row.abTol as string,
+        });
+      }
+    } finally {
+      stmt.free();
+    }
+
+    return result;
   }
 
   /****************** com_graph_layout 表 ******************/
@@ -1266,18 +1735,24 @@ export class SQLiteCache {
     ]);
   }
   public async comGraphLayoutGet(filePath: string, funcHash: string): Promise<ComGraphLayoutRow | undefined> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare(
-        'SELECT file_path,layout_result,last_change_time FROM com_graph_layout WHERE file_path=? and func_hash=?',
-      );
-      stmt.bind([filePath, funcHash]);
-      let row: ComGraphLayoutRow | undefined;
-      if (stmt.step()) {
-        row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
-      }
-      stmt.free();
-      return row;
-    }, 1, 100, (result) => !result, "comGraphLayoutGet");
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare(
+          'SELECT file_path,layout_result,last_change_time FROM com_graph_layout WHERE file_path=? and func_hash=?',
+        );
+        stmt.bind([filePath, funcHash]);
+        let row: ComGraphLayoutRow | undefined;
+        if (stmt.step()) {
+          row = stmt.getAsObject() as unknown as ComGraphLayoutRow;
+        }
+        stmt.free();
+        return row;
+      },
+      1,
+      100,
+      (result) => !result,
+      'comGraphLayoutGet',
+    );
   }
   public async comGraphLayoutDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_layout WHERE file_path=?', [filePath]);
@@ -1293,18 +1768,24 @@ export class SQLiteCache {
     ]);
   }
   public async comGraphFinalResultGet(filePath: string, funcHash: string): Promise<ComGraphFinalResultRow | undefined> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare(
-        'SELECT file_path,final_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
-      );
-      stmt.bind([filePath, funcHash]);
-      let row: ComGraphFinalResultRow | undefined;
-      if (stmt.step()) {
-        row = stmt.getAsObject() as unknown as ComGraphFinalResultRow;
-      }
-      stmt.free();
-      return row;
-    }, 1, 100, (result) => !result, "comGraphFinalResultGet");
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare(
+          'SELECT file_path,final_result,last_change_time FROM com_graph_final_result WHERE file_path=? and func_hash=?',
+        );
+        stmt.bind([filePath, funcHash]);
+        let row: ComGraphFinalResultRow | undefined;
+        if (stmt.step()) {
+          row = stmt.getAsObject() as unknown as ComGraphFinalResultRow;
+        }
+        stmt.free();
+        return row;
+      },
+      1,
+      100,
+      (result) => !result,
+      'comGraphFinalResultGet',
+    );
   }
   public async comGraphFinalResultDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_final_result WHERE file_path=?', [filePath]);
@@ -1319,36 +1800,53 @@ export class SQLiteCache {
     lastChangeTime: string,
   ): Promise<void> {
     this.db!.run(
-      'INSERT OR REPLACE INTO com_graph_func_data(file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time) VALUES(?,?,?,?,?,?)',
+      'INSERT OR REPLACE INTO com_graph_func_data(file_path,func_hash,call_hash_arr,data,big_datA>file_path,last_change_time) VALUES(?,?,?,?,?,?)',
       [filePath, funcHash, callHashArr, data, bigDataFilePath, lastChangeTime],
     );
   }
   public async comGraphFuncDataGetCount(filePath: string): Promise<number> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare('SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ');
-      stmt.bind([filePath]);
-      let count = 0;
-      if (stmt.step()) {
-        const row = stmt.getAsObject() as { cnt: string | number };
-        count = Number(row.cnt);
-      }
-      stmt.free();
-      return count;
-    }, 1, 100, (result) => !result, "comGraphFuncDataGetCount");
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare('SELECT COUNT(*) as cnt FROM com_graph_func_data WHERE file_path=? ');
+        stmt.bind([filePath]);
+        let count = 0;
+        if (stmt.step()) {
+          const row = stmt.getAsObject() as { cnt: string | number };
+          count = Number(row.cnt);
+        }
+        stmt.free();
+        return count;
+      },
+      1,
+      100,
+      (result) => !result,
+      'comGraphFuncDataGetCount',
+    );
   }
-  public async comGraphFuncDataGet(filePath: string, funcHash: string, maxRetries?: number, delayMs?: number): Promise<ComGraphFuncDataRow | undefined> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare(
-        'SELECT file_path,func_hash,call_hash_arr,data,big_data_file_path,last_change_time FROM com_graph_func_data WHERE file_path=? and func_hash=?',
-      );
-      stmt.bind([filePath, funcHash]);
-      let row: ComGraphFuncDataRow | undefined;
-      if (stmt.step()) {
-        row = stmt.getAsObject() as unknown as ComGraphFuncDataRow;
-      }
-      stmt.free();
-      return row;
-    }, maxRetries, delayMs, (result) => !result, "comGraphFuncDataGet");
+  public async comGraphFuncDataGet(
+    filePath: string,
+    funcHash: string,
+    maxRetries?: number,
+    delayMs?: number,
+  ): Promise<ComGraphFuncDataRow | undefined> {
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare(
+          'SELECT file_path,func_hash,call_hash_arr,data,big_datA>file_path,last_change_time FROM com_graph_func_data WHERE file_path=? and func_hash=?',
+        );
+        stmt.bind([filePath, funcHash]);
+        let row: ComGraphFuncDataRow | undefined;
+        if (stmt.step()) {
+          row = stmt.getAsObject() as unknown as ComGraphFuncDataRow;
+        }
+        stmt.free();
+        return row;
+      },
+      maxRetries,
+      delayMs,
+      (result) => !result,
+      'comGraphFuncDataGet',
+    );
   }
   public async comGraphFuncDataDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_func_data WHERE file_path=?', [filePath]);
@@ -1358,17 +1856,23 @@ export class SQLiteCache {
     this.db!.run('INSERT OR REPLACE INTO com_graph_file_hash_map(file_path,data) VALUES(?,?)', [filePath, data]);
   }
   public async comGraphFileHashMapGet(filePath: string): Promise<string> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
-      stmt.bind([filePath]);
-      let data = '';
-      if (stmt.step()) {
-        const row = stmt.getAsObject() as { data: string };
-        data = row.data ?? '';
-      }
-      stmt.free();
-      return data;
-    }, 5, 100, (result) => !result, "comGraphFileHashMapGet");
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare('SELECT data FROM com_graph_file_hash_map WHERE file_path=?');
+        stmt.bind([filePath]);
+        let data = '';
+        if (stmt.step()) {
+          const row = stmt.getAsObject() as { data: string };
+          data = row.data ?? '';
+        }
+        stmt.free();
+        return data;
+      },
+      5,
+      100,
+      (result) => !result,
+      'comGraphFileHashMapGet',
+    );
   }
   public async comGraphFileHashMapDel(filePath: string): Promise<void> {
     this.db!.run('DELETE FROM com_graph_file_hash_map WHERE file_path=?', [filePath]);
@@ -1387,18 +1891,24 @@ export class SQLiteCache {
     );
   }
   public async comGraphFileCalleeOpAttrGet(calleehash: string, opMagic: string, opSubgraphid: string): Promise<string[]> {
-    return await this.retryOperation(async () => {
-      const stmt = this.db!.prepare(
-        'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
-      );
-      stmt.bind([calleehash, opMagic, opSubgraphid]);
-      let row;
-      if (stmt.step()) {
-        row = stmt.getAsObject();
-      }
-      stmt.free();
-      return row;
-    }, 5, 100, (result) => !result, "comGraphFileCalleeOpAttrGet");
+    return await this.retryOperation(
+      async () => {
+        const stmt = this.db!.prepare(
+          'SELECT op_attr,ioperands FROM com_graph_file_callee_op_attr WHERE calleehash=? AND op_magic=? AND op_subgraphid=?',
+        );
+        stmt.bind([calleehash, opMagic, opSubgraphid]);
+        let row;
+        if (stmt.step()) {
+          row = stmt.getAsObject();
+        }
+        stmt.free();
+        return row;
+      },
+      5,
+      100,
+      (result) => !result,
+      'comGraphFileCalleeOpAttrGet',
+    );
   }
 
   /****************** swimgraph_parsed_info 表 ******************/
@@ -1778,6 +2288,22 @@ export class SQLiteCache {
     this.db!.run('DELETE FROM swimgraph_lane2line WHERE file_path=?', [filePath]);
   }
 
+  /****************** accu_file_path 表 ******************/
+  public async accuFilePathSet(data: accuFilePathData): Promise<void> {
+    this.db!.run('DELETE FROM accu_file_path');
+    this.db!.run('INSERT INTO accu_file_path(id, file_type, file_path) VALUES(1, ?, ?)', [data.fileType, data.filePath ?? '']);
+  }
+
+  public async accuFilePathGet(): Promise<accuFilePathData | undefined> {
+    const stmt = this.db!.prepare('SELECT file_type AS fileType, file_path AS filePath FROM accu_file_path WHERE id = 1');
+    if (stmt.step()) {
+      const row = stmt.getAsObject() as unknown as accuFilePathData;
+      stmt.free();
+      return row;
+    }
+    stmt.free();
+    return undefined;
+  }
 
   /** 重试机制 **/
   private async retryOperation<T>(
@@ -1785,7 +2311,7 @@ export class SQLiteCache {
     maxRetries: number = 5,
     delayMs: number = 100,
     shouldRetryCondition?: (result: T) => boolean,
-    operationName?: string
+    operationName?: string,
   ): Promise<T> {
     let lastError: any;
 
@@ -1797,7 +2323,7 @@ export class SQLiteCache {
         if (shouldRetryCondition && shouldRetryCondition(result)) {
           // `${operationName}操作返回空结果，重试第 ${i + 1} 次`
           if (i < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
             continue;
           }
         }
@@ -1811,7 +2337,7 @@ export class SQLiteCache {
         console.debug(`${operationName}操作失败，重试第 ${i + 1} 次，错误:`, error);
 
         if (i < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
     }

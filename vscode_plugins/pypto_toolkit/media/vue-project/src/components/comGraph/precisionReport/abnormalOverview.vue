@@ -1,9 +1,40 @@
 <template>
+  <div class="tolerance-benchmark-card">
+    <div class="benchmark-header">
+      <span class="benchmark-label">{{ t('judgmentBasis') }}</span>
+      <span class="benchmark-divider"></span>
+      <div class="benchmark-data-item">
+        <span class="benchmark-data-label">Rtol</span>
+        <span class="benchmark-data-value">{{ rtolValue }}</span>
+      </div>
+      <div class="benchmark-data-item">
+        <span class="benchmark-data-label">Atol</span>
+        <span class="benchmark-data-value">{{ atolValue }}</span>
+      </div>
+    </div>
+    <div class="benchmark-footer">
+      <div v-for="item in warnFailInfo" :key="item.label" class="benchmark-item-data">
+        <div>
+          <span class="label-text">{{ item.label }}</span>
+          <d-tooltip v-if="item.desc" overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+            <i class="icon icon-helping"></i>
+            <template #content>
+              <span>{{ item.desc }}</span>
+            </template>
+          </d-tooltip>
+        </div>
+        <span class="value-text" :class="`value-${item.label}`">{{ item.value }}</span>
+      </div>
+    </div>
+  </div>
   <OverviewCard :data="countInfo" />
-  <OverviewCard :data="warnFailInfo" />
-  <OverviewCard :data="relativeErrorInfo" />
-  <OverviewCard :data="absoluteErrorInfo" />
-  <d-data-grid :data="overviewList" :columns="overviewListColumns" size="xs" class="overview-data-list"></d-data-grid>
+  <!-- <OverviewCard :data="warnFailInfo" /> -->
+    <div class="section-title">{{ t('relativeError') }}</div>
+    <OverviewCard :data="relativeErrorInfo" />
+    <div class="section-title">{{ t('absoluteError') }}</div>
+    <OverviewCard :data="absoluteErrorInfo" />
+    <div class="section-title">{{ t('valueDistributionComparison') }}</div>
+    <d-data-grid :data="overviewList" :columns="overviewListColumns" size="xs" class="overview-data-list"></d-data-grid>
 </template>
 
 <script setup lang="ts">
@@ -18,11 +49,20 @@ const props = defineProps({
 
 const { t } = useI18n();
 
+const rtolValue = computed(() => {
+  const [rtol] = props.summaryInfo.rtolAtol?.split('/') ?? [];
+  return rtol ?? '';
+});
+const atolValue = computed(() => {
+  const [, atol] = props.summaryInfo.rtolAtol?.split('/') ?? [];
+  return atol ?? '';
+});
 const countInfo = computed(() => {
-  const [totalCount, zeroCount] = props.summaryInfo.cntTotalZeroInfnanCnt?.split('/') ?? [];
+  const [totalCount, zeroCount, infnanCount] = props.summaryInfo.cntTotalZeroInfnanCnt?.split('/') ?? [];
   return [
     { label: `total_count`, value: totalCount, desc: t('totalDataVolume') },
     { label: `zero_count`, value: zeroCount, desc: t('zeroCount') },
+    { label: `infnan_cnt`, value: infnanCount },
   ];
 });
 const warnFailInfo = computed(() => {
@@ -100,6 +140,112 @@ const overviewListColumns = ref([
 </script>
 
 <style lang="scss">
+.tolerance-benchmark-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--devui-secondary-button-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+
+  .benchmark-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: rgba(255, 255, 255, 0.08);
+    gap: 8px;
+
+    .benchmark-label {
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--devui-secondary-text);
+    }
+
+    .benchmark-divider {
+      width: 1px;
+      height: 14px;
+      background-color: var(--devui-split-line-deep);
+      margin: 0 8px;
+    }
+
+    .benchmark-data-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .benchmark-data-label {
+        font-size: 14px;
+        line-height: 20px;
+        color: var(--devui-title-text);
+        opacity: 0.8;
+      }
+
+      .benchmark-data-value {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: 4px;
+        border: 1px solid var(--devui-secondary-button-border);
+        background-color: var(--devui-secondary-button-disabled-bg);
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--devui-title-text);
+      }
+    }
+  }
+
+  .benchmark-footer {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 16px;
+    background-color: var(--devui-secondary-button-disabled-bg);
+    box-sizing: border-box;
+
+    .benchmark-item-data {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .label-text {
+        font-size: 14px;
+        line-height: 22px;
+        margin-right: 4px;
+        color: var(--devui-title-text);
+        opacity: 0.8;
+      }
+
+      .value-text {
+        font-size: 18px;
+        font-weight: bold;
+        line-height: 26px;
+        color: var(--devui-title-text);
+
+        &.value-warn {
+          color: var(--devui-status-error);
+        }
+
+        &.value-fail {
+          color: var(--devui-duff-change-border-color);
+        }
+      }
+    }
+  }
+}
+
+
+  .section-title {
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--devui-placeholder-text);
+  }
+
+
 .overview-data-list {
   .devui-data-grid__head {
     border-top-left-radius: 8px;

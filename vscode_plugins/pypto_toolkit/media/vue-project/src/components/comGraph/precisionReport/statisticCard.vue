@@ -47,6 +47,29 @@ const handleCard = () => {
 </script>
 
 <style lang="scss" scoped>
+@mixin card-bg-style($r, $g, $b) {
+    background: linear-gradient(206.57deg, rgba($r, $g, $b, 0.05), rgba($r, $g, $b, 0) 100%),var(--control-flow-tab-bg);
+
+    &.active {
+      border-color: rgba($r, $g, $b, 1);
+    }
+}
+
+@mixin icon-wrap-base($r, $g, $b, $radius: 100%) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius;
+  background-color: rgba($r, $g, $b, 0.2);
+
+  i {
+    font-size: 20px;
+    color: rgba($r, $g, $b, 1);
+  }
+}
+
 .statistic-card {
   display: flex;
   justify-content: space-between;
@@ -66,35 +89,19 @@ const handleCard = () => {
   }
 
   &.FAIL {
-    background: linear-gradient(211.80deg, rgba(231, 67, 74, 0.05), rgba(231, 67, 74, 0) 100%),var(--control-flow-tab-bg);
-
-    &.active {
-      border-color: rgba(199, 91, 96, 1);
-    }
+    @include card-bg-style(246, 158, 57);
   }
 
   &.SKIP {
-    background: linear-gradient(206.57deg, rgba(179, 179, 179, 0.05), rgba(179, 179, 179, 0) 100%), var(--control-flow-tab-bg);
-
-    &.active {
-      border-color: rgba(179, 179, 179, 1);
-    }
+    @include card-bg-style(179, 179, 179);
   }
 
   &.EXCEPTION {
-    background: linear-gradient(206.57deg, rgba(246, 158, 57, 0.05), rgba(246, 158, 57, 0) 100%),var(--control-flow-tab-bg);
-
-    &.active {
-      border-color: rgba(246, 158, 57, 1);
-    }
+    @include card-bg-style(231, 67, 74);
   }
 
   &.PASS {
-    background: linear-gradient(206.57deg, rgba(135, 255, 54, 0.05), rgba(135, 200, 89, 0) 100%),var(--control-flow-tab-bg);
-
-    &.active {
-      border-color: rgba(135, 200, 89, 1);
-    }
+    @include card-bg-style(135, 200, 89);
   }
 
   .text-wrap {
@@ -115,7 +122,7 @@ const handleCard = () => {
       line-height: 32px;
 
       &.FAIL {
-        color: rgba(231, 67, 74, 1);
+        color: rgba(246, 158, 57, 1);
       }
 
       &.SKIP {
@@ -123,7 +130,7 @@ const handleCard = () => {
       }
 
       &.EXCEPTION {
-        color: rgba(246, 158, 57, 1);
+        color: rgba(231, 67, 74, 1);
       }
 
       &.PASS {
@@ -134,56 +141,23 @@ const handleCard = () => {
 
   .icon-wrap {
     .fail-icon-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 100%;
-      background-color: rgba(231, 98, 93, 0.2);
-
-      i {
-        font-size: 20px;
-        color: rgba(231, 98, 93, 1);
-      }
+      @include icon-wrap-base(246, 158, 57);
     }
 
     .pass-icon-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 100%;
-      background-color: rgba(135, 200, 89, 0.2);
-
-      i {
-        font-size: 20px;
-        color: rgba(135, 200, 89, 1);
-      }
+      @include icon-wrap-base(135, 200, 89);
     }
 
     .skip-icon-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 25%;
-      background-color: rgba(179, 179, 179, 0.2);
-
-      i {
-        font-size: 20px;
-        color: rgba(179, 179, 179, 1);
-      }
+      @include icon-wrap-base(179, 179, 179, 25%);
     }
 
     .warning-icon-wrap {
       position: relative;
 
       svg {
-        fill: rgba(247, 132, 31, 1);
-        stroke: rgba(247, 132, 31, 1);
+        fill: rgba(231, 67, 74, 1);
+        stroke: rgba(231, 67, 74, 1);
         stroke-width: 10;
         opacity: 0.2;
       }
@@ -193,9 +167,10 @@ const handleCard = () => {
         top: calc(50% - 7px);
         left: calc(50% - 10px);
         font-size: 20px;
-        color: rgba(247, 132, 31, 1);
+        color: rgba(231, 67, 74, 1);
       }
     }
   }
 }
 </style>
+

@@ -5,14 +5,17 @@ import { inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openComputeGraph } from '@/apis/opener';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
+import { useViewServer } from '@/core/use-view-server';
+import { ControlFlowViewServer } from 'ext:/view/servers/controlFlow-server';
 
 /**
  * 自定义path卡片hook函数
  * @param sideBarRef 右侧抽屉
  * @param outPutPath 用于打开计算图
  */
-export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstErrorPass) {
+export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
   const { t } = useI18n();
+  const { server } = useViewServer<ControlFlowViewServer>();
   const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
   const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
@@ -63,14 +66,14 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
       // 边框高亮样式
       const statusColors = {
         'highlight-PASS': '#87c859',
-        'highlight-FAIL': '#D94838',
-        'highlight-EXCEPTION': '#f69e39',
+        'highlight-FAIL': '#f69e39',
+        'highlight-EXCEPTION': '#D94838',
       }
       let strokeColor = 'transparent';
       let lineWidth = 0
-      if(states) {
+      if (states) {
         for (const state of states) {
-          if(statusColors[state]) {
+          if (statusColors[state]) {
             strokeColor = statusColors[state];
             lineWidth = 3;
             break;
@@ -169,15 +172,29 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
     /**
      * 打开图
      */
-    openGraph(passIndex?) {
+    async openGraph(passIndex?) {
       if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const length = this.nodeData.data.source.meta?.passes.length;
-      const index = Number(passIndex ? passIndex: length -1)
+      const index = Number(passIndex ? passIndex : length - 1)
+      
+      // 先调用 setCurAccuFilePathApi，fileType 为 'brief'
+      try {
+        await server.setCurAccuFilePathApi({
+          filePath: outPutPath.value as string,
+          fileType: 'brief',
+        });
+      } catch (error) {
+        console.error('[usePathCardNode] setCurAccuFilePathApi error:', error);
+      }
+      
+      // 然后打开计算图
       openComputeGraph({
         outputPath: outPutPath.value as string,
         computeGraphPath: this.nodeData.data.source.meta?.passes[index].graphFilePath,
         pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
       });
+      // if 精度工具
+      // server.setCurAccuFilePath(fileInfo);
     }
 
     /**
@@ -422,11 +439,11 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
       this.upsert('hole', 'rect', holeStyle, container);
     }
 
-    drawFirstErrorTag(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+    drawFirstFailTag(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
       const states = this.context.graph.getElementState(this.id);
-      if (!states || !states.includes('first-error')) {
-        this.upsert('first-error-tag-bg', 'rect', false, container)
-        this.upsert('first-error-tag-text', 'rect', false, container)
+      if (!states || !states.includes('first-fail')) {
+        this.upsert('first-fail-tag-bg', 'rect', false, container)
+        this.upsert('first-fail-tag-text', 'rect', false, container)
         return
       }
       const currentLanguage = (window as any).ascLang
@@ -437,35 +454,38 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
         'en': 95
       };
       const tagHeight = 24;
-      const tagBg = this.upsert('first-error-tag-bg', 'rect', {
+      // 检查是否同时有first-exception标签，如果有则下移避免重叠
+      const hasExceptionTag = states.includes('first-exception');
+      const yOffset = hasExceptionTag ? tagHeight * 2 + 4 : tagHeight;
+      const tagBg = this.upsert('first-fail-tag-bg', 'rect', {
         x: width / 2 + 4,
-        y: topY+tagHeight,
+        y: topY + yOffset,
         width: tagWidth[currentLanguage] || 95,
         height: tagHeight,
-        fill: '#D94838',
+        fill: '#F69E39',
         radius: 4,
         cursor: 'pointer',
         pointerEvents: 'all'
       }, container);
-      const tagText = this.upsert('first-error-tag-text', 'text', {
-        x: width / 2 + (tagWidth[currentLanguage] || 95) /2 + 4,
-        y: topY + tagHeight*1.5,
+      const tagText = this.upsert('first-fail-tag-text', 'text', {
+        x: width / 2 + (tagWidth[currentLanguage] || 95) / 2 + 4,
+        y: topY + yOffset + tagHeight / 2,
         text: t('controlFlows.firstErrorPath'),
         fontSize: 12,
         fill: '#fff',
-        textBaseline:'middle',
-        textAlign:'center',
+        textBaseline: 'middle',
+        textAlign: 'center',
         cursor: 'pointer',
         pointerEvents: 'all'
       }, container)
       const handleTagClick = (e) => {
-          // 阻止事件冒泡，避免触发节点的点击事件
-          e.stopPropagation();
-          this.openGraph(firstErrorPass.value);
-          // 如果数据中有回调函数，则调用
-          if (typeof attributes.onButtonClick === 'function') {
-            attributes.onButtonClick(this.id, this.data);
-          }
+        // 阻止事件冒泡，避免触发节点的点击事件
+        e.stopPropagation();
+        this.openGraph(tagPass.value);
+        // 如果数据中有回调函数，则调用
+        if (typeof attributes.onButtonClick === 'function') {
+          attributes.onButtonClick(this.id, this.data);
+        }
       }
       if (tagBg && !tagBg.__clickBound) {
         tagBg.addEventListener('click', handleTagClick);
@@ -476,6 +496,62 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
         tagText.__clickBound = true; // 标记已绑定事件，避免重复绑定
       }
     }
+
+    drawFirstExceptionTag(attributes: RectStyleProps & BaseCustomElementStyleProps, container: Group) {
+      const states = this.context.graph.getElementState(this.id);
+      if (!states || !states.includes('first-exception')) {
+        this.upsert('first-exception-tag-bg', 'rect', false, container)
+        this.upsert('first-exception-tag-text', 'rect', false, container)
+        return
+      }
+      const currentLanguage = (window as any).ascLang
+      const [width] = this.getSize(attributes);
+      const topY = -this.getSize(attributes)[1] / 2 - 20;
+      const tagWidth = {
+        'zh': 69,
+        'en': 95
+      };
+      const tagHeight = 24;
+      const tagBg = this.upsert('first-exception-tag-bg', 'rect', {
+        x: width / 2 + 4,
+        y: topY + tagHeight,
+        width: tagWidth[currentLanguage] || 95,
+        height: tagHeight,
+        fill: '#D94838',
+        radius: 4,
+        cursor: 'pointer',
+        pointerEvents: 'all'
+      }, container);
+      const tagText = this.upsert('first-exception-tag-text', 'text', {
+        x: width / 2 + (tagWidth[currentLanguage] || 95) / 2 + 4,
+        y: topY + tagHeight * 1.5,
+        text: t('controlFlows.firstExcPath'),
+        fontSize: 12,
+        fill: '#fff',
+        textBaseline: 'middle',
+        textAlign: 'center',
+        cursor: 'pointer',
+        pointerEvents: 'all'
+      }, container)
+      const handleTagClick = (e) => {
+        // 阻止事件冒泡，避免触发节点的点击事件
+        e.stopPropagation();
+        this.openGraph(tagPass.value);
+        // 如果数据中有回调函数，则调用
+        if (typeof attributes.onButtonClick === 'function') {
+          attributes.onButtonClick(this.id, this.data);
+        }
+      }
+      if (tagBg && !tagBg.__clickBound) {
+        tagBg.addEventListener('click', handleTagClick);
+        tagBg.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      }
+      if (tagText && !tagText.__clickBound) {
+        tagText.addEventListener('click', handleTagClick);
+        tagText.__clickBound = true; // 标记已绑定事件，避免重复绑定
+      }
+    }
+
     // ------------------------------ 核心渲染方法（整合所有元素）------------------------------
     render(attributes = this.parsedAttributes, container: Group | undefined) {
       // 1. 合并基础样式（覆盖 Rect 默认样式）
@@ -491,10 +567,13 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstError
       this.drawRightIconContainer(mergedAttrs, container); // 顶部图片容器
       this.drawFunctionStats(mergedAttrs, container); // 函数统计项
       this.drawErrorStats(mergedAttrs, container); // 错误统计项
-      this.drawFirstErrorTag(mergedAttrs, container); // 首错PATH标签
+      this.drawFirstFailTag(mergedAttrs, container); // 首错PATH标签
+      this.drawFirstExceptionTag(mergedAttrs, container); //异常PATH标签
     }
   }
   return {
     PathCardNodes,
   };
 }
+
+

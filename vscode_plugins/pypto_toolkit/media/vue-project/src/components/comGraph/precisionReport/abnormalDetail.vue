@@ -1,41 +1,46 @@
 <template>
   <div class="abnormal-detail-wrap">
     <div class="detail-magic-id">
-      <i class="icon icon-chevron-left-2" @click="() => emits('back')"></i>
-      <span>Raw Magic ID: {{ rawMagic }}</span>
-    </div>
-    <OverviewCard :data="typeShapeThresholdInfo" />
-    <OverviewCard :data="tolInfo" />
-    <div class="com-graph-abnormal-detail-tabs-wrapper">
-      <d-tabs v-model="activeTab" type="pills" :show-content="false" class="com-graph-report-tabs">
-        <d-tab id="overview" :title="t('precisionOverview')"></d-tab>
-        <d-tab id="detail" :title="detailTabTitle"></d-tab>
-      </d-tabs>
-      <div v-if="activeTab === 'detail'" class="custom-sort-btn" @click="openSortModal">
-        <i :class="isCustomSorting ? 'icon-setting-results' : 'icon-setting-results'"></i>
-        <span>{{ isCustomSorting ? t('cancelCustomSort') : t('customSort') }}</span>
+      <div class="magic-id-text">
+        <i class="icon icon-chevron-left-2" @click="() => emits('back')"></i>
+        Raw Magic ID: {{ rawMagic }}
+      </div>
+      <div class="magic-id-tag dtype">
+          Dtype
+          <span class="data-box">{{ summaryInfo.dataType }}</span>
+      </div>
+      <div class="magic-id-tag shape">
+          Shape
+          <span class="data-box">{{ summaryInfo.validShape }}</span>
       </div>
     </div>
-    <template v-if="activeTab === 'overview'">
-      <AbnormalOverview :summaryInfo="summaryInfo" />
-    </template>
-    <template v-if="activeTab === 'detail'">
-      <AbnormalCompare ref="compareEl" :tableData="compareTableData" @sort="onSingleColumnSort" />
-    </template>
-    <CustomSortModal v-model="showSortModal" @confirm="onCustomSortConfirm" />
+    <PrecisionTabContent
+      ref="tabContentRef"
+      :detail-count="compareTableData.length"
+      :show-custom-sort="true"
+      :table-data="compareTableData"
+      @custom-sort="onCustomSort"
+      @cancel-custom-sort="onCancelCustomSort"
+    >
+      <template #overview>
+        <AbnormalOverview :summaryInfo="summaryInfo" />
+      </template>
+      <template #detail>
+        <AbnormalCompare ref="compareEl" :tableData="compareTableData" @sort="onSingleColumnSort" />
+      </template>
+    </PrecisionTabContent>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import OverviewCard from './overviewCard.vue';
 import AbnormalOverview from './abnormalOverview.vue';
 import AbnormalCompare from './abnormalCompare.vue';
-import CustomSortModal from './customSortModal.vue';
+import PrecisionTabContent from './common/PrecisionTabContent.vue';
 import { useViewServer } from '@/core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
-import type { AbnormalNodeCompareListItem, AbnormalNodeOverviewInfo, SelectedSortCol } from './precisionReport.types';
+import type { AbnormalNodeCompareListItem, AbnormalNodeOverviewInfo } from './precisionReport.types';
 
 const props = defineProps({
   loopInfo: String,
@@ -45,51 +50,23 @@ const emits = defineEmits(['back']);
 const { t } = useI18n();
 const { server } = useViewServer<IComViewServer>();
 
-const activeTab = ref<'overview' | 'detail'>('overview');
-const isCustomSorting = ref(false);
-const showSortModal = ref(false);
+const tabContentRef = ref();
 const compareTableData = ref<AbnormalNodeCompareListItem[]>([]);
 const compareEl = ref();
-const detailTabTitle = computed(() => `${t('precisionDetail')} (${compareTableData.value.length})`);
 const summaryInfo = ref<AbnormalNodeOverviewInfo>({});
-const typeShapeThresholdInfo = computed(() => [
-  { label: 'dtype', value: summaryInfo.value.dataType },
-  { label: 'shape', value: summaryInfo.value.validShape },
-]);
-const tolInfo = computed(() => {
-  const [rTol, aTol] = summaryInfo.value.rtolAtol?.split('/') ?? [];
-  return [
-    { label: 'rtol', value: rTol },
-    { label: 'atol', value: aTol },
-  ];
-});
 let originTableData: AbnormalNodeCompareListItem[] = [];
 
-const openSortModal = () => {
-  if (isCustomSorting.value) {
-    isCustomSorting.value = false;
-    compareTableData.value = JSON.parse(JSON.stringify(originTableData));
-  } else {
-    showSortModal.value = true;
-  }
+const onCustomSort = (sortedData: AbnormalNodeCompareListItem[]) => {
+  compareEl.value?.clearAllSort();
+  compareTableData.value = sortedData;
+};
+
+const onCancelCustomSort = () => {
+  compareTableData.value = JSON.parse(JSON.stringify(originTableData));
 };
 
 const onSingleColumnSort = () => {
-  isCustomSorting.value = false;
-};
-
-const onCustomSortConfirm = (e: SelectedSortCol[]) => {
-  isCustomSorting.value = true;
-  compareEl.value.clearAllSort();
-  const temp = JSON.parse(JSON.stringify(originTableData));
-  temp.sort((a, b) => {
-    for (const { field, direction } of e) {
-      if (a[field] !== b[field]) {
-        return direction === 'asc' ? a[field] - b[field] : b[field] - a[field];
-      }
-    }
-  });
-  compareTableData.value = temp;
+  tabContentRef.value?.resetCustomSort();
 };
 
 watch(server.AccurancyDetail, (val: Record<string, any>) => {
@@ -122,52 +99,76 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .abnormal-detail-wrap {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: 100%;
+
   .detail-magic-id {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--devui-secondary-button-border);
+    border-radius: 12px;
+    background-color: var(--devui-secondary-button-disabled-bg);
+    position: relative;
+    overflow: hidden;
+    color: var(--devui-title-text);
 
-    i {
-      font-size: 16px;
-      cursor: pointer;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 25%;
+      height: 100%;
+      background-image: radial-gradient(circle, var(--pto-border-default) 1.5px, transparent 1.5px);
+      background-size: 4px 4px;
+      -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+      mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+      pointer-events: none;
     }
 
-    span {
-      font-size: 16px;
-      color: var(--devui-title-text);
-      line-height: 16px;
-    }
-  }
-
-  .com-graph-abnormal-detail-tabs-wrapper {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    .com-graph-report-tabs {
-      margin-top: 4px;
-      padding: 0;
-    }
-    .custom-sort-btn {
+    .magic-id-text {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      color: var(--devui-secondary-text);
-      cursor: pointer;
-      span {
-        line-height: 20px;
-      }
+      font-size: 18px;
+      font-weight: 700;
 
       i {
-        margin-top: 2px;
         font-size: 16px;
+        cursor: pointer;
+        margin-right: 8px;
       }
+    }
+
+    .magic-id-tag {
+      display: inline-flex;
+      height: 26px;
+      padding: 2px 4px 2px 8px;
+      font-size: 14px;
+      border-radius: 6px;
+      margin: 12px 8px 0 0;
+
+      .data-box {
+        color: var(--devui-title-text);
+        border-radius: 4px;
+        font-size: 13px;
+        padding: 0 8px;
+        background-color: var(--devui-secondary-button-disabled-bg);
+        border: 1px solid var(--devui-secondary-button-border);
+        margin-left: 4px;
+      }
+    }
+
+    .dtype {
+      color: rgba(115, 166, 255, 1);
+      border: 1px solid rgba(49, 122, 247, 1);
+    }
+
+    .shape {
+      color: rgba(201, 89, 255, 1);
+      border: 1px solid rgba(138, 33, 188, 1);
     }
   }
 }

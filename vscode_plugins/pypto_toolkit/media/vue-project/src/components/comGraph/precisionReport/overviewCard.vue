@@ -41,6 +41,7 @@ defineProps({
   border-radius: 12px;
   background-color: var(--devui-secondary-button-disabled-bg);
   box-sizing: border-box;
+  margin-bottom: 16px;
   .overview-card-item-data {
     flex: 1;
     display: flex;

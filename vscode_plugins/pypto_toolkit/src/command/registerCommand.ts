@@ -5,7 +5,7 @@ import { readFirstNLines } from '../utils/file-system';
 import { useView } from '../view';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { readCsv,getCsvData } from '../common/csvReader';
+import { readCsv, getCsvData } from '../common/csvReader';
 import * as fs from 'fs';
 
 export class RegisterCommand {
@@ -22,21 +22,20 @@ export class RegisterCommand {
         const fileUri = await vscode.window.showOpenDialog({
           canSelectMany: false,
           filters: { 'CSV Files': ['csv'] },
-          openLabel: '选择 CSV 文件'
-        }); 
+          openLabel: '选择 CSV 文件',
+        });
         const filePath = fileUri?.[0].fsPath ?? undefined;
         if (!filePath || filePath.length === 0) return;
-        readCsv(filePath);
+        const type = 3;
+        await readCsv(filePath, type);
+        getCsvData(filePath, type);
       }),
-      commands.registerCommand('PyPTO.getCsvData', async () => {
-        getCsvData();
-      }),
-      commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined,) => {
+      commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) {
           window.showErrorMessage(_('pypto.entry.fileTooLarge'));
           return;
-        };
+        }
         await this.openView('computeGraph', uri, undefined);
       }),
       commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string) => {
@@ -48,12 +47,15 @@ export class RegisterCommand {
         if (!uri) return;
         await this.openView('diffGraph', uri);
       }),
-      commands.registerCommand('PyPTO.Open.OpenComGraphForNodeSearch', async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
-        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri) return;
-        nodeMagic ??= '-1';
-        await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
-      }),
+      commands.registerCommand(
+        'PyPTO.Open.OpenComGraphForNodeSearch',
+        async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
+          if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+          if (!uri) return;
+          nodeMagic ??= '-1';
+          await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
+        },
+      ),
 
       commands.registerCommand('PyPTO.Open.OpenLinkageMode', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
@@ -71,7 +73,7 @@ export class RegisterCommand {
         if (server) {
           server.renderLayout(data, infoStr);
         }
-      })
+      }),
     ];
   }
 
@@ -86,7 +88,7 @@ export class RegisterCommand {
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), {
         query: finalQuery,
-        title:  getBasenameWithoutExt(uri.fsPath),
+        title: getBasenameWithoutExt(uri.fsPath),
       });
     } else if (content.includes('traceEvents') || content.includes('tasks') || (content.charAt(0) === '[' && content.includes('pid'))) {
       const isPerfSwim = !content.includes('traceEvents') && !content.includes('pid');
@@ -101,11 +103,11 @@ export class RegisterCommand {
         funcHash: funcHash,
         isSearch: isSearch,
         nodeMagic: nodeMagic,
-        memoryPath: uri.fsPath
+        memoryPath: uri.fsPath,
       };
       await editorView.open(routeName, vscode.Uri.file(comGraphPath), {
         query: finalQuery,
-        title:  getBasenameWithoutExt(comGraphPath),
+        title: getBasenameWithoutExt(comGraphPath),
       });
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));

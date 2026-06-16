@@ -24,6 +24,13 @@ export function openSwimlaneGraph(params: { swimlaneGraphPath: string; outputPat
 }
 
 /**
+ * 打开OpCheck页面
+ */
+export function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null }) {
+  return request.post(`${OPENER_PREFIX}/openOpCheck`, params);
+}
+
+/**
  * 打开配置
  */
 export function openPtoConfig(params: { configPath: string; pathName: string; isBootStep?: boolean }) {

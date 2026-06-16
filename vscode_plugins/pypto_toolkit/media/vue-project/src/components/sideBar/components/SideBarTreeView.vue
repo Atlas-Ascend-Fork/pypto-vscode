@@ -51,6 +51,7 @@
               <!-- 节点图标（文件夹/文件） -->
               <i v-if="nodeData.type === 'dir' && !nodeData.executeTime" class="icon-folder-new"></i>
               <i v-if="nodeData.fileType === 'computeGraph'" class="icon-json"></i>
+              <i v-if="nodeData.fileType === 'opCheck'" class="icon-diagnose"></i>
               <i v-if="nodeData.extname === 'json'" class="icon-file"></i>
             </div>
 
@@ -63,9 +64,7 @@
               <div class="node-label" v-html="textToHighlightHtml(nodeData.label)"></div>
             </div>
             <div v-if="nodeData.level === 1" class="node-left">
-              <!-- 删除 -->
               <d-icon v-if="!isBatchDelete && nodeData.showSingleDelete" @click.stop="handleDelete(nodeData)" name="delete" />
-              <!-- 批量删除勾选 -->
               <d-checkbox v-if="isBatchDelete" v-model="nodeData.checked" :showAnimation="false" @click.stop="handleCheck(nodeData)" />
             </div>
           </div>
@@ -117,7 +116,7 @@ import { useI18n } from 'vue-i18n';
 import { getOutputDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { Message } from 'vue-devui/message';
-import { openComputeGraph, openControlFlow, openSwimlaneGraph } from '@/apis/opener';
+import { openComputeGraph, openControlFlow, openSwimlaneGraph, openOpCheck } from '@/apis/opener';
 
 import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
@@ -152,18 +151,17 @@ const visibleTreeData = computed(() => [...treeData.value]);
 
 function nodeClick(node: DevUITreeNode): void {
   if (node.fileType === 'controlFlow') {
-    // 打开控制流
     openControlFlow({ controlFlowPath: node.absolutePath, outputPath: node.outputPath });
   } else if (node.fileType === 'swimlaneGraph') {
-    // 打开泳道图
     openSwimlaneGraph({ swimlaneGraphPath: node.absolutePath, outputPath: node.outputPath });
   } else if (node.fileType === 'computeGraph') {
-    // 打开计算图
     openComputeGraph({
       computeGraphPath: node.absolutePath,
       outputPath: node.pathName ? node.outputPath : undefined,
       pathName: node.pathName,
     });
+  } else if (node.fileType === 'opCheck') {
+    openOpCheck({ outputPath: node.outputPath, opeCheckDirPath: node.opeCheckDirPath });
   } else {
     toggleNode(node);
   }
@@ -215,7 +213,21 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
 
     // 记录子节点
     const child = getOutputDetail(record.directoryPath).then((detail) => {
-      return transformChild(detail.data?.directoryTree.children ?? [], rootNode.id);
+      const baseChildren = transformChild(detail.data?.directoryTree.children ?? [], rootNode.id);
+      if (record.hasOpeCheck && record.opeCheckDirPath) {
+        const opCheckNode: DevUITreeNode = {
+          id: `${rootNode.id}/opCheck`,
+          label: 'OP Check',
+          type: 'file',
+          expanded: false,
+          isLeaf: true,
+          fileType: 'opCheck',
+          outputPath: record.directoryPath,
+          opeCheckDirPath: record.opeCheckDirPath,
+        };
+        baseChildren.push(opCheckNode);
+      }
+      return baseChildren;
     });
     nodeChildrenMap.set(rootNode.id, child);
 
@@ -688,6 +700,7 @@ watch(sortOption, () => {
             display: flex;
             align-items: center;
             margin-left: auto;
+            gap: 8px;
           }
 
           .node-text-folder {
@@ -773,3 +786,4 @@ watch(sortOption, () => {
   }
 }
 </style>
+

@@ -5,6 +5,8 @@ import * as vscode from 'vscode';
 import type { OutputRecord, RunDataManifest } from '../../../types/workspace';
 import { isFilePathExists, isFileUriExists } from '../../../utils/file-system';
 import { getMockDataPath, getProgramPath, getSwimPath } from '../../welcome';
+import { getCmpFileList } from '../../../common/csvReader';
+import { getPrecisionExceptList } from '../../../common/accurancyAnylasis';
 
 export interface RunDataDir {
   dirname: string;
@@ -65,6 +67,8 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
     return undefined;
   }
 
+  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(computeGraphDirPath ?? undefined);
+
   return {
     title,
     executeTime: executeTime.datetimeFormat,
@@ -73,6 +77,8 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
     controlFlowFilePath,
     swimlaneGraphFilePath,
     computeGraphDirPath,
+    hasOpeCheck,
+    opeCheckDirPath,
   };
 }
 
@@ -128,4 +134,40 @@ function resolveExecuteTime(directoryName: string): ResolvedExecuteTime {
 
 async function getPathIfExists(checkingPath: string | undefined): Promise<string | null> {
   return checkingPath && (await isFilePathExists(checkingPath)) ? checkingPath : null;
+}
+
+const VERIFY_DIR_REG_EXP = /^verify_/;
+const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
+
+interface OpeCheckResult {
+  hasOpeCheck: boolean;
+  opeCheckDirPath: string[] | null;
+}
+
+async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
+  const empty: OpeCheckResult = { hasOpeCheck: false, opeCheckDirPath: null };
+
+  if (!computeFilePath) {
+    return empty;
+  }
+  let subList: [string, vscode.FileType][];
+  const fileUri = vscode.Uri.file(computeFilePath);
+  subList = await vscode.workspace.fs.readDirectory(fileUri);
+  for (const [subPath, fileType] of subList) {
+    if (fileType !== vscode.FileType.Directory || !VERIFY_DIR_REG_EXP.test(subPath)) {
+      continue;
+    }
+    const verifyDirUri = vscode.Uri.joinPath(fileUri, subPath);
+    try {
+      const files = await vscode.workspace.fs.readDirectory(verifyDirUri);
+      if (files.some(([name]) => VERIFY_GRAPH_RESULT_CMP_REG_EXP.test(name))) {
+        const compList = await getCmpFileList(verifyDirUri.fsPath);
+        return { hasOpeCheck: true, opeCheckDirPath: compList };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return empty;
 }

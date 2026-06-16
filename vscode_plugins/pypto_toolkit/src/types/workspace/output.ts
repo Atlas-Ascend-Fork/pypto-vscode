@@ -46,4 +46,10 @@ export interface OutputDetail {
 
   /** 计算图目录地址 */
   computeGraphDirPath: string | null;
+
+  /** 是否存在ope校验 */
+  hasOpeCheck: boolean;
+
+  /** ope校验目录路径 */
+  opeCheckDirPath: string[] | null;
 }

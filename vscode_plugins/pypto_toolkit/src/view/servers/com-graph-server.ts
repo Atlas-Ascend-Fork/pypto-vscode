@@ -10,6 +10,8 @@ import { DiffGraphHandler } from '../../handler/diffGraphHandler';
 import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICommonRefs } from './view-server-interface';
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
+import { SQLiteCache } from '../../core/sqliteCache';
+import { getCmpDiffList, getAccuFilePath } from '../../common/accurancyAnylasis';
 import * as fs from 'fs';
 type Apis = IComApis | ICommonApis;
 
@@ -27,6 +29,8 @@ type Refs = IComRefs & ICommonRefs;
   'AccurancyReport',
   'AccurancyList',
   'AccurancyDetail',
+  'AccuFilePath',
+  'CmpDiffList',
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
@@ -247,6 +251,26 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     }
     const events = await MemoryTraceHandler.getTimelineEvents(fsPath);
     this.setRef('Timeline', events);
+  };
+
+  @viewApi()
+  public accuFilePathGet = async () => {
+    const result = await getAccuFilePath();
+    this.setRef('AccuFilePath', result);
+    return result;
+  };
+
+  @viewApi()
+  public getCmpDiffListData = async (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+  }) => {
+    const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword } = data;
+    const result = await getCmpDiffList(cmpCsvPath, true, pageSize, startOffset, res, keyword);
+    this.setRef('CmpDiffList', result);
   };
 
   safeParse(str) {

@@ -32,6 +32,7 @@ interface ComGraphData {
   svgExportMode: boolean;
   isCached?: boolean,
   failRawMagicList?: any[],
+  failOpMagicList?: any[],
   nodeCount?: number,
   version: string;
   selectedNodeSemanticLabel: string;

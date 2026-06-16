@@ -17,11 +17,13 @@ export type IComApis =
   | 'innerGetSubgraph'
   | 'selectFile'
   | 'returnFuncTree'
-  | 'getSprottyGraphWithLevel'  
+  | 'getSprottyGraphWithLevel'
   | 'getMetadata'
   | 'getMemTraceFile'
   | 'getTimelineEvents'
-  | 'getInitialMemoryData';
+  | 'getInitialMemoryData'
+  | 'accuFilePathGet'
+  | 'getCmpDiffListData';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -34,6 +36,8 @@ export type IComRefs = {
   AccurancyReport: unknown,
   AccurancyList: unknown,
   AccurancyDetail: unknown,
+  AccuFilePath: unknown,
+  CmpDiffList: unknown,
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
@@ -76,6 +80,14 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   getMemTraceFile: () => Promise<void>;
   getTimelineEvents: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
+  accuFilePathGet: () => Promise<void>;
+  getCmpDiffListData: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+  }) => Promise<void>;
 }
 
 export type IThreeApis =
@@ -224,7 +236,8 @@ export type IControlFlowApis =
   | 'getPathPassResult'
   | 'savePyCode'
   | 'getInitialData'
-  | 'fetchVscodeState';
+  | 'fetchVscodeState'
+  | 'setCurAccuFilePathApi';
 export type IControlFlowRefs = {
   parseFlag: unknown;
   SetParsingMode: unknown;
@@ -235,6 +248,10 @@ export type IControlFlowRefs = {
 export interface IControlFlowViewServer extends ViewServer<IControlFlowApis, IControlFlowRefs> {
   getAccurancyResult: (data: {controwFlowFilePath: string}) => Promise<void>;
   getPathPassResult: (data: {controwFlowFilePath: string}) => Promise<void>;
+  setCurAccuFilePathApi: (data: {
+    filePath: string;
+    fileType: string;
+  }) => Promise<void>;
 }
 
 // 内存追踪视图服务接口
@@ -271,4 +288,39 @@ export interface IMemoryTraceViewServer extends ViewServer<IMemoryTraceApis, IMe
   getInitialData: () => Promise<void>;
   getClockList: () => Promise<any[]>;
   getEventsAtClock: (message: { clock: number }) => Promise<any[]>;
+}
+
+export type IOpCheckApis =
+  | 'getCmpDiffListData'
+  | 'getPrecisionExceptList'
+  | 'setCurAccuFilePathApi'
+  | 'openCmpDiffComGraphApi';
+
+export type IOpCheckRefs = {
+  cmpDiffList: unknown;
+  precisionExceptList: unknown;
+};
+
+export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRefs> {
+  getCmpDiffListData: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+  }) => Promise<void>;
+  getPrecisionExceptList: (data: {
+    filePath: string;
+    fileName: string;
+  }) => Promise<void>;
+  setCurAccuFilePathApi: (data: {
+    filePath: string;
+    fileType: string;
+  }) => Promise<void>;
+  openCmpDiffComGraphApi: (data: {
+    filePath: string;
+    funcHash: string;
+    passName: string;
+    funcMagicName: string;
+  }) => Promise<void>;
 }

@@ -4,6 +4,7 @@ import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProg
 import {
   openComputeGraph,
   openControlFlow,
+  openOpCheck,
   openPtoConfig,
   openPyPTOWelcome,
   openSwimlaneGraph,
@@ -79,6 +80,7 @@ export const serviceApis = {
     openControlFlow,
     openComputeGraph,
     openSwimlaneGraph,
+    openOpCheck,
     openPtoConfig,
     openPyPTOWelcome,
     openThreeColumnGraph,

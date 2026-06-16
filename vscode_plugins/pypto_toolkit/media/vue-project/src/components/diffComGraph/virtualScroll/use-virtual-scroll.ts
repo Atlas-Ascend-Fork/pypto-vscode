@@ -41,6 +41,13 @@ export function useVirtualScroll(props: VirtualScrollProps) {
       const scrollTop = scrollEl.value.scrollTop;
       distance = scrollTop > scrollParams.originData[scrollParams.originData.length - 1].$offsetTop ? 0 : scrollTop;
       initVirtualData(distance);
+    } else {
+      // 当数据为空时，清空渲染数据和重置滚动位置
+      renderData.value = [];
+      translate.value = 0;
+      if (scrollEl.value) {
+        scrollEl.value.scrollTop = 0;
+      }
     }
   }
 

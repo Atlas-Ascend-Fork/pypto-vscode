@@ -39,7 +39,7 @@
     </template>
     <template v-else>
       <MinimapContainer class="minimap-type"></MinimapContainer>
-      <div class="tool-bar" :style="{right: `${minimapOffsetRight + 16}px`}">
+      <div class="tool-bar" :style="{ right: `${minimapOffsetRight + 16}px` }">
         <button
           class="icon-minus"
           style="width: 16px; height: 16px; left: 32px; color: var(--devui-text)"
@@ -66,7 +66,7 @@
     </template>
   </div>
   <Loading class="loading-index" v-if="isLoading" :loadingText="t('public.loading')" />
-  <AccuracyReport v-model="showAccuracyReport" :data="accuracyReportData" @block-click="handleBlockClick"></AccuracyReport>
+  <AccuracyReport v-model="showAccuracyReport" :data="accuracyReportData" @block-click="handleBlockClick"> </AccuracyReport>
 </template>
 
 <script lang="ts" setup>
@@ -115,14 +115,15 @@ const options = ref([]);
 const combosNode = ref(null);
 const isBoot = ref(false);
 const graphContainerRef = ref(null);
-const showAccuracyReport = ref(false) // 显示精度执行报告
-const isHaveCSV = ref(false) // 是否有CSV文件
-const allNodes = ref<ControlFlowNodesType[]>([]) // 已渲染的所有节点
-const currentHighlightNodeIds = ref<string[]>([]) // 当前边框高亮的节点
-const currentHightLightState = ref('') // 高亮状态-pass/fail/exception
-const firstErrorNodeId = ref('') // 首错节点
-const accuracyReportData = ref() // 精度执行报告数据
-const firstErrorPass = ref() // 首错PATH的对应pass
+const showAccuracyReport = ref(false); // 显示精度执行报告
+const isHaveCSV = ref(false); // 是否有CSV文件
+const allNodes = ref<ControlFlowNodesType[]>([]); // 已渲染的所有节点
+const currentHighlightNodeIds = ref<string[]>([]); // 当前边框高亮的节点
+const currentHightLightState = ref(''); // 高亮状态-pass/fail/exception
+const tagNodeId = ref(''); // 标签显示节点
+const hasBothTags = ref(false); // 是否同时有first-fail和first-exception标签
+const accuracyReportData = ref(); // 精度执行报告数据
+const tagPass = ref(); // tag标签跳转的对应pass
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -134,7 +135,7 @@ const codePreviewState = reactive<PreviewState>({
   line: 0,
   language: '',
 });
-const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, firstErrorPass);
+const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass);
 const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme, codePreviewState);
@@ -200,7 +201,7 @@ const handleMatchedResults = (results: SearchSelectItem[]) => {
   } else {
     graph.setElementState(clearAllNodeState);
   }
-  setHighLight()
+  setHighLight();
 };
 
 /**
@@ -215,7 +216,7 @@ const handleSelectedValue = (value: SearchSelectItem) => {
     graph.setElementState(selectedValue.value.value, 'selected');
     graph.focusElement(selectedValue.value.value);
     graph.draw();
-    setHighLight()
+    setHighLight();
   }
 };
 
@@ -246,8 +247,8 @@ const graphRef = ref<Graph>();
 // 打开精度执行报告时小地图左移
 const minimapOffsetRight = computed(() => {
   return showAccuracyReport.value ? 480 : 0;
-})
-const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef,minimapOffsetRight);
+});
+const { minimapPluginOptions, MinimapContainer } = useMinimap(graphRef, minimapOffsetRight);
 
 /**
  * 初始化 G6 图表
@@ -275,9 +276,9 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
       graph.setElementZIndex(zIndex.value);
       const nodes = await graph.getElementDataByState('combo', 'selected');
       if (nodes.length > 0) await graph.setElementZIndex(nodes[0].id, Infinity);
-      // 首错节点PATH处于最高级，避免tag被遮挡
-      if(firstErrorNodeId.value) {
-        await graph.setElementZIndex(firstErrorNodeId.value,Infinity)
+      // 有tag的PATH处于最高级，避免tag被遮挡
+      if (tagNodeId.value) {
+        await graph.setElementZIndex(tagNodeId.value, Infinity);
       }
     }
   });
@@ -337,7 +338,7 @@ const initG6Graph = async (nodes: ControlFlowNodesType[], edges: EdgesType[], co
       // 已选中的层级处于最高层级
       await graph.setElementZIndex(event.target.id, Infinity);
     }
-    setHighLight()
+    setHighLight();
   }
 
   // 监听点击事件
@@ -446,69 +447,160 @@ const listenExtensionMessage = () => {
 
 // 打开精度执行报告
 const openAccuracyReport = () => {
-  showAccuracyReport.value = true
-}
+  showAccuracyReport.value = true;
+};
 
 // 点击精度执行报告中的pass block，高亮对应PATH节点
 const handleBlockClick = (item) => {
   if (!graph) return;
-  currentHighlightNodeIds.value.forEach(id => {
+
+  // 清除之前的高亮状态
+  currentHighlightNodeIds.value.forEach((id) => {
     graph.setElementState(id, []);
-    if(id === firstErrorNodeId.value){
-      graph.setElementZIndex(id,zIndex.value[id] ?? -1 )
+    if (id === tagNodeId.value) {
+      graph.setElementZIndex(id, zIndex.value[id] ?? -1);
     }
-  })
-  // 目前点击高亮node节点只支持fail状态
-  if(!item || item.status !== 'FAIL'){
+  });
+
+  // 目前点击高亮node节点只支持fail和exception状态
+  if (!item || (!item.status.includes('FAIL') && !item.status.includes('EXCEPTION'))) {
     currentHighlightNodeIds.value = [];
     graph.draw();
     currentHightLightState.value = '';
-    firstErrorNodeId.value = '';
+    tagNodeId.value = '';
+    hasBothTags.value = false;
     return;
   }
 
-  const highlightState = `highlight-${item.status}`;
-  currentHightLightState.value = highlightState;
-  firstErrorNodeId.value = ''
-  if (item.func_magicName.length > 0) {
-    const magicNames = item.func_magicName.map(name => name.replace( /_hiddenfunc0(_\d+)?$/, ''));
-    const targetNodes = allNodes.value.filter(node => magicNames.includes(node.data.source?.magicName));
-    if (targetNodes.length > 0) {
-      targetNodes.sort((a, b) => {
-        const indexA = magicNames.indexOf(a.data.source?.magicName);
-        const indexB = magicNames.indexOf(b.data.source?.magicName);
-        return indexA - indexB;
-      });
-      currentHighlightNodeIds.value = targetNodes.map(node => node.id);
-      targetNodes.forEach((node,index) => {
-        const states = [highlightState];
-        if(item.status === 'FAIL' && index === 0) {
-          states.push('first-error')
-          firstErrorNodeId.value = node.id
-          firstErrorPass.value = Number(item.index) + 1
-          graph.setElementZIndex(node.id, Infinity)
-        }
-        graph.setElementState(node.id, states);
-      })
-      graph.focusElement(targetNodes[0].id)
-      graph.draw();
-    }
+  const hasFail = item.status.includes('FAIL');
+  const hasException = item.status.includes('EXCEPTION');
+
+  // 获取需要高亮的节点列表
+  const failMagicNames =
+    hasFail && item.failFuncMagicName ? item.failFuncMagicName.map((name) => name.replace(/_hiddenfunc0(_\d+)?$/, '')) : [];
+  const excMagicNames =
+    hasException && item.excFuncMagicName ? item.excFuncMagicName.map((name) => name.replace(/_hiddenfunc0(_\d+)?$/, '')) : [];
+
+  // 找出重复的节点（同时出现在两个列表中）
+  const duplicateMagicNames = failMagicNames.filter((name) => excMagicNames.includes(name));
+
+  // 找出所有目标节点
+  const allMagicNames = [...new Set([...failMagicNames, ...excMagicNames])];
+  const targetNodes = allNodes.value.filter((node) => allMagicNames.includes(node.data.source?.magicName));
+
+  if (targetNodes.length === 0) {
+    currentHighlightNodeIds.value = [];
+    graph.draw();
+    currentHightLightState.value = '';
+    tagNodeId.value = '';
+    return;
   }
-}
+
+  // 记录第一个FAIL节点和第一个EXCEPTION节点
+  let firstFailNodeId = '';
+  let firstExcNodeId = '';
+
+  // 处理EXCEPTION节点（优先级高于FAIL，重复节点使用EXCEPTION高亮）
+  if (hasException) {
+    const excNodes = targetNodes.filter((node) => excMagicNames.includes(node.data.source?.magicName));
+    excNodes.forEach((node) => {
+      const states = ['highlight-EXCEPTION'];
+      // 第一个EXCEPTION节点添加first-exception标签
+      if (node.data.source?.magicName === excMagicNames[0]) {
+        states.push('first-exception');
+        firstExcNodeId = node.id;
+        graph.setElementZIndex(node.id, Infinity);
+      }
+      graph.setElementState(node.id, states);
+    });
+  }
+
+  // 处理FAIL节点（排除重复的，重复的使用EXCEPTION高亮）
+  if (hasFail) {
+    const failNodes = targetNodes.filter(
+      (node) => failMagicNames.includes(node.data.source?.magicName) && !duplicateMagicNames.includes(node.data.source?.magicName),
+    );
+    failNodes.forEach((node) => {
+      const states = ['highlight-FAIL'];
+      // 第一个FAIL节点添加first-fail标签
+      if (node.data.source?.magicName === failMagicNames[0]) {
+        states.push('first-fail');
+        firstFailNodeId = node.id;
+        graph.setElementZIndex(node.id, Infinity);
+      }
+      graph.setElementState(node.id, states);
+    });
+  }
+
+  // 如果第一个FAIL和第一个EXCEPTION是同一个节点，需要同时显示两个标签
+  // 这种情况下节点已经在EXCEPTION处理中设置了first-exception
+  // 需要额外添加first-fail标签
+  if (firstFailNodeId && firstExcNodeId && firstFailNodeId === firstExcNodeId) {
+    // 同时显示两个标签的逻辑在usePathCardNode中处理
+    // 这里需要确保节点同时有first-exception和first-fail状态
+    graph.setElementState(firstFailNodeId, ['highlight-EXCEPTION', 'first-exception', 'first-fail']);
+    hasBothTags.value = true;
+  } else {
+    hasBothTags.value = false;
+  }
+
+  // 保存当前高亮的节点ID列表
+  currentHighlightNodeIds.value = targetNodes.map((node) => node.id);
+
+  // 根据主状态设置currentHightLightState（用于setHighLight恢复状态）
+  // 如果同时有FAIL和EXCEPTION，使用EXCEPTION作为主状态
+  currentHightLightState.value = hasException ? 'highlight-EXCEPTION' : 'highlight-FAIL';
+
+  // 如果同时有两个标签的节点，记录tagNodeId
+  if (firstFailNodeId === firstExcNodeId && firstFailNodeId) {
+    tagNodeId.value = firstFailNodeId;
+    tagPass.value = Number(item.index) + 1;
+  } else if (firstExcNodeId) {
+    tagNodeId.value = firstExcNodeId;
+    tagPass.value = Number(item.index) + 1;
+  } else if (firstFailNodeId) {
+    tagNodeId.value = firstFailNodeId;
+    tagPass.value = Number(item.index) + 1;
+  }
+
+  let focusNodeId = '';
+  if (firstFailNodeId && firstExcNodeId && firstFailNodeId === firstExcNodeId) {
+    // 双标签节点优先聚焦
+    focusNodeId = firstFailNodeId;
+  } else if (firstExcNodeId) {
+    focusNodeId = firstExcNodeId;
+  } else if (firstFailNodeId) {
+    focusNodeId = firstFailNodeId;
+  } else {
+    focusNodeId = targetNodes[0].id;
+  }
+
+  graph.focusElement(focusNodeId);
+  graph.draw();
+};
 
 // 根据handleBlockClick的数据高亮对应PATH节点的边框
 const setHighLight = () => {
-    if (currentHighlightNodeIds.value.length > 0 && currentHightLightState.value) {
-      currentHighlightNodeIds.value.forEach(id => {
-        const states = [currentHightLightState.value];
-        if(id === firstErrorNodeId.value) {
-          states.push('first-error')
-          graph.setElementZIndex(id, Infinity)
+  if (currentHighlightNodeIds.value.length > 0 && currentHightLightState.value) {
+    currentHighlightNodeIds.value.forEach((id) => {
+      const states = [currentHightLightState.value];
+      if (id === tagNodeId.value) {
+        // 根据当前状态添加对应标签
+        if (currentHightLightState.value === 'highlight-FAIL') {
+          states.push('first-fail');
+        } else if (currentHightLightState.value === 'highlight-EXCEPTION') {
+          states.push('first-exception');
+          // 如果同时有两个标签，添加first-fail
+          if (hasBothTags.value) {
+            states.push('first-fail');
+          }
         }
-        graph.setElementState(id,states)
-      })
-    }
-}
+        graph.setElementZIndex(id, Infinity);
+      }
+      graph.setElementState(id, states);
+    });
+  }
+};
 
 const dataError = ref(false);
 const dataErrorMessage = ref('');
@@ -521,14 +613,14 @@ onMounted(async () => {
   outPutPath.value = res.url;
   const { server } = useViewServer<ControlFlowViewServer>();
   // 通知后端，查询是否有csv，获取精度执行报告数据
-  server.getAccurancyResult({controwFlowFilePath: res._path});
+  server.getAccurancyResult({ controwFlowFilePath: res._path });
   watch(server.accurancyResult, (newValue) => {
-      isHaveCSV.value = newValue.parseResult === 'Success' ? true : false
-      if(newValue.parseResult){
-        accuracyReportData.value = newValue.allResultSum
-      }
+    isHaveCSV.value = newValue.parseResult === 'Success' ? true : false;
+    if (newValue.parseResult) {
+      console.log('newValue.allResultSum', newValue.allResultSum);
+      accuracyReportData.value = newValue.allResultSum;
     }
-  );
+  });
   try {
     const data = await getControlFlow(
       { outputDirPath: outPutPath.value, controlFlowFilePath: res._uri.path },
@@ -580,12 +672,12 @@ onMounted(async () => {
 
 watch(
   () => sideBarRef.value?.drawerVisible,
-  val => {
-    if(val){
-      showAccuracyReport.value = false
+  (val) => {
+    if (val) {
+      showAccuracyReport.value = false;
     }
-  }
-)
+  },
+);
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateGraphSize);
@@ -600,9 +692,11 @@ onUnmounted(() => {
   background-color: var(--control-flow-bg);
   position: relative;
 }
+
 .loading-index {
   z-index: 99999999;
 }
+
 .tool-navbar {
   position: absolute !important;
   z-index: 10;
@@ -615,6 +709,7 @@ onUnmounted(() => {
   gap: 8px;
   background: var(--devui-header-gradient-bg);
   pointer-events: none;
+
   .tool-select {
     pointer-events: all;
     position: relative;
@@ -624,7 +719,8 @@ onUnmounted(() => {
 .navbar-right {
   display: flex;
   flex-direction: row;
-  align-self: flex-start;  /* 固定在顶部 */
+  align-self: flex-start;
+  /* 固定在顶部 */
   gap: 8px;
   position: relative;
   top: 16px;

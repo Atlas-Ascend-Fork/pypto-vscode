@@ -43,6 +43,15 @@ export async function openSwimlaneGraph(params: { swimlaneGraphPath: string; out
 }
 
 /**
+ * 打开OpCheck页面
+ */
+export async function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null }) {
+  const uri = vscode.Uri.file('opCheck');
+  vscode.commands.executeCommand('workbench.action.closeSidebar');
+  useView().editorView.open('opCheck', uri, { query: { outputPath: params.outputPath, opeCheckDirPath: params.opeCheckDirPath } });
+}
+
+/**
  * 打开自定义配置
  */
 export async function openPtoConfig(params: { configPath: string; pathName: string; isBootStep?: boolean }) {

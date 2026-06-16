@@ -5,7 +5,7 @@
       <StatisticCard :count="cardData.FAIL" type="FAIL" :clickable="false" />
     </div>
     <div>{{ t('comGraph.precisionExceptionList') }}</div>
-    <AccuracyErrorList :data="errorListData" :page-config="pageConfig" @row-click="rowClick" @input-search="searchByKeyword" @page-index-change="pageIndexChange" />
+    <AccuracyErrorList :data="errorListData" :page-config="pageConfig" :is-op-check="currentFileType === 'opcheck'" @row-click="rowClick" @input-search="searchByKeyword" @page-index-change="pageIndexChange" />
   </div>
 </template>
 
@@ -33,6 +33,8 @@ const pageConfig = ref({
   currentPage: 1,
   total: 0,
 })
+const currentFileType = ref<string>('');
+const currentFilePath = ref<string>('');
 
 const initData = (data) => {
   if (!data) return
@@ -49,12 +51,44 @@ const rowClick = (rowData) => {
 const searchByKeyword = debounce((keyword) => {
   searchKeyword.value = keyword
   pageConfig.value.currentPage = 1
-  server.searchAccurancySumList({ data: { keyword, pageSize: pageConfig.value.pageSize, startOffset: pageConfig.value.currentPage - 1, } });
+
+  if (currentFileType.value === 'opcheck' && currentFilePath.value) {
+    server.getCmpDiffListData({
+      cmpCsvPath: currentFilePath.value,
+      pageSize: pageConfig.value.pageSize,
+      startOffset: pageConfig.value.currentPage - 1,
+      keyword: keyword
+    });
+  } else {
+    server.searchAccurancySumList({
+      data: {
+        keyword,
+        pageSize: pageConfig.value.pageSize,
+        startOffset: pageConfig.value.currentPage - 1,
+      }
+    });
+  }
 },300)
 
 const pageIndexChange = (pageIndex) => {
   pageConfig.value.currentPage = pageIndex
-  server.searchAccurancySumList({ data: { keyword: searchKeyword.value, pageSize: pageConfig.value.pageSize, startOffset: pageConfig.value.currentPage - 1, } });
+
+  if (currentFileType.value === 'opcheck' && currentFilePath.value) {
+    server.getCmpDiffListData({
+      cmpCsvPath: currentFilePath.value,
+      pageSize: pageConfig.value.pageSize,
+      startOffset: pageConfig.value.currentPage - 1,
+      keyword: searchKeyword.value
+    });
+  } else {
+    server.searchAccurancySumList({
+      data: {
+        keyword: searchKeyword.value,
+        pageSize: pageConfig.value.pageSize,
+        startOffset: pageConfig.value.currentPage - 1,
+      }
+    });
+  }
 }
 
 // 获取并初始化上方卡片数据
@@ -68,9 +102,59 @@ watch(server.AccurancyList, (val: Record<string, any>) => {
   pageConfig.value.total = val.data?.comgraphFailList?.total || 0;
 });
 
-onMounted(() => {
-  server.getAccurancyReport();
-  server.searchAccurancySumList({ data: { keyword:'', pageSize: pageConfig.value.pageSize, startOffset: pageConfig.value.currentPage - 1, } });
+// 获取文件路径信息
+watch(server.AccuFilePath, (val: Record<string, any>) => {
+  const fileType = val?.fileType;
+  const filePath = val?.filePath;
+
+  // 保存当前的 fileType 和 filePath
+  currentFileType.value = fileType || '';
+  currentFilePath.value = filePath || '';
+
+  if (fileType === 'op' && filePath) {
+    // 如果是 opcheck 类型，调用 getCmpDiffListData
+    server.getCmpDiffListData({
+      cmpCsvPath: filePath,
+      pageSize: pageConfig.value.pageSize,
+      startOffset: pageConfig.value.currentPage - 1,
+      keyword: searchKeyword.value
+    });
+  } else {
+    // 否则调用原来的方法
+    server.getAccurancyReport();
+    server.searchAccurancySumList({
+      data: {
+        keyword: searchKeyword.value,
+        pageSize: pageConfig.value.pageSize,
+        startOffset: pageConfig.value.currentPage - 1,
+      }
+    });
+  }
+});
+
+// 获取 CmpDiffList 数据
+watch(server.CmpDiffList, (val: Record<string, any>) => {
+  const diffList = val?.diffList || [];
+  const total = val?.total || 0;
+  const failRes = val?.failRes || 0;
+
+  // 更新卡片数据
+  cardData.value.FAIL = failRes;
+  cardData.value.PASS = total - failRes;
+
+  // 处理列表数据
+  const startNo = (pageConfig.value.currentPage - 1) * pageConfig.value.pageSize + 1;
+  errorListData.value = diffList.map((item: Record<string, any>, index: number) => ({
+    ...item,
+    no: startNo + index,
+  }));
+  pageConfig.value.total = total;
+});
+
+onMounted(async () => {
+  // 先获取文件路径信息
+  const aa = await server.accuFilePathGet();
+  console.log(aa)
 })
 </script>
 

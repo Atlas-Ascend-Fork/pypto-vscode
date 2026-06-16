@@ -37,6 +37,10 @@ const props = defineProps({
             currentPage: 1,
             total: 0
         }
+    },
+    isOpCheck: {
+        type: Boolean,
+        default: false
     }
 })
 const emits = defineEmits(['inputSearch', 'rowClick', 'pageIndexChange'])
@@ -60,6 +64,13 @@ watch(
     (val) => {
         emits('inputSearch', val)
     }
+)
+watch(
+    () => props.isOpCheck,
+    (isOpCheck) => {
+        columnData.value[2].header = isOpCheck ? 'OpMagic' : 'rawmagicID';
+    },
+    { immediate: true }
 )
 </script>
 

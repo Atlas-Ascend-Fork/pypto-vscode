@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync'; // 同步解析，简单场景可用
 import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache'; // 同步解析，简单场景可用
-import { SmartLogExtractor, readCsv } from '../common/csvReader';
+import { SmartLogExtractor, getCsvData, readCsv } from '../common/csvReader';
 
 export async function getResDataSum(filePath: string | undefined) {
     if (!filePath) {
@@ -28,6 +28,12 @@ export async function getResDataSum(filePath: string | undefined) {
     if (!readCsvStatus) {
         return {parseResult: 'Fail', allResultSum: [], controlFlowFilepath: filePath};
     }
+
+    /** 调diff接口的试用 */
+    const cmpCsvPath = path.join(accurancyDirPath, 'verify_graph_result_cmp~Pass_29_InferParamIndex~Pass_37_CodegenPreproc~1781054287073093.csv');
+    getCmpDiffList(cmpCsvPath);
+    openCmpDiffComGraph(cmpCsvPath, '8512735506352643020', 'Pass_37_CodegenPreproc', 'TENSOR_LOOP_s2_Unroll8_PATH0_hiddenfunc0_20');
+
     const oriPassDistribution = await getPassDistribution(csvPath);
     const passDistribution = {
         pass_cnt: oriPassDistribution.PASS ?? 0,
@@ -55,7 +61,7 @@ export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: s
     }
 
     // 页面2映射关系查询接口
-    const passList = await SQLiteCache.getInstance().getPhaseStatusListByFuncTest(csvPath, funcMagicName);
+    const passList = await SQLiteCache.getInstance().getPhaseStatusListByFunc(csvPath, funcMagicName);
     let resList: { passName: string, status: string}[] = [];
     for(const item of passList) {
         const singlePath = {
@@ -98,7 +104,7 @@ async function getPassDistribution(filePath: string) {
 }
 
 function mergePhaseResults (passDistribution: PhaseItem[]): PhaseItem[] {
-    const priorityMap: Record<string, number> = {'FAIL': 3, 'EXCEPTION': 2, 'PASS': 1};
+    const priorityMap: Record<string, number> = {'EXCEPTION': 3, 'FAIL': 2, 'PASS': 1};
     const passList: PhaseItem[] = [];
     const phaseIndexMap = new Map<string, number>();
     
@@ -120,19 +126,65 @@ function mergePhaseResults (passDistribution: PhaseItem[]): PhaseItem[] {
     return Array.from(passList.values());
 }
 
-// pass详细阶段接口
 async function getPassList(dirPath: string, filePath: string) {
     const originDistribution = await SQLiteCache.getInstance().getDistinctPhaseResults(filePath);
     const pureDistribution = originDistribution.filter(singlePass => singlePass.phaseName.includes('Pass'));
-    const passDistribution = mergePhaseResults(pureDistribution);
-    const successList = passDistribution.filter(singlePass => singlePass.result === 'PASS').map(singlePass => singlePass.phaseName);
-    const exceptionList = passDistribution.filter(singlePass => singlePass.result === 'EXCEPTION').map(singlePass => singlePass.phaseName);
-    const errorList = passDistribution.filter(singlePass => singlePass.result === 'FAIL').map(singlePass => singlePass.phaseName);
-    const csvSkipList = passDistribution.filter(singlePass => !['PASS', 'EXCEPTION', 'FAIL'].includes(singlePass.result)).map(singlePass => singlePass.phaseName);
+
+    const phaseFlagsMap = new Map<string, { has_exception: boolean; has_fail: boolean; has_pass: boolean }>();
+    for (const item of pureDistribution) {
+        const flags = phaseFlagsMap.get(item.phaseName) ?? { has_exception: false, has_fail: false, has_pass: false };
+        if (item.result === 'EXCEPTION') flags.has_exception = true;
+        if (item.result === 'FAIL') flags.has_fail = true;
+        if (item.result === 'PASS') flags.has_pass = true;
+        phaseFlagsMap.set(item.phaseName, flags);
+    }
+
+    const successList: string[] = [];
+    const exceptionList: string[] = [];
+    const errorList: string[] = [];
+    const csvSkipList: string[] = [];
+
+    for (const [phaseName, flags] of phaseFlagsMap) {
+        if (flags.has_exception && flags.has_fail) {
+            exceptionList.push(phaseName);
+            errorList.push(phaseName);
+        } else if (flags.has_exception) {
+            exceptionList.push(phaseName);
+        } else if (flags.has_fail) {
+            errorList.push(phaseName);
+        } else if (flags.has_pass) {
+            successList.push(phaseName);
+        } else {
+            csvSkipList.push(phaseName);
+        }
+    }
+
+    let firstExceptionPathList: { pass_name: string, func_magicName: string[], showName: string }[] = [];
+    for (const pass of exceptionList) {
+        const exceptionDetailList = await SQLiteCache.getInstance().getFirstResByPhaseOnTimestamp(filePath, pass, 'EXCEPTION');
+        let excFuncMagicName: string[] = [];
+        let singleExceptionPathInfo;
+        for (let i = 0; i < exceptionDetailList.length; i++) {
+            const item = exceptionDetailList[i];
+            excFuncMagicName.push(item.funcMagicName);
+            if (i === 0) {
+                singleExceptionPathInfo = {
+                    pass_name: item.phaseName,
+                    func_magicName: [...excFuncMagicName],
+                    showName: item.phaseName + item.funcMagicName,
+                };
+            } else {
+                singleExceptionPathInfo.func_magicName = [...excFuncMagicName];
+            }
+        }
+        if (singleExceptionPathInfo) {
+            firstExceptionPathList.push(singleExceptionPathInfo);
+        }
+    }
 
     let firstErrorPathList: { pass_name: string, func_magicName: string[], showName: string }[] = [];
     for (const pass of errorList) {
-        const errorDetailList = await SQLiteCache.getInstance().getFirstFailByPhaseOnTimestamp(filePath, pass);
+        const errorDetailList = await SQLiteCache.getInstance().getFirstResByPhaseOnTimestamp(filePath, pass, 'FAIL');
         let errFuncMagicName: string[] = [];
         let singleErrorPathInfo;
         for (let i = 0; i < errorDetailList.length; i++) {
@@ -148,7 +200,9 @@ async function getPassList(dirPath: string, filePath: string) {
                 singleErrorPathInfo.func_magicName = [...errFuncMagicName];
             }
         }
-        firstErrorPathList.push(singleErrorPathInfo);
+        if (singleErrorPathInfo) {
+            firstErrorPathList.push(singleErrorPathInfo);
+        }
     }
 
     const allFileNameList = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -157,20 +211,21 @@ async function getPassList(dirPath: string, filePath: string) {
     const real00Pass = repeat00List.at(-1);
     const otherList = allPassNameList.filter(item => !item.startsWith('Pass_00'));
     const allPassList = [real00Pass, ...otherList];
-
-    const validPassList = new Set(passDistribution.filter(item => !csvSkipList.includes(item.phaseName)).map(item => item.phaseName.split('_').slice(0, 2).join('_')));
-    const calculatedSkipList = allPassList.filter(singlePassName => (singlePassName !== undefined) && (!validPassList.has(singlePassName.split('_').slice(0, 2).join('_'))));
+    const allValidPhases = [...successList, ...exceptionList, ...errorList];
+    const validPassList = new Set(allValidPhases.map(phaseName => phaseName.split('_').slice(0, 2).join('_')));
+    const calculatedSkipList = allPassNameList.filter(singlePassName => (singlePassName !== undefined) && (!validPassList.has(singlePassName.split('_').slice(0, 2).join('_'))));
     const skipList = [...new Set([...csvSkipList, ...calculatedSkipList])];
+
     const passResult = {
         successPass: successList,
-        exceptionPass: exceptionList,
+        exceptionPass: firstExceptionPathList,
         errorPass: firstErrorPathList,
         skipPass: skipList,
     };
     return passResult;
 }
 
-export async function getComGraphRawMagic(readAccurancyCsv: boolean, filePath: string, phaseName: string, funcMagicName: string) {
+export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string) {
     const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
 
     const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
@@ -333,3 +388,328 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
     return res;
 }
 
+
+/**
+ * 遍历目录筛选 verify_graph_result_cmp__xx.csv 文件，按时间戳倒序排序
+ * 
+ * 文件名格式示例：
+ * verify_graph_result_cmp~Pass_28_InferParamIndex~Pass_36_CodegenPreproc~1779267276297135.csv
+ * 
+ * @param directoryPath 要遍历的目录路径
+ * @returns 按时间戳倒序排列的文件完整路径数组（最新文件在最前）
+ * @throws 当路径无效或非目录时抛出错误
+ */
+export function getSortedVerifyFiles(directoryPath: string): string[] {
+  // 验证目录有效性
+  if (!fs.existsSync(directoryPath)) {
+    throw new Error(`目录不存在: ${directoryPath}`);
+  }
+  
+  const stat = fs.statSync(directoryPath);
+  if (!stat.isDirectory()) {
+    throw new Error(`路径不是目录: ${directoryPath}`);
+  }
+
+  // 正则匹配：捕获最后一个 ~ 和 .csv 之间的纯数字时间戳
+  const filenamePattern = /^verify_graph_result_cmp~.*~(\d+)\.csv$/;
+  const timestampFiles: { timestamp: number; filePath: string }[] = [];
+
+  // 同步读取目录内容
+  const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    // 仅处理文件（跳过子目录/符号链接等）
+    if (!entry.isFile()) continue;
+    
+    const filename = entry.name;
+    const match = filenamePattern.exec(filename);
+    
+    if (match) {
+      try {
+        // 提取并转换时间戳（确保数值排序）
+        const timestamp = Number.parseInt(match[1], 10);
+        
+        // 验证时间戳有效性（16位微秒级时间戳范围）
+        if (timestamp > 1000000000000000 && timestamp < 9999999999999999) {
+          timestampFiles.push({
+            timestamp,
+            filePath: path.join(directoryPath, filename)
+          });
+        }
+      } catch {
+        // 跳过时间戳解析失败的文件
+        continue;
+      }
+    }
+  }
+
+  // 按时间戳倒序排序（最新时间戳排最前）
+  timestampFiles.sort((a, b) => b.timestamp - a.timestamp);
+
+  // 返回排序后的文件路径
+  return timestampFiles.map(item => item.filePath);
+}
+
+interface DiffItem {
+    aOp: Record<string, any> | undefined;
+    bOp: Record<string, any> | undefined;
+    compareRes: string;
+    sharedRes: Record<string, any>;
+  }
+
+export async function getCmpDiffList(
+    directoryPath: string,
+    readFlag: boolean = true,
+    pageSize: number = 50,
+    startOffset: number = 0,
+    res?: string,
+    keyword?: string
+  ): Promise<{ diffList: DiffItem[]; total: number, failRes: number}> {
+    const filePath = directoryPath;
+    if (!filePath || filePath.length === 0) {
+      return { diffList: [], total: 0, failRes: 0};
+    }
+    const type = 2;
+
+    let failCount = -1;
+    if (readFlag) {
+        await readCsv(filePath, type);
+        failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
+    }
+
+    const realOffset = startOffset * pageSize;
+    const [result, totalCount] = await Promise.all([
+      SQLiteCache.getInstance().accuracyToolCmpGetByFilePath(filePath, pageSize, realOffset, res, keyword),
+      SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, res, keyword)
+    ]);
+  
+    const diffList: DiffItem[] = [];
+    for (const singleRes of result) {
+      const aOp: Record<string, any> = {};
+      const bOp: Record<string, any> = {};
+      let compareRes = '';
+      const sharedRes: Record<string, any> = {};
+  
+      for (const [key, value] of Object.entries(singleRes)) {
+        if (key.startsWith('abRes')) {
+          compareRes = value as string;
+        } else if (key.startsWith('ab')) {
+          sharedRes[key] = value;
+        } else if (key.startsWith('a')) {
+          aOp[key] = value;
+        } else if (key.startsWith('b')) {
+          bOp[key] = value;
+        } else {
+          sharedRes[key] = value;
+        }
+      }
+
+      const aOpIsEmpty = Object.values(aOp).every(v => v === undefined || v === '');
+      const bOpIsEmpty = Object.values(bOp).every(v => v === undefined || v === '');
+  
+      diffList.push({
+        aOp: aOpIsEmpty ? undefined : aOp,
+        bOp: bOpIsEmpty ? undefined : bOp,
+        compareRes: compareRes || 'failed',
+        sharedRes,
+      });
+    }
+  
+    return { diffList, total: totalCount, failRes: failCount };
+}
+
+// 返回查找的csv
+export interface PrecisionExceptItem {
+    GROUP: string;
+    INDEX: string;
+    OFFSET: string;
+    OFFSET_RAW: string;
+    A_data: string;
+    B_data: string;
+    AB_ae: string;
+    AB_re: string;
+    AB_tol: string;
+}
+
+export async function getPrecisionExceptList(filePath: string, fileName: string): Promise<PrecisionExceptItem[] | null> {
+    const detailPath = `${filePath}.DETAIL`;
+    const outputDirPath = vscode.Uri.file(detailPath).fsPath;
+    const targetName = fileName.toLowerCase().endsWith('.csv') ? fileName : `${fileName}.csv`;
+    
+    try {
+        const entries = fs.readdirSync(outputDirPath, { withFileTypes: true });
+        const found = entries.find(entry => 
+            entry.isFile() && 
+            entry.name.toLowerCase() === targetName.toLowerCase()
+        );
+        
+        if (!found) return null;
+        
+        const csvFilePath = path.join(outputDirPath, found.name);
+        const content = fs.readFileSync(csvFilePath, 'utf-8');
+        const contentList = parseCsv(content)
+        return contentList;
+    } catch {
+        return null;
+    }
+}
+
+function parseCsv(content: string): PrecisionExceptItem[] {
+    const lines = content.trim().split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    const headerMapping: Record<string, keyof PrecisionExceptItem> = {
+        'GROUP': 'GROUP',
+        'INDEX': 'INDEX',
+        'OFFSET': 'OFFSET',
+        'OFFSET_RAW': 'OFFSET_RAW',
+        'A>data': 'A_data',
+        'B>data': 'B_data',
+        'AB>ae': 'AB_ae',
+        'AB>re': 'AB_re',
+        'AB>tol': 'AB_tol',
+    };
+    
+    return lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const item: PrecisionExceptItem = {
+            GROUP: '',
+            INDEX: '',
+            OFFSET: '',
+            OFFSET_RAW: '',
+            A_data: '',
+            B_data: '',
+            AB_ae: '',
+            AB_re: '',
+            AB_tol: '',
+        };
+        
+        headers.forEach((header, index) => {
+            const key = headerMapping[header];
+            if (key) {
+                item[key] = values[index] ?? '';
+            }
+        });
+        
+        return item;
+    });
+}
+
+/**
+ * 使用方法：
+ * 1、控制流跳转的时候去openGraph + accuFilePathSet；
+ * 2、opcheck单击跳转的时候去更新表accuFilePathSet；
+ * 3、opcheck单击跳转唤起openCmpDiffComGraph；
+ * 4、在base里读accuFilePathGet如果是opcheck就调新接口，否则调老接口；
+ * 5、新接口功能：跟difflist是相对一致的 —— 待新增
+ */
+export async function openCmpDiffComGraph(
+    filePath: string,
+    funcHash: string,
+    passName: string,
+    funcMagicName: string,
+  ): Promise<void> {
+  
+    // 步骤2-3：当前文件夹x → 上一层文件夹y
+    const currentDir = path.dirname(filePath);
+    const parentDir = path.dirname(currentDir);
+  
+    // 步骤4：在y中找包含passName的子文件夹z
+    const parentDirEntries = fs.readdirSync(parentDir, { withFileTypes: true });
+    const passDir = parentDirEntries.find(entry => entry.isDirectory() && entry.name.includes(passName));
+    if (!passDir) {
+      vscode.window.showWarningMessage(`未找到包含 ${passName} 的子文件夹`);
+      return;
+    }
+    const passSubDir = path.join(parentDir, passDir.name);
+  
+    // 步骤5：在z中找包含 funcMagicName 和 funcHash 的 json 文件
+    const passSubDirEntries = fs.readdirSync(passSubDir, { withFileTypes: true });
+    const resList = passSubDirEntries
+      .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+      .filter(entry => entry.name.includes(funcMagicName) && entry.name.includes(funcHash))
+      .map(entry => entry.name);
+  
+    if (resList.length === 0) {
+      vscode.window.showWarningMessage(`在 ${passSubDir} 中未找到包含 ${funcMagicName} 和 ${funcHash} 的json文件`);
+      return;
+    }
+  
+    // 步骤6：确定 targetComgraph
+    let targetComgraph: string;
+    if (resList.length === 1) {
+      targetComgraph = resList[0];
+    } else {
+      const afterFile = resList.find(name => name.startsWith('After'));
+      if (afterFile) {
+        targetComgraph = afterFile;
+      } else {
+        targetComgraph = resList[0];
+      }
+    }
+  
+    // 步骤7：拼接绝对路径
+    const directPath = path.join(passSubDir, targetComgraph);
+  
+    // 步骤8：调用 VSCode 命令打开计算图
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash);
+}
+
+// export interface accuFilePathData {
+//   fileType: string : opcheck brief;
+//   filePath: string;
+// }
+export async function setCurAccuFilePath(fileInfo: any) {
+    if (!fileInfo.fileType) {
+        // 加个报错也行
+        return;
+    }
+    if (fileInfo.fileType === 'op' && (!fileInfo.filePath)) {
+        return;
+    }
+    await SQLiteCache.getInstance().accuFilePathSet(fileInfo);
+}
+
+export async function getAccuFilePath() {
+    return await SQLiteCache.getInstance().accuFilePathGet();
+}
+
+export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHash: string | undefined) {
+
+    const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
+    const failLevel = accurancyLevel?.fileType;
+    const csvPath = accurancyLevel?.filePath || '';
+    let failMagicList;
+    if (failLevel === 'op') {
+        // phasename 和 funchash必须匹配上
+        const recordPhaseList = [...csvPath.matchAll(/Pass_(\d+)/g)].map(m => m[1]);
+
+        const fileName = path.basename(csvPath);
+        const first = fileName.indexOf("_");
+        const second = fileName.indexOf("_", first + 1);
+        const filePassName = first === -1 || second === -1 ? "" : fileName.slice(first + 1, second);
+
+        const recordFuncHash = csvPath.split("~", 1)[1];
+        if ((comgraphFuncHash !== recordFuncHash) || !(recordPhaseList.includes(filePassName))) {
+            // 报错
+        }
+        const failOpMagicList = await getCmpDiffList(csvPath);
+        failMagicList = {
+            accuType: 'op',
+            failMagicList: failOpMagicList
+        }
+    } else {
+        const curPassName = path.basename((path.dirname(comgraphFilePath)));
+        const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
+        let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+        curFuncMagicNameString = curFuncMagicNameString.endsWith('_ROOT') ? curFuncMagicNameString.replace('_ROOT', '') : curFuncMagicNameString;
+        const failRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!);
+        failMagicList = {
+            accuType: 'brief',
+            failMagicList: failRawMagicList
+        }
+    }
+    return failMagicList;
+}
