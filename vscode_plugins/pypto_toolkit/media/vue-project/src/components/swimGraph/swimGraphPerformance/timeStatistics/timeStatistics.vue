@@ -297,7 +297,7 @@ const findInProcess = async (process, label) => {
         continue;
     }
     for (const event of thread.events) {
-      if (event.name?.includes('(fake)') || event.ph === 'C') {
+      if (event?.isFakeCore || event.ph === 'C') {
         continue;
       }
       const match = event.name.match(/\((?<opName>[^)]+)\)/);
@@ -387,7 +387,7 @@ const collectSubGraphEvents = (targetId) => {
         continue;
       }
       for (const event of thread.events) {
-        if (event.name?.includes('(fake)') || event.ph === 'C') {
+        if (event?.isFakeCore || event.ph === 'C') {
             continue;
         }
         const leafIndex = event.leafIndex || getSubGraphId(event, 'subGraph', '/');
@@ -449,7 +449,7 @@ const getTableData = () => {
                 continue;
             }
             for (const event of thread.events) {
-                if (event.name?.includes('(fake)') || event.ph === 'C') {
+                if (event?.isFakeCore || event.ph === 'C') {
                     continue;
                 }
                 const match = event.name.match(/\((?<opName>[^)]+)\)/);

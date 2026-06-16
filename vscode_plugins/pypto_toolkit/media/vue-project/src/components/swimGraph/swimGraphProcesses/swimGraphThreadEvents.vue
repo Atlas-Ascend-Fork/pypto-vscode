@@ -314,7 +314,7 @@ const handleCanvasClick = (e) => {
       if (globalMeasureCanvas.value) {
         globalMeasureCanvas.value.clearMeasure();
       }
-      detailsPanelExpanded.value = !clickedEvent.parentEventId;
+      detailsPanelExpanded.value = true;
       onHoverEvent();
       clearOtherProcessCanvas();
       drawNodeHeight(clickedEvent, props.processKey);
@@ -1240,7 +1240,7 @@ const handleMouseMoveThrottle = throttle((e) => {
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
 }, 80);
 const restoreMacroView = (eventCtx, wrapId) => {
-  if (!eventCtx || !wrapId) {
+  if (!eventCtx || wrapId == null) {
     return;
   }
   const selectedWrapId = selectedEvent.value?.args?.wrapId;

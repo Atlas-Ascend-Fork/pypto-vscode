@@ -149,7 +149,7 @@ const initData = () => {
   executionTimeData.ticksMap.set(state.timeType.value, [...ticks.value]);
 };
 const processEvent = (event, groups) => {
-  if (event.name?.includes('(fake)') || event.ph === 'C') {
+  if (event?.isFakeCore || event.ph === 'C') {
     return;
   }
   let leafIndex = '';
