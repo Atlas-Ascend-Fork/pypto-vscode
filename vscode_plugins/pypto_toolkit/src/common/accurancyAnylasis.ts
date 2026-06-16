@@ -554,47 +554,25 @@ export async function getPrecisionExceptList(filePath: string, fileName: string)
     }
 }
 
+
 function parseCsv(content: string): PrecisionExceptItem[] {
-    const lines = content.trim().split(/\r?\n/).filter(line => line.trim());
-    if (lines.length < 2) return [];
+    const records = parse(content, {
+        columns: false,
+        skip_empty_lines: true,
+        trim: true,
+    }) as string[][];
     
-    const headers = lines[0].split(',').map(h => h.trim());
-    
-    const headerMapping: Record<string, keyof PrecisionExceptItem> = {
-        'GROUP': 'GROUP',
-        'INDEX': 'INDEX',
-        'OFFSET': 'OFFSET',
-        'OFFSET_RAW': 'OFFSET_RAW',
-        'A>data': 'A_data',
-        'B>data': 'B_data',
-        'AB>ae': 'AB_ae',
-        'AB>re': 'AB_re',
-        'AB>tol': 'AB_tol',
-    };
-    
-    return lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const item: PrecisionExceptItem = {
-            GROUP: '',
-            INDEX: '',
-            OFFSET: '',
-            OFFSET_RAW: '',
-            A_data: '',
-            B_data: '',
-            AB_ae: '',
-            AB_re: '',
-            AB_tol: '',
-        };
-        
-        headers.forEach((header, index) => {
-            const key = headerMapping[header];
-            if (key) {
-                item[key] = values[index] ?? '';
-            }
-        });
-        
-        return item;
-    });
+    return records.slice(1).map(values => ({
+        GROUP: values[0] ?? '',
+        INDEX: values[1] ?? '',
+        OFFSET: values[2] ?? '',
+        OFFSET_RAW: values[3] ?? '',
+        A_data: values[4] ?? '',
+        B_data: values[5] ?? '',
+        AB_ae: values[6] ?? '',
+        AB_re: values[7] ?? '',
+        AB_tol: values[8] ?? '',
+    }));
 }
 
 /**
