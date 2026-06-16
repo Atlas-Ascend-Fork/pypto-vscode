@@ -2694,6 +2694,22 @@ const drawSingleEdge = (fromEvent, toEvent, ctx) => {
 
   dependencyLinesInfo.value.push({fromEvent, toEvent, linePath, processKey: props.processKey});
   eventRenderer.drawEvent([fromEvent.drawData, toEvent.drawData], ctx);
+
+  const fromTextData = { ...fromEvent.drawData };
+  fromTextData.rectX = fromEvent.renderInfo.x;
+  fromTextData.width = fromEvent.renderInfo.width;
+  fromTextData.rectPixelY = fromEvent.renderInfo.y * devicePixelRatio;
+  fromTextData.pinnedEventY = fromEvent.renderInfo.pinnedEventY || fromEvent.renderInfo.y;
+  fillTextInfo(fromEvent, ctx, fromTextData, true);
+
+  const toTextData = { ...toEvent.drawData };
+  toTextData.rectX = toEvent.renderInfo.x;
+  toTextData.width = toEvent.renderInfo.width;
+  toTextData.rectPixelY = toEvent.renderInfo.y * devicePixelRatio;
+  toTextData.pinnedEventY = toEvent.renderInfo.pinnedEventY || toEvent.renderInfo.y;
+  fillTextInfo(toEvent, ctx, toTextData, true);
+
+  eventRenderer.drawEventText([fromTextData, toTextData], ctx);
 };
 
 const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => {

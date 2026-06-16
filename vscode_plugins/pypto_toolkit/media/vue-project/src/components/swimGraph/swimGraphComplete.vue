@@ -2008,9 +2008,28 @@ const findSubEventAtPosition = (x, y) => {
 };
 
 
+const findMipmapGap = (rowDatas, x) => {
+  rowDatas.sort((a, b) => a.rectX - b.rectX);
+  for (let i = 0; i < rowDatas.length - 1; i++) {
+    const { rectX: prevX, eventWidth: prevW, drawData: prevDD } = rowDatas[i];
+    const { rectX: nextX, drawData: nextDD } = rowDatas[i + 1];
+    if (x >= prevX + prevW && x <= nextX) {
+      const preEvent = prevDD._mipmapEventId ? swimDataManager.getEventById(prevDD._mipmapEventId) : null;
+      const lastEvent = nextDD._mipmapEventId ? swimDataManager.getEventById(nextDD._mipmapEventId) : null;
+      return {
+        preData: preEvent,
+        lastData: lastEvent,
+        nodeSpacingX: nextX - (prevX + prevW),
+      };
+    }
+  }
+  return null;
+};
+
 const searchEventsInThread = (thread, x, y) => {
   if (thread._sliceMipmap && thread._visibleDrawDatas) {
     const halfArrowWidth = (ARROW_WIDTH / 2) / viewState.scale;
+    const rowDatas = [];
     for (const drawData of thread._visibleDrawDatas) {
       if (!drawData || !drawData.show)
       {
@@ -2037,6 +2056,12 @@ const searchEventsInThread = (thread, x, y) => {
             return { foundEvent: event, fallback: null };
         }
       }
+      rowDatas.push({ rectX, eventWidth, drawData });
+    }
+    const gap = findMipmapGap(rowDatas, x);
+    if (gap)
+    {
+        return { foundEvent: null, fallback: gap };
     }
     return { foundEvent: null, fallback: null };
   }
