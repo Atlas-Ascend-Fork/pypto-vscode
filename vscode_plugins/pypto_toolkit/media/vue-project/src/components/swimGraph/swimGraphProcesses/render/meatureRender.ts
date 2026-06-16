@@ -366,6 +366,10 @@ export class MeatureRender extends EventRender {
         temp.drawData.pinnedTextY = eventY * devicePixelRatio + eventTextSize;
       }
     }
+    const pixelWidth = temp.drawData.eventWidth * this.deps.viewState.scale;
+    if (pixelWidth < 15) {
+      temp.drawData.text = '';
+    }
     this.drawEvent([temp.drawData], ctx, false, isPinned);
     this.drawEventText([temp.drawData], ctx, false, isPinned);
     ctx.restore();

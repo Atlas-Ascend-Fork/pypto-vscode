@@ -80,7 +80,7 @@ import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
 import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
-import { COLOR_CFG, DEP_MODE } from '../swimGraphUtils';
+import { COLOR_CFG, DEP_MODE, threadCache } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
 const { isDarkTheme } = inject('root');
 
@@ -403,6 +403,9 @@ const onIsMixModelchange = async (newValue) => {
         userConfig.value.showIsMixMode = newValue;
     }
     userConfig.set('showIsMixMode', newValue);
+    
+    // Clear thread position cache to prevent stale Y coordinates from non-mix mode
+    threadCache.clear();
     
     // Reset all relevant states when switching mix mode
     selectedEvent.value = null;

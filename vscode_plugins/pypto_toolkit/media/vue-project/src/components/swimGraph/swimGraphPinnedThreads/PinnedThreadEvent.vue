@@ -441,7 +441,11 @@ const processNormalEventForPinned = (event, baseY, isDimmed, drawDatas, processK
   }
   
   const eventY = getPinnedEventY(event, baseY);
-  drawDatas.push(createPinnedDrawData(event, eventY));
+  const pinnedDrawData = createPinnedDrawData(event, eventY);
+  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  pinnedDrawData.width = pinnedDrawData.eventWidth;
+  childContextMap.threadEvent.fillTextInfo(event, eventsCtx, pinnedDrawData, true, isAicpuProcess);
+  drawDatas.push(pinnedDrawData);
 };
 
 const processMixModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
@@ -473,6 +477,7 @@ const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, draw
   const { leftBound, rightBound } = findVisibleEventRange(
     events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
   );
+  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   for (let i = leftBound; i < rightBound; i++) {
     const event = events[i];
     if (!event.renderInfo) { continue };
@@ -499,14 +504,19 @@ const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, draw
     }
 
     const eventY = getPinnedEventY(event, baseY);
-
-    drawDatas.push(createPinnedDrawData(event, eventY));
+    const pinnedDrawData = createPinnedDrawData(event, eventY);
+    pinnedDrawData.width = pinnedDrawData.eventWidth;
+    childContextMap.threadEvent.fillTextInfo(event, eventsCtx, pinnedDrawData, true, isAicpuProcess);
+    drawDatas.push(pinnedDrawData);
   }
 };
 
 const changePinnedColor = (isDimmed) => {
   clearEventCanvas();
   const drawDatas = [];
+  if (eventsCtx) {
+    eventsCtx.font = getFontStyle(eventTextSize);
+  }
   
   const isMixModeValue = swimGraphState.isMixMode?.value;
   const hasMixConfig = swimDataManager?.hasMixConfig();

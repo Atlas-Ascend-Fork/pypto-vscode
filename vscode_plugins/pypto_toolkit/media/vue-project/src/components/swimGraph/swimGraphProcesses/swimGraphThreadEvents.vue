@@ -106,6 +106,7 @@ const {
   highlightedPaths,
   mixRelatedPaths,
   swimlaneContainer,
+  swimMainView,
   lane2line,
   viewState,
   detailsPanelExpanded,
@@ -353,7 +354,7 @@ const handleCanvasClick = (e) => {
   } else {
     if (isMixMode?.value && swimDataManager.hasMixConfig()) {
       const wrapLabelHover = detectWrapLabelHover(x, y);
-      if (wrapLabelHover && focusWrap) {
+      if ((wrapLabelHover || wrapLabelHover === 0) && focusWrap) {
         focusWrap(wrapLabelHover);
         return;
       }
@@ -1204,7 +1205,7 @@ const handleMouseMoveThrottle = throttle((e) => {
       }
     } else {
       const wrapLabelHover = detectWrapLabelHover(x, y);
-      if (wrapLabelHover) {
+      if (wrapLabelHover || wrapLabelHover === 0) {
         restoreMacroView(eventCtx, preHoverMixWrapId);
         renderMicroByWrapId(wrapLabelHover, props.processKey, eventCtx);
         preHoverMixWrapId = wrapLabelHover;
@@ -1217,7 +1218,7 @@ const handleMouseMoveThrottle = throttle((e) => {
     drawHoverWrapContainner(hoveredEvent, x, y, wrapCtx);
     
     const wrapLabelHover = detectWrapLabelHover(x, y);
-    if (wrapLabelHover) {
+    if (wrapLabelHover || wrapLabelHover === 0) {
       renderWrapLabel(wrapCtx, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, wrapId: wrapLabelHover });
       showWrapLabelTooltip(e, wrapLabelHover);
       canvasRef.style.cursor = 'pointer';
@@ -1733,12 +1734,15 @@ const resizeCanvas = () => {
 const clearEventDrawdata = (process, processKey) => {
   for (const [threadKey, thread] of process.threads.entries()) {
     for (const event of thread.events) {
-      const { drawData } = event;
-      if (!drawData) {
-        continue;
+      if (event.drawData) {
+        delete event.drawData;
       }
-      delete event.drawData;
+      if (event.renderInfo) {
+        delete event.renderInfo;
+      }
     }
+    delete thread._visibleDrawDatas;
+    delete thread._isMipmapMode;
   }
 };
 
@@ -1775,7 +1779,7 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
     const canvasRef = getActiveEventCanvas(processKey);
     const viewportContainer = isE2ESwim.value
       ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
-      : swimlaneContainer.value;
+      : swimMainView.value;
     const { top, bottom } = skipViewportFilter ? { top: 0, bottom: Infinity } : getVisibleYRange(canvasRef, viewportContainer);
     for (const [threadKey, thread] of process.threads.entries()) {
       const key = thread.isCounter ? thread.threadName : thread.tid;
@@ -2214,14 +2218,36 @@ const drawThreads = (process, processKey, ctx) => {
 };
 
 const computeProcessDrawData = (process, processKey) => {
-  for (const [threadKey, thread] of process.threads.entries()) {
-    const key = thread.isCounter ? thread.threadName : thread.tid;
-    const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
-    if (thread.isCounter) {
-      thread._counterBaseY = threadY + layout.counterHeight;
-      collectCounterDrawData(thread, threadY, false);
-    } else {
-      computeEventThreadDrawData(thread, threadY, processKey);
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    const laneByTid = new Map();
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'thread') {
+        laneByTid.set(lane.thread.tid, lane);
+      }
+    }
+    
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const lane = laneByTid.get(thread.tid);
+      if (!lane) { continue };
+      const threadY = lane.y;
+      if (thread.isCounter) {
+        thread._counterBaseY = threadY + layout.counterHeight;
+        collectCounterDrawData(thread, threadY, false);
+      } else {
+        computeEventThreadDrawData(thread, threadY, processKey);
+      }
+    }
+  } else {
+    for (const [threadKey, thread] of process.threads.entries()) {
+      const key = thread.isCounter ? thread.threadName : thread.tid;
+      const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+      if (thread.isCounter) {
+        thread._counterBaseY = threadY + layout.counterHeight;
+        collectCounterDrawData(thread, threadY, false);
+      } else {
+        computeEventThreadDrawData(thread, threadY, processKey);
+      }
     }
   }
 };
@@ -3066,7 +3092,7 @@ const getViewPortYRange = (processKey, process, skipViewportFilter) => {
   if (isE2ESwim.value) {
     viewportContainer = process.type === 'aicpu' ? aicpuSection.value : kernelSection.value;
   } else {
-    viewportContainer = swimlaneContainer.value;
+    viewportContainer = swimMainView.value;
   }
   return getVisibleYRange(canvasRef, viewportContainer);
 };
@@ -3371,7 +3397,7 @@ const hideTooltip = () => { tooltipStyle.display = 'none' };
 const hideLineTooltip = () => { lineTooltipStyle.display = 'none' };
 
 const drawNodeHeight = (event, processKey) => {
-  if (globalMeasureCanvas.value) {
+  if (globalMeasureCanvas.value && !isE2ESwim.value) {
     globalMeasureCanvas.value.clearCanvas();
     globalMeasureCanvas.value.drawRoundedRect(event, processKey);
     return;
@@ -3484,6 +3510,11 @@ const transformWrap = ({ minX, maxX, startT, endT, minY, targetWidth }) => {
   viewState.offsetX = 0 - (minX * viewState.scale);
   if (viewState.offsetX > 0) {
     viewState.offsetX = 0;
+  }
+  const cssWidth = viewState.canvasCssWidth;
+  const minOffset = cssWidth - (cssWidth * viewState.scale);
+  if (viewState.offsetX < minOffset) {
+    viewState.offsetX = minOffset;
   }
   viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
   
@@ -4105,6 +4136,7 @@ const guideDistanceMeasurement = () => {
       altClickData.preData = preData;
       altClickData.lastData = lastData;
       if (globalMeasureCanvas.value) {
+        measureState.isMeasureFirst = true;
         globalMeasureCanvas.value.handleDistanceMeasurement(lastData, processKey);
       } else {
         const uiCtx = getUIContext(processKey);

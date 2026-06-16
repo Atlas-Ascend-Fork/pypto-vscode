@@ -461,6 +461,10 @@ const drawRoundedRect = (event, processKey) => {
     height: rectHeight / devicePixelRatio,
   };
   
+  if (drawData.eventWidth * viewState.scale < 15) {
+    drawData.text = '';
+  }
+  
   eventRenderer.drawEvent([drawData], ctx, false, false);
   eventRenderer.drawEventText([drawData], ctx, false, false);
   

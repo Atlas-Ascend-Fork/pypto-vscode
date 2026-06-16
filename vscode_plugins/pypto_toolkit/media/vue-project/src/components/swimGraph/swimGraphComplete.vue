@@ -62,7 +62,7 @@
       </div>
       <!-- 置顶线程区域 -->
       <pinned-threads-container v-if="!isThreeColumn && pinnedThreadsList.length > 0" ref="pinnedthreadsComponent"/>
-      <div class="main-view" v-show="!loading">
+      <div class="main-view" v-show="!loading" ref="swimMainView">
         <!-- 度量蒙板 -->
         <div
             class="measure-mask"
@@ -234,6 +234,7 @@ const {
 // 响应式状态
 const swimlaneContainer = ref(null);
 const timelineComponent = ref(null);
+const swimMainView = ref(null);
 const detailComponent = ref(null);
 const measureDetailComponent = ref(null);
 const graphProcessesComponent = ref(null);
@@ -424,7 +425,7 @@ if (isWideScreen.value) {
 
 watch(performanceWidth, async (newValue) => {
   await nextTick();
-  scheduleResizeRender();
+  doResizeRender();
 });
 watch(performanceVisible, async (newValue) => {
   emit('update-shared-swim-data', {
@@ -433,7 +434,7 @@ watch(performanceVisible, async (newValue) => {
   });
   if (newValue) {
     await nextTick();
-    scheduleResizeRender();
+    doResizeRender();
   }
 });
 const containerStyle = computed(() => ({
@@ -939,6 +940,13 @@ const transform = (needClean=false) => {
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
       highlightAicpu(process, processKey, true);
+    }
+  }
+  if (isPathLockStatus.value && canvasclickedEvent.value) {
+    const event = canvasclickedEvent.value;
+    const processKey = event.pid?.toString();
+    if (processKey && processExpanded.get(processKey)) {
+      childContextMap.threadEvent.drawNodeHeight(event, processKey);
     }
   }
   drawMeasureTime();
@@ -2378,13 +2386,8 @@ const doResizeFullPhase = () => {
   }
 };
 
-const scheduleResizeRender = () => {
-  const currentDevicePixelRatio = getDevicePixelRatio();
+const doResizeRender = () => {
   const currentWindowWidth = window.innerWidth;
-  // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
-  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive.value) {
-    return;
-  }
   if (resizeRafId !== null) { return };
   resizeRafId = requestAnimationFrame(() => {
     resizeRafId = null;
@@ -2392,6 +2395,16 @@ const scheduleResizeRender = () => {
     scheduleResizeFullRender();
     viewState.windowWidth = currentWindowWidth;
   });
+};
+
+const scheduleResizeRender = () => {
+  const currentDevicePixelRatio = getDevicePixelRatio();
+  const currentWindowWidth = window.innerWidth;
+  // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
+  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive.value) {
+    return;
+  }
+  doResizeRender();
 };
 
 const scheduleResizeFullRender = () => {
@@ -2419,8 +2432,12 @@ const transformVerticalScroll = () => {
       childContextMap.threadEvent.renderProcessText(process, ctx, processKey);
     }
   }
-  if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
-    pinnedthreadsComponent.value.Pinnedtransform();
+  if (isPathLockStatus.value && canvasclickedEvent.value) {
+    const event = canvasclickedEvent.value;
+    const processKey = event.pid?.toString();
+    if (processKey && processExpanded.get(processKey)) {
+      childContextMap.threadEvent.drawNodeHeight(event, processKey);
+    }
   }
   timelineComponent.value.flagRender();
   perfLogger.timeEnd('time of transformVerticalScroll');
@@ -3105,6 +3122,7 @@ provide('swimGraphState', {
   detailsPanelExpanded,
   detailsCoresExpanded,
   swimlaneContainer,
+  swimMainView,
   lane2line,
   timelineState,
   childContextMap,

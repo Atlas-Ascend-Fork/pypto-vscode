@@ -354,11 +354,6 @@ const PerformanceSummary = ref($t('PerformanceSummary'));
 const clickTask = async (clickEvent) => {
   isFromPerformanceClick.value = true;
   let event = JSON.parse(JSON.stringify(clickEvent));
-  const hasSubEvents = clickEvent.subEventIds && clickEvent.subEventIds.length > 0;
-  if (isMixMode?.value && swimDataManager.hasMixConfig() && hasSubEvents) {
-    const [subEvent] = swimDataManager.getSubEvents(clickEvent.id);
-    event = JSON.parse(JSON.stringify(subEvent));
-  }
   if (isMaxSchedule.value) {
     resetMaxScheduleState();
   }
@@ -401,7 +396,7 @@ const showMaxSchedule = async (item, isChild = false) => {
   canvasclickedEvent.value = isChild ? item.child : item.parent;
   const subParentEvents = swimDataManager.getSubEvents(item.parent.id);
   const subChildEvents = swimDataManager.getSubEvents(item.child.id);
-  const useSubEvent = isMixMode?.value && swimDataManager.hasMixConfig();
+  const useSubEvent = isChild && isMixMode?.value && swimDataManager.hasMixConfig();
   const parentEvent = useSubEvent && subParentEvents.length > 0
     ? subParentEvents[subParentEvents.length - 1]
     : item.parent;
