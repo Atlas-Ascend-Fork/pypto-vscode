@@ -1,3 +1,4 @@
+import { accuFilePathData } from '../../core/sqliteCache';
 import { ViewServer } from '../../core/view/view-server';
 export type IComApis =
   | 'askLayout'
@@ -80,8 +81,8 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   getMemTraceFile: () => Promise<void>;
   getTimelineEvents: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
-  accuFilePathGet: () => Promise<void>;
-  getCmpDiffListData: (data: {
+  accuFilePathGet?: () => Promise<accuFilePathData | undefined>;
+  getCmpDiffListData?: (data: {
     cmpCsvPath: string;
     pageSize?: number;
     startOffset?: number;

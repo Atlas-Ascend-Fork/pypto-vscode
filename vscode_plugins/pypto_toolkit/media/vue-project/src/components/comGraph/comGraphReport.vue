@@ -71,32 +71,16 @@ watch(
   (val) => {
     if (val) {
       server.getHealthyReport();
-      if(comGraphStore.data.failRawMagicList.length > 0 || comGraphStore.data.failOpMagicList?.diffList.length > 0) {
+      // if(comGraphStore.data.failRawMagicList.length > 0 || comGraphStore.data.failOpMagicList?.diffList.length > 0) {
+      //   showAccuracyReport.value = true
+      // }
+      if(comGraphStore.data.failRawMagicList.length > 0) {
         showAccuracyReport.value = true
       }
     }
   },
 );
 
-watch(server.AccurancyReport, (newValue) => {
-  // Object.keys(newValue.data).forEach((key) => {
-  //   if (newValue.data[key]) {
-  //     graphName.value = key as GraphName;
-  //     jsonData.value = newValue.data[key];
-  //     emits('open', key);
-  //   }
-  // });
-});
-
-watch(server.AccurancyDetail, (newValue) => {
-  // Object.keys(newValue.data).forEach((key) => {
-  //   if (newValue.data[key]) {
-  //     graphName.value = key as GraphName;
-  //     jsonData.value = newValue.data[key];
-  //     emits('open', key);
-  //   }
-  // });
-});
 
 provide(ComGraphReportProvideKey, { graphName, jsonData, rootEmits: emits });
 </script>

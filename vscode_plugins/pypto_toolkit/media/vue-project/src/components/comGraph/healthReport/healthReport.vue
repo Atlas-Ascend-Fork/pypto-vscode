@@ -40,7 +40,7 @@ const generateOpMap = (operations: Array<Record<string, any>>) => {
       OpSubgraphMap[subgraphId] = {};
     }
     OpMap[item.opmagic] = `operation-magic-${item.opmagic}-${subgraphId}`;
-    OpSubgraphMap[item.subgraphid][item.opmagic] = item;
+    OpSubgraphMap[subgraphId][item.opmagic] = item;
   }
 };
 const generateTensorMap = (jsonData: Record<string, any>) => {
@@ -53,7 +53,7 @@ const generateTensorMap = (jsonData: Record<string, any>) => {
         TensorSubgraphMap[subgraphId] = {};
       }
       TensorMap[item.magic] = `tensor-${item.magic}-${subgraphId}`;
-      TensorSubgraphMap[item.subgraphid][item.magic] = item;
+      TensorSubgraphMap[subgraphId][item.magic] = item;
     }
   }
 };

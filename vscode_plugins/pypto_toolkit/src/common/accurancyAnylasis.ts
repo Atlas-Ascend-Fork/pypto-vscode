@@ -29,10 +29,10 @@ export async function getResDataSum(filePath: string | undefined) {
         return {parseResult: 'Fail', allResultSum: [], controlFlowFilepath: filePath};
     }
 
-    /** 调diff接口的试用 */
-    const cmpCsvPath = path.join(accurancyDirPath, 'verify_graph_result_cmp~Pass_29_InferParamIndex~Pass_37_CodegenPreproc~1781054287073093.csv');
-    getCmpDiffList(cmpCsvPath);
-    openCmpDiffComGraph(cmpCsvPath, '8512735506352643020', 'Pass_37_CodegenPreproc', 'TENSOR_LOOP_s2_Unroll8_PATH0_hiddenfunc0_20');
+    // /** 调diff接口的试用 */
+    // const cmpCsvPath = path.join(accurancyDirPath, 'verify_graph_result_cmp~Pass_29_InferParamIndex~Pass_37_CodegenPreproc~1781054287073093.csv');
+    // getCmpDiffList(cmpCsvPath);
+    // openCmpDiffComGraph(cmpCsvPath, '8512735506352643020', 'Pass_37_CodegenPreproc', 'TENSOR_LOOP_s2_Unroll8_PATH0_hiddenfunc0_20');
 
     const oriPassDistribution = await getPassDistribution(csvPath);
     const passDistribution = {

@@ -234,7 +234,8 @@ const getLabelName = (key: string) => {
 };
 
 // 展开详情只显示这些字段
-const detailFields = ['symbol', 'loopInfo', 'shape', 'validShape', 'dataType'];
+// const detailFields = ['symbol', 'loopInfo', 'shape', 'validShape', 'dataType'];
+const detailFields = ['symbol', 'loopInfo', 'validShape', 'dataType'];
 
 const onSearch = (value: string) => {
   searchKeyword.value = value;
