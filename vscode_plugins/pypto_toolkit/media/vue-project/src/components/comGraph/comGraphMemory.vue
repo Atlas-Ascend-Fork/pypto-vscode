@@ -1,5 +1,5 @@
 <template>
-  <div ref="flowContainer" style="width: 100%; height: 100%; background: var(--devui-global-bg); position: relative;">
+  <div ref="flowContainer" style="width: 100%; height: 100%; background: var(--ma-memory-container-bg); position: relative;">
     <div v-if="isLoading" class="transition-overlay">
       <div class="loading-spinner"></div>
       <div class="loading-text">Loading...</div>
@@ -210,7 +210,8 @@ const elements = ref([
       labelX: 15,
       labelY: 10,
       bgColor: 'var(--ma-box-bg)',
-      borderColor: 'var(--ma-box-bg)',
+      borderColor: 'rgba(255, 255, 255, 0.16)',
+      borderStyle: 'dashed',
       glowColor: 'var(--ma-box-bg)',
       width: 1570,
       height: 645,
@@ -248,7 +249,7 @@ const elements = ref([
       speed: 150,
       showHeader: true,
       showStats: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       bgColor: 'var(--ma-L1-square-bg)',
       // animateUntil: 100,
@@ -260,7 +261,7 @@ const elements = ref([
       handles: [
         { id: 'aic-l1-l1', type: 'target', edge: 'left', pct: 40 },
         { id: 'aic-l1-l2', type: 'target', edge: 'left', pct: 60 },
-        { id: 'aic-l1-r-3', type: 'source', edge: 'right', pct: 3.5 },
+        { id: 'aic-l1-r-3', type: 'source', edge: 'right', pct: 5 },
         { id: 'aic-l1-r-12', type: 'source', edge: 'right', pct: 15 },
         { id: 'aic-l1-r-25', type: 'source', edge: 'right', pct: 25 },
         { id: 'aic-l1-r-39', type: 'source', edge: 'right', pct: 37 },
@@ -299,7 +300,7 @@ const elements = ref([
       filledCount: 8,
       speed: 100,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       showStats: true,
       bgColor: 'var(--ma-L1-square-bg)',
@@ -334,7 +335,7 @@ const elements = ref([
       filledCount: 3,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       showStats: true,
       bgColor: 'var(--ma-L1-square-bg)',
@@ -368,7 +369,7 @@ const elements = ref([
       filledCount: 2,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       showStats: true,
       bgColor: 'var(--ma-L1-square-bg)',
@@ -404,7 +405,7 @@ const elements = ref([
       filledCount: 1,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       showStats: true,
       bgColor: 'var(--ma-L1-square-bg)',
@@ -413,7 +414,7 @@ const elements = ref([
       },
       handles: [
         { id: 'aic-fp-l', type: 'target', edge: 'left', pct: 50 },
-        { id: 'aic-fp-b', type: 'target', edge: 'bottom', pct: 50 },
+        { id: 'aic-fp-b', type: 'target', edge: 'bottom', pct: 50.5 },
         { id: 'aic-fp-r', type: 'source', edge: 'right', pct: 50 },
       ],
     },
@@ -478,7 +479,7 @@ const elements = ref([
       speed: 30,
       showHeader: true,
       showStats: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       bgColor: 'var(--ma-L1-square-bg)',
       handles: [
@@ -502,7 +503,7 @@ const elements = ref([
       filledCount: 20,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
@@ -523,7 +524,7 @@ const elements = ref([
       filledCount: 20,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
@@ -570,7 +571,8 @@ const elements = ref([
       labelX: 15,
       labelY: 10,
       bgColor: 'var(--ma-box-bg)',
-      borderColor: 'var(--ma-box-bg)',
+      borderColor: 'rgba(255, 255, 255, 0.16)',
+      borderStyle: 'dashed',
       glowColor: 'var(--ma-box-bg)',
       width: 1570,
       height: 310,
@@ -596,7 +598,7 @@ const elements = ref([
       filledCount: 20,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
@@ -617,7 +619,7 @@ const elements = ref([
       filledCount: 20,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#9ca3af',
       bgColor: 'var(--ma-DCache-bg)',
       handles: [
@@ -668,7 +670,7 @@ const elements = ref([
       filledCount: 0,
       speed: 30,
       showHeader: true,
-      emptyColor: 'var(--ma-square)',
+      emptyColor: 'var(--ma-memory-empty)',
       filledColor: '#5ea3ef',
       showStats: true,
       bgColor: 'var(--ma-L1-square-bg)',
@@ -842,13 +844,6 @@ const elements = ref([
       labelTextColor: '#ffffff',
       showCircle: false,
       borderRadius: 5,
-      waypoints: [
-        { x: 447, y: 84 },
-        { x: 449, y: 83 },
-        { x: 452, y: 80 },
-        { x: 455, y: 83 },
-        { x: 457, y: 84 },
-      ],
     },
     style: { stroke: 'var(--ma-MTE-bg)', strokeWidth: 2 },
     markerEnd: 'arrowclosed',
@@ -1126,11 +1121,11 @@ const getMemIdValue = (memIds, path) => {
 
 const getTierColor = (status: number, index: number): string => {
   const colorMap = {
-    0: '#626263',
-    1: '#2E619C',
-    2: '#98C6F3',
+    0: 'var(--ma-memory-empty)',
+    1: 'var(--ma-memory-initialized)',
+    2: 'var(--ma-memory-valid)',
   }
-  return colorMap[status] || '#626263';
+  return colorMap[status] || 'var(--ma-memory-empty)';
 };
 
 const getUpdateBuffer = (memIds, nodeId, currentName) => {
@@ -1410,21 +1405,31 @@ onBeforeUnmount(() => {
 .flow-canvas {
   width: 100%;
   height: 100%;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 .vue-flow__node {
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
   cursor: default !important;
+  transform-origin: center center;
 }
 .vue-flow__handle {
   opacity: 0 !important;
 }
 .vue-flow__edge {
   cursor: default !important;
+  vector-effect: non-scaling-stroke;
 }
 .vue-flow__edge-path {
   cursor: default !important;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.vue-flow__svg {
+  shape-rendering: geometricPrecision;
 }
 .transition-overlay {
   position: absolute;

@@ -46,11 +46,12 @@ const containerStyle = computed(() => {
   const bg = props.data.bgColor || '#22c55e';
   const glow = props.data.glowColor || 'var(--ma-cube-border)';
   const border = props.data.borderColor || 'var(--ma-cube-bg)';
+  const borderStyle = props.data.borderStyle || 'solid';
   return {
     width: `${props.data.width || 96}px`,
     height: `${props.data.height || 120}px`,
     background: bg,
-    border: `1px solid ${border}`,
+    border: `2px ${borderStyle} ${border}`,
     boxShadow: `0 0 0 2px rgba(0, 0, 0, 0.0), 0 0 0 4px ${glow}`,
     ...props.data.containerStyle,
   };

@@ -62,7 +62,7 @@
       v-if="isActive && isWithinTimeRange"
       :r="pulseRadius"
       class="edge-flow-dot"
-      style="fill: #ffffff !important; stroke: none; filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))"
+      :class="`edge-flow-dot-${i}`"
     >
       <animateMotion :dur="`${pulseDuration}s`" :begin="`${(i - 1) * 0.03}s`" repeatCount="indefinite" rotate="auto">
         <mpath :href="`#${motionPathId}`" />
@@ -138,20 +138,25 @@ const edgePath = computed(() => {
   if (waypoints && waypoints.length > 0) {
     const points = [{ x: props.sourceX, y: props.sourceY }, ...waypoints, { x: props.targetX, y: props.targetY }];
     const radius = props.data?.borderRadius ?? 0;
-    let d = `M ${points[0].x} ${points[0].y}`;
+    let d = `M ${Math.round(points[0].x)} ${Math.round(points[0].y)}`;
     for (let i = 1; i < points.length - 1; i++) {
       const prev = points[i - 1], curr = points[i], next = points[i + 1];
       const d1 = Math.hypot(curr.x - prev.x, curr.y - prev.y);
       const d2 = Math.hypot(next.x - curr.x, next.y - curr.y);
       const r = Math.min(radius, d1 / 2, d2 / 2);
-      const t1x = curr.x - (r * (curr.x - prev.x)) / d1, t1y = curr.y - (r * (curr.y - prev.y)) / d1;
-      const t2x = curr.x + (r * (next.x - curr.x)) / d2, t2y = curr.y + (r * (next.y - curr.y)) / d2;
-      d += ` L ${t1x} ${t1y} Q ${curr.x} ${curr.y} ${t2x} ${t2y}`;
+      const t1x = Math.round(curr.x - (r * (curr.x - prev.x)) / d1);
+      const t1y = Math.round(curr.y - (r * (curr.y - prev.y)) / d1);
+      const t2x = Math.round(curr.x + (r * (next.x - curr.x)) / d2);
+      const t2y = Math.round(curr.y + (r * (next.y - curr.y)) / d2);
+      const currX = Math.round(curr.x);
+      const currY = Math.round(curr.y);
+      d += ` L ${t1x} ${t1y} Q ${currX} ${currY} ${t2x} ${t2y}`;
     }
-    d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+    d += ` L ${Math.round(points[points.length - 1].x)} ${Math.round(points[points.length - 1].y)}`;
     return d;
   }
-  return getSmoothStepPath(props)[0];
+  const [path] = getSmoothStepPath(props);
+  return path;
 });
 
 const labelX = computed(() => {
@@ -260,6 +265,22 @@ const edgeStyle = computed(() => {
 }
 .edge-flow-dot {
   pointer-events: none;
+}
+.edge-flow-dot-1 {
+  fill: var(--ma-edge-dot-1);
+  filter: drop-shadow(0 0 2px var(--ma-edge-dot-1));
+}
+.edge-flow-dot-2 {
+  fill: var(--ma-edge-dot-2);
+  filter: drop-shadow(0 0 2px var(--ma-edge-dot-2));
+}
+.edge-flow-dot-3 {
+  fill: var(--ma-edge-dot-3);
+  filter: drop-shadow(0 0 2px var(--ma-edge-dot-3));
+}
+.edge-flow-dot-4 {
+  fill: var(--ma-edge-dot-4);
+  filter: drop-shadow(0 0 2px var(--ma-edge-dot-4));
 }
 .edge-arrow-head {
   animation: arrow-glow 1.4s ease-in-out infinite;

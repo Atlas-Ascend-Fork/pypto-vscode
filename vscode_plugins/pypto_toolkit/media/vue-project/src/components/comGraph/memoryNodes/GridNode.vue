@@ -397,6 +397,13 @@ export default {
       };
     },
     initAnimations() {
+      Object.values(this.intervals).forEach((i) => i && clearInterval(i));
+      Object.values(this.timeouts).forEach((t) => t && clearTimeout(t));
+      this.intervals = {};
+      this.timeouts = {};
+      this.isMainAnimating = false;
+      this.isSplitAnimating = false;
+
       const animateMain = this.data.animate === true;
       if (!animateMain) {
         this.mainAnimatedCount = this.data.filledCount != null ? this.data.filledCount : this.mainTotalCells;
@@ -672,7 +679,7 @@ export default {
   position: relative;
 }
 .grid-layout-wrapper {
-  background: var(--devui-global-bg);
+  background: var(--ma-memoryType-bg);
   border-radius: 12px;
   padding: 4px;
   position: relative;
@@ -794,8 +801,8 @@ export default {
 .node-popup {
   position: fixed;
   z-index: 999999;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: var(--ma-popup-bg);
+  border: 1px solid var(--ma-popup-border);
   border-radius: 12px;
   padding: 12px;
   min-width: 170px;
@@ -808,7 +815,7 @@ export default {
   gap: 8px;
   margin-bottom: 14px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #555;
+  border-bottom: 1px solid var(--ma-popup-divider);
   margin-left: 2px;
   margin-right: 2px;
 }
@@ -822,7 +829,7 @@ export default {
 .popup-title {
   font-size: 12px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--ma-popup-title);
   font-family: 'Inter', sans-serif;
 }
 .popup-dot {
@@ -832,7 +839,7 @@ export default {
 .popup-type {
   font-size: 12px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--ma-popup-title);
   font-family: 'Inter', sans-serif;
 }
 
@@ -841,11 +848,11 @@ export default {
 }
 .popup-key {
   font-size: 10px;
-  color: #888;
+  color: var(--ma-popup-key);
 }
 .popup-val {
   font-size: 8px;
-  color: #fff;
+  color: var(--ma-popup-value);
 }
 .popup-badge {
   text-transform: capitalize;

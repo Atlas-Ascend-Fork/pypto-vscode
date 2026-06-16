@@ -14,11 +14,13 @@ const memoryAllocationTheme: Theme = {
   'ma-legend-hexagon': ['rgba(174, 174, 174, 1)', '#626263'],
   // 图例 - 文字颜色
   'ma-legend-text': ['rgba(136, 136, 136, 1)', 'rgba(180, 180, 180, 1)'],
-  'ma-box-bg': ['#ffffff','#000000'],
+  'ma-box-bg': ['rgba(0, 0, 0, 0.03)', 'rgba(255, 255, 255, 0)'],
 
   // ==================== 内存内容区域 ====================
+  // 芯片容器背景色
+  'ma-memory-container-bg': ['rgba(255, 255, 255, 1)', 'rgba(26, 26, 26, 1)'],
   // 内存容器背景色
-  'ma-memory-container-bg': ['rgba(0, 0, 0, 1)', 'rgba(30, 30, 30, 1)'],
+  'ma-memoryType-bg': ['rgba(233, 233, 233, 1)', 'rgba(46, 46, 46, 1)'],
   // 内存容器边框
   'ma-memory-container-border': ['rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)'],
 
@@ -57,7 +59,27 @@ const memoryAllocationTheme: Theme = {
   'ma-progress-dot': ['rgba(147, 147, 147, 1)', '#6e6e6e'],
   'ma-speed-bg': ['rgba(119, 119, 119, 0.12)', 'rgba(0, 0, 0, 0)'],
   'ma-speed-active-bg': ['rgba(10, 89, 247, 0.12)', '#007acc'],
-  'ma-speed-active-text': ['#007acc', '#ffffff']
+  'ma-speed-active-text': ['#007acc', '#ffffff'],
+
+  // hover popup buffer info
+  'ma-popup-bg': ['rgba(255, 255, 255, 1)', 'rgba(42, 42, 42, 1)'],
+  'ma-popup-border': ['rgba(0, 0, 0, 0.15)', 'rgba(58, 58, 58, 1)'],
+  'ma-popup-title': ['#000000', '#ffffff'],
+  'ma-popup-key': ['#666666', '#888888'],
+  'ma-popup-value': ['#191919', '#ffffff'],
+  'ma-popup-divider': ['rgba(0, 0, 0, 0.1)', '#555555'],
+
+  // memoryType状态颜色
+  'ma-memory-empty': ['rgba(201,201,201,1)', 'rgba(102,102,102,1)'],
+  'ma-memory-initialized': ['rgba(10, 89, 247, 0.4)', 'rgba(63, 100, 174, 1)'],
+  'ma-memory-valid': ['#DBE5F8', 'rgba(175, 198, 255, 1)'],
+
+  // edge animation dots (from left to right)
+
+  'ma-edge-dot-1': ['#000000', '#FFFFFF'],
+  'ma-edge-dot-2': ['#595959', '#B3B3B3'],
+  'ma-edge-dot-3': ['#939393', '#666666'],
+  'ma-edge-dot-4': ['#C9C9C9', '#4D4D4D'],
 };
 
 export const memoryAllocationLightTheme = Object.fromEntries(
