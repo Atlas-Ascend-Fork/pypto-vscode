@@ -62,7 +62,7 @@ export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: s
 
     // 页面2映射关系查询接口
     const passList = await SQLiteCache.getInstance().getPhaseStatusListByFunc(csvPath, funcMagicName);
-    let resList: { passName: string, status: string}[] = [];
+    let resList: { passName: string, status: string[]}[] = [];
     for(const item of passList) {
         const singlePath = {
             passName: item.phaseName,

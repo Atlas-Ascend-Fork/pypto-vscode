@@ -915,50 +915,64 @@ export class SQLiteCache {
   /**
    * 获取指定文件、指定函数下，每个阶段的最终判定状态
    * 规则：
-   * 1. 某阶段只要有 FAIL，状态即为 'FAIL'
-   * 2. 否则，若有 EXCEPTION，状态即为 'EXCEPTION'
-   * 3. 否则（即全为 PASS），状态为 'PASS'
+   * status为一个结果列表：
+   * 1、若funcMagicNameA仅有EXCPETION，则status增加一个EXCEPTION；
+   * 2、若funcMagicNameA仅有FAIL，则status增加一个FAIL；
+   * 3、如果A有FAIL和EXCEPTION，则status增加一个[EXCEPTION, FAIL]
    *
    * @param filePath 文件路径
    * @param funcMagicName 函数标识
    * @returns 返回包含阶段名和最终状态的数组
    */
-  public async getPhaseStatusListByFunc(filePath: string, funcMagicName: string): Promise<{ phaseName: string; status: string }[]> {
+  public async getPhaseStatusListByFunc(
+    filePath: string,
+    funcMagicName: string,
+  ): Promise<{ phaseName: string; status: string[] }[]> {
     const sql = `
-      SELECT 
+      SELECT DISTINCT
         "B>PHASE_NAME" AS phaseName,
-        CASE 
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'FAIL' THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'EXCEPTION' THEN 1 ELSE 0 END) > 0 THEN 'EXCEPTION'
-          WHEN SUM(CASE WHEN "AB>RESULT" = 'PASS' THEN 1 ELSE 0 END) > 0 THEN 'PASS'
-          ELSE 'SKIP'
-        END AS status
+        "AB>RESULT" AS result
       FROM accuracy_tool
       WHERE 
         file_path = ? AND 
         "PATH_FUNC:func_magicname" = ?
-      GROUP BY "B>PHASE_NAME"
-      ORDER BY "B>PHASE_NAME"
+      ORDER BY "B>PHASE_NAME", "AB>RESULT"
     `;
-
+  
     const stmt = this.db!.prepare(sql);
-    const result: { phaseName: string; status: string }[] = [];
-
+    const resultMap: Map<string, string[]> = new Map();
+  
     try {
       stmt.bind([filePath, funcMagicName]);
-
+  
       while (stmt.step()) {
         const row = stmt.getAsObject();
-        result.push({
-          phaseName: row.phaseName as string,
-          status: row.status as string,
-        });
+        const phaseName = row.phaseName as string;
+        const result = row.result as string;
+  
+        if (!resultMap.has(phaseName)) {
+          resultMap.set(phaseName, []);
+        }
+        resultMap.get(phaseName)!.push(result);
       }
     } finally {
       stmt.free();
     }
-
-    return result;
+  
+    const priorityOrder = ['EXCEPTION', 'FAIL', 'PASS', 'SKIP'];
+    const finalResult: { phaseName: string; status: string[] }[] = [];
+  
+    for (const [phaseName, results] of resultMap) {
+      const uniqueResults = [...new Set(results)];
+      uniqueResults.sort((a, b) => {
+        const aIdx = priorityOrder.indexOf(a);
+        const bIdx = priorityOrder.indexOf(b);
+        return aIdx - bIdx;
+      });
+      finalResult.push({ phaseName, status: uniqueResults });
+    }
+  
+    return finalResult;
   }
 
   /**
