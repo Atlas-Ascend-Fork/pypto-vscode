@@ -1,7 +1,8 @@
 // 定义自定义PATH节点数据类型
 export interface PassesType {
   firstError?: boolean; // 是否首错，显示首错标签用
-  status?: string; // 状态，pass/fail/exception
+  firstException?: boolean; // 是否首个异常，显示首异常标签用
+  status?: string[]; // 状态数组，可能为 ['PASS'], ['FAIL'], ['EXCEPTION'], ['FAIL', 'EXCEPTION']
   passName: string;
   passIndex: string; // 序号由数据源提供
   hasHealthReport: boolean;

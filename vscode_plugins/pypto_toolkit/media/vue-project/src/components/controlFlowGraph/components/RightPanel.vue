@@ -158,16 +158,17 @@
                   <template v-for="item in group.members">
                     <div :class="[
                       'block',
-                      `block-${item.status ?? 'SKIP'}`,
-                      item?.firstError && 'first-error'
+                      `block-${item?.status?.includes('EXCEPTION') ? 'EXCEPTION' : item?.status?.[0] ?? 'SKIP'}`
                     ]" @click="openGraph(item)" :title="item.passName">
                       <span class="block-number">{{ item.passIndex }}</span>
                       <span>{{ item.passName }}</span>
                       <span class="group-member-icon" v-if="item.icon"><img class="healthIcon" :src="healthIcon" /></span>
-                      <span v-if="item?.firstError" class="tag">
-                        <WarningIcon />
-                        <span style="margin-left: 4px;">{{ t('controlFlows.firstError') }}</span>
-                      </span>
+                      <!-- EXCEPTION tag: First Exc 或 Exc -->
+                      <span v-if="item?.firstException" class="tag exc-tag" style="margin-left: auto">First Exc</span>
+                      <span v-else-if="item?.status?.includes('EXCEPTION')" class="tag exc-tag" style="margin-left: auto">Exc</span>
+                      <!-- FAIL tag: First Fail 或 Fail -->
+                      <span v-if="item?.firstError" class="tag fail-tag" :style="{ 'margin-left': item?.status?.includes('EXCEPTION') ? '8px' : 'auto' }">First Fail</span>
+                      <span v-else-if="item?.status?.includes('FAIL')" class="tag fail-tag" :style="{ 'margin-left': item?.status?.includes('EXCEPTION') ? '8px' : 'auto' }">Fail</span>
                     </div>
                   </template>
                 </div>
@@ -184,7 +185,6 @@
 import { ref, watch, defineProps } from 'vue';
 import { getQuery } from '@/core/query';
 import { useViewServer } from '@/core/use-view-server';
-import WarningIcon from '@/components/icons/warning-icon.vue'
 import {
   CalledRecordsType,
   CalleeRecordsType,
@@ -596,16 +596,27 @@ function getPassList(passes: PassesType[], finalList?: any[]) {
   let item: GroupItem = {};
 
   if (finalList?.length > 0) {
-    let isFoundFirstError = false
+    let isFoundFirstError = false;
+    let isFoundFirstException = false;
     passes.map(val => {
-      const status: string = finalList.find(it => it.passName === val.passName)?.status ?? 'SKIP';
-      val.status = status.includes('FAIL') ? 'FAIL' : status;
+      const rawStatus = finalList.find(it => it.passName === val.passName)?.status ?? 'SKIP';
+      // 兼容新旧格式：新格式 status 为数组，旧格式为字符串
+      // TODO: 后端更新后删除字符串兼容逻辑
+      const status: string[] = Array.isArray(rawStatus) ? rawStatus : [rawStatus];
+      val.status = status;
 
-      if (!isFoundFirstError && val.status === 'FAIL') {
-        val.firstError = true
-        isFoundFirstError = true
+      // 标记第一个 FAIL
+      if (!isFoundFirstError && status.includes('FAIL')) {
+        val.firstError = true;
+        isFoundFirstError = true;
       }
-    })
+
+      // 标记第一个 EXCEPTION
+      if (!isFoundFirstException && status.includes('EXCEPTION')) {
+        val.firstException = true;
+        isFoundFirstException = true;
+      }
+    });
   }
   for (let i = 0; i < passes.length; i++) {
     if (passes[i].passStage !== nowState) {
@@ -850,15 +861,15 @@ defineExpose({
       }
 
       &.block-FAIL {
-        border-left-color: rgba(231, 67, 74, 1);
-        background: rgba(231, 67, 74, 0.02);
+        border-left-color: rgba(246, 158, 57, 1);
+        background: rgba(246, 158, 57, 0.02);
 
         .block-number {
-          color: rgba(231, 67, 74, 1);
+          color: rgba(246, 158, 57, 1);
           width: 20px;
           height: 20px;
           border-radius: 6px;
-          background: rgba(231, 67, 74, 0.2);
+          background: rgba(246, 158, 57, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -867,19 +878,19 @@ defineExpose({
         }
 
         &:hover {
-          border-color: rgba(199, 91, 96, 1);
+          border-color: rgba(246, 158, 57, 1);
         }
 
         .tag {
-          margin-left: auto;
+          margin-left: 8px;
           display: flex;
-          background-color: rgba(231, 67, 74, 0.1);
+          background-color: rgba(246, 158, 57, 0.1);
           border-radius: 4px;
           height: 20px;
           justify-content: center;
           align-items: center;
           padding: 0 8px;
-          color: rgba(231, 67, 74, 1);
+          color: rgba(246, 158, 57, 1);
         }
       }
 
@@ -906,15 +917,15 @@ defineExpose({
       }
 
       &.block-EXCEPTION {
-        border-left-color: rgba(246, 158, 57, 1);
-        background: rgba(246, 158, 57, 0.02);
+        border-left-color: rgba(231, 67, 74, 1);
+        background: rgba(231, 67, 74, 0.02);
 
         .block-number {
-          color: rgba(246, 158, 57, 1);
+          color: rgba(231, 67, 74, 1);
           width: 20px;
           height: 20px;
           border-radius: 6px;
-          background: rgba(246, 158, 57, 0.2);
+          background: rgba(231, 67, 74, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -923,21 +934,31 @@ defineExpose({
         }
 
         &:hover {
-          border-color: rgba(246, 158, 57, 1);
+          border-color: rgba(199, 91, 96, 1);
         }
-      }
-      &.first-error {
-        background: rgba(231, 67, 74, 0.16);
-        .block-number {
-          color: var(--devui-text);
-          width: 20px;
-          height: 20px;
-          border-radius: 6px;
-          background: rgba(231, 67, 74, 1);
+
+        .tag {
+          margin-left: 8px;
           display: flex;
-          align-items: center;
+          background-color: rgba(231, 67, 74, 0.1);
+          border-radius: 4px;
+          height: 20px;
           justify-content: center;
-          margin-right: 6px;
+          align-items: center;
+          padding: 0 8px;
+          color: rgba(231, 67, 74, 1);
+        }
+
+        .fail-tag {
+          margin-left: 8px;
+          display: flex;
+          background-color: rgba(246, 158, 57, 0.1);
+          border-radius: 4px;
+          height: 20px;
+          justify-content: center;
+          align-items: center;
+          padding: 0 8px;
+          color: rgba(246, 158, 57, 1);
         }
       }
     }

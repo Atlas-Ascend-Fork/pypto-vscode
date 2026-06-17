@@ -20,9 +20,9 @@ const searchKey = ref('')
 const columnData = ref([
     { width: 60, field: 'no', header: 'NO.' },
     { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
-    { width: 100, field: 'rawMagic', header: 'rawmagicID' },
-    { width: 90, field: 'dataType', header: 'datatype' },
-    { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth:100},
+    { width: 100, field: 'rawMagic', header: 'rawmagicID', showOverflowTooltip: true },
+    { width: 90, field: 'dataType', header: 'datatype', showOverflowTooltip: true },
+    { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth:100, showOverflowTooltip: true},
 ]);
 
 const props = defineProps({

@@ -53,11 +53,11 @@
                   @click="handleBlockClick(item)"
                 >
                   <span class="block-number">{{ item.index }}</span>
-                  <span class="block-name" :title="item.pass_name">{{ item.pass_name }}{{ item.status[0] }}</span>
+                  <span class="block-name" :title="item.pass_name">{{ item.pass_name }}</span>
                   <span v-if="item?.isFirstExce" class="tag" style="margin-left: auto">First Exc</span>
                   <span v-else-if="item?.status?.includes('FAIL') && item?.status?.includes('EXCEPTION')" class="tag" style="margin-left: auto">Exc</span>
-                  <span v-if="item?.isFirstFail" class="tag fail-tag">First Fail</span>
-                  <span v-else-if="item?.status?.includes('FAIL') && item?.status?.includes('EXCEPTION')" class="tag fail-tag">Fail</span>
+                  <span v-if="item?.isFirstFail" class="tag fail-tag" :style="{ 'margin-left': item?.isFirstExce || (item?.status?.includes('FAIL') && item?.status?.includes('EXCEPTION')) ? '8px' : 'auto' }">First Fail</span>
+                  <span v-else-if="item?.status?.includes('FAIL') && item?.status?.includes('EXCEPTION')" class="tag fail-tag" style="margin-left: 8px">Fail</span>
                 </div>
               </template>
             </div>

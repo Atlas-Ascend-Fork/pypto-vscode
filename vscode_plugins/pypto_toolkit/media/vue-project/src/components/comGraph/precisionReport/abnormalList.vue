@@ -52,7 +52,7 @@ const searchByKeyword = debounce((keyword) => {
   searchKeyword.value = keyword
   pageConfig.value.currentPage = 1
 
-  if (currentFileType.value === 'opcheck' && currentFilePath.value) {
+  if (currentFileType.value === 'op' && currentFilePath.value) {
     server.getCmpDiffListData({
       cmpCsvPath: currentFilePath.value,
       pageSize: pageConfig.value.pageSize,
@@ -73,7 +73,7 @@ const searchByKeyword = debounce((keyword) => {
 const pageIndexChange = (pageIndex) => {
   pageConfig.value.currentPage = pageIndex
 
-  if (currentFileType.value === 'opcheck' && currentFilePath.value) {
+  if (currentFileType.value === 'op' && currentFilePath.value) {
     server.getCmpDiffListData({
       cmpCsvPath: currentFilePath.value,
       pageSize: pageConfig.value.pageSize,
