@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
-import { getCmpDiffList, getPrecisionExceptList, setCurAccuFilePath, openCmpDiffComGraph } from '../../common/accurancyAnylasis';
+import { getCmpDiffList, getPrecisionExceptList, setCurAccuFilePath, openCmpDiffComGraph, getCmpErrorList, getAccuFilePath } from '../../common/accurancyAnylasis';
 import { IOpCheckViewServer, IOpCheckApis, IOpCheckRefs } from './view-server-interface';
 
 type Apis = IOpCheckApis;
@@ -10,7 +10,8 @@ type Refs = IOpCheckRefs;
 
 @viewRefs([
   'cmpDiffList',
-  'precisionExceptList'
+  'precisionExceptList',
+  'cmpErrorList'
 ])
 export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpCheckViewServer {
   private fileUri: vscode.Uri;
@@ -73,6 +74,22 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     } catch (error) {
       console.error('[OpCheckViewServer] openCmpDiffComGraph error:', error);
     }
+  };
+
+  @viewApi()
+  public getCmpErrorListData = async (data: {
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+    readFlag?: boolean;
+  }) => {
+    const cmpCsvInfo = await getAccuFilePath();
+    const filePath = cmpCsvInfo?.filePath || '';
+    
+    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
+    const result = await getCmpErrorList(filePath, readFlag, pageSize, startOffset, keyword);
+    this.setRef('cmpErrorList', result);
   };
 
   public override created(ctx: ViewServerContext): void {

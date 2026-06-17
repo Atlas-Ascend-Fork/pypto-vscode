@@ -111,7 +111,7 @@ watch(server.AccuFilePath, (val: Record<string, any>) => {
   currentFileType.value = fileType || '';
   currentFilePath.value = filePath || '';
 
-  if (fileType === 'op' && filePath) {
+  if (fileType.startsWith('op')  && filePath) {
     // 如果是 opcheck 类型，调用 getCmpDiffListData
     server.getCmpDiffListData({
       cmpCsvPath: filePath,

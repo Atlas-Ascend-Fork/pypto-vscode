@@ -24,7 +24,8 @@ export type IComApis =
   | 'getTimelineEvents'
   | 'getInitialMemoryData'
   | 'accuFilePathGet'
-  | 'getCmpDiffListData';
+  | 'getCmpDiffListData'
+  | 'getCmpErrorListData';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -87,6 +88,12 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
     pageSize?: number;
     startOffset?: number;
     res?: string;
+    keyword?: string;
+  }) => Promise<void>;
+  getCmpErrorListData?: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
     keyword?: string;
   }) => Promise<void>;
 }
@@ -295,11 +302,13 @@ export type IOpCheckApis =
   | 'getCmpDiffListData'
   | 'getPrecisionExceptList'
   | 'setCurAccuFilePathApi'
-  | 'openCmpDiffComGraphApi';
+  | 'openCmpDiffComGraphApi'
+  | 'getCmpErrorListData';
 
 export type IOpCheckRefs = {
   cmpDiffList: unknown;
   precisionExceptList: unknown;
+  cmpErrorList: unknown;
 };
 
 export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRefs> {
@@ -323,5 +332,12 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
     funcHash: string;
     passName: string;
     funcMagicName: string;
+  }) => Promise<void>;
+  getCmpErrorListData: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
   }) => Promise<void>;
 }

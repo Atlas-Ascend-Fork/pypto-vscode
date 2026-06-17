@@ -11,7 +11,7 @@ import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICo
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
 import { SQLiteCache } from '../../core/sqliteCache';
-import { getCmpDiffList, getAccuFilePath } from '../../common/accurancyAnylasis';
+import { getCmpDiffList, getAccuFilePath, getCmpErrorList } from '../../common/accurancyAnylasis';
 import * as fs from 'fs';
 type Apis = IComApis | ICommonApis;
 
@@ -271,6 +271,22 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword } = data;
     const result = await getCmpDiffList(cmpCsvPath, true, pageSize, startOffset, res, keyword);
     this.setRef('CmpDiffList', result);
+  };
+
+  @viewApi()
+  public getCmpErrorListData = async (data: {
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+    readFlag?: boolean;
+  }) => {
+    const cmpCsvInfo = await getAccuFilePath();
+    const filePath = cmpCsvInfo?.filePath || '';
+    
+    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
+    const result = await getCmpErrorList(filePath, readFlag, pageSize, startOffset, keyword);
+    this.setRef('cmpErrorList', result);
   };
 
   safeParse(str) {

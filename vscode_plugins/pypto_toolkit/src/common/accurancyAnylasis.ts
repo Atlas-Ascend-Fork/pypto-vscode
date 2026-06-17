@@ -644,7 +644,7 @@ export async function setCurAccuFilePath(fileInfo: any) {
         // 加个报错也行
         return;
     }
-    if (fileInfo.fileType === 'op' && (!fileInfo.filePath)) {
+    if (fileInfo.fileType.startsWith('op') && (!fileInfo.filePath)) {
         return;
     }
     await SQLiteCache.getInstance().accuFilePathSet(fileInfo);
@@ -660,7 +660,7 @@ export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHas
     const failLevel = accurancyLevel?.fileType;
     const csvPath = accurancyLevel?.filePath || '';
     let failMagicList;
-    if (failLevel === 'op') {
+    if (failLevel?.startsWith('op')) {
         // phasename 和 funchash必须匹配上
         const recordPhaseList = [...csvPath.matchAll(/Pass_(\d+)/g)].map(m => m[1]);
 
@@ -691,3 +691,58 @@ export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHas
     }
     return failMagicList;
 }
+
+export async function getCmpErrorList(
+    filePath: string, 
+    readFlag: boolean = true, 
+    pageSize: number = 50, 
+    startOffset: number = 0, 
+    keyword: string = ''
+) {
+    let failCount = -1;
+    if (readFlag) {
+        await readCsv(filePath, 2);
+        failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
+    }
+    
+    const realOffset = startOffset * pageSize;
+    const errorList = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
+
+    const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
+    const fileCol = accurancyLevel?.fileType.split('_')[1];
+
+    const diffList: DiffItem[] = [];
+    for (const singleRes of errorList) {
+      const aOp: Record<string, any> = {};
+      const bOp: Record<string, any> = {};
+      let compareRes = '';
+      const sharedRes: Record<string, any> = {};
+  
+      for (const [key, value] of Object.entries(singleRes)) {
+        if (key.startsWith('abRes')) {
+          compareRes = value as string;
+        } else if (key.startsWith('ab')) {
+          sharedRes[key] = value;
+        } else if ((fileCol === 'a') && key.startsWith('a')) {
+          aOp[key] = value;
+        } else if ((fileCol === 'b') && key.startsWith('b')) {
+          bOp[key] = value;
+        } else {
+          sharedRes[key] = value;
+        }
+      }
+
+      const aOpIsEmpty = Object.values(aOp).every(v => v === undefined || v === '');
+      const bOpIsEmpty = Object.values(bOp).every(v => v === undefined || v === '');
+  
+      diffList.push({
+        aOp: aOpIsEmpty ? undefined : aOp,
+        bOp: bOpIsEmpty ? undefined : bOp,
+        compareRes: compareRes || 'FAIL',
+        sharedRes,
+      });
+    }
+  
+    return { diffList, failRes: failCount };
+}
+

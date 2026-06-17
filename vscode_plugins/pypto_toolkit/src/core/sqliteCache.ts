@@ -1482,6 +1482,116 @@ export class SQLiteCache {
     this.db!.run(sql, params);
   }
 
+  public async getCmpErrorListByFilePath(
+    filePath: string,
+    pageSize: number,
+    startOffset: number,
+    keyword?: string,
+  ): Promise<AccuracyToolCmpData[]> {
+    const conditions: string[] = ['file_path = ?'];
+    const params: any[] = [filePath];
+    conditions.push('"AB>RESULT" = \'FAIL\'');
+    if (keyword) {
+      conditions.push('("LOOP_INFO" LIKE ? OR ":datatype" LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    const whereClause = conditions.join(' AND ');
+  
+    const sql = `
+      SELECT 
+        "PATH_FUNC:func_magicname" AS pathFuncMagicName,
+        "LOOP_INFO" AS loopInfo,
+        ":symbol" AS symbol,
+        ":validshape" AS validShape,
+        ":datatype" AS dataType,
+        "A>:opmagic" AS aOpMagic,
+        "A>:rawshape" AS aRawShape,
+        "A>FILENAME" AS aFileName,
+        "A>max" AS aMax,
+        "A>min" AS aMin,
+        "A>avg" AS aAvg,
+        "A>aavg" AS aAavg,
+        "A>zero" AS aZero,
+        "A>infnan" AS aInfnan,
+        "B>:opmagic" AS bOpMagic,
+        "B>:rawshape" AS bRawShape,
+        "B>FILENAME" AS bFileName,
+        "B>max" AS bMax,
+        "B>min" AS bMin,
+        "B>avg" AS bAvg,
+        "B>aavg" AS bAavg,
+        "B>zero" AS bZero,
+        "B>infnan" AS bInfnan,
+        "AB>RESULT" AS abResult,
+        "AB>rtol/atol" AS abRtolAtol,
+        "AB>fail_cnt/warn_cnt/tol_cnt" AS abFailWarnTol,
+        "AB>total_cnt/zero_cnt/infnan_cnt" AS abTotalZeroInfnanCnt,
+        "AB>mre" AS abMre,
+        "AB>mre_top8" AS abMreTop8,
+        "AB>mre_top1permil" AS abMreTop1permil,
+        "AB>mae" AS abMae,
+        "AB>mae_top8" AS abMaeTop8,
+        "AB>mae_top1permil" AS abMaeTop1permil,
+        "B>TIMESTAMP" AS bTimestamp 
+      FROM accuracy_tool_cmp WHERE ${whereClause} ORDER BY bTimestamp
+      LIMIT ? OFFSET ?
+    `;
+
+    params.push(pageSize, startOffset);
+    const stmt = this.db!.prepare(sql);
+    stmt.bind(params);
+    const result: AccuracyToolCmpData[] = [];
+
+    try {
+      // 遍历所有结果
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+
+        // 手动组装对象，确保 file_path 映射为 filePath
+        result.push({
+          pathFuncMagicName: row.pathFuncMagicName as string,
+          loopInfo: row.loopInfo as string,
+          symbol: row.symbol as string,
+          validShape: row.validShape as string,
+          dataType: row.dataType as string,
+          aOpMagic: row.aOpMagic as string,
+          aRawShape: row.aRawShape as string,
+          aFileName: row.aFileName as string,
+          aMax: row.aMax as string,
+          aMin: row.aMin as string,
+          aAvg: row.aAvg as string,
+          aAavg: row.aAavg as string,
+          aZero: row.aZero as string,
+          aInfnan: row.aInfnan as string,
+          bOpMagic: row.bOpMagic as string,
+          bRawShape: row.bRawShape as string,
+          bFileName: row.bFileName as string,
+          bMax: row.bMax as string,
+          bMin: row.bMin as string,
+          bAvg: row.bAvg as string,
+          bAavg: row.bAavg as string,
+          bZero: row.bZero as string,
+          bInfnan: row.bInfnan as string,
+          abResult: row.abResult as string,
+          abRtolAtol: row.abRtolAtol as string,
+          abFailWarnTol: row.abFailWarnTol as string,
+          abTotalZeroInfnanCnt: row.abTotalZeroInfnanCnt as string,
+          abMre: row.abMre as string,
+          abMreTop8: row.abMreTop8 as string,
+          abMreTop1permil: row.abMreTop1permil as string,
+          abMae: row.abMae as string,
+          abMaeTop8: row.abMaeTop8 as string,
+          abMaeTop1permil: row.abMaeTop1permil as string,
+          bTimestamp: row.bTimestamp as string,
+        });
+      }
+    } finally {
+      stmt.free();
+    }
+
+    return result;
+  }
+
   public async accuracyToolCmpGetByFilePath(
     filePath: string,
     pageSize: number,
