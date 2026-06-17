@@ -2507,9 +2507,10 @@ const changeMixModeNodeColor = (processKey, isDimmed, drawDatas, clickedEvent=nu
   return maxThreadY;
 };
 
-const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas) => {
+const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas, viewport) => {
   let maxThreadY = 0;
-  
+  const { top = -Infinity, bottom = Infinity } = viewport || {};
+
   for (const [threadKey, thread] of process.threads.entries()) {
     if (thread.isCounter) {
       break;
@@ -2517,6 +2518,10 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas) => {
     const threadY = getThreadStartY(process, processKey, thread.tid, lane2line, layout);
     const threadHeight = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
     maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
+    if (threadY + threadHeight <= top || threadY >= bottom)
+    {
+        continue;
+    }
 
     if (thread._sliceMipmap && thread._visibleDrawDatas) {
       for (const drawData of thread._visibleDrawDatas) {
@@ -2574,7 +2579,8 @@ const changeNodeColor = (processKey, isDimmed=false, needText=true) => {
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     maxThreadY = changeMixModeNodeColor(processKey, isDimmed, drawDatas, clickedEvent, siblingDrawDatas);
   } else {
-    maxThreadY = changeNormalNodeColor(process, processKey, isDimmed, drawDatas);
+    const { top, bottom } = getViewPortYRange(processKey, process);
+    maxThreadY = changeNormalNodeColor(process, processKey, isDimmed, drawDatas, { top, bottom });
   }
   
   if (processExpanded.get(processKey)) {

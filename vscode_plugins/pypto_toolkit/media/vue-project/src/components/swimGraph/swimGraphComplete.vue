@@ -934,9 +934,13 @@ const transform = (needClean=false) => {
     return;
   }
   clearTimeout(depLinesTimer);
-  depLinesTimer = setTimeout(() => {
+  if (selectedEvent.value || searchedEvent.value) {
     renderDependencyLines();
-  }, 160);
+  } else {
+    depLinesTimer = setTimeout(() => {
+      renderDependencyLines();
+    }, 50);
+  }
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
       highlightAicpu(process, processKey, true);

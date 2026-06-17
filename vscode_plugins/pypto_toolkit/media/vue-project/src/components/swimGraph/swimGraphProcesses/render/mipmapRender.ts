@@ -221,7 +221,7 @@ export class SliceMipmap {
         const start = s.renderStartTime || s.startTime;
         const end = s.renderEndTime || s.endTime;
         durForest.push({ maxDur: renderDur, count: 1, idx: i, minStart: start, maxEnd: end });
-        durTimestamps.push(s.startTime);
+        durTimestamps.push(start);
       });
 
       let zeroForest: ImplicitSegmentForest | null = null;
@@ -238,7 +238,7 @@ export class SliceMipmap {
           const start = s.renderStartTime || s.startTime;
           const end = s.renderEndTime || s.endTime;
           zeroForest!.push({ maxDur: 0, count: 1, idx: i, minStart: start, maxEnd: end });
-          zeroTimestamps.push(s.startTime);
+          zeroTimestamps.push(start);
         });
       }
 
