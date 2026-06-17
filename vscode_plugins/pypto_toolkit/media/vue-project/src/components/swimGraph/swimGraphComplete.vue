@@ -2708,7 +2708,7 @@ const measureMouseUp = () => {
   showDragAreaBorders.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
     isCoreUtilizationSupported(false);
-    if (!isMixMode.value && !isMsProf.value) {
+    if (!(isMixMode.value && swimDataManager.hasMixConfig()) && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
     }
@@ -2739,7 +2739,7 @@ const measureMouseLeave = (e) => {
   isMeasureDragging.value = false;
   if (Math.abs(measureDragEndX.value - measureDragStartX.value) > 5) {
     isCoreUtilizationSupported(false);
-    if (!isMixMode.value && !isMsProf.value) {
+    if (!(isMixMode.value && swimDataManager.hasMixConfig()) && !isMsProf.value) {
       mulDetailsExpanded.value = true;
       measureDetailsExpanded.value = true;
     }
@@ -3050,7 +3050,7 @@ const postMessageInfo = (message) => {
   }
 };
 const isCoreUtilizationSupported = (isSelection, process = null) => {
-  if (isMixMode.value) {
+  if (isMixMode.value && swimDataManager.hasMixConfig()) {
     postMessageInfo($t('mixUnavailableInfo'));
   }
   if (isMsProf.value) {

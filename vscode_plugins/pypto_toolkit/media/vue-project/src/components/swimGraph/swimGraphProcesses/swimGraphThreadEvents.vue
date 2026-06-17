@@ -258,7 +258,7 @@ const canvasStatusReset = () => {
 };
 
 const canDragSelect = (process) => {
-  if (isMixMode.value) {
+  if (isMixMode.value && swimDataManager.hasMixConfig()) {
     return false;
   }
   if (isMsProf.value) {
