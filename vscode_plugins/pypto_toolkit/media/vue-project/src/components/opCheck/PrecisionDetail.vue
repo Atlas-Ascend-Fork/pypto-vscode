@@ -6,7 +6,7 @@
       </div>
       <i class="icon-close header-close-btn" @click="onClose"></i>
     </div>
-    <div class="jump-btn" @click="onJumpToGraph">点击跳转计算图</div>
+    <div class="jump-btn" @click="onJumpToGraph">{{ t('opCheck.jumpToComGraph') }}</div>
 
     <PrecisionTabContent
       ref="tabContentRef"
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch, PropType } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AbnormalOverview from '../comGraph/precisionReport/abnormalOverview.vue';
 import AbnormalCompare from '../comGraph/precisionReport/abnormalCompare.vue';
 import PrecisionTabContent from '@/components/comGraph/precisionReport/common/PrecisionTabContent.vue';
@@ -73,6 +74,7 @@ export interface PrecisionDetailData {
   baseTitle?: string;
   compareTitle?: string;
   compareList?: CompareItem[];
+  source?: 'left' | 'right';
   aOp?: {
     aFuncMagic?: string;
     aFuncHash?: string;
@@ -138,6 +140,7 @@ const props = defineProps({
 
 const emits = defineEmits(['jumpToGraph', 'close']);
 
+const { t } = useI18n();
 const { server } = useViewServer<IOpCheckViewServer>();
 const tabContentRef = ref();
 const compareEl = ref();

@@ -13,16 +13,17 @@
           size="sm"
           :show-glow-style="false"
           :placeholder="t('opCheck.searchOpName')"
+          :disabled="props.initialLoading"
           @search="onSearch"
         />
         <div class="filter-group">
-          <d-checkbox v-model="filterAll" @change="onFilterAllChange">
+          <d-checkbox v-model="filterAll" :disabled="props.initialLoading" @change="onFilterAllChange">
             {{ t('opCheck.filterAll') }}
           </d-checkbox>
-          <d-checkbox v-model="filterFailOnly" @change="onFilterFailChange">
+          <d-checkbox v-model="filterFailOnly" :disabled="props.initialLoading" @change="onFilterFailChange">
             {{ t('opCheck.filterFail') }}
           </d-checkbox>
-          <d-checkbox v-model="filterPassOnly" @change="onFilterPassChange">
+          <d-checkbox v-model="filterPassOnly" :disabled="props.initialLoading" @change="onFilterPassChange">
             {{ t('opCheck.filterPass') }}
           </d-checkbox>
         </div>

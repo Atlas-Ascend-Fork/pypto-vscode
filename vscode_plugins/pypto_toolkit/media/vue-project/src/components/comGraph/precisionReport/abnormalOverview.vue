@@ -5,10 +5,22 @@
       <span class="benchmark-divider"></span>
       <div class="benchmark-data-item">
         <span class="benchmark-data-label">Rtol</span>
+        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+          <i class="icon icon-helping"></i>
+          <template #content>
+            <span>{{ t('rtolThreshold') }}</span>
+          </template>
+        </d-tooltip>
         <span class="benchmark-data-value">{{ rtolValue }}</span>
       </div>
       <div class="benchmark-data-item">
         <span class="benchmark-data-label">Atol</span>
+        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+          <i class="icon icon-helping"></i>
+          <template #content>
+            <span>{{ t('atolThreshold') }}</span>
+          </template>
+        </d-tooltip>
         <span class="benchmark-data-value">{{ atolValue }}</span>
       </div>
     </div>
@@ -62,7 +74,7 @@ const countInfo = computed(() => {
   return [
     { label: `total_count`, value: totalCount, desc: t('totalDataVolume') },
     { label: `zero_count`, value: zeroCount, desc: t('zeroCount') },
-    { label: `infnan_cnt`, value: infnanCount },
+    { label: `infnan_cnt`, value: infnanCount, desc: t('infnanCount') },
   ];
 });
 const warnFailInfo = computed(() => {

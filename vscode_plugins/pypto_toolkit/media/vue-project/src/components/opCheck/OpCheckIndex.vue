@@ -295,6 +295,7 @@ const onDiffItemClick = ({ data, source }: { data: OpCompareItem; source: 'left'
     baseTitle: leftTitle.value,
     compareTitle: rightTitle.value,
     compareList,
+    source,
     aOp: data.aOp
       ? {
           aFuncMagic: data.aOp.aFuncMagic,
@@ -339,8 +340,10 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
 
   const { detailData } = data;
 
-  const funcHash = detailData.aOp?.aFuncHash || detailData.bOp?.bFuncHash || '';
-  const passName = detailData.aOp?.aPhaseName || detailData.bOp?.bPhaseName || '';
+  // 根据 source 决定取哪个 Op 的值
+  const isLeft = detailData.source === 'left';
+  const funcHash = isLeft ? detailData.aOp?.aFuncHash || '' : detailData.bOp?.bFuncHash || '';
+  const passName = isLeft ? detailData.aOp?.aPhaseName || '' : detailData.bOp?.bPhaseName || '';
   const funcMagicName = detailData.sharedRes?.pathFuncMagicName || '';
 
   if (!funcHash || !passName || !funcMagicName) {

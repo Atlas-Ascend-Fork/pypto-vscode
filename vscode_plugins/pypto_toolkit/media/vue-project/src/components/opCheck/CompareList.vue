@@ -8,7 +8,7 @@
       v-model="searchKeyword"
       is-keyup-search
       :show-glow-style="false"
-      placeholder="请输入关键词搜索"
+      :placeholder="t('opCheck.searchPlaceholder')"
       icon-position="left"
       @search="onSearch"
       class="search"
@@ -41,12 +41,12 @@
     <div class="toggle-icon" @click="onExpandChange">
       <i :class="[isExpand ? 'icon-chevron-left-2' : 'icon-chevron-right-2']"></i>
     </div>
-    <d-modal v-model="modalVisible" title="解析Compare文件" class="parse-compare-modal" :close-on-click-overlay="false">
-      <div class="modal-content">将对 <span class="file-name">{{ selectedPendingItem?.fullFileName || selectedPendingItem?.fileNameA }}</span> 进行解析，提取OP级精度对比数据并生成Diff图</div>
+    <d-modal v-model="modalVisible" :title="t('opCheck.parseCompareFile')" class="parse-compare-modal" :close-on-click-overlay="false">
+      <div class="modal-content">{{ t('opCheck.parseCompareContent', { fileName: selectedPendingItem?.fullFileName || selectedPendingItem?.fileNameA }) }}</div>
       <template #footer>
         <d-modal-footer class="modal-button">
-          <d-button variant="solid" color="secondary" @click="onCancel">取消</d-button>
-          <d-button variant="solid" color="primary" @click="onStartParse">开始解析</d-button>
+          <d-button variant="solid" color="secondary" @click="onCancel">{{ t('opCheck.cancel') }}</d-button>
+          <d-button variant="solid" color="primary" @click="onStartParse">{{ t('opCheck.startParse') }}</d-button>
         </d-modal-footer>
       </template>
     </d-modal>
