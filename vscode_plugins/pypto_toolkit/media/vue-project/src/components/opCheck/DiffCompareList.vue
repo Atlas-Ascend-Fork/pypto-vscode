@@ -662,7 +662,7 @@ watch(
     .item-detail {
       padding: 8px 16px;
       border-radius: 8px;
-      background: rgba(26, 26, 26, 0.65);
+      background: var(--control-flow-item-detail-bg);
       margin: 12px;
       display: flex;
       flex-wrap: wrap;

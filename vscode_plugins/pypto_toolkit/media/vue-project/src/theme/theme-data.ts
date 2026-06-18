@@ -186,6 +186,7 @@ export const ideLightTheme = new Theme({
     'control-flow-loop-stroke': '#aeaeae',
     'control-flow-path-card-active': 'rgba(255, 255, 255, 1)',
     'control-flow-code-preview': 'rgb(230, 230, 230)', // 代码片段预览背景颜色
+    'control-flow-item-detail-bg': 'rgba(255, 255, 255, 0.65)', // 详情项背景色
     'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
     'welcome-header-right-imge-bg':
       'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
@@ -385,6 +386,7 @@ export const ideDarkTheme = new Theme({
     'control-flow-loop-stroke': '#666666',
     'control-flow-path-card-active': 'rgba(77,77,77,1)',
     'control-flow-code-preview': '#363636', // 代码片段预览背景颜色
+    'control-flow-item-detail-bg': 'rgba(26, 26, 26, 0.65)', // 详情项背景色
     'welcome-header-title-version': 'linear-gradient(90.00deg,rgba(15,219,118,0.1),rgba(195,90,246,0.1) 100%)', //欢迎页面version渐变
     'welcome-header-right-imge-bg':
       'linear-gradient(155.67deg,rgba(15,211,114,1),rgba(57,129,239,0) 100%),linear-gradient(-26.57deg,rgba(200,92,237,1),rgba(255,108,150,0) 100%)', //欢迎页面version渐变
