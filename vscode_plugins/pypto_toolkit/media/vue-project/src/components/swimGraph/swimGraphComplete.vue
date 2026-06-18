@@ -902,6 +902,25 @@ const exportRender = () => {
   timelineComponent.value.flagRender();
 };
 
+const updateEventPosition = (event) => {
+  if (!event.renderInfo || !freezeVisibleRange.value)
+  {
+      return;
+  }
+  const range = viewState.maxTime - viewState.minTime;
+  const newX = ((event.renderStartTime || event.startTime) - viewState.minTime) / range
+      * viewState.canvasCssWidth;
+  const dur = event.renderDuration || event.duration || (event.endTime - event.startTime);
+  const newW = dur / range * viewState.canvasCssWidth;
+  event.renderInfo.x = newX;
+  event.renderInfo.width = newW;
+  if (event.drawData) {
+    event.drawData.rectX = newX;
+    event.drawData.eventWidth = newW;
+    event.drawData.width = newW;
+  }
+};
+
 const transform = (needClean=false) => {
   perfLogger.time('time of transform');
   transformCanvasOnly();
@@ -934,12 +953,32 @@ const transform = (needClean=false) => {
     return;
   }
   clearTimeout(depLinesTimer);
-  if (selectedEvent.value || searchedEvent.value) {
-    renderDependencyLines();
-  } else {
-    depLinesTimer = setTimeout(() => {
+  depLinesTimer = setTimeout(() => {
+    if (freezeVisibleRange.value) {
+      if (globalConnectionCanvas.value) {
+        globalConnectionCanvas.value.clearCanvas();
+      }
+    } else {
       renderDependencyLines();
-    }, 50);
+    }
+  }, 50);
+
+  for (const [key] of processes.entries()) {
+    if (processExpanded.get(key)) {
+      childContextMap.threadEvent.clearDependencyLines(key);
+    }
+  }
+
+  const depKey = selectedEvent.value?.pid?.toString();
+  if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
+    const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
+    if (depCanvas) {
+      const depCtx = depCanvas.getContext('2d');
+      depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      depCtx.clearRect(0, 0, depCanvas.width / devicePixelRatio, depCanvas.height / devicePixelRatio);
+      updateEventPosition(selectedEvent.value);
+      childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
+    }
   }
   for (const [processKey, process] of processes.entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
@@ -1016,10 +1055,8 @@ const renderDependencyLines = (processKey) => {
 const clearDependencyLines = (processKey) => {
   if (globalConnectionCanvas.value) {
     globalConnectionCanvas.value.clearCanvas();
-  } else {
-    childContextMap.threadEvent.clearDependencyLines(processKey);
   }
-  return;
+  childContextMap.threadEvent.clearDependencyLines(processKey);
 };
 const getAicpuDependencyCanvas = (processKey) => {
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${processKey}"]`);
@@ -1527,6 +1564,7 @@ const handleMixNormalEventClick = (event, processKey) => {
   highlightedPaths.clear();
   mixRelatedPaths.clear();
   childContextMap.threadEvent.changeNodeColor(processKey, false);
+  childContextMap.threadEvent.clearDependencyLines(processKey);
 
   const token = ++selectEventToken;
   setTimeout(() => {
@@ -1547,6 +1585,7 @@ const handleMixNormalEventClick = (event, processKey) => {
 
 const handleNormalEventClick = (event, processKey) => {
   childContextMap.threadEvent.changeNodeColor(processKey, true);
+  childContextMap.threadEvent.clearDependencyLines(processKey);
 
   const token = ++selectEventToken;
   setTimeout(() => {
