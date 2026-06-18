@@ -65,6 +65,7 @@ const {
   mixRelatedPaths,
   searchedEvent,
   tsScale,
+  isMsProf,
 } = swimGraphState;
 
 const { userConfig } = inject('swimGraphCfg');
@@ -442,7 +443,7 @@ const drawRoundedRect = (event, processKey) => {
   ctx.rect(eventX, rectY, rectWidth, rectHeight);
   
   const temp = JSON.parse(JSON.stringify(event));
-  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes, mixRelatedPaths };
+  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes, mixRelatedPaths, isMsProf };
   const { fillColor, fontColor, strokeColor } = getEventColor(temp, dep, processKey, true, true);
   temp.drawData.rectColor = fillColor;
   temp.drawData.strokeColor = strokeColor;

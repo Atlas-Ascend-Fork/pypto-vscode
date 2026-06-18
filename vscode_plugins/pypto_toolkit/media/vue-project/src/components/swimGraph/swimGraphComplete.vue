@@ -1498,7 +1498,9 @@ let selectEventToken = 0;
 const handleMixSubEventClick = (event, processKey) => {
   mixRelatedPaths.clear();
   highlightedPaths.clear();
-
+  const { mixHoverCtx } = ctxs[processKey];
+  const canvas = document.querySelector(`[data-mix-hover-process-key="${processKey}"]`);
+  mixHoverCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   childContextMap.threadEvent.focusWrap(event.args.wrapId);
   globalConnectionCanvas.value.clearCanvas();
 

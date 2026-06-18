@@ -253,6 +253,8 @@ export function getCanvasRefs(processKey: string) {
   if (!selectionCanvasRef) { return null };
   const threeColumnCanvasRef = document.querySelector(`[data-three-column-process-key="${processKey}"]`);
   if (!threeColumnCanvasRef) { return null };
+  const mixHoverCanvasRef = document.querySelector(`[data-mix-hover-process-key="${processKey}"]`);
+  if (!mixHoverCanvasRef) { return null };
   return {
     canvasRef,
     uiCanvasRef,
@@ -262,7 +264,8 @@ export function getCanvasRefs(processKey: string) {
     backgroundCanvasCtx: backgroundCanvasRef.getContext('2d'),
     lineCanvasRef,
     selectionCanvasRef,
-    threeColumnCanvasRef
+    threeColumnCanvasRef,
+    mixHoverCanvasRef
   };
 }
 

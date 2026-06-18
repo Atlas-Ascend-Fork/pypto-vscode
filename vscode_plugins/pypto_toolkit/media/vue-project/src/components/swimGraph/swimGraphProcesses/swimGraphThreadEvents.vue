@@ -49,6 +49,7 @@
     <canvas class="line-events-canvas" :data-line-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="selection-events-canvas" :data-selection-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey" style="pointer-events: none"></canvas>
+    <canvas class="mix-hover-events-canvas" :data-mix-hover-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="hover-wrap-container-canvas" :data-hover-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
     <swim-graph-thread-lock-menu/>
   </div>
@@ -251,10 +252,16 @@ const canvasStatusReset = () => {
   aicpuControlDetailsExpanded.value = false;
   aicpuScheduleDetailsExpanded.value = false;
   aicpuCoreDetailsExpanded.value = false;
+  const needMixRestore = focusedWrapId.value !== null;
   focusedWrapId.value = null;
+  preHoverMixWrapId = null;
   selectEvent(null, props.processKey);
-  const ctx = clearDependencyLines(props.processKey);
-  highlightEvent(ctx, searchedEvent.value, props.processKey, true);
+  if (needMixRestore) {
+    transform();
+  } else {
+    const ctx = clearDependencyLines(props.processKey);
+    highlightEvent(ctx, searchedEvent.value, props.processKey, true);
+  }
 };
 
 const canDragSelect = (process) => {
@@ -1217,14 +1224,20 @@ const handleMouseMoveThrottle = throttle((e) => {
   let info = focusedWrapId.value ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
   let hoveredEvent = info?.event;
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
-    let { eventCtx } = ctxs[props.processKey];
+    const { mixHoverCtx } = ctxs[props.processKey];
     if (hoveredEvent) {
       const { wrapId } = hoveredEvent?.args;
+      const isSelectedMacroWrap = selectedEvent.value && swimDataManager.isMixParentEvent(selectedEvent.value) && selectedEvent.value.args?.wrapId === wrapId;
       if (wrapId === -1) {
         highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
+      } else if (isSelectedMacroWrap) {
+        restoreMacroView(mixHoverCtx, null);
+        const parentEvent = hoveredEvent.parentEventId ? swimDataManager.getEventById(hoveredEvent.parentEventId) : hoveredEvent;
+        hoveredEvent = parentEvent;
+        info = { event: parentEvent };
+        preHoverMixWrapId = null;
       } else {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
-        renderMicroByWrapId(wrapId, props.processKey, eventCtx);
+        restoreMacroView(mixHoverCtx, wrapId);
         info = findEventAtPosition(x, y, props.processKey);
         hoveredEvent = info?.event;
         preHoverMixWrapId = hoveredEvent?.args?.wrapId;
@@ -1232,11 +1245,10 @@ const handleMouseMoveThrottle = throttle((e) => {
     } else {
       const wrapLabelHover = detectWrapLabelHover(x, y);
       if (wrapLabelHover || wrapLabelHover === 0) {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
-        renderMicroByWrapId(wrapLabelHover, props.processKey, eventCtx);
+        restoreMacroView(mixHoverCtx, wrapLabelHover);
         preHoverMixWrapId = wrapLabelHover;
       } else {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
+        restoreMacroView(mixHoverCtx, null);
       }
     }
     highlightMixThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
@@ -1265,28 +1277,22 @@ const handleMouseMoveThrottle = throttle((e) => {
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
 }, 80);
-const restoreMacroView = (eventCtx, wrapId) => {
-  if (!eventCtx || wrapId === null) {
+const restoreMacroView = (mixHoverCtx, wrapId) => {
+  if (!mixHoverCtx || (preHoverMixWrapId == null && wrapId === null)) {
     return;
   }
   const selectedWrapId = selectedEvent.value?.args?.wrapId;
-  if (selectedWrapId === wrapId) {
+  if (selectedWrapId === preHoverMixWrapId) {
     return;
   }
+  const canvas = document.querySelector(`[data-mix-hover-process-key="${props.processKey}"]`);
+  mixHoverCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   const wrapContainers = swimDataManager.getWrapContainers();
-  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === wrapId);	 
-   const { threadTids } = currentWrapContainer;	 
-   for (const tid of threadTids) {	 
-     const threadKey = `${props.processKey}-${tid}`;	 
-     const thread = processes.get(props.processKey).threads.get(threadKey);	 
-     const { events } = thread;	 
-     let eventDatas = [];	 
-     events.forEach((event, index, array) => {	 
-       eventDatas.push(event.drawData);	 
-     });	 
-     eventRenderer.drawEvent(eventDatas, eventCtx);	 
-     eventRenderer.drawEventText(eventDatas, eventCtx);	 
-   }
+  for (const wrapContainer of wrapContainers) {
+    if (wrapContainer.wrapId === wrapId || wrapContainer.wrapId === focusedWrapId.value) {
+      renderMicroByWrapId(wrapContainer.wrapId, props.processKey, mixHoverCtx);
+    }
+  }
 };
 const handleHoverEvent = (hoveredEvent) => {
   if (!hoveredEvent) {
@@ -3738,8 +3744,8 @@ const renderMixModeEvents = (process, processKey, ctx) => {
         }
       }
     } else if (lane.wrapIds.length > 0 && threadTids.includes(lane.thread.tid)) {
-      renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey});
-      renderThreadNormalEvents(thread, threadY, laneHeight, drawDatas, processKey);
+      renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapId: focusedWrapId.value});
+      renderThreadNormalEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapId: focusedWrapId.value});
     } else {
       for (const [threadKey, procThread] of process.threads.entries()) {
         if (procThread.tid === thread.tid) {
@@ -3803,14 +3809,14 @@ const renderMicroByWrapId = (wrapId, processKey, ctx) => {
     eventRenderer.drawEventText(drawDatas, ctx);
   }
 };
-const renderThreadNormalEvents = (thread, threadY, laneHeight, drawDatas, processKey) => {
+const renderThreadNormalEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapId}) => {
   const { processLabelWidth, eventHeight, threadHeight } = layout;
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;
   
   const normalEvents = thread.eventIds
     .map(id => swimDataManager.getEventById(id))
-    .filter(e => e && !swimDataManager.isMixParentEvent(e));
+    .filter(e => e && (!swimDataManager.isMixParentEvent(e) || e.args?.wrapId !== wrapId));
   
   for (const event of normalEvents) {
     if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) continue;
@@ -3951,10 +3957,10 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
 };
 
 const renderThreadSubEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapId = -1}) => {
-  const parentEvents = thread.eventIds
+  let parentEvents = thread.eventIds
   .map(id => swimDataManager.getEventById(id))
   .filter(e => e && swimDataManager.isMixParentEvent(e) && (wrapId === -1 || e.args?.wrapId === wrapId));
-  
+
   const { processLabelWidth, eventHeight, threadHeight } = layout;
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;

@@ -389,6 +389,7 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
     wrapContainerCtx: document.querySelector(`[data-wrap-container-process-key="${processKey}"]`),
     mixDependencyCtx: document.querySelector(`[data-mix-dep-process-key="${processKey}"]`),
     hoverWrapContainerCtx: document.querySelector(`[data-hover-wrap-container-process-key="${processKey}"]`),
+    mixHoverCtx: document.querySelector(`[data-mix-hover-process-key="${processKey}"]`),
   };
   const processCtxs = ctxs[processKey];
   const availableWidth = containerRect.width;
