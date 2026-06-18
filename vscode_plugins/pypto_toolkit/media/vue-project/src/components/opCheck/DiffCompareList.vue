@@ -362,11 +362,12 @@ watch(
   background-color: var(--devui-tab-bg);
 
   .diff-compare-header {
-    height: 44px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    padding: 12px;
+    padding: 8px 12px;
+    gap: 8px;
     border-bottom: 1px solid var(--devui-split-line);
     background: var(--control-flow-bg);
 
@@ -529,8 +530,20 @@ watch(
       border-radius: 8px;
       border: 2px solid transparent;
       min-width: 0;
-      position: relative;
       background: var(--control-flow-bg);
+      position: relative;
+      overflow: scroll;
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+      }
 
       &.expanded {
         background: rgba(49, 122, 247, 0.16);
@@ -562,6 +575,18 @@ watch(
       border: 2px solid transparent;
       min-width: 0;
       background: var(--control-flow-bg);
+      overflow: scroll;
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+      }
 
       &.expanded {
         background: rgba(49, 122, 247, 0.16);
@@ -668,6 +693,8 @@ watch(
       flex-wrap: wrap;
       gap: 0 16px;
       overflow: hidden;
+      min-width: 350px;
+      overflow-x: scroll;
 
       .detail-row {
         display: flex;

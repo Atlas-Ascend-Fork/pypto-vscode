@@ -41,7 +41,7 @@ const columnData = ref([
     width: 94,
     field: 'offset',
     sortable: true,
-    sortMethod: (a, b) => a.offset > b.offset,
+    sortMethod: (a, b) => Number(a.offset) > Number(b.offset),
     headRender: () => h(TableHead, { head: 'OFFSET', direction: headSortMap.offset, onSort: () => onTableSort('offset') }),
   },
   { width: 108, field: 'offsetRaw', header: 'OFFSET_RAW' },

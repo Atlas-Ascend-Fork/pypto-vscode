@@ -7,6 +7,7 @@
     <d-search
       v-model="searchKeyword"
       is-keyup-search
+      v-if="isExpand"
       :show-glow-style="false"
       :placeholder="t('opCheck.searchPlaceholder')"
       icon-position="left"
