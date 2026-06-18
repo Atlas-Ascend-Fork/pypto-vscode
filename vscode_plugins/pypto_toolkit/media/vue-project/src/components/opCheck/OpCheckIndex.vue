@@ -146,21 +146,25 @@ watch(
 
 onMounted(async () => {
   const query = await getQuery();
+
   const outputPath = query.outputPath as string;
 
   // 动态获取opeCheckDirPath，避免因opeCheckDirPath变化导致打开多个页面
   if (outputPath) {
     try {
       const detail = await getOutputDetail(outputPath);
+      const opeCheckDirList = query.opeCheckDirPath as { file_path: string; first_req: string }[] | null;
       opeCheckDirPath.value = detail.data?.opeCheckDirPath ?? null;
       if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {
+        opeCheckDirPath.value = opeCheckDirList.map((item) => item.file_path);
         loadCompareFileList(opeCheckDirPath.value);
       }
     } catch (error) {
       console.error('[OpCheckIndex] Failed to get output detail:', error);
     }
-  }
+  } 
 });
+
 
 const loadCompareFileList = (filePaths: string[]) => {
   compareFileList.value = filePaths.map((path, index) => {

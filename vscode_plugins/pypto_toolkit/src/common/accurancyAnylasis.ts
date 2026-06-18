@@ -465,10 +465,10 @@ export async function getCmpDiffList(
     startOffset: number = 0,
     res?: string,
     keyword?: string
-  ): Promise<{ diffList: DiffItem[]; total: number, failRes: number}> {
+  ): Promise<{ diffList: DiffItem[]; total: number, failRes: number, updateFlag: boolean}> {
     const filePath = directoryPath;
     if (!filePath || filePath.length === 0) {
-      return { diffList: [], total: 0, failRes: 0};
+      return { diffList: [], total: 0, failRes: 0, updateFlag: false};
     }
     const type = 2;
 
@@ -515,8 +515,11 @@ export async function getCmpDiffList(
         sharedRes,
       });
     }
-  
-    return { diffList, total: totalCount, failRes: failCount };
+
+    const updateCompareListFlag = await updateCompListFirstReq(filePath, String(failCount));
+    const test = await SQLiteCache.getInstance().accuracyToolCompListGet();
+
+    return { diffList, total: totalCount, failRes: failCount, updateFlag: updateCompareListFlag};
 }
 
 // 返回查找的csv
@@ -746,11 +749,11 @@ export async function getCmpErrorList(
     return { diffList, failRes: failCount, totalRes: totalCount };
 }
 
-export async function updateCompListFirstReq(fileName: string): Promise<boolean> {
+export async function updateCompListFirstReq(fileName: string, failCount: string): Promise<boolean> {
   const db = SQLiteCache.getInstance();
   const row = await db.accuracyToolCompListGetByFilePath(fileName);
   if (row) {
-    await db.accuracyToolCompListUpdateFirstReq(fileName, '1');
+    await db.accuracyToolCompListUpdateFirstReq(fileName, failCount);
     return true;
   }
   return false;
