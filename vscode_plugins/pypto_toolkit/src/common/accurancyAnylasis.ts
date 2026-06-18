@@ -700,8 +700,10 @@ export async function getCmpErrorList(
     keyword: string = ''
 ) {
     let failCount = -1;
+    let totalCount = -1;
     if (readFlag) {
         await readCsv(filePath, 2);
+        totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
         failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
     }
     
@@ -743,6 +745,6 @@ export async function getCmpErrorList(
       });
     }
   
-    return { diffList, failRes: failCount };
+    return { diffList, failRes: failCount, totalRes: totalCount };
 }
 

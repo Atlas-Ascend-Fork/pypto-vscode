@@ -167,6 +167,7 @@ export interface AccuracyToolCmpData {
   aPhaseName?: string;
   aOpcode?: string;
   aRawShape?: string;
+  aShape?: string;
   aFormat?: string;
   aFuncHash?: string;
   aFuncMagic?: string;
@@ -181,6 +182,7 @@ export interface AccuracyToolCmpData {
   bOpMagic?: string;
   bOpcode?: string;
   bRawShape?: string;
+  bShape?: string;
   bFormat?: string;
   bFuncMagic?: string;
   bFuncHash?: string;
@@ -378,6 +380,7 @@ export class SQLiteCache {
         "B>:opmagic" TEXT NOT NULL,
         "B>:opcode" TEXT NOT NULL,
         "B>:rawshape" TEXT NOT NULL,
+        "B>:shape" TEXT NOT NULL,
         "B>:format" TEXT NOT NULL,
         "B>FILENAME" TEXT NOT NULL,
         "B>max" TEXT,
@@ -392,6 +395,7 @@ export class SQLiteCache {
         "A>:opmagic" TEXT NOT NULL,
         "A>:opcode" TEXT NOT NULL,
         "A>:rawshape" TEXT NOT NULL,
+        "A>:shape" TEXT NOT NULL,
         "A>:format" TEXT NOT NULL,
         "A>FILENAME" TEXT NOT NULL,
         "A>max" TEXT,
@@ -1408,6 +1412,7 @@ export class SQLiteCache {
         "A>PHASE_NAME",
         "A>:opcode",
         "A>:rawshape",
+        "A>:shape",
         "A>:format",
         "A>FUNC:funcmagic",
         "A>FUNC:hash",
@@ -1421,6 +1426,7 @@ export class SQLiteCache {
         "B>:opmagic",
         "B>:opcode",
         "B>:rawshape",
+        "B>:shape",
         "B>:format",
         "B>FUNC:funcmagic",
         "B>FUNC:hash",
@@ -1442,7 +1448,7 @@ export class SQLiteCache {
         "AB>mae_top8",
         "AB>mae_top1permil",
         "B>TIMESTAMP"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.filePath ?? '',
@@ -1458,6 +1464,7 @@ export class SQLiteCache {
       data.aPhaseName ?? '',
       data.aOpcode ?? '',
       data.aRawShape ?? '',
+      data.aShape ?? '',
       data.aFormat ?? '',
       data.aFuncMagic ?? '',
       data.aFuncHash ?? '',
@@ -1471,6 +1478,7 @@ export class SQLiteCache {
       data.bOpMagic ?? '',
       data.bOpcode ?? '',
       data.bRawShape ?? '',
+      data.bShape ?? '',
       data.bFormat ?? '',
       data.bFuncMagic ?? '',
       data.bFuncHash ?? '',
@@ -1520,6 +1528,7 @@ export class SQLiteCache {
         ":datatype" AS dataType,
         "A>:opmagic" AS aOpMagic,
         "A>:rawshape" AS aRawShape,
+        "A>:shape" AS aShape,
         "A>FILENAME" AS aFileName,
         "A>max" AS aMax,
         "A>min" AS aMin,
@@ -1529,6 +1538,7 @@ export class SQLiteCache {
         "A>infnan" AS aInfnan,
         "B>:opmagic" AS bOpMagic,
         "B>:rawshape" AS bRawShape,
+        "B>:shape" AS bShape,
         "B>FILENAME" AS bFileName,
         "B>max" AS bMax,
         "B>min" AS bMin,
@@ -1570,6 +1580,7 @@ export class SQLiteCache {
           dataType: row.dataType as string,
           aOpMagic: row.aOpMagic as string,
           aRawShape: row.aRawShape as string,
+          aShape: row.aShape as string,
           aFileName: row.aFileName as string,
           aMax: row.aMax as string,
           aMin: row.aMin as string,
@@ -1579,6 +1590,7 @@ export class SQLiteCache {
           aInfnan: row.aInfnan as string,
           bOpMagic: row.bOpMagic as string,
           bRawShape: row.bRawShape as string,
+          bShape: row.bShape as string,
           bFileName: row.bFileName as string,
           bMax: row.bMax as string,
           bMin: row.bMin as string,
@@ -1638,6 +1650,7 @@ export class SQLiteCache {
         "A>PHASE_NAME" AS aPhaseName,
         "A>:opcode" AS aOpcode,
         "A>:rawshape" AS aRawShape,
+        "A>:shape" AS aShape,
         "A>:format" AS aFormat,
         "A>FUNC:funcmagic" AS aFuncMagic,
         "A>FUNC:hash" AS aFuncHash,
@@ -1651,6 +1664,7 @@ export class SQLiteCache {
         "B>:opmagic" AS bOpMagic,
         "B>:opcode" AS bOpcode,
         "B>:rawshape" AS bRawShape,
+        "B>:shape" AS bShape,
         "B>:format" AS bFormat,
         "B>FUNC:funcmagic" AS bFuncMagic,
         "B>FUNC:hash" AS bFuncHash,
@@ -1699,6 +1713,7 @@ export class SQLiteCache {
           aPhaseName: row.aPhaseName as string,
           aOpcode: row.aOpcode as string,
           aRawShape: row.aRawShape as string,
+          aShape: row.aShape as string,
           aFormat: row.aFormat as string,
           aFuncMagic: row.aFuncMagic as string,
           aFileName: row.aFileName as string,
@@ -1712,6 +1727,7 @@ export class SQLiteCache {
           bOpMagic: row.bOpMagic as string,
           bOpcode: row.bOpcode as string,
           bRawShape: row.bRawShape as string,
+          bShape: row.bShape as string,
           bFormat: row.bFormat as string,
           bFuncMagic: row.bFuncMagic as string,
           bFuncHash: row.bFuncHash as string,
