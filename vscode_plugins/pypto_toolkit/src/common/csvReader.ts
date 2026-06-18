@@ -147,7 +147,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
         };
         await SQLiteCache.getInstance().accuracyToolCmpDetailSet(detailData);
       } else {
-        vscode.window.showWarningMessage(`Unsupported CSV type: ${type}`);
+        vscode.window.showWarningMessage(t('pypto.unsupportedCsvType', { type }));
         return false;
       }
     }
@@ -171,7 +171,7 @@ export async function getCsvData(oriFilePath: string, type: number = 1) {
     const result = await SQLiteCache.getInstance().accuracyToolCmpDetailGetByFilePath(oriFilePath);
     console.log('getCsvData:', result);
   } else {
-    vscode.window.showWarningMessage(`Unsupported CSV type: ${type}`);
+    vscode.window.showWarningMessage(t('pypto.unsupportedCsvType', { type }));
     return false;
   }
 }

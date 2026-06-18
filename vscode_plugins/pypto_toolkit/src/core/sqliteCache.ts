@@ -1647,7 +1647,7 @@ export class SQLiteCache {
       params.push(res);
     }
     if (keyword) {
-      conditions.push('("A>:opcode" = ? OR "B>:opcode" = ?)');
+      conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
       params.push(keyword, keyword);
     }
     const whereClause = conditions.join(' AND ');
@@ -1785,7 +1785,7 @@ export class SQLiteCache {
       params.push(res);
     }
     if (keyword) {
-      conditions.push('("A>:opcode" = ? OR "B>:opcode" = ?)');
+      conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
       params.push(keyword, keyword);
     }
     const whereClause = conditions.join(' AND ');

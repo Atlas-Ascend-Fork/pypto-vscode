@@ -4,6 +4,7 @@ import * as path from 'path';
 import { parse } from 'csv-parse/sync'; // 同步解析，简单场景可用
 import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache'; // 同步解析，简单场景可用
 import { SmartLogExtractor, getCsvData, readCsv } from '../common/csvReader';
+import { t } from 'i18next';
 
 export async function getResDataSum(filePath: string | undefined) {
     if (!filePath) {
@@ -598,7 +599,7 @@ export async function openCmpDiffComGraph(
     const parentDirEntries = fs.readdirSync(parentDir, { withFileTypes: true });
     const passDir = parentDirEntries.find(entry => entry.isDirectory() && entry.name.includes(passName));
     if (!passDir) {
-      vscode.window.showWarningMessage(`未找到包含 ${passName} 的子文件夹`);
+      vscode.window.showWarningMessage(t('pypto.passDirNotFound', { passName }));
       return;
     }
     const passSubDir = path.join(parentDir, passDir.name);
@@ -611,7 +612,7 @@ export async function openCmpDiffComGraph(
       .map(entry => entry.name);
   
     if (resList.length === 0) {
-      vscode.window.showWarningMessage(`在 ${passSubDir} 中未找到包含 ${funcMagicName} 和 ${funcHash} 的json文件`);
+      vscode.window.showWarningMessage(t('pypto.cmpJsonNotFound', { passSubDir, funcMagicName, funcHash }));
       return;
     }
   
@@ -701,11 +702,8 @@ export async function getCmpErrorList(
 ) {
     let failCount = -1;
     let totalCount = -1;
-    if (readFlag) {
-        await readCsv(filePath, 2);
-        totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
-        failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
-    }
+    totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
+    failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
     
     const realOffset = startOffset * pageSize;
     const errorList = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
