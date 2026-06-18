@@ -153,10 +153,9 @@ onMounted(async () => {
   if (outputPath) {
     try {
       const detail = await getOutputDetail(outputPath);
-      const opeCheckDirList = query.opeCheckDirPath as { file_path: string; first_req: string }[] | null;
       opeCheckDirPath.value = detail.data?.opeCheckDirPath ?? null;
       if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {
-        opeCheckDirPath.value = opeCheckDirList.map((item) => item.file_path);
+        opeCheckDirPath.value = opeCheckDirPath.value.map((item) => item.file_path);
         loadCompareFileList(opeCheckDirPath.value);
       }
     } catch (error) {
