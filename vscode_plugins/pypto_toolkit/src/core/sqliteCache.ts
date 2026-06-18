@@ -118,6 +118,14 @@ interface SwimGraphParsedInfoRow {
 }
 
 /**
+ * 定义数据接口，对应 comparelist 表的字段
+ */
+export interface AccuracyToolCompList {
+  file_path: string;
+  first_req: string;
+}
+
+/**
  * 定义数据接口，对应 accuracy_tool 表的字段
  */
 export interface AccuracyToolData {
@@ -437,6 +445,13 @@ export class SQLiteCache {
         file_type TEXT NOT NULL,
         file_path TEXT DEFAULT '',
         id INTEGER PRIMARY KEY CHECK (id = 1)
+      );
+    `);
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS comparelist (
+        file_path TEXT NOT NULL,
+        first_req TEXT NOT NULL,
+        PRIMARY KEY (file_path)
       );
     `);
 
@@ -1863,6 +1878,46 @@ export class SQLiteCache {
     }
 
     return result;
+  }
+
+  /****************** comparelist 表 ******************/
+  public async accuracyToolCompListSet(dataList: AccuracyToolCompList[]): Promise<void> {
+    this.db!.run('DELETE FROM comparelist');
+    for (const data of dataList) {
+      this.db!.run('INSERT INTO comparelist(file_path, first_req) VALUES(?, ?)', [data.file_path, data.first_req]);
+    }
+  }
+
+  public async accuracyToolCompListGet(): Promise<AccuracyToolCompList[]> {
+    const stmt = this.db!.prepare('SELECT file_path, first_req FROM comparelist');
+    const result: AccuracyToolCompList[] = [];
+    try {
+      while (stmt.step()) {
+        const row = stmt.getAsObject() as unknown as AccuracyToolCompList;
+        result.push(row);
+      }
+    } finally {
+      stmt.free();
+    }
+    return result;
+  }
+
+  public async accuracyToolCompListGetByFilePath(filePath: string): Promise<AccuracyToolCompList | undefined> {
+    const stmt = this.db!.prepare('SELECT file_path, first_req FROM comparelist WHERE file_path = ?');
+    stmt.bind([filePath]);
+    try {
+      if (stmt.step()) {
+        const row = stmt.getAsObject() as unknown as AccuracyToolCompList;
+        return row;
+      }
+      return undefined;
+    } finally {
+      stmt.free();
+    }
+  }
+
+  public async accuracyToolCompListUpdateFirstReq(filePath: string, firstReq: string): Promise<void> {
+    this.db!.run('UPDATE comparelist SET first_req = ? WHERE file_path = ?', [firstReq, filePath]);
   }
 
   /****************** com_graph_layout 表 ******************/

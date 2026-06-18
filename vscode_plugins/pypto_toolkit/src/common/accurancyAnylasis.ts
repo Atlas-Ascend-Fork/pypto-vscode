@@ -747,3 +747,14 @@ export async function getCmpErrorList(
   
     return { diffList, failRes: failCount, totalRes: totalCount };
 }
+
+export async function updateCompListFirstReq(fileName: string): Promise<boolean> {
+  const db = SQLiteCache.getInstance();
+  const row = await db.accuracyToolCompListGetByFilePath(fileName);
+  if (row) {
+    await db.accuracyToolCompListUpdateFirstReq(fileName, '1');
+    return true;
+  }
+  return false;
+}
+

@@ -6,7 +6,7 @@ import type { OutputRecord, RunDataManifest } from '../../../types/workspace';
 import { isFilePathExists, isFileUriExists } from '../../../utils/file-system';
 import { getMockDataPath, getProgramPath, getSwimPath } from '../../welcome';
 import { getCmpFileList } from '../../../common/csvReader';
-import { getPrecisionExceptList } from '../../../common/accurancyAnylasis';
+import { SQLiteCache, AccuracyToolCompList } from '../../../core/sqliteCache';
 
 export interface RunDataDir {
   dirname: string;
@@ -141,7 +141,7 @@ const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
 
 interface OpeCheckResult {
   hasOpeCheck: boolean;
-  opeCheckDirPath: string[] | null;
+  opeCheckDirPath: AccuracyToolCompList[] | null;
 }
 
 async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
@@ -150,6 +150,14 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
   if (!computeFilePath) {
     return empty;
   }
+
+  const db = SQLiteCache.getInstance();
+  const existingList = await db.accuracyToolCompListGet();
+
+  if (existingList.length > 0) {
+    return { hasOpeCheck: true, opeCheckDirPath: existingList };
+  }
+
   let subList: [string, vscode.FileType][];
   const fileUri = vscode.Uri.file(computeFilePath);
   subList = await vscode.workspace.fs.readDirectory(fileUri);
@@ -162,7 +170,12 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
       const files = await vscode.workspace.fs.readDirectory(verifyDirUri);
       if (files.some(([name]) => VERIFY_GRAPH_RESULT_CMP_REG_EXP.test(name))) {
         const compList = await getCmpFileList(verifyDirUri.fsPath);
-        return { hasOpeCheck: true, opeCheckDirPath: compList };
+        const insertData = compList.map((filePath) => ({
+          file_path: filePath,
+          first_req: '-1',
+        }));
+        await db.accuracyToolCompListSet(insertData);
+        return { hasOpeCheck: true, opeCheckDirPath: insertData };
       }
     } catch {
       continue;

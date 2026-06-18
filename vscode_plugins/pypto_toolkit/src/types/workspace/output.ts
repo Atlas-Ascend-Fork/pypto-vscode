@@ -1,4 +1,5 @@
 import { OutputDirectory } from './directory-tree';
+import type { AccuracyToolCompList } from '../../core/sqliteCache';
 
 /**
  * 运行数据声明文件
@@ -51,5 +52,5 @@ export interface OutputDetail {
   hasOpeCheck: boolean;
 
   /** ope校验目录路径 */
-  opeCheckDirPath: string[] | null;
+  opeCheckDirPath: AccuracyToolCompList[] | null;
 }

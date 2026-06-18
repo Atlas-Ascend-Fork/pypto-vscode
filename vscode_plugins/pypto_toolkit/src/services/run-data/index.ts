@@ -34,7 +34,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   noDirectoryTree: { type: Boolean, isQuery: true },
   directoryTree: { type: Object },
   hasOpeCheck: { type: Boolean, isQuery: true, defaultValue: false },
-  opeCheckDirPath: { type: Array, isQuery: true, defaultValue: [] },
+  opeCheckDirPath: { type: Object, isQuery: true, defaultValue: null },
 });
 
 export class RunDataService extends BasicService {
