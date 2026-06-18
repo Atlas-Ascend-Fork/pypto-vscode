@@ -64,7 +64,6 @@ pygments_style = "sphinx"
 html_theme = "furo"
 
 html_theme_options = {
-    "source_edit_link": "https://gitcode.com/cann/pypto-tools/tree/master/vscode_plugins/docs/{filename}"
 }
 
 # 模板路径
