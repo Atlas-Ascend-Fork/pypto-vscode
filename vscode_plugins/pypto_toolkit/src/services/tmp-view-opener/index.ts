@@ -46,9 +46,16 @@ export async function openSwimlaneGraph(params: { swimlaneGraphPath: string; out
  * 打开OpCheck页面
  */
 export async function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null }) {
-  const uri = vscode.Uri.file('opCheck');
+  // 标题使用output名称+OpCheck
+  const runDataService = useService('runData');
+  const record = await runDataService.getOutputRecord(params.outputPath);
+  const customTitle = `${record?.title ? record?.title + '-' : ''}OpCheck`;
+
+  // 使用outputPath作为uri的唯一标识，避免重复打开
+  // 不传递opeCheckDirPath到query中，由页面动态获取，避免因opeCheckDirPath变化导致打开多个页面
+  const uri = vscode.Uri.file(params.outputPath);
   vscode.commands.executeCommand('workbench.action.closeSidebar');
-  useView().editorView.open('opCheck', uri, { query: { outputPath: params.outputPath, opeCheckDirPath: params.opeCheckDirPath } });
+  useView().editorView.open('opCheck', uri, { query: { outputPath: params.outputPath }, title: customTitle });
 }
 
 /**

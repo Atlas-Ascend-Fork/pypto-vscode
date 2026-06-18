@@ -160,6 +160,14 @@ watch(
     }
   },
 );
+
+// 监听activeType变化，重新触发高亮
+watch(activeType, () => {
+  if (selectedBlock.value) {
+    emits('block-click', selectedBlock.value, activeType.value);
+  }
+});
+
 const handleResult = (type) => {
   activeType.value = activeType.value === type ? null : type;
 };
@@ -168,12 +176,12 @@ const handleResult = (type) => {
 const handleBlockClick = (item) => {
   if (!item.status.includes('FAIL') && !item.status.includes('EXCEPTION')) return;
   selectedBlock.value = selectedBlock.value?.pass_name === item.pass_name ? null : item;
-  emits('block-click', selectedBlock.value);
+  emits('block-click', selectedBlock.value, activeType.value);
 };
 
 const handleCancelSelect = () => {
   selectedBlock.value = null;
-  emits('block-click', null);
+  emits('block-click', null, activeType.value);
 };
 </script>
 <style lang="scss" scoped>

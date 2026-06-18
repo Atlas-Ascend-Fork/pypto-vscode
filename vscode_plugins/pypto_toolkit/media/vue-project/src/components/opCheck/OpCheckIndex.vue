@@ -13,6 +13,8 @@
       <template v-else>
         <div class="diff-view-container" :class="{ 'with-detail': showDetail }">
           <DiffCompareList
+            ref="diffCompareListRef"
+            :key="selectedCompareId"
             :left-title="leftTitle"
             :right-title="rightTitle"
             :data-list="opCompareList"
@@ -51,6 +53,7 @@ import PrecisionDetail from './PrecisionDetail.vue';
 import { getQuery } from '@/core/query';
 import { useViewServer } from '@/core/use-view-server.js';
 import { OpCheckViewServer } from 'ext:/view/servers/opcheck-server.js';
+import { getOutputDetail } from '@/apis/workspace';
 
 const { t } = useI18n();
 
@@ -81,6 +84,7 @@ const hasMoreData = computed(() => opCompareList.value.length < totalCount.value
 const showDetail = ref(false);
 const selectedDetailData = ref<PrecisionDetailData | null>(null);
 const selectedCmpCsvPath = ref<string>('');
+const diffCompareListRef = ref<{ clearSelection: () => void } | null>(null);
 
 const { server } = useViewServer<OpCheckViewServer>();
 
@@ -142,9 +146,19 @@ watch(
 
 onMounted(async () => {
   const query = await getQuery();
-  opeCheckDirPath.value = query.opeCheckDirPath as string[] | null;
-  if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {
-    loadCompareFileList(opeCheckDirPath.value);
+  const outputPath = query.outputPath as string;
+
+  // 动态获取opeCheckDirPath，避免因opeCheckDirPath变化导致打开多个页面
+  if (outputPath) {
+    try {
+      const detail = await getOutputDetail(outputPath);
+      opeCheckDirPath.value = detail.data?.opeCheckDirPath ?? null;
+      if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {
+        loadCompareFileList(opeCheckDirPath.value);
+      }
+    } catch (error) {
+      console.error('[OpCheckIndex] Failed to get output detail:', error);
+    }
   }
 });
 
@@ -185,6 +199,10 @@ const parseCompareFileName = (fileName: string): { fileNameA: string; fileNameB:
 };
 
 const onCompareSelect = (data: CompareFileItem) => {
+  // 关闭侧栏精度报告并清除选中数据
+  showDetail.value = false;
+  selectedDetailData.value = null;
+
   selectedCompareId.value = data.id;
   currentPageOffset.value = 0;
   isLoadingMore.value = false;
@@ -237,6 +255,10 @@ const onLoadMore = () => {
 };
 
 const onFilterChange = (filterData: { keyword?: string; res?: string }) => {
+  // 关闭侧栏精度报告并清除选中数据
+  showDetail.value = false;
+  selectedDetailData.value = null;
+
   filterKeyword.value = filterData.keyword;
   filterRes.value = filterData.res;
   currentPageOffset.value = 0;
@@ -257,7 +279,14 @@ const onFilterChange = (filterData: { keyword?: string; res?: string }) => {
   }
 };
 
-const onDiffItemClick = ({ data, source }: { data: OpCompareItem; source: 'left' | 'right' }) => {
+const onDiffItemClick = ({ data, source }: { data: OpCompareItem | null; source: 'left' | 'right' | null }) => {
+  // 如果 data 为 null，说明是取消选中，关闭侧边栏
+  if (!data || !source) {
+    showDetail.value = false;
+    selectedDetailData.value = null;
+    return;
+  }
+
   const selectedItem = compareFileList.value.find((item) => item.id === selectedCompareId.value);
   if (selectedItem) {
     selectedCmpCsvPath.value = selectedItem.cmpCsvPath;
@@ -331,8 +360,6 @@ const onDiffItemClick = ({ data, source }: { data: OpCompareItem; source: 'left'
 };
 
 const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath: string }) => {
-  console.log('[OpCheckIndex] jumpToGraph:', data);
-
   if (!data.cmpCsvPath) {
     console.warn('[OpCheckIndex] cmpCsvPath is empty, cannot jump to graph');
     return;
@@ -354,7 +381,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
   try {
     await server.setCurAccuFilePathApi({
       filePath: data.cmpCsvPath,
-      fileType: 'op',
+      fileType: isLeft? 'op_A' : 'op_B',
     });
     console.log('[OpCheckIndex] setCurAccuFilePathApi success');
 
@@ -373,6 +400,8 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
 const onCloseDetail = () => {
   showDetail.value = false;
   selectedDetailData.value = null;
+  // 关闭侧边栏时取消列表选中状态
+  diffCompareListRef.value?.clearSelection();
 };
 </script>
 

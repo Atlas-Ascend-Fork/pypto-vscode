@@ -10,7 +10,6 @@
         <d-search
           v-model="searchKeyword"
           is-keyup-search
-          size="sm"
           :show-glow-style="false"
           :placeholder="t('opCheck.searchOpName')"
           :disabled="props.initialLoading"
@@ -302,9 +301,16 @@ const toggleExpand = (id: string) => {
 };
 
 const onItemClick = (item: OpCompareItem, source: 'left' | 'right') => {
-  selectedItemId.value = item.id;
-  selectedSource.value = source;
-  emits('item-click', { data: item, source });
+  // 如果点击的是已选中的项目，则取消选中
+  if (selectedItemId.value === item.id && selectedSource.value === source) {
+    selectedItemId.value = '';
+    selectedSource.value = '';
+    emits('item-click', { data: null, source: null });
+  } else {
+    selectedItemId.value = item.id;
+    selectedSource.value = source;
+    emits('item-click', { data: item, source });
+  }
 };
 
 let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -344,11 +350,27 @@ onUnmounted(() => {
 
 watch(
   () => props.dataList,
-  () => {
+  (newList, oldList) => {
     expandedItems.value = [];
+    // 只在数据被替换（非追加）时清除选中状态
+    // 如果新列表长度小于等于旧列表，说明是替换而非追加
+    if (!oldList || newList.length <= oldList.length) {
+      selectedItemId.value = '';
+      selectedSource.value = '';
+    }
     setTimeout(checkAndLoadMore, 100);
   },
 );
+
+// 暴露清除选中状态的方法
+const clearSelection = () => {
+  selectedItemId.value = '';
+  selectedSource.value = '';
+};
+
+defineExpose({
+  clearSelection,
+});
 </script>
 
 <style scoped lang="scss">
