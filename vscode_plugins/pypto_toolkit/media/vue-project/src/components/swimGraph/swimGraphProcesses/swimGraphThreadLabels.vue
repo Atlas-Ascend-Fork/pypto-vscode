@@ -703,14 +703,6 @@ const handlePinGroupThread = (group) => {
   } else {
     for (const thread of group.threads) {
       const threadKey = thread.isCounter ? thread.threadName : String(thread.tid);
-      const threadHeight = getThreadHeight(
-        props.processKey,
-        threadKey,
-        lane2line,
-        layout,
-        thread.isCounter
-      );
-      
       handlePinThread(threadKey);
     }
   }

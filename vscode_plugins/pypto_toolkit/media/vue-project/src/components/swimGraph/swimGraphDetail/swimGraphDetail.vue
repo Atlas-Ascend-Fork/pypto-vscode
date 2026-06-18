@@ -495,6 +495,13 @@ const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 
 const predecessors = computed(() => {
   if (!canvasclickedEvent.value?.dependencies?.predecessors) return [];
+  if (!canvasclickedEvent.value?.parentEventId) {
+    if (selectedEvent.value) {
+      return selectedEvent.value.dependencies.predecessors.map(id =>
+        swimDataManager.getEventById(id)
+      ).filter(e => e);
+    }
+  }
   return canvasclickedEvent.value.dependencies.predecessors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);
@@ -502,6 +509,13 @@ const predecessors = computed(() => {
 
 const successors = computed(() => {
   if (!canvasclickedEvent.value?.dependencies?.successors) return [];
+  if (!canvasclickedEvent.value?.parentEventId) {
+    if (selectedEvent.value) {
+      return selectedEvent.value.dependencies.successors.map(id =>
+        swimDataManager.getEventById(id)
+      ).filter(e => e);
+    }
+  }
   return canvasclickedEvent.value.dependencies.successors.map(id =>
     swimDataManager.getEventById(id)
   ).filter(e => e);

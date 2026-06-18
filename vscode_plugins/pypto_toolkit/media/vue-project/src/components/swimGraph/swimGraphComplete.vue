@@ -1534,7 +1534,12 @@ const handleMixNormalEventClick = (event, processKey) => {
     {
         return;
     }
-    calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+    const isMacroTask = swimDataManager.isMixParentEvent(event);
+    if (isMacroTask) {
+      calculateMixMacroPaths(event.id, highlightedPaths, userConfig.value.connectionLevel);
+    } else {
+      calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
+    }
     childContextMap.threadEvent.changeNodeColor(processKey, false);
     renderDependencyLines(processKey);
   }, 0);
@@ -2213,7 +2218,7 @@ const getTwoConfigName = (event, name) => {
       const taskLabelName = labelPart ? labelPart.groups.label.trim() : '';
       displayName = combineNames(taskLabelName, hashOrderName);
     }
-    if (isMixMode.value) {
+    if (isMixMode.value && swimDataManager.hasMixConfig()) {
       const rightPart = name.includes('_') ? name.split('_').pop() : '';
       displayName = displayName + (rightPart ? '_' + String(rightPart) : '');
     }
@@ -2238,7 +2243,7 @@ const getDisplayName = (event) => {
       displayName = labelPart ? labelPart.groups.label.trim() : '';
     }
   } else if (textOption.length === 1 && textOption[0] === 'isomorphicSubGraphGroup') {
-    if (isMixMode.value) {
+    if (isMixMode.value && swimDataManager.hasMixConfig()) {
     const rightPart = displayName.includes('_') ? displayName.split('_').pop() : '';
     displayName = gethashOrderName(event, displayName);
     displayName = displayName + (rightPart ? '_' + String(rightPart) : '');
@@ -3288,6 +3293,9 @@ provide('swimGraphMethods', {
   },
   changeNodeColor: (processKey, isDimmed)=> {
     childContextMap.threadEvent.changeNodeColor(processKey, isDimmed);
+  },
+  fillTextInfo: (event, ctx, drawData, isTextXChange, isAicpuProcess) => {
+    childContextMap.threadEvent.fillTextInfo(event, ctx, drawData, isTextXChange, isAicpuProcess);
   },
   setHashOrderTipColor,
   isCoreUtilizationSupported

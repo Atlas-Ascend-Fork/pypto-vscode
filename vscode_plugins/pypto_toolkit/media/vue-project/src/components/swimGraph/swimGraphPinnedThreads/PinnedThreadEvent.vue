@@ -561,13 +561,12 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) 
     ctx.clearRect(0, 0, eventWidth, height);
   }
   let threadPinned = false;
-  const pinnedKey = `${event.pid}-${event.pid}-${event.tid}`;
   for (const pinnedThread of pinnedThreadsList.value) {
     const { processKey, threadKey, thread } = pinnedThread;
     if (thread.isCounter) {
       continue;
     }
-    if (`${processKey}-${threadKey}` === pinnedKey) {
+    if (processKey.toString() === event.pid.toString() && threadKey.toString() === event.threadKey) {
      threadPinned = true;
      break; 
     }

@@ -314,7 +314,21 @@ const handleCanvasClick = (e) => {
       if (globalMeasureCanvas.value) {
         globalMeasureCanvas.value.clearMeasure();
       }
-      detailsPanelExpanded.value = true;
+      if (props.process.type === 'aicpu') {
+        const { threadName } = clickedEvent;
+        const isCtrl = threadName.includes('AICPU-CTRL');
+        const isSched = threadName.includes('AICPU-SCHED');
+        aicpuControlDetailsExpanded.value = isCtrl;
+        aicpuScheduleDetailsExpanded.value = isSched;
+        aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
+        detailsPanelExpanded.value = false;
+        selectEvent(clickedEvent, props.processKey);
+      } else {
+        aicpuControlDetailsExpanded.value = false;
+        aicpuScheduleDetailsExpanded.value = false;
+        aicpuCoreDetailsExpanded.value = false;
+        detailsPanelExpanded.value = true;
+      }
       onHoverEvent();
       clearOtherProcessCanvas();
       drawNodeHeight(clickedEvent, props.processKey);
@@ -917,9 +931,21 @@ const renderDimmedNodesInWrap = (event, wrapHoverCtx) => {
     if (isGlobalCanvas) {
       subEvent = JSON.parse(JSON.stringify(subEvent));
       const coord = globalConnectionCanvas.value.getEventCoordinates(subEvent, false);
-      const startY = coord.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
-      subEvent.drawData.rectY = startY / devicePixelRatio;
-      subEvent.drawData.textY = startY + eventTextSize;
+      if (!coord) {
+        continue;
+      }
+      const drawData = subEvent.drawData;
+      const eventHeight = subEvent.renderInfo?.height || drawData?.height || 0;
+      const globalLogicalY = (coord.y / devicePixelRatio) - (eventHeight / 2);
+      const globalPixelY = coord.y - (eventHeight * devicePixelRatio / 2);
+      drawData.rectY = globalLogicalY;
+      drawData.rectPixelY = globalPixelY;
+      drawData.pinnedEventY = globalLogicalY;
+      drawData.show = true;
+      wrapHoverCtx.save();
+      wrapHoverCtx.font = getFontStyle(eventTextSize);
+      fillTextInfo(subEvent, wrapHoverCtx, drawData);
+      wrapHoverCtx.restore();
     }
     if (subEvent?.drawData) {
       drawDatas.push(subEvent.drawData);
@@ -1197,8 +1223,7 @@ const handleMouseMoveThrottle = throttle((e) => {
       if (wrapId === -1) {
         highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
       } else {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
-        renderMicroByWrapId(wrapId, props.processKey, eventCtx);
+        restoreMacroView(eventCtx, wrapId);
         info = findEventAtPosition(x, y, props.processKey);
         hoveredEvent = info?.event;
         preHoverMixWrapId = hoveredEvent?.args?.wrapId;
@@ -1206,11 +1231,10 @@ const handleMouseMoveThrottle = throttle((e) => {
     } else {
       const wrapLabelHover = detectWrapLabelHover(x, y);
       if (wrapLabelHover || wrapLabelHover === 0) {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
-        renderMicroByWrapId(wrapLabelHover, props.processKey, eventCtx);
+        restoreMacroView(eventCtx, wrapLabelHover);
         preHoverMixWrapId = wrapLabelHover;
       } else {
-        restoreMacroView(eventCtx, preHoverMixWrapId);
+        restoreMacroView(eventCtx, null);
       }
     }
     highlightMixThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
@@ -1240,26 +1264,33 @@ const handleMouseMoveThrottle = throttle((e) => {
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
 }, 80);
 const restoreMacroView = (eventCtx, wrapId) => {
-  if (!eventCtx || wrapId == null) {
+  if (!eventCtx || (preHoverMixWrapId == null && wrapId === null)) {
     return;
   }
   const selectedWrapId = selectedEvent.value?.args?.wrapId;
-  if (selectedWrapId === wrapId) {
+  if (selectedWrapId === preHoverMixWrapId) {
     return;
   }
+  const canvas = document.querySelector(`[data-process-key="${props.processKey}"]`);
+  eventCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   const wrapContainers = swimDataManager.getWrapContainers();
-  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === wrapId);
-  const { threadTids } = currentWrapContainer;
-  for (const tid of threadTids) {
-    const threadKey = `${props.processKey}-${tid}`;
-    const thread = processes.get(props.processKey).threads.get(threadKey);
-    const { events } = thread;
-    let eventDatas = [];
-    events.forEach((event, index, array) => {
-      eventDatas.push(event.drawData);
-    });
-    eventRenderer.drawEvent(eventDatas, eventCtx);
-    eventRenderer.drawEventText(eventDatas, eventCtx);
+  for (const wrapContainer of wrapContainers) {
+    if (wrapContainer.wrapId === wrapId || wrapContainer.wrapId === focusedWrapId.value) {
+      renderMicroByWrapId(wrapContainer.wrapId, props.processKey, eventCtx);
+    } else {
+      const { threadTids } = wrapContainer;
+      for (const tid of threadTids) {
+        const threadKey = `${props.processKey}-${tid}`;
+        const thread = processes.get(props.processKey).threads.get(threadKey);
+        const { events } = thread;
+        let eventDatas = [];
+        events.forEach(event => {
+          eventDatas.push(event.drawData);
+        });
+        eventRenderer.drawEvent(eventDatas, eventCtx);
+        eventRenderer.drawEventText(eventDatas, eventCtx);
+      }
+    }
   }
 };
 const handleHoverEvent = (hoveredEvent) => {

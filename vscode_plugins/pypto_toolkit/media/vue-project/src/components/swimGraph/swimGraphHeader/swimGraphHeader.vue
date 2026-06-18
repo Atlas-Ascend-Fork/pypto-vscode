@@ -1000,7 +1000,7 @@ const handleWaitTasks = (params) => {
 };
 
 const processMixThreadEvents = (thread, processKey, filterFn) => {
-  const results = [];
+  let results = [];
   
   const processInfo = swimDataManager.processInfo.get(processKey);
   if (!processInfo) { 
@@ -1026,11 +1026,15 @@ const processMixThreadEvents = (thread, processKey, filterFn) => {
   for (const parentEvent of parentEvents) {
     const parentName = parentEvent.name;
     if (filterFn(parentEvent, thread, processKey)) {
-      const subEvents = swimDataManager.getSubEvents(parentEvent.id);
-      handleSubEvents({subEvents, thread, processKey, results, parentName});
+      if (parentEvent.id === selectedEvent?.value?.parentEventId) {
+        const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+        handleSubEvents({subEvents, thread, processKey, results, parentName});
 
-      const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
-      handleWaitTasks({waitTasks, thread, processKey, filterFn, results});
+        const waitTasks = swimDataManager.getWaitTasks(parentEvent.id);
+        handleWaitTasks({waitTasks, thread, processKey, filterFn, results});
+      } else {
+        results = processThreadEvents(thread, processKey, filterFn);
+      }
     }
   }
   
@@ -1050,6 +1054,19 @@ const processMixThreadEvents = (thread, processKey, filterFn) => {
   return results;
 };
 
+const removeDuplicateEvents = (results) => {
+  const seenNames = new Set();
+  return results.filter(item => {
+    const eventName = item[0].name;
+    if (seenNames.has(eventName)) {
+      return false;
+    } else {
+      seenNames.add(eventName);
+      return true;
+    }
+  });
+};
+
 const performSearch = (filterFn) => {
   searchResult.value = [];
   searchResultCount.value = 0;
@@ -1057,7 +1074,7 @@ const performSearch = (filterFn) => {
   for (const [processKey, process] of processes.entries()) {
     for (const [threadKey, thread] of process.threads.entries()) {
       let results;
-      if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+      if (isMixMode?.value && swimDataManager.hasMixConfig() && selectedEvent.value?.parentEventId) {
         results = processMixThreadEvents(thread, processKey, filterFn);
       } else {
         results = processThreadEvents(thread, processKey, filterFn);
@@ -1075,6 +1092,7 @@ const performSearch = (filterFn) => {
     measureModel();
   }
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
+  searchResult.value = removeDuplicateEvents(searchResult.value);
   searchResultCount.value = searchResult.value.length;
   isSearchActive.value = true;
   if (searchResultCount.value > 0) {
@@ -1197,6 +1215,13 @@ const navigateResults = async (direction) => {
 
 const selectEventChild = (event) => {
   searchedEvent.value = event;
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && selectedEvent.value?.parentEventId) {
+    lastSelected.value = null;
+    detailsPanelExpanded.value = false;
+    highlightedPaths.clear();
+    highlightedPaths.add(event.id);
+    return;
+  }
   selectedEvent.value = null;
   lastSelected.value = null;
   detailsPanelExpanded.value = false;
@@ -1206,12 +1231,12 @@ const selectEventChild = (event) => {
 
 const scrollToEvent = (event) => {
   let needRender = true;
-  const eventLeftX = (event.renderInfo.x * viewState.scale) + viewState.offsetX;
+  const eventLeftX = (event.renderInfo?.x * viewState.scale) + viewState.offsetX;
   if (eventLeftX < 0) {
     rightmove(0 - eventLeftX);
     needRender = false;
   }
-  const eventWidth = event.renderInfo.width * viewState.scale;
+  const eventWidth = event.renderInfo?.width * viewState.scale;
   const divElement = document.getElementsByClassName('swimlane-container');
   const scrollWidth = divElement[0].offsetWidth - divElement[0].clientWidth; // 滚动条的宽度
   const eventRightX = eventLeftX + eventWidth;

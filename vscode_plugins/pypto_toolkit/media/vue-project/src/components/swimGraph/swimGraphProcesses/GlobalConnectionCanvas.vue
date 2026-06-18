@@ -10,7 +10,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, inject, watch, nextTick } from 'vue';
 import { throttle } from 'lodash-es';
-import { COLOR_CFG, DEP_MODE, drawArrow, eventTextSize } from '../swimGraphUtils';
+import { COLOR_CFG, DEP_MODE, drawArrow, eventTextSize, getFontStyle } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
 import { EventRender } from './render/eventRender';
 import { getEventColor } from './render/utils';
@@ -55,7 +55,8 @@ const swimGraphMethods = inject('swimGraphMethods');
 const {
   drawClickWrapContainner,
   renderDimmedNodesInWrap,
-  changeNodeColor
+  changeNodeColor,
+  fillTextInfo
 } = swimGraphMethods;
 const { userConfig } = inject('swimGraphCfg');
 const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig});
@@ -282,11 +283,10 @@ const drawEventNode = (event, coords, isExpanded) => {
   if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) {
     return;
   };
-  const drawData = { ...event.drawData };
-  const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
+  const drawData = toGlobalDrawData(event, coords);
   
-  drawData.rectY = startY / devicePixelRatio;
-  drawData.textY = startY + eventTextSize;
+  drawData.rectColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
+  drawData.fontColor = isDarkTheme.value ? COLOR_CFG.dark.eventFont : COLOR_CFG.light.eventFont;
   
   eventRenderer.drawEvent([drawData], ctx);
   eventRenderer.drawEventText([drawData], ctx);
@@ -296,11 +296,7 @@ const drawNormalEventNode = (event, coords, isExpanded) => {
     return;
   }
   
-  const drawData = { ...event.drawData };
-  const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
-  
-  drawData.rectY = startY / devicePixelRatio;
-  drawData.textY = startY + eventTextSize;
+  const drawData = toGlobalDrawData(event, coords);
   
   let eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
   
@@ -316,16 +312,35 @@ const drawNormalEventNode = (event, coords, isExpanded) => {
   eventRenderer.drawEvent([drawData], ctx);
   eventRenderer.drawEventText([drawData], ctx);
 };
+
+const toGlobalDrawData = (event, coords, overrides = {}) => {
+  const drawData = { ...event.drawData };
+  const eventHeight = event.renderInfo?.height || event.drawData?.height || 0;
+  const globalLogicalY = (coords.y / devicePixelRatio) - (eventHeight / 2);
+  const globalPixelY = coords.y - (eventHeight * devicePixelRatio / 2);
+  drawData.rectY = globalLogicalY;
+  drawData.rectPixelY = globalPixelY;
+  drawData.pinnedEventY = globalLogicalY;
+  drawData.show = true;
+  if (!drawData.width && event.renderInfo) {
+    drawData.width = event.renderInfo.width;
+  }
+  Object.assign(drawData, overrides);
+  
+  ctx.save();
+  ctx.font = getFontStyle(eventTextSize);
+  fillTextInfo(event, ctx, drawData);
+  ctx.restore();
+  
+  return drawData;
+};
+
 const highlightEventNode = (event, coords, isExpanded) => {
   if (!isExpanded || !event.drawData) {
     return;
   }
   
-  const drawData = { ...event.drawData };
-  const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
-  
-  drawData.rectY = startY / devicePixelRatio;
-  drawData.textY = startY + eventTextSize;
+  const drawData = toGlobalDrawData(event, coords);
   
   let eventColor = isDarkTheme.value ? event.color?.dark : event.color?.light;
   
@@ -616,7 +631,11 @@ const drawMacroDependencyLines = () => {
   if (isPathLockStatus.value) {
     drawMixDep(pathLockedEvent.value);
   } else {
-    drawMixDep(selectedEvent.value || searchedEvent.value);
+    if (searchedEvent.value?.parentEventId) {
+      drawMixDep(searchedEvent.value)
+    } else {
+      drawMixDep(selectedEvent.value || searchedEvent.value);
+    }
   }
 
   globalDependencyLinesInfo.value = [];
@@ -747,19 +766,59 @@ const getDrawMacroEventNodeDrawData = () => {
     for (const subEvent of subEvents) {
       const subCoords = getEventCoordinates(subEvent, false);
       if (subCoords) {
-        const drawData = { ...subEvent.drawData };
-        const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
-        drawData.rectY = startY / devicePixelRatio;
-        drawData.textY = startY + eventTextSize;
+        const drawData = toGlobalDrawData(subEvent, subCoords);
         const parentEvent = swimDataManager.getEventById(subEvent.parentEventId);
         const eventColor = isDarkTheme.value ? parentEvent?.color?.dark : parentEvent?.color?.light;
         drawData.rectColor = eventColor?.light || '#90b8f9';
         drawData.fontColor = isDarkTheme.value ? COLOR_CFG.dark.eventFontHighLight : COLOR_CFG.light.eventFontHighLight;
+        
         eventRenderer.drawEvent([drawData], ctx);
         eventRenderer.drawEventText([drawData], ctx);
       }
     }
   }
+};
+
+const drawSubEventNodes = (event) => {
+  const subEvents = swimDataManager.getSubEvents(event.id);
+  const eventColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
+  
+  for (const subEvent of subEvents) {
+    if (!subEvent.drawData) {
+      continue;
+    }
+    
+    const subCoords = getEventCoordinates(subEvent, false);
+    if (subCoords) {
+      const drawData = toGlobalDrawData(subEvent, subCoords);
+      drawData.rectColor = eventColor;
+      
+      eventRenderer.drawEvent([drawData], ctx);
+      eventRenderer.drawEventText([drawData], ctx);
+    }
+  }
+};
+
+const drawMacroEventNode = (event, coords) => {
+  if (!event.drawData || !event.renderInfo || !coords) {
+    return;
+  }
+  
+  const drawData = toGlobalDrawData(event, coords, {
+    rectX: event.renderInfo.x,
+    rectPixelX: event.renderInfo.x * devicePixelRatio,
+    width: event.renderInfo.width,
+    eventWidth: event.renderInfo.width,
+  });
+  
+  const isSelected = event.id === selectedEvent.value.id;
+  const eventColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
+  drawData.rectColor = isSelected ? (isDarkTheme.value ? event.color?.dark?.light : event.color?.light?.light) || '#90b8f9' : eventColor;
+  const fontColor = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  drawData.fontColor = isSelected ? fontColor.eventFontHighLight : fontColor.eventFont;
+  
+  eventRenderer.drawEvent([drawData], ctx);
+  eventRenderer.drawEventText([drawData], ctx);
 };
 
 const drawMacroEventNodeCached = (event, coords, drawnNodes) => {
@@ -769,51 +828,18 @@ const drawMacroEventNodeCached = (event, coords, drawnNodes) => {
   drawnNodes.add(event.id);
   
   const isSelectedParent = event.id === selectedEvent.value?.parentEventId;
-  
   if (isSelectedParent) {
     getDrawMacroEventNodeDrawData();
     return;
   }
   
   const isMixParent = swimDataManager.isMixParentEvent(event);
+  const isSelectedMacroTask = selectedEvent.value && swimDataManager.isMixParentEvent(selectedEvent.value);
   
-  if (isMixParent) {
-    const subEvents = swimDataManager.getSubEvents(event.id);
-    const eventColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
-    
-    for (const subEvent of subEvents) {
-      if (!subEvent.drawData) {
-        continue;
-      };
-      
-      const subCoords = getEventCoordinates(subEvent, false);
-      if (subCoords) {
-        const drawData = { ...subEvent.drawData };
-        const startY = subCoords.y - ((subEvent.drawData.height * devicePixelRatio) / 2);
-        drawData.rectY = startY / devicePixelRatio;
-        drawData.textY = startY + eventTextSize;
-        drawData.rectColor = eventColor;
-        
-        eventRenderer.drawEvent([drawData], ctx);
-        eventRenderer.drawEventText([drawData], ctx);
-      }
-    }
+  if (isMixParent && !isSelectedMacroTask) {
+    drawSubEventNodes(event);
   } else {
-    if (!event.drawData) {
-      return;
-    };
-    
-    const drawData = { ...event.drawData };
-    const startY = coords.y - ((event.drawData.height * devicePixelRatio) / 2);
-    drawData.rectY = startY / devicePixelRatio;
-    drawData.textY = startY + eventTextSize;
-    const isSelected = event.id === selectedEvent.value.id;
-    const eventColor = (isDarkTheme.value ? event.color?.dark : event.color?.light) || '#90b8f9';
-    drawData.rectColor = isSelected ? eventColor.light : eventColor.base;
-    const fontColor = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
-    drawData.fontColor = isSelected ? fontColor.eventFontHighLight : fontColor.eventFont;
-    eventRenderer.drawEvent([drawData], ctx);
-    eventRenderer.drawEventText([drawData], ctx);
+    drawMacroEventNode(event, coords);
   }
 };
 

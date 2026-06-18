@@ -747,4 +747,3 @@ export async function getCmpErrorList(
   
     return { diffList, failRes: failCount, totalRes: totalCount };
 }
-
