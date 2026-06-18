@@ -1223,7 +1223,8 @@ const handleMouseMoveThrottle = throttle((e) => {
       if (wrapId === -1) {
         highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
       } else {
-        restoreMacroView(eventCtx, wrapId);
+        restoreMacroView(eventCtx, preHoverMixWrapId);
+        renderMicroByWrapId(wrapId, props.processKey, eventCtx);
         info = findEventAtPosition(x, y, props.processKey);
         hoveredEvent = info?.event;
         preHoverMixWrapId = hoveredEvent?.args?.wrapId;
@@ -1231,10 +1232,11 @@ const handleMouseMoveThrottle = throttle((e) => {
     } else {
       const wrapLabelHover = detectWrapLabelHover(x, y);
       if (wrapLabelHover || wrapLabelHover === 0) {
-        restoreMacroView(eventCtx, wrapLabelHover);
+        restoreMacroView(eventCtx, preHoverMixWrapId);
+        renderMicroByWrapId(wrapLabelHover, props.processKey, eventCtx);
         preHoverMixWrapId = wrapLabelHover;
       } else {
-        restoreMacroView(eventCtx, null);
+        restoreMacroView(eventCtx, preHoverMixWrapId);
       }
     }
     highlightMixThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
@@ -1264,34 +1266,27 @@ const handleMouseMoveThrottle = throttle((e) => {
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
 }, 80);
 const restoreMacroView = (eventCtx, wrapId) => {
-  if (!eventCtx || (preHoverMixWrapId == null && wrapId === null)) {
+  if (!eventCtx || wrapId === null) {
     return;
   }
   const selectedWrapId = selectedEvent.value?.args?.wrapId;
-  if (selectedWrapId === preHoverMixWrapId) {
+  if (selectedWrapId === wrapId) {
     return;
   }
-  const canvas = document.querySelector(`[data-process-key="${props.processKey}"]`);
-  eventCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   const wrapContainers = swimDataManager.getWrapContainers();
-  for (const wrapContainer of wrapContainers) {
-    if (wrapContainer.wrapId === wrapId || wrapContainer.wrapId === focusedWrapId.value) {
-      renderMicroByWrapId(wrapContainer.wrapId, props.processKey, eventCtx);
-    } else {
-      const { threadTids } = wrapContainer;
-      for (const tid of threadTids) {
-        const threadKey = `${props.processKey}-${tid}`;
-        const thread = processes.get(props.processKey).threads.get(threadKey);
-        const { events } = thread;
-        let eventDatas = [];
-        events.forEach(event => {
-          eventDatas.push(event.drawData);
-        });
-        eventRenderer.drawEvent(eventDatas, eventCtx);
-        eventRenderer.drawEventText(eventDatas, eventCtx);
-      }
-    }
-  }
+  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === wrapId);	 
+   const { threadTids } = currentWrapContainer;	 
+   for (const tid of threadTids) {	 
+     const threadKey = `${props.processKey}-${tid}`;	 
+     const thread = processes.get(props.processKey).threads.get(threadKey);	 
+     const { events } = thread;	 
+     let eventDatas = [];	 
+     events.forEach((event, index, array) => {	 
+       eventDatas.push(event.drawData);	 
+     });	 
+     eventRenderer.drawEvent(eventDatas, eventCtx);	 
+     eventRenderer.drawEventText(eventDatas, eventCtx);	 
+   }
 };
 const handleHoverEvent = (hoveredEvent) => {
   if (!hoveredEvent) {
@@ -2462,26 +2457,20 @@ const changeWrapThreadNodeColor = (thread, processKey, isDimmed, drawDatas, sibl
   if (!threadInfo) {
     return;
   }
-  
   const parentEvents = threadInfo.eventIds
     .map(id => swimDataManager.getEventById(id))
     .filter(e => e && swimDataManager.isMixParentEvent(e));
-  const currentWrapId = parentEvents[0]?.args?.wrapId;
   const { parentEventId, siblingDrawDatas = [] } = siblingContext;
-  const isFocusedWrap = currentWrapId === focusedWrapId.value;
-  
   for (const parentEvent of parentEvents) {
     if (!isEventInTimeRange(parentEvent)) {
       setEventShowFalse(parentEvent);
       continue;
     }
-    
-    if (!isFocusedWrap) {
+    if (parentEvent?.args?.wrapId === focusedWrapId.value) {
+      processFocusedParentEvent(parentEvent, { drawDatas, siblingDrawDatas }, { isDimmed, parentEventId }, processKey);
+    } else {
       handleNonFocusedParentEvent(parentEvent, drawDatas, thread.tid, processKey);
-      continue;
     }
-    
-    processFocusedParentEvent(parentEvent, { drawDatas, siblingDrawDatas }, { isDimmed, parentEventId }, processKey);
   }
   
   const normalEvents = threadInfo.eventIds
