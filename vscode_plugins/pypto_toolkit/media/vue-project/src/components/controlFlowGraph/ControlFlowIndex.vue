@@ -124,6 +124,10 @@ const tagNodeId = ref(''); // 标签显示节点
 const hasBothTags = ref(false); // 是否同时有first-fail和first-exception标签
 const accuracyReportData = ref(); // 精度执行报告数据
 const tagPass = ref(); // tag标签跳转的对应pass
+const firstFailNodeId = ref(''); // 第一个FAIL节点的ID
+const firstExcNodeId = ref(''); // 第一个EXCEPTION节点的ID
+// 保存每个节点的高亮状态映射
+const nodeHighlightStates = ref<Record<string, string[]>>({});
 // 有预览相关状态
 const codePreviewState = reactive<PreviewState>({
   isVisible: false,
@@ -451,7 +455,7 @@ const openAccuracyReport = () => {
 };
 
 // 点击精度执行报告中的pass block，高亮对应PATH节点
-const handleBlockClick = (item) => {
+const handleBlockClick = (item, activeType) => {
   if (!graph) return;
 
   // 清除之前的高亮状态
@@ -469,6 +473,9 @@ const handleBlockClick = (item) => {
     currentHightLightState.value = '';
     tagNodeId.value = '';
     hasBothTags.value = false;
+    firstFailNodeId.value = '';
+    firstExcNodeId.value = '';
+    nodeHighlightStates.value = {};
     return;
   }
 
@@ -493,84 +500,114 @@ const handleBlockClick = (item) => {
     graph.draw();
     currentHightLightState.value = '';
     tagNodeId.value = '';
+    firstFailNodeId.value = '';
+    firstExcNodeId.value = '';
+    nodeHighlightStates.value = {};
     return;
   }
 
   // 记录第一个FAIL节点和第一个EXCEPTION节点
-  let firstFailNodeId = '';
-  let firstExcNodeId = '';
+  let tempFirstFailNodeId = '';
+  let tempFirstExcNodeId = '';
 
-  // 处理EXCEPTION节点（优先级高于FAIL，重复节点使用EXCEPTION高亮）
-  if (hasException) {
-    const excNodes = targetNodes.filter((node) => excMagicNames.includes(node.data.source?.magicName));
-    excNodes.forEach((node) => {
-      const states = ['highlight-EXCEPTION'];
-      // 第一个EXCEPTION节点添加first-exception标签
-      if (node.data.source?.magicName === excMagicNames[0]) {
-        states.push('first-exception');
-        firstExcNodeId = node.id;
-        graph.setElementZIndex(node.id, Infinity);
-      }
-      graph.setElementState(node.id, states);
-    });
+  // 找出第一个FAIL节点
+  if (hasFail && failMagicNames.length > 0) {
+    const firstFailNode = targetNodes.find((node) => node.data.source?.magicName === failMagicNames[0]);
+    if (firstFailNode) {
+      tempFirstFailNodeId = firstFailNode.id;
+    }
+  }
+  // 找出第一个EXCEPTION节点
+  if (hasException && excMagicNames.length > 0) {
+    const firstExcNode = targetNodes.find((node) => node.data.source?.magicName === excMagicNames[0]);
+    if (firstExcNode) {
+      tempFirstExcNodeId = firstExcNode.id;
+    }
   }
 
-  // 处理FAIL节点（排除重复的，重复的使用EXCEPTION高亮）
-  if (hasFail) {
-    const failNodes = targetNodes.filter(
-      (node) => failMagicNames.includes(node.data.source?.magicName) && !duplicateMagicNames.includes(node.data.source?.magicName),
-    );
-    failNodes.forEach((node) => {
-      const states = ['highlight-FAIL'];
-      // 第一个FAIL节点添加first-fail标签
-      if (node.data.source?.magicName === failMagicNames[0]) {
-        states.push('first-fail');
-        firstFailNodeId = node.id;
-        graph.setElementZIndex(node.id, Infinity);
-      }
-      graph.setElementState(node.id, states);
-    });
-  }
+  // 保存到ref
+  firstFailNodeId.value = tempFirstFailNodeId;
+  firstExcNodeId.value = tempFirstExcNodeId;
 
-  // 如果第一个FAIL和第一个EXCEPTION是同一个节点，需要同时显示两个标签
-  // 这种情况下节点已经在EXCEPTION处理中设置了first-exception
-  // 需要额外添加first-fail标签
-  if (firstFailNodeId && firstExcNodeId && firstFailNodeId === firstExcNodeId) {
-    // 同时显示两个标签的逻辑在usePathCardNode中处理
-    // 这里需要确保节点同时有first-exception和first-fail状态
-    graph.setElementState(firstFailNodeId, ['highlight-EXCEPTION', 'first-exception', 'first-fail']);
+  // 根据 activeType 决定重合节点的边框颜色
+  // activeType === 'FAIL' 时，重合节点使用 FAIL 高亮（橙色）
+  // activeType === 'EXCEPTION' 或 null 时，重合节点使用 EXCEPTION 高亮（红色）
+  const failPriority = activeType === 'FAIL';
+
+  // 清空之前的状态映射
+  nodeHighlightStates.value = {};
+
+  // 为每个节点设置高亮状态
+  targetNodes.forEach((node) => {
+    const nodeMagicName = node.data.source?.magicName;
+    const isFailNode = failMagicNames.includes(nodeMagicName);
+    const isExcNode = excMagicNames.includes(nodeMagicName);
+    const isDuplicate = duplicateMagicNames.includes(nodeMagicName);
+
+    let states: string[] = [];
+
+    if (isDuplicate) {
+      // 重合节点：根据activeType决定边框颜色
+      if (failPriority) {
+        states.push('highlight-FAIL');
+      } else {
+        states.push('highlight-EXCEPTION');
+      }
+    } else if (isFailNode) {
+      // 只属于FAIL的节点：橙色边框
+      states.push('highlight-FAIL');
+    } else if (isExcNode) {
+      // 只属于EXCEPTION的节点：红色边框
+      states.push('highlight-EXCEPTION');
+    }
+
+    // 添加tag状态（不受activeType影响）
+    if (node.id === tempFirstFailNodeId) {
+      states.push('first-fail');
+      graph.setElementZIndex(node.id, Infinity);
+    }
+    if (node.id === tempFirstExcNodeId) {
+      states.push('first-exception');
+      graph.setElementZIndex(node.id, Infinity);
+    }
+
+    // 保存状态映射
+    nodeHighlightStates.value[node.id] = states;
+    graph.setElementState(node.id, states);
+  });
+
+  // 判断是否同时有两个标签
+  if (tempFirstFailNodeId && tempFirstExcNodeId && tempFirstFailNodeId === tempFirstExcNodeId) {
     hasBothTags.value = true;
+    tagNodeId.value = tempFirstFailNodeId;
   } else {
     hasBothTags.value = false;
+    tagNodeId.value = tempFirstExcNodeId || tempFirstFailNodeId;
   }
 
   // 保存当前高亮的节点ID列表
   currentHighlightNodeIds.value = targetNodes.map((node) => node.id);
 
-  // 根据主状态设置currentHightLightState（用于setHighLight恢复状态）
-  // 如果同时有FAIL和EXCEPTION，使用EXCEPTION作为主状态
-  currentHightLightState.value = hasException ? 'highlight-EXCEPTION' : 'highlight-FAIL';
+  // 根据activeType设置currentHightLightState（用于setHighLight恢复状态）
+  if (activeType === 'FAIL') {
+    currentHightLightState.value = 'highlight-FAIL';
+  } else {
+    currentHightLightState.value = 'highlight-EXCEPTION';
+  }
 
-  // 如果同时有两个标签的节点，记录tagNodeId
-  if (firstFailNodeId === firstExcNodeId && firstFailNodeId) {
-    tagNodeId.value = firstFailNodeId;
-    tagPass.value = Number(item.index) + 1;
-  } else if (firstExcNodeId) {
-    tagNodeId.value = firstExcNodeId;
-    tagPass.value = Number(item.index) + 1;
-  } else if (firstFailNodeId) {
-    tagNodeId.value = firstFailNodeId;
+  // 设置tagPass
+  if (tagNodeId.value) {
     tagPass.value = Number(item.index) + 1;
   }
 
+  // 聚焦到第一个有tag的节点或第一个目标节点
   let focusNodeId = '';
-  if (firstFailNodeId && firstExcNodeId && firstFailNodeId === firstExcNodeId) {
-    // 双标签节点优先聚焦
-    focusNodeId = firstFailNodeId;
-  } else if (firstExcNodeId) {
-    focusNodeId = firstExcNodeId;
-  } else if (firstFailNodeId) {
-    focusNodeId = firstFailNodeId;
+  if (tempFirstFailNodeId && tempFirstExcNodeId && tempFirstFailNodeId === tempFirstExcNodeId) {
+    focusNodeId = tempFirstFailNodeId;
+  } else if (tempFirstExcNodeId) {
+    focusNodeId = tempFirstExcNodeId;
+  } else if (tempFirstFailNodeId) {
+    focusNodeId = tempFirstFailNodeId;
   } else {
     focusNodeId = targetNodes[0].id;
   }
@@ -581,23 +618,16 @@ const handleBlockClick = (item) => {
 
 // 根据handleBlockClick的数据高亮对应PATH节点的边框
 const setHighLight = () => {
-  if (currentHighlightNodeIds.value.length > 0 && currentHightLightState.value) {
+  if (currentHighlightNodeIds.value.length > 0 && Object.keys(nodeHighlightStates.value).length > 0) {
     currentHighlightNodeIds.value.forEach((id) => {
-      const states = [currentHightLightState.value];
-      if (id === tagNodeId.value) {
-        // 根据当前状态添加对应标签
-        if (currentHightLightState.value === 'highlight-FAIL') {
-          states.push('first-fail');
-        } else if (currentHightLightState.value === 'highlight-EXCEPTION') {
-          states.push('first-exception');
-          // 如果同时有两个标签，添加first-fail
-          if (hasBothTags.value) {
-            states.push('first-fail');
-          }
+      const states = nodeHighlightStates.value[id];
+      if (states && states.length > 0) {
+        graph.setElementState(id, states);
+        // 如果节点有tag，设置最高层级
+        if (states.includes('first-fail') || states.includes('first-exception')) {
+          graph.setElementZIndex(id, Infinity);
         }
-        graph.setElementZIndex(id, Infinity);
       }
-      graph.setElementState(id, states);
     });
   }
 };
