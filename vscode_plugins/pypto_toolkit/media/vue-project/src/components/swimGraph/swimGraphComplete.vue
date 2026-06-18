@@ -963,6 +963,10 @@ const transform = (needClean=false) => {
     }
   }, 50);
 
+  if (globalConnectionCanvas.value) {
+    globalConnectionCanvas.value.clearCanvas();
+  }
+
   for (const [key] of processes.entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.clearDependencyLines(key);
