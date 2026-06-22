@@ -703,9 +703,11 @@ export async function getCmpErrorList(
     keyword: string = ''
 ) {
     let failCount = -1;
+    let excepCount = -1;
     let totalCount = -1;
     totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
     failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
+    excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION');
     
     const realOffset = startOffset * pageSize;
     const errorList = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
@@ -745,7 +747,7 @@ export async function getCmpErrorList(
       });
     }
   
-    return { diffList, failRes: failCount, totalRes: totalCount };
+    return { diffList, failRes: failCount, excepRes: excepCount, totalRes: totalCount };
 }
 
 export async function updateCompListFirstReq(fileName: string, failCount: string): Promise<boolean> {
