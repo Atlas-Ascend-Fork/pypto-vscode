@@ -27,7 +27,8 @@ const { server } = useViewServer<IComViewServer>();
 const searchKeyword = ref('')
 const cardData = ref({
   FAIL: 0,
-  EXCEPTION: 0
+  EXCEPTION: 0,
+  PASS: 0,
 })
 const pageConfig = ref({
   pageSize: 30,
@@ -99,6 +100,7 @@ const pageIndexChange = (pageIndex) => {
 
 // 获取并初始化上方卡片数据
 watch(server.AccurancyReport, (newValue) => {
+  console.log('newValue', newValue);
   initData(newValue?.data);
 });
 

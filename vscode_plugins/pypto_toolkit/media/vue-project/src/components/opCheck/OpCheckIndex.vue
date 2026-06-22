@@ -57,7 +57,7 @@ import { getOutputDetail } from '@/apis/workspace';
 
 const { t } = useI18n();
 
-const opeCheckDirPath = ref<string[] | null>(null);
+const opeCheckDirPath = ref<Array<{ file_path: string; first_req: number }> | null>(null);
 
 const compareFileList = ref<CompareFileItem[]>([]);
 
@@ -153,9 +153,9 @@ onMounted(async () => {
   if (outputPath) {
     try {
       const detail = await getOutputDetail(outputPath);
+      console.log('detail', detail);
       opeCheckDirPath.value = detail.data?.opeCheckDirPath ?? null;
       if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {
-        opeCheckDirPath.value = opeCheckDirPath.value.map((item) => item.file_path);
         loadCompareFileList(opeCheckDirPath.value);
       }
     } catch (error) {
@@ -165,19 +165,32 @@ onMounted(async () => {
 });
 
 
-const loadCompareFileList = (filePaths: string[]) => {
-  compareFileList.value = filePaths.map((path, index) => {
-    const fileName = path.replace(/\\/g, '/').split('/').pop() || path;
+const loadCompareFileList = (fileDataList: Array<{ file_path: string; first_req: number }>) => {
+  compareFileList.value = fileDataList.map((item, index) => {
+    const fileName = item.file_path.replace(/\\/g, '/').split('/').pop() || item.file_path;
     const parsedInfo = parseCompareFileName(fileName);
+
+    // 根据 first_req 判断状态: -1 为 pending, 0 为 pass, >0 为 fail
+    let status: 'pending' | 'parsed' | 'error' = 'pending';
+    let failCount = 0;
+    if (item.first_req === -1) {
+      status = 'pending';
+    } else if (item.first_req === 0) {
+      status = 'parsed';
+    } else if (item.first_req > 0) {
+      status = 'error';
+      failCount = item.first_req;
+    }
+
     return {
       id: String(index + 1),
       fileNameA: parsedInfo.fileNameA,
       fileNameB: parsedInfo.fileNameB,
-      status: 'pending',
+      status,
       time: parsedInfo.timestamp,
-      failCount: 0,
+      failCount,
       fullFileName: fileName,
-      cmpCsvPath: path,
+      cmpCsvPath: item.file_path,
     };
   });
 };
@@ -231,6 +244,7 @@ const onCompareSelect = (data: CompareFileItem) => {
     res: undefined,
     readFlag: needRead,
   });
+  console.log('1111')
 };
 
 // 数据会通过 watch(server.cmpDiffList) 自动填充，此函数保留用于后续扩展
@@ -257,6 +271,7 @@ const onLoadMore = () => {
       res: filterRes.value,
       readFlag: false,
     });
+    console.log('2222')
   }
 };
 
@@ -282,6 +297,7 @@ const onFilterChange = (filterData: { keyword?: string; res?: string }) => {
       res: filterData.res,
       readFlag: false,
     });
+    console.log('3333')
   }
 };
 

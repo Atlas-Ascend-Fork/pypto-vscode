@@ -339,7 +339,7 @@ let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastLoadMoreTime = 0;
 
 const checkAndLoadMore = () => {
-  if (!scrollContainerRef.value || props.loading || !props.hasMore ) return;
+  if (!scrollContainerRef.value || props.loading || props.initialLoading || !props.hasMore ) return;
   const element = scrollContainerRef.value;
   const { scrollHeight, scrollTop, clientHeight } = element;
   const distanceToBottom = scrollHeight - scrollTop - clientHeight;
@@ -472,6 +472,7 @@ defineExpose({
     .file-name-left {
       height: 100%;
       width: 50%;
+      min-width: 0;
       display: flex;
       align-items: center;
       padding-left: 12px;
@@ -481,6 +482,7 @@ defineExpose({
     .file-name-right {
       height: 100%;
       width: 50%;
+      min-width: 0;
       display: flex;
       align-items: center;
       padding-left: 12px;
@@ -491,6 +493,9 @@ defineExpose({
       font-weight: 700;
       color: var(--devui-title-text);
       margin-left: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
