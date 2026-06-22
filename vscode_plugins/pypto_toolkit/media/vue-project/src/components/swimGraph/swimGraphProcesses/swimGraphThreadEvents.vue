@@ -1221,7 +1221,7 @@ const handleMouseMoveThrottle = throttle((e) => {
 
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
-  let info = focusedWrapId.value ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
+  let info = focusedWrapId.value != null ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
   let hoveredEvent = info?.event;
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     const { mixHoverCtx } = ctxs[props.processKey];

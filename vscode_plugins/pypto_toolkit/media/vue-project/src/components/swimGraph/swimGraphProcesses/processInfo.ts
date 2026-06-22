@@ -66,6 +66,9 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
 };
 
 export const getBaseColor = (event, dep) => {
+  if (!event) {
+    return;
+  }
   const { processes, kernelColorRending, isDarkTheme } = dep;
   if (!event.color || !event.color.dark) {
     const process = Array.from(processes.values()).find(p => p.pid === event.pid);
