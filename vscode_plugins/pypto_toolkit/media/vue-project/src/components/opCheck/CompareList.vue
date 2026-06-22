@@ -350,8 +350,8 @@ const onExpandChange = () => {
   background: var(--devui-tooltip-bg);
 }
 
-.parse-compare-modal .modal-content .file-name {
-  font-weight: 700;
+.parse-compare-modal .modal-content {
   word-break: break-all;
+  overflow-wrap: break-word;
 }
 </style>

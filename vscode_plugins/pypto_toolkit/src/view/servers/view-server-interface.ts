@@ -25,7 +25,8 @@ export type IComApis =
   | 'getInitialMemoryData'
   | 'accuFilePathGet'
   | 'getCmpDiffListData'
-  | 'getCmpErrorListData';
+  | 'getCmpErrorListData'
+  | 'getPrecisionExceptList';
 export type IComRefs = {
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
@@ -40,6 +41,8 @@ export type IComRefs = {
   AccurancyDetail: unknown,
   AccuFilePath: unknown,
   CmpDiffList: unknown,
+  cmpErrorList: unknown;
+  precisionExceptList: unknown;
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
   IDELang: unknown;
@@ -91,10 +94,15 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
     keyword?: string;
   }) => Promise<void>;
   getCmpErrorListData?: (data: {
-    cmpCsvPath: string;
+    res?: string;
     pageSize?: number;
     startOffset?: number;
     keyword?: string;
+    readFlag?: boolean;
+  }) => Promise<void>;
+  getPrecisionExceptList?: (data: {
+    filePath: string;
+    fileName: string;
   }) => Promise<void>;
 }
 

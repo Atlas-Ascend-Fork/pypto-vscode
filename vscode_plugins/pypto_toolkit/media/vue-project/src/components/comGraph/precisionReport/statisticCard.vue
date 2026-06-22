@@ -2,8 +2,13 @@
   <div :class="['statistic-card', type, { active: activeType === type,clickable: clickable }]" @click="handleCard">
     <div class="text-wrap">
       <div class="title">
-        {{ type }}
-        <span style="color:rgba(128,128,128,1)">{{ t(`controlFlows.accuracyVerificationResultsTips.${type}`) }}</span>
+        <span>{{ type }}</span>
+        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+          <i class="icon icon-helping"></i>
+          <template #content>
+            <span>{{ t(`controlFlows.accuracyVerificationResultsTips.${type}`) }}</span>
+          </template>
+        </d-tooltip>
       </div>
       <div :class="['count', type]">{{ count }}</div>
     </div>
@@ -74,11 +79,12 @@ const handleCard = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 220px;
+  flex: 1;
   height: 90px;
   padding: 16px;
   margin-bottom: 8px;
   border-radius: 12px;
+  min-width: 0;
 
   &.clickable {
     cursor: pointer;
@@ -110,10 +116,15 @@ const handleCard = () => {
     color: var(--devui-primary-text);
     height: 100%;
     justify-content: space-between;
+    flex: 1;
+    min-width: 0;
 
     .title {
-      width: 145px;
       font-size: 12px;
+      word-break: break-word;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .count {
@@ -140,6 +151,8 @@ const handleCard = () => {
   }
 
   .icon-wrap {
+    flex-shrink: 0;
+
     .fail-icon-wrap {
       @include icon-wrap-base(246, 158, 57);
     }

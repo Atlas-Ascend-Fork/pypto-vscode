@@ -62,15 +62,18 @@ const props = defineProps({
 const { t } = useI18n();
 
 const rtolValue = computed(() => {
-  const [rtol] = props.summaryInfo.rtolAtol?.split('/') ?? [];
+  const rtolAtol = props.summaryInfo.rtolAtol || props.summaryInfo.abRtolAtol || '';
+  const [rtol] = rtolAtol?.split('/') ?? [];
   return rtol ?? '';
 });
 const atolValue = computed(() => {
-  const [, atol] = props.summaryInfo.rtolAtol?.split('/') ?? [];
+  const rtolAtol = props.summaryInfo.rtolAtol || props.summaryInfo.abRtolAtol || '';
+  const [, atol] = rtolAtol?.split('/') ?? [];
   return atol ?? '';
 });
 const countInfo = computed(() => {
-  const [totalCount, zeroCount, infnanCount] = props.summaryInfo.cntTotalZeroInfnanCnt?.split('/') ?? [];
+  const cntTotalZeroInfnanCnt = props.summaryInfo.cntTotalZeroInfnanCnt || props.summaryInfo.abTotalZeroInfnanCnt || '';
+  const [totalCount, zeroCount, infnanCount] = cntTotalZeroInfnanCnt?.split('/') ?? [];
   return [
     { label: `total_count`, value: totalCount, desc: t('totalDataVolume') },
     { label: `zero_count`, value: zeroCount, desc: t('zeroCount') },
@@ -78,7 +81,8 @@ const countInfo = computed(() => {
   ];
 });
 const warnFailInfo = computed(() => {
-  const [fail, warn, tolCnt] = props.summaryInfo.cntFailWarnTol?.split('/') ?? [];
+  const cntFailWarnTol = props.summaryInfo.cntFailWarnTol || props.summaryInfo.abFailWarnTol || '';
+  const [fail, warn, tolCnt] = cntFailWarnTol?.split('/') ?? [];
   return [
     { label: 'tol_cnt', value: tolCnt, desc: t('tolCount') },
     { label: 'warn', value: warn, desc: t('warnCount') },
@@ -86,14 +90,14 @@ const warnFailInfo = computed(() => {
   ];
 });
 const relativeErrorInfo = computed(() => [
-  { label: 'mre', ...convertData(props.summaryInfo.mre), desc: t('meanRelativeError') },
-  { label: 'mre_top8', ...convertData(props.summaryInfo.mreTop8), desc: t('meanTop8RelativeError') },
-  { label: 'mre_top1premil', ...convertData(props.summaryInfo.mreTop1permil), desc: t('meanTop1PerMilRelativeError') },
+  { label: 'mre', ...convertData(props.summaryInfo.mre || props.summaryInfo.abMre), desc: t('meanRelativeError') },
+  { label: 'mre_top8', ...convertData(props.summaryInfo.mreTop8 || props.summaryInfo.abMreTop8), desc: t('meanTop8RelativeError') },
+  { label: 'mre_top1premil', ...convertData(props.summaryInfo.mreTop1permil || props.summaryInfo.abMreTop1permil), desc: t('meanTop1PerMilRelativeError') },
 ]);
 const absoluteErrorInfo = computed(() => [
-  { label: 'mae', ...convertData(props.summaryInfo.mae), desc: t('meanAbsoluteError') },
-  { label: 'mae_top8', ...convertData(props.summaryInfo.maeTop8), desc: t('meanTop8AbsoluteError') },
-  { label: 'mae_top1premil', ...convertData(props.summaryInfo.maeTop1permil), desc: t('meanTop1PerMilAbsoluteError') },
+  { label: 'mae', ...convertData(props.summaryInfo.mae || props.summaryInfo.abMae), desc: t('meanAbsoluteError') },
+  { label: 'mae_top8', ...convertData(props.summaryInfo.maeTop8 || props.summaryInfo.abMaeTop8), desc: t('meanTop8AbsoluteError') },
+  { label: 'mae_top1premil', ...convertData(props.summaryInfo.maeTop1permil || props.summaryInfo.abMaeTop1permil), desc: t('meanTop1PerMilAbsoluteError') },
 ]);
 const maxLength = 11;
 function convertData(val?: string) {

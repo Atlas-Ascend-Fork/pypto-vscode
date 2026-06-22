@@ -11,7 +11,7 @@ import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICo
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
 import { SQLiteCache } from '../../core/sqliteCache';
-import { getCmpDiffList, getAccuFilePath, getCmpErrorList } from '../../common/accurancyAnylasis';
+import { getCmpDiffList, getAccuFilePath, getCmpErrorList, getPrecisionExceptList } from '../../common/accurancyAnylasis';
 import * as fs from 'fs';
 type Apis = IComApis | ICommonApis;
 
@@ -31,6 +31,8 @@ type Refs = IComRefs & ICommonRefs;
   'AccurancyDetail',
   'AccuFilePath',
   'CmpDiffList',
+  'cmpErrorList',
+  'precisionExceptList',
   'InitComGraph',
   'InitDiffComGraph',
   'IDELang',
@@ -287,6 +289,21 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
     const result = await getCmpErrorList(filePath, readFlag, pageSize, startOffset, keyword);
     this.setRef('cmpErrorList', result);
+  };
+
+  @viewApi()
+  public getPrecisionExceptList = async (data: {
+    filePath: string;
+    fileName: string;
+  }) => {
+    const { filePath, fileName } = data;
+
+    try {
+      const result = await getPrecisionExceptList(filePath, fileName);
+      this.setRef('precisionExceptList', result);
+    } catch (error) {
+      this.setRef('precisionExceptList', null);
+    }
   };
 
   safeParse(str) {

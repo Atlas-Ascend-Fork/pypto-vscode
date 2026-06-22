@@ -3,7 +3,7 @@
     <KeepAlive>
       <AbnormalList v-if="!showDetail" @row-click="jumpDetail" />
     </KeepAlive>
-    <AbnormalDetail v-if="showDetail" :rawMagic="rawMagic" :loopInfo="loopInfo" @back="() => (showDetail = false)" />
+    <AbnormalDetail v-if="showDetail" :row-data="rowData" @back="() => (showDetail = false)" />
   </div>
 </template>
 
@@ -13,12 +13,10 @@ import AbnormalList from './abnormalList.vue';
 import AbnormalDetail from './abnormalDetail.vue';
 
 const showDetail = ref(false);
-const loopInfo = ref('');
-const rawMagic = ref('');
+const rowData = ref<Record<string, any>>({});
 
-const jumpDetail = (rowData) => {
-  rawMagic.value = rowData.rawMagic
-  loopInfo.value = rowData.loopInfo
+const jumpDetail = (data) => {
+  rowData.value = data
   showDetail.value = true
 }
 </script>

@@ -3,6 +3,7 @@ export interface AbnormalNodeOverviewInfo {
   dataType: string | number; // Dtype
   validShape: string | number; // Shape
   rtolAtol: string; // rtol/atol, eg: '0.01/0.01'
+  abRtolAtol?: string; // 新字段名
   totalCount: string | number; // total_Count(总数据量)
   zeroCount: string | number; // ZeroCount(均为0的数量)
   tolCnt: string | number; // tol_cnt(容差个数)
@@ -15,7 +16,16 @@ export interface AbnormalNodeOverviewInfo {
   maeTop8: string; // mae_top8(绝对误差top8的均值)
   maeTop1permil: string; // mae_top1premil(绝对误差top1/1000的均值)
   cntTotalZeroInfnanCnt: string; // total_cnt/zero_cnt/infnan_cnt
+  abTotalZeroInfnanCnt?: string; // 新字段名
   cntFailWarnTol: string; // fail_cnt/warn_cnt/tol_cnt
+  abFailWarnTol?: string; // 新字段名
+  // 新字段名 (sharedRes 中的原始字段名)
+  abMre?: string;
+  abMreTop8?: string;
+  abMreTop1permil?: string;
+  abMae?: string;
+  abMaeTop8?: string;
+  abMaeTop1permil?: string;
   // 小表格的A行
   aAavg: string;
   aAvg: string;

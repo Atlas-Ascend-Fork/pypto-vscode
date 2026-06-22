@@ -395,10 +395,10 @@ export default {
         firstErrorPath:'First Fail',
         firstExcPath:'First Exc',
         accuracyVerificationResultsTips:{
-          PASS:'(精度校验通过)',
-          FAIL:'(精度校验失败)',
-          EXCEPTION:'(精度校验异常)',
-          SKIP:'(精度校验跳过)',
+          PASS:'精度校验通过',
+          FAIL:'精度校验失败',
+          EXCEPTION:'精度校验异常',
+          SKIP:'精度校验跳过',
         },
 },
     runConfig:{

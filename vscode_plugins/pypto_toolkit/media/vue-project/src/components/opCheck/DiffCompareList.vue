@@ -70,9 +70,10 @@
                 ></i>
               </div>
               <div v-if="expandedItems.includes(item.id)" class="item-detail">
+                <span class="corner-badge">{{ formatOpMagic(item.aOp?.aOpMagic) }}</span>
                 <div class="detail-row" v-for="key in detailFields" :key="key">
                   <span class="detail-label">{{ getLabelName(key) }}:</span>
-                  <span class="detail-value" :title="(item.sharedRes as any)?.[key] || '-'">{{ (item.sharedRes as any)?.[key] || '-' }}</span>
+                  <span class="detail-value" :title="getDetailValue(item, key, 'left')">{{ getDetailValue(item, key, 'left') }}</span>
                 </div>
               </div>
             </div>
@@ -98,9 +99,10 @@
                 ></i>
               </div>
               <div v-if="expandedItems.includes(item.id)" class="item-detail">
+                <span class="corner-badge">{{ formatOpMagic(item.bOp?.bOpMagic) }}</span>
                 <div class="detail-row" v-for="key in detailFields" :key="key">
                   <span class="detail-label">{{ getLabelName(key) }}:</span>
-                  <span class="detail-value" :title="(item.sharedRes as any)?.[key] || '-'">{{ (item.sharedRes as any)?.[key] || '-' }}</span>
+                  <span class="detail-value" :title="getDetailValue(item, key, 'right')">{{ getDetailValue(item, key, 'right') }}</span>
                 </div>
               </div>
             </div>
@@ -130,6 +132,7 @@ export interface OpData {
   aOpMagic?: string;
   aPhaseName?: string;
   aRawShape?: string;
+  aShape?: string;
   aFileName?: string;
   bFormat?: string;
   bFuncMagic?: string;
@@ -138,6 +141,7 @@ export interface OpData {
   bOpMagic?: string;
   bPhaseName?: string;
   bRawShape?: string;
+  bShape?: string;
   bFileName?: string;
 }
 
@@ -225,6 +229,7 @@ const labelNameMap: Record<string, string> = {
   symbol: 'Symbol',
   loopInfo: 'LOOP_INFO',
   shape: 'Shape',
+  format: 'Format',
   validShape: 'ValidShape',
   dataType: 'DataType',
 };
@@ -233,9 +238,26 @@ const getLabelName = (key: string) => {
   return labelNameMap[key] || key;
 };
 
+// 获取详情值：shape/format 字段左右两侧分别取 aShape/bShape、aFormat/bFormat，其他字段从 sharedRes 获取
+const getDetailValue = (item: OpCompareItem, key: string, side: 'left' | 'right') => {
+  if (key === 'shape') {
+    return side === 'left' ? (item.aOp as any)?.aShape || '-' : (item.bOp as any)?.bShape || '-';
+  }
+  if (key === 'format') {
+    return side === 'left' ? (item.aOp as any)?.aFormat || '-' : (item.bOp as any)?.bFormat || '-';
+  }
+  return (item.sharedRes as any)?.[key] || '-';
+};
+
+// 格式化 opMagic，去掉小数点（如 "123.0" 显示为 "123"）
+const formatOpMagic = (magic: string | undefined) => {
+  if (!magic || magic === '-') return '-';
+  // 去掉 .0 后缀
+  return magic.replace(/\.0$/, '');
+};
+
 // 展开详情只显示这些字段
-// const detailFields = ['symbol', 'loopInfo', 'shape', 'validShape', 'dataType'];
-const detailFields = ['symbol', 'loopInfo', 'validShape', 'dataType'];
+const detailFields = ['symbol', 'loopInfo', 'shape', 'format', 'validShape', 'dataType'];
 
 const onSearch = (value: string) => {
   searchKeyword.value = value;
@@ -368,8 +390,17 @@ const clearSelection = () => {
   selectedSource.value = '';
 };
 
+// 重置筛选状态的方法
+const resetFilter = () => {
+  searchKeyword.value = '';
+  filterAll.value = true;
+  filterFailOnly.value = false;
+  filterPassOnly.value = false;
+};
+
 defineExpose({
   clearSelection,
+  resetFilter,
 });
 </script>
 
@@ -707,7 +738,7 @@ defineExpose({
     }
 
     .item-detail {
-      padding: 8px 16px;
+      padding: 24px 16px 8px 16px;
       border-radius: 8px;
       background: var(--control-flow-item-detail-bg);
       margin: 12px;
@@ -717,6 +748,21 @@ defineExpose({
       overflow: hidden;
       min-width: 350px;
       overflow-x: scroll;
+      position: relative;
+
+      .corner-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 2px 8px;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 16px;
+        color: var(--devui-node-badge-text);
+        background: var(--devui-node-badge-bg);
+        border-radius: 0 8px 0 8px;
+        z-index: 1;
+      }
 
       .detail-row {
         display: flex;
@@ -726,10 +772,6 @@ defineExpose({
         min-width: 0;
         overflow: hidden;
         box-sizing: border-box;
-
-        &:nth-child(odd) {
-          border-right: 2px solid var(--devui-split-line);
-        }
 
         .detail-label {
           width: 100px;

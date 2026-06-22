@@ -394,10 +394,10 @@ export default {
         firstErrorPath:'First Fail',
         firstExcPath:'First Exc',
         accuracyVerificationResultsTips:{
-          PASS:'(Accuracy verification passed)',
-          FAIL:'(Accuracy verification failed)',
-          EXCEPTION:'(Accuracy verification exception)',
-          SKIP:'(Accuracy verification skipped)',
+          PASS:'Accuracy verification passed',
+          FAIL:'Accuracy verification failed',
+          EXCEPTION:'Accuracy verification exception',
+          SKIP:'Accuracy verification skipped',
         },
     },
     runConfig:{

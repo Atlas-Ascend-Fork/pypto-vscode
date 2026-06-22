@@ -84,7 +84,7 @@ const hasMoreData = computed(() => opCompareList.value.length < totalCount.value
 const showDetail = ref(false);
 const selectedDetailData = ref<PrecisionDetailData | null>(null);
 const selectedCmpCsvPath = ref<string>('');
-const diffCompareListRef = ref<{ clearSelection: () => void } | null>(null);
+const diffCompareListRef = ref<{ clearSelection: () => void; resetFilter: () => void } | null>(null);
 
 const { server } = useViewServer<OpCheckViewServer>();
 
@@ -213,6 +213,9 @@ const onCompareSelect = (data: CompareFileItem) => {
   opCompareList.value = [];
   filterKeyword.value = undefined;
   filterRes.value = undefined;
+
+  // 重置 DiffCompareList 的筛选状态
+  diffCompareListRef.value?.resetFilter();
 
   leftTitle.value = data.fileNameA;
   rightTitle.value = data.fileNameB;
