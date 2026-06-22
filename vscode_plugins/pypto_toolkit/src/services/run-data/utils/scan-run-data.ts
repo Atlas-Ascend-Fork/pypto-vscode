@@ -152,15 +152,15 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
   }
 
   const db = SQLiteCache.getInstance();
-  const existingList = await db.accuracyToolCompListGet();
-
+  const existingList = await db.accuracyToolCompListGetByComputePath(computeFilePath);
   if (existingList.length > 0) {
     return { hasOpeCheck: true, opeCheckDirPath: existingList };
   }
 
-  let subList: [string, vscode.FileType][];
   const fileUri = vscode.Uri.file(computeFilePath);
-  subList = await vscode.workspace.fs.readDirectory(fileUri);
+  const subList = await vscode.workspace.fs.readDirectory(fileUri);
+  const allInsertData: AccuracyToolCompList[] = [];
+
   for (const [subPath, fileType] of subList) {
     if (fileType !== vscode.FileType.Directory || !VERIFY_DIR_REG_EXP.test(subPath)) {
       continue;
@@ -170,16 +170,22 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
       const files = await vscode.workspace.fs.readDirectory(verifyDirUri);
       if (files.some(([name]) => VERIFY_GRAPH_RESULT_CMP_REG_EXP.test(name))) {
         const compList = await getCmpFileList(verifyDirUri.fsPath);
-        const insertData = compList.map((filePath) => ({
-          file_path: filePath,
-          first_req: '-1',
-        }));
-        await db.accuracyToolCompListSet(insertData);
-        return { hasOpeCheck: true, opeCheckDirPath: insertData };
+        for (const filePath of compList) {
+          allInsertData.push({
+            file_path: filePath,
+            first_req: '-1',
+            compute_path: computeFilePath,
+          });
+        }
       }
     } catch {
       continue;
     }
+  }
+
+  if (allInsertData.length > 0) {
+    await db.accuracyToolCompListSet(computeFilePath, allInsertData);
+    return { hasOpeCheck: true, opeCheckDirPath: allInsertData };
   }
 
   return empty;

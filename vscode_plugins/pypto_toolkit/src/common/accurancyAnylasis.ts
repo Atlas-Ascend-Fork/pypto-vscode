@@ -517,7 +517,6 @@ export async function getCmpDiffList(
     }
 
     const updateCompareListFlag = await updateCompListFirstReq(filePath, String(failCount));
-    const test = await SQLiteCache.getInstance().accuracyToolCompListGet();
 
     return { diffList, total: totalCount, failRes: failCount, updateFlag: updateCompareListFlag};
 }
@@ -758,4 +757,3 @@ export async function updateCompListFirstReq(fileName: string, failCount: string
   }
   return false;
 }
-

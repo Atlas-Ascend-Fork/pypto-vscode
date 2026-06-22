@@ -123,6 +123,7 @@ interface SwimGraphParsedInfoRow {
 export interface AccuracyToolCompList {
   file_path: string;
   first_req: string;
+  compute_path: string;
 }
 
 /**
@@ -449,9 +450,10 @@ export class SQLiteCache {
     `);
     this.db.run(`
       CREATE TABLE IF NOT EXISTS comparelist (
+        compute_path TEXT NOT NULL,
         file_path TEXT NOT NULL,
         first_req TEXT NOT NULL,
-        PRIMARY KEY (file_path)
+        PRIMARY KEY (compute_path, file_path)
       );
     `);
 
@@ -1881,15 +1883,16 @@ export class SQLiteCache {
   }
 
   /****************** comparelist 表 ******************/
-  public async accuracyToolCompListSet(dataList: AccuracyToolCompList[]): Promise<void> {
-    this.db!.run('DELETE FROM comparelist');
+  public async accuracyToolCompListSet(computePath: string, dataList: AccuracyToolCompList[]): Promise<void> {
+    this.db!.run('DELETE FROM comparelist WHERE compute_path = ?', [computePath]);
     for (const data of dataList) {
-      this.db!.run('INSERT INTO comparelist(file_path, first_req) VALUES(?, ?)', [data.file_path, data.first_req]);
+      this.db!.run('INSERT INTO comparelist(compute_path, file_path, first_req) VALUES(?, ?, ?)', [computePath, data.file_path, data.first_req]);
     }
   }
 
-  public async accuracyToolCompListGet(): Promise<AccuracyToolCompList[]> {
-    const stmt = this.db!.prepare('SELECT file_path, first_req FROM comparelist');
+  public async accuracyToolCompListGetByComputePath(computePath: string): Promise<AccuracyToolCompList[]> {
+    const stmt = this.db!.prepare('SELECT compute_path, file_path, first_req FROM comparelist WHERE compute_path = ?');
+    stmt.bind([computePath]);
     const result: AccuracyToolCompList[] = [];
     try {
       while (stmt.step()) {
@@ -1903,7 +1906,7 @@ export class SQLiteCache {
   }
 
   public async accuracyToolCompListGetByFilePath(filePath: string): Promise<AccuracyToolCompList | undefined> {
-    const stmt = this.db!.prepare('SELECT file_path, first_req FROM comparelist WHERE file_path = ?');
+    const stmt = this.db!.prepare('SELECT compute_path, file_path, first_req FROM comparelist WHERE file_path = ?');
     stmt.bind([filePath]);
     try {
       if (stmt.step()) {
