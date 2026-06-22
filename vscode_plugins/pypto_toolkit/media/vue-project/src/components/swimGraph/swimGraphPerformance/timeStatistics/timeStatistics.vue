@@ -383,7 +383,7 @@ const onUpdateData = (data) => {
             maxDurationData: xAxisMax
         });
     } catch (error) {
-      return；
+      return;
     }
 };
 const collectSubGraphEvents = (targetId) => {
