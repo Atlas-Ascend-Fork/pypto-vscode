@@ -1658,7 +1658,7 @@ const updateOtherProcesses = (processKey) => {
     }
     if (key !== processKey) {
       childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
-      if (!globalConnectionCanvas.value) {
+      if (!globalConnectionCanvas.value && !isPathLockStatus.value) {
         clearDependencyLines(key);
       }
     }

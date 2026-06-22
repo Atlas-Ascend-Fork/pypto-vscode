@@ -1037,6 +1037,19 @@ const processMixThreadEvents = (thread, processKey, filterFn) => {
       }
     }
   }
+
+  for (const parentEvent of parentEvents) {
+    const parentName = parentEvent.name;
+    const subEvents = swimDataManager.getSubEvents(parentEvent.id);
+    for (const subEvent of subEvents) {
+      if (filterFn(subEvent, thread, processKey)) {
+        results.push([subEvent, thread.threadName, processKey, thread.tid, parentName]);
+        if (!processExpanded.get(processKey)) {
+          toggleProcess(processKey);
+ 	      }
+      }
+ 	  }
+  }
   
   const normalEvents = threadInfo.eventIds
     .map(id => swimDataManager.getEventById(id))
@@ -1299,6 +1312,9 @@ const decrease = () => {
     sliderValue.value -= 1;
     updataScale();
   } 
+  if (sliderValue.value === 0) {
+    updataScale();
+  }
 };
 const leftmove = (step=30, forceTransform=false) => {
   if (viewState.scale === 1 && !forceTransform) {

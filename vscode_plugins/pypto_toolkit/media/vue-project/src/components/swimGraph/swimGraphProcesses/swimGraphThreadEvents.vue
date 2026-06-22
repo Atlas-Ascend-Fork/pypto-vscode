@@ -60,7 +60,7 @@ import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, getVisibleYRange, isThreadInViewport, eventTextSize, nodeSpaceMin, clearWholeProcess,
-  renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodes,
+  renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodesWithControl,
   findVisibleEventRange
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
@@ -930,7 +930,19 @@ const renderDimmedNodesInWrap = (event, wrapHoverCtx) => {
   }
   
   const isGlobalCanvas = wrapHoverCtx?.canvas?.classList.contains('global-connection-canvas');
-  const relatedEvents = collectSubEventDependencyPathNodes(event);
+
+  let level = 1;
+  
+  try {
+    if (userConfig && userConfig.value && userConfig.value.connectionLevel !== undefined) {
+      level = userConfig.value.connectionLevel;
+    }
+  } catch (error) {
+    level = 1;
+  }
+  const mode = viewState.depMode;
+  
+  const relatedEvents = collectSubEventDependencyPathNodesWithControl(event, mode, level);
   
   const drawDatas = [];
   for (const eventId of relatedEvents) {

@@ -12,7 +12,7 @@
       </div>
       <div v-for="group in timelineGroups" :key="group.id" class="timeline-group mr20 time-group-height">
         <div class="id-row">
-          <d-tooltip :content="group.id">
+          <d-tooltip :content="String(group.id)">
             <div class="label-header" @click="drillDownSubGraphTiming(group)" :class="{ 'label-cursor': state.timeType.value === 'id' }">
             {{ group.id }}
             </div>
@@ -97,13 +97,20 @@ const timelineGroups = ref([
   },
 ]);
 const emit = defineEmits(['update-data']);
+const isProcessing = ref(false);
 const drillDownSubGraphTiming = (group) => {
-  state.showSubGraphTimingChart.value = !state.showSubGraphTimingChart.value;
+  if (isProcessing.value) {
+    return;
+  }
+  isProcessing.value = true;
   emit('update-data', {
     id: group.id,
     timelineGroups,
     color: isDarkTheme.value ? group.event.color.dark.base :  group.event.color.light.base
   });
+  setTimeout(() => {
+    isProcessing.value = false;
+  }, 0);
 };
 const timelineContainer = ref(null);
 const updateLineHeight = () => {
@@ -280,7 +287,7 @@ const truncateWithEllipsis = (str, maxLength = 2) => {
   return str.substring(0, maxLength) + '...';
 };
 const formatMicroseconds = (value) => {
-  return parseFloat(value.toFixed(3));
+  return parseFloat(value.toFixed(1));
 };
 const getTicks = (globalMaxDuration) => {
   const maxDurationUs = globalMaxDuration / mod;

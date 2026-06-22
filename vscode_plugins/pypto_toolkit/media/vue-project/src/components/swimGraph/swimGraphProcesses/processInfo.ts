@@ -67,11 +67,11 @@ export const getSubGraphId = (event: any, mode: string, defaultValue=15) => {
 
 export const getBaseColor = (event, dep) => {
   if (!event) {
-    return;
+    return '#666666';
   }
   const { processes, kernelColorRending, isDarkTheme } = dep;
   if (!event.color || !event.color.dark) {
-    const process = Array.from(processes.values()).find(p => p.pid === event.pid);
+    const process = Array.from(processes.values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType);
   }
@@ -83,9 +83,12 @@ export const getBaseColor = (event, dep) => {
 };
 
 export const getLightColor = (event, dep) => {
+  if (!event) {
+    return '#666666';
+  }
   const { processes, kernelColorRending, isDarkTheme } = dep;
   if (!event.color.dark) {
-    const process = Array.from(processes.values()).find(p => p.pid === event.pid);
+    const process = Array.from(processes.values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType);
   }

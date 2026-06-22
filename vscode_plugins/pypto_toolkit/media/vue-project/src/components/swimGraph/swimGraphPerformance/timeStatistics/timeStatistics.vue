@@ -334,47 +334,57 @@ const handleColumnClick = (label) => {
 };
 
 const drillDownSubGraphTiming = () => {
-    showSubGraphTimingChart.value = !showSubGraphTimingChart.value;
+    subGraphId.value = '';
+    showSubGraphTimingChart.value = false;
 };
 const OnModeChange = () => {
     showSubGraphTimingChart.value = false;
 };
 const onUpdateData = (data) => {
-    subGraphId.value = data.id;
-    barColor.value = data.color; 
-    const mapKey = subGraphId.value;
-    const cache = executionTimeData.echartsMap;
-    if (cache.size > 0 && cache.has(mapKey)) {
-        const cachedItem = cache.get(mapKey);
-        option.series[0].data = cachedItem.seriesData;
-        barStep.value = cachedItem.barStepData;
-        option.xAxis.interval = cachedItem.barStepData;
-        option.xAxis.max = cachedItem.maxDurationData;
-        return;
+    try {
+        if (!data || data.id === undefined || data.id === null) {
+            return;
+        }
+
+        subGraphId.value = data.id;
+        barColor.value = data.color || 'rgba(0. 117. 102, 1)'; 
+        showSubGraphTimingChart.value = true;
+        const mapKey = subGraphId.value;
+        const cache = executionTimeData.echartsMap;
+        if (cache.size > 0 && cache.has(mapKey)) {
+            const cachedItem = cache.get(mapKey);
+            option.series[0].data = cachedItem.seriesData;
+            barStep.value = cachedItem.barStepData;
+            option.xAxis.interval = cachedItem.barStepData;
+            option.xAxis.max = cachedItem.maxDurationData;
+            return;
+        }
+        const { durations: subGraphDuration } = collectSubGraphEvents(mapKey);
+        if (!subGraphDuration || subGraphDuration.length === 0) {
+            option.series[0].data = [];
+            option.xAxis.max = 4;
+            option.xAxis.interval = 1;
+            return;
+        }
+        subGraphDuration.sort((a, b) => a - b);
+        const maxDuration = subGraphDuration[subGraphDuration.length - 1];
+        const barCount = Math.min(Math.ceil(maxDuration / 10), customBarCount.value);
+        const calculatedStep = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
+        barStep.value = calculatedStep || 1; 
+        const histogramData = getHistogramData(subGraphDuration);
+        const lastItem = histogramData[histogramData.length - 1];
+        const xAxisMax = lastItem ? lastItem[1] : (Math.ceil(maxDuration / calculatedStep) * calculatedStep);
+        option.series[0].data = histogramData;
+        option.xAxis.interval = barStep.value;
+        option.xAxis.max = xAxisMax;
+        cache.set(mapKey, {
+            seriesData: histogramData,
+            barStepData: barStep.value,
+            maxDurationData: xAxisMax
+        });
+    } catch (error) {
+      return；
     }
-    const { durations: subGraphDuration } = collectSubGraphEvents(mapKey);
-    if (!subGraphDuration || subGraphDuration.length === 0) {
-        option.series[0].data = [];
-        option.xAxis.max = 4;
-        option.xAxis.interval = 1;
-        return;
-    }
-    subGraphDuration.sort((a, b) => a - b);
-    const maxDuration = subGraphDuration[subGraphDuration.length - 1];
-    const barCount = Math.min(Math.ceil(maxDuration / 10), customBarCount.value);
-    const calculatedStep = maxDuration <= 10 ? 1 : Math.ceil(maxDuration / barCount);
-    barStep.value = calculatedStep || 1; 
-    const histogramData = getHistogramData(subGraphDuration);
-    const lastItem = histogramData[histogramData.length - 1];
-    const xAxisMax = lastItem ? lastItem[1] : (Math.ceil(maxDuration / calculatedStep) * calculatedStep);
-    option.series[0].data = histogramData;
-    option.xAxis.interval = barStep.value;
-    option.xAxis.max = xAxisMax;
-    cache.set(mapKey, {
-        seriesData: histogramData,
-        barStepData: barStep.value,
-        maxDurationData: xAxisMax
-    });
 };
 const collectSubGraphEvents = (targetId) => {
   const durations = [];
@@ -407,7 +417,14 @@ const getHistogramData = (durations) => {
     if (!durations || durations.length === 0) {
         return [];
     }
-    const maxVal = Math.max(...durations);
+
+    const [maxNumber] = durations;
+    let maxVal = maxNumber;
+    for (let i = 1; i < durations.length; i++) {
+        if (durations[i] > maxVal) {
+            maxVal = durations[i];
+        }
+    }
     const step = barStep.value;
     const numBuckets = Math.ceil(maxVal / step);
     const counts = new Array(numBuckets).fill(0);

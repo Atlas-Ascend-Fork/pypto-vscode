@@ -1294,6 +1294,50 @@ export const collectSubEventDependencyPathNodes = (event: any): Set<string> => {
   return relatedEvents;
 };
 
+export const collectSubEventDependencyPathNodesWithControl = (
+  event: any, 
+  mode: string, 
+  level: number
+): Set<string> => {
+  const relatedEvents: Set<string> = new Set();
+  
+  const collectPredecessors = (currentEvent: Event, depth: number): void => {
+    if (depth === 0 || !currentEvent) return;
+    const deps = swimDataManager.getSubEventDependencies(currentEvent.id);
+    for (const pred of deps.predecessors) {
+      if (!pred.renderInfo) continue;
+      if (pred.id === event.id) continue;
+      if (relatedEvents.has(pred.id)) continue;
+      
+      relatedEvents.add(pred.id);
+      collectPredecessors(pred, depth - 1);
+    }
+  };
+  
+  const collectSuccessors = (currentEvent: Event, depth: number): void => {
+    if (depth === 0 || !currentEvent) return;
+    const deps = swimDataManager.getSubEventDependencies(currentEvent.id);
+    for (const succ of deps.successors) {
+      if (!succ.renderInfo) continue;
+      if (succ.id === event.id) continue;
+      if (relatedEvents.has(succ.id)) continue;
+      
+      relatedEvents.add(succ.id);
+      collectSuccessors(succ, depth - 1);
+    }
+  };
+
+  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
+    collectPredecessors(event, level);
+  }
+  
+  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
+    collectSuccessors(event, level);
+  }
+  
+  return relatedEvents;
+};
+
 export const calculateHighlightedPaths = (
   event: any,
   highlightedPaths: Set<string>,
