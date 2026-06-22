@@ -199,6 +199,8 @@ import { swimConfig } from '../welcome/guideStepsConfig';
 import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
 import { getKernalEventColor } from './swimGraphProcesses/render/utils';
+import { getPositionByTime, getWidthByDuration } from './swimGraphProcesses/processInfo';
+import { eventTextSize, getFontStyle, getThreadStartY, getThreadHeight } from './swimGraphUtils';
 import { perfLogger, setDebugMode, setTotalStartTime, setTransformTime, isDebugEnabled } from './perfLogger';
 
 const { server } = useViewServer();
@@ -1450,14 +1452,16 @@ const toggleProcess = (processKey) => {
 };
 const drawKernalEvents = () => {
   let processKey = '';
+  let process = null;
   for (const [key, processItem] of processes) {
     if (processItem.type === 'kernel') {
       processKey = key;
+      process = processItem;
       break;
     }
   }
   const ctxInfo = ctxs[processKey];
-  if (!ctxInfo) {
+  if (!ctxInfo || !process) {
     return;
   }
   const ctx = ctxInfo.eventCtx;
@@ -1465,13 +1469,41 @@ const drawKernalEvents = () => {
   if (!aicpuCoreDetailsExpanded.value && kernalEvents.length === 0) {
     return;
   }
+  const { threadName } = kernelThreadData.value;
+  const threadKey = kernelThreadData.value.tid || threadName;
+  const threadY = getThreadStartY(process, processKey, threadKey, lane2line, layout);
+  const threadHeight = getThreadHeight(processKey, threadKey, lane2line, layout, false);
+  const baseY = threadY + threadHeight / 2;
+  const eventY = baseY - layout.eventHeight / 2;
   let eventDatas = [];
+  ctx.font = getFontStyle(eventTextSize);
   kernalEvents.forEach((event, index, array) => {
     const colors = handleKernalEventColors(event, processKey, false, false);
     const { fillColor, fontColor, strokeColor } = colors;
-    event.drawData.rectColor = fillColor;
-    event.drawData.strokeColor = strokeColor;
-    event.drawData.fontColor = fontColor;
+    const x = getPositionByTime(event.startTime, viewState, layout) - layout.processLabelWidth;
+    const width = getWidthByDuration(event.endTime - event.startTime, viewState, layout);
+    const duration = event.duration ?? (event.endTime - event.startTime);
+    if (!event.drawData) {
+      event.drawData = {};
+    }
+    Object.assign(event.drawData, {
+      rectX: x,
+      rectY: eventY,
+      rectPixelX: x * devicePixelRatio,
+      rectPixelY: eventY * devicePixelRatio,
+      eventWidth: width,
+      width,
+      height: layout.eventHeight,
+      rectColor: fillColor,
+      strokeColor,
+      fontColor,
+      show: width > viewState.minWidth,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      duration,
+      pinnedEventY: eventY,
+    });
+    childContextMap.threadEvent.fillTextInfo(event, ctx, event.drawData, true, false);
     eventDatas.push(event.drawData);
   });
   childContextMap.threadEvent.eventRenderer.drawEvent(eventDatas, ctx);
@@ -1882,13 +1914,13 @@ const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
   return processObj;
 };
 
-const findWrapAtPosition = (x, y, ctx, getPositionByTime) => {
+const findWrapAtPosition = (x, y, ctx, timeToPosFn) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
   for (const lane of swimLaneOrder) {
     if (lane.type !== 'wrap-label') { continue };
     if (y < lane.y || y > lane.y + lane.height) { continue };
     const { startTime } = lane;
-    const startX = getPositionByTime(startTime, viewState, layout) - layout.processLabelWidth;
+    const startX = timeToPosFn(startTime, viewState, layout) - layout.processLabelWidth;
     const labelX = startX * viewState.pixelScale + viewState.pixelOffsetX;
     const padding = 8 * devicePixelRatio;
     const textWidth = ctx.measureText(lane.label).width;
