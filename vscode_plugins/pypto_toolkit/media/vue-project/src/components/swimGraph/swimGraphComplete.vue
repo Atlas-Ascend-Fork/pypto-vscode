@@ -2530,6 +2530,29 @@ const transformVerticalScroll = () => {
       childContextMap.threadEvent.drawNodeHeight(event, processKey);
     }
   }
+  if (globalConnectionCanvas.value) {
+    globalConnectionCanvas.value.clearCanvas();
+  }
+  for (const [key] of processes.entries()) {
+    if (processExpanded.get(key)) {
+      childContextMap.threadEvent.clearDependencyLines(key);
+    }
+  }
+  const depKey = selectedEvent.value?.pid?.toString();
+  if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
+    const process = processes.get(depKey);
+    if (process && process.type === 'aicpu') {
+      highlightAicpu(process, depKey, true);
+    } else {
+      const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
+      if (depCanvas) {
+        const depCtx = depCanvas.getContext('2d');
+        depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        depCtx.clearRect(0, 0, depCanvas.width / devicePixelRatio, depCanvas.height / devicePixelRatio);
+        childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
+      }
+    }
+  }
   timelineComponent.value.flagRender();
   perfLogger.timeEnd('time of transformVerticalScroll');
 };

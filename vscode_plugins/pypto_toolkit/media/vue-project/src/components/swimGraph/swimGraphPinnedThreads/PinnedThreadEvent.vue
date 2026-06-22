@@ -498,9 +498,6 @@ const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, draw
       event.drawData.rectColor = fillColor;
       event.drawData.strokeColor = '';
       event.drawData.fontColor = fontColor;
-    } else {
-      event.drawData.rectColor = colorCfg.eventRectNoColor;
-      event.drawData.fontColor = colorCfg.eventFontNoColor;
     }
 
     const eventY = getPinnedEventY(event, baseY);
