@@ -22,7 +22,7 @@ import { getQuery } from '@/core/query';
 
 const { t } = useI18n();
 
-const emits = defineEmits(['rowClick'])
+const emits = defineEmits(['rowClick', 'opMagicClick'])
 const errorListData = ref([])
 const { server } = useViewServer<IComViewServer>();
 const searchKeyword = ref('')
@@ -49,11 +49,15 @@ const initData = (data) => {
 
 // 点击列表数据行
 const rowClick = (rowData) => {
+  console.log(rowData);
   emits('rowClick', {
     ...rowData,
     currentFileType: currentFileType.value,
     currentFilePath: currentFilePath.value,
   })
+
+  const opmagic = rowData.opmagic ?? rowData.aOpMagic ?? rowData.bOpMagic ?? '';
+  emits('opMagicClick', opmagic);
 }
 
 // 关键词搜索防抖

@@ -1,7 +1,7 @@
 <template>
   <div class="precision-report-wrap">
     <KeepAlive>
-      <AbnormalList v-if="!showDetail" @row-click="jumpDetail" />
+      <AbnormalList v-if="!showDetail" @row-click="jumpDetail" @op-magic-click="onOpMagicClick"/>
     </KeepAlive>
     <AbnormalDetail v-if="showDetail" :row-data="rowData" @back="() => (showDetail = false)" />
   </div>
@@ -14,6 +14,12 @@ import AbnormalDetail from './abnormalDetail.vue';
 
 const showDetail = ref(false);
 const rowData = ref<Record<string, any>>({});
+
+
+const emits = defineEmits(['opMagicClick'])
+const onOpMagicClick = (opmagic: string) => {
+  emits('opMagicClick', opmagic);
+};
 
 const jumpDetail = (data) => {
   rowData.value = data

@@ -25,7 +25,7 @@
               <ShowTip></ShowTip>
               <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
               <ComGraphReport v-model="showComGraphReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
-                @open="(e) => (healthReportGraphName = e)" />
+                @open="(e) => (healthReportGraphName = e)" @op-magic-click="onOpMagicClick" />
               <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" />
               <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" :waitingFlag="waitingFlag" />
               <LayerControl v-model="showLayerControl" :rightOffset="rightPanelWidth" @graph-layout-change="(e) => setDirection(e)"
@@ -82,6 +82,7 @@ import PlaybackProgress from './PlaybackProgress.vue';
 import { openSwimlaneGraph } from "@/apis/opener";
 import { getSwimPath, getUserRunRoot } from "@/apis/welcome";
 import { getQuery } from '@/core/query';
+import { searchByOperationMagic } from '../../utils/search';
 
 const outputDirPath = ref('');
 let isBootStep = false;
@@ -316,6 +317,23 @@ const onLocate = (id) => {
 
 const onLocateSubgraph = (ids) => {
   selectAction(ids);
+}
+
+const onOpMagicClick = (opMagic) => {
+  if (opMagic === "") {
+    return;
+  }
+  const clickOpmagic = opMagic.endsWith(".0") ? opMagic.slice(0, -2) : opMagic;
+  let node_id = `operation-magic-${clickOpmagic}--1`;
+  const operations = comGraphStore.data.jsonData.operations;
+  operations.forEach(element => {
+    if (element.opmagic === Number(clickOpmagic)) {
+      const subgraphId = element.subgraphid !== undefined ? element.subgraphid : -1;
+      node_id = `operation-magic-${element.opmagic}-${subgraphId}`;
+    }
+  });
+  centerNodeAction([node_id]);
+  selectAction([node_id]);
 }
 
 const colorSubgraph = (isColor: boolean) => {

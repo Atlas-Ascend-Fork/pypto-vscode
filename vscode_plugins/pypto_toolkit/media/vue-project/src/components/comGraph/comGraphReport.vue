@@ -25,7 +25,7 @@
           </d-tab>
         </d-tabs>
         <HealthReport v-show="activeTab === TabName.healthReport" />
-        <PrecisionReport v-show="activeTab === TabName.precisionReport" />
+        <PrecisionReport v-show="activeTab === TabName.precisionReport" @op-magic-click="(opmagic) => emits('opMagicClick', opmagic)" />
       </div>
     </Transition>
   </Teleport>
@@ -47,7 +47,7 @@ const { t } = useI18n();
 const props = defineProps({
   modelValue: Boolean,
 });
-const emits = defineEmits(['update:modelValue', 'onLocate', 'open', 'locateSubgraph']);
+const emits = defineEmits(['update:modelValue', 'onLocate', 'open', 'locateSubgraph', 'opMagicClick']);
 const { drawerEl } = useClickOutside(props, emits);
 const { server } = useViewServer<IComViewServer>();
 
