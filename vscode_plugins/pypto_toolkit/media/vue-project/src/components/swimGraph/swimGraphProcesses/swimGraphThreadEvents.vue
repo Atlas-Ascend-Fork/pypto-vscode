@@ -3489,35 +3489,35 @@ const showPathLockedHighlight = (event, processKey) => {
   pathLockedHighlightEvent = event;
   pathLockedHighlightProcessKey = processKey;
   const { x, width, y, height } = event.renderInfo;
-  const pixelX = viewState.pixelOffsetX + (x * viewState.pixelScale);
-  const pixelWidth = width * viewState.pixelScale;
-  const pixelY = y * devicePixelRatio;
-  const pixelHeight = height * devicePixelRatio;
-  if (pixelX + pixelWidth < 0 || pixelX > viewState.canvasCssWidth) {
+  const cssX = viewState.offsetX + (x * viewState.scale);
+  const cssWidth = width * viewState.scale;
+  const cssY = y;
+  const cssHeight = height;
+  if (cssX + cssWidth < 0 || cssX > viewState.canvasCssWidth) {
     pathLockedHighlightStyle.visible = false;
     return;
   }
-  let clippedX = pixelX;
-  let clippedWidth = pixelWidth;
-  if (pixelX < 0) {
+  let clippedX = cssX;
+  let clippedWidth = cssWidth;
+  if (cssX < 0) {
     clippedX = 0;
-    clippedWidth = pixelWidth + pixelX;
+    clippedWidth = cssWidth + cssX;
   }
-  if (pixelX + pixelWidth > viewState.canvasCssWidth) {
-    clippedWidth = viewState.canvasCssWidth;
+  if (cssX + cssWidth > viewState.canvasCssWidth) {
+    clippedWidth = viewState.canvasCssWidth - cssX;
   }
   const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, true, true);
-  const text = (pixelWidth >= 15 && event.drawData?.text) ? event.drawData.text : '';
+  const text = (cssWidth >= 15 && event.drawData?.text) ? event.drawData.text : '';
   pathLockedHighlightStyle.visible = true;
   pathLockedHighlightStyle.left = clippedX;
-  pathLockedHighlightStyle.top = pixelY;
+  pathLockedHighlightStyle.top = cssY;
   pathLockedHighlightStyle.width = clippedWidth;
-  pathLockedHighlightStyle.height = pixelHeight;
+  pathLockedHighlightStyle.height = cssHeight;
   pathLockedHighlightStyle.borderColor = strokeColor || (isDarkTheme.value ? '#FFFFFF' : '#191919');
   pathLockedHighlightStyle.backgroundColor = fillColor;
   pathLockedHighlightStyle.fontColor = fontColor;
   pathLockedHighlightStyle.text = text;
-  pathLockedHighlightStyle.textLeft = clippedWidth / 2;
+  pathLockedHighlightStyle.textLeft = clippedWidth >= viewState.canvasCssWidth ? viewState.canvasCssWidth / 2 : clippedWidth / 2;
 };
 
 const hidePathLockedHighlight = () => {
