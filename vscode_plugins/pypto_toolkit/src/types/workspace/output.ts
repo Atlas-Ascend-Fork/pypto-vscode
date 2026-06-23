@@ -19,6 +19,9 @@ export interface RunDataManifest {
 
   /** 泳道图目录 */
   swim_graph_path?: string;
+
+  /** 精度工具目录 */
+  flow_verify_path?: string;
 }
 
 export type OutputRecord = Omit<OutputDetail, 'directoryTree'>;
@@ -53,4 +56,7 @@ export interface OutputDetail {
 
   /** ope校验目录路径 */
   opeCheckDirPath: AccuracyToolCompList[] | null;
+
+  /** 精度工具文件地址 */
+  flowVerifyPath: string | null;
 }

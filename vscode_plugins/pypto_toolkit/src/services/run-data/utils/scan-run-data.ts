@@ -63,11 +63,12 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   const controlFlowFilePath = await getPathIfExists(runData.program_file);
   const swimlaneGraphFilePath = await getPathIfExists(runData.swim_graph_path);
   const computeGraphDirPath = await getPathIfExists(runData.compute_graph_path);
+  const flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : null;
   if (![sourceFilePath, controlFlowFilePath, swimlaneGraphFilePath, computeGraphDirPath].some(Boolean)) {
     return undefined;
   }
 
-  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(computeGraphDirPath ?? undefined);
+  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(flowVerifyPath ?? undefined);
 
   return {
     title,
@@ -77,6 +78,7 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
     controlFlowFilePath,
     swimlaneGraphFilePath,
     computeGraphDirPath,
+    flowVerifyPath,
     hasOpeCheck,
     opeCheckDirPath,
   };
@@ -144,20 +146,20 @@ interface OpeCheckResult {
   opeCheckDirPath: AccuracyToolCompList[] | null;
 }
 
-async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
+async function findOpeCheck(flowVerifyPath?: string): Promise<OpeCheckResult> {
   const empty: OpeCheckResult = { hasOpeCheck: false, opeCheckDirPath: null };
 
-  if (!computeFilePath) {
+  const flowVerifyUri = (flowVerifyPath ?? '').split('/').slice(0, -1).join('/');
+  if (!flowVerifyUri) {
     return empty;
   }
 
-  const db = SQLiteCache.getInstance();
-  const existingList = await db.accuracyToolCompListGetByComputePath(computeFilePath);
+  const existingList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
   if (existingList.length > 0) {
     return { hasOpeCheck: true, opeCheckDirPath: existingList };
   }
 
-  const fileUri = vscode.Uri.file(computeFilePath);
+  const fileUri = vscode.Uri.file(flowVerifyUri);
   const subList = await vscode.workspace.fs.readDirectory(fileUri);
   const allInsertData: AccuracyToolCompList[] = [];
 
@@ -174,7 +176,7 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
           allInsertData.push({
             file_path: filePath,
             first_req: '-1',
-            compute_path: computeFilePath,
+            compute_path: flowVerifyUri,
           });
         }
       }
@@ -184,7 +186,7 @@ async function findOpeCheck(computeFilePath?: string): Promise<OpeCheckResult> {
   }
 
   if (allInsertData.length > 0) {
-    await db.accuracyToolCompListSet(computeFilePath, allInsertData);
+    await SQLiteCache.getInstance().accuracyToolCompListSet(flowVerifyUri, allInsertData);
     return { hasOpeCheck: true, opeCheckDirPath: allInsertData };
   }
 

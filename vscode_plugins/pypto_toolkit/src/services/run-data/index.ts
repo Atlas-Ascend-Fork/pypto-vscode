@@ -11,6 +11,7 @@ import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolvin
 import { deleteFile } from '../../utils/file-system';
 import { t } from 'i18next';
 import { getControlFlowStore } from '../control-flow/store';
+import { SQLiteCache, AccuracyToolCompList } from '../../core/sqliteCache';
 
 /** 当前用户根目录 */
 const USER_HOME_PATH = process.env.HOME || process.env.USERPROFILE;
@@ -35,6 +36,7 @@ const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   directoryTree: { type: Object },
   hasOpeCheck: { type: Boolean, isQuery: true, defaultValue: false },
   opeCheckDirPath: { type: Object, isQuery: true },
+  flowVerifyPath: { type: String },
 });
 
 export class RunDataService extends BasicService {
@@ -96,11 +98,23 @@ export class RunDataService extends BasicService {
     const runDataUri = vscode.Uri.file(runDataDirPath);
     const record = await this.queryOutputFromStore(runDataUri);
     if (record) {
-      return record;
+      return this.mergeOpeCheckFromComparelist(record);
     } else {
-      // 数据库没有记录时，从文件目录读取
-      return await readRunData(runDataUri);
+      const fileRecord = await readRunData(runDataUri);
+      return fileRecord ? this.mergeOpeCheckFromComparelist(fileRecord) : undefined;
     }
+  }
+
+  private async mergeOpeCheckFromComparelist(record: OutputRecord): Promise<OutputRecord> {
+    if (!record.hasOpeCheck || !record.flowVerifyPath) {
+      return record;
+    }
+    const flowVerifyUri = (record.flowVerifyPath ?? '').split('/').slice(0, -1).join('/');
+    const latestList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
+    if (latestList.length > 0) {
+      return { ...record, opeCheckDirPath: latestList };
+    }
+    return record;
   }
 
   private hasDirectoryTree(record: OutputRecord): record is OutputDetail {
