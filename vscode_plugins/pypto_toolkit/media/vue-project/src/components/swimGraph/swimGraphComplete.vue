@@ -3413,6 +3413,9 @@ provide('swimGraphMethods', {
   showPathLockedHighlight: (event, processKey)=> {
     childContextMap.threadEvent.showPathLockedHighlight(event, processKey);
   },
+  hidePathLockedHighlight: ()=> {
+    childContextMap.threadEvent.hidePathLockedHighlight();
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();

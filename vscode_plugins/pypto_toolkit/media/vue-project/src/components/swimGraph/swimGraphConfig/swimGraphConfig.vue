@@ -123,6 +123,7 @@ const {
   selectEvent,
   resetsearchState,
   clearHeadState,
+  hidePathLockedHighlight
 } = inject('swimGraphMethods');
 
 const { pinnedThreadsList, recalculateOffsetY } = inject('swimGraphPinnedState');
@@ -413,6 +414,7 @@ const onIsMixModelchange = async (newValue) => {
     mixRelatedPaths.clear();
     searchedEvent.value = null;
     isPathLockStatus.value = false;
+    hidePathLockedHighlight();
     isMeasureModel.value = false;
     
     // Reset search state and clear search box

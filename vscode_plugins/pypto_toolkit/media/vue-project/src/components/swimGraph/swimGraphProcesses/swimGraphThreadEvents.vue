@@ -553,6 +553,7 @@ const handleMountedKeyDown = (e) => {
     if (e.key === 'Escape' || e.code === 'Escape') {
       e.preventDefault();   // 防止浏览器默认行为（如退出全屏）
       isPathLockStatus.value = false;
+      hidePathLockedHighlight();
       canvasStatusReset();
       canvasclickedEvent.value = null;
       pathLockedEvent.value = null;
@@ -4186,7 +4187,8 @@ addChildContext('threadEvent', {
   renderDimmedNodesInWrap,
   focusWrap,
   updatePathLockedHighlightOnTransform,
-  showPathLockedHighlight
+  showPathLockedHighlight,
+  hidePathLockedHighlight
 });
 watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
 // 每个事件画布都会走一遍
