@@ -51,13 +51,28 @@
     <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="mix-hover-events-canvas" :data-mix-hover-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="hover-wrap-container-canvas" :data-hover-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
+    <div 
+      v-if="pathLockedHighlightStyle.visible"
+      class="path-locked-node-highlight"
+      :style="{
+        left: pathLockedHighlightStyle.left + 'px',
+        top: pathLockedHighlightStyle.top + 'px',
+        width: pathLockedHighlightStyle.width + 'px',
+        height: pathLockedHighlightStyle.height + 'px',
+        borderColor: pathLockedHighlightStyle.borderColor,
+        backgroundColor: pathLockedHighlightStyle.backgroundColor,
+        color: pathLockedHighlightStyle.fontColor,
+      }"
+    >
+      <span v-if="pathLockedHighlightStyle.text" class="highlight-text" :style="{ left: pathLockedHighlightStyle.textLeft + 'px' }">{{ pathLockedHighlightStyle.text }}</span>
+    </div>
     <swim-graph-thread-lock-menu/>
   </div>
 </template>
   
 <script setup>
 import { useI18n } from 'vue-i18n';
-import { inject, onMounted, onUnmounted, watch, ref, provide} from 'vue';
+import { inject, onMounted, onUnmounted, watch, ref, provide, reactive } from 'vue';
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, getVisibleYRange, isThreadInViewport, eventTextSize, nodeSpaceMin, clearWholeProcess,
   renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodesWithControl,
@@ -91,10 +106,24 @@ let boundaries = [];
 let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
-let isHoverLockStatus = ref(false); // 选定状态
+let isHoverLockStatus = ref(false);
 let pinnedStatus = ref(false);
 let preFocusWrapState = null;
 let preHoverMixWrapId = null;
+const pathLockedHighlightStyle = reactive({
+  visible: false,
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+  borderColor: '',
+  backgroundColor: '',
+  fontColor: '',
+  text: '',
+  textLeft: 0,
+});
+let pathLockedHighlightEvent = null;
+let pathLockedHighlightProcessKey = '';
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -147,7 +176,8 @@ const {
   aicpuSection,
   kernelSection,
   freezeVisibleRange,
-  focusedWrapId
+  focusedWrapId,
+  pathLockedWrapId
 } = swimGraphState;
 
 const {
@@ -252,8 +282,9 @@ const canvasStatusReset = () => {
   aicpuControlDetailsExpanded.value = false;
   aicpuScheduleDetailsExpanded.value = false;
   aicpuCoreDetailsExpanded.value = false;
-  const needMixRestore = focusedWrapId.value !== null;
+  const needMixRestore = focusedWrapId.value !== null || pathLockedWrapId.value !== null;
   focusedWrapId.value = null;
+  pathLockedWrapId.value = null;
   preHoverMixWrapId = null;
   selectEvent(null, props.processKey);
   if (needMixRestore) {
@@ -310,41 +341,7 @@ const handleCanvasClick = (e) => {
   canvasclickedEvent.value = clickedEvent;
   // 锁定时的点击处理
   if (isPathLockStatus.value) {
-    detailsPanelExpanded.value = false;
-    if (clickedEvent) {
-      if (e.altKey) {
-        // 清空hover画布 
-        onHoverEvent();
-        measureDistance(clickedEvent, props.processKey);
-        return;
-      }
-      if (globalMeasureCanvas.value) {
-        globalMeasureCanvas.value.clearMeasure();
-      }
-      if (props.process.type === 'aicpu') {
-        const { threadName } = clickedEvent;
-        const isCtrl = threadName.includes('AICPU-CTRL');
-        const isSched = threadName.includes('AICPU-SCHED');
-        aicpuControlDetailsExpanded.value = isCtrl;
-        aicpuScheduleDetailsExpanded.value = isSched;
-        aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
-        detailsPanelExpanded.value = false;
-        selectEvent(clickedEvent, props.processKey);
-      } else {
-        aicpuControlDetailsExpanded.value = false;
-        aicpuScheduleDetailsExpanded.value = false;
-        aicpuCoreDetailsExpanded.value = false;
-        detailsPanelExpanded.value = true;
-      }
-      onHoverEvent();
-      clearOtherProcessCanvas();
-      drawNodeHeight(clickedEvent, props.processKey);
-      highlightPinnedEvent(clickedEvent, true);
-    } else {
-      if (globalMeasureCanvas.value) {
-        globalMeasureCanvas.value.clearMeasure();
-      }
-    }
+    handlePathLockClick(clickedEvent, e);
     return;
   }
   if (isThreeColumn) {
@@ -386,8 +383,52 @@ const handleCanvasClick = (e) => {
   }
 };
 
+const handlePathLockClick = (clickedEvent, e) => {
+  detailsPanelExpanded.value = false;
+  if (clickedEvent) {
+    if (e.altKey) {
+      // 清空hover画布 
+      onHoverEvent();
+      measureDistance(clickedEvent, props.processKey);
+      return;
+    }
+    if (globalMeasureCanvas.value) {
+      globalMeasureCanvas.value.clearMeasure();
+    }
+    if (props.process.type === 'aicpu') {
+      const { threadName } = clickedEvent;
+      const isCtrl = threadName.includes('AICPU-CTRL');
+      const isSched = threadName.includes('AICPU-SCHED');
+      aicpuControlDetailsExpanded.value = isCtrl;
+      aicpuScheduleDetailsExpanded.value = isSched;
+      aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
+      detailsPanelExpanded.value = false;
+      selectEvent(clickedEvent, props.processKey);
+    } else {
+      aicpuControlDetailsExpanded.value = false;
+      aicpuScheduleDetailsExpanded.value = false;
+      aicpuCoreDetailsExpanded.value = false;
+      detailsPanelExpanded.value = true;
+      if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+        focusedWrapId.value = clickedEvent?.args?.wrapId;
+        transformEvents(props.process, props.processKey);
+        const { eventCtx } = ctxs[props.processKey];
+        renderProcessText(props.process, eventCtx, props.processKey);
+      }
+    }
+    onHoverEvent();
+    clearOtherProcessCanvas();
+    showPathLockedHighlight(clickedEvent, props.processKey);
+    highlightPinnedEvent(clickedEvent, true);
+  } else {
+    if (globalMeasureCanvas.value) {
+      globalMeasureCanvas.value.clearMeasure();
+    }
+  }
+};
+
 const pathLockedMethod = (clickedEvent) => {
-  selectEvent(clickedEvent, props.processKey);
+  selectEvent(clickedEvent, props.processKey, true, false, true);
   detailsPanelExpanded.value = false;
 };
 const clearOtherProcessCanvas = () => {
@@ -1233,7 +1274,7 @@ const handleMouseMoveThrottle = throttle((e) => {
 
   const localPosition = computeLocalXY(canvasRef, mousePosition, viewState);
   const { x, y } = localPosition;
-  let info = focusedWrapId.value != null ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
+  let info = (focusedWrapId.value != null || pathLockedWrapId.value != null) ? findEventAtPosition(x, y, props.processKey) : findEventAtPosition(x, y, props.processKey, false);
   let hoveredEvent = info?.event;
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     const { mixHoverCtx } = ctxs[props.processKey];
@@ -1301,7 +1342,7 @@ const restoreMacroView = (mixHoverCtx, wrapId) => {
   mixHoverCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
   const wrapContainers = swimDataManager.getWrapContainers();
   for (const wrapContainer of wrapContainers) {
-    if (wrapContainer.wrapId === wrapId || wrapContainer.wrapId === focusedWrapId.value) {
+    if (wrapContainer.wrapId === wrapId || wrapContainer.wrapId === focusedWrapId.value || wrapContainer.wrapId === pathLockedWrapId.value) {
       renderMicroByWrapId(wrapContainer.wrapId, props.processKey, mixHoverCtx);
     }
   }
@@ -2011,7 +2052,7 @@ const renderProcessEvents = (process, processKey) => {
 const renderProcessPinEvents = (thread, eventCtx, threadY, processKey) => {
   const currentWrapId = thread?.events?.[0]?.args?.wrapId;
   pinnedStatus.value = true;
-  const isFocusedWrapInMixMode = currentWrapId && focusedWrapId.value === currentWrapId;
+  const isFocusedWrapInMixMode = currentWrapId && (focusedWrapId.value === currentWrapId || pathLockedWrapId.value === currentWrapId );
   if (isMixMode?.value && swimDataManager.hasMixConfig() && isFocusedWrapInMixMode) {
     renderMixPinnedThread(thread, eventCtx, threadY, processKey);
   } else {
@@ -2484,7 +2525,7 @@ const changeWrapThreadNodeColor = (thread, processKey, isDimmed, drawDatas, sibl
       setEventShowFalse(parentEvent);
       continue;
     }
-    if (parentEvent?.args?.wrapId === focusedWrapId.value) {
+    if (parentEvent?.args?.wrapId === focusedWrapId.value || parentEvent?.args?.wrapId === pathLockedWrapId.value ) {
       processFocusedParentEvent(parentEvent, { drawDatas, siblingDrawDatas }, { isDimmed, parentEventId }, processKey);
     } else {
       handleNonFocusedParentEvent(parentEvent, drawDatas, thread.tid, processKey);
@@ -3440,14 +3481,55 @@ const hideTooltip = () => { tooltipStyle.display = 'none' };
 
 const hideLineTooltip = () => { lineTooltipStyle.display = 'none' };
 
-const drawNodeHeight = (event, processKey) => {
-  if (globalMeasureCanvas.value && !isE2ESwim.value) {
-    globalMeasureCanvas.value.clearCanvas();
-    globalMeasureCanvas.value.drawRoundedRect(event, processKey);
+const showPathLockedHighlight = (event, processKey) => {
+  if (!event?.renderInfo) {
+    hidePathLockedHighlight();
     return;
   }
-  const uiCtx = getUIContext(processKey);
-  measureRenderer.drawNodeRoundedRect(uiCtx, event, processKey);
+  pathLockedHighlightEvent = event;
+  pathLockedHighlightProcessKey = processKey;
+  const { x, width, y, height } = event.renderInfo;
+  const pixelX = viewState.pixelOffsetX + (x * viewState.pixelScale);
+  const pixelWidth = width * viewState.pixelScale;
+  const pixelY = y * devicePixelRatio;
+  const pixelHeight = height * devicePixelRatio;
+  if (pixelX + pixelWidth < 0 || pixelX > viewState.canvasCssWidth) {
+    pathLockedHighlightStyle.visible = false;
+    return;
+  }
+  let clippedX = pixelX;
+  let clippedWidth = pixelWidth;
+  if (pixelX < 0) {
+    clippedX = 0;
+    clippedWidth = pixelWidth + pixelX;
+  }
+  if (pixelX + pixelWidth > viewState.canvasCssWidth) {
+    clippedWidth = viewState.canvasCssWidth;
+  }
+  const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, true, true);
+  const text = (pixelWidth >= 15 && event.drawData?.text) ? event.drawData.text : '';
+  pathLockedHighlightStyle.visible = true;
+  pathLockedHighlightStyle.left = clippedX;
+  pathLockedHighlightStyle.top = pixelY;
+  pathLockedHighlightStyle.width = clippedWidth;
+  pathLockedHighlightStyle.height = pixelHeight;
+  pathLockedHighlightStyle.borderColor = strokeColor || (isDarkTheme.value ? '#FFFFFF' : '#191919');
+  pathLockedHighlightStyle.backgroundColor = fillColor;
+  pathLockedHighlightStyle.fontColor = fontColor;
+  pathLockedHighlightStyle.text = text;
+  pathLockedHighlightStyle.textLeft = clippedWidth / 2;
+};
+
+const hidePathLockedHighlight = () => {
+  pathLockedHighlightStyle.visible = false;
+  pathLockedHighlightEvent = null;
+  pathLockedHighlightProcessKey = '';
+};
+
+const updatePathLockedHighlightOnTransform = () => {
+  if (pathLockedHighlightEvent && pathLockedHighlightProcessKey && isPathLockStatus.value) {
+    showPathLockedHighlight(pathLockedHighlightEvent, pathLockedHighlightProcessKey);
+  }
 };
 
 const measureDistance = (event, processKey) => {
@@ -3565,15 +3647,16 @@ const transformWrap = ({ minX, maxX, startT, endT, minY, targetWidth }) => {
   transform();
 };
 
-const focusWrap = (wrapId) => {
+const focusWrap = (wrapId, pathLocked = false) => {
   const wrapContainer = swimDataManager.getWrapContainerByWrapId(wrapId);
   if (!wrapContainer) { return };
   
   if (focusedWrapId.value === wrapId) {
     return;
   }
-  
-  focusedWrapId.value = wrapId;
+  if (!pathLocked) {
+    focusedWrapId.value = wrapId;
+  }
   if (!preFocusWrapState) {
     preFocusWrapState = {
       scale: viewState.scale,
@@ -3735,10 +3818,10 @@ const drawLockedOutline = () => {
 const renderMixModeEvents = (process, processKey, ctx) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
   const wrapContainers = swimDataManager.getWrapContainers();
-  const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === focusedWrapId.value);
-  const { threadTids = [] } = currentWrapContainer || {};
+  const currentWrapContainers = wrapContainers.filter(wrapContainer => wrapContainer.wrapId === focusedWrapId.value || wrapContainer.wrapId === pathLockedWrapId.value);
+  const allThreadTids = currentWrapContainers.flatMap(wrapContainer => wrapContainer.threadTids || []);
   const drawDatas = [];
-  
+  const wrapIds = [focusedWrapId.value, pathLockedWrapId.value].filter(id => id != null);
   for (const lane of swimLaneOrder) {
     if (lane.type !== 'thread') {
       continue;
@@ -3755,9 +3838,9 @@ const renderMixModeEvents = (process, processKey, ctx) => {
           break;
         }
       }
-    } else if (lane.wrapIds.length > 0 && threadTids.includes(lane.thread.tid)) {
-      renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapId: focusedWrapId.value});
-      renderThreadNormalEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapId: focusedWrapId.value});
+    } else if (lane.wrapIds.length > 0 && allThreadTids.includes(lane.thread.tid)) {
+      renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapIds});
+      renderThreadNormalEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapIds});
     } else {
       for (const [threadKey, procThread] of process.threads.entries()) {
         if (procThread.tid === thread.tid) {
@@ -3791,6 +3874,7 @@ const renderMicroByWrapId = (wrapId, processKey, ctx) => {
   const drawDatas = [];
   const currentWrapContainer = wrapContainers.find(wrapContainer => wrapContainer.wrapId === wrapId);
   const { threadTids } = currentWrapContainer;
+  const wrapIds = [wrapId];
   for (const lane of swimLaneOrder) {
     if (lane.type !== 'thread') {
       continue;
@@ -3800,7 +3884,7 @@ const renderMicroByWrapId = (wrapId, processKey, ctx) => {
       const threadY = lane.y;
       const laneHeight = lane.height;
       if (lane.wrapIds.length > 0) {
-        renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapId});
+        renderThreadSubEvents({thread, threadY, laneHeight, drawDatas, processKey, wrapIds});
       }
     }
   }
@@ -3821,14 +3905,14 @@ const renderMicroByWrapId = (wrapId, processKey, ctx) => {
     eventRenderer.drawEventText(drawDatas, ctx);
   }
 };
-const renderThreadNormalEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapId}) => {
+const renderThreadNormalEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapIds}) => {
   const { processLabelWidth, eventHeight, threadHeight } = layout;
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;
   
   const normalEvents = thread.eventIds
-    .map(id => swimDataManager.getEventById(id))
-    .filter(e => e && (!swimDataManager.isMixParentEvent(e) || e.args?.wrapId !== wrapId));
+  .map(id => swimDataManager.getEventById(id))
+  .filter(e => e && (!swimDataManager.isMixParentEvent(e) || !wrapIds.includes(e.args?.wrapId)));
   
   for (const event of normalEvents) {
     if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) continue;
@@ -3968,11 +4052,10 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
   return true;
 };
 
-const renderThreadSubEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapId = -1}) => {
+const renderThreadSubEvents = ({thread, threadY, laneHeight, drawDatas, processKey, wrapIds = []}) => {
   let parentEvents = thread.eventIds
   .map(id => swimDataManager.getEventById(id))
-  .filter(e => e && swimDataManager.isMixParentEvent(e) && (wrapId === -1 || e.args?.wrapId === wrapId));
-
+  .filter(e => e && swimDataManager.isMixParentEvent(e) && (wrapIds.length === 0 || wrapIds.includes(e.args?.wrapId)));
   const { processLabelWidth, eventHeight, threadHeight } = layout;
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;
@@ -4098,11 +4181,12 @@ addChildContext('threadEvent', {
   drawEventThread,
   showTooltip,
   renderThreadText,
-  drawNodeHeight,
   drawHoverWrapContainner,
   drawClickWrapContainner,
   renderDimmedNodesInWrap,
   focusWrap,
+  updatePathLockedHighlightOnTransform,
+  showPathLockedHighlight
 });
 watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
 // 每个事件画布都会走一遍
@@ -4211,7 +4295,8 @@ provide('swimGraphThreadState', {
   leftX,
   canvasclickedEvent,
   isClickedPath,
-  pathLockedEvent
+  pathLockedEvent,
+  pathLockedWrapId
 });
 provide('swimGraphThreadMethods', {
   pathLockedMethod

@@ -19,7 +19,8 @@ const {
   leftX,
   canvasclickedEvent,
   isClickedPath,
-  pathLockedEvent
+  pathLockedEvent,
+  pathLockedWrapId
 } = inject('swimGraphThreadState');
 
 const {
@@ -31,6 +32,7 @@ const { t: $t } = useI18n();
 const pathwayLockoutClick = () => {
   isPathLockStatus.value = true;
   pathLockedEvent.value = canvasclickedEvent.value;
+  pathLockedWrapId.value = pathLockedEvent.value?.args?.wrapId;
   switchLockInformationFlag.value = false;
   isClickedPath.value = false;
   pathLockedMethod(canvasclickedEvent.value);

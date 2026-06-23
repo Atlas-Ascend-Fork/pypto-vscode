@@ -64,7 +64,8 @@ const {
   highlightedPaths,
   timeLineX,
   detailsPanelExpanded,
-  focusedWrapId
+  focusedWrapId,
+  pathLockedWrapId
 } = swimGraphState;
 
 const { 
@@ -74,7 +75,7 @@ const {
   selectEvent,
   setMeasureDragHeight,
   transform,
-  drawNodeHeight
+  showPathLockedHighlight
 } = inject('swimGraphMethods');
 
 const { pinnedThreadsList, pinnedMeasureInfo } = inject('swimGraphPinnedState');
@@ -233,7 +234,7 @@ const transformPinned = () => {
       const currentWrapId = item.thread?.events?.[0]?.args?.wrapId;
       if (item.thread.isCounter) {
         childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
-      } else if (currentWrapId && currentWrapId === focusedWrapId.value) {
+      } else if (currentWrapId && (currentWrapId === focusedWrapId.value || currentWrapId === pathLockedWrapId.value) ) {
         drawTransformMixEvent(item.thread, eventsCtx, item.processKey);
       } else {
         childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
@@ -533,7 +534,7 @@ const changePinnedColor = (isDimmed) => {
       childContextMap.threadEvent.drawTransformEvent(thread, eventsCtx, true);
     } else {
       const currentWrapId = thread?.events?.[0]?.args?.wrapId;
-      const isFocusedWrapInMixMode = currentWrapId && currentWrapId === focusedWrapId.value;
+      const isFocusedWrapInMixMode = currentWrapId && (currentWrapId === focusedWrapId.value || currentWrapId === pathLockedWrapId.value);
       if (isMixModeValue && hasMixConfig && isFocusedWrapInMixMode) {
         processMixModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);
       } else {
@@ -1278,7 +1279,7 @@ const handleMouseDown = (e) => {
     if (isPathLockStatus.value) {
       detailsPanelExpanded.value = true;
       drawHoverHighlight(event, highlightCtx);
-      drawNodeHeight(event, event.renderInfo?.processKey || event.pid.toString());
+      showPathLockedHighlight(event, event.renderInfo?.processKey || event.pid.toString());
       return;
     }
     selectEvent(event, event.renderInfo?.processKey || event.pid.toString());

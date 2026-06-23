@@ -338,6 +338,7 @@ const freezeVisibleRange = ref(false);
 let _frozenStartTime = 0;
 let _frozenEndTime = 0;
 const focusedWrapId = ref(null); 
+const pathLockedWrapId = ref(null);
 const viewState = reactive({
   offsetX: 0,
   offsetY: 0,
@@ -1000,7 +1001,7 @@ const transform = (needClean=false) => {
     const event = canvasclickedEvent.value;
     const processKey = event.pid?.toString();
     if (processKey && processExpanded.get(processKey)) {
-      childContextMap.threadEvent.drawNodeHeight(event, processKey);
+      childContextMap.threadEvent.updatePathLockedHighlightOnTransform();
     }
   }
   drawMeasureTime();
@@ -1536,13 +1537,13 @@ const updatePanelState = (event, processKey, showkernelDetail) => {
 
 let selectEventToken = 0;
 
-const handleMixSubEventClick = (event, processKey) => {
+const handleMixSubEventClick = (event, processKey, pathLocked) => {
   mixRelatedPaths.clear();
   highlightedPaths.clear();
   const { mixHoverCtx } = ctxs[processKey];
   const canvas = document.querySelector(`[data-mix-hover-process-key="${processKey}"]`);
   mixHoverCtx.clearRect(0, 0, viewState.canvasCssWidth, canvas.offsetHeight);
-  childContextMap.threadEvent.focusWrap(event.args.wrapId);
+  childContextMap.threadEvent.focusWrap(event.args.wrapId, pathLocked);
   globalConnectionCanvas.value.clearCanvas();
 
   const token = ++selectEventToken;
@@ -1667,7 +1668,7 @@ const updateOtherProcesses = (processKey) => {
   }
 };
 
-const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false) => {
+const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false, pathLocked = false) => {
   updatePanelState(event, processKey, showkernelDetail);
   const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
   if (!forceExec && noChange) {
@@ -1689,7 +1690,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
       highlightAicpu(process, processKey, false);
     } else if (isMixMode?.value && swimDataManager.hasMixConfig()) {
       if (event?.parentEventId) {
-        handleMixSubEventClick(event, processKey);
+        handleMixSubEventClick(event, processKey, pathLocked);
         if (event?.isWait) {
           return;
         }
@@ -2527,7 +2528,7 @@ const transformVerticalScroll = () => {
     const event = canvasclickedEvent.value;
     const processKey = event.pid?.toString();
     if (processKey && processExpanded.get(processKey)) {
-      childContextMap.threadEvent.drawNodeHeight(event, processKey);
+      childContextMap.threadEvent.updatePathLockedHighlightOnTransform();
     }
   }
   if (globalConnectionCanvas.value) {
@@ -3302,7 +3303,8 @@ provide('swimGraphState', {
   isFromPerformanceClick,
   hashOrderRending,
   freezeVisibleRange,
-  focusedWrapId
+  focusedWrapId,
+  pathLockedWrapId
 });
 
 // 提供方法给子组件
@@ -3390,9 +3392,6 @@ provide('swimGraphMethods', {
     childContextMap.threadEvent.renderThreadText(thread, ctx, selectedInfo, isHighlighting, isAicpuProcess);
   },
   handleKernalEventColors,
-  drawNodeHeight: (event, processKey)=> {
-    childContextMap.threadEvent.drawNodeHeight(event, processKey);
-  },
   findWrapAtPosition,
   drawClickWrapContainner: (event, ctx) => {
     childContextMap.threadEvent.drawClickWrapContainner(event, ctx);
@@ -3407,7 +3406,13 @@ provide('swimGraphMethods', {
     childContextMap.threadEvent.fillTextInfo(event, ctx, drawData, isTextXChange, isAicpuProcess);
   },
   setHashOrderTipColor,
-  isCoreUtilizationSupported
+  isCoreUtilizationSupported,
+  updatePathLockedHighlightOnTransform: ()=> {
+    childContextMap.threadEvent.updatePathLockedHighlightOnTransform();
+  },
+  showPathLockedHighlight: (event, processKey)=> {
+    childContextMap.threadEvent.showPathLockedHighlight(event, processKey);
+  },
 });
 watch(isDarkTheme, () => {
   updateTheme();
