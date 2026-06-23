@@ -3044,7 +3044,7 @@ const computeEventThreadDrawData = (thread, threadY, processKey) => {
 
 const drawEventThread = (thread, ctx, threadY, processKey) => {
   const eventDatas = computeEventThreadDrawData(thread, threadY, processKey);
-  if (processExpanded.get(processKey)) {
+  if (processExpanded.get(processKey) || thread.isPinned) {
     eventRenderer.drawEvent(eventDatas, ctx, false, pinnedStatus.value);
   }
 };

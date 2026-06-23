@@ -1422,18 +1422,7 @@ const xToTime = (x) => {
   return viewState.minTime + relativeTime;
 };
 
-const toggleProcess = (processKey) => {
-  const isExpanded = processExpanded.get(processKey);
-  processExpanded.set(processKey, !isExpanded);
-  // 如果当前打开的就是该process，则折叠即可
-  if (isExpanded) {
-    return;
-  }
-
-  // 如果曾经打开过，为了保证缩放比例等正确，也需要再次绘制
-  const process = processes.get(processKey);
-  process.isRendered = true;
-
+const toggleReRenderProcess = (processKey, process) => {
   nextTick(() => {
     resizeCanvases(processKey, false);
     const ctxInfo = ctxs[processKey];
@@ -1450,6 +1439,25 @@ const toggleProcess = (processKey) => {
     timelineComponent.value.flagRender();
     drawKernalEvents();
   });
+};
+
+const toggleProcess = (processKey) => {
+  const isExpanded = processExpanded.get(processKey);
+  processExpanded.set(processKey, !isExpanded);
+  // 如果当前打开的就是该process，则折叠即可
+  if (isExpanded) {
+    for (const [key, process] of processes.entries()) {
+      if (processExpanded.get(key)) {
+        toggleReRenderProcess(key, process);
+      }
+    }
+    return;
+  }
+
+  // 如果曾经打开过，为了保证缩放比例等正确，也需要再次绘制
+  const process = processes.get(processKey);
+  process.isRendered = true;
+  toggleReRenderProcess(processKey, process);
 };
 const drawKernalEvents = () => {
   let processKey = '';
@@ -1768,7 +1776,9 @@ const highlightAicpu = (process, processKey, isResize) => {
   if (!kernelThreadData.value || typeof kernelThreadData.value !== 'object' || Object.keys(kernelThreadData.value).length === 0) {
     return;
   }
-  shadingKernal();
+  if (!isPathLockStatus.value) {
+    shadingKernal();
+  }
 };
 const shadingKernal = () => {
   let processKey = '';

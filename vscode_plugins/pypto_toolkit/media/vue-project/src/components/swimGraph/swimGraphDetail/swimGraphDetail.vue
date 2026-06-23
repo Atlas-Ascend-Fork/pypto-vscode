@@ -434,6 +434,9 @@ const dynamicWidthStyle = (event) => {
   if (!useDynamicWidth) {
     return {};
   }
+  if (!event) {
+    return {};
+  }
   const eventName = getEventTruncateText(event);
   const width = `${((eventName.length * 7) + 4)}px`;
   let eventColor = '';
