@@ -1526,7 +1526,7 @@ export class SQLiteCache {
     pageSize: number,
     startOffset: number,
     keyword?: string,
-  ): Promise<AccuracyToolCmpData[]> {
+  ): Promise<PaginatedResult<AccuracyToolCmpData>> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
     conditions.push('"AB>RESULT" = \'FAIL\'');
@@ -1536,6 +1536,21 @@ export class SQLiteCache {
     }
     const whereClause = conditions.join(' AND ');
   
+    // 查询总数
+    const countSql = `SELECT COUNT(*) AS total FROM accuracy_tool_cmp WHERE ${whereClause}`;
+    const countStmt = this.db!.prepare(countSql);
+    countStmt.bind(params.slice());
+    let total = 0;
+    try {
+      if (countStmt.step()) {
+        const row = countStmt.getAsObject();
+        total = row.total as number;
+      }
+    } finally {
+      countStmt.free();
+    }
+
+    // 查询分页数据
     const sql = `
       SELECT 
         "PATH_FUNC:func_magicname" AS pathFuncMagicName,
@@ -1632,7 +1647,7 @@ export class SQLiteCache {
       stmt.free();
     }
 
-    return result;
+    return { total, list: result };
   }
 
   public async accuracyToolCmpGetByFilePath(

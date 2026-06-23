@@ -66,7 +66,7 @@ const searchByKeyword = debounce((keyword) => {
   pageConfig.value.currentPage = 1
 
   if (currentFileType.value.startsWith('op') && currentFilePath.value) {
-    server.getCmpDiffListData({
+    server.getCmpErrorListData({
       cmpCsvPath: currentFilePath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
@@ -124,12 +124,14 @@ watch(server.cmpErrorList, (val: Record<string, any>) => {
   const failRes = val?.failRes;
   const totalCount = val?.totalRes;
   const excepRes = val?.excepRes;
+  const listSum = val?.listSum;
 
   // 更新卡片数据 (readFlag为false时failRes和totalCount不返回，不更新)
   if (failRes !== undefined && failRes >= 0 && totalCount !== undefined && totalCount >= 0) {
     cardData.value.FAIL = failRes;
     cardData.value.PASS = totalCount - failRes - excepRes;
-    pageConfig.value.total = failRes;
+    // 当 fileType 为 op 类型时，使用 listSum 作为 total
+    pageConfig.value.total = currentFileType.value.startsWith('op') ? (listSum || failRes) : failRes;
   }
 
   // 处理列表数据

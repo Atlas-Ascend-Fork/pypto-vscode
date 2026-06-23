@@ -678,7 +678,7 @@ export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHas
         if ((comgraphFuncHash !== recordFuncHash) || !(recordPhaseList.includes(filePassName))) {
             // 报错
         }
-        const failOpMagicList = await getCmpDiffList(csvPath);
+        const failOpMagicList = await getCmpDiffList(csvPath, false);
         failMagicList = {
             accuType: 'op',
             failMagicList: failOpMagicList
@@ -707,12 +707,14 @@ export async function getCmpErrorList(
     let failCount = -1;
     let excepCount = -1;
     let totalCount = -1;
+    let listSum = 0;
     totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
     failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
     excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION');
     
     const realOffset = startOffset * pageSize;
-    const errorList = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
+    const { total: failCountFromDb, list: errorList } = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
+    listSum = failCountFromDb;
 
     const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
     const fileCol = accurancyLevel?.fileType.split('_')[1];
@@ -729,10 +731,18 @@ export async function getCmpErrorList(
           compareRes = value as string;
         } else if (key.startsWith('ab')) {
           sharedRes[key] = value;
-        } else if ((fileCol === 'a') && key.startsWith('a')) {
-          aOp[key] = value;
-        } else if ((fileCol === 'b') && key.startsWith('b')) {
-          bOp[key] = value;
+        } else if ((fileCol === 'A') && key.startsWith('a')) {
+            if (key === 'aOpMagic') {
+                aOp[key] = Number(value);
+            }else{
+                aOp[key] = value;
+            }
+        } else if ((fileCol === 'B') && key.startsWith('b')) {
+          if (key === 'bOpMagic') {
+                bOp[key] = Number(value);
+            }else{
+                bOp[key] = value;
+            }
         } else {
           sharedRes[key] = value;
         }
@@ -749,7 +759,7 @@ export async function getCmpErrorList(
       });
     }
   
-    return { diffList, failRes: failCount, excepRes: excepCount, totalRes: totalCount };
+    return { diffList, failRes: failCount, excepRes: excepCount, totalRes: totalCount, listSum: listSum };
 }
 
 export async function updateCompListFirstReq(fileName: string, failCount: string): Promise<boolean> {

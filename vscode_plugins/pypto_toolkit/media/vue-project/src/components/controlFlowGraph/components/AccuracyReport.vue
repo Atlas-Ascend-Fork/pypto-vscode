@@ -12,7 +12,7 @@
           </div>
           <div class="content">
             <div class="content-title">{{ t('controlFlows.accuracyVerificationResults') }}</div>
-            <d-row>
+            <d-row :gutter="8">
               <d-col :span="12">
                 <StatisticCard type="PASS" :count="data.successPass.length" :active-type="activeType" @handle-card="handleResult('PASS')" />
               </d-col>
@@ -20,7 +20,7 @@
                 <StatisticCard type="FAIL" :count="data.errorPass.length" :active-type="activeType" @handle-card="handleResult('FAIL')" />
               </d-col>
             </d-row>
-            <d-row>
+            <d-row :gutter="8">
               <d-col :span="12">
                 <StatisticCard
                   type="EXCEPTION"

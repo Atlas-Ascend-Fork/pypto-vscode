@@ -31,11 +31,11 @@
     <div class="file-name-bar">
       <div class="file-name-left">
         <ComGraphIcon />
-        <span class="file-name-text">{{ leftTitle }}</span>
+        <span class="file-name-text" :title="leftTitle">{{ leftTitle }}</span>
       </div>
       <div class="file-name-right">
         <ComGraphIcon />
-        <span class="file-name-text">{{ rightTitle }}</span>
+        <span class="file-name-text" :title="rightTitle">{{ rightTitle }}</span>
       </div>
     </div>
     <div class="diff-compare-body" ref="scrollContainerRef" @scroll="onScroll">
