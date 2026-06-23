@@ -126,7 +126,7 @@ const {
   hidePathLockedHighlight
 } = inject('swimGraphMethods');
 
-const { pinnedThreadsList, recalculateOffsetY } = inject('swimGraphPinnedState');
+const { pinnedThreadsList, recalculateOffsetY, clearAllPinned } = inject('swimGraphPinnedState');
 
 const {
   userConfig,
@@ -433,7 +433,11 @@ const onIsMixModelchange = async (newValue) => {
     aicpuCoreDetailsExpanded.value = false;
     
     if (pinnedThreadsList.value && pinnedThreadsList.value.length > 0) {
-        recalculateOffsetY(newValue);
+        if (newValue && swimDataManager.hasMixConfig()) {
+            clearAllPinned();
+        } else {
+            recalculateOffsetY(newValue);
+        }
     }
     
     // Reset view state (scale and offset)

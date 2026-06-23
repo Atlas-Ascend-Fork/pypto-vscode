@@ -567,5 +567,6 @@ export default {
       startParse: '开始解析',
       jumpToComGraph: '点击跳转计算图',
       firstFail: '首错',
-    }
+    },
+    'mixModeNotSupportPin': 'Mix模式下暂不支持置顶',
 }

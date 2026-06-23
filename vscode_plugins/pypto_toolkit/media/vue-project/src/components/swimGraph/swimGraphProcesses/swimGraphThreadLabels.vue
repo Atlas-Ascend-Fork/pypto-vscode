@@ -246,7 +246,9 @@ const {
   viewState,
   isMixMode,
 } = inject('swimGraphState');
-
+const {
+  postMessageInfo,
+} = inject('swimGraphMethods');
 const swimLaneOrder = computed(() => {
   if (!isMixMode?.value) {
     return [];
@@ -579,6 +581,12 @@ const handleMixLabelLeave = (index) => {
 };
 
 const handleMixPinThread = (thread) => {
+  // Mix模式下有Mix数据时，不允许置顶
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    postMessageInfo($t('mixModeNotSupportPin'));
+    return;
+  }
+  
   if (!thread) {
     return;
   }
@@ -645,6 +653,12 @@ const handleMixUnpin = (thread) => {
 };
 
 const handlePinThread = (threadKey) => {
+  // Mix模式下有Mix数据时，不允许置顶
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    postMessageInfo($t('mixModeNotSupportPin'));
+    return;
+  }
+  
   let thread = props.process.threads.get(threadKey);
   
   if (!thread) {
@@ -693,6 +707,12 @@ const isGroupPinned = (group) => {
 };
 
 const handlePinGroupThread = (group) => {
+  // Mix模式下有Mix数据时，不允许置顶
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    postMessageInfo($t('mixModeNotSupportPin'));
+    return;
+  }
+  
   const isPinned = isGroupPinned(group);
   
   if (isPinned) {

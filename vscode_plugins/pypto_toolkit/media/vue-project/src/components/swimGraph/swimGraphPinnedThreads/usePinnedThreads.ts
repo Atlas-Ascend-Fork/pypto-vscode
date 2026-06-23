@@ -167,12 +167,36 @@ export function usePinnedThreads(processes, lane2line, layout) {
     }
   };
 
+  const clearAllPinned = () => {
+    const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+    
+    Array.from(pinnedThreads.entries()).forEach(([key, pinnedData]) => {
+      pinnedData.thread.isPinned = false;
+      delete pinnedData.thread.offsetY;
+      
+      const threadIdentifier = pinnedData.thread.isCounter ? pinnedData.thread.threadName : String(pinnedData.thread.tid);
+      for (const lane of swimLaneOrder) {
+        if (lane.type === 'thread' && lane.thread) {
+          const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
+          if (laneIdentifier === threadIdentifier) {
+            lane.thread.isPinned = false;
+            break;
+          }
+        }
+      }
+    });
+    
+    pinnedThreads.clear();
+    savePinnedState();
+  };
+
   return {
     pinnedThreads,
     pinnedThreadsList,
     pinThread,
     unpinThread,
     restorePinnedState,
-    recalculateOffsetY
+    recalculateOffsetY,
+    clearAllPinned
   };
 }

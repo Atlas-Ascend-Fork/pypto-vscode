@@ -568,4 +568,5 @@ export default {
       jumpToComGraph: 'Click to jump to computation graph',
       firstFail: '1st Fail',
     },
+    'mixModeNotSupportPin': 'Pinning is not supported in Mix mode',
 }

@@ -445,7 +445,7 @@ const containerStyle = computed(() => ({
 }));
 
 // 使用置顶线程 composable
-const { pinnedThreads, pinnedThreadsList, pinThread, unpinThread, restorePinnedState, recalculateOffsetY } = usePinnedThreads(
+const { pinnedThreads, pinnedThreadsList, pinThread, unpinThread, restorePinnedState, recalculateOffsetY, clearAllPinned } = usePinnedThreads(
   processes,
   lane2line,
   layout
@@ -3040,11 +3040,14 @@ const setPageState = (message) => {
   configComponent.value.showPerformancePanel = userConfig.value.showPerformancePanel;
   configComponent.value.showIsMixMode = userConfig.value.showIsMixMode;
   nextTick(() => {
-    if (!props.isThreeColumn) {
-      isMixMode.value = userConfig.value.showIsMixMode;
-    } else {
-      isMixMode.value = false;
+    const newMixMode = !props.isThreeColumn && userConfig.value.showIsMixMode;
+    
+    // 如果切换到Mix模式且有Mix数据，清空所有置顶线程
+    if (newMixMode && swimDataManager.hasMixConfig() && pinnedThreadsList.value.length > 0) {
+      clearAllPinned();
     }
+    
+    isMixMode.value = newMixMode;
   });
   if (message.comGraphPath) {
     bindFile.value = message.comGraphPath;
@@ -3224,6 +3227,7 @@ provide('swimGraphPinnedState', {
   pinThread,
   unpinThread,
   recalculateOffsetY,
+  clearAllPinned,
   pinnedMeasureInfo
 });
  
@@ -3349,6 +3353,7 @@ provide('swimGraphMethods', {
   drawMeasureTime,
   setMeasureDragHeight,
   autoExpandkernelProcess,
+  postMessageInfo,
   clearHeadState: () => {
     return swimgraphHeaderComponent?.value.clearHeadState();
   },
