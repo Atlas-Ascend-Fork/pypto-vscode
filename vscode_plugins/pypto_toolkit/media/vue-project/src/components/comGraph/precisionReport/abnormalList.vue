@@ -138,6 +138,7 @@ watch(server.cmpErrorList, (val: Record<string, any>) => {
   const startNo = (pageConfig.value.currentPage - 1) * pageConfig.value.pageSize + 1;
   errorListData.value = diffList.map((item: Record<string, any>, index: number) => ({
     ...item.sharedRes,
+    ...(currentFileType.value === 'op_A' ? item?.aOp : item?.bOp),
     no: startNo + index,
   }));
 });

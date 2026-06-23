@@ -726,23 +726,21 @@ export async function getCmpErrorList(
       let compareRes = '';
       const sharedRes: Record<string, any> = {};
   
-      for (const [key, value] of Object.entries(singleRes)) {
+      for (let [key, value] of Object.entries(singleRes)) {
+        if (key === 'aOpMagic') {
+            value = Number(value);
+        }
+        if (key === 'bOpMagic') {
+            value = Number(value);
+        }
         if (key.startsWith('abRes')) {
           compareRes = value as string;
         } else if (key.startsWith('ab')) {
           sharedRes[key] = value;
         } else if ((fileCol === 'A') && key.startsWith('a')) {
-            if (key === 'aOpMagic') {
-                aOp[key] = Number(value);
-            }else{
-                aOp[key] = value;
-            }
+            aOp[key] = value;
         } else if ((fileCol === 'B') && key.startsWith('b')) {
-          if (key === 'bOpMagic') {
-                bOp[key] = Number(value);
-            }else{
-                bOp[key] = value;
-            }
+            bOp[key] = value;
         } else {
           sharedRes[key] = value;
         }
