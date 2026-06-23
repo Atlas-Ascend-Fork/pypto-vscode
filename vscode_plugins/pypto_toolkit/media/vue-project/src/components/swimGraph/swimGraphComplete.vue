@@ -2553,6 +2553,10 @@ const transformVerticalScroll = () => {
       }
     }
   }
+  clearTimeout(depLinesTimer);
+  depLinesTimer = setTimeout(() => {
+    renderDependencyLines();
+  }, 50);
   timelineComponent.value.flagRender();
   perfLogger.timeEnd('time of transformVerticalScroll');
 };
