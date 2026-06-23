@@ -68,7 +68,13 @@ watch(
 watch(
     () => props.isOpCheck,
     (isOpCheck) => {
-        columnData.value[2].header = isOpCheck ? 'OpMagic' : 'rawmagicID';
+        if (isOpCheck) {
+            columnData.value[2].header = 'opMagic';
+            columnData.value[2].field = 'aOpMagic';
+        } else {
+            columnData.value[2].header = 'rawmagicID';
+            columnData.value[2].field = 'rawMagic';
+        }
     },
     { immediate: true }
 )

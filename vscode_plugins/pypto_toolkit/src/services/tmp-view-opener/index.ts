@@ -26,10 +26,10 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
 /**
  * 打开计算图
  */
-export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string; isBootStep?: boolean }) {
-  const { isBootStep = false } = params;
+export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string; isBootStep?: boolean; fileType?: string }) {
+  const { isBootStep = false, fileType } = params;
   const uri = vscode.Uri.file(params.computeGraphPath);
-  const query = { outputDirPath: params.outputPath, outputPath: params.outputPath, pathName: params.pathName, isBootStep };
+  const query = { outputDirPath: params.outputPath, outputPath: params.outputPath, pathName: params.pathName, isBootStep, fileType };
   useView().editorView.open('computeGraph', uri, { query, title: path.basename(params.computeGraphPath) });
 }
 

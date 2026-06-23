@@ -394,6 +394,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
   const funcHash = isLeft ? detailData.aOp?.aFuncHash || '' : detailData.bOp?.bFuncHash || '';
   const passName = isLeft ? detailData.aOp?.aPhaseName || '' : detailData.bOp?.bPhaseName || '';
   const funcMagicName = detailData.sharedRes?.pathFuncMagicName || '';
+  const fileType = isLeft ? 'op_A' : 'op_B';
 
   if (!funcHash || !passName || !funcMagicName) {
     console.warn('[OpCheckIndex] Missing required parameters:', { funcHash, passName, funcMagicName });
@@ -405,13 +406,13 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
       filePath: data.cmpCsvPath,
       fileType: isLeft? 'op_A' : 'op_B',
     });
-    console.log('[OpCheckIndex] setCurAccuFilePathApi success');
 
     await server.openCmpDiffComGraphApi({
       filePath: data.cmpCsvPath,
       funcHash,
       passName,
       funcMagicName,
+      fileType,
     });
     console.log('[OpCheckIndex] openCmpDiffComGraphApi success');
   } catch (error) {

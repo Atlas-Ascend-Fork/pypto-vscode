@@ -591,6 +591,8 @@ export async function openCmpDiffComGraph(
     funcHash: string,
     passName: string,
     funcMagicName: string,
+    fileType?: string,
+    cmpCsvPath?: string,
   ): Promise<void> {
   
     // 步骤2-3：当前文件夹x → 上一层文件夹y
@@ -634,8 +636,8 @@ export async function openCmpDiffComGraph(
     // 步骤7：拼接绝对路径
     const directPath = path.join(passSubDir, targetComgraph);
   
-    // 步骤8：调用 VSCode 命令打开计算图
-    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash);
+    // 步骤8：调用 VSCode 命令打开计算图，传递 fileType 和 cmpCsvPath 参数
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath);
 }
 
 // export interface accuFilePathData {

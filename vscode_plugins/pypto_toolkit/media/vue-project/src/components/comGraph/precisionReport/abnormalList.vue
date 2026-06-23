@@ -18,6 +18,7 @@ import { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import AccuracyErrorList from './accuracyErrorList.vue';
 import { debounce } from 'lodash';
 import { useI18n } from 'vue-i18n';
+import { getQuery } from '@/core/query';
 
 const { t } = useI18n();
 
@@ -37,6 +38,7 @@ const pageConfig = ref({
 })
 const currentFileType = ref<string>('');
 const currentFilePath = ref<string>('');
+const currentOutputPath = ref<string>('');
 
 const initData = (data) => {
   if (!data) return
@@ -80,12 +82,13 @@ const searchByKeyword = debounce((keyword) => {
 const pageIndexChange = (pageIndex) => {
   pageConfig.value.currentPage = pageIndex
 
-  if (currentFileType.value.startsWith('op') && currentFilePath.value) {
+  if (currentFileType.value.startsWith('op')) {
+    console.log('currentFilePath.value', currentFilePath.value);
     server.getCmpErrorListData({
+      cmpCsvPath: currentFilePath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
       keyword: searchKeyword.value,
-      readFlag: false,
     });
   } else {
     server.searchAccurancySumList({
@@ -110,17 +113,45 @@ watch(server.AccurancyList, (val: Record<string, any>) => {
   pageConfig.value.total = val.data?.comgraphFailList?.total || 0;
 });
 
-// 获取文件路径信息
-watch(server.AccuFilePath, (val: Record<string, any>) => {
-  const fileType = val?.fileType;
-  const filePath = val?.filePath;
+// 获取 cmpErrorList 数据
+watch(server.cmpErrorList, (val: Record<string, any>) => {
+  console.log('valllllllll', val);
+  const diffList = val?.diffList || [];
+  const failRes = val?.failRes;
+  const totalCount = val?.totalRes;
+  const excepRes = val?.excepRes;
 
-  // 保存当前的 fileType 和 filePath
-  currentFileType.value = fileType || '';
-  currentFilePath.value = filePath || '';
-  if (fileType.startsWith('op')  && filePath) {
-    // 如果是 opcheck 类型，调用 getCmpDiffListData
+  // 更新卡片数据 (readFlag为false时failRes和totalCount不返回，不更新)
+  if (failRes !== undefined && failRes >= 0 && totalCount !== undefined && totalCount >= 0) {
+    cardData.value.FAIL = failRes;
+    cardData.value.PASS = totalCount - failRes - excepRes;
+    pageConfig.value.total = failRes;
+  }
+
+  // 处理列表数据
+  const startNo = (pageConfig.value.currentPage - 1) * pageConfig.value.pageSize + 1;
+  errorListData.value = diffList.map((item: Record<string, any>, index: number) => ({
+    ...item.sharedRes,
+    no: startNo + index,
+  }));
+});
+
+onMounted(async () => {
+  // 从 query 获取 fileType 参数
+  const query = await getQuery();
+  console.log('query', query);
+  const fileType = query.fileType as string || '';
+  const outputDirPath = query.outputDirPath as string || '';
+
+  // 保存当前的 fileType 和路径信息
+  currentFileType.value = fileType;
+  currentFilePath.value = query.outputPath as string || '';
+  currentOutputPath.value = outputDirPath;
+
+  if (fileType.startsWith('op')) {
+    // 如果是 opcheck 类型，调用 getCmpErrorListData
     server.getCmpErrorListData({
+      cmpCsvPath: currentFilePath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
       keyword: searchKeyword.value,
@@ -136,33 +167,6 @@ watch(server.AccuFilePath, (val: Record<string, any>) => {
       }
     });
   }
-});
-
-// 获取 cmpErrorList 数据
-watch(server.cmpErrorList, (val: Record<string, any>) => {
-  console.log('valllllllll', val);
-  const diffList = val?.diffList || [];
-  const failRes = val?.failRes;
-  const totalCount = val?.totalCount;
-
-  // 更新卡片数据 (readFlag为false时failRes和totalCount不返回，不更新)
-  if (failRes !== undefined && failRes >= 0 && totalCount !== undefined && totalCount >= 0) {
-    cardData.value.FAIL = failRes;
-    cardData.value.PASS = totalCount - failRes;
-    pageConfig.value.total = failRes;
-  }
-
-  // 处理列表数据
-  const startNo = (pageConfig.value.currentPage - 1) * pageConfig.value.pageSize + 1;
-  errorListData.value = diffList.map((item: Record<string, any>, index: number) => ({
-    ...item.sharedRes,
-    no: startNo + index,
-  }));
-});
-
-onMounted(async () => {
-  // 先获取文件路径信息
-  await server.accuFilePathGet();
 })
 </script>
 

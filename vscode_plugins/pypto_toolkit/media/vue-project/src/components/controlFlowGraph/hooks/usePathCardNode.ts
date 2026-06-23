@@ -5,8 +5,6 @@ import { inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openComputeGraph } from '@/apis/opener';
 import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
-import { useViewServer } from '@/core/use-view-server';
-import { ControlFlowViewServer } from 'ext:/view/servers/controlFlow-server';
 
 /**
  * 自定义path卡片hook函数
@@ -15,7 +13,6 @@ import { ControlFlowViewServer } from 'ext:/view/servers/controlFlow-server';
  */
 export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
   const { t } = useI18n();
-  const { server } = useViewServer<ControlFlowViewServer>();
   const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
   const iconPathRight = ref(`${window.staticPath}/static-assets/control_flow_path_right.svg`);
@@ -177,24 +174,13 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
       const length = this.nodeData.data.source.meta?.passes.length;
       const index = Number(passIndex ? passIndex : length - 1)
       
-      // 先调用 setCurAccuFilePathApi，fileType 为 'brief'
-      try {
-        await server.setCurAccuFilePathApi({
-          filePath: outPutPath.value as string,
-          fileType: 'brief',
-        });
-      } catch (error) {
-        console.error('[usePathCardNode] setCurAccuFilePathApi error:', error);
-      }
-      
-      // 然后打开计算图
+      // 打开计算图，传递 fileType: 'brief' 参数
       openComputeGraph({
         outputPath: outPutPath.value as string,
         computeGraphPath: this.nodeData.data.source.meta?.passes[index].graphFilePath,
         pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
+        fileType: 'brief',
       });
-      // if 精度工具
-      // server.setCurAccuFilePath(fileInfo);
     }
 
     /**
