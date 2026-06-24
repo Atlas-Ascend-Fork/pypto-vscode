@@ -1972,7 +1972,7 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = true;
-        const isDimmed = !!(selectedEvent.value || searchedEvent.value);
+        const isDimmed = !!(selectedEvent.value || searchedEvent.value) && !isPinned;
         eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       } else {
         let eventDatas = [];
@@ -1991,7 +1991,7 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = false;
-        const isDimmed = !!(selectedEvent.value || searchedEvent.value);
+        const isDimmed = !!(selectedEvent.value || searchedEvent.value) && !isPinned;
         eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       }
     }

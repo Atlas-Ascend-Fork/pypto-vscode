@@ -475,31 +475,17 @@ const processMixModePinnedThread = (thread, processKey, baseY, isDimmed, drawDat
 
 const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
   const events = thread.events;
-  const { leftBound, rightBound } = findVisibleEventRange(
-    events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
-  );
   const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
-  for (let i = leftBound; i < rightBound; i++) {
+  for (let i = 0; i < events.length; i++) {
     const event = events[i];
     if (!event.renderInfo) { continue };
 
-    if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
-      event.drawData.show = false;
-      event.drawData.text = '';
-      continue;
-    }
-
     event.drawData.show = true;
 
-    const isOnPath = highlightedPaths.has(event.id) ||
-                    (event.parentEventId && highlightedPaths.has(event.parentEventId));
-
-    if (!isDimmed || isOnPath) {
-      const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
-      event.drawData.rectColor = fillColor;
-      event.drawData.strokeColor = '';
-      event.drawData.fontColor = fontColor;
-    }
+    const { fillColor, fontColor } = getEventColor(event, eventRenderer.deps, processKey, false, false);
+    event.drawData.rectColor = fillColor;
+    event.drawData.strokeColor = '';
+    event.drawData.fontColor = fontColor;
 
     const eventY = getPinnedEventY(event, baseY);
     const pinnedDrawData = createPinnedDrawData(event, eventY);
