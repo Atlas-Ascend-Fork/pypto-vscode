@@ -173,6 +173,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 
   .detail-magic-id {
     width: 100%;
