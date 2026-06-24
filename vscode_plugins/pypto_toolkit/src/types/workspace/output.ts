@@ -22,6 +22,9 @@ export interface RunDataManifest {
 
   /** 精度工具目录 */
   flow_verify_path?: string;
+
+  /** 精度工具目录 */
+  verify_path?: string;
 }
 
 export type OutputRecord = Omit<OutputDetail, 'directoryTree'>;

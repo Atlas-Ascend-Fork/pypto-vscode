@@ -63,7 +63,7 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   const controlFlowFilePath = await getPathIfExists(runData.program_file);
   const swimlaneGraphFilePath = await getPathIfExists(runData.swim_graph_path);
   const computeGraphDirPath = await getPathIfExists(runData.compute_graph_path);
-  const flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : null;
+  const flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : (runData.verify_path ? runData.verify_path : null);
   if (![sourceFilePath, controlFlowFilePath, swimlaneGraphFilePath, computeGraphDirPath].some(Boolean)) {
     return undefined;
   }
