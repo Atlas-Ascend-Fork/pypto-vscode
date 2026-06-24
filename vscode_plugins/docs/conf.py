@@ -68,3 +68,12 @@ html_theme_options = {
 
 # 模板路径
 templates_path = []
+
+
+# 1. 告诉 Sphinx 去哪里找静态文件（通常是 '_static'）
+html_static_path = ['_static']
+
+# 指定自定义 CSS 文件
+html_css_files = [
+    'custom.css',
+]

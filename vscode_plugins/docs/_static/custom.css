@@ -1,0 +1,15 @@
+/* 正文内容 */
+body {
+    font-size: 14px; 
+}
+
+/* 侧边栏 */
+.sidebar-drawer {
+    font-size: 14px;
+    width: 220px; 
+}
+
+.content {
+    width: 100% !important;
+    max-width: 100% !important;
+}
