@@ -2645,6 +2645,10 @@ const transformVerticalScroll = () => {
   clearTimeout(depLinesTimer);
   renderDependencyLines();
   timelineComponent.value.flagRender();
+  if (props.isThreeColumn) {
+    childContextMap.threadEvent.resizeDrawBoundary();
+    childContextMap.threadEvent.toggleLock();
+  }
   perfLogger.timeEnd('time of transformVerticalScroll');
 };
 
