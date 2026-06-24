@@ -1444,7 +1444,7 @@ const toggleReRenderProcess = (processKey, process) => {
 const toggleProcess = (processKey) => {
   const isExpanded = processExpanded.get(processKey);
   processExpanded.set(processKey, !isExpanded);
-  // 如果当前打开的就是该process，则折叠即可
+  // 如果当前打开的就是该process，折叠该process，且为了保证其他process正常显示，重绘其他打开的process
   if (isExpanded) {
     for (const [key, process] of processes.entries()) {
       if (processExpanded.get(key)) {
