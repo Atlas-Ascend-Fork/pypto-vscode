@@ -9,7 +9,7 @@
           <div class="relevent-content" v-if="aicpuHasRelevent">
             <div class="build-content">
               <div class="title">Current</div>
-              <div class="current-content" ref="currentContent" :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">{{ getEventDisplayName(selectedEvent) }}</div>
+              <div class="current-content" ref="currentContent" :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ getEventDisplayName(canvasclickedEvent) }}</div>
             </div>
             <svg class="connection-svg" ref="connectionSvg">
               <defs>
@@ -106,7 +106,8 @@ const {
     selectedEvent,
     isDarkTheme,
     aicpuHasRelevent,
-    aicpuScheduleMaps
+    aicpuScheduleMaps,
+    canvasclickedEvent
 } = inject('swimGraphState');
 
 const {

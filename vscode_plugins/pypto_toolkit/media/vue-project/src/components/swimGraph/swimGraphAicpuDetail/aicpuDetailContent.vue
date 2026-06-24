@@ -6,11 +6,11 @@
           <img class="picture" :src="tPath" alt="picture">
         </div>
         <div class="pipe-name">
-          <d-tooltip :content="getEventDisplayName(selectedEvent)">
-            <div class="pipe-name-key" :class="{ 'centered': aicpuControlDetailsExpanded}">{{ getEventTruncateText(selectedEvent) }}</div>
+          <d-tooltip :content="getEventDisplayName(canvasclickedEvent)">
+            <div class="pipe-name-key" :class="{ 'centered': aicpuControlDetailsExpanded}">{{ getEventTruncateText(canvasclickedEvent) }}</div>
           </d-tooltip>
           <div v-if="!aicpuControlDetailsExpanded" class="pipe-schedule">
-            <span class="schedule-key">Schedule: {{ getScheduleKey(selectedEvent) }}</span>
+            <span class="schedule-key">Schedule: {{ getScheduleKey(canvasclickedEvent) }}</span>
           </div>
         </div>
       </div>
@@ -53,7 +53,9 @@ const {
     selectedEvent,
     isDarkTheme,
     viewState,
-    aicpuControlDetailsExpanded
+    aicpuControlDetailsExpanded,
+    canvasclickedEvent,
+    tsScale
 } = inject('swimGraphState');
 
 const {
@@ -95,7 +97,7 @@ const TimeWithUsUint = (time) => {
 };
 
 const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
-  const nanoseconds = timeInNanoseconds;
+  const nanoseconds = (timeInNanoseconds * 1000) / tsScale.value;
   const microseconds = nanoseconds / 1000;
   const milliseconds = microseconds / 1000;
   const seconds = milliseconds / 1000;
@@ -119,17 +121,17 @@ const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
 };
 
 
-watch(selectedEvent, (newEvent) => {
+watch(canvasclickedEvent, (newEvent) => {
   if (newEvent) {
-    startTimeInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).value;
-    startTimeUnitInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.startTime - viewState.minTime).unit;
-    endTimeInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.endTime - viewState.minTime).value;
-    endTimeUnitInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.endTime - viewState.minTime).unit;
-    durationInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.duration).value;
-    durationUnitInfo.value = aicpuFormatTimeWithUnit(selectedEvent.value.duration).unit;
-    startTipTimeInfo.value = TimeWithUsUint(selectedEvent.value.startTime - viewState.minTime);
-    endTipTimeInfo.value = TimeWithUsUint(selectedEvent.value.endTime - viewState.minTime);
-    durationTipTimeInfo.value = TimeWithUsUint(selectedEvent.value.duration);
+    startTimeInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.startTime - viewState.minTime).value;
+    startTimeUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.startTime - viewState.minTime).unit;
+    endTimeInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.endTime - viewState.minTime).value;
+    endTimeUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.endTime - viewState.minTime).unit;
+    durationInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.duration).value;
+    durationUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.duration).unit;
+    startTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.startTime - viewState.minTime);
+    endTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.endTime - viewState.minTime);
+    durationTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.duration);
   }
 });
 

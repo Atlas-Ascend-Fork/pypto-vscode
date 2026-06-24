@@ -19,7 +19,7 @@
             <gradientDashedLine :left-color="stopColor" :right-color="currentTaskColor" />
             <div class="current-content">
               <div class="title current">Current</div>
-              <div class="content" :style="{...dynamicWidthStyle(selectedEvent), width:'auto'}">{{ getEventDisplayName(selectedEvent) }}</div>
+              <div class="content" :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ getEventDisplayName(canvasclickedEvent) }}</div>
             </div>
             <gradientDashedLine :left-color="currentTaskColor" :right-color="stopColor" />
             <div class="cube-content">
@@ -72,7 +72,8 @@ const {
     kernelColorRending,
     processes,
     aicpuHasRelevent,
-    aicpuScheduleMaps
+    aicpuScheduleMaps,
+    canvasclickedEvent
 } = inject('swimGraphState');
 
 const {
