@@ -105,6 +105,8 @@ let graph = null;
 const { t } = useI18n();
 const rootData = ref([]);
 const outPutPath = ref();
+const computeGraphDirPath = ref();
+const flowVerifyPath = ref();
 const isGraphVisible = ref(false);
 const searchSelectRef = ref(null);
 const isLoading = ref(true);
@@ -139,7 +141,7 @@ const codePreviewState = reactive<PreviewState>({
   line: 0,
   language: '',
 });
-const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass);
+const { PathCardNodes } = usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass, computeGraphDirPath, flowVerifyPath);
 const { LevelOfDetail } = useLevelOfDetail();
 const { IfCardNode } = useIfCardNodes();
 const { LogoWithRectCombo } = useComboCardNodes(isDarkTheme, codePreviewState);
@@ -370,7 +372,13 @@ const stepOpenSidebaNode = ref();
 
 // 由引导弹窗控制打开侧边栏
 function bootStepOpenSideBar() {
-  sideBarRef.value.transFormPanelData(stepOpenSidebaNode.value, outPutPath.value, 0);
+  sideBarRef.value.transFormPanelData(
+    stepOpenSidebaNode.value,
+    outPutPath.value,
+    0,
+    computeGraphDirPath.value,
+    flowVerifyPath.value,
+  );
 }
 function closeSidebar() {
   sideBarRef.value.drawerVisible = false;
@@ -438,6 +446,8 @@ const listenExtensionMessage = () => {
             computeGraphPath: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].graphFilePath,
             pathName: stepOpenSidebaNode.value.data.source.meta?.passes[length - 1].pathName,
             isBootStep: true,
+            computeGraphDirPath: computeGraphDirPath.value,
+            flowVerifyPath: flowVerifyPath.value,
           });
 
           server.closeWebview();
@@ -641,6 +651,8 @@ onMounted(async () => {
   }
   const res = await getQuery();
   outPutPath.value = res.url;
+  computeGraphDirPath.value = res.computeGraphDirPath;
+  flowVerifyPath.value = res.flowVerifyPath;
   const { server } = useViewServer<ControlFlowViewServer>();
   // 通知后端，查询是否有csv，获取精度执行报告数据
   server.getAccurancyResult({ controwFlowFilePath: res._path });

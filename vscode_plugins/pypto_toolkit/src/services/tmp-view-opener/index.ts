@@ -20,16 +20,41 @@ export async function openControlFlow(params: { outputPath: string; controlFlowP
   const customTitle = `${record?.title ? record?.title + '-' : ''} ${t('PyPTOToolkit.workspace.controlFlowName')}`;
 
   // 加query
-  useView().editorView.open('controlFlow', controlFlowUri, { query: { url: outputPath, outputPath: outputPath, isBootStep }, title: customTitle });
+  useView().editorView.open('controlFlow', controlFlowUri, {
+    query: {
+      url: outputPath,
+      outputPath: outputPath,
+      isBootStep,
+      computeGraphDirPath: record?.computeGraphDirPath,
+      flowVerifyPath: record?.flowVerifyPath,
+    },
+    title: customTitle,
+  });
 }
 
 /**
  * 打开计算图
  */
-export async function openComputeGraph(params: { outputPath: string; computeGraphPath: string; pathName: string; isBootStep?: boolean; fileType?: string }) {
-  const { isBootStep = false, fileType } = params;
+export async function openComputeGraph(params: {
+  outputPath: string;
+  computeGraphPath: string;
+  pathName: string;
+  isBootStep?: boolean;
+  fileType?: string;
+  computeGraphDirPath?: string;
+  flowVerifyPath?: string;
+}) {
+  const { isBootStep = false, fileType, computeGraphDirPath, flowVerifyPath } = params;
   const uri = vscode.Uri.file(params.computeGraphPath);
-  const query = { outputDirPath: params.outputPath, outputPath: params.outputPath, pathName: params.pathName, isBootStep, fileType };
+  const query = {
+    outputDirPath: params.outputPath,
+    outputPath: params.outputPath,
+    pathName: params.pathName,
+    isBootStep,
+    fileType,
+    computeGraphDirPath,
+    flowVerifyPath,
+  };
   useView().editorView.open('computeGraph', uri, { query, title: path.basename(params.computeGraphPath) });
 }
 

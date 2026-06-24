@@ -10,8 +10,10 @@ import { getThemeColorTool } from '@/components/controlFlowGraph/util/getTheme';
  * 自定义path卡片hook函数
  * @param sideBarRef 右侧抽屉
  * @param outPutPath 用于打开计算图
+ * @param computeGraphDirPath 计算图目录路径
+ * @param flowVerifyPath 精度工具文件路径
  */
-export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
+export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass, computeGraphDirPath?, flowVerifyPath?) {
   const { t } = useI18n();
   const iconPathLeft = ref(`${window.staticPath}/static-assets/control_flow_path_left.svg`);
   const iconPathLeftLight = ref(`${window.staticPath}/static-assets/control_flow_path_left-light.svg`);
@@ -173,13 +175,15 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
       if (this.nodeData.data.source.meta.passes.length === 0) return false;
       const length = this.nodeData.data.source.meta?.passes.length;
       const index = Number(passIndex ? passIndex : length - 1)
-      
+
       // 打开计算图，传递 fileType: 'brief' 参数
       openComputeGraph({
         outputPath: outPutPath.value as string,
         computeGraphPath: this.nodeData.data.source.meta?.passes[index].graphFilePath,
         pathName: this.nodeData.data.source.meta?.passes[length - 1].pathName,
         fileType: 'brief',
+        computeGraphDirPath: computeGraphDirPath?.value,
+        flowVerifyPath: flowVerifyPath?.value,
       });
     }
 
@@ -218,7 +222,13 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
         rightIcon.addEventListener('click', (e) => {
           // 阻止事件冒泡，避免触发节点的点击事件
           e.stopPropagation();
-          sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, 2);
+          sideBarRef.value.transFormPanelData(
+            this.nodeData,
+            outPutPath.value,
+            2,
+            computeGraphDirPath?.value,
+            flowVerifyPath?.value,
+          );
           // 执行业务逻辑
           // 如果数据中有回调函数，则调用
           if (typeof attributes.onButtonClick === 'function') {
@@ -362,7 +372,13 @@ export function usePathCardNodes(sideBarRef, outPutPath, isDarkTheme, tagPass) {
             const index = states.includes('func_bg_2') ? 1 : 0;
             // 阻止事件冒泡，避免触发节点的点击事件
             e.stopPropagation();
-            sideBarRef.value.transFormPanelData(this.nodeData, outPutPath.value, index);
+            sideBarRef.value.transFormPanelData(
+              this.nodeData,
+              outPutPath.value,
+              index,
+              computeGraphDirPath?.value,
+              flowVerifyPath?.value,
+            );
             // 如果数据中有回调函数，则调用
             if (typeof attributes.onButtonClick === 'function') {
               attributes.onButtonClick(this.id, this.data);

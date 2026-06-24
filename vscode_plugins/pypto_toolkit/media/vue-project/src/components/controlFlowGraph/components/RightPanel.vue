@@ -234,6 +234,8 @@ const tableTitle: TableTitleType[] = [
   },
 ];
 const outPutPath = ref();
+const computeGraphDirPath = ref();
+const flowVerifyPath = ref();
 // ========================== 3. 状态管理 ==========================
 // 抽屉显示状态：控制抽屉是否弹出
 const drawerVisible = ref(false);
@@ -318,6 +320,8 @@ function openGraph(item) {
     outputPath: outPutPath.value,
     computeGraphPath: item.graphFilePath,
     pathName: item.pathName,
+    computeGraphDirPath: computeGraphDirPath.value,
+    flowVerifyPath: flowVerifyPath.value,
   });
 }
 
@@ -641,13 +645,23 @@ function getPassList(passes: PassesType[], finalList?: any[]) {
 }
 
 /**
- *  数据转换，提取node节点数据，转换为抽屉所需数据格式
+ * 转换数据
  * @param nodeData path节点数据
  * @param path 打开计算图所需outPutPath值
  * @param tabIndex 首次打开抽屉时查看标签页值
+ * @param computeGraphDirPath 计算图目录路径
+ * @param flowVerifyPath 精度工具文件路径
  */
-async function transFormPanelData(nodeData: ControlFlowNodesType, path: string, tabIndex: number) {
+async function transFormPanelData(
+  nodeData: ControlFlowNodesType,
+  path: string,
+  tabIndex: number,
+  computeGraphDirPathParam?: string,
+  flowVerifyPathParam?: string,
+) {
   outPutPath.value = path;
+  computeGraphDirPath.value = computeGraphDirPathParam;
+  flowVerifyPath.value = flowVerifyPathParam;
   const { leafFunctions, calledRecords, calleeRecords } = nodeData.data.source.meta;
   const calledList: TableRowData[] = getCalledList(leafFunctions, calledRecords);
   const calleeList: TableRowData[] = getCalleeList(leafFunctions, calleeRecords);

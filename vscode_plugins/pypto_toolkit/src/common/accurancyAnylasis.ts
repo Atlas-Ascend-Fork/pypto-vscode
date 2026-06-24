@@ -226,12 +226,36 @@ async function getPassList(dirPath: string, filePath: string) {
     return passResult;
 }
 
-export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string) {
-    const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
+export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, flowVerifyPath?: string, computeGraphDirPath?: string) {
+    let baseDirPath: string;
+    let excludeDirName: string | undefined;
 
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName) ?? '';
+    // 如果 flowVerifyPath 不为空，使用它的父目录作为基础路径，并排除 flowVerifyPath 本身
+    if (flowVerifyPath) {
+        // 使用 vscode.Uri 来正确处理跨平台路径
+        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
+        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
+        baseDirPath = parentUri.fsPath;
+        excludeDirName = path.basename(flowVerifyUri.fsPath); // 排除 flowVerifyPath 本身的文件夹名
+    } else {
+        // 否则使用原来的逻辑，从 filePath 获取 outputDirPath
+        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    }
+
+    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
+    const accurancyDirName = accurancyDirList
+        .filter(subDirName => {
+            // 必须是目录且以 verify 开头
+            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
+                return false;
+            }
+            // 如果有排除的文件夹名，则排除它
+            if (excludeDirName && subDirName.name === excludeDirName) {
+                return false;
+            }
+            return true;
+        })?.[0]?.name ?? '';
+    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
@@ -659,46 +683,66 @@ export async function getAccuFilePath() {
     return await SQLiteCache.getInstance().accuFilePathGet();
 }
 
-export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHash: string | undefined) {
+export async function getFailMagicList(
+  comgraphFilePath: string,
+  comgraphFuncHash: string | undefined,
+  flowVerifyPath?: string,
+  computeGraphDirPath?: string,
+) {
+  const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
+  const failLevel = accurancyLevel?.fileType;
+  const csvPath = accurancyLevel?.filePath || '';
+  let failMagicList;
+  if (failLevel?.startsWith('op')) {
+    // phasename 和 funchash必须匹配上
+    const recordPhaseList = [...csvPath.matchAll(/Pass_(\d+)/g)].map(m => m[1]);
 
-    const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
-    const failLevel = accurancyLevel?.fileType;
-    const csvPath = accurancyLevel?.filePath || '';
-    let failMagicList;
-    if (failLevel?.startsWith('op')) {
-        // phasename 和 funchash必须匹配上
-        const recordPhaseList = [...csvPath.matchAll(/Pass_(\d+)/g)].map(m => m[1]);
+    const fileName = path.basename(csvPath);
+    const first = fileName.indexOf('_');
+    const second = fileName.indexOf('_', first + 1);
+    const filePassName = first === -1 || second === -1 ? '' : fileName.slice(first + 1, second);
 
-        const fileName = path.basename(csvPath);
-        const first = fileName.indexOf("_");
-        const second = fileName.indexOf("_", first + 1);
-        const filePassName = first === -1 || second === -1 ? "" : fileName.slice(first + 1, second);
-
-        const recordFuncHash = csvPath.split("~", 1)[1];
-        if ((comgraphFuncHash !== recordFuncHash) || !(recordPhaseList.includes(filePassName))) {
-            // 报错
-        }
-        const failOpMagicList = await getCmpDiffList(csvPath, false);
-        failMagicList = {
-            accuType: 'op',
-            failMagicList: failOpMagicList
-        }
-    } else {
-        const curPassName = path.basename((path.dirname(comgraphFilePath)));
-        const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
-        let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
-        curFuncMagicNameString = curFuncMagicNameString.endsWith('_ROOT') ? curFuncMagicNameString.replace('_ROOT', '') : curFuncMagicNameString;
-        const errorRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!, 'FAIL');
-        const exceptionRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!, 'EXCEPTION');
-        failMagicList = {
-            accuType: 'brief',
-            wrongRawMagicList: {
-                errorRawMagicList: errorRawMagicList,
-                exceptionRawMagicList: exceptionRawMagicList
-            }
-        }
+    const recordFuncHash = csvPath.split('~', 1)[1];
+    if ((comgraphFuncHash !== recordFuncHash) || !(recordPhaseList.includes(filePassName))) {
+      // 报错
     }
-    return failMagicList;
+    const failOpMagicList = await getCmpDiffList(csvPath, false);
+    failMagicList = {
+      accuType: 'op',
+      failMagicList: failOpMagicList,
+    };
+  } else {
+    const curPassName = path.basename(path.dirname(comgraphFilePath));
+    const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
+    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
+    curFuncMagicNameString = curFuncMagicNameString.endsWith('_ROOT')
+      ? curFuncMagicNameString.replace('_ROOT', '')
+      : curFuncMagicNameString;
+    const errorRawMagicList = await getComGraphRawMagic(
+      comgraphFilePath,
+      curPassName,
+      curFuncMagicNameString!,
+      'FAIL',
+      flowVerifyPath,
+      computeGraphDirPath,
+    );
+    const exceptionRawMagicList = await getComGraphRawMagic(
+      comgraphFilePath,
+      curPassName,
+      curFuncMagicNameString!,
+      'EXCEPTION',
+      flowVerifyPath,
+      computeGraphDirPath,
+    );
+    failMagicList = {
+      accuType: 'brief',
+      wrongRawMagicList: {
+        errorRawMagicList: errorRawMagicList,
+        exceptionRawMagicList: exceptionRawMagicList,
+      },
+    };
+  }
+  return failMagicList;
 }
 
 export async function getCmpErrorList(

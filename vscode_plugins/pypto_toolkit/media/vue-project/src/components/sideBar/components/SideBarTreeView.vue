@@ -159,6 +159,8 @@ function nodeClick(node: DevUITreeNode): void {
       computeGraphPath: node.absolutePath,
       outputPath: node.pathName ? node.outputPath : undefined,
       pathName: node.pathName,
+      computeGraphDirPath: node.computeGraphDirPath,
+      flowVerifyPath: node.flowVerifyPath,
     });
   } else if (node.fileType === 'opCheck') {
     openOpCheck({ outputPath: node.outputPath, opeCheckDirPath: node.opeCheckDirPath });
@@ -176,7 +178,12 @@ function toggleNode(node: DevUITreeNode): void {
 }
 
 function transformData(outputData: OutputRecords): DevUITreeNode[] {
-  function transformChild(subDirOrFile: DirectoryTree['children'], prefix: string): DevUITreeNode[] {
+  function transformChild(
+    subDirOrFile: DirectoryTree['children'],
+    prefix: string,
+    computeGraphDirPath?: string | null,
+    flowVerifyPath?: string | null,
+  ): DevUITreeNode[] {
     const children: DevUITreeNode[] = [];
     for (const dirOrFile of subDirOrFile) {
       const child: DevUITreeNode = {
@@ -187,12 +194,22 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
         isLeaf: !(dirOrFile.type === 'dir' && dirOrFile.children.length),
         ...dirOrFile,
         children: undefined,
+        // 如果是计算图节点，添加这两个参数
+        computeGraphDirPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? computeGraphDirPath : undefined,
+        flowVerifyPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? flowVerifyPath : undefined,
       };
       children.push(child);
       if (dirOrFile.type === 'dir' && !child.isLeaf) {
         nodeChildrenMap.set(
           child.id,
-          Promise.resolve(transformChild(dirOrFile.children as unknown as DirectoryTree['children'], child.id)),
+          Promise.resolve(
+            transformChild(
+              dirOrFile.children as unknown as DirectoryTree['children'],
+              child.id,
+              computeGraphDirPath,
+              flowVerifyPath,
+            ),
+          ),
         );
       }
     }
@@ -213,7 +230,12 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
 
     // 记录子节点
     const child = getOutputDetail(record.directoryPath).then((detail) => {
-      const baseChildren = transformChild(detail.data?.directoryTree.children ?? [], rootNode.id);
+      const baseChildren = transformChild(
+        detail.data?.directoryTree.children ?? [],
+        rootNode.id,
+        detail.data?.computeGraphDirPath,
+        detail.data?.flowVerifyPath,
+      );
       if (record.hasOpeCheck && record.opeCheckDirPath) {
         const opCheckNode: DevUITreeNode = {
           id: `${rootNode.id}/opCheck`,

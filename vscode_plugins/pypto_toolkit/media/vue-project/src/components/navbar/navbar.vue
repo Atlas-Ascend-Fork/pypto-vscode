@@ -229,7 +229,13 @@ function jumpComGraph(filePath: string, pathName?: string, blank = false) {
       pathName = (passEl.value?.getCurrentPass() as PathInPass | undefined)?.pathName ?? '';
     }
     if (currentRecord.value?.directoryPath) {
-      openComputeGraph({ outputPath: currentRecord.value.directoryPath, computeGraphPath: filePath, pathName }).then(() => {
+      openComputeGraph({
+        outputPath: currentRecord.value.directoryPath,
+        computeGraphPath: filePath,
+        pathName,
+        computeGraphDirPath: currentRecord.value.computeGraphDirPath,
+        flowVerifyPath: currentRecord.value.flowVerifyPath,
+      }).then(() => {
         if (!blank && !isBootStep) {
           server.closeWebview();
         }
