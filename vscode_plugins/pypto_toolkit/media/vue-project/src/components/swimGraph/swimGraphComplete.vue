@@ -1041,7 +1041,10 @@ const renderDependencyLines = (processKey) => {
     return;
   }
   const mode = viewState.depMode;
-  const key = processKey || selectedEvent.value?.pid?.toString() || searchedEvent.value?.pid?.toString();
+  let key = processKey || selectedEvent.value?.pid?.toString() || searchedEvent.value?.pid?.toString();
+  if (isPathLockStatus.value) {
+    key = pathLockedEvent.value?.pid?.toString();
+  }
   if (key) {
     const process = processes.get(key);
     if (!globalConnectionCanvas.value) {
