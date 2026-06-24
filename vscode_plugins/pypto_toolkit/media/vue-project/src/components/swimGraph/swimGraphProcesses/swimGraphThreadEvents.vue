@@ -1033,7 +1033,7 @@ const drawClickWrapContainner = (event, wrapCtx) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
   for (const wrapContainer of wrapContainers) {
     if (wrapContainer.wrapId === wrapId) {
-      renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, isHover: true });
+      renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, timelineState, isHover: true });
       break;
     }
   }
@@ -1059,7 +1059,7 @@ function drawHoverWrapContainner(event, x, y, wrapCtx) {
       clearWholeProcess(wrapCtx, viewState, props.processKey);
       renderWrapLabel(wrapCtx, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
       for (const wrapContainer of wrapContainers) {
-        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
+        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, timelineState });
       }
       return;
     }
@@ -1069,7 +1069,7 @@ function drawHoverWrapContainner(event, x, y, wrapCtx) {
   renderWrapLabel(wrapCtx, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, wrapId });
   for (const wrapContainer of wrapContainers) {
     const isHover = wrapContainer.wrapId === wrapId && !isHoverWrapContainner;
-    renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, isHover });
+    renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, isHover, timelineState });
   }
 }
  // 手动测距
@@ -1856,7 +1856,7 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
     if (wrapCtx) {
       for (const wrapContainer of wrapContainers) {
-        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
+        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, timelineState });
       }
     }
   } else if (isMixMode && !isMixMode.value && swimDataManager.hasMixConfig() ) {
@@ -2037,7 +2037,7 @@ const renderProcessEvents = (process, processKey) => {
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
     if (wrapCtx) {
       for (const wrapContainer of wrapContainers) {
-        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState });
+        renderWrapContainerBox(wrapCtx, wrapContainer, swimLaneOrder, getPositionByTime, globalConnectionCanvas, { colorCfg, layout, viewState, timelineState });
       }
     }
   } else {

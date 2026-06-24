@@ -1147,11 +1147,13 @@ export const renderWrapContainerBox = (
   swimLaneOrder: any[],
   getPositionByTime: any,
   globalConnectionCanvas: any,
-  { colorCfg, layout, viewState, isHover = false }
+  { colorCfg, layout, viewState, timelineState, isHover = false }
 ) => {
+  if (wrapContainer.minStartTime > timelineState.endTime || wrapContainer.maxEndTime < timelineState.startTime) {
+    return;
+  }
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  
   const startX = getPositionByTime(wrapContainer.minStartTime, viewState, layout) - layout.processLabelWidth;
   const endX = getPositionByTime(wrapContainer.maxEndTime, viewState, layout) - layout.processLabelWidth;
   
@@ -1179,14 +1181,24 @@ export const renderWrapContainerBox = (
   
   const scaledMinY = minY * devicePixelRatio;
   const scaledMaxY = maxY * devicePixelRatio;
-  const scaledWidth = scaledEndX - scaledStartX;
-  const scaledHeight = scaledMaxY - scaledMinY;
   
   const { canvasWidth } = viewState;
+  
+  const clippedStartX = Math.max(0, scaledStartX);
+  const clippedEndX = Math.min(canvasWidth, scaledEndX);
+  
+  if (clippedStartX >= clippedEndX) {
+    ctx.restore();
+    return;
+  }
+  
+  const scaledWidth = clippedEndX - clippedStartX;
+  const scaledHeight = scaledMaxY - scaledMinY;
+  
   const padding = 8 * devicePixelRatio;
   
-  const leftPadding = scaledStartX < padding ? 0 : padding;
-  const rightPadding = scaledEndX + padding > canvasWidth ? 0 : padding;
+  const leftPadding = clippedStartX < padding ? 0 : padding;
+  const rightPadding = clippedEndX + padding > canvasWidth ? 0 : padding;
   
   ctx.strokeStyle = isHover ? colorCfg.wrapBgColorHover : colorCfg.wrapBgColorDefault;
   ctx.lineWidth = 1;
@@ -1194,7 +1206,7 @@ export const renderWrapContainerBox = (
   ctx.fillStyle = isHover ? colorCfg.wrapBoxBgColor : colorCfg.wrapBorderBgColorDefault;
   ctx.beginPath();
   
-  ctx.roundRect(scaledStartX - leftPadding, scaledMinY, scaledWidth + leftPadding + rightPadding, scaledHeight, 4 * devicePixelRatio);
+  ctx.roundRect(clippedStartX - leftPadding, scaledMinY, scaledWidth + leftPadding + rightPadding, scaledHeight, 4 * devicePixelRatio);
   ctx.fill();
   ctx.stroke();
   
