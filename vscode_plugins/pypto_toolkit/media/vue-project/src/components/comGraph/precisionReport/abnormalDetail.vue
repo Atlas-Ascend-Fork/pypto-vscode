@@ -150,10 +150,8 @@ onMounted(() => {
   // opcheck 类型调用 getPrecisionExceptList
   if (currentFileType?.startsWith('op') && currentFilePath) {
     const filePath = currentFilePath.replace(/\.csv$/i, '');
-    // op_A 使用 aFileName, op_B 使用 bFileName
-    const fileName = currentFileType === 'op_A'
-      ? (aFileName || '').replace(/\.data$/i, '').replace(/-/g, '~')
-      : (bFileName || '').replace(/\.data$/i, '').replace(/-/g, '~');
+    // 都使用 bFileName
+    const fileName = (bFileName || '').replace(/\.data$/i, '').replace(/-/g, '~');
 
     if (fileName) {
       console.log('getPrecisionExceptList', filePath, fileName);

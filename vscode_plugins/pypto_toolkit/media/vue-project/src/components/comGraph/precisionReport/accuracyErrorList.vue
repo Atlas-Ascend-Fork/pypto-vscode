@@ -39,8 +39,8 @@ const props = defineProps({
         }
     },
     isOpCheck: {
-        type: Boolean,
-        default: false
+        type: String,
+        default: ''
     }
 })
 const emits = defineEmits(['inputSearch', 'rowClick', 'pageIndexChange'])
@@ -68,9 +68,9 @@ watch(
 watch(
     () => props.isOpCheck,
     (isOpCheck) => {
-        if (isOpCheck) {
+        if (isOpCheck.startsWith('op')) {
             columnData.value[2].header = 'opMagic';
-            columnData.value[2].field = 'aOpMagic';
+            columnData.value[2].field = isOpCheck === 'op_A' ? 'aOpMagic' : 'bOpMagic';
         } else {
             columnData.value[2].header = 'rawmagicID';
             columnData.value[2].field = 'rawMagic';

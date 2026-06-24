@@ -381,7 +381,7 @@ const onDiffItemClick = ({ data, source }: { data: OpCompareItem | null; source:
         }
       : undefined,
     sharedRes: data.sharedRes,
-    fileName: source === 'left' ? data.aOp?.aFileName || '' : data.bOp?.bFileName || '',
+    fileName: data.bOp?.bFileName || '',
   };
   showDetail.value = true;
 };

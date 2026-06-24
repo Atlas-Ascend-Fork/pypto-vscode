@@ -607,7 +607,7 @@ const handleBlockClick = (item, activeType) => {
 
   // 设置tagPass
   if (tagNodeId.value) {
-    tagPass.value = Number(item.index) + 1;
+    tagPass.value = targetNodes[0]?.data.source?.meta?.passes?.findIndex(val => val.passName.includes(item.pass_name));
   }
 
   // 聚焦到第一个有tag的节点或第一个目标节点

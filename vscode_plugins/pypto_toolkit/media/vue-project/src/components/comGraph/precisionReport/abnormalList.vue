@@ -6,7 +6,7 @@
       <StatisticCard :count="cardData.EXCEPTION" type="EXCEPTION" :clickable="false" />
     </div>
     <div>{{ t('comGraph.precisionExceptionList') }}</div>
-    <AccuracyErrorList :data="errorListData" :page-config="pageConfig" :is-op-check="currentFileType.startsWith('op')" @row-click="rowClick" @input-search="searchByKeyword" @page-index-change="pageIndexChange" />
+    <AccuracyErrorList :data="errorListData" :page-config="pageConfig" :is-op-check="currentFileType" @row-click="rowClick" @input-search="searchByKeyword" @page-index-change="pageIndexChange" />
   </div>
 </template>
 
@@ -143,6 +143,7 @@ watch(server.cmpErrorList, (val: Record<string, any>) => {
     ...(currentFileType.value === 'op_A' ? item?.aOp : item?.bOp),
     no: startNo + index,
   }));
+  console.log('errorListData.value', errorListData.value);
 });
 
 onMounted(async () => {
