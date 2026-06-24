@@ -655,7 +655,7 @@ onMounted(async () => {
   flowVerifyPath.value = res.flowVerifyPath;
   const { server } = useViewServer<ControlFlowViewServer>();
   // 通知后端，查询是否有csv，获取精度执行报告数据
-  server.getAccurancyResult({ controwFlowFilePath: res._path });
+  server.getAccurancyResult({ controwFlowFilePath: res._path, computeGraphDirPath: computeGraphDirPath.value });
   watch(server.accurancyResult, (newValue) => {
     isHaveCSV.value = newValue.parseResult === 'Success' ? true : false;
     if (newValue.parseResult) {

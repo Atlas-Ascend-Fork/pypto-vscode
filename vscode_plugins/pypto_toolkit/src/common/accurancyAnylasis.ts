@@ -6,7 +6,7 @@ import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache'; // 同步�
 import { SmartLogExtractor, getCsvData, readCsv } from '../common/csvReader';
 import { t } from 'i18next';
 
-export async function getResDataSum(filePath: string | undefined) {
+export async function getResDataSum(filePath: string | undefined, computeGraphDirPath: string | undefined) {
     if (!filePath) {
         return;
     }
@@ -35,14 +35,14 @@ export async function getResDataSum(filePath: string | undefined) {
     // getCmpDiffList(cmpCsvPath);
     // openCmpDiffComGraph(cmpCsvPath, '8512735506352643020', 'Pass_37_CodegenPreproc', 'TENSOR_LOOP_s2_Unroll8_PATH0_hiddenfunc0_20');
 
-    const oriPassDistribution = await getPassDistribution(csvPath);
+    const oriPassDistribution = await getPassDistribution(csvPath, computeGraphDirPath);
     const passDistribution = {
         pass_cnt: oriPassDistribution.PASS ?? 0,
         fail_cnt: oriPassDistribution.FAIL ?? 0,
         exception_cnt: oriPassDistribution.EXCEPTION ?? 0,
         skip_cnt: oriPassDistribution.SKIP ?? 0
     }
-    const passDetail = await getPassList(outputDirPath, csvPath);
+    const passDetail = await getPassList(outputDirPath, csvPath, computeGraphDirPath);
 
     const finalRes = {...passDetail, ...passDistribution};
     return {parseResult: 'Success', allResultSum: finalRes, controlFlowFilepath: filePath};
@@ -81,10 +81,16 @@ interface PhaseItem {
 }
 
 // 页面一 总览接口
-async function getPassDistribution(filePath: string) {
+async function getPassDistribution(filePath: string, computeGraphDirPath: string | undefined) {
     let passDistribution = await SQLiteCache.getInstance().getAccuracyStatsByFile(filePath);
 
-    const dirPath = path.dirname(path.dirname(filePath));
+    let dirPath;
+    if (computeGraphDirPath) {
+        dirPath = vscode.Uri.file(computeGraphDirPath).fsPath;
+    } else {
+        dirPath = path.dirname(path.dirname(filePath));
+    }
+    
     const allFileNameList = fs.readdirSync(dirPath, { withFileTypes: true });
     const allPassNameList = allFileNameList.filter(singlePass => (singlePass.isDirectory() && /^Pass_\d{2}/.test(singlePass.name))).map(singlePass => singlePass.name);
     const repeat00List = allPassNameList.filter(item => item.startsWith('Pass_00'));
@@ -127,7 +133,12 @@ function mergePhaseResults (passDistribution: PhaseItem[]): PhaseItem[] {
     return Array.from(passList.values());
 }
 
-async function getPassList(dirPath: string, filePath: string) {
+async function getPassList(oriDirPath: string, filePath: string, computeGraphDirPath: string | undefined) {
+    let dirPath: string = oriDirPath;
+    if (computeGraphDirPath) {
+        dirPath = vscode.Uri.file(computeGraphDirPath).fsPath;
+    }
+
     const originDistribution = await SQLiteCache.getInstance().getDistinctPhaseResults(filePath);
     const pureDistribution = originDistribution.filter(singlePass => singlePass.phaseName.includes('Pass'));
 
