@@ -71,7 +71,7 @@ watch(
   (val) => {
     if (val) {
       server.getHealthyReport();
-      const briefShowFlag = Object.keys(comGraphStore.data.wrongRawMagicList?.errorRawMagicList).length > 0 || Object.keys(comGraphStore.data.wrongRawMagicList?.exceptionRawMagicList).length > 0;
+      const briefShowFlag = Object.keys(comGraphStore.data.wrongRawMagicList?.errorRawMagicList || {}).length > 0 || Object.keys(comGraphStore.data.wrongRawMagicList?.exceptionRawMagicList || {}).length > 0;
       const opShowFlag = comGraphStore.data.failOpMagicList?.diffList?.length > 0;
       if( briefShowFlag || opShowFlag) {
         showAccuracyReport.value = true
