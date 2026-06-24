@@ -146,9 +146,9 @@ export abstract class BaseGraphMsgHandler {
     } else {
       data = this.createJsonGraphData(message.data, server, errNodeList, message.diffType);
     }
-    const failRawMagicList = server.comGraphData.failRawMagicList ? [...server.comGraphData.failRawMagicList] : [];
+    const wrongRawMagicList = server.comGraphData.wrongRawMagicList ? server.comGraphData.wrongRawMagicList : {};
     const failOpMagicList = server.comGraphData.failOpMagicList ? server.comGraphData.failOpMagicList : {};
-    this.postJsonGraphData(server, message, data, isCached, failRawMagicList, failOpMagicList);
+    this.postJsonGraphData(server, message, data, isCached, wrongRawMagicList, failOpMagicList);
   }
 
   static findFileHere(dir: string, name: string): string | null {
@@ -231,7 +231,7 @@ export abstract class BaseGraphMsgHandler {
   static createJsonGraphData(data, server, errNodeList, diffType?: 'before' | 'after') {
     const { comGraphData, currentData, showTensorNodes, showSyncNodes, colorBySubgraph, isDark, selectedSubgraphId, nodeMagic, searchLevel, version, threeMode } = data;
     const dagBuilder = new AscppDagBuilder(comGraphData, server, version, this.callInOutTensorMap, diffType);
-    const failRawMagicList = server.comGraphData.failRawMagicList;
+    const wrongRawMagicList = server.comGraphData.wrongRawMagicList;
     const isLeaf = comGraphData.isLeaf ?? false;
 
     const sprottyGraph = dagBuilder.createSprottyGraph(
@@ -246,7 +246,7 @@ export abstract class BaseGraphMsgHandler {
       searchLevel,
       threeMode,
       errNodeList,
-      failRawMagicList,
+      wrongRawMagicList,
     );
 
     (this as any).graphLastRenderData = data;
@@ -775,8 +775,9 @@ export abstract class BaseGraphMsgHandler {
     }
 
     const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash);
-    if (!server.comGraphData.failRawMagicList && (failMagicRes.accuType === 'brief')) {
-      server.comGraphData.failRawMagicList = failMagicRes.failMagicList;
+    if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
+      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, [...(v as Set<unknown>)]]));
+      server.comGraphData.wrongRawMagicList = wrongRes;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
       server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
     }
@@ -1009,8 +1010,8 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
   }
 
-  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, failRawMagicList?: any, failOpMagicList?: any) {
-    server.setRef('JsonGraphData', { data, isCached, failRawMagicList, failOpMagicList });
+  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, wrongRawMagicList?: any, failOpMagicList?: any) {
+    server.setRef('JsonGraphData', { data, isCached, wrongRawMagicList, failOpMagicList });
   }
 
   // graphData elkFactory 给子类重写预留

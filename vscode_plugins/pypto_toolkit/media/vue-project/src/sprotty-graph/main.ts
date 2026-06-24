@@ -192,7 +192,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     server.getJsonGraphData({ data: data, diffType: filePath });
     jsonGraphWatchHandle = watch(server.JsonGraphData, (newValue: any) => {
       comGraphStore.setData("isCached", newValue.isCached);
-      comGraphStore.setData("failRawMagicList", newValue.failRawMagicList);
+      comGraphStore.setData("wrongRawMagicList", newValue.wrongRawMagicList);
       comGraphStore.setData("failOpMagicList", newValue.failOpMagicList);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');

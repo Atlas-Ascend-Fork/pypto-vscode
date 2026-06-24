@@ -283,12 +283,14 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     keyword?: string;
     readFlag?: boolean;
     cmpCsvPath?: string;
+    comgraphPath?: string;
   }) => {
     const cmpCsvInfo = await getAccuFilePath();
     const filePath = data.cmpCsvPath || '';
+    const comgraphPath = data.comgraphPath || '';
     
     const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
-    const result = await getCmpErrorList(filePath, readFlag, pageSize, startOffset, keyword);
+    const result = await getCmpErrorList(filePath, comgraphPath, readFlag, pageSize, startOffset, keyword);
     this.setRef('cmpErrorList', result);
   };
 

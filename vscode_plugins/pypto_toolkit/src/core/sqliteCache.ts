@@ -1279,6 +1279,7 @@ export class SQLiteCache {
     funcMagicName: string,
     pageSize: number,
     startOffset: number,
+    res: string
   ): Promise<AccuracyToolData[]> {
     const sql = `
       SELECT 
@@ -1297,7 +1298,7 @@ export class SQLiteCache {
         file_path = ? AND 
         "B>PHASE_NAME" = ? AND 
         "PATH_FUNC:func_magicname" = ? AND 
-        "AB>RESULT" IN ('FAIL', 'EXCEPTION')
+        "AB>RESULT" = ?
       ORDER BY "B>TIMESTAMP" ASC, CAST("NO." AS INTEGER) ASC
       LIMIT ? OFFSET ?
     `;
@@ -1306,7 +1307,7 @@ export class SQLiteCache {
     const result: AccuracyToolData[] = [];
 
     try {
-      stmt.bind([filePath, phaseName, funcMagicName, pageSize, startOffset]);
+      stmt.bind([filePath, phaseName, funcMagicName, res, pageSize, startOffset]);
 
       while (stmt.step()) {
         const row = stmt.getAsObject();
@@ -1526,6 +1527,9 @@ export class SQLiteCache {
     pageSize: number,
     startOffset: number,
     keyword?: string,
+    funcMagicName?: string,
+    funcHash?: string,
+    phaseName?: string
   ): Promise<PaginatedResult<AccuracyToolCmpData>> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
@@ -1533,6 +1537,20 @@ export class SQLiteCache {
     if (keyword) {
       conditions.push('("LOOP_INFO" LIKE ? OR ":datatype" LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (phaseName && funcHash) {
+      conditions.push('(("A>PHASE_NAME" = ? AND "A>FUNC:hash" = ?) OR ("B>PHASE_NAME" = ? AND "B>FUNC:hash" = ?))');
+      params.push(phaseName, funcHash, phaseName, funcHash);
+    } else if (phaseName) {
+      conditions.push('"A>PHASE_NAME" = ? OR "B>PHASE_NAME" = ?');
+      params.push(phaseName, phaseName);
+    } else if (funcHash) {
+      conditions.push('"A>FUNC:hash" = ? OR "B>FUNC:hash" = ?');
+      params.push(funcHash, funcHash);
+    }
+    if (funcMagicName) {
+      conditions.push('"PATH_FUNC:func_magicname" = ?');
+      params.push(funcMagicName);
     }
     const whereClause = conditions.join(' AND ');
   
@@ -1793,7 +1811,10 @@ export class SQLiteCache {
   public async accuracyToolCmpGetCountByFilePath(
     filePath: string,
     res?: string,
-    keyword?: string
+    keyword?: string,
+    funcMagicName?: string,
+    funcHash?: string,
+    phaseName?: string
   ): Promise<number> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
@@ -1804,6 +1825,20 @@ export class SQLiteCache {
     if (keyword) {
       conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
       params.push(keyword, keyword);
+    }
+    if (phaseName && funcHash) {
+      conditions.push('(("A>PHASE_NAME" = ? AND "A>FUNC:hash" = ?) OR ("B>PHASE_NAME" = ? AND "B>FUNC:hash" = ?))');
+      params.push(phaseName, funcHash, phaseName, funcHash);
+    } else if (phaseName) {
+      conditions.push('"A>PHASE_NAME" = ? OR "B>PHASE_NAME" = ?');
+      params.push(phaseName, phaseName);
+    } else if (funcHash) {
+      conditions.push('"A>FUNC:hash" = ? OR "B>FUNC:hash" = ?');
+      params.push(funcHash, funcHash);
+    }
+    if (funcMagicName) {
+      conditions.push('"PATH_FUNC:func_magicname" = ?');
+      params.push(funcMagicName);
     }
     const whereClause = conditions.join(' AND ');
 

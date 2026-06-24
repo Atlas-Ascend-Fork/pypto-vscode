@@ -37,6 +37,7 @@ export interface AstgrNode extends SNode {
     isError?: boolean;
     isEmptyNode?: boolean;
     isAccuracyError?: boolean;
+    isAccuracyException?: boolean;
 }
 
 /**
@@ -71,6 +72,7 @@ export interface AstgrTensorNode extends AstgrNode {
     isError?: boolean;
     isMiddle?: boolean;
     isAccuracyError?: boolean;
+    isAccuracyException?: boolean;
 }
 
 /**

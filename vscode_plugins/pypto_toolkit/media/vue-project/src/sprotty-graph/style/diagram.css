@@ -397,6 +397,11 @@ g.call-operation:hover rect.sprotty-node {
 }
 
 path.accuracy-error-border {
+  stroke: rgba(254, 180, 95, 0.3) !important;
+  stroke-width: 2px !important;
+}
+
+path.accuracy-exception-border {
   stroke: rgba(231, 67, 74, 0.3) !important;
   stroke-width: 2px !important;
 }

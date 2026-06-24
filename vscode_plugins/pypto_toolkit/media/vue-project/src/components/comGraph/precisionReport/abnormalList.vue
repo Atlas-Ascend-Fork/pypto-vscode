@@ -39,6 +39,7 @@ const pageConfig = ref({
 const currentFileType = ref<string>('');
 const currentFilePath = ref<string>('');
 const currentOutputPath = ref<string>('');
+const currentComgraphPath = ref<string>('');
 
 const initData = (data) => {
   if (!data) return
@@ -68,6 +69,7 @@ const searchByKeyword = debounce((keyword) => {
   if (currentFileType.value.startsWith('op') && currentFilePath.value) {
     server.getCmpErrorListData({
       cmpCsvPath: currentFilePath.value,
+      comgraphPath: currentComgraphPath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
       keyword: keyword
@@ -90,6 +92,7 @@ const pageIndexChange = (pageIndex) => {
     console.log('currentFilePath.value', currentFilePath.value);
     server.getCmpErrorListData({
       cmpCsvPath: currentFilePath.value,
+      comgraphPath: currentComgraphPath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
       keyword: searchKeyword.value,
@@ -153,11 +156,13 @@ onMounted(async () => {
   currentFileType.value = fileType;
   currentFilePath.value = query.outputPath as string || '';
   currentOutputPath.value = outputDirPath;
+  currentComgraphPath.value = query._path;
 
   if (fileType.startsWith('op')) {
     // 如果是 opcheck 类型，调用 getCmpErrorListData
     server.getCmpErrorListData({
       cmpCsvPath: currentFilePath.value,
+      comgraphPath: currentComgraphPath.value,
       pageSize: pageConfig.value.pageSize,
       startOffset: pageConfig.value.currentPage - 1,
       keyword: searchKeyword.value,

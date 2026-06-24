@@ -226,7 +226,7 @@ async function getPassList(dirPath: string, filePath: string) {
     return passResult;
 }
 
-export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string) {
+export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string) {
     const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
 
     const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
@@ -238,7 +238,7 @@ export async function getComGraphRawMagic(filePath: string, phaseName: string, f
         // console.log(`文件不存在: ${csvPath}`);
         return;
     }
-    const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, 10000, 0);
+    const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, 10000, 0, res);
     let errorRawMagicList = new Set(failSumListofGraph.map(failRecord => failRecord.rawMagic));
 
     return errorRawMagicList;
@@ -688,10 +688,14 @@ export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHas
         const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
         let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
         curFuncMagicNameString = curFuncMagicNameString.endsWith('_ROOT') ? curFuncMagicNameString.replace('_ROOT', '') : curFuncMagicNameString;
-        const failRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!);
+        const errorRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!, 'FAIL');
+        const exceptionRawMagicList = await getComGraphRawMagic(comgraphFilePath, curPassName, curFuncMagicNameString!, 'EXCEPTION');
         failMagicList = {
             accuType: 'brief',
-            failMagicList: failRawMagicList
+            wrongRawMagicList: {
+                errorRawMagicList: errorRawMagicList,
+                exceptionRawMagicList: exceptionRawMagicList
+            }
         }
     }
     return failMagicList;
@@ -699,21 +703,29 @@ export async function getFailMagicList(comgraphFilePath: string, comgraphFuncHas
 
 export async function getCmpErrorList(
     filePath: string, 
+    comgraphPath: string,
     readFlag: boolean = true, 
     pageSize: number = 50, 
     startOffset: number = 0, 
     keyword: string = ''
 ) {
+    const phaseName = path.basename(path.dirname(comgraphPath)) ?? '';
+    const comgraphfileName = path.basename(comgraphPath, '.json');
+    const matchList = comgraphfileName.match(/(?:[^_]*_){3}([^]*?)_LEAF/);
+    const funcMagicName = matchList?.[1] ?? '';
+    const funcHash = comgraphfileName.split('_').at(-1) ?? '';
+
     let failCount = -1;
     let excepCount = -1;
     let totalCount = -1;
     let listSum = 0;
-    totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath);
-    failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
-    excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION');
+    totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, '', '', funcMagicName, funcHash, phaseName);
+    failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL', '', funcMagicName, funcHash, phaseName);
+    excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION', '', funcMagicName, funcHash, phaseName);
     
     const realOffset = startOffset * pageSize;
-    const { total: failCountFromDb, list: errorList } = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword);
+    const { total: failCountFromDb, list: errorList } = 
+            await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword, funcMagicName, funcHash, phaseName);
     listSum = failCountFromDb;
 
     const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();

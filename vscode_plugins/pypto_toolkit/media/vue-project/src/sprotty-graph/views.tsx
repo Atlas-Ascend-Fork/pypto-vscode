@@ -1167,7 +1167,8 @@ export class AstgrTensorView extends RectangularNodeView {
               Z`}
               fill={nodeFillColor}
               class-tensor-inout-background-label={true}
-              class-accuracy-error-border={node.isAccuracyError}
+              class-accuracy-exception-border={node.isAccuracyException}
+              class-accuracy-error-border={(!node.isAccuracyException) && (node.isAccuracyError)}
               filter={backgroundFilter}
               class-tensor-diff-add={node.compareType === 'add'}
               class-tensor-diff-delete={node.compareType === 'delete'}
@@ -1257,11 +1258,14 @@ export class AstgrTensorView extends RectangularNodeView {
     const accuracyTagHeight = 24;
     const tagStartX = width + 6;
     const contentStartX = tagStartX + tagPadding * 2;
-    const accuracyErrorTag = (node.role === 'output' && !node.isMiddle && node.isAccuracyError && !isMiniType) ? (
+    const exceptionTagY = 0;
+    const tagGap = 4;
+    const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
+    const accuracyExceptionTag = (node.role === 'output' && !node.isMiddle && node.isAccuracyException && !isMiniType) ? (
       <g class-accuracy-error-tag={true}>
         <rect
           x={tagStartX}
-          y={0}
+          y={exceptionTagY}
           width={accuracyTagWidth}
           height={accuracyTagHeight}
           fill="#D94838"
@@ -1273,7 +1277,7 @@ export class AstgrTensorView extends RectangularNodeView {
         <image
           href={linkSvgPath}
           x={contentStartX}
-          y={iconPaddingTop}
+          y={exceptionTagY + iconPaddingTop}
           width={iconSize}
           height={iconSize}
           style-cursor="pointer"
@@ -1281,7 +1285,7 @@ export class AstgrTensorView extends RectangularNodeView {
         />
         <text
           x={contentStartX + iconSize + iconGap}
-          y={accuracyTagHeight / 2}
+          y={exceptionTagY + accuracyTagHeight / 2}
           font-size="12"
           fill="#fff"
           text-anchor="start"
@@ -1291,6 +1295,42 @@ export class AstgrTensorView extends RectangularNodeView {
         >{currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal'}</text>
       </g>
     ) : null;
+
+    const accuracyErrorTag = (node.role === 'output' && !node.isMiddle && node.isAccuracyError && !isMiniType) ? (
+      <g class-accuracy-error-tag={true}>
+        <rect
+          x={tagStartX}
+          y={errorTagY}
+          width={accuracyTagWidth}
+          height={accuracyTagHeight}
+          fill="rgba(246, 158, 57, 1)"
+          rx="4"
+          ry="4"
+          style-cursor="pointer"
+          style-pointer-events="all"
+        />
+        <image
+          href={linkSvgPath}
+          x={contentStartX}
+          y={errorTagY + iconPaddingTop}
+          width={iconSize}
+          height={iconSize}
+          style-cursor="pointer"
+          style-pointer-events="all"
+        />
+        <text
+          x={contentStartX + iconSize + iconGap}
+          y={errorTagY + accuracyTagHeight / 2}
+          font-size="12"
+          fill="#fff"
+          text-anchor="start"
+          dominant-baseline="central"
+          style-cursor="pointer"
+          style-pointer-events="all"
+        >{currentLanguage === 'zh' ? '精度错误' : 'accurancy error'}</text>
+      </g>
+    ) : null;
+
     return (
       <g
         class-op-incoming={incoming}
@@ -1303,11 +1343,13 @@ export class AstgrTensorView extends RectangularNodeView {
         {rectNode}
         {!isMiniType && context.renderChildren(node, args)}
         {!isMiniType && badgeDom}
+        {accuracyExceptionTag}
         {accuracyErrorTag}
       </g>
     );
   }
 }
+
 
 @injectable()
 export class  AstgrTensorMinimapView extends RectangularNodeView {
