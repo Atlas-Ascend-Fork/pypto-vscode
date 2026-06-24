@@ -163,7 +163,7 @@ function nodeClick(node: DevUITreeNode): void {
       flowVerifyPath: node.flowVerifyPath,
     });
   } else if (node.fileType === 'opCheck') {
-    openOpCheck({ outputPath: node.outputPath, opeCheckDirPath: node.opeCheckDirPath });
+    openOpCheck({ outputPath: node.outputPath, opeCheckDirPath: node.opeCheckDirPath, flowVerifyPath: node.flowVerifyPath, computeGraphDirPath: node.computeGraphDirPath });
   } else {
     toggleNode(node);
   }
@@ -246,6 +246,8 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
           fileType: 'opCheck',
           outputPath: record.directoryPath,
           opeCheckDirPath: record.opeCheckDirPath,
+          flowVerifyPath: detail.data?.flowVerifyPath,
+          computeGraphDirPath: detail.data?.computeGraphDirPath,
         };
         baseChildren.push(opCheckNode);
       }

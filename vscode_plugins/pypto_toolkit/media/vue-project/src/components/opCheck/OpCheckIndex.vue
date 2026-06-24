@@ -86,6 +86,9 @@ const selectedDetailData = ref<PrecisionDetailData | null>(null);
 const selectedCmpCsvPath = ref<string>('');
 const diffCompareListRef = ref<{ clearSelection: () => void; resetFilter: () => void } | null>(null);
 
+const flowVerifyPath = ref();
+const computeGraphDirPath = ref('');
+
 const { server } = useViewServer<OpCheckViewServer>();
 
 // 监听后端返回的 diff 数据
@@ -146,6 +149,8 @@ watch(
 
 onMounted(async () => {
   const query = await getQuery();
+  computeGraphDirPath.value = query.computeGraphDirPath;
+  flowVerifyPath.value = query.flowVerifyPath;
 
   const outputPath = query.outputPath as string;
 
@@ -413,6 +418,8 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
       passName,
       funcMagicName,
       fileType,
+      computeGraphDirPath: computeGraphDirPath.value,
+      flowVerifyPath: flowVerifyPath.value
     });
     console.log('[OpCheckIndex] openCmpDiffComGraphApi success');
   } catch (error) {

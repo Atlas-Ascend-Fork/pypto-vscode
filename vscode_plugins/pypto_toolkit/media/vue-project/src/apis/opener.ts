@@ -34,7 +34,7 @@ export function openSwimlaneGraph(params: { swimlaneGraphPath: string; outputPat
 /**
  * 打开OpCheck页面
  */
-export function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null }) {
+export function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null; flowVerifyPath?: string; computeGraphDirPath?: string }) {
   return request.post(`${OPENER_PREFIX}/openOpCheck`, params);
 }
 

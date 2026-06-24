@@ -67,11 +67,13 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     passName: string;
     funcMagicName: string;
     fileType?: string;
+    computeGraphDirPath?: string;
+    flowVerifyPath?: string;
   }) => {
-    const { filePath, funcHash, passName, funcMagicName, fileType } = data;
+    const { filePath, funcHash, passName, funcMagicName, fileType, computeGraphDirPath, flowVerifyPath } = data;
     
     try {
-      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, fileType, filePath);
+      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, fileType, filePath, computeGraphDirPath, flowVerifyPath);
     } catch (error) {
       console.error('[OpCheckViewServer] openCmpDiffComGraph error:', error);
     }
@@ -84,12 +86,13 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     res?: string;
     keyword?: string;
     readFlag?: boolean;
+    comgraphPath?: string;
   }) => {
     const cmpCsvInfo = await getAccuFilePath();
     const filePath = cmpCsvInfo?.filePath || '';
     
-    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
-    const result = await getCmpErrorList(filePath, readFlag, pageSize, startOffset, keyword);
+    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true, comgraphPath = '' } = data;
+    const result = await getCmpErrorList(filePath, comgraphPath, readFlag, pageSize, startOffset, keyword);
     this.setRef('cmpErrorList', result);
   };
 

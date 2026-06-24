@@ -71,7 +71,7 @@ watch(
   (val) => {
     if (val) {
       server.getHealthyReport();
-      if(comGraphStore.data.wrongRawMagicList?.errorRawMagicList.length > 0 || comGraphStore.data.wrongRawMagicList?.exceptionRawMagicList.length > 0 || comGraphStore.data.failOpMagicList?.diffList.length > 0) {
+      if(comGraphStore.data.wrongRawMagicList?.errorRawMagicList?.length > 0 || comGraphStore.data.wrongRawMagicList?.exceptionRawMagicList?.length > 0 || comGraphStore.data.failOpMagicList?.diffList.length > 0) {
         showAccuracyReport.value = true
       }
     }

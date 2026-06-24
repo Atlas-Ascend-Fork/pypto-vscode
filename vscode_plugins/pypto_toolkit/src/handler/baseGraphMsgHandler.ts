@@ -682,7 +682,7 @@ export abstract class BaseGraphMsgHandler {
     }
 
 
-    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!);
+    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!, 30, 0, server.query?.flowVerifyPath);
     server.setRef('AccurancyReport', { data: errorRawInfo });
   }
 
@@ -705,7 +705,7 @@ export abstract class BaseGraphMsgHandler {
     const startOffset = (message.data.startOffset * pageSize);
     const keyword = message.data.keyword ?? '';
 
-    const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset);
+    const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset, server.query?.flowVerifyPath);
     server.setRef('AccurancyList', { data: errorRawInfo });
   }
 
@@ -725,7 +725,7 @@ export abstract class BaseGraphMsgHandler {
     }
     const loopInfo = message.data.loopInfo;
     const rawMagic = message.data.rawMagic;
-    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic);
+    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic, 10000, 0, server.query?.flowVerifyPath);
 
     server.setRef('AccurancyDetail', { data: errorRawInfo });
   }
@@ -776,7 +776,7 @@ export abstract class BaseGraphMsgHandler {
 
     const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
-      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, [...(v as Set<unknown>)]]));
+      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
       server.comGraphData.failOpMagicList = failMagicRes.failMagicList;

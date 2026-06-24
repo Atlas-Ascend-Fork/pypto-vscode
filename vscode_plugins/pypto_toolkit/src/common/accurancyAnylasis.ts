@@ -268,12 +268,38 @@ export async function getComGraphRawMagic(filePath: string, phaseName: string, f
     return errorRawMagicList;
 }
 
-export async function getComGraphDataSum(filePath: string, phaseName: string, funcMagicName: string, pageSize: number = 30, startOffset: number = 0) {
-    const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
+export async function getComGraphDataSum(
+    filePath: string, 
+    phaseName: string, 
+    funcMagicName: string, 
+    pageSize: number = 30, 
+    startOffset: number = 0, 
+    flowVerifyPath?: string 
+) {
+    let baseDirPath: string;
+    let excludeDirName: string | undefined;
 
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName) ?? '';
+    if (flowVerifyPath) {
+        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
+        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
+        baseDirPath = parentUri.fsPath;
+        excludeDirName = path.basename(flowVerifyUri.fsPath);
+    } else {
+        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    }
+
+    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
+    const accurancyDirName = accurancyDirList
+        .filter(subDirName => {
+            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
+                return false;
+            }
+            if (excludeDirName && subDirName.name === excludeDirName) {
+                return false;
+            }
+            return true;
+        })?.[0]?.name ?? '';
+    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
@@ -284,7 +310,7 @@ export async function getComGraphDataSum(filePath: string, phaseName: string, fu
 
     const failSum = await SQLiteCache.getInstance().getAccuracyStatsByFunc(csvPath, phaseName, funcMagicName);
     const newPageSize = 'FAIL' in failSum ? failSum['FAIL'] : 30;
-    const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, newPageSize, startOffset);
+    const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, newPageSize, startOffset, 'FAIL');
     
     const comAccuracyData = {
         comgraphFailSum: failSum,
@@ -294,12 +320,31 @@ export async function getComGraphDataSum(filePath: string, phaseName: string, fu
     return comAccuracyData;
 }
 
-export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0) {
-    const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
+export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0, flowVerifyPath?: string) {
+    let baseDirPath: string;
+    let excludeDirName: string | undefined;
 
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName) ?? '';
+    if (flowVerifyPath) {
+        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
+        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
+        baseDirPath = parentUri.fsPath;
+        excludeDirName = path.basename(flowVerifyUri.fsPath);
+    } else {
+        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    }
+
+    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
+    const accurancyDirName = accurancyDirList
+        .filter(subDirName => {
+            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
+                return false;
+            }
+            if (excludeDirName && subDirName.name === excludeDirName) {
+                return false;
+            }
+            return true;
+        })?.[0]?.name ?? '';
+    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
@@ -384,12 +429,32 @@ function formatDetailData(resultLog: string[]): any[] {
  }
 
 export async function getComGraphDataDetail(filePath: string, phaseName: string, funcMagicName: string, 
-                                            loopInfo: string, rawMagic: string, pageSize: number = 10000, startOffset: number = 0) {
-    const outputDirPath = path.dirname(path.dirname(filePath)) ?? '';
+                                            loopInfo: string, rawMagic: string, pageSize: number = 10000, startOffset: number = 0,
+                                            flowVerifyPath?: string) {
+    let baseDirPath: string;
+    let excludeDirName: string | undefined;
 
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName) ?? '';
+    if (flowVerifyPath) {
+        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
+        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
+        baseDirPath = parentUri.fsPath;
+        excludeDirName = path.basename(flowVerifyUri.fsPath);
+    } else {
+        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    }
+
+    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
+    const accurancyDirName = accurancyDirList
+        .filter(subDirName => {
+            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
+                return false;
+            }
+            if (excludeDirName && subDirName.name === excludeDirName) {
+                return false;
+            }
+            return true;
+        })?.[0]?.name ?? '';
+    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
 
     const logPath = path.join(accurancyDirPath, 'verify_graph_result_brief.log');
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
@@ -617,12 +682,18 @@ export async function openCmpDiffComGraph(
     funcMagicName: string,
     fileType?: string,
     cmpCsvPath?: string,
+    computeGraphDirPath?: string,
+    flowVerifyPath?: string,
   ): Promise<void> {
-  
-    // 步骤2-3：当前文件夹x → 上一层文件夹y
-    const currentDir = path.dirname(filePath);
-    const parentDir = path.dirname(currentDir);
-  
+    let parentDir: string = '';
+
+    if (computeGraphDirPath) {
+        parentDir = vscode.Uri.file(computeGraphDirPath).fsPath;
+    } else {
+        const currentDir = path.dirname(filePath);
+        parentDir = path.dirname(currentDir);
+    }
+
     // 步骤4：在y中找包含passName的子文件夹z
     const parentDirEntries = fs.readdirSync(parentDir, { withFileTypes: true });
     const passDir = parentDirEntries.find(entry => entry.isDirectory() && entry.name.includes(passName));

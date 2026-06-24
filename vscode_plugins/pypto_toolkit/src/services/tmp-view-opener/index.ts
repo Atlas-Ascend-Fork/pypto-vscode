@@ -70,7 +70,7 @@ export async function openSwimlaneGraph(params: { swimlaneGraphPath: string; out
 /**
  * 打开OpCheck页面
  */
-export async function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null }) {
+export async function openOpCheck(params: { outputPath: string; opeCheckDirPath?: string[] | null; flowVerifyPath?: string; computeGraphDirPath?: string }) {
   // 标题使用output名称+OpCheck
   const runDataService = useService('runData');
   const record = await runDataService.getOutputRecord(params.outputPath);
@@ -80,7 +80,7 @@ export async function openOpCheck(params: { outputPath: string; opeCheckDirPath?
   // 不传递opeCheckDirPath到query中，由页面动态获取，避免因opeCheckDirPath变化导致打开多个页面
   const uri = vscode.Uri.file(params.outputPath);
   vscode.commands.executeCommand('workbench.action.closeSidebar');
-  useView().editorView.open('opCheck', uri, { query: { outputPath: params.outputPath }, title: customTitle });
+  useView().editorView.open('opCheck', uri, { query: { outputPath: params.outputPath, flowVerifyPath: params.flowVerifyPath, computeGraphDirPath: params.computeGraphDirPath }, title: customTitle });
 }
 
 /**

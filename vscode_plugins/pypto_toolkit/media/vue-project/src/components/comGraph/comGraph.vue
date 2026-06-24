@@ -323,7 +323,7 @@ const onOpMagicClick = (opMagic) => {
   if (opMagic === "") {
     return;
   }
-  const clickOpmagic = opMagic.endsWith(".0") ? opMagic.slice(0, -2) : opMagic;
+  const clickOpmagic = Number(opMagic);
   let node_id = `operation-magic-${clickOpmagic}--1`;
   const operations = comGraphStore.data.jsonData.operations;
   operations.forEach(element => {
