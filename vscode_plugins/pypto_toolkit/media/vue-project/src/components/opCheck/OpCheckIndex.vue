@@ -27,7 +27,7 @@
             @filter-change="onFilterChange"
           />
 
-          <div v-if="showDetail" class="detail-panel">
+          <div v-if="showDetail">
             <PrecisionDetail
               :detail-data="selectedDetailData"
               :cmp-csv-path="selectedCmpCsvPath"
@@ -435,7 +435,9 @@ const onCloseDetail = () => {
   display: flex;
   height: 100vh;
   width: 100%;
-  overflow: hidden;
+  min-width: 1200px;
+  overflow-x: auto;
+  overflow-y: hidden;
   background-color: var(--devui-base-bg);
 }
 
@@ -486,13 +488,5 @@ const onCloseDetail = () => {
       min-width: 400px; // 确保对比列表有最小宽度
     }
   }
-}
-
-.detail-panel {
-  width: 480px;
-  min-width: 300px;
-  max-width: 50%; // 最大宽度不超过父容器的50%
-  flex-shrink: 0;
-  overflow: hidden;
 }
 </style>

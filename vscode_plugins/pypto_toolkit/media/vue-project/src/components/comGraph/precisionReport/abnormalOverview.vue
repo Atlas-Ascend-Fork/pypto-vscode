@@ -162,7 +162,6 @@ const overviewListColumns = ref([
   width: 100%;
   border: 1px solid var(--devui-secondary-button-border);
   border-radius: 12px;
-  overflow: hidden;
   box-sizing: border-box;
   margin-bottom: 12px;
 

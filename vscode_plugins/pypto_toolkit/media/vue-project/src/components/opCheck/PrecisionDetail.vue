@@ -6,7 +6,21 @@
       </div>
       <i class="icon-close header-close-btn" @click="onClose"></i>
     </div>
-    <div class="jump-btn" @click="onJumpToGraph">{{ t('opCheck.jumpToComGraph') }}</div>
+    <div class="result-bar">
+      <div class="result-left">
+        <span class="result-label">{{ t('opCheck.precisionResult') }}</span>
+        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+          <i class="icon icon-helping"></i>
+          <template #content>
+            <span>{{ t('opCheck.precisionResultTip') }}</span>
+          </template>
+        </d-tooltip>
+      </div>
+      <div class="result-right" @click="onJumpToGraph">
+        <i class="icon-sharing"></i>
+        {{ t('opCheck.jumpToComGraph') }}
+      </div>
+    </div>
 
     <PrecisionTabContent
       ref="tabContentRef"
@@ -275,11 +289,13 @@ onMounted(() => {
 .precision-detail-wrap {
   height: 100%;
   padding: 16px;
-  width: 100%;
+  width: 480px;
   background: var(--control-flow-bg);
   border-left: 1px solid var(--devui-split-line);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  box-sizing: border-box;
 
   .detail-header {
     overflow: hidden;
@@ -307,27 +323,47 @@ onMounted(() => {
     }
   }
 
-  .jump-btn {
-    display: inline-flex;
+  .result-bar {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    padding: 8px 16px;
     margin-top: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(49, 122, 247, 1);
-    background: rgba(49, 122, 247, 0.1);
-    border: 1px solid rgba(49, 122, 247, 1);
+    padding: 8px 12px;
+    background: var(--control-flow-bg);
     border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
 
-    &:hover {
-      background: rgba(49, 122, 247, 0.2);
+    .result-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .result-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--devui-primary-text);
+      }
+
+      .result-tip {
+        font-size: 14px;
+        color: var(--devui-secondary-text);
+        cursor: help;
+      }
     }
 
-    &:active {
-      background: rgba(49, 122, 247, 0.3);
+    .result-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      color: var(--devui-title-text);
+
+      &:hover {
+        color: var(--devui-brand-active);
+      }
+
+      i {
+        font-size: 16px;
+      }
     }
   }
 }

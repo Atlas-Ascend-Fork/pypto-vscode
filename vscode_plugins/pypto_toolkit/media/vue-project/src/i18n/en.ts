@@ -565,8 +565,10 @@ export default {
       parseCompareContent: 'Will parse {fileName} to extract OP-level precision comparison data and generate Diff graph',
       cancel: 'Cancel',
       startParse: 'Start Parse',
-      jumpToComGraph: 'Click to jump to computation graph',
+      jumpToComGraph: 'Jump to the computation graph of selected op',
       firstFail: '1st Fail',
+      precisionResult: 'Precision Result',
+      precisionResultTip: 'Precision result is shared comparison data',
     },
     'mixModeNotSupportPin': 'Pinning is not supported in Mix mode',
 }

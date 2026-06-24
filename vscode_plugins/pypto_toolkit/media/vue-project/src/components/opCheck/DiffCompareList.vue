@@ -56,6 +56,7 @@
               :class="[
                 'left-column',
                 selectedItemId === item.id && selectedSource === 'left' && 'active',
+                selectedItemId === item.id && selectedSource === 'right' && 'sibling-active',
                 expandedItems.includes(item.id) && 'expanded',
                 !item.aOp && 'empty',
                 item.aOp && !item.bOp && 'aop-only',
@@ -81,6 +82,7 @@
               :class="[
                 'right-column',
                 selectedItemId === item.id && selectedSource === 'right' && 'active',
+                selectedItemId === item.id && selectedSource === 'left' && 'sibling-active',
                 expandedItems.includes(item.id) && 'expanded',
                 !item.bOp && 'empty',
                 item.bOp && !item.aOp && 'bop-only',
@@ -232,19 +234,25 @@ const labelNameMap: Record<string, string> = {
   format: 'Format',
   validShape: 'ValidShape',
   dataType: 'DataType',
+  pathFuncMagicName: 'PathFuncMagic',
+  opAttrSymOffset: 'OpAttrSymOffset',
+  rawShape: 'RawShape',
 };
 
 const getLabelName = (key: string) => {
   return labelNameMap[key] || key;
 };
 
-// 获取详情值：shape/format 字段左右两侧分别取 aShape/bShape、aFormat/bFormat，其他字段从 sharedRes 获取
+// 获取详情值：shape/format/rawShape 字段左右两侧分别取 aShape/bShape、aFormat/bFormat、aRawShape/bRawShape，其他字段从 sharedRes 获取
 const getDetailValue = (item: OpCompareItem, key: string, side: 'left' | 'right') => {
   if (key === 'shape') {
     return side === 'left' ? (item.aOp as any)?.aShape || '-' : (item.bOp as any)?.bShape || '-';
   }
   if (key === 'format') {
     return side === 'left' ? (item.aOp as any)?.aFormat || '-' : (item.bOp as any)?.bFormat || '-';
+  }
+  if (key === 'rawShape') {
+    return side === 'left' ? (item.aOp as any)?.aRawShape || '-' : (item.bOp as any)?.bRawShape || '-';
   }
   return (item.sharedRes as any)?.[key] || '-';
 };
@@ -257,7 +265,7 @@ const formatOpMagic = (magic: string | undefined) => {
 };
 
 // 展开详情只显示这些字段
-const detailFields = ['symbol', 'loopInfo', 'shape', 'format', 'validShape', 'dataType'];
+const detailFields = ['symbol', 'loopInfo', 'shape', 'format', 'validShape', 'dataType', 'pathFuncMagicName', 'opAttrSymOffset', 'rawShape'];
 
 const onSearch = (value: string) => {
   searchKeyword.value = value;
@@ -578,6 +586,11 @@ defineExpose({
     .left-column.active,
     .right-column.active {
       border: 2px solid var(--devui-brand);
+    }
+
+    .left-column.sibling-active,
+    .right-column.sibling-active {
+      border: 2px dashed var(--devui-brand);
     }
 
     .left-column {

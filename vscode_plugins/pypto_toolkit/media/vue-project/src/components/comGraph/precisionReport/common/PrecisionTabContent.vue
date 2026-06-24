@@ -115,7 +115,6 @@ defineExpose({
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   min-height: 0;
 
   .tabs-wrapper {
@@ -184,7 +183,6 @@ defineExpose({
   .tab-content-wrapper {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
   }

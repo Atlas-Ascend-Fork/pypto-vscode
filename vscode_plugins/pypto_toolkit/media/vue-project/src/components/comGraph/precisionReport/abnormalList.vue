@@ -119,7 +119,6 @@ watch(server.AccurancyList, (val: Record<string, any>) => {
 
 // 获取 cmpErrorList 数据
 watch(server.cmpErrorList, (val: Record<string, any>) => {
-  console.log('valllllllll', val);
   const diffList = val?.diffList || [];
   const failRes = val?.failRes;
   const totalCount = val?.totalRes;
@@ -131,7 +130,7 @@ watch(server.cmpErrorList, (val: Record<string, any>) => {
     cardData.value.FAIL = failRes;
     cardData.value.PASS = totalCount - failRes - excepRes;
     // 当 fileType 为 op 类型时，使用 listSum 作为 total
-    pageConfig.value.total = currentFileType.value.startsWith('op') ? (listSum || failRes) : failRes;
+    pageConfig.value.total = currentFileType.value.startsWith('op') ? (listSum || 0) : failRes;
   }
 
   // 处理列表数据

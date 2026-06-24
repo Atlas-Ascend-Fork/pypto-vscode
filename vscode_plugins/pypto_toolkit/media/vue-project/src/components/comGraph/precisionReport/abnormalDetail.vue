@@ -174,6 +174,7 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 
   .detail-magic-id {
     width: 100%;

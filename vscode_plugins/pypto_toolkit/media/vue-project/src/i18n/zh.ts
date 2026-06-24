@@ -565,8 +565,10 @@ export default {
       parseCompareContent: '将对 {fileName} 进行解析，提取OP级精度对比数据并生成Diff图',
       cancel: '取消',
       startParse: '开始解析',
-      jumpToComGraph: '点击跳转计算图',
+      jumpToComGraph: '跳转至选中的op对应的计算图',
       firstFail: '首错',
+      precisionResult: '精度结果',
+      precisionResultTip: '精度结果为公共对比数据',
     },
     'mixModeNotSupportPin': 'Mix模式下暂不支持置顶',
 }
