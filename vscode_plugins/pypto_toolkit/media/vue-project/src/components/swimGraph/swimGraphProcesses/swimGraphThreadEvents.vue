@@ -2599,10 +2599,9 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas, viewpor
     }
     const threadY = getThreadStartY(process, processKey, thread.tid, lane2line, layout);
     const threadHeight = getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
-    maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
-    if (threadY + threadHeight <= top || threadY >= bottom)
-    {
-        continue;
+    const inViewport = !(threadY + threadHeight <= top || threadY >= bottom);
+    if (inViewport) {
+      maxThreadY = Math.max(maxThreadY, threadY + threadHeight);
     }
 
     if (thread._sliceMipmap && thread._visibleDrawDatas) {
@@ -2620,7 +2619,9 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas, viewpor
           drawData.fontColor = event.drawData.fontColor;
           drawData.strokeColor = event.drawData.strokeColor;
         }
-        drawDatas.push(drawData);
+        if (inViewport) {
+          drawDatas.push(drawData);
+        }
       }
       continue;
     }
@@ -2640,7 +2641,9 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas, viewpor
       if (event.drawData) {
         updateEventDrawData(event, isDimmed, processKey);
         swimDataManager.updateEvent(event.id, { drawData: event.drawData });
-        drawDatas.push(event.drawData);
+        if (inViewport) {
+          drawDatas.push(event.drawData);
+        }
       }
     }
   }

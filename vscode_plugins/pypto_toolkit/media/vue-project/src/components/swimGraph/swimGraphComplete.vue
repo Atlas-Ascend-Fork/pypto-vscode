@@ -1656,6 +1656,10 @@ const handleNormalEventClick = (event, processKey) => {
 
 const clearSelection = (processKey) => {
   lastSelected.value = null;
+  if (isMaxSchedule.value) {
+    isMaxSchedule.value = false;
+    highlightedPaths.clear();
+  }
   childContextMap.threadEvent.changeNodeColor(processKey);
   clearDependencyLines(processKey);
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
@@ -1683,6 +1687,9 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   updatePanelState(event, processKey, showkernelDetail);
   const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
   if (!forceExec && noChange) {
+    if (isMaxSchedule.value) {
+      resetMaxScheduleState();
+    }
     return;
   }
   ++selectEventToken;
@@ -1693,6 +1700,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   canvasclickedEvent.value = event;
   
   if (event) {
+    ++resetScheduleToken;
     lastSelected.value = event.id;
     const process = processes.get(processKey);
     
@@ -1717,6 +1725,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
       pinnedthreadsComponent.value.highlightPinnedEvent(event);
     }
   } else {
+    clearTimeout(resizeFullRenderTimer);
     clearSelection(processKey);
   }
   
@@ -1800,12 +1809,25 @@ const shadingKernal = () => {
   processExpanded.set(processKey, false);
   toggleProcess(processKey);
 };
+let resetScheduleToken = 0;
+
 const resetMaxScheduleState = () => {
   isMaxSchedule.value = false;
   selectedEvent.value = null;
   highlightedPaths.clear();
   mixRelatedPaths.clear();
-  transform();
+  const token = ++resetScheduleToken;
+  nextTick(() => {
+    if (token !== resetScheduleToken) {
+      return;
+    }
+    for (const [key] of processes.entries()) {
+      if (processExpanded.get(key)) {
+        childContextMap.threadEvent.changeNodeColor(key, false);
+        childContextMap.threadEvent.clearDependencyLines(key);
+      }
+    }
+  });
 };
 
 const autoExpandkernelProcess = async () => {
@@ -1850,7 +1872,7 @@ const showMaxScheduleEvent = async (startEvent, endEvent) => {
   highlightedPaths.clear();
   highlightedPaths.add(startEventId);
   highlightedPaths.add(endEventId);
-  lastSelected.value = selectedEvent.value;
+  lastSelected.value = startEvent.id;
   selectedEvent.value = startEvent;
   const processKey = String(startEvent.pid);
   const process = processes.get(processKey);
@@ -2470,6 +2492,11 @@ const doResizeFastPhase = () => {
   }
 
   transform();
+  for (const [key] of processes.entries()) {
+    if (processExpanded.get(key)) {
+      childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+    }
+  }
 };
 
 const doResizeFullPhase = () => {
@@ -2480,6 +2507,11 @@ const doResizeFullPhase = () => {
   }
   perfLogger.timeEnd('time of computeDrawData');
   transform();
+  for (const [key] of processes.entries()) {
+    if (processExpanded.get(key)) {
+      childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+    }
+  }
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     pinnedthreadsComponent.value.pinnedInitCanvases();
     pinnedthreadsComponent.value.pinnedRender();
@@ -2573,9 +2605,7 @@ const transformVerticalScroll = () => {
     }
   }
   clearTimeout(depLinesTimer);
-  depLinesTimer = setTimeout(() => {
-    renderDependencyLines();
-  }, 50);
+  renderDependencyLines();
   timelineComponent.value.flagRender();
   perfLogger.timeEnd('time of transformVerticalScroll');
 };
