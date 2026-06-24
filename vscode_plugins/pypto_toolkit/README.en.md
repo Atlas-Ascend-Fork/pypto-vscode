@@ -159,6 +159,10 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
+  - **PMU Trace Swimlane Diagram**
+
+    ![iamge](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/msprof.gif)
+
 - **Node Search**
 
   Inputting the node name in the search box allows for a fuzzy search of the node
@@ -205,7 +209,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
   Enable Mix mode in the Swimlane Rendering Configuration panel to view the Mix subgraph.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mixSwim.gif)
 
 - **Shortcut Key List**
 

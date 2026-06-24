@@ -160,6 +160,10 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/pypto3Detail.gif)
 
+  - **PMU Trace泳道图**
+
+    ![iamge](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/msprof.gif)
+
 - **节点搜索**
 
   在搜索框输入节点名称可以模糊搜索节点
@@ -206,7 +210,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   在渲染配置界面中启用Mix模式，即可查看Mix子图
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mix.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/mixSwim.gif)
 
 - **快捷键列表**
 
