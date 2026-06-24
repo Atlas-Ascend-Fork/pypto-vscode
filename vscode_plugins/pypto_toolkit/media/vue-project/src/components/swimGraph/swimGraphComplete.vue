@@ -2533,11 +2533,17 @@ const doResizeFastPhase = () => {
 
 const doResizeFullPhase = () => {
   freezeVisibleRange.value = false;
+  const savedSelected = selectedEvent.value;
+  const savedSearched = searchedEvent.value;
+  selectedEvent.value = null;
+  searchedEvent.value = null;
   perfLogger.time('time of computeDrawData');
   for (const [processKey, process] of processes.entries()) {
     childContextMap.threadEvent.computeProcessDrawData(process, processKey);
   }
   perfLogger.timeEnd('time of computeDrawData');
+  selectedEvent.value = savedSelected;
+  searchedEvent.value = savedSearched;
   transform();
   for (const [key] of processes.entries()) {
     if (processExpanded.get(key)) {
