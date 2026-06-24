@@ -1483,10 +1483,39 @@ const drawKernalEvents = () => {
   }
   const { threadName } = kernelThreadData.value;
   const threadKey = kernelThreadData.value.tid || threadName;
+  
+  let thread = null;
+  for (const [key, t] of process.threads.entries()) {
+    if (t.tid === threadKey || t.threadName === threadKey) {
+      thread = t;
+      break;
+    }
+  }
+  
   const threadY = getThreadStartY(process, processKey, threadKey, lane2line, layout);
   const threadHeight = getThreadHeight(processKey, threadKey, lane2line, layout, false);
   const baseY = threadY + threadHeight / 2;
   const eventY = baseY - layout.eventHeight / 2;
+  
+  const isPinned = thread && thread.isPinned;
+  let pinnedEventY;
+  
+  if (isPinned) {
+    let pinnedThreadY = 0;
+    for (const pinnedThread of pinnedThreadsList.value) {
+      const ptTid = pinnedThread.thread?.tid;
+      const ptThreadName = pinnedThread.thread?.threadName;
+      if (ptTid === threadKey || ptThreadName === threadKey) { break };
+      const t = pinnedThread.thread;
+      const tk = t.isCounter ? t.threadName : t.tid;
+      const lc = lane2line.get(`${pinnedThread.processKey}@${tk}`) || 1;
+      pinnedThreadY += layout.threadHeight * lc;
+    }
+    const pinnedBaseY = pinnedThreadY + threadHeight / 2;
+    pinnedEventY = pinnedBaseY - layout.eventHeight / 2;
+  } else {
+    pinnedEventY = eventY;
+  }
   let eventDatas = [];
   ctx.font = getFontStyle(eventTextSize);
   kernalEvents.forEach((event, index, array) => {
@@ -1513,7 +1542,7 @@ const drawKernalEvents = () => {
       startTime: event.startTime,
       endTime: event.endTime,
       duration,
-      pinnedEventY: eventY,
+      pinnedEventY,
     });
     childContextMap.threadEvent.fillTextInfo(event, ctx, event.drawData, true, false);
     eventDatas.push(event.drawData);

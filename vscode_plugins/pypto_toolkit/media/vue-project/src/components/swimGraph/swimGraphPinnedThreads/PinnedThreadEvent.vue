@@ -225,9 +225,7 @@ const transformPinned = () => {
     ctx.save();
     ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
   }
-  if (!selectedEvent.value && !searchedEvent.value) {
-    return;
-  }
+  
   clearCanvases();
   pinnedThreadsList.value.forEach(item => {
     const isMixMode = swimGraphState.isMixMode?.value;
@@ -246,8 +244,9 @@ const transformPinned = () => {
     }
   });
   childContextMap.threadEvent.renderProcessText(pinnedThreadsList, eventsCtx, null, true);
-  
-  
+  if (!selectedEvent.value && !searchedEvent.value) {
+    return;
+  }
   changePinnedColor(true);
   highlightPinnedEvent(selectedEvent.value || searchedEvent.value);
   highlightPinnedEvent(canvasclickedEvent.value, true, true, true);
