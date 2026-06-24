@@ -738,6 +738,8 @@ const onKeyUp = (e) => {
     }
     scaleStep = 0.1;
     moveStep = 30;
+    freezeVisibleRange.value = false;
+    transform();
   }
 };
 
