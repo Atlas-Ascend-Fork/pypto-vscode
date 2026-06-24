@@ -14,7 +14,7 @@
             <gradientDashedLine :left-color="buildTaskColor" :right-color="stopColor" />
             <div class="sched-content">
               <div class="title">Schedule NO.</div>
-              <div class="sched"> {{ getThreadDisplayName(selectedEvent) }} </div>
+              <div class="sched"> {{ getThreadDisplayName(canvasclickedEvent) }} </div>
             </div>
             <gradientDashedLine :left-color="stopColor" :right-color="currentTaskColor" />
             <div class="current-content">
