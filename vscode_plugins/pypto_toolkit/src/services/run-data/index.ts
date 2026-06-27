@@ -6,7 +6,7 @@ import type { OutputRecord, OutputDetail } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
 import { getOutputDirectory } from './utils/scan-output';
-import { readRunData, readRunDataList, RunDataDir } from './utils/scan-run-data';
+import { readRunData, readRunDataList, RunDataDir, findVerifyDir, COMPUTE_GRAPH_PATH_LEVER, VERIFY_GRAPH_PATH_LEVER } from './utils/scan-run-data';
 import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
 import { deleteFile } from '../../utils/file-system';
 import { t } from 'i18next';
@@ -109,7 +109,12 @@ export class RunDataService extends BasicService {
     if (!record.hasOpeCheck || !record.flowVerifyPath) {
       return record;
     }
-    const flowVerifyUri = (record.flowVerifyPath ?? '').split('/').slice(0, -1).join('/');
+    let flowVerifyUri;
+    if (record.flowVerifyPath?.includes('computation_graph')) {
+      flowVerifyUri = findVerifyDir(record.flowVerifyPath, COMPUTE_GRAPH_PATH_LEVER);
+    } else {
+      flowVerifyUri = findVerifyDir(record.flowVerifyPath, VERIFY_GRAPH_PATH_LEVER);
+    }
     const latestList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
     if (latestList.length > 0) {
       return { ...record, opeCheckDirPath: latestList };

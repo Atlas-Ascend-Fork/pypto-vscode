@@ -14,6 +14,8 @@ export interface RunDataDir {
 }
 
 const SCAN_RUN_DATA_LIMIT = 5000;
+export const COMPUTE_GRAPH_PATH_LEVER = 2;
+export const VERIFY_GRAPH_PATH_LEVER = 1;
 
 /**
  * 读取所有rundata目录
@@ -63,12 +65,19 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   const controlFlowFilePath = await getPathIfExists(runData.program_file);
   const swimlaneGraphFilePath = await getPathIfExists(runData.swim_graph_path);
   const computeGraphDirPath = await getPathIfExists(runData.compute_graph_path);
-  const flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : (runData.verify_path ? runData.verify_path : null);
+  let flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : (runData.verify_path ? runData.verify_path : null);
+
+  let verifyPath = VERIFY_GRAPH_PATH_LEVER;
+  if (!flowVerifyPath) {
+    flowVerifyPath = computeGraphDirPath;
+    verifyPath = COMPUTE_GRAPH_PATH_LEVER;
+  }
+
   if (![sourceFilePath, controlFlowFilePath, swimlaneGraphFilePath, computeGraphDirPath].some(Boolean)) {
     return undefined;
   }
 
-  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(flowVerifyPath ?? undefined);
+  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(flowVerifyPath ?? undefined, verifyPath);
 
   return {
     title,
@@ -141,15 +150,24 @@ async function getPathIfExists(checkingPath: string | undefined): Promise<string
 const VERIFY_DIR_REG_EXP = /^verify_/;
 const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
 
+export function findVerifyDir(path, level) {
+  if (!path || typeof path !== 'string') return '';
+  const cleanPath = path.replace(/\/+$/, '');
+  const parts = cleanPath.split('/').filter(Boolean);
+  if (parts.length <= level) return '';
+  const result = parts.slice(0, -level).join('/');
+  return cleanPath.startsWith('/') ? '/' + result : result;
+}
+
 interface OpeCheckResult {
   hasOpeCheck: boolean;
   opeCheckDirPath: AccuracyToolCompList[] | null;
 }
 
-async function findOpeCheck(flowVerifyPath?: string): Promise<OpeCheckResult> {
+async function findOpeCheck(flowVerifyPath?: string, level?: any): Promise<OpeCheckResult> {
   const empty: OpeCheckResult = { hasOpeCheck: false, opeCheckDirPath: null };
 
-  const flowVerifyUri = (flowVerifyPath ?? '').split('/').slice(0, -1).join('/');
+  const flowVerifyUri = findVerifyDir(flowVerifyPath, level);
   if (!flowVerifyUri) {
     return empty;
   }
