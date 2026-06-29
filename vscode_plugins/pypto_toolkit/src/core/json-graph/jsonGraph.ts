@@ -1306,6 +1306,7 @@ export class AscppDagBuilder {
             isMiddle: isMiddle,
             isAccuracyError: isAccuracyError,
             isAccuracyException: isAccuracyException,
+            rawMagic: String(rawTensor?.rawmagic),
             layout: 'vbox',
             layoutOptions: {
                 hAlign: 'left',

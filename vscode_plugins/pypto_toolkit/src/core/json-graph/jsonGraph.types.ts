@@ -73,6 +73,7 @@ export interface AstgrTensorNode extends AstgrNode {
     isMiddle?: boolean;
     isAccuracyError?: boolean;
     isAccuracyException?: boolean;
+    rawMagic?: string;
 }
 
 /**

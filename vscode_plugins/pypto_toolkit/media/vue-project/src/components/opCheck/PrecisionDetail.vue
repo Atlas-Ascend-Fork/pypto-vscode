@@ -117,6 +117,7 @@ export interface PrecisionDetailData {
     pathFuncMagicName?: string;
     dataType?: string;
     validShape?: string;
+    loopInfo?: string;
     abRtolAtol?: string;
     abTotalZeroInfnanCnt?: string;
     abFailWarnTol?: string;
@@ -217,6 +218,7 @@ watch(
       summaryInfo.value = {
         dataType: sharedRes.dataType || newDetailData.dtype || '',
         validShape: sharedRes.validShape || newDetailData.shape || '',
+        loopInfo: sharedRes.loopInfo || '',
         rtolAtol: sharedRes.abRtolAtol || '',
         cntTotalZeroInfnanCnt: sharedRes.abTotalZeroInfnanCnt || '',
         cntFailWarnTol: sharedRes.abFailWarnTol || '',

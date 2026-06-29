@@ -66,14 +66,15 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     funcHash: string;
     passName: string;
     funcMagicName: string;
+    loopInfo?: string;
     fileType?: string;
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
   }) => {
-    const { filePath, funcHash, passName, funcMagicName, fileType, computeGraphDirPath, flowVerifyPath } = data;
+    const { filePath, funcHash, passName, funcMagicName, loopInfo, fileType, computeGraphDirPath, flowVerifyPath } = data;
     
     try {
-      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, fileType, filePath, computeGraphDirPath, flowVerifyPath);
+      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, loopInfo, fileType, filePath, computeGraphDirPath, flowVerifyPath);
     } catch (error) {
       console.error('[OpCheckViewServer] openCmpDiffComGraph error:', error);
     }

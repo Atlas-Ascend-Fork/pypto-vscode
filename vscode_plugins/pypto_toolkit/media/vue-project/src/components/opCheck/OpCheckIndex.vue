@@ -398,6 +398,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
   const isLeft = detailData.source === 'left';
   const funcHash = isLeft ? detailData.aOp?.aFuncHash || '' : detailData.bOp?.bFuncHash || '';
   const passName = isLeft ? detailData.aOp?.aPhaseName || '' : detailData.bOp?.bPhaseName || '';
+  const loopInfo = detailData.sharedRes?.loopInfo || '';
   const funcMagicName = detailData.sharedRes?.pathFuncMagicName || '';
   const fileType = isLeft ? 'op_A' : 'op_B';
 
@@ -417,6 +418,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
       funcHash,
       passName,
       funcMagicName,
+      loopInfo,
       fileType,
       computeGraphDirPath: computeGraphDirPath.value,
       flowVerifyPath: flowVerifyPath.value

@@ -406,6 +406,11 @@ path.accuracy-exception-border {
   stroke-width: 2px !important;
 }
 
+rect.accuracy-error-border {
+  stroke: rgba(254, 180, 95, 0.3) !important;
+  stroke-width: 8px !important;
+}
+
 /* Dim only non-traced elements when there is an active trace */
 .sprotty-graph.has-trace .op-not-traced,
 .sprotty-graph.has-trace .io-not-traced,

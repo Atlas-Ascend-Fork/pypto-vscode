@@ -684,6 +684,21 @@ export class AstgrOpView extends RectangularNodeView {
     const rectWidth = Math.max(node.size.width, 0);
     const rectHeight = Math.min(node.size.height, 150);
 
+    const opTagError = (comGraphStore.data.failOpMagicList ?? []).includes(Number(node.magic)) && (node.role === 'operation');
+    const accuracyErrorBorderOffset = 2;
+    const accuracyErrorBorderNode = opTagError ? (
+      <rect
+        width={rectWidth + accuracyErrorBorderOffset}
+        height={rectHeight + accuracyErrorBorderOffset}
+        rx="10px"
+        stroke-width="4"
+        fill='transparent'
+        stroke="rgba(254, 180, 95, 0.5)"
+        style={{ transform: `translate(-${accuracyErrorBorderOffset / 2}px, -${accuracyErrorBorderOffset / 2}px)` }}
+        class-accuracy-error-border={true}
+      ></rect>
+    ) : null;
+
     // 内存可视化高亮节点
     const runningNodeRectOffset = 16;
     const isRunningNode = node.id === comGraphStore.data.runningNodeId;
@@ -739,6 +754,7 @@ export class AstgrOpView extends RectangularNodeView {
         style={isCallOperation ? { cursor: 'pointer' } : undefined}
         on-dblclick={isCallOperation ? handleDoubleClick : undefined}
       >
+        {accuracyErrorBorderNode}
         {rectNode}
         {rectBgNode}
         <rect
@@ -1260,8 +1276,11 @@ export class AstgrTensorView extends RectangularNodeView {
     const contentStartX = tagStartX + tagPadding * 2;
     const exceptionTagY = 0;
     const tagGap = 4;
+    const wrongRawMagicList = comGraphStore.data.wrongRawMagicList;
+    const briefTagError = wrongRawMagicList.errorRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
+    const briefTagException = wrongRawMagicList.exceptionRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
     const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
-    const accuracyExceptionTag = (node.role === 'output' && !node.isMiddle && node.isAccuracyException && !isMiniType) ? (
+    const accuracyExceptionTag = (briefTagException && !node.isMiddle && !isMiniType) ? (
       <g class-accuracy-error-tag={true}>
         <rect
           x={tagStartX}
@@ -1296,7 +1315,7 @@ export class AstgrTensorView extends RectangularNodeView {
       </g>
     ) : null;
 
-    const accuracyErrorTag = (node.role === 'output' && !node.isMiddle && node.isAccuracyError && !isMiniType) ? (
+    const accuracyErrorTag = (briefTagError && !node.isMiddle && !isMiniType) ? (
       <g class-accuracy-error-tag={true}>
         <rect
           x={tagStartX}

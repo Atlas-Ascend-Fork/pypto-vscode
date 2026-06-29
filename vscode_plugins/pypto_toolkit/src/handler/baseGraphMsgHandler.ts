@@ -147,7 +147,7 @@ export abstract class BaseGraphMsgHandler {
       data = this.createJsonGraphData(message.data, server, errNodeList, message.diffType);
     }
     const wrongRawMagicList = server.comGraphData.wrongRawMagicList ? server.comGraphData.wrongRawMagicList : {};
-    const failOpMagicList = server.comGraphData.failOpMagicList ? server.comGraphData.failOpMagicList : {};
+    const failOpMagicList = server.comGraphData.failOpMagicList ? server.comGraphData.failOpMagicList : [];
     this.postJsonGraphData(server, message, data, isCached, wrongRawMagicList, failOpMagicList);
   }
 
@@ -774,7 +774,7 @@ export abstract class BaseGraphMsgHandler {
       return { json: undefined };
     }
 
-    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
+    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, server.query?.loopInfo, server.query?.fileType, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
       const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
