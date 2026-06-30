@@ -95,7 +95,10 @@ const {
   isFromPerformanceClick,
   freezeVisibleRange,
   focusedWrapId,
-  pathLockedWrapId
+  pathLockedWrapId,
+  pathLockedHighlightStyle,
+  pathLockedHighlightEvent,
+  pathLockedHighlightProcessKey
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -219,7 +222,10 @@ provide('swimGraphState', {
   isFromPerformanceClick,
   freezeVisibleRange,
   focusedWrapId,
-  pathLockedWrapId
+  pathLockedWrapId,
+  pathLockedHighlightStyle,
+  pathLockedHighlightEvent,
+  pathLockedHighlightProcessKey
 });
 
 const {

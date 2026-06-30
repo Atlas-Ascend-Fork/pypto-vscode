@@ -251,3 +251,20 @@
     overflow-wrap: normal;
     hyphens: none;
 }
+.path-locked-node-highlight {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  border: 2px solid;
+  border-radius: 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.path-locked-node-highlight .highlight-text {
+  position: absolute;
+  font-size: 12px;
+  white-space: nowrap;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

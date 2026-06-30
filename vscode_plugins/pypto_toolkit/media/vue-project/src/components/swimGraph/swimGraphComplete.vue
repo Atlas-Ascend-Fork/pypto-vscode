@@ -91,6 +91,19 @@
           />
           <!-- 进程和线程区域 -->
           <swim-graph-processes ref="graphProcessesComponent" />
+          <!-- 通路锁定场景下高亮节点dom -->
+          <div v-if="pathLockedHighlightStyle.visible" class="path-locked-node-highlight" :style="{
+              left: pathLockedHighlightStyle.left + 'px',
+              top: pathLockedHighlightStyle.top + 'px',
+              width: pathLockedHighlightStyle.width + 'px',
+              height: pathLockedHighlightStyle.height + 'px',
+              borderColor: pathLockedHighlightStyle.borderColor,
+              backgroundColor: pathLockedHighlightStyle.backgroundColor,
+              color: pathLockedHighlightStyle.fontColor,
+            }">
+              <span v-if="pathLockedHighlightStyle.text" class="highlight-text"
+                :style="{ left: pathLockedHighlightStyle.textLeft + 'px' }">{{ pathLockedHighlightStyle.text }}</span>
+          </div>
         </div>
         <swim-graph-measure-detail v-if="!isAicpu" ref="measureDetailComponent" />
         <!-- 详情区域 -->
@@ -381,6 +394,20 @@ const timelineState = reactive({
   startTimeDecimal: 0,
   endTimeDecimal: 0,
 });
+const pathLockedHighlightStyle = reactive({
+  visible: false,
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+  borderColor: '',
+  backgroundColor: '',
+  fontColor: '',
+  text: '',
+  textLeft: 0,
+});
+let pathLockedHighlightEvent = ref(null);
+let pathLockedHighlightProcessKey = ref('');
 const formattedTime = computed(() => {
   let date = new Date();
   let year = date.getFullYear();
@@ -3403,7 +3430,10 @@ provide('swimGraphState', {
   hashOrderRending,
   freezeVisibleRange,
   focusedWrapId,
-  pathLockedWrapId
+  pathLockedWrapId,
+  pathLockedHighlightStyle,
+  pathLockedHighlightEvent,
+  pathLockedHighlightProcessKey
 });
 
 // 提供方法给子组件

@@ -51,21 +51,6 @@
     <canvas class="three-column-events-canvas" :data-three-column-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="mix-hover-events-canvas" :data-mix-hover-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="hover-wrap-container-canvas" :data-hover-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
-    <div 
-      v-if="pathLockedHighlightStyle.visible"
-      class="path-locked-node-highlight"
-      :style="{
-        left: pathLockedHighlightStyle.left + 'px',
-        top: pathLockedHighlightStyle.top + 'px',
-        width: pathLockedHighlightStyle.width + 'px',
-        height: pathLockedHighlightStyle.height + 'px',
-        borderColor: pathLockedHighlightStyle.borderColor,
-        backgroundColor: pathLockedHighlightStyle.backgroundColor,
-        color: pathLockedHighlightStyle.fontColor,
-      }"
-    >
-      <span v-if="pathLockedHighlightStyle.text" class="highlight-text" :style="{ left: pathLockedHighlightStyle.textLeft + 'px' }">{{ pathLockedHighlightStyle.text }}</span>
-    </div>
     <swim-graph-thread-lock-menu/>
   </div>
 </template>
@@ -110,20 +95,6 @@ let isHoverLockStatus = ref(false);
 let pinnedStatus = ref(false);
 let preFocusWrapState = null;
 let preHoverMixWrapId = null;
-const pathLockedHighlightStyle = reactive({
-  visible: false,
-  left: 0,
-  top: 0,
-  width: 0,
-  height: 0,
-  borderColor: '',
-  backgroundColor: '',
-  fontColor: '',
-  text: '',
-  textLeft: 0,
-});
-let pathLockedHighlightEvent = null;
-let pathLockedHighlightProcessKey = '';
 // 注入父组件提供的状态和方法
 const swimGraphState = inject('swimGraphState');
 const {
@@ -177,7 +148,10 @@ const {
   kernelSection,
   freezeVisibleRange,
   focusedWrapId,
-  pathLockedWrapId
+  pathLockedWrapId,
+  pathLockedHighlightStyle,
+  pathLockedHighlightEvent,
+  pathLockedHighlightProcessKey
 } = swimGraphState;
 
 const {
@@ -421,6 +395,10 @@ const handlePathLockClick = (clickedEvent, e) => {
     showPathLockedHighlight(clickedEvent, props.processKey);
     highlightPinnedEvent(clickedEvent, true);
   } else {
+    aicpuControlDetailsExpanded.value = false;
+    aicpuScheduleDetailsExpanded.value = false;
+    aicpuCoreDetailsExpanded.value = false;
+    hidePathLockedHighlight();
     if (globalMeasureCanvas.value) {
       globalMeasureCanvas.value.clearMeasure();
     }
@@ -3488,34 +3466,59 @@ const hideTooltip = () => { tooltipStyle.display = 'none' };
 const hideLineTooltip = () => { lineTooltipStyle.display = 'none' };
 
 const showPathLockedHighlight = (event, processKey) => {
-  if (!event?.renderInfo) {
+  if (!event?.renderInfo || !swimlaneContainer.value) {
     hidePathLockedHighlight();
     return;
   }
-  pathLockedHighlightEvent = event;
-  pathLockedHighlightProcessKey = processKey;
+  
+  pathLockedHighlightEvent.value = event;
+  pathLockedHighlightProcessKey.value = processKey;
+  
+  const processCanvas = document.querySelector(`[data-process-key="${processKey}"]`);
+  const process = processes.get(processKey);
+  if (!processCanvas || !process) {
+    hidePathLockedHighlight();
+    return;
+  }
+  
+  let scrollContainer;
+  if (isE2ESwim.value) {
+    scrollContainer = process.type === 'aicpu' ? aicpuSection.value : kernelSection.value;
+  } else {
+    scrollContainer = swimlaneContainer.value;
+  }
+  
+  if (!scrollContainer) {
+    hidePathLockedHighlight();
+    return;
+  }
+  
+  const containerRect = swimlaneContainer.value.getBoundingClientRect();
+  const scrollContainerRect = scrollContainer.getBoundingClientRect();
+  const processRect = processCanvas.getBoundingClientRect();
+  
+  const processOffsetY = processRect.top - containerRect.top;
+  const scrollContainerOffsetY = scrollContainerRect.top - containerRect.top;
+  const scrollContainerHeight = scrollContainerRect.height;
+  const canvasCssHeight = parseFloat(processCanvas.style.height) || processRect.height;
+  
   const { x, width, y, height } = event.renderInfo;
   const cssX = viewState.offsetX + (x * viewState.scale);
   const cssWidth = width * viewState.scale;
-  const cssY = y;
+  const cssY = processOffsetY + y;
   const cssHeight = height;
-  if (cssX + cssWidth < 0 || cssX > viewState.canvasCssWidth) {
+  
+  if (!isHighlightVisible({ cssY, cssHeight, y, height, canvasCssHeight, scrollContainerOffsetY, scrollContainerHeight, cssX, cssWidth, canvasCssWidth: viewState.canvasCssWidth })) {
     pathLockedHighlightStyle.visible = false;
     return;
   }
-  let clippedX = cssX;
-  let clippedWidth = cssWidth;
-  if (cssX < 0) {
-    clippedX = 0;
-    clippedWidth = cssWidth + cssX;
-  }
-  if (cssX + cssWidth > viewState.canvasCssWidth) {
-    clippedWidth = viewState.canvasCssWidth - cssX;
-  }
+  
+  const { clippedX, clippedWidth } = getClippedX(cssX, cssWidth, viewState.canvasCssWidth);
   const { fillColor, fontColor, strokeColor } = getEventColor(event, eventRenderer.deps, processKey, true, true);
-  const text = (cssWidth >= 15 && event.drawData?.text) ? event.drawData.text : '';
+  const text = cssWidth >= 15 && event.drawData?.text ? event.drawData.text : '';
+  
   pathLockedHighlightStyle.visible = true;
-  pathLockedHighlightStyle.left = clippedX;
+  pathLockedHighlightStyle.left = clippedX + layout.processLabelWidth;
   pathLockedHighlightStyle.top = cssY;
   pathLockedHighlightStyle.width = clippedWidth;
   pathLockedHighlightStyle.height = cssHeight;
@@ -3526,15 +3529,45 @@ const showPathLockedHighlight = (event, processKey) => {
   pathLockedHighlightStyle.textLeft = clippedWidth >= viewState.canvasCssWidth ? viewState.canvasCssWidth / 2 : clippedWidth / 2;
 };
 
+const isHighlightVisible = (params) => {
+  const { cssY, cssHeight, y, height, canvasCssHeight, scrollContainerOffsetY, scrollContainerHeight, cssX, cssWidth, canvasCssWidth } = params;
+  if (y + height > canvasCssHeight) {
+    return false;
+  }
+  if (cssY < scrollContainerOffsetY + layout.processHeaderHeight) {
+    return false;
+  }
+  if (cssY + cssHeight > scrollContainerOffsetY + scrollContainerHeight) {
+    return false;
+  }
+  if (cssX + cssWidth < 0 || cssX > canvasCssWidth) {
+    return false;
+  }
+  return true;
+};
+
+const getClippedX = (cssX, cssWidth, canvasCssWidth) => {
+  let clippedX = cssX;
+  let clippedWidth = cssWidth;
+  if (cssX < 0) {
+    clippedX = 0;
+    clippedWidth = cssWidth + cssX;
+  }
+  if (cssX + cssWidth > canvasCssWidth) {
+    clippedWidth = canvasCssWidth - cssX;
+  }
+  return { clippedX, clippedWidth };
+};
+
 const hidePathLockedHighlight = () => {
   pathLockedHighlightStyle.visible = false;
-  pathLockedHighlightEvent = null;
-  pathLockedHighlightProcessKey = '';
+  pathLockedHighlightEvent.value = null;
+  pathLockedHighlightProcessKey.value = '';
 };
 
 const updatePathLockedHighlightOnTransform = () => {
-  if (pathLockedHighlightEvent && pathLockedHighlightProcessKey && isPathLockStatus.value) {
-    showPathLockedHighlight(pathLockedHighlightEvent, pathLockedHighlightProcessKey);
+  if (pathLockedHighlightEvent.value && pathLockedHighlightProcessKey.value && isPathLockStatus.value) {
+    showPathLockedHighlight(pathLockedHighlightEvent.value, pathLockedHighlightProcessKey.value);
   }
 };
 
