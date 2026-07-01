@@ -14,7 +14,12 @@ export function findComputationDir(dirPath: string): string {
     }
     const prefered = computationDirs.find(entry => entry.name === 'computation_graph');
     const baseDir =  path.join(vscode.Uri.file(dirPath).fsPath, prefered ? prefered.name : computationDirs[0].name);
-    const comgraphDir =  path.join(baseDir, 'PVC2_OOO');
+    const baseDirEntries = fs.readdirSync(baseDir, { withFileTypes: true });
+    const pvc2Dir = baseDirEntries.find(entry => entry.isDirectory() && entry.name.includes('PVC2_OOO'));
+    if (!pvc2Dir) {
+        return '';
+    }
+    const comgraphDir = path.join(baseDir, pvc2Dir.name);
     return comgraphDir;
 }
 
@@ -259,7 +264,7 @@ export async function getComGraphRawMagic(filePath: string, phaseName: string, f
         const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
         const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
         baseDirPath = parentUri.fsPath;
-        excludeDirName = path.basename(flowVerifyUri.fsPath); // 排除 flowVerifyPath 本身的文件夹名
+        // excludeDirName = path.basename(flowVerifyUri.fsPath);
     } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
         const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
         baseDirPath =  vscode.Uri.file(basePath).fsPath;
@@ -347,7 +352,7 @@ export async function getComGraphDataSum(
         const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
         const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
         baseDirPath = parentUri.fsPath;
-        excludeDirName = path.basename(flowVerifyUri.fsPath);
+        // excludeDirName = path.basename(flowVerifyUri.fsPath);
     } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
         const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
         baseDirPath =  vscode.Uri.file(basePath).fsPath;
@@ -396,7 +401,7 @@ export async function searchKeyword(filePath: string, phaseName: string, funcMag
         const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
         const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
         baseDirPath = parentUri.fsPath;
-        excludeDirName = path.basename(flowVerifyUri.fsPath);
+        // excludeDirName = path.basename(flowVerifyUri.fsPath);
     } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
         const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
         baseDirPath =  vscode.Uri.file(basePath).fsPath;
@@ -509,7 +514,7 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
         const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
         const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
         baseDirPath = parentUri.fsPath;
-        excludeDirName = path.basename(flowVerifyUri.fsPath);
+        // excludeDirName = path.basename(flowVerifyUri.fsPath);
     } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
         const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
         baseDirPath =  vscode.Uri.file(basePath).fsPath;
