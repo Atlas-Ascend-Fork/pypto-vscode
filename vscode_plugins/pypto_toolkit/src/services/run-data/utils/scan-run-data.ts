@@ -147,7 +147,7 @@ async function getPathIfExists(checkingPath: string | undefined): Promise<string
   return checkingPath && (await isFilePathExists(checkingPath)) ? checkingPath : null;
 }
 
-const VERIFY_DIR_REG_EXP = /^verify_/;
+const VERIFY_DIR_REG_EXP = /^verify/;
 const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
 
 export function findVerifyDir(path, level) {
