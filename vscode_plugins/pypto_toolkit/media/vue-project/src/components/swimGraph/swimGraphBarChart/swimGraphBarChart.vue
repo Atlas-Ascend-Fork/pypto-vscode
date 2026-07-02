@@ -1,6 +1,5 @@
 <template>
   <div ref="chartDiv" class="occupy-rate-container" :style="{width: occupyRateContainerWidth + 'px'}">
-    <div class="occupy-rate-title">{{ chartTitle }}</div>
     <div class="row-coord" :style="{width: rowCoordWidth + 'px'}">
       <div class="row-coord-num" 
         v-for="(coordIt, index) in rowCoordList" 
@@ -28,7 +27,7 @@
         <div class="occupy-rate-backbar"
           v-for="(dataLeft, index) in chartDataLeft"
           :key="index"
-          :style="{ top: 8 + 36 * index + 'px', width: barWidth + 'px'}">
+          :style="{ top: 10 + 30 * index + 'px', width: barWidth + 'px', borderColor: pmuBarColorList[index]}">
           <div class="occupy-rate-bar" 
             :style="{ width: barWidthList[index] + 'px', background: pmuBarColorList[index]}"></div>
           <div class="occupy-rate-cycle">{{ dataLeft }}</div>
@@ -53,7 +52,6 @@ const chartDiv = ref(null);
 const rowCoordList = ref([]);
 const rowCoordLoc = ref([]);
 const colCoordList = ref([]);
-const chartTitle = ref('');
 const chartDataLeft = ref([]);
 const charDataRight = ref([]);
 const barColorList = ref([]);
@@ -64,8 +62,8 @@ const barWidth = ref(340);
 const occupyRateContainerWidth = ref(440);
 const rowCoordWidth = ref(350);
 
-barWidth.value = isWideScreen.value ? 340 : 200;
-occupyRateContainerWidth.value = isWideScreen.value ? 440 : 300;
+barWidth.value = isWideScreen.value ? 340 : 220;
+occupyRateContainerWidth.value = isWideScreen.value ? 440 : 320;
 rowCoordWidth.value = isWideScreen.value ? 350 : 210;
 
 let chartDivWidth = 470;
@@ -79,7 +77,6 @@ barChartContainerDivWidth = isWideScreen.value ? 340 : 200;
 rowCoordList.value = pmuRowCoordList.value;
 rowCoordLoc.value = pmuRowCoordLoc.value;
 colCoordList.value = pmuColCoordList.value;
-chartTitle.value = reportTitle.value;
 chartDataLeft.value = pmuChartDataLeft.value;
 charDataRight.value = pmuChartDataRight.value;
 backLineLoc.value = pmuBackLineLoc.value;
@@ -96,14 +93,6 @@ for (const percent of pmuChartDataRight.value) {
   overflow-x: auto;
 }
 
-.occupy-rate-title {
-  height: 20px;
-  margin-top: 16px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--vscode-badge-foreground);
-}
-
 .row-coord-num {
   width: 23px;
   height: 18px;
@@ -117,14 +106,14 @@ for (const percent of pmuChartDataRight.value) {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .occupy-rate-chart-col-coord {
   width: 90px;
   height: 20px;
   color: rgba(153, 153, 153, 1);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
 }
 
@@ -138,7 +127,7 @@ for (const percent of pmuChartDataRight.value) {
 .occupy-rate-bar-line {
   z-index: 1;
   width: 1px;
-  height: 220px;
+  height: 207px;
   border-left: 1px dashed var(--devui-slider-bar);
   opacity: 0.1;
   position: absolute;
@@ -149,7 +138,7 @@ for (const percent of pmuChartDataRight.value) {
 .occupy-rate-backbar {
   z-index: 0;
   width: 340px;
-  height: 24px;
+  height: 20px;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 4px;
@@ -160,7 +149,7 @@ for (const percent of pmuChartDataRight.value) {
 }
 
 .occupy-rate-bar {
-  height: 24px;
+  height: 19px;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
@@ -177,7 +166,7 @@ for (const percent of pmuChartDataRight.value) {
   color: var(--vscode-badge-foreground);
   position: absolute;
   left: 8px;
-  top: 4px;
+  top: 1px;
   z-index: 3;
 }
 
@@ -188,7 +177,7 @@ for (const percent of pmuChartDataRight.value) {
   position: absolute;
   color: var(--vscode-badge-foreground);
   right: 8px;
-  top: 4px;
+  top: 1px;
   z-index: 3;
 }
 </style>

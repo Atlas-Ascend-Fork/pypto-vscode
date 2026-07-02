@@ -316,7 +316,8 @@ export abstract class SwimGraphMsgHandler {
               mte2_busy_cycles: 0n,
               mte3_busy_cycles: 0n,
               icache_miss: 0n,
-              icache_req: 0n
+              icache_req: 0n,
+              pmu_fix_instr_busy: 0n
             };
             for (const uniqueKey in effectPmu) {
               pmuTotal['total cycle'] += BigInt(effectPmu[uniqueKey]['total cycle']);
@@ -328,6 +329,9 @@ export abstract class SwimGraphMsgHandler {
               pmuTotal.mte3_busy_cycles += BigInt(effectPmu[uniqueKey].mte3_busy_cycles);
               pmuTotal.icache_miss += BigInt(effectPmu[uniqueKey].icache_miss);
               pmuTotal.icache_req += BigInt(effectPmu[uniqueKey].icache_req);
+              if (effectPmu[uniqueKey].pmu_fix_instr_busy !== undefined) {
+                pmuTotal.pmu_fix_instr_busy += BigInt(effectPmu[uniqueKey].pmu_fix_instr_busy);
+              }
             }
             processTotalPmuCalc(pmuTotal);
           }
@@ -502,6 +506,11 @@ export abstract class SwimGraphMsgHandler {
     static async getData(server: any) {
       if (hismartliteEx.isDebug) {
         console.time('[Performance] backend parse');
+      }
+      const swimPath = server.swimDataPath;
+      const pmuPath = resolve(dirname(swimPath), 'tilefwk_prof_pmu.csv');
+      if (existsSync(pmuPath)) {
+        return await this.getSwimData(server);
       }
       if(server.query.isPerfSwim && !server.query.isMsProf) {
         return await this.getSwimData(server);

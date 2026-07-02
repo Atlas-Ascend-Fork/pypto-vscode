@@ -267,7 +267,7 @@ const showPerformance = () => {
   performanceVisible.value = !performanceVisible.value;
   nextTick(()=> {
     if (performanceVisible.value) {
-      performanceWidth.value = isWideScreen.value ? 480 : 340;
+      performanceWidth.value = isWideScreen.value ? 500 : 370;
     } else {
     performanceWidth.value = 0;
     }

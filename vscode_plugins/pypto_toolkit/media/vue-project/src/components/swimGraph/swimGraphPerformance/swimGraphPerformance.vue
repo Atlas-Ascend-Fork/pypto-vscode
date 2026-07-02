@@ -91,7 +91,7 @@
 
           <div class="task-statistic-item">
             <div class="left-scheduling-gap-container" :style="{width: innerContainerWidth + 'px'}">
-<div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
+              <div class="time-task-item-container" :style="{width: innerContainerWidth + 'px'}">
                 <div class="task-title">{{TaskMinDuration}}({{ formatTimeUnit(minTimeTaskVal) }})</div>
                 <div class="task-data">{{ formatTimeValue(minTimeTaskVal) }}</div>
               </div>
@@ -205,6 +205,12 @@
           <time-statistics/>
         </div>
       </d-tab>
+      <d-tab id="tab3" title="PMU">
+        <pmu-insight-tab
+          :performance-width="performanceWidth"
+          :sub-container-width="subContainerWidth"
+        />
+      </d-tab>
     </d-tabs>
   </div>
 </template>
@@ -217,6 +223,7 @@ import { buildEventMap } from '../swimGraphProcesses/render/utils';
 import { getBaseColor, getLightColor } from '../swimGraphProcesses/processInfo';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import TimeStatistics from './timeStatistics/timeStatistics.vue';
+import PmuInsightTab from './pmuInsightTab.vue';
 import { executionTimeData, formatTimeUnit, formatTimeValue, US_TO_MS_THRESHOLD, US_TO_S_THRESHOLD, UNIT_US, UNIT_MS, UNIT_S } from './utils';
 import { swimDataManager } from '../swimData';
 const swimGraphBarChartComponent = ref(null);
@@ -407,26 +414,26 @@ const showMaxSchedule = async (item, isChild = false) => {
   scrollToEvent(isChild ? childEvent : parentEvent);
 };
 
-const subContainerWidth = ref(440);
+const subContainerWidth = ref(480);
 const subContainerGap = ref(16);
 const innerContainerWidth = ref(109);
-const timeConsumingTaskWidth = ref(236);
-const cubeDataChartWidth = ref(410);
+const timeConsumingTaskWidth = ref(276);
+const cubeDataChartWidth = ref(450);
 const aiCoreContainerColumnGap = ref(16);
-const rightSchedulingGapContainerWidth =ref(268);
+const rightSchedulingGapContainerWidth =ref(308);
 const gapLineWidth = ref(173.5);
 
 SchedulingGap.value = isWideScreen.value? $t('SchedulingGap') : '';
-subContainerWidth.value = isWideScreen.value? 440 : 300;
+subContainerWidth.value = isWideScreen.value? 480 : 330;
 subContainerGap.value = isWideScreen.value? 16 : 8;
 innerContainerWidth.value = isWideScreen.value? 109 : 101;
-timeConsumingTaskWidth.value = isWideScreen.value? 236 : 123;
-cubeDataChartWidth.value = isWideScreen.value? 410 : 270;
-cubeTimeWidth.value = isWideScreen.value? 203 : 133;
-vectorTimeWidth.value = isWideScreen.value? 203 : 133;
+timeConsumingTaskWidth.value = isWideScreen.value? 276 : 123;
+cubeDataChartWidth.value = isWideScreen.value? 450 : 270;
+cubeTimeWidth.value = isWideScreen.value? 243 : 133;
+vectorTimeWidth.value = isWideScreen.value? 243 : 133;
 aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
-rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
-gapLineWidth.value = isWideScreen.value? 173.5 : 66.5;
+rightSchedulingGapContainerWidth.value = isWideScreen.value? 308: 130;
+gapLineWidth.value = isWideScreen.value? 213.5 : 66.5;
 
 const baseColor = (event) => {
   return getBaseColor(event, { processes, kernelColorRending, isDarkTheme });
@@ -609,6 +616,97 @@ const calculateAicoreInfo = () => {
   aicoreRate.value = isMsProf.value ? '/' : parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
 };
 
+const isPmuDataVaild = () => {
+  return pmuTotal.value !== undefined && Object.keys(pmuTotal.value).length > 0 && pmuTotal.value['total cycle'] !== 0;
+};
+
+const initializePmuDefaults = () => {
+    cubeRateCycle.value = '/';
+    vectorRateCycle.value = '/';
+    scalarRateCycle.value = '/';
+    mte1RateCycle.value = '/';
+    mte2RateCycle.value = '/';
+    mte3RateCycle.value = '/';
+    cubeTimePercentage.value = '/';
+    vectorTimePercentage.value = '/';
+    pmuExist.value = false;
+};
+
+const calculateCacheHitRate = () => {
+  const icacheReq = pmuTotal.value.icache_req || 0;
+  const icacheMiss = pmuTotal.value.icache_miss || 0;
+  const icacheHitRateValue = icacheReq > 0 ? (icacheReq - icacheMiss) / icacheReq : 0;
+  icacheHitRate.value = String(Math.round(icacheHitRateValue * 100)) + '%';
+};
+
+const calculateTimeMetrics = () => {
+  const cubeTime = Number(pmuTotal.value.cube_busy_cycles || pmuTotal.value.cube_instr_busy || 0);
+  const vectorTime = Number(pmuTotal.value.vec_busy_cycles || pmuTotal.value.pmu_idc_aic_vec_busy_o || 0);
+  const barWidth = 406;
+  cubeTimePercentage.value = Math.floor(cubeTime / (cubeTime + vectorTime) * 100) + '%';
+  vectorTimePercentage.value = String(100 - Math.floor(cubeTime / (cubeTime + vectorTime) * 100)) + '%';
+  cubeTimeWidth.value = barWidth * cubeTime / (cubeTime + vectorTime);
+  vectorTimeWidth.value = barWidth * vectorTime / (cubeTime + vectorTime);
+};
+
+const calculateRateCycles = () => {
+  vectorRateCycle.value = pmuTotal.value.vec_busy_cycles || pmuTotal.value.pmu_idc_aic_vec_busy_o || '/';
+  cubeRateCycle.value = pmuTotal.value.cube_busy_cycles || pmuTotal.value.cube_instr_busy || '/';
+  scalarRateCycle.value = pmuTotal.value.scalar_busy_cycles || pmuTotal.value.scalar_instr_busy || '/';
+  mte1RateCycle.value = pmuTotal.value.mte1_busy_cycles || pmuTotal.value.mte1_instr_busy || '/';
+  mte2RateCycle.value = pmuTotal.value.mte2_busy_cycles || pmuTotal.value.mte2_instr_busy || '/';
+  mte3RateCycle.value = pmuTotal.value.mte3_busy_cycles || pmuTotal.value.mte3_instr_busy || '/';
+};
+
+const calculateRatePercentages = () => {
+  vectorRatePercentage.value = Math.round(pmuTotal.value.vec_ratio * 100);
+  cubeRatePercentage.value = Math.round(pmuTotal.value.cube_ratio * 100);
+  scalarRatePercentage.value = Math.round(pmuTotal.value.scalar_ratio * 100);
+  mte1RatePercentage.value = Math.round(pmuTotal.value.mte1_ratio * 100);
+  mte2RatePercentage.value = Math.round(pmuTotal.value.mte2_ratio * 100);
+  mte3RatePercentage.value = Math.round(pmuTotal.value.mte3_ratio * 100);
+};
+
+const calculateRateWidth = () => {
+  const barWidth = 406;
+  vectorRateWidth.value = pmuTotal.value.vec_ratio * barWidth;
+  cubeRateWidth.value = pmuTotal.value.cube_ratio * barWidth;
+  scalarRateWidth.value = pmuTotal.value.scalar_ratio * barWidth;
+  mte1RateWidth.value = pmuTotal.value.mte1_ratio * barWidth;
+  mte2RateWidth.value = pmuTotal.value.mte2_ratio * barWidth;
+  mte3RateWidth.value = pmuTotal.value.mte3_ratio * barWidth;
+};
+
+const setPmuConfigurations = () => {
+  pmuRowCoordLoc.value = ['0%', '18%', '36%', '54%', '72%', '88%'];
+  pmuBackLineLoc.value = ['20%', '40%', '60%', '80%'];
+  pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
+  pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
+                            'MTE2 Cycles', 'MTE3 Cycles', 'FixP Cycles'];
+  pmuBarColorList.value = ['rgba(246, 158, 57, 1)', 'rgba(135, 200, 89, 1)', 'rgba(54, 193, 141, 1)', 
+                            'rgba(85, 204, 217, 1)', 'rgba(102, 140, 247, 1)', 'rgba(46, 134, 222, 1)', 'rgba(142, 129, 244, 1)'];
+};
+
+const setPmuChartData = () => {
+  pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
+                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value, pmuTotal.value.pmu_fix_instr_busy || '/'];
+  const totalCycle = Number(pmuTotal.value['total cycle'] || 1);
+  const fixInstrBusy = Number(pmuTotal.value.pmu_fix_instr_busy || 0);
+  pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
+                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value, Math.round(fixInstrBusy / totalCycle * 100)];
+};
+
+const calculatePmuMetrics = () => {
+  calculateCacheHitRate();
+  calculateTimeMetrics();
+  calculateRateCycles();
+  calculateRatePercentages();
+  calculateRateWidth();
+  setPmuConfigurations();
+  setPmuChartData();
+  iniComplete.value = true;
+};
+
 const initializePerformance = () => {
   calculateStatistics();
   
@@ -630,66 +728,14 @@ const initializePerformance = () => {
     calculateAicoreInfo();
   }
   
-  if (pmuTotal.value == undefined || Object.keys(pmuTotal.value).length == 0 || pmuTotal.value['total cycle'] === 0) {
-    cubeRateCycle.value = '/';
-    vectorRateCycle.value = '/';
-    cubeTimePercentage.value = '/';
-    vectorTimePercentage.value = '/';
-    pmuExist.value = false;
+  if (!isPmuDataVaild()) {
+    initializePmuDefaults();
     return;
   }
 
-  const cubeTime = Number(pmuTotal.value.cube_busy_cycles);
-  const vectorTime = Number(pmuTotal.value.vec_busy_cycles);
-
-  icacheHitRate.value = String(Math.round(pmuTotal.value.icache_hit * 100)) + '%';
-
-  const barWidth = 406;
-
-  cubeTimePercentage.value = Math.floor(cubeTime / (cubeTime + vectorTime) * 100) + '%';
-  vectorTimePercentage.value = String(100 - Math.floor(cubeTime / (cubeTime + vectorTime) * 100)) + '%';
-  cubeTimeWidth.value = barWidth * cubeTime / (cubeTime + vectorTime);
-  vectorTimeWidth.value = barWidth * vectorTime / (cubeTime + vectorTime);
-
-  vectorRateCycle.value = pmuTotal.value.vec_busy_cycles;
-  cubeRateCycle.value = pmuTotal.value.cube_busy_cycles;
-  scalarRateCycle.value = pmuTotal.value.scalar_busy_cycles;
-  mte1RateCycle.value = pmuTotal.value.mte1_busy_cycles;
-  mte2RateCycle.value = pmuTotal.value.mte2_busy_cycles;
-  mte3RateCycle.value = pmuTotal.value.mte3_busy_cycles;
-
-  vectorRatePercentage.value = Math.round(pmuTotal.value.vec_ratio * 100);
-  cubeRatePercentage.value = Math.round(pmuTotal.value.cube_ratio * 100);
-  scalarRatePercentage.value = Math.round(pmuTotal.value.scalar_ratio * 100);
-  mte1RatePercentage.value = Math.round(pmuTotal.value.mte1_ratio * 100);
-  mte2RatePercentage.value = Math.round(pmuTotal.value.mte2_ratio * 100);
-  mte3RatePercentage.value = Math.round(pmuTotal.value.mte3_ratio * 100);
-
-  vectorRateWidth.value = pmuTotal.value.vec_ratio * barWidth;
-  cubeRateWidth.value = pmuTotal.value.cube_ratio * barWidth;
-  scalarRateWidth.value = pmuTotal.value.scalar_ratio * barWidth;
-  mte1RateWidth.value = pmuTotal.value.mte1_ratio * barWidth;
-  mte2RateWidth.value = pmuTotal.value.mte2_ratio * barWidth;
-  mte3RateWidth.value = pmuTotal.value.mte3_ratio * barWidth;
-
-  pmuRowCoordLoc.value = ['0%', '18%', '36%', '54%', '72%', '88%'];
-  pmuBackLineLoc.value = ['20%', '40%', '60%', '80%'];
-  pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
-  pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
-                            'MTE2 Cycles', 'MTE3 Cycles'];
-  if (isDarkTheme.value) {
-    pmuBarColorList.value = ['rgba(135, 52, 0, 1)', 'rgba(181, 78, 4, 1)', 'rgba(3, 97, 66, 1)', 
-                            'rgba(70, 94, 184, 1)', 'rgba(158, 63, 0, 1)', 'rgba(72, 142, 32, 1)'];
-  } else {
-    pmuBarColorList.value = ['rgba(255, 200, 201, 1)', 'rgba(255, 201, 138, 1)', 'rgba(0, 238, 237, 1)', 
-                            'rgba(171, 217, 255, 1)', 'rgba(231, 216, 0, 1)', 'rgba(0, 242, 186, 1)'];
-  }
-  pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
-                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
-  pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
-                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
-  iniComplete.value = true;
+  calculatePmuMetrics();
 };
+
 const getTaskOnBoardTime = () => {
   let minStart = Infinity;
   let maxEnd = 0;
@@ -728,10 +774,14 @@ const handleClickOutside = (e) => {
     (item) =>
       item.classList?.contains('time-consuming-task') ||
       item.classList?.contains('max-scheduling-gap-item-task')||
+      item.classList?.contains('pmu-insight-clickable') ||
+      item.classList?.contains('pmu-group-button') ||
+      item.classList?.contains('pmu-full-data-button') ||
+      item.classList?.contains('pmu-b-copy-button') ||
       item.classList?.contains('time-range-marker') || 
       item.classList?.contains('time-statistics-table') ||
       item.classList?.contains('event-container') ||
-      ['tab1', 'tab2'].includes(item.id)
+      ['tab1', 'tab2', 'tab3'].includes(item.id)
   );
   if (index !== -1) {
     return;
@@ -1090,6 +1140,7 @@ provide('swimGraphPmuBarMethod', {
 }
 
 .cube-data-chart {
+  position: relative;
   height: 24px;
   width: 410px;
   gap: 2px;
@@ -1101,14 +1152,16 @@ provide('swimGraphPmuBarMethod', {
   position: relative;
   height: 24px;
   border-radius: 4px;
-  background: rgba(199, 98, 7, 1);
+  background: rgba(199, 98, 7, 0.1);
+  border: 1px solid rgba(199, 98, 7, 0.5);
 }
 
 .vector-time-bar {
   position: relative;
   height: 24px;
   border-radius: 4px;
-  background: rgba(72, 142, 32, 1);
+  background: rgba(72, 142, 32, 0.1);
+  border: 1px solid rgba(72, 142, 32, 0.5);
   display: flex;
   flex-direction: row-reverse;
 }

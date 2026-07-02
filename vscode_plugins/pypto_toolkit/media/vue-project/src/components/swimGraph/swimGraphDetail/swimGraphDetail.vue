@@ -5,11 +5,11 @@
       <span>{{ $t("inter-CorePerformanceOverview") }}</span>
     </div>
 
-    <div class="details-panel" :class="{ expanded: detailsPanelExpanded }">
+    <div class="details-panel" :class="{ expanded: detailsPanelExpanded, 'pmu-diagnosis-expanded': selectedView === 'pmuDiagnosis' }">
       <div class="details-content" ref="detailsContent" id="details-content">
         <div class="details-title" v-if="!selectedEvent && !canvasclickedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
-          <div class="detail-content">
+          <div class="detail-content" :class="{ 'pmu-diagnosis-layout': selectedView === 'pmuDiagnosis' }">
               <div class="content-one-pipe">
                 <div class="pipe-content-title">
                   <div class="pipe-title">
@@ -49,12 +49,13 @@
                 </div>
               </div>
             <div class="detail-main-container">
-            <div class="content-args">
+            <div class="content-args" :class="{ 'pmu-content-host': selectedView === 'pmuDiagnosis' }">
               <div class="content-args-head">
                 <div class="main-text">
                   <d-tabs v-model="selectedView" class="argsTabs" :show-content="false" @active-tab-change="selectView">
                     <d-tab id="args" :title="$t('args')"></d-tab>
-                    <d-tab id="pipeStat" :title="$t('pipeStat')"></d-tab>
+                    <d-tab v-if="showPipeStatisticsTab" id="pipeStat" :title="$t('pipeStat')"></d-tab>
+                    <d-tab v-if="showPmuDiagnosisTab" id="pmuDiagnosis" :title="$t('pmuTaskDiagnosis')"></d-tab>
                   </d-tabs>
                 </div>
                 <div class="bindbox">
@@ -154,7 +155,7 @@
                   </div>
                 </template>
               </div>
-              <template v-else>
+              <template v-else-if="selectedView === 'pipeStat' && showPipeStatisticsTab">
                 <div class="pipe-bar-chart" v-if="canvasclickedEvent.pmu_info">
                   <div class="row-coord" :class="{'row-coord-active': selectedView === 'pipeStat'}">
                     <div class="row-coord-num" 
@@ -196,6 +197,7 @@
                   <div class="noPmu"> {{ $t('noPmu')}} </div>
                 </template>
               </template>
+              <pmu-task-diagnosis v-else-if="selectedView === 'pmuDiagnosis' && showPmuDiagnosisTab" :event="canvasclickedEvent" />
             </div>
             <div id="canvas-container">
               <div class="mr10">
@@ -241,6 +243,7 @@ import { formatTimeWithUnit, COLOR_CFG, DEP_MODE, setupHighDPICanvas } from '../
 import { getSubGraphId } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
 import { swimDataManager } from '../swimData';
+import PmuTaskDiagnosis from './pmuTaskDiagnosis.vue';
 
 const { server } = useViewServer();
 const { t: $t } = useI18n();
@@ -339,6 +342,23 @@ const chartDataRight = ref([]);
 const selectedView = ref('args');
 const selectView = (view) => {
   selectedView.value = view;
+};
+const hasPmuDiagnosisData = (event) => {
+  const pmuInfo = event?.pmu_info;
+  return !!pmuInfo && Object.keys(pmuInfo).length > 0 && Number(pmuInfo['total cycle']) > 0;
+};
+const showPmuDiagnosisTab = computed(() => hasPmuDiagnosisData(canvasclickedEvent.value));
+const showPipeStatisticsTab = computed(() => !showPmuDiagnosisTab.value);
+const normalizeSelectedView = (event) => {
+  if (hasPmuDiagnosisData(event)) {
+    if (selectedView.value === 'args' || selectedView.value === 'pipeStat') {
+      selectedView.value = 'pmuDiagnosis';
+    }
+    return;
+  }
+  if (selectedView.value === 'pmuDiagnosis') {
+    selectedView.value = 'pipeStat';
+  }
 };
 const getEventCacheHit = (event) => {
   if (!event) {
@@ -577,6 +597,7 @@ const createHint = (event, operate) => {
 
 const showEventDetail = (newEvent) => {
   if (newEvent) {
+    normalizeSelectedView(newEvent);
     const duration = newEvent.duration !== undefined ? newEvent.duration : (newEvent.endTime - newEvent.startTime);
     startTimeInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).value;
     startTimeUnitInfo.value = formatTimeWithUnit((newEvent.startTime - viewState.minTime) * 1000 / tsScale.value).unit;
@@ -848,6 +869,29 @@ defineExpose({
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/Detail/detail.css");
+.details-panel.expanded.pmu-diagnosis-expanded {
+  height: min(560px, 56vh);
+}
+
+.pmu-diagnosis-layout {
+  height: min(560px, 56vh);
+}
+
+.pmu-content-host {
+  height: calc(56vh - 32px);
+  min-height: 186px;
+  max-height: 528px;
+  overflow: auto;
+}
+
+.pmu-content-host .content-args-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 4px;
+  background: var(--devui-swim-detail-bg);
+}
+
 :deep() {
   .input-number-container {
     margin-left: 10px;

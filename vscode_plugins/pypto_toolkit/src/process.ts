@@ -239,10 +239,34 @@ function calculateDuration (eventTasks, processedTasks) {
   return [maxTime, minTime];
 };
 
+const PMU_FIELD_ALIASES: Record<string, string[]> = {
+  vec_busy_cycles: ['vec_busy_cycles', 'pmu_idc_aic_vec_busy_o'],
+  cube_busy_cycles: ['cube_busy_cycles', 'cube_instr_busy'],
+  scalar_busy_cycles: ['scalar_busy_cycles', 'scalar_instr_busy'],
+  mte1_busy_cycles: ['mte1_busy_cycles', 'mte1_instr_busy'],
+  mte2_busy_cycles: ['mte2_busy_cycles', 'mte2_instr_busy'],
+  mte3_busy_cycles: ['mte3_busy_cycles', 'mte3_instr_busy'],
+  pmu_fix_instr_busy: ['pmu_fix_instr_busy']
+};
+
+const normalizePmuTaskInfo = (taskInfo: { [key: string]: any }) => {
+  const availableFields: Record<string, boolean> = {};
+  for (const [targetKey, sourceKeys] of Object.entries(PMU_FIELD_ALIASES)) {
+    const sourceKey = sourceKeys.find((key) => taskInfo[key] !== undefined && taskInfo[key] !== '');
+    availableFields[targetKey] = Boolean(sourceKey);
+    taskInfo[targetKey] = sourceKey ? taskInfo[sourceKey] : '0';
+  }
+  taskInfo.__available_pmu_fields = availableFields;
+  return taskInfo;
+};
+
 export function parsePmuInfo(csvData: string) {
   const pmuInfo = {};
   const lines = csvData.split('\n');
   const headers = lines[0].split(',').map(header => header.trim());
+
+  const hasSeqNo = headers.includes('seqNo');
+  const hasSubGraphId = headers.includes('sub graph id');
   
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
@@ -253,10 +277,22 @@ export function parsePmuInfo(csvData: string) {
     for (let j = 0; j < headers.length; j++) {
       taskInfo[headers[j]] = curLine[j] ? curLine[j].trim() : ''; 
     }
-    if (taskInfo.seqNo === undefined || taskInfo['sub task id'] === undefined) {
-      continue
+
+    let uid: string;
+    if (hasSeqNo) {
+      if (taskInfo.seqNo === undefined || taskInfo['sub task id'] === undefined) {
+        continue;
+      }
+      uid = String(taskInfo['seqNo']) + '-' + String(taskInfo['sub task id']);
+    } else if (hasSubGraphId) {
+      if (taskInfo['sub graph id'] === undefined || taskInfo['sub task id'] === undefined) {
+        continue;
+      }
+      uid = String(taskInfo['sub graph id']) + '-' + String(taskInfo['sub task id']);
+    } else {
+      continue;
     }
-    const uid = String(taskInfo['seqNo']) + '-' + String(taskInfo['sub task id']);
+    normalizePmuTaskInfo(taskInfo);
     pmuInfo[uid] = taskInfo; 
     pmuInfo[uid]['vec_ratio'] = taskInfo.vec_busy_cycles / taskInfo['total cycle'];
     pmuInfo[uid]['cube_ratio'] = taskInfo.cube_busy_cycles / taskInfo['total cycle'];
@@ -444,6 +480,9 @@ const calculateDependencies = (events, connections) => {
     pmuTotal.mte3_busy_cycles = pmuTotal.mte3_busy_cycles.toString();
     pmuTotal.icache_miss = pmuTotal.icache_miss.toString();
     pmuTotal.icache_req = pmuTotal.icache_req.toString();
+    if (pmuTotal.pmu_fix_instr_busy !== undefined) {
+      pmuTotal.pmu_fix_instr_busy = pmuTotal.pmu_fix_instr_busy.toString();
+    }
   }
 
   async function validate(event:any) {
