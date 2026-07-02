@@ -1,15 +1,14 @@
 # 泳道图
 
 ```{toctree}
-:maxdepth: 1
+:maxdepth: 2
 :titlesonly:
 
-view_swimlane_graph
+swim_category/index
 jump_to_computation_graph
 search_swimlane_graph_node
 measure_time_interval
-view_by_time_range
 set_time_observation_line
 view_performance_report
-set_coloring_mode
+render_config
 sysem_config

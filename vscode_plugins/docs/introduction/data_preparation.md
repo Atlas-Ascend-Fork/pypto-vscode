@@ -12,7 +12,7 @@ PyPTO Toolkit将基于PyPTO程序的结果文件进行分析，因此建议用�
 
 ## 操作步骤
 
-1.  执行PyPTO程序。
+1.  执行PyPTO程序。参考 [PyPTO 文档 - 快速入门](https://pypto.gitcode.com/tutorials/introduction/quick_start.html)
 2.  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002489868856.png)图标，打开PyPTO Toolkit。
 3.  在运行结果界面可以看到生成的相关结果文件。
 

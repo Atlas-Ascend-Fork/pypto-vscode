@@ -9,31 +9,7 @@
 
 ## 编译与执行PyPTO程序
 
-下面以Softmax算子为例介绍，样例代码位于[pypto开源仓](https://gitcode.com/cann/pypto)：examples/02\_intermediate/operators/softmax/softmax.py。
-
-1.  切换到样例所在目录，在已安装PyPTO的环境中运行如下命令。
-
-    ```bash
-    # 配置 CANN 环境变量
-    source /usr/local/Ascend/cann/bin/setenv.bash
-    
-    # 设置设备 ID
-    export TILE_FWK_DEVICE_ID=0
-    
-    #执行脚本
-    python3 softmax.py
-    ```
-
-2.  程序执行成功后，显示以下信息。
-
-    ```txt
-    Input shape: torch.Size([32, 32, 1, 256])
-    Output shape: torch.Size([32, 32, 1, 256])
-    Max difference：0.000000
-    ✓ Softmax test passed
-    ```
-
-    同时，会在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）下生成编译和执行的结果文件。
+参考 [PyPTO 文档 - 快速入门](https://pypto.gitcode.com/tutorials/introduction/quick_start.html)
 
 ## 查看计算图
 
@@ -66,7 +42,7 @@ PyPTO程序在编译过程中，会自动生成由Tensor和Operation组合而成
 1.  启动性能数据采集功能。
 
     ```python
-    @pypto.jit(
+    @pypto.frontend.jit(
         debug_options={"runtime_debug_mode": 1}
     )
     ```

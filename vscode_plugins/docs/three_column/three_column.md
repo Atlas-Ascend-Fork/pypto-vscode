@@ -19,7 +19,7 @@
 
 1.  在Visual Studio Code工作区，右键单击PyPTO代码文件，例如test\_softmax\_custom.py，在弹出的菜单中选择“PyPTO Toolkit：开启联动模式”。
 
-    工具会自动查找当前的工作区下的“build/output/bin/out/output\_时间戳”目录，识别最新时间戳目录，并从中读取计算图“program.json”和泳道图文件“merged\_swimlane.json”，同时结合代码文件，共同打开三栏模式。
+    工具会自动查找当前的工作区下的“output/output\_时间戳”目录，识别最新时间戳目录，并从中读取计算图“program.json”和泳道图文件“merged\_swimlane.json”，同时结合代码文件，共同打开三栏模式。
 
     如果上述查找没有找到目标计算图和泳道图文件，则提示用户选择。
 
