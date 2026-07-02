@@ -178,7 +178,7 @@ function getGapClass(gap) {
 }
 
 const diagnosis = computed(() => {
-  const {event} = props.event;
+  const {event} = props;
   const pmuInfo = event?.pmu_info;
   const sampleCycles = toFiniteNumber(pmuInfo?.['total cycle']);
   const shouldReturn = !event || event.isCounter || !pmuInfo || sampleCycles <= 0;
