@@ -21,8 +21,7 @@ export class ControlFlowViewServer extends ViewServer<Apis, Refs> implements ICo
     public getAccurancyResult = async (data) => {
       const fileUri = data.controwFlowFilePath;
       const computeGraphDirPath = data.computeGraphDirPath;
-      const flowVerifyPath = data.flowVerifyPath;
-      const res = await getResDataSum(fileUri, flowVerifyPath, computeGraphDirPath);
+      const res = await getResDataSum(fileUri, computeGraphDirPath);
       this.setRef('accurancyResult', res);
     };
     @viewApi()
