@@ -682,7 +682,7 @@ export abstract class BaseGraphMsgHandler {
     }
 
 
-    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!, 30, 0, server.query?.flowVerifyPath);
+    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!, 30, 0, server.query?.computeGraphDirPath);
     server.setRef('AccurancyReport', { data: errorRawInfo });
   }
 
@@ -705,7 +705,7 @@ export abstract class BaseGraphMsgHandler {
     const startOffset = (message.data.startOffset * pageSize);
     const keyword = message.data.keyword ?? '';
 
-    const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset, server.query?.flowVerifyPath);
+    const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset, server.query?.computeGraphDirPath);
     server.setRef('AccurancyList', { data: errorRawInfo });
   }
 
@@ -725,7 +725,7 @@ export abstract class BaseGraphMsgHandler {
     }
     const loopInfo = message.data.loopInfo;
     const rawMagic = message.data.rawMagic;
-    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic, 10000, 0, server.query?.flowVerifyPath);
+    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic, 10000, 0, server.query?.computeGraphDirPath);
 
     server.setRef('AccurancyDetail', { data: errorRawInfo });
   }

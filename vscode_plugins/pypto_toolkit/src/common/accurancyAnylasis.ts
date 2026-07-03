@@ -23,20 +23,40 @@ export function findComputationDir(dirPath: string): string {
     return comgraphDir;
 }
 
+function findCsvRecursive(dir: string): string {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subPath = path.join(dir, entry.name);
+        const csvCandidate = path.join(subPath, 'verify_graph_result_brief.csv');
+        if (fs.existsSync(csvCandidate)) {
+          return csvCandidate;
+        }
+        const deeper = findCsvRecursive(subPath);
+        if (deeper) {
+          return deeper;
+        }
+      }
+    }
+    return '';
+}
+
 export async function getResDataSum(filePath: string | undefined, computeGraphDirPath: string | undefined) {
     if (!filePath) {
         return;
     }
     const outputDirPath = path.dirname(filePath) ?? '';
     
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    if (!accurancyDirName) {
-        return;
-    }
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName);
+    let csvPath = '';
 
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+    if (computeGraphDirPath) {
+        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
+        const csvFound = findCsvRecursive(parentDir);
+        csvPath = csvFound;
+    }
+    const accurancyDirPath = path.dirname(csvPath);
+  
+    csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
         console.log('verify_graph_result_brief.csv文件不存在');
         return;
@@ -46,11 +66,6 @@ export async function getResDataSum(filePath: string | undefined, computeGraphDi
     if (!readCsvStatus) {
         return {parseResult: 'Fail', allResultSum: [], controlFlowFilepath: filePath};
     }
-
-    // /** 调diff接口的试用 */
-    // const cmpCsvPath = path.join(accurancyDirPath, 'verify_graph_result_cmp~Pass_29_InferParamIndex~Pass_37_CodegenPreproc~1781054287073093.csv');
-    // getCmpDiffList(cmpCsvPath);
-    // openCmpDiffComGraph(cmpCsvPath, '8512735506352643020', 'Pass_37_CodegenPreproc', 'TENSOR_LOOP_s2_Unroll8_PATH0_hiddenfunc0_20');
 
     const oriPassDistribution = await getPassDistribution(csvPath, computeGraphDirPath);
     const passDistribution = {
@@ -254,41 +269,17 @@ async function getPassList(oriDirPath: string, filePath: string, computeGraphDir
     return passResult;
 }
 
-export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, flowVerifyPath?: string, computeGraphDirPath?: string) {
-    let baseDirPath: string;
-    let excludeDirName: string | undefined;
+export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, computeGraphDirPath?: string) {
+    let csvPath = '';
 
-    // 如果 flowVerifyPath 不为空，使用它的父目录作为基础路径，并排除 flowVerifyPath 本身
-    if (flowVerifyPath && flowVerifyPath.includes('verify')) {
-        // 使用 vscode.Uri 来正确处理跨平台路径
-        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
-        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
-        baseDirPath = parentUri.fsPath;
-        // excludeDirName = path.basename(flowVerifyUri.fsPath);
-    } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
-        const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
-        baseDirPath =  vscode.Uri.file(basePath).fsPath;
-    } else {
-        // 否则使用原来的逻辑，从 filePath 获取 outputDirPath
-        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    if (computeGraphDirPath) {
+        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
+        const csvFound = findCsvRecursive(parentDir);
+        csvPath = csvFound;
     }
+    const accurancyDirPath = path.dirname(csvPath);
 
-    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList
-        .filter(subDirName => {
-            // 必须是目录且以 verify 开头
-            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
-                return false;
-            }
-            // 如果有排除的文件夹名，则排除它
-            if (excludeDirName && subDirName.name === excludeDirName) {
-                return false;
-            }
-            return true;
-        })?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
-
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+    csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
         // console.log(`文件不存在: ${csvPath}`);
         return;
@@ -344,38 +335,18 @@ export async function getComGraphDataSum(
     funcMagicName: string, 
     pageSize: number = 30, 
     startOffset: number = 0, 
-    flowVerifyPath?: string 
+    computeGraphDirPath?: string
 ) {
-    let baseDirPath: string;
-    let excludeDirName: string | undefined;
+    let csvPath = '';
 
-    if (flowVerifyPath && flowVerifyPath.includes('verify')) {
-        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
-        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
-        baseDirPath = parentUri.fsPath;
-        // excludeDirName = path.basename(flowVerifyUri.fsPath);
-    } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
-        const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
-        baseDirPath =  vscode.Uri.file(basePath).fsPath;
-    } else {
-        const rundataDirPath = path.dirname(path.dirname(filePath)) ?? '';
-        baseDirPath = findComputationDir(rundataDirPath);
+    if (computeGraphDirPath) {
+        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
+        const csvFound = findCsvRecursive(parentDir);
+        csvPath = csvFound;
     }
+    const accurancyDirPath = path.dirname(csvPath);
 
-    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList
-        .filter(subDirName => {
-            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
-                return false;
-            }
-            if (excludeDirName && subDirName.name === excludeDirName) {
-                return false;
-            }
-            return true;
-        })?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
-
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+    csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
         // console.log(`文件不存在: ${csvPath}`);
@@ -394,36 +365,17 @@ export async function getComGraphDataSum(
     return comAccuracyData;
 }
 
-export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0, flowVerifyPath?: string) {
-    let baseDirPath: string;
-    let excludeDirName: string | undefined;
+export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0, computeGraphDirPath?: string) {
+    let csvPath = '';
 
-    if (flowVerifyPath && flowVerifyPath.includes('verify')) {
-        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
-        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
-        baseDirPath = parentUri.fsPath;
-        // excludeDirName = path.basename(flowVerifyUri.fsPath);
-    } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
-        const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
-        baseDirPath =  vscode.Uri.file(basePath).fsPath;
-    } else {
-        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    if (computeGraphDirPath) {
+        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
+        const csvFound = findCsvRecursive(parentDir);
+        csvPath = csvFound;
     }
+    const accurancyDirPath = path.dirname(csvPath);
 
-    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList
-        .filter(subDirName => {
-            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
-                return false;
-            }
-            if (excludeDirName && subDirName.name === excludeDirName) {
-                return false;
-            }
-            return true;
-        })?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
-
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+    csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
         // console.log(`文件不存在: ${csvPath}`);
@@ -507,37 +459,18 @@ function formatDetailData(resultLog: string[]): any[] {
 
 export async function getComGraphDataDetail(filePath: string, phaseName: string, funcMagicName: string, 
                                             loopInfo: string, rawMagic: string, pageSize: number = 10000, startOffset: number = 0,
-                                            flowVerifyPath?: string) {
-    let baseDirPath: string;
-    let excludeDirName: string | undefined;
+                                            computation_path?: string) {
+    let csvPath = '';
 
-    if (flowVerifyPath && flowVerifyPath.includes('verify')) {
-        const flowVerifyUri = vscode.Uri.file(flowVerifyPath);
-        const parentUri = vscode.Uri.joinPath(flowVerifyUri, '..');
-        baseDirPath = parentUri.fsPath;
-        // excludeDirName = path.basename(flowVerifyUri.fsPath);
-    } else if (flowVerifyPath && flowVerifyPath.includes('computation_graph')) {
-        const basePath = path.dirname(path.dirname(flowVerifyPath)) ?? '';
-        baseDirPath =  vscode.Uri.file(basePath).fsPath;
-    } else {
-        baseDirPath = path.dirname(path.dirname(filePath)) ?? '';
+    if (computation_path) {
+        const parentDir = path.dirname(path.dirname(computation_path));
+        const csvFound = findCsvRecursive(parentDir);
+        csvPath = csvFound;
     }
-
-    const accurancyDirList = await fs.readdirSync(baseDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList
-        .filter(subDirName => {
-            if (!subDirName.isDirectory() || !subDirName.name.startsWith('verify')) {
-                return false;
-            }
-            if (excludeDirName && subDirName.name === excludeDirName) {
-                return false;
-            }
-            return true;
-        })?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(baseDirPath, accurancyDirName) ?? '';
+    const accurancyDirPath = path.dirname(csvPath);
 
     const logPath = path.join(accurancyDirPath, 'verify_graph_result_brief.log');
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+    csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(logPath) || !fs.existsSync(csvPath)) {
         // console.log(`文件不存在: ${logPath} || ${csvPath}`);
@@ -883,7 +816,6 @@ export async function getFailMagicList(
       curPassName,
       curFuncMagicNameString!,
       'FAIL',
-      flowVerifyPath,
       computeGraphDirPath,
     );
     const exceptionRawMagicList = await getComGraphRawMagic(
@@ -891,7 +823,6 @@ export async function getFailMagicList(
       curPassName,
       curFuncMagicNameString!,
       'EXCEPTION',
-      flowVerifyPath,
       computeGraphDirPath,
     );
     failMagicList = {
