@@ -111,9 +111,9 @@ export class RunDataService extends BasicService {
     }
     let flowVerifyUri;
     if (record.flowVerifyPath?.includes('computation_graph')) {
-      flowVerifyUri = findVerifyDir(record.flowVerifyPath, COMPUTE_GRAPH_PATH_LEVER);
+      flowVerifyUri = findVerifyDir(record.flowVerifyPath, COMPUTE_GRAPH_PATH_LEVER) + '/' + "verify";
     } else {
-      flowVerifyUri = findVerifyDir(record.flowVerifyPath, VERIFY_GRAPH_PATH_LEVER);
+      flowVerifyUri = record.flowVerifyPath;
     }
     const latestList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
     if (latestList.length > 0) {

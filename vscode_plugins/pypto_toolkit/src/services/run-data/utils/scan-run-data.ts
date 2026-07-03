@@ -16,6 +16,7 @@ export interface RunDataDir {
 const SCAN_RUN_DATA_LIMIT = 5000;
 export const COMPUTE_GRAPH_PATH_LEVER = 2;
 export const VERIFY_GRAPH_PATH_LEVER = 1;
+const VERIFY_DIR = "verify";
 
 /**
  * 读取所有rundata目录
@@ -147,7 +148,6 @@ async function getPathIfExists(checkingPath: string | undefined): Promise<string
   return checkingPath && (await isFilePathExists(checkingPath)) ? checkingPath : null;
 }
 
-const VERIFY_DIR_REG_EXP = /^verify/;
 const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
 
 export function findVerifyDir(path, level) {
@@ -164,10 +164,36 @@ interface OpeCheckResult {
   opeCheckDirPath: AccuracyToolCompList[] | null;
 }
 
-async function findOpeCheck(flowVerifyPath?: string, level?: any): Promise<OpeCheckResult> {
+/**
+ * 查找目录下以 verify 开头的子目录
+ */
+async function findVerifySubDir(parentPath: string): Promise<string> {
+  const parentUri = vscode.Uri.file(parentPath);
+  const entries = await vscode.workspace.fs.readDirectory(parentUri);
+
+  const verifyDir = entries.find(
+    ([name, fileType]) => 
+      fileType === vscode.FileType.Directory && name.startsWith('verify')
+  );
+
+  return verifyDir
+    ? vscode.Uri.joinPath(parentUri, verifyDir[0]).fsPath
+    : '';
+}
+
+async function findOpeCheck(
+  flowVerifyPath?: string,
+  level?: any
+): Promise<OpeCheckResult> {
   const empty: OpeCheckResult = { hasOpeCheck: false, opeCheckDirPath: null };
 
-  const flowVerifyUri = findVerifyDir(flowVerifyPath, level);
+  let recordDir = flowVerifyPath;
+  let flowVerifyUri = flowVerifyPath;
+  if (level === COMPUTE_GRAPH_PATH_LEVER) {
+    const outPutDir = findVerifyDir(flowVerifyPath, level);
+    flowVerifyUri = await findVerifySubDir(outPutDir);
+    recordDir = outPutDir + '/' + VERIFY_DIR;
+  }
   if (!flowVerifyUri) {
     return empty;
   }
@@ -178,35 +204,30 @@ async function findOpeCheck(flowVerifyPath?: string, level?: any): Promise<OpeCh
   }
 
   const fileUri = vscode.Uri.file(flowVerifyUri);
-  const subList = await vscode.workspace.fs.readDirectory(fileUri);
-  const allInsertData: AccuracyToolCompList[] = [];
+  const fsPath = fileUri.fsPath; 
 
-  for (const [subPath, fileType] of subList) {
-    if (fileType !== vscode.FileType.Directory || !VERIFY_DIR_REG_EXP.test(subPath)) {
-      continue;
-    }
-    const verifyDirUri = vscode.Uri.joinPath(fileUri, subPath);
-    try {
-      const files = await vscode.workspace.fs.readDirectory(verifyDirUri);
-      if (files.some(([name]) => VERIFY_GRAPH_RESULT_CMP_REG_EXP.test(name))) {
-        const compList = await getCmpFileList(verifyDirUri.fsPath);
-        for (const filePath of compList) {
-          allInsertData.push({
-            file_path: filePath,
-            first_req: '-1',
-            compute_path: flowVerifyUri,
-          });
-        }
-      }
-    } catch {
-      continue;
-    }
+  let files: [string, vscode.FileType][];
+  try {
+    files = await vscode.workspace.fs.readDirectory(fileUri);
+  } catch {
+    return empty;
+  }
+  
+  const hasCmpFile = files.some(([name, fileType]) => 
+    fileType === vscode.FileType.File && VERIFY_GRAPH_RESULT_CMP_REG_EXP.test(name)
+  );
+
+  if (!hasCmpFile) {
+    return empty;
   }
 
-  if (allInsertData.length > 0) {
-    await SQLiteCache.getInstance().accuracyToolCompListSet(flowVerifyUri, allInsertData);
-    return { hasOpeCheck: true, opeCheckDirPath: allInsertData };
-  }
+  const compList = await getCmpFileList(fsPath);
+  const allInsertData: AccuracyToolCompList[] = compList.map(filePath => ({
+    file_path: filePath,
+    first_req: '-1',
+    compute_path: recordDir ? recordDir : '',
+  }));
 
-  return empty;
+  await SQLiteCache.getInstance().accuracyToolCompListSet(flowVerifyUri, allInsertData);
+  return { hasOpeCheck: true, opeCheckDirPath: allInsertData };
 }
