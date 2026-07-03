@@ -5,11 +5,11 @@
       <span>{{ $t("inter-CorePerformanceOverview") }}</span>
     </div>
 
-    <div class="details-panel" :class="{ expanded: detailsPanelExpanded, 'pmu-diagnosis-expanded': selectedView === 'pmuDiagnosis' }">
+    <div class="details-panel" :class="{ expanded: detailsPanelExpanded, 'pmu-diagnosis-expanded': selectedView === 'pmuDiagnosis' && !isThreeColumn }">
       <div class="details-content" ref="detailsContent" id="details-content">
         <div class="details-title" v-if="!selectedEvent && !canvasclickedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
-          <div class="detail-content" :class="{ 'pmu-diagnosis-layout': selectedView === 'pmuDiagnosis' }">
+          <div class="detail-content" :class="{ 'pmu-diagnosis-layout': selectedView === 'pmuDiagnosis' && !isThreeColumn }">
               <div class="content-one-pipe">
                 <div class="pipe-content-title">
                   <div class="pipe-title">
@@ -271,7 +271,8 @@ const {
   isPathLockStatus,
   layout,
   processes,
-  isMixMode
+  isMixMode,
+  isThreeColumn
 } = inject('swimGraphState');
 
 const isAicpuEvent = computed(() => {
