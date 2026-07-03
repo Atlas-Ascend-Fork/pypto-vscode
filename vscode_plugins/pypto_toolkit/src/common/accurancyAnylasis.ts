@@ -41,20 +41,23 @@ function findCsvRecursive(dir: string): string {
     return '';
 }
 
-export async function getResDataSum(filePath: string | undefined, computeGraphDirPath: string | undefined) {
+export async function getResDataSum(filePath: string | undefined, flowVerifyPath?: string, computeGraphDirPath?: string) {
     if (!filePath) {
         return;
     }
     const outputDirPath = path.dirname(filePath) ?? '';
     
     let csvPath = '';
+    let accurancyDirPath = '';
 
-    if (computeGraphDirPath) {
+    if (flowVerifyPath) {
+        accurancyDirPath = flowVerifyPath;
+    } else if (computeGraphDirPath) {
         const parentDir = path.dirname(path.dirname(computeGraphDirPath));
         const csvFound = findCsvRecursive(parentDir);
         csvPath = csvFound;
+        accurancyDirPath = path.dirname(csvPath);
     }
-    const accurancyDirPath = path.dirname(csvPath);
   
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
@@ -269,15 +272,18 @@ async function getPassList(oriDirPath: string, filePath: string, computeGraphDir
     return passResult;
 }
 
-export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, computeGraphDirPath?: string) {
+export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, flowVerifyPath?: string, computeGraphDirPath?: string) {
     let csvPath = '';
+    let accurancyDirPath = '';
 
-    if (computeGraphDirPath) {
+    if (flowVerifyPath) {
+        accurancyDirPath = flowVerifyPath;
+    } else if (computeGraphDirPath) {
         const parentDir = path.dirname(path.dirname(computeGraphDirPath));
         const csvFound = findCsvRecursive(parentDir);
         csvPath = csvFound;
+        accurancyDirPath = path.dirname(csvPath);
     }
-    const accurancyDirPath = path.dirname(csvPath);
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
@@ -335,16 +341,20 @@ export async function getComGraphDataSum(
     funcMagicName: string, 
     pageSize: number = 30, 
     startOffset: number = 0, 
+    flowVerifyPath?: string,
     computeGraphDirPath?: string
 ) {
     let csvPath = '';
+    let accurancyDirPath = '';
 
-    if (computeGraphDirPath) {
+    if (flowVerifyPath) {
+        accurancyDirPath = flowVerifyPath;
+    } else if (computeGraphDirPath) {
         const parentDir = path.dirname(path.dirname(computeGraphDirPath));
         const csvFound = findCsvRecursive(parentDir);
         csvPath = csvFound;
+        accurancyDirPath = path.dirname(csvPath);
     }
-    const accurancyDirPath = path.dirname(csvPath);
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
@@ -365,15 +375,19 @@ export async function getComGraphDataSum(
     return comAccuracyData;
 }
 
-export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0, computeGraphDirPath?: string) {
+export async function searchKeyword(filePath: string, phaseName: string, funcMagicName: string, keyword = '', pageSize: number = 30, startOffset: number = 0, 
+                                    flowVerifyPath?: string, computeGraphDirPath?: string) {
     let csvPath = '';
+    let accurancyDirPath = '';
 
-    if (computeGraphDirPath) {
+    if (flowVerifyPath) {
+        accurancyDirPath = flowVerifyPath;
+    } else if (computeGraphDirPath) {
         const parentDir = path.dirname(path.dirname(computeGraphDirPath));
         const csvFound = findCsvRecursive(parentDir);
         csvPath = csvFound;
+        accurancyDirPath = path.dirname(csvPath);
     }
-    const accurancyDirPath = path.dirname(csvPath);
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
@@ -459,15 +473,18 @@ function formatDetailData(resultLog: string[]): any[] {
 
 export async function getComGraphDataDetail(filePath: string, phaseName: string, funcMagicName: string, 
                                             loopInfo: string, rawMagic: string, pageSize: number = 10000, startOffset: number = 0,
-                                            computation_path?: string) {
+                                            flowVerifyPath?: string, computeGraphDirPath?: string) {
     let csvPath = '';
+    let accurancyDirPath = '';
 
-    if (computation_path) {
-        const parentDir = path.dirname(path.dirname(computation_path));
+    if (flowVerifyPath) {
+        accurancyDirPath = flowVerifyPath;
+    } else if (computeGraphDirPath) {
+        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
         const csvFound = findCsvRecursive(parentDir);
         csvPath = csvFound;
+        accurancyDirPath = path.dirname(csvPath);
     }
-    const accurancyDirPath = path.dirname(csvPath);
 
     const logPath = path.join(accurancyDirPath, 'verify_graph_result_brief.log');
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
@@ -816,6 +833,7 @@ export async function getFailMagicList(
       curPassName,
       curFuncMagicNameString!,
       'FAIL',
+      flowVerifyPath,
       computeGraphDirPath,
     );
     const exceptionRawMagicList = await getComGraphRawMagic(
@@ -823,6 +841,7 @@ export async function getFailMagicList(
       curPassName,
       curFuncMagicNameString!,
       'EXCEPTION',
+      flowVerifyPath,
       computeGraphDirPath,
     );
     failMagicList = {
