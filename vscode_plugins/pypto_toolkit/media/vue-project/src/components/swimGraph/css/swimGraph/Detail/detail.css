@@ -307,7 +307,7 @@
   color: var(--devui-primary-text)
 }
 .start-value-key-truncate {
-  max-width: 71px;
+  max-width: 66px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

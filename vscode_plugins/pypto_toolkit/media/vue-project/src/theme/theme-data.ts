@@ -199,6 +199,10 @@ export const ideLightTheme = new Theme({
     'core-detail-connect-line': '#C9C9C9',
     'devui-performance-bg': '#c9c9c9',
     'devui-feedback-overlay-text': 'rgba(25, 25, 25, 1)',
+    'cube-rate-cycle-text': 'rgba(0, 111, 127, 1)',
+    'vec-rate-cycle-text': 'rgba(0, 114, 99, 1)',
+    'cube-rate-cycle-bg': 'rgba(0, 233, 255, 1)',
+    'vec-rate-cycle-bg': 'rgba(0, 240, 213, 1)',
   },
   isDark: false,
 });
@@ -399,6 +403,10 @@ export const ideDarkTheme = new Theme({
     'devui-page-active-bg': 'rgba(255,255,255,0.15)',
     'core-detail-connect-line': '#404040',
     'devui-performance-bg': '#262626',
+    'cube-rate-cycle-text': 'rgba(128, 210, 233, 1)',
+    'vec-rate-cycle-text': 'rgba(125, 214, 196, 1)',
+    'cube-rate-cycle-bg': 'rgba(0, 113, 133, 1)',
+    'vec-rate-cycle-bg': 'rgba(0, 117, 102, 1)',
   },
   isDark: true,
 });
