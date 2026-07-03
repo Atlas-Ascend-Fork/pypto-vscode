@@ -1,7 +1,7 @@
 <template>
   <div :class="['arrow-item', direction]">
     <div v-if="type === 'left' || type === 'both'" class="left-arrow"></div>
-    <div class="line"></div>
+    <div class="arrow-line"></div>
     <div v-if="type === 'right' || type === 'both'" class="right-arrow"></div>
   </div>
 </template>
@@ -24,7 +24,7 @@ defineProps(arrowItemProps);
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
   }
-  .line {
+  .arrow-line {
     flex: 1;
     height: 2px;
     background-color: var(--devui-icon);

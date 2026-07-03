@@ -24,7 +24,7 @@ defineProps(flowWaterProps);
 
   .arrow {
     :deep() {
-      .line {
+      .arrow-line {
         background-color: var(--devui-status-warning);
       }
       .right-arrow {
