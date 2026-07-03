@@ -201,7 +201,7 @@
               </template>
               <pmu-task-diagnosis v-else-if="selectedView === 'pmuDiagnosis' && showPmuDiagnosisTab" :event="canvasclickedEvent" />
             </div>
-            <div id="canvas-container" :style="{ height: selectedView === 'pmuDiagnosis' ? '386px' : '186px' }">
+            <div id="canvas-container" :style="{ height: selectedView === 'pmuDiagnosis' ? '492px' : '186px' }">
               <div class="mr10">
                 <div class="relevent">Relevent</div>
                 <div class="display-containner">
@@ -686,7 +686,7 @@ const showDependencies = (event, type) => {
   }
   const ctx = canvas.getContext('2d');
   // 去掉margin-left
-  const canvasWidth = canvasContainer.clientWidth - canvas.offsetLeft - layout.marginRight;
+  const canvasWidth = canvasContainer.clientWidth - layout.marginRight;
   const canvasHeight = Math.max(186, 20 * (Math.max(eventPredecessors.length, eventSuccessors.length) + 1));
   let actualWidth = canvasWidth / 5;
   setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
@@ -887,8 +887,12 @@ const initCanvasResizeObserver = () => {
   if (!canvasContainer) {
     return;
   }
+
+  if (!(canvasContainer instanceof Element)) {
+    return;
+  }
   
-  canvasResizeObserver = new ResizeObserver(() => {
+  canvasResizeObserver = new ResizeObserver((entries) => {
     if (selectedEvent.value) {
       showDependencies(selectedEvent.value, 'both');
     }
@@ -897,8 +901,12 @@ const initCanvasResizeObserver = () => {
   canvasResizeObserver.observe(canvasContainer);
 };
 
-onMounted(() => {
-  initCanvasResizeObserver();
+watch(detailsPanelExpanded, (newValue) => {
+  if (newValue && !canvasResizeObserver) {
+    nextTick(() => {
+      initCanvasResizeObserver();
+    });
+  }
 });
 
 onUnmounted(() => {
