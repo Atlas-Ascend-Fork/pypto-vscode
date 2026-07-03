@@ -2656,6 +2656,13 @@ const transformVerticalScroll = () => {
       childContextMap.threadEvent.clearDependencyLines(key);
     }
   }
+  clearTimeout(depLinesTimer);
+  renderDependencyLines();
+  timelineComponent.value.flagRender();
+  if (props.isThreeColumn) {
+    childContextMap.threadEvent.resizeDrawBoundary();
+    childContextMap.threadEvent.toggleLock();
+  }
   const depKey = selectedEvent.value?.pid?.toString();
   if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
     const process = processes.get(depKey);
@@ -2670,13 +2677,6 @@ const transformVerticalScroll = () => {
         childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
       }
     }
-  }
-  clearTimeout(depLinesTimer);
-  renderDependencyLines();
-  timelineComponent.value.flagRender();
-  if (props.isThreeColumn) {
-    childContextMap.threadEvent.resizeDrawBoundary();
-    childContextMap.threadEvent.toggleLock();
   }
   perfLogger.timeEnd('time of transformVerticalScroll');
 };
