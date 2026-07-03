@@ -458,6 +458,9 @@ export class AstgrNodeLabelView extends ShapeView {
           titleTxtFillColor = 'var(--devui-node-selected-text)';
         }
       }
+      if (node.isTokenNode) {
+        titleTxtFillColor = 'var(--devui-primary-text)';
+      }
       // 创建第一个text节点
       const titleText = (
         <text
@@ -733,6 +736,9 @@ export class AstgrOpView extends RectangularNodeView {
         backgroundFilter = 'grayscale(1)';
       }
     }
+    if (node.isTokenNode) {
+      backgroundFillColor = node.baseColor;
+    }
     let opSign;
     if (node.calleehash) {
       let svgName = '';
@@ -772,7 +778,7 @@ export class AstgrOpView extends RectangularNodeView {
         ></rect>
         {!isMiniType && opSign}
         {!isMiniType && context.renderChildren(node, args)}
-        {!isMiniType && badgeDom}
+        {!isMiniType && !node.isTokenNode && badgeDom}
       </g>
     );
   }

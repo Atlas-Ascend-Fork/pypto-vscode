@@ -52,6 +52,7 @@ export const ideLightTheme = new Theme({
     'devui-tensor-node-base-color': '#d3d4dc',
     'devui-tensor-node-light-color': '#5e657a',
     'devui-op-node-base-color': '#cbd4ec',
+    'devui-token-node-base-color': 'rgba(203,212,236,0.3)',
     'devui-op-node-light-color': '#4266a0',
     'devui-title-text': '#000000', // 标题文字
     'devui-operation-text-hover': '#0a59f7', // 操作文字悬浮色
@@ -252,6 +253,7 @@ export const ideDarkTheme = new Theme({
     'devui-tensor-node-base-color': '#6f727d',
     'devui-tensor-node-light-color': '#d1d4e1',
     'devui-op-node-base-color': '#5f729c',
+    'devui-token-node-base-color': 'rgba(95,114,156,0.3)',
     'devui-op-node-light-color': '#c0d4ff',
     'devui-title-text': '#ffffff', // 标题文字
     'devui-operation-text-hover': '#317af7', // 操作文字悬浮色

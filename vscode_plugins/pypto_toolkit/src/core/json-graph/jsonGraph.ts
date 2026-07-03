@@ -1315,7 +1315,7 @@ export class AscppDagBuilder {
             codeLine: undefined,
             layout: 'vbox',
             layoutOptions: { hAlign: 'center', vAlign: 'top' },
-            baseColor: 'rgba(246, 158, 57, 0.2)',
+            baseColor: 'var(--devui-token-node-base-color)',
             children,
             isEmptyNode: true,
             isTokenNode: true,
