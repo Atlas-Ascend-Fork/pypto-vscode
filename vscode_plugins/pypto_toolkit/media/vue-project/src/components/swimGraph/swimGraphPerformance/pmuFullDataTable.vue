@@ -215,7 +215,7 @@ const handleRowClick = async (task) => {
     if (isPathLockStatus.value || !task.event) {
         return;
     }
-    await clickTask(task.event);
+    await clickTask(task.event, true);
 };
 </script>
 

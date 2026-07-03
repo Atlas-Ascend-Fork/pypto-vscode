@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, nextTick, provide } from 'vue';
+import { ref, computed, inject, watch, nextTick, provide, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
 import { formatTimeWithUnit, COLOR_CFG, DEP_MODE, setupHighDPICanvas } from '../swimGraphUtils';
@@ -298,7 +298,7 @@ const {
 } = inject('swimGraphMethods');
 const { userConfig } = inject('swimGraphCfg');
 const { pmuValid } = inject('swimGraphPmuTotal') || { pmuValid: ref(false) };
-const { isFromPerformanceClick } = inject('swimGraphState');
+const { isFromPerformanceClick, isFromPerformancePmuTabClick } = inject('swimGraphState');
 const connectionLevel = computed({
   get: () => userConfig.get('connectionLevel') ?? -1,
   set: (value) => {
@@ -351,9 +351,11 @@ const hasPmuDiagnosisData = (event) => {
   if (!pmuValid?.value) {
     return false;
   }
-  const mixCondition = event?.parentEventId || event?.subEventIds;
-  if (mixCondition && !isFromPerformanceClick.value) {
-    return false;
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    const mixCondition = event?.parentEventId || event?.subEventIds;
+    if (mixCondition && !isFromPerformanceClick.value) {
+      return false;
+    }
   }
   const pmuInfo = event?.pmu_info;
   return !!pmuInfo && Object.keys(pmuInfo).length > 0 && Number(pmuInfo['total cycle']) > 0;
@@ -361,7 +363,7 @@ const hasPmuDiagnosisData = (event) => {
 const showPmuDiagnosisTab = computed(() => hasPmuDiagnosisData(canvasclickedEvent.value));
 const showPipeStatisticsTab = computed(() => !showPmuDiagnosisTab.value);
 const normalizeSelectedView = (event) => {
-  if (isFromPerformanceClick?.value && hasPmuDiagnosisData(event)) {
+  if (isFromPerformancePmuTabClick?.value && hasPmuDiagnosisData(event)) {
     if (selectedView.value === 'args' || selectedView.value === 'pipeStat') {
       selectedView.value = 'pmuDiagnosis';
     }
@@ -875,6 +877,34 @@ defineExpose({
   resetReleventState,
   showDependencies,
   showEventDetail,
+});
+
+let canvasResizeObserver = null;
+
+const initCanvasResizeObserver = () => {
+  const canvasContainer = document.getElementById('canvas-container');
+  if (!canvasContainer) {
+    return;
+  }
+  
+  canvasResizeObserver = new ResizeObserver(() => {
+    if (selectedEvent.value) {
+      showDependencies(selectedEvent.value, 'both');
+    }
+  });
+
+  canvasResizeObserver.observe(canvasContainer);
+};
+
+onMounted(() => {
+  initCanvasResizeObserver();
+});
+
+onUnmounted(() => {
+  if (canvasResizeObserver) {
+    canvasResizeObserver.disconnect();
+    canvasResizeObserver = null;
+  }
 });
 </script>
 

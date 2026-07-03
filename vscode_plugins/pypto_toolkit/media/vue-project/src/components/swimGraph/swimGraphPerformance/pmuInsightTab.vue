@@ -301,7 +301,7 @@ const clickPmuEvent = (event) => {
   if (!event || isPathLockStatus.value) {
     return;
   }
-  clickTask(event);
+  clickTask(event, true);
 };
 
 const handleFullDataTaskClick = (task) => {

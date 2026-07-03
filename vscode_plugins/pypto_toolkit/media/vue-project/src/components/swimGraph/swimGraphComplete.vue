@@ -288,6 +288,7 @@ const lineTooltipStyle = reactive({ display: 'none', left: '0px', top: '0px' });
 const pinnedMeasureInfo = reactive({ show: false, x: 0, y: 0, text: '' });
 const isMixMode = ref(true);
 const isFromPerformanceClick = ref(false);
+const isFromPerformancePmuTabClick = ref(false);
 const bindFile = ref(false);
 const bindButton = ref($t('bindComGraphJson'));
 const isSwimGraphActive = ref(false);
@@ -3429,6 +3430,7 @@ provide('swimGraphState', {
   isMixMode,
   globalConnectionCanvas,
   isFromPerformanceClick,
+  isFromPerformancePmuTabClick,
   hashOrderRending,
   freezeVisibleRange,
   focusedWrapId,

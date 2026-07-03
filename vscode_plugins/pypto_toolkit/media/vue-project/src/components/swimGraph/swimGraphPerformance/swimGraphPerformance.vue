@@ -335,6 +335,7 @@ const {
   isMixMode,
   canvasclickedEvent,
   isFromPerformanceClick,
+  isFromPerformancePmuTabClick,
   isMsProf
 } = inject('swimGraphState');
 
@@ -359,8 +360,9 @@ const TaskMinDuration = ref($t('TaskMinDuration'));
 const TaskMaxDuration = ref($t('TaskMaxDuration'));
 const PerformanceSummary = ref($t('PerformanceSummary'));
 
-const clickTask = async (clickEvent) => {
+const clickTask = async (clickEvent, fromTab3 = false) => {
   isFromPerformanceClick.value = true;
+  isFromPerformancePmuTabClick.value = fromTab3;
   let event = JSON.parse(JSON.stringify(clickEvent));
   if (isMaxSchedule.value) {
     resetMaxScheduleState();
