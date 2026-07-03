@@ -15,7 +15,7 @@
     在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002523427405.png)图标，打开PyPTO Toolkit，在运行结果界面中，单击“结果总览”。
 
     **图 1**  控制流图  
-    ![](../figures/控制流图.png "控制流图")
+    ![](../figures/workflow_graph.png "控制流图")
 
     控制流图中展示LOOP（循环节点）、IF（分支判断节点），以及PATH节点，及对应的执行关系。
 
