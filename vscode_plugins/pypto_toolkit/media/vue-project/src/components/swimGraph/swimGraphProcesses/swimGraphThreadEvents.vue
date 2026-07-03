@@ -348,6 +348,7 @@ const handleCanvasClick = (e) => {
       const wrapLabelHover = detectWrapLabelHover(x, y);
       if ((wrapLabelHover || wrapLabelHover === 0) && focusWrap) {
         focusWrap(wrapLabelHover);
+        detailsPanelExpanded.value = false;
         return;
       }
     }

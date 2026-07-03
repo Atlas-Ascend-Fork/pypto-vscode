@@ -340,6 +340,7 @@ const handleRowClick = async (task) => {
     padding: 0 4px;
     position: relative;
     box-sizing: border-box;
+    cursor: pointer;
 }
 
 .pmu-task-bar {

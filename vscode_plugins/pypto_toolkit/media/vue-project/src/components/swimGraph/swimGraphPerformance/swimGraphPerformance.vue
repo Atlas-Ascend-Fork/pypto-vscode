@@ -1125,7 +1125,7 @@ provide('swimGraphPmuBarMethod', {
 
 .cube-rate-cycle {
   height: 20px;
-  color: rgba(199, 98, 7, 1);
+  color: rgba(128, 210, 233, 1);
   font-size: 18px;
   font-weight: 700;
   line-height: 20px;
@@ -1133,7 +1133,7 @@ provide('swimGraphPmuBarMethod', {
 
 .vec-rate-cycle {
   height: 20px;
-  color: rgba(72, 142, 32, 1);
+  color: rgba(125, 214, 196, 1);
   font-size: 18px;
   font-weight: 700;
   line-height: 20px;
@@ -1152,16 +1152,16 @@ provide('swimGraphPmuBarMethod', {
   position: relative;
   height: 24px;
   border-radius: 4px;
-  background: rgba(199, 98, 7, 0.1);
-  border: 1px solid rgba(199, 98, 7, 0.5);
+  background: rgba(0, 113, 133, 0.3);
+  border: 1px solid rgba(0, 113, 133, 1);
 }
 
 .vector-time-bar {
   position: relative;
   height: 24px;
   border-radius: 4px;
-  background: rgba(72, 142, 32, 0.1);
-  border: 1px solid rgba(72, 142, 32, 0.5);
+  background: rgba(0, 117, 102, 0.3);
+  border: 1px solid rgba(0, 117, 102, 1);
   display: flex;
   flex-direction: row-reverse;
 }
@@ -1174,7 +1174,7 @@ provide('swimGraphPmuBarMethod', {
   left: 4px;
   bottom: 6px;
   z-index: 1;
-  color: white;
+  color: var(--devui-primary-text);
 }
 
 .vector-time-num {
@@ -1185,7 +1185,7 @@ provide('swimGraphPmuBarMethod', {
   right: 4px;
   bottom: 6px;
   z-index: 1;
-  color: white;
+  color: var(--devui-primary-text);
 }
 
 .time-statistics-tab-content {

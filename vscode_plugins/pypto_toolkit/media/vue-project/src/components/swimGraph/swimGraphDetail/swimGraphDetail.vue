@@ -44,7 +44,9 @@
                   <div class="pipe-line"></div>
                   <div class="pipe-hit">
                     <span>{{ $t('hitRate')}}</span>
-                    <span class="start-value-key">{{eventCacheHit}}</span>
+                    <d-tooltip :content="eventCacheHit">
+                      <span class="start-value-key start-value-key-truncate">{{eventCacheHit}}</span>
+                    </d-tooltip>
                   </div>
                 </div>
               </div>

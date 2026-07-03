@@ -34,9 +34,13 @@
             <div class="pmu-card-header">
               <div class="pmu-task-identity">
                 <span class="pmu-lane-name">{{ task.laneName }}</span>
-                <span class="pmu-task-name">{{ task.taskName }}</span>
+                <d-tooltip :content="task.taskName">
+                  <span class="pmu-task-name">{{ task.taskName }}</span>
+                </d-tooltip>
               </div>
-              <div class="pmu-wrap-badge">{{ task.wrapLabel }}</div>
+              <d-tooltip :content="task.wrapLabel">
+                <div class="pmu-wrap-badge">{{ task.wrapLabel }}</div>
+              </d-tooltip>
             </div>
             <div class="pmu-card-metrics">
               <span class="pmu-card-metric">{{ $t('pmuTotalCost') }}</span>
