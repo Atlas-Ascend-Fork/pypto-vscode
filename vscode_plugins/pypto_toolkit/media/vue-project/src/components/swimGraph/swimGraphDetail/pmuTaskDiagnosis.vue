@@ -1,28 +1,69 @@
 <template>
-  <div class="pmu-task-diagnosis">
+  <div class="pmu-task-diagnosis" ref="diagnosisRef" :class="{ 'ultra-compact-mode': isUltraCompactMode }">
     <template v-if="diagnosis.hasData">
-      <div class="pmu-summary-grid">
+      <div class="pmu-summary-grid" :class="{ 'compact-mode': isCompactMode, 'ultra-compact-mode': isUltraCompactMode }">
         <section class="pmu-summary-card pmu-group-card" :style="pmuGroupCardStyle">
           <span class="pmu-summary-label">{{ $t('pmuCollectionGroup') }}</span>
           <strong>{{ pmuGroupLabel }}</strong>
         </section>
         <div class="pmu-summary-combined">
-          <section class="pmu-summary-card">
-            <span class="pmu-summary-label">{{ $t('pmuTotalCost') }}</span>
-            <strong>{{ formatInteger(diagnosis.sampleCycles) }}</strong>
+          <section v-if="isUltraCompactMode" class="pmu-summary-card pmu-summary-ultra-merged">
+            <div class="pmu-ultra-merged-column">
+              <div class="pmu-ultra-merged-item">
+                <span class="pmu-summary-label">{{ $t('pmuTotalCost') }}</span>
+                <strong>{{ formatInteger(diagnosis.sampleCycles) }}</strong>
+              </div>
+              <div class="pmu-ultra-merged-item">
+                <span class="pmu-summary-label">{{ $t('pmuClockCycle') }}</span>
+                <strong>{{ formatInteger(diagnosis.computedCycles) }}</strong>
+              </div>
+              <div class="pmu-ultra-merged-item">
+                <span class="pmu-summary-label">{{ $t('pmuCycleGap') }}</span>
+                <strong :class="diagnosis.gapClass">
+                  {{ formatSignedInteger(diagnosis.cycleGap) }} · {{ formatSignedPercent(diagnosis.cycleGapRatio) }}
+                </strong>
+              </div>
+            </div>
           </section>
-          <div class="pmu-summary-divider"></div>
-          <section class="pmu-summary-card">
-            <span class="pmu-summary-label">{{ $t('pmuClockCycle') }}</span>
-            <strong>{{ formatInteger(diagnosis.computedCycles) }}</strong>
-          </section>
-          <div class="pmu-summary-divider"></div>
-          <section class="pmu-summary-card">
-            <span class="pmu-summary-label">{{ $t('pmuCycleGap') }}</span>
-            <strong :class="diagnosis.gapClass">
-              {{ formatSignedInteger(diagnosis.cycleGap) }} · {{ formatSignedPercent(diagnosis.cycleGapRatio) }}
-            </strong>
-          </section>
+          <template v-else-if="isCompactMode">
+            <section class="pmu-summary-card pmu-summary-merged">
+              <div class="pmu-merged-column">
+                <div class="pmu-merged-item">
+                  <span class="pmu-summary-label">{{ $t('pmuTotalCost') }}</span>
+                  <strong>{{ formatInteger(diagnosis.sampleCycles) }}</strong>
+                </div>
+                <div class="pmu-merged-item">
+                  <span class="pmu-summary-label">{{ $t('pmuClockCycle') }}</span>
+                  <strong>{{ formatInteger(diagnosis.computedCycles) }}</strong>
+                </div>
+              </div>
+            </section>
+            <div class="pmu-summary-divider"></div>
+            <section class="pmu-summary-card">
+              <span class="pmu-summary-label">{{ $t('pmuCycleGap') }}</span>
+              <strong :class="diagnosis.gapClass">
+                {{ formatSignedInteger(diagnosis.cycleGap) }} · {{ formatSignedPercent(diagnosis.cycleGapRatio) }}
+              </strong>
+            </section>
+          </template>
+          <template v-else>
+            <section class="pmu-summary-card">
+              <span class="pmu-summary-label">{{ $t('pmuTotalCost') }}</span>
+              <strong>{{ formatInteger(diagnosis.sampleCycles) }}</strong>
+            </section>
+            <div class="pmu-summary-divider"></div>
+            <section class="pmu-summary-card">
+              <span class="pmu-summary-label">{{ $t('pmuClockCycle') }}</span>
+              <strong>{{ formatInteger(diagnosis.computedCycles) }}</strong>
+            </section>
+            <div class="pmu-summary-divider"></div>
+            <section class="pmu-summary-card">
+              <span class="pmu-summary-label">{{ $t('pmuCycleGap') }}</span>
+              <strong :class="diagnosis.gapClass">
+                {{ formatSignedInteger(diagnosis.cycleGap) }} · {{ formatSignedPercent(diagnosis.cycleGapRatio) }}
+              </strong>
+            </section>
+          </template>
         </div>
       </div>
 
@@ -72,7 +113,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref } from 'vue';
+import { computed, inject, ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -85,6 +126,61 @@ const props = defineProps({
 const { t: $t } = useI18n();
 const { isDarkTheme } = inject('root', { isDarkTheme: ref(true) });
 const PMU_GROUP_CARD_ASSET_BASE = `${window.staticPath}/static-assets/pmu/group-card`;
+
+const diagnosisRef = ref(null);
+const containerWidth = ref(0);
+const isCompactMode = computed(() => containerWidth.value < 1378 && containerWidth.value >= 1218 && containerWidth.value > 0);
+const isUltraCompactMode = computed(() => containerWidth.value < 1218 && containerWidth.value > 0);
+
+let resizeObserver = null;
+
+onMounted(() => {
+  if (diagnosisRef.value) {
+    let parentContainer = diagnosisRef.value.parentElement;
+    while (parentContainer && !parentContainer.classList.contains('detail-main-container')) {
+      parentContainer = parentContainer.parentElement;
+    }
+
+    if (parentContainer) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          containerWidth.value = entry.contentRect.width;
+        }
+      });
+      resizeObserver.observe(parentContainer);
+      containerWidth.value = parentContainer.getBoundingClientRect().width;
+    } else {
+      parentContainer = diagnosisRef.value.parentElement;
+      while (parentContainer && !parentContainer.classList.contains('details-content')) {
+        parentContainer = parentContainer.parentElement;
+      }
+
+      if (parentContainer) {
+        resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            containerWidth.value = entry.contentRect.width;
+          }
+        });
+        resizeObserver.observe(parentContainer);
+        containerWidth.value = parentContainer.getBoundingClientRect().width;
+      } else {
+        resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            containerWidth.value = entry.contentRect.width;
+          }
+        });
+        resizeObserver.observe(diagnosisRef.value);
+        containerWidth.value = diagnosisRef.value.getBoundingClientRect().width;
+      }
+    }
+  }
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
 
 const PMU_SORT_COLORS = [
   '#ff9f35',
@@ -101,50 +197,43 @@ const PMU_COUNTER_META = [
     key: 'mte2_busy_cycles',
     sourceKeys: ['mte2_busy_cycles', 'mte2_instr_busy'],
     displayName: 'mte2_instr_busy',
-    path: 'Global Memory -> L1',
-    explainKey: 'pmuBCounterMte2Explain'
+    path: 'Global Memory -> L1'
   },
   {
     key: 'cube_busy_cycles',
     sourceKeys: ['cube_busy_cycles', 'cube_instr_busy'],
     displayName: 'cube_instr_busy',
-    path: 'Cube',
-    explainKey: 'pmuBCounterCubeExplain'
+    path: 'Cube'
   },
   {
     key: 'scalar_busy_cycles',
     sourceKeys: ['scalar_busy_cycles', 'scalar_instr_busy'],
     displayName: 'scalar_instr_busy',
-    path: 'Scalar',
-    explainKey: 'pmuBCounterScalarExplain'
+    path: 'Scalar'
   },
   {
     key: 'mte1_busy_cycles',
     sourceKeys: ['mte1_busy_cycles', 'mte1_instr_busy'],
     displayName: 'mte1_instr_busy',
-    path: 'L1 -> L0A/L0B',
-    explainKey: 'pmuBCounterMte1Explain'
+    path: 'L1 -> L0A/L0B'
   },
   {
     key: 'mte3_busy_cycles',
     sourceKeys: ['mte3_busy_cycles', 'mte3_instr_busy'],
     displayName: 'mte3_instr_busy',
-    path: 'L0C/UB -> Global Memory',
-    explainKey: 'pmuBCounterMte3Explain'
+    path: 'L0C/UB -> Global Memory'
   },
   {
     key: 'pmu_fix_instr_busy',
     sourceKeys: ['pmu_fix_instr_busy'],
     displayName: 'pmu_fix_instr_busy',
-    path: 'Fixed Instruction',
-    explainKey: 'pmuCounterFixExplain'
+    path: 'Fixed Instruction'
   },
   {
     key: 'vec_busy_cycles',
     sourceKeys: ['vec_busy_cycles', 'pmu_idc_aic_vec_busy_o'],
     displayName: 'pmu_idc_aic_vec_busy_o',
-    path: 'AIV Vector',
-    explainKey: 'pmuBCounterVecExplain'
+    path: 'AIV Vector'
   }
 ];
 
@@ -206,8 +295,7 @@ const diagnosis = computed(() => {
       ...counter,
       value,
       available,
-      ratio: 0,
-      explain: $t(counter.explainKey)
+      ratio: 0
     };
   });
   
@@ -338,6 +426,157 @@ function formatOptionalInteger(value) {
   min-width: 564px;
 }
 
+.pmu-summary-grid.compact-mode {
+  grid-template-columns: 156px 310px;
+  min-width: 514px;
+
+  .pmu-summary-combined {
+    width: 310px;
+  }
+
+  .pmu-summary-merged {
+    width: 100%;
+  }
+
+  .pmu-merged-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    height: 100%;
+    width: 100%;
+  }
+
+  .pmu-merged-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+    .pmu-summary-label {
+      font-size: 11px;
+      line-height: 16px;
+      min-width: 70px;
+    }
+
+    strong {
+      font-size: 13px;
+      line-height: 22px;
+    }
+  }
+
+  .pmu-summary-combined .pmu-summary-card:last-child {
+    min-width: 140px;
+    max-width: 140px;
+    flex: 0 0 140px;
+  }
+}
+
+.pmu-summary-grid.ultra-compact-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 300px;
+  width: 300px;
+
+  .pmu-group-card {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-sizing: border-box;
+
+    &::before,
+    &::after {
+      display: none !important;
+    }
+
+    .pmu-summary-label {
+      white-space: nowrap;
+    }
+
+    strong {
+      white-space: nowrap;
+    }
+  }
+
+  .pmu-summary-combined {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+    min-height: 100px;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+
+  .pmu-summary-ultra-merged {
+    width: 100%;
+    padding: 0;
+  }
+
+  .pmu-ultra-merged-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+    width: 100%;
+    padding: 8px 0;
+  }
+
+  .pmu-ultra-merged-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    .pmu-summary-label {
+      font-size: 12px;
+      line-height: 16px;
+      min-width: 70px;
+    }
+
+    strong {
+      font-size: 13px;
+      line-height: 18px;
+    }
+  }
+}
+
+.pmu-task-diagnosis:has(.compact-mode) {
+  .pmu-stack-bar,
+  .pmu-counter-list,
+  .pmu-cache-metrics {
+    min-width: 464px;
+  }
+}
+
+.pmu-task-diagnosis.ultra-compact-mode {
+  .pmu-stack-bar,
+  .pmu-counter-list,
+  .pmu-cache-metrics {
+    min-width: 300px !important;
+  }
+
+  .pmu-counter-row {
+    grid-template-columns: 22px minmax(100px, 1fr) 60px 50px;
+    height: 24px;
+
+    .pmu-counter-name {
+      font-size: 13px;
+    }
+
+    .pmu-counter-value,
+    .pmu-counter-percent {
+      font-size: 13px;
+    }
+  }
+}
+
 .pmu-summary-combined {
   display: flex;
   align-items: stretch;
@@ -377,7 +616,7 @@ function formatOptionalInteger(value) {
 .pmu-group-card {
   position: relative;
   overflow: hidden;
-  width: 156px;
+  width: 157px;
   min-width: 156px;
   background: rgba(255, 255, 255, 0.05);
 }

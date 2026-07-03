@@ -6,7 +6,7 @@ import { t } from 'i18next';
 import { readCompressedFile, runCompress } from '@pypto/data-compress';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
-import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, saveCompressedDataPathToDB, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll} from '../process';
+import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, saveCompressedDataPathToDB, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll, checkPmuDataValid} from '../process';
 import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';
 import * as vscode from 'vscode';
@@ -229,10 +229,10 @@ export abstract class SwimGraphMsgHandler {
           let pmuInfo = {};
           let pmuExist = false;
           let pmuTotal:any = {};
+          let pmuData = '';
           if (existsSync(pmuPath)) {
             //tilefwk_prof_pmu.csv文件存在
             pmuExist = true;
-            let pmuData = '';
             try {
               pmuData = readFileSync(pmuPath, 'utf8');
               console.log('读取pmu文件');
@@ -351,6 +351,12 @@ export abstract class SwimGraphMsgHandler {
           
           if (pmuExist) {
             swimData.pmu_total = pmuTotal;
+            let pmuHeaders: string[] = [];
+            if (pmuData != '') {
+              const firstLine = pmuData.split('\n')[0];
+              pmuHeaders = firstLine.split(',').map((header: string) => header.trim());
+            }
+            swimData.pmuValid = checkPmuDataValid(pmuTotal, pmuHeaders);
           }
     
           swimData.counterEvents = [];

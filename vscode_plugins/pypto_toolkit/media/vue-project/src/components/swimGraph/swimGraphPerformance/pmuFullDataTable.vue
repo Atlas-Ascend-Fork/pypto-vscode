@@ -116,9 +116,9 @@
             <span class="pmu-task-bar-id">{{ task.taskName }}</span>
           </div>
 
-          <span class="pmu-gap-text">{{ task.gapText}}</span>
+          <span class="pmu-gap-text" :style="{ marginLeft: isWideScreen ? '80px' : '24px' }">{{ task.gapText}}</span>
 
-          <span class="pmu-gap-ratio">{{ task.gapRatio}}</span>
+          <span class="pmu-gap-ratio" :style="{ marginLeft: isWideScreen ? '80px' : '24px' }">{{ task.gapRatio}}</span>
 
           <div class="pmu-row-divider"></div>
         </div>
@@ -144,7 +144,7 @@ const props = defineProps ({
 const emit = defineEmits(['back']);
 
 const { t: $t } = useI18n();
-const { isPathLockStatus, isDarkTheme } = inject('swimGraphState');
+const { isPathLockStatus, isDarkTheme, isWideScreen } = inject('swimGraphState');
 const { clickTask } = inject('swimGraphPmuBarMethod', { clickTask: () => {} });
 
 const sortDirection = ref('desc');
@@ -380,8 +380,8 @@ const handleRowClick = async (task) => {
         border-radius: 2px;
         background: repeating-linear-gradient(
             135deg,
-            var(--shadow-color-2) 0px,
-            var(--shadow-color-2) 2px,
+            var(--shadow-color-1) 0px,
+            var(--shadow-color-1) 2px,
             var(--shadow-color-2) 2px,
             var(--shadow-color-2) 4px
         );
@@ -412,7 +412,6 @@ const handleRowClick = async (task) => {
 }
 
 .pmu-gap-text{
-    margin-left: 24px;
     color: var(--devui-text);
     font-size: 13px;
     min-width: 45px;
@@ -420,7 +419,6 @@ const handleRowClick = async (task) => {
 }
 
 .pmu-gap-ratio{
-    margin-left: 24px;
     color: var(--devui-text);
     font-size: 13px;
     min-width: 45px;

@@ -39,7 +39,7 @@
                 </d-tooltip>
               </div>
               <d-tooltip :content="task.wrapLabel">
-                <div class="pmu-wrap-badge">{{ task.wrapLabel }}</div>
+                <div v-if="task.event.args?.wrapId !== undefined && task.event.args?.wrapId !== null" class="pmu-wrap-badge">{{ task.wrapLabel }}</div>
               </d-tooltip>
             </div>
             <div class="pmu-card-metrics">
@@ -235,7 +235,11 @@ const collectPmuTasks = () => {
 };
 
 const buildPmuGapTasks = (tasks, limit = 5) => {
-  const sortedTasks = [...tasks].sort((left, right) => {
+  const filteredTasks = limit > 0 
+    ? tasks.filter(task => task.calculatedCycle < task.totalCycle)
+    : tasks;
+
+  const sortedTasks = [...filteredTasks].sort((left, right) => {
     const leftRatio = left.totalCycle > 0 ? Math.abs((left.calculatedCycle - left.totalCycle) / left.totalCycle) : 0;
     const rightRatio = right.totalCycle > 0 ? Math.abs((right.calculatedCycle - right.totalCycle) / right.totalCycle) : 0;
     return rightRatio - leftRatio;

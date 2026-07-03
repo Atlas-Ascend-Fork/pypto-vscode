@@ -435,6 +435,7 @@ const searchQuery = ref('');
 const isCaseSensitive = ref(false);
 
 const pmuTotal = ref({});
+const pmuValid = ref(false);
 const timeInfo = ref({});
 
 const performanceVisible = ref(false);
@@ -773,6 +774,7 @@ const splitThreadsByEventName = (process, processKey) => {
 
 const processTraceData = (data) => {
   pmuTotal.value = data.pmu_total;
+  pmuValid.value = data.pmuValid || false;
   timeInfo.value = data.timeInfo;
   let isFirst = true;
   let firstExpanded = true;
@@ -3330,7 +3332,7 @@ provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, s
 provide('swimGraphCfg', { userConfig });
 
 // provide pmu info
-provide('swimGraphPmuTotal', { pmuTotal});
+provide('swimGraphPmuTotal', { pmuTotal, pmuValid });
 
 // 提供置顶线程状态
 provide('swimGraphPinnedState', {

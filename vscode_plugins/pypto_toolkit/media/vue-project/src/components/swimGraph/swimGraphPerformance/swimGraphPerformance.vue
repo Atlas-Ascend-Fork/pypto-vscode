@@ -205,7 +205,7 @@
           <time-statistics/>
         </div>
       </d-tab>
-      <d-tab id="tab3" title="PMU">
+      <d-tab id="tab3" v-if="pmuValid" title="PMU">
         <pmu-insight-tab
           :performance-width="performanceWidth"
           :sub-container-width="subContainerWidth"
@@ -290,7 +290,8 @@ const minTimeTask = ref([]);
 const minTimeTaskVal = ref(0);
 
 const {
-  pmuTotal
+  pmuTotal,
+  pmuValid
 } = inject('swimGraphPmuTotal');
 
 const {
@@ -424,7 +425,7 @@ const rightSchedulingGapContainerWidth =ref(308);
 const gapLineWidth = ref(173.5);
 
 SchedulingGap.value = isWideScreen.value? $t('SchedulingGap') : '';
-subContainerWidth.value = isWideScreen.value? 480 : 330;
+subContainerWidth.value = isWideScreen.value? 440 : 330;
 subContainerGap.value = isWideScreen.value? 16 : 8;
 innerContainerWidth.value = isWideScreen.value? 109 : 101;
 timeConsumingTaskWidth.value = isWideScreen.value? 276 : 123;
@@ -432,7 +433,7 @@ cubeDataChartWidth.value = isWideScreen.value? 450 : 270;
 cubeTimeWidth.value = isWideScreen.value? 243 : 133;
 vectorTimeWidth.value = isWideScreen.value? 243 : 133;
 aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
-rightSchedulingGapContainerWidth.value = isWideScreen.value? 308: 130;
+rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
 gapLineWidth.value = isWideScreen.value? 213.5 : 66.5;
 
 const baseColor = (event) => {

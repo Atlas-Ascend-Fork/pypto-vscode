@@ -485,6 +485,43 @@ const calculateDependencies = (events, connections) => {
     }
   }
 
+
+const PMU_REQUIRED_FIELDS = [
+  'pmu_idc_aic_vec_busy_o', 'cube_instr_busy', 'scalar_instr_busy',
+  'mte1_instr_busy', 'mte2_instr_busy', 'mte3_instr_busy',
+  'pmu_fix_instr_busy', 'icache_req', 'icache_miss'
+];
+
+export function checkPmuDataValid(pmuTotal: any, csvHeaders?: string[]): boolean {
+  if (!pmuTotal || Object.keys(pmuTotal).length === 0) {
+    return false;
+  }
+
+  if (csvHeaders && csvHeaders.length > 0) {
+    const missingFields = PMU_REQUIRED_FIELDS.filter(field => !csvHeaders.includes(field));
+    if (missingFields.length > 0) {
+      return false;
+    }
+  }
+
+  if (!pmuTotal['total cycle'] || Number(pmuTotal['total cycle']) === 0) {
+    return false;
+  }
+
+  const busyCycleFields = ['vec_busy_cycles', 'cube_busy_cycles', 'scalar_busy_cycles',
+                           'mte1_busy_cycles', 'mte2_busy_cycles', 'mte3_busy_cycles'];
+  const hasValidBusyCycle = busyCycleFields.some(field => {
+    const value = pmuTotal[field];
+    return value !== undefined && value !== '' && Number(value) > 0;
+  });
+
+  if (!hasValidBusyCycle) {
+    return false;
+  }
+
+  return true;
+};
+
   async function validate(event:any) {
     const errorMsg: any = {};
 
@@ -989,6 +1026,7 @@ const calculateDependencies = (events, connections) => {
       writeStream.write(`"minTs": ${obj.minTs}, \n`);
       writeStream.write(`"lane2line": ${JSON.stringify(obj.lane2line)},\n`);
       writeStream.write(`"pmu_total": ${JSON.stringify(obj.pmu_total)},\n`);
+      writeStream.write(`"pmuValid": ${JSON.stringify(obj.pmuValid)},\n`);
       writeStream.write(`"timeInfo": ${JSON.stringify(obj.timeInfo)}`);
       if (obj.colorRendering) {
         writeStream.write(`,\n"colorRendering": ${JSON.stringify(obj.colorRendering)}`);

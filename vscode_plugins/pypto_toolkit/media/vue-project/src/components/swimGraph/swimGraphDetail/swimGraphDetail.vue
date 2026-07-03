@@ -201,7 +201,7 @@
               </template>
               <pmu-task-diagnosis v-else-if="selectedView === 'pmuDiagnosis' && showPmuDiagnosisTab" :event="canvasclickedEvent" />
             </div>
-            <div id="canvas-container">
+            <div id="canvas-container" :style="{ height: selectedView === 'pmuDiagnosis' ? '386px' : '186px' }">
               <div class="mr10">
                 <div class="relevent">Relevent</div>
                 <div class="display-containner">
@@ -297,6 +297,8 @@ const {
   overflowText
 } = inject('swimGraphMethods');
 const { userConfig } = inject('swimGraphCfg');
+const { pmuValid } = inject('swimGraphPmuTotal') || { pmuValid: ref(false) };
+const { isFromPerformanceClick } = inject('swimGraphState');
 const connectionLevel = computed({
   get: () => userConfig.get('connectionLevel') ?? -1,
   set: (value) => {
@@ -346,20 +348,27 @@ const selectView = (view) => {
   selectedView.value = view;
 };
 const hasPmuDiagnosisData = (event) => {
+  if (!pmuValid?.value) {
+    return false;
+  }
+  const mixCondition = event?.parentEventId || event?.subEventIds;
+  if (mixCondition && !isFromPerformanceClick.value) {
+    return false;
+  }
   const pmuInfo = event?.pmu_info;
   return !!pmuInfo && Object.keys(pmuInfo).length > 0 && Number(pmuInfo['total cycle']) > 0;
 };
 const showPmuDiagnosisTab = computed(() => hasPmuDiagnosisData(canvasclickedEvent.value));
 const showPipeStatisticsTab = computed(() => !showPmuDiagnosisTab.value);
 const normalizeSelectedView = (event) => {
-  if (hasPmuDiagnosisData(event)) {
+  if (isFromPerformanceClick?.value && hasPmuDiagnosisData(event)) {
     if (selectedView.value === 'args' || selectedView.value === 'pipeStat') {
       selectedView.value = 'pmuDiagnosis';
     }
     return;
   }
   if (selectedView.value === 'pmuDiagnosis') {
-    selectedView.value = 'pipeStat';
+    selectedView.value = 'args';
   }
 };
 const getEventCacheHit = (event) => {
@@ -884,6 +893,17 @@ defineExpose({
   min-height: 186px;
   max-height: 528px;
   overflow: auto;
+  min-width: 464px;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.pmu-content-host:has(.ultra-compact-mode) {
+  min-width: 300px;
+}
+
+.detail-main-container:has(.ultra-compact-mode) {
+  width: 100% !important;
 }
 
 .pmu-content-host .content-args-head {
