@@ -356,6 +356,7 @@ const onDiffItemClick = ({ data, source }: { data: OpCompareItem | null; source:
       ? {
           aFuncMagic: data.aOp.aFuncMagic,
           aFuncHash: data.aOp.aFuncHash,
+          aRootFuncHash: data.aOp.aRootFuncHash,
           aPhaseName: data.aOp.aPhaseName,
           aOpMagic: data.aOp.aOpMagic,
           aFileName: data.aOp.aFileName,
@@ -370,6 +371,7 @@ const onDiffItemClick = ({ data, source }: { data: OpCompareItem | null; source:
       ? {
           bFuncMagic: data.bOp.bFuncMagic,
           bFuncHash: data.bOp.bFuncHash,
+          bRootFuncHash: data.bOp.bRootFuncHash,
           bPhaseName: data.bOp.bPhaseName,
           bOpMagic: data.bOp.bOpMagic,
           bFileName: data.bOp.bFileName,
@@ -397,6 +399,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
   // 根据 source 决定取哪个 Op 的值
   const isLeft = detailData.source === 'left';
   const funcHash = isLeft ? detailData.aOp?.aFuncHash || '' : detailData.bOp?.bFuncHash || '';
+  const rootFuncHash = isLeft ? detailData.aOp?.aRootFuncHash || '' : detailData.bOp?.bRootFuncHash || '';
   const passName = isLeft ? detailData.aOp?.aPhaseName || '' : detailData.bOp?.bPhaseName || '';
   const loopInfo = detailData.sharedRes?.loopInfo || '';
   const funcMagicName = detailData.sharedRes?.pathFuncMagicName || '';
@@ -416,6 +419,7 @@ const onJumpToGraph = async (data: { detailData: PrecisionDetailData; cmpCsvPath
     await server.openCmpDiffComGraphApi({
       filePath: data.cmpCsvPath,
       funcHash,
+      rootFuncHash,
       passName,
       funcMagicName,
       loopInfo,

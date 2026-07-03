@@ -338,6 +338,7 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
   openCmpDiffComGraphApi: (data: {
     filePath: string;
     funcHash: string;
+    rootFuncHash?: string;
     passName: string;
     funcMagicName: string;
   }) => Promise<void>;

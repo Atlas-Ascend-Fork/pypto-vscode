@@ -130,6 +130,7 @@ export interface OpData {
   aFormat?: string;
   aFuncMagic?: string;
   aFuncHash?: string;
+  aRootFuncHash?: string;
   aOpcode?: string;
   aOpMagic?: string;
   aPhaseName?: string;
@@ -139,6 +140,7 @@ export interface OpData {
   bFormat?: string;
   bFuncMagic?: string;
   bFuncHash?: string;
+  bRootFuncHash?: string;
   bOpcode?: string;
   bOpMagic?: string;
   bPhaseName?: string;
@@ -216,6 +218,7 @@ const isFirstFail = (id: string) => {
 const labelNameMap: Record<string, string> = {
   aFormat: 'Format',
   aFuncMagic: 'FuncMagic',
+  aRootFuncHash: 'RootFuncHash',
   aOpcode: 'Opcode',
   aOpMagic: 'OpMagic',
   aPhaseName: 'PhaseName',
@@ -223,6 +226,7 @@ const labelNameMap: Record<string, string> = {
   aFileName: 'FileName',
   bFormat: 'Format',
   bFuncMagic: 'FuncMagic',
+  bRootFuncHash: 'RootFuncHash',
   bOpcode: 'Opcode',
   bOpMagic: 'OpMagic',
   bPhaseName: 'PhaseName',
@@ -237,6 +241,7 @@ const labelNameMap: Record<string, string> = {
   pathFuncMagicName: 'PathFuncMagic',
   opAttrSymOffset: 'OpAttrSymOffset',
   rawShape: 'RawShape',
+  rootFuncHash: 'RootFuncHash',
 };
 
 const getLabelName = (key: string) => {
@@ -254,6 +259,9 @@ const getDetailValue = (item: OpCompareItem, key: string, side: 'left' | 'right'
   if (key === 'rawShape') {
     return side === 'left' ? (item.aOp as any)?.aRawShape || '-' : (item.bOp as any)?.bRawShape || '-';
   }
+  if (key === 'rootFuncHash') {
+    return side === 'left' ? (item.aOp as any)?.aRootFuncHash || '-' : (item.bOp as any)?.bRootFuncHash || '-';
+  }
   return (item.sharedRes as any)?.[key] || '-';
 };
 
@@ -265,7 +273,7 @@ const formatOpMagic = (magic: string | undefined) => {
 };
 
 // 展开详情只显示这些字段
-const detailFields = ['symbol', 'loopInfo', 'shape', 'format', 'validShape', 'dataType', 'pathFuncMagicName', 'opAttrSymOffset', 'rawShape'];
+const detailFields = ['symbol', 'loopInfo', 'shape', 'format', 'validShape', 'dataType', 'pathFuncMagicName', 'opAttrSymOffset', 'rawShape', 'rootFuncHash'];
 
 const onSearch = (value: string) => {
   searchKeyword.value = value;

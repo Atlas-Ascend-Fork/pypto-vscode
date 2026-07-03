@@ -86,6 +86,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
           bFuncMagic: row['B>FUNC:funcmagic'],
           bFuncHash: row['B>FUNC:hash']?.endsWith("'") ? row['B>FUNC:hash'].slice(0, -1) : row['B>FUNC:hash'],
+          bRootFuncHash: row['B>ROOT_FUNC:hash']?.endsWith("'") ? row['B>ROOT_FUNC:hash'].slice(0, -1) : row['B>ROOT_FUNC:hash'],
           bOpMagic: row['B>:opmagic'],
           bOpcode: row['B>:opcode'],
           bShape: row['B>:shape'],
@@ -96,6 +97,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           // A组信息
           aPhaseName: row['A>PHASE_NAME'],
           aFuncHash: row['A>FUNC:hash']?.endsWith("'") ? row['A>FUNC:hash'].slice(0, -1) : row['A>FUNC:hash'],
+          aRootFuncHash: row['A>ROOT_FUNC:hash']?.endsWith("'") ? row['A>ROOT_FUNC:hash'].slice(0, -1) : row['A>ROOT_FUNC:hash'],
           aFuncMagic: row['A>FUNC:funcmagic'],
           aOpMagic: row['A>:opmagic'],
           aOpcode: row['A>:opcode'],

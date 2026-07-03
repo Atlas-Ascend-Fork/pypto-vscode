@@ -64,6 +64,7 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
   public openCmpDiffComGraphApi = async (data: {
     filePath: string;
     funcHash: string;
+    rootFuncHash?: string;
     passName: string;
     funcMagicName: string;
     loopInfo?: string;
@@ -71,10 +72,10 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
   }) => {
-    const { filePath, funcHash, passName, funcMagicName, loopInfo, fileType, computeGraphDirPath, flowVerifyPath } = data;
+    const { filePath, funcHash, rootFuncHash, passName, funcMagicName, loopInfo, fileType, computeGraphDirPath, flowVerifyPath } = data;
     
     try {
-      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, loopInfo, fileType, filePath, computeGraphDirPath, flowVerifyPath);
+      await openCmpDiffComGraph(filePath, funcHash, passName, funcMagicName, loopInfo, fileType, filePath, computeGraphDirPath, flowVerifyPath, rootFuncHash);
     } catch (error) {
       console.error('[OpCheckViewServer] openCmpDiffComGraph error:', error);
     }

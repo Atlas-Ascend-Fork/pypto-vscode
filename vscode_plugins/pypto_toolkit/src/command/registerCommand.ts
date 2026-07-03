@@ -77,7 +77,7 @@ export class RegisterCommand {
     ];
   }
 
-  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string) {
+  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string) {
     const content = ((await readFirstNLines(uri.fsPath, 10)) as string[]).join('');
     const { editorView } = useView();
     if (content.includes('entryhash')) {
@@ -88,6 +88,7 @@ export class RegisterCommand {
         fileType: fileType,
         loopInfo: loopInfo,
         outputPath: cmpCsvPath,
+        rootFuncHash: rootFuncHash,
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), {
         query: finalQuery,

@@ -305,7 +305,8 @@ export async function getComGraphOpMagic(
     funcMagicName?: string,
     comgraphFuncHash?: string,
     filePassName?: string,
-    keyword: string = ''
+    keyword: string = '',
+    rootFuncHash?: string
   ): Promise<{ wrongOpMagicList: number[]; failRes: number, updateFlag: boolean}> {
     const filePath = directoryPath;
     if (!filePath || filePath.length === 0) {
@@ -315,7 +316,7 @@ export async function getComGraphOpMagic(
     let failCount = -1;
     failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
 
-    const result = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, 10000, 0, '', funcMagicName, comgraphFuncHash, filePassName);
+    const result = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, 10000, 0, '', funcMagicName, comgraphFuncHash, filePassName, rootFuncHash);
 
     const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
     const fileCol = accurancyLevel?.fileType.split('_')[1];
@@ -764,6 +765,7 @@ export async function openCmpDiffComGraph(
     cmpCsvPath?: string,
     computeGraphDirPath?: string,
     flowVerifyPath?: string,
+    rootFuncHash?: string,
   ): Promise<void> {
     let parentDir: string = '';
 
@@ -812,7 +814,7 @@ export async function openCmpDiffComGraph(
     const directPath = path.join(passSubDir, targetComgraph);
   
     // 步骤8：调用 VSCode 命令打开计算图，传递 fileType 和 cmpCsvPath 参数
-    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo);
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash);
 }
 
 export async function setCurAccuFilePath(fileInfo: any) {
@@ -837,6 +839,7 @@ export async function getFailMagicList(
   fileType?: string,
   flowVerifyPath?: string,
   computeGraphDirPath?: string,
+  rootFuncHash?: string,
 ) {
 
   let failMagicList;
@@ -863,7 +866,7 @@ export async function getFailMagicList(
     const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
     const funcMagicName = graphFileName.match(/^.*?_.*?_.*?_(.*?)_LEAF/)?.[1];
 
-    const failOpMagicList = await getComGraphOpMagic(csvPath, funcMagicName, comgraphFuncHash, filePassName, loopInfo);
+    const failOpMagicList = await getComGraphOpMagic(csvPath, funcMagicName, comgraphFuncHash, filePassName, loopInfo, rootFuncHash);
     failMagicList = {
       accuType: 'op',
       failMagicList: failOpMagicList.wrongOpMagicList,

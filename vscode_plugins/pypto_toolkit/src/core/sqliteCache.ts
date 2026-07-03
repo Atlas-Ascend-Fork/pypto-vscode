@@ -179,6 +179,7 @@ export interface AccuracyToolCmpData {
   aShape?: string;
   aFormat?: string;
   aFuncHash?: string;
+  aRootFuncHash?: string;
   aFuncMagic?: string;
   aFileName?: string;
   aMax?: string;
@@ -195,6 +196,7 @@ export interface AccuracyToolCmpData {
   bFormat?: string;
   bFuncMagic?: string;
   bFuncHash?: string;
+  bRootFuncHash?: string;
   bFileName?: string;
   bTimestamp?: string;
   bMax?: string;
@@ -386,6 +388,7 @@ export class SQLiteCache {
         "B>TIMESTAMP" TEXT NOT NULL,
         "B>FUNC:funcmagic" TEXT NOT NULL,
         "B>FUNC:hash" TEXT NOT NULL,
+        "B>ROOT_FUNC:hash" TEXT NOT NULL,
         "B>:opmagic" TEXT NOT NULL,
         "B>:opcode" TEXT NOT NULL,
         "B>:rawshape" TEXT NOT NULL,
@@ -401,6 +404,7 @@ export class SQLiteCache {
         "A>PHASE_NAME" TEXT NOT NULL,
         "A>FUNC:funcmagic" TEXT NOT NULL,
         "A>FUNC:hash" TEXT NOT NULL,
+        "A>ROOT_FUNC:hash" TEXT NOT NULL,
         "A>:opmagic" TEXT NOT NULL,
         "A>:opcode" TEXT NOT NULL,
         "A>:rawshape" TEXT NOT NULL,
@@ -1434,6 +1438,7 @@ export class SQLiteCache {
         "A>:format",
         "A>FUNC:funcmagic",
         "A>FUNC:hash",
+        "A>ROOT_FUNC:hash",
         "A>FILENAME",
         "A>max",
         "A>min",
@@ -1448,6 +1453,7 @@ export class SQLiteCache {
         "B>:format",
         "B>FUNC:funcmagic",
         "B>FUNC:hash",
+        "B>ROOT_FUNC:hash",
         "B>FILENAME",
         "B>max",
         "B>min",
@@ -1466,7 +1472,7 @@ export class SQLiteCache {
         "AB>mae_top8",
         "AB>mae_top1permil",
         "B>TIMESTAMP"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.filePath ?? '',
@@ -1486,6 +1492,7 @@ export class SQLiteCache {
       data.aFormat ?? '',
       data.aFuncMagic ?? '',
       data.aFuncHash ?? '',
+      data.aRootFuncHash ?? '',
       data.aFileName ?? '',
       data.aMax ?? '',
       data.aMin ?? '',
@@ -1500,6 +1507,7 @@ export class SQLiteCache {
       data.bFormat ?? '',
       data.bFuncMagic ?? '',
       data.bFuncHash ?? '',
+      data.bRootFuncHash ?? '',
       data.bFileName ?? '',
       data.bMax ?? '',
       data.bMin ?? '',
@@ -1529,7 +1537,8 @@ export class SQLiteCache {
     keyword?: string,
     funcMagicName?: string,
     funcHash?: string,
-    phaseName?: string
+    phaseName?: string,
+    rootFuncHash?: string
   ): Promise<PaginatedResult<AccuracyToolCmpData>> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
@@ -1551,6 +1560,10 @@ export class SQLiteCache {
     if (funcMagicName) {
       conditions.push('"PATH_FUNC:func_magicname" = ?');
       params.push(funcMagicName);
+    }
+    if (rootFuncHash) {
+      conditions.push('"A>ROOT_FUNC:hash" = ? OR "B>ROOT_FUNC:hash" = ?');
+      params.push(rootFuncHash, rootFuncHash);
     }
     const whereClause = conditions.join(' AND ');
   
@@ -1704,6 +1717,7 @@ export class SQLiteCache {
         "A>:format" AS aFormat,
         "A>FUNC:funcmagic" AS aFuncMagic,
         "A>FUNC:hash" AS aFuncHash,
+        "A>ROOT_FUNC:hash" AS aRootFuncHash,
         "A>FILENAME" AS aFileName,
         "A>max" AS aMax,
         "A>min" AS aMin,
@@ -1718,6 +1732,7 @@ export class SQLiteCache {
         "B>:format" AS bFormat,
         "B>FUNC:funcmagic" AS bFuncMagic,
         "B>FUNC:hash" AS bFuncHash,
+        "B>ROOT_FUNC:hash" AS bRootFuncHash,
         "B>FILENAME" AS bFileName,
         "B>max" AS bMax,
         "B>min" AS bMin,
@@ -1768,6 +1783,7 @@ export class SQLiteCache {
           aFuncMagic: row.aFuncMagic as string,
           aFileName: row.aFileName as string,
           aFuncHash: row.aFuncHash as string,
+          aRootFuncHash: row.aRootFuncHash as string,
           aMax: row.aMax as string,
           aMin: row.aMin as string,
           aAvg: row.aAvg as string,
@@ -1781,6 +1797,7 @@ export class SQLiteCache {
           bFormat: row.bFormat as string,
           bFuncMagic: row.bFuncMagic as string,
           bFuncHash: row.bFuncHash as string,
+          bRootFuncHash: row.bRootFuncHash as string,
           bFileName: row.bFileName as string,
           bMax: row.bMax as string,
           bMin: row.bMin as string,

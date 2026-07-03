@@ -92,6 +92,7 @@ export interface PrecisionDetailData {
   aOp?: {
     aFuncMagic?: string;
     aFuncHash?: string;
+    aRootFuncHash?: string;
     aPhaseName?: string;
     aOpMagic?: string;
     aFileName?: string;
@@ -104,6 +105,7 @@ export interface PrecisionDetailData {
   bOp?: {
     bFuncMagic?: string;
     bFuncHash?: string;
+    bRootFuncHash?: string;
     bPhaseName?: string;
     bOpMagic?: string;
     bFileName?: string;

@@ -774,7 +774,9 @@ export abstract class BaseGraphMsgHandler {
       return { json: undefined };
     }
 
-    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, server.query?.loopInfo, server.query?.fileType, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
+    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, 
+                                                server.query?.loopInfo, server.query?.fileType, 
+                                                server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
       const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
