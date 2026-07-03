@@ -38,6 +38,7 @@ export interface AstgrNode extends SNode {
     isEmptyNode?: boolean;
     isAccuracyError?: boolean;
     isAccuracyException?: boolean;
+    isTokenNode?: boolean;
 }
 
 /**
@@ -148,6 +149,8 @@ export interface Operation {
     opcode: string;
     ioperands: number[];
     ooperands: number[];
+    itokens?: string[];
+    otokens?: string[];
     semantic_label: {
         filename?: string;
         label?: string;

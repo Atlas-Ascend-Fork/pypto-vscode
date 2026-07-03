@@ -518,7 +518,7 @@ onMounted(() => {
   loadingText.value = t(LoadingStatusMap['loading']);
   isLoading.value = true;
   (window as any).ascEventBus.on('view_mouseup', ({node}) => {
-    if (node.type === 'graph' || node.id.startsWith('parent') || node.isEmptyLabel) {
+    if (node.type === 'graph' || node.id.startsWith('parent') || node.isEmptyLabel || node.isTokenLabel) {
       showNodeDetail.value = false;
     } else if (node.id.endsWith('label-main')) {
       nodeId.value = node.id;

@@ -31,6 +31,7 @@ export class AscppDagBuilder {
     recordInOutCastMap = new Map<string, string>();
     recordNodeIdMap = new Map<string, string>();
     uniqueKeySet = new Set<string>();
+    uniqueTokensSet = new Set<string>();
     isErrorReport = false;
     isDefinedDark = true;
     isLeaf = false;
@@ -179,6 +180,17 @@ export class AscppDagBuilder {
 
         // Create operation nodes
         this.createOperationNodes(actualData, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, showSyncNodes, threeMode, errNodeList);
+
+        // Create token nodes
+        for (const tokenMagic of this.uniqueTokensSet) {
+            const nodeId = `operation-${tokenMagic}-0-in`;
+            const tokenNode = this.createTokenNode(nodeId, tokenMagic);
+            nodes.push(tokenNode);
+            const tokenNodeId = nodeId.replace(/-in.*$|-out.*$/, '');
+            const outPortId = nodeId.replace(/-in$/, '-out');
+            portMap.set(`producer-token-${tokenMagic}`, { nodeId: tokenNodeId, portId: outPortId });
+            portMap.set(`consumer-token-${tokenMagic}`, { nodeId: tokenNodeId, portId: nodeId });
+        }
     }
 
     public connectHiddenNodes(rawTensorProducers: Map<string, PortReference[]>, rawTensorConsumers: Map<string, PortReference[]>, edges: SEdge[]) {
@@ -1246,6 +1258,71 @@ export class AscppDagBuilder {
     }
 
     /**
+     * Create a token node with input and output ports, referencing createEmptyNodeWithPort
+     * @param nodeId - The input port id, pattern: `operation-${tokenMagic}-0-in`
+     * @param tokenMagic - The token value (e.g. "%6")
+     */
+    private createTokenNode(nodeId: string, tokenMagic: string): AstgrNode {
+        const children: (SCompartment | AstgrPort)[] = [];
+        const labelChildren: SLabel[] = [
+            {
+                type: 'label',
+                id: `${tokenMagic}-token-label-main`,
+                text: `Token: ${tokenMagic}`,
+                magic: tokenMagic,
+                cssClasses: ['operation-main-label'],
+                isTokenLabel: true,
+                layoutOptions: {
+                    hAlign: 'center',
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    paddingLeft: 10,
+                    paddingRight: 0
+                }
+            } as SLabel
+        ];
+        children.push({
+            type: 'compartment',
+            id: `${tokenMagic}-token-labels-compartment`,
+            layout: 'vbox',
+            magic: tokenMagic,
+            subgraphId: '',
+            layoutOptions: {
+                hAlign: 'center',
+                vAlign: 'center',
+                vGap: 10,
+                paddingTop: 14,
+                paddingBottom: 14,
+                paddingLeft: 6,
+                paddingRight: 9
+            },
+            cssClasses: ['operation-labels-compartment'],
+            children: [...labelChildren]
+        } as SCompartment);
+        const inPort: AstgrPort = { type: 'port', id: nodeId, role: 'input', size: { width: 8, height: 8 } };
+        children.push(inPort);
+        const outPortId = nodeId.replace(/-in$/, '-out');
+        const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
+        children.push(outPort);
+        const retid = nodeId.replace(/-in.*$|-out.*$/, '');
+        return {
+            type: 'node',
+            id: retid,
+            magic: '',
+            role: 'operation',
+            compareType: 'none',
+            codePath: '',
+            codeLine: undefined,
+            layout: 'vbox',
+            layoutOptions: { hAlign: 'center', vAlign: 'top' },
+            baseColor: 'rgba(246, 158, 57, 0.2)',
+            children,
+            isEmptyNode: true,
+            isTokenNode: true,
+        };
+    }
+
+    /**
      * Create a cast Node
      */
     private createCastNode(tensor: Tensor, rawTensor: RawTensor | undefined,
@@ -1698,6 +1775,18 @@ export class AscppDagBuilder {
         for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
             const op = actualData.operations[opIndex];
             const opId = `operation-magic-${op.opmagic}`;
+            // Collect unique tokens from itokens into uniqueTokensSet
+            if (op.itokens && Array.isArray(op.itokens) && op.itokens.length > 0) {
+                for (const token of op.itokens) {
+                    this.uniqueTokensSet.add(String(token));
+                }
+            }
+            // Collect unique tokens from otokens into uniqueTokensSet
+            if (op.otokens && Array.isArray(op.otokens) && op.otokens.length > 0) {
+                for (const token of op.otokens) {
+                    this.uniqueTokensSet.add(String(token));
+                }
+            }
 
             // Create regular operation node
             this.createRegularOperationNode(op, opId, nodes, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, threeMode, undefined, errNodeList);
@@ -2037,6 +2126,11 @@ export class AscppDagBuilder {
         this.createInputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
         // Create output ports
         this.createOutputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, nodes, nodeMagic);
+        // create token input ports
+        this.createInputTtokens(op, opId, children, edges);
+        // Create token output ports
+        this.createOutputTtokens(op, opId, children, edges);
+        
         const node: AstgrNode = {
             type: 'node',
             role: 'operation',
@@ -2233,6 +2327,55 @@ export class AscppDagBuilder {
                     this.outcastUnique.add(tensorMagic);
                 }
             }
+        });
+    }
+
+    // 创建itoken
+    private createInputTtokens(
+        op: Operation,
+        opId: string,
+        children: (SLabel | SCompartment | AstgrPort)[],
+        edges: SEdge[]
+    ): void {
+        if (!op.itokens || !Array.isArray(op.itokens)) {
+            return;
+        }
+
+        const ioTokensUnique = [...new Set(op.itokens)];
+        const portId = `${opId}-in`;
+
+        ioTokensUnique.forEach((iop: string, index: number) => {
+            const tokenMagic = String(iop);
+            edges.push({
+                type: 'edge',
+                id: `edge-${tokenMagic}-to-${opId}-${index}`,
+                sourceId: `operation-${tokenMagic}-0-out`,
+                targetId: portId
+            });
+        });
+    }
+
+    private createOutputTtokens(
+        op: Operation,
+        opId: string,
+        children: (SLabel | SCompartment | AstgrPort)[],
+        edges: SEdge[]
+    ): void {
+        if (!op.otokens || !Array.isArray(op.otokens)) {
+            return;
+        }
+
+        const oTokensUnique = [...new Set(op.otokens)];
+        const portId = `${opId}-out`;
+
+        oTokensUnique.forEach((iop: string, index: number) => {
+            const tokenMagic = String(iop);
+            edges.push({
+                type: 'edge',
+                id: `edge-${opId}-${index}-to-${tokenMagic}`,
+                sourceId: portId,
+                targetId: `operation-${tokenMagic}-0-in`
+            });
         });
     }
 
