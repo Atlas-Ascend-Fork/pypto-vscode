@@ -2668,6 +2668,7 @@ const clearDependencyLines = (processKey) => {
   dependencyLinesInfo.value = dependencyLinesInfo.value.filter(line =>
     line.processKey !== processKey
   );
+  globalDependencyLinesInfo.value = [];
   const dependencyCanvasRef = document.querySelector(`[data-dep-process-key="${processKey}"]`);
   if (!dependencyCanvasRef) { return false };
   
