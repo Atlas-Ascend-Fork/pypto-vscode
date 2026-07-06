@@ -23,6 +23,29 @@ export function findComputationDir(dirPath: string): string {
     return comgraphDir;
 }
 
+function ascendDir(dirPath: string, levels: number): string {
+    let result = dirPath;
+    for (let i = 0; i < levels; i++) {
+        result = path.dirname(result);
+    }
+    return result;
+}
+
+function resolveAccurancyDir(flowVerifyPath?: string, computeGraphDirPath?: string, ascendLevels: number = 2): string | undefined {
+    if (flowVerifyPath && (flowVerifyPath !== '')) {
+        return flowVerifyPath;
+    }
+    if (computeGraphDirPath) {
+        const parentDir = ascendDir(computeGraphDirPath, ascendLevels);
+        const entries = fs.readdirSync(parentDir, { withFileTypes: true });
+        const verifyDir = entries.find(entry => entry.isDirectory() && entry.name.startsWith('verify'));
+        if (verifyDir) {
+            return path.join(parentDir, verifyDir.name);
+        }
+    }
+    return undefined;
+}
+
 function findCsvRecursive(dir: string): string {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -50,18 +73,11 @@ export async function getResDataSum(filePath: string | undefined, flowVerifyPath
     let csvPath = '';
     let accurancyDirPath = '';
 
-    if (flowVerifyPath && (!flowVerifyPath.includes('PVC2_OOO'))) {
-        accurancyDirPath = flowVerifyPath;
-    } else if (computeGraphDirPath && computeGraphDirPath.includes('PVC2_OOO')) {
-        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
-        const csvFound = findCsvRecursive(parentDir);
-        csvPath = csvFound;
-        accurancyDirPath = path.dirname(csvPath);
-    }
-  
+    accurancyDirPath = resolveAccurancyDir(flowVerifyPath, computeGraphDirPath) ?? '';
+
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        console.log('verify_graph_result_brief.csv文件不存在');
+        console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -92,7 +108,7 @@ export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: s
 
     const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        // console.log(`文件不存在: ${csvPath}`);
+        console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -276,18 +292,11 @@ export async function getComGraphRawMagic(filePath: string, phaseName: string, f
     let csvPath = '';
     let accurancyDirPath = '';
 
-    if (flowVerifyPath && (!flowVerifyPath.includes('PVC2_OOO'))) {
-        accurancyDirPath = flowVerifyPath;
-    } else if (computeGraphDirPath && computeGraphDirPath.includes('PVC2_OOO')) {
-        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
-        const csvFound = findCsvRecursive(parentDir);
-        csvPath = csvFound;
-        accurancyDirPath = path.dirname(csvPath);
-    }
+    accurancyDirPath = resolveAccurancyDir(flowVerifyPath, computeGraphDirPath) ?? '';
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
-        // console.log(`文件不存在: ${csvPath}`);
+        console.log(`文件不存在: ${csvPath}`);
         return;
     }
     const failSumListofGraph = await SQLiteCache.getInstance().getErrorDetailsOfGraphByFunc(csvPath, phaseName, funcMagicName, 10000, 0, res);
@@ -347,19 +356,12 @@ export async function getComGraphDataSum(
     let csvPath = '';
     let accurancyDirPath = '';
 
-    if (flowVerifyPath && (!flowVerifyPath.includes('PVC2_OOO'))) {
-        accurancyDirPath = flowVerifyPath;
-    } else if (computeGraphDirPath && computeGraphDirPath.includes('PVC2_OOO')) {
-        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
-        const csvFound = findCsvRecursive(parentDir);
-        csvPath = csvFound;
-        accurancyDirPath = path.dirname(csvPath);
-    }
+    accurancyDirPath = resolveAccurancyDir(flowVerifyPath, computeGraphDirPath) ?? '';
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
-        // console.log(`文件不存在: ${csvPath}`);
+        console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -380,19 +382,12 @@ export async function searchKeyword(filePath: string, phaseName: string, funcMag
     let csvPath = '';
     let accurancyDirPath = '';
 
-    if (flowVerifyPath && (!flowVerifyPath.includes('PVC2_OOO'))) {
-        accurancyDirPath = flowVerifyPath;
-    } else if (computeGraphDirPath && computeGraphDirPath.includes('PVC2_OOO')) {
-        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
-        const csvFound = findCsvRecursive(parentDir);
-        csvPath = csvFound;
-        accurancyDirPath = path.dirname(csvPath);
-    }
+    accurancyDirPath = resolveAccurancyDir(flowVerifyPath, computeGraphDirPath) ?? '';
 
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(csvPath)) {
-        // console.log(`文件不存在: ${csvPath}`);
+        console.log(`文件不存在: ${csvPath}`);
         return;
     }
 
@@ -477,20 +472,13 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
     let csvPath = '';
     let accurancyDirPath = '';
 
-    if (flowVerifyPath && (!flowVerifyPath.includes('PVC2_OOO'))) {
-        accurancyDirPath = flowVerifyPath;
-    } else if (computeGraphDirPath && computeGraphDirPath.includes('PVC2_OOO')) {
-        const parentDir = path.dirname(path.dirname(computeGraphDirPath));
-        const csvFound = findCsvRecursive(parentDir);
-        csvPath = csvFound;
-        accurancyDirPath = path.dirname(csvPath);
-    }
+    accurancyDirPath = resolveAccurancyDir(flowVerifyPath, computeGraphDirPath) ?? '';
 
     const logPath = path.join(accurancyDirPath, 'verify_graph_result_brief.log');
     csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
 
     if (!fs.existsSync(logPath) || !fs.existsSync(csvPath)) {
-        // console.log(`文件不存在: ${logPath} || ${csvPath}`);
+        console.log(`文件不存在: ${logPath} || ${csvPath}`);
         return;
     }
     const extractor = new SmartLogExtractor();
