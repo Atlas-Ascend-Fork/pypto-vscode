@@ -67,10 +67,11 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   const swimlaneGraphFilePath = await getPathIfExists(runData.swim_graph_path);
   const computeGraphDirPath = await getPathIfExists(runData.compute_graph_path);
   let flowVerifyPath = runData.flow_verify_path ? runData.flow_verify_path : (runData.verify_path ? runData.verify_path : null);
+  let computePath = flowVerifyPath;
 
   let verifyPath = VERIFY_GRAPH_PATH_LEVER;
   if (!flowVerifyPath) {
-    flowVerifyPath = computeGraphDirPath;
+    computePath = computeGraphDirPath;
     verifyPath = COMPUTE_GRAPH_PATH_LEVER;
   }
 
@@ -78,7 +79,7 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
     return undefined;
   }
 
-  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(flowVerifyPath ?? undefined, verifyPath);
+  const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(computePath ?? undefined, verifyPath);
 
   return {
     title,
@@ -167,7 +168,7 @@ interface OpeCheckResult {
 /**
  * 查找目录下以 verify 开头的子目录
  */
-async function findVerifySubDir(parentPath: string): Promise<string> {
+export async function findVerifySubDir(parentPath: string): Promise<string> {
   const parentUri = vscode.Uri.file(parentPath);
   const entries = await vscode.workspace.fs.readDirectory(parentUri);
 
@@ -186,13 +187,14 @@ async function findOpeCheck(
   level?: any
 ): Promise<OpeCheckResult> {
   const empty: OpeCheckResult = { hasOpeCheck: false, opeCheckDirPath: null };
+  if (!flowVerifyPath) {
+    return empty;
+  }
 
-  let recordDir = flowVerifyPath;
   let flowVerifyUri = flowVerifyPath;
   if (level === COMPUTE_GRAPH_PATH_LEVER) {
-    const outPutDir = findVerifyDir(flowVerifyPath, level);
-    flowVerifyUri = await findVerifySubDir(outPutDir);
-    recordDir = outPutDir + '/' + VERIFY_DIR;
+    const rootDataDir =  findVerifyDir(flowVerifyUri, COMPUTE_GRAPH_PATH_LEVER)
+    flowVerifyUri = await findVerifySubDir(rootDataDir);
   }
   if (!flowVerifyUri) {
     return empty;
@@ -225,7 +227,7 @@ async function findOpeCheck(
   const allInsertData: AccuracyToolCompList[] = compList.map(filePath => ({
     file_path: filePath,
     first_req: '-1',
-    compute_path: recordDir ? recordDir : '',
+    compute_path: flowVerifyUri,
   }));
 
   await SQLiteCache.getInstance().accuracyToolCompListSet(flowVerifyUri, allInsertData);

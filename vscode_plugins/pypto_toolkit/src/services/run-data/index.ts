@@ -6,7 +6,7 @@ import type { OutputRecord, OutputDetail } from '../../types/workspace';
 import { defineAttributes, Store } from '../../core/store';
 import { BasicService } from '../basic-service';
 import { getOutputDirectory } from './utils/scan-output';
-import { readRunData, readRunDataList, RunDataDir, findVerifyDir, COMPUTE_GRAPH_PATH_LEVER, VERIFY_GRAPH_PATH_LEVER } from './utils/scan-run-data';
+import { readRunData, readRunDataList, RunDataDir, findVerifyDir, COMPUTE_GRAPH_PATH_LEVER, findVerifySubDir } from './utils/scan-run-data';
 import { AsyncListResolver, AsyncListResolverImpl } from './utils/async-resolving-list';
 import { deleteFile } from '../../utils/file-system';
 import { t } from 'i18next';
@@ -106,12 +106,13 @@ export class RunDataService extends BasicService {
   }
 
   private async mergeOpeCheckFromComparelist(record: OutputRecord): Promise<OutputRecord> {
-    if (!record.hasOpeCheck || !record.flowVerifyPath) {
+    if (!record.hasOpeCheck) {
       return record;
     }
     let flowVerifyUri;
-    if (record.flowVerifyPath?.includes('computation_graph')) {
-      flowVerifyUri = findVerifyDir(record.flowVerifyPath, COMPUTE_GRAPH_PATH_LEVER) + '/' + "verify";
+    if (!record.flowVerifyPath) {
+      const rootDirPath = findVerifyDir(record.computeGraphDirPath, COMPUTE_GRAPH_PATH_LEVER);
+      flowVerifyUri = await findVerifySubDir(rootDirPath);
     } else {
       flowVerifyUri = record.flowVerifyPath;
     }

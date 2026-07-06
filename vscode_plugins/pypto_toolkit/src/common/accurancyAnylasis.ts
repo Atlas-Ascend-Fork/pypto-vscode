@@ -32,18 +32,19 @@ function ascendDir(dirPath: string, levels: number): string {
 }
 
 function resolveAccurancyDir(flowVerifyPath?: string, computeGraphDirPath?: string, ascendLevels: number = 2): string | undefined {
-    if (flowVerifyPath && (flowVerifyPath !== '')) {
-        return flowVerifyPath;
+  let result: string | undefined;  
+  if (flowVerifyPath && (flowVerifyPath !== '')) {
+      result = vscode.Uri.file(flowVerifyPath).fsPath;
+  } else if (computeGraphDirPath) {
+    const normalizedPath = vscode.Uri.file(computeGraphDirPath).fsPath;
+    const parentDir = ascendDir(normalizedPath, ascendLevels);
+    const entries = fs.readdirSync(parentDir, { withFileTypes: true });
+    const verifyDir = entries.find(entry => entry.isDirectory() && entry.name.startsWith('verify'));
+    if (verifyDir) {
+      result = path.join(parentDir, verifyDir.name);
     }
-    if (computeGraphDirPath) {
-        const parentDir = ascendDir(computeGraphDirPath, ascendLevels);
-        const entries = fs.readdirSync(parentDir, { withFileTypes: true });
-        const verifyDir = entries.find(entry => entry.isDirectory() && entry.name.startsWith('verify'));
-        if (verifyDir) {
-            return path.join(parentDir, verifyDir.name);
-        }
-    }
-    return undefined;
+  }
+  return result;
 }
 
 function findCsvRecursive(dir: string): string {
