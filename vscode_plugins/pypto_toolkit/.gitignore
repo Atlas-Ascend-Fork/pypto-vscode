@@ -21,3 +21,5 @@ codicon
 docs
 openspec
 .gitignore
+.claude/
+.opencode/

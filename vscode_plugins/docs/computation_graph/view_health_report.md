@@ -13,7 +13,7 @@
 
 执行PyPTO程序，生成计算图文件和健康报告文件，健康报告文件的生成操作如下。
 
-1.  配置健康报告生成开关：$\{install\_path\}/python/site-packages/pypto/lib/configs/tile\_fwk\_config.json。
+1.  配置健康报告生成开关：$\{install\_path/python\}/site-packages/pypto/lib/configs/tile\_fwk\_config.json。
 
     ```python
      "global": {
