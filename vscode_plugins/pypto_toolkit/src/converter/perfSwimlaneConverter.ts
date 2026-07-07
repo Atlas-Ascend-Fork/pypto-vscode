@@ -769,62 +769,25 @@ export class PerfSwimlaneConverter {
     }
   }
 
-  private addDispatchFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, schedulerPhases: SchedulerPhaseRecord[][], coreToThread?: number[], taskToAicpuTid?: Map<string, number>): void {
-    const coreToSchedThread = new Map<number, number>();
+  private addDispatchFlowEvents(
+    events: TraceEvent[],
+    tasks: TaskRecord[],
+    coreToTid: Map<number, number>,
+    schedulerPhases: SchedulerPhaseRecord[][],
+    coreToThread?: number[],
+    taskToAicpuTid?: Map<string, number>
+  ): void {
+    const coreToSchedThread = this.buildCoreToSchedThreadMapping(tasks, schedulerPhases, coreToThread);
+    this.processDispatchFlowForTasks(events, tasks, coreToTid, coreToSchedThread, taskToAicpuTid);
+  }
 
-    if (coreToThread && coreToThread.length > 0) {
-      for (let coreId = 0; coreId < coreToThread.length; coreId++) {
-        const threadIdx = coreToThread[coreId];
-        if (threadIdx >= 0) {
-          coreToSchedThread.set(coreId, threadIdx);
-        }
-      }
-    } else {
-      const dispatchPhasesByThread = new Map<number, SchedulerPhaseRecord[]>();
-      for (let threadIdx = 0; threadIdx < schedulerPhases.length; threadIdx++) {
-        const dispatchRecords = schedulerPhases[threadIdx].filter(r => r.phase === 'dispatch');
-        if (dispatchRecords.length > 0) {
-          dispatchPhasesByThread.set(threadIdx, dispatchRecords);
-        }
-      }
-
-      const coreThreadVotes = new Map<number, Map<number, number>>();
-      for (const task of tasks) {
-        const dispatchUs = task.dispatch_time_us || 0;
-        if (dispatchUs < 0) {
-          continue;
-        }
-
-        const coreId = task.core_id;
-        for (const [threadIdx, dispatchRecords] of dispatchPhasesByThread.entries()) {
-          for (const dr of dispatchRecords) {
-            if (dr.start_time_us <= dispatchUs && dispatchUs <= dr.end_time_us) {
-              if (!coreThreadVotes.has(coreId)) {
-                coreThreadVotes.set(coreId, new Map());
-              }
-              const votes = coreThreadVotes.get(coreId)!;
-              votes.set(threadIdx, (votes.get(threadIdx) || 0) + 1);
-              break;
-            }
-          }
-        }
-      }
-
-      for (const [coreId, votes] of coreThreadVotes.entries()) {
-        let maxVotes = -1;
-        let bestThread = -1;
-        for (const [threadIdx, count] of votes.entries()) {
-          if (count > maxVotes) {
-            maxVotes = count;
-            bestThread = threadIdx;
-          }
-        }
-        if (bestThread >= 0) {
-          coreToSchedThread.set(coreId, bestThread);
-        }
-      }
-    }
-
+  private processDispatchFlowForTasks(
+    events: TraceEvent[],
+    tasks: TaskRecord[],
+    coreToTid: Map<number, number>,
+    coreToSchedThread: Map<number, number>,
+    taskToAicpuTid?: Map<string, number>
+  ): void {
     for (const task of tasks) {
       const dispatchUs = task.dispatch_time_us || 0;
       if (dispatchUs < 0) {
@@ -840,136 +803,181 @@ export class PerfSwimlaneConverter {
       const coreTid = coreToTid.get(task.core_id)!;
       const aicpuTid = taskToAicpuTid?.get(this.getTaskKey(task.task_id, task.core_id)) ?? coreTid;
 
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter,
-        name: 'dispatch',
-        ph: 's',
-        pid: 2,
-        tid: schedTid,
-        ts: dispatchUs
-      });
-
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter++,
-        name: 'dispatch',
-        ph: 'f',
-        pid: 4,
-        tid: coreTid,
-        ts: task.start_time_us,
-        bp: 'e'
-      });
-
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter,
-        name: 'dispatch',
-        ph: 's',
-        pid: 2,
-        tid: schedTid,
-        ts: dispatchUs
-      });
-
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter++,
-        name: 'dispatch',
-        ph: 'f',
-        pid: 3,
-        tid: aicpuTid,
-        ts: dispatchUs,
-        bp: 'e'
-      });
+      this.addDispatchFlowEventPair(events, schedTid, coreTid, aicpuTid, dispatchUs, task.start_time_us);
     }
   }
 
-  private addOrchestratorFlowEvents(events: TraceEvent[], tasks: TaskRecord[], coreToTid: Map<number, number>, orchestratorPhases: OrchestratorPhaseRecord[][], schedulerPhases: SchedulerPhaseRecord[][], coreToThread?: number[]): void {
-    const orchAnchorByTask = new Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>();
+  private addDispatchFlowEventPair(
+    events: TraceEvent[],
+    schedTid: number,
+    coreTid: number,
+    aicpuTid: number,
+    dispatchUs: number,
+    startTimeUs: number
+  ): void {
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter,
+      name: 'dispatch',
+      ph: 's',
+      pid: 2,
+      tid: schedTid,
+      ts: dispatchUs
+    });
 
-    for (let orchIdx = 0; orchIdx < orchestratorPhases.length; orchIdx++) {
-      for (const record of orchestratorPhases[orchIdx]) {
-        const phase = record.phase;
-        const taskId = record.task_id;
-        if (taskId === undefined || taskId < 0) {
-          continue;
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter++,
+      name: 'dispatch',
+      ph: 'f',
+      pid: 4,
+      tid: coreTid,
+      ts: startTimeUs,
+      bp: 'e'
+    });
+
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter,
+      name: 'dispatch',
+      ph: 's',
+      pid: 2,
+      tid: schedTid,
+      ts: dispatchUs
+    });
+
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter++,
+      name: 'dispatch',
+      ph: 'f',
+      pid: 3,
+      tid: aicpuTid,
+      ts: dispatchUs,
+      bp: 'e'
+    });
+  }
+
+  private buildCoreToSchedThreadMapping(
+    tasks: TaskRecord[],
+    schedulerPhases: SchedulerPhaseRecord[][],
+    coreToThread?: number[]
+  ): Map<number, number> {
+    const coreToSchedThread = new Map<number, number>();
+
+    if (coreToThread && coreToThread.length > 0) {
+      this.mapCoresFromThreadArray(coreToThread, coreToSchedThread);
+    } else {
+      const dispatchPhasesByThread = this.groupDispatchPhasesByThread(schedulerPhases);
+      const coreThreadVotes = this.computeCoreThreadVotes(tasks, dispatchPhasesByThread);
+      this.determineBestThreadPerCore(coreThreadVotes, coreToSchedThread);
+    }
+
+    return coreToSchedThread;
+  }
+
+  private mapCoresFromThreadArray(coreToThread: number[], coreToSchedThread: Map<number, number>): void {
+    for (let coreId = 0; coreId < coreToThread.length; coreId++) {
+      const threadIdx = coreToThread[coreId];
+      if (threadIdx >= 0) {
+        coreToSchedThread.set(coreId, threadIdx);
+      }
+    }
+  }
+
+  private groupDispatchPhasesByThread(schedulerPhases: SchedulerPhaseRecord[][]): Map<number, SchedulerPhaseRecord[]> {
+    const dispatchPhasesByThread = new Map<number, SchedulerPhaseRecord[]>();
+    for (let threadIdx = 0; threadIdx < schedulerPhases.length; threadIdx++) {
+      const dispatchRecords = schedulerPhases[threadIdx].filter(r => r.phase === 'dispatch');
+      if (dispatchRecords.length > 0) {
+        dispatchPhasesByThread.set(threadIdx, dispatchRecords);
+      }
+    }
+    return dispatchPhasesByThread;
+  }
+
+  private computeCoreThreadVotes(
+    tasks: TaskRecord[],
+    dispatchPhasesByThread: Map<number, SchedulerPhaseRecord[]>
+  ): Map<number, Map<number, number>> {
+    const coreThreadVotes = new Map<number, Map<number, number>>();
+    for (const task of tasks) {
+      const dispatchUs = task.dispatch_time_us || 0;
+      if (dispatchUs < 0) {
+        continue;
+      }
+
+      const coreId = task.core_id;
+      const matchedThreadIdx = this.findMatchingThreadIdx(dispatchUs, dispatchPhasesByThread);
+      if (matchedThreadIdx !== null) {
+        if (!coreThreadVotes.has(coreId)) {
+          coreThreadVotes.set(coreId, new Map());
         }
+        const votes = coreThreadVotes.get(coreId)!;
+        votes.set(matchedThreadIdx, (votes.get(matchedThreadIdx) || 0) + 1);
+      }
+    }
+    return coreThreadVotes;
+  }
 
-        const tidK = this.normalizePto2TaskIdInt(taskId);
-        if (tidK === null) {
-          continue;
-        }
-
-        const existing = orchAnchorByTask.get(tidK);
-        if (phase === 'orch_submit' && (existing === undefined || existing.flowName !== 'submit→dispatch')) {
-          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'submit→dispatch' });
-        } else if (existing === undefined && phase === 'orch_fanin') {
-          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'fanin→dispatch' });
-        } else if (existing === undefined && phase === 'orch_params') {
-          orchAnchorByTask.set(tidK, { record, orchIdx, flowName: 'params→dispatch' });
+  private findMatchingThreadIdx(
+    dispatchUs: number,
+    dispatchPhasesByThread: Map<number, SchedulerPhaseRecord[]>
+  ): number | null {
+    for (const [threadIdx, dispatchRecords] of dispatchPhasesByThread.entries()) {
+      for (const dr of dispatchRecords) {
+        if (dr.start_time_us <= dispatchUs && dispatchUs <= dr.end_time_us) {
+          return threadIdx;
         }
       }
     }
+    return null;
+  }
+
+  private determineBestThreadPerCore(
+    coreThreadVotes: Map<number, Map<number, number>>,
+    coreToSchedThread: Map<number, number>
+  ): void {
+    for (const [coreId, votes] of coreThreadVotes.entries()) {
+      let maxVotes = -1;
+      let bestThread = -1;
+      for (const [threadIdx, count] of votes.entries()) {
+        if (count > maxVotes) {
+          maxVotes = count;
+          bestThread = threadIdx;
+        }
+      }
+      if (bestThread >= 0) {
+        coreToSchedThread.set(coreId, bestThread);
+      }
+    }
+  }
+
+  private addOrchestratorFlowEvents(
+    events: TraceEvent[],
+    tasks: TaskRecord[],
+    coreToTid: Map<number, number>,
+    orchestratorPhases: OrchestratorPhaseRecord[][],
+    schedulerPhases: SchedulerPhaseRecord[][],
+    coreToThread?: number[]
+  ): void {
+    const orchAnchorByTask = this.buildOrchestratorAnchorMap(orchestratorPhases);
 
     if (orchAnchorByTask.size === 0) {
       return;
     }
 
-    const coreToSchedThread = new Map<number, number>();
+    const coreToSchedThread = this.buildCoreToSchedThreadMapping(tasks, schedulerPhases, coreToThread);
+    this.processOrchestratorFlowForTasks(events, tasks, coreToTid, orchAnchorByTask, coreToSchedThread);
+  }
 
-    if (coreToThread && coreToThread.length > 0) {
-      for (let coreId = 0; coreId < coreToThread.length; coreId++) {
-        const threadIdx = coreToThread[coreId];
-        if (threadIdx >= 0) {
-          coreToSchedThread.set(coreId, threadIdx);
-        }
-      }
-    } else {
-      const dispatchPhasesByThread = new Map<number, SchedulerPhaseRecord[]>();
-      for (let threadIdx = 0; threadIdx < schedulerPhases.length; threadIdx++) {
-        const dispatchRecords = schedulerPhases[threadIdx].filter(r => r.phase === 'dispatch');
-        if (dispatchRecords.length > 0) {
-          dispatchPhasesByThread.set(threadIdx, dispatchRecords);
-        }
-      }
-
-      const coreThreadVotes = new Map<number, Map<number, number>>();
-      for (const task of tasks) {
-        const dispatchUs = task.dispatch_time_us || 0;
-        if (dispatchUs < 0) {
-          continue;
-        }
-
-        const coreId = task.core_id;
-        for (const [threadIdx, dispatchRecords] of dispatchPhasesByThread.entries()) {
-          for (const dr of dispatchRecords) {
-            if (dr.start_time_us <= dispatchUs && dispatchUs <= dr.end_time_us) {
-              if (!coreThreadVotes.has(coreId)) {
-                coreThreadVotes.set(coreId, new Map());
-              }
-              const votes = coreThreadVotes.get(coreId)!;
-              votes.set(threadIdx, (votes.get(threadIdx) || 0) + 1);
-              break;
-            }
-          }
-        }
-      }
-
-      for (const [coreId, votes] of coreThreadVotes.entries()) {
-        let maxVotes = -1;
-        let bestThread = -1;
-        for (const [threadIdx, count] of votes.entries()) {
-          if (count > maxVotes) {
-            maxVotes = count;
-            bestThread = threadIdx;
-          }
-        }
-        if (bestThread >= 0) {
-          coreToSchedThread.set(coreId, bestThread);
-        }
-      }
-    }
-
+  private processOrchestratorFlowForTasks(
+    events: TraceEvent[],
+    tasks: TaskRecord[],
+    coreToTid: Map<number, number>,
+    orchAnchorByTask: Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>,
+    coreToSchedThread: Map<number, number>
+  ): void {
     for (const task of tasks) {
       const taskId = this.normalizePto2TaskIdInt(task.task_id);
       if (taskId === null) {
@@ -986,37 +994,97 @@ export class PerfSwimlaneConverter {
         continue;
       }
 
-      const anchorUs = anchor.record.end_time_us;
       const matchedThread = coreToSchedThread.get(task.core_id);
-
       if (matchedThread === undefined) {
         continue;
       }
 
       const schedTid = 2000 + matchedThread;
       const orchTid = 1000 + anchor.orchIdx;
+      const anchorUs = anchor.record.end_time_us;
 
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter,
-        name: anchor.flowName,
-        ph: 's',
-        pid: 1,
-        tid: orchTid,
-        ts: anchorUs
-      });
-
-      events.push({
-        cat: 'flow',
-        id: this.flowIdCounter++,
-        name: anchor.flowName,
-        ph: 'f',
-        pid: 2,
-        tid: schedTid,
-        ts: dispatchUs,
-        bp: 'e'
-      });
+      this.addOrchestratorFlowEventPair(events, orchTid, schedTid, anchor.flowName, anchorUs, dispatchUs);
     }
+  }
+
+  private buildOrchestratorAnchorMap(
+    orchestratorPhases: OrchestratorPhaseRecord[][]
+  ): Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }> {
+    const orchAnchorByTask = new Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>();
+
+    for (let orchIdx = 0; orchIdx < orchestratorPhases.length; orchIdx++) {
+      this.processOrchestratorPhaseRecords(orchestratorPhases[orchIdx], orchIdx, orchAnchorByTask);
+    }
+
+    return orchAnchorByTask;
+  }
+
+  private processOrchestratorPhaseRecords(
+    phaseRecords: OrchestratorPhaseRecord[],
+    orchIdx: number,
+    orchAnchorByTask: Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>
+  ): void {
+    for (const record of phaseRecords) {
+      const phase = record.phase;
+      const taskId = record.task_id;
+      if (taskId === undefined || taskId < 0) {
+        continue;
+      }
+
+      const tidK = this.normalizePto2TaskIdInt(taskId);
+      if (tidK === null) {
+        continue;
+      }
+
+      this.updateOrchestratorAnchor(orchAnchorByTask, tidK, record, orchIdx, phase);
+    }
+  }
+
+  private updateOrchestratorAnchor(
+    orchAnchorByTask: Map<number, { record: OrchestratorPhaseRecord; orchIdx: number; flowName: string }>,
+    taskId: number,
+    record: OrchestratorPhaseRecord,
+    orchIdx: number,
+    phase: string
+  ): void {
+    const existing = orchAnchorByTask.get(taskId);
+    if (phase === 'orch_submit' && (existing === undefined || existing.flowName !== 'submit→dispatch')) {
+      orchAnchorByTask.set(taskId, { record, orchIdx, flowName: 'submit→dispatch' });
+    } else if (existing === undefined && phase === 'orch_fanin') {
+      orchAnchorByTask.set(taskId, { record, orchIdx, flowName: 'fanin→dispatch' });
+    } else if (existing === undefined && phase === 'orch_params') {
+      orchAnchorByTask.set(taskId, { record, orchIdx, flowName: 'params→dispatch' });
+    }
+  }
+
+  private addOrchestratorFlowEventPair(
+    events: TraceEvent[],
+    orchTid: number,
+    schedTid: number,
+    flowName: string,
+    anchorUs: number,
+    dispatchUs: number
+  ): void {
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter,
+      name: flowName,
+      ph: 's',
+      pid: 1,
+      tid: orchTid,
+      ts: anchorUs
+    });
+
+    events.push({
+      cat: 'flow',
+      id: this.flowIdCounter++,
+      name: flowName,
+      ph: 'f',
+      pid: 2,
+      tid: schedTid,
+      ts: dispatchUs,
+      bp: 'e'
+    });
   }
 
   private formatTaskDisplay(mixedTaskId: number | bigint): string {
