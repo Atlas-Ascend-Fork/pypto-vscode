@@ -126,65 +126,70 @@ class SwimDataManager {
   }
   
   public initialize(processes: Map<string, any>): void {
-    this.processInfo.clear();
-    this.eventMap.clear();
-    this.eventsByWrapId.clear();
-    this.mixConfig = [];
-    this.wrapContainers.clear();
-    this.swimLaneOrder = [];
-    this.isMixModeActive = false;
-    this.mixThreads = [];
-    this.wrapThreadMap.clear();
-    this.lane2line.clear();
+    this.clear();
     
     for (const [processKey, process] of processes.entries()) {
-      const threadInfoMap = new Map<string, ThreadInfo>();
-      
-      if (process.threads) {
-        for (const [threadKey, thread] of process.threads.entries()) {
-          const eventIds: string[] = [];
-          
-          if (thread.events && Array.isArray(thread.events)) {
-            for (const event of thread.events) {
-              eventIds.push(event.id);
-              
-              event.processKey = processKey;
-              event.threadKey = threadKey;
-              this.eventMap.set(event.id, event);
-              
-              const wrapId = event.args?.wrapId;
-              if (wrapId !== undefined && wrapId !== -1) {
-                if (!this.eventsByWrapId.has(wrapId)) {
-                  this.eventsByWrapId.set(wrapId, []);
-                }
-                this.eventsByWrapId.get(wrapId)?.push(event);
-              }
-            }
-          }
-          
-          const threadInfo: ThreadInfo = {
-            tid: thread.tid || threadKey,
-            threadName: thread.threadName || '',
-            eventIds,
-            isCounter: thread.isCounter,
-            isFakeCore: thread.threadName.includes('Fake Core'),
-            parentThreadName: thread.parentThreadName,
-            parentTid: thread.parentTid,
-          };
-          
-          threadInfoMap.set(threadKey, threadInfo);
-        }
-      }
-      
-      const processInfoItem: ProcessInfo = {
-        pid: process.pid || processKey,
-        name: process.processName || '',
-        type: process.type || 'kernel',
-        threads: threadInfoMap
-      };
-      
-      this.processInfo.set(processKey, processInfoItem);
+      const processInfo = this.buildProcessInfo(processKey, process);
+      this.processInfo.set(processKey, processInfo);
     }
+  }
+
+  private buildProcessInfo(processKey: string, process: any): ProcessInfo {
+    const threadInfoMap = new Map<string, ThreadInfo>();
+    
+    if (process.threads) {
+      for (const [threadKey, thread] of process.threads.entries()) {
+        const threadInfo = this.buildThreadInfo(processKey, threadKey, thread);
+        threadInfoMap.set(threadKey, threadInfo);
+      }
+    }
+    
+    return {
+      pid: process.pid || processKey,
+      name: process.processName || '',
+      type: process.type || 'kernel',
+      threads: threadInfoMap
+    };
+  }
+  
+  private buildThreadInfo(processKey: string, threadKey: string, thread: any): ThreadInfo {
+    const eventIds: string[] = [];
+    
+    if (thread.events && Array.isArray(thread.events)) {
+      for (const event of thread.events) {
+        this.processEvent(event, processKey, threadKey, eventIds);
+      }
+    }
+    
+    return {
+      tid: thread.tid || threadKey,
+      threadName: thread.threadName || '',
+      eventIds,
+      isCounter: thread.isCounter,
+      isFakeCore: thread.threadName.includes('Fake Core'),
+      parentThreadName: thread.parentThreadName,
+      parentTid: thread.parentTid,
+    };
+  }
+  
+  private processEvent(event: any, processKey: string, threadKey: string, eventIds: string[]): void {
+    eventIds.push(event.id);
+    
+    event.processKey = processKey;
+    event.threadKey = threadKey;
+    this.eventMap.set(event.id, event);
+    
+    const wrapId = event.args?.wrapId;
+    if (wrapId !== undefined && wrapId !== -1) {
+      this.addToWrapIdMap(wrapId, event);
+    }
+  }
+  
+  private addToWrapIdMap(wrapId: number, event: any): void {
+    if (!this.eventsByWrapId.has(wrapId)) {
+      this.eventsByWrapId.set(wrapId, []);
+    }
+    this.eventsByWrapId.get(wrapId)?.push(event);
   }
   
   public getEventById(eventId: string): EventDetail | undefined {
@@ -252,7 +257,6 @@ class SwimDataManager {
     this.wrapThreadMap.clear();
     this.lane2line.clear();
   }
-  
   public updateEvent(eventId: string, updates: Partial<EventDetail>): void {
     const event = this.eventMap.get(eventId);
     if (event) {

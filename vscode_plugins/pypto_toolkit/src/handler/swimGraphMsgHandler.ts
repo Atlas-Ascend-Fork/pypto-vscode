@@ -447,42 +447,6 @@ export abstract class SwimGraphMsgHandler {
           console.log(topoFsPath, existsSync(topoFsPath));
           console.log(pmuFsPath, existsSync(pmuFsPath) );
 
-          // //适配3.0
-          // let swimlaneData: any = {};
-          // let newSwimFile;
-    
-          // try {
-          //   console.log('读取swimlane文件');
-          //   if (server.query.isPerfSwim) {
-          //     console.log('使用 perf_swimlane.json 格式处理');
-          //     const rawData = await readSwimlaneFileStream(swimPath, true);
-          //     const validation = FormatValidator.validatePerfSwimlane(rawData);
-          //     if (!validation.valid) {
-          //       server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: validation.error });
-          //       console.error('perf_swimlane.json 验证失败:', validation.error);
-          //       return [];
-          //     }
-              
-          //     const converter = new PerfSwimlaneConverter();
-          //     const convertedData = converter.convert(rawData);
-          //     swimlaneData.traceEvents = convertedData.traceEvents;
-          //     console.log('perf_swimlane.json 转换完成');
-
-          //     const sanitizedPath = swimPath.replace(/[\/\\:<>"|?*\s]/g, '-');
-          //     const dbSwimStore = join(hismartliteEx.context!.globalStorageUri.fsPath, 'swimlane-db-info', sanitizedPath);
-          //     await writeLargeObjectToFileThreadGranular(convertedData.traceEvents, dbSwimStore);
-          //     newSwimFile = dbSwimStore;
-          //     console.log('3.0file saved', dbSwimStore);
-          //   } else {
-          //     console.log('使用 merged_swimlane.json 格式处理');
-          //   }
-    
-          // } catch (err: any) {
-          //   server.setRef('dataError', { msg: t('pypto.comGraph.errorMessage.jsonParse'), log: err.message} );
-          //   console.error(`${swimPath}读取swimlane文件时发生错误:`, err);
-          //   return [];
-          // }
-
           await runCompress({
             inputPath: swimFsPath, 
             outputPath: compressedDataPath,

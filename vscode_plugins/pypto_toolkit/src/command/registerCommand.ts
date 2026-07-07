@@ -60,7 +60,6 @@ export class RegisterCommand {
       commands.registerCommand('PyPTO.Open.OpenLinkageMode', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
         if (!uri) return;
-        // ThreeColumnGraphView.createPanel(uri);
         const { editorView } = useView();
         await editorView.open('threeColumnGraph', uri);
       }),

@@ -26,24 +26,30 @@ export function usePinnedThreads(processes, lane2line, layout) {
   // 从 vscode state 恢复置顶状态
   const restorePinnedState = () => {
     const state = pullState();
-    if (state && state.pinnedThreads && Array.isArray(state.pinnedThreads)) {
-      state.pinnedThreads.forEach(pinned => {
-        const process = processes.get(pinned.processKey);
-        if (process) {
-          const thread = process.threads.get(pinned.threadKey);
-          if (thread) {
-            const key = `${pinned.processKey}-${pinned.threadKey}`;
-            pinnedThreads.set(key, {
-              processKey: pinned.processKey,
-              threadKey: pinned.threadKey,
-              thread,
-              process
-            });
-            thread.isPinned = true;
-          }
-        }
-      });
+    if (!state || !state.pinnedThreads || !Array.isArray(state.pinnedThreads)) {
+      return;
     }
+    
+    state.pinnedThreads.forEach(pinned => {
+      restoreSinglePinnedThread(pinned);
+    });
+  };
+  
+  const restoreSinglePinnedThread = (pinned) => {
+    const process = processes.get(pinned.processKey);
+    if (!process) return;
+    
+    const thread = process.threads.get(pinned.threadKey);
+    if (!thread) return;
+    
+    const key = `${pinned.processKey}-${pinned.threadKey}`;
+    pinnedThreads.set(key, {
+      processKey: pinned.processKey,
+      threadKey: pinned.threadKey,
+      thread,
+      process
+    });
+    thread.isPinned = true;
   };
 
   // 置顶线程
@@ -171,23 +177,27 @@ export function usePinnedThreads(processes, lane2line, layout) {
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
     
     Array.from(pinnedThreads.entries()).forEach(([key, pinnedData]) => {
-      pinnedData.thread.isPinned = false;
-      delete pinnedData.thread.offsetY;
-      
-      const threadIdentifier = pinnedData.thread.isCounter ? pinnedData.thread.threadName : String(pinnedData.thread.tid);
-      for (const lane of swimLaneOrder) {
-        if (lane.type === 'thread' && lane.thread) {
-          const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
-          if (laneIdentifier === threadIdentifier) {
-            lane.thread.isPinned = false;
-            break;
-          }
-        }
-      }
+      clearThreadPinnedStatus(pinnedData.thread, swimLaneOrder);
     });
     
     pinnedThreads.clear();
     savePinnedState();
+  };
+  
+  const clearThreadPinnedStatus = (thread, swimLaneOrder) => {
+    thread.isPinned = false;
+    delete thread.offsetY;
+    
+    const threadIdentifier = thread.isCounter ? thread.threadName : String(thread.tid);
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'thread' && lane.thread) {
+        const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
+        if (laneIdentifier === threadIdentifier) {
+          lane.thread.isPinned = false;
+          break;
+        }
+      }
+    }
   };
 
   return {

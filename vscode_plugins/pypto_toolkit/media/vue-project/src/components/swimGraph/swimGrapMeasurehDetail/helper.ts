@@ -160,23 +160,8 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
       }
       const threads = process.threads;
       for (const [threadKey, thread] of threads.entries()) {
-        for (const event of thread.events) {
-          if (
-            (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
-            (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
-          ) {
-            if (isMixMode.value) {
-              const subEvent = swimDataManager.getSubEvents(event.id);
-              if (subEvent.length > 0 ) {
-                matchingEvents.push(...subEvent);
-              } else {
-                matchingEvents.push(event);
-              }
-            } else {
-              matchingEvents.push(event);
-            }
-          }
-        }
+        const events = collectEventsFromThread(thread, lineRangeStart, lineRangeEnd, isMixMode.value, swimDataManager);
+        matchingEvents.push(...events);
       }
     }
   }
@@ -187,6 +172,28 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
   }
   const measureTime = measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
   return measureTime;
+};
+
+const collectEventsFromThread = (thread, lineRangeStart, lineRangeEnd, isMixMode, swimDataManager) => {
+  const events = [];
+  for (const event of thread.events) {
+    if (
+      (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
+      (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
+    ) {
+      if (isMixMode) {
+        const subEvent = swimDataManager.getSubEvents(event.id);
+        if (subEvent.length > 0) {
+          events.push(...subEvent);
+        } else {
+          events.push(event);
+        }
+      } else {
+        events.push(event);
+      }
+    }
+  }
+  return events;
 };
 
 export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
