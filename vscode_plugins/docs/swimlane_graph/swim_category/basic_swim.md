@@ -34,7 +34,7 @@
 
     ![](../../figures/swimView.png)
 
-    区域①：工具栏，支持[搜索泳道图节点](../search_swimlane_graph_node.md)、缩放泳道图、查看快捷键列表、导出图片、[渲染配置](../render_config.md)、[按时间范围查看泳道图](../view_performance_report.md#按时间范围查看性能数据)、[查看全局性能报告](../view_performance_report.md#查看全局性能报告)等功能。
+    区域①：工具栏，支持[搜索泳道图节点](../search_swimlane_graph_node.md)、缩放泳道图、查看快捷键列表、导出图片、[渲染配置](../render_config.md)、[按时间范围查看泳道图](../view_performance_report.md#viewByTimeRange)、[查看全局性能报告](../view_performance_report.md#viewGlobalReport)等功能。
 
     区域②：三段式时间轴，最上方时间轴显示总执行时间、中间时间轴显示当前任务面板占用的执行时间，最下方时间轴为纳秒级别。
 
@@ -61,7 +61,7 @@
     |参数|说明|
     |--|--|
     |名称|节点名称包含任务名称以及语义标签，例如0-4-0-25-0(MatMul)。</br>前三个数字0-4-0为该任务编号，也是该任务的唯一标识。三个数字分别表示：seqNo、task's rootFunction part、task's opIndex part。</br>后两个数字25-0标识该任务执行的内容，即rootIndex和psglD in this root。</br>MatMul为语义标签名称，当PyPTO程序代码中使用pypto.set_semantic_label接口设置自定义语义标签时展示。|
-    |Subgraphid|节点所在的同构子图的ID，不同任务节点可能归属统一个同构子图。|
+    |Leaf 编号|节点所在的同构子图的ID，不同任务节点可能归属统一个同构子图。|
     |Start|开始时间|
     |Duration|持续时间|
     |命中率|缓存命中率|

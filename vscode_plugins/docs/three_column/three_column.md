@@ -30,14 +30,14 @@
     界面同时展示代码、计算图和泳道图，当用户移动鼠标时，系统将动态高亮显示与当前语义标签关联的视图元素。
 
     -   在代码界面，左侧通过色块标记划分语义标签范围，高亮显示与当前语义标签关联的代码段。
-    -   在计算图界面，系统动态高亮显示与当前语义标签关联的图结构，便于用户观测对应代码行的图结构特征，从而判断是否需要进行图结构相关的优化。关于计算图的详细用法请参见[计算图](../computation_graph/计算图.md)。在计算图左上角下拉可以选择所有program.json下的子图。
-    -   在泳道图界面，系统高亮显示与当前语义标签关联的Task节点，便于用户观测Task的执行耗时和依赖关系，从而识别性能瓶颈并制定优化策略。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/泳道图.md)。
+    -   在计算图界面，系统动态高亮显示与当前语义标签关联的图结构，便于用户观测对应代码行的图结构特征，从而判断是否需要进行图结构相关的优化。关于计算图的详细用法请参见[计算图](../computation_graph/view_computation_graph.md)。在计算图左上角下拉可以选择所有program.json下的子图。
+    -   在泳道图界面，系统高亮显示与当前语义标签关联的Task节点，便于用户观测Task的执行耗时和依赖关系，从而识别性能瓶颈并制定优化策略。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/swim_category/basic_swim.md)。
 
     如果代码界面未显示颜色条，请检查program.json中semantic\_label字段中的filename参数是否为代码源文件的绝对路径。
 
     ```txt
     "semantic_label": {
-    "filename": "D:\\code\\demos\\build\\output\\bin\\output\\output_20251129_095047_860533\\test_softmax_custom.py",
+    "filename": "/mnt/workspace/gitCode/cann/pypto/examples/02_intermediate/operators/softmax/softmax.py",
     "label": "topk",
     "lineno": 69
     },

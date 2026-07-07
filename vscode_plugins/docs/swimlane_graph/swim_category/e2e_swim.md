@@ -11,7 +11,7 @@
 1.  设置环境变量。
 
     ```
-    export DUMP_DEVICE_PERF = true
+    export DUMP_DEVICE_PERF=true
     ```
 
 2.  启动性能数据采集功能。
