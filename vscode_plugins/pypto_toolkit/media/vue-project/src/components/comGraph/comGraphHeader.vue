@@ -172,13 +172,15 @@ import {
   extractRawTensors,
   extractTensorNodes,
   extractOperationNodes,
+  extractTokenNodeMap,
   searchFuzzy,
   extractFuncMap,
   searchByTensorMagic,
   searchByTensorSemanticLabel,
   searchByRawTensorMagic,
   searchBySubgraphid,
-  searchByOperationMagic
+  searchByOperationMagic,
+  searchByToken
 } from '../../utils/search';
 import { useViewServer } from '../../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
@@ -278,6 +280,16 @@ const categoryCurrent = [
       { Option: 'id' }
     ],
   },
+  {
+    label: 'Tokennode',
+    field: 'Token',
+    type: 'radio',
+    group: 'Basic',
+    filterKey: 'Option',
+    options: [
+      { Option: 'id' }
+    ],
+  },
 ];
 
 const categoryGlobal = [
@@ -368,6 +380,7 @@ let tensorMap = {};
 let opMap = {};
 let rawTensorMap = {};
 let funcMap = ref({});
+let tokennodeMap = {};
 let res = ref([]);
 let totalSize = ref(0);
 let resSize = ref(0);
@@ -501,6 +514,9 @@ const onSearch = (e) => {
           res.value = searchByTensorSemanticLabel(opMap, e.searchKey);
         }
         break;
+      case "Token":
+        res.value = searchByToken(tokennodeMap, e.searchKey, e.isUpper, e.isReg);
+        break;
     }
   }
   filterSearchResult(res.value);
@@ -575,6 +591,9 @@ const displayNav = (it, index) => {
 const displayResIt = (it) => {
   if (it.node_type === 'function') {
     return `${it.node_type} hash:${it.hash} name:${it.func_magicname}`;
+  }
+  if (it.node_type === 'token') {
+    return `token magic:${it.magic}`;
   }
 
   let symbol = '';
@@ -781,6 +800,7 @@ watch(
       currentFuncHash = jsonData.hash;
       rawTensorMap = extractRawTensors(jsonData);
       tensorMap = extractTensorNodes(jsonData, incasts, outcasts, rawTensorMap);
+      tokennodeMap = extractTokenNodeMap(jsonData);
       opMap = extractOperationNodes(jsonData);
       totalSize.value = calcNodeSize(opMap) + calcNodeSize(tensorMap);
     }

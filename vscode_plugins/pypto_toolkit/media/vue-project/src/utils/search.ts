@@ -93,6 +93,45 @@ export function extractFuncMap(calleehash) {
   return funcMap;
 }
 
+export function extractTokenNodeMap(jsonData) {
+  const tokennodeMap = {};
+  if (jsonData && jsonData.operations && Array.isArray(jsonData.operations)) {
+    jsonData.operations.forEach(op => {
+      if (op.itokens && Array.isArray(op.itokens)) {
+        op.itokens.forEach(token => { tokennodeMap[token] = true; });
+      }
+      if (op.otokens && Array.isArray(op.otokens)) {
+        op.otokens.forEach(token => { tokennodeMap[token] = true; });
+      }
+    });
+  }
+  return tokennodeMap;
+}
+
+export function searchByToken(tokennodeMap, keyword, isUpper = false, isReg = false) {
+  let reg = null;
+  if (isReg) {
+    try {
+      reg = new RegExp(keyword, 'i');
+    } catch {
+      reg = null;
+    }
+  }
+  return Object.keys(tokennodeMap)
+    .filter(token => {
+      const str = String(token);
+      if (isUpper) return str.includes(keyword);
+      return reg ? reg.test(str) : str.toLowerCase().includes(keyword.toLowerCase());
+    })
+    .map(token => ({
+      node_type: 'token',
+      node_id: `operation-${token}-0`,
+      magic: token,
+      subgraphid: 0,
+    }));
+}
+
+
 export function searchByTensorMagic(tensorMap, magic) {
   return Object.values(tensorMap)
     .map(subgraph => subgraph[magic])
