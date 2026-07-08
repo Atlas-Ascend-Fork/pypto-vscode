@@ -1282,7 +1282,7 @@ export class AstgrTensorView extends RectangularNodeView {
     const contentStartX = tagStartX + tagPadding * 2;
     const exceptionTagY = 0;
     const tagGap = 4;
-    const wrongRawMagicList = comGraphStore.data.wrongRawMagicList;
+    const wrongRawMagicList = comGraphStore.data.wrongRawMagicList ?? [];
     const briefTagError = wrongRawMagicList.errorRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
     const briefTagException = wrongRawMagicList.exceptionRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
     const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
