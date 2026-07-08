@@ -5,8 +5,7 @@ let Hct: any = null;
 
 export async function loadMaterialColorUtilities() {
   if (!Hct) {
-    const dynamicImport = (new Function('specifier', 'return import(specifier);')) as (s: string) => Promise<any>;
-    const materialColorUtilities = await dynamicImport('@material/material-color-utilities').catch(err => {
+    const materialColorUtilities = await import('@material/material-color-utilities').catch(err => {
       return {Hct: null}
     });
     Hct = materialColorUtilities.Hct;

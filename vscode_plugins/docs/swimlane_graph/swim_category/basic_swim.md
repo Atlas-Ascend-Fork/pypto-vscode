@@ -34,7 +34,7 @@
 
     ![](../../figures/swimView.png)
 
-    区域①：工具栏，支持[搜索泳道图节点](../search_swimlane_graph_node.md)、缩放泳道图、查看快捷键列表、导出图片、[渲染配置](../render_config.md)、[按时间范围查看泳道图](../view_performance_report.md#viewByTimeRange)、[查看全局性能报告](../view_performance_report.md#viewGlobalReport)等功能。
+    区域①：工具栏，支持[搜索泳道图节点](../search_swimlane_graph_node.md)、缩放泳道图、查看快捷键列表、导出图片、[渲染配置](../render_config.md)、[按时间范围查看性能数据](../view_performance_report.md#viewByTimeRange)、[查看全局性能报告](../view_performance_report.md#viewGlobalReport)等功能。
 
     区域②：三段式时间轴，最上方时间轴显示总执行时间、中间时间轴显示当前任务面板占用的执行时间，最下方时间轴为纳秒级别。
 
