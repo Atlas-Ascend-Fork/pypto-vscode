@@ -15,6 +15,7 @@
 在运行结果界面中，单击`OP Check`按钮，打开OpCheck页面。程序将自动导入Op粒度精度对比数据，导入成功后，左侧compareList区域会显示可解析的Op粒度精度对比数据列表。
 
 **图 1**  `OP Check`按钮位置
+![](../figures/opcheck-compare-list.gif)
 
 ### 步骤二：解析数据并打开Diff视图
 
@@ -24,6 +25,7 @@
 - **已解析的数据项**：点击后直接在右侧显示Diff视图。
 
 **图 2**  Diff视图展示效果
+![](../figures/opcheck-compare-file.gif)
 
 ### 步骤三：查看Diff视图
 
@@ -35,6 +37,7 @@ Diff视图提供以下功能：
 - 单击选中数据项，可打开精度结果详情
 
 **图 3**  Diff视图操作界面
+![](../figures/opcheck-compare-fail.gif)
 
 ### 步骤四：查看精度结果
 
@@ -44,4 +47,4 @@ Diff视图提供以下功能：
 - 通过Tab页切换`概览`和`精度异常详细对比`视图
 
 **图 4**  精度结果详情页面
-
+![](../figures/opcheck-compare-fail-report.gif)

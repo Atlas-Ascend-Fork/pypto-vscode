@@ -10,7 +10,7 @@ search_graph_node
 layout_display
 lock_path
 compare_graph_diff
-customize_node_info
 jump_to_code
 render_graph
 java-elk-extension
+view_accuracy_report
