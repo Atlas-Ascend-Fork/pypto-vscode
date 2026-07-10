@@ -123,6 +123,18 @@ export function usePinnedThreads(processes, lane2line, layout) {
     
     savePinnedState();
   };
+
+  const findLaneYByThreadIdentifier = (swimLaneOrder, threadIdentifier) => {
+    for (const lane of swimLaneOrder) {
+      if (lane.type === 'thread' && lane.thread) {
+        const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
+        if (laneIdentifier === threadIdentifier) {
+          return lane.y;
+        }
+      }
+    }
+    return 0;
+  };
   
   // 重新计算所有置顶线程的offsetY（用于mix模式切换）
   const recalculateOffsetY = (isMixMode: Boolean) => {
@@ -148,15 +160,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
       // 从swimLaneOrder获取新的laneY
       let laneY = 0;
       if (isMixMode) {
-        for (const lane of swimLaneOrder) {
-          if (lane.type === 'thread') {
-            const laneIdentifier = lane.thread.isCounter ? lane.thread.threadName : String(lane.thread.tid);
-            if (laneIdentifier === threadIdentifier) {
-              laneY = lane.y;
-              break;
-            }
-          }
-        }
+        laneY = findLaneYByThreadIdentifier(swimLaneOrder, threadIdentifier);
       } else {
         if (thread.isCounter) {
           const process = pinnedData.process;
