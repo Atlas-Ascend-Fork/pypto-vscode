@@ -349,28 +349,6 @@ const searchNodeGlobalListener = (args) => {
   loadingStep.value = 'convertData';
 };
 
-function dealConfig(config) {
-  if (!config) {
-    return;
-  }
-
-  if (config.tensorAttr) {
-    comGraphStore.setData('tensorAttrFunc', eval(config.tensorAttr));
-  }
-
-  if (config.tensorColor) {
-    comGraphStore.setData('tensorColorFunc', eval(config.tensorColor));
-  }
-
-  if (config.operationAttr) {
-    comGraphStore.setData('operationAttrFunc', eval(config.operationAttr));
-  }
-
-  if (config.operationColor) {
-    comGraphStore.setData('operationColorFunc', eval(config.operationColor));
-  }
-}
-
 function onFullRender() {
   if (Object.keys(jsonContent.value).length) {
     loadingStep.value = 'convertData';

@@ -24,23 +24,6 @@ export class Util {
     return html;
   }
 
-  static getComGraphCustomCfg() {
-    const config = workspace.getConfiguration('PyPTOToolkitOpen');
-    const vscodeConfig = {
-      tensorAttr: config.get('tensorAttr') as string,
-      tensorColor: config.get('tensorColor') as string,
-      operationAttr: config.get('operationAttr') as string,
-      operationColor: config.get('operationColor') as string,
-    };
-
-    return {
-      tensorAttrFunc: eval(vscodeConfig.tensorAttr),
-      tensorColorFunc: eval(vscodeConfig.tensorColor),
-      operationAttrFunc: eval(vscodeConfig.operationAttr),
-      operationColorFunc: eval(vscodeConfig.operationColor)
-    }
-  }
-
   static getSwimGraphCustomCfg() {
     const config = workspace.getConfiguration('PyPTOToolkitOpen');
     // 仅对shortcut进行检测

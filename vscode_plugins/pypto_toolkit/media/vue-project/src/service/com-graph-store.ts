@@ -41,10 +41,6 @@ interface ComGraphData {
   searchLevel: string;
   isLeaf: boolean;
   runningNodeId: string; // 内存可视化运行中节点的id
-  tensorAttrFunc?: (node) => Array<string>;
-  operationAttrFunc?: (node) => Array<string>;
-  tensorColorFunc?: (node, list: Array<string>) => string;
-  operationColorFunc?: (node, list: Array<string>) => string;
   renderMinimapFunc?: (root?:SModelRoot)=> void;
   centerNodeActionFunc?: (elementIdsPara: string[], animatePara?: boolean, retainZoomPara?: boolean, zoomScalePara?: number)=> void;
   updateModelActionFunc?: ( animate?: boolean, cause?: boolean)=> void;

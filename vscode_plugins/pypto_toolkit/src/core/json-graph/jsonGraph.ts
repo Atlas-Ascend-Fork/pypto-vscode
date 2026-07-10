@@ -53,7 +53,6 @@ export class AscppDagBuilder {
     singlePathNodeSet = new Set<string>();
     pathNodesSet = new Set<string>();
     duplicateMagic = new Set<string>();
-    vscodeConfig: any;
     version: string = '2.0';
     diffType?: 'before' | 'after';
 
@@ -100,7 +99,7 @@ export class AscppDagBuilder {
         const leafColorList = generateColorList(4, isDark);
         this.leafBaseColorList = leafColorList.baseColorList;
         this.leafLightColorList = leafColorList.lightColorList;
-        this.vscodeConfig = Util.getComGraphCustomCfg();
+        // this.vscodeConfig = Util.getComGraphCustomCfg();
     }
 
     public prepareSprottyGraphData() {
@@ -828,15 +827,6 @@ export class AscppDagBuilder {
         const graphId = tensor?.subgraphid ?? -1;
         let baseColor = graphId >= 0 ? this.baseColorList[graphId % 360] : `var(--devui-tensor-node-base-color)`;
         let lightColor = graphId >= 0 ? this.lightColorList[graphId % 360] : `var(--devui-tensor-node-light-color)`;    
-        try {
-            const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
-            if (userColor) {
-                baseColor = userColor;
-                lightColor = getLighterColorByHex(baseColor);
-            }
-        } catch (error) {
-            console.error(`Need to use default color, because ${error}`);
-        }
 
         // 判断节点是否有错误信息
         let isError = false;
@@ -862,12 +852,7 @@ export class AscppDagBuilder {
         try {
             const evalTensor = { ...tensor };
             evalTensor.rawtensor = rawTensor;
-            const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
-            if (result) {
-                labelParts.push(...result);
-            } else {
-                this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
-            }
+            this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
         } catch (error) {
             this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
         }
@@ -1035,12 +1020,7 @@ export class AscppDagBuilder {
             try {
                 const evalTensor = { ...tensor };
                 evalTensor.rawtensor = rawTensor;
-                const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
-                if (result) {
-                    labelParts.push(...result);
-                } else {
-                    this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
-                }
+                this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
             } catch (error) {
                 this.getTensorCommonAttr(labelParts, tensor, rawTensor!);
             }
@@ -1053,15 +1033,6 @@ export class AscppDagBuilder {
                 isError = true;
                 baseColor = 'rgba(231, 67, 74, 1)';
                 lightColor = 'rgba(250, 189, 193, 1)';
-            }
-            try {
-                const userColor = this.vscodeConfig?.tensorColorFunc && this.vscodeConfig.tensorColorFunc(tensor, this.baseColorList);
-                if (userColor) {
-                    baseColor = userColor;
-                    lightColor = getLighterColorByHex(baseColor);
-                }
-            } catch (error) {
-                console.error(`Need to use default color, because ${error}`);
             }
 
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
@@ -1333,12 +1304,7 @@ export class AscppDagBuilder {
         try {
             const evalTensor = { ...tensor };
             evalTensor.rawtensor = rawTensor;
-            const result = this.vscodeConfig?.tensorAttrFunc && this.vscodeConfig.tensorAttrFunc(evalTensor);
-            if (result) {
-                metadataParts.push(...result);
-            } else {
-                this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
-            }
+            this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         } catch (error) {
             this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         }
@@ -1962,25 +1928,7 @@ export class AscppDagBuilder {
             lightColor = 'rgba(250, 189, 193, 1)';
         }
 
-        try {
-            const userColor = this.vscodeConfig?.operationColorFunc && this.vscodeConfig.operationColorFunc(op, this.baseColorList);
-            if (userColor) {
-                baseColor = userColor;
-                lightColor = getLighterColorByHex(baseColor);
-            }
-        } catch (error) {
-            console.error(`Need to use default color, because ${error}`);
-        }
-
         const labelParts: string[] = [];
-        try {
-            const result = this.vscodeConfig?.operationAttrFunc && this.vscodeConfig.operationAttrFunc(op);
-            if (result) {
-                labelParts.push(...result);
-            }
-        } catch (error) {
-            console.error(`User define is invalid, ${error}`);
-        }
 
         const notCallChildren: any = {
             type: 'compartment',
