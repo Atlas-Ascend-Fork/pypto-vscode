@@ -5,11 +5,14 @@
       <span>{{ $t("inter-CorePerformanceOverview") }}</span>
     </div>
 
-    <div class="details-panel" :class="{ expanded: detailsPanelExpanded, 'pmu-diagnosis-expanded': selectedView === 'pmuDiagnosis' && !isThreeColumn }">
+    <div class="details-panel" :class="[{ expanded: detailsPanelExpanded }, { 'full-expand': isDetailFullExpand }, { 'narrow-mode': isCompactMode }]">
       <div class="details-content" ref="detailsContent" id="details-content">
+        <div v-if="!isThreeColumn" class="expand-toggle" @click="toggleDetailFullExpand">
+          <d-icon :name="isDetailFullExpand ? 'double-down' : 'double-up'" style="font-size: 16px; width: 16px; height: 16px;" />
+        </div>
         <div class="details-title" v-if="!selectedEvent && !canvasclickedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
-          <div class="detail-content" :class="{ 'pmu-diagnosis-layout': selectedView === 'pmuDiagnosis' && !isThreeColumn }">
+          <div class="detail-content" :class="{ 'narrow-mode': isCompactMode }">
               <div class="content-one-pipe">
                 <div class="pipe-content-title">
                   <div class="pipe-title">
@@ -313,6 +316,60 @@ let durationInfo = ref('0');
 let durationInfoAll = ref('');
 let durationUnitInfo = ref('us');
 const inputNumberRef = ref(null);
+const isDetailFullExpand = ref(false);
+const detailsPanelWidth = ref(0);
+const isCompactMode = computed(() => detailsPanelWidth.value > 0 && detailsPanelWidth.value < 1218);
+function syncPanelHeight() {
+  const panel = document.querySelector('.details-panel');
+  const content = document.getElementById('details-content');
+  if (!panel || !content) {
+    return;
+  }
+  if (!detailsPanelExpanded.value) {
+    return;
+  }
+  const detailContentEl = content.querySelector('.detail-content');
+  const naturalHeight = detailContentEl ? detailContentEl.scrollHeight : 0;
+  const barEl = content.querySelector('.expand-toggle');
+  const barHeight = barEl ? barEl.offsetHeight : 0;
+  const displayHeight = Math.min(naturalHeight, 600);
+  panel.style.height = (barHeight + displayHeight) + 'px';
+  panel.style.overflow = 'hidden';
+  if (detailContentEl) {
+    detailContentEl.style.height = naturalHeight + 'px';
+  }
+}
+function resetPanelStyle() {
+  const panel = document.querySelector('.details-panel');
+  if (panel) {
+    panel.style.height = '';
+    panel.style.overflow = '';
+  }
+  const detailContentEl = document.querySelector('.detail-content');
+  if (detailContentEl) {
+    detailContentEl.style.height = '';
+  }
+}
+function recalcExpandHeight() {
+  if (!isDetailFullExpand.value) {
+     return;
+  }
+  syncPanelHeight();
+}
+function toggleDetailFullExpand() {
+  isDetailFullExpand.value = !isDetailFullExpand.value;
+  nextTick(() => {
+    if (isDetailFullExpand.value) {
+      recalcExpandHeight();
+    } else {
+      if (isCompactMode.value) {
+        syncPanelHeight();
+      } else {
+        resetPanelStyle();
+      }
+    }
+  });
+}
 const rowCoordLoc = ref(['0%', '18%', '36%', '54%', '72%', '88%']);
 const backLineLoc = ref(['20%', '40%', '60%', '80%']);
 const rowCoordList = ref(['0%', '20%', '40%', '60%', '80%', '100%']);
@@ -629,10 +686,7 @@ const showEventDetail = (newEvent) => {
   }
 };
 
-// 监听选中事件变化，更新依赖图
-watch(selectedEvent, (newEvent) => {
-  showEventDetail(newEvent);
-});
+
 watch(canvasclickedEvent, (newEvent) => {
   if (isPathLockStatus.value) {
     showEventDetail(newEvent);
@@ -640,6 +694,44 @@ watch(canvasclickedEvent, (newEvent) => {
 });
 watch(isDarkTheme, () => {
   updateTheme();
+});
+watch(detailsPanelExpanded, (val) => {
+  if (val) {
+    if (isCompactMode.value || isDetailFullExpand.value) {
+      nextTick(() => syncPanelHeight());
+    }
+  } else {
+    if (isDetailFullExpand.value) {
+      isDetailFullExpand.value = false;
+    }
+    resetPanelStyle();
+  }
+  if (val && !canvasResizeObserver) {
+    nextTick(() => {
+      initCanvasResizeObserver();
+    });
+  }
+}, { immediate: true });
+watch(isCompactMode, (val) => {
+  nextTick(() => {
+    if (!detailsPanelExpanded.value) return;
+    if (val || isDetailFullExpand.value) {
+      syncPanelHeight();
+    } else {
+      resetPanelStyle();
+    }
+  });
+});
+watch(selectedView, () => {
+  if (isDetailFullExpand.value) {
+    nextTick(() => recalcExpandHeight());
+  }
+});
+watch(selectedEvent, (newEvent) => {
+  showEventDetail(newEvent);
+  if (isDetailFullExpand.value) {
+    nextTick(() => recalcExpandHeight());
+  }
 });
 const updateTheme = () => {
   tPath.value =  isDarkTheme.value ?`${window.staticPath}/static-assets/circle.svg`: `${window.staticPath}/static-assets/circle_light.svg`;
@@ -881,6 +973,20 @@ defineExpose({
 });
 
 let canvasResizeObserver = null;
+let panelResizeObserver = null;
+
+onMounted(() => {
+  const panel = document.querySelector('.details-panel');
+  if (panel) {
+    panelResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        detailsPanelWidth.value = entry.contentRect.width;
+      }
+    });
+    panelResizeObserver.observe(panel);
+    detailsPanelWidth.value = panel.getBoundingClientRect().width;
+  }
+});
 
 const initCanvasResizeObserver = () => {
   const canvasContainer = document.getElementById('canvas-container');
@@ -901,36 +1007,64 @@ const initCanvasResizeObserver = () => {
   canvasResizeObserver.observe(canvasContainer);
 };
 
-watch(detailsPanelExpanded, (newValue) => {
-  if (newValue && !canvasResizeObserver) {
-    nextTick(() => {
-      initCanvasResizeObserver();
-    });
-  }
-});
-
 onUnmounted(() => {
   if (canvasResizeObserver) {
     canvasResizeObserver.disconnect();
     canvasResizeObserver = null;
+  }
+  if (panelResizeObserver) {
+    panelResizeObserver.disconnect();
+    panelResizeObserver = null;
   }
 });
 </script>
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/Detail/detail.css");
-.details-panel.expanded.pmu-diagnosis-expanded {
-  height: min(560px, 56vh);
+.details-panel {
+  overflow: hidden;
 }
 
-.pmu-diagnosis-layout {
-  height: min(560px, 56vh);
+.expand-toggle {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 100%;
+  box-shadow: var(--devui-detail-boxshadow);
+  background: var(--devui-swim-detail-bg);
+}
+
+.details-content {
+  overflow: hidden;
+}
+
+.details-panel.full-expand .detail-content {
+  height: auto;
+  max-height: 600px;
+  overflow: auto;
+}
+
+.details-panel.full-expand .content-args {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.details-panel.full-expand .pmu-content-host {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.details-panel.full-expand #canvas-container {
+  height: auto !important;
 }
 
 .pmu-content-host {
-  height: calc(56vh - 32px);
+  max-height: 186px;
   min-height: 186px;
-  max-height: 528px;
   overflow: auto;
   min-width: 464px;
   flex: 0 0 auto;
