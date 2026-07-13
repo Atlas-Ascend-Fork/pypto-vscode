@@ -37,7 +37,7 @@ export const COLOR_CFG = {
   light: {
     backGround: '#ffffff',
     eventFont: '#000000',
-    eventRectNoColor: 'rgba(0, 0, 0, 0.05)',
+    eventRectNoColor: 'rgb(218, 218, 218)',
     eventFontNoColor: '#999999',
     eventRectNoColorHighlight: 'rgba(119, 119, 119, 1)',
     eventFontHighLight: '#ffffff',

@@ -2683,7 +2683,6 @@ const transformVerticalScroll = () => {
       if (depCanvas) {
         const depCtx = depCanvas.getContext('2d');
         depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-        depCtx.clearRect(0, 0, depCanvas.width / devicePixelRatio, depCanvas.height / devicePixelRatio);
         childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
       }
     }
