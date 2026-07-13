@@ -431,123 +431,139 @@ export class AstgrLabelView extends SLabelView {
   }
 }
 
-@injectable()
-export class AstgrNodeLabelView extends ShapeView {
-  render(label: Readonly<SLabelImpl & MetadataLabel>, context: RenderingContext): VNode | undefined {
-    const defaultZoomLevel = 0.3; // Default zoom level for visibility
-    if ((!this.isVisible(label, context) && (!comGraphStore.data.svgExportMode))|| !showDetail(label.root as ViewportRootElementImpl, label.minZoomLevel ?? defaultZoomLevel)) {
-      return undefined;
+function getMainLabelTitleColor(node: any): string {
+  if (node.isTokenNode) {
+    return 'var(--devui-primary-text)';
+  }
+  let titleTxtFillColor = 'var(--devui-primary-text)';
+  const isNonInOut = (node.role !== 'input') && (node.role !== 'output');
+  if (isNonInOut || node.isError || node.isEmptyNode) {
+    if (node.isEmptyNode) {
+      titleTxtFillColor = 'var(--devui-primary-text-empty)';
     }
-    let vnode;
-    const subType = getSubType(label);
-    let subgraphId = '';
-    if (!(label.slotId && Array.isArray(label.slotId))){
-      subgraphId += 'Subgraph ID： ' + label.subgraphId;
+    const isSelected = node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel);
+    if (isSelected) {
+      titleTxtFillColor = 'var(--devui-node-selected-text)';
     }
+  }
+  return titleTxtFillColor;
+}
 
+function renderMainLabel(label: Readonly<SLabelImpl & MetadataLabel>, subgraphId: string, subType: string): VNode {
+  const isParentNode = label.id.startsWith('parent');
+  const node = label.parent.parent;
+  const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+  const titleTxtFillColor = getMainLabelTitleColor(node);
 
-    /* root节点的类型判断, 是否使用亮色 */
-    
-    if (label.cssClasses[0].includes('-main-label')) {
-      const isParentNode = label.id.startsWith('parent');
-      let node = label.parent.parent;
-      let titleTxtFillColor = 'var(--devui-primary-text)';
-      const isRunningNode = node.id === comGraphStore.data.runningNodeId;
-      if (((node.role !== 'input') && (node.role !== 'output')) || node.isError || node.isEmptyNode) {
-        if (node.isEmptyNode) {
-          titleTxtFillColor = 'var(--devui-primary-text-empty)';
-        }
-        if (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) {
-          titleTxtFillColor = 'var(--devui-node-selected-text)';
-        }
-      }
-      if (node.isTokenNode) {
-        titleTxtFillColor = 'var(--devui-primary-text)';
-      }
-      // 创建第一个text节点
-      const titleText = (
-        <text
-          class-sprotty-label={true}
-          class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
-          class-parent-node={isParentNode}
-          fill={isRunningNode ? 'var(--devui-running-node-title-text)' : titleTxtFillColor}>
-          {label.text}
-        </text>
-      );
+  const titleText = (
+    <text
+      class-sprotty-label={true}
+      class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+      class-parent-node={isParentNode}
+      fill={isRunningNode ? 'var(--devui-running-node-title-text)' : titleTxtFillColor}>
+      {label.text}
+    </text>
+  );
 
-      // 创建第二个text节点，并设置其位置在第一个text的下方
-      const idText = subgraphId && label.text.startsWith('CALL') ? (
-        <text
-          class-sprotty-label={true}
-          class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
-          class-parent-node={isParentNode}
-          dy="2em"
-          fill={isRunningNode ? 'devui-running-node-value-text' : titleTxtFillColor}>
-          {subgraphId}
-        </text>
-      ) : null;
-      vnode = (
-        <g>
-          {titleText}
-          {idText}
-        </g>
-      );
-      if (subType) {
-        setAttr(titleText, 'class', 'tensor-title-label');
-        idText && setAttr(idText, 'class', 'tensor-subgraphId-label');
-      }
-    } else if (label.cssClasses[0].includes('-meta-label')) {
-      let node = label.parent.parent.parent;
-      let keyFillColor = 'var(--devui-text)';
-      let keyFillOpacity = '0.6';
-      let valueFillColor = 'var(--devui-primary-text)';
-      const isRunningNode = node.id === comGraphStore.data.runningNodeId;
-      
-      if (((node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation') 
-        || ((node.role === 'input' || node.role === 'output') && node.isError && node.selected)) {
-        keyFillColor = 'var(--devui-op-node-selected-label-text)';
-        keyFillOpacity = '1';
-        valueFillColor = 'var(--devui-op-node-selected-value-text)';
-      }
-      // 拆分key和value
-      let split = label.text.split(':');
-      let originTextSplit = label.originText?.split(':');
-      // 创建第一个text标签
-      const keyText = (
-        <text class-sprotty-label={true} fill={isRunningNode ? 'var(--devui-running-node-key-text)' : keyFillColor} fill-opacity={keyFillOpacity} x={20}>
-          {split[0] + ':'}
-        </text>
-      );
-      // 创建第二个text标签
-      let renderSecondStr = split[1].trim();
-      const originTextSecondStr = originTextSplit[1].trim();
-      let valueText = (
+  const idText = subgraphId && label.text.startsWith('CALL') ? (
+    <text
+      class-sprotty-label={true}
+      class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+      class-parent-node={isParentNode}
+      dy="2em"
+      fill={isRunningNode ? 'devui-running-node-value-text' : titleTxtFillColor}>
+      {subgraphId}
+    </text>
+  ) : null;
+
+  const vnode = (
+    <g>
+      {titleText}
+      {idText}
+    </g>
+  );
+  if (subType) {
+    setAttr(titleText, 'class', 'tensor-title-label');
+    idText && setAttr(idText, 'class', 'tensor-subgraphId-label');
+  }
+  return vnode;
+}
+
+function renderMetaLabel(label: Readonly<SLabelImpl & MetadataLabel>, subType: string): VNode {
+  const node = label.parent.parent.parent;
+  let keyFillColor = 'var(--devui-text)';
+  let keyFillOpacity = '0.6';
+  let valueFillColor = 'var(--devui-primary-text)';
+  const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+
+  const isOpSelected = (node.selected || (comGraphStore.data.selectedNodeSemanticLabel && comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel)) && node.role === 'operation';
+  const isInOutErrorSelected = (node.role === 'input' || node.role === 'output') && node.isError && node.selected;
+  if (isOpSelected || isInOutErrorSelected) {
+    keyFillColor = 'var(--devui-op-node-selected-label-text)';
+    keyFillOpacity = '1';
+    valueFillColor = 'var(--devui-op-node-selected-value-text)';
+  }
+
+  const split = label.text.split(':');
+  const originTextSplit = label.originText?.split(':');
+  const renderSecondStr = split[1].trim();
+  const originTextSecondStr = originTextSplit[1].trim();
+
+  const keyText = (
+    <text class-sprotty-label={true} fill={isRunningNode ? 'var(--devui-running-node-key-text)' : keyFillColor} fill-opacity={keyFillOpacity} x={20}>
+      {split[0] + ':'}
+    </text>
+  );
+
+  let valueText: any;
+  if (renderSecondStr !== originTextSecondStr) {
+    valueText = (
+      <g>
+        <title>{originTextSecondStr}</title>
         <text class-sprotty-label={true} class-tensor-value-label={subType} fill={isRunningNode ? 'var(--devui-running-node-value-text)' : valueFillColor} x={80}>
           {renderSecondStr}
         </text>
-      );
-      if (renderSecondStr !== originTextSecondStr) {
-        valueText = (
-          <g>
-            <title>{originTextSecondStr}</title>
-            <text class-sprotty-label={true} class-tensor-value-label={subType} fill={isRunningNode ? 'var(--devui-running-node-value-text)' : valueFillColor} x={80}>
-              {renderSecondStr}
-            </text>
-          </g>
-        );
-      }
+      </g>
+    );
+  } else {
+    valueText = (
+      <text class-sprotty-label={true} class-tensor-value-label={subType} fill={isRunningNode ? 'var(--devui-running-node-value-text)' : valueFillColor} x={80}>
+        {renderSecondStr}
+      </text>
+    );
+  }
 
-      vnode = (
-        <g>
-          {keyText} {valueText}
-        </g>
-      );
+  const vnode = (
+    <g>
+      {keyText} {valueText}
+    </g>
+  );
+  if (subType) {
+    setAttr(keyText, 'class', 'tensor-key-label');
+  }
+  return vnode;
+}
 
-      if (subType) {
-        setAttr(keyText, 'class', 'tensor-key-label');
-      }
+@injectable()
+export class AstgrNodeLabelView extends ShapeView {
+  render(label: Readonly<SLabelImpl & MetadataLabel>, context: RenderingContext): VNode | undefined {
+    const defaultZoomLevel = 0.3;
+    if ((!this.isVisible(label, context) && (!comGraphStore.data.svgExportMode)) || !showDetail(label.root as ViewportRootElementImpl, label.minZoomLevel ?? defaultZoomLevel)) {
+      return undefined;
     }
-    return vnode;
+    const subType = getSubType(label);
+    let subgraphId = '';
+    if (!(label.slotId && Array.isArray(label.slotId))) {
+      subgraphId += 'Subgraph ID: ' + label.subgraphId;
+    }
+
+    if (label.cssClasses[0].includes('-main-label')) {
+      return renderMainLabel(label, subgraphId, subType);
+    }
+    if (label.cssClasses[0].includes('-meta-label')) {
+      return renderMetaLabel(label, subType);
+    }
+    return undefined;
   }
 }
 
@@ -628,6 +644,38 @@ function getBadgeDom(node) {
   </g>)
 }
 
+function getOpBackgroundStyle(node: any, incoming: boolean, outgoing: boolean, errClass: string) {
+  let backgroundFillColor = node.baseColor;
+  let backgroundFilter = '';
+  if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
+    if (node.selected) {
+      backgroundFillColor = node.isEmptyNode === true ? 'var(--devui-primary-text-empty)' : node.lightColor;
+    }
+    if (!incoming && !outgoing && !errClass && !node.isEmptyNode) {
+      backgroundFilter = 'grayscale(1)';
+    }
+  }
+  if (comGraphStore.data.selectedNodeSemanticLabel) {
+    if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+      backgroundFillColor = node.lightColor;
+    } else {
+      backgroundFilter = 'grayscale(1)';
+    }
+  }
+  if (node.isTokenNode) {
+    backgroundFillColor = node.baseColor;
+  }
+  return { backgroundFillColor, backgroundFilter };
+}
+
+function getOpSign(node: any, rectWidth: number, rectHeight: number): VNode | undefined {
+  if (!node.calleehash) {
+    return undefined;
+  }
+  const svgName = (window as any).isAscDark ? 'op-node-sign' : 'op-node-sign-light';
+  return <image href={`${(window as any).staticPath}/static-assets/${svgName}.svg`} x={rectWidth - 48} y={rectHeight - 48} width="48" height="48" />;
+}
+
 @injectable()
 export class AstgrOpView extends RectangularNodeView {
   override render(
@@ -651,7 +699,6 @@ export class AstgrOpView extends RectangularNodeView {
       outgoingPorts: new Set<string>(),
     };
 
-    // Fix: Check for any port IDs that belong to this node
     const traceResult = isNodeTraced(node.id, trace);
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
@@ -659,14 +706,11 @@ export class AstgrOpView extends RectangularNodeView {
     if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
-    // Selected nodes should never be dimmed
     const shouldDim = !isTraced && !node.selected;
 
-    // Check if this is a CALL operation
     const astgrNode = node as unknown as AstgrNode;
     const isCallOperation = astgrNode.opcode === 'CALL';
 
-    // Debug logging
     if (isCallOperation) {
       console.log('CALL operation detected:', {
         id: node.id,
@@ -675,7 +719,6 @@ export class AstgrOpView extends RectangularNodeView {
       });
     }
 
-    // Double-click handler for CALL operations
     const handleDoubleClick = () => {
       if (isCallOperation && astgrNode.calleehash && window.vsCodeApi) {
         window.vsCodeApi.postMessage({
@@ -685,8 +728,7 @@ export class AstgrOpView extends RectangularNodeView {
       }
     };
 
-    let badgeDom = isMiniType ? null : getBadgeDom(node);
-    /* 矩形圆角 */
+    const badgeDom = isMiniType ? null : getBadgeDom(node);
     const rectWidth = Math.max(node.size.width, 0);
     const rectHeight = Math.min(node.size.height, 150);
 
@@ -705,7 +747,6 @@ export class AstgrOpView extends RectangularNodeView {
       ></rect>
     ) : null;
 
-    // 内存可视化高亮节点
     const runningNodeRectOffset = 16;
     const isRunningNode = node.id === comGraphStore.data.runningNodeId;
     const rectNode = isRunningNode ? (
@@ -721,37 +762,9 @@ export class AstgrOpView extends RectangularNodeView {
     ) : null;
     const rectBgNode = isRunningNode ? <rect width={rectWidth} height={rectHeight} rx="8px" fill="var(--devui-base-invert-color)"></rect> : null;
 
-    /* root节点的类型判断 是否使用亮色 */
-    let backgroundFillColor = node.baseColor;
-    let backgroundFilter = '';
-    if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
-      if (node.selected) {
-        backgroundFillColor = node.isEmptyNode === true ? 'var(--devui-primary-text-empty)' : node.lightColor;
-      }
-      if (!incoming && !outgoing && !errClass && !node.isEmptyNode) {
-        backgroundFilter = 'grayscale(1)';
-      }
-    }
-    if (comGraphStore.data.selectedNodeSemanticLabel) {
-      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
-        backgroundFillColor = node.lightColor;
-      } else {
-        backgroundFilter = 'grayscale(1)';
-      }
-    }
-    if (node.isTokenNode) {
-      backgroundFillColor = node.baseColor;
-    }
-    let opSign;
-    if (node.calleehash) {
-      let svgName = '';
-      if ((window as any).isAscDark) {
-        svgName = 'op-node-sign';
-      } else {
-        svgName = 'op-node-sign-light';
-      }
-      opSign = (<image href={`${(window as any).staticPath}/static-assets/${svgName}.svg`} x={rectWidth - 48} y={rectHeight - 48} width="48" height="48" />);
-    }
+    const { backgroundFillColor, backgroundFilter } = getOpBackgroundStyle(node, incoming, outgoing, errClass);
+    const opSign = getOpSign(node, rectWidth, rectHeight);
+
     return (
       <g
         class-op-incoming={incoming}
@@ -827,6 +840,61 @@ const handleLockToggle = () => {
   (window as any).ascEventBus.emit('lockToggleChange', true);
 }
 
+function calculateSelectedNodeBounds(node: any): boolean {
+  node.needCalPostion = false;
+  const nodeMap = node.parent.index.id2element;
+  let startX = Infinity;
+  let startY = Infinity;
+  let endX = -Infinity;
+  let endY = -Infinity;
+
+  for (let i = 0; i < node.selectedNodes.length; i++) {
+    const tmpNodes = nodeMap.get(node.selectedNodes[i]);
+    if (!tmpNodes.size.width) {
+      return false;
+    }
+    if (!tmpNodes) {
+      continue;
+    }
+    if (tmpNodes.position.x < startX) {
+      startX = tmpNodes.position.x;
+    }
+    if (tmpNodes.position.x + tmpNodes.size.width > endX) {
+      endX = tmpNodes.position.x + tmpNodes.size.width;
+    }
+    if (tmpNodes.position.y < startY) {
+      startY = tmpNodes.position.y;
+    }
+    if (tmpNodes.position.y + tmpNodes.size.height > endY) {
+      endY = tmpNodes.position.y + tmpNodes.size.height;
+    }
+  }
+  node.position.x = startX - 40;
+  node.position.y = startY - 40;
+  node.customSize.width = endX - startX + 80;
+  node.customSize.height = endY - startY + 80;
+  return true;
+}
+
+function getRectStrokeColor(): string {
+  const isDark = (window as any).isAscDark;
+  if (comGraphStore.data.isNodeRectLock) {
+    return isDark ? 'rgba(49,122,247,1)' : '#0A59F7';
+  }
+  if (comGraphStore.data.stableRect) {
+    return isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.08)';
+  }
+  return isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)';
+}
+
+function getLockSvgName(): string {
+  const isDark = (window as any).isAscDark;
+  if (comGraphStore.data.isNodeRectLock) {
+    return isDark ? 'lock-private' : 'lock-private-light';
+  }
+  return isDark ? 'lock-open' : 'lock-open-light';
+}
+
 @injectable()
 export class AstgrRectView extends RectangularNodeView {
   override render(
@@ -838,71 +906,20 @@ export class AstgrRectView extends RectangularNodeView {
       return undefined;
     }
     if (node.needCalPostion) {
-      node.needCalPostion = false;
-      const nodeMap = node.parent.index.id2element;
-      let startX = Infinity;
-      let startY = Infinity;
-      let endX = -Infinity;
-      let endY = -Infinity;
-      let endYId = '';
-      
-      for (let i = 0; i < node.selectedNodes.length; i++) {
-        const tmpNodes = nodeMap.get(node.selectedNodes[i]);
-        if (!tmpNodes.size.width) {
-          return undefined;
-        }
-        if (!tmpNodes) {
-          continue;
-        }
-        if (tmpNodes.position.x < startX) {
-          startX = tmpNodes.position.x;
-        }
-        if (tmpNodes.position.x + tmpNodes.size.width > endX) {
-          endX = tmpNodes.position.x + tmpNodes.size.width;
-        }
-        if (tmpNodes.position.y < startY) {
-          startY = tmpNodes.position.y;
-        }
-        if (tmpNodes.position.y + tmpNodes.size.height > endY) {
-          endY = tmpNodes.position.y + tmpNodes.size.height;
-          endYId = node.selectedNodes[i];
-        }
+      if (!calculateSelectedNodeBounds(node)) {
+        return undefined;
       }
-      node.position.x = startX - 40;
-      node.position.y = startY - 40;
-      node.customSize.width = endX - startX + 80;
-      node.customSize.height = endY - startY + 80;
     }
-    let strokeWidth = node.root.zoom >= 1 ? 1 : (1 / node.root.zoom);
-    if (comGraphStore.data.isNodeRectLock) {
-      strokeWidth = node.root.zoom >= 1 ? 1.5 : (1 / node.root.zoom);
-    }
-    let imgSize = node.root.zoom >= 1 ? 12 : node.root.zoom < 0.45 ? (12 / 0.45): (12 / node.root.zoom);
+    const zoom = node.root.zoom;
+    const strokeWidth = comGraphStore.data.isNodeRectLock
+      ? (zoom >= 1 ? 1.5 : 1 / zoom)
+      : (zoom >= 1 ? 1 : 1 / zoom);
+    const imgSize = zoom >= 1 ? 12 : zoom < 0.45 ? (12 / 0.45) : (12 / zoom);
 
-    let nodeRectLockColor = comGraphStore.data.isNodeRectLock ? 'rgba(49,122,247,1)' : 'var(--devui-tooltip-bg)';
-    let strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.2)': 'rgba(0,0,0,0.08)';
-    const isStable = comGraphStore.data.stableRect;
-    if (isStable) {
-      strokeColor =  (window as any).isAscDark ? 'rgba(255,255,255,0.6)': 'rgba(0,0,0,0.08)';
-    }  
-    if (comGraphStore.data.isNodeRectLock) {
-      strokeColor =  (window as any).isAscDark ? 'rgba(49,122,247,1)': '#0A59F7';
-    }
+    const nodeRectLockColor = comGraphStore.data.isNodeRectLock ? 'rgba(49,122,247,1)' : 'var(--devui-tooltip-bg)';
+    const strokeColor = getRectStrokeColor();
+    const lockOpenSvgName = getLockSvgName();
 
-    let lockOpenSvgName: string;
-    if(comGraphStore.data.isNodeRectLock) {
-      if((window as any).isAscDark) {
-        lockOpenSvgName = 'lock-private';
-      } else {
-        lockOpenSvgName = 'lock-private-light';
-      }
-    } else {
-      if ((window as any).isAscDark) {
-        lockOpenSvgName = 'lock-open';
-      } else {
-        lockOpenSvgName = 'lock-open-light';
-      }
-    }
     const location = ((node.location || 0) % 200) / 2;
     const {path, v} = getRectPath(node.customSize.width, node.customSize.height, location, location + 10);
     return (
@@ -937,6 +954,274 @@ export class AstgrRectView extends RectangularNodeView {
   }
 }
 
+function getTensorBackgroundStyle(node: any, incoming: boolean, outgoing: boolean, errClass: string) {
+  let titleBackgroundFillColor = node.baseColor;
+  let inoutBackgroundFillColor = 'var(--devui-node-bg)';
+  let backgroundFilter = '';
+  if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
+    if (node.selected) {
+      titleBackgroundFillColor = node.lightColor;
+      inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
+    }
+    if (!incoming && !outgoing && !errClass) {
+      backgroundFilter = 'grayscale(1)';
+    }
+  }
+  if (comGraphStore.data.selectedNodeSemanticLabel) {
+    if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
+      titleBackgroundFillColor = node.lightColor;
+      inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
+    } else {
+      backgroundFilter = 'grayscale(1)';
+    }
+  }
+  return { titleBackgroundFillColor, inoutBackgroundFillColor, backgroundFilter };
+}
+
+function getTensorSelectedPadding(node: any) {
+  let radius = 8;
+  let blueBgRectPaddingLeft = 0;
+  let blueBgRectPaddingTop = 0;
+  let correctHeight = 9;
+  let selectedWaveMargin = 0;
+  if (node.selected) {
+    if ((node.role !== 'input') && (node.role !== 'output')) {
+      blueBgRectPaddingLeft = 0.5;
+      blueBgRectPaddingTop = 0.5;
+    } else {
+      radius = 4;
+      correctHeight = 10;
+      selectedWaveMargin = 0.6;
+    }
+  }
+  return { radius, blueBgRectPaddingLeft, blueBgRectPaddingTop, correctHeight, selectedWaveMargin };
+}
+
+function buildRunningPathNode(runningNodeWidth: number, runningNodeHeight: number, correctHeight: number, radius: number, waveOffset1: number, isInput: boolean): VNode | null {
+  const yOffset = isInput ? 0 : waveOffset1;
+  return (
+    <path
+      d={`M 0 ${runningNodeHeight + correctHeight - yOffset}
+      L 0 ${radius}
+      Q 0 0 ${radius} 0
+      L ${runningNodeWidth - radius} 0
+      Q ${runningNodeWidth} 0 ${runningNodeWidth} ${radius}
+      L ${runningNodeWidth} ${runningNodeHeight + correctHeight - yOffset}
+      Q ${(runningNodeWidth / 4) * 3} ${runningNodeHeight + correctHeight - yOffset - waveOffset1 * 3}
+        ${runningNodeWidth / 2} ${runningNodeHeight + correctHeight - yOffset}
+      T 0 ${runningNodeHeight + correctHeight - yOffset}
+      Z`}
+      stroke-width="3"
+      fill='transparent'
+      class-running-node={true}
+      style={{ transform: 'translate(-6px, -6px)' }}
+    ></path>
+  );
+}
+
+function buildTensorInputRectNode(node: any, width: number, height: number, radius: number, correctHeight: number, waveOffset1: number, waveOffset2: number, isInput: boolean, isRunningNode: boolean, inoutBackgroundFillColor: string, errorColor: string, backgroundFilter: string): VNode {
+  let pathNode: VNode | null = null;
+  if (isRunningNode) {
+    pathNode = buildRunningPathNode(width + 12, height + 12, correctHeight, radius, waveOffset1, true);
+  }
+  return (
+    <g>
+      {pathNode}
+      <path
+        d={`M 0 ${height + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
+          width - radius
+        } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
+          width / 2
+        } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
+        fill={node.isError ? errorColor : inoutBackgroundFillColor}
+        class-tensor-inout-background-label={true}
+        filter={backgroundFilter}
+        class-tensor-in-wave-label1={isInput}
+        class-tensor-diff-add={node.compareType === 'add'}
+        class-tensor-diff-delete={node.compareType === 'delete'}
+        class-tensor-diff-change={node.compareType === 'change'}
+      ></path>
+      <path
+        d={`M 0 ${height + correctHeight + waveOffset2}
+        L 0 ${radius + waveOffset2}
+        Q 0 ${waveOffset2} ${radius} ${waveOffset2}
+        L ${width - radius} ${waveOffset2}
+        Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
+        L ${width} ${height + correctHeight}
+        Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3}
+          ${width / 2} ${height + correctHeight}
+        T 0 ${height + correctHeight} Z`}
+        filter={backgroundFilter}
+        fill={node.isError ? errorColor : inoutBackgroundFillColor}
+      ></path>
+    </g>
+  );
+}
+
+function buildTensorOutputRectNode(node: any, width: number, height: number, radius: number, correctHeight: number, waveOffset1: number, waveOffset2: number, downOffset: number, selectedWaveMargin: number, isOutput: boolean, isRunningNode: boolean, inoutBackgroundFillColor: string, errorColor: string, backgroundFilter: string): VNode {
+  const nodeFillColor = node.isError ? errorColor : inoutBackgroundFillColor;
+  let pathNode: VNode | null = null;
+  if (isRunningNode) {
+    pathNode = buildRunningPathNode(width + 12, height + 12, correctHeight, radius, waveOffset1, false);
+  }
+  return (
+    <g>
+      {pathNode}
+      <path
+        d={`M 0 ${height + correctHeight - waveOffset1}
+        L 0 ${radius}
+        Q 0 0 ${radius} 0
+        L ${width - radius} 0
+        Q ${width} 0 ${width} ${radius}
+        L ${width} ${height + correctHeight - waveOffset1}
+        Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
+          ${width / 2} ${height + correctHeight - waveOffset1}
+        T 0 ${height + correctHeight - waveOffset1}
+        Z`}
+        fill={nodeFillColor}
+        class-tensor-inout-background-label={true}
+        class-accuracy-exception-border={node.isAccuracyException}
+        class-accuracy-error-border={(!node.isAccuracyException) && (node.isAccuracyError)}
+        filter={backgroundFilter}
+        class-tensor-diff-add={node.compareType === 'add'}
+        class-tensor-diff-delete={node.compareType === 'delete'}
+        class-tensor-diff-change={node.compareType === 'change'}
+      ></path>
+      <path
+        d={`M ${selectedWaveMargin} ${height + downOffset}
+          L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
+          Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
+            ${width / 2} ${height + waveOffset2 + downOffset}
+          T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
+          L ${width - selectedWaveMargin} ${height + downOffset}
+          Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
+            ${width / 2} ${height + downOffset}
+          T 0 ${height + downOffset}
+          Z`}
+        filter={backgroundFilter}
+        class-tensor-out-wave-label1={isOutput}
+      ></path>
+    </g>
+  );
+}
+
+function buildTensorMiddleRectNode(node: any, width: number, height: number, radius: number, correctHeight: number, waveOffset1: number, waveOffset2: number, downOffset: number, middleOffset: number, selectedWaveMargin: number, isMdle: boolean, inoutBackgroundFillColor: string, errorColor: string, backgroundFilter: string): VNode {
+  const innerHeight = height - middleOffset;
+  return (
+    <g>
+      <path
+        d={`M 0 ${height + correctHeight - waveOffset1}
+        L 0 ${radius}
+        Q 0 0 ${radius} 0
+        L ${width - radius} 0
+        Q ${width} 0 ${width} ${radius}
+        L ${width} ${height + correctHeight - waveOffset1}
+        Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
+          ${width / 2} ${height + correctHeight - waveOffset1}
+        T 0 ${height + correctHeight - waveOffset1}
+        Z`}
+        fill={node.isError ? errorColor : inoutBackgroundFillColor}
+        class-tensor-in-wave-label1={isMdle}
+        class-tensor-inout-background-label={true}
+        filter={backgroundFilter}
+        class-tensor-diff-add={node.compareType === 'add'}
+        class-tensor-diff-delete={node.compareType === 'delete'}
+        class-tensor-diff-change={node.compareType === 'change'}
+      ></path>
+      <path
+        d={`M 0 ${innerHeight + correctHeight - waveOffset1 + waveOffset2}
+        L 0 ${radius + waveOffset2}
+        Q 0 ${waveOffset2} ${radius} ${waveOffset2}
+        L ${width - radius} ${waveOffset2}
+        Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
+        L ${width} ${innerHeight + correctHeight - waveOffset1}
+        Q ${(width / 4) * 3} ${innerHeight + correctHeight - waveOffset1 - waveOffset1 * 3}
+          ${width / 2} ${innerHeight + correctHeight - waveOffset1}
+        T 0 ${innerHeight + correctHeight - waveOffset1}
+        Z`}
+        fill={node.isError ? errorColor : inoutBackgroundFillColor}
+        filter={backgroundFilter}
+      ></path>
+      <path
+        d={`M ${selectedWaveMargin} ${height + downOffset}
+        L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
+        Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
+          ${width / 2} ${height + waveOffset2 + downOffset}
+        T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
+        L ${width - selectedWaveMargin} ${height + downOffset}
+        Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
+          ${width / 2} ${height + downOffset}
+        T 0 ${height + downOffset}
+        Z`}
+        filter={backgroundFilter}
+        class-tensor-out-wave-label1={isMdle}
+      ></path>
+    </g>
+  );
+}
+
+function buildInOutRectNode(node: any, width: number, height: number, radius: number, correctHeight: number, waveOffset1: number, waveOffset2: number, downOffset: number, middleOffset: number, selectedWaveMargin: number, isRunningNode: boolean, isTraced: boolean, inoutBackgroundFillColor: string, errorColor: string, backgroundFilter: string): VNode {
+  const isInput = node.role === 'input' && !node.isMiddle;
+  const isOutput = node.role === 'output' && !node.isMiddle;
+  const isMdle = !!node.isMiddle;
+  const parent = node.parent;
+
+  let resolvedInOutBg = inoutBackgroundFillColor;
+  if (parent.zoom < 0.3) {
+    resolvedInOutBg = isInput
+      ? (isTraced ? 'var(--devui-in-tensor-mini-light)' : 'var(--devui-in-tensor-mini)')
+      : (isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)');
+  }
+  if (isRunningNode) {
+    resolvedInOutBg = 'var(--devui-base-invert-color)';
+  }
+
+  if (isInput) {
+    return buildTensorInputRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, isInput, isRunningNode, resolvedInOutBg, errorColor, backgroundFilter);
+  }
+  if (isOutput) {
+    return buildTensorOutputRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset, selectedWaveMargin, isOutput, isRunningNode, resolvedInOutBg, errorColor, backgroundFilter);
+  }
+  return buildTensorMiddleRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset, middleOffset, selectedWaveMargin, isMdle, resolvedInOutBg, errorColor, backgroundFilter);
+}
+
+function buildAccuracyTag(tagY: number, tagStartX: number, tagWidth: number, tagHeight: number, contentStartX: number, iconSize: number, iconGap: number, iconPaddingTop: number, linkSvgPath: string, fill: string, text: string): VNode {
+  return (
+    <g class-accuracy-error-tag={true}>
+      <rect
+        x={tagStartX}
+        y={tagY}
+        width={tagWidth}
+        height={tagHeight}
+        fill={fill}
+        rx="4"
+        ry="4"
+        style-cursor="pointer"
+        style-pointer-events="all"
+      />
+      <image
+        href={linkSvgPath}
+        x={contentStartX}
+        y={tagY + iconPaddingTop}
+        width={iconSize}
+        height={iconSize}
+        style-cursor="pointer"
+        style-pointer-events="all"
+      />
+      <text
+        x={contentStartX + iconSize + iconGap}
+        y={tagY + tagHeight / 2}
+        font-size="12"
+        fill="#fff"
+        text-anchor="start"
+        dominant-baseline="central"
+        style-cursor="pointer"
+        style-pointer-events="all"
+      >{text}</text>
+    </g>
+  );
+}
+
 @injectable()
 export class AstgrTensorView extends RectangularNodeView {
   override render(
@@ -948,7 +1233,6 @@ export class AstgrTensorView extends RectangularNodeView {
       return undefined;
     }
 
-    // check node has errinfo
     const errClass = node.isError === true ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
@@ -961,7 +1245,6 @@ export class AstgrTensorView extends RectangularNodeView {
       outgoingPorts: new Set<string>(),
     };
 
-    // Fix: Check for any port IDs that belong to this node
     const traceResult = isNodeTraced(node.id, trace);
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
@@ -969,39 +1252,20 @@ export class AstgrTensorView extends RectangularNodeView {
     if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
       return undefined;
     }
-    // Selected nodes should never be dimmed
     const shouldDim = !isTraced && !node.selected;
-    /* 矩形圆角 */
-    let radius = 8;
+
     const waveOffset1 = 2;
     const downOffset = 2.5;
     const middleOffset = 4.5;
     const waveOffset2 = 5;
-    /* 带波浪线的矩形宽高 */
     const width = Math.max(node.size.width, 0);
     const height = Math.max(node.size.height, 0);
     const badgeDom = isMiniType ? null : getBadgeDom(node);
-    /* 蓝色标题区域的宽高 */
     const blueBgRectWidth = node.size.width;
-    let blueBgRectPaddingLeft = 0;
-    let blueBgRectPaddingTop = 0;
-    let correctHeight = 9;
-    let selectedWaveMargin = 0;
-    if (node.selected) {
-      if ((node.role !== 'input') && (node.role !== 'output')) {
-        blueBgRectPaddingLeft = 0.5;
-        blueBgRectPaddingTop = 0.5;
-        radius = 8;
-      } else {
-        radius = 4;
-        correctHeight = 10;
-        selectedWaveMargin = 0.6;
-      }
-    }
-
     const blurBgRectHeight = 30;
 
-    // 内存可视化高亮节点
+    const { radius, blueBgRectPaddingLeft, blueBgRectPaddingTop, correctHeight, selectedWaveMargin } = getTensorSelectedPadding(node);
+
     const runningNodeRectOffset = 16;
     const isRunningNode = node.id === comGraphStore.data.runningNodeId;
     const runningRectNode = isRunningNode ? (
@@ -1016,30 +1280,9 @@ export class AstgrTensorView extends RectangularNodeView {
       ></rect>
     ) : null;
 
-    /* root节点的类型判断，是否使用亮色 */
-    let titleBackgroundFillColor = node.baseColor;
-    let inoutBackgroundFillColor = 'var(--devui-node-bg)';
-    let backgroundFilter = '';
-    // 亮色逻辑判断 
-    if (comGraphStore.data.inSelectedComGraphFlow || comGraphStore.data.inFixedComGraphFlow) {
-      if (node.selected) {
-        titleBackgroundFillColor = node.lightColor;
-        inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
-      }
-      if (!incoming && !outgoing && !errClass) {
-        backgroundFilter = 'grayscale(1)';
-      }
-    }
-    if (comGraphStore.data.selectedNodeSemanticLabel) {
-      if (comGraphStore.data.selectedNodeSemanticLabel === node.semanticLabel) {
-        titleBackgroundFillColor = node.lightColor;
-        inoutBackgroundFillColor = 'var(--devui-node-selected-bg)';
-      } else {
-        backgroundFilter = 'grayscale(1)';
-      }
-    }
+    const { titleBackgroundFillColor, inoutBackgroundFillColor, backgroundFilter } = getTensorBackgroundStyle(node, incoming, outgoing, errClass);
 
-    let rectNode;
+    let rectNode: VNode;
     if ((node.role !== 'input') && (node.role !== 'output')) {
       rectNode = (
         <g>
@@ -1076,203 +1319,11 @@ export class AstgrTensorView extends RectangularNodeView {
         </g>
       );
     } else {
-      let isInput = false;
-      if (node.role === 'input' && !node.isMiddle) {
-        isInput = true;
-      }
-      let isOutput = false;
-      const parent = node.parent;
-      if (node.role === 'output' && !node.isMiddle) {
-        isOutput = true;
-      }
-      let isMdle = false;
-      if (node.isMiddle) {
-        isMdle = true;
-      }
-      if (parent.zoom < 0.3) {
-        if (isInput) {
-          inoutBackgroundFillColor = isTraced ? 'var(--devui-in-tensor-mini-light)' : 'var(--devui-in-tensor-mini)';
-        } else {
-          inoutBackgroundFillColor = isTraced ? 'var(--devui-out-tensor-mini-light)' : 'var(--devui-out-tensor-mini)';
-        }
-      }
-      if (isRunningNode) {
-        inoutBackgroundFillColor = 'var(--devui-base-invert-color)';
-      }
       const errorColor = node.selected ? node.lightColor : node.baseColor;
-      if (node.role === 'input' && !node.isMiddle) {
-        let pathNode = null;
-        if (isRunningNode) {
-          const runningNodeHeight = height + 12;
-          const runningNodeWidth = width + 12;
-          pathNode = (
-            <path
-              d={`M 0 ${runningNodeHeight + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
-                runningNodeWidth - radius
-              } 0 Q ${runningNodeWidth} 0 ${runningNodeWidth} ${radius} L ${runningNodeWidth} ${runningNodeHeight + correctHeight} Q ${(runningNodeWidth / 4) * 3} ${runningNodeHeight + correctHeight - waveOffset1 * 3} ${
-                runningNodeWidth / 2
-              } ${runningNodeHeight + correctHeight} T 0 ${runningNodeHeight + correctHeight} Z`}
-              stroke-width="3"
-              fill='transparent'
-              class-running-node={true}
-              style={{transform: 'translate(-6px, -6px)'}}
-            ></path>
-          );
-        }
-        rectNode = (
-          <g>
-            {pathNode}
-            <path
-              d={`M 0 ${height + correctHeight} L 0 ${radius} Q 0 0 ${radius} 0 L ${
-                width - radius
-              } 0 Q ${width} 0 ${width} ${radius} L ${width} ${height + correctHeight} Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3} ${
-                width / 2
-              } ${height + correctHeight} T 0 ${height + correctHeight} Z`}
-              fill={node.isError ? errorColor: inoutBackgroundFillColor}
-              class-tensor-inout-background-label={true}
-              filter={backgroundFilter}
-              class-tensor-in-wave-label1={isInput}
-              class-tensor-diff-add={node.compareType === 'add'}
-              class-tensor-diff-delete={node.compareType === 'delete'}
-              class-tensor-diff-change={node.compareType === 'change'}
-            ></path>
-            <path
-              d={`M 0 ${height + correctHeight + waveOffset2}
-              L 0 ${radius + waveOffset2}
-              Q 0 ${waveOffset2} ${radius} ${waveOffset2}
-              L ${width - radius} ${waveOffset2}
-              Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
-              L ${width} ${height + correctHeight}
-              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 * 3}
-                ${width / 2} ${height + correctHeight}
-              T 0 ${height + correctHeight} Z`}
-              filter={backgroundFilter}
-              fill={node.isError ? errorColor: inoutBackgroundFillColor}
-            ></path>
-          </g>
-        );
-      } else if (node.role === 'output' && !node.isMiddle) {
-        let nodeFillColor = node.isError ? errorColor: inoutBackgroundFillColor;
-        let pathNode = null;
-        if (isRunningNode) {
-          const runningNodeHeight = height + 12;
-          const runningNodeWidth = width + 12;
-          pathNode = (
-            <path
-              d={`M 0 ${runningNodeHeight + correctHeight - waveOffset1}
-              L 0 ${radius}
-              Q 0 0 ${radius} 0
-              L ${runningNodeWidth - radius} 0
-              Q ${runningNodeWidth} 0 ${runningNodeWidth} ${radius}
-              L ${runningNodeWidth} ${runningNodeHeight + correctHeight - waveOffset1}
-              Q ${(runningNodeWidth / 4) * 3} ${runningNodeHeight + correctHeight - waveOffset1 - waveOffset1 * 3}
-                ${runningNodeWidth / 2} ${runningNodeHeight + correctHeight - waveOffset1}
-              T 0 ${runningNodeHeight + correctHeight - waveOffset1}
-              Z`}
-              stroke-width="3"
-              fill='transparent'
-              class-running-node={true}
-              style={{ transform: 'translate(-6px, -6px)' }}
-            ></path>
-          );
-        }
-        rectNode = (
-          <g>
-            {pathNode}
-            <path
-              d={`M 0 ${height + correctHeight - waveOffset1}
-              L 0 ${radius}
-              Q 0 0 ${radius} 0
-              L ${width - radius} 0
-              Q ${width} 0 ${width} ${radius}
-              L ${width} ${height + correctHeight - waveOffset1}
-              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
-                ${width / 2} ${height + correctHeight - waveOffset1}
-              T 0 ${height + correctHeight - waveOffset1}
-              Z`}
-              fill={nodeFillColor}
-              class-tensor-inout-background-label={true}
-              class-accuracy-exception-border={node.isAccuracyException}
-              class-accuracy-error-border={(!node.isAccuracyException) && (node.isAccuracyError)}
-              filter={backgroundFilter}
-              class-tensor-diff-add={node.compareType === 'add'}
-              class-tensor-diff-delete={node.compareType === 'delete'}
-              class-tensor-diff-change={node.compareType === 'change'}
-            ></path>
-            <path
-              d={`M ${selectedWaveMargin} ${height + downOffset}
-                L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
-                Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
-                  ${width / 2} ${height + waveOffset2 + downOffset}
-                T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
-                L ${width - selectedWaveMargin} ${height + downOffset}
-                Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
-                  ${width / 2} ${height + downOffset}
-                T 0 ${height + downOffset}
-                Z`}
-              filter={backgroundFilter}
-              class-tensor-out-wave-label1={isOutput}
-            ></path>
-          </g>
-        );
-      } else {
-        const innerHeight = height - middleOffset;
-        rectNode = (
-          <g>
-            <path
-              d={`M 0 ${height + correctHeight - waveOffset1}
-              L 0 ${radius}
-              Q 0 0 ${radius} 0
-              L ${width - radius} 0
-              Q ${width} 0 ${width} ${radius}
-              L ${width} ${height + correctHeight - waveOffset1}
-              Q ${(width / 4) * 3} ${height + correctHeight - waveOffset1 - waveOffset1 * 3}
-                ${width / 2} ${height + correctHeight - waveOffset1}
-              T 0 ${height + correctHeight - waveOffset1}
-              Z`}
-              fill={node.isError ? errorColor: inoutBackgroundFillColor}
-              class-tensor-in-wave-label1={isMdle}
-              class-tensor-inout-background-label={true}
-              filter={backgroundFilter}
-              class-tensor-diff-add={node.compareType === 'add'}
-              class-tensor-diff-delete={node.compareType === 'delete'}
-              class-tensor-diff-change={node.compareType === 'change'}
-            ></path>
-            <path
-               d={`M 0 ${innerHeight + correctHeight - waveOffset1 + waveOffset2}
-               L 0 ${radius + waveOffset2}
-               Q 0 ${waveOffset2} ${radius} ${waveOffset2}
-               L ${width - radius} ${waveOffset2}
-               Q ${width} ${waveOffset2} ${width} ${radius + waveOffset2}
-               L ${width} ${innerHeight + correctHeight - waveOffset1}
-               Q ${(width / 4) * 3} ${innerHeight + correctHeight - waveOffset1 - waveOffset1 * 3}
-                 ${width / 2} ${innerHeight + correctHeight - waveOffset1}
-               T 0 ${innerHeight + correctHeight - waveOffset1}
-               Z`}
-              fill={node.isError ? errorColor: inoutBackgroundFillColor}
-              filter={backgroundFilter}
-            ></path>
-            <path
-              d={`M ${selectedWaveMargin} ${height + downOffset}
-              L ${selectedWaveMargin} ${height + waveOffset2 + downOffset}
-              Q ${width / 4} ${height + waveOffset2 * 2 + downOffset}
-                ${width / 2} ${height + waveOffset2 + downOffset}
-              T ${width - selectedWaveMargin} ${height + waveOffset2 + downOffset}
-              L ${width - selectedWaveMargin} ${height + downOffset}
-              Q ${(width / 4) * 3} ${height - waveOffset1 * 3 + downOffset}
-                ${width / 2} ${height + downOffset}
-              T 0 ${height + downOffset}
-              Z`}
-              filter={backgroundFilter}
-              class-tensor-out-wave-label1={isMdle}
-            ></path>
-          </g>
-        );
-      }
+      rectNode = buildInOutRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset, middleOffset, selectedWaveMargin, isRunningNode, isTraced, inoutBackgroundFillColor, errorColor, backgroundFilter);
     }
 
     const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
-
     const currentLanguage = (window as any).ascLang;
     const iconSize = 14;
     const iconGap = 4;
@@ -1283,81 +1334,18 @@ export class AstgrTensorView extends RectangularNodeView {
     const accuracyTagHeight = 24;
     const tagStartX = width + 6;
     const contentStartX = tagStartX + tagPadding * 2;
-    const exceptionTagY = 0;
     const tagGap = 4;
     const wrongRawMagicList = comGraphStore.data.wrongRawMagicList ?? [];
     const briefTagError = wrongRawMagicList.errorRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
     const briefTagException = wrongRawMagicList.exceptionRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
     const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
-    const accuracyExceptionTag = (briefTagException && !node.isMiddle && !isMiniType) ? (
-      <g class-accuracy-error-tag={true}>
-        <rect
-          x={tagStartX}
-          y={exceptionTagY}
-          width={accuracyTagWidth}
-          height={accuracyTagHeight}
-          fill="#D94838"
-          rx="4"
-          ry="4"
-          style-cursor="pointer"
-          style-pointer-events="all"
-        />
-        <image
-          href={linkSvgPath}
-          x={contentStartX}
-          y={exceptionTagY + iconPaddingTop}
-          width={iconSize}
-          height={iconSize}
-          style-cursor="pointer"
-          style-pointer-events="all"
-        />
-        <text
-          x={contentStartX + iconSize + iconGap}
-          y={exceptionTagY + accuracyTagHeight / 2}
-          font-size="12"
-          fill="#fff"
-          text-anchor="start"
-          dominant-baseline="central"
-          style-cursor="pointer"
-          style-pointer-events="all"
-        >{currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal'}</text>
-      </g>
-    ) : null;
 
-    const accuracyErrorTag = (briefTagError && !node.isMiddle && !isMiniType) ? (
-      <g class-accuracy-error-tag={true}>
-        <rect
-          x={tagStartX}
-          y={errorTagY}
-          width={accuracyTagWidth}
-          height={accuracyTagHeight}
-          fill="rgba(246, 158, 57, 1)"
-          rx="4"
-          ry="4"
-          style-cursor="pointer"
-          style-pointer-events="all"
-        />
-        <image
-          href={linkSvgPath}
-          x={contentStartX}
-          y={errorTagY + iconPaddingTop}
-          width={iconSize}
-          height={iconSize}
-          style-cursor="pointer"
-          style-pointer-events="all"
-        />
-        <text
-          x={contentStartX + iconSize + iconGap}
-          y={errorTagY + accuracyTagHeight / 2}
-          font-size="12"
-          fill="#fff"
-          text-anchor="start"
-          dominant-baseline="central"
-          style-cursor="pointer"
-          style-pointer-events="all"
-        >{currentLanguage === 'zh' ? '精度错误' : 'accurancy error'}</text>
-      </g>
-    ) : null;
+    const accuracyExceptionTag = (briefTagException && !node.isMiddle && !isMiniType)
+      ? buildAccuracyTag(0, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, '#D94838', currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal')
+      : null;
+    const accuracyErrorTag = (briefTagError && !node.isMiddle && !isMiniType)
+      ? buildAccuracyTag(errorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
+      : null;
 
     return (
       <g
