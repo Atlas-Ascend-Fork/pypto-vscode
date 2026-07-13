@@ -1,3 +1,12 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 import { createApp } from 'vue';
 import App from './App.vue';
 import Skeleton from 'vue-devui/skeleton';
@@ -86,16 +95,16 @@ viewConnector.send(null);
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
-    if (label === 'json') {
+    if (['json'].includes(label)) {
       return new jsonWorker();
     }
-    if (label === 'css' || label === 'scss' || label === 'less') {
+    if (['css', 'scss', 'less'].includes(label)) {
       return new cssWorker();
     }
-    if (label === 'html' || label === 'handlebars' || label === 'razor') {
+    if (['html', 'handlebars', 'razor'].includes(label)) {
       return new htmlWorker();
     }
-    if (label === 'typescript' || label === 'javascript') {
+    if (['typescript', 'javascript'].includes(label)) {
       return new tsWorker();
     }
     return new editorWorker();
