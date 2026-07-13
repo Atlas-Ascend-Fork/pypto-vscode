@@ -345,6 +345,7 @@ export abstract class SwimGraphMsgHandler {
           swimData.lane2line = Object.fromEntries(swimData.lane2line);
           swimData.processes = Object.fromEntries(swimData.processes);
           swimData.processExpanded = Object.fromEntries(swimData.processExpanded);
+          swimData.pmuValid = false;
           for (const key in swimData.processes) {
             swimData.processes[key].threads = Object.fromEntries(swimData.processes[key].threads);
           }

@@ -34,6 +34,31 @@ export interface IntelligentSearchOptions {
   isMixMode: { value: boolean};
 }
 
+const getEventY = (event: any, isPinnedArea: boolean): number => {
+  return isPinnedArea ? (event.renderInfo?.pinnedEventY || 0) : event.renderInfo?.y;
+};
+
+const findClosestEvent = (events: any[], yLayer: number, isPinnedArea: boolean): any => {
+  return events.reduce((closest, event) => {
+    const closestDistance = Math.abs(getEventY(closest, isPinnedArea) - yLayer);
+    const currentDistance = Math.abs(getEventY(event, isPinnedArea) - yLayer);
+    return currentDistance < closestDistance ? event : closest;
+  });
+};
+
+const pickTimeInRange = (event: any, type: 'start' | 'end', lineRange: [number, number]): number | null => {
+  const [rangeStart, rangeEnd] = lineRange;
+  const targetTime = type === 'start' ? event.startTime : event.endTime;
+  const otherTime = type === 'start' ? event.endTime : event.startTime;
+  if (targetTime > rangeStart && targetTime < rangeEnd) {
+    return targetTime;
+  }
+  if (otherTime > rangeStart && otherTime < rangeEnd) {
+    return otherTime;
+  }
+  return null;
+};
+
 export const measureTimeSearch = (
   matchingEvents: any[],
   lineRange: [number, number],
@@ -41,41 +66,20 @@ export const measureTimeSearch = (
   type: 'start' | 'end',
   isPinnedArea: boolean = false
 ): number | null => {
-  const lineRangeStart = lineRange[0];
-  const lineRangeEnd = lineRange[1];
   const rangeStart = Math.max(0, yLayer - 120);
   const rangeEnd = yLayer + 120;
 
   const filteredEvents = matchingEvents.filter((event) => {
-    const eventY = isPinnedArea ? (event.renderInfo?.pinnedEventY || 0) : event.renderInfo?.y;
+    const eventY = getEventY(event, isPinnedArea);
     return eventY && eventY >= rangeStart && eventY <= rangeEnd;
   });
 
   if (filteredEvents.length === 0) {
     return null;
   }
-  let closestEvent = filteredEvents[0];
-  for (const event of filteredEvents.slice(1)) {
-    const prevY = isPinnedArea ? (closestEvent.renderInfo?.pinnedEventY || 0) : closestEvent.renderInfo?.y;
-    const currentY = isPinnedArea ? (event.renderInfo?.pinnedEventY || 0) : event.renderInfo?.y;
-    const prevDistance = Math.abs(prevY - yLayer);
-    const currentDistance = Math.abs(currentY - yLayer);
-    if (prevDistance > currentDistance) {
-      closestEvent = event;
-    }
-  }
 
-  if (type === 'start' || type === 'end') {
-    const targetTime = type === 'start' ? closestEvent.startTime : closestEvent.endTime;
-    const otherTime = type === 'start' ? closestEvent.endTime : closestEvent.startTime;
-
-    if (targetTime > lineRangeStart && targetTime < lineRangeEnd) {
-      return targetTime;
-    } else if (otherTime > lineRangeStart && otherTime < lineRangeEnd) {
-      return otherTime;
-    }
-  }
-  return null;
+  const closestEvent = findClosestEvent(filteredEvents, yLayer, isPinnedArea);
+  return pickTimeInRange(closestEvent, type, lineRange);
 };
 /**
  * 获取鼠标所在画布和画布内的y坐标
@@ -99,31 +103,51 @@ const realCoordinateY = (y: number) => {
   return { realY: 0, processkey: '' };
 }
 
-export const measureEventSearch = (options: MeasureEventSearchOptions): number | null => {
-  const {
-    lineRange,
-    type,
-    measureDragStartY,
-    measureDragEndY,
-    childContextMap,
-    processes,
-    processExpanded,
-    pinnedThreads,
-    pinnedthreadsComponent,
-    swimDataManager,
-    isMixMode
-  } = options;
+const isEventInRange = (event: any, lineRangeStart: number, lineRangeEnd: number): boolean => {
+  return (
+    (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
+    (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
+  );
+};
 
-  const lineRangeStart = lineRange[0];
-  const lineRangeEnd = lineRange[1];
-  let matchingEvents = [];
-  let yLayer = 0;
-  let result;
-  let isPinnedArea = false;
+const collectPinnedEvents = (pinnedThreads: Map<any, any>, lineRangeStart: number, lineRangeEnd: number): any[] => {
+  const events: any[] = [];
+  for (const [, pinnedData] of pinnedThreads.entries()) {
+    const { thread } = pinnedData;
+    for (const event of thread.events) {
+      if (isEventInRange(event, lineRangeStart, lineRangeEnd)) {
+        events.push(event);
+      }
+    }
+  }
+  return events;
+};
 
-  const mouseY = type === 'start' ? measureDragStartY : measureDragEndY;
-  
+const collectProcessEvents = (
+  processes: Map<any, any>,
+  processExpanded: Map<any, boolean>,
+  targetProcessKey: string,
+  lineRangeStart: number,
+  lineRangeEnd: number,
+  isMixMode: boolean,
+  swimDataManager: SwimDataManager
+): any[] => {
+  const events: any[] = [];
+  for (const [processKey, process] of processes.entries()) {
+    if ((targetProcessKey && processKey !== targetProcessKey) || !processExpanded.get(processKey)) {
+      continue;
+    }
+    for (const [, thread] of process.threads.entries()) {
+      const threadEvents = collectEventsFromThread(thread, lineRangeStart, lineRangeEnd, isMixMode, swimDataManager);
+      events.push(...threadEvents);
+    }
+  }
+  return events;
+};
+
+const resolvePinnedArea = (pinnedthreadsComponent: any, mouseY: number): { pinnedHeight: number; yLayer: number } => {
   let pinnedHeight = 0;
+  let yLayer = 0;
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     pinnedHeight = pinnedthreadsComponent.value.getPinnedHeight();
     const pinnedContainer = document.querySelector('.pinned-thread-event-container');
@@ -133,64 +157,63 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
       yLayer = mouseY - rect.top;
     }
   }
+  return { pinnedHeight, yLayer };
+};
 
-  if (mouseY <= pinnedHeight) {
-    isPinnedArea = true;
-  }
+export const measureEventSearch = (options: MeasureEventSearchOptions): number | null => {
+  const {
+    lineRange,
+    type,
+    measureDragStartY,
+    measureDragEndY,
+    processes,
+    processExpanded,
+    pinnedThreads,
+    pinnedthreadsComponent,
+    swimDataManager,
+    isMixMode
+  } = options;
 
+  const [lineRangeStart, lineRangeEnd] = lineRange;
+  const mouseY = type === 'start' ? measureDragStartY : measureDragEndY;
+
+  const { pinnedHeight, yLayer: pinnedYLayer } = resolvePinnedArea(pinnedthreadsComponent, mouseY);
+  const isPinnedArea = mouseY <= pinnedHeight;
+
+  let matchingEvents: any[];
+  let yLayer: number;
   if (isPinnedArea) {
-    for (const [key, pinnedData] of pinnedThreads.entries()) {
-      const { thread } = pinnedData;
-      for (const event of thread.events) {
-        if (
-          (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
-          (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
-        ) {
-          matchingEvents.push(event);
-        }
-      }
-    }
+    matchingEvents = collectPinnedEvents(pinnedThreads, lineRangeStart, lineRangeEnd);
+    yLayer = pinnedYLayer;
   } else {
-    result = realCoordinateY(mouseY);
+    const result = realCoordinateY(mouseY);
     yLayer = result.realY;
-    
-    for (const [processKey, process] of processes.entries()) {
-      if ((result.processkey && processKey !== result.processkey) || !processExpanded.get(processKey)) {
-        continue;
-      }
-      const threads = process.threads;
-      for (const [threadKey, thread] of threads.entries()) {
-        const events = collectEventsFromThread(thread, lineRangeStart, lineRangeEnd, isMixMode.value, swimDataManager);
-        matchingEvents.push(...events);
-      }
-    }
+    matchingEvents = collectProcessEvents(
+      processes, processExpanded, result.processkey,
+      lineRangeStart, lineRangeEnd, isMixMode.value, swimDataManager
+    );
   }
+
   if (type === 'end' && isMixMode.value) {
     matchingEvents = matchingEvents.filter(event =>
       event.endTime > lineRangeStart && event.endTime < lineRangeEnd
     );
   }
-  const measureTime = measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
-  return measureTime;
+
+  return measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
 };
 
 const collectEventsFromThread = (thread, lineRangeStart, lineRangeEnd, isMixMode, swimDataManager) => {
   const events = [];
   for (const event of thread.events) {
-    if (
-      (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
-      (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
-    ) {
-      if (isMixMode) {
-        const subEvent = swimDataManager.getSubEvents(event.id);
-        if (subEvent.length > 0) {
-          events.push(...subEvent);
-        } else {
-          events.push(event);
-        }
-      } else {
-        events.push(event);
-      }
+    if (!isEventInRange(event, lineRangeStart, lineRangeEnd)) {
+      continue;
+    }
+    if (isMixMode) {
+      const subEvents = swimDataManager.getSubEvents(event.id);
+      events.push(...(subEvents.length > 0 ? subEvents : [event]));
+    } else {
+      events.push(event);
     }
   }
   return events;

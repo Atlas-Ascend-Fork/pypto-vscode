@@ -465,27 +465,14 @@ export class ThreeColumnServer
       this.updateFilePathsCache(this.swimDataPath, this.comPath);
     };
 
-    if (graphType === "swimGraph") {
-      if (options.comPath && comPath && options.comPath !== comPath) {
-        handlePaths(options.comPath, comPath, graphType);
-      } else {
-        if (options.comPath) {
-          updatePaths(swimPath, undefined);
-        } else {
-          updatePaths(swimPath, comPath);
-        }
-      }
-    } else if (graphType === "computeGraph" || graphType === "comGraph") {
-      if (options.swimPath && swimPath && options.swimPath !== swimPath) {
-        handlePaths(options.swimPath, swimPath, graphType);
-      } else {
-        if (options.swimPath) {
-          updatePaths(undefined, comPath);
-        } else {
-          updatePaths(swimPath, comPath);
-        }
-      }
-    }
+    selectFileDispatch({
+      graphType,
+      options,
+      swimPath,
+      comPath,
+      handlePaths,
+      updatePaths,
+    });
   }
 
   @viewApi()
@@ -586,6 +573,53 @@ export class ThreeColumnServer
     }
   }
 }
+
+type HandlePathsFn = (initPath: string, selectPath: string, graphType: string) => void;
+type UpdatePathsFn = (swimPath: string | undefined, comPath: string | undefined) => void;
+
+interface SelectFileContext {
+  graphType: string;
+  options: any;
+  swimPath: string | undefined;
+  comPath: string | undefined;
+  handlePaths: HandlePathsFn;
+  updatePaths: UpdatePathsFn;
+}
+
+// 路径冲突判定：选项中已有的路径与本次选择的路径不同时，需要触发替换流程
+const hasPathConflict = (optionPath: string | undefined, selectedPath: string | undefined): boolean => {
+  return Boolean(optionPath && selectedPath && optionPath !== selectedPath);
+};
+
+// swimGraph 选择分发：当 options.comPath 与选择的 comPath 冲突时走替换，否则按是否已有 comPath 走更新
+const dispatchSwimGraphSelect = (ctx: SelectFileContext) => {
+  const { options, swimPath, comPath, handlePaths, updatePaths } = ctx;
+  if (hasPathConflict(options.comPath, comPath)) {
+    handlePaths(options.comPath, comPath!, 'swimGraph');
+    return;
+  }
+  updatePaths(swimPath, options.comPath ? undefined : comPath);
+};
+
+// comGraph 选择分发：当 options.swimPath 与选择的 swimPath 冲突时走替换，否则按是否已有 swimPath 走更新
+const dispatchComGraphSelect = (ctx: SelectFileContext) => {
+  const { options, swimPath, comPath, handlePaths, updatePaths } = ctx;
+  if (hasPathConflict(options.swimPath, swimPath)) {
+    handlePaths(options.swimPath, swimPath!, 'comGraph');
+    return;
+  }
+  updatePaths(options.swimPath ? undefined : swimPath, comPath);
+};
+
+// selectFile 的纯逻辑分发：根据 graphType 决定走 swimGraph 还是 comGraph 的处理分支
+const selectFileDispatch = (ctx: SelectFileContext) => {
+  if (ctx.graphType === 'swimGraph') {
+    dispatchSwimGraphSelect(ctx);
+  } else if (ctx.graphType === 'computeGraph' || ctx.graphType === 'comGraph') {
+    dispatchComGraphSelect(ctx);
+  }
+};
+
 function removeSuffix(input: string): string {
   const pos = input.indexOf(' - ');
   if (pos !== -1) {

@@ -522,85 +522,106 @@ export function checkPmuDataValid(pmuTotal: any, csvHeaders?: string[]): boolean
   return true;
 };
 
-  async function validate(event:any) {
-    const errorMsg: any = {};
+const SUPPORTED_PHASES = new Set(['C', 'X', 'M', 's', 'f', 'B', 'E']);
+const DURATION_EVENT_PHASES = new Set(['X', 'B', 'E']);
 
-    if(!(event.ph === 'C' || event.ph === 'X' || event.ph === 'M' || event.ph === 's' || event.ph === 'f' || event.ph === 'B' || event.ph === 'E')) {
-      errorMsg.errMsg = t('pypto.swimGraph.validate.unsupportedEventType', {type: event.ph});
+const threadNameError = (event: any): string => {
+  if (event.pid && event.tid) {
+    return t('pypto.swimGraph.validate.threadWithid', { pid: event.pid, tid: event.tid });
+  }
+  return t('pypto.swimGraph.validate.thread');
+};
+
+const eventError = (event: any): string => {
+  return event.name
+    ? t('pypto.swimGraph.validate.eventWithName', { name: event.name })
+    : t('pypto.swimGraph.validate.event');
+};
+
+const hasRequiredFields = (event: any, fields: string[]): boolean => {
+  return fields.every((field) => field in event);
+};
+
+const validateThreadName = (event: any): string | null => {
+  if (!hasRequiredFields(event, ['pid', 'tid', 'args'])) {
+    return threadNameError(event);
+  }
+  if (!('name' in event.args)) {
+    return threadNameError(event);
+  }
+  return null;
+};
+
+const validateDurationEvent = (event: any): string | null => {
+  if (!hasRequiredFields(event, ['name', 'pid', 'tid', 'ts']) || Number.isNaN(event.ts)) {
+    return eventError(event);
+  }
+  return null;
+};
+
+const validateCounterValue = (args: any, name: string): string | null => {
+  const hasSize = 'size' in args;
+  const hasValue = 'value' in args;
+  const hasByte = '/byte' in args;
+
+  if (!hasSize && !hasByte && !hasValue) {
+    return t('pypto.swimGraph.validate.cntEvent', { name });
+  }
+  if ((args.size || args.value) && !(typeof args.size === 'number' || typeof args.value === 'number')) {
+    return t('pypto.swimGraph.validate.cntEvent', { name });
+  }
+  if (args['/byte'] && typeof args['/byte'] !== 'number') {
+    return t('pypto.swimGraph.validate.cntEvent', { name });
+  }
+  return null;
+};
+
+const validateCounterEvent = (event: any): string | null => {
+  if (!hasRequiredFields(event, ['name', 'pid', 'tid', 'ts', 'args'])) {
+    return eventError(event);
+  }
+  return validateCounterValue(event.args, event.name);
+};
+
+async function validate(event: any) {
+  const errorMsg: any = {};
+
+  if (!SUPPORTED_PHASES.has(event.ph)) {
+    errorMsg.errMsg = t('pypto.swimGraph.validate.unsupportedEventType', { type: event.ph });
+    return errorMsg;
+  }
+
+  if (event.name === 'thread_name') {
+    const err = validateThreadName(event);
+    if (err) {
+      errorMsg.errMsg = err;
       return errorMsg;
     }
+  }
 
-    if (event.name === 'thread_name') {
-      if (!('pid' in event) || !('tid' in event) || !('args' in event)) {
-        if (event.pid && event.tid) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
-        }
-        return errorMsg;
-      }
-      if (!('name' in event.args)) {
-        if (event.pid && event.tid) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.threadWithid', {pid: event.pid, tid: event.tid});
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.thread');
-        }
-        return errorMsg;
-      }
+  if (DURATION_EVENT_PHASES.has(event.ph)) {
+    const err = validateDurationEvent(event);
+    if (err) {
+      errorMsg.errMsg = err;
+      return errorMsg;
     }
-        
-    if (event.ph == 'X' || event.ph == 'B' || event.ph == 'E') {
-      if (!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || Number.isNaN(event.ts) ) {
-        if (event.name) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-        }
-        return errorMsg;
-      }
-    }
+  }
 
-    if (event.ph === 'C') {
-      if(!('name' in event) || !('pid' in event) || !('tid' in event) || !('ts' in event) || !('args' in event)) {
-        if (event.name) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-          return errorMsg;
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-        return errorMsg;
-        }
-      }
-      if (!('size' in event.args || '/byte' in event.args || 'value' in event.args)) {
-        errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
-        return errorMsg;
-      }
-      if (event.args.size || event.args.value) {
-        if (!(typeof event.args.size === 'number' || typeof event.args.value === 'number')) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
-          return errorMsg;
-        }
-      }
-      if (event.args['/byte']) {
-        if (!(typeof event.args['/byte'] === 'number')) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.cntEvent', {name: event.name});
-          return errorMsg;
-        }
-      }
+  if (event.ph === 'C') {
+    const err = validateCounterEvent(event);
+    if (err) {
+      errorMsg.errMsg = err;
+      return errorMsg;
     }
+  }
 
-    if (event.ph === 'X') {
-      if(!('dur' in event)) {
-        if (event.name) {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.eventWithName', {name: event.name});
-        } else {
-          errorMsg.errMsg = t('pypto.swimGraph.validate.event');
-          return errorMsg;
-        }
-      }
-    }
-    return errorMsg;
-  } 
-  
+  if (event.ph === 'X' && !('dur' in event)) {
+    errorMsg.errMsg = eventError(event);
+  }
+
+  return errorMsg;
+}
+
   export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, effectPmu: any) {
     let counterEvents: any[] = [];
     let processes = new Map();
