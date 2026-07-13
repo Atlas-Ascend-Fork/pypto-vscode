@@ -454,7 +454,6 @@ export class AstgrNodeLabelView extends ShapeView {
       let titleTxtFillColor = 'var(--devui-primary-text)';
       const isRunningNode = node.id === comGraphStore.data.runningNodeId;
       if (((node.role !== 'input') && (node.role !== 'output')) || node.isError || node.isEmptyNode) {
-        // if(label.id.includes("operation")) node = label.parent;
         if (node.isEmptyNode) {
           titleTxtFillColor = 'var(--devui-primary-text-empty)';
         }
@@ -1478,8 +1477,6 @@ export class InputOutputNodeView extends ShapeView {
     // Selected nodes should never be dimmed
     const shouldDim = !isTraced && !node.selected;
 
-    //const transform = `skewX(${this.skew})`;
-
     return (
       <g class-io-incoming={incoming} class-io-outgoing={outgoing} class-io-not-traced={shouldDim} class-mouseover={node.hoverFeedback}>
         <rect
@@ -1493,7 +1490,6 @@ export class InputOutputNodeView extends ShapeView {
           height={Math.max(node.size.height, 0)}
           rx="20" // Rounded corners to distinguish from regular operations
           ry="20"
-          //transform={transform}
         ></rect>
         {context.renderChildren(node, args)}
       </g>
@@ -1649,7 +1645,6 @@ export class AstgrEdge extends PolylineEdgeView {
       isParent = true;
     }
     if (isParent) {
-      // const [start, end] = [segments[0], segments[segments.length - 1]];
       const start = segments[Math.ceil(segments.length / 2) - 1];
       const end = segments[Math.ceil(segments.length / 2)];
       const cx = (start.x + end.x) / 2;

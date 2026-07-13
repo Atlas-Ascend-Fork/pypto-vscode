@@ -139,7 +139,7 @@ export class AscppDagBuilder {
         const searchLevel = (nodeSearchLevel !== undefined) ? (Number(nodeSearchLevel) + 1) : -1;
         this.createNodeListMap(actualData);
         if (this.opListMap.has(startNode)) {
-            // tensorType = 'operation';
+            // when tensorType is 'operation'
             this.opSearchForward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
                 magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, wrongRawMagicList);
@@ -147,7 +147,7 @@ export class AscppDagBuilder {
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
                 magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, wrongRawMagicList);
         } else {
-            // tensorType = 'tensor';
+            // when tensorType is 'tensor';
             this.tensorSearchForward(startNode, actualData, nodes, edges, portMap,
                 tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, rawTensorMap,
                 magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, wrongRawMagicList);

@@ -14,9 +14,6 @@ import { ViewServerContext } from '../../core/view/view-server-context';
 import { IControlFlowViewServer, IControlFlowApis, IControlFlowRefs } from './view-server-interface';
 import { getResDataSum, getPassInfoOfSinglePath, setCurAccuFilePath } from '../../common/accurancyAnylasis';
 
-// type Apis = never;
-// type Refs = {};
-
 type Apis = IControlFlowApis;
 
 type Refs = IControlFlowRefs;

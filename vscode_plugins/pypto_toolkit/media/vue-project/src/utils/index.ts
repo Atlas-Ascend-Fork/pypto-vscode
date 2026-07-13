@@ -78,111 +78,112 @@ function setCompreTypeOverrate(arr: any[]): void {
 }
 
 // diff双图数据对比
-export function compareJsonData(beforeData: Object, currentData: Object) {
-  const BeforeOpMagicMap: Record<number, string> = {};
-  const BeforeTensorMagicMap: Record<number, string> = {};
-  const CurrentOpMagicMap: Record<number, string> = {};
-  const CurrentTensorMagicMap: Record<number, string> = {};
-  const originBefore = {
+function buildOriginData(data: any, opMagicMap: Record<number, string>, tensorMagicMap: Record<number, string>) {
+  return {
     tensors:
-      beforeData.tensors?.map((t: any) => {
+      data.tensors?.map((t: any) => {
         const subgraphId = t.subgraphid !== undefined ? t.subgraphid : -1;
-        BeforeTensorMagicMap[t.magic] = `tensor-${t.magic}-${subgraphId}`;
+        tensorMagicMap[t.magic] = `tensor-${t.magic}-${subgraphId}`;
         return { ...t };
       }) ?? [],
     operations:
-      beforeData.operations?.map((op: any, i: number) => {
+      data.operations?.map((op: any) => {
         const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
-        BeforeOpMagicMap[op.opmagic] = `operation-magic-${op.opmagic}-${subgraphId}`;
+        opMagicMap[op.opmagic] = `operation-magic-${op.opmagic}-${subgraphId}`;
         return { ...op };
       }) ?? [],
   };
-  const originCurrent = {
-    tensors:
-      currentData.tensors?.map((t: any) => {
-        const subgraphId = t.subgraphid !== undefined ? t.subgraphid : -1;
-        CurrentTensorMagicMap[t.magic] = `tensor-${t.magic}-${subgraphId}`;
-        return { ...t };
-      }) ?? [],
-    operations:
-      currentData.operations?.map((op: any, i: number) => {
-        const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
-        CurrentOpMagicMap[op.opmagic] = `operation-magic-${op.opmagic}-${subgraphId}`;
-        return { ...op };
-      }) ?? [],
-  };
-  let diffList: Record<string, any>[] = [];
-  const diffDetail: Record<string, any>[] = []
-  const curTensorMap = new Map(currentData.tensors?.map((t) => [t.magic, t]) ?? []);
-  const curOpMap = new Map(currentData.operations?.map((op) => [op.opmagic, op]) ?? []);
-  const beforeTensorMap = new Map(beforeData.tensors?.map((t) => [t.magic, t]) ?? []);
-  const beforeOpMap = new Map(beforeData.operations?.map((op) => [op.opmagic, op]) ?? []);
-  for (const ct of curTensorMap.values()) {
-    const bt = beforeTensorMap.get(ct.magic);
+}
+
+function buildMagicMap(arr: any[], key: string, prefix: string): Map<any, any> {
+  return new Map(arr?.map((item) => [item[key], item]) ?? []);
+}
+
+function compareTensors(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList, diffDetail) {
+  for (const ct of curMap.values()) {
+    const bt = beforeMap.get(ct.magic);
     if (!bt) {
       diffDetail.push({ new: { ...ct } });
       ct.compareType = 'add';
-      diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
+      diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, nodeId: curMagicMap[ct.magic] });
     } else if (JSON.stringify(ct.offset) !== JSON.stringify(bt.offset) || JSON.stringify(ct.shape) !== JSON.stringify(bt.shape)) {
       diffDetail.push({ new: { ...ct }, old: { ...bt } });
       ct.compareType = 'change';
       bt.compareType = 'change';
-      diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, nodeId: CurrentTensorMagicMap[ct.magic] });
+      diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, nodeId: curMagicMap[ct.magic] });
     } else {
       ct.compareType = 'normal';
       bt.compareType = 'normal';
     }
   }
-
-  for (const bt of beforeTensorMap.values()) {
-    const ct = curTensorMap.get(bt.magic);
-    if (!ct) {
+  for (const bt of beforeMap.values()) {
+    if (!curMap.get(bt.magic)) {
       diffDetail.push({ old: { ...bt } });
       bt.compareType = 'delete';
-      diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, nodeId: BeforeTensorMagicMap[bt.magic] });
+      diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, nodeId: beforeMagicMap[bt.magic] });
     }
   }
+}
 
-  for (const cop of curOpMap.values()) {
-    const bop = beforeOpMap.get(cop.opmagic);
+function compareOps(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList, diffDetail) {
+  for (const cop of curMap.values()) {
+    const bop = beforeMap.get(cop.opmagic);
     if (!bop) {
       addDiffDetail(cop, undefined, diffDetail, cop.opcode);
       cop.compareType = 'add';
-      addDiffElements('add', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
+      addDiffElements('add', 'op', cop.opmagic, curMagicMap[cop.opmagic], diffList, cop.opcode);
     } else if (cop.opcode != bop.opcode ||
               JSON.stringify(cop.ioperands) !== JSON.stringify(bop.ioperands) ||
               JSON.stringify(cop.ooperands) !== JSON.stringify(bop.ooperands)) {
       addDiffDetail(cop, bop, diffDetail, cop.opcode);
       cop.compareType = 'change';
       bop.compareType = 'change';
-      addDiffElements('change', 'op', cop.opmagic, CurrentOpMagicMap[cop.opmagic], diffList, cop.opcode);
+      addDiffElements('change', 'op', cop.opmagic, curMagicMap[cop.opmagic], diffList, cop.opcode);
     } else {
       cop.compareType = 'normal';
       bop.compareType = 'normal';
     }
   }
-
-  for (const bop of beforeOpMap.values()) {
-    const cop = curOpMap.get(bop.opmagic);
-    if (!cop) {
+  for (const bop of beforeMap.values()) {
+    if (!curMap.get(bop.opmagic)) {
       addDiffDetail(undefined, bop, diffDetail, bop.opcode);
       bop.compareType = 'delete';
-      addDiffElements('delete', 'op', bop.opmagic, BeforeOpMagicMap[bop.opmagic], diffList, bop.opcode);
+      addDiffElements('delete', 'op', bop.opmagic, beforeMagicMap[bop.opmagic], diffList, bop.opcode);
     }
   }
-  let changeRate = diffList.length / (curOpMap.size + curTensorMap.size);
-  if (changeRate > 0.5 && diffList.length >= 400) {
-    beforeData.tensors = originBefore.tensors;
-    setCompreTypeOverrate(beforeData.tensors);
-    beforeData.operations = originBefore.operations;
-    setCompreTypeOverrate(beforeData.operations);
-    currentData.tensors = originCurrent.tensors;
-    setCompreTypeOverrate(currentData.tensors);
-    currentData.operations = originCurrent.operations;
-    setCompreTypeOverrate(currentData.operations);
-    diffList = [];
-    (window as any).ascEventBus.emit('message_notice', 'compareLargerTips');
-    return { diffList, showDiffList: false };
+}
+
+function handleOverrate(beforeData, currentData, originBefore, originCurrent) {
+  beforeData.tensors = originBefore.tensors;
+  setCompreTypeOverrate(beforeData.tensors);
+  beforeData.operations = originBefore.operations;
+  setCompreTypeOverrate(beforeData.operations);
+  currentData.tensors = originCurrent.tensors;
+  setCompreTypeOverrate(currentData.tensors);
+  currentData.operations = originCurrent.operations;
+  setCompreTypeOverrate(currentData.operations);
+  (window as any).ascEventBus.emit('message_notice', 'compareLargerTips');
+}
+
+// diff双图数据对比
+export function compareJsonData(beforeData: Object, currentData: Object) {
+  const BeforeOpMagicMap: Record<number, string> = {};
+  const BeforeTensorMagicMap: Record<number, string> = {};
+  const CurrentOpMagicMap: Record<number, string> = {};
+  const CurrentTensorMagicMap: Record<number, string> = {};
+  const originBefore = buildOriginData(beforeData, BeforeOpMagicMap, BeforeTensorMagicMap);
+  const originCurrent = buildOriginData(currentData, CurrentOpMagicMap, CurrentTensorMagicMap);
+  let diffList: Record<string, any>[] = [];
+  const diffDetail: Record<string, any>[] = [];
+  const curTensorMap = buildMagicMap(currentData.tensors, 'magic', 'tensor');
+  const curOpMap = buildMagicMap(currentData.operations, 'opmagic', 'op');
+  const beforeTensorMap = buildMagicMap(beforeData.tensors, 'magic', 'tensor');
+  const beforeOpMap = buildMagicMap(beforeData.operations, 'opmagic', 'op');
+  compareTensors(curTensorMap, beforeTensorMap, CurrentTensorMagicMap, BeforeTensorMagicMap, diffList, diffDetail);
+  compareOps(curOpMap, beforeOpMap, CurrentOpMagicMap, BeforeOpMagicMap, diffList, diffDetail);
+  if (diffList.length / (curOpMap.size + curTensorMap.size) > 0.5 && diffList.length >= 400) {
+    handleOverrate(beforeData, currentData, originBefore, originCurrent);
+    return { diffList: [], showDiffList: false };
   }
   if (diffList.length === 0) {
     (window as any).ascEventBus.emit('message_notice', 'noCompareTips');

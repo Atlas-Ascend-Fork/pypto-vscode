@@ -139,6 +139,74 @@ export class AstgrContextMenuService implements IContextMenuService {
     return nodeMagic;
   }
 
+  private createMenuItemContent(menuItem: HTMLDivElement, item: MenuItem, index: number, menuNode: HTMLDivElement, isBootStep: boolean): void {
+    if (item.label === '') {
+      menuItem.textContent = item.label;
+      menuItem.classList.add('disabled-action');
+      return;
+    }
+
+    const { text, key } = splitLabel(item.label);
+
+    if (item.id === 'JumpToSibling') {
+      const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
+      this.findNeighbor(menuNode, menuItem, index, selectedNodeId, isBootStep);
+      return;
+    }
+
+    if (item.id === 'NewTabForCurPath') {
+      const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
+      const nodeMagic = this.extractNodeMagic(selectedNodeId);
+      const textSpan = document.createElement('span');
+      textSpan.textContent = text;
+      textSpan.className = 'menu-text';
+
+      if (nodeMagic === undefined) {
+        textSpan.style.cursor = 'not-allowed';
+      } else {
+        textSpan.onclick = () => {
+          if (isBootStep) return;
+          (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
+        };
+      }
+      menuItem.appendChild(textSpan);
+      return;
+    }
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+    textSpan.className = 'menu-text';
+    const keySpan = document.createElement('span');
+    keySpan.className = 'shortcut-key';
+    keySpan.textContent = key;
+    menuItem.appendChild(textSpan);
+    menuItem.appendChild(keySpan);
+  }
+
+  private createMenuItemClickHandler(item: MenuItem, closeCallback: () => void, isBootStep: boolean): (e: MouseEvent) => void {
+    return (e: MouseEvent) => {
+      if (isBootStep && item.id !== 'FocusOnCurrent') return;
+      closeCallback();
+      if (item.actions.length === 0) return;
+
+      const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
+      if (item.id === 'JumpToSibling' || item.id === 'NewTabForCurPath') return;
+
+      if (cb) {
+        if (cb.goToCodeLine) {
+          server.jumpToCodeLine({paramObj: {file: cb.codePath, line: cb.codeLine}});
+          return;
+        }
+        setFixedComGraphFlow(cb.fixedFlag, cb.visibleFlag, cb?.selectedNodeId);
+        if (cb?.selectedNodeId && cb?.selectedNodeId != '') {
+          (window as any).ascEventBus.emit('switchLockInformation', [cb.fixedFlag, cb.visibleFlag]);
+        }
+        return;
+      }
+      this.actionDispatcher.dispatchAll(item.actions);
+    };
+  }
+
   protected async createMenu(items: MenuItem[], closeCallback: () => void): Promise<HTMLDivElement> {
     const res = await getQuery();
     const query = JSON.parse(res._uri.query);
@@ -155,82 +223,8 @@ export class AstgrContextMenuService implements IContextMenuService {
         menuItem.classList.add('disabled-action');
       }
 
-      if (item.label != '') {
-        const { text, key } = splitLabel(item.label);
-
-        if (item.id === 'JumpToSibling') {
-          // 快捷键处理
-          const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
-          this.findNeighbor(menuNode, menuItem, index, selectedNodeId, isBootStep);
-        } else if (item.id === 'NewTabForCurPath') {
-          const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
-          const nodeMagic = this.extractNodeMagic(selectedNodeId);
-
-          const textSpan = document.createElement('span');
-          textSpan.textContent = text;
-          textSpan.className = 'menu-text';
-
-          if (nodeMagic === undefined) {
-            textSpan.style.cursor = 'not-allowed';
-          } else {
-            textSpan.onclick = () => {
-              if (isBootStep) {
-                return;
-              }
-              (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
-            };
-          }
-
-          menuItem.appendChild(textSpan);
-
-        } else {
-          /* 文字 span */
-          const textSpan = document.createElement('span');
-          textSpan.textContent = text;
-          textSpan.className = 'menu-text';
-
-          /* 快捷键提示 span */
-          const keySpan = document.createElement('span');
-          keySpan.className = 'shortcut-key';
-          keySpan.textContent = key;
-
-          menuItem.appendChild(textSpan);
-          menuItem.appendChild(keySpan);
-        }
-
-      } else {
-        menuItem.textContent = item.label;
-        menuItem.classList.add('disabled-action');
-      }
-
-      menuItem.onclick = (e: MouseEvent) => {
-        if (isBootStep && item.id !== 'FocusOnCurrent') {
-          return;
-        }
-        closeCallback();
-        if (item.actions.length > 0) {
-          // 自己识别“回调型”Action
-          const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
-          if (item.id === 'JumpToSibling' || item.id === 'NewTabForCurPath') {
-            return;
-          }
-
-          if (cb) {
-            // ← 命中就走捷径
-            if (cb.goToCodeLine) {
-              server.jumpToCodeLine({paramObj: {file: cb.codePath, line: cb.codeLine}});
-              return;
-            }
-            setFixedComGraphFlow(cb.fixedFlag, cb.visibleFlag, cb?.selectedNodeId);
-            if(cb?.selectedNodeId && cb?.selectedNodeId!=''){
-             (window as any).ascEventBus.emit('switchLockInformation', [cb.fixedFlag,cb.visibleFlag]);
-            }
-            return;
-          }
-          // 正常 Action 继续走
-          this.actionDispatcher.dispatchAll(item.actions);
-        }
-      };
+      this.createMenuItemContent(menuItem, item, index, menuNode, isBootStep);
+      menuItem.onclick = this.createMenuItemClickHandler(item, closeCallback, isBootStep);
       menuNode.appendChild(menuItem);
     });
     return menuNode;

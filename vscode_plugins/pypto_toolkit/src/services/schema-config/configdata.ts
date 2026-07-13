@@ -36,7 +36,6 @@ export class ConfigDataService extends BasicService {
     // 只注册统一事件发射器到销毁列表
     this._disposables.push(this._onDidUpdateConfigData);
     this.scanDirectory();
-    // this.watchFileChange();
   }
 
   /**

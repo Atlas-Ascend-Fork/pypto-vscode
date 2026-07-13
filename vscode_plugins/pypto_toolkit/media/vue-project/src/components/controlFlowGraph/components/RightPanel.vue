@@ -499,7 +499,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
   index = 0;
   for (const leaf of leafFunctions) {
     index++;
-    const leafFrequency = calledRecordObj.hasOwnProperty(leaf.hash) ? calledRecordObj[leaf.hash].frequency : '-';
+    const leafFrequency = Object.prototype.hasOwnProperty.call(calledRecordObj, leaf.hash) ? calledRecordObj[leaf.hash].frequency : '-';
     let leafObj: TableRowData = {
       id: `${index}`,
       name: `leaf_${leaf.programId}`,

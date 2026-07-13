@@ -120,10 +120,10 @@ const Y_AIC_SCALAR = 673 - 155;
 const Y_AIC_SS = 671 - 155;
 
 const B = 831 - 755;
-const Y_B_DCACHE = B + 65; // center = B+35
-const Y_B_NDNA = B + 65; // center = B+134
-const Y_B_SCALAR = B + 70; // center = B+35 ✓
-const Y_B_UB = B - 70; // center = B+134 ✓
+const Y_B_DCACHE = B + 65;
+const Y_B_NDNA = B + 65;
+const Y_B_SCALAR = B + 70;
+const Y_B_UB = B - 70;
 const Y_B_SIMT = B + -15;
 const Y_B_SIMD = B + 73;
 const Y_B_VECTOR = B + 20;

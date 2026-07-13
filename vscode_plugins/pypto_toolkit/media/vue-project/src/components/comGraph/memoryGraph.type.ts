@@ -185,16 +185,12 @@ export const mockMemoryGraphData: MemoryGraphData = {
             size: 4194304,
             bufferList: [
                 { memoryId: 'GM0', startLocation: 0, size: 4194304, status: 'valid', Address: '0x00000000' },
-                // { memoryId: 'GM1', startLocation: 8192, size: 8192, status: 'initialized', Address: '0x00000100' },
-                // { memoryId: 'GM2', startLocation: 24576, size: 8192, status: 'valid', Address: '0x00000200' },
-                // { memoryId: 'GM3', startLocation: 32768, size: 8192, status: 'initialized', Address: '0x00000300' }
             ]
         },
         L2: {
             size: 32768,
             bufferList: [
                 { memoryId: 'L20', startLocation: 0, size: 32768, status: 'valid', Address: '0x10000000' },
-                // { memoryId: 'L21', startLocation: 384, size: 128, status: 'initialized', Address: '0x10000080' },
             ]
         },
         AIC: {
@@ -257,9 +253,6 @@ export const mockMemoryGraphData1: MemoryGraphData = {
             size: 4194304,
             bufferList: [
                 { memoryId: 'GM0', startLocation: 0, size: 1, status: 'valid', Address: '0x00000000' },
-                // { memoryId: 'GM1', startLocation: 8192, size: 8192, status: 'initialized', Address: '0x00000100' },
-                // { memoryId: 'GM2', startLocation: 24576, size: 8192, status: 'valid', Address: '0x00000200' },
-                // { memoryId: 'GM3', startLocation: 32768, size: 8192, status: 'initialized', Address: '0x00000300' }
             ]
         },
         L2: {
@@ -324,9 +317,6 @@ export const mockMemoryGraphData3: MemoryGraphData = {
             size: 4194304,
             bufferList: [
                 { memoryId: 'GM0', startLocation: 0, size: 1, status: 'valid', Address: '0x00000000' },
-                // { memoryId: 'GM1', startLocation: 8192, size: 8192, status: 'initialized', Address: '0x00000100' },
-                // { memoryId: 'GM2', startLocation: 24576, size: 8192, status: 'valid', Address: '0x00000200' },
-                // { memoryId: 'GM3', startLocation: 32768, size: 8192, status: 'initialized', Address: '0x00000300' }
             ]
         },
         L2: {
@@ -390,9 +380,6 @@ export const mockMemoryGraphData2: MemoryGraphData = {
             size: 4194304,
             bufferList: [
                 { memoryId: 'GM0', startLocation: 0, size: 0, status: 'valid', Address: '0x00000000' },
-                // { memoryId: 'GM1', startLocation: 8192, size: 8192, status: 'initialized', Address: '0x00000100' },
-                // { memoryId: 'GM2', startLocation: 24576, size: 8192, status: 'valid', Address: '0x00000200' },
-                // { memoryId: 'GM3', startLocation: 32768, size: 8192, status: 'initialized', Address: '0x00000300' }
             ]
         },
         L2: {
@@ -1428,5 +1415,3 @@ export const mockTimeList = [
       ]
     },
 ]
-
-// export const realTimeList = 

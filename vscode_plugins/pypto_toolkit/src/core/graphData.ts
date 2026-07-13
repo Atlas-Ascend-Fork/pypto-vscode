@@ -124,72 +124,73 @@ export abstract class GraphData {
     });
   }
 
+  private buildFuncHashMap(functions: any[]): void {
+    let findExecFunc = true;
+    for (const funcItem of functions) {
+      const hash = String(funcItem.hash);
+      this.funcHashMap[hash] = {
+        functype: funcItem.functype || null,
+        func_magicname: funcItem.func_magicname || null,
+        graphtype: funcItem.graphtype ?? null,
+      };
+      if (findExecFunc && funcItem.graphtype?.toString() === '2' && funcItem.semantic_label?.[0] !== '') {
+        this.firstExecFuncHash = hash;
+        findExecFunc = false;
+      }
+    }
+  }
+
+  private processOperations(funcItem: any, sqlJobs: (() => Promise<void>)[]): string[] {
+    const callHashArr: string[] = [];
+    const seen = new Set<string>;
+    for (const op of funcItem.operations) {
+      if (seen.has(op.opmagic)) {
+        throw Object.assign(
+          new Error(`Validation failed: OpMagic (${op.opmagic}) duplicated.`),
+          { code: 'DATA_VALIDATION_OP_MAGIC_ERROR' }
+        );
+      }
+      seen.add(op.opmagic);
+      if (!op.calleehash) continue;
+      callHashArr.push(String(op.calleehash));
+      if (Array.isArray(op.attr) && op.attr.length > 0) {
+        op.attr[0] = op.calleehash;
+      }
+      op.functype = this.funcHashMap[op.calleehash]?.functype;
+      op.func_magicname = this.funcHashMap[op.calleehash]?.func_magicname;
+      if (!op.opmagic.toString()) continue;
+      if (this.isUsedDB) {
+        const ioperands = [...new Set(op.ioperands)];
+        sqlJobs.push(() =>
+          getComGraphFileCalleeOpAttrStore().set({
+            calleehash: op.calleehash,
+            opMagic: op.opmagic,
+            opSubgraphid: op.subgraphid.toString(),
+            opAttr: JSON.stringify(op.attr),
+            ioperands: JSON.stringify(ioperands)
+          })
+        );
+      } else {
+        this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic + '_' + op.subgraphid] = op.attr.toString();
+      }
+    }
+    return callHashArr;
+  }
+
   private async processFunctions(fsPath: string, value: any): Promise<void> {
     try {
       const sqlJobs: (() => Promise<void>)[] = [];
-      let findExecFunc = true;
-      /* 1. 汇总 funcHashMap */
-      for (const funcItem of value.functions) {
-        const hash = String(funcItem.hash);
-        this.funcHashMap[hash] = {
-          functype: funcItem.functype || null,
-          func_magicname: funcItem.func_magicname || null,
-          graphtype: funcItem.graphtype ?? null,
-        };
-        if (findExecFunc && funcItem.graphtype?.toString() === '2' && funcItem.semantic_label?.[0] !== '') {
-          this.firstExecFuncHash = hash;
-          findExecFunc = false;
-        }
-      }
+      this.buildFuncHashMap(value.functions);
       if (this.isUsedDB) {
         sqlJobs.push(() => getComGraphFileHashMapStore().set({ filePath: fsPath, data: JSON.stringify(this.funcHashMap) }));
       }
-
-      /* 2. 构造插入任务数组 */
-      const tasks: (() => Promise<void>)[] = [];
       const lastChangeTime = await getMTime(fsPath);
       this.version = value.version;
 
       for (const funcItem of value.functions) {
-        const callHashArr: string[] = [];
-        const seen = new Set<string>;
-        for (const op of funcItem.operations) {
-          if (seen.has(op.opmagic)) {
-            throw Object.assign(
-              new Error(`Validation failed: OpMagic (${op.opmagic}) duplicated.`),
-              { code: 'DATA_VALIDATION_OP_MAGIC_ERROR' }
-            );
-          }
-          seen.add(op.opmagic);
-          if (op.calleehash) {
-            callHashArr.push(String(op.calleehash));
-            if (Array.isArray(op.attr) && op.attr.length > 0) {
-              op.attr[0] = op.calleehash;
-            }
-            op.functype = this.funcHashMap[op.calleehash]?.functype;
-            op.func_magicname = this.funcHashMap[op.calleehash]?.func_magicname;
-            if (op.opmagic.toString()) {
-              if (this.isUsedDB) {
-                const ioperands = [...new Set(op.ioperands)];
-                sqlJobs.push(() =>
-                  getComGraphFileCalleeOpAttrStore().set({
-                    calleehash: op.calleehash,
-                    opMagic: op.opmagic,
-                    opSubgraphid: op.subgraphid.toString(),
-                    opAttr: JSON.stringify(op.attr),
-                    ioperands: JSON.stringify(ioperands)
-                  })
-                );
-              } else {
-                this.calleeOpAttrMap[op.calleehash + '_' + op.opmagic + '_' + op.subgraphid] = op.attr.toString();
-              }
-            }
-          }
-        }
-
+        const callHashArr = this.processOperations(funcItem, sqlJobs);
         const data = JSON.stringify(funcItem);
         if (!this.isUsedDB) {
-          // 不用缓存数据库的情况
           this.dataMap[funcItem.hash] = data;
           this.callHashArrMap[funcItem.hash] = callHashArr.toString();
           return;
@@ -198,19 +199,16 @@ export abstract class GraphData {
           getComGraphFuncDataStore().set({ filePath: fsPath, funcHash: String(funcItem.hash), lastChangeTime: lastChangeTime, callHashArr: callHashArr.toString(), data: data, firstEntryHash: this.firstExecFuncHash || '' }),
         );
       }
-      // 等所有 INSERT 真正进内存 DB
       if (sqlJobs.length) {
         await Promise.all(sqlJobs.map((fn) => fn()));
       }
     } catch (err: any) {
-      // 数据校验错误先抛出
       if (err.code === 'DATA_VALIDATION_OP_MAGIC_ERROR') {
         throw err;
       }
       if (this.isUsedDB) {
         console.warn('[DB] 数据库操作失败，自动降级 >>>', err);
         this.isUsedDB = false;
-        // 立即重新走内存分支
         return await this.processFunctions(fsPath, value);
       } else {
         console.error('纯内存操作失败，数据可能有误', err);
