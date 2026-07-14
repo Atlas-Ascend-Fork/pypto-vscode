@@ -130,6 +130,9 @@ const initCanvas = () => {
   }
   const eles = document.getElementsByClassName('processes-container');
   const [containerEle] = eles;
+  if (!containerEle) {
+    return;
+  }
   const { width: eleWidth, height: eleHeight } = containerEle.getBoundingClientRect();
   
   const width = eleWidth - layout.processLabelWidth;

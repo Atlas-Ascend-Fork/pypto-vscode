@@ -16,12 +16,12 @@
 
     <div class="details-panel" :class="[{ expanded: detailsPanelExpanded }, { 'full-expand': isDetailFullExpand }, { 'narrow-mode': isCompactMode }]">
       <div class="details-content" ref="detailsContent" id="details-content">
-        <div v-if="!isThreeColumn" class="expand-toggle" @click="toggleDetailFullExpand">
+        <div v-if="!isThreeColumn && shouldShowExpandToggle" class="expand-toggle" @click="toggleDetailFullExpand">
           <d-icon :name="isDetailFullExpand ? 'double-down' : 'double-up'" style="font-size: 16px; width: 16px; height: 16px;" />
         </div>
         <div class="details-title" v-if="!selectedEvent && !canvasclickedEvent">{{ $t("nodeDetailsView") }}</div>
         <template v-else>
-          <div class="detail-content" :class="{ 'narrow-mode': isCompactMode }">
+          <div class="detail-content" :class="{ 'narrow-mode': isCompactMode }" :style="isDetailFullExpand ? { maxHeight: maxDetailHeight + 'px' } : {}">
               <div class="content-one-pipe">
                 <div class="pipe-content-title">
                   <div class="pipe-title">
@@ -29,7 +29,7 @@
                   </div>
                   <div class="pipe-name">
                     <d-tooltip :content="getEventDisplayName(canvasclickedEvent)">
-                      <div>{{ getEventTruncateText(canvasclickedEvent) }}</div>
+                      <span class="event-name-truncate">{{ getEventDisplayName(canvasclickedEvent) }}</span>
                     </d-tooltip>
                     <div class="pipe-subgraph">
                       <span :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ $t("leafNo") }} : {{ getSubGraphId(canvasclickedEvent, 'subGraph', '/') }}</span>
@@ -170,7 +170,7 @@
                 </template>
               </div>
               <template v-else-if="selectedView === 'pipeStat' && showPipeStatisticsTab">
-                <div class="pipe-bar-chart" v-if="canvasclickedEvent.pmu_info">
+                <div class="pipe-bar-chart" v-if="canvasclickedEvent.pmu_info && Object.keys(canvasclickedEvent.pmu_info).length > 0">
                   <div class="row-coord" :class="{'row-coord-active': selectedView === 'pipeStat'}">
                     <div class="row-coord-num" 
                       v-for="(coordIt, index) in rowCoordList" 
@@ -312,6 +312,7 @@ const {
 const { userConfig } = inject('swimGraphCfg');
 const { pmuValid } = inject('swimGraphPmuTotal') || { pmuValid: ref(false) };
 const { isFromPerformanceClick, isFromPerformancePmuTabClick } = inject('swimGraphState');
+const { pinnedThreadsList } = inject('swimGraphPinnedState', { pinnedThreadsList: ref([]) });
 const connectionLevel = computed({
   get: () => userConfig.get('connectionLevel') ?? -1,
   set: (value) => {
@@ -328,6 +329,8 @@ const inputNumberRef = ref(null);
 const isDetailFullExpand = ref(false);
 const detailsPanelWidth = ref(0);
 const isCompactMode = computed(() => detailsPanelWidth.value > 0 && detailsPanelWidth.value < 1218);
+const maxDetailHeight = computed(() => Math.max(600 - pinnedThreadsList.value.length * 18, 0));
+const shouldShowExpandToggle = computed(() => maxDetailHeight.value >= 300);
 function syncPanelHeight() {
   const panel = document.querySelector('.details-panel');
   const content = document.getElementById('details-content');
@@ -341,7 +344,7 @@ function syncPanelHeight() {
   const naturalHeight = detailContentEl ? detailContentEl.scrollHeight : 0;
   const barEl = content.querySelector('.expand-toggle');
   const barHeight = barEl ? barEl.offsetHeight : 0;
-  const displayHeight = Math.min(naturalHeight, 600);
+  const displayHeight = Math.min(naturalHeight, maxDetailHeight.value);
   panel.style.height = (barHeight + displayHeight) + 'px';
   panel.style.overflow = 'hidden';
   if (detailContentEl) {
@@ -714,6 +717,12 @@ watch(detailsPanelExpanded, (val) => {
       isDetailFullExpand.value = false;
     }
     resetPanelStyle();
+    nextTick(() => {
+      if (canvasResizeObserver) {
+        canvasResizeObserver.disconnect();
+        canvasResizeObserver = null;
+      }  
+    });
   }
   if (val && !canvasResizeObserver) {
     nextTick(() => {
@@ -1051,7 +1060,6 @@ onUnmounted(() => {
 
 .details-panel.full-expand .detail-content {
   height: auto;
-  max-height: 600px;
   overflow: auto;
 }
 

@@ -313,6 +313,19 @@
   white-space: nowrap;
   display: inline-block;
 }
+.event-name-truncate {
+  max-width: 140px;
+  height: 24px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: left;
+  color: var(--devui-primary-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
 .ml5 {
   margin-left:5px;
 }
