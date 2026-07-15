@@ -454,11 +454,12 @@ function renderMainLabel(label: Readonly<SLabelImpl & MetadataLabel>, subgraphId
   const node = label.parent.parent;
   const isRunningNode = node.id === comGraphStore.data.runningNodeId;
   const titleTxtFillColor = getMainLabelTitleColor(node);
+  const canViewNodeDetail = !node.isTokenNode && comGraphStore.data.comGraphConfig.canViewNodeDetail;
 
   const titleText = (
     <text
       class-sprotty-label={true}
-      class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+      class-can-view-node-detail={canViewNodeDetail}
       class-parent-node={isParentNode}
       fill={isRunningNode ? 'var(--devui-running-node-title-text)' : titleTxtFillColor}>
       {label.text}
@@ -468,7 +469,7 @@ function renderMainLabel(label: Readonly<SLabelImpl & MetadataLabel>, subgraphId
   const idText = subgraphId && label.text.startsWith('CALL') ? (
     <text
       class-sprotty-label={true}
-      class-can-view-node-detail={comGraphStore.data.comGraphConfig.canViewNodeDetail}
+      class-can-view-node-detail={canViewNodeDetail}
       class-parent-node={isParentNode}
       dy="2em"
       fill={isRunningNode ? 'devui-running-node-value-text' : titleTxtFillColor}>
