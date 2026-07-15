@@ -388,6 +388,10 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
         .sticky-block {
           display: flex;
         }
+        .editor-block {
+          padding-top: 40px;
+          box-sizing: border-box;
+        }
       }
     }
   }
