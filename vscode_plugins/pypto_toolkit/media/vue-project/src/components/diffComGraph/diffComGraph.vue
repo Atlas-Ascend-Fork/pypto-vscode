@@ -186,7 +186,7 @@ watch(
     if (val === 'rendering' || val === 'convertData') {
       isLoading.value = true;
     }
-    loadingText.value = t(LoadingStatusMap[val]);
+    loadingText.value = LoadingStatusMap[val] ? t(LoadingStatusMap[val]) : '';
   },
 );
 
