@@ -1,0 +1,1426 @@
+{
+  "schemaVersion": "1.0",
+  "chip": {
+    "model": "Ascend910B",
+    "arch": "DAV_2201",
+    "displayName": "910B",
+    "description": "Bundled 910B memory visualization preset matching the current right-side chip view."
+  },
+  "canvas": {
+    "width": 1800,
+    "height": 980,
+    "coordinateSystem": "absolute"
+  },
+  "legend": [
+    {
+      "shape": "square",
+      "label": "1KB (1024B)",
+      "unitKB": 1,
+      "styleToken": "legend.square"
+    },
+    {
+      "shape": "circle",
+      "label": "128KB",
+      "unitKB": 128,
+      "styleToken": "legend.circle"
+    },
+    {
+      "shape": "hexagon",
+      "label": "8192KB",
+      "unitKB": 8192,
+      "styleToken": "legend.hexagon"
+    }
+  ],
+  "memoryTypeMap": {
+    "MEM_GM": "gm",
+    "MEM_DEVICE_DDR": "gm",
+    "MEM_L2": "gm.l2",
+    "MEM_L1": "aic-l1",
+    "MEM_L0A": "aic-l0a",
+    "MEM_L0B": "aic-l0b",
+    "MEM_BT": "aic-bt",
+    "MEM_FP": "aic-fp",
+    "MEM_L0C": "aic-l0c",
+    "MEM_UB": "aiv2b-ub"
+  },
+  "memoryCapacityBytes": {
+    "MEM_GM": 4294967296,
+    "MEM_L2": 33554432,
+    "MEM_L1": 524288,
+    "MEM_L0A": 69632,
+    "MEM_L0B": 69632,
+    "MEM_BT": 49152,
+    "MEM_FP": 24576,
+    "MEM_L0C": 262144,
+    "MEM_UB": 253952
+  },
+  "nodes": [
+    {
+      "id": "gm",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "GM",
+      "memType": "MEM_GM",
+      "position": {
+        "x": -405,
+        "y": 0
+      },
+      "grid": {
+        "rows": 80,
+        "cols": 16,
+        "shape": "hexagon",
+        "unitKB": 8192
+      },
+      "initialFilledCount": 800,
+      "styleToken": "memory.gm",
+      "showHeader": false,
+      "splitType": "horizontal",
+      "splitChildren": [
+        {
+          "id": "gm.l2",
+          "kind": "memory",
+          "label": "L2",
+          "memType": "MEM_L2",
+          "grid": {
+            "rows": 64,
+            "cols": 4,
+            "shape": "circle",
+            "unitKB": 128
+          },
+          "initialFilledCount": 228,
+          "styleToken": "memory.l2",
+          "showHeader": false
+        }
+      ],
+      "handles": [
+        {
+          "id": "l2-r-55-px",
+          "type": "source",
+          "edge": "right",
+          "pct": "55px"
+        },
+        {
+          "id": "l2-r-4",
+          "type": "source",
+          "edge": "right",
+          "pct": 4.5
+        },
+        {
+          "id": "l2-r-7",
+          "type": "source",
+          "edge": "right",
+          "pct": 7
+        },
+        {
+          "id": "l2-r-12",
+          "type": "source",
+          "edge": "right",
+          "pct": 12.5
+        },
+        {
+          "id": "l2-r-15",
+          "type": "source",
+          "edge": "right",
+          "pct": 15
+        },
+        {
+          "id": "l2-r-17",
+          "type": "source",
+          "edge": "right",
+          "pct": 20
+        },
+        {
+          "id": "l2-r-31",
+          "type": "source",
+          "edge": "right",
+          "pct": 25
+        },
+        {
+          "id": "l2-r-32",
+          "type": "target",
+          "edge": "right",
+          "pct": 33.5
+        },
+        {
+          "id": "l2-r-49",
+          "type": "source",
+          "edge": "right",
+          "pct": 45
+        },
+        {
+          "id": "l2-r-57",
+          "type": "target",
+          "edge": "right",
+          "pct": 52.1
+        },
+        {
+          "id": "l2-r-62",
+          "type": "source",
+          "edge": "right",
+          "pct": 56.5
+        },
+        {
+          "id": "l2-r-68",
+          "type": "source",
+          "edge": "right",
+          "pct": 63
+        },
+        {
+          "id": "gm-to-ub-out",
+          "type": "source",
+          "edge": "right",
+          "pct": 75
+        },
+        {
+          "id": "aiv2b-dcache-r-20",
+          "type": "target",
+          "edge": "right",
+          "pct": 77.5
+        },
+        {
+          "id": "l2-r-75",
+          "type": "source",
+          "edge": "right",
+          "pct": 79.5
+        },
+        {
+          "id": "l2-r-88",
+          "type": "source",
+          "edge": "right",
+          "pct": 88.14
+        },
+        {
+          "id": "l2-r-91",
+          "type": "source",
+          "edge": "right",
+          "pct": 91.5
+        },
+        {
+          "id": "l2-r-92",
+          "type": "source",
+          "edge": "right",
+          "pct": 92.5
+        },
+        {
+          "id": "l2-r-95",
+          "type": "source",
+          "edge": "right",
+          "pct": 85.65
+        },
+        {
+          "id": "l2-r-96",
+          "type": "source",
+          "edge": "right",
+          "pct": 96.15
+        }
+      ]
+    },
+    {
+      "id": "aic",
+      "kind": "container",
+      "component": "vectorNode",
+      "label": "AIC",
+      "position": {
+        "x": -30,
+        "y": 0
+      },
+      "size": {
+        "width": 1570,
+        "height": 645
+      },
+      "styleToken": "container.core"
+    },
+    {
+      "id": "aic-l1",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L1",
+      "memType": "MEM_L1",
+      "parentId": "aic",
+      "position": {
+        "x": 180,
+        "y": 70
+      },
+      "grid": {
+        "rows": 32,
+        "cols": 16,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 240,
+      "styleToken": "memory.l1",
+      "showHeader": true,
+      "showStats": true,
+      "handles": [
+        {
+          "id": "aic-l1-l1",
+          "type": "target",
+          "edge": "left",
+          "pct": 40
+        },
+        {
+          "id": "aic-l1-l2",
+          "type": "target",
+          "edge": "left",
+          "pct": 60
+        },
+        {
+          "id": "aic-l1-r-3",
+          "type": "source",
+          "edge": "right",
+          "pct": 3.5
+        },
+        {
+          "id": "aic-l1-r-12",
+          "type": "source",
+          "edge": "right",
+          "pct": 15
+        },
+        {
+          "id": "aic-l1-r-25",
+          "type": "source",
+          "edge": "right",
+          "pct": 25
+        },
+        {
+          "id": "aic-l1-r-39",
+          "type": "source",
+          "edge": "right",
+          "pct": 37
+        },
+        {
+          "id": "aic-l1-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        },
+        {
+          "id": "aic-l1-r-60",
+          "type": "source",
+          "edge": "right",
+          "pct": 60
+        },
+        {
+          "id": "aic-l1-r-70",
+          "type": "source",
+          "edge": "right",
+          "pct": 70
+        },
+        {
+          "id": "aic-l1-r-75",
+          "type": "source",
+          "edge": "right",
+          "pct": 75
+        },
+        {
+          "id": "aic-l1-r-80",
+          "type": "source",
+          "edge": "right",
+          "pct": 80
+        },
+        {
+          "id": "aic-l1-r-92",
+          "type": "source",
+          "edge": "right",
+          "pct": 92
+        },
+        {
+          "id": "aic-l1-b",
+          "type": "source",
+          "edge": "bottom",
+          "pct": 50
+        },
+        {
+          "id": "aic-l1-b-95",
+          "type": "source",
+          "edge": "bottom",
+          "pct": 95
+        },
+        {
+          "id": "aic-l1-t-95",
+          "type": "source",
+          "edge": "top",
+          "pct": 95
+        }
+      ]
+    },
+    {
+      "id": "aic-l0a",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0A",
+      "memType": "MEM_L0A",
+      "parentId": "aic",
+      "position": {
+        "x": 500,
+        "y": 26
+      },
+      "grid": {
+        "rows": 4,
+        "cols": 16,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 8,
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true,
+      "handles": [
+        {
+          "id": "aic-l0a-l-15",
+          "type": "target",
+          "edge": "left",
+          "pct": 15
+        },
+        {
+          "id": "aic-l0a-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aic-l0a-l-75",
+          "type": "target",
+          "edge": "left",
+          "pct": 75
+        },
+        {
+          "id": "aic-l0a-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 45
+        }
+      ]
+    },
+    {
+      "id": "aic-l0b",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0B",
+      "memType": "MEM_L0B",
+      "parentId": "aic",
+      "position": {
+        "x": 500,
+        "y": 132.2
+      },
+      "grid": {
+        "rows": 4,
+        "cols": 16,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 3,
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true,
+      "handles": [
+        {
+          "id": "aic-l0b-l-30",
+          "type": "target",
+          "edge": "left",
+          "pct": 30
+        },
+        {
+          "id": "aic-l0b-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aic-l0b-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 45
+        }
+      ]
+    },
+    {
+      "id": "aic-bt",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "BT",
+      "memType": "MEM_BT",
+      "parentId": "aic",
+      "position": {
+        "x": 500,
+        "y": 236.5
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 2,
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true,
+      "data": {
+        "gridSectionStyle": {
+          "marginRight": "3rem"
+        }
+      },
+      "handles": [
+        {
+          "id": "aic-bt-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 70
+        },
+        {
+          "id": "aic-bt-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 63
+        }
+      ]
+    },
+    {
+      "id": "aic-fp",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "FP",
+      "memType": "MEM_FP",
+      "parentId": "aic",
+      "position": {
+        "x": 500,
+        "y": 356
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 1,
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true,
+      "data": {
+        "gridSectionStyle": {
+          "marginRight": "3rem"
+        }
+      },
+      "handles": [
+        {
+          "id": "aic-fp-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aic-fp-b",
+          "type": "target",
+          "edge": "bottom",
+          "pct": 50
+        },
+        {
+          "id": "aic-fp-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aic-cube",
+      "kind": "compute",
+      "component": "vectorNode",
+      "label": "CUBE",
+      "parentId": "aic",
+      "position": {
+        "x": 970,
+        "y": 36
+      },
+      "size": {
+        "width": 170,
+        "height": 300
+      },
+      "styleToken": "compute.cube",
+      "handles": [
+        {
+          "id": "aic-cube-l-12",
+          "type": "target",
+          "edge": "left",
+          "pct": 8.9
+        },
+        {
+          "id": "aic-cube-l-10",
+          "type": "target",
+          "edge": "left",
+          "pct": 9.4
+        },
+        {
+          "id": "aic-cube-l-38",
+          "type": "target",
+          "edge": "left",
+          "pct": 39
+        },
+        {
+          "id": "aic-cube-l-45",
+          "type": "target",
+          "edge": "left",
+          "pct": 44.5
+        },
+        {
+          "id": "aic-cube-l-65",
+          "type": "target",
+          "edge": "left",
+          "pct": 65
+        },
+        {
+          "id": "aic-cube-l-80",
+          "type": "target",
+          "edge": "left",
+          "pct": 79.3
+        },
+        {
+          "id": "aic-cube-l-92",
+          "type": "target",
+          "edge": "left",
+          "pct": 92
+        },
+        {
+          "id": "aic-cube-r-15",
+          "type": "source",
+          "edge": "right",
+          "pct": 15
+        },
+        {
+          "id": "aic-cube-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 35.2
+        }
+      ]
+    },
+    {
+      "id": "aic-hidden-node-fixpipe",
+      "kind": "hidden",
+      "component": "vectorNode",
+      "label": "",
+      "parentId": "aic",
+      "position": {
+        "x": 573,
+        "y": 491.2
+      },
+      "size": {
+        "width": 60,
+        "height": 13.5
+      },
+      "styleToken": "pipe.fixpipe",
+      "visibility": "hidden",
+      "handles": [
+        {
+          "id": "aic-hidden-node-fixpipe-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aic-hidden-node-fixpipe-l-72",
+          "type": "source",
+          "edge": "left",
+          "pct": 72
+        },
+        {
+          "id": "aic-hidden-node-fixpipe-t",
+          "type": "target",
+          "edge": "top",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aic-l0c",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0C",
+      "memType": "MEM_L0C",
+      "parentId": "aic",
+      "position": {
+        "x": 1300,
+        "y": 75
+      },
+      "grid": {
+        "rows": 8,
+        "cols": 16,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true,
+      "handles": [
+        {
+          "id": "aic-l0c-l-20",
+          "type": "target",
+          "edge": "left",
+          "pct": 20.5
+        },
+        {
+          "id": "aic-l0c-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 51
+        },
+        {
+          "id": "aic-l0c-b",
+          "type": "source",
+          "edge": "bottom",
+          "pct": 50
+        },
+        {
+          "id": "aic-l0c-b-80",
+          "type": "source",
+          "edge": "bottom",
+          "pct": 80
+        },
+        {
+          "id": "aic-l0c-t",
+          "type": "source",
+          "edge": "top",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aic-dcache",
+      "kind": "cache",
+      "component": "gridNode",
+      "label": "DCache",
+      "parentId": "aic",
+      "position": {
+        "x": 180,
+        "y": 516
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 20,
+      "styleToken": "memory.cache",
+      "handles": [
+        {
+          "id": "aic-dcache-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 46.2
+        },
+        {
+          "id": "aic-dcache-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aic-icache",
+      "kind": "cache",
+      "component": "gridNode",
+      "label": "ICache",
+      "parentId": "aic",
+      "position": {
+        "x": 180,
+        "y": 578
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 20,
+      "styleToken": "memory.cache",
+      "handles": [
+        {
+          "id": "aic-icache-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 46.8
+        },
+        {
+          "id": "aic-icache-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aic-scalar",
+      "kind": "compute",
+      "component": "gridNode",
+      "label": "Scalar",
+      "parentId": "aic",
+      "position": {
+        "x": 500,
+        "y": 518
+      },
+      "grid": {
+        "rows": 8,
+        "cols": 16,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 24,
+      "styleToken": "memory.scalar",
+      "handles": [
+        {
+          "id": "aic-scalar-l-20",
+          "type": "target",
+          "edge": "left",
+          "pct": 25.8
+        },
+        {
+          "id": "aic-scalar-l-80",
+          "type": "target",
+          "edge": "left",
+          "pct": 84
+        },
+        {
+          "id": "aic-scalar-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aic-scalar-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aiv2b",
+      "kind": "container",
+      "component": "vectorNode",
+      "label": "AIV x2",
+      "position": {
+        "x": -30,
+        "y": 655
+      },
+      "size": {
+        "width": 1570,
+        "height": 310
+      },
+      "styleToken": "container.core"
+    },
+    {
+      "id": "aiv2b-ub",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "UB",
+      "memType": "MEM_UB",
+      "parentId": "aiv2b",
+      "position": {
+        "x": 500,
+        "y": 6
+      },
+      "grid": {
+        "rows": 6,
+        "cols": 32,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "styleToken": "memory.ub",
+      "showHeader": true,
+      "showStats": true,
+      "handles": [
+        {
+          "id": "aiv2b-ub-l-in",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aiv2b-ub-l-70",
+          "type": "source",
+          "edge": "left",
+          "pct": 75
+        },
+        {
+          "id": "aiv2b-ub-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 59.5
+        },
+        {
+          "id": "aiv2b-ub-b",
+          "type": "source",
+          "edge": "bottom",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aiv2b-dcache",
+      "kind": "cache",
+      "component": "gridNode",
+      "label": "DCache",
+      "parentId": "aiv2b",
+      "position": {
+        "x": 180,
+        "y": 165
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 20,
+      "styleToken": "memory.cache",
+      "handles": [
+        {
+          "id": "aiv2b-dcache-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 46.5
+        },
+        {
+          "id": "aiv2b-dcache-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 44
+        }
+      ]
+    },
+    {
+      "id": "aiv2b-icache",
+      "kind": "cache",
+      "component": "gridNode",
+      "label": "ICache",
+      "parentId": "aiv2b",
+      "position": {
+        "x": 180,
+        "y": 242
+      },
+      "grid": {
+        "rows": 2,
+        "cols": 12,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 20,
+      "styleToken": "memory.cache",
+      "handles": [
+        {
+          "id": "aiv2b-icache-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 46
+        },
+        {
+          "id": "aiv2b-icache-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 44
+        }
+      ]
+    },
+    {
+      "id": "aiv2b-scalar",
+      "kind": "compute",
+      "component": "gridNode",
+      "label": "Scalar",
+      "parentId": "aiv2b",
+      "position": {
+        "x": 584,
+        "y": 176
+      },
+      "grid": {
+        "rows": 8,
+        "cols": 18,
+        "shape": "square",
+        "unitKB": 1
+      },
+      "initialFilledCount": 24,
+      "styleToken": "memory.scalar",
+      "handles": [
+        {
+          "id": "aiv2b-scalar-l-15",
+          "type": "target",
+          "edge": "left",
+          "pct": 14
+        },
+        {
+          "id": "aiv2b-scalar-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aiv2b-scalar-l-85",
+          "type": "target",
+          "edge": "left",
+          "pct": 87
+        },
+        {
+          "id": "aiv2b-scalar-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        },
+        {
+          "id": "aiv2b-scalar-t",
+          "type": "target",
+          "edge": "top",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "aiv2b-vector",
+      "kind": "compute",
+      "component": "vectorNode",
+      "label": "Vector",
+      "parentId": "aiv2b",
+      "position": {
+        "x": 1250,
+        "y": -0.55
+      },
+      "size": {
+        "width": 276,
+        "height": 140
+      },
+      "styleToken": "compute.vector",
+      "handles": [
+        {
+          "id": "aiv2b-vector-l",
+          "type": "target",
+          "edge": "left",
+          "pct": 50
+        },
+        {
+          "id": "aiv2b-vector-r",
+          "type": "source",
+          "edge": "right",
+          "pct": 50
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-l2-to-aiv2b-ub",
+      "source": "gm",
+      "target": "aiv2b-ub",
+      "sourceHandle": "gm-to-ub-out",
+      "targetHandle": "aiv2b-ub-l-in",
+      "path": "E-MEM_L2-MEM_UB",
+      "label": "MTE_2",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE2"
+        ]
+      }
+    },
+    {
+      "id": "e-aiv2b-ub-to-dcache",
+      "source": "aiv2b-ub",
+      "target": "gm",
+      "sourceHandle": "aiv2b-ub-l-70",
+      "targetHandle": "aiv2b-dcache-r-20",
+      "path": "E-MEM_UB-MEM_DCACHE",
+      "label": "MTE_3",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE3"
+        ]
+      }
+    },
+    {
+      "id": "e-l2-aiv2b-dcache",
+      "source": "gm",
+      "target": "aiv2b-dcache",
+      "sourceHandle": "l2-r-88",
+      "targetHandle": "aiv2b-dcache-l",
+      "path": "E-MEM_L2-MEM_DCACHE",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-l2-aiv2b-icache",
+      "source": "gm",
+      "target": "aiv2b-icache",
+      "sourceHandle": "l2-r-96",
+      "targetHandle": "aiv2b-icache-l",
+      "path": "E-MEM_L2-MEM_ICACHE",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "dash": true,
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-l2-aic-l1",
+      "source": "gm",
+      "target": "aic-l1",
+      "sourceHandle": "l2-r-31",
+      "targetHandle": "aic-l1-l1",
+      "path": "E-MEM_L2-MEM_L1",
+      "label": "MTE_2",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE2"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l1-l2",
+      "source": "aic-l1",
+      "target": "gm",
+      "sourceHandle": "aic-l1-l2",
+      "targetHandle": "l2-r-32",
+      "path": "E-MEM_L1-MEM_L2",
+      "label": "MTE_3",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE3"
+        ]
+      }
+    },
+    {
+      "id": "e-l2-aic-dcache",
+      "source": "gm",
+      "target": "aic-dcache",
+      "sourceHandle": "l2-r-62",
+      "targetHandle": "aic-dcache-l",
+      "path": "E-MEM_L2-MEM_DCACHE",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-l2-aic-icache",
+      "source": "gm",
+      "target": "aic-icache",
+      "sourceHandle": "l2-r-68",
+      "targetHandle": "aic-icache-l",
+      "path": "E-MEM_L2-MEM_ICACHE",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "dash": true,
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-aic-dcache-scalar",
+      "source": "aic-dcache",
+      "target": "aic-scalar",
+      "sourceHandle": "aic-dcache-r",
+      "targetHandle": "aic-scalar-l-20",
+      "path": "E-MEM_DCACHE-MEM_SCALAR",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-aic-icache-scalar",
+      "source": "aic-icache",
+      "target": "aic-scalar",
+      "sourceHandle": "aic-icache-r",
+      "targetHandle": "aic-scalar-l-80",
+      "path": "E-MEM_ICACHE-MEM_SCALAR",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "dash": true,
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-aic-l1-l0a",
+      "source": "aic-l1",
+      "target": "aic-l0a",
+      "sourceHandle": "aic-l1-r-3",
+      "targetHandle": "aic-l0a-l-75",
+      "path": "E-MEM_L1-MEM_L0A",
+      "label": "MTE_1",
+      "styleToken": "pipe.mte",
+      "waypoints": [
+        {
+          "x": 447,
+          "y": 84
+        },
+        {
+          "x": 452,
+          "y": 80
+        },
+        {
+          "x": 457,
+          "y": 84
+        }
+      ],
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE1"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l1-l0b",
+      "source": "aic-l1",
+      "target": "aic-l0b",
+      "sourceHandle": "aic-l1-r-25",
+      "targetHandle": "aic-l0b-l",
+      "path": "E-MEM_L1-MEM_L0B",
+      "label": "MTE_1",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE1"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l1-bt",
+      "source": "aic-l1",
+      "target": "aic-bt",
+      "sourceHandle": "aic-l1-r",
+      "targetHandle": "aic-bt-l",
+      "path": "E-MEM_L1-MEM_BT",
+      "label": "MTE_1",
+      "styleToken": "pipe.mte",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_MTE1"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l1-fp",
+      "source": "aic-l1",
+      "target": "aic-fp",
+      "sourceHandle": "aic-l1-r-75",
+      "targetHandle": "aic-fp-l",
+      "path": "E-MEM_L1-MEM_FP",
+      "label": "FixPipe",
+      "styleToken": "pipe.fixpipe",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_FIX"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l0a-cube",
+      "source": "aic-l0a",
+      "target": "aic-cube",
+      "sourceHandle": "aic-l0a-r",
+      "targetHandle": "aic-cube-l-12",
+      "path": "E-MEM_L0A-MEM_CUBE",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_M"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l0b-cube",
+      "source": "aic-l0b",
+      "target": "aic-cube",
+      "sourceHandle": "aic-l0b-r",
+      "targetHandle": "aic-cube-l-45",
+      "path": "E-MEM_L0B-MEM_CUBE",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "markerEnd": false,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_M"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-bt-cube",
+      "source": "aic-bt",
+      "target": "aic-cube",
+      "sourceHandle": "aic-bt-r",
+      "targetHandle": "aic-cube-l-80",
+      "path": "E-MEM_BT-MEM_CUBE",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "markerEnd": false,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_M"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-fp-fixpipe",
+      "source": "aic-fp",
+      "target": "aic-hidden-node-fixpipe",
+      "sourceHandle": "aic-fp-b",
+      "targetHandle": "aic-hidden-node-fixpipe-t",
+      "path": "E-MEM_FP-MEM_FIXPIPE",
+      "label": "",
+      "styleToken": "pipe.fixpipe",
+      "markerEnd": false,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_FIX"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l0c-l1",
+      "source": "aic-l0c",
+      "target": "aic-l1",
+      "sourceHandle": "aic-l0c-b",
+      "targetHandle": "aic-l1-b",
+      "path": "E-MEM_L0C-MEM_L1",
+      "label": "FixPipe",
+      "styleToken": "pipe.fixpipe",
+      "labelX": 573,
+      "labelY": 499,
+      "borderRadius": 10,
+      "markerEnd": false,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_FIX"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-l0c-l2",
+      "source": "aic-hidden-node-fixpipe",
+      "target": "gm",
+      "sourceHandle": "aic-hidden-node-fixpipe-l-72",
+      "targetHandle": "l2-r-57",
+      "path": "E-MEM_L0C-MEM_L2",
+      "label": "",
+      "styleToken": "pipe.fixpipe",
+      "markerEnd": false,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_FIX"
+        ]
+      }
+    },
+    {
+      "id": "e-aic-cube-l0c",
+      "source": "aic-cube",
+      "target": "aic-l0c",
+      "sourceHandle": "aic-cube-r",
+      "targetHandle": "aic-l0c-l",
+      "path": "E-MEM_CUBE-MEM_L0C",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_M"
+        ]
+      }
+    },
+    {
+      "id": "e-aiv2b-ub-scalar",
+      "source": "aiv2b-ub",
+      "target": "aiv2b-scalar",
+      "sourceHandle": "aiv2b-ub-b",
+      "targetHandle": "aiv2b-scalar-t",
+      "path": "E-MEM_UB-MEM_SCALAR",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "doubleArrow": true,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_V"
+        ]
+      }
+    },
+    {
+      "id": "e-aiv2b-ub-vector",
+      "source": "aiv2b-ub",
+      "target": "aiv2b-vector",
+      "sourceHandle": "aiv2b-ub-r",
+      "targetHandle": "aiv2b-vector-l",
+      "path": "E-MEM_UB-MEM_VECTOR",
+      "label": "",
+      "styleToken": "pipe.compute",
+      "doubleArrow": true,
+      "animation": {
+        "enabled": true,
+        "pipeTypes": [
+          "PIPE_V"
+        ]
+      }
+    },
+    {
+      "id": "e-aiv2b-dcache-scalar",
+      "source": "aiv2b-dcache",
+      "target": "aiv2b-scalar",
+      "sourceHandle": "aiv2b-dcache-r",
+      "targetHandle": "aiv2b-scalar-l-15",
+      "path": "E-MEM_DCACHE-MEM_SCALAR",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "animation": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "e-aiv2b-icache-scalar",
+      "source": "aiv2b-icache",
+      "target": "aiv2b-scalar",
+      "sourceHandle": "aiv2b-icache-r",
+      "targetHandle": "aiv2b-scalar-l-85",
+      "path": "E-MEM_ICACHE-MEM_SCALAR",
+      "label": "",
+      "styleToken": "pipe.cache",
+      "dash": true,
+      "animation": {
+        "enabled": false
+      }
+    }
+  ],
+  "fallbacks": {
+    "unknownMemoryType": {
+      "behavior": "warn-and-skip-runtime-update"
+    },
+    "unknownStyleToken": {
+      "behavior": "warn-and-use-default-token",
+      "defaultToken": "memory.l1"
+    },
+    "missingAnimationPath": {
+      "behavior": "warn-and-skip-animation"
+    }
+  }
+}

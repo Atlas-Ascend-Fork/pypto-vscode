@@ -16,6 +16,7 @@ import { RunConfigViewServer } from './servers/run-config-view-server';
 import { WelcomeViewServer } from './servers/welcom-server';
 import { ControlFlowViewServer } from './servers/controlFlow-server';
 import { MemoryTraceServer } from './servers/memory-trace-server';
+import { GmMemoryVisualServer } from './servers/gm-memory-visual-server';
 import { OpCheckViewServer } from './servers/opcheck-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
@@ -43,7 +44,11 @@ export const routes: EditorViewRoutes = {
     title: 'Swim Graph',
     viewServer: SwimGraphServer,
   },
-
+  // gm内存可视化
+  gmMemoryVisual: {
+    title: 'GmMemoryVisual',
+    viewServer: GmMemoryVisualServer,
+  },
   // 编辑运行配置
   editRunConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),

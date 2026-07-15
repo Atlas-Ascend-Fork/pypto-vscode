@@ -13,4 +13,6 @@ compare_graph_diff
 jump_to_code
 render_graph
 java-elk-extension
+memory_visualization
+chip_config_guide
 view_accuracy_report

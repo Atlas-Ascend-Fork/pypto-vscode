@@ -1,0 +1,219 @@
+@import url('../swimGraph/css/mainGraph.css');
+
+.title {
+  height: 60px !important;
+}
+.swim-global-container {
+  height: 100%;
+  width: 100%;
+  background-color: var(--devui-swim-global-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+.memory-layout-main {
+  display: flex;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.minimap-visual-rail {
+  position: absolute;
+  left: 15px;
+  width: 80px;
+  top: 20px;
+  bottom: 25px;
+  background-color: var(--devui-card-bg);
+  border: 1px solid var(--devui-split-line-deep);
+  border-radius: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.minimap-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.minimap-dashed-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1.5px dashed var(--devui-brand);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.6;
+}
+
+.chart-wrapper {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: transparent;
+  z-index: 2;
+}
+
+.echarts-container {
+  width: 100%;
+  height: 100%;
+}
+
+.filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-left: 15px;
+  margin-top: 14px;
+  margin-right: 15px;
+  margin-bottom: 10px;
+}
+
+.search-bar-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 300px;
+  height: 32px;
+  background-color: var(--devui-input-bg);
+  border: 1px solid var(--devui-split-line-deep);
+  border-radius: 6px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.reset-filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  background-color: var(--devui-input-bg);
+  border: 1px solid var(--devui-split-line-deep);
+  border-radius: 6px;
+  color: var(--devui-secondary-text);
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--devui-brand);
+    color: var(--devui-brand);
+    background-color: var(--devui-input-active-bg);
+    box-shadow: 0 0 0 2px rgba(87, 64, 150, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.search-bar-container:focus-within {
+  border-color: var(--devui-brand);
+  box-shadow: 0 0 0 2px rgba(87, 64, 150, 0.2);
+}
+
+.search-icon {
+  color: var(--devui-secondary-text);
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--devui-primary-text);
+  font-size: 12px;
+  outline: none;
+  padding: 0;
+
+  &::placeholder {
+    color: var(--devui-placeholder-text);
+  }
+}
+
+.search-action-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.search-results-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--devui-secondary-text);
+  background-color: var(--devui-nest-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+  pointer-events: none;
+}
+
+.search-clear-btn {
+  background: none;
+  border: none;
+  color: var(--devui-secondary-text);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--devui-primary-text);
+    background-color: var(--devui-input-hover-bg);
+  }
+}
+
+.search-nav-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.search-nav {
+  display: flex;
+  gap: 8px;
+  height: 28px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.search-nav-prev,
+.search-nav-next {
+  height: 28px !important;
+  width: 28px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--devui-secondary-button-bg);
+  color: var(--devui-secondary-text);
+  
+  &:hover {
+    color: var(--devui-primary-text);
+  }
+  
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

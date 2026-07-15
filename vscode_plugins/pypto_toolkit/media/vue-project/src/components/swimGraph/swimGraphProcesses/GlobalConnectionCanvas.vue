@@ -644,7 +644,7 @@ const drawMacroDependencyLines = () => {
     drawMixDep(pathLockedEvent.value);
   } else {
     if (searchedEvent.value?.parentEventId) {
-      drawMixDep(searchedEvent.value)
+      drawMixDep(searchedEvent.value);
     } else {
       drawMixDep(selectedEvent.value || searchedEvent.value);
     }

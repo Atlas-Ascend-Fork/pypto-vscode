@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "1.0",
+  "chip": {
+    "model": "Ascend910_95",
+    "arch": "DAV_3510",
+    "displayName": "910_95 Sample",
+    "description": "Sample custom topology showing one AIC and two AIV/UB regions for DAV_3510 demo traces."
+  },
+  "canvas": {
+    "width": 1800,
+    "height": 1080,
+    "coordinateSystem": "absolute"
+  },
+  "legend": [
+    {
+      "shape": "square",
+      "label": "1KB",
+      "unitKB": 1,
+      "styleToken": "legend.square"
+    },
+    {
+      "shape": "circle",
+      "label": "128KB",
+      "unitKB": 128,
+      "styleToken": "legend.circle"
+    },
+    {
+      "shape": "hexagon",
+      "label": "8192KB",
+      "unitKB": 8192,
+      "styleToken": "legend.hexagon"
+    }
+  ],
+  "memoryTypeMap": {
+    "MEM_GM": "gm",
+    "MEM_DEVICE_DDR": "gm",
+    "MEM_L2": "gm.l2",
+    "MEM_L1": "aic-l1",
+    "MEM_L0A": "aic-l0a",
+    "MEM_L0B": "aic-l0b",
+    "MEM_BT": "aic-bt",
+    "MEM_FP": "aic-fp",
+    "MEM_L0C": "aic-l0c",
+    "MEM_UB0": "aiv0-ub",
+    "MEM_UB1": "aiv1-ub"
+  },
+  "memoryCapacityBytes": {
+    "MEM_GM": 4294967296,
+    "MEM_DEVICE_DDR": 4294967296,
+    "MEM_L2": 33554432,
+    "MEM_L1": 524288,
+    "MEM_L0A": 65536,
+    "MEM_L0B": 65536,
+    "MEM_BT": 4096,
+    "MEM_FP": 4096,
+    "MEM_L0C": 262144,
+    "MEM_UB0": 253952,
+    "MEM_UB1": 253952
+  },
+  "nodes": [
+    {
+      "id": "gm",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "GM",
+      "memType": "MEM_GM",
+      "position": { "x": -405, "y": 0 },
+      "grid": { "rows": 80, "cols": 16, "shape": "hexagon", "unitKB": 8192 },
+      "styleToken": "memory.gm",
+      "showHeader": false,
+      "splitType": "horizontal",
+      "splitChildren": [
+        {
+          "id": "gm.l2",
+          "kind": "memory",
+          "component": "gridNode",
+          "label": "L2",
+          "memType": "MEM_L2",
+          "grid": { "rows": 64, "cols": 4, "shape": "circle", "unitKB": 128 },
+          "styleToken": "memory.l2",
+          "showHeader": false
+        }
+      ]
+    },
+    {
+      "id": "aic",
+      "kind": "container",
+      "component": "vectorNode",
+      "label": "AIC",
+      "position": { "x": -30, "y": 0 },
+      "size": { "width": 1570, "height": 470 },
+      "styleToken": "container.core"
+    },
+    {
+      "id": "aic-l1",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L1",
+      "memType": "MEM_L1",
+      "parentId": "aic",
+      "position": { "x": 180, "y": 70 },
+      "grid": { "rows": 32, "cols": 16, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l1",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aic-l0a",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0A",
+      "memType": "MEM_L0A",
+      "parentId": "aic",
+      "position": { "x": 520, "y": 35 },
+      "grid": { "rows": 4, "cols": 16, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aic-l0b",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0B",
+      "memType": "MEM_L0B",
+      "parentId": "aic",
+      "position": { "x": 520, "y": 135 },
+      "grid": { "rows": 4, "cols": 16, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aic-bt",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "BT",
+      "memType": "MEM_BT",
+      "parentId": "aic",
+      "position": { "x": 520, "y": 235 },
+      "grid": { "rows": 2, "cols": 2, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aic-fp",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "FP",
+      "memType": "MEM_FP",
+      "parentId": "aic",
+      "position": { "x": 520, "y": 315 },
+      "grid": { "rows": 2, "cols": 2, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aic-cube",
+      "kind": "compute",
+      "component": "vectorNode",
+      "label": "CUBE",
+      "parentId": "aic",
+      "position": { "x": 940, "y": 65 },
+      "size": { "width": 180, "height": 230 },
+      "styleToken": "compute.cube"
+    },
+    {
+      "id": "aic-l0c",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "L0C",
+      "memType": "MEM_L0C",
+      "parentId": "aic",
+      "position": { "x": 1280, "y": 75 },
+      "grid": { "rows": 16, "cols": 16, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.l0",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aiv0",
+      "kind": "container",
+      "component": "vectorNode",
+      "label": "AIV0",
+      "position": { "x": -30, "y": 485 },
+      "size": { "width": 1570, "height": 260 },
+      "styleToken": "container.core"
+    },
+    {
+      "id": "aiv0-ub",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "UB0",
+      "memType": "MEM_UB0",
+      "parentId": "aiv0",
+      "position": { "x": 500, "y": 25 },
+      "grid": { "rows": 8, "cols": 31, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.ub",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aiv0-vector",
+      "kind": "compute",
+      "component": "vectorNode",
+      "label": "Vector0",
+      "parentId": "aiv0",
+      "position": { "x": 1220, "y": 35 },
+      "size": { "width": 260, "height": 120 },
+      "styleToken": "compute.vector"
+    },
+    {
+      "id": "aiv1",
+      "kind": "container",
+      "component": "vectorNode",
+      "label": "AIV1",
+      "position": { "x": -30, "y": 760 },
+      "size": { "width": 1570, "height": 260 },
+      "styleToken": "container.core"
+    },
+    {
+      "id": "aiv1-ub",
+      "kind": "memory",
+      "component": "gridNode",
+      "label": "UB1",
+      "memType": "MEM_UB1",
+      "parentId": "aiv1",
+      "position": { "x": 500, "y": 25 },
+      "grid": { "rows": 8, "cols": 31, "shape": "square", "unitKB": 1 },
+      "styleToken": "memory.ub",
+      "showHeader": true,
+      "showStats": true
+    },
+    {
+      "id": "aiv1-vector",
+      "kind": "compute",
+      "component": "vectorNode",
+      "label": "Vector1",
+      "parentId": "aiv1",
+      "position": { "x": 1220, "y": 35 },
+      "size": { "width": 260, "height": 120 },
+      "styleToken": "compute.vector"
+    }
+  ],
+  "edges": [
+    { "id": "e-l2-l1", "source": "gm", "target": "aic-l1", "path": "E-MEM_L2-MEM_L1", "label": "MTE_2", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE2"] } },
+    { "id": "e-l1-l2", "source": "aic-l1", "target": "gm", "path": "E-MEM_L1-MEM_L2", "label": "MTE_3", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE3"] } },
+    { "id": "e-l1-l0a", "source": "aic-l1", "target": "aic-l0a", "path": "E-MEM_L1-MEM_L0A", "label": "MTE_1", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE1"] } },
+    { "id": "e-l1-l0b", "source": "aic-l1", "target": "aic-l0b", "path": "E-MEM_L1-MEM_L0B", "label": "MTE_1", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE1"] } },
+    { "id": "e-l0a-cube", "source": "aic-l0a", "target": "aic-cube", "path": "E-MEM_L0A-MEM_CUBE", "label": "", "styleToken": "pipe.compute", "animation": { "enabled": true, "pipeTypes": ["PIPE_M"] } },
+    { "id": "e-l0b-cube", "source": "aic-l0b", "target": "aic-cube", "path": "E-MEM_L0B-MEM_CUBE", "label": "", "styleToken": "pipe.compute", "animation": { "enabled": true, "pipeTypes": ["PIPE_M"] } },
+    { "id": "e-cube-l0c", "source": "aic-cube", "target": "aic-l0c", "path": "E-MEM_CUBE-MEM_L0C", "label": "", "styleToken": "pipe.compute", "animation": { "enabled": true, "pipeTypes": ["PIPE_M"] } },
+    { "id": "e-l2-aiv0-ub", "source": "gm", "target": "aiv0-ub", "path": "E-MEM_L2-MEM_UB0", "label": "MTE_2", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE2"] } },
+    { "id": "e-l2-aiv1-ub", "source": "gm", "target": "aiv1-ub", "path": "E-MEM_L2-MEM_UB1", "label": "MTE_2", "styleToken": "pipe.mte", "animation": { "enabled": true, "pipeTypes": ["PIPE_MTE2"] } },
+    { "id": "e-aiv0-ub-vector", "source": "aiv0-ub", "target": "aiv0-vector", "path": "E-MEM_UB0-MEM_VECTOR", "label": "", "styleToken": "pipe.compute", "doubleArrow": true, "animation": { "enabled": true, "pipeTypes": ["PIPE_V"] } },
+    { "id": "e-aiv1-ub-vector", "source": "aiv1-ub", "target": "aiv1-vector", "path": "E-MEM_UB1-MEM_VECTOR", "label": "", "styleToken": "pipe.compute", "doubleArrow": true, "animation": { "enabled": true, "pipeTypes": ["PIPE_V"] } }
+  ],
+  "fallbacks": {
+    "unknownMemoryType": { "behavior": "warn-and-skip-runtime-update" },
+    "missingAnimationPath": { "behavior": "warn-and-skip-animation" }
+  }
+}

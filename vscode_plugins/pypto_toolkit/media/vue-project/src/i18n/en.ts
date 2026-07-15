@@ -599,4 +599,8 @@ export default {
     'pmuPositiveGap': 'Positive Gap',
     'pmuLegend': 'Legend',
     'pmuTaskId': 'Task ID',
+    dataError: {
+        title: 'This data cannot be processed',
+        message: 'Please try another dataset.',
+    },
 }

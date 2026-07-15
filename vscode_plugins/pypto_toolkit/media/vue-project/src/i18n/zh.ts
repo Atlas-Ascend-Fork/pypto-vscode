@@ -599,4 +599,8 @@ export default {
     'pmuPositiveGap': '正向差距',
     'pmuLegend': '图例说明',
     'pmuTaskId': '任务ID',
+    dataError: {
+        title: '当前数据无法处理',
+        message: '请尝试其他数据集',
+    },
 }

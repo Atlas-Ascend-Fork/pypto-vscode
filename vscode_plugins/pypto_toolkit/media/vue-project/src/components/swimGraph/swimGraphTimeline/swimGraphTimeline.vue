@@ -16,12 +16,11 @@
       <canvas class="fixed-timeline-canvas" ref="fixedtimelineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
       <canvas class="hover-flags-line-canvas" ref="hoverFlagsLineCanvas" @mouseover="fixedMouseEvent" @mousemove="fixedMouseEvent"></canvas>
     </div>
-
     <!-- 二段时间轴区域 -->
     <div class="timeline-area" id="timeline-area" v-if="!loading">
       <canvas class="timeline-canvas" ref="timelineCanvas" @wheel="handleWheel"></canvas>
-      <canvas class="hover-flags-canvas" ref="hoverFlagsCanvas"></canvas>
-      <canvas class="flags-canvas" ref="flagsCanvas" @mouseover="flagMouseOver" @mouseleave="flagMouseOut" @mousemove="flagMouseMove"
+      <canvas :style="hoverFlags ? '': 'display:none'" class="hover-flags-canvas" ref="hoverFlagsCanvas"></canvas>
+      <canvas :style="hoverFlags ? '': 'display:none'" class="flags-canvas" ref="flagsCanvas" @mouseover="flagMouseOver" @mouseleave="flagMouseOut" @mousemove="flagMouseMove"
       @click="flagMouseClick"></canvas>
     </div>
     <div class="flagtooltip" ref="flagtooltip" :style="flagtooltipStyle">
@@ -55,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted, onUnmounted, nextTick, reactive} from 'vue';
+import { ref, inject, onMounted, onUnmounted, nextTick, reactive, watch} from 'vue';
 import { devicePixelRatio, setupHighDPICanvas, getCanvasCSSWidth, COLOR_CFG } from '../swimGraphUtils';
 import { useI18n } from 'vue-i18n';
 import { throttle, debounce } from 'lodash-es';
@@ -94,7 +93,12 @@ const {
   pinnedDrawLine,
   pinnedEraseLine
 } = inject('swimGraphMethods');
-
+const props = defineProps({
+  hoverFlags: {
+    type: Boolean,
+    default: () => true,
+  },
+});
 let isTimelineDragging = false;
 let timelineInitX = 0;
 let timelineInitStartX = 0;
@@ -130,7 +134,14 @@ let flagHoverData = {
 };
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 const swimGraphState = inject('swimGraphState');
-const measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
+let measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
+
+watch(isDarkTheme, () => {
+  colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
+  measureRenderer = new MeatureRender({...swimGraphState, colorCfg}, $t('lessThan0'));
+  renderFixedTimeline();
+  renderTimeline();
+});
 const flagtooltipStyle = reactive({
   display: 'none',
   left: '0px',

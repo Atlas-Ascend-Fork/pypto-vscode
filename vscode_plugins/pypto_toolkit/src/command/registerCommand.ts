@@ -16,6 +16,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { readCsv, getCsvData } from '../common/csvReader';
 import * as fs from 'fs';
+import { parseJson } from '../view/servers/gm-memory-visual-server';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -38,6 +39,17 @@ export class RegisterCommand {
         const type = 3;
         await readCsv(filePath, type);
         getCsvData(filePath, type);
+      }),
+      commands.registerCommand('PyPTO.getCsvData', async () => {
+        getCsvData('');
+      }),
+      commands.registerCommand('PyPTO.Open.OpenGmMemoryVisualization', async (uri: Uri | undefined) => {
+        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+        if (!uri || path.basename(uri.fsPath) !== 'memory_usage_visualization.json') {
+          window.showInformationMessage(_('pypto.cannotRender'));
+          return;
+        }
+        await this.openView('gmMemoryVisual', uri, undefined);
       }),
       commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
@@ -120,6 +132,11 @@ export class RegisterCommand {
       await editorView.open(routeName, vscode.Uri.file(comGraphPath), {
         query: finalQuery,
         title: getBasenameWithoutExt(comGraphPath),
+      });
+    } else if (path.basename(uri.fsPath) == 'memory_usage_visualization.json') {
+      await editorView.open(routeName || "gmMemoryVisual", vscode.Uri.file(uri.fsPath), {
+        query: {},
+        title: getBasenameWithoutExt(uri.fsPath),
       });
     } else {
       window.showInformationMessage(_('pypto.cannotRender'));

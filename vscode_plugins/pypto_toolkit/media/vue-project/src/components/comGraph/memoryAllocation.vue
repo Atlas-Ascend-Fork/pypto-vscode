@@ -23,22 +23,15 @@
             <div class="memory-header">
               <div class="header-left">
                 <span class="header-text">{{ $t('simulatedExecutionMemoryAllocation') }}</span>
-                <span class="header-size">910B</span>
+                <span class="header-size">{{ chipDisplayName }}</span>
               </div>
               <div class="legend-container">
-                <div class="legend-item">
-                  <span class="legend-color square"></span>
-                  <span class="legend-text">1KB (1024B)</span>
-                </div>
-                <div class="legend-item">
-                  <span class="legend-color circle"></span>
-                  <span class="legend-text">128KB</span>
-                </div>
-                <div class="legend-item">
-                  <svg class="legend-hexagon" viewBox="0 0 24 24">
+                <div v-for="item in chipConfig.legend" :key="`${item.shape}-${item.label}`" class="legend-item">
+                  <svg v-if="item.shape === 'hexagon'" class="legend-hexagon" viewBox="0 0 24 24">
                     <polygon points="12,2 22,8 22,18 12,24 2,18 2,8" fill="var(--ma-legend-hexagon)" />
                   </svg>
-                  <span class="legend-text">8192KB</span>
+                  <span v-else class="legend-color" :class="item.shape"></span>
+                  <span class="legend-text">{{ item.label }}</span>
                 </div>
                 <button class="fullscreen-btn" @click="toggleFullscreen">
                   <d-icon :name="isFullscreen ? 'icon-zoom-screen' : 'icon-full-screen'" size="16px"></d-icon>
@@ -47,7 +40,7 @@
             </div>
             <div class="memory-content">
               <div class="memory-container">
-                <ComGraphMemory :events="events" :graphData="currentGraphData" :animationData="selectedAnimationData" :animationSpeed="animationSpeed || 1" :onlyUpdateSpeed="finalOnlyUpdateSpeed" :disableLoading="isPlayingAll" :GMData="GMData" @initialized="handleGraphMemoryInitialized"></ComGraphMemory>
+                <ComGraphMemory :events="events" :chipConfig="chipConfig" :graphData="currentGraphData" :animationData="selectedAnimationData" :animationSpeed="animationSpeed || 1" :onlyUpdateSpeed="finalOnlyUpdateSpeed" :disableLoading="isPlayingAll" :GMData="GMData" @initialized="handleGraphMemoryInitialized"></ComGraphMemory>
               </div>
             </div>
           </div>
@@ -113,6 +106,8 @@ import { useViewServer } from '../../core/use-view-server';
 import type { IMemoryTraceViewServer } from 'ext:/view/servers/view-server-interface';
 import { mockTimeList } from './memoryGraph.type';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
+import { selectChipConfig } from '../../config/chip-config-loader';
+import { buildGraphDataFromBuffers } from './memoryGraphAdapter';
 
 const { t: $t } = useI18n();
 const { updateRunningNode } = inject(ComGraphProvideKey, undefined) as ComGraphContext | undefined;
@@ -150,48 +145,16 @@ const props = withDefaults(defineProps<{
   clockName: 0,
 });
 
-const memoryTypeKeyNames = ['MEM_GM', 'MEM_L2', 'MEM_L1', 'MEM_L0A', 'MEM_L0B', 'MEM_BT', 'MEM_FP', 'MEM_L0C', 'MEM_UB'];
-const memoryTypeSizeMap = {
-  MEM_GM: {
-    size: 4194304,
-    bufferList: [],
-  },
-  MEM_L2: {
-    size: 32768,
-    bufferList: [],
-  },
-  MEM_L1: {
-    size: 512,
-    bufferList: [],
-  },
-  MEM_L0A: {
-    size: 68,
-    bufferList: [],
-  },
-  MEM_L0B: {
-    size: 68,
-    bufferList: [],
-  },
-  MEM_BT: {
-    size: 48,
-    bufferList: [],
-  },  
-  MEM_FP: {
-    size: 24,
-    bufferList: [],
-  },
-  MEM_L0C: {
-    size: 256,
-    bufferList: [],
-  },
-  MEM_UB: {
-    size: 248,
-    bufferList: [],
-  },
-}
-
 // 使用 ViewServer 获取后端数据
 const { server } = useViewServer<IComViewServer>();
+
+const metadataChipArch = computed(() => {
+  const chipArch = (server.Metadata.value as any)?.chipArch;
+  return chipArch === undefined || chipArch === null ? undefined : String(chipArch);
+});
+const selectedChipConfig = computed(() => selectChipConfig(metadataChipArch.value));
+const chipConfig = computed(() => selectedChipConfig.value.config);
+const chipDisplayName = computed(() => chipConfig.value.chip.displayName);
 
 const emit = defineEmits<{
   (e: 'timeline-change', timeline: any[]): void
@@ -211,7 +174,7 @@ const disableBarSize = '2px';
 const showDetailModal = ref(false);
 const selectedEvent = ref<Event | null>(null);
 const selectedEventJson = ref('');
-const selectedAnimationData = ref<null>;
+const selectedAnimationData = ref<any>(null);
 const isFullscreen = ref(false);
 
 const graphMemoryInitialized = ref(false);
@@ -301,17 +264,16 @@ watch(server.MemTraceFileFlag, (newVal) => {
 });
 
 watch(server.Metadata, (newVal) => {
+  const selection = selectChipConfig((newVal as any)?.chipArch ? String((newVal as any).chipArch) : undefined);
+  if (selection.warning) {
+    console.warn(`[MemoryTrace] ${selection.warning}`);
+  }
+  selection.validation.warnings.forEach(warning => console.warn(`[MemoryTrace] ${warning}`));
+  selection.validation.errors.forEach(error => console.error(`[MemoryTrace] ${error}`));
 });
 
 const dealGraphData = (bufferList: any[]) => {
-  const graphData = {};
-  Object.keys(memoryTypeSizeMap).forEach(key => {
-    graphData[key] = {
-      size: memoryTypeSizeMap[key].size,
-      bufferList: bufferList.filter(item => item.memType === key).filter(item => item.status !== 0) || [],
-    }
-  })
-  return graphData;
+  return buildGraphDataFromBuffers(chipConfig.value, bufferList || []);
 }
 
 const sizeChange = (newSize: number) => {

@@ -54,6 +54,10 @@
         "title": "%pypto.OpenComGraphForNodeSearch%"
       },
       {
+        "command": "PyPTO.Open.OpenGmMemoryVisualization",
+        "title": "%pypto.OpenGmMemoryVisualization%"
+      },
+      {
         "category": "PyPTO.OpenLinkageMode",
         "command": "PyPTO.Open.OpenLinkageMode",
         "title": "%PyPTO.OpenLinkageMode%"
@@ -101,6 +105,11 @@
           "command": "PyPTO.Open.OpenComGraphForNodeSearch",
           "when": "resourceExtname == .json",
           "group": "1_graph@2"
+        },
+        {
+          "command": "PyPTO.Open.OpenGmMemoryVisualization",
+          "when": "resourceExtname == .json",
+          "group": "1_graph@3"
         }
       ],
       "editor/context": [
@@ -240,6 +249,7 @@
   },
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
+    "@pypto/data-compress": "^0.0.8",
     "@types/vscode": "^1.52.0",
     "bignumber.js": "9.3.1",
     "child_process": "^1.0.2",
@@ -260,8 +270,7 @@
     "sql.js": "^1.13.0",
     "stream-chain": "^2.2.5",
     "stream-json": "^1.9.1",
-    "typescript": "^5.8.3",
-    "@pypto/data-compress": "^0.0.8"
+    "typescript": "^5.8.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",

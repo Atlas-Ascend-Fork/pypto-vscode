@@ -315,6 +315,14 @@ export interface IMemoryTraceViewServer extends ViewServer<IMemoryTraceApis, IMe
   getEventsAtClock: (message: { clock: number }) => Promise<any[]>;
 }
 
+export type IGmMemoryVisualApis = 'getGmMemoryVisualData';
+export type IGmMemoryVisualRefs = {
+  GmMemoryVisualData: unknown;
+};
+
+export interface IGmMemoryVisualServer extends ViewServer<IGmMemoryVisualApis, IGmMemoryVisualRefs> {
+  getGmMemoryVisualData: () => Promise<any>;
+}
 export type IOpCheckApis =
   | 'getCmpDiffListData'
   | 'getPrecisionExceptList'
