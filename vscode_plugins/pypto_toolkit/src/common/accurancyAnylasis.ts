@@ -110,13 +110,8 @@ export async function getResDataSum(filePath: string | undefined, flowVerifyPath
 }
 
 export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: string) {
-    const outputDirPath = path.dirname(filePath) ?? '';
-    
-    const accurancyDirList = await fs.readdirSync(outputDirPath, { withFileTypes: true });
-    const accurancyDirName = accurancyDirList.filter(subDirName => (subDirName.isDirectory() && subDirName.name.startsWith('verify')))?.[0]?.name ?? '';
-    const accurancyDirPath = path.join(outputDirPath, accurancyDirName) ?? '';
-
-    const csvPath = path.join(accurancyDirPath, 'verify_graph_result_brief.csv');
+   const dirPath = vscode.Uri.file(filePath).fsPath;
+    const csvPath = path.join(dirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
         console.log(`文件不存在: ${csvPath}`);
         return;

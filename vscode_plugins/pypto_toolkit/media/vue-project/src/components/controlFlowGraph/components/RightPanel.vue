@@ -706,8 +706,7 @@ async function transFormPanelData(
       if (lastMagicName.value !== magicName) {
         lastMagicName.value = magicName;
         const res = await getQuery();
-        const filePath = res._path;
-        server.getPathPassResult({ controwFlowFilePath: filePath, funcMagicName: magicName });
+        server.getPathPassResult({ controwFlowFilePath: res.flowVerifyPath, funcMagicName: magicName });
         const finalList = await new Promise<any[]>((resolve) => {
           pendingPassesData.value = { passes: nodeData.data.source.meta?.passes, resolve };
         });

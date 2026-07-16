@@ -138,26 +138,6 @@
         "id": "computational",
         "title": "Computational Graph",
         "properties": {
-          "PyPTOToolkitOpen.tensorAttr": {
-            "type": "string",
-            "default": "",
-            "description": "%PyPTOToolkit.tensorAttr.description%"
-          },
-          "PyPTOToolkitOpen.tensorColor": {
-            "type": "string",
-            "default": "",
-            "description": "%PyPTOToolkit.tensorColor.description%"
-          },
-          "PyPTOToolkitOpen.operationAttr": {
-            "type": "string",
-            "default": "",
-            "description": "%PyPTOToolkit.operationAttr.description%"
-          },
-          "PyPTOToolkitOpen.operationColor": {
-            "type": "string",
-            "default": "",
-            "description": "%PyPTOToolkit.operationColor.description%"
-          }
         }
       },
       {
