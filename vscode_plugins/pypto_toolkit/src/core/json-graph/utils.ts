@@ -180,31 +180,31 @@ export function parseAssembleViewOp(labelAttr: string[], reader: AttrReader, isA
     }
 }
 
-export function filterSubgraph(filterSubgraphId: number, nodes: SNode[], edges: SEdge[], ): any[] {
-    // Apply subgraph filtering if specified
-    let filteredNodes = nodes;
-    let filteredEdges = edges;
-
-    // First, find operation nodes that belong to the specified subgraph
-    const subgraphOperationIds = new Set<string>();
-
-    for (const node of nodes) {
-        const astgrNode = node as AstgrNode;
-
-        // Include nodes that belong to the specified subgraph
-        if (astgrNode.role === 'operation' && astgrNode.subgraphId === filterSubgraphId) {
-            subgraphOperationIds.add(node.id);
-        }
+function extractTensorIdFromEdge(edgeId: string | undefined, pattern: string): string | null {
+    if (!edgeId?.includes(pattern)) {
+        return null;
     }
+    const match = edgeId.match(/tensor-(\d+)/);
+    return match ? `tensor-${match[1]}` : null;
+}
 
-    // Find all tensors that are connected to these subgraph operations
-    const connectedTensorIds = new Set<string>();
-    const connectedInputOutputIds = new Set<string>();
+function extractInputOutputIdFromEdge(edgeId: string | undefined, pattern: string): string | null {
+    if (!edgeId?.includes(pattern)) {
+        return null;
+    }
+    const match = edgeId.match(new RegExp(`(${pattern.replace('-', '-')}-\\d+-tensor-\\d+)`));
+    return match ? match[1] : null;
+}
 
+function collectConnectedTensorsAndIOs(
+    edges: SEdge[],
+    subgraphOperationIds: Set<string>,
+    connectedTensorIds: Set<string>,
+    connectedInputOutputIds: Set<string>
+): void {
     for (const edge of edges) {
         let isConnectedToSubgraphOp = false;
 
-        // Check if edge is connected to a subgraph operation
         for (const opId of subgraphOperationIds) {
             if (edge.sourceId?.includes(opId) || edge.targetId?.includes(opId)) {
                 isConnectedToSubgraphOp = true;
@@ -212,33 +212,38 @@ export function filterSubgraph(filterSubgraphId: number, nodes: SNode[], edges: 
             }
         }
 
-        if (isConnectedToSubgraphOp) {
-            // Extract tensor IDs from ports
-            if (edge.sourceId?.includes('tensor-')) {
-                const match = edge.sourceId.match(/tensor-(\d+)/);
-                if (match) connectedTensorIds.add(`tensor-${match[1]}`);
-            }
-            if (edge.targetId?.includes('tensor-')) {
-                const match = edge.targetId.match(/tensor-(\d+)/);
-                if (match) connectedTensorIds.add(`tensor-${match[1]}`);
-            }
+        if (!isConnectedToSubgraphOp) {
+            continue;
+        }
 
-            // Extract input/output node IDs from ports
-            if (edge.sourceId?.includes('incast-')) {
-                const match = edge.sourceId.match(/(incast-\d+-tensor-\d+)/);
-                if (match) connectedInputOutputIds.add(match[1]);
-            }
-            if (edge.targetId?.includes('outcast-')) {
-                const match = edge.targetId.match(/(outcast-\d+-tensor-\d+)/);
-                if (match) connectedInputOutputIds.add(match[1]);
-            }
+        const sourceTensorId = extractTensorIdFromEdge(edge.sourceId, 'tensor-');
+        if (sourceTensorId) {
+            connectedTensorIds.add(sourceTensorId);
+        }
+
+        const targetTensorId = extractTensorIdFromEdge(edge.targetId, 'tensor-');
+        if (targetTensorId) {
+            connectedTensorIds.add(targetTensorId);
+        }
+
+        const incastId = extractInputOutputIdFromEdge(edge.sourceId, 'incast');
+        if (incastId) {
+            connectedInputOutputIds.add(incastId);
+        }
+
+        const outcastId = extractInputOutputIdFromEdge(edge.targetId, 'outcast');
+        if (outcastId) {
+            connectedInputOutputIds.add(outcastId);
         }
     }
+}
 
-    // Now find which input/output nodes are actually connected to the subgraph
-    // by checking if they connect to the identified tensors
+function collectConnectedIOsByTensor(
+    edges: SEdge[],
+    connectedTensorIds: Set<string>,
+    connectedInputOutputIds: Set<string>
+): void {
     for (const edge of edges) {
-        // Check if edge connects incast/outcast to connected tensors
         if (edge.sourceId?.includes('incast-') && edge.targetId?.includes('tensor-')) {
             const tensorMatch = edge.targetId.match(/(tensor-\d+)/);
             const incastMatch = edge.sourceId.match(/(incast-\d+-tensor-\d+)/);
@@ -255,49 +260,62 @@ export function filterSubgraph(filterSubgraphId: number, nodes: SNode[], edges: 
             }
         }
     }
+}
+
+function isEdgeRelevant(edge: SEdge, relevantNodeIds: Set<string>): boolean {
+    let sourceRelevant = false;
+    let targetRelevant = false;
+
+    if (edge.sourceId) {
+        for (const nodeId of relevantNodeIds) {
+            if (edge.sourceId.includes(nodeId)) {
+                sourceRelevant = true;
+                break;
+            }
+        }
+    }
+
+    if (edge.targetId) {
+        for (const nodeId of relevantNodeIds) {
+            if (edge.targetId.includes(nodeId)) {
+                targetRelevant = true;
+                break;
+            }
+        }
+    }
+
+    return sourceRelevant && targetRelevant;
+}
+
+export function filterSubgraph(filterSubgraphId: number, nodes: SNode[], edges: SEdge[]): any[] {
+    // First, find operation nodes that belong to the specified subgraph
+    const subgraphOperationIds = new Set<string>();
+
+    for (const node of nodes) {
+        const astgrNode = node as AstgrNode;
+        if (astgrNode.role === 'operation' && astgrNode.subgraphId === filterSubgraphId) {
+            subgraphOperationIds.add(node.id);
+        }
+    }
+
+    // Find all tensors that are connected to these subgraph operations
+    const connectedTensorIds = new Set<string>();
+    const connectedInputOutputIds = new Set<string>();
+
+    collectConnectedTensorsAndIOs(edges, subgraphOperationIds, connectedTensorIds, connectedInputOutputIds);
+
+    // Find which input/output nodes are actually connected to the subgraph
+    collectConnectedIOsByTensor(edges, connectedTensorIds, connectedInputOutputIds);
 
     // Build the final set of relevant node IDs
     const relevantNodeIds = new Set<string>();
-
-    // Add subgraph operations
     subgraphOperationIds.forEach(id => relevantNodeIds.add(id));
-
-    // Add connected tensors
     connectedTensorIds.forEach(id => relevantNodeIds.add(id));
-
-    // Add only connected input/output nodes
     connectedInputOutputIds.forEach(id => relevantNodeIds.add(id));
 
-    // Filter nodes
-    filteredNodes = nodes.filter(node => relevantNodeIds.has(node.id));
+    // Filter nodes and edges
+    const filteredNodes = nodes.filter(node => relevantNodeIds.has(node.id));
+    const filteredEdges = edges.filter(edge => isEdgeRelevant(edge, relevantNodeIds));
 
-    // Filter edges to only include those where both source and target nodes are relevant
-    filteredEdges = edges.filter(edge => {
-        let sourceRelevant = false;
-        let targetRelevant = false;
-
-        // Check if source port belongs to a relevant node
-        if (edge.sourceId) {
-            for (const nodeId of relevantNodeIds) {
-                if (edge.sourceId.includes(nodeId)) {
-                    sourceRelevant = true;
-                    break;
-                }
-            }
-        }
-
-        // Check if target port belongs to a relevant node
-        if (edge.targetId) {
-            for (const nodeId of relevantNodeIds) {
-                if (edge.targetId.includes(nodeId)) {
-                    targetRelevant = true;
-                    break;
-                }
-            }
-        }
-
-        return sourceRelevant && targetRelevant;
-    });
-
-    return [filteredEdges, filteredNodes]
+    return [filteredEdges, filteredNodes];
 }

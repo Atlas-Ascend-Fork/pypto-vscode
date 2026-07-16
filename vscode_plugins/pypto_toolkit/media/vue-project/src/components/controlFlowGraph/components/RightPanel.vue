@@ -468,10 +468,10 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
   for (const called of calledRecords) {
     const callerHash = called.callerHash;
     const calleeHash = called.calleeHash;
-    if (calledRecordObj.hasOwnProperty(calleeHash)) {
+    if (Object.prototype.hasOwnProperty.call(calledRecordObj, calleeHash)) {
       calledRecordObj[calleeHash].frequency++;
 
-      if (calledRecordObj[calleeHash].detail.hasOwnProperty(callerHash)) {
+      if (Object.prototype.hasOwnProperty.call(calledRecordObj[calleeHash].detail, callerHash)) {
         calledRecordObj[calleeHash].detail[callerHash].value++;
       } else {
         calledRecordObj[calleeHash].detail[callerHash] = {
@@ -506,7 +506,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
       frequency: leafFrequency,
     };
 
-    if (calledRecordObj.hasOwnProperty(leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== '{}') {
+    if (Object.prototype.hasOwnProperty.call(calledRecordObj, leaf.hash) && JSON.stringify(calledRecordObj[leaf.hash].detail) !== '{}') {
       const detail: DetailItem[] = [];
       let detailMaxCalled = 0;
       for (let i in calledRecordObj[leaf.hash].detail) {
@@ -548,7 +548,7 @@ function getCalleeList(leafFunctions: LeafFunctionType[], calleeRecords: CalleeR
   // 统计次数
   for (const callee of calleeRecords) {
     const calleeHash = callee.calleeHash;
-    if (calleeFunctionObj.hasOwnProperty(calleeHash)) {
+    if (Object.prototype.hasOwnProperty.call(calleeFunctionObj, calleeHash)) {
       calleeFunctionObj[calleeHash].frequency++;
     } else {
       calleeFunctionObj[calleeHash] = {

@@ -194,6 +194,44 @@ function mergePhaseResults (passDistribution: PhaseItem[]): PhaseItem[] {
     return Array.from(passList.values());
 }
 
+interface PassInfo {
+    pass_name: string;
+    func_magicName: string[];
+    showName: string;
+}
+
+async function buildFirstPathList(
+    filePath: string,
+    passList: string[],
+    resultType: string
+): Promise<PassInfo[]> {
+    const firstPathList: PassInfo[] = [];
+    for (const pass of passList) {
+        const detailList = await SQLiteCache.getInstance().getFirstResByPhaseOnTimestamp(filePath, pass, resultType);
+        const funcMagicNames: string[] = [];
+        let passInfo: PassInfo | undefined;
+
+        for (let i = 0; i < detailList.length; i++) {
+            const item = detailList[i];
+            funcMagicNames.push(item.funcMagicName);
+            if (i === 0) {
+                passInfo = {
+                    pass_name: item.phaseName,
+                    func_magicName: [...funcMagicNames],
+                    showName: item.phaseName + item.funcMagicName,
+                };
+            } else {
+                passInfo!.func_magicName = [...funcMagicNames];
+            }
+        }
+
+        if (passInfo) {
+            firstPathList.push(passInfo);
+        }
+    }
+    return firstPathList;
+}
+
 async function getPassList(oriDirPath: string, filePath: string, computeGraphDirPath: string | undefined) {
     let dirPath: string = oriDirPath;
     if (computeGraphDirPath) {
@@ -232,70 +270,30 @@ async function getPassList(oriDirPath: string, filePath: string, computeGraphDir
         }
     }
 
-    let firstExceptionPathList: { pass_name: string, func_magicName: string[], showName: string }[] = [];
-    for (const pass of exceptionList) {
-        const exceptionDetailList = await SQLiteCache.getInstance().getFirstResByPhaseOnTimestamp(filePath, pass, 'EXCEPTION');
-        let excFuncMagicName: string[] = [];
-        let singleExceptionPathInfo;
-        for (let i = 0; i < exceptionDetailList.length; i++) {
-            const item = exceptionDetailList[i];
-            excFuncMagicName.push(item.funcMagicName);
-            if (i === 0) {
-                singleExceptionPathInfo = {
-                    pass_name: item.phaseName,
-                    func_magicName: [...excFuncMagicName],
-                    showName: item.phaseName + item.funcMagicName,
-                };
-            } else {
-                singleExceptionPathInfo.func_magicName = [...excFuncMagicName];
-            }
-        }
-        if (singleExceptionPathInfo) {
-            firstExceptionPathList.push(singleExceptionPathInfo);
-        }
-    }
-
-    let firstErrorPathList: { pass_name: string, func_magicName: string[], showName: string }[] = [];
-    for (const pass of errorList) {
-        const errorDetailList = await SQLiteCache.getInstance().getFirstResByPhaseOnTimestamp(filePath, pass, 'FAIL');
-        let errFuncMagicName: string[] = [];
-        let singleErrorPathInfo;
-        for (let i = 0; i < errorDetailList.length; i++) {
-            const item = errorDetailList[i];
-            errFuncMagicName.push(item.funcMagicName);
-            if (i === 0) {
-                singleErrorPathInfo = {
-                    pass_name: item.phaseName,
-                    func_magicName: [...errFuncMagicName],
-                    showName: item.phaseName + item.funcMagicName,
-                };
-            } else {
-                singleErrorPathInfo.func_magicName = [...errFuncMagicName];
-            }
-        }
-        if (singleErrorPathInfo) {
-            firstErrorPathList.push(singleErrorPathInfo);
-        }
-    }
+    const firstExceptionPathList = await buildFirstPathList(filePath, exceptionList, 'EXCEPTION');
+    const firstErrorPathList = await buildFirstPathList(filePath, errorList, 'FAIL');
 
     const allFileNameList = fs.readdirSync(dirPath, { withFileTypes: true });
-    const allPassNameList = allFileNameList.filter(singlePass => (singlePass.isDirectory() && /^Pass_\d{2}/.test(singlePass.name))).map(singlePass => singlePass.name);
+    const allPassNameList = allFileNameList
+        .filter(singlePass => singlePass.isDirectory() && /^Pass_\d{2}/.test(singlePass.name))
+        .map(singlePass => singlePass.name);
     const repeat00List = allPassNameList.filter(item => item.startsWith('Pass_00'));
     const real00Pass = repeat00List.at(-1);
     const otherList = allPassNameList.filter(item => !item.startsWith('Pass_00'));
     const allPassList = [real00Pass, ...otherList];
     const allValidPhases = [...successList, ...exceptionList, ...errorList];
     const validPassList = new Set(allValidPhases.map(phaseName => phaseName.split('_').slice(0, 2).join('_')));
-    const calculatedSkipList = allPassNameList.filter(singlePassName => (singlePassName !== undefined) && (!validPassList.has(singlePassName.split('_').slice(0, 2).join('_'))));
+    const calculatedSkipList = allPassNameList.filter(
+        singlePassName => singlePassName !== undefined && !validPassList.has(singlePassName.split('_').slice(0, 2).join('_'))
+    );
     const skipList = [...new Set([...csvSkipList, ...calculatedSkipList])];
 
-    const passResult = {
+    return {
         successPass: successList,
         exceptionPass: firstExceptionPathList,
         errorPass: firstErrorPathList,
         skipPass: skipList,
     };
-    return passResult;
 }
 
 export async function getComGraphRawMagic(filePath: string, phaseName: string, funcMagicName: string, res: string, flowVerifyPath?: string, computeGraphDirPath?: string) {

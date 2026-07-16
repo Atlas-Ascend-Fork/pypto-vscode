@@ -43,7 +43,6 @@ export class AstgrContextMenuService implements IContextMenuService {
   show(items: MenuItem[], anchor: Anchor, onHide?: (() => void) | undefined): void {
     this.actionDispatcher.dispatch(SetPopupModelAction.create(EMPTY_ROOT));
     const container = document.getElementById(this.viewerOptions.baseDiv);
-    // eslint-disable-next-line prefer-const
     let menuNode: HTMLDivElement;
     const hideMenu = () => {
       container?.removeChild(menuNode);

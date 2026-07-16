@@ -35,6 +35,66 @@ function matches(element: HTMLElement, selector: string): boolean {
   return func.call(element, selector);
 }
 
+function handleDragOver(
+  el: HTMLElement,
+  sourceElement: HTMLElement,
+  getCurrentTarget: (event: DragEvent) => number,
+  event: DragEvent,
+): { currentIndex: number; toIndex: number; targetIndex: number } {
+  const currentIndex = Array.from(el.children).indexOf(sourceElement);
+  const toIndex = getCurrentTarget(event);
+  let targetIndex = -1;
+
+  if (currentIndex === -1 || toIndex === -1) {
+    return { currentIndex, toIndex, targetIndex };
+  }
+
+  if (currentIndex > toIndex) {
+    el.removeChild(sourceElement);
+    el.insertBefore(sourceElement, el.children[toIndex]);
+    targetIndex = toIndex;
+  } else if (currentIndex < toIndex) {
+    el.removeChild(sourceElement);
+    if (el.children[toIndex]) {
+      el.insertBefore(sourceElement, el.children[toIndex]);
+      targetIndex = toIndex;
+    } else {
+      el.appendChild(sourceElement);
+      targetIndex = el.children.length - 1;
+    }
+  }
+
+  return { currentIndex, toIndex, targetIndex };
+}
+
+function handleDragEnd(
+  el: HTMLElement,
+  sourceElement: HTMLElement,
+  sourceIndex: number,
+  targetIndex: number,
+  isDrop: boolean,
+): void {
+  if (isDrop) {
+    return;
+  }
+
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return;
+  }
+
+  if (targetIndex > sourceIndex) {
+    el.removeChild(sourceElement);
+    el.insertBefore(sourceElement, el.children[sourceIndex]);
+  } else if (sourceIndex > targetIndex) {
+    el.removeChild(sourceElement);
+    if (el.children[sourceIndex]) {
+      el.insertBefore(sourceElement, el.children[sourceIndex]);
+    } else {
+      el.appendChild(sourceElement);
+    }
+  }
+}
+
 export default {
   mounted(el: HTMLElement, binding: DirectiveBinding<SortableProps>): void {
     let sourceElement: HTMLElement;
@@ -103,25 +163,8 @@ export default {
     });
 
     el.addEventListener('dragover', (event: DragEvent) => {
-      const currentIndex = Array.from(el.children).indexOf(sourceElement);
-      const toIndex = getCurrentTarget(event);
-
-      if (currentIndex !== -1 && toIndex !== -1) {
-        if (currentIndex > toIndex) {
-          el.removeChild(sourceElement);
-          el.insertBefore(sourceElement, el.children[toIndex]);
-          targetIndex = toIndex;
-        } else if (currentIndex < toIndex) {
-          el.removeChild(sourceElement);
-          if (el.children[toIndex]) {
-            el.insertBefore(sourceElement, el.children[toIndex]);
-            targetIndex = toIndex;
-          } else {
-            el.appendChild(sourceElement);
-            targetIndex = el.children.length - 1;
-          }
-        }
-      }
+      const result = handleDragOver(el, sourceElement, getCurrentTarget, event);
+      targetIndex = result.targetIndex;
       event.preventDefault();
     });
 
@@ -133,21 +176,7 @@ export default {
     });
 
     el.addEventListener('dragend', () => {
-      if (!isDrop) {
-        if (sourceIndex !== -1 && targetIndex !== -1) {
-          if (targetIndex > sourceIndex) {
-            el.removeChild(sourceElement);
-            el.insertBefore(sourceElement, el.children[sourceIndex]);
-          } else if (sourceIndex > targetIndex) {
-            el.removeChild(sourceElement);
-            if (el.children[sourceIndex]) {
-              el.insertBefore(sourceElement, el.children[sourceIndex]);
-            } else {
-              el.appendChild(sourceElement);
-            }
-          }
-        }
-      }
+      handleDragEnd(el, sourceElement, sourceIndex, targetIndex, isDrop);
       sourceIndex = -1;
       targetIndex = -1;
     });

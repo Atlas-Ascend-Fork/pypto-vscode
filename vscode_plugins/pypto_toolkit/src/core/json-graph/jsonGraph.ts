@@ -108,7 +108,6 @@ export class AscppDagBuilder {
         const leafColorList = generateColorList(4, isDark);
         this.leafBaseColorList = leafColorList.baseColorList;
         this.leafLightColorList = leafColorList.lightColorList;
-        // this.vscodeConfig = Util.getComGraphCustomCfg();
     }
 
     public prepareSprottyGraphData() {
@@ -1856,6 +1855,104 @@ export class AscppDagBuilder {
     /**
      * Creates a regular operation node with input/output ports
      */
+    private buildMetaLabels(
+        opId: string,
+        labelParts: string[],
+        subgraphId: number,
+        opmagic: string
+    ): any {
+        const compartment: any = {
+            type: 'compartment',
+            id: `${opId}-main-labels-compartment`,
+            layout: 'vbox',
+            text: '',
+            magic: opmagic,
+            subgraphId: subgraphId,
+            layoutOptions: {
+                hAlign: 'left',
+                vGap: 3,
+                paddingTop: 0,
+                paddingBottom: 0,
+                paddingLeft: 0,
+                paddingRight: 0
+            },
+            children: []
+        };
+
+        for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
+            const splitedStr = labelParts[metaIdx].split(':');
+            let value = splitedStr[1] ?? '';
+            if (value.length > 32) {
+                value = value.slice(0, 32) + '...';
+            }
+            compartment.children.push({
+                type: 'label',
+                id: `${opId}-label-meta-${metaIdx}`,
+                originText: labelParts[metaIdx],
+                text: [splitedStr[0] ?? '', value].join(':'),
+                cssClasses: ['operation-meta-label'],
+                layoutOptions: {
+                    hAlign: 'left',
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    paddingLeft: 0,
+                    paddingRight: 0
+                },
+                minZoomLevel: 0.4
+            } as SLabel & MetadataLabel);
+        }
+        return compartment;
+    }
+
+    private buildCallLabels(
+        opId: string,
+        labelParts: string[],
+        subgraphId: number,
+        opmagic: string
+    ): any {
+        const compartment: any = {
+            type: 'compartment',
+            id: `${opId}-main-labels-compartment`,
+            layout: 'vbox',
+            text: '',
+            magic: opmagic,
+            subgraphId: subgraphId,
+            layoutOptions: {
+                hAlign: 'left',
+                vGap: 5,
+                paddingTop: 0,
+                paddingBottom: 0,
+                paddingLeft: 0,
+                paddingRight: 40
+            },
+            children: []
+        };
+
+        for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
+            const splitedStr = labelParts[metaIdx].split(':');
+            let value = splitedStr[1] ?? '';
+            if (value.length > 32) {
+                value = value.slice(0, 32) + '...';
+            }
+            compartment.children.push({
+                type: 'label',
+                id: `${opId}-label-meta-${metaIdx}`,
+                originText: labelParts[metaIdx],
+                text: [splitedStr[0] ?? '', value].join(':'),
+                cssClasses: ['operation-meta-label'],
+                layoutOptions: {
+                    hAlign: 'left',
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    paddingLeft: 0,
+                    paddingRight: 0
+                },
+                minZoomLevel: 0.4
+            });
+        }
+        return compartment;
+    }
+
     private createRegularOperationNode(
         op: Operation,
         opId: string,
@@ -1878,29 +1975,24 @@ export class AscppDagBuilder {
         }
 
         const opmagic = String(op.opmagic);
-        const hasAttrValue = op.attr !== undefined && (Array.isArray(op.attr) && op.attr.length > 0) ? true : false;
+        const hasAttrValue = op.attr !== undefined && Array.isArray(op.attr) && op.attr.length > 0;
         let opName = op.opcode === 'CALL' ? 'CALL: ' : `TILE_${op.opcode}`;
         const children: (SCompartment | AstgrPort)[] = [];
-        opId = opId + `-${subgraphId}`;
+        const finalOpId = opId + `-${subgraphId}`;
+
         if (op.opcode === 'CALL') {
-            let funcName = undefined;
-            if ('calleeMap' in this.comGraphData && op.calleehash! in this.comGraphData.calleeMap) {
-                funcName = this.comGraphData.calleeMap[op.calleehash!].func_magicname;
-            }
-            opName += funcName ?? op.func_magicname ?? "Not found function";
+            const funcName = this.getCallFuncName(op);
+            opName += funcName;
         }
 
-        const codePath = (op.file && op.file !== "" ? op.file : undefined) ?? 
-                         (op.semantic_label?.filename && op.semantic_label?.filename !== "" ? op.semantic_label?.filename : undefined);
-        const codeLine = (op.line && op.line !== "" ? op.line : undefined) ?? 
-                         (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
+        const codePath = this.getCodePath(op);
+        const codeLine = this.getCodeLine(op);
 
         // Create labels compartment containing main and metadata labels
         const labelChildren: SLabel[] = [
-            // Main label with larger font for operation name
             {
                 type: 'label',
-                id: `${opId}-label-main`,
+                id: `${finalOpId}-label-main`,
                 text: opName,
                 magic: opmagic,
                 subgraphId: subgraphId,
@@ -1915,154 +2007,24 @@ export class AscppDagBuilder {
             } as SLabel
         ];
 
-        let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : `var(--devui-op-node-base-color)`;
-        let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : `var(--devui-op-node-light-color)`;
-        if(this.isLeaf) {
-            const colorIndex = this.mixOpTypeList.indexOf(op.mixSubgraphCore ?? '');
-            baseColor = colorIndex >= 0 ? this.leafBaseColorList[colorIndex % 360] : `var(--devui-op-node-base-color)`;
-            lightColor = colorIndex >= 0 ? this.leafLightColorList[colorIndex % 360] : `var(--devui-op-node-light-color)`;
-        }
-
-        let isError = false;
-        if(threeMode) {
-            const semanticColor: SemanticLab = {
-                color: op.semantic_label?.label ?? ''
-            };
-            baseColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.base;
-            lightColor  = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
-        }
-        if (errNodeList?.has(op.opmagic)) {
-            isError = true;
-            baseColor = 'rgba(231, 67, 74, 1)';
-            lightColor = 'rgba(250, 189, 193, 1)';
-        }
+        const { baseColor, lightColor } = this.getNodeColors(op, subgraphId, threeMode, errNodeList);
+        const isError = errNodeList?.has(op.opmagic);
 
         const labelParts: string[] = [];
+        this.buildLabelParts(labelParts, op, hasAttrValue);
 
-        const notCallChildren: any = {
-            type: 'compartment',
-            id: `${opId}-main-labels-compartment`,
-            layout: 'vbox',
-            text: '',
-            magic: opmagic,
-            subgraphId: subgraphId,
-            layoutOptions: {
-                hAlign: 'left',
-                vGap: 3,
-                paddingTop: 0,
-                paddingBottom: 0,
-                paddingLeft: 0,
-                paddingRight: 0
-            },
-            children: []
-        }
         if (labelParts.length > 0) {
-            for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
-                const splitedStr = labelParts[metaIdx].split(':');
-                let value = splitedStr[1];
-                if (value.length > 32) {
-                    value = value.slice(0, 32) + '...';
-                }
-                notCallChildren.children.push({
-                    type: 'label',
-                    id: `${opId}-label-meta-${metaIdx}`,
-                    originText: labelParts[metaIdx], // Use pipe separator for compact display
-                    text: [splitedStr[0], value].join(':'),
-                    cssClasses: ['operation-meta-label'],
-                    layoutOptions: {
-                        hAlign: 'left',
-                        paddingTop: 0,
-                        paddingBottom: 0,
-                        paddingLeft: 0,
-                        paddingRight: 0
-                    },
-                    minZoomLevel: 0.4
-                } as SLabel & MetadataLabel);
-            }
-            labelChildren.push(notCallChildren);
-        } else {
-            // Add metadata label if there's metadata
-            if (hasAttrValue) {
-                // Create a more informative label
-                this.parseOperationAttr(labelParts, op);
-                if (labelParts.length > 0) {
-                    for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
-                        const splitedStr = labelParts[metaIdx].split(':');
-                        let value = splitedStr[1];
-                        if (value.length > 32) {
-                            value = value.slice(0, 32) + '...';
-                        }
-                        notCallChildren.children.push({
-                            type: 'label',
-                            id: `${opId}-label-meta-${metaIdx}`,
-                            originText: labelParts[metaIdx], // Use pipe separator for compact display
-                            text: [splitedStr[0], value].join(':'),
-                            cssClasses: ['operation-meta-label'],
-                            layoutOptions: {
-                                hAlign: 'left',
-                                paddingTop: 0,
-                                paddingBottom: 0,
-                                paddingLeft: 0,
-                                paddingRight: 0
-                            },
-                            minZoomLevel: 0.4
-                        } as SLabel & MetadataLabel);
-                    }
-                    labelChildren.push(notCallChildren);
-                }
-            }
-
             if (op.opcode === 'CALL') {
-                labelParts.push(`InCast: [${op.ioperands.join(',')}]`);
-                labelParts.push(`OutCast: [${op.ooperands.join(',')}]`);
-                labelParts.push(`calleehash: ${op.calleehash}`);
-                const callChildren: any = {
-                    type: 'compartment',
-                    id: `${opId}-main-labels-compartment`,
-                    layout: 'vbox',
-                    text: '',
-                    magic: opmagic,
-                    subgraphId: subgraphId,
-                    layoutOptions: {
-                        hAlign: 'left',
-                        vGap: 5,
-                        paddingTop: 0,
-                        paddingBottom: 0,
-                        paddingLeft: 0,
-                        paddingRight: 40
-                    },
-                    children: []
-                }
-                for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
-                    const splitedStr = labelParts[metaIdx].split(':');
-                    let value = splitedStr[1];
-                    if (value.length > 32) {
-                        value = value.slice(0, 32) + '...';
-                    }
-                    (callChildren.children as any[]).push({
-                        type: 'label',
-                        id: `${opId}-label-meta-${metaIdx}`,
-                        originText: labelParts[metaIdx], // Use pipe separator for compact display
-                        text: [splitedStr[0], value].join(':'),
-                        cssClasses: ['operation-meta-label'],
-                        layoutOptions: {
-                            hAlign: 'left',
-                            paddingTop: 0,
-                            paddingBottom: 0,
-                            paddingLeft: 0,
-                            paddingRight: 0
-                        },
-                        minZoomLevel: 0.4
-                    });
-                }
-                labelChildren.push(callChildren)
+                labelChildren.push(this.buildCallLabels(finalOpId, labelParts, subgraphId, opmagic));
+            } else {
+                labelChildren.push(this.buildMetaLabels(finalOpId, labelParts, subgraphId, opmagic));
             }
         }
 
         // Add the labels compartment
         children.push({
             type: 'compartment',
-            id: `${opId}-labels-compartment`,
+            id: `${finalOpId}-labels-compartment`,
             layout: 'vbox',
             magic: opmagic,
             subgraphId: subgraphId,
@@ -2080,18 +2042,18 @@ export class AscppDagBuilder {
         } as SCompartment);
 
         // Create input ports
-        this.createInputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
+        this.createInputPorts(op, finalOpId, children, edges, portMap, tensorToRawTensorMap, rawTensorConsumers, showTensorNodes, nodeMagic);
         // Create output ports
-        this.createOutputPorts(op, opId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, nodes, nodeMagic);
+        this.createOutputPorts(op, finalOpId, children, edges, portMap, tensorToRawTensorMap, rawTensorProducers, rawTensorConsumers, showTensorNodes, nodes, nodeMagic);
         // create token input ports
-        this.createInputTtokens(op, opId, children, edges);
+        this.createInputTtokens(op, finalOpId, children, edges);
         // Create token output ports
-        this.createOutputTtokens(op, opId, children, edges);
-        
+        this.createOutputTtokens(op, finalOpId, children, edges);
+
         const node: AstgrNode = {
             type: 'node',
             role: 'operation',
-            id: opId,
+            id: finalOpId,
             magic: opmagic,
             isError: isError,
             hasAttr: hasAttrValue,
@@ -2113,8 +2075,65 @@ export class AscppDagBuilder {
         };
         nodes.push(node);
         if (nodeMagic) {
-            this.opIdMap.set(opmagic, opId);
+            this.opIdMap.set(opmagic, finalOpId);
             this.pathNodesSet.add(opmagic);
+        }
+    }
+
+    private getCallFuncName(op: Operation): string {
+        if ('calleeMap' in this.comGraphData && op.calleehash! in this.comGraphData.calleeMap) {
+            return this.comGraphData.calleeMap[op.calleehash!].func_magicname;
+        }
+        return op.func_magicname ?? 'Not found function';
+    }
+
+    private getCodePath(op: Operation): string | undefined {
+        return (op.file && op.file !== '' ? op.file : undefined) ??
+               (op.semantic_label?.filename && op.semantic_label?.filename !== '' ? op.semantic_label?.filename : undefined);
+    }
+
+    private getCodeLine(op: Operation): number | undefined {
+        return (op.line && op.line !== '' ? op.line : undefined) ??
+               (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
+    }
+
+    private getNodeColors(
+        op: Operation,
+        subgraphId: number,
+        threeMode: boolean,
+        errNodeList?: any
+    ): { baseColor: string; lightColor: string } {
+        let baseColor = subgraphId >= 0 ? this.baseColorList[subgraphId % 360] : 'var(--devui-op-node-base-color)';
+        let lightColor = subgraphId >= 0 ? this.lightColorList[subgraphId % 360] : 'var(--devui-op-node-light-color)';
+
+        if (this.isLeaf) {
+            const colorIndex = this.mixOpTypeList.indexOf(op.mixSubgraphCore ?? '');
+            baseColor = colorIndex >= 0 ? this.leafBaseColorList[colorIndex % 360] : 'var(--devui-op-node-base-color)';
+            lightColor = colorIndex >= 0 ? this.leafLightColorList[colorIndex % 360] : 'var(--devui-op-node-light-color)';
+        }
+
+        if (threeMode) {
+            const semanticColor: SemanticLab = { color: op.semantic_label?.label ?? '' };
+            baseColor = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.base;
+            lightColor = getSemanticColor(semanticColor, this.baseColorList, this.lightColorList).dark.light;
+        }
+
+        if (errNodeList?.has(op.opmagic)) {
+            baseColor = 'rgba(231, 67, 74, 1)';
+            lightColor = 'rgba(250, 189, 193, 1)';
+        }
+
+        return { baseColor, lightColor };
+    }
+
+    private buildLabelParts(labelParts: string[], op: Operation, hasAttrValue: boolean): void {
+        if (hasAttrValue) {
+            this.parseOperationAttr(labelParts, op);
+        }
+        if (op.opcode === 'CALL') {
+            labelParts.push(`InCast: [${op.ioperands?.join(',') ?? ''}]`);
+            labelParts.push(`OutCast: [${op.ooperands?.join(',') ?? ''}]`);
+            labelParts.push(`calleehash: ${op.calleehash ?? ''}`);
         }
     }
 
