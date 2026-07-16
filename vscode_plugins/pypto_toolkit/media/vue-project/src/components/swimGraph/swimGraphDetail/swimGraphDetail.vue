@@ -431,7 +431,17 @@ const hasPmuDiagnosisData = (event) => {
   return !!pmuInfo && Object.keys(pmuInfo).length > 0 && Number(pmuInfo['total cycle']) > 0;
 };
 const showPmuDiagnosisTab = computed(() => hasPmuDiagnosisData(canvasclickedEvent.value));
-const showPipeStatisticsTab = computed(() => !showPmuDiagnosisTab.value);
+const showPipeStatisticsTab = computed(() => {
+  if (showPmuDiagnosisTab.value) {
+    return false;
+  }
+  if (isMixMode?.value && swimDataManager.hasMixConfig()) {
+    if (canvasclickedEvent?.value?.parentEventId || canvasclickedEvent?.value?.subEventIds) {
+      return false;
+    }
+  }
+  return true;
+});
 const normalizeSelectedView = (event) => {
   if (isFromPerformancePmuTabClick?.value && hasPmuDiagnosisData(event)) {
     if (selectedView.value === 'args' || selectedView.value === 'pipeStat') {

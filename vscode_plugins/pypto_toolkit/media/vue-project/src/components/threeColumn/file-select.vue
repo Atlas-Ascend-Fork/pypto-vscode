@@ -18,8 +18,8 @@
 
 <script setup lang="ts">
 import { ref, inject, defineProps } from 'vue';
-import type { IThreeColumnCtx, GraphType } from './types';
-import { ThreeColumnProvideKey } from './types';
+import type { IThreeColumnCtx, GraphType, ISwimGraphState } from './types';
+import { ThreeColumnProvideKey, SwimGraphStateKey } from './types';
 import { useViewServer } from '../../core/use-view-server';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
@@ -27,6 +27,8 @@ const { currentActiveBlock, BlockToGraphMap } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx;
 const { baseChoose } = inject('runDataList');
+
+const swimGraphState = inject(SwimGraphStateKey) as ISwimGraphState | undefined;
 
 const props = defineProps({
   fileName: {
@@ -37,6 +39,11 @@ const props = defineProps({
 });
 function openSelectedFileWindow() {
   baseChoose.value = '';
+
+  if (BlockToGraphMap[currentActiveBlock.value] === 'swimGraph' && swimGraphState?.detailsPanelExpanded?.value === true) {
+    swimGraphState.detailsPanelExpanded.value = false;
+  }
+
   if (BlockToGraphMap[currentActiveBlock.value] === 'editor') {
     threeColumnServer.singleSelectFile({graphType: BlockToGraphMap[currentActiveBlock.value]});
   } else {

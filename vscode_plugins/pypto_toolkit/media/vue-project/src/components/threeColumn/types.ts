@@ -37,3 +37,9 @@ export interface IThreeColumnCtx {
 }
 
 export const ThreeColumnProvideKey = 'three-column' as unknown as InjectionKey<IThreeColumnCtx>;
+
+export interface ISwimGraphState {
+  detailsPanelExpanded: Ref<boolean>;
+}
+
+export const SwimGraphStateKey = 'swim-graph-state' as unknown as InjectionKey<ISwimGraphState>;

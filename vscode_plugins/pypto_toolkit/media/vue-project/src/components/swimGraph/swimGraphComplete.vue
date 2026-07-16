@@ -212,7 +212,7 @@ import { SliceMipmap, CounterMipmap } from './swimGraphProcesses/render/mipmapRe
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
 import EventBus from '../../service/event-bus';
-import { ThreeColumnProvideKey } from '../threeColumn/types';
+import { ThreeColumnProvideKey, SwimGraphStateKey } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
@@ -3335,6 +3335,10 @@ defineExpose({
 });
 
 provide('swimGraphContext', { addChildContext });
+
+provide(SwimGraphStateKey, {
+  detailsPanelExpanded,
+});
 // 提供搜索状态
 provide('swimGraphSearch', { searchResult, currentResultIndex, isSearchActive, searchQuery, isCaseSensitive });
 
