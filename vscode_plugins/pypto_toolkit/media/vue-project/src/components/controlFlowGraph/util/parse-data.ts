@@ -115,7 +115,12 @@ function buildSequentialEdges(nodes: ControlFlowNodesType[]): EdgesType[] {
       edges.push({
         source: current.id,
         target: next.id,
-        style: { lineWidth: 0, opacity: 0 },
+        style: {
+          lineWidth: 0, opacity: 0,
+          router: {
+            type: ''
+          }
+        },
       });
     } else if (current.data?.type === 'IF-PATH') {
       if (next.data?.type === 'IF-PATH') {
@@ -160,6 +165,218 @@ function buildIfChildEdges(nodes: ControlFlowNodesType[]): EdgesType[] {
   return edges;
 }
 
+// layoutTree: 布局IF树节点
+function layoutTree(
+  node: GroupNode,
+  level: number,
+  startX: number,
+  ctx: TraverseContext,
+  parentId: string | null,
+  deepRankSep: number,
+  starY: number,
+  verticalSpacing: number,
+  nodeHeight: number,
+  leverEdgeWidth: number[]
+): void {
+  node.y = level;
+  if (node.children && node.children.length !== 0) {
+    const offsetIf = leverEdgeWidth[level];
+    let leftLeafX = startX - offsetIf;
+    let rightLeafX = startX + offsetIf;
+    if (!node.children[0]) {
+      rightLeafX = startX;
+    }
+    if (!node.children[1]) {
+      leftLeafX = startX;
+    }
+    if (node.children[0]) {
+      layoutTree(node.children[0], level + 1, leftLeafX, ctx, parentId, deepRankSep, starY, verticalSpacing, nodeHeight, leverEdgeWidth);
+    }
+    if (node.children[1]) {
+      layoutTree(node.children[1], level + 1, rightLeafX, ctx, parentId, deepRankSep, starY, verticalSpacing, nodeHeight, leverEdgeWidth);
+    }
+  }
+  const name = node.nodeType === 'PATH' ? node.magicName.substring(node.magicName.indexOf('PATH')) : '';
+  const functionStats = {
+    leafFunction: node?.meta?.leafFunctions?.length || 0,
+    called: node?.meta?.calledRecords?.length || 0,
+    callee: node?.meta?.calleeRecords?.length || 0,
+  };
+  if (node.x !== undefined && node.y !== undefined) {
+    node.hash = node.hash === '' ? `${node.x}_${node.y}_${parentId}` : node.hash;
+    const newNode: ControlFlowNodesType = {
+      id: node.hash,
+      type: node.nodeType === 'PATH' ? 'path-card-node' : 'if-card-node',
+      parentId: ctx.magicName,
+      combo: parentId,
+      data: {
+        source: node,
+        name,
+        functionStats,
+        errorStats: {
+          NullPointer: 0,
+          Exception: 0
+        },
+        type: node.nodeType === 'IF' ? 'IF-CARD' : 'IF-PATH',
+      },
+      style: {
+        x: startX + (45 * (deepRankSep - 1) + 20) / 2,
+        y: starY + node.y * (nodeHeight + verticalSpacing),
+      },
+    };
+    node.x = startX;
+    node.y = starY + node.y * (nodeHeight + verticalSpacing);
+    ctx.lastNodeY = Math.max(newNode.style.y, ctx.lastNodeY);
+    ctx.nodes.push(newNode);
+  }
+}
+
+// drawNode: 绘制IF嵌套节点
+function drawNode(root: GroupNode, ctx: TraverseContext, parentId: string | null, deepRankSep: number): number {
+  const prunedRoot = pruneIfNodes(root);
+  if (!prunedRoot) {
+    return 0;
+  }
+  const verticalSpacing = -40;
+  const nodeHeight = 220;
+  const { levelWidths, maxLever } = calculateIfNode(prunedRoot);
+  const starY = ctx.lastNodeY + ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
+  const maxWidth = Math.pow(2, maxLever) * 200 + Math.pow(2, maxLever) * 50;
+  const leverEdgeWidth = [maxWidth / 4];
+  for (let i = 0; i < levelWidths.length - 1; i++) {
+    if (levelWidths[i + 1] > levelWidths[i]) {
+      leverEdgeWidth.push(leverEdgeWidth[i] / 2);
+    } else {
+      leverEdgeWidth.push(leverEdgeWidth[i]);
+    }
+  }
+
+  layoutTree(prunedRoot, 0, maxWidth / 2, ctx, parentId, deepRankSep, starY, verticalSpacing, nodeHeight, leverEdgeWidth);
+  return maxWidth - 50;
+}
+
+// handleIfNode: 处理IF节点
+function handleIfNode(node: GroupNode, ctx: TraverseContext, parentId: string | null, deepRankSep: number): number | null {
+  if (node.nodeType !== 'IF' && (node.nodeType !== 'PATH' || ctx.isFirstNode)) {
+    return null;
+  }
+  const ifWidth = drawNode(node, ctx, parentId, deepRankSep);
+  ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
+  ctx.loopTopCount = 0;
+  ctx.lastPathBottomCount = ctx.loopLastPathCount;
+  ctx.loopLastPathCount = deepRankSep;
+  if (ctx.isFirstNode) {
+    ctx.isFirstNode = false;
+  }
+  return ifWidth;
+}
+
+// handlePathNode: 处理Path节点
+function handlePathNode(node: GroupNode, ctx: TraverseContext, parentId: string | null, parentType: string, deepRankSep: number, traverseFn: (node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number) => number): number {
+  if (ctx.isFirstNode) {
+    ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
+    ctx.loopTopCount = 0;
+    ctx.lastPathBottomCount = ctx.loopLastPathCount;
+    ctx.loopLastPathCount = deepRankSep;
+    ctx.isFirstNode = false;
+  } else {
+    ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.lastPathBottomCount * 25 + 30;
+    ctx.loopTopCount = 0;
+    ctx.lastPathBottomCount = ctx.loopLastPathCount;
+    ctx.loopLastPathCount = deepRankSep;
+  }
+
+  const name = node.magicName.substring(node.magicName.indexOf('PATH'));
+  const functionStats = {
+    leafFunction: node?.meta?.leafFunctions?.length || 0,
+    called: node?.meta?.calledRecords?.length || 0,
+    callee: node?.meta?.calleeRecords?.length || 0,
+  };
+  const nodeSize = [200, 140];
+  const newNode: ControlFlowNodesType = {
+    id: node.hash,
+    type: 'path-card-node',
+    parentId: ctx.magicName,
+    combo: parentId,
+    data: {
+      source: node,
+      name,
+      functionStats,
+    },
+    style: {
+      x: 45 * (deepRankSep - 1) + 30,
+      y: ctx.lastNodeY,
+    },
+  };
+  ctx.lastNodeY += nodeSize[1] + 20;
+  ctx.nodes.push(newNode);
+
+  const id = node.magicName.substring('TENSOR_'.length);
+  if (node.children) {
+    for (const child of node.children) {
+      traverseFn(child, id, node.nodeType, deepRankSep);
+    }
+  }
+  return 200;
+}
+
+// traverseNode: 遍历节点
+function traverseNode(node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number, ctx: TraverseContext, combos: CombsType[], traverseFn: (node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number) => number): number {
+  let comboWidth = 0;
+  const id = node.magicName.substring('TENSOR_'.length);
+
+  if (node.nodeType === 'LOOP') {
+    deepRankSep++;
+    ctx.loopTopCount++;
+  }
+
+  // 处理常规Path节点
+  if (node.nodeType === 'PATH' && parentType === 'LOOP') {
+    return handlePathNode(node, ctx, parentId, parentType, deepRankSep, traverseFn);
+  }
+
+  // 处理IF嵌套节点
+  if (node.nodeType === 'IF' || (node.nodeType === 'PATH' && parentType === 'IF')) {
+    if (ctx.isFirstNode || parentType === 'LOOP') {
+      const result = handleIfNode(node, ctx, parentId, deepRankSep);
+      if (result !== null) {
+        return result;
+      }
+    }
+  }
+
+  parentType = node.nodeType;
+
+  // 递归子节点
+  if (node.children) {
+    for (const child of node.children) {
+      const childWidth = traverseFn(child, node.nodeType === 'IF' ? parentId : id, parentType, deepRankSep);
+      comboWidth = Math.max(comboWidth, childWidth + 60);
+    }
+  }
+
+  // 生成combs父子节点记录
+  if (parentType === 'LOOP' && node.nodeType === 'LOOP') {
+    const combosRecord: CombsType = {
+      id,
+      ...(parentId ? { combo: parentId } : {}),
+      data: {
+        nodeType: node.nodeType,
+        magic: node.magic,
+        magicName: node.magicName,
+        hash: node.hash,
+        sourceCode: node.sourceCode,
+        level: '',
+        scale: 0
+      },
+      comboWidth,
+      states: []
+    };
+    combos.push(combosRecord);
+  }
+  return comboWidth + 30;
+}
+
 export function transformData(rootNodes: GroupNode[]): {
   nodes: ControlFlowNodesType[];
   edges: EdgesType[];
@@ -178,195 +395,10 @@ export function transformData(rootNodes: GroupNode[]): {
     lastPathBottomCount: 0,
   };
 
-  function drawNode(root: GroupNode, ctx: TraverseContext, parentId: string | null, deepRankSep: number): number {
-    const prunedRoot = pruneIfNodes(root);
-    if (!prunedRoot) {
-      return 0;
-    }
-    const verticalSpacing = -40;
-    const nodeHeight = 220;
-    const { levelWidths, maxLever } = calculateIfNode(prunedRoot);
-    const starY = ctx.lastNodeY + ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
-    const maxWidth = Math.pow(2, maxLever) * 200 + Math.pow(2, maxLever) * 50;
-    const leverEdgeWidth = [maxWidth / 4];
-    for (let i = 0; i < levelWidths.length - 1; i++) {
-      if (levelWidths[i + 1] > levelWidths[i]) {
-        leverEdgeWidth.push(leverEdgeWidth[i] / 2);
-      } else {
-        leverEdgeWidth.push(leverEdgeWidth[i]);
-      }
-    }
-
-    function layoutTree(node: GroupNode, level: number, startX: number): void {
-      node.y = level;
-      if (node.children && node.children.length !== 0) {
-        const offsetIf = leverEdgeWidth[level];
-        let leftLeafX = startX - offsetIf;
-        let rightLeafX = startX + offsetIf;
-        if (!node.children[0]) {
-          rightLeafX = startX;
-        }
-        if (!node.children[1]) {
-          leftLeafX = startX;
-        }
-        if (node.children[0]) {
-          layoutTree(node.children[0], level + 1, leftLeafX);
-        }
-        if (node.children[1]) {
-          layoutTree(node.children[1], level + 1, rightLeafX);
-        }
-      }
-      const name = node.nodeType === 'PATH' ? node.magicName.substring(node.magicName.indexOf('PATH')) : '';
-      const functionStats = {
-        leafFunction: node?.meta?.leafFunctions?.length || 0,
-        called: node?.meta?.calledRecords?.length || 0,
-        callee: node?.meta?.calleeRecords?.length || 0,
-      };
-      if (node.x !== undefined && node.y !== undefined) {
-        node.hash = node.hash === '' ? `${node.x}_${node.y}_${parentId}` : node.hash;
-        const newNode: ControlFlowNodesType = {
-          id: node.hash,
-          type: node.nodeType === 'PATH' ? 'path-card-node' : 'if-card-node',
-          parentId: ctx.magicName,
-          combo: parentId,
-          data: {
-            source: node,
-            name,
-            functionStats,
-            errorStats: {},
-            type: node.nodeType === 'IF' ? 'IF-CARD' : 'IF-PATH',
-          },
-          style: {
-            x: startX + (45 * (deepRankSep - 1) + 20) / 2,
-            y: starY + node.y * (nodeHeight + verticalSpacing),
-          },
-        };
-        node.x = startX;
-        node.y = starY + node.y * (nodeHeight + verticalSpacing);
-        ctx.lastNodeY = Math.max(newNode.style.y, ctx.lastNodeY);
-        ctx.nodes.push(newNode);
-      }
-    }
-
-    layoutTree(prunedRoot, 0, maxWidth / 2);
-    return maxWidth - 50;
-  }
-
-  function handleIfNode(node: GroupNode, ctx: TraverseContext, parentId: string | null, deepRankSep: number): number | null {
-    if (node.nodeType !== 'IF' && (node.nodeType !== 'PATH' || ctx.isFirstNode)) {
-      return null;
-    }
-    const ifWidth = drawNode(node, ctx, parentId, deepRankSep);
-    ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
-    ctx.loopTopCount = 0;
-    ctx.lastPathBottomCount = ctx.loopLastPathCount;
-    ctx.loopLastPathCount = deepRankSep;
-    if (ctx.isFirstNode) {
-      ctx.isFirstNode = false;
-    }
-    return ifWidth;
-  }
-
-  function handlePathNode(node: GroupNode, ctx: TraverseContext, parentId: string | null, parentType: string, deepRankSep: number): number {
-    if (ctx.isFirstNode) {
-      ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.loopLastPathCount * 25 + 30;
-      ctx.loopTopCount = 0;
-      ctx.lastPathBottomCount = ctx.loopLastPathCount;
-      ctx.loopLastPathCount = deepRankSep;
-      ctx.isFirstNode = false;
-    } else {
-      ctx.lastNodeY += ctx.loopTopCount * 40 + ctx.lastPathBottomCount * 25 + 30;
-      ctx.loopTopCount = 0;
-      ctx.lastPathBottomCount = ctx.loopLastPathCount;
-      ctx.loopLastPathCount = deepRankSep;
-    }
-
-    const name = node.magicName.substring(node.magicName.indexOf('PATH'));
-    const functionStats = {
-      leafFunction: node?.meta?.leafFunctions?.length || 0,
-      called: node?.meta?.calledRecords?.length || 0,
-      callee: node?.meta?.calleeRecords?.length || 0,
-    };
-    const nodeSize = [200, 140];
-    const newNode: ControlFlowNodesType = {
-      id: node.hash,
-      type: 'path-card-node',
-      parentId: ctx.magicName,
-      combo: parentId,
-      data: {
-        source: node,
-        name,
-        functionStats,
-      },
-      style: {
-        x: 45 * (deepRankSep - 1) + 30,
-        y: ctx.lastNodeY,
-      },
-    };
-    ctx.lastNodeY += nodeSize[1] + 20;
-    ctx.nodes.push(newNode);
-
-    const id = node.magicName.substring('TENSOR_'.length);
-    if (node.children) {
-      for (const child of node.children) {
-        traverse(child, id, node.nodeType, deepRankSep);
-      }
-    }
-    return 200;
-  }
-
-  function traverse(node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number): number {
-    let comboWidth = 0;
-    const id = node.magicName.substring('TENSOR_'.length);
-
-    if (node.nodeType === 'LOOP') {
-      deepRankSep++;
-      context.loopTopCount++;
-    }
-
-    // 处理常规Path节点
-    if (node.nodeType === 'PATH' && parentType === 'LOOP') {
-      return handlePathNode(node, context, parentId, parentType, deepRankSep);
-    }
-
-    // 处理IF嵌套节点
-    if (node.nodeType === 'IF' || (node.nodeType === 'PATH' && parentType === 'IF')) {
-      if (context.isFirstNode || parentType === 'LOOP') {
-        const result = handleIfNode(node, context, parentId, deepRankSep);
-        if (result !== null) {
-          return result;
-        }
-      }
-    }
-
-    parentType = node.nodeType;
-
-    // 递归子节点
-    if (node.children) {
-      for (const child of node.children) {
-        const childWidth = traverse(child, node.nodeType === 'IF' ? parentId : id, parentType, deepRankSep);
-        comboWidth = Math.max(comboWidth, childWidth + 60);
-      }
-    }
-
-    // 生成combs父子节点记录
-    if (parentType === 'LOOP' && node.nodeType === 'LOOP') {
-      const combosRecord: CombsType = {
-        id,
-        ...(parentId ? { combo: parentId } : {}),
-        data: {
-          nodeType: node.nodeType,
-          magic: node.magic,
-          magicName: node.magicName,
-          hash: node.hash,
-          sourceCode: node.sourceCode,
-        },
-        comboWidth,
-      };
-      combos.push(combosRecord);
-    }
-    return comboWidth + 30;
-  }
+  // 定义递归遍历函数
+  const traverse = (node: GroupNode, parentId: string | null, parentType: string, deepRankSep: number): number => {
+    return traverseNode(node, parentId, parentType, deepRankSep, context, combos, traverse);
+  };
 
   // 遍历所有根节点
   for (const root of rootNodes) {

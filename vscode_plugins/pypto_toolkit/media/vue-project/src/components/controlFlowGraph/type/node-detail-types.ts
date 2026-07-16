@@ -65,6 +65,7 @@ export interface GroupNode {
 export interface ControlFlowNodesType {
   id: string;
   combo: string | null;
+  parentId?: string;
   type: string;
   data: {
     source: GroupNode;
@@ -73,6 +74,11 @@ export interface ControlFlowNodesType {
       leafFunction: number;
       called: number;
       callee: number;
+    };
+    functionStats?: {
+      leafFunction?: number;
+      called?: number;
+      callee?: number;
     };
     errorStats?: {
       NullPointer: number;
@@ -90,6 +96,7 @@ export interface ControlFlowNodesType {
 export interface EdgesType {
   source: string;
   target: string;
+  type?: string;
   style?: {
     lineWidth: number;
     opacity: number;
@@ -117,8 +124,8 @@ export interface CombsType {
       filePath: string;
       startLine: number;
       endLine: number;
-      line: number;
-      language: string;
+      line?: number;
+      language?: string;
     };
   };
   comboWidth: number; //记录loop宽度

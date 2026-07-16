@@ -2093,7 +2093,8 @@ export class AscppDagBuilder {
     }
 
     private getCodeLine(op: Operation): number | undefined {
-        return (op.line && op.line !== '' ? op.line : undefined) ??
+        const lineNum = op.line && op.line !== '' ? parseInt(op.line, 10) : undefined;
+        return (lineNum !== undefined && !isNaN(lineNum) ? lineNum : undefined) ??
                (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
     }
 
