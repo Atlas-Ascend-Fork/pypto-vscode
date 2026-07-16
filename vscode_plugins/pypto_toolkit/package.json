@@ -235,7 +235,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "node scripts/check-env.js && git lfs pull && npm run compile",
+    "vscode:prepublish": "node scripts/copy-license.js && node scripts/check-env.js && git lfs pull && npm run compile",
     "watch": "npm run clean && concurrently \"npm run dev:webview\" \"npm run watch:vscode\" \"npm run postcompile\"",
     "watch:vscode": "tsc -p ./ --watch",
     "compile": "npm run clean && npm run build:webview && npm run compile:vscode",
