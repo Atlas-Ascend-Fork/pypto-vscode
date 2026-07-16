@@ -337,9 +337,6 @@ function syncPanelHeight() {
   if (!panel || !content) {
     return;
   }
-  if (!detailsPanelExpanded.value) {
-    return;
-  }
   const detailContentEl = content.querySelector('.detail-content');
   const naturalHeight = detailContentEl ? detailContentEl.scrollHeight : 0;
   const barEl = content.querySelector('.expand-toggle');
@@ -374,11 +371,7 @@ function toggleDetailFullExpand() {
     if (isDetailFullExpand.value) {
       recalcExpandHeight();
     } else {
-      if (isCompactMode.value) {
-        syncPanelHeight();
-      } else {
-        resetPanelStyle();
-      }
+      resetPanelStyle();
     }
   });
 }
@@ -1053,6 +1046,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.details-panel.narrow-mode.expanded {
+  height: 266px;
+}
+
+.detail-content.narrow-mode {
+  height: 250px;
+}
+
 .expand-toggle {
   height: 16px;
   display: flex;
@@ -1075,6 +1076,7 @@ onUnmounted(() => {
 
 .details-panel.full-expand .content-args {
   height: auto;
+  min-height: 186px;
   max-height: none;
   overflow: visible;
 }
@@ -1087,6 +1089,7 @@ onUnmounted(() => {
 
 .details-panel.full-expand #canvas-container {
   height: auto !important;
+  min-height: 186px;
 }
 
 .pmu-content-host {
