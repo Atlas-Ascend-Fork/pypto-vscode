@@ -6,7 +6,7 @@
 
 ## 前提条件
 
-文件有精度执行结果数据。详细请参见[数据准备](https://gitcode.com/cann/pypto/blob/master/docs/tutorials/debug/precision.md)。
+文件有精度执行结果数据。详细请参见[数据准备](https://gitcode.com/cann/pypto/blob/master/docs/zh/tutorials/debug/precision.md)。
 
 ## 操作步骤
 
