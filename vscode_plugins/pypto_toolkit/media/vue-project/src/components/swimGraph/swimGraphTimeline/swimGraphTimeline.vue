@@ -452,7 +452,7 @@ const handleWheel = throttle((e) => {
   const rect = timelineCanvas.value.getBoundingClientRect();
 
   const isHorizontalDominant = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-  if (isHorizontalDominant && Math.abs(e.deltaX) > 0) {
+  if (!isZooming && isHorizontalDominant && Math.abs(e.deltaX) > 0) {
     e.preventDefault();
     // 触控板左右移动，为拖拽
     if (viewState.scale === 1) {
@@ -487,6 +487,10 @@ const handleWheel = throttle((e) => {
     if (isE2ESwim.value) {
       childContextMap.process.measureMaskHandleWheel(e);
     }
+    return;
+  }
+  if (e.deltaY === 0) {
+    e.preventDefault();
     return;
   }
   const zoomFactor = e.deltaY > 0 ? 0.8 : 1.25;

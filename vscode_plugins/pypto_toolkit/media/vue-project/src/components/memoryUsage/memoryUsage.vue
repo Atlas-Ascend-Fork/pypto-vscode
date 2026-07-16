@@ -455,26 +455,30 @@ const navigateToSelectedSearchTensor = () => {
 
   const yRange = ensureMinimumVisibleRatio(nextRanges.yRange, fullYRange, 0.2);
 
-  myChart.dispatchAction({
-    type: 'dataZoom',
-    batch: [
-      {
-        dataZoomId: 'x-inside',
-        startValue: xRange.min,
-        endValue: xRange.max,
-      },
-      {
-        dataZoomId: 'y-inside',
-        startValue: yRange.min,
-        endValue: yRange.max,
-      },
-      {
-        dataZoomId: 'y-slider',
-        startValue: yRange.min,
-        endValue: yRange.max,
-      },
-    ],
-  });
+  if (nextRanges.shouldMoveX) {
+    syncTimelineViewStateFromRange(xRange.min, xRange.max, false);
+    applyChartXAxisRange(xRange.min, xRange.max);
+    renderTwoTimeline();
+    timelineComponent.value?.flagRender();
+  }
+
+  if (nextRanges.shouldMoveY) {
+    myChart.dispatchAction({
+      type: 'dataZoom',
+      batch: [
+        {
+          dataZoomId: 'y-inside',
+          startValue: yRange.min,
+          endValue: yRange.max,
+        },
+        {
+          dataZoomId: 'y-slider',
+          startValue: yRange.min,
+          endValue: yRange.max,
+        },
+      ],
+    });
+  }
 };
 
 const applySearchSelection = () => {
@@ -904,7 +908,7 @@ const getTooltipConfig = () => ({
   },
 });
 const getSeriesConfig = () => [
-  { id: 'tensors', type: 'custom', renderItem, encode: { x: [1, 2], y: [3, 4] }, data: getChartData(), animation: false, animationDuration: 0, animationDurationUpdate: 0 },
+  { id: 'tensors', type: 'custom', renderItem, encode: { x: [1, 2], y: [3, 4] }, data: getChartData(), progressive: 0, animation: false, animationDuration: 0, animationDurationUpdate: 0 },
   { id: 'overlaps', type: 'custom', renderItem: renderOverlapItem, encode: { x: [0, 2], y: [1, 3] }, data: getOverlapData(), zIndex: 10, cursor: 'default' },
   { id: 'tensor-labels', name: 'tensor-labels', type: 'custom', coordinateSystem: 'cartesian2d', renderItem: renderTensorLabelItem, data: getTensorLabelData(), silent: true, z: 200, zIndex: 200, encode: { x: [1, 2], y: [3, 4] }, animation: false },
   { id: 'regions', name: 'Regions', type: 'custom', coordinateSystem: 'cartesian2d', renderItem: renderRegionLayerItem, data: getRegionLayerData(), encode: { x: 1, y: 2 }, silent: true, z: 0, clip: false, animation: false },
@@ -929,7 +933,10 @@ const getChartOption = () => {
       right: 20,
       containLabel: false,
     },
-    xAxis: getxAxisConfig(timelineState),
+    xAxis: getxAxisConfig({
+      startTime: viewState.minTime,
+      endTime: viewState.maxTime,
+    }),
     yAxis: getyAxisConfig(yMin, yMax, isDarkTheme.value),
     dataZoom: getDataZoomConfig(isDarkTheme.value),
     series: getSeriesConfig(),
@@ -1047,7 +1054,7 @@ const getRegionLabelLayerData = () => {
 
   return [['region-label-layer', xCenter, yCenter, 'sa']];
 };
-const updateRegionLayer = () => {
+const updateRegionLayers = () => {
   if (!myChart) {
     return;
   }
@@ -1058,6 +1065,10 @@ const updateRegionLayer = () => {
         {
           id: 'regions',
           data: getRegionLayerData(),
+        },
+        {
+          id: 'region-axis-labels',
+          data: getRegionLabelLayerData(),
         },
       ],
     },
@@ -1304,13 +1315,8 @@ const zoomXAxisAroundMouse = (mousePixel, zoomIn) => {
     nextMax = Math.min(totalMax, nextMax);
   }
 
-  myChart.dispatchAction({
-    type: 'dataZoom',
-    dataZoomIndex: 1,
-    startValue: nextMin,
-    endValue: nextMax,
-  });
-  syncTimelineViewStateFromRange(nextMin, nextMax);
+  syncTimelineViewStateFromRange(nextMin, nextMax, false);
+  applyChartXAxisRange(nextMin, nextMax);
 };
 const getVisibleXAxisExtent = () => {
   const xAxisModel = myChart.getModel().getComponent('xAxis', 0);
@@ -1381,26 +1387,6 @@ const zoomYAxisAroundMouse = (mousePixel, zoomIn) => {
     startValue: nextMin,
     endValue: nextMax,
   });
-};
-
-let regionVisualUpdateFrame = null;
-let regionLabelUpdateFrame = null;
-const updateRegionLabelLayer = () => {
-  if (!myChart) {
-    return;
-  }
-
-  myChart.setOption(
-    {
-      series: [
-        {
-          id: 'region-axis-labels',
-          data: getRegionLabelLayerData(),
-        },
-      ],
-    },
-    { lazyUpdate: false },
-  );
 };
 
 const getVisibleYAxisExtent = () => {
@@ -1520,6 +1506,7 @@ const renderFixedTimeline = () => {
 
   let lastx = 0;
   let distance = 0;
+  let lastLabelRight = -Infinity;
   const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = viewState.timeRange / canvasWidth;
   const gridInterval = calculateGridInterval(timePerPixel);
@@ -1562,7 +1549,14 @@ const renderFixedTimeline = () => {
       if (x < startTimex || x > endTimex) {
         ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.8)' : 'rgba(102, 102, 102, 0.8)';
       }
-      ctx.fillText(`${value}${unit}`, x + 2, 15);
+      const label = `${value}${unit}`;
+      const availableLabelWidth = Math.max(0, canvasWidth - 4);
+      const labelWidth = Math.min(ctx.measureText(label).width, availableLabelWidth);
+      const labelX = Math.max(2, Math.min(x + 2, canvasWidth - labelWidth - 2));
+      if (labelX >= lastLabelRight + 8) {
+        ctx.fillText(label, labelX, 15, availableLabelWidth);
+        lastLabelRight = labelX + labelWidth;
+      }
     }
     lastx = x;
   }
@@ -1577,7 +1571,7 @@ const renderFixedTimeline = () => {
 
   drawFixedTimelineSlider(ctx, canvas, startTimex, endTimex);
 };
-const syncTimelineViewStateFromRange = (startTime, endTime) => {
+const syncTimelineViewStateFromRange = (startTime, endTime, shouldRender = true) => {
   const canvasWidth = viewState.canvasCssWidth;
 
   if (!canvasWidth || canvasWidth <= 0) {
@@ -1603,8 +1597,13 @@ const syncTimelineViewStateFromRange = (startTime, endTime) => {
 
   viewState.scale = nextScale;
   viewState.offsetX = nextOffsetX;
+  viewState.pixelScale = nextScale * devicePixelRatio;
+  viewState.pixelOffsetX = nextOffsetX * devicePixelRatio;
+  viewState.minWidth = 1 / nextScale;
 
-  renderFixedTimeline();
+  if (shouldRender) {
+    renderFixedTimeline();
+  }
 };
 const xToTimeValue = (time) => {
   const timeDelta = (time - viewState.minTime) * 1000000;
@@ -1636,6 +1635,7 @@ const renderTimeline = () => {
   ctx.lineWidth = 1;
 
   let x = 0;
+  let lastLabelRight = -Infinity;
   const timelineTimeRange = timelineState.endTime - timelineState.startTime;
   const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = timelineTimeRange / canvasWidth;
@@ -1654,9 +1654,16 @@ const renderTimeline = () => {
       const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000000, (time - viewState.minTime) * 1000000);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
-      ctx.fillText(`${value}${unit}`, x + 2, 15);
       const timeValue = xToTimeValue(time);
-      ctx.fillText(`${timeValue}`, x + 2, 35);
+      const timeLabel = `${value}${unit}`;
+      const availableLabelWidth = Math.max(0, canvasWidth - 4);
+      const labelWidth = Math.min(Math.max(ctx.measureText(timeLabel).width, ctx.measureText(timeValue).width), availableLabelWidth);
+      const labelX = Math.max(2, Math.min(x + 2, canvasWidth - labelWidth - 2));
+      if (labelX >= lastLabelRight + 8) {
+        ctx.fillText(timeLabel, labelX, 15, availableLabelWidth);
+        ctx.fillText(timeValue, labelX, 35, availableLabelWidth);
+        lastLabelRight = labelX + labelWidth;
+      }
     }
   }
 };
@@ -1679,20 +1686,16 @@ const applyChartXAxisRange = (startTime, endTime) => {
     return;
   }
 
+  const { min, max } = getVisibleXAxisExtent();
+  const tolerance = Math.max(1, Math.abs(startTime), Math.abs(endTime)) * 1e-12;
+  if (Math.abs(min - startTime) <= tolerance && Math.abs(max - endTime) <= tolerance) {
+    return;
+  }
+
   isProgrammaticZoom = true;
   try {
-    myChart.setOption(
-      {
-        xAxis: {
-          min: startTime,
-          max: endTime,
-        },
-      },
-      { lazyUpdate: false },
-    );
     myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 1, startValue: startTime, endValue: endTime });
-    updateRegionLayer();
-    updateRegionLabelLayer();
+    updateRegionLayers();
   } finally {
     isProgrammaticZoom = false;
   }
@@ -1829,13 +1832,13 @@ const initChart = () => {
 
   attachChartWheelListener(chartDom);
   myChart.on('datazoom', (params) => {
-    updateRegionLayer();
-    updateRegionLabelLayer();
     scheduleSearchOverlayUpdate();
 
     if (isProgrammaticZoom) {
       return;
     }
+
+    updateRegionLayers();
 
     if (isCtrlDown.value) {
       return;
@@ -1900,8 +1903,11 @@ const initChart = () => {
   myChart.on('mouseout', { seriesId: 'overlaps' }, () => setChartCursor('default'));
 };
 const resizeChart = () => {
+  const visibleStartTime = timelineState.startTime;
+  const visibleEndTime = timelineState.endTime;
   if (timelineComponent.value) {
     timelineComponent.value.resizeCanvases();
+    syncTimelineViewStateFromRange(visibleStartTime, visibleEndTime, false);
   }
   if (myChart) {
     myChart.setOption({
@@ -2033,19 +2039,6 @@ watch(selectedNode, (newVal) => {
     });
   }
 });
-watch(
-  () => viewState.canvasCssWidth,
-  (newWidth) => {
-    if (myChart && newWidth > 0) {
-      myChart.setOption({
-        grid: {
-          width: newWidth,
-        },
-      });
-    }
-  },
-);
-
 const tensorColorMap = {};
 
 const handleNewMemoryData = (newValue) => {

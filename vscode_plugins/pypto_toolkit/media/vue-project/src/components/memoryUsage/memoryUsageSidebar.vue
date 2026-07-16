@@ -4,7 +4,13 @@
       v-if="selectedNode"
       class="right-sidebar"
       :class="{ resizing: isResizing, 'theme-dark': isDarkTheme.value, 'theme-light': !isDarkTheme.value }"
-      :style="{ width: sidebarWidth + 'px', backgroundColor: sidebarBgColor, color: sidebarTextColor, borderLeftColor: sidebarBorderColor, boxShadow: sidebarBoxShadow }"
+      :style="{
+        width: sidebarWidth + 'px',
+        backgroundColor: sidebarBgColor,
+        color: sidebarTextColor,
+        borderLeftColor: sidebarBorderColor,
+        boxShadow: sidebarBoxShadow,
+      }"
     >
       <div class="resize-handle" @mousedown="startResize">
         <div class="resize-grip" :style="{ backgroundColor: resizeGripBgColor, boxShadow: resizeGripBoxShadow }">
@@ -93,7 +99,11 @@ function isValidSidebarTensor(tensor) {
 }
 
 function isValidSidebarAccess(access) {
-  return hasNonEmptyValue(access?.rawmagic ?? access?.actual_rawmagic);
+  return (
+    hasNonEmptyValue(access?.rawmagic ?? access?.actual_rawmagic) &&
+    hasNonEmptyValue(access?.execStart) &&
+    hasNonEmptyValue(access?.execEnd)
+  );
 }
 
 function buildOverlappedXRanges(activeIndexes, rows) {
