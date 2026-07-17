@@ -133,55 +133,48 @@
         }
       ]
     },
-    "configuration": [
-      {
-        "id": "computational",
-        "title": "Computational Graph",
-        "properties": {
-        }
-      },
-      {
-        "id": "swimlane",
-        "title": "Swimlane Diagram",
-        "properties": {
-          "PyPTOToolkitOpen.ZoomInShortcut": {
-            "type": "string",
-            "default": "w",
-            "description": "%PyPTOToolkit.ZoomIn.description%"
-          },
-          "PyPTOToolkitOpen.ZoomOutShortcut": {
-            "type": "string",
-            "default": "s",
-            "description": "%PyPTOToolkit.ZoomOut.description%"
-          },
-          "PyPTOToolkitOpen.leftmoveShortcut": {
-            "type": "string",
-            "default": "a",
-            "description": "%PyPTOToolkit.leftmove.description%"
-          },
-          "PyPTOToolkitOpen.rightmoveShortcut": {
-            "type": "string",
-            "default": "d",
-            "description": "%PyPTOToolkit.rightmove.description%"
-          },
-          "PyPTOToolkitOpen.connectionLevel": {
-            "type": "number",
-            "default": -1,
-            "description": "%PyPTOToolkit.connectionLevel.description%"
-          },
-          "PyPTOToolkitOpen.showPerformancePanel": {
-            "type": "boolean",
-            "default": true,
-            "description": "%PyPTOToolkit.showPerformancePanel.description%"
-          },
-          "PyPTOToolkitOpen.showIsMixMode": {
-            "type": "boolean",
-            "default": false,
-            "description": "%PyPTOToolkit.showIsMixMode.description%"
-          }
+    "configuration": 
+    {
+      "id": "swimlane",
+      "title": "PyPTO Toolkit",
+      "properties": {
+        "PyPTOToolkitOpen.ZoomInShortcut": {
+          "type": "string",
+          "default": "w",
+          "description": "%PyPTOToolkit.ZoomIn.description%"
+        },
+        "PyPTOToolkitOpen.ZoomOutShortcut": {
+          "type": "string",
+          "default": "s",
+          "description": "%PyPTOToolkit.ZoomOut.description%"
+        },
+        "PyPTOToolkitOpen.leftmoveShortcut": {
+          "type": "string",
+          "default": "a",
+          "description": "%PyPTOToolkit.leftmove.description%"
+        },
+        "PyPTOToolkitOpen.rightmoveShortcut": {
+          "type": "string",
+          "default": "d",
+          "description": "%PyPTOToolkit.rightmove.description%"
+        },
+        "PyPTOToolkitOpen.connectionLevel": {
+          "type": "number",
+          "default": -1,
+          "description": "%PyPTOToolkit.connectionLevel.description%"
+        },
+        "PyPTOToolkitOpen.showPerformancePanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "%PyPTOToolkit.showPerformancePanel.description%"
+        },
+        "PyPTOToolkitOpen.showIsMixMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "%PyPTOToolkit.showIsMixMode.description%"
         }
       }
-    ],
+    },
     "customEditors": [
       {
         "viewType": "PyPTO.open.editorView",
