@@ -285,7 +285,8 @@ function buildChartModel(input) {
 
   const t0 = src?.meta?.t0 ?? 0;
   const timeDenominator = src?.meta?.timeDenominator || 1;
-  const normalizeTime = (value) => (Number(value) - t0) / timeDenominator;
+  const timeUnit = isNaN(Number(src?.meta?.timeUnit)) ? 1 : Number(src?.meta?.timeUnit);
+  const normalizeTime = (value) => (Number(value) - t0) / timeUnit;
   const tensors = (src?.rawTensors || []).filter(isValidSidebarTensor);
   const first = tensors[0] || {};
 

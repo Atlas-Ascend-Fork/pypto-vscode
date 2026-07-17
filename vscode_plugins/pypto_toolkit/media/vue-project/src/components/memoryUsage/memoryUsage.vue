@@ -1533,6 +1533,30 @@ const timelineWithUnit = (timelineRangeInMicroseconds, timeInMicroseconds) => {
   return { value: (timeInMicroseconds * NANOSECONDS_PER_MICROSECOND).toFixed(0), unit: 'ns' };
 };
 
+const getTimelineLabelPosition = (ctx, labels, tickX, canvasWidth, lastLabelRight) => {
+  const edgePadding = 2;
+  const labelGap = 8;
+  const availableWidth = canvasWidth - edgePadding * 2;
+  const currentFont = ctx.font;
+  ctx.font = '14px Arial';
+  const labelWidth = Math.max(...labels.map((label) => ctx.measureText(label).width));
+  ctx.font = currentFont;
+
+  if (labelWidth > availableWidth) {
+    return null;
+  }
+
+  const labelX = Math.max(edgePadding, Math.min(tickX + edgePadding, canvasWidth - labelWidth - edgePadding));
+  if (labelX < lastLabelRight + labelGap) {
+    return null;
+  }
+
+  return {
+    x: labelX,
+    right: labelX + labelWidth,
+  };
+};
+
 const renderFixedTimeline = () => {
   const component = timelineComponent.value;
   if (!component || !component.fixedtimelineCtx || !component.fixedtimelineCanvas) {
@@ -1580,6 +1604,19 @@ const renderFixedTimeline = () => {
   for (let time = viewState.minTime; time <= viewState.maxTime; time += gridInterval) {
     const x = fixedTimeToX(time) - layout.processLabelWidth;
     if (x >= 0 && x <= canvasWidth) {
+      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
+      ctx.font = '14px Arial';
+      if (x < startTimex || x > endTimex) {
+        ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.8)' : 'rgba(102, 102, 102, 0.8)';
+      }
+      const label = `${value}${unit}`;
+      const labelPosition = getTimelineLabelPosition(ctx, [label, xToTimeValue(time)], x, canvasWidth, lastLabelRight);
+      if (!labelPosition) {
+        lastx = x;
+        continue;
+      }
+
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvas.height);
@@ -1594,18 +1631,8 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
-      ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
-      ctx.font = '14px Arial';
-      if (x < startTimex || x > endTimex) {
-        ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.8)' : 'rgba(102, 102, 102, 0.8)';
-      }
-      const label = `${value}${unit}`;
-      const labelX = x + 2;
-      const labelWidth = ctx.measureText(label).width;
-      if (labelX >= 0 && labelX + labelWidth <= canvasWidth) {
-        ctx.fillText(label, labelX, 15);
-      }
+      ctx.fillText(label, labelPosition.x, 15);
+      lastLabelRight = labelPosition.right;
     }
     lastx = x;
   }
@@ -1695,22 +1722,24 @@ const renderTimeline = () => {
       x = 0;
     }
     if (x >= 0 && x <= viewState.canvasCssWidth) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-
       const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       const timeValue = xToTimeValue(time);
       const timeLabel = `${value}${unit}`;
-      const labelX = x + 2;
-      const labelWidth = Math.max(ctx.measureText(timeLabel).width, ctx.measureText(timeValue).width);
-      if (labelX >= 0 && labelX + labelWidth <= canvasWidth) {
-        ctx.fillText(timeLabel, labelX, 15);
-        ctx.fillText(timeValue, labelX, 35);
+      const labelPosition = getTimelineLabelPosition(ctx, [timeLabel, timeValue], x, canvasWidth, lastLabelRight);
+      if (!labelPosition) {
+        continue;
       }
+
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+
+      ctx.fillText(timeLabel, labelPosition.x, 15);
+      ctx.fillText(timeValue, labelPosition.x, 35);
+      lastLabelRight = labelPosition.right;
     }
   }
 };
