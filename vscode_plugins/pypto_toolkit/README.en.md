@@ -127,6 +127,12 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memoryView.gif)
 
+- **GM Memory Visualization**
+
+  When a memory_usage_visualization file is available, right-click the memory file and select `PyPTO Toolkit: GM Memory Visualization` to launch the visualization panel.
+
+  The visualization interface in the left panel displays the approximate position of Tensor conflicts. It supports zooming in and out of the time axis and the vertical axis. Clicking on a Tensor will display its details in the lower panel.
+
 ## Swimlane Diagram
 
 - **Open Swimlane Diagram**

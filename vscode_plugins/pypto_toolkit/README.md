@@ -127,6 +127,13 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
   可视化界面主要分内存图、事件轴、事件列表。点击事件轴查看对应时间节点的事件列表。事件列表允许列表播放和单个事件播放。
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memoryView.gif)
+  
+- **GM内存可视化**
+
+  存在内存memory_usage_visualization文件时，直接在内存文件上右键选择`PyPTO Toolkit: 高级操作` 下级的 `PyPTO Toolkit: GM内存可视化`，可以直接展示可视化界面。
+
+  可视化界面在左侧可直观的显示Tensor冲突的大概位置，并且支持通过ctrl+鼠标滚轮缩放时间轴，alt+鼠标滚轮缩放纵轴来快速定位到具体冲突位置，并且支持点击单个Tensor查看其详细信息。
+
 
 ## 泳道图
 
