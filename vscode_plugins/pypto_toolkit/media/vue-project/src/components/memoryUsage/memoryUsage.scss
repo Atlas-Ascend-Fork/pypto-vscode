@@ -57,7 +57,8 @@
   flex: 1;
   height: 100%;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: transparent;
   z-index: 2;
 }

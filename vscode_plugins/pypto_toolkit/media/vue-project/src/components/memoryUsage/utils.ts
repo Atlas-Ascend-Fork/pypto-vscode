@@ -6,7 +6,7 @@ export const regionHoverTemplate = (data: any, isDarkTheme: boolean): string => 
   const regionId = data.at(3);
   const span = data.at(6);
   const bgColor = isDarkTheme ? 'rgba(54, 54, 54, 1)' : 'rgba(255, 255, 255, 0.95)';
-  const labelColor = isDarkTheme ? '#999' : '#666';
+  const labelColor = isDarkTheme ? '#c7c7c7' : '#555';
   const valueColor = isDarkTheme ? '#fff' : '#191919';
 
   return `
@@ -139,7 +139,7 @@ export const tensorHoverTemplate = (data: any, params: any, isDarkTheme: boolean
   const end = rawData.end;
   const memType = rawData.memType;
   const ndim = rawData.ndim;
-  const labelColor = isDarkTheme ? '#999' : '#666';
+  const labelColor = isDarkTheme ? '#c7c7c7' : '#555';
   const valueColor = isDarkTheme ? '#fff' : '#191919';
 
   if (params.seriesIndex === 1) {
@@ -300,7 +300,7 @@ function formatDuration(duration) {
     return '';
   }
 
-  let valueMs;
+  let valueUs;
 
   if (typeof duration === 'string') {
     const num = parseFloat(duration.replace(/[^0-9+\-.eE]/g, ''));
@@ -309,15 +309,15 @@ function formatDuration(duration) {
       return `${duration} ns`;
     }
 
-    valueMs = num;
+    valueUs = num;
   } else if (typeof duration === 'number') {
-    valueMs = duration;
+    valueUs = duration;
   } else {
     return `${String(duration)} ns`;
   }
 
-  const valueNs = valueMs * 1e6;
-  const valueSec = valueMs / 1000;
+  const valueNs = valueUs * 1000;
+  const valueSec = valueUs / 1e6;
   const valueMin = valueSec / 60;
 
   if (valueMin >= 1) {
@@ -328,12 +328,7 @@ function formatDuration(duration) {
     return `${valueSec.toLocaleString(undefined, { maximumFractionDigits: 2 })} s`;
   }
 
-  if (valueMs >= 1) {
-    return `${valueMs.toLocaleString(undefined, { maximumFractionDigits: 2 })} ms`;
-  }
-
-  if (valueNs >= 1000) {
-    const valueUs = valueNs / 1000;
+  if (valueUs >= 1) {
     return `${valueUs.toLocaleString(undefined, { maximumFractionDigits: 2 })} µs`;
   }
 

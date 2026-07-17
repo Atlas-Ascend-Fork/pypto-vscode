@@ -94,7 +94,7 @@
           <div class="minimap-dashed-line"></div>
         </div>
         <div class="chart-wrapper">
-          <div ref="chartRef" class="echarts-container"></div>
+          <div ref="chartRef" class="echarts-container" :style="{ minHeight: minimumChartHeight + 'px' }"></div>
           <div
             v-if="manualTensorTooltipVisible"
             class="manual-tensor-tooltip"
@@ -118,7 +118,7 @@ import Loading from '../comGraph/loading.vue';
 import MemoryUsageSidebar from './memoryUsageSidebar.vue';
 import DataError from './dataError.vue';
 import { useViewServer } from '@/core/use-view-server.ts';
-import { devicePixelRatio, getCanvasCSSHeight, TimelineWithUnit, calculateGridInterval } from '../swimGraph/swimGraphUtils';
+import { devicePixelRatio, getCanvasCSSHeight, calculateGridInterval } from '../swimGraph/swimGraphUtils';
 import { MemoryRegionLayoutUtil } from './memoryRegionLayoutUtil.ts';
 import {
   regionHoverTemplate,
@@ -160,6 +160,11 @@ const props = defineProps({
     default: () => ({}),
   },
 });
+
+const NANOSECONDS_PER_MICROSECOND = 1000;
+const MICROSECONDS_PER_SECOND = 1e6;
+const MIN_REGION_HEIGHT_PX = 30;
+const CHART_GRID_VERTICAL_PADDING_PX = 60;
 
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root', ref(true));
@@ -243,6 +248,19 @@ const performSearch = () => {
 const selectedNode = shallowRef(null);
 const chartRef = ref(null);
 const maxY = ref(22);
+const regionCount = ref(0);
+const minimumChartHeight = computed(() => {
+  if (regionCount.value <= 0) {
+    return 0;
+  }
+
+  const regionHeight = MemoryRegionLayoutUtil.DEFAULT_REGION_HEIGHT;
+  const regionGap = MemoryRegionLayoutUtil.DEFAULT_REGION_GAP;
+  const layoutHeight = regionCount.value * regionHeight + (regionCount.value - 1) * regionGap;
+  const minimumPlotHeight = (layoutHeight / regionHeight) * MIN_REGION_HEIGHT_PX;
+
+  return Math.ceil(minimumPlotHeight + CHART_GRID_VERTICAL_PADDING_PX);
+});
 
 const minimapRects = computed(() => {
   if (!maxY.value || maxY.value <= 0) {
@@ -760,7 +778,7 @@ function renderTensorLabelItem(params, api) {
       x: rectShape.x + rectShape.width / 2,
       y: rectShape.y + rectShape.height / 2,
       text: `magicID: ${magicId} rawShape: ${rawShape || '-'}`,
-      fill: isDarkTheme.value ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+       fill: isDarkTheme.value ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)',
       fontSize: 10,
       lineHeight: 14,
       textAlign: 'center',
@@ -974,8 +992,10 @@ const renderRegionAxisLabelLayerItem = (params, api) => {
     const fixedLabelY = Math.min(Math.max(regionCenterY, visibleRegionTop), visibleRegionBottom);
 
     const yPixel = myChart.convertToPixel({ yAxisIndex: 0 }, fixedLabelY);
+    const visibleRegionStartPixel = myChart.convertToPixel({ yAxisIndex: 0 }, visibleRegionTop);
+    const visibleRegionEndPixel = myChart.convertToPixel({ yAxisIndex: 0 }, visibleRegionBottom);
 
-    if (!Number.isFinite(yPixel)) {
+    if (!Number.isFinite(yPixel) || !Number.isFinite(visibleRegionStartPixel) || !Number.isFinite(visibleRegionEndPixel)) {
       return;
     }
 
@@ -994,12 +1014,24 @@ const renderRegionAxisLabelLayerItem = (params, api) => {
 
     const labelX = params.coordSys.x - 50;
     const labelY = yPixel;
+    const labelWidth = 44;
+    const labelHeight = 30;
+    const visibleRegionPixelTop = Math.min(visibleRegionStartPixel, visibleRegionEndPixel);
+    const visibleRegionPixelBottom = Math.max(visibleRegionStartPixel, visibleRegionEndPixel);
+    const chartWidth = myChart.getWidth();
+    const labelFitsCanvas = labelX >= 0 && labelX + labelWidth <= chartWidth;
+    const labelFitsRegion =
+      labelY - labelHeight / 2 >= visibleRegionPixelTop && labelY + labelHeight / 2 <= visibleRegionPixelBottom;
+
+    if (!labelFitsCanvas || !labelFitsRegion) {
+      return;
+    }
 
     nextHoverAreas.push({
-      x: labelX - 8,
-      y: labelY - 22,
-      width: 90,
-      height: 44,
+      x: labelX,
+      y: labelY - labelHeight / 2,
+      width: labelWidth,
+      height: labelHeight,
       regionData,
     });
 
@@ -1009,10 +1041,10 @@ const renderRegionAxisLabelLayerItem = (params, api) => {
       silent: false,
       z: 199,
       shape: {
-        x: labelX - 8,
-        y: labelY - 22,
-        width: 44,
-        height: 44,
+        x: labelX,
+        y: labelY - labelHeight / 2,
+        width: labelWidth,
+        height: labelHeight,
       },
       style: {
         fill: 'rgba(0, 0, 0, 0)',
@@ -1482,6 +1514,25 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   ctx.stroke();
 };
 
+const timelineWithUnit = (timelineRangeInMicroseconds, timeInMicroseconds) => {
+  const seconds = timelineRangeInMicroseconds / MICROSECONDS_PER_SECOND;
+  const minutes = seconds / 60;
+
+  if (minutes >= 1) {
+    return { value: (timeInMicroseconds / (MICROSECONDS_PER_SECOND * 60)).toFixed(1), unit: 'min' };
+  }
+
+  if (seconds >= 1) {
+    return { value: (timeInMicroseconds / MICROSECONDS_PER_SECOND).toFixed(1), unit: 's' };
+  }
+
+  if (timelineRangeInMicroseconds >= 1) {
+    return { value: timeInMicroseconds.toFixed(0), unit: 'µs' };
+  }
+
+  return { value: (timeInMicroseconds * NANOSECONDS_PER_MICROSECOND).toFixed(0), unit: 'ns' };
+};
+
 const renderFixedTimeline = () => {
   const component = timelineComponent.value;
   if (!component || !component.fixedtimelineCtx || !component.fixedtimelineCanvas) {
@@ -1543,19 +1594,17 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000000, (time - viewState.minTime) * 1000000);
+      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
         ctx.fillStyle = isDarkTheme.value ? 'rgba(102, 102, 102, 0.8)' : 'rgba(102, 102, 102, 0.8)';
       }
       const label = `${value}${unit}`;
-      const availableLabelWidth = Math.max(0, canvasWidth - 4);
-      const labelWidth = Math.min(ctx.measureText(label).width, availableLabelWidth);
-      const labelX = Math.max(2, Math.min(x + 2, canvasWidth - labelWidth - 2));
-      if (labelX >= lastLabelRight + 8) {
-        ctx.fillText(label, labelX, 15, availableLabelWidth);
-        lastLabelRight = labelX + labelWidth;
+      const labelX = x + 2;
+      const labelWidth = ctx.measureText(label).width;
+      if (labelX >= 0 && labelX + labelWidth <= canvasWidth) {
+        ctx.fillText(label, labelX, 15);
       }
     }
     lastx = x;
@@ -1606,7 +1655,7 @@ const syncTimelineViewStateFromRange = (startTime, endTime, shouldRender = true)
   }
 };
 const xToTimeValue = (time) => {
-  const timeDelta = (time - viewState.minTime) * 1000000;
+  const timeDelta = (time - viewState.minTime) * NANOSECONDS_PER_MICROSECOND;
   const currentTime = Math.round(timeDelta);
   let truncatedCurrentTime = currentTime;
   if (currentTime.toString().length > 10) {
@@ -1651,18 +1700,16 @@ const renderTimeline = () => {
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      const { value, unit } = TimelineWithUnit(viewState.timeRange * 1000000, (time - viewState.minTime) * 1000000);
+      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       const timeValue = xToTimeValue(time);
       const timeLabel = `${value}${unit}`;
-      const availableLabelWidth = Math.max(0, canvasWidth - 4);
-      const labelWidth = Math.min(Math.max(ctx.measureText(timeLabel).width, ctx.measureText(timeValue).width), availableLabelWidth);
-      const labelX = Math.max(2, Math.min(x + 2, canvasWidth - labelWidth - 2));
-      if (labelX >= lastLabelRight + 8) {
-        ctx.fillText(timeLabel, labelX, 15, availableLabelWidth);
-        ctx.fillText(timeValue, labelX, 35, availableLabelWidth);
-        lastLabelRight = labelX + labelWidth;
+      const labelX = x + 2;
+      const labelWidth = Math.max(ctx.measureText(timeLabel).width, ctx.measureText(timeValue).width);
+      if (labelX >= 0 && labelX + labelWidth <= canvasWidth) {
+        ctx.fillText(timeLabel, labelX, 15);
+        ctx.fillText(timeValue, labelX, 35);
       }
     }
   }
@@ -2045,6 +2092,7 @@ const handleNewMemoryData = (newValue) => {
   const data = newValue?.data || newValue;
 
   if (!data) {
+    regionCount.value = 0;
     loading.value = true;
     error.value = false;
     return;
@@ -2052,6 +2100,7 @@ const handleNewMemoryData = (newValue) => {
 
   if (!validateMemoryData(data)) {
     currentMemoryData = null;
+    regionCount.value = 0;
     loading.value = false;
     error.value = true;
     disposeMainChart();
@@ -2061,7 +2110,17 @@ const handleNewMemoryData = (newValue) => {
   try {
     currentMemoryData = data;
     const isDark = !!(isDarkTheme && typeof isDarkTheme === 'object' ? isDarkTheme.value : true);
-    processIncomingData(memoryBlocksRaw, overlaps.value, tensorColorMap, viewState, timelineState, maxY, data, isDark);
+    const { regionLayout } = processIncomingData(
+      memoryBlocksRaw,
+      overlaps.value,
+      tensorColorMap,
+      viewState,
+      timelineState,
+      maxY,
+      data,
+      isDark,
+    );
+    regionCount.value = regionLayout.regions.length;
     const conflictResult = detectConflicts(memoryBlocksRaw, searchQuery.value);
     overlaps.value = conflictResult.overlaps;
     loading.value = false;
@@ -2076,6 +2135,7 @@ const handleNewMemoryData = (newValue) => {
     });
   } catch {
     currentMemoryData = null;
+    regionCount.value = 0;
     loading.value = false;
     error.value = true;
     disposeMainChart();
