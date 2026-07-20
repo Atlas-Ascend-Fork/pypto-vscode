@@ -146,8 +146,10 @@ export const getThreadStartY = (process: any, processKey: any, threadKey: string
     return threadCache.get(cacheKey)!.startY;
   }
   
+  const processInfo = swimDataManager.getProcess(processKey);
+  
   let threadY = 0;
-  for (const [_, thread] of process.threads.entries()) {
+  for (const [_, thread] of processInfo.threads.entries()) {
     const key = thread.isCounter ? 'threadName' : 'tid';
     if (thread[key] === threadKey) {
       break;
@@ -354,20 +356,6 @@ export const setupHighDPICanvas = (canvas: any, width: number, height: number) =
   return ctx;
 };
 
-export const processesToMap = (processes: any, id2event: any) => {
-  for (const [processKey, process] of processes.entries()) {
-    const { threads } = process;
-    for (const [threadKey, thread] of threads.entries()) {
-      for (const event of thread.events) {
-        if (event.isCounter) {
-          break;
-        }
-        id2event[event.id] = event;
-      }
-    }
-  }
-};
-
 export const getFontStyle = (fontSize: number) => {
   // fontSize 后面的字体按清晰程度排优先级，如果前面的字体找不到，会用后面的字体
   return `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
@@ -408,7 +396,8 @@ export const updateProcessSize = (process: any, processKey: string, containerRec
   if (isMixMode && swimDataManager.hasMixConfig()) {
     canvasHeight = swimDataManager.getTotalLaneHeight();
   } else {
-    for (const [threadKey, thread] of process.threads.entries()) {
+    const processInfo = swimDataManager.getProcess(processKey);
+    for (const [threadKey, thread] of processInfo.threads.entries()) {
       canvasHeight += getThreadHeight(processKey, thread.tid, lane2line, layout, thread.isCounter);
     }
   }
@@ -439,15 +428,17 @@ export const clearWholeProcess = (ctx: any, viewState: any, processKey: string) 
   ctx.clearRect(0, 0, clearWidth, clearHeight);
 };
 
-export const findSchedTaskByNo = (taskNo, roundNo, process) => {
+export const findSchedTaskByNo = (taskNo, roundNo, processKey: string) => {
   const eventPattern = `DEV_TASK_RCV_${roundNo}(${taskNo})`;
   const scheduleList = [];
-  for (const thread of process.threads.values()) {
-    if (!thread?.events || !thread?.threadName) continue;
+  const processInfo = swimDataManager.getProcess(processKey);
+  for (const thread of processInfo.threads.values()) {
+    if (!thread?.eventIds || !thread?.threadName) continue;
     if (!thread.threadName.includes('AICPU-SCHED')) {
       continue;
     }
-    const hasMatchingEvent = thread.events.some(event => event?.name === eventPattern);
+    const events = swimDataManager.getEventsByThread(processKey, thread.tid);
+    const hasMatchingEvent = events.some(event => event?.name === eventPattern);
     if (hasMatchingEvent) {
       scheduleList.push(thread.threadName);
     }
@@ -471,7 +462,7 @@ export const findSchedGraphMap = (threads) => {
     } else if (isSched) {
       eventArr = findBuildSchedEvent(thread, 0, 0);
     } else if (isCore) {
-      eventArr = findBuildCoreEvent(thread.events, 0, 0, threadMap);
+      eventArr = findBuildCoreEvent(thread.eventIds, 0, 0, threadMap);
     } else {
       eventArr = [];
     }
@@ -503,7 +494,7 @@ export const findSchedCoreMapByNo = (event, threads) => {
     } else if (isSched && hasDevTaskBuild ) {
       eventArr = findBuildSchedEvent(thread, roundNo, taskNo);
     } else if (isCore) {
-      eventArr = findBuildCoreEvent(thread.events, roundNo, taskNo, threadMap);
+      eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
       eventArr = [];
     }
@@ -547,7 +538,7 @@ export const findSchedMapByNo = ({roundNo, taskNo, schedNo}, currentEventName, t
       eventArr = findSchedEvent(thread, roundNo, taskNo, isSchedEventRange, currentEventName);
     } else if (pattern.test(threadName)) {
       const schedThread = threadMap.get(schedStr);
-      eventArr = findCoreEvent(thread.events, currentEventName, roundNo, taskNo, schedThread);
+      eventArr = findCoreEvent(thread.eventIds, currentEventName, roundNo, taskNo, schedThread);
     } else {
       eventArr = [];
     }
@@ -590,7 +581,7 @@ export const findCoreMapByNo = (schedNo, threadNameInfo, event, threads) => {
       eventArr = coreRelationSched ? findSchedEvent(thread, roundNo, taskNo, isCoreEventRange, coreRelationSched) : [];
     } else if (threadName === threadNameInfo) {
       const schedThread = threadMap.get(schedStr);
-      eventArr = schedThread?.length > 0 ? findCoreEvent(thread.events, name, roundNo, taskNo, schedThread) : [event];
+      eventArr = schedThread?.length > 0 ? findCoreEvent(thread.eventIds, name, roundNo, taskNo, schedThread) : [event];
     } else {
       eventArr = [];
     }
@@ -615,10 +606,10 @@ export const getTaskNo = (schedStr, id, threads) => {
   if (!thread) {
     return '';
   }
-  const index = thread.events.findIndex(event => event.id === id);
+  const index = thread.eventIds.findIndex(i => i === id);
   if (index > 0) {
-    const preEvent = thread.events[index - 1];
-    return parseSuffixNumbers(preEvent.name).taskNo;
+    const preEventId = thread.eventIds[index - 1];
+    return parseSuffixNumbers(swimDataManager.getEventById(preEventId).name).taskNo;
   }
   return '';
 };
@@ -661,7 +652,7 @@ export const getEventDisplayName = (e) => {
 export const getThreadDisplayName = (e) => {
   return (e?.threadName || '');
 };
-export const findAllCoreEvent = (events, roundNo, taskNo, schedThread) => {
+export const findAllCoreEvent = (eventIds, roundNo, taskNo, schedThread) => {
   const result = getSchedRelatation(schedThread, roundNo, taskNo);
   const coreEventArr = [];
   const nameToFlagMap = {
@@ -670,7 +661,8 @@ export const findAllCoreEvent = (events, roundNo, taskNo, schedThread) => {
     [`DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK_${roundNo}(${taskNo})`]: 'hasSend',
     [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY_${roundNo}(${taskNo})`]: 'hasStop'
   };
-  for (const event of events) {
+  for (const eventId of eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     const flagKey = nameToFlagMap[event.name];
     if (flagKey && result[flagKey]) {
       coreEventArr.push(event);
@@ -678,7 +670,7 @@ export const findAllCoreEvent = (events, roundNo, taskNo, schedThread) => {
   }
   return coreEventArr;
 };
-export const findCoreEvent = (events, eventName, roundNo, taskNo, schedThread) => {
+export const findCoreEvent = (eventIds, eventName, roundNo, taskNo, schedThread) => {
   const result = getSchedRelatation(schedThread, roundNo, taskNo);
   const coreEventArr = [];
   const relationCoreEventName = getSchedRelationEvent(roundNo, taskNo, eventName);
@@ -688,7 +680,8 @@ export const findCoreEvent = (events, eventName, roundNo, taskNo, schedThread) =
     [`DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK_${roundNo}(${taskNo})`]: 'hasSend',
     [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY_${roundNo}(${taskNo})`]: 'hasStop'
   };
-  for (const event of events) {
+  for (const eventId of eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     const { name } = event;
     const flagKey = nameToFlagMap[name];
     if (flagKey && result[flagKey] && relationCoreEventName === name) {
@@ -697,34 +690,34 @@ export const findCoreEvent = (events, eventName, roundNo, taskNo, schedThread) =
   }
   return coreEventArr;
 };
-export const findBuildCoreEvent = (events, roundNo, taskNo, threadMap) => {
+export const findBuildCoreEvent = (eventIds, roundNo, taskNo, threadMap) => {
   for (const [key, value] of threadMap) {
     if(key.includes('AICPU-SCHED-')){
-      return findAllCoreEvent(events, roundNo, taskNo, value);
+      return findAllCoreEvent(eventIds, roundNo, taskNo, value);
     }
   }
   return [];
 };
 export const findSchedEvent = (thread, roundNo, taskNo, hasEvent, currentEventName) => {
-  const originEvents = thread.events;
+  const originEventIds = thread.eventIds;
   if (hasEvent) {
     const rcvPattern = `DEV_TASK_RCV_${roundNo}(${taskNo})`;
     const rspPattern = `DEV_TASK_RSP_${roundNo}(${taskNo})`;
-    const rcvIndex = originEvents.findIndex((e) => e.name === rcvPattern);
-    const rspIndex = originEvents.findIndex((e) => e.name === rspPattern);
+    const rcvIndex = originEventIds.findIndex((eId) => swimDataManager.getEventById(eId).name === rcvPattern);
+    const rspIndex = originEventIds.findIndex((eId) => swimDataManager.getEventById(eId).name === rspPattern);
     let currentIndex = -1;
     for (let i = rcvIndex; i <= rspIndex; i++) {
-      if (originEvents[i].name === currentEventName) {
+      if (swimDataManager.getEventById(originEventIds[i]).name === currentEventName) {
         currentIndex = i;
         break; 
       }
     }
     if (rcvIndex !== -1 && rspIndex !== -1 && rcvIndex <= rspIndex) {
-      return originEvents.slice(rcvIndex, currentIndex + 1);
+      return originEventIds.slice(rcvIndex, currentIndex + 1).map((eId) => swimDataManager.getEventById(eId));
     }
     return [];
   } else {
-    const foundEvent = originEvents.find((e) => e.name === currentEventName);
+    const foundEvent = originEventIds.find((eId) => swimDataManager.getEventById(eId).name === currentEventName);
     return foundEvent ? [foundEvent] : [];
   }
 };
@@ -751,13 +744,13 @@ export const getSchedRelationEvent = (roundNo, taskNo, currentEventName) => {
   return relationMap.get(currentEventName) || '';
 };
 export const findBuildSchedEvent = (thread, roundNo, taskNo) => {
-  const originEvents = thread.events;
+  const originEventIds = thread.eventIds;
   const rcvPattern = `DEV_TASK_RCV_${roundNo}(${taskNo})`;
   const rspPattern = `DEV_TASK_RSP_${roundNo}(${taskNo})`;
-  const rcvIndex = originEvents.findIndex((e) => e.name === rcvPattern);
-  const rspIndex = originEvents.findIndex((e) => e.name === rspPattern);
+  const rcvIndex = originEventIds.findIndex((eId) => swimDataManager.getEventById(eId).name === rcvPattern);
+  const rspIndex = originEventIds.findIndex((eId) => swimDataManager.getEventById(eId).name === rspPattern);
   if (rcvIndex !== -1 && rspIndex !== -1 && rcvIndex <= rspIndex) {
-    return originEvents.slice(rcvIndex, rspIndex + 1);
+    return originEventIds.slice(rcvIndex, rspIndex + 1).map((eId) => swimDataManager.getEventById(eId));
   }
 };
 export const findCtrlEvent = (thread, roundNo, taskNo, hasEvent) => {
@@ -765,7 +758,8 @@ export const findCtrlEvent = (thread, roundNo, taskNo, hasEvent) => {
     return [];
   }
   const targetStr = `DEV_TASK_BUILD_${roundNo}(${taskNo})`;
-  for (const event of thread.events) {
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (event.name.includes(targetStr)) {
       return [event];
     }
@@ -827,7 +821,8 @@ export const processTimeInfo = (timeInfo, data) => {
   let maxT = -Infinity;
   for (const processId of Object.keys(data.processes)) {
     for (const [threadId, thread] of data.processes[processId].threads) {
-      for (const event of thread.events) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         minT = Math.min(minT, event.ts);
         if (event.duration) {
           maxT = Math.max(maxT, event.ts + event.duration);
@@ -842,8 +837,8 @@ export const processTimeInfo = (timeInfo, data) => {
   minT += offset;
   for (const processId of Object.keys(data.processes)) {
     for (const [threadId, thread] of data.processes[processId].threads) {
-      for (let i = 0; i < thread.events.length; i++) {
-        const event = data.processes[processId].threads.get(threadId).events[i];
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         event.ts += offset;
         event.startTime += offset;
         event.endTime += offset;
@@ -1611,16 +1606,20 @@ export const renderMixDependenciesAll = (
   }
 };
 
-export const findVisibleEventRange = (sortedEvents, viewportStartTime, viewportEndTime, maxRenderDuration) => {
-  if (!sortedEvents || sortedEvents.length === 0) {
+export const findVisibleEventRange = (thread, viewportStartTime, viewportEndTime) => {
+  const maxRenderDuration = thread._maxRenderDuration;
+
+  if (!thread.eventIds || thread.eventIds.length === 0) {
     return { leftBound: 0, rightBound: 0 };
   }
 
   let lo = 0;
-  let hi = sortedEvents.length;
+  let hi = thread.eventIds.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (sortedEvents[mid].startTime <= viewportEndTime) {
+    const eventId = thread.eventIds[mid];
+    const event = swimDataManager.getEventById(eventId);
+    if (event.startTime <= viewportEndTime) {
       lo = mid + 1;
     } else {
       hi = mid;
@@ -1635,7 +1634,9 @@ export const findVisibleEventRange = (sortedEvents, viewportStartTime, viewportE
     hi = rightBound;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (sortedEvents[mid].startTime >= earliestPossibleStart) {
+      const eventId = thread.eventIds[mid];
+      const event = swimDataManager.getEventById(eventId);
+      if (event.startTime >= earliestPossibleStart) {
         hi = mid;
       } else {
         lo = mid + 1;

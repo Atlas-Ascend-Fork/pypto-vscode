@@ -129,7 +129,6 @@ const {
   lineTooltip,
   lineTooltipStyle,
   timelineState,
-  processes,
   processExpanded,
   mulDetailsExpanded,
   measureDetailsData,
@@ -289,7 +288,7 @@ const canDragSelect = (process) => {
     return false;
   }
   if (process.type === 'PerfSwim') {
-    return process.processName === 'AICore View';
+    return process.name === 'AICore View';
   }
   return true;
 };
@@ -1455,7 +1454,7 @@ const handleSelection = () => {
     return;
   }
   // 清掉其他泳道的框选
-  processes.forEach((process, processKey) => {
+  swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey) || process.type === 'aicpu' || processKey === props.processKey) {
       return;
     }
@@ -1524,7 +1523,7 @@ const lockClick = (e) => {
   isLockStatus.value = true;
   sendMsg('activeLock', { label: preLabel });
   let rootHashArray = [];
-  processes.forEach((process, processKey) => {
+  swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey)) {
       return;
     }
@@ -1532,8 +1531,9 @@ const lockClick = (e) => {
       if (thread.isCounter) {
         return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
       }
-      const { events } = thread;
-      events.forEach((event, eventKey) => {
+      const { eventIds } = thread;
+      eventIds.forEach((eventId, eventKey) => {
+        const event = swimDataManager.getEventById(eventId);
         const { args } = event;
         const { color } = args;
         if (color === preLabel) {
@@ -1574,7 +1574,7 @@ const resizeDrawBoundary = () => {
   if (!boundaries.length) {
     return;
   }
-  processes.forEach((process, processKey) => {
+  swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
@@ -1618,16 +1618,16 @@ const checkInSelection = () => {
   const selectMaxY = Math.max(startY, endY);
 
   // 遍历进程
-  const process = processes.get(props.processKey);
+  const process = swimDataManager.getProcess(props.processKey);
   // 遍历线程
   if (processExpanded.get(props.processKey) && canDragSelect(props.processKey)) {
     process.threads.forEach((thread, threadKey) => {
-      const { threadName, events } = thread;
+      const { threadName, eventIds } = thread;
       const isTargetEvent = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
       if (!isTargetEvent) {
         return;
       }
-      const [{ renderInfo }] = events;
+      const { renderInfo } = swimDataManager.getEventById(eventIds[0]);
       const { y } = renderInfo;
       if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
         return;
@@ -1691,7 +1691,7 @@ const clearSelectionCanvas = (key) => {
 };
 const clearAllSelectionCanvas = (key) => {
   mulDetailsExpanded.value = false;
-  for (const [processKey] of processes.entries()) {
+  for (const [processKey] of swimDataManager.getAllProcesses().entries()) {
     const canvasRef = document.querySelector(`[${key}="${processKey}"]`);
     if (!canvasRef) {
       return;
@@ -1809,7 +1809,8 @@ const resizeCanvas = () => {
 
 const clearEventDrawdata = (process, processKey) => {
   for (const [threadKey, thread] of process.threads.entries()) {
-    for (const event of thread.events) {
+    for (const eventId of thread.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
       if (event.drawData) {
         delete event.drawData;
       }
@@ -1870,7 +1871,7 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
           collectCounterDrawData(thread, threadY, false);
         }
       }
-      drawTransformEvent(thread, eventCtx, false);
+      drawTransformEvent(thread, eventCtx, false, processKey, threadKey);
     }
   }
 
@@ -1882,7 +1883,7 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
   }
 };
 
-const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
+const drawTransformEvent = (thread, eventCtx, isPinned = false, processKey = '', threadKey = '') => {
     if (thread.isCounter) {
       if (thread._counterMipmap && timelineState.startTime && timelineState.endTime) {
         const resolution = calcResolution(
@@ -1913,9 +1914,9 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         eventCtx.restore();
       }
     } else if (!drawColorDatas.length) {
-      const events = thread.events;
+      const { eventIds } = thread;
       const { leftBound, rightBound } = findVisibleEventRange(
-        events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+        thread, timelineState.startTime, timelineState.endTime
       );
       const canvasPixelWidth = viewState.canvasCssWidth;
 
@@ -1962,12 +1963,15 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = true;
+        if (processKey && threadKey) {
+          swimDataManager.updateThreadProperty(processKey, threadKey, { _visibleDrawDatas: eventDatas, _isMipmapMode: true });
+        }
         const isDimmed = !!(selectedEvent.value || searchedEvent.value) && !isPinned;
         eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       } else {
         let eventDatas = [];
         for (let i = leftBound; i < rightBound; i++) {
-          const event = events[i];
+          const event = swimDataManager.getEventById(eventIds[i]);
           const { drawData } = event;
           if (!drawData) {
             continue;
@@ -1981,6 +1985,9 @@ const drawTransformEvent = (thread, eventCtx, isPinned = false) => {
         }
         thread._visibleDrawDatas = eventDatas;
         thread._isMipmapMode = false;
+        if (processKey && threadKey) {
+          swimDataManager.updateThreadProperty(processKey, threadKey, { _visibleDrawDatas: eventDatas, _isMipmapMode: false });
+        }
         const isDimmed = !!(selectedEvent.value || searchedEvent.value) && !isPinned;
         eventRenderer.drawEvent(eventDatas, eventCtx, isDimmed, isPinned);
       }
@@ -1995,7 +2002,7 @@ const drawMixTransformEvent = (process, processKey, ctx) => {
       drawCounterThread(thread, ctx, threadY);
     } else {
       drawEventThread(thread, ctx, threadY, processKey);
-      drawTransformEvent(thread, ctx, false);
+      drawTransformEvent(thread, ctx, false, processKey, threadKey);
     }
   }
 };
@@ -2614,12 +2621,12 @@ const changeNormalNodeColor = (process, processKey, isDimmed, drawDatas, viewpor
       continue;
     }
 
-    const events = thread.events;
+    const { eventIds } = thread;
     const { leftBound, rightBound } = findVisibleEventRange(
-      events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+      thread, timelineState.startTime, timelineState.endTime
     );
     for (let i = leftBound; i < rightBound; i++) {
-      const event = events[i];
+      const event = swimDataManager.getEventById(eventIds[i]);
       if (event.renderEndTime < timelineState.startTime || event.renderStartTime > timelineState.endTime) {
         event.drawData.show = false;
         event.drawData.text = '';
@@ -2645,7 +2652,7 @@ const changeNodeColor = (processKey, isDimmed=false, needText=true) => {
   const { eventCtx } = ctxs[processKey];
   const drawDatas = [];
   const siblingDrawDatas = [];
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   let maxThreadY = 0;
   
   const clickedEvent = selectedEvent.value;
@@ -2838,7 +2845,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
-  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  const isAicpuProcess = Array.from(swimDataManager.getAllProcesses().entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
   if (!drawData.text) { return };
   eventRenderer.drawEventText([drawData], ctx);
@@ -2969,7 +2976,8 @@ const collectCounterDrawData = (thread, threadY, isPinned) => {
 
   drawData.push([0, lastLineY]);
 
-  for (const event of thread.events) {
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     const x = getPositionByTime(event.ts, viewState, layout) - processLabelWidth;
     
     if (x > canvasWidth) {
@@ -3022,7 +3030,8 @@ const computeEventThreadDrawData = (thread, threadY, processKey) => {
     textX: 0, textY: 0, fontColor: '', show: true, pinnedEventY: 0,
   });
   const eventDatas = [];
-  thread.events.forEach((event) => {
+  thread.eventIds.forEach((eventId) => {
+    const event = swimDataManager.getEventById(eventId);
     const lineOffset = (event.line || 0) + 1;
     const y = baseY + threadHeight * lineOffset;
     const eventY = y - halfEventHeight;
@@ -3091,7 +3100,8 @@ const updateProcessDrawData = (process, processKey) => {
     return;
   }
   for (const [threadKey, thread] of process.threads.entries()) {
-    for (const event of thread.events) {
+    for (const eventId of thread.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
       if (event.isCounter) {
         continue;
       }
@@ -3287,12 +3297,12 @@ const renderThreadText = (thread, ctx, selectedInfo, isHighlighting, isAicpuProc
   }
 
   const visibleEvents = [];
-  const events = thread.events;
+  const { eventIds } = thread;
   const { leftBound, rightBound } = findVisibleEventRange(
-    events, timelineState.startTime, timelineState.endTime, thread._maxRenderDuration
+    thread, timelineState.startTime, timelineState.endTime
   );
   for (let i = leftBound; i < rightBound; i++) {
-    const event = events[i];
+    const event = swimDataManager.getEventById(eventIds[i]);
     const { drawData } = event;
     if (!drawData || !drawData.show) {
       continue;
@@ -3372,9 +3382,9 @@ const showTooltip = (e, event) => {
     const duration = event.duration ?? (event.endTime - event.startTime);
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(duration * 1000 / tsScale.value).value}${formatTimeWithUnit(duration * 1000 / tsScale.value).unit}</span></div>`;
   }
-  if (event.args['hashOrder-hint'] !== undefined || event.args.hashorder !== undefined) {
+  const hashOrderStr = event.args?.['hashOrder-hint'] ?? event.args?.hashorder;
+  if (hashOrderStr) {
     setHashOrderTipColor(event);
-    const hashOrderStr = event.args['hashOrder-hint'] ?? event.args.hashorder;
     let result = {};
     if (hashOrderStr.includes('cubeMergeInfo')) {
       result = getHashOrderContent(hashOrderStr, 'l1ReuseInfo');
@@ -3486,7 +3496,7 @@ const showPathLockedHighlight = (event, processKey) => {
   pathLockedHighlightProcessKey.value = processKey;
   
   const processCanvas = document.querySelector(`[data-process-key="${processKey}"]`);
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!processCanvas || !process) {
     hidePathLockedHighlight();
     return;
@@ -3604,7 +3614,7 @@ const renderEvents = () => { renderProcessEvents(props.process, props.processKey
 const drawEventLine = (x, color, flag) => {
   const devicePixelRatioValue = window.devicePixelRatio !== undefined ? window.devicePixelRatio : 1;
   const drawX = x * devicePixelRatioValue;
-  for (const processx of processes.entries()) {
+  for (const processx of swimDataManager.getAllProcesses().entries()) {
     let canvasRef = document.querySelector(`[data-line-process-key="${processx[0]}"]`);
     if (flag === 'over') {
       canvasRef = document.querySelector(`[data-hover-process-key="${processx[0]}"]`);
@@ -3615,7 +3625,7 @@ const drawEventLine = (x, color, flag) => {
 };
 
 const eraseEventLine = (flag) => {
-  for (const [processKey] of processes.entries()) {
+  for (const [processKey] of swimDataManager.getAllProcesses().entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
     }
@@ -3735,7 +3745,7 @@ const focusWrap = (wrapId, pathLocked = false) => {
 const setSelectedData = (boundRange, label) => {
   points = [];
   drawColorDatas = {};
-  processes.forEach((process, processKey) => {
+  swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey)) {
       return;
     }
@@ -3747,7 +3757,7 @@ const setSelectedData = (boundRange, label) => {
       if (thread.isCounter) {
         return; // 因为counter总是在最下方，不需要重绘，所以可以提前结束
       }
-      const { events } = thread;
+      const events = thread.eventIds.map(id => swimDataManager.getEventById(id)).filter(e => e);
       events.forEach((event, eventKey) => {
         const { args } = event;
         const { color } = args;
@@ -3769,7 +3779,7 @@ const setSelectedData = (boundRange, label) => {
 
 const drawSelection = (label, needSendCom, isLock) => {
   let rootHashArray = [];
-  processes.forEach((process, processKey) => {
+  swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey) || (drawColorDatas[processKey] && !drawColorDatas[processKey].length)) {
       return;
     }
@@ -3884,7 +3894,7 @@ const renderMixModeEvents = (process, processKey, ctx) => {
       for (const [threadKey, procThread] of process.threads.entries()) {
         if (procThread.tid === thread.tid && procThread.threadName === thread.threadName) {
           collectCounterDrawData(procThread, threadY);
-          drawTransformEvent(procThread, ctx, false);
+          drawTransformEvent(procThread, ctx, false, processKey, threadKey);
           break;
         }
       }
@@ -4294,7 +4304,7 @@ const listenExtensionClearMessage = () => {
   });
 };
 const guideDistanceMeasurement = () => {
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
     }
@@ -4302,10 +4312,9 @@ const guideDistanceMeasurement = () => {
       if (threadKey !== swimConfig.threadKey) {
         continue;
       }
-      const { events } = thread;
-      if (events.length < 2) {
-        continue;
-      }
+      const { eventIds } = thread;
+      if (eventIds.length < 2) { continue };
+      const events = eventIds.map((id) => swimDataManager.getEventById(id));
       const preIndex = events.findIndex(event => event.name === swimConfig.sampleEventNamePre);
       if (preIndex === -1 || preIndex === events.length - 1) {
         continue; 
@@ -4330,7 +4339,7 @@ const clearDistanceMeasurement = () => {
   if (globalMeasureCanvas.value) {
     globalMeasureCanvas.value.clearMeasure();
   } else {
-    for (const [processkey, process] of processes.entries()) {
+    for (const [processkey, process] of swimDataManager.getAllProcesses().entries()) {
       if (!processExpanded.get(processkey)) {
         continue;
       }

@@ -25,7 +25,6 @@ export interface Dependencies {
   isKeyPressed: any;
   searchedEvent: any;
   userConfig: any;
-  processes: Map<string, any>;
   colorRending: any;
   tsScale: any;
   isMsProf: any;
@@ -105,8 +104,8 @@ export function getNoZoomX(x: number, viewState: any) {
 }
 
 export function getKernalEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, userConfig, processes } = deps;
-  const process = processes.get(processKey);
+  const { colorCfg, isDarkTheme, userConfig } = deps;
+  const process = swimDataManager.getProcess(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
   const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType, userConfig?.value.hashOrderRending);
   event.color = color;
@@ -124,8 +123,8 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
 }
 
 export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, processes, isMsProf } = deps;
-  const process = processes.get(processKey);
+  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, isMsProf } = deps;
+  const process = swimDataManager.getProcess(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
   if (!event.color?.dark || event.parentEventId) {
     const colorMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');

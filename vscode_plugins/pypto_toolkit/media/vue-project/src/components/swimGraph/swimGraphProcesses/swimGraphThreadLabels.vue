@@ -250,7 +250,6 @@ const { isDarkTheme } = inject('root');
 const {
   layout,
   lane2line,
-  processes,
   isThreeColumn,
   viewState,
   isMixMode,
@@ -312,7 +311,7 @@ const isHoveringPinIcon = ref(false);
 const hoveredGroupParentTid = ref(null);
 
 const isAicpuProcess = computed(() => {
-  const process = processes.get(props.processKey);
+  const process = swimDataManager.getProcess(props.processKey);
   if (process) {
     return process.type === 'aicpu';
   }
@@ -320,7 +319,7 @@ const isAicpuProcess = computed(() => {
 });
 
 const isPrefProcess = computed(() => {
-  const process = processes.get(props.processKey);
+  const process = swimDataManager.getProcess(props.processKey);
   if (process) {
     return process.type === 'PerfSwim';
   }
@@ -394,7 +393,8 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     let icacheMiss = 0n;
     let icacheReq = 0n;
     if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') || thread.parentTid !== undefined) {
-      for (const event of thread.events) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         if (!event['pmu_info'] || Object.keys(event['pmu_info']).length === 0) {
           cycleDisplay.value = 'none';
           options.splice(0, options.length, ...options.filter(option => option.value !== 'clockCycle' && option.value !== 'cacheHit'));
@@ -432,7 +432,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
     const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
     const isSplitThread = thread.parentTid !== undefined;
     if (typeValided || nameValided || isSplitThread) {
-      threadTaskMap.set(thread.tid, thread.events.length);
+      threadTaskMap.set(thread.tid, thread.eventIds.length);
     }
   }
   if (cycleDisplay.value === 'none') {
@@ -458,7 +458,8 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
     const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
     const isSplitThread = thread.parentTid !== undefined;
     if (typeValided || nameValided || isSplitThread) {
-      for (const event of thread.events) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         eventTime = eventTime + (event.endTime - event.startTime);
       }
       utilization = viewState.timeRange !== 0 ? (eventTime / viewState.timeRange) : 1;
@@ -473,9 +474,9 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
   return threadUtilizationMap;
 };
 
-const [threadCyclesMap, threadCacheHitMap] = calculateThreadCycles(processes, props.processKey);
-const threadTaskMap = calculateThreadTask(processes, props.processKey);
-const threadUtilizationMap = calculateThreadUtilization(processes, props.processKey);
+const [threadCyclesMap, threadCacheHitMap] = calculateThreadCycles(swimDataManager.getAllProcesses(), props.processKey);
+const threadTaskMap = calculateThreadTask(swimDataManager.getAllProcesses(), props.processKey);
+const threadUtilizationMap = calculateThreadUtilization(swimDataManager.getAllProcesses(), props.processKey);
 
 const getBackground = (threadId, option) => {
   let values;

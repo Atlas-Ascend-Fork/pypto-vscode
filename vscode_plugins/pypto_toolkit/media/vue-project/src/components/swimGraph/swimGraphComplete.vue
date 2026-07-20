@@ -115,13 +115,9 @@
           </div>
         </div>
         <swim-graph-measure-detail v-if="!isAicpu" ref="measureDetailComponent" />
-        <!-- 详情区域 -->
         <swim-graph-detail ref="detailComponent" />
-        <!-- AICPU控制详情区域 -->
         <aicpu-control-detail ref="aicpuControlDetailComponent" />
-        <!-- AICPU调度详情区域 -->
         <aicpu-schedule-detail ref="aicpuscheduleDetailComponent" />        
-        <!-- AICPU core详情区域 -->
         <aicpu-core-detail ref="aicpuCoreDetailComponent" />
       </div>
     </div>
@@ -211,7 +207,6 @@ import { ARROW_WIDTH } from './swimGraphProcesses/render/eventRender';
 import { SliceMipmap, CounterMipmap } from './swimGraphProcesses/render/mipmapRender';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
-import EventBus from '../../service/event-bus';
 import { ThreeColumnProvideKey, SwimGraphStateKey } from '../threeColumn/types';
 import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
@@ -273,7 +268,6 @@ const timeLineX = ref(null);
 const traceData = ref(null);
 const tsScale = ref(1000);
 const minTs = ref(0);
-const processes = reactive(new Map());
 const counterEvents = ref([]);
 const lastSelected = ref(null);
 const selectedEvent = ref(null);
@@ -372,7 +366,7 @@ const viewState = reactive({
   canvasCssWidth: 0,
   canvasWidth: 0,
   clearInfo: {},
-  windowWidth: 0,
+  windowWidth: window.innerWidth,
   depMode: 'all',
   scaleChange: 1,
   pixelOffsetX: 0,
@@ -484,7 +478,6 @@ const containerStyle = computed(() => ({
 
 // 使用置顶线程 composable
 const { pinnedThreads, pinnedThreadsList, pinThread, unpinThread, restorePinnedState, recalculateOffsetY, clearAllPinned } = usePinnedThreads(
-  processes,
   lane2line,
   layout
 );
@@ -497,9 +490,7 @@ const handleGlobalKeyDown = (e) => { globalKeyEvent(e, globalMousePosition, layo
 
 const handleGlobalKeyUp = (e) => { globalKeyEvent(e, globalMousePosition, layout, 'keyup') };
 
-// 方法
 const initEventListeners = () => {
-  initResizeObserver();
   window.addEventListener('mousemove', handleGlobalMouseMove);
   window.addEventListener('keydown', handleGlobalKeyDown);
   window.addEventListener('keyup', handleGlobalKeyUp);
@@ -783,139 +774,160 @@ const splitThreadsByEventName = (process, processKey) => {
 };
 
 const processTraceData = (data) => {
+  initBasicTraceInfo(data);
+  prepareProcesses(data);
+  handleMsProfSplit(data);
+  initSwimDataManager(data);
+  processExtraData(data);
+  initViewStateFromTimeInfo();
+  buildThreadMipmapsAndCheckAicpu();
+  swimDataManager.splitAllEvents();
+  finalizeE2EStatus();
+  handleMixModeLayout();
+  scheduleRender();
+};
+
+const initBasicTraceInfo = (data) => {
   pmuTotal.value = data.pmu_total;
   pmuValid.value = data.pmuValid || false;
   timeInfo.value = data.timeInfo;
+};
+
+const prepareProcesses = (data) => {
   let isFirst = true;
   let firstExpanded = true;
   for (const key in data.processes) {
+    if (!Object.prototype.hasOwnProperty.call(data.processes, key)) {
+      continue;
+    }
+    if (props.isThreeColumn && data.processes[key].type === 'aicpu') {
+      delete data.processes[key];
+      continue;
+    }
+    if (firstExpanded) {
+      processExpanded.set(key, true);
+      firstExpanded = false;
+    }
+    data.processes[key].isRendered = isFirst;
+    isFirst = false;
+    data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
+  }
+};
+
+const handleMsProfSplit = (data) => {
+  if (!isMsProf.value) {
+    return;
+  }
+  for (const key in data.processes) {
     if (Object.prototype.hasOwnProperty.call(data.processes, key)) {
-      if (props.isThreeColumn && data.processes[key].type === 'aicpu') {
-        delete data.processes[key];
-        continue;
-      }
-      if (firstExpanded) {
-        processExpanded.set(key, true);
-        firstExpanded = false;
-      }
-      data.processes[key].isRendered = isFirst;
-      isFirst = false;
-      data.processes[key].threads = new Map(Object.entries(data.processes[key].threads));
-      
-      if (isMsProf.value && data.processes[key].processName === 'Biu Perf') {
+      if (data.processes[key].processName === 'Biu Perf') {
         splitThreadsByEventName(data.processes[key], key);
       }
-      
-      processes.set(key, data.processes[key]);
     }
   }
+};
 
+const initSwimDataManager = (data) => {
+  perfLogger.time('swimDataManager.initializeFromData');
+  swimDataManager.initializeFromData(
+    data,
+    processExpanded,
+    lane2line,
+    isPerfSwim.value
+  );
+  perfLogger.timeEnd('swimDataManager.initializeFromData');
+};
+
+const processExtraData = (data) => {
   if (props.isThreeColumn) {
     processTimeInfo(timeInfo, data);
   }
-  
   if (data.tsScale) {
     tsScale.value = data.tsScale;
   }
-  
-  if (data.minTs) { minTs.value = data.minTs }
-
+  if (data.minTs) {
+    minTs.value = data.minTs;
+  }
   counterEvents.value = data.counterEvents;
-  for (const key in data.lane2line) {
-    if (Object.prototype.hasOwnProperty.call(data.lane2line, key)) {
-      lane2line.set(key, data.lane2line[key]);
-    }
-  }
-  if (timeInfo.value) {
-    viewState.minTime = timeInfo.value.minTime;
-    viewState.maxTime = timeInfo.value.maxTime;
-    viewState.timeRange = viewState.maxTime - viewState.minTime;
-  }
+};
 
-  processes.forEach((value) => {
-    const cThread = new Map([...value.threads.entries()].filter((item) => item[1].isCounter).sort());
-    const eThread = new Map([...value.threads.entries()].filter((item) => !item[1].isCounter).sort((a, b) => {
-      return Number(a[0].split('-')[1]) - Number(b[0].split('-')[1]);
-    }));
-    value.threads = new Map([...eThread.entries(), ...cThread.entries()]);
-    if (isPerfSwim.value) {
-      value.type = 'PerfSwim';
-    }
-  });
+const initViewStateFromTimeInfo = () => {
+  if (!timeInfo.value) {
+    return;
+  }
+  viewState.minTime = timeInfo.value.minTime;
+  viewState.maxTime = timeInfo.value.maxTime;
+  viewState.timeRange = viewState.maxTime - viewState.minTime;
+};
 
+const buildThreadMipmapsAndCheckAicpu = () => {
   let allAicpu = true;
-  for (const process of processes.values()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (process.type !== 'aicpu') {
       allAicpu = false;
-      break;
+    }
+    for (const [threadKey, threadData] of process.threads.entries()) {
+      if (!threadData.eventIds || threadData.eventIds.length === 0) {
+        continue;
+      }
+      buildSingleThreadMipmap(threadData, processKey, threadKey);
     }
   }
   isAicpu.value = allAicpu;
+};
 
-  perfLogger.time('swimDataManager.initialize');
-  swimDataManager.initialize(processes);
-  perfLogger.timeEnd('swimDataManager.initialize');
-
-  for (const [processKey, process] of processes.entries()) {
-    for (const [threadKey, thread] of process.threads.entries()) {
-      if (thread.events && thread.events.length > 0) {
-        if (!thread.isCounter) {
-          thread.events.sort((a, b) => a.startTime - b.startTime);
-          thread._maxRenderDuration = thread.events.reduce(
-            (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
-          );
-          thread._sliceMipmap = new SliceMipmap(thread.events);
-        } else {
-          thread._counterMipmap = new CounterMipmap(thread.events, thread.argKey);
-        }
-      }
-    }
+const buildSingleThreadMipmap = (threadData, processKey, threadKey) => {
+  const events = swimDataManager.getEventsByIds(threadData.eventIds);
+  if (!threadData.isCounter) {
+    threadData._maxRenderDuration = events.reduce(
+      (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
+    );
+    threadData._sliceMipmap = new SliceMipmap(events);
+  } else {
+    threadData._counterMipmap = new CounterMipmap(events, threadData.argKey);
   }
+};
 
-  swimDataManager.splitAllEvents();
-  
-  const subEventsWithDeps = swimDataManager.getAllSubEvents().map(se => ({
-    id: se.id,
-    name: se.name,
-    parentEventId: se.parentEventId,
-    startTime: se.startTime,
-    endTime: se.endTime,
-    predecessors: se.dependencies?.predecessors || [],
-    successors: se.dependencies?.successors || []
-  }));
-
+const finalizeE2EStatus = () => {
   isE2ESwim.value = swimDataManager.isMixedData();
-
-   if (props.isThreeColumn) {
-     isE2ESwim.value = false;
+  if (props.isThreeColumn) {
+    isE2ESwim.value = false;
   }
+};
 
-  if (swimDataManager.hasMixConfig()) {
-    swimDataManager.setMixMode(true);
-    swimDataManager.calculateMixLayout(layout, lane2line);
+const handleMixModeLayout = () => {
+  if (!swimDataManager.hasMixConfig()) {
+    return;
+  }
+  swimDataManager.setMixMode(true);
+  swimDataManager.calculateMixLayout(layout, lane2line);
 
-    const mixLaneOrder = swimDataManager.getSwimLaneOrder();
-    for (const lane of mixLaneOrder) {
-      if (lane.type !== 'thread') continue;
-      const { thread, wrapIds } = lane;
-      if (wrapIds.length > 0 && !thread.isCounter) {
-        const flattenedEvents = swimDataManager.getMixThreadFlattenedEvents(thread);
-        if (flattenedEvents.length > 0) {
-          thread._maxRenderDuration = flattenedEvents.reduce(
-            (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
-          );
-          thread._mixSliceMipmap = new SliceMipmap(flattenedEvents);
-        }
+  const mixLaneOrder = swimDataManager.getSwimLaneOrder();
+  for (const lane of mixLaneOrder) {
+    if (lane.type !== 'thread') {
+      continue;
+    }
+    const { thread, wrapIds } = lane;
+    if (wrapIds.length > 0 && !thread.isCounter) {
+      const flattenedEvents = swimDataManager.getMixThreadFlattenedEvents(thread);
+      if (flattenedEvents.length > 0) {
+        thread._maxRenderDuration = flattenedEvents.reduce(
+          (max, e) => Math.max(max, (e.renderEndTime || e.endTime) - (e.renderStartTime || e.startTime)), 0
+        );
+        thread._mixSliceMipmap = new SliceMipmap(flattenedEvents);
       }
     }
   }
+};
 
+const scheduleRender = () => {
   nextTick(() => {
     initCanvases();
     resizeCanvases();
     render();
     // 恢复置顶状态
     restorePinnedState();
+    initResizeObserver();
   });
 };
 
@@ -931,7 +943,7 @@ const transformCanvasOnly = () => {
 
 const exportRender = () => {
   transformCanvasOnly();
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey, true);
       const ctx = ctxs[processKey].eventCtx;
@@ -945,13 +957,9 @@ const exportRender = () => {
 };
 
 const updateEventPosition = (event) => {
-  if (!event.renderInfo || !freezeVisibleRange.value)
-  {
-      return;
-  }
+  if (!event.renderInfo || !freezeVisibleRange.value) { return };
   const range = viewState.maxTime - viewState.minTime;
-  const newX = ((event.renderStartTime || event.startTime) - viewState.minTime) / range
-      * viewState.canvasCssWidth;
+  const newX = (((event.renderStartTime || event.startTime) - viewState.minTime) / range) * viewState.canvasCssWidth;
   const dur = event.renderDuration || event.duration || (event.endTime - event.startTime);
   const newW = dur / range * viewState.canvasCssWidth;
   event.renderInfo.x = newX;
@@ -981,7 +989,7 @@ const transform = (needClean=false) => {
   if (globalMeasureCanvas.value) {
     globalMeasureCanvas.value.clearMeasure();
   }
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
@@ -1002,7 +1010,7 @@ const transform = (needClean=false) => {
       }
     } else {
       renderDependencyLines();
-      for (const [processKey, process] of processes.entries()) {
+      for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
         if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
           highlightAicpu(process, processKey, true);
         }
@@ -1014,7 +1022,7 @@ const transform = (needClean=false) => {
     globalConnectionCanvas.value.clearCanvas();
   }
 
-  for (const [key] of processes.entries()) {
+  for (const [key] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.clearDependencyLines(key);
     }
@@ -1031,7 +1039,7 @@ const transform = (needClean=false) => {
       childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
     }
   }
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
       highlightAicpu(process, processKey, true);
     }
@@ -1057,13 +1065,12 @@ const transform = (needClean=false) => {
 };
 
 const renderTwoTimeline = () => {
-  // 渲染两段时间轴
   renderFixedTimeline();
   renderTimeline();
 };
 
 const renderEvent = () => {
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     childContextMap.threadEvent.renderProcessEvents(process, processKey);
     const ctx = ctxs[processKey].eventCtx;
     if (processExpanded.get(processKey)) {
@@ -1085,7 +1092,7 @@ const renderDependencyLines = (processKey) => {
     key = pathLockedEvent.value?.pid?.toString();
   }
   if (key) {
-    const process = processes.get(key);
+    const process = swimDataManager.getProcess(key);
     if (!globalConnectionCanvas.value) {
       if (isMaxSchedule.value) {
         childContextMap.threadEvent.drawMaxScheduleLine(startEventId, endEventId, process, key);
@@ -1127,10 +1134,7 @@ const guideRestore = async () => {
   resetState();
   transform(true);
   mulDetailsExpanded.value = false;
-  swimlaneContainer.value.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
+  swimlaneContainer.value.scrollTo({ top: 0, behavior: 'smooth' });
   isMeasureDragging.value = false;
   isMeasureModel.value = false;
   showDragAreaBorders.value = false;
@@ -1488,7 +1492,7 @@ const toggleProcess = (processKey) => {
   processExpanded.set(processKey, !isExpanded);
   // 如果当前打开的就是该process，折叠该process，且为了保证其他process正常显示，重绘其他打开的process
   if (isExpanded) {
-    for (const [key, process] of processes.entries()) {
+    for (const [key, process] of swimDataManager.getAllProcesses().entries()) {
       if (processExpanded.get(key)) {
         toggleReRenderProcess(key, process);
       }
@@ -1497,14 +1501,14 @@ const toggleProcess = (processKey) => {
   }
 
   // 如果曾经打开过，为了保证缩放比例等正确，也需要再次绘制
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   process.isRendered = true;
   toggleReRenderProcess(processKey, process);
 };
 const drawKernalEvents = () => {
   let processKey = '';
   let process = null;
-  for (const [key, processItem] of processes) {
+  for (const [key, processItem] of swimDataManager.getAllProcesses().entries()) {
     if (processItem.type === 'kernel') {
       processKey = key;
       process = processItem;
@@ -1594,7 +1598,7 @@ const handleKernalEventColors = (event, processKey, highlight = false, stroke = 
 };
 const updatePanelState = (event, processKey, showkernelDetail) => {
   if (event) {
-    const process = processes.get(processKey);
+    const process = swimDataManager.getProcess(processKey);
     if (process.type === 'aicpu') {
       const { threadName } = event;
       const isCtrl = threadName.includes('AICPU-CTRL');
@@ -1694,9 +1698,8 @@ const handleMixNormalEventClick = (event, processKey) => {
 
   const token = ++selectEventToken;
   setTimeout(() => {
-    if (token !== selectEventToken)
-    {
-        return;
+    if (token !== selectEventToken) {
+      return;
     }
     const isMacroTask = swimDataManager.isMixParentEvent(event);
     if (isMacroTask) {
@@ -1715,9 +1718,8 @@ const handleNormalEventClick = (event, processKey) => {
 
   const token = ++selectEventToken;
   setTimeout(() => {
-    if (token !== selectEventToken)
-    {
-        return;
+    if (token !== selectEventToken) {
+      return;
     }
     calculateHighlightedPaths(event, highlightedPaths, userConfig.value.connectionLevel);
     childContextMap.threadEvent.changeNodeColor(processKey, true);
@@ -1739,7 +1741,7 @@ const clearSelection = (processKey) => {
 };
 
 const updateOtherProcesses = (processKey) => {
-  for (const [key, process] of processes.entries()) {
+  for (const [key, process] of swimDataManager.getAllProcesses().entries()) {
     if (!process.isRendered || !processExpanded.get(key) || !ctxs[key]) {
       continue;
     }
@@ -1750,7 +1752,7 @@ const updateOtherProcesses = (processKey) => {
       }
     }
     const { eventCtx } = ctxs[key];
-    childContextMap.threadEvent.drawThreadSeparators(eventCtx, processes.get(key), key);
+    childContextMap.threadEvent.drawThreadSeparators(eventCtx, swimDataManager.getProcess(key), key);
   }
 };
 
@@ -1773,7 +1775,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   if (event) {
     ++resetScheduleToken;
     lastSelected.value = event.id;
-    const process = processes.get(processKey);
+    const process = swimDataManager.getProcess(processKey);
     
     if (process.type === 'aicpu') {
       highlightedPaths.clear();
@@ -1805,7 +1807,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
 
 const highlightAicpu = (process, processKey, isResize) => {
   const eventName = selectedEvent.value.name;
-  if (process.pid !== selectedEvent.value.pid) {
+  if (process.pid != selectedEvent.value.pid) {
     return;
   }
   if (eventName.includes('DEV_')) {
@@ -1870,7 +1872,7 @@ const highlightAicpu = (process, processKey, isResize) => {
 };
 const shadingKernal = () => {
   let processKey = '';
-  for (const [key, processItem] of processes) { 
+  for (const [key, processItem] of swimDataManager.getAllProcesses().entries()) { 
     const {type, pid} = processItem;
     if (type === 'kernel') {
       processKey = pid.toString();
@@ -1892,7 +1894,7 @@ const resetMaxScheduleState = () => {
     if (token !== resetScheduleToken) {
       return;
     }
-    for (const [key] of processes.entries()) {
+    for (const [key] of swimDataManager.getAllProcesses().entries()) {
       if (processExpanded.get(key)) {
         childContextMap.threadEvent.changeNodeColor(key, false);
         childContextMap.threadEvent.clearDependencyLines(key);
@@ -1902,7 +1904,7 @@ const resetMaxScheduleState = () => {
 };
 
 const autoExpandkernelProcess = async () => {
-  const kernelProcesses = Array.from(processes.values()).filter(p => p.type === 'kernel');
+  const kernelProcesses = Array.from(swimDataManager.getAllProcesses().values()).filter(p => p.type === 'kernel');
   for (const kernelPro of kernelProcesses) {
     const kernelKey = String(kernelPro.pid);
     const isExpanded = processExpanded.get(kernelKey);
@@ -1946,7 +1948,7 @@ const showMaxScheduleEvent = async (startEvent, endEvent) => {
   lastSelected.value = startEvent.id;
   selectedEvent.value = startEvent;
   const processKey = String(startEvent.pid);
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   detailsPanelExpanded.value = false;
   mulDetailsExpanded.value = false;
 
@@ -1979,7 +1981,7 @@ const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
       nodeSpacingX: 0,
     },
   };
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!process) return null;
   
   if (isMixMode.value && swimDataManager.hasMixConfig() && isfindMixSubEvents) {
@@ -1995,13 +1997,12 @@ const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
   
   // 用于记录最后一个有效的间隙（仅当无吸附时使用）
   let fallbackAltClickData = null;
-  // 遍历进程中的所有事件，检查点击位置
   for (const [threadKey, thread] of process.threads.entries()) {
-    // 优化: 先确定目标位置的y坐标是否在当前泳道中,如果不在,及时返回
-    const temp = thread.events[0];
-    if (!temp) {
+    const tempId = thread.eventIds[0];
+    if (!tempId) {
       continue;
     }
+    const temp = swimDataManager.getEventById(tempId);
     const label = `${processKey}@${thread.tid}`;
     const lineCount = lane2line.get(label) || 1;
     if (temp.renderInfo) {
@@ -2072,12 +2073,8 @@ const isPositionInEventBounds = ({ x, y, renderInfo, duration }) => {
 };
 
 const isPositionOnSameLineAsEvent = ({ y, renderInfo }) => {
-  if (!renderInfo) {
-    return false;
-  }
-  
+  if (!renderInfo) { return false};
   const { y: eventY, height: eventHeight } = renderInfo;
-  
   return y >= eventY && y <= eventY + eventHeight;
 };
 
@@ -2209,12 +2206,8 @@ const findLaneAtPosition = ({ y, swimLaneOrder }) => {
 
 const findSubEventAtPosition = (x, y) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
-  
   const lane = findLaneAtPosition({ y, swimLaneOrder });
-  if (!lane) {
-    return null;
-  }
-  
+  if (!lane) { return null };
   return findEventsInThread({ thread: lane.thread, lane, x, y });
 };
 
@@ -2279,9 +2272,8 @@ const searchEventsInThread = (thread, x, y) => {
 
   let fallbackAltClickData = null;
   const eventsOnCurrentLine = [];
-  
-  for (let index = 0; index < thread.events.length; index++) {
-    const event = thread.events[index];
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (!event.renderInfo || !event.drawData) {
       continue;
     }
@@ -2563,7 +2555,7 @@ const doResizeFastPhase = () => {
   }
 
   transform();
-  for (const [key] of processes.entries()) {
+  for (const [key] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
     }
@@ -2577,14 +2569,14 @@ const doResizeFullPhase = () => {
   selectedEvent.value = null;
   searchedEvent.value = null;
   perfLogger.time('time of computeDrawData');
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     childContextMap.threadEvent.computeProcessDrawData(process, processKey);
   }
   perfLogger.timeEnd('time of computeDrawData');
   selectedEvent.value = savedSelected;
   searchedEvent.value = savedSearched;
   transform();
-  for (const [key] of processes.entries()) {
+  for (const [key] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
     }
@@ -2644,7 +2636,7 @@ const initResizeObserver = () => {
 const transformVerticalScroll = () => {
   perfLogger.time('time of transformVerticalScroll');
   transformCanvasOnly();
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(processKey)) {
       childContextMap.threadEvent.transformEvents(process, processKey);
       const ctx = ctxs[processKey].eventCtx;
@@ -2661,7 +2653,7 @@ const transformVerticalScroll = () => {
   if (globalConnectionCanvas.value) {
     globalConnectionCanvas.value.clearCanvas();
   }
-  for (const [key] of processes.entries()) {
+  for (const [key] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.clearDependencyLines(key);
     }
@@ -2675,7 +2667,7 @@ const transformVerticalScroll = () => {
   }
   const depKey = selectedEvent.value?.pid?.toString();
   if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
-    const process = processes.get(depKey);
+    const process = swimDataManager.getProcess(depKey);
     if (process && process.type === 'aicpu') {
       highlightAicpu(process, depKey, true);
     } else {
@@ -2705,13 +2697,13 @@ const resizeCanvases = (processKey, needResizeTimeline = true) => {
   }
 
   if (processKey) {
-    const process = processes.get(processKey);
+    const process = swimDataManager.getProcess(processKey);
     if (!process) return;
     updateProcessSize(process, processKey, containerRect, layout, lane2line, viewState, isMixMode.value);
     return;
   }
 
-  for (const [key, process] of processes.entries()) {
+  for (const [key, process] of swimDataManager.getAllProcesses().entries()) {
     updateProcessSize(process, key, containerRect, layout, lane2line, viewState, isMixMode.value);
   }
 };
@@ -2998,7 +2990,8 @@ const measureMouseLeave = (e) => {
 
 const processThreadEventSearch = (thread, startTime, endTime) => {
   const matchedEvents = [];
-  for (const event of thread.events) {
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (event.startTime >= startTime && event.endTime <= endTime) {
       matchedEvents.push(event);
     }
@@ -3082,9 +3075,9 @@ const measureDetailSearch = () => {
 
   const processedThreads = new Set();
 
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     const processType = process.type || 'kernel';
-    const isNotExcludedPerfSwim = processType === 'PerfSwim' && process.processName === 'AICore View';
+    const isNotExcludedPerfSwim = processType === 'PerfSwim' && process.name === 'AICore View';
     if (!(processExpanded.get(processKey) && (processType === 'kernel' || isNotExcludedPerfSwim))) {
       continue;
     }
@@ -3134,7 +3127,6 @@ const intelligentSearch = () => {
     xToTime,
     timeToX,
     childContextMap,
-    processes,
     processExpanded,
     pinnedThreads,
     pinnedthreadsComponent,
@@ -3331,7 +3323,6 @@ defineExpose({
   loadingText,
   validData,
   processExpanded,
-  processes
 });
 
 provide('swimGraphContext', { addChildContext });
@@ -3376,7 +3367,6 @@ provide('swimGraphState', {
   pathLockedEvent,
   highlightedPaths,
   mixRelatedPaths,
-  processes,
   processExpanded,
   loading,
   detailsPanelExpanded,
@@ -3602,7 +3592,7 @@ watch(
           panelResizeObserver.disconnect();
           panelResizeObserver = null;
           transform();
-          for (const [key] of processes.entries()) {
+          for (const [key] of swimDataManager.getAllProcesses().entries()) {
             if (processExpanded.get(key)) {
               childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
             }
@@ -3701,16 +3691,16 @@ const clearMeasureDetailSearch = () => {
   renderTwoTimeline();
 };
 const getEventInfo = (flag) => {
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (!processExpanded.get(processKey)) {
       continue;
     }
     const thread = process.threads.get(swimConfig.threadKey);
-    if (!thread || thread.events.length === 0) {
+    if (!thread || thread.eventIds.length === 0) {
       continue;
     }
-    let matchedEvent = thread.events.find(event => event.name === swimConfig.sampleEventNamePre);
-    const [firstEvent] = thread.events;
+    let matchedEvent = thread.eventIds.find(eventId => swimDataManager.getEventById(eventId).name === swimConfig.sampleEventNamePre);
+    const firstEvent = swimDataManager.getEventById(thread.eventIds[0]);
     const targetEvent = matchedEvent ?? firstEvent;
     if (targetEvent) {
       selectEvent(targetEvent, processKey);

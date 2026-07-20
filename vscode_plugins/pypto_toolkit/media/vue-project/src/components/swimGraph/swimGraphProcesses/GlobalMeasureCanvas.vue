@@ -35,6 +35,7 @@ import { devicePixelRatio, formatTimeWithUnit, meaureTextSize, getFontStyle, nod
 import { getNoZoomX, getEventColor } from './render/utils';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState } from './render/meatureRender';
+import { swimDataManager } from '../swimData';
 
 const { isDarkTheme } = inject('root');
 const props = defineProps({
@@ -66,7 +67,6 @@ const measureResult = reactive({
 const swimGraphState = inject('swimGraphState');
 const {
   viewState,
-  processes,
   processExpanded,
   layout,
   selectedEvent,
@@ -156,7 +156,7 @@ const getEventCoordinates = (event) => {
     return null;
   }
   
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!process) {
     return null;
   }
@@ -452,7 +452,7 @@ const drawRoundedRect = (event, processKey) => {
   ctx.rect(eventX, rectY, rectWidth, rectHeight);
   
   const temp = JSON.parse(JSON.stringify(event));
-  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, processes, mixRelatedPaths, isMsProf };
+  const dep = { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, searchedEvent, userConfig, mixRelatedPaths, isMsProf };
   const { fillColor, fontColor, strokeColor } = getEventColor(temp, dep, processKey, true, true);
   temp.drawData.rectColor = fillColor;
   temp.drawData.strokeColor = strokeColor;

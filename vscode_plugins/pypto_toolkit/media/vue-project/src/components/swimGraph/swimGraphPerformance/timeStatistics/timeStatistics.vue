@@ -93,6 +93,7 @@ import TimeRangeChart from '../timeRangeChart/timeRangeChart.vue';
 import { getSubGraphId } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
 import { executionTimeData } from '../utils';
+import { swimDataManager } from '../../swimData';
 const { t: $t } = useI18n();
 const timeOptionsList = [{ name: $t('subGraph'), value: 'id' }, { name: $t('label'), value: 'label' }];
 const timeOptions = reactive(timeOptionsList);
@@ -217,7 +218,6 @@ const {
     detailsPanelExpanded,
     mulDetailsExpanded,
     childContextMap,
-    processes,
     isMaxSchedule,
     measureDragStartX,
     measureDragEndY,
@@ -243,7 +243,6 @@ const {
 provide('subGraphTimingState', {
     showSubGraphTimingChart,
     timeType,
-    processes,
     processExpanded,
     leafIndexName,
     isWideScreen
@@ -273,7 +272,7 @@ const onCellClick = async (params) => {
         return;
     }
     if (highlightedPaths.size > 0) {
-        const process = processes.get(processKey);
+        const process = swimDataManager.getProcess(processKey);
         detailsPanelExpanded.value = false;
         mulDetailsExpanded.value = false;
         isMaxSchedule.value = false;
@@ -287,7 +286,7 @@ const onCellClick = async (params) => {
     }
 };
 const findProcessKey = async (label) => {
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (isE2ESwim.value && process.type === 'aicpu') {
         continue;
     }
@@ -305,7 +304,8 @@ const findInProcess = async (process, label) => {
     if (thread.isCounter) {
         continue;
     }
-    for (const event of thread.events) {
+    for (const eventId of thread.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
       if (event?.isFakeCore || event.ph === 'C') {
         continue;
       }
@@ -397,7 +397,7 @@ const onUpdateData = (data) => {
 };
 const collectSubGraphEvents = (targetId) => {
   const durations = [];
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (isE2ESwim.value && process.type === 'aicpu') {
         continue;
     }
@@ -405,7 +405,8 @@ const collectSubGraphEvents = (targetId) => {
       if (thread.isCounter) {
         continue;
       }
-      for (const event of thread.events) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         if (event?.isFakeCore || event.ph === 'C') {
             continue;
         }
@@ -466,7 +467,7 @@ const getTableData = () => {
         dataSource.value = executionTimeData.tableData;
         return;
     }
-    for (const [processKey, process] of processes.entries()) {
+    for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
         if (isE2ESwim.value && process.type === 'aicpu') {
             continue;
         }
@@ -474,7 +475,8 @@ const getTableData = () => {
             if (thread.isCounter) {
                 continue;
             }
-            for (const event of thread.events) {
+            for (const eventId of thread.eventIds) {
+                const event = swimDataManager.getEventById(eventId);
                 if (event?.isFakeCore || event.ph === 'C') {
                     continue;
                 }

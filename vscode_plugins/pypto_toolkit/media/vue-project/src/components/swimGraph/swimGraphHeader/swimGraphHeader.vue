@@ -107,6 +107,7 @@ import { ref, inject, computed, watch, onMounted, provide, nextTick, reactive } 
 import { useI18n } from 'vue-i18n';
 import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
+import { canvasPool } from '../render/canvasPool';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import LayerControlIcon from '../../comGraph/layerControl/layerControlIcon.vue';
 import KeyboradIcon from '../icon/keyboardIcon.vue';
@@ -126,7 +127,6 @@ const {
   sliderMaxCount,
   timeLineX,
   processExpanded,
-  processes,
   detailsPanelExpanded,
   selectedEvent,
   lastSelected,
@@ -451,7 +451,7 @@ function calculateCanvasSize(
     pinnedHeight = pinnedthreadsComponent.value.getPinnedHeight();
   }
   let totalProcessHeight = 0;
-  for (const [key, process] of processes) {
+  for (const [key, process] of swimDataManager.getAllProcesses()) {
     totalProcessHeight += layout.processHeaderHeight;
     if (processExpanded.get(key)) {
       const contentHeight = calculateContentHeight({
@@ -598,7 +598,7 @@ function drawProcessBlocks(
   let currentY = startY;
   ctx.font = '12px Arial';
   ctx.textBaseline = 'middle';
-  for (const [key, process] of processes) {
+  for (const [key, process] of swimDataManager.getAllProcesses()) {
     currentY = drawProcess(
       ctx,
       key,
@@ -624,7 +624,7 @@ function drawProcess(
   ctx.fillStyle = textColor === '#e8e8e8' ? '#2b2b2b' : '#f0f0f0'; // 根据主题反推背景色
   ctx.fillRect(0, currentY, processLabelWidth + canvasCssWidth, processHeaderHeight);
   ctx.fillStyle = textColor;
-  ctx.fillText(process.processName, 10, currentY + (processHeaderHeight / 2));
+  ctx.fillText(process.name, 10, currentY + (processHeaderHeight / 2));
   let y = currentY + processHeaderHeight;
   // Body
   if (processExpanded.get(key)) {
@@ -857,7 +857,7 @@ function getCanvasOffsetHeight() {
     return 0;
   }
   let currentOffset = 0;
-  for (const [key, process] of processes.entries()) {
+  for (const [key, process] of swimDataManager.getAllProcesses().entries()) {
     const isExpanded = processExpanded.get(key);
     const canvasRef = document.querySelector(`[data-process-key="${key}"]`);
     const canvasHeight = canvasRef ? canvasRef.offsetHeight : 0;
@@ -875,9 +875,9 @@ function getCanvasOffsetHeight() {
 function drawProcessHeaderLayers(ctx, processKey, y, width) {
   const { processLabelWidth } = layout;
   const labelHeight = 30;
-  const selector = `[data-process-header-key="${processKey}"]`;
+  // 直接从 CanvasPool 取实例
+  const canvasEl = canvasPool.getCanvas('process-header-canvas', processKey);
   const eventCanvas = `[data-process-key="${processKey}"]`;
-  const canvasEl = document.querySelector(selector);
   const eventCanvasEl = document.querySelector(eventCanvas);
   if (canvasEl && eventCanvasEl) {
     //  源图像 X 坐标 Y 坐标 宽度 高度
@@ -975,7 +975,8 @@ const onClearAll = (e) => {
 };
 const processThreadEvents = (thread, processKey, filterFn) => {
   const results = [];
-  for (const event of thread.events) {
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (filterFn(event, thread, processKey)) {
       results.push([event, thread.threadName, processKey, thread.tid]);
       if (!processExpanded.get(processKey)) {
@@ -1093,7 +1094,7 @@ const performSearch = (filterFn) => {
   searchResult.value = [];
   searchResultCount.value = 0;
   currentResultIndex.value = 0;
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     for (const [threadKey, thread] of process.threads.entries()) {
       let results;
       if (isMixMode?.value && swimDataManager.hasMixConfig() && selectedEvent.value?.parentEventId) {
@@ -1198,7 +1199,7 @@ const fuzzSearch = (e) => {
 
 const clearSearchData = () => {
   highlightedPaths.clear();
-  for (const [processkey, process] of processes.entries()) {
+  for (const [processkey, process] of swimDataManager.getAllProcesses().entries()) {
     if (!processExpanded.get(processkey)) {
       continue;
     }
@@ -1358,7 +1359,7 @@ const scrollToEventByDom = (event) => {
   let isAicpuKernel = false;
   const pid = event?.pid;
   const processKey = String(pid);
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   
   if (isE2ESwim.value) {
     isAicpuKernel = process?.type === 'aicpu';

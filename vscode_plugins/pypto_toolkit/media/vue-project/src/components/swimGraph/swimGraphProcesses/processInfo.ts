@@ -8,6 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 import { generateColorList, getColorByString } from '../../../utils/color-list';
+import { swimDataManager } from '../swimData';
 import { DEP_MODE } from '../swimGraphUtils';
 
 const darkThemeColors = generateColorList(360);
@@ -78,9 +79,9 @@ export const getBaseColor = (event, dep) => {
   if (!event) {
     return '#666666';
   }
-  const { processes, kernelColorRending, isDarkTheme } = dep;
+  const { kernelColorRending, isDarkTheme } = dep;
   if (!event.color || !event.color.dark) {
-    const process = Array.from(processes.values()).find((p: any) => p.pid === event.pid);
+    const process = Array.from(swimDataManager.getAllProcesses().values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType);
   }
@@ -95,9 +96,9 @@ export const getLightColor = (event, dep) => {
   if (!event) {
     return '#666666';
   }
-  const { processes, kernelColorRending, isDarkTheme } = dep;
+  const { kernelColorRending, isDarkTheme } = dep;
   if (!event.color.dark) {
-    const process = Array.from(processes.values()).find((p: any) => p.pid === event.pid);
+    const process = Array.from(swimDataManager.getAllProcesses().values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType);
   }
@@ -197,54 +198,6 @@ export const collectRelevantEdges = (startNodeId, eventMap, mode, level) => {
     }
     
     const currentEvent = eventMap.get(currentId);
-    let neighbors;
-
-    if (direction === 'pre') {
-      neighbors = currentEvent.dependencies.predecessors || [];
-    } else {
-      neighbors = currentEvent.dependencies.successors || [];
-    }
-
-    for (const neighborId of neighbors) {
-      const symbol = direction === 'pre' ? `${neighborId}->${currentId}` : `${currentId}->${neighborId}`;
-      if (!edgesToDraw.has(symbol)) {
-        edgesToDraw.add(symbol);
-        bfsTraversal(neighborId, depth - 1, direction);
-      }
-    }
-  };
-
-  if (mode === DEP_MODE.all || mode === DEP_MODE.pre) {
-    bfsTraversal(startNodeId, level, 'pre'); // 遍历前驱方向
-  }
-  
-  if (mode === DEP_MODE.all || mode === DEP_MODE.next) {
-    bfsTraversal(startNodeId, level, 'next'); // 遍历后继方向
-  }
-
-  return Array.from(edgesToDraw);
-};
-
-// 收集跨 process 的相关边
-export const collectCrossProcessRelevantEdges = (startNodeId, processes, mode, level) => {
-  const edgesToDraw = new Set();
-  
-  // 构建全局事件映射
-  const globalEventMap = new Map();
-  for (const [processKey, process] of processes.entries()) {
-    for (const [threadKey, thread] of process.threads.entries()) {
-      for (const event of thread.events) {
-        globalEventMap.set(event.id, { ...event, processKey, threadKey });
-      }
-    }
-  }
-  
-  const bfsTraversal = (currentId, depth, direction) => {
-    if (depth === 0 || !globalEventMap.has(currentId)) {
-      return;
-    }
-    
-    const currentEvent = globalEventMap.get(currentId);
     let neighbors;
 
     if (direction === 'pre') {

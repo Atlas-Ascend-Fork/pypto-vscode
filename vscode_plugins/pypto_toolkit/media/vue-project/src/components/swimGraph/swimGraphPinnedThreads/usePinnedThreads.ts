@@ -12,7 +12,7 @@ import { pushState, pullState } from '../../../core/state';
 import { swimDataManager } from '../swimData';
 import { getThreadStartY } from '../swimGraphUtils';
 
-export function usePinnedThreads(processes, lane2line, layout) {
+export function usePinnedThreads(lane2line, layout) {
   // 置顶线程状态
   const pinnedThreads = reactive(new Map());
 
@@ -45,7 +45,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
   };
   
   const restoreSinglePinnedThread = (pinned) => {
-    const process = processes.get(pinned.processKey);
+    const process = swimDataManager.getProcess(pinned.processKey);
     if (!process) return;
     
     const thread = process.threads.get(pinned.threadKey);
@@ -63,7 +63,7 @@ export function usePinnedThreads(processes, lane2line, layout) {
 
   // 置顶线程
   const pinThread = (processKey, threadKey, offsetY) => {
-    const process = processes.get(processKey);
+    const process = swimDataManager.getProcess(processKey);
     if (!process) { return; }
     
     let thread = process.threads.get(threadKey);

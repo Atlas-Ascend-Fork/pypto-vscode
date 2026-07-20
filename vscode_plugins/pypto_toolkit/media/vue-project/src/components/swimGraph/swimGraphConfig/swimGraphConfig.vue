@@ -97,7 +97,6 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 const { server } = useViewServer();
 const { t: $t } = useI18n();
 const {
-    processes,
     isCfgEditing,
     childContextMap,
     timelineState,
@@ -254,7 +253,7 @@ const configGetEventColor = (colorEvent, mode, hashOrderType='') => {
 };
 
 const updateAicpuEvents = (mode) => {
-    for (const process of processes.values()) {
+    for (const process of swimDataManager.getAllProcesses().values()) {
         if (process.type !== 'aicpu' || !process.isRendered) {
             continue;
         }
@@ -284,7 +283,7 @@ function saveAicpuRendingMode(colorRenderMode) {
 };
 
 const updatePerfEvents = (mode) => {
-    for (const process of processes.values()) {
+    for (const process of swimDataManager.getAllProcesses().values()) {
         if (!process.isRendered) {
             continue;
         }
@@ -343,7 +342,7 @@ const updateKernelEvents = (mode, hashOrderOption) => {
     .forEach((pinThread) => {
         pinThread.thread.events.forEach(updateEventColors);
     });
-    for (const process of processes.values()) {
+    for (const process of swimDataManager.getAllProcesses().values()) {
         if (process.type === 'aicpu' || !process.isRendered) {
             continue;
         }

@@ -15,7 +15,6 @@ export interface MeasureEventSearchOptions {
   measureDragStartY: number;
   measureDragEndY: number;
   childContextMap: any;
-  processes: Map<any, any>;
   processExpanded: Map<any, boolean>;
   pinnedThreads: Map<any, any>;
   pinnedthreadsComponent: any;
@@ -33,7 +32,6 @@ export interface IntelligentSearchOptions {
   xToTime: (x: number) => number;
   timeToX: (time: number) => number;
   childContextMap: any;
-  processes: Map<any, any>;
   processExpanded: Map<any, boolean>;
   pinnedThreads: Map<any, any>;
   pinnedthreadsComponent: any;
@@ -123,7 +121,8 @@ const collectPinnedEvents = (pinnedThreads: Map<any, any>, lineRangeStart: numbe
   const events: any[] = [];
   for (const [, pinnedData] of pinnedThreads.entries()) {
     const { thread } = pinnedData;
-    for (const event of thread.events) {
+    for (const eventId of thread.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
       if (isEventInRange(event, lineRangeStart, lineRangeEnd)) {
         events.push(event);
       }
@@ -133,7 +132,6 @@ const collectPinnedEvents = (pinnedThreads: Map<any, any>, lineRangeStart: numbe
 };
 
 const collectProcessEvents = (
-  processes: Map<any, any>,
   processExpanded: Map<any, boolean>,
   targetProcessKey: string,
   lineRangeStart: number,
@@ -142,7 +140,7 @@ const collectProcessEvents = (
   swimDataManager: SwimDataManager
 ): any[] => {
   const events: any[] = [];
-  for (const [processKey, process] of processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if ((targetProcessKey && processKey !== targetProcessKey) || !processExpanded.get(processKey)) {
       continue;
     }
@@ -175,7 +173,7 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     type,
     measureDragStartY,
     measureDragEndY,
-    processes,
+    childContextMap,
     processExpanded,
     pinnedThreads,
     pinnedthreadsComponent,
@@ -198,7 +196,7 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     const result = realCoordinateY(mouseY);
     yLayer = result.realY;
     matchingEvents = collectProcessEvents(
-      processes, processExpanded, result.processkey,
+      processExpanded, result.processkey,
       lineRangeStart, lineRangeEnd, isMixMode.value, swimDataManager
     );
   }
@@ -214,7 +212,8 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
 
 const collectEventsFromThread = (thread, lineRangeStart, lineRangeEnd, isMixMode, swimDataManager) => {
   const events = [];
-  for (const event of thread.events) {
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (!isEventInRange(event, lineRangeStart, lineRangeEnd)) {
       continue;
     }
@@ -237,7 +236,6 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     xToTime,
     timeToX,
     childContextMap,
-    processes,
     processExpanded,
     pinnedThreads,
     pinnedthreadsComponent,
@@ -259,7 +257,6 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     measureDragStartY: options.measureDragStartY,
     measureDragEndY: options.measureDragEndY,
     childContextMap,
-    processes,
     processExpanded,
     pinnedThreads,
     pinnedthreadsComponent,
@@ -272,7 +269,6 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     measureDragStartY: options.measureDragStartY,
     measureDragEndY: options.measureDragEndY,
     childContextMap,
-    processes,
     processExpanded,
     pinnedThreads,
     pinnedthreadsComponent,

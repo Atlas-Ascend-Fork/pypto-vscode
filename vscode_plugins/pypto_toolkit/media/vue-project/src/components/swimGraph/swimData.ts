@@ -7,6 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
+import { ref } from 'vue';
 export interface ThreadInfo {
   tid: string;
   threadName: string;
@@ -20,6 +21,17 @@ export interface ThreadInfo {
   };
   parentThreadName?: string;
   parentTid?: string;
+  _sliceMipmap?: any;
+  _counterMipmap?: any;
+  _maxRenderDuration?: number;
+  _visibleDrawDatas?: any[];
+  _counterBaseY?: number;
+  _pinnedCounterBaseY?: number;
+  _isMipmapMode?: boolean;
+  maxCount?: number;
+  argKey?: string;
+  ph?: string;
+  line?: string;
 }
 
 export interface ProcessInfo {
@@ -27,6 +39,7 @@ export interface ProcessInfo {
   name: string;
   type: string;
   threads: Map<string, ThreadInfo>;
+  isRendered: Boolean;
 }
 
 export interface EventDetail {
@@ -102,7 +115,7 @@ export interface WrapContainerInfo {
 
 class SwimDataManager {
   private static instance: SwimDataManager;
-  
+  public updateFlag = ref(0); // 响应式更新标志
   public processInfo: Map<string, ProcessInfo>;
   public eventMap: Map<string, EventDetail>;
   public mixConfig: MixConfig[];
@@ -134,73 +147,176 @@ class SwimDataManager {
     return SwimDataManager.instance;
   }
   
-  public initialize(processes: Map<string, any>): void {
-    this.clear();
-    
-    for (const [processKey, process] of processes.entries()) {
-      const processInfo = this.buildProcessInfo(processKey, process);
-      this.processInfo.set(processKey, processInfo);
+  /**
+   * 从原始data初始化
+   *
+   * @param data - 原始数据对象
+   * @param lane2line - lane到line的映射（可选）
+   * @param isPerfSwim - 是否PerfSwim模式
+   */
+  public initializeFromData(
+    data: any,
+    _processExpanded?: Map<string, boolean>,
+    lane2line?: Map<string, number>,
+    isPerfSwim?: boolean
+  ): void {
+    this.resetState();
+    this.parseProcesses(data, isPerfSwim);
+    this.copyLane2Line(data, lane2line);
+    this.updateFlag.value++;
+  }
+
+  /** 重置内部状态 */
+  private resetState(): void {
+    this.processInfo.clear();
+    this.eventMap.clear();
+    this.eventsByWrapId.clear();
+    this.mixConfig = [];
+    this.wrapContainers.clear();
+    this.swimLaneOrder = [];
+    this.isMixModeActive = false;
+    this.mixThreads = [];
+    this.wrapThreadMap.clear();
+    this.lane2line.clear();
+  }
+
+  /** 解析 data.processes，构建 processInfo / eventMap / eventsByWrapId */
+  private parseProcesses(data: any, isPerfSwim?: boolean): void {
+    if (!data.processes) return;
+
+    for (const processKey in data.processes) {
+      if (!Object.prototype.hasOwnProperty.call(data.processes, processKey)) {
+        continue;
+      }
+
+      const process = data.processes[processKey];
+      const threadInfoMap = this.parseThreadsOfProcess(process, processKey);
+
+      const processInfoItem: ProcessInfo = {
+        pid: process.pid || processKey,
+        name: process.processName || '',
+        type: isPerfSwim ? 'PerfSwim' : (process.type || 'kernel'),
+        threads: threadInfoMap,
+        isRendered: process.isRendered,
+      };
+
+      this.processInfo.set(processKey, processInfoItem);
     }
   }
 
-  private buildProcessInfo(processKey: string, process: any): ProcessInfo {
+  /** 解析单个 process 的 threads，返回 threadInfoMap */
+  private parseThreadsOfProcess(process: any, processKey: string): Map<string, ThreadInfo> {
     const threadInfoMap = new Map<string, ThreadInfo>();
-    
-    if (process.threads) {
-      for (const [threadKey, thread] of process.threads.entries()) {
-        const threadInfo = this.buildThreadInfo(processKey, threadKey, thread);
-        threadInfoMap.set(threadKey, threadInfo);
+    if (!process.threads) return threadInfoMap;
+
+    // 调用方（prepareProcesses）已保证 process.threads 为 Map
+    const threadsArray = Array.from((process.threads as Map<string, any>).entries());
+
+    // 先处理非counter线程，后处理counter线程（排序逻辑）
+    const sortedThreads = threadsArray.sort((a, b) => {
+      const threadA = a[1];
+      const threadB = b[1];
+
+      // counter线程排在后面
+      if (threadA.isCounter !== threadB.isCounter) {
+        return threadA.isCounter ? 1 : -1;
       }
+
+      // 非counter线程按tid排序
+      if (!threadA.isCounter) {
+        const tidA = a[0].split('-')[1];
+        const tidB = b[0].split('-')[1];
+        return Number(tidA) - Number(tidB);
+      }
+
+      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+    });
+
+    for (const [threadKey, thread] of sortedThreads) {
+      const eventIds = this.parseEventsOfThread(thread, processKey, threadKey);
+
+      // 保留events数组
+      thread.eventIds = eventIds;
+
+      const threadInfo: ThreadInfo = {
+        tid: thread.tid || threadKey,
+        threadName: thread.threadName || '',
+        eventIds,
+        isCounter: thread.isCounter,
+        isFakeCore: thread.threadName?.includes('Fake Core'),
+        parentThreadName: thread.parentThreadName,
+        parentTid: thread.parentTid,
+        ph: thread.ph,
+        line: thread.line,
+        maxCount: thread.maxCount,
+        argKey: thread.argKey,
+      };
+
+      threadInfoMap.set(threadKey, threadInfo);
     }
-    
-    return {
-      pid: process.pid || processKey,
-      name: process.processName || '',
-      type: process.type || 'kernel',
-      threads: threadInfoMap
-    };
+
+    return threadInfoMap;
   }
-  
-  private buildThreadInfo(processKey: string, threadKey: string, thread: any): ThreadInfo {
+
+  /** 解析单个 thread 的 events，填充 eventMap / eventsByWrapId，返回 eventIds */
+  private parseEventsOfThread(thread: any, processKey: string, threadKey: string): string[] {
     const eventIds: string[] = [];
-    
-    if (thread.events && Array.isArray(thread.events)) {
-      for (const event of thread.events) {
-        this.processEvent(event, processKey, threadKey, eventIds);
-      }
+    if (!thread.events || !Array.isArray(thread.events)) return eventIds;
+
+    // counter事件只有ts（无id/startTime），需补齐字段以便统一索引和排序
+    if (thread.isCounter) {
+      thread.events.forEach((event: any, idx: number) => {
+        if (event.id === undefined) {
+          event.id = `counter_${processKey}_${threadKey}_${idx}`;
+        }
+        if (event.startTime === undefined && event.ts !== undefined) {
+          event.startTime = event.ts;
+        }
+      });
     }
-    
-    return {
-      tid: thread.tid || threadKey,
-      threadName: thread.threadName || '',
-      eventIds,
-      isCounter: thread.isCounter,
-      isFakeCore: thread.threadName.includes('Fake Core'),
-      parentThreadName: thread.parentThreadName,
-      parentTid: thread.parentTid,
-    };
+
+    // 先排序events（按startTime）
+    thread.events.sort((a, b) => a.startTime - b.startTime);
+
+    for (const event of thread.events) {
+      eventIds.push(event.id);
+
+      // 存储event到eventMap
+      event.processKey = processKey;
+      event.threadKey = threadKey;
+      this.eventMap.set(event.id, event);
+
+      // 处理wrapId
+      this.indexEventByWrapId(event);
+    }
+
+    return eventIds;
   }
-  
-  private processEvent(event: any, processKey: string, threadKey: string, eventIds: string[]): void {
-    eventIds.push(event.id);
-    
-    event.processKey = processKey;
-    event.threadKey = threadKey;
-    this.eventMap.set(event.id, event);
-    
+
+  /** 将事件按 wrapId 索引到 eventsByWrapId（无效 wrapId 跳过） */
+  private indexEventByWrapId(event: any): void {
     const wrapId = event.args?.wrapId;
-    if (wrapId !== undefined && wrapId !== -1) {
-      this.addToWrapIdMap(wrapId, event);
-    }
-  }
-  
-  private addToWrapIdMap(wrapId: number, event: any): void {
+    if (wrapId === undefined || wrapId === -1) return;
     if (!this.eventsByWrapId.has(wrapId)) {
       this.eventsByWrapId.set(wrapId, []);
     }
     this.eventsByWrapId.get(wrapId)?.push(event);
   }
+
+  /** 将 data.lane2line 复制到调用方传入的 lane2line Map */
+  private copyLane2Line(data: any, lane2line?: Map<string, number>): void {
+    if (!data.lane2line || !lane2line) return;
+    for (const key in data.lane2line) {
+      if (Object.prototype.hasOwnProperty.call(data.lane2line, key)) {
+        lane2line.set(key, data.lane2line[key]);
+      }
+    }
+  }
   
+  public getUpdateFlag() {
+    return this.updateFlag;
+  }
+
   public getEventById(eventId: string): EventDetail | undefined {
     return this.eventMap.get(eventId);
   }
@@ -252,6 +368,31 @@ class SwimDataManager {
     if (!threadInfo) return [];
     
     return this.getEventsByIds(threadInfo.eventIds);
+  }
+  
+  public getProcess(processKey: string): ProcessInfo | undefined {
+    return this.processInfo.get(processKey);
+  }
+  
+  public getThread(processKey: string, threadKey: string): ThreadInfo | undefined {
+    const process = this.processInfo.get(processKey);
+    if (!process) return undefined;
+    
+    return process.threads.get(threadKey);
+  }
+  
+  public getAllProcesses(): Map<string, ProcessInfo> {
+    return this.processInfo;
+  }
+  
+  public updateThreadProperty(processKey: string, threadKey: string, updates: Partial<ThreadInfo>): void {
+    const process = this.processInfo.get(processKey);
+    if (!process) return;
+    
+    const threadInfo = process.threads.get(threadKey);
+    if (!threadInfo) return;
+    
+    Object.assign(threadInfo, updates);
   }
   
   public clear(): void {

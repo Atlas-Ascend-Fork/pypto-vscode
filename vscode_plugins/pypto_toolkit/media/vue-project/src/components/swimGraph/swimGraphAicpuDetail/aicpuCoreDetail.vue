@@ -71,6 +71,7 @@ import aicpuDetailNodata from './aicpuDetailNoData.vue';
 import gradientDashedLine from './gradientDashedLine.vue';
 import { COLOR_CFG, setupHighDPICanvas, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD, getEventDisplayName } from '../swimGraphUtils';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
+import { swimDataManager } from '../swimData';
 const { t } = useI18n();
 const {
     aicpuCoreDetailsExpanded,
@@ -80,7 +81,6 @@ const {
     aicpuHasRelevent,
     viewState,
     layout,
-    processes,
     lane2line,
     timelineState,
     tooltipStyle,
@@ -125,7 +125,7 @@ const AicpuCoreDetailsPanel = () => {
 };
 const kernalName = ref('');
 let buildTaskColor = computed(() => {
-  return getBaseColor(aicpuBuildTask.value, { processes, isDarkTheme, kernelColorRending });
+  return getBaseColor(aicpuBuildTask.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
 });
 let stopColor = computed(() => {
   return isDarkTheme.value ? '#ffffff' : '#000000';
@@ -272,7 +272,7 @@ const drawKernelEvents = (ctx, events, canvasWidth, canvasHeight, { timelineStar
       width,
       height: actualEventHeight
     };
-    const eventColor = getBaseColor(event, { processes, isDarkTheme, kernelColorRending });
+    const eventColor = getBaseColor(event, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
     const fillColor = eventColor;
     ctx.fillStyle = fillColor;
     ctx.fillRect(x, y, width, actualEventHeight);
@@ -359,7 +359,7 @@ const renderCoreDetailCanvas = () => {
 };
 const getKernelEventsData = (startTime, endTime) => {
   let kernelThreads = null;
-  for (const [key, processItem] of processes) { 
+  for (const [key, processItem] of swimDataManager.getAllProcesses()) { 
     if (processItem.type === 'kernel') {
       kernalProcessKey.value = key;
       kernelThreads = processItem.threads;
@@ -369,15 +369,15 @@ const getKernelEventsData = (startTime, endTime) => {
     }
   }
   if (kernelThreads) {
-    kernelThreadData.value = getThreadByThreadName(kernelThreads, startTime, endTime);
+    kernelThreadData.value = getThreadByThreadName(kernalProcessKey.value, kernelThreads, startTime, endTime);
   } else {
     kernelThreadData.value = {};
   }
 };
-const getThreadByThreadName = (map, startTimeInfo, endTimeInfo) => {
-  for (const [, value] of map) {
+const getThreadByThreadName = (key, map, startTimeInfo, endTimeInfo) => {
+  for (const [threadKey, value] of map) {
     if (value.threadName === kernalName.value) {
-      const originalEvents = value.events || [];
+      const originalEvents = swimDataManager.getEventsByThread(key, threadKey);
       const filteredEvents = originalEvents.filter(item => {
         return item.startTime >= startTimeInfo && item.endTime <= endTimeInfo;
       });
@@ -454,12 +454,11 @@ const handleCanvasClick = (e) => {
   selectKernelEvent();
 };
 const selectKernelEvent = () => {
-  const process = processes.get(kernalProcessKey.value);
+  const process = swimDataManager.getProcess(kernalProcessKey.value);
   const kernelThreads = process.threads;
   for (const [key, thread] of kernelThreads) {
     if (thread.threadName === kernelThreadData.value.threadName) {
-      const { events } = thread;
-      const targetEvent = events.find(event => event.id === clickedEvent.value.id);
+      const targetEvent = swimDataManager.getEventById(clickedEvent.value.id);
       selectEvent(targetEvent, kernalProcessKey.value, false);
       scrollToEvent(targetEvent);
     }

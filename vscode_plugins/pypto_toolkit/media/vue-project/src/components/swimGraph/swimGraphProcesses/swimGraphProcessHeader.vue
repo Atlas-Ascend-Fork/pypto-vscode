@@ -13,8 +13,8 @@
       <div class="label_one">
         <span class="expand-icon" v-if="isExpanded"><img class="collapse" :src="collapse" alt="collapse"/></span>
         <span class="expand-icon" v-else><img class="dropDown" :src="dropDown" alt="dropDown"/></span>
-        <d-tooltip :content="process.processName">
-          <span>{{ process.processName }}</span>
+        <d-tooltip :content="process.name">
+          <span>{{ process.name }}</span>
         </d-tooltip>
       </div>
       <div class="label_two" v-if="isExpanded && !isMsProf">
@@ -22,16 +22,18 @@
       </div>
     </div>
     <div class="process-header-line">
-      <canvas ref="headerCanvasRef" class="process-header-canvas" :data-process-header-key="processKey"></canvas>
-      <canvas ref="hoverHeaderCanvasRef" class="process-hover-header-canvas" :data-process-hover-header-key="processKey"></canvas>
+      <canvas ref="headerCanvasRef" class="process-header-canvas"></canvas>
+      <canvas ref="hoverHeaderCanvasRef" class="process-hover-header-canvas"></canvas>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch, nextTick, provide} from 'vue';
+import { ref, computed, inject, onMounted, onBeforeUnmount, watch, nextTick, provide} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { setupHighDPICanvas } from '../swimGraphUtils';
+import { canvasPool } from '../render/canvasPool';
+import { processHeaderRenderer } from '../render/processHeaderRenderer';
 
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
@@ -42,7 +44,6 @@ const {
   processExpanded,
   swimlaneContainer,
   isDarkTheme,
-  processes,
   childContextMap,
   isE2ESwim,
   isMsProf
@@ -120,46 +121,38 @@ const processHeadCanvasResize = () => {
 }
 
 const drawProcessHeadLine = (x, color, flag) => {
-  const canvasRefs = Array.from(processes.entries()).map(([key]) => {
-    return document.querySelector(flag === "over" ? `[data-process-hover-header-key="${key}"]` : 
-      `[data-process-header-key="${key}"]`)
-  });
-  canvasRefs.forEach(canvasRef => {
-    const ctx = canvasRef.getContext('2d');
-    const height = 30;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  });
+  // 委托渲染层（processHeaderRenderer）绘制观测线
+  // 渲染器内部从 CanvasPool 取所有进程实例统一操作
+  processHeaderRenderer.drawObservationLine(x, color, flag);
 }
 
 const eraseProcessHeadLine = (flag) => {
-  const canvasRefs = Array.from(processes.entries()).map(([key]) => {
-    return document.querySelector(flag === "over" ? `[data-process-hover-header-key="${key}"]` : 
-      `[data-process-header-key="${key}"]`)
-  });
-  canvasRefs.forEach(canvasRef => {
-    if (!canvasRef) {
-      return;
-    }
-    const ctx = canvasRef.getContext('2d');
-    ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-  });
+  processHeaderRenderer.eraseObservationLine(flag);
 }
 
 // 生命周期钩子
 onMounted(() => {
   // canvas 初始化
   processHeadCanvasResize();
+  // 向 CanvasPool 注册实例（以 processKey 作为 instanceKey）
+  if (headerCanvasRef.value) {
+    canvasPool.register('process-header-canvas', props.processKey, headerCanvasRef.value);
+  }
+  if (hoverHeaderCanvasRef.value) {
+    canvasPool.register('process-hover-header-canvas', props.processKey, hoverHeaderCanvasRef.value);
+  }
 
   const containerEl = swimlaneContainer.value?.parentNode?.querySelector('.swimlane-container');
   if (containerEl) {
     resetWidth.value = containerEl.offsetWidth === containerEl.clientWidth;
   }
   updateTheme();
+});
+
+onBeforeUnmount(() => {
+  // 从 CanvasPool 注销实例
+  canvasPool.unregister('process-header-canvas', props.processKey);
+  canvasPool.unregister('process-hover-header-canvas', props.processKey);
 });
 
 addChildContext('processHeaderEvent', {

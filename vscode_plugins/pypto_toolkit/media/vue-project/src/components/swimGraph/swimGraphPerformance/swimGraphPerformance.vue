@@ -311,7 +311,6 @@ const {
   sliderMaxCount,
   timeLineX,
   processExpanded,
-  processes,
   detailsPanelExpanded,
   selectedEvent,
   highlightedPaths,
@@ -448,11 +447,11 @@ rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
 gapLineWidth.value = isWideScreen.value? 213.5 : 66.5;
 
 const baseColor = (event) => {
-  return getBaseColor(event, { processes, kernelColorRending, isDarkTheme });
+  return getBaseColor(event, { processes: swimDataManager.getAllProcesses(), kernelColorRending, isDarkTheme });
 };
 
 const lightColor = (event) => {
-  return getLightColor(event, { processes, kernelColorRending, isDarkTheme });
+  return getLightColor(event, { processes: swimDataManager.getAllProcesses(), kernelColorRending, isDarkTheme });
 };
 
 const closeStatistics = () => {
@@ -752,20 +751,20 @@ const getTaskOnBoardTime = () => {
   let minStart = Infinity;
   let maxEnd = 0;
   const mod = tsScale.value;
-  for (const [, process] of processes.entries()) {
+  for (const [, process] of swimDataManager.getAllProcesses().entries()) {
     const isValidType = ['kernel', '', undefined].includes(process.type);
-    const isNotExcludedPerfSwim = process.type === 'PerfSwim' && process.processName === 'AICore View';
+    const isNotExcludedPerfSwim = process.type === 'PerfSwim' && process.name === 'AICore View';
     if (isValidType || isNotExcludedPerfSwim) {
       for (const [, thread] of process.threads.entries()) {
         if (thread.isCounter || thread.threadName.includes('Fake Core') || (isMsProf.value && thread?.parentThreadName === undefined)) {
           continue;
         }
-        const { events } = thread;
-        if (!events || events.length === 0) {
+        const { eventIds } = thread;
+        if (!eventIds || eventIds.length === 0) {
           continue;
         }
-        const [firstEvent] = events;
-        const lastEvent = events[events.length - 1];
+        const firstEvent = swimDataManager.getEventById(eventIds[0]);
+        const lastEvent = swimDataManager.getEventById(eventIds[eventIds.length - 1]);
         if (firstEvent.startTime < minStart) {
           minStart = firstEvent.startTime;
         }

@@ -103,6 +103,7 @@ import aivCubeScheduleDetail from './aivCubeScheduleDetail.vue';
 const { t: $t } = useI18n();
 import { getEventDisplayName } from '../swimGraphUtils';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
+import { swimDataManager } from '../swimData';
 // 注入父组件提供的状态和方法
 const currentContent = ref();
 const connectionSvg = ref();
@@ -122,7 +123,6 @@ const {
 const {
   dynamicWidthStyle,
   kernelColorRending,
-  processes,
 } = inject('swimGraphMethods');
 
 const aicpuScheduleData = ref(new Map());
@@ -186,7 +186,7 @@ const getPathData = (index) => {
           ${endX},${endY}`;
 };
 let startColor = computed(() => {
-  return getBaseColor(selectedEvent.value, { processes, isDarkTheme, kernelColorRending });
+  return getBaseColor(selectedEvent.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
 });
 let stopColor = computed(() => {
   return isDarkTheme.value ? '#ffffff' : '#000000';

@@ -1,0 +1,232 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/**
+ * DetailDependencyRenderer —— 详情面板 dependency-canvas 渲染器
+ *
+ * 职责：
+ * 1. 把 swimGraphDetail.vue 中 showDependencies 的纯绘制逻辑抽离成独立渲染器
+ * 2. canvas 实例从 CanvasPool 获取（'dependency-canvas'），替代 document.getElementById
+ * 3. 组件只负责事件绑定，渲染器负责绘制
+ *
+ * 不托管 DOM：canvas 的创建/销毁仍由 swimGraphDetail.vue 负责
+ */
+
+import { setupHighDPICanvas } from '../swimGraphUtils';
+import { canvasPool } from './canvasPool';
+
+/** 依赖节点信息 */
+interface DepNodeInfo {
+  node: { x: number; y: number; width: number; height: number };
+  type: 'current' | 'predecessor' | 'successor';
+  displayName: string;
+  fullDisplayName: string;
+}
+
+/** 依赖关系数据 */
+export interface DependencyRenderData {
+  /** 当前事件显示名 */
+  displayName: string;
+  /** 前驱事件（按显示名） */
+  predecessors: Array<{ name: string; displayName?: string; isCounter?: boolean }>;
+  /** 后继事件（按显示名） */
+  successors: Array<{ name: string; displayName?: string; isCounter?: boolean }>;
+  /** 当前事件填充色 */
+  fillColor: string;
+  /** 展示模式：forward(前驱) / backward(后继) / both */
+  type: 'forward' | 'backward' | 'both';
+}
+
+/** 渲染配置（由组件注入） */
+export interface DetailRenderConfig {
+  /** 容器宽度计算：clientWidth - offsetLeft - marginRight */
+  getCanvasWidth: () => number;
+  /** 右边距 */
+  marginRight: number;
+  /** 颜色配置 */
+  colorCfg: { lightlyCompareBkgColor: string; eventFontHighLight: string; eventFontNoColor: string };
+  /** 文本溢出截断函数（由组件从 swimGraphMethods 注入） */
+  overflowText: (maxWidth: number, text: string) => [string, number];
+}
+
+export class DetailDependencyRenderer {
+  /** 上一次绑定的 canvas（用于解绑事件） */
+  private lastCanvas: HTMLCanvasElement | null = null;
+  private lastHandlers: { mousemove: ((e: MouseEvent) => void) | null; mouseleave: (() => void) | null } = {
+    mousemove: null,
+    mouseleave: null,
+  };
+
+  /**
+   * 渲染依赖关系图
+   * @param data 依赖数据
+   * @param config 渲染配置
+   * @param tooltipCallbacks tooltip 回调（由组件提供 DOM 操作）
+   */
+  render(
+    data: DependencyRenderData,
+    config: DetailRenderConfig,
+    tooltipCallbacks: {
+      show: (e: MouseEvent, text: string) => void;
+      hide: () => void;
+    }
+  ) {
+    const canvas = canvasPool.getCanvas('dependency-canvas', '_default');
+    if (!canvas) return;
+
+    const canvasWidth = config.getCanvasWidth();
+    const canvasHeight = Math.max(186, 20 * (Math.max(data.predecessors.length, data.successors.length) + 1));
+    const actualWidth = canvasWidth / 5;
+
+    setupHighDPICanvas(canvas, canvasWidth, canvasHeight);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    const nodesInfo: DepNodeInfo[] = [];
+    const currentNode = {
+      x: canvasWidth / 2 - canvasWidth / 10,
+      y: 10,
+      width: actualWidth,
+      height: 16,
+    };
+
+    // 当前节点
+    ctx.fillStyle = data.fillColor;
+    ctx.roundRect(currentNode.x, currentNode.y, currentNode.width, currentNode.height, 4);
+    ctx.fill();
+    ctx.fillStyle = config.colorCfg.eventFontHighLight;
+    ctx.font = '12px Arial';
+    let [displayText, leftspace] = config.overflowText(actualWidth, data.displayName);
+    ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
+    nodesInfo.push({
+      node: currentNode,
+      type: 'current',
+      displayName: displayText,
+      fullDisplayName: data.displayName,
+    });
+
+    const depFillColor = config.colorCfg.lightlyCompareBkgColor;
+
+    // 前驱
+    if (data.type === 'forward' || data.type === 'both') {
+      data.predecessors.forEach((pre, index) => {
+        const preNode = { x: 0, y: 10 + index * 20, width: actualWidth, height: 16 };
+        ctx.beginPath();
+        ctx.fillStyle = depFillColor;
+        ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
+        ctx.fill();
+        ctx.closePath();
+        ctx.fillStyle = config.colorCfg.eventFontNoColor;
+        ctx.font = '12px Arial';
+        const name = pre.isCounter ? pre.displayName : pre.name || 'Event';
+        [displayText, leftspace] = config.overflowText(actualWidth, name);
+        ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
+        nodesInfo.push({ node: preNode, type: 'predecessor', displayName: displayText, fullDisplayName: name });
+
+        // 连线
+        ctx.beginPath();
+        ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
+        ctx.bezierCurveTo(
+          currentNode.x + 5, currentNode.y + currentNode.height / 2 + 5,
+          preNode.x + preNode.width, preNode.y + preNode.height / 2 + 5,
+          preNode.x + preNode.width, preNode.y + preNode.height / 2
+        );
+        const gradient = ctx.createLinearGradient(
+          currentNode.x, currentNode.y + currentNode.height / 2,
+          preNode.x + preNode.width, preNode.y + preNode.height / 2
+        );
+        gradient.addColorStop(0, data.fillColor);
+        gradient.addColorStop(1, depFillColor);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      });
+    }
+
+    // 后继
+    if (data.type === 'backward' || data.type === 'both') {
+      data.successors.forEach((dep, index) => {
+        const depNode = { x: canvasWidth * 0.8, y: 10 + index * 20, width: actualWidth, height: 16 };
+        ctx.beginPath();
+        ctx.fillStyle = depFillColor;
+        ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
+        ctx.fill();
+        ctx.closePath();
+        ctx.fillStyle = config.colorCfg.eventFontNoColor;
+        ctx.font = '12px Arial';
+        const name = dep.isCounter ? dep.displayName : dep.name || 'Event';
+        [displayText, leftspace] = config.overflowText(actualWidth, name);
+        ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
+        nodesInfo.push({ node: depNode, type: 'successor', displayName: displayText, fullDisplayName: name });
+
+        ctx.beginPath();
+        ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
+        ctx.bezierCurveTo(
+          currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2 + 5,
+          depNode.x, depNode.y + depNode.height / 2 + 5,
+          depNode.x, depNode.y + depNode.height / 2
+        );
+        const gradient = ctx.createLinearGradient(
+          currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
+          depNode.x, depNode.y + depNode.height / 2
+        );
+        gradient.addColorStop(0, data.fillColor);
+        gradient.addColorStop(1, depFillColor);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      });
+    }
+
+    // 绑定 hover tooltip（先解绑旧的）
+    this._unbindHover();
+    this.lastCanvas = canvas;
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      let hoveredNode: DepNodeInfo | null = null;
+      for (let i = nodesInfo.length - 1; i >= 0; i--) {
+        const n = nodesInfo[i];
+        if (mouseX >= n.node.x && mouseX <= n.node.x + n.node.width &&
+            mouseY >= n.node.y && mouseY <= n.node.y + n.node.height) {
+          hoveredNode = n;
+          break;
+        }
+      }
+      if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
+        tooltipCallbacks.show(e, hoveredNode.fullDisplayName);
+        canvas.style.cursor = 'pointer';
+      } else {
+        tooltipCallbacks.hide();
+        canvas.style.cursor = 'default';
+      }
+    };
+    const onMouseLeave = () => tooltipCallbacks.hide();
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+    this.lastHandlers = { mousemove: onMouseMove, mouseleave: onMouseLeave };
+  }
+
+  /** 解绑上一次的 hover 事件 */
+  private _unbindHover() {
+    if (this.lastCanvas && this.lastHandlers.mousemove) {
+      this.lastCanvas.removeEventListener('mousemove', this.lastHandlers.mousemove);
+    }
+    if (this.lastCanvas && this.lastHandlers.mouseleave) {
+      this.lastCanvas.removeEventListener('mouseleave', this.lastHandlers.mouseleave);
+    }
+    this.lastHandlers = { mousemove: null, mouseleave: null };
+  }
+}
+
+/** 全局单例 */
+export const detailDependencyRenderer = new DetailDependencyRenderer();

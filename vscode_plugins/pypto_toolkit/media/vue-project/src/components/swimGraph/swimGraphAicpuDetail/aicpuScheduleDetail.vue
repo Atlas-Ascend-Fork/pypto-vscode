@@ -70,6 +70,7 @@ import aicCubeScheduleDetail from './aicCubeScheduleDetail.vue';
 import aivCubeScheduleDetail from './aivCubeScheduleDetail.vue';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
 import { getThreadDisplayName, getEventDisplayName } from '../swimGraphUtils';
+import { swimDataManager } from '../swimData';
 
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
@@ -79,7 +80,6 @@ const {
     isDarkTheme,
     aicpuBuildTask,
     kernelColorRending,
-    processes,
     aicpuHasRelevent,
     aicpuScheduleMaps,
     canvasclickedEvent
@@ -102,10 +102,10 @@ let aicThreadNum = 0;
 let aivThreadNum = 0;
 
 let buildTaskColor = computed(() => {
-  return getBaseColor(aicpuBuildTask.value, { processes, isDarkTheme, kernelColorRending });
+  return getBaseColor(aicpuBuildTask.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
 });
 let currentTaskColor = computed(() => {
-  return getBaseColor(selectedEvent.value, { processes, isDarkTheme, kernelColorRending });
+  return getBaseColor(selectedEvent.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
 });
 
 let stopColor = computed(() => {

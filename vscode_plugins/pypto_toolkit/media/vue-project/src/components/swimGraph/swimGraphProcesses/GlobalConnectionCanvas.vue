@@ -20,10 +20,11 @@
 import { ref, onMounted, onUnmounted, inject, watch, nextTick } from 'vue';
 import { throttle } from 'lodash-es';
 import { COLOR_CFG, DEP_MODE, drawArrow, eventTextSize, getFontStyle } from '../swimGraphUtils';
-import { swimDataManager } from '../swimData';
+import SwimDataManager, { swimDataManager } from '../swimData';
 import { EventRender } from './render/eventRender';
 import { getEventColor } from './render/utils';
 import { calcResolution } from './render/mipmapRender';
+import { canvasPool } from '../render/canvasPool';
 const { isDarkTheme } = inject('root');
 const props = defineProps({
   containerWidth: {
@@ -46,7 +47,6 @@ const swimGraphState = inject('swimGraphState');
 const {
   viewState,
   timelineState,
-  processes,
   processExpanded,
   selectedEvent,
   layout,
@@ -418,7 +418,7 @@ const getEventCoordinates = (event, isFrom) => {
     return getProcessHeaderCoordinates(processKey, event, isFrom);
   }
   
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!process) {
     return null;
   }
@@ -457,7 +457,7 @@ const getMixEventCoordinates = (event, isFrom) => {
     return getProcessHeaderCoordinates(processKey, event, isFrom);
   }
   
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!process) {
     return null;
   }
@@ -485,12 +485,13 @@ const getMixEventCoordinates = (event, isFrom) => {
   return y;
 };
 const getProcessHeaderCoordinates = (processKey, event, isFrom) => {
-  const process = processes.get(processKey);
+  const process = swimDataManager.getProcess(processKey);
   if (!process) {
     return null;
   }
   
-  const processElement = document.querySelector(`[data-process-hover-header-key="${processKey}"]`);
+  // 直接从 CanvasPool 取悬浮头部 canvas 实例
+  const processElement = canvasPool.getCanvas('process-hover-header-canvas', processKey);
   if (!processElement) {
     return null;
   }

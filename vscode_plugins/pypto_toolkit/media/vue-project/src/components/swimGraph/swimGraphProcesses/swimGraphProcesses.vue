@@ -13,28 +13,28 @@
       <div class="process-section aicpu-section" :style="aicpuContainerStyle" ref="aicpuSection">
         <swim-graph-process-item 
           v-for="(processEntry, index) in aicpuProcesses" 
-          :key="processEntry[0]"
-          :process-key="processEntry[0]"
-          :process="processEntry[1]"
+          :key="processEntry"
+          :process-key="processEntry"
+          :process="swimDataManager.getProcess(processEntry)"
           :labelRender="labelRender"
         />
       </div>
       <div class="process-section kernel-section" :style="kernelContainerStyle" ref="kernelSection">
         <swim-graph-process-item 
           v-for="(processEntry, index) in kernelProcesses" 
-          :key="processEntry[0]"
-          :process-key="processEntry[0]"
-          :process="processEntry[1]"
+          :key="processEntry"
+          :process-key="processEntry"
+          :process="swimDataManager.getProcess(processEntry)"
           :labelRender="labelRender"
         />
       </div>
     </template>
     <template v-else>
       <swim-graph-process-item 
-        v-for="(processEntry, index) in processes" 
-        :key="processEntry[0]"
-        :process-key="processEntry[0]"
-        :process="processEntry[1]"
+        v-for="(processEntry, index) in processKeyList" 
+        :key="processEntry"
+        :process="swimDataManager.getProcess(processEntry)"
+        :process-key="processEntry"
         :labelRender="labelRender"
       />
     </template>
@@ -51,7 +51,6 @@ import { throttle } from 'lodash-es';
 // 注入父组件提供的状态
 const {
   tsScale,
-  processes,
   processExpanded,
   viewState,
   layout,
@@ -115,11 +114,17 @@ const aicpuSection = ref(null);
 const kernelSection = ref(null);
 provide('curThread', curThread);
 
+const processKeyList = computed(() => {
+  swimDataManager.getUpdateFlag().value;
+  const result = swimDataManager.getAllProcesses().keys();
+  return Array.from(result);
+});
+
 const aicpuProcesses = computed(() => {
   const result = [];
-  for (const entry of processes) {
+  for (const entry of swimDataManager.getAllProcesses()) {
     if (entry[1].type === 'aicpu') {
-      result.push(entry);
+      result.push(entry[0]);
     }
   }
   return result;
@@ -127,9 +132,9 @@ const aicpuProcesses = computed(() => {
 
 const kernelProcesses = computed(() => {
   const result = [];
-  for (const entry of processes) {
+  for (const entry of swimDataManager.getAllProcesses()) {
     if (entry[1].type !== 'aicpu') {
-      result.push(entry);
+      result.push(entry[0]);
     }
   }
   return result;
@@ -180,7 +185,6 @@ provide('swimGraphState', {
   viewState,
   layout,
   processExpanded,
-  processes,
   lane2line,
   swimlaneContainer,
   swimMainView,
@@ -394,7 +398,7 @@ watch( curThread, (newValue, oldValue) => {
     }
   } else {
     const threads = [];
-    const curProcess = processes.get(processKeyStr);
+    const curProcess = swimDataManager.getProcess(processKeyStr);
     for (const [threadKey, thread] of curProcess.threads.entries()) {
       threads.push(thread);
     }

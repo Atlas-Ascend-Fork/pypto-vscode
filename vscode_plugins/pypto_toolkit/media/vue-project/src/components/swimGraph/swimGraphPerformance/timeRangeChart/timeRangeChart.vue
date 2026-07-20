@@ -62,13 +62,14 @@ import { ref, inject, onMounted, watch, onUnmounted, computed } from 'vue';
 import { getSubGraphId, getEventColorByMode } from '../../swimGraphProcesses/processInfo';
 import { useI18n } from 'vue-i18n';
 import { executionTimeData, formatTimeUnit, formatTimeValue, US_TO_MS_THRESHOLD, US_TO_S_THRESHOLD, UNIT_MS, UNIT_S } from '../utils';
+import { swimDataManager } from '../../swimData';
+
 const { t: $t } = useI18n();
 const state = inject('subGraphTimingState');
 const { clickTask } = inject('swimGraphPmuBarMethod');
 const {
   isE2ESwim,
   kernelColorRending,
-  processes,
   isPathLockStatus,
   hashOrderRending,
 } = inject('swimGraphState');
@@ -145,7 +146,7 @@ const initData = () => {
     return;
   }
   const groups = new Map();
-  for (const [processKey, process] of state.processes.entries()) {
+  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (isE2ESwim.value && process.type === 'aicpu') {
       continue;
     }
@@ -153,7 +154,8 @@ const initData = () => {
       if (thread.isCounter) {
         continue;
       }
-      for (const event of thread.events) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
         processEvent(event, groups);
       }
     }
@@ -355,7 +357,7 @@ const getBaseColor = (event) => {
     return undefined;
   }
   if (!event.color || !event.color.dark) {
-    const process = Array.from(processes.values()).find(p => p.pid === event.pid);
+    const process = Array.from(swimDataManager.getAllProcesses().values()).find(p => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
     event.color = getEventColorByMode(event, kernelColorRending.value, processType, hashOrderRending.value);
   }

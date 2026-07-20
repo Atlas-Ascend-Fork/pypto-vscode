@@ -69,7 +69,6 @@ const {
   isPathLockStatus,
   searchedEvent,
   timelineState,
-  processes,
   highlightedPaths,
   timeLineX,
   detailsPanelExpanded,
@@ -240,7 +239,8 @@ const transformPinned = () => {
     const isMixMode = swimGraphState.isMixMode?.value;
     const hasMixConfig = swimDataManager?.hasMixConfig();
     if (isMixMode && hasMixConfig) {
-      const currentWrapId = item.thread?.events?.[0]?.args?.wrapId;
+      const [firstId] = item.thread.eventIds;
+      const currentWrapId = swimDataManager.getEventById(firstId)?.args?.wrapId;
       if (item.thread.isCounter) {
         childContextMap.threadEvent.drawTransformEvent(item.thread, eventsCtx, true);
       } else if (currentWrapId && (currentWrapId === focusedWrapId.value || currentWrapId === pathLockedWrapId.value) ) {
@@ -451,7 +451,7 @@ const processNormalEventForPinned = (event, baseY, isDimmed, drawDatas, processK
   
   const eventY = getPinnedEventY(event, baseY);
   const pinnedDrawData = createPinnedDrawData(event, eventY);
-  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  const isAicpuProcess = Array.from(swimDataManager.getAllProcesses().entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   pinnedDrawData.width = pinnedDrawData.eventWidth;
   childContextMap.threadEvent.fillTextInfo(event, eventsCtx, pinnedDrawData, true, isAicpuProcess);
   drawDatas.push(pinnedDrawData);
@@ -482,10 +482,9 @@ const processMixModePinnedThread = (thread, processKey, baseY, isDimmed, drawDat
 };
 
 const processNormalModePinnedThread = (thread, processKey, baseY, isDimmed, drawDatas) => {
-  const events = thread.events;
-  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
-  for (let i = 0; i < events.length; i++) {
-    const event = events[i];
+  const isAicpuProcess = Array.from(swimDataManager.getAllProcesses().entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
     if (!event.renderInfo) { continue };
 
     event.drawData.show = true;
@@ -527,7 +526,8 @@ const changePinnedColor = (isDimmed) => {
     if (thread.isCounter) {
       childContextMap.threadEvent.drawTransformEvent(thread, eventsCtx, true);
     } else {
-      const currentWrapId = thread?.events?.[0]?.args?.wrapId;
+      const [firstId] = thread.eventIds;
+      const currentWrapId = swimDataManager.getEventById(firstId)?.args?.wrapId;
       const isFocusedWrapInMixMode = currentWrapId && (currentWrapId === focusedWrapId.value || currentWrapId === pathLockedWrapId.value);
       if (isMixModeValue && hasMixConfig && isFocusedWrapInMixMode) {
         processMixModePinnedThread(thread, processKey, baseY, isDimmed, drawDatas);
@@ -586,7 +586,7 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) 
   };
   eventRenderer.drawEvent([drawData], ctx, false, true);
   ctx.font = getFontStyle(eventTextSize);
-  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  const isAicpuProcess = Array.from(swimDataManager.getAllProcesses().entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   drawData.width = width;
   childContextMap.threadEvent.fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
   if (!drawData.text) { return };
@@ -700,7 +700,7 @@ const highlightEvent = (ctx, event, stroke=true, highlight=true) => {
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
-  const isAicpuProcess = Array.from(processes.entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
+  const isAicpuProcess = Array.from(swimDataManager.getAllProcesses().entries()).some(([key, value]) => value.type === 'aicpu' && key === processKey);
   drawData.width = width;
   childContextMap.threadEvent.fillTextInfo(event, ctx, drawData, true, isAicpuProcess);
   if (!drawData.text) { return };
@@ -838,8 +838,8 @@ const findMixEventAtPosition = (x, y, threadInfo, threadY) => {
 
 // 非 Mix 模式下查找事件
 const findNormalEventAtPosition = (x, y, thread) => {
-  for (let index = 0; index < thread.events.length; index++) {
-    const event = thread.events[index];
+  for (const [index, eventId] of thread.eventIds.entries()) {
+    const event = swimDataManager.getEventById(eventId);
     if (!event.renderInfo) {
       continue;
     }
@@ -867,9 +867,8 @@ const findNormalEventAtPosition = (x, y, thread) => {
         return { event, mData: {} };
       }
     }
-    
-    const nextEvent = thread.events[index + 1];
-    if (!nextEvent) { continue };
+    if (!thread.eventIds[index + 1]) { continue };
+    const nextEvent = swimDataManager.getEventById(thread.eventIds[index + 1]);
     
     const { x: nextEventX } = nextEvent.renderInfo;
     if (x >= eventX + eventWidth && x <= nextEventX) {
@@ -1280,7 +1279,7 @@ const handleMouseDown = (e) => {
     pathLockedEvent.value = event;
   } else if (!isPathLockStatus.value) {
     highlightedPaths.clear();
-    for (const [processKey, process] of processes.entries()) {
+    for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
       if (process.isRendered) {
         selectEvent(null, processKey);
       } 
