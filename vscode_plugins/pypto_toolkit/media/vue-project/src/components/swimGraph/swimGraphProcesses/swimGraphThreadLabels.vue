@@ -771,6 +771,7 @@ const activeThreadId = computed(() => {
 .pin-icon-position {
   position: absolute;
   right: 223px;
+  top: 6px;
   z-index: 1;
   cursor: pointer;
 }

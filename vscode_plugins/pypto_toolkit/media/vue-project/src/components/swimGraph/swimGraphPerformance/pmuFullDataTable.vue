@@ -19,7 +19,7 @@
   >
     <div class="pmu-full-data-header">
         <div class="pmu-back-button" @click="handleBack">
-            <d-icon name="arrow-left"></d-icon>
+            <d-icon name="arrow-left" size="16px"></d-icon>
             <span>{{ $t('pmuBackToTop5') }}</span>
         </div>
     </div>
@@ -56,7 +56,7 @@
                         <div class="pmu-legend-task-bar">
                             <div class="pmu-legend-task-bar-fill" style="width: 50%"></div>
                         </div>
-                        <div class="pmu-legend-line half">
+                        <div class="pmu-legend-line half clock">
                             <span class="pmu-legend-line-start">|</span>
                             <span class="pmu-legend-line-dash"></span>
                             <span class="pmu-legend-line-end">|</span>
@@ -77,7 +77,7 @@
                         <div class="pmu-legend-task-bar pmu-legend-task-bar-positive">
                             <div class="pmu-legend-task-bar-fill" style="width: 50%"></div>
                         </div>
-                        <div class="pmu-legend-line">
+                        <div class="pmu-legend-line clock">
                             <span class="pmu-legend-line-start">|</span>
                             <span class="pmu-legend-line-dash"></span>
                             <span class="pmu-legend-line-end">|</span>
@@ -97,7 +97,7 @@
               class="pmu-sort-icon"
               :class="{ 'pmu-sort-asc': sortDirection === 'asc', 'pmu-sort-desc': sortDirection === 'desc'}"
             >
-                <d-icon :name="sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'"></d-icon>
+                <d-icon name="sequence-new" size="16px" ></d-icon>
             </span>
         </div>
     </div>
@@ -112,7 +112,7 @@
           <div
             class="pmu-task-bar"
             :class="{ 'pmu-task-bar-positive': filterType === 'positive'}"
-            :style="filterType === 'positive' ? { background: getEventColor(task) } : {}"
+            :style="filterType === 'positive' ? { background: getEventColor(task), '--hover-fill-color': getEventLightColor(task), '--event-font-highlight': eventFontHighLight } : { '--hover-fill-color': getEventLightColor(task), '--event-font-highlight': eventFontHighLight }"
           >
             <div
               class="pmu-task-bar-fill"
@@ -138,6 +138,7 @@
 <script setup>
 import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { COLOR_CFG } from '../swimGraphUtils';
 
 const props = defineProps ({
   tasks: {
@@ -155,6 +156,10 @@ const emit = defineEmits(['back']);
 const { t: $t } = useI18n();
 const { isPathLockStatus, isDarkTheme, isWideScreen } = inject('swimGraphState');
 const { clickTask } = inject('swimGraphPmuBarMethod', { clickTask: () => {} });
+
+const eventFontHighLight = computed(() => {
+    return isDarkTheme.value ? COLOR_CFG.dark.eventFontHighLight : COLOR_CFG.light.eventFontHighLight;
+});
 
 const sortDirection = ref('desc');
 
@@ -206,6 +211,19 @@ const getEventColor = (task) => {
     return 'rgba(72, 142, 32, 1)';
 };
 
+const getEventLightColor = (task) => {
+    if (isDarkTheme.value) {
+        if (task.event?.color?.dark?.light) {
+            return task.event.color.dark.light;
+        }
+    } else {
+        if (task.event?.color?.light?.light) {
+            return task.event.color.light.light;
+        }
+    }
+    return 'rgba(72, 142, 32, 1)';
+};
+
 const getBarWidth = (task) => {
     const absGapRatio = Math.abs(parseGapRatio(task.gapRatio));
     const widthRatio = Math.max(0.05, 1 - absGapRatio);
@@ -245,31 +263,33 @@ const handleRowClick = async (task) => {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--devui-brand);
+    color: var(--devui-text);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
-    transition: background-color 0.2s;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        color: var(--devui-brand);
+    }
+
+    &:hover :deep(d-icon) {
+        color: var(--devui-brand);
     }
 }
 
 .pmu-filter-toggle {
     display: flex;
-    gap: 8px;
     margin-bottom: 8px;
 }
 
 .pmu-filter-button {
     padding: 4px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: none;
     border-radius: 4px;
     background: var(--devui-category-search-bg);
-    color: var(--devui-text);
+    color: var(--devui-secondary-text);
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
@@ -279,9 +299,8 @@ const handleRowClick = async (task) => {
     }
 
     &.active {
-        background: var(--devui-brand);
-        border-color: var(--devui-brand);
-        color: #fff;
+        background:rgba(255, 255, 255, 0.1);
+        color: var(--devui-text);
     }
 }
 
@@ -292,6 +311,7 @@ const handleRowClick = async (task) => {
     height: 32px;
     padding: 0 4px;
     background: var(--devui-category-search-bg);
+    border-radius: 6px 6px 0 0;
 }
 
 .pmu-header-task-id{
@@ -306,7 +326,8 @@ const handleRowClick = async (task) => {
     align-items: center;
     gap: 4px;
     color: var(--devui-text);
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 16px;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
@@ -323,7 +344,7 @@ const handleRowClick = async (task) => {
 }
 
 .pmu-sort-icon {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     color: var(--devui-brand);
     line-height: 1;
@@ -355,7 +376,7 @@ const handleRowClick = async (task) => {
 .pmu-task-bar {
     position: relative;
     width: 175px;
-    height: 16px;
+    height: 18px;
     background: repeating-linear-gradient(
         135deg,
         var(--shadow-color-1) 0px,
@@ -368,6 +389,14 @@ const handleRowClick = async (task) => {
     backdrop-filter: blur(10px);
     overflow: hidden;
     flex-shrink: 0;
+}
+
+.pmu-task-bar:hover .pmu-task-bar-fill {
+    background: var(--hover-fill-color, var(--fill-color, rgba(72, 142, 32, 1)));
+}
+
+.pmu-task-bar:hover .pmu-task-bar-id {
+    color: var(--event-font-highlight);
 }
 
 .pmu-task-bar-fill {
@@ -404,6 +433,14 @@ const handleRowClick = async (task) => {
     background-image: none !important;
 }
 
+.pmu-task-bar-positive:hover {
+    background: var(--hover-fill-color, var(--fill-color, rgba(72, 142, 32, 1))) !important;
+}
+
+.pmu-task-bar-positive:hover .pmu-task-bar-id {
+    color: var(--event-font-highlight);
+}
+
 .pmu-task-bar-fill-positive {
     border: 0.5px dashed var(--border-color);
     background: var(--fill-color, rgba(72, 142, 32, 1));
@@ -415,7 +452,7 @@ const handleRowClick = async (task) => {
     top: 50%;
     transform: translateY(-50%);
     color: var(--devui-text);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     z-index: 1;
 }
@@ -440,7 +477,7 @@ const handleRowClick = async (task) => {
     left: 0;
     width: 100%;
     height: 1px;
-    background: var(--devui-secondary-text);
+    background: var(--devui-category-search-bg);
 }
 
 .pmu-legend-container {
@@ -476,10 +513,10 @@ const handleRowClick = async (task) => {
     top: 100%;
     right: 0;
     width: 200px;
-    height: 266px;
-    background: var(--devui-area);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    height: 276px;
+    background: rgba(54, 54, 54, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
     padding: 8px;
@@ -506,15 +543,16 @@ const handleRowClick = async (task) => {
 
 .pmu-legend-divider {
     width: 100%;
-    height: 1px;
-    background: var(--devui-secondary-text);
+    height: 0;
+    border-top: 1px dashed var(--devui-secondary-text);
+    margin: 12px 0;
 }
 
 .pmu-legend-line {
     display: flex;
     align-items: center;
     width: 175px;
-    height: 10px;
+    height: 6px;
     line-height: 10px;
     margin-top: 2px;
     margin-bottom: 2px;
@@ -522,8 +560,8 @@ const handleRowClick = async (task) => {
 
 .pmu-legend-line-start,
 .pmu-legend-line-end {
-    color: var(--devui-text);
-    font-size: 14px;
+    color: var(--devui-secondary-text);
+    font-size: 8px;
     font-weight: bold;
 }
 
@@ -540,8 +578,17 @@ const handleRowClick = async (task) => {
         top: 50%;
         transform: translateY(-50%);
         height: 1px;
-        background: var(--devui-text);
+        background: var(--devui-secondary-text);
     }
+}
+
+.pmu-legend-line.clock .pmu-legend-line-start,
+.pmu-legend-line.clock .pmu-legend-line-end {
+    color: rgba(63, 100, 174, 1);
+}
+
+.pmu-legend-line.clock .pmu-legend-line-dash::after {
+    background: rgba(63, 100, 174, 1);
 }
 
 .pmu-legend-task-bar{
@@ -599,6 +646,10 @@ const handleRowClick = async (task) => {
 
 .half {
     width: 87.5px;
+}
+
+.clock {
+    color:rgba(63, 100, 174, 1);
 }
 
 .title {

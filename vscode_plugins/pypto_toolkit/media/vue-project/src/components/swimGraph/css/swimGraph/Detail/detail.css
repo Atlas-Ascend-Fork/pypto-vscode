@@ -78,7 +78,7 @@
   padding: 16px;
   gap: 16px;
   width: 288px;
-  height: 88px;
+  height: 78px;
   border: 1px solid var(--devui-swim-split-line);
   border-radius: 8px;
   background-color: var(--devui-swim-split-line);
@@ -101,7 +101,7 @@
 }
 
 .pipe-line {
-  width: 0;
+  width: 1px;
   height: 56px;
   border: 1px solid var(--devui-split-line);
 }
@@ -303,7 +303,7 @@
   margin: 0 16px;
 }
 .start-value-key {
-  font-size: 24px;
+  font-size: 15px;
   color: var(--devui-primary-text)
 }
 .start-value-key-truncate {
@@ -686,6 +686,9 @@
 .detail-level{
   height: 28px;
   margin: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .display-containner{
   display: flex;
@@ -693,7 +696,6 @@
 }
 .help-font{
   font-size: 20px;
-  margin-left: 8px !important;
 }
 
 .focusable {
@@ -724,8 +726,8 @@
 .detail-content.narrow-mode .pipe-content-stat {
   flex-direction: column;
   width: 218px;
-  height: 150px;
-  gap: 2px;
+  height: 130px;
+  gap: 4px;
 }
 
 .detail-content.narrow-mode .pipe-line {

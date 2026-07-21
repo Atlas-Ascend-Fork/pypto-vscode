@@ -160,6 +160,7 @@
 #swim-header-decrease.devui-icon__container,#swim-header-increase.devui-icon__container{
   color: #CED1DB;
   cursor: pointer;
+  size: 16px;
 }
 #measure-button .button-content{
   color: var(--devui-overlay-icon);

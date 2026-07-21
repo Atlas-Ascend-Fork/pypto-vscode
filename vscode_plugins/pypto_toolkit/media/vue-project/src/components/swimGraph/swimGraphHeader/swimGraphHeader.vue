@@ -59,11 +59,11 @@
           <d-icon name="icon-search" size="16px" color="var(--devui-overlay-icon)"></d-icon>
       </d-button>
       <div class="slider-container" :class="{'slider-container-border': !isDarkTheme}">
-        <d-icon name="icon-zoom-out-2" id="swim-header-decrease" @click="decrease()"></d-icon>
+        <d-icon name="icon-zoom-out-2" id="swim-header-decrease" size="16px" @click="decrease()"></d-icon>
         <div class="slider-wrapper">
           <d-slider id="swimSlider" :min="0" :max="sliderMaxCount" v-model="sliderValue" :tips-renderer="null" @update:modelValue="updataScale()" style="width: 110px"></d-slider>
         </div>
-        <d-icon name="icon-enlarge" id="swim-header-increase" @click="increase()"></d-icon>
+        <d-icon name="icon-enlarge" id="swim-header-increase" size="16px" @click="increase()"></d-icon>
       </div>
       <d-tooltip position="bottom" :content="$t('ShortcutKeyDescription')">
         <d-button class="shortcut-keys-button" @click="ShortcutKeyShow()" style="height: 28px; width: 28px; padding: 0 4px;">
@@ -1643,11 +1643,15 @@ defineExpose({
   margin-left: 0px  !important;
 }
 #swim-header-decrease{
-  padding: 3px 0 ;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 4px;
 }
 #swim-header-increase {
-  padding: 3px 0 ;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 <style scoped lang="scss">

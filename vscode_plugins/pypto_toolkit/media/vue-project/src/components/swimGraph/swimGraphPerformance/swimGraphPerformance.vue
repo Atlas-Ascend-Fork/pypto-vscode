@@ -14,7 +14,10 @@
     <div class="close-container">
       <d-icon name="close" operable @click="closeStatistics"></d-icon>
     </div>
-    <div class="report-title">{{ reportTitle }}</div>
+    <div class="report-title">
+      <d-icon name="line-chart" size="18px" color="var(--devui-overlay-icon)"></d-icon>
+      {{ reportTitle }}
+    </div>
     <d-tabs class="report-tabs" type="pills" v-model="reportTabId">
       <d-tab class="first-child" id="tab1" :title=PerformanceSummary>
       <div class="summary-container" :style="{width: performanceWidth + 'px'}">
@@ -78,7 +81,7 @@
               </div>
             </div>
             <div class="time-consuming-split-line"/>
-            <div class="right-scheduling-gap-container" :style="{width: rightSchedulingGapContainerWidth + 'px'}">
+            <div class="right-scheduling-gap-container" :style="{width: timeRightSchedulingGapContainerWidth + 'px'}">
               <div class="scheduling-gap-title">
                 <div class="scheduling-gap-title-item">{{schedulingTask}}</div>
               </div>
@@ -106,7 +109,7 @@
               </div>
             </div>
             <div class="time-consuming-split-line"/>
-            <div class="right-scheduling-gap-container" :style="{width: rightSchedulingGapContainerWidth + 'px'}">
+            <div class="right-scheduling-gap-container" :style="{width: timeRightSchedulingGapContainerWidth + 'px'}">
               <div class="scheduling-gap-title">
                 <div class="scheduling-gap-title-item">{{schedulingTask}}</div>
               </div>
@@ -244,12 +247,13 @@ const pmuRowCoordList = ref([]);
 const pmuColCoordList = ref([]);
 const pmuRowCoordLoc = ref([]);
 const pmuBarColorList = ref([]);
+const pmuBarBorderColorList = ref([]);
 const pmuChartDataLeft = ref([]);
 const pmuChartDataRight = ref([]);
 const pmuBackLineLoc = ref([]);
 
 const pmuExist = ref(true);
-const reportTitle = ref($t('ReportTitle'));
+const reportTitle = ref($t('PerformanceStatus'));
 const icacheHitRateTitle = ref($t('ICacheHitRate'));
 const aicoreRateTitle = ref($t('aiCoreUtilization'));
 const occupyRateTitle = ref($t('occupyRateTitle'));
@@ -358,7 +362,7 @@ const {
   autoExpandkernelProcess
 } = inject('swimGraphMethods');
 
-provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
+provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
 
 const schedulingTask = ref($t('schedulingTask'));
 const schedulingSubTask = ref($t('schedulingSubTask'));
@@ -432,18 +436,20 @@ const timeConsumingTaskWidth = ref(276);
 const cubeDataChartWidth = ref(450);
 const aiCoreContainerColumnGap = ref(16);
 const rightSchedulingGapContainerWidth =ref(308);
+const timeRightSchedulingGapContainerWidth = ref(308);
 const gapLineWidth = ref(173.5);
 
 SchedulingGap.value = isWideScreen.value? $t('SchedulingGap') : '';
 subContainerWidth.value = isWideScreen.value? 440 : 330;
 subContainerGap.value = isWideScreen.value? 16 : 8;
 innerContainerWidth.value = isWideScreen.value? 109 : 101;
-timeConsumingTaskWidth.value = isWideScreen.value? 276 : 123;
+timeConsumingTaskWidth.value = isWideScreen.value? 268 : 160;
 cubeDataChartWidth.value = isWideScreen.value? 450 : 270;
 cubeTimeWidth.value = isWideScreen.value? 243 : 133;
 vectorTimeWidth.value = isWideScreen.value? 243 : 133;
-aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 16;
-rightSchedulingGapContainerWidth.value = isWideScreen.value? 268: 130;
+aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 75;
+rightSchedulingGapContainerWidth.value = isWideScreen.value? 266: 150;
+timeRightSchedulingGapContainerWidth.value = isWideScreen.value? 264: 160;
 gapLineWidth.value = isWideScreen.value? 213.5 : 66.5;
 
 const baseColor = (event) => {
@@ -694,8 +700,16 @@ const setPmuConfigurations = () => {
   pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
   pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
                             'MTE2 Cycles', 'MTE3 Cycles', 'FixP Cycles'];
-  pmuBarColorList.value = ['rgba(246, 158, 57, 1)', 'rgba(135, 200, 89, 1)', 'rgba(54, 193, 141, 1)', 
-                            'rgba(85, 204, 217, 1)', 'rgba(102, 140, 247, 1)', 'rgba(46, 134, 222, 1)', 'rgba(142, 129, 244, 1)'];
+  pmuBarColorList.value = isDarkTheme.value
+    ? ['rgba(0, 117, 102, 1)', 'rgba(0, 113, 113, 1)', 'rgba(26, 116, 62, 1)',
+       'rgba(137, 93, 0, 1)', 'rgba(155, 83, 3, 1)', 'rgba(164, 75, 50, 1)', 'rgba(88, 110, 15, 1)']
+    : ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
+       'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)', 'rgba(188, 277, 66, 1)'];
+  pmuBarBorderColorList.value = isDarkTheme.value
+    ? ['rgba(0, 117, 102, 0.3)', 'rgba(0, 113, 113, 0.3)', 'rgba(26, 116, 62, 0.3)',
+       'rgba(137, 93, 0, 0.3)', 'rgba(155, 83, 3, 0.3)', 'rgba(164, 75, 50, 0.3)', 'rgba(88, 110, 15, 0.3)']
+    : ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
+       'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)', 'rgba(188, 277, 66, 1)'];
 };
 
 const setPmuChartData = () => {
@@ -828,6 +842,7 @@ provide('swimGraphPmuBarMethod', {
   bottom:0;
   right:0;
   z-index: 100;
+  border-left: 1px solid var(--devui-category-search-bg);
 }
 
 .summary-container {
@@ -844,12 +859,14 @@ provide('swimGraphPmuBarMethod', {
 }
 
 .report-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   height: 26px;
   font-size: 18px;
   line-height: 18px;
   font-weight: 700;
   text-align: left;
-
 }
 
 .scheduling-gap-container-perform {
@@ -864,7 +881,6 @@ provide('swimGraphPmuBarMethod', {
   box-sizing: border-box;
   border-radius: 8px;
   background: var(--devui-category-search-bg);
-  border: 1px solid var(--devui-category-search-bg);
 }
 
 .left-scheduling-gap-container {
@@ -977,7 +993,7 @@ provide('swimGraphPmuBarMethod', {
 .split-line {
   margin-top: 3px;
   width: 0px;
-  border: 1px solid var(--devui-node-edge-active);
+  border: 1px solid var(--devui-category-search-bg);
 }
 
 .time-consuming-container-perform {
@@ -990,7 +1006,6 @@ provide('swimGraphPmuBarMethod', {
   gap: 16px;
   padding: 16px;
   box-sizing: border-box;
-  border: 1px solid var(--devui-category-search-bg);
   border-radius: 8px;
   background: var(--devui-category-search-bg);
 }
@@ -1004,7 +1019,7 @@ provide('swimGraphPmuBarMethod', {
 .time-consuming-split-line {
   margin-top: 24px;
   width: 0px;
-  border: 1px solid var(--devui-node-edge-active);
+  border: 1px solid var(--devui-category-search-bg);
 }
 
 .time-consuming-tasks-container {
@@ -1051,7 +1066,6 @@ provide('swimGraphPmuBarMethod', {
   gap: 16px;
   padding: 16px;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   background: var(--devui-category-search-bg);
 }
@@ -1122,7 +1136,6 @@ provide('swimGraphPmuBarMethod', {
   align-items: flex-start;
   gap: 8px;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   background: var(--devui-category-search-bg);
   padding: 16px;
@@ -1212,5 +1225,15 @@ provide('swimGraphPmuBarMethod', {
   &::-webkit-scrollbar-thumb {
     border-radius: 999px;
   }
+}
+
+:deep(.devui-tabs__nav--pills li.active a),
+:deep(.devui-tabs__nav--pills li:hover:not(.disabled) a) {
+  color: var(--devui-text);
+}
+
+:deep(.devui-tabs__nav--pills li.active:after) {
+  width: 100%;
+  background: var(--devui-text);
 }
 </style>

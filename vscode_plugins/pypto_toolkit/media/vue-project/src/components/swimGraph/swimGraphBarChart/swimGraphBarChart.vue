@@ -36,7 +36,7 @@
         <div class="occupy-rate-backbar"
           v-for="(dataLeft, index) in chartDataLeft"
           :key="index"
-          :style="{ top: 10 + 30 * index + 'px', width: barWidth + 'px', borderColor: pmuBarColorList[index]}">
+          :style="{ top: 10 + 30 * index + 'px', width: barWidth + 'px', borderColor: pmuBarBorderColorList[index]}">
           <div class="occupy-rate-bar" 
             :style="{ width: barWidthList[index] + 'px', background: pmuBarColorList[index]}"></div>
           <div class="occupy-rate-cycle">{{ dataLeft }}</div>
@@ -51,7 +51,7 @@
 import { ref, reactive, nextTick, provide, inject} from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme} = inject('swimGraphPmuBarChartInfo');
+const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme} = inject('swimGraphPmuBarChartInfo');
 
 const {
   isWideScreen,

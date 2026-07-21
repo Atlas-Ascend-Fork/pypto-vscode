@@ -10,8 +10,8 @@
 <template>
   <div class="summary-container pmu-tab-content" :style="{ width: performanceWidth + 'px' }">
     <template v-if="pmuInsight.hasData">
-      <div class="pmu-group-panel">
-        <strong>{{ pmuGroupLabel }}</strong>
+      <div class="pmu-group-panel" :style="{ width: isWideScreen ? '440px' : '330px' }">
+        <strong>{{ deviceName }} <span class="pmu-group-badge">{{ groupLabel }}</span></strong>
         <div class="pmu-diagnosis-text">{{ $t('pmuG2Diagnosis') }}</div>
       </div>
 
@@ -26,11 +26,14 @@
         <div v-else class="pmu-task-section" :style="{ width: subContainerWidth + 'px' }">
           <div class="pmu-task-section-header">
             <div class="pmu-task-section-title">{{ $t('pmuCycleGapTopTasks') }}</div>
-            <span
-              v-if="hasHiddenPmuTasks"
-              class="pmu-toggle-full-data"
-              @click="showFullDataTable = true"
-            >{{ pmuShowAllTasks ? $t('pmuCollapseFullData') : $t('pmuViewFullData') }}</span>
+            <div class="pmu-task-section-right">
+              <d-icon name="view-report" size="16px"></d-icon>
+              <span
+                v-if="hasHiddenPmuTasks"
+                class="pmu-toggle-full-data"
+                @click="showFullDataTable = true"
+              >{{ pmuShowAllTasks ? $t('pmuCollapseFullData') : $t('pmuViewFullData') }}</span>
+            </div>
           </div>
           <div
             v-for="(task, index) in visiblePmuGapTasks"
@@ -100,7 +103,7 @@ defineProps({
 });
 
 const { t: $t } = useI18n();
-const { isPathLockStatus } = inject('swimGraphState');
+const { isPathLockStatus, isWideScreen } = inject('swimGraphState');
 const { clickTask } = inject('swimGraphPmuBarMethod', { clickTask: () => {} });
 
 const PMU_REQUIRED_FIELDS = [
@@ -168,10 +171,8 @@ const normalizePmuLaneName = (laneName) => {
   return String(laneName).replace(/^(?<type>AIC|AIV)(?<index>\d+)$/, '$<type>_$<index>');
 };
 
-const pmuGroupLabel = computed(() => {
-  const deviceName = 'Dav_3510';
-  return `${deviceName} · Group 2`;
-});
+const deviceName = computed(() => 'Dav_3510: ');
+const groupLabel = computed(() => 'Group 2');
 
 const getPmuTaskDisplayName = (event) => {
   return String(event?.name || event?.id || '/').split('(')[0].trim();
@@ -391,6 +392,12 @@ onMounted(() => {
   line-height: 18px;
 }
 
+.pmu-group-badge {
+  background: var(--devui-swim-split-line);
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+
 .pmu-task-section {
   margin-top: 18px;
   display: flex;
@@ -402,6 +409,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.pmu-task-section-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .pmu-task-section-title {
@@ -437,7 +450,7 @@ onMounted(() => {
 }
 
 .pmu-task-card:hover {
-  border-color: var(--devui-brand);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .pmu-card-rank {

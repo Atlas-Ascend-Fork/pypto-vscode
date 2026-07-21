@@ -100,9 +100,9 @@
           :class="{ disabled: !counter.available }"
         >
           <span class="pmu-counter-swatch" :style="{ background: counter.color }"></span>
-          <span class="pmu-counter-name">{{ counter.displayName }}</span>
-          <span class="pmu-counter-value">{{ counter.available ? formatInteger(counter.value) : '-' }}</span>
-          <span class="pmu-counter-percent">{{ counter.available ? formatPercent(counter.ratio) : '-' }}</span>
+          <span class="pmu-counter-name" :class="{ 'pmu-counter-zero': counter.value === 0 }">{{ counter.displayName }}</span>
+          <span class="pmu-counter-value" :class="{ 'pmu-counter-zero': counter.value === 0 }">{{ counter.available ? formatInteger(counter.value) : '-' }}</span>
+          <span class="pmu-counter-percent" :class="{ 'pmu-counter-zero': counter.value === 0 }">{{ counter.available ? formatPercent(counter.ratio) : '-' }}</span>
         </div>
       </div>
 
@@ -436,11 +436,11 @@ function formatOptionalInteger(value) {
 }
 
 .pmu-summary-grid.compact-mode {
-  grid-template-columns: 156px 310px;
+  grid-template-columns: 156px 350px;
   min-width: 514px;
 
   .pmu-summary-combined {
-    width: 310px;
+    width: 350px;
   }
 
   .pmu-summary-merged {
@@ -475,9 +475,9 @@ function formatOptionalInteger(value) {
   }
 
   .pmu-summary-combined .pmu-summary-card:last-child {
-    min-width: 140px;
-    max-width: 140px;
-    flex: 0 0 140px;
+    min-width: 160px;
+    max-width: 160px;
+    flex: 0 0 160px;
   }
 }
 
@@ -607,7 +607,7 @@ function formatOptionalInteger(value) {
   width: 1px;
   height: 40px;
   align-self: center;
-  background: var(--devui-secondary-text);
+  background: var(--devui-swim-split-line);
 }
 
 .pmu-summary-card {
@@ -683,7 +683,7 @@ function formatOptionalInteger(value) {
 }
 
 .gap-positive {
-  color: #ffb020 !important;
+  color: var(--devui-primary-text) !important;
 }
 
 .gap-normal {
@@ -775,6 +775,10 @@ function formatOptionalInteger(value) {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
+}
+
+.pmu-counter-zero {
+  color: #53565d !important;
 }
 
 .pmu-counter-value,
