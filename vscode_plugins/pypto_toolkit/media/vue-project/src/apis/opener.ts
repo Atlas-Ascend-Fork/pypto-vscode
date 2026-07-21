@@ -48,6 +48,13 @@ export function openOpCheck(params: { outputPath: string; opeCheckDirPath?: stri
 }
 
 /**
+ * 打开TaskCheck页面
+ */
+export function openTaskCheck(params: { outputPath: string; taskCheckDirPath?: string[] | null; flowVerifyPath?: string; computeGraphDirPath?: string }) {
+  return request.post(`${OPENER_PREFIX}/openTaskCheck`, params);
+}
+
+/**
  * 打开配置
  */
 export function openPtoConfig(params: { configPath: string; pathName: string; isBootStep?: boolean }) {

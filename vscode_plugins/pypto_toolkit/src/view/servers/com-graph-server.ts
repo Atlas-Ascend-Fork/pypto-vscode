@@ -20,7 +20,7 @@ import { IComViewServer, ICommonViewServer, IComApis, IComRefs, ICommonApis, ICo
 import { setSaveDir, getCurrentPlatform, saveFile, checkFilePath } from '../../common/downloadFileCheck';
 import { MemoryTraceHandler } from '../../handler/memoryTraceHandler';
 import { SQLiteCache } from '../../core/sqliteCache';
-import { getCmpDiffList, getAccuFilePath, getCmpErrorList, getPrecisionExceptList } from '../../common/accurancyAnylasis';
+import { getCmpDiffList, getAccuFilePath, getCmpErrorList, getPrecisionExceptList, getTaskCmpList } from '../../common/accurancyAnylasis';
 import * as fs from 'fs';
 type Apis = IComApis | ICommonApis;
 
@@ -41,6 +41,7 @@ type Refs = IComRefs & ICommonRefs;
   'AccuFilePath',
   'CmpDiffList',
   'cmpErrorList',
+  'taskCmpErrorList',
   'precisionExceptList',
   'InitComGraph',
   'InitDiffComGraph',
@@ -295,14 +296,34 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     readFlag?: boolean;
     cmpCsvPath?: string;
     comgraphPath?: string;
+    rootFuncHash?: string;
+    oriLoopInfo?: string;
   }) => {
     const cmpCsvInfo = await getAccuFilePath();
     const filePath = data.cmpCsvPath || '';
     const comgraphPath = data.comgraphPath || '';
     
-    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
-    const result = await getCmpErrorList(filePath, comgraphPath, readFlag, pageSize, startOffset, keyword);
+    const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true, rootFuncHash = '', oriLoopInfo = '' } = data;
+    const result = await getCmpErrorList(filePath, comgraphPath, readFlag, pageSize, startOffset, keyword, rootFuncHash, oriLoopInfo);
     this.setRef('cmpErrorList', result);
+  };
+
+  @viewApi()
+  public getTaskCmpErrorListData = async (data: {
+    pageSize?: number;
+    startOffset?: number;
+    keyword?: string;
+    readFlag?: boolean;
+    cmpCsvPath?: string;
+    comgraphPath?: string;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    rootFuncHash?: string;
+    oriLoopInfo?: string;
+  }) => {
+    const filePath = data.cmpCsvPath || '';
+    const { pageSize = 50, startOffset = 0, keyword, readFlag = false, filterWord, rootFuncHash, oriLoopInfo = '' } = data;
+    const result = await getTaskCmpList(filePath, readFlag, pageSize, startOffset, 'FAIL', keyword, undefined, undefined, filterWord, rootFuncHash, oriLoopInfo);
+    this.setRef('taskCmpErrorList', result);
   };
 
   @viewApi()

@@ -18,6 +18,7 @@ import SideBarViewIndex from './components/sideBar/SideBarViewIndex.vue';
 import WelcomeIndex from './components/welcome/WelcomeIndex.vue';
 import BootStepTips from './components/welcome/components/BootStepTips.vue';
 import OpCheckIndex from './components/opCheck/OpCheckIndex.vue';
+import TaskCheckIndex from './components/taskCheck/TaskCheckIndex.vue';
 import { getIsCompleteBoot } from './apis/welcome';
 
 const graphType = ref('');
@@ -61,6 +62,8 @@ onMounted(async () => {
   <WelcomeIndex class="parent-container" v-else-if="graphType === 'welcome'"></WelcomeIndex>
   <!-- OpCheck -->
   <OpCheckIndex class="parent-container" v-else-if="graphType === 'opCheck'"></OpCheckIndex>
+  <!-- TaskCheck -->
+  <TaskCheckIndex class="parent-container" v-else-if="graphType === 'taskCheck'"></TaskCheckIndex>
   <!-- 运行配置 -->
   <RunConfig v-else-if="graphType === 'editRunConfig'"></RunConfig>
   <header id="boot-middleLayer" v-else-if="graphType" :class="[outputDirPath && 'com-graph-with-navbar']">
@@ -68,7 +71,7 @@ onMounted(async () => {
   </header>
   <!-- 全局引导弹窗 -->
   <BootStepTips
-    v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome' && graphType !== 'opCheck'"
+    v-if="showGlobalGuide && graphType !== 'returnSidBar' && graphType !== 'editRunConfig' && graphType !== 'welcome' && graphType !== 'opCheck' && graphType !== 'taskCheck'"
     v-model:visible="showGlobalGuide"
     :graphType="graphType"
   />

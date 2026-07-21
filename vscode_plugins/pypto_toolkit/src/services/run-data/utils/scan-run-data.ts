@@ -89,6 +89,7 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   }
 
   const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(computePath ?? undefined, verifyPath);
+  const { hasTaskCheck, taskCheckDirPath } = await findTaskCheck(computePath ?? undefined, verifyPath);
 
   return {
     title,
@@ -101,6 +102,8 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
     flowVerifyPath,
     hasOpeCheck,
     opeCheckDirPath,
+    hasTaskCheck,
+    taskCheckDirPath
   };
 }
 
@@ -159,6 +162,7 @@ async function getPathIfExists(checkingPath: string | undefined): Promise<string
 }
 
 const VERIFY_GRAPH_RESULT_CMP_REG_EXP = /^verify_graph_result_cmp/;
+const VERIFY_TASK_RESULT_CMP_REG_EXP = /^verify_task_result_cmp/;
 
 export function findVerifyDir(path, level) {
   if (!path || typeof path !== 'string') return '';
@@ -172,6 +176,11 @@ export function findVerifyDir(path, level) {
 interface OpeCheckResult {
   hasOpeCheck: boolean;
   opeCheckDirPath: AccuracyToolCompList[] | null;
+}
+
+interface TaskCheckResult {
+  hasTaskCheck: boolean;
+  taskCheckDirPath: AccuracyToolCompList[] | null;
 }
 
 /**
@@ -208,11 +217,10 @@ async function findOpeCheck(
   if (!flowVerifyUri) {
     return empty;
   }
+  const opCompuPath = flowVerifyUri + "_opcheck";
 
-  const existingList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
-  if (existingList.length > 0) {
-    return { hasOpeCheck: true, opeCheckDirPath: existingList };
-  }
+  const existingList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(opCompuPath);
+  const existingFilePaths = new Set(existingList.map(item => item.file_path));
 
   const fileUri = vscode.Uri.file(flowVerifyUri);
   const fsPath = fileUri.fsPath; 
@@ -221,7 +229,7 @@ async function findOpeCheck(
   try {
     files = await vscode.workspace.fs.readDirectory(fileUri);
   } catch {
-    return empty;
+    return existingList.length > 0 ? { hasOpeCheck: true, opeCheckDirPath: existingList } : empty;
   }
   
   const hasCmpFile = files.some(([name, fileType]) => 
@@ -229,16 +237,79 @@ async function findOpeCheck(
   );
 
   if (!hasCmpFile) {
+    return existingList.length > 0 ? { hasOpeCheck: true, opeCheckDirPath: existingList } : empty;
+  }
+
+  const compList = await getCmpFileList(fsPath, "opcheck");
+  const newInsertData: AccuracyToolCompList[] = compList
+    .filter(filePath => !existingFilePaths.has(filePath))
+    .map(filePath => ({
+      file_path: filePath,
+      first_req: '-1',
+      compute_path: opCompuPath,
+    }));
+
+  if (newInsertData.length > 0) {
+    await SQLiteCache.getInstance().accuracyToolCompListSet(opCompuPath, newInsertData);
+  }
+
+  const mergedList = [...existingList, ...newInsertData];
+  return { hasOpeCheck: true, opeCheckDirPath: mergedList };
+}
+
+async function findTaskCheck(
+  flowVerifyPath?: string,
+  level?: any
+): Promise<TaskCheckResult> {
+  const empty: TaskCheckResult = { hasTaskCheck: false, taskCheckDirPath: null };
+  if (!flowVerifyPath) {
     return empty;
   }
 
-  const compList = await getCmpFileList(fsPath);
-  const allInsertData: AccuracyToolCompList[] = compList.map(filePath => ({
-    file_path: filePath,
-    first_req: '-1',
-    compute_path: flowVerifyUri,
-  }));
+  let flowVerifyUri = flowVerifyPath;
+  if (level === COMPUTE_GRAPH_PATH_LEVER) {
+    const rootDataDir =  findVerifyDir(flowVerifyUri, COMPUTE_GRAPH_PATH_LEVER)
+    flowVerifyUri = await findVerifySubDir(rootDataDir);
+  }
+  if (!flowVerifyUri) {
+    return empty;
+  }
+  const taskCompuPath = flowVerifyUri + "_taskcheck";
 
-  await SQLiteCache.getInstance().accuracyToolCompListSet(flowVerifyUri, allInsertData);
-  return { hasOpeCheck: true, opeCheckDirPath: allInsertData };
+  const existingList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(taskCompuPath);
+  const existingFilePaths = new Set(existingList.map(item => item.file_path));
+
+  const fileUri = vscode.Uri.file(flowVerifyUri);
+  const fsPath = fileUri.fsPath; 
+
+  let files: [string, vscode.FileType][];
+  try {
+    files = await vscode.workspace.fs.readDirectory(fileUri);
+  } catch {
+    return existingList.length > 0 ? { hasTaskCheck: true, taskCheckDirPath: existingList } : empty;
+  }
+  
+  const hasCmpFile = files.some(([name, fileType]) => 
+    fileType === vscode.FileType.File && VERIFY_TASK_RESULT_CMP_REG_EXP.test(name)
+  );
+
+  if (!hasCmpFile) {
+    return existingList.length > 0 ? { hasTaskCheck: true, taskCheckDirPath: existingList } : empty;
+  }
+
+  const compList = await getCmpFileList(fsPath, "taskcheck");
+  const newInsertData: AccuracyToolCompList[] = compList
+    .filter(filePath => !existingFilePaths.has(filePath))
+    .map(filePath => ({
+      file_path: filePath,
+      first_req: '-1',
+      compute_path: taskCompuPath,
+    }));
+
+  if (newInsertData.length > 0) {
+    await SQLiteCache.getInstance().accuracyToolCompListSet(taskCompuPath, newInsertData);
+  }
+
+  const mergedList = [...existingList, ...newInsertData];
+  return { hasTaskCheck: true, taskCheckDirPath: mergedList };
 }

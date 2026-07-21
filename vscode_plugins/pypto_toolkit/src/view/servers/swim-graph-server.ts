@@ -21,7 +21,7 @@ type Apis = ISwimApis | ICommonApis;
 
 type Refs = ISwimRefs & ICommonRefs;
 
-@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError', 'SaveFileResult', 'CheckSysResult', 'SaveDirPath', 'CheckFilePathResult'])
+@viewRefs(['returnSwim', 'noSwimFile', 'performanceWarn', 'returnSwimData', 'bindResult', 'unbindResult', 'dataError', 'SaveFileResult', 'CheckSysResult', 'SaveDirPath', 'CheckFilePathResult', 'locateNodeResult'])
 export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonViewServer, ISwimViewServer {
   swimDataPath: string;
   title: string;
@@ -142,6 +142,10 @@ export class SwimGraphServer extends ViewServer<Apis, Refs> implements ICommonVi
     const result = await checkFilePath(message);
     this.setRef('CheckFilePathResult', result);
   };
+  public locateNode(seqNo: number, taskId: number) {
+    this.setRef('locateNodeResult', { seqNo, taskId, timestamp: Date.now() });
+  }
+
   safeParse(str) {
     try {
       return JSON.parse(str);

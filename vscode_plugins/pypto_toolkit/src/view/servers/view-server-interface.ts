@@ -35,6 +35,7 @@ export type IComApis =
   | 'accuFilePathGet'
   | 'getCmpDiffListData'
   | 'getCmpErrorListData'
+  | 'getTaskCmpErrorListData'
   | 'getPrecisionExceptList';
 export type IComRefs = {
   CalleeMap: unknown;
@@ -51,6 +52,7 @@ export type IComRefs = {
   AccuFilePath: unknown,
   CmpDiffList: unknown,
   cmpErrorList: unknown;
+  taskCmpErrorList: unknown;
   precisionExceptList: unknown;
   InitComGraph: unknown;
   InitDiffComGraph: unknown;
@@ -103,11 +105,25 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
     keyword?: string;
   }) => Promise<void>;
   getCmpErrorListData?: (data: {
-    res?: string;
+    cmpCsvPath: string;
+    comgraphPath?: string;
     pageSize?: number;
     startOffset?: number;
     keyword?: string;
     readFlag?: boolean;
+    rootFuncHash?: string;
+    loopInfo?: string;
+  }) => Promise<void>;
+  getTaskCmpErrorListData?: (data: {
+    cmpCsvPath: string;
+    comgraphPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    keyword?: string;
+    readFlag?: boolean;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    rootFuncHash?: string;
+    loopInfo?: string;
   }) => Promise<void>;
   getPrecisionExceptList?: (data: {
     filePath: string;
@@ -216,6 +232,7 @@ export type ISwimRefs = {
   unbindResult: unknown;
   dataError: unknown;
   performanceWarn: unknown;
+  locateNodeResult: unknown;
 };
 export interface ISwimViewServer extends ViewServer<ISwimApis, ISwimRefs> {
   getInitialData: () => Promise<void>;
@@ -328,12 +345,16 @@ export type IOpCheckApis =
   | 'getPrecisionExceptList'
   | 'setCurAccuFilePathApi'
   | 'openCmpDiffComGraphApi'
-  | 'getCmpErrorListData';
+  | 'getCmpErrorListData'
+  | 'getTaskCmpDiffListData'
+  | 'getTaskCmpErrorListData';
 
 export type IOpCheckRefs = {
   cmpDiffList: unknown;
   precisionExceptList: unknown;
   cmpErrorList: unknown;
+  taskCmpDiffList: unknown;
+  taskCmpErrorList: unknown;
 };
 
 export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRefs> {
@@ -365,5 +386,78 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
     startOffset?: number;
     res?: string;
     keyword?: string;
+    loopInfo?: string;
+  }) => Promise<void>;
+  getTaskCmpDiffListData: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+  }) => Promise<void>;
+  getTaskCmpErrorListData: (data: {
+    cmpCsvPath: string;
+    comgraphPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    keyword?: string;
+    readFlag?: boolean;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    loopInfo?: string;
+  }) => Promise<void>;
+}
+
+export type ITaskCheckApis =
+  | 'getTaskCheckList'
+  | 'getTaskDetail'
+  | 'getTaskCmpDiffListData'
+  | 'getPrecisionExceptList'
+  | 'openTaskCmpDiffComGraphApi'
+  | 'openSwimGraphApi';
+
+export type ITaskCheckRefs = {
+  taskCheckList: unknown;
+  taskDetail: unknown;
+  taskCmpDiffList: unknown;
+  precisionExceptList: unknown;
+};
+
+export interface ITaskCheckViewServer extends ViewServer<ITaskCheckApis, ITaskCheckRefs> {
+  getTaskCheckList: (data: {
+    outputPath: string;
+  }) => Promise<void>;
+  getTaskDetail: (data: {
+    taskId: string;
+  }) => Promise<void>;
+  getTaskCmpDiffListData: (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+    phaseName?: string;
+    funcHash?: string;
+    readFlag?: boolean;
+  }) => Promise<void>;
+  getPrecisionExceptList: (data: {
+    filePath: string;
+    fileName: string;
+  }) => Promise<void>;
+  openTaskCmpDiffComGraphApi: (data: {
+    filePath: string;
+    funcHash: string;
+    passName: string;
+    loopInfo?: string;
+    fileType?: string;
+    cmpCsvPath?: string;
+    computeGraphDirPath?: string;
+    flowVerifyPath?: string;
+    rootFuncHash?: string;
+  }) => Promise<void>;
+  openSwimGraphApi: (data: {
+    swimPath: string;
+    seqNo: number;
+    taskId: number;
   }) => Promise<void>;
 }

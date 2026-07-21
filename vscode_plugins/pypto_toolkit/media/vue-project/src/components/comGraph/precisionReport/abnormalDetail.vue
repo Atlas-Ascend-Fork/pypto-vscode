@@ -12,7 +12,7 @@
     <div class="detail-magic-id">
       <div class="magic-id-text">
         <i class="icon icon-chevron-left-2" @click="() => emits('back')"></i>
-        {{ isOpCheck ? 'Op Magic ID:' : 'Raw Magic ID:' }} {{ props.rowData.aOpMagic || props.rowData.rawMagic }}
+        {{ isOpCheck ? 'Op Magic ID:' : 'Raw Magic ID:' }} {{ props.rowData.aOpMagic || props.rowData.rawMagic || props.rowData.rootCallRawmagic }}
       </div>
       <div class="magic-id-tag dtype">
           Dtype
@@ -80,30 +80,68 @@ const onSingleColumnSort = () => {
   tabContentRef.value?.resetCustomSort();
 };
 
-// opcheck 类型时，summaryInfo 从 rowData 获取
+// opcheck/taskcheck 类型时，summaryInfo 从 rowData 获取
 watch(() => props.rowData, (data) => {
-  // 只有 opcheck 类型才从 rowData 获取 summaryInfo
-  if (data?.currentFileType?.startsWith('op') && Object.keys(data).length > 0) {
+  if (Object.keys(data).length === 0) return;
+
+  const currentFileType = data?.currentFileType;
+
+  if (currentFileType?.startsWith('op')) {
+    // op 类型：直接使用 rowData
     summaryInfo.value = data as unknown as AbnormalNodeOverviewInfo;
+  } else if (currentFileType?.startsWith('task')) {
+    // task 类型：从 rowData 映射字段
+    // 注意：aMax, aMin 等字段在 aOp 中，bMax, bMin 等被映射为 taskMax, taskMin 在 taskOp 中
+    summaryInfo.value = {
+      dataType: data.taskDataType || '',
+      validShape: data.taskValidshape || '',
+      loopInfo: data.taskLoopVarInfos || '',
+      rtolAtol: data.rtolAtol || '0.001, 0.001',
+      totalCount: data.totalCount || '0',
+      zeroCount: data.zeroCount || '0',
+      tolCnt: data.tolCnt || '0',
+      warn: data.warn || '0',
+      fail: data.fail || '0',
+      cntTotalZeroInfnanCnt: data.cntTotalZeroInfnanCnt || '0/0/0',
+      cntFailWarnTol: data.cntFailWarnTol || '0/0',
+      mre: data.mre || '',
+      mreTop8: data.mreTop8 || '',
+      mreTop1permil: data.mreTop1permil || '',
+      mae: data.mae || '',
+      maeTop8: data.maeTop8 || '',
+      maeTop1permil: data.maeTop1permil || '',
+      // A 数据：直接从 rowData 获取（aOp 展开后）
+      aMax: data.aMax || '',
+      aMin: data.aMin || '',
+      aAvg: data.aAvg || '',
+      aAavg: data.aAavg || '',
+      aInfnan: data.aInfnan || '',
+      // B 数据：从 taskMax, taskMin 等字段获取（taskOp 展开后，bMax → taskMax）
+      bMax: data.taskMax || data.bMax || '',
+      bMin: data.taskMin || data.bMin || '',
+      bAvg: data.taskAvg || data.bAvg || '',
+      bAavg: data.taskAavg || data.bAavg || '',
+      bInfnan: data.taskInfnan || data.bInfnan || '',
+    };
   }
 }, { immediate: true });
 
-// 监听 AccurancyDetail (非 opcheck 类型)
+// 监听 AccurancyDetail (brief 类型)
 watch(server.AccurancyDetail, (val: Record<string, any>) => {
-  // 非 opcheck 类型时，summaryInfo 从 AccurancyDetail 返回值获取
   const currentFileType = props.rowData?.currentFileType;
-  if (!currentFileType?.startsWith('op')) {
+  // brief 类型时，summaryInfo 从 AccurancyDetail 返回值获取
+  if (!currentFileType?.startsWith('op') && !currentFileType?.startsWith('task')) {
     summaryInfo.value = val?.data?.failSummary ?? {};
   }
   originTableData = transferCompareTableData(val?.data?.failDetailList);
   compareTableData.value = JSON.parse(JSON.stringify(originTableData));
 });
 
-// 监听 precisionExceptList (opcheck 类型)
+// 监听 precisionExceptList (op/task 类型)
 watch(() => server.precisionExceptList?.value, (newValue) => {
-  // 只有 opcheck 类型才处理 precisionExceptList
   const currentFileType = props.rowData?.currentFileType;
-  if (!currentFileType?.startsWith('op')) {
+  // op 和 task 类型都处理 precisionExceptList
+  if (!currentFileType?.startsWith('op') && !currentFileType?.startsWith('task')) {
     return;
   }
   if (newValue && Array.isArray(newValue)) {
@@ -154,23 +192,33 @@ function transferPrecisionExceptData(data: Record<string, any>[]): AbnormalNodeC
 }
 
 onMounted(() => {
-  const { currentFileType, currentFilePath, loopInfo, aOpMagic, rawMagic, aFileName, bFileName } = props.rowData || {};
+  const { currentFileType, currentFilePath, loopInfo, aOpMagic, rawMagic, aFileName, bFileName, taskNo, fileName } = props.rowData || {};
 
-  // opcheck 类型调用 getPrecisionExceptList
+  // op 类型调用 getPrecisionExceptList
   if (currentFileType?.startsWith('op') && currentFilePath) {
     const filePath = currentFilePath.replace(/\.csv$/i, '');
     // 都使用 bFileName
-    const fileName = (bFileName || '').replace(/\.data$/i, '').replace(/-/g, '~');
+    const opFileName = (bFileName || '').replace(/\.data$/i, '').replace(/-/g, '~');
 
-    if (fileName) {
-      console.log('getPrecisionExceptList', filePath, fileName);
+    if (opFileName) {
       server.getPrecisionExceptList?.({
         filePath,
-        fileName,
+        fileName: opFileName,
+      });
+    }
+  } else if (currentFileType?.startsWith('task') && currentFilePath) {
+    // task 类型调用 getPrecisionExceptList
+    const filePath = currentFilePath.replace(/\.csv$/i, '');
+    const taskFileName = (fileName || '').replace(/\.data$/i, '').replace(/-/g, '~');
+
+    if (taskFileName) {
+      server.getPrecisionExceptList?.({
+        filePath,
+        fileName: taskFileName,
       });
     }
   } else {
-    // 非 opcheck 类型调用 getAccurancyDetail
+    // brief 类型调用 getAccurancyDetail
     server.getAccurancyDetail({ data: { loopInfo, rawMagic: aOpMagic || rawMagic } });
   }
 });

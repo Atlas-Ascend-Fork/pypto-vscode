@@ -627,9 +627,9 @@ const validData = (dataStr) => {
   }
 };
 
-const loadTraceData = (data) => {
+const loadTraceData = (data, locateTarget) => {
   try {
-    processTraceData(data);
+    processTraceData(data, locateTarget);
     loading.value = false;
     loadingComplete.value = false;
   } catch (error) {
@@ -773,7 +773,7 @@ const splitThreadsByEventName = (process, processKey) => {
   process.threads = sortThreadsMap(newThreads);
 };
 
-const processTraceData = (data) => {
+const processTraceData = (data, locateTarget) => {
   initBasicTraceInfo(data);
   prepareProcesses(data);
   handleMsProfSplit(data);
@@ -784,7 +784,7 @@ const processTraceData = (data) => {
   swimDataManager.splitAllEvents();
   finalizeE2EStatus();
   handleMixModeLayout();
-  scheduleRender();
+  scheduleRender(locateTarget);
 };
 
 const initBasicTraceInfo = (data) => {
@@ -920,7 +920,7 @@ const handleMixModeLayout = () => {
   }
 };
 
-const scheduleRender = () => {
+const scheduleRender = (locateTarget) => {
   nextTick(() => {
     initCanvases();
     resizeCanvases();
@@ -928,6 +928,11 @@ const scheduleRender = () => {
     // 恢复置顶状态
     restorePinnedState();
     initResizeObserver();
+    if (locateTarget) {
+      nextTick(() => {
+        locateEventBySeqNoTaskId(locateTarget.seqNo, locateTarget.taskId);
+      });
+    }
   });
 };
 
@@ -2587,7 +2592,7 @@ const doResizeFullPhase = () => {
   }
   drawMeasureTime();
   timelineComponent.value.observationLineResize();
-  childContextMap.threadEvent.distanceMeasurementResize();
+  childContextMap.threadEvent?.distanceMeasurementResize();
   if (aicpuCoreDetailsExpanded.value) {
     aicpuCoreDetailComponent.value.renderCoreDetailCanvas();
     drawKernalEvents();
@@ -3200,6 +3205,63 @@ onUnmounted(() => {
   onVerticalScroll.cancel();
 });
 
+const locateEventBySeqNoTaskId = (seqNo, taskId) => {
+  if (isPerfSwim.value || isMsProf.value) {
+    server.showMessage({ paramObj: { text: $t('swimGraphUnsupportedType') } });
+    return;
+  }
+  const entry = swimDataManager.getEventBySeqNoTaskId(seqNo, taskId);
+  if (!entry) {
+    server.showMessage({ paramObj: { text: $t('swimGraphNodeNotFound', { seqNo, taskId }) } });
+    return;
+  }
+  const { event: foundEvent, processKey: foundProcessKey } = entry;
+  if (!processExpanded.get(foundProcessKey)) {
+    toggleProcess(foundProcessKey);
+  }
+  nextTick(async () => {
+    const eventX = foundEvent.renderInfo?.x || 0;
+    const eventW = foundEvent.renderInfo?.width || 0;
+    const eventWidth = eventW * viewState.scale;
+    const canvasCssWidth = viewState.canvasCssWidth || containerWidth.value;
+    if (eventWidth < 160 && eventWidth > 0) {
+      const zoomFactor = 160 / eventWidth;
+      const screenCenterX = (eventX + eventW / 2) * viewState.scale + viewState.offsetX;
+      timelineComponent.value?.changeScale(zoomFactor, screenCenterX, false, false);
+    }
+    const wasPanelClosed = !detailsPanelExpanded.value;
+    selectEvent(foundEvent, foundProcessKey);
+    if (wasPanelClosed) {
+      await new Promise(resolve => {
+        const detailPanel = document.querySelector('.details-panel');
+        if (detailPanel) {
+          detailPanel.addEventListener('transitionend', resolve, { once: true });
+          setTimeout(resolve, 350);
+        } else {
+          resolve();
+        }
+      });
+    }
+    swimgraphHeaderComponent.value?.scrollToEventByDom(foundEvent);
+    const scaledCenterX = (eventX + eventW / 2) * viewState.scale;
+    const targetOffsetX = canvasCssWidth / 2 - scaledCenterX;
+    const shift = targetOffsetX - viewState.offsetX;
+    if (shift > 0) {
+      swimgraphHeaderComponent.value?.rightmove(shift, true);
+    } else if (shift < 0) {
+      swimgraphHeaderComponent.value?.leftmove(-shift, true);
+    }
+  });
+};
+
+watch(() => server.locateNodeResult?.value, (newVal) => {
+  if (newVal && newVal.seqNo !== undefined && newVal.taskId !== undefined) {
+    nextTick(() => {
+      locateEventBySeqNoTaskId(newVal.seqNo, newVal.taskId);
+    });
+  }
+});
+
 onMounted(async () => {
   setupSwimWatchers();
   initEventListeners();
@@ -3222,6 +3284,7 @@ onMounted(async () => {
   }
   isGuidePage.value = resData?.isBootStep;
 
+  let locateTargetObj = null;
   try {
     const res = await getOtherData();
     data.config = res.configuration;
@@ -3231,6 +3294,7 @@ onMounted(async () => {
     isPerfSwim.value = res.isPerfSwim;
     isMsProf.value = res.isMsProf || false;
     setDebugMode(res.isDebug || false);
+    locateTargetObj = res.locateTarget;
   } catch (err) {
     console.log('parse other data error:', err);
   }
@@ -3263,7 +3327,7 @@ onMounted(async () => {
   }
 
   setPageState(data);
-  loadTraceData(data.swimData);
+  loadTraceData(data.swimData, locateTargetObj);
 
   if (BlockToGraphMap[currentActiveBlock.value] && BlockToGraphMap[currentActiveBlock.value] === 'swimGraph') {
     isSwimGraphActive.value = true;

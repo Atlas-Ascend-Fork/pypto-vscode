@@ -9,9 +9,8 @@
  */
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 import { parse } from 'csv-parse/sync'; // 同步解析，简单场景可用
-import { AccuracyToolData, AccuracyToolCmpData, AccuracyToolCmpDetailData, SQLiteCache } from '../core/sqliteCache';
+import { AccuracyToolData, AccuracyToolCmpData, AccuracyToolCmpDetailData, SQLiteCache, AccuracyToolTaskCmpData, AccuracyToolTaskDetailData } from '../core/sqliteCache';
 import * as readline from 'readline';
 import { t } from 'i18next';
 import { getSortedVerifyFiles } from './accurancyAnylasis';
@@ -24,11 +23,10 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
   try {
     const buffer = fs.readFileSync(oriFilePath);
     let content = buffer.toString('utf-8');
-     // === 移除 UTF-8 BOM 头 ===
-    if (content.charCodeAt(0) === 0xFEFF) {
+    // === 移除 UTF-8 BOM 头 ===
+    if (content.charCodeAt(0) === 0xfeff) {
       content = content.slice(1);
     }
-
 
     const records = parse(content, {
       columns: true,
@@ -102,7 +100,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           bRawShape: row['B>:rawshape'],
           bFormat: row['B>:format'],
           bFileName: row['B>FILENAME'],
-          
+
           // A组信息
           aPhaseName: row['A>PHASE_NAME'],
           aFuncHash: row['A>FUNC:hash']?.endsWith("'") ? row['A>FUNC:hash'].slice(0, -1) : row['A>FUNC:hash'],
@@ -157,6 +155,104 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           abTol: row['AB>tol'],
         };
         await SQLiteCache.getInstance().accuracyToolCmpDetailSet(detailData);
+      } else if (type === 4) {
+        const dataToSave: AccuracyToolTaskCmpData = {
+          // 暂时使用 any，建议替换为具体接口
+          // --- 基础信息 ---
+          sourceFileName: oriFilePath,
+          no: row['NO.'],
+          phaseName: row['B>PHASE_NAME'],
+          
+          rootCallOpmagic: row['ROOT_CALL:opmagic'],
+          rootCallRawmagic: row['ROOT_CALL:rawmagic'],
+
+          rootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
+          funcHash: row['FUNC:hash']?.endsWith("'") ? row['FUNC:hash'].slice(0, -1) : row['FUNC:hash'],
+          timestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
+
+          // --- 形状与类型 ---
+          // offset: row['B>offset'],
+          // rawShape: row['B>rawShape'],
+          // tensorAddr: row['B>tensorAddr'],
+          // loopVarInfos: row['B>loopVarInfos'],
+          // execStart: row['B>execStart'],
+          // execEnd: row['B>execEnd'],
+          // funcId: row['B>funcId'],
+          // taskId: row['B>taskId'],
+          ioFlag: row['IO_FLAG'],
+          // seqNo: row['B>seqNo'],
+          fileName: row['B>FILENAME'], // 用于关联详情文件
+
+          // --- A组数据 ---
+          aPhaseName: row['A>PHASE_NAME'],
+          aValidshape: row['A>validshape'],
+          aDatatype: row['A>datatype'],
+
+          // --- B组数据
+          bValidShape: row['B>validshape'],
+          bDataType: row['B>datatype'],
+          bFuncId: row['B>funcId'],
+          bTaskId: row['B>taskId'],
+          bOffset: row['B>offset'],
+          bExecStart: row['B>execStart'],
+          bExecEnd: row['B>execEnd'],
+          bRawShape: row['B>rawShape'],
+          bTensorAddr: row['B>tensorAddr']?.endsWith("'") ? row['B>tensorAddr'].slice(0, -1) : row['B>tensorAddr'],
+          bSeqNo: row['B>seqNo'],
+          bLoopVarInfos: row['B>loopVarInfos'],
+
+          // --- 结果统计 ---
+          result: row['AB>RESULT'],
+          rtolAtol: row['AB>rtol/atol'],
+          cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
+          cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
+
+          // --- 误差指标 ---
+          mae: row['AB>mae'],
+          maeTop8: row['AB>mae_top8'],
+          maeTop1permil: row['AB>mae_top1permil'],
+          mre: row['AB>mre'],
+          mreTop8: row['AB>mre_top8'],
+          mreTop1permil: row['AB>mre_top1permil'],
+
+          // --- A组统计值 ---
+          aMax: row['A>max'],
+          aMin: row['A>min'],
+          aAvg: row['A>avg'],
+          aAavg: row['A>aavg'],
+          aZero: row['A>zero'],
+          aInfnan: row['A>infnan'],
+
+          // --- B组统计值 ---
+          bMax: row['B>max'],
+          bMin: row['B>min'],
+          bAvg: row['B>avg'],
+          bAavg: row['B>aavg'],
+          bZero: row['B>zero'],
+          bInfnan: row['B>infnan'],
+        };
+
+        // 保存到数据库
+        await SQLiteCache.getInstance().accuracyToolTaskCmpSet(dataToSave);
+      } else if (type === 5) {
+        const cleanRow: Record<string, any> = {};
+        for (const [key, value] of Object.entries(row)) {
+          cleanRow[key.trim()] = value;
+        }
+        const dataToSave: AccuracyToolTaskDetailData = {
+          sourceFileName: oriFilePath,
+
+          group: cleanRow['GROUP'] ?? '',
+          index: cleanRow['INDEX'] ?? '',
+          offset: cleanRow['OFFSET'] ?? '',
+          offsetRaw: cleanRow['OFFSET_RAW'] ?? '',
+          aData: cleanRow['A>data'] ?? '',
+          bData: cleanRow['B>data'] ?? '',
+          ae: cleanRow['AB>ae'] ?? '',
+          re: cleanRow['AB>re'] ?? '',
+          tol: cleanRow['AB>tol'] ?? '',
+        };
+        await SQLiteCache.getInstance().accuracyToolTaskDetailSet(dataToSave);
       } else {
         vscode.window.showWarningMessage(t('pypto.unsupportedCsvType', { type }));
         return false;
@@ -181,14 +277,20 @@ export async function getCsvData(oriFilePath: string, type: number = 1) {
   } else if (type === 3) {
     const result = await SQLiteCache.getInstance().accuracyToolCmpDetailGetByFilePath(oriFilePath);
     console.log('getCsvData:', result);
+  } else if (type === 4) {
+    const result = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(oriFilePath, 50, 0);
+    console.log('getCsvData:', result);
+  } else if (type === 5) {
+    const result = await SQLiteCache.getInstance().accuracyToolTaskDetailGet(oriFilePath);
+    console.log('getCsvData:', result);
   } else {
     vscode.window.showWarningMessage(t('pypto.unsupportedCsvType', { type }));
     return false;
   }
 }
-export async function getCmpFileList(cmpListUrl) {
+export async function getCmpFileList(cmpListUrl, from="opcheck") {
   try {
-    const resultFiles = getSortedVerifyFiles(cmpListUrl);
+    const resultFiles = getSortedVerifyFiles(cmpListUrl, from);
     return resultFiles;
   } catch (error: any) {
     console.error('处理失败:', error.message);

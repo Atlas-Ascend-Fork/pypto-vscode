@@ -185,5 +185,6 @@
   "pypto.download.save": "保存",
   "pypto.download.invalidBase64": "无效的 Base64 数据",
   "pypto.download.invalidFilePath": "无效的文件路径",
-  "pypto.download.downloadFileFail": "保存文件出错"
+  "pypto.download.downloadFileFail": "保存文件出错",
+  "pypto.OpenSwimGraph": "PyPTO Toolkit: 打开泳道图"
 }

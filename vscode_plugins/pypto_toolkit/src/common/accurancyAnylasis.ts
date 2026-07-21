@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync'; // 同步解析，简单场景可用
-import { AccuracyToolData, SQLiteCache } from '../core/sqliteCache'; // 同步解析，简单场景可用
+import { AccuracyToolData, SQLiteCache, TaskCmpFilterWord } from '../core/sqliteCache'; // 同步解析，简单场景可用
 import { SmartLogExtractor, getCsvData, readCsv } from '../common/csvReader';
 import { t } from 'i18next';
 
@@ -110,7 +110,7 @@ export async function getResDataSum(filePath: string | undefined, flowVerifyPath
 }
 
 export async function getPassInfoOfSinglePath(filePath: string, funcMagicName: string) {
-   const dirPath = vscode.Uri.file(filePath).fsPath;
+    const dirPath = vscode.Uri.file(filePath).fsPath;
     const csvPath = path.join(dirPath, 'verify_graph_result_brief.csv');
     if (!fs.existsSync(csvPath)) {
         console.log(`文件不存在: ${csvPath}`);
@@ -164,29 +164,6 @@ async function getPassDistribution(filePath: string, computeGraphDirPath: string
     const fullDistribution = Object.assign({}, passDistribution, {'SKIP': finalSkipCnt});
 
     return fullDistribution;
-}
-
-function mergePhaseResults (passDistribution: PhaseItem[]): PhaseItem[] {
-    const priorityMap: Record<string, number> = {'EXCEPTION': 3, 'FAIL': 2, 'PASS': 1};
-    const passList: PhaseItem[] = [];
-    const phaseIndexMap = new Map<string, number>();
-    
-    for (const item of passDistribution) {
-        const currentPriority = priorityMap[item.result];
-        const existingIndex = phaseIndexMap.get(item.phaseName);
-    
-        if (existingIndex === undefined) {
-            phaseIndexMap.set(item.phaseName, passList.length);
-            passList.push({ ...item });
-        } else {
-            const existing = passList[existingIndex];
-            if (currentPriority > priorityMap[existing.result]) {
-                passList[existingIndex] = { ...item };
-            }
-        }
-    }
-
-    return Array.from(passList.values());
 }
 
 interface PassInfo {
@@ -315,7 +292,8 @@ export async function getComGraphOpMagic(
     comgraphFuncHash?: string,
     filePassName?: string,
     keyword: string = '',
-    rootFuncHash?: string
+    rootFuncHash?: string,
+    oriLoopInfo?: string
   ): Promise<{ wrongOpMagicList: number[]; failRes: number, updateFlag: boolean}> {
     const filePath = directoryPath;
     if (!filePath || filePath.length === 0) {
@@ -325,7 +303,7 @@ export async function getComGraphOpMagic(
     let failCount = -1;
     failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL');
 
-    const result = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, 10000, 0, '', funcMagicName, comgraphFuncHash, filePassName, rootFuncHash);
+    const result = await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, 10000, 0, '', '', comgraphFuncHash, filePassName, rootFuncHash, oriLoopInfo);
 
     const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
     const fileCol = accurancyLevel?.fileType.split('_')[1];
@@ -510,7 +488,7 @@ export async function getComGraphDataDetail(filePath: string, phaseName: string,
  * @returns 按时间戳倒序排列的文件完整路径数组（最新文件在最前）
  * @throws 当路径无效或非目录时抛出错误
  */
-export function getSortedVerifyFiles(directoryPath: string): string[] {
+export function getSortedVerifyFiles(directoryPath: string, from: string): string[] {
   // 验证目录有效性
   if (!fs.existsSync(directoryPath)) {
     throw new Error(`目录不存在: ${directoryPath}`);
@@ -522,7 +500,12 @@ export function getSortedVerifyFiles(directoryPath: string): string[] {
   }
 
   // 正则匹配：捕获最后一个 ~ 和 .csv 之间的纯数字时间戳
-  const filenamePattern = /^verify_graph_result_cmp~.*~(\d+)\.csv$/;
+  let filenamePattern;
+  if (from === "opcheck") {
+    filenamePattern = /^verify_graph_result_cmp~.*~(\d+)\.csv$/;
+  } else {
+    filenamePattern = /^verify_task_result_cmp~.*~(\d+)\.csv$/;
+  }
   const timestampFiles: { timestamp: number; filePath: string }[] = [];
 
   // 同步读取目录内容
@@ -778,15 +761,36 @@ export async function getFailMagicList(
   comgraphFuncHash: string | undefined,
   loopInfo?: string,
   fileType?: string,
+  outputPath?: string,
   flowVerifyPath?: string,
   computeGraphDirPath?: string,
   rootFuncHash?: string,
 ) {
 
   let failMagicList;
-  if (fileType?.startsWith('op')) {
-    const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
-    const csvPath = accurancyLevel?.filePath || '';
+  if (fileType?.startsWith('task')) {
+    const csvPath = outputPath || '';
+
+    const failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(csvPath, 'FAIL', undefined, undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo);
+    const result = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(csvPath, 10000, 0, 'FAIL', undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo);
+
+    const wrongTaskNoList: string[] = [];
+    for (const singleRes of result) {
+      if (singleRes.no) {
+        wrongTaskNoList.push(singleRes.no);
+      }
+    }
+
+    const updateCompareListFlag = await updateCompListFirstReq(csvPath, String(failCount));
+
+    failMagicList = {
+      accuType: 'task',
+      failMagicList: wrongTaskNoList,
+      failRes: failCount,
+      updateFlag: updateCompareListFlag,
+    };
+  } else if (fileType?.startsWith('op')) {
+    const csvPath = outputPath || '';
 
     // phasename 和 funchash必须匹配上
     const recordPhaseList = [...csvPath.matchAll(/Pass_(\d+)/g)].map(m => m[1]);
@@ -807,7 +811,7 @@ export async function getFailMagicList(
     const graphFileName = path.basename(comgraphFilePath, path.extname(comgraphFilePath));
     const funcMagicName = graphFileName.match(/^.*?_.*?_.*?_(.*?)_LEAF/)?.[1];
 
-    const failOpMagicList = await getComGraphOpMagic(csvPath, funcMagicName, comgraphFuncHash, filePassName, loopInfo, rootFuncHash);
+    const failOpMagicList = await getComGraphOpMagic(csvPath, '', comgraphFuncHash, filePassName, '', rootFuncHash, loopInfo);
     failMagicList = {
       accuType: 'op',
       failMagicList: failOpMagicList.wrongOpMagicList,
@@ -852,25 +856,24 @@ export async function getCmpErrorList(
     readFlag: boolean = true, 
     pageSize: number = 50, 
     startOffset: number = 0, 
-    keyword: string = ''
+    keyword: string = '',
+    rootFuncHash?: string,
+    oriLoopInfo?: string,
 ) {
-    const phaseName = path.basename(path.dirname(comgraphPath)) ?? '';
     const comgraphfileName = path.basename(comgraphPath, '.json');
-    const matchList = comgraphfileName.match(/(?:[^_]*_){3}([^]*?)_LEAF/);
-    const funcMagicName = matchList?.[1] ?? '';
     const funcHash = comgraphfileName.split('_').at(-1) ?? '';
 
     let failCount = -1;
     let excepCount = -1;
     let totalCount = -1;
     let listSum = 0;
-    totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, '', '', funcMagicName, funcHash, phaseName);
-    failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL', '', funcMagicName, funcHash, phaseName);
-    excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION', '', funcMagicName, funcHash, phaseName);
+    totalCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, '', '', '', funcHash, '', rootFuncHash, oriLoopInfo);
+    failCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'FAIL', '', '', funcHash, '', rootFuncHash, oriLoopInfo);
+    excepCount = await SQLiteCache.getInstance().accuracyToolCmpGetCountByFilePath(filePath, 'EXCEPTION', '', '', funcHash, '', rootFuncHash, oriLoopInfo);
     
     const realOffset = startOffset * pageSize;
     const { total: failCountFromDb, list: errorList } = 
-            await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword, funcMagicName, funcHash, phaseName);
+            await SQLiteCache.getInstance().getCmpErrorListByFilePath(filePath, pageSize, realOffset, keyword, '', funcHash, '', rootFuncHash, oriLoopInfo);
     listSum = failCountFromDb;
 
     const accurancyLevel = await SQLiteCache.getInstance().accuFilePathGet();
@@ -925,4 +928,165 @@ export async function updateCompListFirstReq(fileName: string, failCount: string
     return true;
   }
   return false;
+}
+
+interface TaskDiffItem {
+    aOp: Record<string, any> | undefined;
+    taskOp: Record<string, any> | undefined;
+    compareRes: string;
+    sharedRes: Record<string, any>;
+}
+
+export async function getTaskCmpList(
+    filePath: string,
+    readFlag: boolean = true,
+    pageSize: number = 50,
+    startOffset: number = 0,
+    res?: string,
+    keyword?: string,
+    phaseName?: string,
+    funcHash?: string,
+    filterWord?: TaskCmpFilterWord,
+    rootFuncHash?: string,
+    oriLoopInfo?: string,
+  ): Promise<{
+    diffList: TaskDiffItem[];
+    total: number;
+    failRes: number;
+    excepRes: number;
+    totalRes: number;
+    listSum: number;
+    updateFlag: boolean;
+  }> {
+    if (!filePath || filePath.length === 0) {
+      return { diffList: [], total: 0, failRes: 0, excepRes: -1, totalRes: -1, listSum: 0, updateFlag: false };
+    }
+    const type = 4;
+
+    let failCount = -1;
+    if (readFlag) {
+      await readCsv(filePath, type);
+      failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'FAIL');
+    }
+
+    let excepCount = -1;
+    let totalCount = -1;
+    totalCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, '', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
+    failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'FAIL', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
+    excepCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'EXCEPTION', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
+
+    const realOffset = startOffset * pageSize;
+    const [result, filteredTotal] = await Promise.all([
+      SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(filePath, pageSize, realOffset, res, keyword, undefined, filterWord, rootFuncHash, oriLoopInfo),
+      SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, res, keyword, undefined, undefined, filterWord, rootFuncHash, oriLoopInfo)
+    ]);
+
+    const diffList: TaskDiffItem[] = [];
+    for (const singleRes of result) {
+      const aOp: Record<string, any> = {};
+      const taskOp: Record<string, any> = {};
+      let compareRes = '';
+      const sharedRes: Record<string, any> = {};
+
+      for (const [key, value] of Object.entries(singleRes)) {
+        if (key === 'result') {
+          compareRes = value as string;
+        } else if (key.startsWith('a')) {
+          aOp[key] = value;
+        } else if (key.startsWith('b')) {
+          taskOp['task' + key.slice(1)] = value;
+        } else {
+          sharedRes[key] = value;
+        }
+      }
+
+      const aOpIsEmpty = Object.values(aOp).every(v => v === undefined || v === '');
+      const taskOpIsEmpty = Object.values(taskOp).every(v => v === undefined || v === '');
+
+      diffList.push({
+        aOp: aOpIsEmpty ? undefined : aOp,
+        taskOp: taskOpIsEmpty ? undefined : taskOp,
+        compareRes: compareRes || 'FAIL',
+        sharedRes,
+      });
+    }
+
+    let updateFlag = false;
+    if (readFlag) {
+      updateFlag = await updateCompListFirstReq(filePath, String(failCount));
+    }
+
+    return {
+      diffList,
+      total: filteredTotal,
+      failRes: failCount,
+      excepRes: excepCount,
+      totalRes: totalCount,
+      listSum: result.length,
+      updateFlag,
+    };
+}
+/**
+ * openCmpDiffComGraph 的进阶版：仅用 funcHash + passName 定位计算图 JSON
+ * 不再依赖 funcMagicName
+ */
+export async function openTaskCmpDiffComGraph(
+    filePath: string,
+    funcHash: string,
+    passName: string,
+    loopInfo?: string,
+    fileType?: string,
+    cmpCsvPath?: string,
+    computeGraphDirPath?: string,
+    flowVerifyPath?: string,
+    rootFuncHash?: string,
+  ): Promise<void> {
+    let parentDir: string = '';
+
+    if (computeGraphDirPath) {
+        parentDir = vscode.Uri.file(computeGraphDirPath).fsPath;
+    } else {
+        const currentDir = path.dirname(filePath);
+        parentDir = findComputationDir(currentDir);
+    }
+
+    if (!parentDir) {
+      vscode.window.showWarningMessage(t('pypto.computationDirNotFound'));
+      return;
+    }
+
+    const parentDirEntries = fs.readdirSync(parentDir, { withFileTypes: true });
+    const passDir = parentDirEntries.find(entry => entry.isDirectory() && entry.name.includes(passName));
+    if (!passDir) {
+      vscode.window.showWarningMessage(t('pypto.passDirNotFound', { passName }));
+      return;
+    }
+    const passSubDir = path.join(parentDir, passDir.name);
+
+    const passSubDirEntries = fs.readdirSync(passSubDir, { withFileTypes: true });
+    const resList = passSubDirEntries
+      .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+      .filter(entry => entry.name.includes(funcHash))
+      .map(entry => entry.name);
+
+    if (resList.length === 0) {
+      vscode.window.showWarningMessage(t('pypto.cmpJsonNotFound', { passSubDir, funcHash }));
+      return;
+    }
+
+    let targetComgraph: string;
+    if (resList.length === 1) {
+      targetComgraph = resList[0];
+    } else {
+      const afterFile = resList.find(name => name.startsWith('After'));
+      if (afterFile) {
+        targetComgraph = afterFile;
+      } else {
+        targetComgraph = resList[0];
+      }
+    }
+
+    const directPath = path.join(passSubDir, targetComgraph);
+
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash);
 }

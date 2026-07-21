@@ -184,5 +184,6 @@
   "pypto.download.save": "Save",
   "pypto.download.invalidBase64": "Invalid Base64",
   "pypto.download.invalidFilePath": "Invalid FilePath",
-  "pypto.download.downloadFileFail": "Download File Fail"
+  "pypto.download.downloadFileFail": "Download File Fail",
+  "pypto.OpenSwimGraph": "PyPTO Toolkit: Open Swimlane Graph"
 }

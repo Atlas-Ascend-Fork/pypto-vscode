@@ -734,18 +734,99 @@ export class AstgrOpView extends RectangularNodeView {
     const rectHeight = Math.min(node.size.height, 150);
 
     const opTagError = (comGraphStore.data.failOpMagicList ?? []).includes(Number(node.magic)) && (node.role === 'operation');
-    const accuracyErrorBorderOffset = 2;
+    const accuracyErrorBorderOuterColor = node.selected ? 'rgba(31,85,181,0.3)' : 'rgba(231,67,74,0.3)';
+    const accuracyErrorBorderInnerColor = node.selected ? 'rgba(31,85,181,1)' : 'rgba(231,67,74,1)';
+    const accuracyErrorBorderOuterSW = 2;
+    const accuracyErrorBorderInnerSW = 4;
+    const accuracyErrorBorderInnerRx = 8;
+    const accuracyErrorBorderOuterRx = accuracyErrorBorderInnerRx + accuracyErrorBorderInnerSW / 2 + accuracyErrorBorderOuterSW / 2;
+    const accuracyErrorBorderOuterOffset = accuracyErrorBorderInnerSW + accuracyErrorBorderOuterSW;
+    const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
+    const accuracyErrorIconSize = 16;
+    const isFirstErrorNode = opTagError && (Number(node.magic) === (comGraphStore.data.failOpMagicList ?? [])[0]);
+    const firstErrorText = '首错节点';
+    const firstErrorTextWidth = 56;
+    const bubbleIconPadding = 2;
+    const bubbleTextGap = 4;
+    const bubbleWidth = isFirstErrorNode
+      ? accuracyErrorIconSize + bubbleIconPadding * 2 + bubbleTextGap + firstErrorTextWidth
+      : accuracyErrorIconSize + bubbleIconPadding * 2;
+    const bubbleHeight = accuracyErrorIconSize + bubbleIconPadding * 2;
+    const bubbleX = rectWidth + accuracyErrorBorderOuterOffset / 2 + 4;
+    const bubbleY = -accuracyErrorIconSize / 2 - bubbleIconPadding;
     const accuracyErrorBorderNode = opTagError ? (
-      <rect
-        width={rectWidth + accuracyErrorBorderOffset}
-        height={rectHeight + accuracyErrorBorderOffset}
-        rx="10px"
-        stroke-width="4"
-        fill='transparent'
-        stroke="rgba(254, 180, 95, 0.5)"
-        style={{ transform: `translate(-${accuracyErrorBorderOffset / 2}px, -${accuracyErrorBorderOffset / 2}px)` }}
-        class-accuracy-error-border={true}
-      ></rect>
+      <g>
+        <rect
+          width={rectWidth + accuracyErrorBorderOuterOffset}
+          height={rectHeight + accuracyErrorBorderOuterOffset}
+          rx={accuracyErrorBorderOuterRx}
+          fill="transparent"
+          style={{
+            transform: `translate(-${accuracyErrorBorderOuterOffset / 2}px, -${accuracyErrorBorderOuterOffset / 2}px)`,
+            stroke: accuracyErrorBorderOuterColor,
+            strokeWidth: String(accuracyErrorBorderOuterSW),
+          }}
+        ></rect>
+        <rect
+          width={rectWidth}
+          height={rectHeight}
+          rx={accuracyErrorBorderInnerRx}
+          fill="transparent"
+          style={{
+            stroke: accuracyErrorBorderInnerColor,
+            strokeWidth: String(accuracyErrorBorderInnerSW),
+          }}
+        ></rect>
+        <g class-accuracy-error-icon={true}>
+          <rect
+            x={bubbleX}
+            y={bubbleY}
+            width={bubbleWidth}
+            height={bubbleHeight}
+            rx="4"
+            fill="rgba(255,200,0,0.3)"
+          ></rect>
+          <image
+            href={linkSvgPath}
+            x={bubbleX + bubbleIconPadding}
+            y={-accuracyErrorIconSize / 2}
+            width={accuracyErrorIconSize}
+            height={accuracyErrorIconSize}
+            style-cursor="pointer"
+            style-pointer-events="all"
+          ></image>
+          {isFirstErrorNode && (
+            <text
+              x={bubbleX + bubbleIconPadding + accuracyErrorIconSize + bubbleTextGap}
+              y={-accuracyErrorIconSize / 2 + accuracyErrorIconSize / 2}
+              font-size="12"
+              fill="rgba(231,67,74,1)"
+              text-anchor="start"
+              dominant-baseline="central"
+              style-pointer-events="none"
+            >{firstErrorText}</text>
+          )}
+          <g class-accuracy-error-tooltip={true}>
+            <rect
+              x={bubbleX - 6}
+              y={bubbleY - 26}
+              width={bubbleWidth + 12}
+              height={20}
+              rx="4"
+              fill="rgba(128,128,128,0.8)"
+            ></rect>
+            <text
+              x={bubbleX + bubbleWidth / 2}
+              y={bubbleY - 16}
+              font-size="12"
+              fill="#fff"
+              text-anchor="middle"
+              dominant-baseline="central"
+              style-pointer-events="none"
+            >Fail</text>
+          </g>
+        </g>
+      </g>
     ) : null;
 
     const runningNodeRectOffset = 16;
@@ -783,7 +864,7 @@ export class AstgrOpView extends RectangularNodeView {
         <rect
           class-op={true}
           class-sprotty-node={true}
-          class-selected={node.selected}
+          class-selected={node.selected && !opTagError}
           class-call-operation={isCallOperation}
           width={rectWidth}
           height={rectHeight}

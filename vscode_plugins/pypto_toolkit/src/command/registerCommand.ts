@@ -16,7 +16,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { readCsv, getCsvData } from '../common/csvReader';
 import * as fs from 'fs';
-import { parseJson } from '../view/servers/gm-memory-visual-server';
+import { SwimGraphMsgHandler } from '../handler/swimGraphMsgHandler';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -36,7 +36,7 @@ export class RegisterCommand {
         });
         const filePath = fileUri?.[0].fsPath ?? undefined;
         if (!filePath || filePath.length === 0) return;
-        const type = 3;
+        const type = 4;
         await readCsv(filePath, type);
         getCsvData(filePath, type);
       }),
@@ -59,9 +59,9 @@ export class RegisterCommand {
         }
         await this.openView('computeGraph', uri, undefined);
       }),
-      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string) => {
+      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string) => {
         if (!uri) return;
-        await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo);
+        await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo, rootFuncHash);
       }),
       commands.registerCommand('PyPTO.Open.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
@@ -83,6 +83,30 @@ export class RegisterCommand {
         if (!uri) return;
         const { editorView } = useView();
         await editorView.open('threeColumnGraph', uri);
+      }),
+      commands.registerCommand('PyPTO.Open.OpenSwimGraph', async (swimPath: string, seqNo: number, taskId: number) => {
+        if (!swimPath) return;
+        const uri = vscode.Uri.file(swimPath);
+        const { editorView } = useView();
+        let existingServer: any = null;
+        for (const [, server] of editorView.openServer) {
+          if (server.swimDataPath && server.swimDataPath.toLowerCase() === swimPath.toLowerCase() && typeof server.locateNode === 'function') {
+            existingServer = server;
+            break;
+          }
+        }
+        if (existingServer) {
+          existingServer.locateNode(seqNo, taskId);
+          return;
+        }
+        SwimGraphMsgHandler.setEventToLocate(seqNo, taskId);
+        await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(swimPath) });
+        const serverKey = `${swimPath}__`;
+        const server = editorView.openServer.get(serverKey);
+        if (server && typeof server.locateNode === 'function') {
+          SwimGraphMsgHandler.consumeEventToLocate();
+          server.locateNode(seqNo, taskId);
+        }
       }),
       commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
         this.closeAllToolPages();

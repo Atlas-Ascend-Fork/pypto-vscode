@@ -26,7 +26,7 @@ import { getHealthReport } from '../utils/health-report';
 import { readdirSync, promises } from 'fs';
 import * as vscode from 'vscode';
 import { getComGraphLayoutStore, getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
-import { getComGraphDataDetail, getComGraphDataSum, getComGraphRawMagic, getFailMagicList, searchKeyword } from '../common/accurancyAnylasis'
+import { getComGraphDataDetail, getComGraphDataSum, getFailMagicList, searchKeyword } from '../common/accurancyAnylasis'
 
 
 enum RequestSourceType {
@@ -784,12 +784,15 @@ export abstract class BaseGraphMsgHandler {
     }
 
     const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, 
-                                                server.query?.loopInfo, server.query?.fileType, 
-                                                server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash);
+                                                server.query?.loopInfo, server.query?.fileType, server.query?.outputPath, 
+                                                server.query?.flowVerifyPath, server.query?.computeGraphDirPath, 
+                                                server.query?.rootFuncHash);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
       const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
+      server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
+    } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'task')) {
       server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
     }
 

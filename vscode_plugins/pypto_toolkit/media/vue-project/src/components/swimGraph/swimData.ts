@@ -126,6 +126,7 @@ class SwimDataManager {
   private mixThreads: ThreadInfo[];
   private wrapThreadMap: Map<number, ThreadInfo[]>;
   private lane2line: Map<string, number>;
+  private seqNoTaskMap: Map<string, string>;
   
   private constructor() {
     this.processInfo = new Map();
@@ -138,6 +139,7 @@ class SwimDataManager {
     this.mixThreads = [];
     this.wrapThreadMap = new Map();
     this.lane2line = new Map();
+    this.seqNoTaskMap = new Map();
   }
   
   public static getInstance(): SwimDataManager {
@@ -163,6 +165,7 @@ class SwimDataManager {
     this.resetState();
     this.parseProcesses(data, isPerfSwim);
     this.copyLane2Line(data, lane2line);
+    this.buildSeqNoTaskMap(this.processInfo);
     this.updateFlag.value++;
   }
 
@@ -178,6 +181,7 @@ class SwimDataManager {
     this.mixThreads = [];
     this.wrapThreadMap.clear();
     this.lane2line.clear();
+    this.seqNoTaskMap.clear();
   }
 
   /** 解析 data.processes，构建 processInfo / eventMap / eventsByWrapId */
@@ -406,6 +410,32 @@ class SwimDataManager {
     this.mixThreads = [];
     this.wrapThreadMap.clear();
     this.lane2line.clear();
+    this.seqNoTaskMap.clear();
+  }
+
+  public buildSeqNoTaskMap(processInfo: Map<string, any>): void {
+    for (const [processKey, process] of processInfo.entries()) {
+      if (!process.threads) continue;
+      for (const [, thread] of process.threads.entries()) {
+        if (!thread.eventIds?.length || thread.isCounter) continue;
+        for (const eventId of thread.eventIds) {
+          const event = this.eventMap.get(eventId);
+          if (event.args?.seqNo === undefined || event.args?.taskId === undefined) continue;
+          const key = `${event.args.seqNo}-${event.args.taskId}`;
+          if (!this.seqNoTaskMap.has(key)) {
+            this.seqNoTaskMap.set(key, event.id);
+          }
+        }
+      }
+    }
+  }
+
+  public getEventBySeqNoTaskId(seqNo: number | string, taskId: number | string): { event: any; processKey: string } | undefined {
+    const eventId = this.seqNoTaskMap.get(`${seqNo}-${taskId}`);
+    if (!eventId) return undefined;
+    const event = this.eventMap.get(eventId);
+    if (!event) return undefined;
+    return { event, processKey: event.processKey };
   }
   public updateEvent(eventId: string, updates: Partial<EventDetail>): void {
     const event = this.eventMap.get(eventId);

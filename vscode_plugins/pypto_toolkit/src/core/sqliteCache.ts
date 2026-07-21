@@ -249,6 +249,77 @@ export interface PaginatedResult<T> {
   list: T[];
 }
 
+/**
+ * 定义数据接口，对应 accuracy_tool_task_cmp 表的字段
+ */
+export interface TaskCmpFilterWord {
+  rawMagic?: string;
+  opMagic?: string;
+  tensorAddr?: string;
+}
+
+export interface AccuracyToolTaskCmpData {
+  sourceFileName?: string;
+  no: string; // NO.
+  phaseName: string; // B>PHASE_NAME
+  rootCallOpmagic: string; // ROOT_CALL:opmagic
+  rootCallRawmagic: string; // ROOT_CALL:rawmagic
+  rootFuncHash: string; // ROOT_FUNC:hash
+  funcHash: string; // FUNC:hash
+  timestamp: string; // B>TIMESTAMP
+  ioFlag: string; // IO_FLAG
+  fileName: string; // B>FILENAME
+  aPhaseName: string; // A>PHASE_NAME
+  aValidshape: string; // A>validshape
+  aDatatype: string; // A>datatype
+  bValidShape: string; // B>validshape
+  bDataType: string; // B>datatype
+  bFuncId: string; // B>funcId
+  bTaskId: string; // B>taskId
+  bOffset: string; // B>offset
+  bExecStart: string; // B>execStart
+  bExecEnd: string; // B>execEnd
+  bRawShape: string; // B>rawShape
+  bTensorAddr: string; // B>tensorAddr
+  bSeqNo: string; // B>seqNo
+  bLoopVarInfos: string; // B>loopVarInfos
+  result: string; // AB>RESULT
+  rtolAtol: string; // AB>rtol/atol
+  cntFailWarnTol: string; // AB>fail_cnt/warn_cnt/tol_cnt
+  cntTotalZeroInfnanCnt: string; // AB>total_cnt/zero_cnt/infnan_cnt
+  mae: string; // AB>mae
+  maeTop8: string; // AB>mae_top8
+  maeTop1permil: string; // AB>mae_top1permil
+  mre: string; // AB>mre
+  mreTop8: string; // AB>mre_top8
+  mreTop1permil: string; // AB>mre_top1permil
+  aMax: string; // A>max
+  aMin: string; // A>min
+  aAvg: string; // A>avg
+  aAavg: string; // A>aavg
+  aZero: string; // A>zero
+  aInfnan: string; // A>infnan
+  bMax: string; // B>max
+  bMin: string; // B>min
+  bAvg: string; // B>avg
+  bAavg: string; // B>aavg
+  bZero: string; // B>zero
+  bInfnan: string; // B>infnan
+}
+
+export interface AccuracyToolTaskDetailData {
+  sourceFileName?: string;
+  group: string; // GROUP
+  index: string; // INDEX
+  offset: string; // OFFSET
+  offsetRaw: string; // OFFSET_RAW
+  aData: string; // A>data
+  bData: string; // B>data
+  ae: string; // AB>ae
+  re: string; // AB>re
+  tol: string; // AB>tol
+}
+
 export class SQLiteCache {
   private static _instance: SQLiteCache;
   private db: Database | undefined;
@@ -382,7 +453,7 @@ export class SQLiteCache {
         -- 复合主键
         PRIMARY KEY (file_path, "NO.")
       );
-  `);
+    `);
     this.db.run(`
       CREATE TABLE IF NOT EXISTS accuracy_tool_cmp (
         file_path TEXT NOT NULL,
@@ -470,6 +541,72 @@ export class SQLiteCache {
       );
     `);
 
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS accuracy_tool_task_cmp (
+        "sourceFileName" TEXT,
+        "NO." TEXT,
+        "B>PHASE_NAME" TEXT,
+        "ROOT_CALL:opmagic" TEXT,
+        "ROOT_CALL:rawmagic" TEXT,
+        "ROOT_FUNC:hash" TEXT,
+        "FUNC:hash" TEXT,
+        "B>TIMESTAMP" TEXT,
+        "B>validshape" TEXT,
+        "B>rawShape" TEXT,
+        "B>datatype" TEXT,
+        "B>funcId" TEXT,
+        "B>taskId" TEXT,
+        "B>offset" TEXT,
+        "B>execStart" TEXT,
+        "B>execEnd" TEXT,
+        "B>tensorAddr" TEXT,
+        "IO_FLAG" TEXT,
+        "B>seqNo" TEXT,
+        "B>FILENAME" TEXT,
+        "B>loopVarInfos" TEXT,
+        "A>PHASE_NAME" TEXT,
+        "A>validshape" TEXT,
+        "A>datatype" TEXT,
+        "AB>RESULT" TEXT,
+        "AB>rtol/atol" TEXT,
+        "AB>fail_cnt/warn_cnt/tol_cnt" TEXT,
+        "AB>total_cnt/zero_cnt/infnan_cnt" TEXT,
+        "AB>mae" TEXT,
+        "AB>mae_top8" TEXT,
+        "AB>mae_top1permil" TEXT,
+        "AB>mre" TEXT,
+        "AB>mre_top8" TEXT,
+        "AB>mre_top1permil" TEXT,
+        "A>max" TEXT,
+        "A>min" TEXT,
+        "A>avg" TEXT,
+        "A>aavg" TEXT,
+        "A>zero" TEXT,
+        "A>infnan" TEXT,
+        "B>max" TEXT,
+        "B>min" TEXT,
+        "B>avg" TEXT,
+        "B>aavg" TEXT,
+        "B>zero" TEXT,
+        "B>infnan" TEXT,
+        PRIMARY KEY ("NO.", "B>FILENAME")
+      );
+    `);
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS accuracy_tool_task_result_detail (
+        "sourceFileName" TEXT,
+        "GROUP" TEXT,
+        "INDEX" TEXT,
+        "OFFSET" TEXT,
+        "OFFSET_RAW" TEXT,
+        "A>data" TEXT,
+        "B>data" TEXT,
+        "AB>ae" TEXT,
+        "AB>re" TEXT,
+        "AB>tol" TEXT,
+        PRIMARY KEY (sourceFileName, "INDEX")
+      );
+    `);
     // 需要添加表就继续 this.db.run();
 
     //swimGraph Table
@@ -1547,7 +1684,8 @@ export class SQLiteCache {
     funcMagicName?: string,
     funcHash?: string,
     phaseName?: string,
-    rootFuncHash?: string
+    rootFuncHash?: string,
+    oriLoopInfo?: string
   ): Promise<PaginatedResult<AccuracyToolCmpData>> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
@@ -1556,23 +1694,24 @@ export class SQLiteCache {
       conditions.push('("LOOP_INFO" LIKE ? OR ":datatype" LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`);
     }
-    if (phaseName && funcHash) {
-      conditions.push('(("A>PHASE_NAME" = ? AND "A>FUNC:hash" = ?) OR ("B>PHASE_NAME" = ? AND "B>FUNC:hash" = ?))');
-      params.push(phaseName, funcHash, phaseName, funcHash);
-    } else if (phaseName) {
-      conditions.push('"A>PHASE_NAME" = ? OR "B>PHASE_NAME" = ?');
-      params.push(phaseName, phaseName);
-    } else if (funcHash) {
-      conditions.push('"A>FUNC:hash" = ? OR "B>FUNC:hash" = ?');
-      params.push(funcHash, funcHash);
+    const sideFields: string[] = [];
+    const sideValues: any[] = [];
+    if (phaseName) { sideFields.push('PHASE_NAME'); sideValues.push(phaseName); }
+    if (funcHash) { sideFields.push('FUNC:hash'); sideValues.push(funcHash); }
+    if (rootFuncHash) { sideFields.push('ROOT_FUNC:hash'); sideValues.push(rootFuncHash); }
+    if (sideFields.length > 0) {
+      const aConds = sideFields.map(f => `"A>${f}" = ?`).join(' AND ');
+      const bConds = sideFields.map(f => `"B>${f}" = ?`).join(' AND ');
+      conditions.push(`((${aConds}) OR (${bConds}))`);
+      params.push(...sideValues, ...sideValues);
     }
     if (funcMagicName) {
       conditions.push('"PATH_FUNC:func_magicname" = ?');
       params.push(funcMagicName);
     }
-    if (rootFuncHash) {
-      conditions.push('"A>ROOT_FUNC:hash" = ? OR "B>ROOT_FUNC:hash" = ?');
-      params.push(rootFuncHash, rootFuncHash);
+    if (oriLoopInfo) {
+      conditions.push('"LOOP_INFO" = ?');
+      params.push(oriLoopInfo);
     }
     const whereClause = conditions.join(' AND ');
   
@@ -1840,7 +1979,9 @@ export class SQLiteCache {
     keyword?: string,
     funcMagicName?: string,
     funcHash?: string,
-    phaseName?: string
+    phaseName?: string,
+    rootFuncHash?: string,
+    oriLoopInfo?: string
   ): Promise<number> {
     const conditions: string[] = ['file_path = ?'];
     const params: any[] = [filePath];
@@ -1852,19 +1993,24 @@ export class SQLiteCache {
       conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
       params.push(keyword, keyword);
     }
-    if (phaseName && funcHash) {
-      conditions.push('(("A>PHASE_NAME" = ? AND "A>FUNC:hash" = ?) OR ("B>PHASE_NAME" = ? AND "B>FUNC:hash" = ?))');
-      params.push(phaseName, funcHash, phaseName, funcHash);
-    } else if (phaseName) {
-      conditions.push('"A>PHASE_NAME" = ? OR "B>PHASE_NAME" = ?');
-      params.push(phaseName, phaseName);
-    } else if (funcHash) {
-      conditions.push('"A>FUNC:hash" = ? OR "B>FUNC:hash" = ?');
-      params.push(funcHash, funcHash);
+    const sideFields: string[] = [];
+    const sideValues: any[] = [];
+    if (phaseName) { sideFields.push('PHASE_NAME'); sideValues.push(phaseName); }
+    if (funcHash) { sideFields.push('FUNC:hash'); sideValues.push(funcHash); }
+    if (rootFuncHash) { sideFields.push('ROOT_FUNC:hash'); sideValues.push(rootFuncHash); }
+    if (sideFields.length > 0) {
+      const aConds = sideFields.map(f => `"A>${f}" = ?`).join(' AND ');
+      const bConds = sideFields.map(f => `"B>${f}" = ?`).join(' AND ');
+      conditions.push(`((${aConds}) OR (${bConds}))`);
+      params.push(...sideValues, ...sideValues);
     }
     if (funcMagicName) {
       conditions.push('"PATH_FUNC:func_magicname" = ?');
       params.push(funcMagicName);
+    }
+    if (oriLoopInfo) {
+      conditions.push('"LOOP_INFO" = ?');
+      params.push(oriLoopInfo);
     }
     const whereClause = conditions.join(' AND ');
 
@@ -1960,9 +2106,8 @@ export class SQLiteCache {
 
   /****************** comparelist 表 ******************/
   public async accuracyToolCompListSet(computePath: string, dataList: AccuracyToolCompList[]): Promise<void> {
-    this.db!.run('DELETE FROM comparelist WHERE compute_path = ?', [computePath]);
     for (const data of dataList) {
-      this.db!.run('INSERT INTO comparelist(compute_path, file_path, first_req) VALUES(?, ?, ?)', [computePath, data.file_path, data.first_req]);
+      this.db!.run('INSERT OR IGNORE INTO comparelist(compute_path, file_path, first_req) VALUES(?, ?, ?)', [computePath, data.file_path, data.first_req]);
     }
   }
 
@@ -1998,6 +2143,349 @@ export class SQLiteCache {
   public async accuracyToolCompListUpdateFirstReq(filePath: string, firstReq: string): Promise<void> {
     this.db!.run('UPDATE comparelist SET first_req = ? WHERE file_path = ?', [firstReq, filePath]);
   }
+
+  /**
+   * 插入或更新 accuracy_tool_task_cmp 表数据
+   * @param data 要插入的数据对象
+   */
+  public async accuracyToolTaskCmpSet(data: AccuracyToolTaskCmpData): Promise<void> {
+    const sql = `
+      INSERT OR REPLACE INTO accuracy_tool_task_cmp (
+        "sourceFileName", "NO.", "B>PHASE_NAME", "ROOT_CALL:opmagic", "ROOT_CALL:rawmagic",
+        "ROOT_FUNC:hash", "FUNC:hash", "B>TIMESTAMP",
+        "B>validshape", "B>rawShape", "B>datatype", "B>funcId", "B>taskId", "B>offset",
+        "B>execStart", "B>execEnd", "B>tensorAddr",
+        "IO_FLAG", "B>seqNo", "B>FILENAME", "B>loopVarInfos",
+        "A>PHASE_NAME", "A>validshape", "A>datatype", "AB>RESULT", "AB>rtol/atol",
+        "AB>fail_cnt/warn_cnt/tol_cnt", "AB>total_cnt/zero_cnt/infnan_cnt",
+        "AB>mae", "AB>mae_top8", "AB>mae_top1permil", "AB>mre", "AB>mre_top8",
+        "AB>mre_top1permil", "A>max", "A>min", "A>avg", "A>aavg", "A>zero",
+        "A>infnan", "B>max", "B>min", "B>avg", "B>aavg", "B>zero", "B>infnan"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+      data.sourceFileName ?? '',
+      data.no ?? '',
+      data.phaseName ?? '',
+      data.rootCallOpmagic ?? '',
+      data.rootCallRawmagic ?? '',
+      data.rootFuncHash ?? '',
+      data.funcHash ?? '',
+      data.timestamp ?? '',
+      data.bValidShape ?? '',
+      data.bRawShape ?? '',
+      data.bDataType ?? '',
+      data.bFuncId ?? '',
+      data.bTaskId ?? '',
+      data.bOffset ?? '',
+      data.bExecStart ?? '',
+      data.bExecEnd ?? '',
+      data.bTensorAddr ?? '',
+      data.ioFlag ?? '',
+      data.bSeqNo ?? '',
+      data.fileName ?? '',
+      data.bLoopVarInfos ?? '',
+      data.aPhaseName ?? '',
+      data.aValidshape ?? '',
+      data.aDatatype ?? '',
+      data.result ?? '',
+      data.rtolAtol ?? '',
+      data.cntFailWarnTol ?? '',
+      data.cntTotalZeroInfnanCnt ?? '',
+      data.mae ?? '',
+      data.maeTop8 ?? '',
+      data.maeTop1permil ?? '',
+      data.mre ?? '',
+      data.mreTop8 ?? '',
+      data.mreTop1permil ?? '',
+      data.aMax ?? '',
+      data.aMin ?? '',
+      data.aAvg ?? '',
+      data.aAavg ?? '',
+      data.aZero ?? '',
+      data.aInfnan ?? '',
+      data.bMax ?? '',
+      data.bMin ?? '',
+      data.bAvg ?? '',
+      data.bAavg ?? '',
+      data.bZero ?? '',
+      data.bInfnan ?? '',
+    ];
+    this.db!.run(sql, params);
+  }
+
+  /**
+   * 查询 accuracy_tool_task_cmp 表的所有数据，并按时间戳排序
+   * @returns 返回包含所有行的数组
+   */
+  public async accuracyToolTaskCmpGetByFileName(
+    sourceFileName: string,
+    pageSize: number,
+    startOffset: number,
+    res?: string,
+    keyword?: string,
+    funcHash?: string,
+    filterWord?: TaskCmpFilterWord,
+    rootFuncHash?: string,
+    oriLoopInfo?: string,
+  ): Promise<AccuracyToolTaskCmpData[]> {
+    const conditions: string[] = ['"sourceFileName" = ?'];
+    const params: any[] = [sourceFileName];
+    if (res) {
+      conditions.push('"AB>RESULT" = ?');
+      params.push(res);
+    }
+    if (keyword) {
+      conditions.push('("B>loopVarInfos" LIKE ? OR "B>datatype" LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (funcHash) {
+      conditions.push('"FUNC:hash" = ?');
+      params.push(funcHash);
+    }
+    if (rootFuncHash) {
+      conditions.push('"ROOT_FUNC:hash" = ?');
+      params.push(rootFuncHash);
+    }
+    if (filterWord) {
+      if (filterWord.rawMagic) {
+        conditions.push('"ROOT_CALL:rawmagic" LIKE ?');
+        params.push(`%${filterWord.rawMagic}%`);
+      }
+      if (filterWord.opMagic) {
+        conditions.push('"ROOT_CALL:opmagic" LIKE ?');
+        params.push(`%${filterWord.opMagic}%`);
+      }
+      if (filterWord.tensorAddr) {
+        conditions.push('"B>tensorAddr" LIKE ?');
+        params.push(`%${filterWord.tensorAddr}%`);
+      }
+    }
+    if (oriLoopInfo) {
+      conditions.push('"B>loopVarInfos" = ?');
+      params.push(oriLoopInfo);
+    }
+    const whereClause = conditions.join(' AND ');
+
+    const sql = `
+      SELECT 
+        "NO." AS no, "B>PHASE_NAME" AS phaseName, "ROOT_CALL:opmagic" AS rootCallOpmagic,
+        "ROOT_CALL:rawmagic" AS rootCallRawmagic,
+        "ROOT_FUNC:hash" AS rootFuncHash, "FUNC:hash" AS funcHash, "B>TIMESTAMP" AS timestamp,
+        "B>validshape" AS bValidShape,
+        "B>datatype" AS bDataType, "B>funcId" AS bFuncId, "B>taskId" AS bTaskId,
+        "B>offset" AS bOffset, "B>execStart" AS bExecStart, "B>execEnd" AS bExecEnd,
+        "B>rawShape" AS bRawShape, "B>tensorAddr" AS bTensorAddr,
+        "IO_FLAG" AS ioFlag, "B>seqNo" AS bSeqNo, "B>FILENAME" AS fileName,
+        "B>loopVarInfos" AS bLoopVarInfos,
+        "A>PHASE_NAME" AS aPhaseName, "A>validshape" AS aValidshape, "A>datatype" AS aDatatype,
+        "AB>RESULT" AS result,
+        "AB>rtol/atol" AS rtolAtol, "AB>fail_cnt/warn_cnt/tol_cnt" AS cntFailWarnTol,
+        "AB>total_cnt/zero_cnt/infnan_cnt" AS cntTotalZeroInfnanCnt, "AB>mae" AS mae,
+        "AB>mae_top8" AS maeTop8, "AB>mae_top1permil" AS maeTop1permil, "AB>mre" AS mre,
+        "AB>mre_top8" AS mreTop8, "AB>mre_top1permil" AS mreTop1permil, "A>max" AS aMax,
+        "A>min" AS aMin, "A>avg" AS aAvg, "A>aavg" AS aAavg, "A>zero" AS aZero, "A>infnan" AS aInfnan,
+        "B>max" AS bMax, "B>min" AS bMin, "B>avg" AS bAvg, "B>aavg" AS bAavg, "B>zero" AS bZero,
+        "B>infnan" AS bInfnan
+      FROM accuracy_tool_task_cmp
+      WHERE ${whereClause}
+      ORDER BY "B>TIMESTAMP"
+      LIMIT ? OFFSET ?
+    `;
+
+    params.push(pageSize, startOffset);
+    const stmt = this.db!.prepare(sql);
+    const result: AccuracyToolTaskCmpData[] = [];
+    try {
+      stmt.bind(params);
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+        result.push({
+          no: row.no as string,
+          phaseName: row.phaseName as string,
+          rootCallOpmagic: row.rootCallOpmagic as string,
+          rootCallRawmagic: row.rootCallRawmagic as string,
+          rootFuncHash: row.rootFuncHash as string,
+          funcHash: row.funcHash as string,
+          timestamp: row.timestamp as string,
+          bValidShape: row.bValidShape as string,
+          bDataType: row.bDataType as string,
+          bFuncId: row.bFuncId as string,
+          bTaskId: row.bTaskId as string,
+          bOffset: row.bOffset as string,
+          bExecStart: row.bExecStart as string,
+          bExecEnd: row.bExecEnd as string,
+          bRawShape: row.bRawShape as string,
+          bTensorAddr: row.bTensorAddr as string,
+          ioFlag: row.ioFlag as string,
+          bSeqNo: row.bSeqNo as string,
+          fileName: row.fileName as string,
+          bLoopVarInfos: row.bLoopVarInfos as string,
+          aPhaseName: row.aPhaseName as string,
+          aValidshape: row.aValidshape as string,
+          aDatatype: row.aDatatype as string,
+          result: row.result as string,
+          rtolAtol: row.rtolAtol as string,
+          cntFailWarnTol: row.cntFailWarnTol as string,
+          cntTotalZeroInfnanCnt: row.cntTotalZeroInfnanCnt as string,
+          mae: row.mae as string,
+          maeTop8: row.maeTop8 as string,
+          maeTop1permil: row.maeTop1permil as string,
+          mre: row.mre as string,
+          mreTop8: row.mreTop8 as string,
+          mreTop1permil: row.mreTop1permil as string,
+          aMax: row.aMax as string,
+          aMin: row.aMin as string,
+          aAvg: row.aAvg as string,
+          aAavg: row.aAavg as string,
+          aZero: row.aZero as string,
+          aInfnan: row.aInfnan as string,
+          bMax: row.bMax as string,
+          bMin: row.bMin as string,
+          bAvg: row.bAvg as string,
+          bAavg: row.bAavg as string,
+          bZero: row.bZero as string,
+          bInfnan: row.bInfnan as string,
+        });
+      }
+    } finally {
+      stmt.free();
+    }
+    return result;
+  }
+
+  public async accuracyToolTaskCmpGetCountByFileName(
+    sourceFileName: string,
+    res?: string,
+    keyword?: string,
+    phaseName?: string,
+    funcHash?: string,
+    filterWord?: TaskCmpFilterWord,
+    rootFuncHash?: string,
+    oriLoopInfo?: string,
+  ): Promise<number> {
+    const conditions: string[] = ['"sourceFileName" = ?'];
+    const params: any[] = [sourceFileName];
+    if (res) {
+      conditions.push('"AB>RESULT" = ?');
+      params.push(res);
+    }
+    if (keyword) {
+      conditions.push('("B>loopVarInfos" LIKE ? OR "B>datatype" LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (phaseName && funcHash) {
+      conditions.push('("A>PHASE_NAME" = ? AND "FUNC:hash" = ?)');
+      params.push(phaseName, funcHash);
+    } else if (phaseName) {
+      conditions.push('"A>PHASE_NAME" = ?');
+      params.push(phaseName);
+    } else if (funcHash) {
+      conditions.push('"FUNC:hash" = ?');
+      params.push(funcHash);
+    }
+    if (rootFuncHash) {
+      conditions.push('"ROOT_FUNC:hash" = ?');
+      params.push(rootFuncHash);
+    }
+    if (filterWord) {
+      if (filterWord.rawMagic) {
+        conditions.push('"ROOT_CALL:rawmagic" LIKE ?');
+        params.push(`%${filterWord.rawMagic}%`);
+      }
+      if (filterWord.opMagic) {
+        conditions.push('"ROOT_CALL:opmagic" LIKE ?');
+        params.push(`%${filterWord.opMagic}%`);
+      }
+      if (filterWord.tensorAddr) {
+        conditions.push('"B>tensorAddr" LIKE ?');
+        params.push(`%${filterWord.tensorAddr}%`);
+      }
+    }
+    if (oriLoopInfo) {
+      conditions.push('"B>loopVarInfos" = ?');
+      params.push(oriLoopInfo);
+    }
+    const whereClause = conditions.join(' AND ');
+
+    const sql = `SELECT COUNT(*) as total FROM accuracy_tool_task_cmp WHERE ${whereClause}`;
+    const stmt = this.db!.prepare(sql);
+    stmt.bind(params);
+
+    try {
+      if (stmt.step()) {
+        const row = stmt.getAsObject();
+        return row.total as number;
+      }
+      return 0;
+    } finally {
+      stmt.free();
+    }
+  }
+
+  public async accuracyToolTaskDetailSet(data: AccuracyToolTaskDetailData): Promise<void> {
+    const sql = `
+      INSERT OR REPLACE INTO accuracy_tool_task_result_detail (
+        "sourceFileName", "GROUP", "INDEX", "OFFSET", "OFFSET_RAW",
+        "A>data", "B>data", "AB>ae", "AB>re", "AB>tol"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+      data.sourceFileName ?? '',
+      data.group ?? '',
+      data.index ?? '',
+      data.offset ?? '',
+      data.offsetRaw ?? '',
+      data.aData ?? '',
+      data.bData ?? '',
+      data.ae ?? '',
+      data.re ?? '',
+      data.tol ?? '',
+    ];
+    this.db!.run(sql, params);
+  }
+
+  /**
+   * 根据 sourceFileName 查询详情数据
+   * @param sourceFileName 
+   * @returns 返回匹配的详情数据数组
+   */
+  public async accuracyToolTaskDetailGet(sourceFileName: string): Promise<AccuracyToolTaskDetailData[]> {
+    const sql = `
+      SELECT 
+        "GROUP" AS "group", "INDEX" AS "index", "OFFSET" AS "offset", "OFFSET_RAW" AS "offsetRaw",
+        "A>data" AS "aData", "B>data" AS "bData", "AB>ae" AS "ae", "AB>re" AS "re", "AB>tol" AS "tol"
+      FROM accuracy_tool_task_result_detail
+      WHERE "sourceFileName" = ?
+    `;
+
+    const stmt = this.db!.prepare(sql);
+    const result: AccuracyToolTaskDetailData[] = [];
+
+    try {
+      stmt.bind([sourceFileName]);
+      while (stmt.step()) {
+        const row = stmt.getAsObject() as any;
+        result.push({
+          group: row.group,
+          index: row.index,
+          offset: row.offset,
+          offsetRaw: row.offsetRaw,
+          aData: row.aData,
+          bData: row.bData,
+          ae: row.ae,
+          re: row.re,
+          tol: row.tol,
+        });
+      }
+    } finally {
+      stmt.free();
+    }
+
+    return result;
+  }
+
+
 
   /****************** com_graph_layout 表 ******************/
   public async comGraphLayoutSet(filePath: string, funcHash: string, layoutResult: string, lastChangeTime: string): Promise<void> {

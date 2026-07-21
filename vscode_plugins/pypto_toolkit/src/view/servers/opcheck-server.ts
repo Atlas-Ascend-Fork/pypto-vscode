@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 
 import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
-import { getCmpDiffList, getPrecisionExceptList, setCurAccuFilePath, openCmpDiffComGraph, getCmpErrorList, getAccuFilePath } from '../../common/accurancyAnylasis';
+import { getCmpDiffList, getPrecisionExceptList, setCurAccuFilePath, openCmpDiffComGraph, getCmpErrorList, getAccuFilePath, getTaskCmpList } from '../../common/accurancyAnylasis';
 import { IOpCheckViewServer, IOpCheckApis, IOpCheckRefs } from './view-server-interface';
 
 type Apis = IOpCheckApis;
@@ -20,7 +20,9 @@ type Refs = IOpCheckRefs;
 @viewRefs([
   'cmpDiffList',
   'precisionExceptList',
-  'cmpErrorList'
+  'cmpErrorList',
+  'taskCmpDiffList',
+  'taskCmpErrorList'
 ])
 export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpCheckViewServer {
   private fileUri: vscode.Uri;
@@ -36,6 +38,12 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
   }) => {
     const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
     const result = await getCmpDiffList(cmpCsvPath, readFlag, pageSize, startOffset, res, keyword);
+    // const testTask = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(cmpCsvPath, 50, 0);
+    // const testTask = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', true, pageSize, startOffset, res, keyword);
+    // const testError = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', false, pageSize, startOffset, 'FAIL', keyword);
+    // const testSearch = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', false, pageSize, startOffset, 'FAIL', keyword, 'Pass_38_CodegenPreproc', '',);
+    // const testFilter = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', 
+    //                                         false, pageSize, startOffset, 'FAIL', keyword, 'Pass_38_CodegenPreproc', '', {rawMagic: '', opMagic: '10002', tensorAddr: ''});
     this.setRef('cmpDiffList', result);
   };
 
@@ -105,6 +113,38 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
     const { pageSize = 50, startOffset = 0, res, keyword, readFlag = true, comgraphPath = '' } = data;
     const result = await getCmpErrorList(filePath, comgraphPath, readFlag, pageSize, startOffset, keyword);
     this.setRef('cmpErrorList', result);
+  };
+
+  @viewApi()
+  public getTaskCmpDiffListData = async (data: {
+    cmpCsvPath: string;
+    pageSize?: number;
+    startOffset?: number;
+    res?: string;
+    keyword?: string;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    rootFuncHash?: string;
+  }) => {
+    const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword, filterWord, rootFuncHash } = data;
+    const result = await getTaskCmpList(cmpCsvPath, true, pageSize, startOffset, res, keyword, undefined, undefined, filterWord, rootFuncHash);
+    this.setRef('taskCmpDiffList', result);
+  };
+
+  @viewApi()
+  public getTaskCmpErrorListData = async (data: {
+    pageSize?: number;
+    startOffset?: number;
+    keyword?: string;
+    readFlag?: boolean;
+    comgraphPath?: string;
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+  }) => {
+    const cmpCsvInfo = await getAccuFilePath();
+    const filePath = cmpCsvInfo?.filePath || '';
+
+    const { pageSize = 50, startOffset = 0, keyword, readFlag = true, filterWord } = data;
+    const result = await getTaskCmpList(filePath, readFlag, pageSize, startOffset, 'FAIL', keyword, undefined, undefined, filterWord);
+    this.setRef('taskCmpErrorList', result);
   };
 
   public override created(ctx: ViewServerContext): void {

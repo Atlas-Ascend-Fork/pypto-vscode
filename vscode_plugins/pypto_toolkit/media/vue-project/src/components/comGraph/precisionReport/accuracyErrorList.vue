@@ -78,8 +78,16 @@ watch(
     () => props.isOpCheck,
     (isOpCheck) => {
         if (isOpCheck.startsWith('op')) {
+            // op 类型：修改 rawmagicID 列为 opMagic
             columnData.value[2].header = 'opMagic';
             columnData.value[2].field = isOpCheck === 'op_A' ? 'aOpMagic' : 'bOpMagic';
+        } else if (isOpCheck.startsWith('task')) {
+            // task 类型：修改所有列的字段映射
+            columnData.value[1].field = 'taskLoopVarInfos';
+            columnData.value[2].header = 'rawmagicID';
+            columnData.value[2].field = 'rootCallRawmagic';
+            columnData.value[3].field = 'taskDataType';
+            columnData.value[4].field = 'taskValidshape';
         } else {
             columnData.value[2].header = 'rawmagicID';
             columnData.value[2].field = 'rawMagic';

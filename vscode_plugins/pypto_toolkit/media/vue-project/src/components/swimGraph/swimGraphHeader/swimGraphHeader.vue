@@ -1559,7 +1559,8 @@ defineExpose({
   clearHeadState,
   closeDrawer,
   resetsearchState,
-  scrollToEvent
+  scrollToEvent,
+  scrollToEventByDom
 })
 </script>
 

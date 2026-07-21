@@ -407,8 +407,19 @@ path.accuracy-exception-border {
 }
 
 rect.accuracy-error-border {
-  stroke: rgba(254, 180, 95, 0.3) !important;
-  stroke-width: 8px !important;
+  stroke-width: 2px !important;
+}
+
+rect.accuracy-error-border-inner {
+  stroke-width: 1px !important;
+}
+
+g.accuracy-error-tooltip {
+  display: none;
+}
+
+g.accuracy-error-icon:hover g.accuracy-error-tooltip {
+  display: block;
 }
 
 /* Dim only non-traced elements when there is an active trace */

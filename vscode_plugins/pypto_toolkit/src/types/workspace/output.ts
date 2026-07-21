@@ -71,4 +71,10 @@ export interface OutputDetail {
 
   /** 精度工具文件地址 */
   flowVerifyPath: string | null;
+
+   /** 是否存在task校验 */
+   hasTaskCheck: boolean;
+
+   /** ope校验目录路径 */
+   taskCheckDirPath: AccuracyToolCompList[] | null;
 }

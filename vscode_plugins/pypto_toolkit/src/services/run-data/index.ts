@@ -31,7 +31,7 @@ const RUN_DATA_HOME = process.env.PYPTO_HOME
   : `${USER_HOME_PATH}${path.sep}.pypto${path.sep}run`;
 
 type RecordOrDetail = OutputRecord & { directoryTree?: OutputDetail['directoryTree']; noDirectoryTree: boolean };
-type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath' | 'noDirectoryTree' | 'swimlaneGraphFilePath' | 'hasOpeCheck' | 'opeCheckDirPath'>;
+type RunDataStore = Store<RecordOrDetail, 'title', 'executeTime' | 'directoryPath' | 'noDirectoryTree' | 'swimlaneGraphFilePath' | 'hasOpeCheck' | 'opeCheckDirPath'| 'hasTaskCheck' | 'taskCheckDirPath'>;
 
 const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   title: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
@@ -46,6 +46,8 @@ const RUN_DATA_ATTRIBUTES = defineAttributes<RecordOrDetail>({
   hasOpeCheck: { type: Boolean, isQuery: true, defaultValue: false },
   opeCheckDirPath: { type: Object, isQuery: true },
   flowVerifyPath: { type: String },
+  hasTaskCheck: { type: Boolean, isQuery: true, defaultValue: false },
+  taskCheckDirPath: { type: Object, isQuery: true },
 });
 
 export class RunDataService extends BasicService {
@@ -115,21 +117,34 @@ export class RunDataService extends BasicService {
   }
 
   private async mergeOpeCheckFromComparelist(record: OutputRecord): Promise<OutputRecord> {
-    if (!record.hasOpeCheck) {
-      return record;
+    if (!record.hasOpeCheck && !record.hasTaskCheck) {
+        return record;
     }
-    let flowVerifyUri;
-    if (!record.flowVerifyPath) {
-      const rootDirPath = findVerifyDir(record.computeGraphDirPath, COMPUTE_GRAPH_PATH_LEVER);
-      flowVerifyUri = await findVerifySubDir(rootDirPath);
-    } else {
-      flowVerifyUri = record.flowVerifyPath;
+
+    const flowVerifyUri = record.flowVerifyPath 
+        ?? await findVerifySubDir(findVerifyDir(record.computeGraphDirPath, COMPUTE_GRAPH_PATH_LEVER));
+
+    const updates: Partial<Pick<OutputRecord, 'opeCheckDirPath' | 'taskCheckDirPath'>> = {};
+
+    if (record.hasOpeCheck) {
+        const opeList = await SQLiteCache.getInstance()
+            .accuracyToolCompListGetByComputePath(`${flowVerifyUri}_opcheck`);
+        if (opeList.length > 0) {
+            updates.opeCheckDirPath = opeList;
+        }
     }
-    const latestList = await SQLiteCache.getInstance().accuracyToolCompListGetByComputePath(flowVerifyUri);
-    if (latestList.length > 0) {
-      return { ...record, opeCheckDirPath: latestList };
+
+    if (record.hasTaskCheck) {
+        const taskList = await SQLiteCache.getInstance()
+            .accuracyToolCompListGetByComputePath(`${flowVerifyUri}_taskcheck`);
+        if (taskList.length > 0) {
+            updates.taskCheckDirPath = taskList;
+        }
     }
-    return record;
+
+    return Object.keys(updates).length > 0 
+        ? { ...record, ...updates } 
+        : record;
   }
 
   private hasDirectoryTree(record: OutputRecord): record is OutputDetail {

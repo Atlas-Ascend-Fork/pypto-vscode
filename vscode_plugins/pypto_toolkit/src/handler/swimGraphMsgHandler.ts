@@ -31,6 +31,17 @@ const CACHE_LARGE_FILE_SIZE = 500;
 export abstract class SwimGraphMsgHandler {
     static cachePath: string;
     static cacheCfgPath: string;
+    static eventToLocate: { seqNo: number; taskId: number } | null = null;
+
+    static setEventToLocate(seqNo: number, taskId: number) {
+        this.eventToLocate = { seqNo, taskId };
+    }
+
+    static consumeEventToLocate() {
+        const target = this.eventToLocate;
+        this.eventToLocate = null;
+        return target;
+    }
 
     public static readonly WHITE_COMMANDS = new Set([
         'getSwimData',
@@ -124,6 +135,7 @@ export abstract class SwimGraphMsgHandler {
         server.query.isPerfSwim = !content.includes('traceEvents') && !content.includes('pid');
         server.query.isMsProf = content.charAt(0) === '[' && content.includes('pid');
       }
+      const eventToLocate = this.consumeEventToLocate();
       return {
         isDebug: hismartliteEx.isDebug,
         configuration: config,
@@ -131,7 +143,8 @@ export abstract class SwimGraphMsgHandler {
         swimPath,
         title: getBasenameWithoutExt(swimPath),
         isPerfSwim: server.query.isPerfSwim,
-        isMsProf: server.query.isMsProf
+        isMsProf: server.query.isMsProf,
+        locateTarget: eventToLocate,
       };
     }
 

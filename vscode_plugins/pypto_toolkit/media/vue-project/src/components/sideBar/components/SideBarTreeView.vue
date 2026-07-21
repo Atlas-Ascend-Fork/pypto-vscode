@@ -61,6 +61,7 @@
               <i v-if="nodeData.type === 'dir' && !nodeData.executeTime" class="icon-folder-new"></i>
               <i v-if="nodeData.fileType === 'computeGraph'" class="icon-json"></i>
               <i v-if="nodeData.fileType === 'opCheck'" class="icon-diagnose"></i>
+              <i v-if="nodeData.fileType === 'taskCheck'" class="icon-diagnose"></i>
               <i v-if="nodeData.extname === 'json'" class="icon-file"></i>
             </div>
 
@@ -125,7 +126,7 @@ import { useI18n } from 'vue-i18n';
 import { getOutputDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { Message } from 'vue-devui/message';
-import { openComputeGraph, openControlFlow, openSwimlaneGraph, openOpCheck } from '@/apis/opener';
+import { openComputeGraph, openControlFlow, openSwimlaneGraph, openOpCheck, openTaskCheck } from '@/apis/opener';
 
 import { useSearchingHighlight } from '../hooks/use-searching-highlight';
 import { debounce } from 'lodash-es';
@@ -173,6 +174,8 @@ function nodeClick(node: DevUITreeNode): void {
     });
   } else if (node.fileType === 'opCheck') {
     openOpCheck({ outputPath: node.outputPath, opeCheckDirPath: node.opeCheckDirPath, flowVerifyPath: node.flowVerifyPath, computeGraphDirPath: node.computeGraphDirPath });
+  } else if (node.fileType === 'taskCheck') {
+    openTaskCheck({ outputPath: node.outputPath, taskCheckDirPath: node.taskCheckDirPath, flowVerifyPath: node.flowVerifyPath, computeGraphDirPath: node.computeGraphDirPath });
   } else {
     toggleNode(node);
   }
@@ -259,6 +262,21 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
           computeGraphDirPath: detail.data?.computeGraphDirPath,
         };
         baseChildren.push(opCheckNode);
+      }
+      if (record.hasTaskCheck && record.taskCheckDirPath) {
+        const taskCheckNode: DevUITreeNode = {
+          id: `${rootNode.id}/taskCheck`,
+          label: 'Task Check',
+          type: 'file',
+          expanded: false,
+          isLeaf: true,
+          fileType: 'taskCheck',
+          outputPath: record.directoryPath,
+          taskCheckDirPath: record.taskCheckDirPath,
+          flowVerifyPath: detail.data?.flowVerifyPath,
+          computeGraphDirPath: detail.data?.computeGraphDirPath,
+        };
+        baseChildren.push(taskCheckNode);
       }
       return baseChildren;
     });
