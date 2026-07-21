@@ -255,7 +255,7 @@ export class ThreeColumnServer
       this.setRef('dataError', { msg: t('pypto.threeCol.notTraceFormat')});
       return;
     }
-    const packages = await SwimGraphMsgHandler.getSwimData(this, true);
+    const packages = await SwimGraphMsgHandler.getSwimData(this);
     if (packages) {
       return stream.Readable.toWeb(stream.Readable.from(packages));
     }

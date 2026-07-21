@@ -631,240 +631,317 @@ async function validate(event: any) {
   return errorMsg;
 }
 
-  export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, effectPmu: any) {
-    let counterEvents: any[] = [];
-    let processes = new Map();
-    let processExpanded = new Map();
-    let lane2line = new Map();
-    let errorMsg: any = {};
-    if (!traceData || !traceData.traceEvents) {
-      errorMsg.errMsg = t('pypto.swimGraph.validate.nodata');
+function calculateMinTs(traceEvents: any[]): number {
+  let minThresh = Infinity;
+  for (let index = 0; index < traceEvents.length; index++) {
+    const ts = traceEvents[index].ts;
+    if (ts < minThresh) {
+      minThresh = ts;
+    }
+  }
+  return minThresh;
+}
+
+function normalizeEventTimestamps(event: any, minThresh: number): void {
+  event.ts = Math.round(event.ts * 1000 - minThresh * 1000);
+  if (event.args?.syncEvents) {
+    for (let i = 0; i < event.args.syncEvents.length; i++) {
+      event.args.syncEvents[i].time = Math.round(event.args.syncEvents[i].time * 1000 - minThresh * 1000);
+    }
+  }
+}
+
+function isCounterEvent(event: any): boolean {
+  return event.ph === 'C' && (
+    typeof(event.args.size) === 'number' ||
+    typeof(event.args['/byte']) === 'number' ||
+    typeof(event.args.value) === 'number'
+  );
+}
+
+interface TraceMetadata {
+  processNames: Map<any, any>;
+  processTypes: Map<any, any>;
+  threadNames: Map<string, any>;
+  eventTasks: any[];
+  connections: any[];
+  counterEvents: any[];
+}
+
+async function collectTraceMetadata(
+  traceEvents: any[],
+  task2topo: any,
+  minThresh: number
+): Promise<TraceMetadata | { errMsg: string }> {
+  const processNames = new Map();
+  const processTypes = new Map();
+  const threadNames = new Map();
+  const eventTasks: any[] = [];
+  const connections: any[] = [];
+  let counterEvents: any[] = [];
+
+  for (let index = 0; index < traceEvents.length; index++) {
+    const event = traceEvents[index];
+    normalizeEventTimestamps(event, minThresh);
+
+    const errorMsg = await validate(event);
+    if ('errMsg' in errorMsg) {
       return errorMsg;
     }
-    
-    const processNames = new Map();
-    const processTypes = new Map();
-    const threadNames = new Map();
-    const eventTasks: any[] = [];
-    const connections: any[] = [];
 
-    let minThresh = Infinity;
-    for (let index = 0; index < traceData.traceEvents.length; index++) {
-      const ts = traceData.traceEvents[index].ts;
-      if (ts < minThresh) {
-        minThresh = ts;
+    if (event.name === 'process_name') {
+      processNames.set(event.pid, event.args.name);
+      if (event.args.type === 'aicpu') {
+        processTypes.set(event.pid, 'aicpu');
       }
-    }
-
-    let aicpuPid = new Set<number>();
-    for (let index = 0; index < traceData.traceEvents.length; index++) {
-      const event = traceData.traceEvents[index];
-      event.ts = Math.round(event.ts * 1000 - minThresh * 1000);
-
-      if (event.args?.syncEvents) {
-        for (let i = 0; i < event.args.syncEvents.length; i++) {
-          event.args.syncEvents[i].time = Math.round(event.args.syncEvents[i].time * 1000 - minThresh * 1000)
+    } else if (event.name === 'thread_name') {
+      threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
+    } else if (['X', 'B', 'E', 'C'].includes(event.ph) && !(event.name.startsWith('OOO_'))) {
+      if (isCounterEvent(event)) {
+        const sId = event.name;
+        if (!threadNames.has(sId)) {
+          threadNames.set(sId, event.name);
         }
+        counterEvents.push({ ...event, isCounter: true });
+      } else {
+        const leafIndex = getLeafIndex(event, task2topo);
+        event['leafIndex'] = leafIndex;
+        const color = {};
+        const threadName = threadNames.get(`${event.pid}-${event.tid}`);
+        eventTasks.push({ ...event, originalIndex: index, color, threadName, leafIndex });
       }
-
-      errorMsg = await validate(event);
-      if ('errMsg' in errorMsg) {
-        return errorMsg;
-      }
-
-      if (event.name === 'process_name') {
-        processNames.set(event.pid, event.args.name);
-        if (event.args.type === 'aicpu') {
-          processTypes.set(event.pid, 'aicpu');
-        }
-      } else if (event.name === 'thread_name') {
-        threadNames.set(`${event.pid}-${event.tid}`, event.args.name);
-      } else if (['X', 'B', 'E', 'C'].includes(event.ph) && !(event.name.startsWith('OOO_'))) {
-        if (event.ph === 'C' && (typeof(event.args.size) === 'number' || typeof(event.args['/byte']) === 'number' || typeof(event.args.value) === 'number')) {
-          const sId = event.name;
-          if (!threadNames.has(sId)) {
-            threadNames.set(sId, event.name);
-          }
-          counterEvents.push({ ...event, isCounter: true });
-        } else {
-          const leafIndex = getLeafIndex(event, task2topo);
-          event['leafIndex'] = leafIndex;
-          const color = {};
-          const threadName =  threadNames.get(`${event.pid}-${event.tid}`);
-          eventTasks.push({ ...event, originalIndex: index, color, threadName, leafIndex});
-        }
-      } else if (['s', 'f'].includes(event.ph)) {
-        connections.push(event);
-      }
+    } else if (['s', 'f'].includes(event.ph)) {
+      connections.push(event);
     }
-  
-    let processThreadMap = new Map();
-    counterEvents = counterEvents.sort((a, b) => a.ts - b.ts);
-    [...eventTasks, ...counterEvents].forEach((event: any) => {
-      const processKey = `${event.pid || 0}`;
-      const threadKey =  event.isCounter ? event.name : `${event.pid || 0}-${event.tid || 0}`;
-  
-      if (!processThreadMap.has(processKey)) {
-        processThreadMap.set(processKey, {
-          pid: event.pid || 0,
-          processName: processNames.get(event.pid) || `Process ${event.pid || 0}`,
-          type: processTypes.get(event.pid) || 'kernel',
-          threads: new Map()
-        });
-      }
-  
-      const process = processThreadMap.get(processKey);
-      if (!process.threads.has(threadKey)) {
-        const threadName = threadNames.get(threadKey) || `Thread ${event.tid || 0}`;
-        process.threads.set(threadKey, {
-          tid: event.tid || 0,
-          threadName,
-          events: []
-        });
-      }
-    });
-    
-    let minTime: number;
-    let maxTime: number;
+  }
 
-    let processedTasks: any[] = [];
-    [maxTime, minTime] = calculateDuration(eventTasks, processedTasks);
-  
-    processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
+  return { processNames, processTypes, threadNames, eventTasks, connections, counterEvents };
+}
 
-    let hasAicpu = false;
-    let hasKernel = false;
-    for (const proc of processThreadMap.values()) {
-        if (proc.type === 'aicpu') hasAicpu = true;
-        else hasKernel = true;
-    }
-    const isAicpuData = hasAicpu && !hasKernel;
-    const isE2ESwim = hasAicpu && hasKernel;
-  
-    // 计算依赖关系
+function buildProcessThreadMap(
+  eventTasks: any[],
+  counterEvents: any[],
+  processNames: Map<any, any>,
+  processTypes: Map<any, any>,
+  threadNames: Map<string, any>
+): Map<string, any> {
+  const processThreadMap = new Map();
+  [...eventTasks, ...counterEvents].forEach((event: any) => {
+    const processKey = `${event.pid || 0}`;
+    const threadKey = event.isCounter ? event.name : `${event.pid || 0}-${event.tid || 0}`;
 
-    let calcTopoDepRes = false;
-
-    try {
-      calcTopoDepRes = calculateDependenciesBytopo(processedTasks, task2topo);
-    } catch (error) {
-      console.log(error);
+    if (!processThreadMap.has(processKey)) {
+      processThreadMap.set(processKey, {
+        pid: event.pid || 0,
+        processName: processNames.get(event.pid) || `Process ${event.pid || 0}`,
+        type: processTypes.get(event.pid) || 'kernel',
+        threads: new Map()
+      });
     }
 
-    const useTopo = !isAicpuData && Object.keys(task2topo).length > 0;
-    const status = useTopo ? calcTopoDepRes : false;
-    if (!status) {
-      calculateDependencies(processedTasks, connections);
+    const process = processThreadMap.get(processKey);
+    if (!process.threads.has(threadKey)) {
+      const threadName = threadNames.get(threadKey) || `Thread ${event.tid || 0}`;
+      process.threads.set(threadKey, {
+        tid: event.tid || 0,
+        threadName,
+        events: []
+      });
     }
+  });
+  return processThreadMap;
+}
 
-    const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
-    const globalMaxTime = processedTasks.reduce((max, e) => {
-      return e.endTime > max ? e.endTime : max;
-    }, -Infinity); 
-    const calculateLine = createCalculateLine(allEventsMap, globalMaxTime);
-    const lable2lines = {};
-    const pmuNotFoundList = [];
-    for (const event of processedTasks) {
-      //处理带dur的event
-      const lineCount = calculateLine(event, lable2lines);
-      lane2line.set(`${event.pid}@${event.tid}`, lineCount);
-      //pmu info process
-      if (!isAicpuData && Object.keys(pmuInfo).length > 0) {
-        processTaskPmuCalc(event, pmuInfo, pmuNotFoundList, effectPmu);
-      }
-    }
-    if (pmuNotFoundList.length > 0) {
-      console.warn('info not found in pmu csv', pmuNotFoundList);
-    }
-    const uselessPmuInfo = Object.keys(pmuInfo);
-    if (uselessPmuInfo.length > 0) {
-      console.warn('useless pmu info', uselessPmuInfo);
-    }
-    let firstExpanded = false;
-    // 组织数据结构
-    [...processedTasks, ...counterEvents].forEach((event: any) => {
-      const processKey = `${event.pid || 0}`;
-      const threadKey =  event.isCounter ? event.name : `${event.pid || 0}-${event.tid || 0}`;
-  
-      if (!processes.has(processKey)) {
-        const processInfo = processThreadMap.get(processKey);
-        let expanded = false;
-        if (!firstExpanded) {
-          expanded = true;
-          firstExpanded = true;
-        }
-        processes.set(processKey, {
-          pid: processInfo.pid,
-          processName: processInfo.processName,
-          type: processInfo.type,
-          threads: new Map(),
-          expanded: expanded,
-        });
-        processExpanded.set(processKey, expanded);
-      }
-  
-      const process = processes.get(processKey);
-      if (!process.threads.has(threadKey)) {
-        const threadInfo = processThreadMap.get(processKey).threads.get(threadKey);
-        const info = {
-          tid: threadInfo.tid,
-          threadName: threadInfo.threadName,
-          events: [],
-          isCounter: false,
-          isFakeCore: threadInfo.threadName.includes(FAKE_CORE_KEYWORD),
-          maxCount: 0,
-          argKey: 'size',
-        };
-        if (event.isCounter) {
-          info.isCounter = true;
-          info.maxCount = 0;
-          info.argKey = Object.keys(event.args)[0];
-        }
-        process.threads.set(threadKey, info);
-      }
-  
-      const thread = process.threads.get(threadKey);
-      event.isFakeCore = thread.isFakeCore;
-      thread.events.push(event);
-      if (thread.isCounter) {
-        thread.maxCount = Math.max(thread.maxCount, event.args[thread.argKey]);
-      }
-    });
-
-    const data = {};
-
-    for (const proc of processes.values()) {
-      for (const thread of proc.threads.values() as any[]) {
-        for (const event of thread.events) {
-          event.startTime = event.startTime;
-          event.endTime = event.endTime;
-          event.duration = event.duration;
-          event.renderDuration = event.renderDuration;
-          event.renderStartTime = event.renderStartTime;
-          event.renderEndTime = event.renderEndTime;
-          event.ts = event.ts;
-        }
-      }
-    }
-
-    data['counterEvents'] = counterEvents;
-    data['processes'] = processes;
-    data['processExpanded'] = processExpanded;
-    data['lane2line'] = lane2line;
-    data['timeInfo'] = { maxTime: maxTime, minTime: minTime};
-    data['minTs'] = minThresh;
-    if (isAicpuData) {
-      data['isAicpu'] = true;
-    }
-    
-    if (isE2ESwim) {
-        data['isE2ESwim'] = true;
-    }
-
-    return data;
+function determineDataType(processThreadMap: Map<string, any>): { isAicpuData: boolean; isE2ESwim: boolean } {
+  let hasAicpu = false;
+  let hasKernel = false;
+  for (const proc of processThreadMap.values()) {
+    if (proc.type === 'aicpu') hasAicpu = true;
+    else hasKernel = true;
+  }
+  return {
+    isAicpuData: hasAicpu && !hasKernel,
+    isE2ESwim: hasAicpu && hasKernel,
   };
+}
 
+function resolveDependencies(
+  processedTasks: any[],
+  task2topo: any,
+  connections: any[],
+  isAicpuData: boolean
+): void {
+  let calcTopoDepRes = false;
+  try {
+    calcTopoDepRes = calculateDependenciesBytopo(processedTasks, task2topo);
+  } catch (error) {
+    console.log(error);
+  }
+  const useTopo = !isAicpuData && Object.keys(task2topo).length > 0;
+  const status = useTopo ? calcTopoDepRes : false;
+  if (!status) {
+    calculateDependencies(processedTasks, connections);
+  }
+}
 
+function calculateLanesAndPmu(
+  processedTasks: any[],
+  lane2line: Map<string, any>,
+  isAicpuData: boolean,
+  pmuInfo: any,
+  effectPmu: any
+): void {
+  const allEventsMap = new Map(processedTasks.map(e => [e.id, e]));
+  const globalMaxTime = processedTasks.reduce((max, e) => {
+    return e.endTime > max ? e.endTime : max;
+  }, -Infinity);
+  const calculateLine = createCalculateLine(allEventsMap, globalMaxTime);
+  const lable2lines = {};
+  const pmuNotFoundList = [];
+  for (const event of processedTasks) {
+    const lineCount = calculateLine(event, lable2lines);
+    lane2line.set(`${event.pid}@${event.tid}`, lineCount);
+    if (!isAicpuData && Object.keys(pmuInfo).length > 0) {
+      processTaskPmuCalc(event, pmuInfo, pmuNotFoundList, effectPmu);
+    }
+  }
+  if (pmuNotFoundList.length > 0) {
+    console.warn('info not found in pmu csv', pmuNotFoundList);
+  }
+  const uselessPmuInfo = Object.keys(pmuInfo);
+  if (uselessPmuInfo.length > 0) {
+    console.warn('useless pmu info', uselessPmuInfo);
+  }
+}
+
+function organizeDataStructure(
+  processedTasks: any[],
+  counterEvents: any[],
+  processes: Map<string, any>,
+  processExpanded: Map<string, any>,
+  processThreadMap: Map<string, any>
+): void {
+  let firstExpanded = false;
+  [...processedTasks, ...counterEvents].forEach((event: any) => {
+    const processKey = `${event.pid || 0}`;
+    const threadKey = event.isCounter ? event.name : `${event.pid || 0}-${event.tid || 0}`;
+
+    if (!processes.has(processKey)) {
+      const processInfo = processThreadMap.get(processKey);
+      let expanded = false;
+      if (!firstExpanded) {
+        expanded = true;
+        firstExpanded = true;
+      }
+      processes.set(processKey, {
+        pid: processInfo.pid,
+        processName: processInfo.processName,
+        type: processInfo.type,
+        threads: new Map(),
+        expanded: expanded,
+      });
+      processExpanded.set(processKey, expanded);
+    }
+
+    const process = processes.get(processKey);
+    if (!process.threads.has(threadKey)) {
+      const threadInfo = processThreadMap.get(processKey).threads.get(threadKey);
+      const info = {
+        tid: threadInfo.tid,
+        threadName: threadInfo.threadName,
+        events: [],
+        isCounter: false,
+        isFakeCore: threadInfo.threadName.includes(FAKE_CORE_KEYWORD),
+        maxCount: 0,
+        argKey: 'size',
+      };
+      if (event.isCounter) {
+        info.isCounter = true;
+        info.maxCount = 0;
+        info.argKey = Object.keys(event.args)[0];
+      }
+      process.threads.set(threadKey, info);
+    }
+
+    const thread = process.threads.get(threadKey);
+    event.isFakeCore = thread.isFakeCore;
+    thread.events.push(event);
+    if (thread.isCounter) {
+      thread.maxCount = Math.max(thread.maxCount, event.args[thread.argKey]);
+    }
+  });
+}
+
+interface BuildResultParams {
+  counterEvents: any[];
+  processes: Map<string, any>;
+  processExpanded: Map<string, any>;
+  lane2line: Map<string, any>;
+  maxTime: number;
+  minTime: number;
+  minThresh: number;
+  isAicpuData: boolean;
+  isE2ESwim: boolean;
+}
+
+function buildResult(params: BuildResultParams): any {
+  const { counterEvents, processes, processExpanded, lane2line,
+          maxTime, minTime, minThresh, isAicpuData, isE2ESwim } = params;
+  const data: any = {};
+  data['counterEvents'] = counterEvents;
+  data['processes'] = processes;
+  data['processExpanded'] = processExpanded;
+  data['lane2line'] = lane2line;
+  data['timeInfo'] = { maxTime: maxTime, minTime: minTime };
+  data['minTs'] = minThresh;
+  if (isAicpuData) {
+    data['isAicpu'] = true;
+  }
+  if (isE2ESwim) {
+    data['isE2ESwim'] = true;
+  }
+  return data;
+}
+
+export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo: any, effectPmu: any) {
+  if (!traceData || !traceData.traceEvents) {
+    return { errMsg: t('pypto.swimGraph.validate.nodata') };
+  }
+
+  const traceEvents = traceData.traceEvents;
+  const minThresh = calculateMinTs(traceEvents);
+
+  const metadata = await collectTraceMetadata(traceEvents, task2topo, minThresh);
+  if ('errMsg' in metadata) {
+    return metadata;
+  }
+  const { processNames, processTypes, threadNames, eventTasks, connections, counterEvents } = metadata;
+
+  const sortedCounterEvents = counterEvents.sort((a, b) => a.ts - b.ts);
+  const processThreadMap = buildProcessThreadMap(
+    eventTasks, sortedCounterEvents, processNames, processTypes, threadNames
+  );
+
+  let processedTasks: any[] = [];
+  const [maxTime, minTime] = calculateDuration(eventTasks, processedTasks);
+  processedTasks = processedTasks.sort((a, b) => a.startTime - b.startTime);
+
+  const { isAicpuData, isE2ESwim } = determineDataType(processThreadMap);
+
+  resolveDependencies(processedTasks, task2topo, connections, isAicpuData);
+
+  const lane2line = new Map();
+  calculateLanesAndPmu(processedTasks, lane2line, isAicpuData, pmuInfo, effectPmu);
+
+  const processes = new Map();
+  const processExpanded = new Map();
+  organizeDataStructure(processedTasks, sortedCounterEvents, processes, processExpanded, processThreadMap);
+
+  return buildResult({
+      counterEvents: sortedCounterEvents, processes, processExpanded, lane2line,
+      maxTime, minTime, minThresh, isAicpuData, isE2ESwim
+    });
+  };
 
   export async function saveParsedInfoToDB(useCache:boolean, swimPath: string, lastChangeTime: string, dynTopoLastChangeTime: string, pmuLastChangeTime: string ,info: any) {
     const sanitizedTime = lastChangeTime.replace(/[:<>"|?*]/g, '-');

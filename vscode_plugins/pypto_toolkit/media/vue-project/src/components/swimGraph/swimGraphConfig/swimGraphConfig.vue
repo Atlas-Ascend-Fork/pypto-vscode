@@ -258,7 +258,8 @@ const updateAicpuEvents = (mode) => {
             continue;
         }
         for (const thread of process.threads.values()) {
-            for (const event of thread.events) {
+            for (const eventId of thread.eventIds) {
+                const event = swimDataManager.getEventById(eventId);
                 if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
                     const color = getEventColorByMode(event, mode);
                     event.color = color;
@@ -288,7 +289,8 @@ const updatePerfEvents = (mode) => {
             continue;
         }
         for (const thread of process.threads.values()) {
-            for (const event of thread.events) {
+            for (const eventId of thread.eventIds) {
+                const event = swimDataManager.getEventById(eventId);
                 if (!event.isCounter && event.endTime >= timelineState.startTime && event.startTime <= timelineState.endTime) {
                     const color = getEventColorByMode(event, mode);
                     event.color = color;
@@ -340,14 +342,24 @@ const updateKernelEvents = (mode, hashOrderOption) => {
     
     pinnedThreadsList.value.filter(pinThread => pinThread.process.type === 'kernel')
     .forEach((pinThread) => {
-        pinThread.thread.events.forEach(updateEventColors);
+        pinThread.thread.eventIds.forEach((eventId) => {
+            const event = swimDataManager.getEventById(eventId);
+            if (event) {
+                updateEventColors(event);
+            }
+        });
     });
     for (const process of swimDataManager.getAllProcesses().values()) {
         if (process.type === 'aicpu' || !process.isRendered) {
             continue;
         }
         process.threads.forEach((thread) => {
-            thread.events.forEach(updateEventColors);
+            thread.eventIds.forEach((eventId) => {
+                const event = swimDataManager.getEventById(eventId);
+                if (event) {
+                    updateEventColors(event);
+                }
+            });
         });
     }
     
