@@ -85,6 +85,7 @@ import { getQuery } from '@/core/query';
 import { getPositionByTime, getWidthByDuration, collectRelevantEdges } from './processInfo';
 import { swimDataManager } from '../swimData';
 import { Animation } from './animation';
+import { keyboardState, isKeyPressed, Zoom, Pan } from '../state/swimGraphKeyboardState';
 const containerRef = ref(null);
 const { isDarkTheme } = inject('root');
 const { t: $t } = useI18n();
@@ -185,11 +186,6 @@ const {
 const { addChildContext } = inject('swimGraphContext');
 const { userConfig, textOption } = inject('swimGraphCfg');
 let mousePosition = null;
-let isKeyPressed = ref(false);
-let keyTimeOut;
-let keyInterval;
-let scaleStep = 0.1; 
-let moveStep = 30;
 
 const SNAP_FACTOR = 0.4;
 const ACCELERATION_PER_MS = 1 / 50;
@@ -198,26 +194,10 @@ const ZOOM_RATIO_PER_FRAME = 0.008;
 const KEYBOARD_PAN_PX_PER_FRAME = 8;
 const INITIAL_ZOOM_STEP = 0.1;
 
-const Zoom = {
-  None: 0,
-  In: 1,
-  Out: -1,
-};
-
-const Pan = {
-  None: 0,
-  Left: -1,
-  Right: 1,
-};
-
-let zooming = Zoom.None;
-let panning = Pan.None;
 let targetZoomRatio = 0;
 let currentZoomRatio = 0;
 let targetPanOffsetPx = 0;
 let currentPanOffsetPx = 0;
-let zoomAnimation = null;
-let panAnimation = null;
 let animationFrameCount = 0;
 const FRAME_SKIP = 2;
 // 创建渲染实例
@@ -582,6 +562,7 @@ const handleMountedKeyup = (e) => {
 onMounted(() => {
   listenExtensionMessage();
   listenExtensionClearMessage();
+  window.addEventListener('keyup', onWindowKeyUp);
 });
 
 onUnmounted(() => {
@@ -590,12 +571,16 @@ onUnmounted(() => {
   if (isAnimation) {
     clearSelectionCanvas('data-three-column-process-key');
   }
-  if (zoomAnimation) {
-    zoomAnimation.stop();
+  if (keyboardState.zoomAnimation) {
+    keyboardState.zoomAnimation.stop();
   }
-  if (panAnimation) {
-    panAnimation.stop();
+  if (keyboardState.panAnimation) {
+    keyboardState.panAnimation.stop();
   }
+  if (keyboardState.activeHandleKeyDown === handlekeydown) {
+    keyboardState.activeHandleKeyDown = null;
+  }
+  window.removeEventListener('keyup', onWindowKeyUp);
 });
 
 const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
@@ -617,21 +602,21 @@ const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
   }
   const step = (targetZoomRatio - currentZoomRatio) * SNAP_FACTOR;
   
-  if (zooming !== Zoom.None) {
+  if (keyboardState.zooming !== Zoom.None) {
     const velocity = 1 + (msSinceStartOfAnimation * ACCELERATION_PER_MS);
     const targetStep = Math.max(ZOOM_RATIO_PER_FRAME * velocity, step);
-    targetZoomRatio += zooming * targetStep;
+    targetZoomRatio += keyboardState.zooming * targetStep;
   }
   
   currentZoomRatio += step;
   if (Math.abs(step) > 1e-6) {
-    scaleCanvas(mouseX, 1 + step, zooming !== Zoom.None);
+    scaleCanvas(mouseX, 1 + step, keyboardState.zooming !== Zoom.None);
     if (measureState.isMeasureFixed) {
       measureDistanceZoom(altClickData.lastData, String(altClickData.lastData.pid));
     }
   } else {
-    if (zoomAnimation) {
-      zoomAnimation.stop();
+    if (keyboardState.zoomAnimation) {
+      keyboardState.zoomAnimation.stop();
       animationFrameCount = 0;
       freezeVisibleRange.value = false;
       transform();
@@ -646,10 +631,10 @@ const onPanAnimationStep = (msSinceStartOfAnimation) => {
     return;
   }
   
-  if (panning !== Pan.None) {
+  if (keyboardState.panning !== Pan.None) {
     const velocity = 1 + (msSinceStartOfAnimation * ACCELERATION_PER_MS);
     const targetStep = Math.max(KEYBOARD_PAN_PX_PER_FRAME * velocity, Math.abs((targetPanOffsetPx - currentPanOffsetPx) * SNAP_FACTOR));
-    targetPanOffsetPx += panning * targetStep;
+    targetPanOffsetPx += keyboardState.panning * targetStep;
   }
   
   const step = (targetPanOffsetPx - currentPanOffsetPx) * SNAP_FACTOR;
@@ -662,8 +647,8 @@ const onPanAnimationStep = (msSinceStartOfAnimation) => {
       rightmove(Math.abs(step), false);
     }
   } else {
-    if (panAnimation) {
-      panAnimation.stop();
+    if (keyboardState.panAnimation) {
+      keyboardState.panAnimation.stop();
       animationFrameCount = 0;
       transform();
     }
@@ -681,33 +666,39 @@ const onKeyDown = (e) => {
   if (isAnimation) {
     threeRender.stopAnimate();
   }
-  if (!keyTimeOut) {
-    keyTimeOut = setTimeout(() => {
-      keyInterval = setInterval(() => {
-        handlekeydown(e);
+  if (!keyboardState.keyTimeOut) {
+    keyboardState.keyTimeOut = setTimeout(() => {
+      keyboardState.keyInterval = setInterval(() => {
+        if (keyboardState.activeHandleKeyDown) {
+          keyboardState.activeHandleKeyDown(e);
+        }
       }, 50);
     }, 500); // 500毫秒后开始加速
   }
 };
  
+const hasActiveKeyboardInteraction = () => {
+  return keyboardState.zooming !== Zoom.None || keyboardState.panning !== Pan.None || isKeyPressed.value;
+};
+
 const onKeyUp = (e) => {
-  if (document.activeElement.nodeName === 'INPUT') {
+  if (document.activeElement.nodeName === 'INPUT' && !hasActiveKeyboardInteraction()) {
     return;
   }
   
   const key = e.key.toLowerCase();
   
-  if (matchKey(key, userConfig?.value.ZoomInShortcut) && zooming === Zoom.In) {
-    zooming = Zoom.None;
+  if (matchKey(key, userConfig?.value.ZoomInShortcut) && keyboardState.zooming === Zoom.In) {
+    keyboardState.zooming = Zoom.None;
   }
-  if (matchKey(key, userConfig?.value.ZoomOutShortcut) && zooming === Zoom.Out) {
-    zooming = Zoom.None;
+  if (matchKey(key, userConfig?.value.ZoomOutShortcut) && keyboardState.zooming === Zoom.Out) {
+    keyboardState.zooming = Zoom.None;
   }
-  if (matchKey(key, userConfig?.value.leftmoveShortcut) && panning === Pan.Left) {
-    panning = Pan.None;
+  if (matchKey(key, userConfig?.value.leftmoveShortcut) && keyboardState.panning === Pan.Left) {
+    keyboardState.panning = Pan.None;
   }
-  if (matchKey(key, userConfig?.value.rightmoveShortcut) && panning === Pan.Right) {
-    panning = Pan.None;
+  if (matchKey(key, userConfig?.value.rightmoveShortcut) && keyboardState.panning === Pan.Right) {
+    keyboardState.panning = Pan.None;
   }
   
   if (isKeyPressed.value) {
@@ -715,23 +706,34 @@ const onKeyUp = (e) => {
     threeRender.enableAnimate();
     threeRender.drawBoundary(boundaries, props.processKey);
     threeRender.animate();
-    if (keyInterval) {
-      clearInterval(keyInterval);
-      keyInterval = null;
+    if (keyboardState.keyInterval) {
+      clearInterval(keyboardState.keyInterval);
+      keyboardState.keyInterval = null;
     }
-    if (keyTimeOut) {
-      clearTimeout(keyTimeOut);
-      keyTimeOut = null;
+    if (keyboardState.keyTimeOut) {
+      clearTimeout(keyboardState.keyTimeOut);
+      keyboardState.keyTimeOut = null;
     }
-    scaleStep = 0.1;
-    moveStep = 30;
+    keyboardState.scaleStep = 0.1;
+    keyboardState.moveStep = 30;
     freezeVisibleRange.value = false;
     transform();
   }
 };
 
+const onWindowKeyUp = (e) => {
+  if (!hasActiveKeyboardInteraction()) {
+    return;
+  }
+  if (!handleMatchKey(e.key, userConfig)) {
+    return;
+  }
+  onKeyUp(e);
+};
+
 const handleMouseEnter = (event) => {
   pinnedStatus.value = false;
+  keyboardState.activeHandleKeyDown = handlekeydown;
   containerRef?.value.focus({ preventScroll: true });
 };
 
@@ -765,34 +767,34 @@ const checkScaleLimits = (key) => {
 };
 
 const initZoomAnimation = (direction, currentMousePosition) => {
-  if (zooming !== direction) {
-    if (zoomAnimation) {
-      zoomAnimation.stop();
+  if (keyboardState.zooming !== direction) {
+    if (keyboardState.zoomAnimation) {
+      keyboardState.zoomAnimation.stop();
     }
     currentZoomRatio = 0;
     targetZoomRatio = direction * INITIAL_ZOOM_STEP;
     
     // 使用闭包保存鼠标位置
     const savedMousePosition = currentMousePosition;
-    zoomAnimation = new Animation((msSinceStartOfAnimation) => {
+    keyboardState.zoomAnimation = new Animation((msSinceStartOfAnimation) => {
       onZoomAnimationStep(msSinceStartOfAnimation, savedMousePosition);
     });
   }
-  zooming = direction;
-  zoomAnimation.start(DEFAULT_ANIMATION_DURATION);
+  keyboardState.zooming = direction;
+  keyboardState.zoomAnimation.start(DEFAULT_ANIMATION_DURATION);
 };
 
 const initPanAnimation = (direction) => {
-  if (panning !== direction) {
-    if (panAnimation) {
-      panAnimation.stop();
+  if (keyboardState.panning !== direction) {
+    if (keyboardState.panAnimation) {
+      keyboardState.panAnimation.stop();
     }
     currentPanOffsetPx = 0;
     targetPanOffsetPx = 0;
-    panAnimation = new Animation(onPanAnimationStep);
+    keyboardState.panAnimation = new Animation(onPanAnimationStep);
   }
-  panning = direction;
-  panAnimation.start(DEFAULT_ANIMATION_DURATION);
+  keyboardState.panning = direction;
+  keyboardState.panAnimation.start(DEFAULT_ANIMATION_DURATION);
 };
 
 const handleKeyAction = (key, currentMousePosition) => {
