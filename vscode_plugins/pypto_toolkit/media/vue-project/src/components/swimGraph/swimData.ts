@@ -613,116 +613,24 @@ class SwimDataManager {
     const wrapId = parentEvent.args?.wrapId;
     const rawSyncEvents: any[] = parentEvent.args?.syncEvents || [];
     const syncEvents = this.filterValidSyncEvents(rawSyncEvents);
-
     const pool = this.buildSyncEventPool(wrapId);
 
     const subEvents: EventDetail[] = [];
     const subEventIds: string[] = [];
-    const discardIntervals: [number, number][] = [];
+    let discardIntervals: [number, number][] = [];
 
     if (syncEvents.length === 0) {
-      const subEventId = `${parentEventId}_sub_0`;
-      const subEvent = this.createMinimalSubEvent(
-        parentEvent,
-        subEventId,
-        `${parentEvent.name}_0`,
-        parentEvent.startTime,
-        parentEvent.endTime
-      );
-      subEvents.push(subEvent);
-      subEventIds.push(subEventId);
-      this.eventMap.set(subEventId, subEvent);
+      this.createAndRegisterSubEvent(parentEvent, parentEventId, 0, parentEvent.startTime, parentEvent.endTime, subEvents, subEventIds);
     } else {
       const sortedSyncEvents = [...syncEvents].sort((a, b) => a.time - b.time);
-      
-      for (const syncEvent of sortedSyncEvents) {
-        if (syncEvent.type === 'CV_SYNC_WAIT') {
-          const pairSetEvent = this.findAndRemoveSyncEventPair(pool, syncEvent.eventid, 'CV_SYNC_SET');
-          if (pairSetEvent && pairSetEvent.time > syncEvent.time) {
-            discardIntervals.push([syncEvent.time, Math.min(pairSetEvent.time, parentEvent.endTime)]);
-          }
-        }
-      }
-      
+      discardIntervals = this.computeDiscardIntervals(sortedSyncEvents, pool, parentEvent);
       const mergedDiscardIntervals = this.mergeIntervals(discardIntervals);
-      
-      let currentStartTime = parentEvent.startTime;
-
-      for (let si = 0; si < sortedSyncEvents.length; si++) {
-        const syncEvent = sortedSyncEvents[si];
-        const syncTime = syncEvent.time;
-        
-        let inDiscardInterval = false;
-        let matchedDiscardIdx = -1;
-        for (let di = 0; di < mergedDiscardIntervals.length; di++) {
-          const [start, end] = mergedDiscardIntervals[di];
-          if (start <= syncTime && syncTime <= end) {
-            inDiscardInterval = true;
-            matchedDiscardIdx = di;
-            break;
-          }
-        }
-        
-        if (inDiscardInterval) {
-          const [start, end] = mergedDiscardIntervals[matchedDiscardIdx];
-          if (currentStartTime < start) {
-            const nameIndex = si;
-            const subEventId = `${parentEventId}_sub_${nameIndex}`;
-            const subEvent = this.createMinimalSubEvent(
-              parentEvent,
-              subEventId,
-              `${parentEvent.name}_${nameIndex}`,
-              currentStartTime,
-              start
-            );
-            subEvents.push(subEvent);
-            subEventIds.push(subEventId);
-            this.eventMap.set(subEventId, subEvent);
-          }
-          currentStartTime = end;
-        } else {
-          if (syncTime > currentStartTime) {
-            const nameIndex = si;
-            const subEventId = `${parentEventId}_sub_${nameIndex}`;
-            const subEvent = this.createMinimalSubEvent(
-              parentEvent,
-              subEventId,
-              `${parentEvent.name}_${nameIndex}`,
-              currentStartTime,
-              syncTime
-            );
-            subEvents.push(subEvent);
-            subEventIds.push(subEventId);
-            this.eventMap.set(subEventId, subEvent);
-          }
-          currentStartTime = syncTime;
-        }
-      }
-
-      if (currentStartTime < parentEvent.endTime) {
-        const nameIndex = sortedSyncEvents.length;
-        const subEventId = `${parentEventId}_sub_${nameIndex}`;
-        const subEvent = this.createMinimalSubEvent(
-          parentEvent,
-          subEventId,
-          `${parentEvent.name}_${nameIndex}`,
-          currentStartTime,
-          parentEvent.endTime
-        );
-        subEvents.push(subEvent);
-        subEventIds.push(subEventId);
-        this.eventMap.set(subEventId, subEvent);
-      }
+      this.buildSubEventsFromSyncEvents(parentEvent, parentEventId, sortedSyncEvents, mergedDiscardIntervals, subEvents, subEventIds);
     }
 
     parentEvent.subEventIds = subEventIds;
 
-    const waitTasks = this.computeWaitTasks(subEvents, parentEventId);
-    const waitTaskIds: string[] = [];
-    for (const waitTask of waitTasks) {
-      this.eventMap.set(waitTask.id, waitTask);
-      waitTaskIds.push(waitTask.id);
-    }
+    const waitTaskIds = this.registerWaitTasks(subEvents, parentEventId);
 
     const mergedDiscardIntervals = discardIntervals.length > 0 ? this.mergeIntervals(discardIntervals) : [];
     this.mixConfig.push({
@@ -732,6 +640,98 @@ class SwimDataManager {
       waitTaskIds,
       discardIntervals: mergedDiscardIntervals,
     });
+  }
+
+  private createAndRegisterSubEvent(
+    parentEvent: EventDetail,
+    parentEventId: string,
+    nameIndex: number,
+    startTime: number,
+    endTime: number,
+    subEvents: EventDetail[],
+    subEventIds: string[]
+  ): void {
+    const subEventId = `${parentEventId}_sub_${nameIndex}`;
+    const subEvent = this.createMinimalSubEvent(
+      parentEvent,
+      subEventId,
+      `${parentEvent.name}_${nameIndex}`,
+      startTime,
+      endTime
+    );
+    subEvents.push(subEvent);
+    subEventIds.push(subEventId);
+    this.eventMap.set(subEventId, subEvent);
+  }
+
+  private computeDiscardIntervals(
+    sortedSyncEvents: SyncEvent[],
+    pool: Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>,
+    parentEvent: EventDetail
+  ): [number, number][] {
+    const discardIntervals: [number, number][] = [];
+    for (const syncEvent of sortedSyncEvents) {
+      if (syncEvent.type === 'CV_SYNC_WAIT') {
+        const pairSetEvent = this.findAndRemoveSyncEventPair(pool, syncEvent.eventid, 'CV_SYNC_SET');
+        if (pairSetEvent && pairSetEvent.time > syncEvent.time) {
+          discardIntervals.push([syncEvent.time, Math.min(pairSetEvent.time, parentEvent.endTime)]);
+        }
+      }
+    }
+    return discardIntervals;
+  }
+
+  private findMatchingDiscardIndex(mergedDiscardIntervals: [number, number][], syncTime: number): number {
+    for (let di = 0; di < mergedDiscardIntervals.length; di++) {
+      const [start, end] = mergedDiscardIntervals[di];
+      if (start <= syncTime && syncTime <= end) {
+        return di;
+      }
+    }
+    return -1;
+  }
+
+  private buildSubEventsFromSyncEvents(
+    parentEvent: EventDetail,
+    parentEventId: string,
+    sortedSyncEvents: SyncEvent[],
+    mergedDiscardIntervals: [number, number][],
+    subEvents: EventDetail[],
+    subEventIds: string[]
+  ): void {
+    let currentStartTime = parentEvent.startTime;
+
+    for (let si = 0; si < sortedSyncEvents.length; si++) {
+      const syncTime = sortedSyncEvents[si].time;
+      const matchedDiscardIdx = this.findMatchingDiscardIndex(mergedDiscardIntervals, syncTime);
+
+      if (matchedDiscardIdx >= 0) {
+        const [start, end] = mergedDiscardIntervals[matchedDiscardIdx];
+        if (currentStartTime < start) {
+          this.createAndRegisterSubEvent(parentEvent, parentEventId, si, currentStartTime, start, subEvents, subEventIds);
+        }
+        currentStartTime = end;
+      } else {
+        if (syncTime > currentStartTime) {
+          this.createAndRegisterSubEvent(parentEvent, parentEventId, si, currentStartTime, syncTime, subEvents, subEventIds);
+        }
+        currentStartTime = syncTime;
+      }
+    }
+
+    if (currentStartTime < parentEvent.endTime) {
+      this.createAndRegisterSubEvent(parentEvent, parentEventId, sortedSyncEvents.length, currentStartTime, parentEvent.endTime, subEvents, subEventIds);
+    }
+  }
+
+  private registerWaitTasks(subEvents: EventDetail[], parentEventId: string): string[] {
+    const waitTasks = this.computeWaitTasks(subEvents, parentEventId);
+    const waitTaskIds: string[] = [];
+    for (const waitTask of waitTasks) {
+      this.eventMap.set(waitTask.id, waitTask);
+      waitTaskIds.push(waitTask.id);
+    }
+    return waitTaskIds;
   }
 
   private computeWaitTasks(subEvents: EventDetail[], parentEventId: string): EventDetail[] {

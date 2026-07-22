@@ -41,101 +41,101 @@ export function getSemanticColor(event: any, baseColorslist:any, lightColorslist
 
 const FAKE_CORE_KEYWORD = 'Fake Core';
 
-function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
-  const originalDuration = event.endTime - event.startTime;
-
-  // --- Step 1: 计算合法窗口 [minStart, maxEnd] ---
-  let minStart = event.startTime;
-  let maxEnd = event.endTime;
-
-  // 前驱约束
-  if (event.dependencies?.predecessors?.length) {
-    let latestPredEnd = null;
-
-    for (const id of event.dependencies.predecessors) {
-      const pred = allEventsMap.get(id);
-      if (pred && pred.endTime) {
-        const predEnd = pred.endTime;
-        if (latestPredEnd === null || predEnd > latestPredEnd) {
-          latestPredEnd = predEnd;
-        }
+function computeLatestPredEnd(event, allEventsMap) {
+  const predecessors = event.dependencies?.predecessors;
+  if (!predecessors?.length) {
+    return null;
+  }
+  let latestPredEnd = null;
+  for (const id of predecessors) {
+    const pred = allEventsMap.get(id);
+    if (pred && pred.endTime) {
+      if (latestPredEnd === null || pred.endTime > latestPredEnd) {
+        latestPredEnd = pred.endTime;
       }
     }
-
-    if (latestPredEnd !== null) {
-      minStart = Math.min(minStart, latestPredEnd);
-    }
   }
+  return latestPredEnd;
+}
 
-  // 后继约束
-  if (event.dependencies?.successors?.length) {
-
-    let earliestSuccStart = null;
-    
-    for (const id of event.dependencies.successors) {
-      const succ = allEventsMap.get(id);
-      if (succ && succ.startTime) {
-        const succStart = succ.startTime;
-        if (earliestSuccStart === null || succStart < earliestSuccStart) {
-          earliestSuccStart = succStart;
-        }
+function computeEarliestSuccStart(event, allEventsMap) {
+  const successors = event.dependencies?.successors;
+  if (!successors?.length) {
+    return null;
+  }
+  let earliestSuccStart = null;
+  for (const id of successors) {
+    const succ = allEventsMap.get(id);
+    if (succ && succ.startTime) {
+      if (earliestSuccStart === null || succ.startTime < earliestSuccStart) {
+        earliestSuccStart = succ.startTime;
       }
     }
-    
-    if (earliestSuccStart !== null) {
-      maxEnd = Math.max(maxEnd, earliestSuccStart);
-    }
   }
+  return earliestSuccStart;
+}
 
-  const linesBN = lines.map(line => {
-    return line || 0;
-  });
-
-  // --- Step 2: 尝试放入已有行 ---
-  for (let i = 0; i < linesBN.length; i++) {
-    const rowLastEnd = linesBN[i];
-    const renderStart = Math.max(minStart, rowLastEnd); // 不重叠 + 满足前驱
-
-    if (renderStart >= maxEnd) {
-      continue; // 该行没空间了
+function applyGlobalClip(event, globalMaxTime, originalDuration) {
+  if (event.renderEndTime > globalMaxTime) {
+    event.renderEndTime = globalMaxTime;
+    event.renderStartTime = Math.max(event.renderStartTime, globalMaxTime - originalDuration);
+    if (event.renderStartTime >= event.renderEndTime) {
+      event.renderStartTime = globalMaxTime - 1;
+      event.renderEndTime = globalMaxTime;
     }
-
-    // 策略：尽可能保持原始 duration，但不超过可用空间
-    const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
-
-    // 即使 available 很小（如 0.0001ms），也允许放置！
-    // UI 层负责确保 canvas 上至少画 1~2px
-    event.renderStartTime = renderStart;
-    event.renderDuration = Math.round((renderEnd - renderStart) / 10);
-    event.renderEndTime = event.renderStartTime + event.renderDuration;
-    event.line = i;
-    lines[i] = event.renderEndTime;
-    applyGlobalClip();
-    return;
+    event.renderDuration = event.renderEndTime - event.renderStartTime;
   }
+}
 
-  // --- Step 3: 新开一行 ---
-  const renderStart = minStart;
-  const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
+function setEventRender(event, renderStart, renderEnd, lineIndex) {
   event.renderStartTime = renderStart;
   event.renderDuration = Math.round((renderEnd - renderStart) / 10);
   event.renderEndTime = event.renderStartTime + event.renderDuration;
-  event.line = lines.length;
-  lines.push(event.renderEndTime);
+  event.line = lineIndex;
+}
 
-  applyGlobalClip();
-
-  function applyGlobalClip() {
-    if (event.renderEndTime > globalMaxTime) {
-      event.renderEndTime = globalMaxTime;
-      event.renderStartTime = Math.max(event.renderStartTime, globalMaxTime - originalDuration);
-      // 如果 originalDuration 很大，可能仍超出，那就紧贴结尾
-      if (event.renderStartTime >= event.renderEndTime) {
-        event.renderStartTime = globalMaxTime - 1;
-        event.renderEndTime = globalMaxTime;
-      }
-      event.renderDuration = event.renderEndTime - event.renderStartTime;
+function tryPlaceInExistingLine(event, lines, minStart, maxEnd, originalDuration, globalMaxTime) {
+  const linesBN = lines.map(line => line || 0);
+  for (let i = 0; i < linesBN.length; i++) {
+    const renderStart = Math.max(minStart, linesBN[i]);
+    if (renderStart >= maxEnd) {
+      continue;
     }
+    const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
+    setEventRender(event, renderStart, renderEnd, i);
+    lines[i] = event.renderEndTime;
+    applyGlobalClip(event, globalMaxTime, originalDuration);
+    return true;
+  }
+  return false;
+}
+
+function placeInNewLine(event, lines, minStart, maxEnd, originalDuration, globalMaxTime) {
+  const renderStart = minStart;
+  const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
+  setEventRender(event, renderStart, renderEnd, lines.length);
+  lines.push(event.renderEndTime);
+  applyGlobalClip(event, globalMaxTime, originalDuration);
+}
+
+function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {
+  const originalDuration = event.endTime - event.startTime;
+
+  let minStart = event.startTime;
+  let maxEnd = event.endTime;
+
+  const latestPredEnd = computeLatestPredEnd(event, allEventsMap);
+  if (latestPredEnd !== null) {
+    minStart = Math.min(minStart, latestPredEnd);
+  }
+
+  const earliestSuccStart = computeEarliestSuccStart(event, allEventsMap);
+  if (earliestSuccStart !== null) {
+    maxEnd = Math.max(maxEnd, earliestSuccStart);
+  }
+
+  if (!tryPlaceInExistingLine(event, lines, minStart, maxEnd, originalDuration, globalMaxTime)) {
+    placeInNewLine(event, lines, minStart, maxEnd, originalDuration, globalMaxTime);
   }
 }
 

@@ -122,45 +122,49 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
   return colors;
 }
 
-export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent, userConfig, isMsProf } = deps;
-  const process = swimDataManager.getProcess(processKey);
-  const processType = process?.type || process?.args?.type || 'kernel';
+function ensureEventColor(event: any, deps: Dependencies, processType: string): void {
+  const { userConfig, isMsProf } = deps;
   if (!event.color?.dark || event.parentEventId) {
     const colorMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
     const color = getEventColorByMode(event, colorMode, processType, userConfig?.value.hashOrderRending);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
   }
+}
+
+function computeKeepColor(event: any, deps: Dependencies): boolean {
+  const { selectedEvent, highlightedPaths, mixRelatedPaths, searchedEvent } = deps;
+  const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
+  const isSearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
+  if (isSelectedValue || isSearchedEvent) {
+    return true;
+  }
+  if (!selectedEvent.value) {
+    return !searchedEvent.value;
+  }
+  const eventParentId = event.parentEventId;
+  const selectParentId = selectedEvent.value?.parentEventId;
+  if (eventParentId && selectParentId) {
+    const sameWrap = event.args.wrapId === selectedEvent.value.args.wrapId;
+    return sameWrap ? mixRelatedPaths.has(event.id) || eventParentId === selectParentId : highlightedPaths.has(eventParentId);
+  }
+  if (eventParentId) {
+    return highlightedPaths.has(eventParentId);
+  }
+  return highlightedPaths.has(event.id);
+}
+
+export function getEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
+  const { colorCfg, isDarkTheme } = deps;
+  const process = swimDataManager.getProcess(processKey);
+  const processType = process?.type || process?.args?.type || 'kernel';
+  ensureEventColor(event, deps, processType);
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
   let fontColor = colorCfg.eventFont;
   let strokeColor = '';
 
-  const eventParentId = event.parentEventId;
-  const selectParentId = selectedEvent.value?.parentEventId;
-
-  const isSelectedValue = selectedEvent.value && selectedEvent.value.id === event.id;
-  const issearchedEvent = searchedEvent.value && searchedEvent.value.id === event.id;
-  const isSelf = isSelectedValue || issearchedEvent;
-
-  let keepColor = true;
-  if (!isSelf) {
-    if (selectedEvent.value) {
-      if (eventParentId && selectParentId) {
-        const sameWrap = event.args.wrapId === selectedEvent.value.args.wrapId;
-        keepColor = sameWrap ? mixRelatedPaths.has(event.id) || eventParentId === selectParentId : highlightedPaths.has(eventParentId);
-      } else if (eventParentId) {
-        keepColor = highlightedPaths.has(eventParentId);
-      } else  {
-        keepColor = highlightedPaths.has(event.id);
-      }
-    } else if (searchedEvent.value) {
-      keepColor = false;
-    }
-  }
-
-  if (!keepColor) {
+  if (!computeKeepColor(event, deps)) {
     fillColor = colorCfg.eventRectNoColor;
     fontColor = colorCfg.eventFontNoColor;
   }
@@ -171,8 +175,7 @@ export function getEventColor(event: any, deps: Dependencies, processKey: string
     if (stroke) strokeColor = colorCfg.eventHighLightStroke;
   }
 
-  const colors = { fillColor, fontColor, strokeColor };
-  return colors;
+  return { fillColor, fontColor, strokeColor };
 }
 
 export function renderInfo2pixelData(renderInfo: any, viewState: any) {
