@@ -36,7 +36,7 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
                 continue;
             }
             
-            // 检查是否是真实的@pypto.jit装饰器
+            // 检查是否是真实的@pypto.frontend.jit装饰器
             if (this.isRealPyptoJitDecorator(text, i, stringRanges, lines)) {
                 // 创建四个CodeLens按钮 - 按钮名称保持固定，不随状态变化
                 codeLenses.push(new vscode.CodeLens(
@@ -81,16 +81,16 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     /**
-     * 检查指定行是否是真实的@pypto.jit装饰器（不在注释或字符串中）
+     * 检查指定行是否是真实的@pypto.frontend.jit装饰器（不在注释或字符串中）
      */
     private isRealPyptoJitDecorator(text: string, lineNumber: number, stringRanges: {start: number, end: number}[], lines: string[]): boolean {
         const line = lines[lineNumber];
         const trimmedLine = line.trim();
         
         // 基本格式检查 - 允许单行和多行装饰器
-        // 对于多行装饰器，第一行以@pypto.jit开头但括号可能没有闭合
-        if (!trimmedLine.match(/^@pypto\.jit(\([^)]*$)?$/) && 
-            !trimmedLine.match(/^@pypto\.jit(\(.*\))?$/)) {
+        // 对于多行装饰器，第一行以@pypto.frontend.jit开头但括号可能没有闭合
+        if (!trimmedLine.match(/^@pypto(?:\.frontend)?\.jit(\([^)]*$)?$/) && 
+            !trimmedLine.match(/^@pypto(?:\.frontend)?\.jit(\(.*\))?$/)) {
             return false;
         }
         
@@ -100,7 +100,7 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
         }
         
         // 额外检查：确保不是在注释中
-        if (this.isInComment(line, trimmedLine.indexOf('@pypto.jit'))) {
+        if (this.isInComment(line, trimmedLine.search(/@pypto(?:\.frontend)?\.jit/))) {
             return false;
         }
         
@@ -111,7 +111,7 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
      * 检查指定位置是否在注释中
      */
     private isInComment(line: string, pyptoJitIndex: number): boolean {
-        // 检查在@pypto.jit之前是否有#字符（不在字符串中）
+        // 检查在@pypto.frontend.jit之前是否有#字符（不在字符串中）
         let inString = false;
         let stringChar: string | null = null;
         
@@ -129,7 +129,7 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
                 inString = false;
                 stringChar = null;
             } else if (!inString && char === '#') {
-                // 找到不在字符串中的#，说明@pypto.jit在注释中
+                // 找到不在字符串中的#，说明@pypto.frontend.jit在注释中
                 return true;
             }
         }
@@ -143,14 +143,14 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
     private isInString(text: string, lineNumber: number, stringRanges: {start: number, end: number}[], lines: string[]): boolean {
         const line = lines[lineNumber];
         
-        // 如果行中没有@pypto.jit，直接返回false
-        if (!line.includes('@pypto.jit')) return false;
+        // 如果行中没有@pypto.frontend.jit，直接返回false
+        if (!/@pypto(?:\.frontend)?\.jit/.test(line)) return false;
         
         // 获取当前行的范围
         const lineStart = this.getLineStartPosition(text, lineNumber, lines);
         
-        // 检查当前行的@pypto.jit是否在任何字符串范围内
-        const pyptoJitIndex = line.indexOf('@pypto.jit');
+        // 检查当前行的@pypto.frontend.jit是否在任何字符串范围内
+        const pyptoJitIndex = line.search(/@pypto(?:\.frontend)?\.jit/);
         if (pyptoJitIndex === -1) return false;
         
         const pyptoJitGlobalPos = lineStart + pyptoJitIndex;

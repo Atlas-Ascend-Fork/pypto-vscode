@@ -9,6 +9,7 @@
  */
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import { t } from 'i18next';
 
 interface MultilineDecoratorInfo {
     text: string;
@@ -28,25 +29,25 @@ export class PyptoJitService {
 
         // 处理可能的缩进
         const trimmedText = decoratorText.trim();
-        const indentation = decoratorText.substring(0, decoratorText.indexOf('@pypto.jit'));
+        const indentation = decoratorText.substring(0, decoratorText.search(/@pypto(?:\.frontend)?\.jit/));
 
-        if (trimmedText === '@pypto.jit') {
-            // 简单的@pypto.jit装饰器
-            return indentation + trimmedText.replace('@pypto.jit', `@pypto.jit(${debugOptions})`);
-        } else if (trimmedText.match(/^@pypto\.jit\(/)) {
-            // 已经有参数的@pypto.jit装饰器
+        if (/^@pypto(?:\.frontend)?\.jit$/.test(trimmedText)) {
+            // 简单的@pypto.frontend.jit装饰器
+            return indentation + trimmedText.replace(/@pypto(?:\.frontend)?\.jit/, `$&(${debugOptions})`);
+        } else if (trimmedText.match(/^@pypto(?:\.frontend)?\.jit\(/)) {
+            // 已经有参数的@pypto.frontend.jit装饰器
             if (trimmedText.includes('debug_options')) {
                 // 更新现有的debug_options - 保留完整的多行格式
                 const updatedText = this.updateExistingDebugOptions(trimmedText, debugModeValue);
                 return indentation + updatedText;
             } else {
-                // 检查是否是空括号@pypto.jit()
-                const emptyBracketsMatch = trimmedText.match(/^@pypto\.jit\(\s*\)$/);
+                // 检查是否是空括号@pypto.frontend.jit()
+                const emptyBracketsMatch = trimmedText.match(/^@pypto(?:\.frontend)?\.jit\(\s*\)$/);
                 if (emptyBracketsMatch) {
                     // 空括号，直接添加debug_options
                     const updatedText = trimmedText.replace(
-                        /@pypto\.jit\(\s*\)/,
-                        `@pypto.jit(${debugOptions})`
+                        /^(@pypto(?:\.frontend)?\.jit)\(\s*\)$/,
+                        `$1(${debugOptions})`
                     );
                     return indentation + updatedText;
                 } else {
@@ -56,7 +57,7 @@ export class PyptoJitService {
                 }
             }
         } else {
-            throw new Error('无法识别的@pypto.jit装饰器格式');
+            throw new Error(t('pypto.jit.unrecognizedFormat') as string);
         }
     }
 
@@ -113,7 +114,7 @@ export class PyptoJitService {
                 
                 return beforeLastContentLine + '\n' + lastContentLine + '\n' + lastLineIndent + debugOptions + '\n' + afterLastContentLine;
             } else {
-                // 没有其他参数，在@pypto.jit(后添加
+                // 没有其他参数，在@pypto.frontend.jit(后添加
                 const openParenIndex = decoratorText.indexOf('(');
                 const beforeOpenParen = decoratorText.substring(0, openParenIndex + 1);
                 const afterOpenParen = decoratorText.substring(openParenIndex + 1);
@@ -177,7 +178,7 @@ export class PyptoJitService {
     }
 
     /**
-     * 为指定行的@pypto.jit装饰器设置或更新调试选项为调试模式
+     * 为指定行的@pypto.frontend.jit装饰器设置或更新调试选项为调试模式
      * @param documentUri 文档URI
      * @param lineNumber 装饰器所在行号
      */
@@ -187,15 +188,15 @@ export class PyptoJitService {
         const lines = text.split('\n');
         
         if (lineNumber < 0 || lineNumber >= lines.length) {
-            vscode.window.showErrorMessage('无效的行号');
+            vscode.window.showErrorMessage(t('pypto.jit.invalidLineNumber'));
             return;
         }
 
         const line = lines[lineNumber];
         
-        // 检查是否是@pypto.jit装饰器
-        if (!line.trim().startsWith('@pypto.jit')) {
-            vscode.window.showErrorMessage('所选行不是@pypto.jit装饰器');
+        // 检查是否是@pypto.frontend.jit装饰器
+        if (!/^@pypto(?:\.frontend)?\.jit/.test(line.trim())) {
+            vscode.window.showErrorMessage(t('pypto.jit.notDecorator'));
             return;
         }
 
@@ -232,9 +233,9 @@ export class PyptoJitService {
         
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
-            vscode.window.showInformationMessage('已成功设置调试模式');
+            vscode.window.showInformationMessage(t('pypto.jit.setDebugSuccess'));
         } else {
-            vscode.window.showErrorMessage('设置调试模式失败');
+            vscode.window.showErrorMessage(t('pypto.jit.setDebugFail'));
         }
     }
 
@@ -245,23 +246,23 @@ export class PyptoJitService {
         const line = lines[lineNumber];
         const trimmedLine = line.trim();
         
-        // 如果不是以@pypto.jit开头，不是装饰器
-        if (!trimmedLine.startsWith('@pypto.jit')) {
+        // 如果不是以@pypto.frontend.jit开头，不是装饰器
+        if (!/^@pypto(?:\.frontend)?\.jit/.test(trimmedLine)) {
             return false;
         }
         
-        // 如果是@pypto.jit但没有括号，不是多行
-        if (trimmedLine === '@pypto.jit') {
+        // 如果是@pypto.frontend.jit但没有括号，不是多行
+        if (/^@pypto(?:\.frontend)?\.jit$/.test(trimmedLine)) {
             return false;
         }
         
-        // 如果是@pypto.jit()，不是多行
-        if (trimmedLine === '@pypto.jit()') {
+        // 如果是@pypto.frontend.jit()，不是多行
+        if (/^@pypto(?:\.frontend)?\.jit\(\)$/.test(trimmedLine)) {
             return false;
         }
         
-        // 如果是@pypto.jit(...)并且括号闭合，不是多行
-        const match = trimmedLine.match(/^@pypto\.jit\((.*)\)$/);
+        // 如果是@pypto.frontend.jit(...)并且括号闭合，不是多行
+        const match = trimmedLine.match(/^@pypto(?:\.frontend)?\.jit\((.*)\)$/);
         if (match) {
             return false;
         }
@@ -341,7 +342,7 @@ export class PyptoJitService {
     }
 
     /**
-     * 为指定行的@pypto.jit装饰器取消调试模式
+     * 为指定行的@pypto.frontend.jit装饰器取消调试模式
      * @param documentUri 文档URI
      * @param lineNumber 装饰器所在行号
      */
@@ -351,15 +352,15 @@ export class PyptoJitService {
         const lines = text.split('\n');
         
         if (lineNumber < 0 || lineNumber >= lines.length) {
-            vscode.window.showErrorMessage('无效的行号');
+            vscode.window.showErrorMessage(t('pypto.jit.invalidLineNumber'));
             return;
         }
 
         const line = lines[lineNumber];
         
-        // 检查是否是@pypto.jit装饰器
-        if (!line.trim().startsWith('@pypto.jit')) {
-            vscode.window.showErrorMessage('所选行不是@pypto.jit装饰器');
+        // 检查是否是@pypto.frontend.jit装饰器
+        if (!/^@pypto(?:\.frontend)?\.jit/.test(line.trim())) {
+            vscode.window.showErrorMessage(t('pypto.jit.notDecorator'));
             return;
         }
 
@@ -385,7 +386,7 @@ export class PyptoJitService {
         
         // 检查是否有debug_options参数
         if (!decoratorText.includes('debug_options')) {
-            vscode.window.showInformationMessage('该装饰器没有debug_options参数，无需取消');
+            vscode.window.showInformationMessage(t('pypto.jit.noDebugOptions'));
             return;
         }
         
@@ -403,14 +404,14 @@ export class PyptoJitService {
         
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
-            vscode.window.showInformationMessage('已成功取消调试模式');
+            vscode.window.showInformationMessage(t('pypto.jit.unsetDebugSuccess'));
         } else {
-            vscode.window.showErrorMessage('取消调试模式失败');
+            vscode.window.showErrorMessage(t('pypto.jit.unsetDebugFail'));
         }
     }
 
     /**
-     * 为文档中所有@pypto.jit装饰器设置调试模式
+     * 为文档中所有@pypto.frontend.jit装饰器设置调试模式
      * @param documentUri 文档URI
      */
     public static async setAllDebugMode(documentUri: vscode.Uri): Promise<void> {
@@ -433,15 +434,15 @@ export class PyptoJitService {
             
             const line = lines[i];
             
-            // 检查是否是@pypto.jit装饰器
-            if (line.trim().startsWith('@pypto.jit')) {
+            // 检查是否是@pypto.frontend.jit装饰器
+            if (/^@pypto(?:\.frontend)?\.jit/.test(line.trim())) {
                 // 检查是否在字符串中（重要：避免修改字符串中的装饰器）
                 if (this.isInString(text, i, stringRanges, lines)) {
                     continue;
                 }
                 
                 // 检查是否在注释中
-                if (this.isInComment(line, line.indexOf('@pypto.jit'))) {
+                if (this.isInComment(line, line.search(/@pypto(?:\.frontend)?\.jit/))) {
                     continue;
                 }
                 
@@ -485,7 +486,7 @@ export class PyptoJitService {
         }
 
         if (modifiedCount === 0) {
-            vscode.window.showInformationMessage('没有找到需要修改的@pypto.jit装饰器');
+            vscode.window.showInformationMessage(t('pypto.jit.notFoundDecorator'));
             return;
         }
 
@@ -495,14 +496,14 @@ export class PyptoJitService {
         
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
-            vscode.window.showInformationMessage(`已成功为${modifiedCount}个装饰器设置调试模式`);
+            vscode.window.showInformationMessage(t('pypto.jit.setAllDebugSuccess', { count: modifiedCount }));
         } else {
-            vscode.window.showErrorMessage('批量设置调试模式失败');
+            vscode.window.showErrorMessage(t('pypto.jit.setAllDebugFail'));
         }
     }
 
     /**
-     * 为文档中所有@pypto.jit装饰器取消调试模式
+     * 为文档中所有@pypto.frontend.jit装饰器取消调试模式
      * @param documentUri 文档URI
      */
     public static async unsetAllDebugMode(documentUri: vscode.Uri): Promise<void> {
@@ -525,15 +526,15 @@ export class PyptoJitService {
             
             const line = lines[i];
             
-            // 检查是否是@pypto.jit装饰器且有debug_options参数
-            if (line.trim().startsWith('@pypto.jit')) {
+            // 检查是否是@pypto.frontend.jit装饰器且有debug_options参数
+            if (/^@pypto(?:\.frontend)?\.jit/.test(line.trim())) {
                 // 检查是否在字符串中（重要：避免修改字符串中的装饰器）
                 if (this.isInString(text, i, stringRanges, lines)) {
                     continue;
                 }
                 
                 // 检查是否在注释中
-                if (this.isInComment(line, line.indexOf('@pypto.jit'))) {
+                if (this.isInComment(line, line.search(/@pypto(?:\.frontend)?\.jit/))) {
                     continue;
                 }
                 
@@ -580,7 +581,7 @@ export class PyptoJitService {
         }
 
         if (modifiedCount === 0) {
-            vscode.window.showInformationMessage('没有找到需要取消调试模式的@pypto.jit装饰器');
+            vscode.window.showInformationMessage(t('pypto.jit.notFoundUnsetDecorator'));
             return;
         }
 
@@ -590,9 +591,9 @@ export class PyptoJitService {
         
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
-            vscode.window.showInformationMessage(`已成功为${modifiedCount}个装饰器取消调试模式`);
+            vscode.window.showInformationMessage(t('pypto.jit.unsetAllDebugSuccess', { count: modifiedCount }));
         } else {
-            vscode.window.showErrorMessage('批量取消调试模式失败');
+            vscode.window.showErrorMessage(t('pypto.jit.unsetAllDebugFail'));
         }
     }
     
@@ -602,14 +603,14 @@ export class PyptoJitService {
     private static isInString(text: string, lineNumber: number, stringRanges: {start: number, end: number}[], lines: string[]): boolean {
         const line = lines[lineNumber];
         
-        // 如果行中没有@pypto.jit，直接返回false
-        if (!line.includes('@pypto.jit')) return false;
+        // 如果行中没有@pypto.frontend.jit，直接返回false
+        if (!/@pypto(?:\.frontend)?\.jit/.test(line)) return false;
         
         // 获取当前行的范围
         const lineStart = this.getLineStartPosition(text, lineNumber, lines);
         
-        // 检查当前行的@pypto.jit是否在任何字符串范围内
-        const pyptoJitIndex = line.indexOf('@pypto.jit');
+        // 检查当前行的@pypto.frontend.jit是否在任何字符串范围内
+        const pyptoJitIndex = line.search(/@pypto(?:\.frontend)?\.jit/);
         if (pyptoJitIndex === -1) return false;
         
         const pyptoJitGlobalPos = lineStart + pyptoJitIndex;
@@ -720,7 +721,7 @@ export class PyptoJitService {
      * 检查指定位置是否在注释中
      */
     private static isInComment(line: string, pyptoJitIndex: number): boolean {
-        // 检查在@pypto.jit之前是否有#字符（不在字符串中）
+        // 检查在@pypto.frontend.jit之前是否有#字符（不在字符串中）
         let inString = false;
         let stringChar: string | null = null;
         
@@ -738,7 +739,7 @@ export class PyptoJitService {
                 inString = false;
                 stringChar = null;
             } else if (!inString && char === '#') {
-                // 找到不在字符串中的#，说明@pypto.jit在注释中
+                // 找到不在字符串中的#，说明@pypto.frontend.jit在注释中
                 return true;
             }
         }
