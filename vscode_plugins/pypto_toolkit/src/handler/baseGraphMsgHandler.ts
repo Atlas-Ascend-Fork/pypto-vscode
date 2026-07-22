@@ -8,14 +8,12 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 import { Uri, workspace, window, Position, Selection, ViewColumn, Range, commands } from 'vscode';
-import ElkConstructor from 'elkjs/lib/elk.bundled';
-import { fork } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
-import * as readline from 'readline'
+import * as vscode from 'vscode';
+import { t } from 'i18next';
 import { globalConfig } from '../config/config';
 import { getIDELang } from '../lang';
-import { t } from 'i18next';
 import { graphFileHashMap } from '../common/graphFileHashMap';
 import * as Extractor from '../utils/graphExtractor';
 import { AbstractGraphData } from '../core/graphData';
@@ -23,52 +21,26 @@ import { basename, join, dirname } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
-import { readdirSync, promises } from 'fs';
-import * as vscode from 'vscode';
+import { promises } from 'fs';
 import { getComGraphLayoutStore, getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
-import { getComGraphDataDetail, getComGraphDataSum, getFailMagicList, searchKeyword } from '../common/accurancyAnylasis'
+import { getComGraphDataDetail, getComGraphDataSum, getComGraphRawMagic, getFailMagicList, searchKeyword } from '../common/accurancyAnylasis';
+import { logWithTimestamp } from '../utils/logger';
 
-
-enum RequestSourceType {
-  NodeOverLimit = 1,
-  SearchNoMagic = 2,
-  SearchMagic = 3,
-}
-
-type OpError = {
-  FuncMagic: number | null;
-  OpMagic: number | null;
-  error: string;
-};
-
-const NODE_COUNT_LIMIT = 10000;
-/* -------------------- 通用类型 -------------------- */
-export interface readFileResult {
-  isBigData: boolean;
-}
+// Extracted modules
+import { RequestSourceType, OpError, readFileResult, NODE_COUNT_LIMIT, WHITE_COMMANDS } from './handler-types';
+import { buildLayoutCacheKey } from './graph-cache-key';
+import { findFileHere, collectOpMagic, getErrorMessage, extractErrorBackTrace, parseErrorLogs } from './error-log-parser';
+import { getAccurancyReport, searchAccurancySumList, getAccurancyDetail } from './accuracy-report-service';
+import { elkLayout, layoutByLocal, renderLayout, postLayoutResult as elkPostLayoutResult } from './elk-layout-service';
+import { retryUntil, getMTime } from '../core/cache-query-helper';
 
 /* -------------------- 抽象基类 -------------------- */
 export abstract class BaseGraphMsgHandler {
   /* ---------- 全局 map，多面板共享 ---------- */
   public static globalCallInOutTensorMap = new Map();
-  /** 允许前端调用的业务命令 */
-  public static readonly WHITE_COMMANDS = new Set([
-    'askLayout',
-    'searchAllFunc',
-    'jumpToCodeLine',
-    'getHealthyReport',
-    'getAccurancyReport',
-    'searchAccurancySumList',
-    'getAccurancyDetail',
-    'getInitialData',
-    'callInOutTensorMap',
-    'getSubgraph',
-    'innerGetSubgraph',
-    'getSprottyGraphWithLevel',
-    'accuFilePathGet',
-    'getCmpDiffListData',
-    // 以后扩展再往里加
-  ]);
+
+  /** 允许前端调用的业务命令 — 委托到 handler-types.ts */
+  public static readonly WHITE_COMMANDS = WHITE_COMMANDS;
 
   static async initTheme(server: any) {
     server.setRef('IDELang', { data: getIDELang() });
@@ -104,15 +76,16 @@ export abstract class BaseGraphMsgHandler {
       return;
     }
     const layout = message.layout;
-    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-      funcHash = funcHash + '_hasParent';
-    }
-    if (layout.direction === 'DOWN') funcHash += '_down';
-    if (!layout.showTensor) funcHash += '_notshowtensor';
-    funcHash += message.data.filePath || '';
-    if (message.threeMode) {
-      funcHash = funcHash + '_threeMode';
-    }
+
+    // 使用 buildLayoutCacheKey 替代原来的手动拼接
+    funcHash = buildLayoutCacheKey(funcHash, {
+      hasParent: BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash),
+      direction: layout.direction,
+      showTensor: layout.showTensor,
+      filePath: message.data.filePath,
+      threeMode: message.threeMode,
+    });
+
     const lastChangeTime = await getMTime(filePath);
     const result = JSON.stringify(message.data);
     await getComGraphFinalResultStore().set({ filePath: filePath, funcHash: funcHash, lastChangeTime: lastChangeTime, finalResult: result });
@@ -126,15 +99,13 @@ export abstract class BaseGraphMsgHandler {
     let isCached = false;
     const layout = message.data.layout;
     // 构造缓存 key
-    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-      funcHash = funcHash + '_hasParent';
-    }
-    if (layout.direction === 'DOWN') funcHash += '_down';
-    if (!layout.showTensor) funcHash += '_notshowtensor';
-    funcHash += message.data.filePath || '';
-    if (message.data.threeMode) {
-      funcHash = funcHash + '_threeMode';
-    }
+    funcHash = buildLayoutCacheKey(funcHash, {
+      hasParent: BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash),
+      direction: layout.direction,
+      showTensor: layout.showTensor,
+      filePath: message.data.filePath,
+      threeMode: message.data.threeMode,
+    });
     // get errorNode info
     let errNodeList = new Set<number>();
     if (message.data?.threeMode === false) {
@@ -158,83 +129,6 @@ export abstract class BaseGraphMsgHandler {
     const wrongRawMagicList = server.comGraphData.wrongRawMagicList ? server.comGraphData.wrongRawMagicList : {};
     const failOpMagicList = server.comGraphData.failOpMagicList ? server.comGraphData.failOpMagicList : [];
     this.postJsonGraphData(server, message, data, isCached, wrongRawMagicList, failOpMagicList);
-  }
-
-  static findFileHere(dir: string, name: string): string | null {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name === name) {
-        return join(dir, entry.name);
-      }
-    }
-    return null;
-  }
-
-  static async collectOpMagic(server: any, errlist: any[], targetFuncMagic: number): Promise<Set<number>> {
-    const magics = new Set<number>();
-    const records: { magic: number; error: string }[] = [];
-
-    for (const { FuncMagic, OpMagic, error } of errlist) {
-      if (OpMagic === null) continue;
-
-      if (FuncMagic === null || FuncMagic === targetFuncMagic) {
-        magics.add(OpMagic);
-        records.push({ magic: OpMagic, error });
-      }
-    }
-    server.setRef('nodeErrorList', { data: records });
-    return magics;
-  }
-
-  static async getErrorMessage(message: any, server: any) {
-    const gd = this.getGraphData(server);
-    const dirName = dirname(gd.fsPath);
-    const jsonFile = basename(gd.fsPath);
-    let stacks: any[] = [];
-    let key: any;
-
-    const mpath = jsonFile.match(/PATH\d+_[^_]+/);
-    if (mpath) {
-      key = jsonFile.slice(0, jsonFile.indexOf(mpath[0]) + mpath[0].length).replace(/^[^_]+_[^_]+_/, '').replace(/\.json$/, '') + '.log';
-    } else {
-      key = jsonFile.split('_').slice(2).join('_').replace(/\.json$/, '.log');
-    }
-    const targetLog = key.replace(/^([^_]*?)\d*_/, '$1');
-    const logFile = this.findFileHere(dirName, targetLog);
-    if (logFile) {
-      stacks = await this.extractErrorBackTrace(logFile);
-    }
-    return stacks;
-  }
-
-  static async extractErrorBackTrace(logPath: string): Promise<any[]> {
-    const errorLines: string[] = [];
-    const rl = readline.createInterface({
-      input: fs.createReadStream(logPath, { encoding: 'utf8' }),
-      crlfDelay: Infinity
-    });
-
-    const magicRe = /\b(?:magic|opmagic):\s*\d+/i;
-    for await (const line of rl) {
-      if (line.includes('[ERROR]') && magicRe.test(line)) {
-        errorLines.push(line.trim());
-      }
-    }
-    const errorList = await this.parseErrorLogs(errorLines);
-    return errorList;
-  }
-
-  static async parseErrorLogs(logs: string[]): Promise<OpError[]> {
-    return logs.map(line => {
-      const funcMatch = line.match(/FuncMagic:(\d+)/);
-      const FuncMagic = funcMatch ? Number(funcMatch[1]) : null;
-
-      const magicRe = /\b(?:magic|opmagic):\s*(\d+)/i;
-      const m = line.match(magicRe);
-      const OpMagic = m ? Number(m[1]) : null;
-
-      const errorText = line.replace(/^.*\[ERROR\]:\s*(.*?)(?:\s*\[FuncMagic:\d+\]\[OpMagic:\d+\]\[Backtrace\].*)?$/, '$1').trim();
-      return { FuncMagic, OpMagic, error: errorText };
-    });
   }
 
   static createJsonGraphData(data, server, errNodeList, diffType?: 'before' | 'after') {
@@ -273,7 +167,7 @@ export abstract class BaseGraphMsgHandler {
       if (gd.isUsedDB) {
         const result = await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).count();
         const hashFuncItem = (await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).exec()).filter(
-                                  t => t.firstEntryHash !== '' && t.funcHash === '0');
+          t => t.firstEntryHash !== '' && t.funcHash === '0');
         server.comGraphData.firstExecFuncHash = hashFuncItem?.[0]?.firstEntryHash;
         if (result === 0) {
           await gd.readFileAndSetCache(gd.fsPath);
@@ -330,120 +224,19 @@ export abstract class BaseGraphMsgHandler {
     throw new Error('comgraph子类必须覆盖 getSprottyGraphWithLevel 方法');
   }
 
-  static async layoutByLocal(server: any, gd: any, lastChangeTime: string, funcHash: string) {
-    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
-    const comGraphData = this.getElkLayoutComGraghData(server, gd);
-    const filePath = comGraphData?.fsPath;
-    const child = fork(path.join(__dirname, '../core/layoutWork.js'));
-    child.send({ type: 'layout', graphData: gd });
-    child.on('message', async (res: { type: string; message?: any, data?: any }) => {
-      if (res.type === 'result') {
-        const layoutJsonStr = JSON.stringify(res.data);
-        if (comGraphData?.isUsedDB && renderMode !== 'path') {
-          if (server.title === 'multiple graph') {
-            funcHash+="_threeMode";
-          }
-          await getComGraphLayoutStore().set({ filePath: filePath, funcHash: funcHash, lastChangeTime: lastChangeTime, layoutResult: layoutJsonStr });
-        }
-        this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
-        child.kill();
-      }
-      if (res.type === 'error') {
-        this.returnError(server, 'pypto.comGraph.errorMessage.layout', {}, 'pypto.comGraph.errorLogMessage.error', { logText: res.data }, gd.layoutOptions['PyPTO.filePath']);
-        return;
-      }
-    });
-    // 添加对子进程异常的监听
-    child.on('error', (err) => {
-      console.error('子进程发生错误:', err);
-      child.kill();
-    });
-
-    // 监听子进程退出事件
-    child.on('exit', () => { });
-  }
-
   /* ===================================================
-   * 3. 公共能力：elk 布局
+   * 3. 公共能力：elk 布局（委托）
    * =================================================== */
-  static async elkLayout(gd: any, server: any) {
-    const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
-    const comGraphData = this.getElkLayoutComGraghData(server, gd, elkFactory);
-    const layoutDirection = gd.layoutOptions['elk.direction'];
-    const showtensor = gd.layoutOptions['PyPTO.showTensor'];
-    const filePath = comGraphData?.fsPath;
-    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
-    let funcHash = comGraphData?.funcHash!;
-
-    // 构造缓存 key
-    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-      funcHash = funcHash + '_hasParent';
-    }
-    if (layoutDirection === 'DOWN') funcHash += '_down';
-    if (showtensor !== 'true') funcHash += '_notshowtensor';
-    funcHash += gd.layoutOptions['PyPTO.filePath'] || '';
-    let lastChangeTime;
-    if (filePath) {
-      lastChangeTime = await getMTime(filePath);
-    }
-    if (server.title === 'multiple graph') {
-      funcHash+="_threeMode";
-    }
-    let cache: any;
-    if (comGraphData?.isUsedDB) {
-      cache = await getComGraphLayoutStore().find({ filePath: filePath, funcHash: funcHash });
-    }
-    if (renderMode === 'path' || !cache || lastChangeTime !== cache.lastChangeTime) {
-      if (vscode.extensions.getExtension('hakan-6666.java-elk-extension') && server.query) {
-        vscode.commands.executeCommand('PyPTO.elkLayout', `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`, JSON.stringify(gd), 'PyPto.Open.postLayoutData')
-      } else {
-        this.layoutByLocal(server, gd, lastChangeTime, funcHash);
-      }
-    } else {
-      this.postLayoutResult(server, cache.layoutResult, gd.layoutOptions['PyPTO.filePath']);
-    }
+  static async layoutByLocal(server: any, gd: any, lastChangeTime: string, funcHash: string) {
+    return layoutByLocal(server, gd, lastChangeTime, funcHash, this.getElkLayoutComGraghData.bind(this));
   }
 
-  static async renderLayout(layoutJsonStr: string, infoStr: string, server: any) {
-    const gd = JSON.parse(layoutJsonStr);
-    if (gd.type === 'error') {
-      const info = JSON.parse(infoStr);
-      const originGd = gd.data;
-      const comGraphData = this.getElkLayoutComGraghData(server, originGd);
-      let funcHash = comGraphData?.funcHash!;
-      const lastChangeTime = await getMTime(comGraphData?.fsPath);
-      originGd.layoutOptions = {
-        ...originGd.layoutOptions,
-        ...info
-      };
-      this.layoutByLocal(server, originGd, lastChangeTime, funcHash)
-    }
-    const info = JSON.parse(infoStr);
-    gd.layoutOptions = {
-      ...gd.layoutOptions,
-      ...info
-    };
-    const comGraphData = this.getElkLayoutComGraghData(server, gd);
-    const renderMode = gd.layoutOptions['PyPTO.renderMode'];
-    const filePath = comGraphData?.fsPath;
-    const layoutDirection = gd.layoutOptions['elk.direction'];
-    const showtensor = gd.layoutOptions['PyPTO.showTensor'];
-    let funcHash = comGraphData?.funcHash!;
-    const lastChangeTime = await getMTime(filePath);
-    // 构造缓存 key
-    if (BaseGraphMsgHandler.globalCallInOutTensorMap.has(funcHash)) {
-      funcHash = funcHash + '_hasParent';
-    }
-    if (layoutDirection === 'DOWN') funcHash += '_down';
-    if (showtensor !== 'true') funcHash += '_notshowtensor';
-    funcHash += gd.layoutOptions['PyPTO.filePath'] || '';
-    this.postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath']);
-    if (comGraphData?.isUsedDB && renderMode !== 'path') {
-      if (server.title === 'multiple graph') {
-        funcHash+="_threeMode";
-      }
-      await getComGraphLayoutStore().set({ filePath: filePath, funcHash: funcHash, lastChangeTime: lastChangeTime, layoutResult: layoutJsonStr });
-    }
+  static async elkLayout(gd: any, server: any) {
+    return elkLayout(gd, server, this.getElkLayoutComGraghData.bind(this), this.globalCallInOutTensorMap);
+  }
+
+  static renderLayout(layoutJsonStr: string, infoStr: string, server: any) {
+    return renderLayout(layoutJsonStr, infoStr, server, this.getElkLayoutComGraghData.bind(this), this.globalCallInOutTensorMap);
   }
 
   /* ===================================================
@@ -506,7 +299,7 @@ export abstract class BaseGraphMsgHandler {
         parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
       }
 
-      // 判断是否为“返回上一级”操作：calleeOpMagic/calleeOpSubgraphId 未传入
+      // 判断是否为"返回上一级"操作：calleeOpMagic/calleeOpSubgraphId 未传入
       const isGoBack = !calleeOpMagic && !calleeOpSubgraphId;
 
       if (isGoBack) {
@@ -579,7 +372,6 @@ export abstract class BaseGraphMsgHandler {
             {
               maxRetries: 3,
               delayMs: 50,
-              // 可选：自定义“成功”条件。isSuccess:
             }
           );
           ret = row?.data;
@@ -636,7 +428,6 @@ export abstract class BaseGraphMsgHandler {
           {
             maxRetries: 3,
             delayMs: 50,
-            // 可选：自定义“成功”条件。isSuccess:
           }
         );
         if (!row) continue;
@@ -661,7 +452,7 @@ export abstract class BaseGraphMsgHandler {
       if (criteria.category === 'Function') break;
     }
 
-    /* 把“函数级”模糊结果也合并进来 */
+    /* 把"函数级"模糊结果也合并进来 */
     if (!criteria.category) {
       const funcHits = Extractor.searchFunc({ ...criteria, category: 'Function' }, {}, {}, {}, Extractor.extractFuncMap(funcHashMap));
       if (funcHits.length) resultMap['totalFunction'] = funcHits;
@@ -675,68 +466,31 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('HealthyReport', { data: reports });
   }
 
+  /* ===================================================
+   * 精度报告（委托到 accuracy-report-service）
+   * =================================================== */
   static async getAccurancyReport(server: any) {
-    const graphData = server.comGraphData;
-    const filePath = graphData.fsPath ?? undefined;
-    if (!filePath) {
-      return;
-    }
-
-    const curPassName = path.basename((path.dirname(filePath)));
-    const graphFileName = path.basename(filePath, path.extname(filePath));
-    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
-    const rootSuffix = '_ROOT';
-    if (curFuncMagicNameString.endsWith(rootSuffix)) {
-      curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
-    }
-
-
-    const errorRawInfo = await getComGraphDataSum(filePath, curPassName, curFuncMagicNameString!, 30, 0, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
-    server.setRef('AccurancyReport', { data: errorRawInfo });
+    return getAccurancyReport(server);
   }
 
-  static async searchAccurancySumList(server: any, message) {
-    const graphData = server.comGraphData;
-    const filePath = graphData.fsPath ?? undefined;
-    if (!filePath) {
-      return;
-    }
-
-    const curPassName = path.basename((path.dirname(filePath)));
-    const graphFileName = path.basename(filePath, path.extname(filePath));
-    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR'));
-    const rootSuffix = '_ROOT';
-    if (curFuncMagicNameString.endsWith(rootSuffix)) {
-      curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
-    }
-
-    const pageSize = message.data.pageSize ?? 30;
-    const startOffset = (message.data.startOffset * pageSize);
-    const keyword = message.data.keyword ?? '';
-
-    const errorRawInfo = await searchKeyword(filePath, curPassName, curFuncMagicNameString!, keyword, pageSize, startOffset, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
-    server.setRef('AccurancyList', { data: errorRawInfo });
+  static async searchAccurancySumList(server: any, message: any) {
+    return searchAccurancySumList(server, message);
   }
 
+  static async getAccurancyDetail(server: any, message: any) {
+    return getAccurancyDetail(server, message);
+  }
 
-  static async getAccurancyDetail(server: any, message) {
-    const graphData = server.comGraphData;
-    const filePath = graphData.fsPath ?? undefined;
-    if (!filePath) {
-      return;
-    }
-    const curPassName = path.basename((path.dirname(filePath)));
-    const graphFileName = path.basename(filePath, path.extname(filePath));
-    let curFuncMagicNameString = graphFileName.slice(graphFileName.indexOf('TENSOR')) ?? "";
-    const rootSuffix = '_ROOT';
-    if (curFuncMagicNameString.endsWith(rootSuffix)) {
-      curFuncMagicNameString = curFuncMagicNameString.slice(0, -rootSuffix.length);
-    }
-    const loopInfo = message.data.loopInfo;
-    const rawMagic = message.data.rawMagic;
-    const errorRawInfo = await getComGraphDataDetail(filePath, curPassName, curFuncMagicNameString, loopInfo, rawMagic, 10000, 0, server.query?.flowVerifyPath, server.query?.computeGraphDirPath);
+  /* ===================================================
+   * 错误日志解析（委托到 error-log-parser）
+   * =================================================== */
+  static async getErrorMessage(message: any, server: any) {
+    const gd = this.getGraphData(server);
+    return getErrorMessage(gd);
+  }
 
-    server.setRef('AccurancyDetail', { data: errorRawInfo });
+  static async collectOpMagic(server: any, errlist: OpError[], targetFuncMagic: number): Promise<Set<number>> {
+    return collectOpMagic(server, errlist, targetFuncMagic);
   }
 
   /* ===================================================
@@ -767,7 +521,6 @@ export abstract class BaseGraphMsgHandler {
         {
           maxRetries: 3,
           delayMs: 50,
-          // 可选：自定义“成功”条件。isSuccess:
         }
       );
       ret = row?.data;
@@ -783,12 +536,11 @@ export abstract class BaseGraphMsgHandler {
       return { json: undefined };
     }
 
-    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash, 
-                                                server.query?.loopInfo, server.query?.fileType, server.query?.outputPath, 
-                                                server.query?.flowVerifyPath, server.query?.computeGraphDirPath, 
-                                                server.query?.rootFuncHash);
+    const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash,
+      server.query?.loopInfo, server.query?.fileType, server.query?.outputPath,
+      server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
-      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k,v]) => [k, v instanceof Set ? [...v] : []]));
+      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k, v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
       server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
@@ -826,7 +578,7 @@ export abstract class BaseGraphMsgHandler {
     fileJson: any,
     gd: AbstractGraphData,
     calleeMap: any,
-  ): Record<string, { functype: string; func_magicname: string; graphtype: string;}> {
+  ): Record<string, { functype: string; func_magicname: string; graphtype: string; }> {
     const filePath = gd.fsPath;
     const extName = path.extname(filePath);
     const baseName = path.basename(filePath, extName);
@@ -834,7 +586,7 @@ export abstract class BaseGraphMsgHandler {
     const splitIdx = baseName.indexOf('_');
     const filePrefix = baseName.slice(0, splitIdx);
     const isRoot: boolean = baseName.endsWith('ROOT');
-    const tempCalleemap: Record<string, { functype: string; func_magicname: string; graphtype: string;}> = {};
+    const tempCalleemap: Record<string, { functype: string; func_magicname: string; graphtype: string; }> = {};
     if (!isRoot) {
       return calleeMap;
     } else {
@@ -855,7 +607,6 @@ export abstract class BaseGraphMsgHandler {
         {
           maxRetries: 3,
           delayMs: 50,
-          // 可选：自定义“成功”条件。isSuccess:
         }
       );
 
@@ -912,7 +663,6 @@ export abstract class BaseGraphMsgHandler {
         {
           maxRetries: 3,
           delayMs: 50,
-          // 可选：自定义“成功”条件。isSuccess:
         }
       );
       if (result?.data) {
@@ -1033,50 +783,4 @@ export abstract class BaseGraphMsgHandler {
     return server.comGraphData;
   }
 
-}
-
-async function getMTime(filePath: string): Promise<string> {
-  const stat = await promises.stat(filePath); // 或 vscode.workspace.fs.stat(vscode.Uri.file(filePath))
-  return stat.mtime.toString();
-}
-
-/**
- * 重试执行一个异步函数，直到满足成功条件或达到最大重试次数。
- *
- * @param fn - 要执行的异步函数
- * @param options - 重试选项
- * @returns Promise<T> - 成功的结果
- */
-async function retryUntil<T>(
-  fn: () => Promise<T>,
-  {
-    maxRetries = 1,
-    delayMs = 100,
-    isSuccess = (result: T) => result != null && result !== undefined,
-  }: {
-    maxRetries?: number;
-    delayMs?: number;
-    isSuccess?: (result: T) => boolean;
-  } = {}
-): Promise<T | undefined> {
-  let lastResult: T | undefined = undefined;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await fn();
-      lastResult = result;
-      if (isSuccess(result)) {
-        return result;
-      }
-    } catch (error) {
-      // 捕获异常，但不中断流程；lastResult 保持上一次的值（或仍为 undefined）
-      console.warn(`Retry attempt ${attempt + 1} failed:`, error);
-    }
-    // 如果不是最后一次尝试，则等待后重试
-    if (attempt < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-  // 所有尝试结束，返回最后一次拿到的结果（可能不满足 isSuccess）
-  return lastResult;
 }

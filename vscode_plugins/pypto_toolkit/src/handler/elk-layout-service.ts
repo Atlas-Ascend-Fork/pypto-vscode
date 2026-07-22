@@ -1,0 +1,219 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+import ElkConstructor from 'elkjs/lib/elk.bundled';
+import { fork } from 'child_process';
+import path from 'path';
+import * as vscode from 'vscode';
+import { getMTime } from '../core/cache-query-helper';
+import { buildLayoutCacheKey } from './graph-cache-key';
+import { getComGraphLayoutStore } from '../core/sqlInit';
+
+/**
+ * 回调函数类型：从 server 中获取 comGraphData。
+ * 子类（SingleGraphHandler / DiffGraphHandler）可重写此逻辑。
+ */
+export type GetComGraphDataFn = (server: any, graphData: any, elkFactory?: any) => any;
+
+/**
+ * 回调函数类型：返回错误信息。
+ * 原 baseGraphMsgHandler.returnError 方法的签名。
+ */
+export type ReturnErrorFn = (
+  server: any,
+  cmd: string,
+  cmdArgs?: Record<string, any>,
+  logCmd?: string,
+  logCmdArgs?: Record<string, any>,
+  diffType?: string,
+) => void;
+
+/**
+ * ELK 布局主入口。
+ * 1. 构造缓存 Key
+ * 2. 查询缓存（若命中且时间戳匹配则直接返回）
+ * 3. 优先使用 java-elk-extension 插件布局，否则本地子进程布局
+ */
+export async function elkLayout(
+  gd: any,
+  server: any,
+  getComGraphData: GetComGraphDataFn,
+  globalCallInOutTensorMap: Map<any, any>,
+): Promise<void> {
+  const elkFactory = new ElkConstructor({ algorithms: ['layered'] });
+  const comGraphData = getComGraphData(server, gd, elkFactory);
+  const layoutDirection = gd.layoutOptions['elk.direction'];
+  const showtensor = gd.layoutOptions['PyPTO.showTensor'];
+  const filePath = comGraphData?.fsPath;
+  const renderMode = gd.layoutOptions['PyPTO.renderMode'];
+  let funcHash = comGraphData?.funcHash!;
+
+  // 使用 buildLayoutCacheKey 替代原来的 4 处重复拼接
+  funcHash = buildLayoutCacheKey(funcHash, {
+    hasParent: globalCallInOutTensorMap.has(funcHash),
+    direction: layoutDirection,
+    showTensor: showtensor === 'true',
+    filePath: gd.layoutOptions['PyPTO.filePath'],
+    threeMode: server.title === 'multiple graph',
+  });
+
+  let lastChangeTime: string | undefined;
+  if (filePath) {
+    lastChangeTime = await getMTime(filePath);
+  }
+
+  let cache: any;
+  if (comGraphData?.isUsedDB) {
+    cache = await getComGraphLayoutStore().find({ filePath: filePath, funcHash: funcHash });
+  }
+
+  if (renderMode === 'path' || !cache || lastChangeTime !== cache.lastChangeTime) {
+    if (vscode.extensions.getExtension('hakan-6666.java-elk-extension') && server.query) {
+      vscode.commands.executeCommand(
+        'PyPTO.elkLayout',
+        `${server.query._path}_${server.query.funcHash || ''}_${server.query.nodeMagic || ''}&&${JSON.stringify(gd.layoutOptions)}`,
+        JSON.stringify(gd),
+        'PyPto.Open.postLayoutData',
+      );
+    } else {
+      layoutByLocal(server, gd, lastChangeTime!, funcHash, getComGraphData);
+    }
+  } else {
+    postLayoutResult(server, cache.layoutResult, gd.layoutOptions['PyPTO.filePath'], getComGraphData);
+  }
+}
+
+/**
+ * 启动本地子进程执行 ELK 布局。
+ * fork layoutWork.js，通过 IPC 通信获取布局结果。
+ */
+export function layoutByLocal(
+  server: any,
+  gd: any,
+  lastChangeTime: string,
+  funcHash: string,
+  getComGraphData: GetComGraphDataFn,
+  returnError?: ReturnErrorFn,
+): void {
+  const renderMode = gd.layoutOptions['PyPTO.renderMode'];
+  const comGraphData = getComGraphData(server, gd);
+  const filePath = comGraphData?.fsPath;
+  const child = fork(path.join(__dirname, '../core/layoutWork.js'));
+
+  child.send({ type: 'layout', graphData: gd });
+
+  child.on('message', async (res: { type: string; message?: any; data?: any }) => {
+    if (res.type === 'result') {
+      const layoutJsonStr = JSON.stringify(res.data);
+      if (comGraphData?.isUsedDB && renderMode !== 'path') {
+        let finalFuncHash = funcHash;
+        if (server.title === 'multiple graph') {
+          finalFuncHash += '_threeMode';
+        }
+        await getComGraphLayoutStore().set({
+          filePath: filePath,
+          funcHash: finalFuncHash,
+          lastChangeTime: lastChangeTime,
+          layoutResult: layoutJsonStr,
+        });
+      }
+      postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath'], getComGraphData);
+      child.kill();
+    }
+    if (res.type === 'error') {
+      // 委托回基类的 returnError
+      const onError = returnError || console.error;
+      onError(
+        server,
+        'pypto.comGraph.errorMessage.layout',
+        {},
+        'pypto.comGraph.errorLogMessage.error',
+        { logText: res.data },
+        gd.layoutOptions['PyPTO.filePath'],
+      );
+      return;
+    }
+  });
+
+  child.on('error', (err) => {
+    console.error('子进程发生错误:', err);
+    child.kill();
+  });
+
+  child.on('exit', () => {});
+}
+
+/**
+ * 处理布局结果，合并 layoutOptions 并缓存。
+ */
+export async function renderLayout(
+  layoutJsonStr: string,
+  infoStr: string,
+  server: any,
+  getComGraphData: GetComGraphDataFn,
+  globalCallInOutTensorMap: Map<any, any>,
+): Promise<void> {
+  const gd = JSON.parse(layoutJsonStr);
+  if (gd.type === 'error') {
+    const info = JSON.parse(infoStr);
+    const originGd = gd.data;
+    const comGraphData = getComGraphData(server, originGd);
+    let funcHash = comGraphData?.funcHash!;
+    const lastChangeTime = await getMTime(comGraphData?.fsPath);
+    originGd.layoutOptions = { ...originGd.layoutOptions, ...info };
+    layoutByLocal(server, originGd, lastChangeTime, funcHash, getComGraphData);
+  }
+  const info = JSON.parse(infoStr);
+  gd.layoutOptions = { ...gd.layoutOptions, ...info };
+  const comGraphData = getComGraphData(server, gd);
+  const renderMode = gd.layoutOptions['PyPTO.renderMode'];
+  const filePath = comGraphData?.fsPath;
+  const layoutDirection = gd.layoutOptions['elk.direction'];
+  const showtensor = gd.layoutOptions['PyPTO.showTensor'];
+  let funcHash = comGraphData?.funcHash!;
+  const lastChangeTime = await getMTime(filePath);
+
+  funcHash = buildLayoutCacheKey(funcHash, {
+    hasParent: globalCallInOutTensorMap.has(funcHash),
+    direction: layoutDirection,
+    showTensor: showtensor === 'true',
+    filePath: gd.layoutOptions['PyPTO.filePath'],
+    threeMode: server.title === 'multiple graph',
+  });
+
+  postLayoutResult(server, layoutJsonStr, gd.layoutOptions['PyPTO.filePath'], getComGraphData);
+
+  if (comGraphData?.isUsedDB && renderMode !== 'path') {
+    let finalFuncHash = funcHash;
+    if (server.title === 'multiple graph') {
+      finalFuncHash += '_threeMode';
+    }
+    await getComGraphLayoutStore().set({
+      filePath: filePath,
+      funcHash: finalFuncHash,
+      lastChangeTime: lastChangeTime,
+      layoutResult: layoutJsonStr,
+    });
+  }
+}
+
+/**
+ * 将布局结果发送给前端。
+ * 默认实现：直接发送 LayoutResult。
+ * DiffGraphHandler 子类会重写此方法，附加 filePath。
+ */
+export function postLayoutResult(
+  server: any,
+  jsonStr: string,
+  filePath?: string,
+  getComGraphData?: GetComGraphDataFn,
+): void {
+  server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
+}

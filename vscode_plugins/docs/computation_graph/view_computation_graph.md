@@ -8,7 +8,7 @@
 
 执行PyPTO程序，生成计算图文件。
 
-1.  开启图编译阶段调试模式开关：
+1. 开启图编译阶段调试模式开关：
 
     ```python
     @pypto.frontend.jit(
@@ -16,47 +16,59 @@
     )
     ```
 
-2.  重新执行PyPTO程序，例如：
+2. 重新执行PyPTO程序，例如：
 
     ```bash
     python3 examples/02_intermediate/operators/softmax/softmax.py
     ```
 
-3.  执行结束后，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）下生成不同阶段的计算图文件（.json 格式）。
+3. 执行结束后，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）下生成不同阶段的计算图文件（.json 格式）。
 
     ```txt
-    ├── Pass_xx_xx
-    │   ├── After_004_ExpandFunction_TENSOR_loop_0_Unroll1_PATH0_hiddenfunc0_8.json # pass优化后的计算图文件
-    │   ├── After_004_ExpandFunction_TENSOR_loop_0_Unroll1_PATH0_hiddenfunc0_8.tifwkgr # 用户暂不需要关注
-    │   ├── Before_004_ExpandFunction_TENSOR_loop_0_Unroll1_PATH0_hiddenfunc0_8.json # pass优化前的计算图文件
-    │   ├── Before_004_ExpandFunction_TENSOR_loop_0_Unroll1_PATH0_hiddenfunc0_8.tifwkgr # 用户暂不需要关注
-    │   └── ExpandFunctionTENSOR_loop_0_Unroll1_PATH0_hiddenfunc0_8.log
-    ├── program.json # 记录function name, semantic label等静态信息
-    ├── ...
+
+output_xx/
+├── program.json # 记录function name, semantic label等静态信息
+├── computation_graph/
+│   ├── Strategy_00_xxx/
+│   │   ├── Pass_00_xxx/
+│   │   │   ├── After_xxx_xxx.json # pass优化后的计算图文件
+│   │   │   ├── After_xxx_xxx.tifwkgr # 用户暂不需要关注
+│   │   │   ├── Before_xxx_xxx.json # pass优化前的计算图文件
+│   │   │   ├── Before_xxx_xxx.tifwkgr # 用户暂不需要关注
+│   │   │   └── xxx.log
+│   │   ├── Pass_01_xxx/
+│   │   │   └── ...
+│   │   └── ...
+│   ├── Strategy_01_xxx/
+│   │   ├── Pass_00_xxx/
+│   │   │   └── ...
+│   │   └── ...
+│   └── ...
+└── ...
     ```
 
 下面将选取计算图各编译阶段的最后一张计算图文件，帮助用户了解各类计算图的关键信息。
 
--   Tensor Graph：Before\_004\_ExpandFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json
--   Tile Graph：Before\_027\_SubgraphToFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json
--   Block Graph：After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_LEAF\_program\_id\_00\_15536366383870408930.json
--   Execute Graph：After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_ROOT.json
+- Tensor Graph：Before\_004\_ExpandFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json
+- Tile Graph：Before\_027\_SubgraphToFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json
+- Block Graph：After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_LEAF\_program\_id\_00\_15536366383870408930.json
+- Execute Graph：After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_ROOT.json
 
 ## 查看Tensor Graph
 
-1.  打开计算图文件，下面提供两种方式，用户任选其一即可：
-    -   在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491082472.png)图标，打开PyPTO Toolkit，在运行结果界面打开计算图文件\(此种方式仅支持打开文件命名以After开头的图\)。
-    -   在Visual Studio Code工作区，右键单击计算图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+1. 打开计算图文件，下面提供两种方式，用户任选其一即可：
+    - 在Visual Studio Code侧边栏，单击![侧边栏图标](../figures/zh-cn_image_0000002491082472.png)图标，打开PyPTO Toolkit，在运行结果界面打开计算图文件\(此种方式仅支持打开文件命名以After开头的图\)。
+    - 在Visual Studio Code工作区，右键单击计算图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
 
-2.  打开Before\_004\_ExpandFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json文件，显示以下界面。
+2. 打开Before\_004\_ExpandFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json文件，显示以下界面。
 
-    ![](../figures/zh-cn_image_0000002533278571.png)
+    ![计算图样例1](../figures/zh-cn_image_0000002533278571.png)
 
     通过上方标题右侧可以看到计算图类型为Tensor Graph。Tensor Graph由以下几部分组成：
 
-    -   Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
-    -   Tensor节点：数据节点，对应图中标号②，各参数解释参见[表2](#table2)。
-    -   Operation节点：操作节点，对应图中标号③，各参数解释参见[表3](#table3)。
+    - Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
+    - Tensor节点：数据节点，对应图中标号②，各参数解释参见[表2](#table2)。
+    - Operation节点：操作节点，对应图中标号③，各参数解释参见[表3](#table3)。
 
     从图中可以看到，Tensor Shape和代码定义一致，且没有经过Tile展开。
 
@@ -72,7 +84,6 @@
     |offset|当前Tensor在rawTensor内存中的偏移量，为整数数组。|
     |datatype|数据类型。|
 
-
     **表 2**  Tensor节点参数说明<a id="table2"></a>
 
     |参数|说明|
@@ -85,7 +96,6 @@
     |offset|当前Tensor在rawTensor内存中的偏移量，为整数数组。|
     |datatype|数据类型。|
 
-
     **表 3**  Operation节点参数说明<a id="table3"></a>
 
     |参数|说明|
@@ -96,18 +106,17 @@
     |from|Operation的源操作数据的内存层级，即经过该操作前所处的内存层级，与前一个Tensor节点tobe字段一致。|
     |to offset|Operation的目的操作数据相对于源操作数据的内存偏移量。|
 
-
 ## 查看Tile Graph
 
 打开Before\_027\_SubgraphToFunction\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8.json文件，显示以下界面。
 
-![](../figures/zh-cn_image_0000002533531967.png)
+![计算图样例2](../figures/zh-cn_image_0000002533531967.png)
 
 通过上方标题右侧可以看到计算图类型为Tile Graph。Tile Graph由以下几部分组成：
 
--   Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
--   Tensor节点：数据节点，对应图中标号②，各参数解释参见[表2](#table2)。
--   Operation节点：操作节点，对应图中标号③和④，两者的区别是④这类Operation与输入/输出Tensor的Shape无关，因此无Shape属性，详细参数解释参见[表3](#table3)。
+- Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
+- Tensor节点：数据节点，对应图中标号②，各参数解释参见[表2](#table2)。
+- Operation节点：操作节点，对应图中标号③和④，两者的区别是④这类Operation与输入/输出Tensor的Shape无关，因此无Shape属性，详细参数解释参见[表3](#table3)。
 
 从图中可以看到，相比于Tile展开前，Tile Graph中增加了很多节点，这是因为原Shape为\(-1, 32, 1, 256\)的Tensor经过Tile展开，切分成Shape为\(1, 4 ,1, 64\)的Tile。同时，为Tile分配内存层级（对应图中asis-原地址，tobe-目的地址），并将Tensor前后关联的Operation节点进行切分和处理（例如图中TILE\_COPY\_IN和TILE\_COPY\_OUT等）。
 
@@ -115,13 +124,13 @@
 
 打开After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_LEAF\_program\_id\_00\_15536366383870408930.json，显示以下界面。
 
-![](../figures/zh-cn_image_0000002501792452.png)
+![计算图样例3](../figures/zh-cn_image_0000002501792452.png)
 
 通过上方标题右侧可以看到计算图类型为Block Graph。Block Graph由以下几部分组成：
 
--   Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
--   Tensor节点：对应图中标号②，各参数解释参见[表2](#table2)。
--   Operation节点：对应图中标号③和④，两者的区别是例如④这类Operation与输入/输出Tensor的Shape无关，因此无Shape属性，详细参数解释参见[表3](#table3)。
+- Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
+- Tensor节点：对应图中标号②，各参数解释参见[表2](#table2)。
+- Operation节点：对应图中标号③和④，两者的区别是例如④这类Operation与输入/输出Tensor的Shape无关，因此无Shape属性，详细参数解释参见[表3](#table3)。
 
 从图中可以看到，在Block Graph阶段，Tile Graph被切成若干子图，每一个子图对应一个Block Graph，因此相比Tile Graph，Block Graph的规模明显减少。
 
@@ -131,12 +140,12 @@
 
 打开After\_037\_CodegenPreproc\_TENSOR\_loop\_0\_Unroll1\_PATH0\_hiddenfunc0\_8\_ROOT.json文件，显示以下界面。
 
-![](../figures/zh-cn_image_0000002501621864.png)
+![计算图样例4](../figures/zh-cn_image_0000002501621864.png)
 
 通过上方标题右侧可以看到计算图类型为Execute Graph。Execute Graph由以下几部分组成：
 
--   Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
--   调用节点：带有fx标识，表示对Block Graph进行一次调用，对应图中标号②，各参数解释参见[表4](#table4)。双击调用节点，可以查看对应的Block Graph子图信息，了解具体的执行过程。
+- Incast/Outcast节点：数据源/数据结果节点，对应图中标号①，各参数解释参见[表1](#table1)。
+- 调用节点：带有fx标识，表示对Block Graph进行一次调用，对应图中标号②，各参数解释参见[表4](#table4)。双击调用节点，可以查看对应的Block Graph子图信息，了解具体的执行过程。
 
     **表 4**  调用节点说明<a id="table4"></a>
 
@@ -148,8 +157,6 @@
     |OutCast|输出Tensor的Magic ID列表。|
     |calleehash|调用函数的hash值。|
 
-
 ## 其他操作
 
 在计算图页面支持拖拽查看、缩略图查看，以及节点的缩放、点击查看节点详情。
-

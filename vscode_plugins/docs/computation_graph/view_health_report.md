@@ -4,44 +4,44 @@
 
 健康报告用于展示计算图不同阶段的统计信息。
 
--   Tensor Graph健康报告展示用户定义的计算图的原始统计信息。
--   Tile Graph健康报告展示经过TileShape展开后的计算图的整体统计信息。包括节点总数、出度入度最大的瓶颈节点、最大并发度、总的数据搬运量和冗余搬运等。
--   Block Graph健康报告展示调度运行在单个AI Core上的子图的整体统计信息。包括spill数据量、各个存储空间占用情况、内存碎片率等指标。
--   Execute Graph健康报告展示对应子图间任务调度的整体统计指标。包括最大并发度、最大长度、总的子图数、出度入度最大的瓶颈子图、子图同构率等。
+- Tensor Graph健康报告展示用户定义的计算图的原始统计信息。
+- Tile Graph健康报告展示经过TileShape展开后的计算图的整体统计信息。包括节点总数、出度入度最大的瓶颈节点、最大并发度、总的数据搬运量和冗余搬运等。
+- Block Graph健康报告展示调度运行在单个AI Core上的子图的整体统计信息。包括spill数据量、各个存储空间占用情况、内存碎片率等指标。
+- Execute Graph健康报告展示对应子图间任务调度的整体统计指标。包括最大并发度、最大长度、总的子图数、出度入度最大的瓶颈子图、子图同构率等。
 
 ## 前提条件
 
 执行PyPTO程序，生成计算图文件和健康报告文件，健康报告文件的生成操作如下。
 
-1.  配置健康报告生成开关：$\{install\_path/python\}/site-packages/pypto/lib/configs/tile\_fwk\_config.json。
+1. 配置健康报告生成开关：$\{install\_path\}/python/site-packages/pypto/lib/configs/tile\_fwk\_config.json。（install_path是cann包所在目录）
 
     ```python
      "global": {
- 	         "pass":{
- 	             "default_pass_configs": {
- 	                 "health_check": false  // 默认为false，需要配置为true
+             "pass":{
+                 "default_pass_configs": {
+                     "health_check": false  // 默认为false，需要配置为true
                  }
- 	         }
- 	         },
+             }
+             },
     ```
 
-2.  执行PyPTO程序，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）的计算图同级目录下生成相关健康报告文件，文件名格式为\_xxxHealthReport.json。
-    -   在**Pass\_xx\_ExpandFunction**目录下生成Tensor Graph健康报告文件。
-    -   在**Pass\_xx\_L1CopyInReuseMerge**目录下生成Tile Graph健康报告文件。
-    -   在**Pass\_xx\_OoOSchedule**目录下生成Block Graph健康报告文件。
-    -   在**Pass\_xx\_SubgraphToFunction**下生成Execute Graph健康报告文件。
+2. 执行PyPTO程序，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）的计算图同级目录下生成相关健康报告文件，文件名格式为\_xxxHealthReport.json。
+    - 在**Pass\_xx\_ExpandFunction**目录下生成Tensor Graph健康报告文件。
+    - 在**Pass\_xx\_L1CopyInReuseMerge**目录下生成Tile Graph健康报告文件。
+    - 在**Pass\_xx\_OoOSchedule**目录下生成Block Graph健康报告文件。
+    - 在**Pass\_xx\_SubgraphToFunction**下生成Execute Graph健康报告文件。
 
 ## 查看Tensor Graph健康报告
 
-1.  打开计算图文件，下面提供两种方式，用户任选其一即可：
-    -   在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491082472.png)图标，打开PyPTO Toolkit，在运行结果界面打开计算图文件\(此种方式仅支持打开文件命名以After开头的图\)。
-    -   在Visual Studio Code工作区，右键单击计算图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+1. 打开计算图文件，下面提供两种方式，用户任选其一即可：
+    - 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491082472.png)图标，打开PyPTO Toolkit，在运行结果界面打开计算图文件\(此种方式仅支持打开文件命名以After开头的图\)。
+    - 在Visual Studio Code工作区，右键单击计算图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
 
-2.  在计算图界面中，单击右侧的![](../figures/zh-cn_image_0000002480358584.png)按钮。![](../figures/zh-cn_image_0000002480201920.png)
+2. 在计算图界面中，单击右侧的![](../figures/zh-cn_image_0000002480358584.png)按钮。![](../figures/zh-cn_image_0000002480201920.png)
 
     在计算图界面右侧自动滑出健康度报告数据面板，不同类型计算图的健康度报告略有不同，下面分别介绍。
 
-3.  查看Tensor Graph健康报告。
+3. 查看Tensor Graph健康报告。
 
     ![](../figures/zh-cn_image_0000002486905898.png)
 
@@ -60,7 +60,6 @@
     |max Fanout|计算图上所有节点的最大出度值。出度值表示每个节点最多需要向多少个下游节点分发输出。|
     |max FanoutOps|计算图上出度值最大的节点。|
 
-
     **表 2**  Tensor Graph健康报告-区域②参数说明<a id="table2"></a>
 
     |参数|说明|
@@ -69,7 +68,6 @@
     |maxConsumerCount|计算图上Tensor消费者个数的最大值。|
     |maxProducerTensors|计算图上生产者个数最多的Tensor。单击右侧展开按钮，可以展开所有Tensor节点。![](../figures/zh-cn_image_0000002525509105.png)|
     |maxConsumerTensors|计算图上消费者个数最多的Tensor。|
-
 
 ## 查看Tile Graph健康报告
 
@@ -91,7 +89,6 @@
 |max FaninOps|计算图上入度值最大的节点。单击右侧展开按钮，可以展开所有Operation节点。|
 |max Fanout|计算图上所有节点的最大出度值。出度值表示每个节点最多需要向多少个下游节点分发输出。|
 |max FanoutOps|计算图上出度值最大的节点。|
-
 
 ## 查看Block Graph健康报告
 
@@ -132,7 +129,6 @@
 |PIPE_S|PIPE_S的利用率。|
 |PIPE_V|PIPE_V的利用率。|
 
-
 **表 6**  Block Graph健康报告-区域③参数说明<a id="table6"></a>
 
 |参数|说明|
@@ -142,7 +138,6 @@
 |Type|发生换出换入的Buffer类型。|
 |Buffer Usage / Rate / AllocSize|当前Buffer已占用的大小 / 当前Buffer的占用率 / 当前被Alloc占用的Buffer的大小。|
 |Spill Tensor / Trigger Tensor / Spill CopyOut Tensor|被换出换入的Tensor的大小 / 触发当前换出换入的Tensor的大小 / 发生换出换入时搬出到DDR的数据量大小。|
-
 
 **表 7**  Block Graph健康报告-区域④参数说明<a id="table7"></a>
 
@@ -154,7 +149,6 @@
 |max Consumers|子图内消费者数量最大的Tensor。|
 |max Inputs|子图内前序节点数量的最大的Tensor。|
 |max Outputs|子图内后继节点数量的最大的Tensor。|
-
 
 ## 查看Execute Graph健康报告
 
@@ -182,7 +176,6 @@
 |MaxSubgraphDepth|计算图上从Incast节点到Outcast节点的最长路径上的节点总数。|
 |MaxSubgraphWidth|计算图上的最大并发度，即同一时间内节点的最大并发执行数。|
 
-
 **表 9**  Execute Graph健康报告-区域②参数说明<a id="table9"></a>
 
 |参数|说明|
@@ -191,7 +184,6 @@
 |minSubgraphCycle|value：子图的最小理论耗时。subgraphID：理论耗时最小的子图。|
 |avgSubgraphCycle|子图的平均理论耗时。|
 
-
 **表 10**  Execute Graph健康报告-区域③参数说明<a id="table10"></a>
 
 |参数|说明|
@@ -199,13 +191,11 @@
 |maxSubgraphFanin|value：子图最大入度值。subgraphID：入度值最大子图。|
 |maxSubgraphFanout|value：子图最大出度值。subgraphID：出度值最大子图。|
 
-
 **表 11**  Execute Graph健康报告-区域④参数说明<a id="table11"></a>
 
 |参数|说明|
 |--|--|
 |PeakUsage|value列：GM峰值内存占用。subgraphID列：发生GM峰值内存占用的子图。|
-
 
 **表 12**  Execute Graph健康报告-区域⑤参数说明<a id="table12"></a>
 
@@ -215,5 +205,3 @@
 |AIC|执行在AIC上的子图个数。|
 |AICPU|执行在AI CPU上的子图个数。|
 |mix|执行在AIV和AIC上的子图个数。|
-
-
