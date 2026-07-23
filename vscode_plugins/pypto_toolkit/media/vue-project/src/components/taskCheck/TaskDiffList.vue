@@ -54,7 +54,7 @@
                   <span v-if="item.rawMagic" class="info-text">RawMagic: {{ item.rawMagic }}</span>
                   <span v-if="item.ioFlag" class="info-text">IO_flag: {{ item.ioFlag }}</span>
                   <span v-if="item.funcHash" class="info-text">funcHash: {{ item.funcHash }}</span>
-                  <span v-if="item.loopVarInfos" class="info-text">loopVarInfos: {{ item.loopVarInfos }}</span>
+                  <span v-if="item.loopInfo" class="info-text">loopInfo: {{ item.loopInfo }}</span>
                 </div>
                 <span v-if="item.compareRes === 'Fail'" :class="['fail-tag', isFirstFail(item.id) && 'first-fail']">
                   <img :src="failIconPath" class="fail-icon" />
@@ -126,32 +126,25 @@ export interface TaskDiffItem {
   id: string;
   taskName: string;
   compareRes: 'Pass' | 'Fail';
-  // 公共数据（标题显示）
   opMagic?: string;
   rawMagic?: string;
   ioFlag?: string;
   funcHash?: string;
-  loopVarInfos?: string;
-  // a列数据
+  loopInfo?: string;
   aData: {
     phaseName?: string;
     validShape?: string;
     dataType?: string;
     rootFuncHash?: string;
   };
-  // b列数据
   bData: {
-    taskFuncId?: string;
     taskId?: string;
-    execEnd?: string;
     validShape?: string;
-    offset?: string;
     rawShape?: string;
     tensorAddr?: string;
     dataType?: string;
     seqNo?: string;
   };
-  // 原始数据（用于精度报告）
   sharedRes?: Record<string, any>;
   rawAOp?: Record<string, any>;
   rawTaskOp?: Record<string, any>;
@@ -234,14 +227,12 @@ const getLeftDetailValue = (item: TaskDiffItem, key: string) => {
 };
 
 // 右列字段（b列）- 分成两列
-const rightDetailFieldsFirst = ['taskFuncId', 'execEnd', 'validShape', 'offset'];
-const rightDetailFieldsSecond = ['rawShape', 'tensorAddr', 'dataType', 'seqNo'];
+const rightDetailFieldsFirst = ['taskId', 'validShape', 'rawShape'];
+const rightDetailFieldsSecond = ['tensorAddr', 'dataType', 'seqNo'];
 
 const rightLabelNameMap: Record<string, string> = {
-  taskFuncId: 'funcId',
-  execEnd: 'execEnd',
+  taskId: 'taskId',
   validShape: 'validShape',
-  offset: 'offset',
   rawShape: 'rawShape',
   tensorAddr: 'tensorAddr',
   dataType: 'dataType',

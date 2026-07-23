@@ -63,8 +63,10 @@ export interface TaskDetailData {
   summaryInfo?: TaskSummaryInfo;
   source?: 'left' | 'right';
   sharedRes?: Record<string, any>;
-  loopVarInfos?: string;
+  loopInfo?: string;
   seqNo?: number;
+  rawAOp?: Record<string, any>;
+  rawTaskOp?: Record<string, any>;
 }
 
 export interface TaskSummaryInfo {

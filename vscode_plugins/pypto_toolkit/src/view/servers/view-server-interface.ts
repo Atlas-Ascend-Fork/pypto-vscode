@@ -121,7 +121,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
     startOffset?: number;
     keyword?: string;
     readFlag?: boolean;
-    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     rootFuncHash?: string;
     loopInfo?: string;
   }) => Promise<void>;
@@ -394,7 +394,7 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
     startOffset?: number;
     res?: string;
     keyword?: string;
-    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
   }) => Promise<void>;
   getTaskCmpErrorListData: (data: {
     cmpCsvPath: string;
@@ -403,7 +403,7 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
     startOffset?: number;
     keyword?: string;
     readFlag?: boolean;
-    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     loopInfo?: string;
   }) => Promise<void>;
 }
@@ -454,6 +454,7 @@ export interface ITaskCheckViewServer extends ViewServer<ITaskCheckApis, ITaskCh
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
     rootFuncHash?: string;
+    pathFuncHash?: string;
   }) => Promise<void>;
   openSwimGraphApi: (data: {
     swimPath: string;

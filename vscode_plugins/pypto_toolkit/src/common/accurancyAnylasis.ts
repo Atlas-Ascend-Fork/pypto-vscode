@@ -1040,6 +1040,7 @@ export async function openTaskCmpDiffComGraph(
     computeGraphDirPath?: string,
     flowVerifyPath?: string,
     rootFuncHash?: string,
+    pathFuncHash?: string,
   ): Promise<void> {
     let parentDir: string = '';
 
@@ -1088,5 +1089,5 @@ export async function openTaskCmpDiffComGraph(
 
     const directPath = path.join(passSubDir, targetComgraph);
 
-    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash);
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFuncHash);
 }

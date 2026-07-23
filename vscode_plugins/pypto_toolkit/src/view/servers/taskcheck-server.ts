@@ -84,12 +84,13 @@ export class TaskCheckViewServer extends ViewServer<Apis, Refs> implements ITask
     opMagic?: string;
     rawMagic?: string;
     tensorAddr?: string;
+    symbol?: string;
+    funchash?: string;
   }) => {
-    const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword, phaseName, funcHash, readFlag = true, opMagic, rawMagic, tensorAddr } = data;
+    const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword, phaseName, funcHash, readFlag = true, opMagic, rawMagic, tensorAddr, symbol, funchash } = data;
 
-    // 构建 filterWord 对象
     const filterWord: TaskCmpFilterWord | undefined = 
-      (opMagic || rawMagic || tensorAddr) ? { opMagic, rawMagic, tensorAddr } : undefined;
+      (opMagic || rawMagic || tensorAddr || symbol || funchash) ? { opMagic, rawMagic, tensorAddr, symbol, funchash } : undefined;
 
     const result = await getTaskCmpList(
       cmpCsvPath,
@@ -133,11 +134,12 @@ export class TaskCheckViewServer extends ViewServer<Apis, Refs> implements ITask
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
     rootFuncHash?: string;
+    pathFuncHash?: string;
   }) => {
-    const { filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash } = data;
+    const { filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFuncHash } = data;
     
     try {
-      await openTaskCmpDiffComGraph(filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash);
+      await openTaskCmpDiffComGraph(filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFuncHash);
     } catch (error) {
       console.error('[TaskCheckViewServer] openTaskCmpDiffComGraph error:', error);
     }

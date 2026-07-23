@@ -59,9 +59,9 @@ export class RegisterCommand {
         }
         await this.openView('computeGraph', uri, undefined);
       }),
-      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string) => {
+      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string, pathFuncHash?: string) => {
         if (!uri) return;
-        await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo, rootFuncHash);
+        await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFuncHash);
       }),
       commands.registerCommand('PyPTO.Open.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
@@ -121,7 +121,7 @@ export class RegisterCommand {
     ];
   }
 
-  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string) {
+  async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string, pathFuncHash?: string) {
     const content = ((await readFirstNLines(uri.fsPath, 10)) as string[]).join('');
     const { editorView } = useView();
     if (content.includes('entryhash')) {
@@ -133,6 +133,7 @@ export class RegisterCommand {
         loopInfo: loopInfo,
         outputPath: cmpCsvPath,
         rootFuncHash: rootFuncHash,
+        pathFuncHash: pathFuncHash,
       };
       await editorView.open(routeName, vscode.Uri.file(uri.fsPath), {
         query: finalQuery,

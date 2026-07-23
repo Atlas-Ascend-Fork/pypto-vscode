@@ -316,7 +316,7 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     readFlag?: boolean;
     cmpCsvPath?: string;
     comgraphPath?: string;
-    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string };
+    filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     rootFuncHash?: string;
     oriLoopInfo?: string;
   }) => {

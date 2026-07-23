@@ -178,21 +178,16 @@ watch(
           opMagic: item.sharedRes?.rootCallOpmagic || '',
           rawMagic: item.sharedRes?.rootCallRawmagic || '',
           ioFlag: item.sharedRes?.ioFlag || '',
-          funcHash: item.sharedRes?.funcHash || '',
-          loopVarInfos: item.taskOp?.taskLoopVarInfos || '',
-          // a列数据
+          funcHash: item.aOp?.aFuncHash || '',
+          loopInfo: item.sharedRes?.loopInfo || '',
           aData: {
             phaseName: item.aOp?.aPhaseName || '',
             validShape: item.aOp?.aValidshape || '',
             dataType: item.aOp?.aDatatype || '',
-            rootFuncHash: item.sharedRes?.rootFuncHash || '',
+            rootFuncHash: item.aOp?.aRootFuncHash || '',
           },
-          // b列数据
           bData: {
-            taskFuncId: item.taskOp?.taskFuncId || '',
-            execEnd: item.taskOp?.taskExecEnd || '',
             validShape: item.taskOp?.taskValidShape || '',
-            offset: item.taskOp?.taskOffset || '',
             rawShape: item.taskOp?.taskRawShape || '',
             tensorAddr: item.taskOp?.taskTensorAddr || '',
             dataType: item.taskOp?.taskDataType || '',
@@ -425,7 +420,7 @@ const onDiffItemClick = (data: { data: TaskDiffItem | null; source: 'left' | 'ri
   const summaryInfo = {
     dataType: sharedRes.dataType || item.aData?.dataType || '',
     validShape: sharedRes.validShape || item.aData?.validShape || '',
-    loopInfo: item.loopVarInfos || '',
+    loopInfo: item.loopInfo || '',
     rtolAtol: sharedRes.abRtolAtol || sharedRes.rtolAtol || '0.001, 0.001',
     cntTotalZeroInfnanCnt: sharedRes.abTotalZeroInfnanCnt || sharedRes.cntTotalZeroInfnanCnt || '0/0/0',
     cntFailWarnTol: sharedRes.abFailWarnTol || sharedRes.cntFailWarnTol || '0/0',
@@ -461,7 +456,9 @@ const onDiffItemClick = (data: { data: TaskDiffItem | null; source: 'left' | 'ri
     source,
     summaryInfo,
     sharedRes: item.sharedRes,
-    loopVarInfos: item.loopVarInfos,
+    loopInfo: item.loopInfo,
+    rawAOp: item.rawAOp,
+    rawTaskOp: item.rawTaskOp,
   };
   showDetail.value = true;
 };
@@ -482,10 +479,11 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
 
   // 根据 source 决定取哪个数据的值
   const isLeft = source === 'left';
-  const funcHash = detailData.sharedRes?.funcHash || '';
-  const passName = detailData.sharedRes?.phaseName || detailData.aData?.phaseName || '';
-  const loopInfo = detailData.loopVarInfos || detailData.summaryInfo?.loopInfo || '';
-  const rootFuncHash = detailData.sharedRes?.rootFuncHash || '';
+  const funcHash = detailData.rawAOp?.aFuncHash || '';
+  const passName = detailData.aData?.phaseName || '';
+  const loopInfo = detailData.loopInfo || detailData.summaryInfo?.loopInfo || '';
+  const rootFuncHash = detailData.rawAOp?.aRootFuncHash || '';
+  const pathFuncHash = detailData.rawAOp?.aPathHash || '';
   const fileType = isLeft ? 'task_A' : 'task_B';
 
   if (!funcHash || !passName) {
@@ -504,6 +502,7 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
       computeGraphDirPath: computeGraphDirPath.value,
       flowVerifyPath: flowVerifyPath.value,
       rootFuncHash,
+      pathFuncHash,
     });
   } catch (error) {
     console.error('[TaskCheckIndex] jumpToGraph error:', error);

@@ -157,57 +157,46 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
         await SQLiteCache.getInstance().accuracyToolCmpDetailSet(detailData);
       } else if (type === 4) {
         const dataToSave: AccuracyToolTaskCmpData = {
-          // 暂时使用 any，建议替换为具体接口
-          // --- 基础信息 ---
           sourceFileName: oriFilePath,
           no: row['NO.'],
-          phaseName: row['B>PHASE_NAME'],
-          
+          phaseName: row['A>PHASE_NAME'],
+          ioFlag: row['IO_FLAG'],
+          loopInfo: row['LOOP_INFO'],
           rootCallOpmagic: row['ROOT_CALL:opmagic'],
           rootCallRawmagic: row['ROOT_CALL:rawmagic'],
+          fileName: row['B>FILENAME'],
 
-          rootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
-          funcHash: row['FUNC:hash']?.endsWith("'") ? row['FUNC:hash'].slice(0, -1) : row['FUNC:hash'],
-          timestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
-
-          // --- 形状与类型 ---
-          // offset: row['B>offset'],
-          // rawShape: row['B>rawShape'],
-          // tensorAddr: row['B>tensorAddr'],
-          // loopVarInfos: row['B>loopVarInfos'],
-          // execStart: row['B>execStart'],
-          // execEnd: row['B>execEnd'],
-          // funcId: row['B>funcId'],
-          // taskId: row['B>taskId'],
-          ioFlag: row['IO_FLAG'],
-          // seqNo: row['B>seqNo'],
-          fileName: row['B>FILENAME'], // 用于关联详情文件
-
-          // --- A组数据 ---
           aPhaseName: row['A>PHASE_NAME'],
-          aValidshape: row['A>validshape'],
-          aDatatype: row['A>datatype'],
+          aDatatype: row['A>:datatype'],
+          aFormat: row['A>:format'],
+          aMagic: row['A>:magic'],
+          aOpcode: row['A>:opcode'],
+          aRawMagic: row['A>:rawmagic'],
+          aSymbol: row['A>:symbol'],
+          aValidshape: row['A>:validshape'],
+          aDynvalidshape: row['A>EVAL:dynvalidshape'],
+          aOpAttrAtomic: row['A>OP_ATTR_ATOMIC'],
+          aOpAttrSymOfst: row['A>OP_ATTR_SYM_OFFSET'],
+          aFuncHash: row['FUNC:hash']?.endsWith("'") ? row['FUNC:hash'].slice(0, -1) : row['FUNC:hash'],
+          aPathHash: row['PATH_FUNC:hash']?.endsWith("'") ? row['PATH_FUNC:hash'].slice(0, -1) : row['PATH_FUNC:hash'],
+          aRootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
 
-          // --- B组数据
-          bValidShape: row['B>validshape'],
-          bDataType: row['B>datatype'],
-          bFuncId: row['B>funcId'],
-          bTaskId: row['B>taskId'],
-          bOffset: row['B>offset'],
-          bExecStart: row['B>execStart'],
-          bExecEnd: row['B>execEnd'],
-          bRawShape: row['B>rawShape'],
-          bTensorAddr: row['B>tensorAddr']?.endsWith("'") ? row['B>tensorAddr'].slice(0, -1) : row['B>tensorAddr'],
+          bDataType: row['B>:datatype'],
+          bRawShape: row['B>:rawShape'],
+          bValidShape: row['B>:validshape'],
+          bBlockIdx: row['B>blockIdx'],
+          bOpAttrSymOfst: row['B>OP_ATTR_SYM_OFFSET'],
           bSeqNo: row['B>seqNo'],
-          bLoopVarInfos: row['B>loopVarInfos'],
+          bTaskId: row['B>taskId'],
+          bTensorAddr: row['B>tensorAddr']?.endsWith("'") ? row['B>tensorAddr'].slice(0, -1) : row['B>tensorAddr'],
+          bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
+          bExecTimestamp: row['B>EXEC_TIMESTAMP']?.endsWith("'") ? row['B>EXEC_TIMESTAMP'].slice(0, -1) : row['B>EXEC_TIMESTAMP'],
 
-          // --- 结果统计 ---
           result: row['AB>RESULT'],
           rtolAtol: row['AB>rtol/atol'],
           cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
           cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
 
-          // --- 误差指标 ---
           mae: row['AB>mae'],
           maeTop8: row['AB>mae_top8'],
           maeTop1permil: row['AB>mae_top1permil'],
@@ -215,7 +204,6 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           mreTop8: row['AB>mre_top8'],
           mreTop1permil: row['AB>mre_top1permil'],
 
-          // --- A组统计值 ---
           aMax: row['A>max'],
           aMin: row['A>min'],
           aAvg: row['A>avg'],
@@ -223,7 +211,6 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           aZero: row['A>zero'],
           aInfnan: row['A>infnan'],
 
-          // --- B组统计值 ---
           bMax: row['B>max'],
           bMin: row['B>min'],
           bAvg: row['B>avg'],

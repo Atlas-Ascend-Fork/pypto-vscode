@@ -202,7 +202,7 @@ watch(server.taskCmpErrorList, (val: Record<string, any>) => {
     // NO. → sharedRes.no
     taskNo: item?.sharedRes?.no || '',
     // LOOP_INFO → taskOp.taskLoopVarInfos
-    taskLoopVarInfos: item?.taskOp?.taskLoopVarInfos || '',
+    taskLoopVarInfos: item?.sharedRes?.loopInfo || '',
     // rawmagicID → sharedRes.rootCallRawmagic
     rootCallRawmagic: item?.sharedRes?.rootCallRawmagic || '',
     // datatype → taskOp.taskDataType

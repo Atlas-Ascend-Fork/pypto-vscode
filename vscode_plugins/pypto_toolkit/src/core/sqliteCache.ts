@@ -38,33 +38,46 @@ export interface TaskCmpFilterWord {
   rawMagic?: string;
   opMagic?: string;
   tensorAddr?: string;
+  symbol?: string;
+  funchash?: string;
 }
 
 export interface AccuracyToolTaskCmpData {
   sourceFileName?: string;
   no: string; // NO.
-  phaseName: string; // B>PHASE_NAME
+  phaseName: string; // A>PHASE_NAME
+  ioFlag: string; // IO_FLAG
+  loopInfo: string; // LOOP_INFO
   rootCallOpmagic: string; // ROOT_CALL:opmagic
   rootCallRawmagic: string; // ROOT_CALL:rawmagic
-  rootFuncHash: string; // ROOT_FUNC:hash
-  funcHash: string; // FUNC:hash
-  timestamp: string; // B>TIMESTAMP
-  ioFlag: string; // IO_FLAG
   fileName: string; // B>FILENAME
+
   aPhaseName: string; // A>PHASE_NAME
-  aValidshape: string; // A>validshape
-  aDatatype: string; // A>datatype
-  bValidShape: string; // B>validshape
-  bDataType: string; // B>datatype
-  bFuncId: string; // B>funcId
-  bTaskId: string; // B>taskId
-  bOffset: string; // B>offset
-  bExecStart: string; // B>execStart
-  bExecEnd: string; // B>execEnd
-  bRawShape: string; // B>rawShape
-  bTensorAddr: string; // B>tensorAddr
+  aDatatype: string; // A>:datatype
+  aFormat: string; // A>:format
+  aMagic: string; // A>:magic
+  aOpcode: string; // A>:opcode
+  aRawMagic: string; // A>:rawmagic
+  aSymbol: string; // A>:symbol
+  aValidshape: string; // A>:validshape
+  aDynvalidshape: string; // A>EVAL:dynvalidshape
+  aOpAttrAtomic: string; // A>OP_ATTR_ATOMIC
+  aOpAttrSymOfst: string; // A>OP_ATTR_SYM_OFFSET
+  aFuncHash: string; // FUNC:hash
+  aPathHash: string; // PATH_FUNC:hash
+  aRootFuncHash: string; // ROOT_FUNC:hash
+
+  bDataType: string; // B>:datatype
+  bRawShape: string; // B>:rawShape
+  bValidShape: string; // B>:validshape
+  bBlockIdx: string; // B>blockIdx
+  bOpAttrSymOfst: string; // B>OP_ATTR_SYM_OFFSET
   bSeqNo: string; // B>seqNo
-  bLoopVarInfos: string; // B>loopVarInfos
+  bTaskId: string; // B>taskId
+  bTensorAddr: string; // B>tensorAddr
+  bTimestamp: string; // B>TIMESTAMP
+  bExecTimestamp: string; // B>EXEC_TIMESTAMP
+
   result: string; // AB>RESULT
   rtolAtol: string; // AB>rtol/atol
   cntFailWarnTol: string; // AB>fail_cnt/warn_cnt/tol_cnt
@@ -75,12 +88,14 @@ export interface AccuracyToolTaskCmpData {
   mre: string; // AB>mre
   mreTop8: string; // AB>mre_top8
   mreTop1permil: string; // AB>mre_top1permil
+
   aMax: string; // A>max
   aMin: string; // A>min
   aAvg: string; // A>avg
   aAavg: string; // A>aavg
   aZero: string; // A>zero
   aInfnan: string; // A>infnan
+
   bMax: string; // B>max
   bMin: string; // B>min
   bAvg: string; // B>avg
@@ -158,28 +173,35 @@ export class SQLiteCache {
       CREATE TABLE IF NOT EXISTS accuracy_tool_task_cmp (
         "sourceFileName" TEXT,
         "NO." TEXT,
-        "B>PHASE_NAME" TEXT,
+        "A>PHASE_NAME" TEXT,
+        "IO_FLAG" TEXT,
+        "LOOP_INFO" TEXT,
         "ROOT_CALL:opmagic" TEXT,
         "ROOT_CALL:rawmagic" TEXT,
-        "ROOT_FUNC:hash" TEXT,
-        "FUNC:hash" TEXT,
-        "B>TIMESTAMP" TEXT,
-        "B>validshape" TEXT,
-        "B>rawShape" TEXT,
-        "B>datatype" TEXT,
-        "B>funcId" TEXT,
-        "B>taskId" TEXT,
-        "B>offset" TEXT,
-        "B>execStart" TEXT,
-        "B>execEnd" TEXT,
-        "B>tensorAddr" TEXT,
-        "IO_FLAG" TEXT,
-        "B>seqNo" TEXT,
         "B>FILENAME" TEXT,
-        "B>loopVarInfos" TEXT,
-        "A>PHASE_NAME" TEXT,
-        "A>validshape" TEXT,
-        "A>datatype" TEXT,
+        "A>:datatype" TEXT,
+        "A>:format" TEXT,
+        "A>:magic" TEXT,
+        "A>:opcode" TEXT,
+        "A>:rawmagic" TEXT,
+        "A>:symbol" TEXT,
+        "A>:validshape" TEXT,
+        "A>EVAL:dynvalidshape" TEXT,
+        "A>OP_ATTR_ATOMIC" TEXT,
+        "A>OP_ATTR_SYM_OFFSET" TEXT,
+        "FUNC:hash" TEXT,
+        "PATH_FUNC:hash" TEXT,
+        "ROOT_FUNC:hash" TEXT,
+        "B>:datatype" TEXT,
+        "B>:rawShape" TEXT,
+        "B>:validshape" TEXT,
+        "B>blockIdx" TEXT,
+        "B>OP_ATTR_SYM_OFFSET" TEXT,
+        "B>seqNo" TEXT,
+        "B>taskId" TEXT,
+        "B>tensorAddr" TEXT,
+        "B>TIMESTAMP" TEXT,
+        "B>EXEC_TIMESTAMP" TEXT,
         "AB>RESULT" TEXT,
         "AB>rtol/atol" TEXT,
         "AB>fail_cnt/warn_cnt/tol_cnt" TEXT,
@@ -402,43 +424,52 @@ export class SQLiteCache {
   public async accuracyToolTaskCmpSet(data: AccuracyToolTaskCmpData): Promise<void> {
     const sql = `
       INSERT OR REPLACE INTO accuracy_tool_task_cmp (
-        "sourceFileName", "NO.", "B>PHASE_NAME", "ROOT_CALL:opmagic", "ROOT_CALL:rawmagic",
-        "ROOT_FUNC:hash", "FUNC:hash", "B>TIMESTAMP",
-        "B>validshape", "B>rawShape", "B>datatype", "B>funcId", "B>taskId", "B>offset",
-        "B>execStart", "B>execEnd", "B>tensorAddr",
-        "IO_FLAG", "B>seqNo", "B>FILENAME", "B>loopVarInfos",
-        "A>PHASE_NAME", "A>validshape", "A>datatype", "AB>RESULT", "AB>rtol/atol",
+        "sourceFileName", "NO.", "A>PHASE_NAME", "IO_FLAG", "LOOP_INFO",
+        "ROOT_CALL:opmagic", "ROOT_CALL:rawmagic", "B>FILENAME",
+        "A>:datatype", "A>:format", "A>:magic", "A>:opcode", "A>:rawmagic", "A>:symbol",
+        "A>:validshape", "A>EVAL:dynvalidshape", "A>OP_ATTR_ATOMIC", "A>OP_ATTR_SYM_OFFSET",
+        "FUNC:hash", "PATH_FUNC:hash", "ROOT_FUNC:hash",
+        "B>:datatype", "B>:rawShape", "B>:validshape", "B>blockIdx", "B>OP_ATTR_SYM_OFFSET",
+        "B>seqNo", "B>taskId", "B>tensorAddr", "B>TIMESTAMP", "B>EXEC_TIMESTAMP",
+        "AB>RESULT", "AB>rtol/atol",
         "AB>fail_cnt/warn_cnt/tol_cnt", "AB>total_cnt/zero_cnt/infnan_cnt",
         "AB>mae", "AB>mae_top8", "AB>mae_top1permil", "AB>mre", "AB>mre_top8",
         "AB>mre_top1permil", "A>max", "A>min", "A>avg", "A>aavg", "A>zero",
         "A>infnan", "B>max", "B>min", "B>avg", "B>aavg", "B>zero", "B>infnan"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.sourceFileName ?? '',
       data.no ?? '',
       data.phaseName ?? '',
+      data.ioFlag ?? '',
+      data.loopInfo ?? '',
       data.rootCallOpmagic ?? '',
       data.rootCallRawmagic ?? '',
-      data.rootFuncHash ?? '',
-      data.funcHash ?? '',
-      data.timestamp ?? '',
-      data.bValidShape ?? '',
-      data.bRawShape ?? '',
-      data.bDataType ?? '',
-      data.bFuncId ?? '',
-      data.bTaskId ?? '',
-      data.bOffset ?? '',
-      data.bExecStart ?? '',
-      data.bExecEnd ?? '',
-      data.bTensorAddr ?? '',
-      data.ioFlag ?? '',
-      data.bSeqNo ?? '',
       data.fileName ?? '',
-      data.bLoopVarInfos ?? '',
-      data.aPhaseName ?? '',
-      data.aValidshape ?? '',
       data.aDatatype ?? '',
+      data.aFormat ?? '',
+      data.aMagic ?? '',
+      data.aOpcode ?? '',
+      data.aRawMagic ?? '',
+      data.aSymbol ?? '',
+      data.aValidshape ?? '',
+      data.aDynvalidshape ?? '',
+      data.aOpAttrAtomic ?? '',
+      data.aOpAttrSymOfst ?? '',
+      data.aFuncHash ?? '',
+      data.aPathHash ?? '',
+      data.aRootFuncHash ?? '',
+      data.bDataType ?? '',
+      data.bRawShape ?? '',
+      data.bValidShape ?? '',
+      data.bBlockIdx ?? '',
+      data.bOpAttrSymOfst ?? '',
+      data.bSeqNo ?? '',
+      data.bTaskId ?? '',
+      data.bTensorAddr ?? '',
+      data.bTimestamp ?? '',
+      data.bExecTimestamp ?? '',
       data.result ?? '',
       data.rtolAtol ?? '',
       data.cntFailWarnTol ?? '',
@@ -483,7 +514,7 @@ export class SQLiteCache {
       params.push(res);
     }
     if (keyword) {
-      conditions.push('("B>loopVarInfos" LIKE ? OR "B>datatype" LIKE ?)');
+      conditions.push('("LOOP_INFO" LIKE ? OR "B>:datatype" LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`);
     }
     if (funcHash) {
@@ -507,25 +538,36 @@ export class SQLiteCache {
         conditions.push('"B>tensorAddr" LIKE ?');
         params.push(`%${filterWord.tensorAddr}%`);
       }
+      if (filterWord.symbol) {
+        conditions.push('"A>:symbol" LIKE ?');
+        params.push(`%${filterWord.symbol}%`);
+      }
+      if (filterWord.funchash) {
+        conditions.push('"FUNC:hash" LIKE ?');
+        params.push(`%${filterWord.funchash}%`);
+      }
     }
     if (oriLoopInfo) {
-      conditions.push('"B>loopVarInfos" = ?');
+      conditions.push('"LOOP_INFO" = ?');
       params.push(oriLoopInfo);
     }
     const whereClause = conditions.join(' AND ');
 
     const sql = `
       SELECT
-        "NO." AS no, "B>PHASE_NAME" AS phaseName, "ROOT_CALL:opmagic" AS rootCallOpmagic,
-        "ROOT_CALL:rawmagic" AS rootCallRawmagic,
-        "ROOT_FUNC:hash" AS rootFuncHash, "FUNC:hash" AS funcHash, "B>TIMESTAMP" AS timestamp,
-        "B>validshape" AS bValidShape,
-        "B>datatype" AS bDataType, "B>funcId" AS bFuncId, "B>taskId" AS bTaskId,
-        "B>offset" AS bOffset, "B>execStart" AS bExecStart, "B>execEnd" AS bExecEnd,
-        "B>rawShape" AS bRawShape, "B>tensorAddr" AS bTensorAddr,
-        "IO_FLAG" AS ioFlag, "B>seqNo" AS bSeqNo, "B>FILENAME" AS fileName,
-        "B>loopVarInfos" AS bLoopVarInfos,
-        "A>PHASE_NAME" AS aPhaseName, "A>validshape" AS aValidshape, "A>datatype" AS aDatatype,
+        "NO." AS no, "A>PHASE_NAME" AS phaseName, "IO_FLAG" AS ioFlag, "LOOP_INFO" AS loopInfo,
+        "ROOT_CALL:opmagic" AS rootCallOpmagic, "ROOT_CALL:rawmagic" AS rootCallRawmagic,
+        "B>FILENAME" AS fileName,
+        "A>PHASE_NAME" AS aPhaseName, "A>:datatype" AS aDatatype, "A>:format" AS aFormat,
+        "A>:magic" AS aMagic, "A>:opcode" AS aOpcode, "A>:rawmagic" AS aRawMagic,
+        "A>:symbol" AS aSymbol, "A>:validshape" AS aValidshape,
+        "A>EVAL:dynvalidshape" AS aDynvalidshape,
+        "A>OP_ATTR_ATOMIC" AS aOpAttrAtomic, "A>OP_ATTR_SYM_OFFSET" AS aOpAttrSymOfst,
+        "FUNC:hash" AS aFuncHash, "PATH_FUNC:hash" AS aPathHash, "ROOT_FUNC:hash" AS aRootFuncHash,
+        "B>:datatype" AS bDataType, "B>:rawShape" AS bRawShape, "B>:validshape" AS bValidShape,
+        "B>blockIdx" AS bBlockIdx, "B>OP_ATTR_SYM_OFFSET" AS bOpAttrSymOfst,
+        "B>seqNo" AS bSeqNo, "B>taskId" AS bTaskId, "B>tensorAddr" AS bTensorAddr,
+        "B>TIMESTAMP" AS bTimestamp, "B>EXEC_TIMESTAMP" AS bExecTimestamp,
         "AB>RESULT" AS result,
         "AB>rtol/atol" AS rtolAtol, "AB>fail_cnt/warn_cnt/tol_cnt" AS cntFailWarnTol,
         "AB>total_cnt/zero_cnt/infnan_cnt" AS cntTotalZeroInfnanCnt, "AB>mae" AS mae,
@@ -536,7 +578,7 @@ export class SQLiteCache {
         "B>infnan" AS bInfnan
       FROM accuracy_tool_task_cmp
       WHERE ${whereClause}
-      ORDER BY "B>TIMESTAMP"
+      ORDER BY "B>EXEC_TIMESTAMP" ASC, "B>TIMESTAMP" ASC, "A>:rawmagic" ASC, "B>OP_ATTR_SYM_OFFSET" ASC
       LIMIT ? OFFSET ?
     `;
 
@@ -550,27 +592,35 @@ export class SQLiteCache {
         result.push({
           no: row.no as string,
           phaseName: row.phaseName as string,
+          ioFlag: row.ioFlag as string,
+          loopInfo: row.loopInfo as string,
           rootCallOpmagic: row.rootCallOpmagic as string,
           rootCallRawmagic: row.rootCallRawmagic as string,
-          rootFuncHash: row.rootFuncHash as string,
-          funcHash: row.funcHash as string,
-          timestamp: row.timestamp as string,
-          bValidShape: row.bValidShape as string,
-          bDataType: row.bDataType as string,
-          bFuncId: row.bFuncId as string,
-          bTaskId: row.bTaskId as string,
-          bOffset: row.bOffset as string,
-          bExecStart: row.bExecStart as string,
-          bExecEnd: row.bExecEnd as string,
-          bRawShape: row.bRawShape as string,
-          bTensorAddr: row.bTensorAddr as string,
-          ioFlag: row.ioFlag as string,
-          bSeqNo: row.bSeqNo as string,
           fileName: row.fileName as string,
-          bLoopVarInfos: row.bLoopVarInfos as string,
           aPhaseName: row.aPhaseName as string,
-          aValidshape: row.aValidshape as string,
           aDatatype: row.aDatatype as string,
+          aFormat: row.aFormat as string,
+          aMagic: row.aMagic as string,
+          aOpcode: row.aOpcode as string,
+          aRawMagic: row.aRawMagic as string,
+          aSymbol: row.aSymbol as string,
+          aValidshape: row.aValidshape as string,
+          aDynvalidshape: row.aDynvalidshape as string,
+          aOpAttrAtomic: row.aOpAttrAtomic as string,
+          aOpAttrSymOfst: row.aOpAttrSymOfst as string,
+          aFuncHash: row.aFuncHash as string,
+          aPathHash: row.aPathHash as string,
+          aRootFuncHash: row.aRootFuncHash as string,
+          bDataType: row.bDataType as string,
+          bRawShape: row.bRawShape as string,
+          bValidShape: row.bValidShape as string,
+          bBlockIdx: row.bBlockIdx as string,
+          bOpAttrSymOfst: row.bOpAttrSymOfst as string,
+          bSeqNo: row.bSeqNo as string,
+          bTaskId: row.bTaskId as string,
+          bTensorAddr: row.bTensorAddr as string,
+          bTimestamp: row.bTimestamp as string,
+          bExecTimestamp: row.bExecTimestamp as string,
           result: row.result as string,
           rtolAtol: row.rtolAtol as string,
           cntFailWarnTol: row.cntFailWarnTol as string,
@@ -618,7 +668,7 @@ export class SQLiteCache {
       params.push(res);
     }
     if (keyword) {
-      conditions.push('("B>loopVarInfos" LIKE ? OR "B>datatype" LIKE ?)');
+      conditions.push('("LOOP_INFO" LIKE ? OR "B>:datatype" LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`);
     }
     if (phaseName && funcHash) {
@@ -648,9 +698,17 @@ export class SQLiteCache {
         conditions.push('"B>tensorAddr" LIKE ?');
         params.push(`%${filterWord.tensorAddr}%`);
       }
+      if (filterWord.symbol) {
+        conditions.push('"A>:symbol" LIKE ?');
+        params.push(`%${filterWord.symbol}%`);
+      }
+      if (filterWord.funchash) {
+        conditions.push('"FUNC:hash" LIKE ?');
+        params.push(`%${filterWord.funchash}%`);
+      }
     }
     if (oriLoopInfo) {
-      conditions.push('"B>loopVarInfos" = ?');
+      conditions.push('"LOOP_INFO" = ?');
       params.push(oriLoopInfo);
     }
     const whereClause = conditions.join(' AND ');
