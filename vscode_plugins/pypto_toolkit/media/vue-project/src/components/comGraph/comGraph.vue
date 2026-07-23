@@ -229,6 +229,7 @@ const handleMemTraceFileChange = (data: { existTraceFile: boolean; isComFile: bo
 
 const sizeChange = (size) => {
   window.dispatchEvent(new Event('resize'));
+  fitToScreen();
   updateRightPanelWidth();
 };
 const collapsedChange = (event) => {
@@ -361,6 +362,7 @@ const toggleMemoryAllocation = () => {
   setTimeout(() => {
     showMemoryAllocation.value = !showMemoryAllocation.value;
     window.dispatchEvent(new Event('resize'));
+    fitToScreen();
   }, 50);
 }
 
@@ -574,7 +576,6 @@ onMounted(() => {
   document.addEventListener('keydown', onDocumentKeyDown);
   // 监听操作指引每个步骤需要触发的操作
   (window as any).ascEventBus.on('boot-step-tips', onStepsChange);
-  (window as any).addEventListener('resize', fitToScreen);
   if (splitterPane.value) {
     splitterPane.value.updateCollapsed();
   }
@@ -590,7 +591,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('mouseup', onMouseup);
   document.removeEventListener('keydown', onDocumentKeyDown);
   (window as any).ascEventBus.remove('boot-step-tips', onStepsChange);
-  (window as any).removeEventListener('resize', fitToScreen);
 });
 
 // 统一出口：解除固定
