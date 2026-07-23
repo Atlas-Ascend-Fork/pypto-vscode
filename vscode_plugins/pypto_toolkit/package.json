@@ -227,6 +227,7 @@
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
     "@pypto/data-compress": "^0.0.8",
+    "@pypto/native-layout": "^0.0.1",
     "@types/vscode": "^1.52.0",
     "bignumber.js": "9.3.1",
     "child_process": "^1.0.2",

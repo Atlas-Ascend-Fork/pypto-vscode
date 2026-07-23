@@ -164,8 +164,8 @@ export class DiffGraphHandler extends BaseGraphMsgHandler {
     server.setRef('AfterDiffData', postInfo);
   }
 
-  protected static override postLayoutResult(server: any, jsonStr: string, filePath?: string) {
-    server.setRef('LayoutResult', { data: JSON.parse(jsonStr), filePath });
+  protected static override postLayoutResultData(server: any, data: any, filePath?: string) {
+    server.setRef('LayoutResult', { data, filePath });
   }
 
   static override postJsonGraphData(server: any, message: any, data: any, isCached: boolean) {

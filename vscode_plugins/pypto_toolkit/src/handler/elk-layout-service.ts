@@ -12,9 +12,11 @@ import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { fork } from 'child_process';
 import path from 'path';
 import * as vscode from 'vscode';
+import { workspace } from 'vscode';
 import { getMTime } from '../core/cache-query-helper';
 import { buildLayoutCacheKey } from './graph-cache-key';
 import { getComGraphLayoutStore } from '../core/sqlInit';
+import { graphLayout } from '@pypto/native-layout';
 
 /**
  * 回调函数类型：从 server 中获取 comGraphData。
@@ -34,6 +36,43 @@ export type ReturnErrorFn = (
   logCmdArgs?: Record<string, any>,
   diffType?: string,
 ) => void;
+
+/**
+ * 布局主入口。
+ * 根据配置选择原生 OGDF 布局或 elk 布局。
+ * 1. 若 enableNativeLayout 开启，优先尝试 native 布局
+ * 2. native 失败或未开启，回退到 elk 布局（含缓存）
+ */
+export async function layout(
+  gd: any,
+  server: any,
+  getComGraphData: GetComGraphDataFn,
+  globalCallInOutTensorMap: Map<any, any>,
+): Promise<void> {
+  const enableNativeLayout = workspace.getConfiguration('PyPTOToolkitOpen').get<boolean>('enableNativeLayout', false);
+
+  if (enableNativeLayout) {
+    const nativeStart = performance.now();
+    const nodeCount = gd.children?.length || 0;
+
+    try {
+      const result = graphLayout(gd);
+      if (result) {
+        const elapsed = performance.now() - nativeStart;
+        console.log(`[native-layout] ${nodeCount} nodes, ${elapsed.toFixed(1)}ms, result=native`);
+        server.setRef('LayoutResult', { data: result });
+        return;
+      }
+      console.warn('[native-layout] graphLayout returned falsy, falling back to elk');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const cause = (err as { cause?: unknown }).cause;
+      console.error(`[native-layout] Layout failed, falling back to elk: ${msg}`, cause ?? '');
+    }
+  }
+
+  return elkLayout(gd, server, getComGraphData, globalCallInOutTensorMap);
+}
 
 /**
  * ELK 布局主入口。

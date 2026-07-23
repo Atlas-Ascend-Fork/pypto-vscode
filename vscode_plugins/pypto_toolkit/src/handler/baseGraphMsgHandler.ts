@@ -17,21 +17,21 @@ import { getIDELang } from '../lang';
 import { graphFileHashMap } from '../common/graphFileHashMap';
 import * as Extractor from '../utils/graphExtractor';
 import { AbstractGraphData } from '../core/graphData';
-import { basename, join, dirname } from 'path';
+import { basename } from 'path';
 import { hismartliteEx } from '../hismarliteEx';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
 import { promises } from 'fs';
-import { getComGraphLayoutStore, getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore, getComGraphFileCalleeOpAttrStore } from '../core/sqlInit';
-import { getComGraphDataDetail, getComGraphDataSum, getComGraphRawMagic, getFailMagicList, searchKeyword } from '../common/accurancyAnylasis';
+import { getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore } from '../core/sqlInit';
+import { getFailMagicList } from '../common/accurancyAnylasis';
 import { logWithTimestamp } from '../utils/logger';
 
 // Extracted modules
-import { RequestSourceType, OpError, readFileResult, NODE_COUNT_LIMIT, WHITE_COMMANDS } from './handler-types';
+import { RequestSourceType, OpError, NODE_COUNT_LIMIT, WHITE_COMMANDS } from './handler-types';
 import { buildLayoutCacheKey } from './graph-cache-key';
-import { findFileHere, collectOpMagic, getErrorMessage, extractErrorBackTrace, parseErrorLogs } from './error-log-parser';
+import { collectOpMagic, getErrorMessage } from './error-log-parser';
 import { getAccurancyReport, searchAccurancySumList, getAccurancyDetail } from './accuracy-report-service';
-import { elkLayout, layoutByLocal, renderLayout, postLayoutResult as elkPostLayoutResult } from './elk-layout-service';
+import { layout as nativeOrElkLayout, layoutByLocal, renderLayout } from './elk-layout-service';
 import { retryUntil, getMTime } from '../core/cache-query-helper';
 
 /* -------------------- 抽象基类 -------------------- */
@@ -231,8 +231,8 @@ export abstract class BaseGraphMsgHandler {
     return layoutByLocal(server, gd, lastChangeTime, funcHash, this.getElkLayoutComGraghData.bind(this));
   }
 
-  static async elkLayout(gd: any, server: any) {
-    return elkLayout(gd, server, this.getElkLayoutComGraghData.bind(this), this.globalCallInOutTensorMap);
+  static async layout(gd: any, server: any) {
+    return nativeOrElkLayout(gd, server, this.getElkLayoutComGraghData.bind(this), this.globalCallInOutTensorMap);
   }
 
   static renderLayout(layoutJsonStr: string, infoStr: string, server: any) {
@@ -771,7 +771,12 @@ export abstract class BaseGraphMsgHandler {
 
   // filePath 给子类重写预留
   protected static postLayoutResult(server: any, jsonStr: string, filePath?: string) {
-    server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
+    this.postLayoutResultData(server, JSON.parse(jsonStr), filePath);
+  }
+
+  // 直接接收布局结果对象（native 布局结果本就是对象，避免 stringify/parse 往返）
+  protected static postLayoutResultData(server: any, data: any, filePath?: string) {
+    server.setRef('LayoutResult', { data });
   }
 
   static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, wrongRawMagicList?: any, failOpMagicList?: any) {

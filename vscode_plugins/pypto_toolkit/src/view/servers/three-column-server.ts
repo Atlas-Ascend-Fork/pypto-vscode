@@ -166,7 +166,7 @@ export class ThreeColumnServer
   };
   @viewApi()
   public askLayout = async (message) => {
-    await ComGraphHandler.elkLayout(message.data, this);
+    await ComGraphHandler.layout(message.data, this);
   };
   @viewApi()
   public renderLayout = async (data, infoStr) => {

@@ -168,6 +168,16 @@ async function initDB(context: ExtensionContext) {
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   });
 
+  // 切换布局引擎（PyPTOToolkitOpen.enableNativeLayout）后，已有布局缓存来自旧引擎，
+  // 调用上面的命令清理持久化缓存，避免读取到旧引擎的布局结果
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('PyPTOToolkitOpen.enableNativeLayout')) {
+        vscode.commands.executeCommand('PyPTO.Open.deletePersistFile');
+      }
+    }),
+  );
+
   // 3. 监听停用
   context.subscriptions.push(watcher, {
     dispose: () => SQLiteCache.getInstance().clearCache(),

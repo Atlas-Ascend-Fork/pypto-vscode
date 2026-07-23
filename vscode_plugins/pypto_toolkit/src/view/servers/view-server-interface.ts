@@ -79,7 +79,7 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
   renderLayout?: (data: any, infoStr: string) => void;
   getJsonGraphData: (message: { data: any, diffType?: 'before' | 'after' }) => Promise<void>;
   openSearchMode?: (message: { data: any }) => Promise<void>;
-  setFinalResult: (message: { data: any }) => Promise<void>;
+  setFinalResult: (message: { }) => Promise<void>;
   openDiffViewer: () => Promise<void>;
   getSubgraph: (message: { paramObj: any, query?: any }) => Promise<void>;
   searchAllFunc: (message: { data: any }) => Promise<void>;
