@@ -3763,11 +3763,11 @@ const getEventInfo = (flag) => {
     if (!thread || thread.eventIds.length === 0) {
       continue;
     }
-    let matchedEvent = thread.eventIds.find(eventId => swimDataManager.getEventById(eventId).name === swimConfig.sampleEventNamePre);
-    const firstEvent = swimDataManager.getEventById(thread.eventIds[0]);
-    const targetEvent = matchedEvent ?? firstEvent;
-    if (targetEvent) {
-      selectEvent(targetEvent, processKey);
+    let matchedEventId = thread.eventIds.find(eventId => swimDataManager.getEventById(eventId).name === swimConfig.sampleEventNamePre);
+    const [firstEventId] = thread.eventIds;
+    const targetEventId = matchedEventId ?? firstEventId;
+    if (targetEventId) {
+      selectEvent(swimDataManager.getEventById(targetEventId), processKey);
       return;
     }
   }
