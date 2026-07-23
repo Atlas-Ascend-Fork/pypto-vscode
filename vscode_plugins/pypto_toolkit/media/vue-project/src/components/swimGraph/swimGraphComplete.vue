@@ -455,7 +455,7 @@ if (screenWidth.value < 1500) {
 if (isWideScreen.value) {
   performanceWidth.value = 480;
 } else {
-  performanceWidth.value = 340;
+  performanceWidth.value = 370;
 }
 
 watch(performanceWidth, async (newValue) => {

@@ -7,6 +7,8 @@
 
 .core-details.expanded {
   height: 226px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .core-details-content {
@@ -55,6 +57,7 @@
   display: flex;
   flex-direction: row;
   margin-top: 8px;
+  min-width: max-content;
 }
 
 .title {

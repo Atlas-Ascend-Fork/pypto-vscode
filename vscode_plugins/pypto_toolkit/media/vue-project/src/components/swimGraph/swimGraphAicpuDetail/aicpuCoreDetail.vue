@@ -13,7 +13,12 @@
       <div class="core-details-content">
         <!-- 详情页面具体内容 -->
         <aicpu-detail-content />
-        <div class="relevent">
+        <div class="relevent"
+             ref="releventRef"
+             @mousedown="startDragScroll"
+             @mousemove="handleDragScroll"
+             @mouseup="endDragScroll"
+             @mouseleave="endDragScroll">
           <div class="relevent-title">Relevent</div>
           <div class="relevent-content" v-if="aicpuHasRelevent">
             <div class="build-content" v-if="aicpuBuildTask">
@@ -120,6 +125,10 @@ const targetRef = ref(null);
 const smoothPath = ref('');
 const targetRefKernel = ref(null);
 const smoothPathKernel = ref('');
+const releventRef = ref(null);
+let isDragging = ref(false);
+let startDragX = ref(0);
+let scrollLeft = ref(0);
 const AicpuCoreDetailsPanel = () => {
   aicpuCoreDetailsExpanded.value = !aicpuCoreDetailsExpanded.value;
 };
@@ -653,9 +662,39 @@ const drawSmoothLine = () => {
     L ${endKernelX} ${endKernelY}
   `;
 };
+
+const startDragScroll = (e) => {
+  if (e.target.closest('.relevent-content')) {
+    isDragging.value = true;
+    startDragX.value = e.pageX - releventRef.value.offsetLeft;
+    scrollLeft.value = releventRef.value.scrollLeft;
+    releventRef.value.style.cursor = 'grabbing';
+  }
+};
+
+const handleDragScroll = (e) => {
+  if (!isDragging.value) {
+    return;
+  }
+  e.preventDefault();
+  const x = e.pageX - releventRef.value.offsetLeft;
+  const walk = (x - startDragX.value) * 1.5;
+  releventRef.value.scrollLeft = scrollLeft.value - walk;
+};
+
+const endDragScroll = () => {
+  isDragging.value = false;
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
+  }
+};
+
 onMounted(() => {
   drawSmoothLine();
   window.addEventListener('resize', drawSmoothLine);
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
+  }
 });
 
 onUpdated(() => {

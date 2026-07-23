@@ -794,12 +794,23 @@ const showDependencies = (event, type) => {
   const eventPredecessors = event.dependencies?.predecessors?.map((id) => swimDataManager.getEventById(id)).filter((e) => e) || [];
   const eventSuccessors = event.dependencies?.successors?.map((id) => swimDataManager.getEventById(id)).filter((e) => e) || [];
   const canvasContainer = document.getElementById('canvas-container');
-  if (!canvasContainer || !dependencyCanvasRef.value) {
+
+  // 如果 dependencyCanvasRef.value 为 null，直接使用 document.querySelector 获取
+  let canvasEl = dependencyCanvasRef.value;
+  if (!canvasEl) {
+    canvasEl = document.querySelector('.dependency-canvas');
+  }
+
+  if (!canvasContainer || !canvasEl) {
     return;
   }
-  // 确保 canvas 已注册到 CanvasPool（onMounted 可能未触发或 ref 当时为空）
-  if (!canvasPool.getCanvas('dependency-canvas', '_default') && dependencyCanvasRef.value) {
-    canvasPool.register('dependency-canvas', '_default', dependencyCanvasRef.value);
+
+  // 确保 canvas 已注册到 CanvasPool
+  const poolCanvas = canvasPool.getCanvas('dependency-canvas', '_default');
+
+  // 确保 pool 中没有注册，或者pool中的canvas与当前ref不同，则重新注册，防止再次打开canvas元素引用不一致的问题
+  if (!poolCanvas || poolCanvas !== canvasEl) {
+    canvasPool.register('dependency-canvas', '_default', canvasEl);
   }
   // 计算填充色
   let fillColor = '';

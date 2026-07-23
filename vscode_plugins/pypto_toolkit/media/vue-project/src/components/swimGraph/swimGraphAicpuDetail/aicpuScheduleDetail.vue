@@ -13,9 +13,15 @@
       <div class="core-details-content">
         <!-- 详情页面具体内容 -->
         <aicpu-detail-content />
-        <div class="relevent">
+        <div class="relevent"
+             ref="releventRef">
           <div class="relevent-title">Relevent</div>
-          <div class="relevent-content" v-if="aicpuHasRelevent">
+          <div class="relevent-content"
+               v-if="aicpuHasRelevent"
+               @mousedown="startDragScroll"
+               @mousemove="handleDragScroll"
+               @mouseup="endDragScroll"
+               @mouseleave="endDragScroll">
             <div class="build-content">
               <div class="title">AICPU_DEV_TASK</div>
               <div class="content" :style="{...dynamicWidthStyle(aicpuBuildTask), width:'auto'}">{{ getEventDisplayName(aicpuBuildTask) }}</div>
@@ -61,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, computed} from 'vue';
+import { ref, inject, watch, computed, onMounted} from 'vue';
 import { useI18n } from 'vue-i18n';
 import aicpuDetailContent from './aicpuDetailContent.vue';
 import aicpuDetailNodata from './aicpuDetailNoData.vue';
@@ -74,6 +80,10 @@ import { swimDataManager } from '../swimData';
 
 const { t: $t } = useI18n();
 // 注入父组件提供的状态和方法
+const releventRef = ref(null);
+let isDragging = ref(false);
+let startX = ref(0);
+let scrollLeft = ref(0);
 const {
     aicpuScheduleDetailsExpanded,
     selectedEvent,
@@ -225,6 +235,38 @@ watch(selectedEvent, (newEvent) => {
       const data = smap.get(aicEndkeyName);
       aicendmax.value = data.aic.max;
     }
+  }
+});
+
+const startDragScroll = (e) => {
+  if (e.target.closest('.relevent-content')) {
+    isDragging.value = true;
+    startX.value = e.pageX - releventRef.value.offsetLeft;
+    scrollLeft.value = releventRef.value.scrollLeft;
+    releventRef.value.style.cursor = 'grabbing';
+  }
+};
+
+const handleDragScroll = (e) => {
+  if (!isDragging.value) {
+    return;
+  }
+  e.preventDefault();
+  const x = e.pageX - releventRef.value.offsetLeft;
+  const walk = (x - startX.value) * 1.5;
+  releventRef.value.scrollLeft = scrollLeft.value - walk;
+};
+
+const endDragScroll = () => {
+  isDragging.value = false;
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
+  }
+};
+
+onMounted(() => {
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
   }
 });
 

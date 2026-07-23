@@ -13,9 +13,15 @@
       <div class="control-details-content">
         <!-- 详情页面具体内容 -->
         <aicpu-detail-content />
-        <div class="relevent">
+        <div class="relevent" 
+             ref="releventRef">
           <div class="relevent-title">Relevent</div>
-          <div class="relevent-content" v-if="aicpuHasRelevent">
+          <div class="relevent-content" 
+               v-if="aicpuHasRelevent"
+               @mousedown="startDragScroll"
+               @mousemove="handleDragScroll"
+               @mouseup="endDragScroll"
+               @mouseleave="endDragScroll">
             <div class="build-content">
               <div class="title">Current</div>
               <div class="current-content" ref="currentContent" :style="{...dynamicWidthStyle(canvasclickedEvent), width:'auto'}">{{ getEventDisplayName(canvasclickedEvent) }}</div>
@@ -94,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, computed} from 'vue';
+import { ref, inject, watch, computed, onMounted} from 'vue';
 import { useI18n } from 'vue-i18n';
 import aicpuDetailContent from './aicpuDetailContent.vue';
 import aicpuDetailNodata from './aicpuDetailNoData.vue';
@@ -110,6 +116,10 @@ const connectionSvg = ref();
 const connectionSvg1 = ref();
 const schedItem = ref();
 const cubes = ref();
+const releventRef = ref(null);
+let isDragging = ref(false);
+let startDragX = ref(0);
+let scrollLeft = ref(0);
 const {
     aicpuControlDetailsExpanded,
     scheduleList,
@@ -271,6 +281,37 @@ watch(selectedEvent, (newEvent) => {
   aicpuScheduleData.value = scheduleGraphData();
 });
 
+const startDragScroll = (e) => {
+  if (e.target.closest('.relevent-content')) {
+    isDragging.value = true;
+    startDragX.value = e.pageX - releventRef.value.offsetLeft;
+    scrollLeft.value = releventRef.value.scrollLeft;
+    releventRef.value.style.cursor = 'grabbing';
+  }
+};
+
+const handleDragScroll = (e) => {
+  if (!isDragging.value) {
+    return;
+  }
+  e.preventDefault();
+  const x = e.pageX - releventRef.value.offsetLeft;
+  const walk = (x - startDragX.value) * 1.5;
+  releventRef.value.scrollLeft = scrollLeft.value - walk;
+};
+
+const endDragScroll = () => {
+  isDragging.value = false;
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
+  }
+};
+
+onMounted(() => {
+  if (releventRef.value) {
+    releventRef.value.style.cursor = 'grab';
+  }
+});
 </script>
 
 <style scoped lang="scss">
