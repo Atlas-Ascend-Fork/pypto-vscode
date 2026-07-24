@@ -1855,11 +1855,7 @@ const transformEvents = (process, processKey, skipViewportFilter = false) => {
   } else if (isMixMode && !isMixMode.value && swimDataManager.hasMixConfig() ) {
     drawMixTransformEvent(process, processKey, eventCtx);
   } else {
-    const canvasRef = getActiveEventCanvas(processKey);
-    const viewportContainer = isE2ESwim.value
-      ? (process.type === 'aicpu' ? aicpuSection.value : kernelSection.value)
-      : swimMainView.value;
-    const { top, bottom } = skipViewportFilter ? { top: 0, bottom: Infinity } : getVisibleYRange(canvasRef, viewportContainer);
+    const { top, bottom } = getViewPortYRange(processKey, process, skipViewportFilter);
     for (const [threadKey, thread] of process.threads.entries()) {
       const key = thread.isCounter ? thread.threadName : thread.tid;
       const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
@@ -3186,7 +3182,14 @@ const getViewPortYRange = (processKey, process, skipViewportFilter) => {
   } else {
     viewportContainer = swimMainView.value;
   }
-  return getVisibleYRange(canvasRef, viewportContainer);
+  const range = getVisibleYRange(canvasRef, viewportContainer);
+  if (isE2ESwim.value) {
+    const expandedPanel = document.querySelector('.details-panel.expanded, .control-details.expanded, .core-details.expanded');
+    if (expandedPanel) {
+      range.bottom += expandedPanel.offsetHeight;
+    }
+  }
+  return range;
 };
 
 const renderMixModeText = (process, ctx, processKey, textRenderCtx, skipViewportFilter) => {

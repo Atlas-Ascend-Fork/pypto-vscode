@@ -3191,11 +3191,6 @@ onUnmounted(() => {
   }
   cancelAnimationFrame(resizeRafId);
   clearTimeout(resizeFullRenderTimer);
-  clearTimeout(panelResizeTimer);
-  if (panelResizeObserver) {
-    panelResizeObserver.disconnect();
-    panelResizeObserver = null;
-  }
   window.removeEventListener('mousemove', handleGlobalMouseMove);
   window.removeEventListener('keydown', handleGlobalKeyDown);
   window.removeEventListener('keyup', handleGlobalKeyUp);
@@ -3627,47 +3622,6 @@ watch(isMixMode, () => {
   resizeCanvases();
   transform();
 });
-
-let panelResizeTimer = null;
-let panelResizeObserver = null;
-
-watch(
-  [detailsPanelExpanded, aicpuControlDetailsExpanded, aicpuScheduleDetailsExpanded, aicpuCoreDetailsExpanded],
-  () => {
-    const container = swimlaneContainer.value;
-    if (!container) {
-      return;
-    }
-
-    if (panelResizeObserver) {
-      panelResizeObserver.disconnect();
-      panelResizeObserver = null;
-    }
-    clearTimeout(panelResizeTimer);
-
-    let lastHeight = container.offsetHeight;
-
-    panelResizeObserver = new ResizeObserver(() => {
-      const h = container.offsetHeight;
-      if (h !== lastHeight) {
-        lastHeight = h;
-        clearTimeout(panelResizeTimer);
-        panelResizeTimer = setTimeout(() => {
-          panelResizeObserver.disconnect();
-          panelResizeObserver = null;
-          transform();
-          for (const [key] of swimDataManager.getAllProcesses().entries()) {
-            if (processExpanded.get(key)) {
-              childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
-            }
-          }
-        }, 100);
-      }
-    });
-
-    panelResizeObserver.observe(container);
-  }
-);
 
 watch(currentActiveBlock, (val) => {
   if (val) {

@@ -142,7 +142,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-            <div class="task-data">{{ formatTimeValue(taskOnBoardTime) }}</div>
+            <div class="task-data">{{ taskOnBoardTime === -Infinity ? 0 : formatTimeValue(taskOnBoardTime) }}</div>
           </div>
           <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">

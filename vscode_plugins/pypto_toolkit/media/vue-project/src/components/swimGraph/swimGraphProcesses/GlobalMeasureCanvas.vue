@@ -123,7 +123,26 @@ const initCanvas = () => {
   ctx = canvas.getContext('2d');
   ctx.scale(devicePixelRatio, devicePixelRatio);
   
+  restoreActiveMeasurement();
+  
   emit('canvas-ready', ctx);
+};
+
+const restoreActiveMeasurement = () => {
+  if (!ctx) {
+    return;
+  }
+  if (altClickData.preData && altClickData.lastData && measureState.isMeasureFixed) {
+    drawRoundedRect(altClickData.preData, altClickData.preData.pid.toString());
+    drawRoundedRect(altClickData.lastData, altClickData.lastData.pid.toString());
+    calculateAndDrawConnection();
+  } else if (altClickData.preData && measureState.isMeasureFirst && !measureState.isMeasureFixed) {
+    drawRoundedRect(altClickData.preData, altClickData.preData.pid.toString());
+  } else if (measureResult.visible) {
+    measureResult.visible = false;
+  } else {
+    return;
+  }
 };
 
 const clearCanvas = (drawPre = false) => {
