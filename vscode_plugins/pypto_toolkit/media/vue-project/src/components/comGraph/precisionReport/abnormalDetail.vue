@@ -92,9 +92,10 @@ watch(() => props.rowData, (data) => {
   } else if (currentFileType?.startsWith('task')) {
     // task 类型：从 rowData 映射字段
     // 注意：aMax, aMin 等字段在 aOp 中，bMax, bMin 等被映射为 taskMax, taskMin 在 taskOp 中
+    // Dtype 取 aOp 的 datatype，Shape 取 aOp 的 validshape
     summaryInfo.value = {
-      dataType: data.taskDataType || '',
-      validShape: data.taskValidshape || '',
+      dataType: data.aDatatype || '',
+      validShape: data.aValidshape || '',
       loopInfo: data.taskLoopVarInfos || '',
       rtolAtol: data.rtolAtol || '0.001, 0.001',
       totalCount: data.totalCount || '0',

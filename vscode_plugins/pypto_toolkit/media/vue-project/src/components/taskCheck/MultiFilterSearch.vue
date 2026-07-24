@@ -52,6 +52,8 @@ export interface FilterParams {
   opMagic?: string;
   rawMagic?: string;
   tensorAddr?: string;
+  symbol?: string;
+  funcHash?: string;
 }
 
 const props = defineProps({
@@ -74,6 +76,8 @@ const filterOptions: FilterOption[] = [
   { value: 'opMagic', label: 'opMagic' },
   { value: 'rawMagic', label: 'rawMagic' },
   { value: 'tensorAddr', label: 'tensorAddr' },
+  { value: 'symbol', label: 'symbol' },
+  { value: 'funcHash', label: 'funcHash' },
 ];
 
 const inputRef = ref<HTMLInputElement>();
@@ -158,22 +162,26 @@ const emitFilterChange = () => {
     opMagic: filterTags.value.opMagic || undefined,
     rawMagic: filterTags.value.rawMagic || undefined,
     tensorAddr: filterTags.value.tensorAddr || undefined,
+    symbol: filterTags.value.symbol || undefined,
+    funcHash: filterTags.value.funcHash || undefined,
   };
   emits('change', params);
 };
 
 // 清除所有筛选条件
-const clearAll = () => {
+const clearAll = (emit: boolean = true) => {
   filterTags.value = {};
   inputValue.value = '';
   selectedFilter.value = '';
   showDropdown.value = false;
-  emitFilterChange();
+  if (emit) {
+    emitFilterChange();
+  }
 };
 
 // 重置为初始状态
 const reset = () => {
-  clearAll();
+  clearAll(false);
 };
 
 defineExpose({

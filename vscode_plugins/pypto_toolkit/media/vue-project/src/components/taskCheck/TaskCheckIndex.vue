@@ -100,6 +100,8 @@ const currentFilterConditions = ref<{
   opMagic?: string;
   rawMagic?: string;
   tensorAddr?: string;
+  symbol?: string;
+  funcHash?: string;
 }>({});
 
 const jumpText = ref('');
@@ -180,11 +182,22 @@ watch(
           ioFlag: item.sharedRes?.ioFlag || '',
           funcHash: item.aOp?.aFuncHash || '',
           loopInfo: item.sharedRes?.loopInfo || '',
+          execTimestamp: item.taskOp?.taskExecTimestamp || '',
           aData: {
-            phaseName: item.aOp?.aPhaseName || '',
             validShape: item.aOp?.aValidshape || '',
             dataType: item.aOp?.aDatatype || '',
             rootFuncHash: item.aOp?.aRootFuncHash || '',
+            format: item.aOp?.aFormat || '',
+            magic: item.aOp?.aMagic || '',
+            opcode: item.aOp?.aOpcode || '',
+            opMagic: item.aOp?.aOpMagic || '',
+            symbol: item.aOp?.aSymbol || '',
+            dynvalidshape: item.aOp?.aDynvalidshape || '',
+            opAttrAtomic: item.aOp?.aOpAttrAtomic || '',
+            funcHash: item.aOp?.aFuncHash || '',
+            pathHash: item.aOp?.aPathHash || '',
+            opAttrSymOffset: item.aOp?.aOpAttrSymOfst || '',
+            rawMagic: item.aOp?.aRawMagic || '',
           },
           bData: {
             validShape: item.taskOp?.taskValidShape || '',
@@ -192,6 +205,9 @@ watch(
             tensorAddr: item.taskOp?.taskTensorAddr || '',
             dataType: item.taskOp?.taskDataType || '',
             seqNo: item.taskOp?.taskSeqNo || '',
+            blockIdx: item.taskOp?.taskBockIdx || '',
+            opAttrSymOffset: item.taskOp?.taskOpAttrSymOfst || '',
+            taskId: item.taskOp?.taskTaskId || '',
           },
           // 保留原始数据用于精度报告
           sharedRes: item.sharedRes || {},
@@ -335,7 +351,6 @@ const onTaskSelect = (data: TaskFileItem) => {
 
   // 根据状态决定 readFlag：pending 为 true，pass/fail 为 false
   const readFlag = data.status === 'pending';
-
   // 调用后端接口获取真实数据
   if (data.taskCsvPath) {
     server.getTaskCmpDiffListData({
@@ -480,7 +495,7 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
   // 根据 source 决定取哪个数据的值
   const isLeft = source === 'left';
   const funcHash = detailData.rawAOp?.aFuncHash || '';
-  const passName = detailData.aData?.phaseName || '';
+  const passName = detailData.rawAOp?.aPhaseName || '';
   const loopInfo = detailData.loopInfo || detailData.summaryInfo?.loopInfo || '';
   const rootFuncHash = detailData.rawAOp?.aRootFuncHash || '';
   const pathFuncHash = detailData.rawAOp?.aPathHash || '';
@@ -495,7 +510,7 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
     await server.openTaskCmpDiffComGraphApi({
       filePath: data.cmpCsvPath,
       funcHash,
-      passName: detailData.aData?.phaseName || '',
+      passName,
       loopInfo,
       fileType,
       cmpCsvPath: data.cmpCsvPath,
@@ -537,7 +552,7 @@ const onJumpToSwimGraph = async (data: { seqNo?: number; taskId?: string }) => {
   display: flex;
   height: 100vh;
   width: 100%;
-  min-width: 1200px;
+  min-width: 1250px;
   overflow-x: auto;
   overflow-y: hidden;
   background-color: var(--devui-base-bg);

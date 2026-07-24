@@ -55,6 +55,7 @@
                   <span v-if="item.ioFlag" class="info-text">IO_flag: {{ item.ioFlag }}</span>
                   <span v-if="item.funcHash" class="info-text">funcHash: {{ item.funcHash }}</span>
                   <span v-if="item.loopInfo" class="info-text">loopInfo: {{ item.loopInfo }}</span>
+                  <span v-if="item.execTimestamp" class="info-text">execTimestamp: {{ item.execTimestamp }}</span>
                 </div>
                 <span v-if="item.compareRes === 'Fail'" :class="['fail-tag', isFirstFail(item.id) && 'first-fail']">
                   <img :src="failIconPath" class="fail-icon" />
@@ -71,10 +72,18 @@
                     ]"
                     @click="onItemClick(item, 'left')"
                   >
-                    <div class="column-content">
-                      <div class="data-row" v-for="key in leftDetailFields" :key="key">
-                        <span class="data-label">{{ getLeftLabelName(key) }}:</span>
-                        <span class="data-value" :title="getLeftDetailValue(item, key)">{{ getLeftDetailValue(item, key) }}</span>
+                    <div class="column-content two-columns">
+                      <div class="column-left">
+                        <div class="data-row" v-for="key in leftDetailFieldsFirst" :key="key">
+                          <span class="data-label">{{ getLeftLabelName(key) }}:</span>
+                          <span class="data-value" :title="getLeftDetailValue(item, key)">{{ getLeftDetailValue(item, key) }}</span>
+                        </div>
+                      </div>
+                      <div class="column-right">
+                        <div class="data-row" v-for="key in leftDetailFieldsSecond" :key="key">
+                          <span class="data-label">{{ getLeftLabelName(key) }}:</span>
+                          <span class="data-value" :title="getLeftDetailValue(item, key)">{{ getLeftDetailValue(item, key) }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -131,11 +140,22 @@ export interface TaskDiffItem {
   ioFlag?: string;
   funcHash?: string;
   loopInfo?: string;
+  execTimestamp?: string;
   aData: {
-    phaseName?: string;
     validShape?: string;
     dataType?: string;
     rootFuncHash?: string;
+    format?: string;
+    magic?: string;
+    opcode?: string;
+    opMagic?: string;
+    symbol?: string;
+    dynvalidshape?: string;
+    opAttrAtomic?: string;
+    funcHash?: string;
+    pathHash?: string;
+    opAttrSymOffset?: string;
+    rawMagic?: string;
   };
   bData: {
     taskId?: string;
@@ -144,6 +164,8 @@ export interface TaskDiffItem {
     tensorAddr?: string;
     dataType?: string;
     seqNo?: string;
+    blockIdx?: string;
+    opAttrSymOffset?: string;
   };
   sharedRes?: Record<string, any>;
   rawAOp?: Record<string, any>;
@@ -208,14 +230,25 @@ const isFirstFail = (id: string) => {
   return id === firstFailId.value;
 };
 
-// 左列字段（a列）
-const leftDetailFields = ['phaseName', 'validShape', 'dataType', 'rootFuncHash'];
+// 左列字段（a列）- 分成两列
+const leftDetailFieldsFirst = ['dataType', 'validShape', 'opAttrSymOffset', 'rootFuncHash', 'format', 'magic', 'opcode'];
+const leftDetailFieldsSecond = ['opMagic', 'symbol', 'dynvalidshape', 'opAttrAtomic', 'funcHash', 'pathHash', 'rawMagic'];
 
 const leftLabelNameMap: Record<string, string> = {
-  phaseName: 'PHASE_NAME',
   validShape: 'validShape',
   dataType: 'dataType',
   rootFuncHash: 'RootFuncHash',
+  format: 'Format',
+  magic: 'Magic',
+  opcode: 'Opcode',
+  opMagic: 'OpMagic',
+  symbol: 'Symbol',
+  dynvalidshape: 'DynValidShape',
+  opAttrAtomic: 'OpAttrAtomic',
+  funcHash: 'FuncHash',
+  pathHash: 'PathHash',
+  opAttrSymOffset: 'OpAttrSymOffset',
+  rawMagic: 'RawMagic',
 };
 
 const getLeftLabelName = (key: string) => {
@@ -227,8 +260,8 @@ const getLeftDetailValue = (item: TaskDiffItem, key: string) => {
 };
 
 // 右列字段（b列）- 分成两列
-const rightDetailFieldsFirst = ['taskId', 'validShape', 'rawShape'];
-const rightDetailFieldsSecond = ['tensorAddr', 'dataType', 'seqNo'];
+const rightDetailFieldsFirst = ['taskId', 'validShape', 'rawShape', 'blockIdx'];
+const rightDetailFieldsSecond = ['tensorAddr', 'dataType', 'seqNo', 'opAttrSymOffset'];
 
 const rightLabelNameMap: Record<string, string> = {
   taskId: 'taskId',
@@ -237,6 +270,8 @@ const rightLabelNameMap: Record<string, string> = {
   tensorAddr: 'tensorAddr',
   dataType: 'dataType',
   seqNo: 'seqNo',
+  blockIdx: 'blockIdx',
+  opAttrSymOffset: 'OpAttrSymOffset',
 };
 
 const getRightLabelName = (key: string) => {
@@ -546,15 +581,15 @@ defineExpose({
   .task-row {
     margin-bottom: 12px;
 
+    &.expanded .task-box {
+      background: rgba(49, 122, 247, 0.08);
+    }
+
     .task-box {
       border-radius: 8px;
       background: var(--control-flow-bg);
       border: 1px solid var(--devui-split-line);
       overflow: hidden;
-
-      &.expanded {
-        background: rgba(49, 122, 247, 0.08);
-      }
 
       .box-header {
         display: flex;
@@ -643,15 +678,17 @@ defineExpose({
       .box-content {
         padding: 16px;
         background: var(--devui-secondary-bg);
+        overflow-x: auto;
 
         .data-columns {
           display: flex;
           gap: 16px;
+          min-width: 600px;
 
           .left-column,
           .right-column {
             flex: 1;
-            min-width: 0;
+            min-width: 280px;
             border-radius: 8px;
             border: 2px solid transparent;
             padding: 12px;

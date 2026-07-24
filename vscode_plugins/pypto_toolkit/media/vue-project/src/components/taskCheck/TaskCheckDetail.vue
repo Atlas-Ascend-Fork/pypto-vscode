@@ -16,7 +16,7 @@
           </template>
         </d-tooltip>
       </div>
-      <div class="result-right" @click="onJump">
+      <div v-if="showJumpButton" class="result-right" @click="onJump">
         <i class="icon-sharing"></i>
         {{ jumpText }}
       </div>
@@ -137,6 +137,17 @@ const accuracyResultTitle = computed(() => {
   // 左侧显示左侧顶部标题，右侧显示 'task_dump'
   const sourceLabel = source === 'left' ? props.leftTitle : 'task_dump';
   return `task_${taskName}(${sourceLabel})`;
+});
+
+// 是否显示跳转按钮：跳转计算图时始终显示，跳转泳道图时只有路径存在才显示
+const showJumpButton = computed(() => {
+  const source = props.detailData?.source;
+  // 左侧（跳转计算图）始终显示
+  if (source === 'left') {
+    return true;
+  }
+  // 右侧（跳转泳道图）只有路径存在才显示
+  return source === 'right' && !!props.swimGraphPath;
 });
 
 const summaryInfo = ref<AbnormalNodeOverviewInfo>({});
