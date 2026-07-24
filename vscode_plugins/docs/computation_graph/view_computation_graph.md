@@ -25,26 +25,20 @@
 3. 执行结束后，在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）下生成不同阶段的计算图文件（.json 格式）。
 
     ```txt
-
-output_xx/
-├── program.json # 记录function name, semantic label等静态信息
-├── computation_graph/
-│   ├── Strategy_00_xxx/
-│   │   ├── Pass_00_xxx/
-│   │   │   ├── After_xxx_xxx.json # pass优化后的计算图文件
-│   │   │   ├── After_xxx_xxx.tifwkgr # 用户暂不需要关注
-│   │   │   ├── Before_xxx_xxx.json # pass优化前的计算图文件
-│   │   │   ├── Before_xxx_xxx.tifwkgr # 用户暂不需要关注
-│   │   │   └── xxx.log
-│   │   ├── Pass_01_xxx/
-│   │   │   └── ...
-│   │   └── ...
-│   ├── Strategy_01_xxx/
-│   │   ├── Pass_00_xxx/
-│   │   │   └── ...
-│   │   └── ...
-│   └── ...
-└── ...
+    ├── program.json # 记录function name, semantic label等静态信息
+    ├── computation_graph/
+    │   ├── Strategy_01_PVC2_OOO/
+    │   │   ├── Pass_00_xxx/
+    │   │   │   ├── After_xxx_xxx.json # pass优化后的计算图文件
+    │   │   │   ├── After_xxx_xxx.tifwkgr # 用户暂不需要关注
+    │   │   │   ├── Before_xxx_xxx.json # pass优化前的计算图文件
+    │   │   │   ├── Before_xxx_xxx.tifwkgr # 用户暂不需要关注
+    │   │   │   └── xxx.log
+    │   │   ├── Pass_01_xxx/
+    │   │   │   └── ...
+    │   │   └── ...
+    │   └── ...
+    └── ...
     ```
 
 下面将选取计算图各编译阶段的最后一张计算图文件，帮助用户了解各类计算图的关键信息。
