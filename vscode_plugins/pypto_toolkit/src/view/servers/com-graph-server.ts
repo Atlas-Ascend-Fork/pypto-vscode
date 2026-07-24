@@ -319,10 +319,12 @@ export class ComputeGraphServer extends ViewServer<Apis, Refs> implements IComVi
     filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     rootFuncHash?: string;
     oriLoopInfo?: string;
+    pathFunchash?: string;
+    leafFunchash?: string;
   }) => {
     const filePath = data.cmpCsvPath || '';
-    const { pageSize = 50, startOffset = 0, keyword, readFlag = false, filterWord, rootFuncHash, oriLoopInfo = '' } = data;
-    const result = await getTaskCmpList(filePath, readFlag, pageSize, startOffset, 'FAIL', keyword, undefined, undefined, filterWord, rootFuncHash, oriLoopInfo);
+    const { pageSize = 50, startOffset = 0, keyword, readFlag = false, filterWord, rootFuncHash, oriLoopInfo = '', pathFunchash, leafFunchash } = data;
+    const result = await getTaskCmpList(filePath, readFlag, pageSize, startOffset, 'FAIL', keyword, undefined, leafFunchash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash);
     this.setRef('taskCmpErrorList', result);
   };
 

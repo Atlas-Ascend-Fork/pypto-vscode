@@ -51,6 +51,8 @@ const currentOutputPath = ref<string>('');
 const currentComgraphPath = ref<string>('');
 const rootFuncHash = ref<string>('');
 const oriLoopInfo = ref<string>('');
+const pathFunchash = ref<string>('');
+const leafFunchash = ref<string>('');
 
 const initData = (data) => {
   if (!data) return
@@ -95,6 +97,8 @@ const searchByKeyword = debounce((keyword) => {
       comgraphPath: '',
       rootFuncHash: rootFuncHash.value as string || '',
       oriLoopInfo: oriLoopInfo.value as string || '',
+      pathFunchash: pathFunchash.value as string || '',
+      leafFunchash: leafFunchash.value as string || '',
     });
   } else {
     server.searchAccurancySumList({
@@ -129,6 +133,8 @@ const pageIndexChange = (pageIndex) => {
       comgraphPath: '',
       rootFuncHash: rootFuncHash.value as string || '',
       oriLoopInfo: oriLoopInfo.value as string || '',
+      pathFunchash: pathFunchash.value as string || '',
+      leafFunchash: leafFunchash.value as string || '',
     });
   } else {
     server.searchAccurancySumList({
@@ -227,6 +233,8 @@ onMounted(async () => {
   currentComgraphPath.value = query._path;
   rootFuncHash.value = query.rootFuncHash as string || '';
   oriLoopInfo.value = query.loopInfo as string || '';
+  pathFunchash.value = query.pathFunchash as string || '';
+  leafFunchash.value = query.funcHash as string || '';
 
   if (fileType.startsWith('op')) {
     // 如果是 opcheck 类型，调用 getCmpErrorListData
@@ -249,6 +257,8 @@ onMounted(async () => {
       comgraphPath: '',
       rootFuncHash: rootFuncHash.value as string || '',
       oriLoopInfo: oriLoopInfo.value as string || '',
+      pathFunchash: pathFunchash.value as string || '',
+      leafFunchash: leafFunchash.value as string || '',
     });
   } else {
     // 否则调用原来的方法

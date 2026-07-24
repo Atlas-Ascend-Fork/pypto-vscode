@@ -57,6 +57,7 @@ export interface AccuracyToolTaskCmpData {
   aFormat: string; // A>:format
   aMagic: string; // A>:magic
   aOpcode: string; // A>:opcode
+  aOpMagic: string; // A>:opmagic
   aRawMagic: string; // A>:rawmagic
   aSymbol: string; // A>:symbol
   aValidshape: string; // A>:validshape
@@ -183,6 +184,7 @@ export class SQLiteCache {
         "A>:format" TEXT,
         "A>:magic" TEXT,
         "A>:opcode" TEXT,
+        "A>:opmagic" TEXT,
         "A>:rawmagic" TEXT,
         "A>:symbol" TEXT,
         "A>:validshape" TEXT,
@@ -224,7 +226,7 @@ export class SQLiteCache {
         "B>aavg" TEXT,
         "B>zero" TEXT,
         "B>infnan" TEXT,
-        PRIMARY KEY ("NO.", "B>FILENAME")
+        PRIMARY KEY ("NO.", "sourceFileName")
       );
     `);
     this.db.run(`
@@ -426,7 +428,7 @@ export class SQLiteCache {
       INSERT OR REPLACE INTO accuracy_tool_task_cmp (
         "sourceFileName", "NO.", "A>PHASE_NAME", "IO_FLAG", "LOOP_INFO",
         "ROOT_CALL:opmagic", "ROOT_CALL:rawmagic", "B>FILENAME",
-        "A>:datatype", "A>:format", "A>:magic", "A>:opcode", "A>:rawmagic", "A>:symbol",
+        "A>:datatype", "A>:format", "A>:magic", "A>:opcode", "A>:opmagic", "A>:rawmagic", "A>:symbol",
         "A>:validshape", "A>EVAL:dynvalidshape", "A>OP_ATTR_ATOMIC", "A>OP_ATTR_SYM_OFFSET",
         "FUNC:hash", "PATH_FUNC:hash", "ROOT_FUNC:hash",
         "B>:datatype", "B>:rawShape", "B>:validshape", "B>blockIdx", "B>OP_ATTR_SYM_OFFSET",
@@ -436,7 +438,7 @@ export class SQLiteCache {
         "AB>mae", "AB>mae_top8", "AB>mae_top1permil", "AB>mre", "AB>mre_top8",
         "AB>mre_top1permil", "A>max", "A>min", "A>avg", "A>aavg", "A>zero",
         "A>infnan", "B>max", "B>min", "B>avg", "B>aavg", "B>zero", "B>infnan"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.sourceFileName ?? '',
@@ -451,6 +453,7 @@ export class SQLiteCache {
       data.aFormat ?? '',
       data.aMagic ?? '',
       data.aOpcode ?? '',
+      data.aOpMagic ?? '',
       data.aRawMagic ?? '',
       data.aSymbol ?? '',
       data.aValidshape ?? '',
@@ -506,6 +509,7 @@ export class SQLiteCache {
     filterWord?: TaskCmpFilterWord,
     rootFuncHash?: string,
     oriLoopInfo?: string,
+    pathFunchash?: string,
   ): Promise<AccuracyToolTaskCmpData[]> {
     const conditions: string[] = ['"sourceFileName" = ?'];
     const params: any[] = [sourceFileName];
@@ -524,6 +528,10 @@ export class SQLiteCache {
     if (rootFuncHash) {
       conditions.push('"ROOT_FUNC:hash" = ?');
       params.push(rootFuncHash);
+    }
+    if (pathFunchash) {
+      conditions.push('"PATH_FUNC:hash" LIKE ?');
+      params.push(`%${pathFunchash}%`);
     }
     if (filterWord) {
       if (filterWord.rawMagic) {
@@ -559,7 +567,7 @@ export class SQLiteCache {
         "ROOT_CALL:opmagic" AS rootCallOpmagic, "ROOT_CALL:rawmagic" AS rootCallRawmagic,
         "B>FILENAME" AS fileName,
         "A>PHASE_NAME" AS aPhaseName, "A>:datatype" AS aDatatype, "A>:format" AS aFormat,
-        "A>:magic" AS aMagic, "A>:opcode" AS aOpcode, "A>:rawmagic" AS aRawMagic,
+        "A>:magic" AS aMagic, "A>:opcode" AS aOpcode, "A>:opmagic" AS aOpMagic, "A>:rawmagic" AS aRawMagic,
         "A>:symbol" AS aSymbol, "A>:validshape" AS aValidshape,
         "A>EVAL:dynvalidshape" AS aDynvalidshape,
         "A>OP_ATTR_ATOMIC" AS aOpAttrAtomic, "A>OP_ATTR_SYM_OFFSET" AS aOpAttrSymOfst,
@@ -603,6 +611,7 @@ export class SQLiteCache {
           aMagic: row.aMagic as string,
           aOpcode: row.aOpcode as string,
           aRawMagic: row.aRawMagic as string,
+          aOpMagic: row.aOpMagic as string,
           aSymbol: row.aSymbol as string,
           aValidshape: row.aValidshape as string,
           aDynvalidshape: row.aDynvalidshape as string,
@@ -660,6 +669,7 @@ export class SQLiteCache {
     filterWord?: TaskCmpFilterWord,
     rootFuncHash?: string,
     oriLoopInfo?: string,
+    pathFunchash?: string,
   ): Promise<number> {
     const conditions: string[] = ['"sourceFileName" = ?'];
     const params: any[] = [sourceFileName];
@@ -684,6 +694,10 @@ export class SQLiteCache {
     if (rootFuncHash) {
       conditions.push('"ROOT_FUNC:hash" = ?');
       params.push(rootFuncHash);
+    }
+    if (pathFunchash) {
+      conditions.push('"PATH_FUNC:hash" LIKE ?');
+      params.push(`%${pathFunchash}%`);
     }
     if (filterWord) {
       if (filterWord.rawMagic) {

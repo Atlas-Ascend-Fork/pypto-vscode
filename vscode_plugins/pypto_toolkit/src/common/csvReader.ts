@@ -171,6 +171,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           aFormat: row['A>:format'],
           aMagic: row['A>:magic'],
           aOpcode: row['A>:opcode'],
+          aOpMagic: row['A>:opmagic'],
           aRawMagic: row['A>:rawmagic'],
           aSymbol: row['A>:symbol'],
           aValidshape: row['A>:validshape'],

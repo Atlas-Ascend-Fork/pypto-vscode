@@ -22,9 +22,8 @@ import { hismartliteEx } from '../hismarliteEx';
 import { AscppDagBuilder } from '../core/json-graph/jsonGraph';
 import { getHealthReport } from '../utils/health-report';
 import { promises } from 'fs';
-import { getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore } from '../core/sqlInit';
+import { getComGraphFinalResultStore, getComGraphFuncDataStore, getComGraphFileHashMapStore} from '../core/sqlInit';
 import { getFailMagicList } from '../common/accurancyAnylasis';
-import { logWithTimestamp } from '../utils/logger';
 
 // Extracted modules
 import { RequestSourceType, OpError, NODE_COUNT_LIMIT, WHITE_COMMANDS } from './handler-types';
@@ -128,7 +127,8 @@ export abstract class BaseGraphMsgHandler {
     }
     const wrongRawMagicList = server.comGraphData.wrongRawMagicList ? server.comGraphData.wrongRawMagicList : {};
     const failOpMagicList = server.comGraphData.failOpMagicList ? server.comGraphData.failOpMagicList : [];
-    this.postJsonGraphData(server, message, data, isCached, wrongRawMagicList, failOpMagicList);
+    const failMagicList = server.comGraphData.failMagicList ? server.comGraphData.failMagicList : [];
+    this.postJsonGraphData(server, message, data, isCached, wrongRawMagicList, failOpMagicList, failMagicList);
   }
 
   static createJsonGraphData(data, server, errNodeList, diffType?: 'before' | 'after') {
@@ -538,14 +538,14 @@ export abstract class BaseGraphMsgHandler {
 
     const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash,
       server.query?.loopInfo, server.query?.fileType, server.query?.outputPath,
-      server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash);
+      server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash, server.query?.pathFunchash);
     if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
       const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k, v]) => [k, v instanceof Set ? [...v] : []]));
       server.comGraphData.wrongRawMagicList = wrongRes;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
       server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
     } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'task')) {
-      server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
+      server.comGraphData.failMagicList = failMagicRes.failMagicList;
     }
 
     const json = JSON.parse(ret);
@@ -779,8 +779,8 @@ export abstract class BaseGraphMsgHandler {
     server.setRef('LayoutResult', { data });
   }
 
-  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, wrongRawMagicList?: any, failOpMagicList?: any) {
-    server.setRef('JsonGraphData', { data, isCached, wrongRawMagicList, failOpMagicList });
+  static postJsonGraphData(server: any, message: any, data: any, isCached: boolean, wrongRawMagicList?: any, failOpMagicList?: any, failMagicList?: any) {
+    server.setRef('JsonGraphData', { data, isCached, wrongRawMagicList, failOpMagicList, failMagicList });
   }
 
   // graphData elkFactory 给子类重写预留

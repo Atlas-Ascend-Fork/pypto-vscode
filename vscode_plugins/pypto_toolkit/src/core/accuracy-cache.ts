@@ -997,7 +997,7 @@ export class AccuracyCache {
     }
     if (keyword) {
       conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
-      params.push(keyword, keyword);
+      params.push(`%${keyword}%`, `%${keyword}%`);
     }
     const whereClause = conditions.join(' AND ');
 
@@ -1032,7 +1032,7 @@ export class AccuracyCache {
     }
     if (keyword) {
       conditions.push('("A>:opcode" LIKE ? OR "B>:opcode" LIKE ?)');
-      params.push(keyword, keyword);
+      params.push(`%${keyword}%`, `%${keyword}%`);
     }
     const sideFields: string[] = [];
     const sideValues: any[] = [];

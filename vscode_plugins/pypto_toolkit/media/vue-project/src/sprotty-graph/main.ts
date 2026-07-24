@@ -203,6 +203,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
       comGraphStore.setData("isCached", newValue.isCached);
       comGraphStore.setData("wrongRawMagicList", newValue.wrongRawMagicList);
       comGraphStore.setData("failOpMagicList", newValue.failOpMagicList);
+      comGraphStore.setData("failMagicList", newValue.failMagicList);
       if (!filePath || filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = toRaw(newValue.data) ;

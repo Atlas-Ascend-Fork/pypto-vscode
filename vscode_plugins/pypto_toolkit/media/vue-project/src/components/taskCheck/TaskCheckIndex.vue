@@ -498,7 +498,7 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
   const passName = detailData.rawAOp?.aPhaseName || '';
   const loopInfo = detailData.loopInfo || detailData.summaryInfo?.loopInfo || '';
   const rootFuncHash = detailData.rawAOp?.aRootFuncHash || '';
-  const pathFuncHash = detailData.rawAOp?.aPathHash || '';
+  const pathFunchash = detailData.rawAOp?.aPathHash || '';
   const fileType = isLeft ? 'task_A' : 'task_B';
 
   if (!funcHash || !passName) {
@@ -517,7 +517,7 @@ const onJumpToGraph = async (data: { detailData: TaskDetailData; source: 'left' 
       computeGraphDirPath: computeGraphDirPath.value,
       flowVerifyPath: flowVerifyPath.value,
       rootFuncHash,
-      pathFuncHash,
+      pathFunchash,
     });
   } catch (error) {
     console.error('[TaskCheckIndex] jumpToGraph error:', error);

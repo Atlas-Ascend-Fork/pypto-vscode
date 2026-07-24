@@ -744,7 +744,8 @@ export class AstgrOpView extends RectangularNodeView {
     const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
     const accuracyErrorIconSize = 16;
     const isFirstErrorNode = opTagError && (Number(node.magic) === (comGraphStore.data.failOpMagicList ?? [])[0]);
-    const firstErrorText = '首错节点';
+    const currentLanguage = (window as any).ascLang;
+    const firstErrorText = currentLanguage === 'zh' ? '精度错误' : 'accurancy error'; 
     const firstErrorTextWidth = 56;
     const bubbleIconPadding = 2;
     const bubbleTextGap = 4;
@@ -1429,6 +1430,12 @@ export class AstgrTensorView extends RectangularNodeView {
       ? buildAccuracyTag(errorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
       : null;
 
+    const taskTagError = (comGraphStore.data.failMagicList ?? []).includes(String(node.magic)) && !isMiniType;
+    const taskErrorTagY = (briefTagException && !node.isMiddle ? accuracyTagHeight + tagGap : 0) + (briefTagError && !node.isMiddle ? accuracyTagHeight + tagGap : 0);
+    const taskErrorTag = taskTagError
+      ? buildAccuracyTag(taskErrorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
+      : null;
+
     return (
       <g
         class-op-incoming={incoming}
@@ -1443,6 +1450,7 @@ export class AstgrTensorView extends RectangularNodeView {
         {!isMiniType && badgeDom}
         {accuracyExceptionTag}
         {accuracyErrorTag}
+        {taskErrorTag}
       </g>
     );
   }

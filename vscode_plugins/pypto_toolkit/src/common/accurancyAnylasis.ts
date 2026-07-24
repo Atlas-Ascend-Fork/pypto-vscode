@@ -765,20 +765,19 @@ export async function getFailMagicList(
   flowVerifyPath?: string,
   computeGraphDirPath?: string,
   rootFuncHash?: string,
+  pathFunchash?: string,
 ) {
-
   let failMagicList;
   if (fileType?.startsWith('task')) {
     const csvPath = outputPath || '';
 
-    const failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(csvPath, 'FAIL', undefined, undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo);
-    const result = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(csvPath, 10000, 0, 'FAIL', undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo);
+    const failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(csvPath, 'FAIL', undefined, undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo, pathFunchash);
+    const result = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(csvPath, 10000, 0, 'FAIL', undefined, comgraphFuncHash, undefined, rootFuncHash, loopInfo, pathFunchash);
 
     const wrongTaskNoList: string[] = [];
     for (const singleRes of result) {
-      if (singleRes.no) {
-        wrongTaskNoList.push(singleRes.no);
-      }
+      const magic = String(Number(singleRes.aMagic));
+      wrongTaskNoList.push(magic);
     }
 
     const updateCompareListFlag = await updateCompListFirstReq(csvPath, String(failCount));
@@ -949,6 +948,7 @@ export async function getTaskCmpList(
     filterWord?: TaskCmpFilterWord,
     rootFuncHash?: string,
     oriLoopInfo?: string,
+    pathFunchash?: string
   ): Promise<{
     diffList: TaskDiffItem[];
     total: number;
@@ -971,14 +971,14 @@ export async function getTaskCmpList(
 
     let excepCount = -1;
     let totalCount = -1;
-    totalCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, '', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
-    failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'FAIL', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
-    excepCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'EXCEPTION', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo);
+    totalCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, '', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash);
+    failCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'FAIL', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash);
+    excepCount = await SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, 'EXCEPTION', '', phaseName, funcHash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash);
 
     const realOffset = startOffset * pageSize;
     const [result, filteredTotal] = await Promise.all([
-      SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(filePath, pageSize, realOffset, res, keyword, undefined, filterWord, rootFuncHash, oriLoopInfo),
-      SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, res, keyword, undefined, undefined, filterWord, rootFuncHash, oriLoopInfo)
+      SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(filePath, pageSize, realOffset, res, keyword, funcHash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash),
+      SQLiteCache.getInstance().accuracyToolTaskCmpGetCountByFileName(filePath, res, keyword, undefined, funcHash, filterWord, rootFuncHash, oriLoopInfo, pathFunchash)
     ]);
 
     const diffList: TaskDiffItem[] = [];
@@ -1040,7 +1040,7 @@ export async function openTaskCmpDiffComGraph(
     computeGraphDirPath?: string,
     flowVerifyPath?: string,
     rootFuncHash?: string,
-    pathFuncHash?: string,
+    pathFunchash?: string,
   ): Promise<void> {
     let parentDir: string = '';
 
@@ -1089,5 +1089,5 @@ export async function openTaskCmpDiffComGraph(
 
     const directPath = path.join(passSubDir, targetComgraph);
 
-    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFuncHash);
+    vscode.commands.executeCommand('PyPTO.Open.OpenComGraphByFunchash', vscode.Uri.file(directPath), funcHash, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFunchash);
 }

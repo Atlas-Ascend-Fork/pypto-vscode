@@ -134,12 +134,12 @@ export class TaskCheckViewServer extends ViewServer<Apis, Refs> implements ITask
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
     rootFuncHash?: string;
-    pathFuncHash?: string;
+    pathFunchash?: string;
   }) => {
-    const { filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFuncHash } = data;
+    const { filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFunchash } = data;
     
     try {
-      await openTaskCmpDiffComGraph(filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFuncHash);
+      await openTaskCmpDiffComGraph(filePath, funcHash, passName, loopInfo, fileType, cmpCsvPath, computeGraphDirPath, flowVerifyPath, rootFuncHash, pathFunchash);
     } catch (error) {
       console.error('[TaskCheckViewServer] openTaskCmpDiffComGraph error:', error);
     }

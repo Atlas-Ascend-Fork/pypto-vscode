@@ -82,7 +82,8 @@ watch(
       server.getHealthyReport();
       const briefShowFlag = Object.keys(comGraphStore.data.wrongRawMagicList?.errorRawMagicList || {}).length > 0 || Object.keys(comGraphStore.data.wrongRawMagicList?.exceptionRawMagicList || {}).length > 0;
       const opShowFlag = comGraphStore.data.failOpMagicList?.length > 0;
-      if( briefShowFlag || opShowFlag) {
+      const taskShowFlag = comGraphStore.data.failMagicList?.length > 0;
+      if( briefShowFlag || opShowFlag || taskShowFlag) {
         showAccuracyReport.value = true
       }
     }

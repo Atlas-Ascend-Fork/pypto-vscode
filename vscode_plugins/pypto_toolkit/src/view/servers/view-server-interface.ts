@@ -124,6 +124,8 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
     filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     rootFuncHash?: string;
     loopInfo?: string;
+    pathFunchash?: string;
+    leafFunchash?: string;
   }) => Promise<void>;
   getPrecisionExceptList?: (data: {
     filePath: string;
@@ -405,6 +407,7 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
     readFlag?: boolean;
     filterWord?: { rawMagic?: string; opMagic?: string; tensorAddr?: string; symbol?: string; funchash?: string };
     loopInfo?: string;
+    pathFunchash?: string;
   }) => Promise<void>;
 }
 
@@ -454,7 +457,7 @@ export interface ITaskCheckViewServer extends ViewServer<ITaskCheckApis, ITaskCh
     computeGraphDirPath?: string;
     flowVerifyPath?: string;
     rootFuncHash?: string;
-    pathFuncHash?: string;
+    pathFunchash?: string;
   }) => Promise<void>;
   openSwimGraphApi: (data: {
     swimPath: string;

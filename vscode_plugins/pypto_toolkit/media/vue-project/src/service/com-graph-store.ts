@@ -42,6 +42,7 @@ interface ComGraphData {
   isCached?: boolean,
   wrongRawMagicList?: any,
   failOpMagicList?: any[],
+  failMagicList?: any[],
   nodeCount?: number,
   version: string;
   selectedNodeSemanticLabel: string;
