@@ -432,17 +432,18 @@ export const findSchedTaskByNo = (taskNo, roundNo, processKey: string) => {
   const eventPattern = `DEV_TASK_RCV_${roundNo}(${taskNo})`;
   const scheduleList = [];
   const processInfo = swimDataManager.getProcess(processKey);
-  for (const thread of processInfo.threads.values()) {
-    if (!thread?.eventIds || !thread?.threadName) continue;
+  processInfo.threads.forEach((thread, key) => {
+    if (!thread?.eventIds || !thread?.threadName) return;
     if (!thread.threadName.includes('AICPU-SCHED')) {
-      continue;
+      return;
     }
-    const events = swimDataManager.getEventsByThread(processKey, thread.tid);
+    const threadGetKey = processKey + "-" + thread.tid;
+    const events = swimDataManager.getEventsByThread(processKey, threadGetKey);
     const hasMatchingEvent = events.some(event => event?.name === eventPattern);
     if (hasMatchingEvent) {
       scheduleList.push(thread.threadName);
     }
-  }
+  });
   return scheduleList;
 };
 // 调度情况图使用接口

@@ -514,8 +514,8 @@ const handleRowClick = async (task) => {
     right: 0;
     width: 200px;
     height: 276px;
-    background: rgba(54, 54, 54, 1);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--devui-area);
+    border: 1px solid var(--devui-category-search-bg);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;

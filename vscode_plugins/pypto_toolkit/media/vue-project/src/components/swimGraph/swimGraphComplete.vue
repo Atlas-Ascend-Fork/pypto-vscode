@@ -1836,7 +1836,7 @@ const highlightAicpu = (process, processKey, isResize) => {
   if (isCtrl) {
     const schedCoreMap = findSchedCoreMapByNo(selectedEvent.value, threads);
     aicpuEventsData = findSchedCoreEventsByNo(schedCoreMap);
-    scheduleList.value = findSchedTaskByNo(taskNo, roundNo, process);
+    scheduleList.value = findSchedTaskByNo(taskNo, roundNo, processKey);
   } else if (isSched) {
     const schedNo = threadName.split('-').pop();
     const schedMap = findSchedMapByNo({roundNo, taskNo, schedNo}, eventName, threads, selectedEvent.value);

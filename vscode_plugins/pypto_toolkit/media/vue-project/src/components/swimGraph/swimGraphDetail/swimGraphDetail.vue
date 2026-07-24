@@ -447,6 +447,9 @@ const normalizeSelectedView = (event) => {
   if (selectedView.value === 'pmuDiagnosis') {
     selectedView.value = 'args';
   }
+  if (selectedView.value === 'pipeStat' && hasPmuDiagnosisData(event)) {
+    selectedView.value = 'args';
+  }
 };
 const getEventCacheHit = (event) => {
   if (!event) {
