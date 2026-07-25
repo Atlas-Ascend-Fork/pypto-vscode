@@ -520,21 +520,16 @@ export class AscppDagBuilder {
             return;
         }
 
-        let incastIndex;
-        let slotId: any[] = [];
-        for (let idx = 0; idx < actualData.incasts.length; idx++) {
-            if (actualData.incasts[idx][0].toString() === startNode) {
-                incastIndex = idx;
-                const incast = actualData.incasts[incastIndex];
-                if (Array.isArray(incast) && incast.length > 1) {
-                    const temp = Array.isArray(incast[1]) ? incast[1] : [incast[1]];
-                    slotId.push(...temp);
-                }
-                break;
+        const incastIndex = this.findIncastIndex(actualData, startNode);
+        const slotId: any[] = [];
+        if (incastIndex !== undefined) {
+            const incast = actualData.incasts[incastIndex];
+            if (Array.isArray(incast) && incast.length > 1) {
+                const temp = Array.isArray(incast[1]) ? incast[1] : [incast[1]];
+                slotId.push(...temp);
             }
         }
 
-        // Get the raw tensor ID and then lookup the tensor name
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
@@ -556,7 +551,6 @@ export class AscppDagBuilder {
             return;
         }
 
-        // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
             const new_graphId = -2;
             nodeId = `tensor-${tensorMagic}-${new_graphId}`;
@@ -584,14 +578,33 @@ export class AscppDagBuilder {
         } else {
             nodes.push(node);
         }
+        this.registerIncastPortMapping(tensorMagic, rawTensor!, nodeId, portId, showTensorNodes, portMap, rawTensorProducers);
+    }
+
+    private findIncastIndex(actualData: FunctionData, startNode: string): number | undefined {
+        for (let idx = 0; idx < actualData.incasts!.length; idx++) {
+            if (actualData.incasts![idx][0].toString() === startNode) {
+                return idx;
+            }
+        }
+        return undefined;
+    }
+
+    private registerIncastPortMapping(
+        tensorMagic: string,
+        rawTensor: RawTensor,
+        nodeId: string,
+        portId: string,
+        showTensorNodes: boolean,
+        portMap: Map<string, PortReference>,
+        rawTensorProducers: Map<string, PortReference[]>
+    ): void {
         if (showTensorNodes) {
             portMap.set(`producer-${tensorMagic}`, { nodeId, portId });
         } else {
-            // Register incast as producer for direct connections
-            const rawTensorId = `${rawTensor!.rawmagic}`;
+            const rawTensorId = `${rawTensor.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId });
-
                 if (!rawTensorProducers.has(rawTensorId)) {
                     rawTensorProducers.set(rawTensorId, []);
                 }
@@ -617,21 +630,16 @@ export class AscppDagBuilder {
             return;
         }
 
-        let outcastIndex;
-        let slotId: any[] = [];
-        for (let idx = 0; idx < actualData.outcasts.length; idx++) {
-            if (actualData.outcasts[idx][0].toString() === startNode) {
-                outcastIndex = idx;
-                const outcast = actualData.outcasts[outcastIndex];
-                if (Array.isArray(outcast) && outcast.length > 1) {
-                    const temp = Array.isArray(outcast[1]) ? outcast[1] : [outcast[1]];
-                    slotId.push(...temp);
-                }
-                break;
+        const outcastIndex = this.findOutcastIndex(actualData, startNode);
+        const slotId: any[] = [];
+        if (outcastIndex !== undefined) {
+            const outcast = actualData.outcasts[outcastIndex];
+            if (Array.isArray(outcast) && outcast.length > 1) {
+                const temp = Array.isArray(outcast[1]) ? outcast[1] : [outcast[1]];
+                slotId.push(...temp);
             }
         }
 
-        // Get the raw tensor ID and then lookup the tensor name
         const tensorMagic = tensor.magic.toString();
         const rawTensor = rawTensorMap.get(String(tensor.rawtensor));
         if (rawTensor!.rawmagic === undefined || typeof rawTensor!.rawmagic !== 'number') {
@@ -639,11 +647,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        for (let index = nodes.length - 1; index >= 0; index--) {
-            if(nodes[index].id?.includes(tensorMagic) && nodes[index].id?.endsWith('empty')){
-                nodes.splice(index, 1);
-            }
-        }
+        this.removeEmptyNodesForTensor(nodes, tensorMagic);
 
         if (!this.outcastUnique.has(tensorMagic)) {
             this.outcastUnique.add(tensorMagic);
@@ -658,7 +662,6 @@ export class AscppDagBuilder {
 
         let graphId = tensor?.subgraphid ?? -1;
         let nodeId = `tensor-${tensorMagic}-${graphId}`;
-        // check duplicate Nodes
         if (this.singlePathNodeSet.has(nodeId)) {
             graphId = -2;
             nodeId = `tensor-${tensorMagic}-${graphId}`;
@@ -688,13 +691,41 @@ export class AscppDagBuilder {
             nodes.push(node);
         }
 
+        this.registerOutcastPortMapping(tensorMagic, rawTensor!, nodeId, portId, showTensorNodes, portMap, rawTensorConsumers);
+    }
+
+    private findOutcastIndex(actualData: FunctionData, startNode: string): number | undefined {
+        for (let idx = 0; idx < actualData.outcasts!.length; idx++) {
+            if (actualData.outcasts![idx][0].toString() === startNode) {
+                return idx;
+            }
+        }
+        return undefined;
+    }
+
+    private removeEmptyNodesForTensor(nodes: SNode[], tensorMagic: string): void {
+        for (let index = nodes.length - 1; index >= 0; index--) {
+            if (nodes[index].id?.includes(tensorMagic) && nodes[index].id?.endsWith('empty')) {
+                nodes.splice(index, 1);
+            }
+        }
+    }
+
+    private registerOutcastPortMapping(
+        tensorMagic: string,
+        rawTensor: RawTensor,
+        nodeId: string,
+        portId: string,
+        showTensorNodes: boolean,
+        portMap: Map<string, PortReference>,
+        rawTensorConsumers: Map<string, PortReference[]>
+    ): void {
         if (showTensorNodes) {
             portMap.set(`consumer-${tensorMagic}`, { nodeId, portId });
         } else {
-            const rawTensorId = `${rawTensor!.rawmagic}`;
+            const rawTensorId = `${rawTensor.rawmagic}`;
             if (rawTensorId) {
                 portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId });
-
                 if (!rawTensorConsumers.has(rawTensorId)) {
                     rawTensorConsumers.set(rawTensorId, []);
                 }
@@ -2303,39 +2334,12 @@ export class AscppDagBuilder {
 
         ooperandsUnique.forEach((oop: number, index: number) => {
             const tensorMagic = String(oop);
-            let callTargetId; 
-            if (showTensorNodes) {
-                // Connect to consumer tensor's input port
-                if (!nodeMagic) {
-                    const consumer = portMap.get(`consumer-${tensorMagic}`);
-                    if (consumer) {
-                        edges.push({
-                            type: 'edge',
-                            id: `edge-${opId}-to-${tensorMagic}-${index}`,
-                            sourceId: portId,
-                            targetId: consumer.portId,
-                            ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
-                        });
-                        callTargetId = consumer.portId;
-                    }
-                } else {
-                    let tensorNodeId = this.tensorNodeMap.get(tensorMagic)!.nodeId;
-                    edges.push({
-                        type: 'edge',
-                        id: `edge-${opId}-to-${tensorMagic}-${index}`,
-                        sourceId: `${opId}-out`,
-                        // targetId: `${nodeId}-in`
-                        targetId: `${tensorNodeId}-in`,
-                        ...(((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] })
-                    });
-                    callTargetId = `${tensorNodeId}-in`;
-                }
-            } else {
-                // Register this output port as producer for future connections
+            const callTargetId = this.createOutputEdge(opId, portId, tensorMagic, index, edges, portMap, showTensorNodes, nodeMagic);
+
+            if (!showTensorNodes) {
                 const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
                 if (rawTensorId) {
                     portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId: opId, portId });
-
                     if (!rawTensorProducers.has(rawTensorId)) {
                         rawTensorProducers.set(rawTensorId, []);
                     }
@@ -2345,29 +2349,83 @@ export class AscppDagBuilder {
                     this.emptyNodesList.add(portId);
                 }
             }
-            
-            if ((op.opcode === "COPY_OUT" || op.opcode === "ASSEMBLE") && !this.isSearch) {
-                const hasOut = this.outcastUnique.has(tensorMagic);
-                if (!hasOut) {
-                    const emptyNode: AstgrNode = this.createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
-                    nodes.push(emptyNode);
-                    if (!showTensorNodes) {
-                        const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
-                        if (rawTensorId) {
-                            const emptyNodeId = `tensor-${tensorMagic}-0`;
-                            const emptyPortId = `tensor-${tensorMagic}-0-in`;
-                            if (!rawTensorConsumers.has(rawTensorId)) {
-                                rawTensorConsumers.set(rawTensorId, []);
-                            }
-                            rawTensorConsumers.get(rawTensorId)!.push({ nodeId: emptyNodeId, portId: emptyPortId });
-                            this.emptyNodesList.add(portId);
-                        }
-                    }
-                    this.emptyOutputSet.add(tensorMagic);
-                    this.outcastUnique.add(tensorMagic);
-                }
-            }
+
+            this.handleCopyOutOrAssemble(op, tensorMagic, callTargetId, showTensorNodes, tensorToRawTensorMap, rawTensorConsumers, nodes, portId);
         });
+    }
+
+    private createOutputEdge(
+        opId: string,
+        portId: string,
+        tensorMagic: string,
+        index: number,
+        edges: SEdge[],
+        portMap: Map<string, PortReference>,
+        showTensorNodes: boolean,
+        nodeMagic?: string
+    ): string | undefined {
+        if (!showTensorNodes) {
+            return undefined;
+        }
+        const edgeCssClasses = ((this.outcastUnique.has(tensorMagic) && !this.emptyOutputSet.has(tensorMagic)) || this.isSearch) ? {} : { cssClasses: ['dashed-edge'] };
+        if (!nodeMagic) {
+            const consumer = portMap.get(`consumer-${tensorMagic}`);
+            if (consumer) {
+                edges.push({
+                    type: 'edge',
+                    id: `edge-${opId}-to-${tensorMagic}-${index}`,
+                    sourceId: portId,
+                    targetId: consumer.portId,
+                    ...edgeCssClasses
+                });
+                return consumer.portId;
+            }
+        } else {
+            const tensorNodeId = this.tensorNodeMap.get(tensorMagic)!.nodeId;
+            edges.push({
+                type: 'edge',
+                id: `edge-${opId}-to-${tensorMagic}-${index}`,
+                sourceId: `${opId}-out`,
+                targetId: `${tensorNodeId}-in`,
+                ...edgeCssClasses
+            });
+            return `${tensorNodeId}-in`;
+        }
+        return undefined;
+    }
+
+    private handleCopyOutOrAssemble(
+        op: Operation,
+        tensorMagic: string,
+        callTargetId: string | undefined,
+        showTensorNodes: boolean,
+        tensorToRawTensorMap: Map<string, string>,
+        rawTensorConsumers: Map<string, PortReference[]>,
+        nodes: SNode[],
+        portId: string
+    ): void {
+        if ((op.opcode !== "COPY_OUT" && op.opcode !== "ASSEMBLE") || this.isSearch) {
+            return;
+        }
+        if (this.outcastUnique.has(tensorMagic)) {
+            return;
+        }
+        const emptyNode: AstgrNode = this.createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
+        nodes.push(emptyNode);
+        if (!showTensorNodes) {
+            const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
+            if (rawTensorId) {
+                const emptyNodeId = `tensor-${tensorMagic}-0`;
+                const emptyPortId = `tensor-${tensorMagic}-0-in`;
+                if (!rawTensorConsumers.has(rawTensorId)) {
+                    rawTensorConsumers.set(rawTensorId, []);
+                }
+                rawTensorConsumers.get(rawTensorId)!.push({ nodeId: emptyNodeId, portId: emptyPortId });
+                this.emptyNodesList.add(portId);
+            }
+        }
+        this.emptyOutputSet.add(tensorMagic);
+        this.outcastUnique.add(tensorMagic);
     }
 
     // 创建itoken

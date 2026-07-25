@@ -95,90 +95,100 @@ function handleDragEnd(
   }
 }
 
+interface SortableState {
+  sourceElement?: HTMLElement;
+  sourceIndex: number;
+  targetIndex: number;
+  mouseoverElement?: HTMLElement;
+  isDrop: boolean;
+}
+
+function canDrag(el: HTMLElement, mouseoverElement: HTMLElement | undefined, handle: string): boolean {
+  if (!handle) {
+    return true;
+  }
+  let element = mouseoverElement;
+  while (element !== el) {
+    if (matches(element, handle)) {
+      return true;
+    }
+    element = element.parentNode as HTMLElement;
+  }
+  return false;
+}
+
+function getCurrentTargetIndex(el: HTMLElement, event: DragEvent): number {
+  let index = -1;
+  let element: any = event.target;
+  while (element !== el) {
+    if (element.parentNode === el) {
+      index = Array.from(el.children).indexOf(element);
+    }
+    element = element.parentNode;
+  }
+  return index;
+}
+
+function initDrag(el: HTMLElement, handle: string, state: SortableState): void {
+  Array.from(el.children).forEach((element: any) => {
+    const dragDom = element;
+    dragDom.setAttribute('draggable', 'true');
+    dragDom.addEventListener('dragstart', (event: DragEvent) => {
+      if (canDrag(el, state.mouseoverElement, handle)) {
+        state.isDrop = false;
+        state.sourceElement = element;
+        state.sourceIndex = Array.from(el.children).indexOf(state.sourceElement);
+      } else {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  });
+}
+
+function bindSortEvents(el: HTMLElement, drop: (e: any) => void, state: SortableState): void {
+  el.addEventListener('mouseover', (event: MouseEvent) => {
+    state.mouseoverElement = event.target as HTMLElement;
+  });
+
+  el.addEventListener('dragover', (event: DragEvent) => {
+    const result = handleDragOver(el, state.sourceElement, (e) => getCurrentTargetIndex(el, e), event);
+    state.targetIndex = result.targetIndex;
+    event.preventDefault();
+  });
+
+  el.addEventListener('drop', () => {
+    state.isDrop = true;
+    if (state.targetIndex !== -1) {
+      drop({ targetIndex: state.targetIndex, sourceIndex: state.sourceIndex });
+    }
+  });
+
+  el.addEventListener('dragend', () => {
+    handleDragEnd(el, state.sourceElement, state.sourceIndex, state.targetIndex, state.isDrop);
+    state.sourceIndex = -1;
+    state.targetIndex = -1;
+  });
+}
+
 export default {
   mounted(el: HTMLElement, binding: DirectiveBinding<SortableProps>): void {
-    let sourceElement: HTMLElement;
-    let sourceIndex: number;
-    let targetIndex: number;
-    let mouseoverElement: HTMLElement;
-    let isDrop: boolean;
     const { list, handle, drop } = binding.value;
     const sliceList = computed(() => list.slice());
-
-    const canDrag = (): boolean => {
-      if (handle) {
-        const handleSelector = handle;
-        let element = mouseoverElement;
-        while (element !== el) {
-          if (matches(element, handleSelector)) {
-            return true;
-          }
-          element = element.parentNode as HTMLElement;
-        }
-        return false;
-      }
-      return true;
-    };
-
-    const getCurrentTarget = (event: DragEvent): number => {
-      let index = -1;
-      let element: any = event.target;
-      while (element !== el) {
-        if (element.parentNode === el) {
-          index = Array.from(el.children).indexOf(element);
-        }
-        element = element.parentNode;
-      }
-      return index;
-    };
-
-    const initDrag = () => {
-      Array.from(el.children).forEach((element: any) => {
-        let dragDom = null;
-        dragDom = element;
-        dragDom.setAttribute('draggable', 'true');
-        dragDom.addEventListener('dragstart', (event: DragEvent) => {
-          if (canDrag()) {
-            isDrop = false;
-            sourceElement = element;
-            sourceIndex = Array.from(el.children).indexOf(sourceElement);
-          } else {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-        });
-      });
+    const state: SortableState = {
+      sourceIndex: -1,
+      targetIndex: -1,
+      isDrop: false,
     };
 
     watch(
       sliceList,
       () => {
-        nextTick(initDrag);
+        nextTick(() => initDrag(el, handle, state));
       },
       { immediate: true },
     );
 
-    el.addEventListener('mouseover', (event: MouseEvent) => {
-      mouseoverElement = event.target as HTMLElement;
-    });
-
-    el.addEventListener('dragover', (event: DragEvent) => {
-      const result = handleDragOver(el, sourceElement, getCurrentTarget, event);
-      targetIndex = result.targetIndex;
-      event.preventDefault();
-    });
-
-    el.addEventListener('drop', () => {
-      isDrop = true;
-      if (targetIndex !== -1) {
-        drop({ targetIndex, sourceIndex });
-      }
-    });
-
-    el.addEventListener('dragend', () => {
-      handleDragEnd(el, sourceElement, sourceIndex, targetIndex, isDrop);
-      sourceIndex = -1;
-      targetIndex = -1;
-    });
+    bindSortEvents(el, drop, state);
   },
 };
