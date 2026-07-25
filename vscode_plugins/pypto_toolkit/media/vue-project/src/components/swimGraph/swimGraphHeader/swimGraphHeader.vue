@@ -1115,7 +1115,10 @@ const performSearch = (filterFn) => {
     measureModel();
   }
   searchResult.value.sort((a, b) => a[0].startTime - b[0].startTime);
-  searchResult.value = removeDuplicateEvents(searchResult.value);
+  // 过滤针对mix模式下微观节点的场景
+  if (isMixMode?.value && swimDataManager.hasMixConfig() && selectedEvent.value?.parentEventId) {
+    searchResult.value = removeDuplicateEvents(searchResult.value);
+  }
   searchResultCount.value = searchResult.value.length;
   isSearchActive.value = true;
   if (searchResultCount.value > 0) {
