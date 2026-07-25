@@ -205,7 +205,7 @@ watch(
             tensorAddr: item.taskOp?.taskTensorAddr || '',
             dataType: item.taskOp?.taskDataType || '',
             seqNo: item.taskOp?.taskSeqNo || '',
-            blockIdx: item.taskOp?.taskBockIdx || '',
+            blockIdx: item.taskOp?.taskBlockIdx || '',
             opAttrSymOffset: item.taskOp?.taskOpAttrSymOfst || '',
             taskId: item.taskOp?.taskTaskId || '',
           },

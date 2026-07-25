@@ -2,7 +2,7 @@
   <div class="task-check-detail-wrap">
     <div class="detail-header">
       <div class="header-text">
-        <span class="task-name">{{ accuracyResultTitle }}</span>
+        <span class="task-name">Task_{{ taskNameWithoutParenthesis }}<span v-if="parenthesisContent" class="task-name-parenthesis">({{ parenthesisContent }})</span></span>
       </div>
       <i class="icon-close header-close-btn" @click="onClose"></i>
     </div>
@@ -24,6 +24,7 @@
 
     <PrecisionTabContent
       ref="tabContentRef"
+      class="precision-tab-content"
       :detail-count="compareTableData.length"
       :show-custom-sort="true"
       :table-data="compareTableData"
@@ -137,6 +138,16 @@ const accuracyResultTitle = computed(() => {
   // 左侧显示左侧顶部标题，右侧显示 'task_dump'
   const sourceLabel = source === 'left' ? props.leftTitle : 'task_dump';
   return `task_${taskName}(${sourceLabel})`;
+});
+
+const taskNameWithoutParenthesis = computed(() => {
+  const taskName = props.detailData?.taskName || '';
+  return taskName;
+});
+
+const parenthesisContent = computed(() => {
+  const source = props.detailData?.source;
+  return source === 'left' ? props.leftTitle : 'task_dump';
 });
 
 // 是否显示跳转按钮：跳转计算图时始终显示，跳转泳道图时只有路径存在才显示
@@ -331,12 +342,27 @@ onMounted(() => {
   flex-direction: column;
   overflow-y: auto;
   box-sizing: border-box;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(180deg, rgba(49, 122, 247, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   .detail-header {
     overflow: hidden;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    position: relative;
+    z-index: 1;
 
     .header-text {
       display: flex;
@@ -344,6 +370,14 @@ onMounted(() => {
       font-size: 18px;
       font-weight: 700;
       color: var(--devui-title-text);
+
+      .task-name {
+        .task-name-parenthesis {
+          font-size: 13px;
+          font-weight: 400;
+          color: var(--task-diff-header-label-text);
+        }
+      }
     }
 
     .header-close-btn {
@@ -366,6 +400,8 @@ onMounted(() => {
     padding: 8px 12px;
     background: var(--control-flow-bg);
     border-radius: 6px;
+    position: relative;
+    z-index: 1;
 
     .result-left {
       display: flex;
@@ -374,8 +410,8 @@ onMounted(() => {
 
       .result-label {
         font-size: 14px;
-        font-weight: 500;
-        color: var(--devui-primary-text);
+        font-weight: 700;
+        color: var(--task-detail-section-title-text);
       }
     }
 
@@ -394,6 +430,11 @@ onMounted(() => {
         font-size: 16px;
       }
     }
+  }
+
+  .precision-tab-content {
+    position: relative;
+    z-index: 1;
   }
 }
 </style>

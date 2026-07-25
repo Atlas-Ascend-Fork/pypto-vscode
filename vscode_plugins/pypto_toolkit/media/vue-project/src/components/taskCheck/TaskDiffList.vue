@@ -46,16 +46,34 @@
       <template v-else>
         <div class="task-list">
           <div v-for="item in filteredList" :key="item.id" :class="['task-row', expandedItems.includes(item.id) && 'expanded']">
-            <div class="task-box">
+            <div :class="['task-box', selectedItemId === item.id && 'has-selection']">
               <div class="box-header" @click="toggleExpand(item.id)">
                 <div class="header-left">
                   <span class="task-name">task_{{ item.taskName }}</span>
-                  <span v-if="item.opMagic" class="info-text">opMagic: {{ item.opMagic }}</span>
-                  <span v-if="item.rawMagic" class="info-text">RawMagic: {{ item.rawMagic }}</span>
-                  <span v-if="item.ioFlag" class="info-text">IO_flag: {{ item.ioFlag }}</span>
-                  <span v-if="item.funcHash" class="info-text">funcHash: {{ item.funcHash }}</span>
-                  <span v-if="item.loopInfo" class="info-text">loopInfo: {{ item.loopInfo }}</span>
-                  <span v-if="item.execTimestamp" class="info-text">execTimestamp: {{ item.execTimestamp }}</span>
+                  <span v-if="item.opMagic" class="info-text">
+                    <span class="info-label">opMagic:</span>
+                    <span class="info-value" :title="item.opMagic">{{ item.opMagic }}</span>
+                  </span>
+                  <span v-if="item.rawMagic" class="info-text">
+                    <span class="info-label">RawMagic:</span>
+                    <span class="info-value" :title="item.rawMagic">{{ item.rawMagic }}</span>
+                  </span>
+                  <span v-if="item.ioFlag" class="info-text">
+                    <span class="info-label">IO_flag:</span>
+                    <span class="info-value" :title="item.ioFlag">{{ item.ioFlag }}</span>
+                  </span>
+                  <span v-if="item.funcHash" class="info-text">
+                    <span class="info-label">funcHash:</span>
+                    <span class="info-value" :title="item.funcHash">{{ item.funcHash }}</span>
+                  </span>
+                  <span v-if="item.loopInfo" class="info-text">
+                    <span class="info-label">loopInfo:</span>
+                    <span class="info-value" :title="item.loopInfo">{{ item.loopInfo }}</span>
+                  </span>
+                  <span v-if="item.execTimestamp" class="info-text">
+                    <span class="info-label">execTimestamp:</span>
+                    <span class="info-value" :title="item.execTimestamp">{{ item.execTimestamp }}</span>
+                  </span>
                 </div>
                 <span v-if="item.compareRes === 'Fail'" :class="['fail-tag', isFirstFail(item.id) && 'first-fail']">
                   <img :src="failIconPath" class="fail-icon" />
@@ -433,7 +451,7 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: var(--devui-tab-bg);
+  background-color: var(--control-flow-bg);
 
   .task-diff-header {
     display: flex;
@@ -455,6 +473,7 @@ defineExpose({
       .task-title {
         font-size: 14px;
         font-weight: 700;
+        color: var(--devui-title-text);
       }
     }
 
@@ -581,15 +600,14 @@ defineExpose({
   .task-row {
     margin-bottom: 12px;
 
-    &.expanded .task-box {
-      background: rgba(49, 122, 247, 0.08);
-    }
-
     .task-box {
       border-radius: 8px;
-      background: var(--control-flow-bg);
-      border: 1px solid var(--devui-split-line);
+      background: var(--task-diff-collapse-bg);
       overflow: hidden;
+
+      &.has-selection {
+        background: var(--task-diff-expanded-bg);
+      }
 
       .box-header {
         display: flex;
@@ -632,11 +650,26 @@ defineExpose({
           }
 
           .info-text {
-            font-size: 12px;
-            color: var(--devui-secondary-text);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            max-width: 200px;
+            color: var(--task-diff-header-label-text);
+
+            .info-label {
+              font-size: 13px;
+              color: var(--task-diff-header-label-text);
+            }
+
+            .info-value {
+              font-size: 13px;
+              color: var(--task-diff-header-value-text);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 120px;
+            }
           }
         }
 
@@ -693,20 +726,19 @@ defineExpose({
             border: 2px solid transparent;
             padding: 12px;
             cursor: pointer;
-
-            // 深浅色主题适配
-            background: rgba(0, 0, 0, 0.16);
-
-            @media (prefers-color-scheme: dark) {
-              background: rgba(255, 255, 255, 0.16);
-            }
-
-            &:global(.dark) {
-              background: rgba(255, 255, 255, 0.16);
-            }
+            background: var(--task-diff-item-bg);
 
             &.active {
               border: 2px solid var(--devui-brand);
+              background: var(--task-diff-item-active-bg);
+
+              .data-label {
+                color: var(--task-diff-header-label-text);
+              }
+
+              .data-value {
+                color: var(--task-diff-header-value-text);
+              }
             }
 
             .column-content {

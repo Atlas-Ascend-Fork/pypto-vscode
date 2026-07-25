@@ -48,12 +48,12 @@
       </div>
     </div>
   </div>
-  <OverviewCard :data="countInfo" />
+  <OverviewCard :data="countInfo" variant="footer" />
   <!-- <OverviewCard :data="warnFailInfo" /> -->
     <div class="section-title">{{ t('relativeError') }}</div>
-    <OverviewCard :data="relativeErrorInfo" />
+    <OverviewCard :data="relativeErrorInfo" variant="footer" />
     <div class="section-title">{{ t('absoluteError') }}</div>
-    <OverviewCard :data="absoluteErrorInfo" />
+    <OverviewCard :data="absoluteErrorInfo" variant="footer" />
     <div class="section-title">{{ t('valueDistributionComparison') }}</div>
     <d-data-grid :data="overviewList" :columns="overviewListColumns" size="xs" class="overview-data-list"></d-data-grid>
 </template>
@@ -169,16 +169,16 @@ const overviewListColumns = ref([
   display: flex;
   flex-direction: column;
   width: 100%;
-  border: 1px solid var(--devui-secondary-button-border);
   border-radius: 12px;
   box-sizing: border-box;
   margin-bottom: 12px;
+  overflow: hidden;
 
   .benchmark-header {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: var(--benchmark-header-bg);
     gap: 8px;
 
     .benchmark-label {
@@ -226,7 +226,7 @@ const overviewListColumns = ref([
     align-items: center;
     width: 100%;
     padding: 16px;
-    background-color: var(--devui-secondary-button-disabled-bg);
+    background-color: var(--benchmark-footer-bg);
     box-sizing: border-box;
 
     .benchmark-item-data {
@@ -264,9 +264,10 @@ const overviewListColumns = ref([
 
   .section-title {
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 700;
     line-height: 20px;
-    color: var(--devui-placeholder-text);
+    color: var(--task-detail-section-title-text);
   }
 
 

@@ -201,7 +201,7 @@ const onExpandChange = () => {
     &:hover,
     &.active {
       border-radius: 8px;
-      background: var(--pto-background);
+      background: var(--task-diff-selected-bg);
 
       &::before {
         content: '';

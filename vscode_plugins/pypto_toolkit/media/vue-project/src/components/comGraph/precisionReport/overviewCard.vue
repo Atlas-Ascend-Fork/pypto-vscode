@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  -->
 <template>
-  <div class="overview-card-wrap">
+  <div :class="['overview-card-wrap', variant]">
     <div v-for="item in data" :key="item.label" class="overview-card-item-data">
       <div>
         <span class="label-text">{{ item.label }}</span>
@@ -37,6 +37,7 @@ import type { OverviewCardData } from './precisionReport.types';
 
 defineProps({
   data: { type: Array as PropType<OverviewCardData[]>, default: () => [] },
+  variant: { type: String as PropType<'default' | 'footer'>, default: 'default' },
 });
 </script>
 
@@ -46,11 +47,15 @@ defineProps({
   align-items: center;
   width: 100%;
   padding: 16px;
-  border: 1px solid var(--devui-secondary-button-border);
   border-radius: 12px;
   background-color: var(--devui-secondary-button-disabled-bg);
   box-sizing: border-box;
   margin-bottom: 16px;
+
+  &.footer {
+    background-color: var(--benchmark-footer-bg);
+  }
+
   .overview-card-item-data {
     flex: 1;
     display: flex;

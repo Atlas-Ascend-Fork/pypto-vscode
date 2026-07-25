@@ -137,7 +137,7 @@ defineExpose({
 
       :deep() {
         .devui-tabs__nav--slider {
-          background-color: rgba(0, 0, 0, 0.08);
+          background-color: var(--precision-tab-bg);
           font-size: 13px;
           padding: 2px;
 
@@ -149,23 +149,23 @@ defineExpose({
             }
 
             a {
-              color: var(--devui-secondary-text);
+              color: var(--precision-tab-unselected-text);
               white-space: nowrap;
             }
 
             &:hover a {
-              color: var(--devui-secondary-text);
+              color: var(--precision-tab-unselected-text);
             }
-          }
 
-          li.active a {
-            color: var(--devui-title-text);
+            &.active a {
+              color: var(--precision-tab-selected-text) !important;
+            }
           }
         }
 
         .devui-tabs__nav-slider-animation {
           padding: 4px 16px;
-          background-color: var(--devui-secondary-button-disabled-bg);
+          background-color: var(--precision-tab-active-bg);
         }
       }
     }
