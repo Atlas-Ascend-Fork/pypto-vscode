@@ -231,7 +231,6 @@
 import { ref, reactive, nextTick, provide, inject, onMounted, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BigNumber from 'bignumber.js';
-import { buildEventMap } from '../swimGraphProcesses/render/utils';
 import { getBaseColor, getLightColor } from '../swimGraphProcesses/processInfo';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
 import TimeStatistics from './timeStatistics/timeStatistics.vue';
@@ -811,7 +810,11 @@ const handleClickOutside = (e) => {
   if (index !== -1) {
     return;
   }
-  canvasStatusReset();
+  if (isMaxSchedule.value) {
+    resetMaxScheduleState();
+  } else {
+    canvasStatusReset();
+  }
 };
 onMounted(() => {
   initializePerformance();

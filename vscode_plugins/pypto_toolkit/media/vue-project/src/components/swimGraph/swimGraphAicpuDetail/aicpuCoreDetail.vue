@@ -468,8 +468,8 @@ const selectKernelEvent = () => {
   for (const [key, thread] of kernelThreads) {
     if (thread.threadName === kernelThreadData.value.threadName) {
       const targetEvent = swimDataManager.getEventById(clickedEvent.value.id);
-      selectEvent(targetEvent, kernalProcessKey.value, false);
       scrollToEvent(targetEvent);
+      selectEvent(targetEvent, kernalProcessKey.value, false);
     }
   }
 };
@@ -485,8 +485,9 @@ const handleAicpuCanvasClick = (e) => {
   ctx.clearRect(0, 0, containerWidth.value, CANVAS_HEIGHT.value);
   clickedEvent.value = null;
   lastSelected.value = null;
-  selectEvent(selectedOriginEvent.value, aiCpuProcessKey.value);
-  scrollToEvent(selectedOriginEvent.value);
+  const event = selectedOriginEvent.value ? swimDataManager.getEventById(selectedOriginEvent.value.id) : null;
+  selectEvent(event, aiCpuProcessKey.value);
+  scrollToEvent(event);
 }; 
 const handleHighKernelEvents = () => {
   const ctx = coreDetailKernelCtx.value;

@@ -73,7 +73,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithU
   findVisibleEventRange
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, buildEventMap, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
@@ -2724,7 +2724,7 @@ const drawMaxScheduleLine = (startEvent, endEvent, process, processKey) => {
   }
   ctx.lineWidth = 1;
   if (selectedEvent.value) {
-    const eventMap = buildEventMap(process);
+    const { eventMap } = swimDataManager;
     const edgesToDraw = [`${startEvent}->${endEvent}`];
     renderDependencyEdges(edgesToDraw, eventMap, ctx);
     highlightEvent(ctx, selectedEvent.value, processKey, true, true);

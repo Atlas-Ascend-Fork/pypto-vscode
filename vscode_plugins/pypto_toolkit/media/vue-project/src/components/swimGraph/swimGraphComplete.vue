@@ -202,6 +202,7 @@ import {
   calculateMixMacroPaths,
   parseCompressedData,
   hashMatchDataGet,
+  drawMeasureArrow,
 } from './swimGraphUtils';
 import { ARROW_WIDTH } from './swimGraphProcesses/render/eventRender';
 import { SliceMipmap, CounterMipmap } from './swimGraphProcesses/render/mipmapRender';
@@ -1894,6 +1895,9 @@ const resetMaxScheduleState = () => {
   selectedEvent.value = null;
   highlightedPaths.clear();
   mixRelatedPaths.clear();
+  if (globalConnectionCanvas.value) {
+    globalConnectionCanvas.value.clearCanvas();
+  }
   const token = ++resetScheduleToken;
   nextTick(() => {
     if (token !== resetScheduleToken) {
@@ -1905,6 +1909,7 @@ const resetMaxScheduleState = () => {
         childContextMap.threadEvent.clearDependencyLines(key);
       }
     }
+    renderTwoTimeline();
   });
 };
 
@@ -1972,6 +1977,12 @@ const setMeasureDragHeight = () => {
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
     const pinnedHeight = pinnedthreadsComponent.value.getPinnedHeight();
     measureHeight += pinnedHeight;
+  }
+  if (isE2ESwim.value) {
+    const expandedPanel = document.querySelector('.details-panel.expanded, .control-details.expanded, .core-details.expanded');
+    if (expandedPanel) {
+      measureHeight += expandedPanel.offsetHeight;
+    }
   }
   measureDragHeight.value = measureHeight;
   document.documentElement.style.setProperty('--maskHeight', `${measureDragHeight.value}px`);
@@ -2685,6 +2696,7 @@ const transformVerticalScroll = () => {
     }
   }
   perfLogger.timeEnd('time of transformVerticalScroll');
+  drawMeasureTime();
 };
 
 const onVerticalScroll = throttle(() => {
@@ -2791,40 +2803,6 @@ const drawMeasureTime = () => {
   }
   const ctx = component.timelineCtx;
   drawMeasureTimeRange(ctx, measureStartTimeX, measureEndTimeX);
-};
-
-const drawMeasureArrow = (ctx, startx, endx, distance) => {
-  const areaMidden = 20;
-  const baypx = 6;
-  ctx.beginPath();
-  ctx.moveTo(startx, areaMidden);
-  ctx.lineTo(startx + distance - baypx, areaMidden);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(endx, areaMidden);
-  ctx.lineTo(endx - distance + baypx, areaMidden);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(startx, areaMidden);
-  ctx.lineTo(startx + baypx, areaMidden - baypx);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(startx, areaMidden);
-  ctx.lineTo(startx + baypx, areaMidden + baypx);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(endx, areaMidden);
-  ctx.lineTo(endx - baypx, areaMidden - baypx);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(endx, areaMidden);
-  ctx.lineTo(endx - baypx, areaMidden + baypx);
-  ctx.stroke();
 };
 
 const drawMeasureTimeTip = (ctx, rect, value, unit) => {

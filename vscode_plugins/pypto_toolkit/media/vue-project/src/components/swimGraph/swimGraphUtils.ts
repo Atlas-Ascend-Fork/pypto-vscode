@@ -335,6 +335,40 @@ export const drawArrow = (ctx: any, position: any, startColor: string, endColor:
   return path;
 };
 
+export const drawMeasureArrow = (ctx, startx, endx, distance) => {
+  const areaMidden = 20;
+  const baypx = 6;
+  ctx.beginPath();
+  ctx.moveTo(startx, areaMidden);
+  ctx.lineTo(startx + distance - baypx, areaMidden);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(endx, areaMidden);
+  ctx.lineTo(endx - distance + baypx, areaMidden);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(startx, areaMidden);
+  ctx.lineTo(startx + baypx, areaMidden - baypx);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(startx, areaMidden);
+  ctx.lineTo(startx + baypx, areaMidden + baypx);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(endx, areaMidden);
+  ctx.lineTo(endx - baypx, areaMidden - baypx);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(endx, areaMidden);
+  ctx.lineTo(endx - baypx, areaMidden + baypx);
+  ctx.stroke();
+};
+
 // 高DPI Canvas初始化辅助函数
 export const setupHighDPICanvas = (canvas: any, width: number, height: number) => {
   const currentDevicePixelRatio = getDevicePixelRatio();
