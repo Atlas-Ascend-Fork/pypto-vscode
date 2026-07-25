@@ -131,13 +131,13 @@ defineExpose({ clearAllSort });
   .devui-data-grid__head {
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
-    background-color: var(--precision-table-header-bg);
+    background-color: var(--devui-nest-bg);
     .th-sort-icon {
       display: none;
     }
   }
   .devui-data-grid__tr {
-    background-color: var(--precision-table-row-bg) !important;
+    background-color: transparent;
     &.hover-tr {
       background-color: var(--devui-input-hover-bg) !important;
     }

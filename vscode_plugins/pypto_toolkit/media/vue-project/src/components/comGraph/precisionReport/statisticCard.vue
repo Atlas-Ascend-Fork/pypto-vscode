@@ -62,7 +62,7 @@ const handleCard = () => {
 
 <style lang="scss" scoped>
 @mixin card-bg-style($r, $g, $b) {
-    background: linear-gradient(206.57deg, rgba($r, $g, $b, 0.05), rgba($r, $g, $b, 0) 100%),var(--control-flow-tab-bg);
+    background: linear-gradient(206.57deg, rgba($r, $g, $b, 0.05), rgba($r, $g, $b, 0) 100%),var(--benchmark-footer-bg);
 
     &.active {
       border-color: rgba($r, $g, $b, 1);

@@ -108,7 +108,7 @@ provide(ComGraphReportProvideKey, { graphName, jsonData, rootEmits: emits });
   gap: 12px;
   width: 488px;
   border-radius: 16px;
-  background-color: var(--devui-card-bg);
+  background-color: var(--control-flow-bg);
   box-shadow: -1px 0 0 0 var(--devui-split-line);
   box-sizing: border-box;
 

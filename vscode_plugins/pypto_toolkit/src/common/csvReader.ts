@@ -183,7 +183,7 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
           aRootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
 
           bDataType: row['B>:datatype'],
-          bRawShape: row['B>:rawShape'],
+          bRawShape: row['B>:rawshape'],
           bValidShape: row['B>:validshape'],
           bBlockIdx: row['B>blockIdx'],
           bOpAttrSymOfst: row['B>OP_ATTR_SYM_OFFSET'],

@@ -745,7 +745,7 @@ export class AstgrOpView extends RectangularNodeView {
     const accuracyErrorIconSize = 16;
     const isFirstErrorNode = opTagError && (Number(node.magic) === (comGraphStore.data.failOpMagicList ?? [])[0]);
     const currentLanguage = (window as any).ascLang;
-    const firstErrorText = currentLanguage === 'zh' ? '精度错误' : 'accurancy error'; 
+    const firstErrorText = currentLanguage === 'zh' ? '首错节点' : 'First Error Node'; 
     const firstErrorTextWidth = 56;
     const bubbleIconPadding = 2;
     const bubbleTextGap = 4;

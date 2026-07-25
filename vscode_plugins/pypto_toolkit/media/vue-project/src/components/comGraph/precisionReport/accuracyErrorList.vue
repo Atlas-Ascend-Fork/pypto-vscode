@@ -30,6 +30,7 @@ const columnData = ref([
     { width: 60, field: 'no', header: 'NO.' },
     { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
     { width: 100, field: 'rawMagic', header: 'rawmagicID', showOverflowTooltip: true },
+    { width: 100, field: 'aMagic', header: 'Magic', showOverflowTooltip: true },
     { width: 90, field: 'dataType', header: 'datatype', showOverflowTooltip: true },
     { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth:100, showOverflowTooltip: true},
 ]);
@@ -84,10 +85,12 @@ watch(
         } else if (isOpCheck.startsWith('task')) {
             // task 类型：修改所有列的字段映射
             columnData.value[1].field = 'taskLoopVarInfos';
-            columnData.value[2].header = 'rawmagicID';
-            columnData.value[2].field = 'rootCallRawmagic';
-            columnData.value[3].field = 'taskDataType';
-            columnData.value[4].field = 'taskValidshape';
+            columnData.value[2].header = 'opMagic';
+            columnData.value[2].field = 'aOpMagic';
+            columnData.value[3].header = 'Magic';
+            columnData.value[3].field = 'aMagic';
+            columnData.value[4].field = 'taskDataType';
+            columnData.value[5].field = 'taskValidshape';
         } else {
             columnData.value[2].header = 'rawmagicID';
             columnData.value[2].field = 'rawMagic';

@@ -515,7 +515,7 @@ function getCalledList(leafFunctions: LeafFunctionType[], calledRecords: CalledR
         detailMaxCalled = Math.max(detailMaxCalled, calledRecordObj[leaf.hash].detail[i].value);
         detail.push({
           label: calledRecordObj[leaf.hash].detail[i].label,
-          value: calledRecordObj[leaf.hash].detail[i].value.toString(),
+          value: String(calledRecordObj[leaf.hash].detail[i].value),
         });
       }
       leafObj = {
