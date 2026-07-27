@@ -18,60 +18,68 @@ const addNodeHandles = (handleMap: Map<string, Set<string>>, node: ChipNode): vo
   });
 };
 
-export const validateChipConfig = (config: ChipConfig, knownStyleTokens: Set<string>): ChipConfigValidationResult => {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+const checkStyleToken = (styleToken: string | undefined, entityId: string, knownStyleTokens: Set<string>, warnings: string[], prefix: string): void => {
+  if (styleToken && !knownStyleTokens.has(styleToken)) {
+    warnings.push(`Unknown ${prefix} style token '${styleToken}' on ${prefix} '${entityId}'`);
+  }
+};
 
+const checkDuplicateId = (id: string, nodeIds: Set<string>, splitNodeIds: Set<string>, errors: string[], label: string): boolean => {
+  if (nodeIds.has(id) || splitNodeIds.has(id)) {
+    errors.push(`Duplicate ${label} id: ${id}`);
+    return true;
+  }
+  return false;
+};
+
+const validateSchemaAndChip = (config: ChipConfig, errors: string[]): void => {
   if (!SUPPORTED_SCHEMA_VERSIONS.has(config.schemaVersion)) {
     errors.push(`Unsupported chip config schemaVersion: ${config.schemaVersion}`);
   }
-
   if (!config.chip?.arch) {
     errors.push('Missing chip.arch');
   }
-
   if (!config.chip?.displayName) {
     errors.push('Missing chip.displayName');
   }
+};
 
+const validateNodes = (config: ChipConfig, knownStyleTokens: Set<string>, errors: string[], warnings: string[]): { nodeIds: Set<string>, splitNodeIds: Set<string>, handleMap: Map<string, Set<string>> } => {
   const nodeIds = new Set<string>();
   const splitNodeIds = new Set<string>();
   const handleMap = new Map<string, Set<string>>();
 
   for (const node of config.nodes || []) {
-    if (nodeIds.has(node.id) || splitNodeIds.has(node.id)) {
-      errors.push(`Duplicate node id: ${node.id}`);
-    }
-    nodeIds.add(node.id);
-    addNodeHandles(handleMap, node);
+    if (!checkDuplicateId(node.id, nodeIds, splitNodeIds, errors, 'node')) {
+      nodeIds.add(node.id);
+      addNodeHandles(handleMap, node);
+      checkStyleToken(node.styleToken, node.id, knownStyleTokens, warnings, 'node');
 
-    if (node.styleToken && !knownStyleTokens.has(node.styleToken)) {
-      warnings.push(`Unknown node style token '${node.styleToken}' on node '${node.id}'`);
-    }
-
-    for (const child of node.splitChildren || []) {
-      if (nodeIds.has(child.id) || splitNodeIds.has(child.id)) {
-        errors.push(`Duplicate split node id: ${child.id}`);
-      }
-      splitNodeIds.add(child.id);
-
-      if (child.styleToken && !knownStyleTokens.has(child.styleToken)) {
-        warnings.push(`Unknown split node style token '${child.styleToken}' on node '${child.id}'`);
+      for (const child of node.splitChildren || []) {
+        if (!checkDuplicateId(child.id, nodeIds, splitNodeIds, errors, 'split node')) {
+          splitNodeIds.add(child.id);
+          checkStyleToken(child.styleToken, child.id, knownStyleTokens, warnings, 'split node');
+        }
       }
     }
   }
 
+  return { nodeIds, splitNodeIds, handleMap };
+};
+
+const validateParentReferences = (config: ChipConfig, nodeIds: Set<string>, errors: string[]): void => {
   for (const node of config.nodes || []) {
     if (node.parentId && !nodeIds.has(node.parentId)) {
       errors.push(`Node '${node.id}' references missing parent '${node.parentId}'`);
     }
   }
+};
 
+const validateEdges = (config: ChipConfig, nodeIds: Set<string>, handleMap: Map<string, Set<string>>, knownStyleTokens: Set<string>, errors: string[], warnings: string[]): void => {
   for (const edge of config.edges || []) {
     if (!nodeIds.has(edge.source)) {
       errors.push(`Edge '${edge.id}' references missing source node '${edge.source}'`);
     }
-
     if (!nodeIds.has(edge.target)) {
       errors.push(`Edge '${edge.id}' references missing target node '${edge.target}'`);
     }
@@ -86,11 +94,11 @@ export const validateChipConfig = (config: ChipConfig, knownStyleTokens: Set<str
       errors.push(`Edge '${edge.id}' references missing target handle '${edge.targetHandle}' on '${edge.target}'`);
     }
 
-    if (edge.styleToken && !knownStyleTokens.has(edge.styleToken)) {
-      warnings.push(`Unknown edge style token '${edge.styleToken}' on edge '${edge.id}'`);
-    }
+    checkStyleToken(edge.styleToken, edge.id, knownStyleTokens, warnings, 'edge');
   }
+};
 
+const validateMemoryConfig = (config: ChipConfig, nodeIds: Set<string>, splitNodeIds: Set<string>, errors: string[]): void => {
   for (const [memType, target] of Object.entries(config.memoryTypeMap || {})) {
     if (!nodeIds.has(target) && !splitNodeIds.has(target)) {
       errors.push(`memoryTypeMap entry '${memType}' references missing node '${target}'`);
@@ -102,6 +110,17 @@ export const validateChipConfig = (config: ChipConfig, knownStyleTokens: Set<str
       errors.push(`memoryCapacityBytes entry '${memType}' must be a number`);
     }
   }
+};
+
+export const validateChipConfig = (config: ChipConfig, knownStyleTokens: Set<string>): ChipConfigValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  validateSchemaAndChip(config, errors);
+  const { nodeIds, splitNodeIds, handleMap } = validateNodes(config, knownStyleTokens, errors, warnings);
+  validateParentReferences(config, nodeIds, errors);
+  validateEdges(config, nodeIds, handleMap, knownStyleTokens, errors, warnings);
+  validateMemoryConfig(config, nodeIds, splitNodeIds, errors);
 
   return {
     valid: errors.length === 0,
