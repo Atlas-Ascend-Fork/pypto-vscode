@@ -14,6 +14,22 @@
 			"sourceMaps": true,
 			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
 			"preLaunchTask": "npm: watch"
+		},
+		{
+			"name": "Run Extension (Isolated)",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--disable-extensions",
+				"--user-data-dir=${workspaceFolder}/.vscode-test/debug-user-data",
+				"--extensions-dir=${workspaceFolder}/.vscode-test/debug-extensions",
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"${workspaceFolder}/test"
+			],
+			"sourceMaps": true,
+			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
+			"preLaunchTask": "npm: compile"
 		}
 	]
 }

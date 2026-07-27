@@ -1,5 +1,6 @@
 import { generateColorListExcludingReds } from './utils';
 import { MemoryRegionLayoutUtil } from './memoryRegionLayoutUtil';
+import { finishPerformanceStage, startPerformanceStage } from './memoryPerformance';
 
 export function collectRawList(jsonData: any): any[] {
   const rawList: any[] = [];
@@ -28,6 +29,30 @@ export function collectRawList(jsonData: any): any[] {
 export function getTensorMagicId(rawTensor: any, fallback = ''): string {
   const magicId = rawTensor?.rawmagic ?? rawTensor?.actual_rawmagic ?? fallback;
   return magicId === undefined || magicId === null ? '' : String(magicId);
+}
+
+export function findMemoryTensorsAtPoint(memoryBlocks: any[], x: number, y: number): any[] {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return [];
+  }
+
+  return memoryBlocks.filter((tensor) => {
+    const start = Number(tensor?.start);
+    const end = Number(tensor?.end);
+    const startAddr = Number(tensor?.startAddr);
+    const endAddr = Number(tensor?.endAddr);
+
+    return (
+      Number.isFinite(start) &&
+      Number.isFinite(end) &&
+      Number.isFinite(startAddr) &&
+      Number.isFinite(endAddr) &&
+      start <= x &&
+      x < end &&
+      startAddr <= y &&
+      y < endAddr
+    );
+  });
 }
 
 function hasNonEmptyValue(value: any): boolean {
@@ -158,26 +183,36 @@ export function processIncomingData(
   overlaps.length = 0;
 
   if (!jsonData) {
-    return { minT: 0, maxT: 18.0, regionLayout: { yMax: 0, regionMap: new Map(), regions: [] } };
+    return { minT: 0, maxT: 18.0, regionLayout: { yMax: 0, regionMap: new Map(), regions: []}};
   }
 
+  let stageStart = startPerformanceStage();
   const rawList = collectRawList(jsonData).filter(isValidMemoryTensor);
+  finishPerformanceStage('tensorValidation', stageStart);
 
+  stageStart = startPerformanceStage();
   updateTensorColorMap(tensorColorMap, rawList, isDark);
+  finishPerformanceStage('colorGeneration', stageStart);
 
   if (rawList.length === 0) {
     maxY.value = 0;
-    return { minT: 0, maxT: 18.0, regionLayout: { yMax: 0, regionMap: new Map(), regions: [] } };
+    return { minT: 0, maxT: 18.0, regionLayout: { yMax: 0, regionMap: new Map(), regions: []}};
   }
 
+  stageStart = startPerformanceStage();
   const regionLayout = MemoryRegionLayoutUtil.createRegionLayout(jsonData.meta.regions);
+  finishPerformanceStage('regionLayout', stageStart);
+  stageStart = startPerformanceStage();
   const parsed = buildParsedEntriesWithRegions(rawList, jsonData, regionLayout);
+  finishPerformanceStage('tensorParsing', stageStart);
 
   maxY.value = regionLayout.yMax;
 
+  stageStart = startPerformanceStage();
   for (let i = 0; i < parsed.length; i++) {
     memoryBlocksRaw.push(parsed[i]);
   }
+  finishPerformanceStage('reactiveInsertion', stageStart);
 
   let minT = 0;
   let maxTime = 18.0;

@@ -63,7 +63,7 @@ function hasKeys(value: unknown, keys: string[]): boolean {
   return isObject(value) && keys.every((key) => key in value);
 }
 
-function hasKeysForEachItem(value: unknown, keys: string[]): boolean {
+function hasKeysForEachItem(value: unknown, keys: string[]): value is Record<string, unknown>[] {
   return Array.isArray(value) && value.every((item) => hasKeys(item, keys));
 }
 
@@ -91,6 +91,6 @@ export function validateMemoryData(data: any): boolean {
       return false;
     }
 
-    return hasKeysForEachItem(tensor.accesses, accessKeys);
+    return hasKeysForEachItem(tensor.accesses, accessKeys) && tensor.accesses.every((access) => access.isWrite === true || access.isWrite === false);
   });
 }

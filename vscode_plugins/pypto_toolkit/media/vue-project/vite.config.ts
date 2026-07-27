@@ -16,7 +16,7 @@ import { copy } from './vite-plugin/copy';
 import { generateDebugHtml } from './vite-plugin/generate-debug-html';
 import { transformIndexHtml } from './vite-plugin/transformIndexHtml';
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     copy({
@@ -37,9 +37,16 @@ export default defineConfig({
       'ext:': fileURLToPath(new URL('../../src', import.meta.url)),
     },
   },
+  server: {
+    hmr: mode !== 'test',
+    cors: {
+      origin: /^vscode-webview:\/\//,
+    },
+  },
   build: {
-    outDir: '../../webview-dist',
+    outDir: mode === 'test' ? '../../.test-webview-dist' : '../../webview-dist',
     emptyOutDir: true,
     sourcemap: false,
+    cssMinify: 'esbuild',
   },
-});
+}));

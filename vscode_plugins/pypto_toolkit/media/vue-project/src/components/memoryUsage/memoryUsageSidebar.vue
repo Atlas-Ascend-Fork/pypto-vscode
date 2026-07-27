@@ -14,38 +14,99 @@
     >
       <div class="resize-handle" @mousedown="startResize">
         <div class="resize-grip" :style="{ backgroundColor: resizeGripBgColor, boxShadow: resizeGripBoxShadow }">
-          <span :style="{ backgroundColor: resizeGripDotColor }"></span>
-          <span :style="{ backgroundColor: resizeGripDotColor }"></span>
-          <span :style="{ backgroundColor: resizeGripDotColor }"></span>
+          <span :style="{ backgroundColor: resizeGripDotColor }" />
+          <span :style="{ backgroundColor: resizeGripDotColor }" />
+          <span :style="{ backgroundColor: resizeGripDotColor }" />
         </div>
       </div>
 
-      <div class="sidebar-header">
-        <div class="header-title-row">
-          <button class="close-btn" @click="$emit('close')" title="Close Panel" :style="{ color: closeBtnColor }">
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              stroke="currentColor"
-              stroke-width="2.5"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+      <div ref="sidebarHeaderRef" class="sidebar-header">
+        <button
+          class="tab-nav-btn"
+          type="button"
+          title="Previous tensor"
+          aria-label="Previous tensor"
+          :disabled="!canSelectPreviousTensor"
+          @click="selectRelativeTensor(-1)"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M10 3 5 8l5 5" />
+          </svg>
+        </button>
+        <div ref="tabsViewportRef" class="tensor-tabs" role="tablist" aria-label="Tensors">
+          <button
+            v-for="entry in tensorEntries"
+            :key="entry.id"
+            class="tensor-tab"
+            :class="{ active: entry.id === activeTensorId }"
+            role="tab"
+            :aria-selected="entry.id === activeTensorId"
+            :title="entry.label"
+            @click="selectTensor(entry.id, $event.currentTarget)"
+            @mouseenter="showTensorPreview(entry, $event.currentTarget)"
+            @mouseleave="hideTensorPreview"
+            @focus="showTensorPreview(entry, $event.currentTarget)"
+            @blur="hideTensorPreview"
+          >
+            <svg class="tensor-icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="m8 1.5 5.5 3.2v6.6L8 14.5l-5.5-3.2V4.7L8 1.5Z" />
+              <path d="m2.7 4.8 5.3 3 5.3-3M8 7.8v6.4" />
             </svg>
+            <span class="tensor-tab-label">{{ entry.label }}</span>
           </button>
         </div>
-        <div class="header-meta-row">
-          <span class="meta-tag magic-id-tag" :style="{ color: metaTagColor }">magicID:{{ magicId }}</span>
-          <span class="meta-tag shape-tag" :style="{ color: metaTagColor }">rawShape:[{{ shape.join(',') }}]</span>
+        <button
+          class="tab-nav-btn"
+          type="button"
+          title="Next tensor"
+          aria-label="Next tensor"
+          :disabled="!canSelectNextTensor"
+          @click="selectRelativeTensor(1)"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="m6 3 5 5-5 5" />
+          </svg>
+        </button>
+        <label class="filter-switch" :style="{ color: metaTagColor }">
+          <d-switch v-model="writesOnly" aria-label="Show writes only" />
+          <span>{{ $t('writesOnly') }}</span>
+        </label>
+        <button
+          class="close-btn"
+          type="button"
+          aria-label="Close panel"
+          :style="{ color: closeBtnColor }"
+          @click="$emit('close')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            stroke="currentColor"
+            stroke-width="2.5"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <div v-if="previewTensorEntry" class="tensor-preview" :style="{ left: previewLeft + 'px' }" role="tooltip">
+          <div class="tensor-preview-title">{{ previewTensorEntry.label }}</div>
+          <div class="tensor-preview-row">
+            <span>MagicID:</span>
+            <strong>{{ getTensorMagicId(previewTensorEntry.rawTensor) || '-' }}</strong>
+          </div>
+          <div class="tensor-preview-row">
+            <span>Shape:</span>
+            <strong>[{{ (previewTensorEntry.rawTensor?.rawShape || []).join(',') }}]</strong>
+          </div>
         </div>
       </div>
 
       <div class="sidebar-body-wrapper">
-        <div ref="chartRef" class="echarts-dom" :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }"></div>
+        <div ref="chartRef" class="echarts-dom" :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }" />
       </div>
     </div>
   </transition>
@@ -102,7 +163,8 @@ function isValidSidebarAccess(access) {
   return (
     hasNonEmptyValue(access?.rawmagic ?? access?.actual_rawmagic) &&
     hasNonEmptyValue(access?.execStart) &&
-    hasNonEmptyValue(access?.execEnd)
+    hasNonEmptyValue(access?.execEnd) &&
+    typeof access?.isWrite === 'boolean'
   );
 }
 
@@ -277,14 +339,13 @@ function buildAccessRow(tShape, access, dim, accessContext) {
   return [dim, xStart, xEnd, yStart, yEnd, access?.seqNo ?? '', access?.funcId ?? '', access?.opIdx ?? '', access?.isWrite, 1];
 }
 
-function buildChartModel(input) {
+function buildChartModel(input, writesOnly) {
   let src = input;
   if (input && !Array.isArray(input.rawTensors) && Array.isArray(input.accesses)) {
-    src = { meta: { t0: input.t0 ?? 0 }, rawTensors: [input] };
+    src = { meta: { t0: input.t0 ?? 0 }, rawTensors: [input]};
   }
 
   const t0 = src?.meta?.t0 ?? 0;
-  const timeDenominator = src?.meta?.timeDenominator || 1;
   const timeUnit = isNaN(Number(src?.meta?.timeUnit)) ? 1 : Number(src?.meta?.timeUnit);
   const normalizeTime = (value) => (Number(value) - t0) / timeUnit;
   const tensors = (src?.rawTensors || []).filter(isValidSidebarTensor);
@@ -325,16 +386,18 @@ function buildChartModel(input) {
   tensors.forEach((t) => {
     const tShape = shapeOf(t);
     (t?.accesses || []).forEach((a) => {
-      if (a.isWrite) {
-        for (let i = 0; i < ndim; i++) {
-          const row = buildAccessRow(tShape, a, i, { dimRanges, size, normalizeTime });
-          if (!row) {
-            continue;
-          }
+      if (writesOnly && !a.isWrite) {
+        return;
+      }
 
-          rowCountsByDim[i]++;
-          rows.push(row);
+      for (let i = 0; i < ndim; i++) {
+        const row = buildAccessRow(tShape, a, i, { dimRanges, size, normalizeTime });
+        if (!row) {
+          continue;
         }
+
+        rowCountsByDim[i]++;
+        rows.push(row);
       }
     });
   });
@@ -359,7 +422,7 @@ function buildChartModel(input) {
 </script>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue';
+import { ref, computed, watch, onUnmounted, nextTick, inject } from 'vue';
 import * as echarts from 'echarts';
 
 const props = defineProps({
@@ -385,11 +448,35 @@ const closeBtnColor = computed(() => (isDarkTheme.value ? '#888888' : '#666666')
 const metaTagColor = computed(() => (isDarkTheme.value ? '#888888' : '#666666'));
 const chartBgColor = computed(() => (isDarkTheme.value ? '#1a1a1a' : '#ffffff'));
 
-const model = computed(() => buildChartModel(props.selectedNode));
-const magicId = computed(() => model.value.magicId);
-const shape = computed(() => model.value.shape);
+const tensorEntries = computed(() => {
+  if (Array.isArray(props.selectedNode?.tensors)) {
+    return props.selectedNode.tensors;
+  }
 
-const TOP = 65;
+  return (props.selectedNode?.rawTensors || []).map((rawTensor, index) => ({
+    id: `${getTensorMagicId(rawTensor) || 'tensor'}|${index}`,
+    label: rawTensor?.rawId || getTensorMagicId(rawTensor) || `Tensor ${index + 1}`,
+    rawTensor,
+    color: props.selectedNode?.color,
+  }));
+});
+const activeTensorId = ref('');
+const activeTensorEntry = computed(() => tensorEntries.value.find((entry) => entry.id === activeTensorId.value) || tensorEntries.value[0]);
+const activeTensorIndex = computed(() => tensorEntries.value.findIndex((entry) => entry.id === activeTensorEntry.value?.id));
+const canSelectPreviousTensor = computed(() => activeTensorIndex.value > 0);
+const canSelectNextTensor = computed(() => activeTensorIndex.value >= 0 && activeTensorIndex.value < tensorEntries.value.length - 1);
+const activeNode = computed(() => ({
+  meta: props.selectedNode?.meta,
+  rawTensors: activeTensorEntry.value ? [activeTensorEntry.value.rawTensor] : [],
+}));
+const writesOnly = ref(true);
+const model = computed(() => buildChartModel(activeNode.value, writesOnly.value));
+const sidebarHeaderRef = ref(null);
+const tabsViewportRef = ref(null);
+const previewTensorEntry = ref(null);
+const previewLeft = ref(0);
+
+const TOP = 90;
 const LANE_H = 165;
 const LANE_GAP = 70;
 const BOTTOM = 30;
@@ -456,6 +543,9 @@ function stopResize() {
 
 const chartRef = ref(null);
 let myChart = null;
+let chartWheelDom = null;
+let chartWheelHandler = null;
+const zoomRange = ref({ start: 0, end: 0 });
 const dimLabels = () => Array.from({ length: model.value.ndim }, (_, i) => `Dim_${i}`);
 const gridTop = (i) => TOP + i * (LANE_H + LANE_GAP);
 const domHeight = ref(computeHeight());
@@ -472,8 +562,57 @@ function dimX(i) {
   return arr[i] != null ? arr[i] : X_MAX_FALLBACK;
 }
 
+function resetZoomRange() {
+  zoomRange.value = { start: 0, end: Math.max(0, Number(model.value.sizeBytes) || 0) };
+}
+
+function scrollTensorIntoView(element) {
+  element?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+}
+
+function selectTensor(id, element) {
+  if (id === activeTensorId.value) {
+    scrollTensorIntoView(element);
+    return;
+  }
+  activeTensorId.value = id;
+  domHeight.value = computeHeight();
+  resetZoomRange();
+  nextTick(() => {
+    scrollTensorIntoView(element);
+    rebuildChart(true);
+  });
+}
+
+function selectRelativeTensor(direction) {
+  const nextIndex = activeTensorIndex.value + direction;
+  const entry = tensorEntries.value[nextIndex];
+  if (!entry) {
+    return;
+  }
+
+  selectTensor(entry.id, tabsViewportRef.value?.children?.[nextIndex]);
+}
+
+function showTensorPreview(entry, element) {
+  previewTensorEntry.value = entry;
+  const headerRect = sidebarHeaderRef.value?.getBoundingClientRect();
+  const tabRect = element?.getBoundingClientRect();
+  if (!headerRect || !tabRect) {
+    previewLeft.value = 40;
+    return;
+  }
+
+  const previewWidth = 260;
+  const centered = tabRect.left - headerRect.left + tabRect.width / 2 - previewWidth / 2;
+  previewLeft.value = Math.max(8, Math.min(headerRect.width - previewWidth - 8, centered));
+}
+
+function hideTensorPreview() {
+  previewTensorEntry.value = null;
+}
+
 let stripePattern = null;
-let stripeImg = null;
 
 function formatAddr(v) {
   return String(Math.round(v))
@@ -501,7 +640,21 @@ function groupByDim() {
   return groups;
 }
 
+function isIntersectingVisibleXRange(api) {
+  const x1 = Number(api.value(1));
+  const x2 = Number(api.value(2));
+  const visibleStart = Number(zoomRange.value.start) || 0;
+  const visibleEnd = Number(zoomRange.value.end) || Number(model.value.sizeBytes) || 0;
+  const rangeStart = Math.min(x1, x2);
+  const rangeEnd = Math.max(x1, x2);
+  return Number.isFinite(x1) && Number.isFinite(x2) && rangeEnd > visibleStart && rangeStart < visibleEnd;
+}
+
 function renderItem(params, api) {
+  if (!isIntersectingVisibleXRange(api)) {
+    return null;
+  }
+
   const p1 = api.coord([api.value(1), api.value(3)]);
   const p2 = api.coord([api.value(2), api.value(4)]);
 
@@ -512,28 +665,19 @@ function renderItem(params, api) {
 
   const rect = echarts.graphic.clipRectByRect({ x: left, y: top, width, height }, params.coordSys);
   if (!rect) {
-    return {};
+    return null;
   }
 
-  const { selectedNode } = props;
-  const isWrite = api.value(8);
-  let baseFill;
-  if (selectedNode?.color?.base) {
-    baseFill = selectedNode.color.base;
-  } else {
-    if (isWrite) {
-      baseFill = isDarkTheme.value ? 'rgba(63,100,174,0.8)' : 'rgba(30,64,175,0.8)';
-    } else {
-      baseFill = isDarkTheme.value ? 'rgba(217,125,27,0.85)' : 'rgba(217,119,6,0.85)';
-    }
-  }
+  const isWrite = api.value(8) === 1 || api.value(8) === true;
+  const opOpacity = isWrite ? 1 : 0.6;
+  const baseFill = activeTensorEntry.value?.color?.base || '#574096';
   const shape = { ...rect, r: 4 };
 
   const children = [];
   if (stripePattern) {
-    children.push({ type: 'rect', shape, style: { fill: stripePattern, opacity: STRIPE_OPACITY } });
+    children.push({ type: 'rect', shape, style: { fill: stripePattern, opacity: STRIPE_OPACITY }});
   }
-  children.push({ type: 'rect', shape, style: { fill: baseFill, lineWidth: 2 } });
+  children.push({ type: 'rect', shape, style: { fill: baseFill, opacity: opOpacity, lineWidth: 2 }});
 
   if (api.value(9) && rect.width > CARD_LABEL_MIN_WIDTH && rect.height >= CARD_LABEL_MIN_HEIGHT) {
     const lines = [`SeqNo: ${api.value(5)}`, `FunctionID: ${api.value(6)}`, `OpID: ${api.value(7)}`];
@@ -561,6 +705,10 @@ function renderItem(params, api) {
 }
 
 const renderOverlapItem = (params, api) => {
+  if (!isIntersectingVisibleXRange(api)) {
+    return null;
+  }
+
   const p1 = api.coord([api.value(1), api.value(3)]);
   const p2 = api.coord([api.value(2), api.value(4)]);
 
@@ -575,12 +723,12 @@ const renderOverlapItem = (params, api) => {
   );
 
   if (!rect) {
-    return { type: 'group', silent: true, children: [] };
+    return null;
   }
 
   const children = [];
   if (stripePattern) {
-    children.push({ type: 'rect', shape: rect, style: { fill: stripePattern, opacity: STRIPE_OPACITY } });
+    children.push({ type: 'rect', shape: rect, style: { fill: stripePattern, opacity: STRIPE_OPACITY }});
   }
   children.push({
     type: 'rect',
@@ -599,6 +747,7 @@ function getChartOption() {
   const dims = dimLabels();
   const dataByDim = groupByDim();
   const overlapByDim = model.value.overlapRows || [];
+  const xAxisIndexes = dims.map((_, index) => index);
 
   const grids = dims.map((_, i) => ({
     left: GRID_LEFT,
@@ -648,8 +797,8 @@ function getChartOption() {
           return v <= r.yMin + eps || v >= r.yMax - eps ? formatAddr(v) : '';
         },
       },
-      axisTick: { show: true, inside: false, length: 8, lineStyle: { color: isDarkTheme.value ? '#6a6a6a' : '#cccccc' } },
-      axisLine: { show: true, lineStyle: { color: isDarkTheme.value ? '#555' : '#cccccc' } },
+      axisTick: { show: true, inside: false, length: 8, lineStyle: { color: isDarkTheme.value ? '#6a6a6a' : '#cccccc' }},
+      axisLine: { show: true, lineStyle: { color: isDarkTheme.value ? '#555' : '#cccccc' }},
       splitLine: { show: false },
     };
   });
@@ -659,7 +808,7 @@ function getChartOption() {
     xAxisIndex: i,
     yAxisIndex: i,
     renderItem,
-    encode: { x: [1, 2], y: [3, 4] },
+    encode: { x: [1, 2], y: [3, 4]},
     data: dataByDim[i],
     z: 2,
     animation: false,
@@ -675,7 +824,7 @@ function getChartOption() {
       xAxisIndex: i,
       yAxisIndex: i,
       renderItem: renderOverlapItem,
-      encode: { x: [1, 2], y: [3, 4] },
+      encode: { x: [1, 2], y: [3, 4]},
       data: rows,
       silent: true,
       z: 5,
@@ -712,12 +861,13 @@ function getChartOption() {
         });
       }
 
-      const xm = dimX(0);
-      const seg = xm / 16;
+      const visibleStart = zoomRange.value.start;
+      const visibleEnd = zoomRange.value.end || dimX(0);
+      const seg = (visibleEnd - visibleStart) / 16;
       const labelY = cs.y - 24;
       for (let i = 1; i <= 16; i++) {
-        const v = seg * i;
-        const xPix = cs.x + (v / xm) * cs.width;
+        const v = visibleStart + seg * i;
+        const xPix = cs.x + (i / 16) * cs.width;
         children.push({
           type: 'text',
           rotation: Math.PI / 2,
@@ -772,12 +922,131 @@ function getChartOption() {
     grid: grids,
     xAxis: xAxes,
     yAxis: yAxes,
+    dataZoom: [
+      {
+        id: 'detail-x-slider',
+        type: 'slider',
+        show: true,
+        xAxisIndex: xAxisIndexes,
+        filterMode: 'none',
+        startValue: zoomRange.value.start,
+        endValue: zoomRange.value.end || model.value.sizeBytes,
+        left: GRID_LEFT,
+        right: GRID_RIGHT,
+        top: 6,
+        height: 20,
+        showDataShadow: false,
+        showDetail: false,
+        brushSelect: false,
+        borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
+        backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
+        fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+        handleSize: '60%',
+        handleStyle: {
+          color: isDarkTheme.value ? '#ffffff' : '#191919',
+          borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
+          borderWidth: 1,
+          shadowBlur: 5,
+          shadowColor: isDarkTheme.value ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
+        },
+        moveHandleIcon: 'none',
+      },
+      {
+        id: 'detail-x-inside',
+        type: 'inside',
+        xAxisIndex: xAxisIndexes,
+        filterMode: 'none',
+        startValue: zoomRange.value.start,
+        endValue: zoomRange.value.end || model.value.sizeBytes,
+        zoomOnMouseWheel: false,
+        moveOnMouseWheel: false,
+        moveOnMouseMove: false,
+      },
+    ],
     graphic: dimTexts,
     series,
   };
 }
 
+function detachChartWheelListener() {
+  if (chartWheelDom && chartWheelHandler) {
+    chartWheelDom.removeEventListener('wheel', chartWheelHandler, true);
+  }
+  chartWheelDom = null;
+  chartWheelHandler = null;
+}
+
+function attachChartWheelListener(chartDom) {
+  chartWheelHandler = (event) => {
+    if (!event.ctrlKey) {
+      return;
+    }
+
+    const size = Number(model.value.sizeBytes) || 0;
+    const plotWidth = chartDom.clientWidth - GRID_LEFT - GRID_RIGHT;
+    const pointerX = event.clientX - chartDom.getBoundingClientRect().left - GRID_LEFT;
+    if (size <= 0 || plotWidth <= 0) {
+      return;
+    }
+    if (pointerX < 0 || pointerX > plotWidth) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const currentStart = zoomRange.value.start;
+    const currentEnd = zoomRange.value.end || size;
+    const currentWidth = currentEnd - currentStart;
+    const minWidth = Math.min(size, Math.max(1, size / 1000));
+    const nextWidth = Math.max(minWidth, Math.min(size, currentWidth * (event.deltaY < 0 ? 0.8 : 1.25)));
+    const anchorRatio = pointerX / plotWidth;
+    const anchor = currentStart + currentWidth * anchorRatio;
+    let start = anchor - nextWidth * anchorRatio;
+    start = Math.max(0, Math.min(size - nextWidth, start));
+    const end = start + nextWidth;
+
+    zoomRange.value = { start, end };
+    myChart?.dispatchAction({
+      type: 'dataZoom',
+      batch: [
+        { dataZoomId: 'detail-x-slider', startValue: start, endValue: end },
+        { dataZoomId: 'detail-x-inside', startValue: start, endValue: end },
+      ],
+    });
+  };
+  chartWheelDom = chartDom;
+  chartDom.addEventListener('wheel', chartWheelHandler, { passive: false, capture: true });
+}
+
 let resizeObserver = null;
+let zoomRefreshRaf = null;
+
+function handleDataZoom(event) {
+  const payload = event?.batch?.[0] || event || {};
+  const size = Number(model.value.sizeBytes) || 0;
+  const start = Number.isFinite(Number(payload.startValue)) ? Number(payload.startValue) : (Number(payload.start) / 100) * size;
+  const end = Number.isFinite(Number(payload.endValue)) ? Number(payload.endValue) : (Number(payload.end) / 100) * size;
+
+  if (size <= 0 || !Number.isFinite(start) || !Number.isFinite(end)) {
+    return;
+  }
+  if (start >= end) {
+    return;
+  }
+
+  zoomRange.value = {
+    start: Math.max(0, Math.min(size, start)),
+    end: Math.max(0, Math.min(size, end)),
+  };
+
+  if (!zoomRefreshRaf) {
+    zoomRefreshRaf = requestAnimationFrame(() => {
+      zoomRefreshRaf = null;
+      rebuildChart();
+    });
+  }
+}
+
 function initChart() {
   if (!chartRef.value) {
     return;
@@ -786,15 +1055,19 @@ function initChart() {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
+  detachChartWheelListener();
   if (myChart) {
     myChart.dispose();
     myChart = null;
   }
   myChart = echarts.init(chartRef.value);
   myChart.setOption(getChartOption());
+  myChart.on('datazoom', handleDataZoom);
+  attachChartWheelListener(myChart.getDom());
 }
 
 function disposeChart() {
+  detachChartWheelListener();
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
@@ -803,7 +1076,12 @@ function disposeChart() {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
+  if (zoomRefreshRaf) {
+    cancelAnimationFrame(zoomRefreshRaf);
+    zoomRefreshRaf = null;
+  }
   if (myChart) {
+    myChart.off('datazoom', handleDataZoom);
     myChart.dispose();
     myChart = null;
   }
@@ -822,13 +1100,20 @@ function liveResize() {
   });
 }
 
-function rebuildChart() {
+function rebuildChart(clear = false) {
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
   }
   if (chartRef.value) {
-    initChart();
+    if (myChart) {
+      if (clear) {
+        myChart.clear();
+      }
+      myChart.setOption(getChartOption(), { notMerge: true });
+    } else {
+      initChart();
+    }
   }
 }
 
@@ -840,21 +1125,18 @@ function scheduleRebuild() {
   rebuildTimer = setTimeout(() => {
     rebuildTimer = null;
     if (chartRef.value) {
-      initChart();
+      rebuildChart();
     }
   }, 120);
 }
 
-function onContainerResize() {
-  liveResize();
-  scheduleRebuild();
-}
-
-const handleResize = () => onContainerResize();
-
 watch(sidebarWidth, () => {
   liveResize();
   scheduleRebuild();
+});
+
+watch(writesOnly, () => {
+  rebuildChart(true);
 });
 
 watch(isDarkTheme, () => {
@@ -867,9 +1149,11 @@ watch(
   () => props.selectedNode,
   (node) => {
     if (node) {
+      activeTensorId.value = tensorEntries.value[0]?.id || '';
       sidebarWidth.value = initWidth();
       domHeight.value = computeHeight();
-      nextTick(() => initChart());
+      resetZoomRange();
+      nextTick(() => rebuildChart(true));
     } else {
       disposeChart();
     }
@@ -981,21 +1265,99 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  padding: 12px 14px;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 6px 8px 6px 14px;
   flex-shrink: 0;
+  border-bottom: 1px solid v-bind(sidebarBorderColor);
 }
 
-.header-title-row {
+.tensor-tabs {
   display: flex;
-  justify-content: flex-end;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tensor-tab {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 12px;
-  gap: 12px;
+  gap: 7px;
+  flex: 0 0 auto;
+  max-width: 180px;
+  height: 36px;
+  padding: 0 11px;
+  overflow: hidden;
+  color: v-bind(metaTagColor);
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: v-bind(sidebarTextColor);
+    background: rgba(127, 127, 127, 0.14);
+  }
+}
+
+.tensor-tab.active {
+  color: v-bind(sidebarTextColor);
+  background: rgba(127, 127, 127, 0.2);
+  border-color: rgba(127, 127, 127, 0.22);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+.tensor-icon {
+  flex: 0 0 auto;
+  opacity: 0.72;
+}
+
+.tensor-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  color: v-bind(metaTagColor);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+
+  &:hover:not(:disabled) {
+    color: v-bind(sidebarTextColor);
+    background: rgba(127, 127, 127, 0.12);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.3;
+  }
 }
 
 .close-btn {
+  flex: 0 0 auto;
   background: none;
   border: none;
   cursor: pointer;
@@ -1017,19 +1379,61 @@ onUnmounted(() => {
   }
 }
 
-.header-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.filter-switch {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
 }
 
-.meta-tag {
-  font-size: 14px;
-  line-height: 22px;
-  padding: 0 6px;
-  position: relative;
-  bottom: 35px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+.filter-switch :deep(.devui-switch) {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.tensor-preview {
+  position: absolute;
+  top: calc(100% - 2px);
+  z-index: 10;
+  width: 260px;
+  padding: 10px 12px 12px;
+  color: v-bind(sidebarTextColor);
+  pointer-events: none;
+  background: v-bind(sidebarBgColor);
+  border: 1px solid v-bind(sidebarBorderColor);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.36);
+  box-sizing: border-box;
+}
+
+.tensor-preview-title {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid v-bind(sidebarBorderColor);
+}
+
+.tensor-preview-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 5px;
+  color: v-bind(metaTagColor);
+  font-size: 12px;
+
+  strong {
+    overflow-wrap: anywhere;
+    color: v-bind(sidebarTextColor);
+    font-weight: 500;
+  }
 }
 
 .sidebar-body-wrapper {

@@ -72,4 +72,5 @@ const icon = `${window.staticPath}/icon.svg`
 cd vscode_plugins/pypto_toolkit/media/vue-project
 npm run dev      # Vite热更新
 npm run build    # 输出到webview-dist/
+npm run test:memory # GM内存可视化单元测试
 ```

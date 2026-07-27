@@ -625,4 +625,5 @@ export default {
     },
     'swimGraphNodeNotFound': '未找到节点: seqNo={seqNo}, taskId={taskId}',
     'swimGraphUnsupportedType': '该类型泳道图不支持节点定位',
+    'writesOnly': '仅展示写',
 }

@@ -1,6 +1,6 @@
 <template>
   <div :style="{ height: isThreeColumn ? '100%' : '100vh' }" class="swim-global-container">
-    <Loading v-if="loading" :loadingText="loadingText" />
+    <Loading v-if="loading" :loading-text="loadingText" />
     <DataError v-if="error" />
     <div
       v-if="!error && !loading"
@@ -20,12 +20,22 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <circle cx="11" cy="11" r="8" />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+              />
             </svg>
-            <input type="text" v-model="searchQuery" :placeholder="'Search'" class="search-input" />
-            <div class="search-action-wrapper" v-if="searchQuery">
-              <button class="search-clear-btn" @click="clearSearch" title="Clear Search">
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="'Search'"
+              class="search-input"
+            />
+            <div v-if="searchQuery" class="search-action-wrapper">
+              <button class="search-clear-btn" title="Clear Search" @click="clearSearch">
                 <svg
                   viewBox="0 0 24 24"
                   width="10"
@@ -36,21 +46,43 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                  <line
+                    x1="18"
+                    y1="6"
+                    x2="6"
+                    y2="18"
+                  />
+                  <line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"
+                  />
                 </svg>
               </button>
             </div>
           </div>
-          <div class="search-nav-container" v-if="searchQuery">
+          <div v-if="searchQuery" class="search-nav-container">
             <span class="search-results-count">{{ searchNavigationLabel }}</span>
             <div class="search-nav">
-              <d-icon name="icon-arrow-left-l" class="search-nav-prev" :disabled="filteredResultsCount <= 1" @click.stop="goToPreviousSearchResult" style="font-size: 16px;"></d-icon>
-              <d-icon name="icon-arrow-right-l" class="search-nav-next" :disabled="filteredResultsCount <= 1" @click.stop="goToNextSearchResult" style="font-size: 16px;"></d-icon>
+              <d-icon
+                name="icon-arrow-left-l"
+                class="search-nav-prev"
+                :disabled="filteredResultsCount <= 1"
+                style="font-size: 16px;"
+                @click.stop="goToPreviousSearchResult"
+              />
+              <d-icon
+                name="icon-arrow-right-l"
+                class="search-nav-next"
+                :disabled="filteredResultsCount <= 1"
+                style="font-size: 16px;"
+                @click.stop="goToNextSearchResult"
+              />
             </div>
           </div>
         </div>
-        <button class="reset-filters-btn" @click="resetFilters" title="Reset all filters">
+        <button class="reset-filters-btn" title="Reset all filters" @click="resetFilters">
           <svg
             viewBox="0 0 24 24"
             width="12"
@@ -61,23 +93,23 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <polyline points="1 4 1 10 7 10"></polyline>
-            <path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"></path>
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10" />
           </svg>
         </button>
       </div>
-      <div class="head-container" v-show="!loading" :style="{ display: 'flex', height: '60px', width: '100%' }">
-        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn }"></div>
+      <div v-show="!loading" class="head-container" :style="{ display: 'flex', height: '60px', width: '100%' }">
+        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn }" />
 
         <div class="right-header-content" :style="{ width: 'calc(100% - ' + layout.processLabelWidth + 'px)' }">
-          <div class="swimlane-container" :class="{ mr16: !isGuidePage }" ref="swimlaneContainer">
-            <swim-graph-timeline ref="timelineComponent" :hoverFlags="false" />
+          <div ref="swimlaneContainer" class="swimlane-container" :class="{ mr16: !isGuidePage }">
+            <swim-graph-timeline ref="timelineComponent" :hover-flags="false" />
           </div>
           <swim-graph-config />
         </div>
       </div>
 
-      <div class="memory-layout-main" v-show="!loading" :style="{ height: 'calc(100% - 80px)' }">
+      <div v-show="!loading" class="memory-layout-main" :style="{ height: 'calc(100% - 80px)' }">
         <div class="minimap-visual-rail">
           <svg viewBox="0 0 80 100" preserveAspectRatio="none" class="minimap-svg">
             <rect
@@ -91,20 +123,22 @@
               rx="1"
             />
           </svg>
-          <div class="minimap-dashed-line"></div>
+          <div class="minimap-dashed-line" />
         </div>
         <div class="chart-wrapper">
-          <div ref="chartRef" class="echarts-container" :style="{ minHeight: minimumChartHeight + 'px' }"></div>
+          <div ref="chartRef" class="echarts-container" :style="{ minHeight: minimumChartHeight + 'px' }" />
+          <!-- eslint-disable vue/no-v-html -->
           <div
             v-if="manualTensorTooltipVisible"
             class="manual-tensor-tooltip"
             :style="manualTensorTooltipStyle"
             v-html="manualTensorTooltipHtml"
-          ></div>
+          />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
       </div>
     </div>
-    <MemoryUsageSidebar :selectedNode="selectedNode" @close="selectedNode = null" />
+    <MemoryUsageSidebar :selected-node="selectedNode" @close="selectedNode = null" />
   </div>
 </template>
 
@@ -135,8 +169,15 @@ import { validateMemoryData } from './validateMemoryData';
 import { createMemoryUsageChildContextMap, provideMemoryUsageSwimGraph } from './memoryUsageProvide';
 import { TensorSearchNavigationUtil } from './tensorSearchNavigationUtil';
 import { TensorSearchOverlayUtil } from './TensorSearchOverlayUtil';
-import { processIncomingData, formatRawShape, isValidMemoryTensor, getTensorMagicId } from './memoryDataProcessor';
+import { processIncomingData, formatRawShape, getTensorMagicId, findMemoryTensorsAtPoint } from './memoryDataProcessor';
 import { detectConflicts } from './memoryConflictDetection';
+import { createConflictPattern, createMemoryChartRenderers, createMinimapRects } from './memoryChartRenderer';
+import {
+  finishPerformanceStage,
+  markPerformance,
+  startPerformanceStage,
+  updatePerformanceFingerprint,
+} from './memoryPerformance';
 
 const props = defineProps({
   jsonContent: {
@@ -168,7 +209,7 @@ const CHART_GRID_VERTICAL_PADDING_PX = 60;
 
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root', ref(true));
-const { t: $t } = useI18n();
+useI18n();
 const isGuidePage = ref(false);
 const error = ref(false);
 
@@ -240,11 +281,6 @@ const searchNavigationLabel = computed(() => {
 
   return `${selectedSearchIndex.value + 1}/${total}`;
 });
-const performSearch = () => {
-  debouncedSearchQuery.value = searchQuery.value;
-  selectedSearchIndex.value = 0;
-  refreshSearchChart();
-};
 const selectedNode = shallowRef(null);
 const chartRef = ref(null);
 const maxY = ref(22);
@@ -263,91 +299,19 @@ const minimumChartHeight = computed(() => {
 });
 
 const minimapRects = computed(() => {
-  if (!maxY.value || maxY.value <= 0) {
-    return [];
-  }
-
-  const virtualHeightPx = 440;
-  const mbPerPixel = maxY.value / virtualHeightPx;
-
-  const pixelGrid = new Array(virtualHeightPx).fill(0);
-
-  const MathClamp = (val, min, max) => Math.max(min, Math.min(max, val));
-  const addrToPixelIdx = (addr) => MathClamp(Math.floor(addr / mbPerPixel), 0, virtualHeightPx - 1);
-
-  overlaps.value.forEach((overlap) => {
-    const startIdx = addrToPixelIdx(overlap.y1);
-    const endIdx = addrToPixelIdx(overlap.y2);
-
-    for (let i = startIdx; i <= endIdx; i++) {
-      pixelGrid[i] = 2;
-    }
-  });
-
-  const rects = [];
-  let currentFill = null;
-  let startPixel = 0;
-
-  for (let i = 0; i <= virtualHeightPx; i++) {
-    const pixelVal = i < virtualHeightPx ? pixelGrid[i] : 0;
-
-    if (currentFill === null) {
-      if (pixelVal !== 0) {
-        currentFill = pixelVal;
-        startPixel = i;
-      }
-    } else if (pixelVal !== currentFill) {
-      const pixelLength = i - startPixel;
-
-      const y = (startPixel / virtualHeightPx) * 100;
-      const height = (pixelLength / virtualHeightPx) * 100;
-      let fill;
-      if (currentFill === 2) {
-        fill = isDarkTheme.value ? '#8a1a1a' : '#e53935';
-      } else {
-        fill = isDarkTheme.value ? '#075238' : '#2e7d32';
-      }
-
-      rects.push({
-        y,
-        height,
-        fill,
-      });
-
-      if (pixelVal !== 0) {
-        currentFill = pixelVal;
-        startPixel = i;
-      } else {
-        currentFill = null;
-      }
-    }
-  }
-
-  return rects;
+  return createMinimapRects(maxY.value, overlaps.value, isDarkTheme.value);
 });
 let myChart = null;
 let chartWheelDom = null;
 let chartWheelHandler = null;
 let currentMemoryData = null;
+let hasReceivedMemoryPayload = false;
 let isProgrammaticZoom = false;
 
 const overlaps = ref([]);
 const patternCache = { B: null, reg: null, stripe: null };
-
-const buildConflictPattern = () => {
-  const cvs = document.createElement('canvas');
-  cvs.width = 16;
-  cvs.height = 16;
-  const ctx = cvs.getContext('2d');
-  ctx.strokeStyle = 'rgba(231, 67, 74, 0.35)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(0, 12);
-  ctx.lineTo(12, 0);
-  ctx.stroke();
-  patternCache.B = { image: cvs, repeat: 'repeat' };
-};
-buildConflictPattern();
+patternCache.B = createConflictPattern();
+const tensorColorMap = {};
 const getOverlapData = () => {
   return overlaps.value.map((o) => [o.x1, o.y1, o.x2, o.y2, o.tensors[0] || 'Anonymous', o.tensors[1] || 'Anonymous']);
 };
@@ -419,10 +383,6 @@ const clearSearch = () => {
         {
           id: 'tensors',
           data: getChartData(),
-        },
-        {
-          id: 'tensor-labels',
-          data: getTensorLabelData(),
         },
       ],
     });
@@ -506,9 +466,6 @@ const applySearchSelection = () => {
     scheduleSearchOverlayUpdate();
   });
 };
-const isValueInsideRange = (value, min, max) => {
-  return value >= min && value <= max;
-};
 const goToPreviousSearchResult = () => {
   const total = filteredResultsCount.value;
 
@@ -532,42 +489,9 @@ const goToNextSearchResult = () => {
 
   applySearchSelection();
 };
-const refreshSearchChart = () => {
-  if (!myChart) {
-    return;
-  }
-
-  const { overlaps: newOverlaps } = detectConflicts(memoryBlocksRaw, searchQuery.value);
-  overlaps.value = newOverlaps;
-
-  myChart.setOption({
-    series: [{ data: getChartData() }, { data: getOverlapData() }, { data: getTensorLabelData() }],
-  });
-};
-
-const getTensorSearchKey = (item) => {
-  return [item.magicId || '', item.start, item.end, item.startAddr, item.endAddr].join('_');
-};
-
-const getSearchMatchedItems = () => {
-  return TensorSearchNavigationUtil.getSearchMatchedItems(memoryBlocksRaw, debouncedSearchQuery.value);
-};
-
 const getSelectedSearchItem = () => {
   return TensorSearchNavigationUtil.getSelectedSearchItem(memoryBlocksRaw, debouncedSearchQuery.value, selectedSearchIndex.value);
 };
-
-const isTensorMatchedBySearch = (item, query) => {
-  if (!query) {
-    return false;
-  }
-
-  return String(item.magicId || '')
-    .toLowerCase()
-    .includes(query);
-};
-
-let searchDimOverlay = null;
 let searchFocusOverlay = null;
 let searchOverlayFrame = null;
 const clearSearchOverlays = () => {
@@ -596,307 +520,13 @@ const scheduleSearchOverlayUpdate = () => {
   });
 };
 
-const renderItem = (params, api) => {
-  const name = api.value(0);
-  const startX = api.value(1);
-  const endX = api.value(2);
-  const startY = api.value(3);
-  const endY = api.value(4);
-
-  const startPos = api.coord([startX, startY]);
-  const endPos = api.coord([endX, endY]);
-
-  let width = Math.abs(endPos[0] - startPos[0]);
-  let height = Math.abs(endPos[1] - startPos[1]);
-  if (width < 2) {
-    width = 2;
-  }
-  if (height < 2) {
-    height = 2;
-  }
-  const left = Math.min(startPos[0], endPos[0]);
-  const top = Math.min(startPos[1], endPos[1]);
-
-  let rectShape = echarts.graphic.clipRectByRect({ x: left, y: top, width, height }, params.coordSys);
-
-  if (!rectShape) {
-    return {
-      type: 'group',
-      children: [],
-    };
-  }
-
-  const isSelected = selectedNode.value && selectedNode.value.name === name && selectedNode.value.startAddr === startY;
-  const isSearchActive = Number(api.value(19)) === 1;
-  const isDimmedBySearch = isSearchActive && filteredResultsCount.value;
-  const styleType = api.value(6);
-  const magicId = api.value(7);
-  const originalColor = tensorColorMap[magicId]?.base || '#574096';
-  const baseColor = isDimmedBySearch ? 'rgba(130, 130, 130, 0.55)' : originalColor;
-  const rectOpacity = isDimmedBySearch ? 0.35 : 0.8;
-  const children = [];
-  let strokeColor = 'transparent';
-  let lineWidth = 0;
-  let shadowBlur = 0;
-  let shadowColor = 'transparent';
-
-  if (isSelected && !isSearchActive) {
-    strokeColor = '#ffffff';
-    lineWidth = 2;
-    shadowBlur = 2;
-    shadowColor = '#ffffff';
-  }
-
-  const r = width > 12 && height > 12 ? 4 : 0;
-
-  if (patternCache.stripe) {
-    children.push({
-      type: 'rect',
-      shape: { ...rectShape, r },
-      style: { fill: patternCache.stripe, opacity: 0.35 },
-    });
-  }
-
-  children.push({
-    type: 'rect',
-    shape: { ...rectShape, r },
-    style: {
-      fill: baseColor,
-      stroke: strokeColor,
-      lineWidth,
-      shadowBlur,
-      shadowColor,
-      opacity: rectOpacity,
-    },
-  });
-  if (styleType === 'striped' && patternCache.reg) {
-    children.push({
-      type: 'rect',
-      shape: {
-        ...rectShape,
-        r: width > 12 && height > 12 ? 4 : 0,
-      },
-      style: {
-        fill: patternCache.reg,
-        opacity: 0.18,
-      },
-    });
-  }
-
-  return {
-    type: 'group',
-    silent: false,
-    children: children.filter(Boolean),
-  };
-};
-const getTensorLabelData = () => {
-  const q = searchQuery.value.trim().toLowerCase();
-
-  const candidates = memoryBlocksRaw.filter((item) => {
-    const magicId = item.magicId || item.rawObj?.rawmagic || '';
-
-    if (!magicId) {
-      return false;
-    }
-
-    if (q) {
-      const name = String(item.name || '-').toLowerCase();
-      const magic = String(magicId || '-').toLowerCase();
-      const shape = String(formatRawShape(item.rawObj?.rawShape) || '-').toLowerCase();
-
-      return name.includes(q) || magic.includes(q) || shape.includes(q) || !filteredResultsCount.value;
-    }
-
-    return true;
-  });
-
-  const data = candidates.map((item) => [
-    item.name || '',
-    item.start,
-    item.end,
-    item.startAddr,
-    item.endAddr,
-    item.magicId || item.rawObj?.rawmagic || '',
-    formatRawShape(item.rawObj?.rawShape),
-  ]);
-  return data;
-};
-
-function renderTensorLabelItem(params, api) {
-  const startX = Number(api.value(1));
-  const endX = Number(api.value(2));
-  const startY = Number(api.value(3));
-  const endY = Number(api.value(4));
-  const magicId = api.value(5) || '-';
-  const rawShape = api.value(6);
-
-  const p1 = api.coord([startX, startY]);
-  const p2 = api.coord([endX, endY]);
-
-  if (!p1 || !p2) {
-    return {
-      type: 'group',
-      children: [],
-    };
-  }
-
-  const left = Math.min(p1[0], p2[0]);
-  const top = Math.min(p1[1], p2[1]);
-  const width = Math.abs(p2[0] - p1[0]);
-  const height = Math.abs(p2[1] - p1[1]);
-
-  if (width <= 50 || height <= 24) {
-    return {
-      type: 'group',
-      children: [],
-    };
-  }
-  const rectShape = echarts.graphic.clipRectByRect(
-    {
-      x: left,
-      y: top,
-      width,
-      height,
-    },
-    params.coordSys,
-  );
-
-  if (!rectShape) {
-    return {
-      type: 'group',
-      children: [],
-    };
-  }
-  const textPadding = 8;
-  const textWidth = Math.max(rectShape.width - textPadding * 2, 0);
-  const textHeight = Math.max(rectShape.height - textPadding * 2, 0);
-  return {
-    type: 'text',
-    silent: true,
-    z: 100,
-    style: {
-      x: rectShape.x + rectShape.width / 2,
-      y: rectShape.y + rectShape.height / 2,
-      text: `magicID: ${magicId} rawShape: ${rawShape || '-'}`,
-       fill: isDarkTheme.value ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)',
-      fontSize: 10,
-      lineHeight: 14,
-      textAlign: 'center',
-      textVerticalAlign: 'middle',
-      width: textWidth,
-      height: textHeight,
-      overflow: 'truncate',
-      lineOverflow: 'truncate',
-      ellipsis: '...',
-    },
-  };
-}
-
-function renderOverlapItem(params, api) {
-  const x1 = api.value(0);
-  const y1 = api.value(1);
-  const x2 = api.value(2);
-  const y2 = api.value(3);
-  const tensorA = api.value(4);
-  const tensorB = api.value(5);
-
-  const p1 = api.coord([x1, y1]);
-  const p2 = api.coord([x2, y2]);
-
-  let width = Math.abs(p2[0] - p1[0]);
-  let height = Math.abs(p2[1] - p1[1]);
-  if (width < 5) {
-    width = 5;
-  }
-  if (height < 5) {
-    height = 5;
-  }
-
-  let overlapRect = echarts.graphic.clipRectByRect(
-    { x: Math.min(p1[0], p2[0]), y: Math.min(p1[1], p2[1]), width, height },
-    params.coordSys,
-  );
-
-  if (!overlapRect) {
-    const grid = params.coordSys;
-    const oLeft = Math.min(p1[0], p2[0]);
-    const oTop = Math.min(p1[1], p2[1]);
-    const oWidth = Math.abs(p2[0] - p1[0]);
-    const oHeight = Math.abs(p2[1] - p1[1]);
-
-    const widthOverlap = Math.min(oLeft + oWidth, grid.x + grid.width) - Math.max(oLeft, grid.x);
-    const heightOverlap = Math.min(oTop + oHeight, grid.y + grid.height) - Math.max(oTop, grid.y);
-    if (widthOverlap > 0 && heightOverlap > 0) {
-      overlapRect = {
-        x: Math.max(oLeft, grid.x),
-        y: Math.max(oTop, grid.y),
-        width: widthOverlap,
-        height: heightOverlap,
-      };
-    }
-  }
-
-  if (overlapRect) {
-    if (overlapRect.width <= 0) {
-      overlapRect.width = 1;
-    }
-    if (overlapRect.height <= 0) {
-      overlapRect.height = 1;
-    }
-
-    let itemOpacity = 1.0;
-    if (searchQuery.value.trim() !== '') {
-      const q = searchQuery.value.trim().toLowerCase();
-      const matchesA = String(tensorA || '')
-        .toLowerCase()
-        .includes(q);
-      const matchesB = String(tensorB || '')
-        .toLowerCase()
-        .includes(q);
-      if (matchesA || matchesB) {
-        itemOpacity = 1.0;
-      } else {
-        itemOpacity = 0.15;
-      }
-    }
-
-    const rOverlap = 0;
-    const stripeFill = patternCache.stripe || patternCache.B;
-
-    return {
-      type: 'group',
-      cursor: 'default',
-      children: [
-        {
-          type: 'rect',
-          cursor: 'default',
-          zIndex: 10,
-          shape: { ...overlapRect, r: rOverlap },
-          style: { fill: 'rgba(231, 67, 74, 0.7)', opacity: 0.4 },
-        },
-        {
-          type: 'rect',
-          cursor: 'default',
-          zIndex: 11,
-          shape: { ...overlapRect, r: rOverlap },
-          style: { fill: stripeFill, opacity: 0.35 },
-        },
-        {
-          type: 'rect',
-          cursor: 'default',
-          zIndex: 12,
-          shape: { ...overlapRect, r: rOverlap },
-          style: { fill: 'transparent', stroke: 'rgba(231, 67, 74, 1)', lineWidth: 1 },
-        },
-      ],
-    };
-  }
-
-  return {
-    type: 'group',
-    children: [],
-  };
-}
+const { renderItem, renderOverlapItem } = createMemoryChartRenderers({
+  getSelectedNode: () => selectedNode.value,
+  getFilteredResultsCount: () => filteredResultsCount.value,
+  getIsDarkTheme: () => isDarkTheme.value,
+  tensorColorMap,
+  patternCache,
+});
 
 let currentLayoutRegions = [];
 let hoveredRegionData = [];
@@ -918,27 +548,76 @@ const getTooltipConfig = () => ({
   formatter: (params) => {
     if (!params.data) {
       return '';
-    };
+    }
     if (params.seriesId === 'region-axis-labels') {
       return hoveredRegionData ? regionHoverTemplate(hoveredRegionData, isDarkTheme.value) : '';
-    };
+    }
+    if (params.seriesId === 'overlaps') {
+      const firstTensor = params.data[4] || 'Anonymous';
+      const secondTensor = params.data[5] || 'Anonymous';
+      return `Conflict<br/>${firstTensor}<br/>${secondTensor}`;
+    }
+    if (params.seriesId !== 'tensors') {
+      return '';
+    }
     return tensorHoverTemplate(params.data, params, isDarkTheme.value);
   },
 });
 const getSeriesConfig = () => [
-  { id: 'tensors', type: 'custom', renderItem, encode: { x: [1, 2], y: [3, 4] }, data: getChartData(), progressive: 0, animation: false, animationDuration: 0, animationDurationUpdate: 0 },
-  { id: 'overlaps', type: 'custom', renderItem: renderOverlapItem, encode: { x: [0, 2], y: [1, 3] }, data: getOverlapData(), zIndex: 10, cursor: 'default' },
-  { id: 'tensor-labels', name: 'tensor-labels', type: 'custom', coordinateSystem: 'cartesian2d', renderItem: renderTensorLabelItem, data: getTensorLabelData(), silent: true, z: 200, zIndex: 200, encode: { x: [1, 2], y: [3, 4] }, animation: false },
-  { id: 'regions', name: 'Regions', type: 'custom', coordinateSystem: 'cartesian2d', renderItem: renderRegionLayerItem, data: getRegionLayerData(), encode: { x: 1, y: 2 }, silent: true, z: 0, clip: false, animation: false },
-  { id: 'region-axis-labels', name: 'region-axis-labels', type: 'custom', coordinateSystem: 'cartesian2d', renderItem: renderRegionAxisLabelLayerItem, data: getRegionLabelLayerData(), encode: { x: 1, y: 2 }, silent: false, z: 200, animation: false },
+  {
+    id: 'tensors',
+    type: 'custom',
+    renderItem,
+    encode: { x: [1, 2], y: [3, 4]},
+    data: getChartData(),
+    progressive: 0,
+    animation: false,
+    animationDuration: 0,
+    animationDurationUpdate: 0,
+  },
+  {
+    id: 'overlaps',
+    type: 'custom',
+    renderItem: renderOverlapItem,
+    encode: { x: [0, 2], y: [1, 3]},
+    data: getOverlapData(),
+    zIndex: 10,
+    cursor: 'default',
+  },
+  {
+    id: 'regions',
+    name: 'Regions',
+    type: 'custom',
+    coordinateSystem: 'cartesian2d',
+    renderItem: renderRegionLayerItem,
+    data: getRegionLayerData(),
+    encode: { x: 1, y: 2 },
+    silent: true,
+    z: 0,
+    clip: false,
+    animation: false,
+  },
+  {
+    id: 'region-axis-labels',
+    name: 'region-axis-labels',
+    type: 'custom',
+    coordinateSystem: 'cartesian2d',
+    renderItem: renderRegionAxisLabelLayerItem,
+    data: getRegionLabelLayerData(),
+    encode: { x: 1, y: 2 },
+    silent: false,
+    z: 200,
+    animation: false,
+  },
 ];
 const getChartOption = () => {
+  const stageStart = startPerformanceStage();
   const rawMemoryData = currentMemoryData || server.GmMemoryVisualData?.value;
   const memoryData = rawMemoryData?.data || rawMemoryData || {};
   const regions = memoryData?.meta?.regions || [];
-  const { regionMap, regions: layoutRegions, yMin, yMax } = MemoryRegionLayoutUtil.createRegionLayout(regions);
+  const { regions: layoutRegions, yMin, yMax } = MemoryRegionLayoutUtil.createRegionLayout(regions);
   currentLayoutRegions = layoutRegions;
-  return {
+  const option = {
     backgroundColor: 'transparent',
     animation: false,
     animationDuration: 0,
@@ -959,8 +638,13 @@ const getChartOption = () => {
     dataZoom: getDataZoomConfig(isDarkTheme.value),
     series: getSeriesConfig(),
   };
+  finishPerformanceStage('chartInputConstruction', stageStart);
+  updatePerformanceFingerprint({
+    seriesRows: option.series.map((series) => ({ id: series.id, rows: series.data.length })),
+  });
+  return option;
 };
-const renderRegionAxisLabelLayerItem = (params, api) => {
+const renderRegionAxisLabelLayerItem = (params, _api) => {
   if (!currentLayoutRegions.length) {
     regionLabelHoverAreas = [];
 
@@ -1117,7 +801,7 @@ const getRegionLayerData = () => {
   return [['regions-layer', xCenter, yCenter]];
 };
 const REGION_BACKGROUND_GAP_PX = 10;
-const renderRegionLayerItem = (params, api) => {
+const renderRegionLayerItem = (params, _api) => {
   if (!currentLayoutRegions.length) {
     return {
       type: 'group',
@@ -1439,7 +1123,7 @@ const getVisibleYAxisExtent = () => {
 };
 
 const postMessage = (message) => {
-  server.showMessage({ paramObj: { text: message } });
+  server.showMessage({ paramObj: { text: message }});
 };
 
 const fixedTimeToX = (time) => {
@@ -1892,17 +1576,33 @@ const attachChartWheelListener = (chartDom) => {
     capture: true,
   });
 };
-let tensorHoverFrame = null;
-let lastHoveredTensorKey = null;
 
-const initChart = () => {
+const initChart = (onRendered) => {
   if (!chartRef.value) {
     return;
   }
   disposeMainChart();
   myChart = echarts.init(chartRef.value);
+  const chart = myChart;
+  let hasReportedRender = false;
+  const reportRendered = () => {
+    if (hasReportedRender || chart !== myChart) {
+      return;
+    }
+    hasReportedRender = true;
+    finishPerformanceStage('echartsRender', renderStartedAt);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        markPerformance('paintedReady');
+        onRendered?.();
+      });
+    });
+  };
 
-  myChart.setOption(getChartOption());
+  myChart.on('finished', reportRendered);
+  const chartOption = getChartOption();
+  const renderStartedAt = startPerformanceStage();
+  chart.setOption(chartOption);
 
   const chartDom = myChart.getDom();
 
@@ -1958,10 +1658,20 @@ const initChart = () => {
   });
 
   myChart.on('click', (params) => {
-    if (params.seriesId !== 'tensors' || !params.data) {
+    const offsetX = Number(params.event?.offsetX);
+    const offsetY = Number(params.event?.offsetY);
+    if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) {
       return;
     }
-    dimDetails(params.data);
+
+    const point = myChart.convertFromPixel({ gridIndex: 0 }, [offsetX, offsetY]);
+    if (!Array.isArray(point) || point.length < 2) {
+      return;
+    }
+
+    const directTensor = params.seriesId === 'tensors' ? params.data?.at?.(17) : null;
+    const overlapBounds = params.seriesId === 'overlaps' ? params.data : null;
+    dimDetails(point, directTensor, overlapBounds);
   });
 
   myChart.getZr().on('mousemove', (event) => {
@@ -1998,20 +1708,59 @@ const resizeChart = () => {
     timelineComponent.value.flagRender();
   }
 };
-let regionAxisLabelFrame = null;
 
-const dimDetails = (params) => {
-  const tensor = params.at(17);
-  if (!tensor || !isValidMemoryTensor(tensor)) {
+const getDetailTensorId = (tensor, sourceIndex) => {
+  const identity = [
+    tensor?.instanceId,
+    tensor?.rawId,
+    getTensorMagicId(tensor),
+    tensor?.base,
+    tensor?.end,
+    tensor?.lifeStart,
+    tensor?.lifeEnd,
+  ]
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .join('|');
+  return `${identity || 'tensor'}|${sourceIndex}`;
+};
+
+const dimDetails = (point, directTensor = null, overlapBounds = null) => {
+  const [x, y] = point.map(Number);
+  let matches = findMemoryTensorsAtPoint(memoryBlocksRaw, x, y);
+  const directEntry = directTensor ? memoryBlocksRaw.find((entry) => entry.rawObj === directTensor) : null;
+
+  if (directEntry && !matches.includes(directEntry)) {
+    matches.unshift(directEntry);
+  }
+
+  if (matches.length < 2 && Array.isArray(overlapBounds)) {
+    const overlapX = (Number(overlapBounds[0]) + Number(overlapBounds[2])) / 2;
+    const overlapY = (Number(overlapBounds[1]) + Number(overlapBounds[3])) / 2;
+    const overlapMatches = findMemoryTensorsAtPoint(memoryBlocksRaw, overlapX, overlapY);
+    if (overlapMatches.length >= 2) {
+      matches = overlapMatches;
+    }
+  }
+
+  if (!matches.length) {
     return;
   }
-  const raw = server.GmMemoryVisualData?.value ?? server.GmMemoryVisualData;
+
+  const raw = currentMemoryData || server.GmMemoryVisualData?.value || server.GmMemoryVisualData;
   const root = raw?.data || raw;
-  const magicId = getTensorMagicId(tensor);
   selectedNode.value = markRaw({
     meta: root?.meta,
-    rawTensors: [tensor],
-    color: tensorColorMap[magicId],
+    tensors: matches.map((entry, index) => {
+      const tensor = entry.rawObj;
+      const magicId = getTensorMagicId(tensor);
+      const sourceIndex = memoryBlocksRaw.indexOf(entry);
+      return {
+        id: getDetailTensorId(tensor, sourceIndex),
+        label: magicId ? `RawTensor${magicId}` : `Tensor ${index + 1}`,
+        rawTensor: tensor,
+        color: tensorColorMap[magicId],
+      };
+    }),
   });
 };
 
@@ -2059,7 +1808,7 @@ const resetFilters = () => {
           endValue: yEnd,
         },
       ],
-      series: [{ data: getChartData() }, { data: getOverlapData() }, { data: getTensorLabelData() }],
+      series: [{ data: getChartData() }, { data: getOverlapData() }],
     });
     myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 0, startValue: yStart, endValue: yEnd });
     myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 1, startValue: xStart, endValue: xEnd });
@@ -2091,10 +1840,6 @@ watch(searchQuery, (value) => {
             id: 'tensors',
             data: getChartData(),
           },
-          {
-            id: 'tensor-labels',
-            data: getTensorLabelData(),
-          },
         ],
       });
 
@@ -2115,19 +1860,50 @@ watch(selectedNode, (newVal) => {
     });
   }
 });
-const tensorColorMap = {};
-
 const handleNewMemoryData = (newValue) => {
-  const data = newValue?.data || newValue;
+  if (newValue?.performance && !window.__gmMemoryPerformance) {
+    window.__gmMemoryPerformance = {
+      fingerprint: {},
+      longTasks: [],
+      marks: {},
+      stages: {},
+    };
+  }
+  markPerformance('dataReceived');
+  const rawData = newValue?.data ?? newValue;
 
-  if (!data) {
+  if (rawData === undefined || rawData === null) {
+    if (hasReceivedMemoryPayload) {
+      return;
+    }
     regionCount.value = 0;
     loading.value = true;
     error.value = false;
     return;
   }
+  hasReceivedMemoryPayload = true;
 
-  if (!validateMemoryData(data)) {
+  let data = rawData;
+  if (typeof rawData === 'string') {
+    const parseStartedAt = startPerformanceStage();
+    try {
+      data = JSON.parse(rawData);
+    } catch {
+      finishPerformanceStage('jsonParse', parseStartedAt);
+      currentMemoryData = null;
+      regionCount.value = 0;
+      loading.value = false;
+      error.value = true;
+      disposeMainChart();
+      return;
+    }
+    finishPerformanceStage('jsonParse', parseStartedAt);
+  }
+
+  const validationStartedAt = startPerformanceStage();
+  const isValid = validateMemoryData(data);
+  finishPerformanceStage('validation', validationStartedAt);
+  if (!isValid) {
     currentMemoryData = null;
     regionCount.value = 0;
     loading.value = false;
@@ -2139,6 +1915,7 @@ const handleNewMemoryData = (newValue) => {
   try {
     currentMemoryData = data;
     const isDark = !!(isDarkTheme && typeof isDarkTheme === 'object' ? isDarkTheme.value : true);
+    const processingStartedAt = startPerformanceStage();
     const { regionLayout } = processIncomingData(
       memoryBlocksRaw,
       overlaps.value,
@@ -2149,9 +1926,18 @@ const handleNewMemoryData = (newValue) => {
       data,
       isDark,
     );
+    finishPerformanceStage('dataProcessing', processingStartedAt);
     regionCount.value = regionLayout.regions.length;
+    const conflictsStartedAt = startPerformanceStage();
     const conflictResult = detectConflicts(memoryBlocksRaw, searchQuery.value);
+    finishPerformanceStage('conflictDetection', conflictsStartedAt);
     overlaps.value = conflictResult.overlaps;
+    updatePerformanceFingerprint({
+      acceptedTensorCount: memoryBlocksRaw.length,
+      conflictCount: conflictResult.overlaps.length,
+      regionCount: regionLayout.regions.length,
+      timelineBounds: { max: viewState.maxTime, min: viewState.minTime },
+    });
     loading.value = false;
     error.value = false;
     nextTick(() => {
@@ -2159,7 +1945,23 @@ const handleNewMemoryData = (newValue) => {
         timelineComponent.value.initCanvases();
         renderTwoTimeline();
       }
-      initChart();
+      initChart(() => {
+        const performanceRun = window.__gmMemoryPerformance;
+        server.reportGmMemoryVisualReady?.({
+          tensorCount: memoryBlocksRaw.length,
+          regionCount: regionLayout.regions.length,
+          hasChart: !!myChart,
+          ...(performanceRun
+            ? {
+                performance: {
+                  fingerprint: performanceRun.fingerprint,
+                  marks: performanceRun.marks,
+                  stages: performanceRun.stages,
+                },
+              }
+            : {}),
+        });
+      });
       resizeChart();
     });
   } catch {

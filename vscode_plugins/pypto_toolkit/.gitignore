@@ -12,6 +12,7 @@ caches/**
 !.vscode/launch.json
 !.vscode/tasks.json
 webview-dist
+.test-webview-dist
 icomoon
 codicon
 .DS_Store

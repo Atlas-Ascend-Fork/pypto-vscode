@@ -2,12 +2,39 @@ import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { IGmMemoryVisualApis, IGmMemoryVisualRefs, IGmMemoryVisualServer } from './view-server-interface';
 import * as vscode from 'vscode';
+import { performance } from 'node:perf_hooks';
+
+export interface GmMemoryVisualTimings {
+  decode: number;
+  fileRead: number;
+  publicationToReady: number;
+  total: number;
+}
+
+export interface GmMemoryVisualReadyEvent {
+  fsPath: string;
+  tensorCount: number;
+  regionCount: number;
+  hasChart: boolean;
+  timings: GmMemoryVisualTimings;
+  webviewPerformance?: {
+    fingerprint: Record<string, unknown>;
+    marks: Record<string, number>;
+    stages: Record<string, number>;
+  };
+}
+
+const gmMemoryVisualReadyEmitter = new vscode.EventEmitter<GmMemoryVisualReadyEvent>();
+export const onDidGmMemoryVisualReady = gmMemoryVisualReadyEmitter.event;
 
 @viewRefs([
   'GmMemoryVisualData',
 ])
 export class GmMemoryVisualServer extends ViewServer<IGmMemoryVisualApis, IGmMemoryVisualRefs> implements IGmMemoryVisualServer {
   query?: any;
+  private loadStartedAt = performance.now();
+  private publicationStartedAt = 0;
+  private loadTimings = { decode: 0, fileRead: 0 };
 
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -23,9 +50,34 @@ export class GmMemoryVisualServer extends ViewServer<IGmMemoryVisualApis, IGmMem
 
   @viewApi()
   public getGmMemoryVisualData = async () => {
+    this.loadStartedAt = performance.now();
     let fsPath = this.query?._path ?? '';
-    const memoryData = await parseJson(fsPath);
-    this.setRef('GmMemoryVisualData', memoryData);
+    const memoryData = await readJsonText(fsPath, this.loadTimings);
+    this.publicationStartedAt = performance.now();
+    this.setRef('GmMemoryVisualData', process.env.GM_MEMORY_BENCHMARK_PATH ? { data: memoryData, performance: true } : memoryData);
+    this.setRef('GmMemoryVisualData', null);
+  };
+
+  @viewApi()
+  public reportGmMemoryVisualReady = async (message: {
+    tensorCount: number;
+    regionCount: number;
+    hasChart: boolean;
+    performance?: GmMemoryVisualReadyEvent['webviewPerformance'];
+  }) => {
+    const readyAt = performance.now();
+    gmMemoryVisualReadyEmitter.fire({
+      fsPath: this.query?._path ?? '',
+      tensorCount: message.tensorCount,
+      regionCount: message.regionCount,
+      hasChart: message.hasChart,
+      timings: {
+        ...this.loadTimings,
+        publicationToReady: readyAt - this.publicationStartedAt,
+        total: readyAt - this.loadStartedAt,
+      },
+      webviewPerformance: message.performance,
+    });
   };
 
   safeParse(str: string) {
@@ -38,19 +90,20 @@ export class GmMemoryVisualServer extends ViewServer<IGmMemoryVisualApis, IGmMem
 }
 
 
-export async function parseJson(fsPath : string):Promise<any>{
+export async function readJsonText(fsPath: string, timings = { decode: 0, fileRead: 0 }): Promise<string | undefined> {
   if (!fsPath) {
       console.error('文件路径为空');
       return;
     }
     try {
       const fileUri = vscode.Uri.file(fsPath);
+      let startedAt = performance.now();
       const fileData = await vscode.workspace.fs.readFile(fileUri);
+      timings.fileRead = performance.now() - startedAt;
+      startedAt = performance.now();
       const fileContent = Buffer.from(fileData).toString('utf8');
-      const jsonData = JSON.parse(fileContent);
-      console.log('成功读取 JSON 数据:', jsonData);
-      // 将解析后的数据返回给调用方
-      return jsonData;
+      timings.decode = performance.now() - startedAt;
+      return fileContent;
     } catch (error: any) {
       console.error('读取或解析 JSON 文件失败:', error);
       vscode.window.showErrorMessage(`读取文件失败: ${error.message}`);

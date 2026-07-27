@@ -12,9 +12,11 @@
 
 import { WebviewApi } from 'vscode-webview';
 import type { ViewQuery } from 'ext:/core/view/view-query';
+import type { GmMemoryPerformanceRun } from './src/components/memoryUsage/memoryPerformance';
 
 declare global {
   interface Window {
+    __gmMemoryPerformance?: GmMemoryPerformanceRun;
     vscode: WebviewApi<unknown>;
     extensionQuery: ViewQuery;
   }

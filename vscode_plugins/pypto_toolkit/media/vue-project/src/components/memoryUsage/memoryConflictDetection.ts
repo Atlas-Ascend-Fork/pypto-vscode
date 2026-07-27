@@ -33,6 +33,22 @@ export function detectConflicts(
   }
 
   const sortedBlocks = [...blocks].sort((a, b) => a.start - b.start);
+  const blocksByRegion = new Map<number, BlockItem[]>();
+  const positionInRegion = new Map<BlockItem, number>();
+
+  for (const block of sortedBlocks) {
+    const regionId = Number(block.regionId);
+    if (!Number.isFinite(regionId)) {
+      continue;
+    }
+    let regionBlocks = blocksByRegion.get(regionId);
+    if (!regionBlocks) {
+      regionBlocks = [];
+      blocksByRegion.set(regionId, regionBlocks);
+    }
+    positionInRegion.set(block, regionBlocks.length);
+    regionBlocks.push(block);
+  }
 
   const conflictMap = new Map();
   const overlapList: ConflictOverlap[] = [];
@@ -45,19 +61,21 @@ export function detectConflicts(
     const aEndAddr = Number(a.endAddr);
     const aName = a.name;
     const aRegionId = Number(a.regionId);
+    const regionBlocks = blocksByRegion.get(aRegionId);
+    const regionPosition = positionInRegion.get(a);
 
-    if (!Number.isFinite(aEnd) || !Number.isFinite(aStartAddr) || !Number.isFinite(aEndAddr)) {
+    const invalidBounds = !Number.isFinite(aEnd) || !Number.isFinite(aStartAddr) || !Number.isFinite(aEndAddr);
+    if (invalidBounds || !regionBlocks || regionPosition === undefined) {
       continue;
     }
 
-    for (let j = i + 1; j < sortedBlocks.length; j++) {
-      const b = sortedBlocks[j];
+    for (let j = regionPosition + 1; j < regionBlocks.length; j++) {
+      const b = regionBlocks[j];
 
       const bStart = Number(b.start);
       const bEnd = Number(b.end);
       const bStartAddr = Number(b.startAddr);
       const bEndAddr = Number(b.endAddr);
-      const bRegionId = Number(b.regionId);
 
       if (!Number.isFinite(bStart)) {
         continue;
@@ -65,10 +83,6 @@ export function detectConflicts(
 
       if (bStart >= aEnd) {
         break;
-      }
-
-      if (aRegionId !== bRegionId) {
-        continue;
       }
 
       if (!Number.isFinite(bEnd) || !Number.isFinite(bStartAddr) || !Number.isFinite(bEndAddr)) {

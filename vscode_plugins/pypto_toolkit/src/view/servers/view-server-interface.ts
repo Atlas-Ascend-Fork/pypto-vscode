@@ -334,13 +334,19 @@ export interface IMemoryTraceViewServer extends ViewServer<IMemoryTraceApis, IMe
   getEventsAtClock: (message: { clock: number }) => Promise<any[]>;
 }
 
-export type IGmMemoryVisualApis = 'getGmMemoryVisualData';
+export type IGmMemoryVisualApis = 'getGmMemoryVisualData' | 'reportGmMemoryVisualReady';
 export type IGmMemoryVisualRefs = {
   GmMemoryVisualData: unknown;
 };
 
 export interface IGmMemoryVisualServer extends ViewServer<IGmMemoryVisualApis, IGmMemoryVisualRefs> {
   getGmMemoryVisualData: () => Promise<any>;
+  reportGmMemoryVisualReady: (message: {
+    tensorCount: number;
+    regionCount: number;
+    hasChart: boolean;
+    performance?: { fingerprint: Record<string, unknown>; marks: Record<string, number>; stages: Record<string, number> };
+  }) => Promise<void>;
 }
 export type IOpCheckApis =
   | 'getCmpDiffListData'

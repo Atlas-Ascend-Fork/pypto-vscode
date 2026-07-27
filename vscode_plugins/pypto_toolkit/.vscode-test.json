@@ -1,0 +1,14 @@
+[
+  {
+    "label": "gm-memory",
+    "files": "dist/test/gm-memory/**/*.test.js",
+    "launchArgs": [
+      "--disable-extensions",
+      "--disable-updates",
+      "--disable-telemetry"
+    ],
+    "mocha": {
+      "timeout": 20000
+    }
+  }
+]

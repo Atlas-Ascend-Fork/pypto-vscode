@@ -625,4 +625,5 @@ export default {
     },
     'swimGraphNodeNotFound': 'Node not found: seqNo={seqNo}, taskId={taskId}',
     'swimGraphUnsupportedType': 'This type of swimlane graph does not support node location',
+    'writesOnly': 'Write only',
 }

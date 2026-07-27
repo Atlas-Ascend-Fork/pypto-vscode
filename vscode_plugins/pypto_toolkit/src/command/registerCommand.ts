@@ -49,7 +49,11 @@ export class RegisterCommand {
           window.showInformationMessage(_('pypto.cannotRender'));
           return;
         }
-        await this.openView('gmMemoryVisual', uri, undefined);
+        const { editorView } = useView();
+        await editorView.open('gmMemoryVisual', vscode.Uri.file(uri.fsPath), {
+          query: {},
+          title: getBasenameWithoutExt(uri.fsPath),
+        });
       }),
       commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
         if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;

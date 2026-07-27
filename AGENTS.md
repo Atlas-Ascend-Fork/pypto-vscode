@@ -125,47 +125,11 @@ python -m simpler_setup.tools.swimlane_converter l2_perf_records.json -o out.jso
 - **Git LFS**: 预发布时自动拉取 (`vscode:prepublish`)
 - **版本检查**: 启动5秒后检测旧版本并自动卸载
 - **缓存清理**: 新版本首次使用清空SQLite缓存
-
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-This project is indexed by GitNexus as **pypto-tools** (12596 symbols, 21149 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
-
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
-
-## Always Do
-
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
-
-## Never Do
-
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/pypto-tools/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/pypto-tools/clusters` | All functional areas |
-| `gitnexus://repo/pypto-tools/processes` | All execution flows |
-| `gitnexus://repo/pypto-tools/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
+- **Webview调试**: 浏览器可见故障使用`webview-debugger`和`pypto-webview-debugging`，通过Vite、Playwright CLI、真实数据和模拟消息桥验证，不启动VS Code
+- **命令接线验证**: 使用`webview-command-contract-testing`检查manifest、命令注册、URI参数和View Server配置；界面行为单独使用浏览器验证
+- **界面验证**: GM内存Webview使用`test/fixtures/memory_usage_visualization.json`进行独立浏览器验证，并记录DOM、Canvas、截图、控制台和网络证据
+- **GM内存快速测试**: 修改`memoryUsage/`后在扩展目录运行`npm run test:memory`
+- **GM内存浏览器测试**: 运行`npx playwright install chromium`后使用`npm run test:gm-e2e`
+- **GM内存扩展测试**: 修改命令、View Server或Webview接线后运行`npm run test:gm-smoke`
+- **完整测试**: 在扩展目录运行`npm test`，依次执行Vitest、Playwright和VS Code Extension Host测试
+- **依赖安装**: 项目不提交npm lockfile，使用`npm install`而不是`npm ci`
