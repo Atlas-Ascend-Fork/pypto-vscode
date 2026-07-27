@@ -38,12 +38,6 @@ export class OpCheckViewServer extends ViewServer<Apis, Refs> implements IOpChec
   }) => {
     const { cmpCsvPath, pageSize = 50, startOffset = 0, res, keyword, readFlag = true } = data;
     const result = await getCmpDiffList(cmpCsvPath, readFlag, pageSize, startOffset, res, keyword);
-    // const testTask = await SQLiteCache.getInstance().accuracyToolTaskCmpGetByFileName(cmpCsvPath, 50, 0);
-    // const testTask = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', true, pageSize, startOffset, res, keyword);
-    // const testError = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', false, pageSize, startOffset, 'FAIL', keyword);
-    // const testSearch = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', false, pageSize, startOffset, 'FAIL', keyword, 'Pass_38_CodegenPreproc', '',);
-    // const testFilter = await getTaskCmpList('c:\\Users\\d30050268\\.pypto\\run\\rundata_20260630000000\\verify\\verify_task_result_cmp~Pass_38_CodegenPreproc~1782818241.csv', 
-    //                                         false, pageSize, startOffset, 'FAIL', keyword, 'Pass_38_CodegenPreproc', '', {rawMagic: '', opMagic: '10002', tensorAddr: ''});
     this.setRef('cmpDiffList', result);
   };
 
