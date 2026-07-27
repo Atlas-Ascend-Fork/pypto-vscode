@@ -28,101 +28,144 @@ export class RegisterCommand {
 
   getCommands() {
     return [
-      commands.registerCommand('PyPTO.readCsv', async () => {
-        const fileUri = await vscode.window.showOpenDialog({
-          canSelectMany: false,
-          filters: { 'CSV Files': ['csv'] },
-          openLabel: '选择 CSV 文件',
-        });
-        const filePath = fileUri?.[0].fsPath ?? undefined;
-        if (!filePath || filePath.length === 0) return;
-        const type = 4;
-        await readCsv(filePath, type);
-        getCsvData(filePath, type);
-      }),
-      commands.registerCommand('PyPTO.getCsvData', async () => {
-        getCsvData('');
-      }),
-      commands.registerCommand('PyPTO.Open.OpenGmMemoryVisualization', async (uri: Uri | undefined) => {
-        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri || path.basename(uri.fsPath) !== 'memory_usage_visualization.json') {
-          window.showInformationMessage(_('pypto.cannotRender'));
-          return;
-        }
-        const { editorView } = useView();
-        await editorView.open('gmMemoryVisual', vscode.Uri.file(uri.fsPath), {
-          query: {},
-          title: getBasenameWithoutExt(uri.fsPath),
-        });
-      }),
-      commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
-        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri) {
-          window.showErrorMessage(_('pypto.entry.fileTooLarge'));
-          return;
-        }
-        await this.openView('computeGraph', uri, undefined);
-      }),
-      commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string, pathFunchash?: string) => {
-        if (!uri) return;
-        await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFunchash);
-      }),
-      commands.registerCommand('PyPTO.Open.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
-        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri) return;
-        await this.openView('diffGraph', uri);
-      }),
-      commands.registerCommand(
-        'PyPTO.Open.OpenComGraphForNodeSearch',
-        async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
-          if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-          if (!uri) return;
-          nodeMagic ??= '-1';
-          await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
-        },
-      ),
-
-      commands.registerCommand('PyPTO.Open.OpenLinkageMode', async (uri: Uri | undefined) => {
-        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
-        if (!uri) return;
-        const { editorView } = useView();
-        await editorView.open('threeColumnGraph', uri);
-      }),
-      commands.registerCommand('PyPTO.Open.OpenSwimGraph', async (swimPath: string, seqNo: number, taskId: number) => {
-        if (!swimPath) return;
-        const uri = vscode.Uri.file(swimPath);
-        const { editorView } = useView();
-        let existingServer: any = null;
-        for (const [, server] of editorView.openServer) {
-          if (server.swimDataPath && server.swimDataPath.toLowerCase() === swimPath.toLowerCase() && typeof server.locateNode === 'function') {
-            existingServer = server;
-            break;
-          }
-        }
-        if (existingServer) {
-          existingServer.locateNode(seqNo, taskId);
-          return;
-        }
-        SwimGraphMsgHandler.setEventToLocate(seqNo, taskId);
-        await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(swimPath) });
-        const serverKey = `${swimPath}__`;
-        const server = editorView.openServer.get(serverKey);
-        if (server && typeof server.locateNode === 'function') {
-          SwimGraphMsgHandler.consumeEventToLocate();
-          server.locateNode(seqNo, taskId);
-        }
-      }),
-      commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
-        this.closeAllToolPages();
-      }),
-      commands.registerCommand('PyPto.Open.postLayoutData', (id: string, data: any) => {
-        const [serverId, infoStr] = id.split('&&');
-        const server = this.editorView.editorView.openServer.get(serverId);
-        if (server) {
-          server.renderLayout(data, infoStr);
-        }
-      }),
+      this.registerReadCsv(),
+      this.registerGetCsvData(),
+      this.registerOpenGmMemoryVisualization(),
+      this.registerOpenRenderGraphForCurrent(),
+      this.registerOpenComGraphByFunchash(),
+      this.registerOpenDiffComGraphForCurrent(),
+      this.registerOpenComGraphForNodeSearch(),
+      this.registerOpenLinkageMode(),
+      this.registerOpenSwimGraph(),
+      this.registerCloseAllToolPages(),
+      this.registerPostLayoutData(),
     ];
+  }
+
+  private registerReadCsv() {
+    return commands.registerCommand('PyPTO.readCsv', async () => {
+      const fileUri = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        filters: { 'CSV Files': ['csv'] },
+        openLabel: '选择 CSV 文件',
+      });
+      const filePath = fileUri?.[0].fsPath ?? undefined;
+      if (!filePath || filePath.length === 0) return;
+      const type = 4;
+      await readCsv(filePath, type);
+      getCsvData(filePath, type);
+    });
+  }
+
+  private registerGetCsvData() {
+    return commands.registerCommand('PyPTO.getCsvData', async () => {
+      getCsvData('');
+    });
+  }
+
+  private registerOpenGmMemoryVisualization() {
+    return commands.registerCommand('PyPTO.Open.OpenGmMemoryVisualization', async (uri: Uri | undefined) => {
+      if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      if (!uri || path.basename(uri.fsPath) !== 'memory_usage_visualization.json') {
+        window.showInformationMessage(_('pypto.cannotRender'));
+        return;
+      }
+      const { editorView } = useView();
+      await editorView.open('gmMemoryVisual', vscode.Uri.file(uri.fsPath), {
+        query: {},
+        title: getBasenameWithoutExt(uri.fsPath),
+      });
+    });
+  }
+
+  private registerOpenRenderGraphForCurrent() {
+    return commands.registerCommand('PyPTO.Open.OpenRenderGraphForCurrent', async (uri: Uri | undefined) => {
+      if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      if (!uri) {
+        window.showErrorMessage(_('pypto.entry.fileTooLarge'));
+        return;
+      }
+      await this.openView('computeGraph', uri, undefined);
+    });
+  }
+
+  private registerOpenComGraphByFunchash() {
+    return commands.registerCommand('PyPTO.Open.OpenComGraphByFunchash', async (uri: Uri | undefined, funcHash: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string, pathFunchash?: string) => {
+      if (!uri) return;
+      await this.openView('computeGraph', uri, funcHash, undefined, undefined, fileType, cmpCsvPath, loopInfo, rootFuncHash, pathFunchash);
+    });
+  }
+
+  private registerOpenDiffComGraphForCurrent() {
+    return commands.registerCommand('PyPTO.Open.OpenDiffComGraphForCurrent', async (uri: Uri | undefined) => {
+      if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      if (!uri) return;
+      await this.openView('diffGraph', uri);
+    });
+  }
+
+  private registerOpenComGraphForNodeSearch() {
+    return commands.registerCommand(
+      'PyPTO.Open.OpenComGraphForNodeSearch',
+      async (uri: Uri | undefined, funcHash: string | undefined, nodeMagic: string) => {
+        if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+        if (!uri) return;
+        nodeMagic ??= '-1';
+        await this.openView('computeGraph', uri, typeof funcHash === 'string' ? funcHash : undefined, true, nodeMagic);
+      },
+    );
+  }
+
+  private registerOpenLinkageMode() {
+    return commands.registerCommand('PyPTO.Open.OpenLinkageMode', async (uri: Uri | undefined) => {
+      if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      if (!uri) return;
+      const { editorView } = useView();
+      await editorView.open('threeColumnGraph', uri);
+    });
+  }
+
+  private registerOpenSwimGraph() {
+    return commands.registerCommand('PyPTO.Open.OpenSwimGraph', async (swimPath: string, seqNo: number, taskId: number) => {
+      if (!swimPath) return;
+      const uri = vscode.Uri.file(swimPath);
+      const { editorView } = useView();
+      let existingServer: any = null;
+      for (const [, server] of editorView.openServer) {
+        if (server.swimDataPath && server.swimDataPath.toLowerCase() === swimPath.toLowerCase() && typeof server.locateNode === 'function') {
+          existingServer = server;
+          break;
+        }
+      }
+      if (existingServer) {
+        existingServer.locateNode(seqNo, taskId);
+        return;
+      }
+      SwimGraphMsgHandler.setEventToLocate(seqNo, taskId);
+      await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(swimPath) });
+      const serverKey = `${swimPath}__`;
+      const server = editorView.openServer.get(serverKey);
+      if (server && typeof server.locateNode === 'function') {
+        SwimGraphMsgHandler.consumeEventToLocate();
+        server.locateNode(seqNo, taskId);
+      }
+    });
+  }
+
+  private registerCloseAllToolPages() {
+    return commands.registerCommand('PyPTO.Open.CloseAllToolPages', () => {
+      this.closeAllToolPages();
+    });
+  }
+
+  private registerPostLayoutData() {
+    return commands.registerCommand('PyPto.Open.postLayoutData', (id: string, data: any) => {
+      const [serverId, infoStr] = id.split('&&');
+      const server = this.editorView.editorView.openServer.get(serverId);
+      if (server) {
+        server.renderLayout(data, infoStr);
+      }
+    });
   }
 
   async openView(routeName: string, uri: Uri, funcHash?: string, isSearch?: boolean, nodeMagic?: string, fileType?: string, cmpCsvPath?: string, loopInfo?: string, rootFuncHash?: string, pathFunchash?: string) {

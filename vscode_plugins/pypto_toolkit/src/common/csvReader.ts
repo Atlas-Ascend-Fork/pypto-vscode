@@ -41,206 +41,15 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
     for (const row of records) {
       // 根据 type 参数决定数据映射和存储逻辑
       if (type === 1) {
-        // --- Type 1: 原始 AccuracyToolData 逻辑 ---
-        const dataToSave: AccuracyToolData = {
-          filePath: oriFilePath,
-          no: row['NO.'],
-          phaseName: row['B>PHASE_NAME'],
-          funcMagicName: row['PATH_FUNC:func_magicname'],
-          rawMagic: row['B>:rawmagic'],
-          result: row['AB>RESULT'],
-          dataType: row[':datatype'],
-          validShape: row[':validshape'],
-          loopInfo: row['LOOP_INFO'],
-          rtolAtol: row['AB>rtol/atol'],
-          cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
-          cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
-          mre: row['AB>mre'],
-          mreTop1permil: row['AB>mre_top1permil'],
-          mreTop8: row['AB>mre_top8'],
-          mae: row['AB>mae'],
-          maeTop8: row['AB>mae_top8'],
-          maeTop1permil: row['AB>mae_top1permil'],
-          aMax: row['A>max'],
-          aMin: row['A>min'],
-          aAvg: row['A>avg'],
-          aAavg: row['A>aavg'],
-          aZero: row['A>zero'],
-          aInfnan: row['A>infnan'],
-          bMax: row['B>max'],
-          bMin: row['B>min'],
-          bAvg: row['B>avg'],
-          bAavg: row['B>aavg'],
-          bZero: row['B>zero'],
-          bInfnan: row['B>infnan'],
-          bTimestamp: row['B>TIMESTAMP'],
-        };
-        await SQLiteCache.getInstance().accuracyToolSet(dataToSave);
+        await saveAccuracyToolData(row, oriFilePath);
       } else if (type === 2) {
-        // --- Type 2: AccuracyToolCmpData 逻辑 ---
-        let cmpData: AccuracyToolCmpData = {
-          filePath: oriFilePath,
-          no: row['NO.'],
-          pathFuncMagicName: row['PATH_FUNC:func_magicname '],
-
-          loopInfo: row['LOOP_INFO'],
-          symbol: row[':symbol'],
-          validShape: row[':validshape'],
-          dataType: row[':datatype'],
-          opAttrSymOffset: row['OP_ATTR_SYM_OFFSET'],
-          // B组信息
-          bPhaseName: row['B>PHASE_NAME'],
-          bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
-          bFuncMagic: row['B>FUNC:funcmagic'],
-          bFuncHash: row['B>FUNC:hash']?.endsWith("'") ? row['B>FUNC:hash'].slice(0, -1) : row['B>FUNC:hash'],
-          bRootFuncHash: row['B>ROOT_FUNC:hash']?.endsWith("'") ? row['B>ROOT_FUNC:hash'].slice(0, -1) : row['B>ROOT_FUNC:hash'],
-          bOpMagic: row['B>:opmagic'],
-          bOpcode: row['B>:opcode'],
-          bShape: row['B>:shape'],
-          bRawShape: row['B>:rawshape'],
-          bFormat: row['B>:format'],
-          bFileName: row['B>FILENAME'],
-
-          // A组信息
-          aPhaseName: row['A>PHASE_NAME'],
-          aFuncHash: row['A>FUNC:hash']?.endsWith("'") ? row['A>FUNC:hash'].slice(0, -1) : row['A>FUNC:hash'],
-          aRootFuncHash: row['A>ROOT_FUNC:hash']?.endsWith("'") ? row['A>ROOT_FUNC:hash'].slice(0, -1) : row['A>ROOT_FUNC:hash'],
-          aFuncMagic: row['A>FUNC:funcmagic'],
-          aOpMagic: row['A>:opmagic'],
-          aOpcode: row['A>:opcode'],
-          aShape: row['A>:shape'],
-          aRawShape: row['A>:rawshape'],
-          aFormat: row['A>:format'],
-          aFileName: row['A>FILENAME'],
-
-          abResult: row['AB>RESULT'],
-          abRtolAtol: row['AB>rtol/atol'],
-          abFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
-          abTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
-          abMre: row['AB>mre'],
-          abMreTop1permil: row['AB>mre_top1permil'],
-          abMreTop8: row['AB>mre_top8'],
-          abMae: row['AB>mae'],
-          abMaeTop8: row['AB>mae_top8'],
-          abMaeTop1permil: row['AB>mae_top1permil'],
-          // ---- A端统计字段 ----
-          aMax: row['A>max'],
-          aMin: row['A>min'],
-          aAvg: row['A>avg'],
-          aAavg: row['A>aavg'],
-          aZero: row['A>zero'],
-          aInfnan: row['A>infnan'],
-          // ---- B端统计字段 ----
-          bMax: row['B>max'],
-          bMin: row['B>min'],
-          bAvg: row['B>avg'],
-          bAavg: row['B>aavg'],
-          bZero: row['B>zero'],
-          bInfnan: row['B>infnan'],
-        };
-
-        await SQLiteCache.getInstance().accuracyToolCmpSet(cmpData);
+        await saveAccuracyToolCmpData(row, oriFilePath);
       } else if (type === 3) {
-        // --- Type 3: AccuracyToolCmpDetailData 逻辑 ---
-        const detailData: AccuracyToolCmpDetailData = {
-          filePath: oriFilePath,
-          group: row['GROUP'],
-          index: row['INDEX'],
-          offset: row['OFFSET'],
-          offsetRaw: row['OFFSET_RAW'],
-          aData: row['A>data'],
-          bData: row['B>data'],
-          abAe: row['AB>ae'],
-          abRe: row['AB>re'],
-          abTol: row['AB>tol'],
-        };
-        await SQLiteCache.getInstance().accuracyToolCmpDetailSet(detailData);
+        await saveAccuracyToolCmpDetailData(row, oriFilePath);
       } else if (type === 4) {
-        const dataToSave: AccuracyToolTaskCmpData = {
-          sourceFileName: oriFilePath,
-          no: row['NO.'],
-          phaseName: row['A>PHASE_NAME'],
-          ioFlag: row['IO_FLAG'],
-          loopInfo: row['LOOP_INFO'],
-          rootCallOpmagic: row['ROOT_CALL:opmagic'],
-          rootCallRawmagic: row['ROOT_CALL:rawmagic'],
-          fileName: row['B>FILENAME'],
-
-          aPhaseName: row['A>PHASE_NAME'],
-          aDatatype: row['A>:datatype'],
-          aFormat: row['A>:format'],
-          aMagic: row['A>:magic'],
-          aOpcode: row['A>:opcode'],
-          aOpMagic: row['A>:opmagic'],
-          aRawMagic: row['A>:rawmagic'],
-          aSymbol: row['A>:symbol'],
-          aValidshape: row['A>:validshape'],
-          aDynvalidshape: row['A>EVAL:dynvalidshape'],
-          aOpAttrAtomic: row['A>OP_ATTR_ATOMIC'],
-          aOpAttrSymOfst: row['A>OP_ATTR_SYM_OFFSET'],
-          aFuncHash: row['FUNC:hash']?.endsWith("'") ? row['FUNC:hash'].slice(0, -1) : row['FUNC:hash'],
-          aPathHash: row['PATH_FUNC:hash']?.endsWith("'") ? row['PATH_FUNC:hash'].slice(0, -1) : row['PATH_FUNC:hash'],
-          aRootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
-
-          bDataType: row['B>:datatype'],
-          bRawShape: row['B>:rawshape'],
-          bValidShape: row['B>:validshape'],
-          bBlockIdx: row['B>blockIdx'],
-          bOpAttrSymOfst: row['B>OP_ATTR_SYM_OFFSET'],
-          bSeqNo: row['B>seqNo'],
-          bTaskId: row['B>taskId'],
-          bTensorAddr: row['B>tensorAddr']?.endsWith("'") ? row['B>tensorAddr'].slice(0, -1) : row['B>tensorAddr'],
-          bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
-          bExecTimestamp: row['B>EXEC_TIMESTAMP']?.endsWith("'") ? row['B>EXEC_TIMESTAMP'].slice(0, -1) : row['B>EXEC_TIMESTAMP'],
-
-          result: row['AB>RESULT'],
-          rtolAtol: row['AB>rtol/atol'],
-          cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
-          cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
-
-          mae: row['AB>mae'],
-          maeTop8: row['AB>mae_top8'],
-          maeTop1permil: row['AB>mae_top1permil'],
-          mre: row['AB>mre'],
-          mreTop8: row['AB>mre_top8'],
-          mreTop1permil: row['AB>mre_top1permil'],
-
-          aMax: row['A>max'],
-          aMin: row['A>min'],
-          aAvg: row['A>avg'],
-          aAavg: row['A>aavg'],
-          aZero: row['A>zero'],
-          aInfnan: row['A>infnan'],
-
-          bMax: row['B>max'],
-          bMin: row['B>min'],
-          bAvg: row['B>avg'],
-          bAavg: row['B>aavg'],
-          bZero: row['B>zero'],
-          bInfnan: row['B>infnan'],
-        };
-
-        // 保存到数据库
-        await SQLiteCache.getInstance().accuracyToolTaskCmpSet(dataToSave);
+        await saveAccuracyToolTaskCmpData(row, oriFilePath);
       } else if (type === 5) {
-        const cleanRow: Record<string, any> = {};
-        for (const [key, value] of Object.entries(row)) {
-          cleanRow[key.trim()] = value;
-        }
-        const dataToSave: AccuracyToolTaskDetailData = {
-          sourceFileName: oriFilePath,
-
-          group: cleanRow['GROUP'] ?? '',
-          index: cleanRow['INDEX'] ?? '',
-          offset: cleanRow['OFFSET'] ?? '',
-          offsetRaw: cleanRow['OFFSET_RAW'] ?? '',
-          aData: cleanRow['A>data'] ?? '',
-          bData: cleanRow['B>data'] ?? '',
-          ae: cleanRow['AB>ae'] ?? '',
-          re: cleanRow['AB>re'] ?? '',
-          tol: cleanRow['AB>tol'] ?? '',
-        };
-        await SQLiteCache.getInstance().accuracyToolTaskDetailSet(dataToSave);
+        await saveAccuracyToolTaskDetailData(row, oriFilePath);
       } else {
         vscode.window.showWarningMessage(t('pypto.unsupportedCsvType', { type }));
         return false;
@@ -256,6 +65,217 @@ export async function readCsv(oriFilePath: string, type: number = 1) {
     vscode.window.showInformationMessage(t('pypto.accuracyCsvParseFail', { err }));
     return false;
   }
+}
+
+async function saveAccuracyToolData(row: any, oriFilePath: string) {
+  // --- Type 1: 原始 AccuracyToolData 逻辑 ---
+  const dataToSave: AccuracyToolData = {
+    filePath: oriFilePath,
+    no: row['NO.'],
+    phaseName: row['B>PHASE_NAME'],
+    funcMagicName: row['PATH_FUNC:func_magicname'],
+    rawMagic: row['B>:rawmagic'],
+    result: row['AB>RESULT'],
+    dataType: row[':datatype'],
+    validShape: row[':validshape'],
+    loopInfo: row['LOOP_INFO'],
+    rtolAtol: row['AB>rtol/atol'],
+    cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
+    cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
+    mre: row['AB>mre'],
+    mreTop1permil: row['AB>mre_top1permil'],
+    mreTop8: row['AB>mre_top8'],
+    mae: row['AB>mae'],
+    maeTop8: row['AB>mae_top8'],
+    maeTop1permil: row['AB>mae_top1permil'],
+    aMax: row['A>max'],
+    aMin: row['A>min'],
+    aAvg: row['A>avg'],
+    aAavg: row['A>aavg'],
+    aZero: row['A>zero'],
+    aInfnan: row['A>infnan'],
+    bMax: row['B>max'],
+    bMin: row['B>min'],
+    bAvg: row['B>avg'],
+    bAavg: row['B>aavg'],
+    bZero: row['B>zero'],
+    bInfnan: row['B>infnan'],
+    bTimestamp: row['B>TIMESTAMP'],
+  };
+  await SQLiteCache.getInstance().accuracyToolSet(dataToSave);
+}
+
+async function saveAccuracyToolCmpData(row: any, oriFilePath: string) {
+  // --- Type 2: AccuracyToolCmpData 逻辑 ---
+  let cmpData: AccuracyToolCmpData = {
+    filePath: oriFilePath,
+    no: row['NO.'],
+    pathFuncMagicName: row['PATH_FUNC:func_magicname '],
+
+    loopInfo: row['LOOP_INFO'],
+    symbol: row[':symbol'],
+    validShape: row[':validshape'],
+    dataType: row[':datatype'],
+    opAttrSymOffset: row['OP_ATTR_SYM_OFFSET'],
+    // B组信息
+    bPhaseName: row['B>PHASE_NAME'],
+    bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
+    bFuncMagic: row['B>FUNC:funcmagic'],
+    bFuncHash: row['B>FUNC:hash']?.endsWith("'") ? row['B>FUNC:hash'].slice(0, -1) : row['B>FUNC:hash'],
+    bRootFuncHash: row['B>ROOT_FUNC:hash']?.endsWith("'") ? row['B>ROOT_FUNC:hash'].slice(0, -1) : row['B>ROOT_FUNC:hash'],
+    bOpMagic: row['B>:opmagic'],
+    bOpcode: row['B>:opcode'],
+    bShape: row['B>:shape'],
+    bRawShape: row['B>:rawshape'],
+    bFormat: row['B>:format'],
+    bFileName: row['B>FILENAME'],
+
+    // A组信息
+    aPhaseName: row['A>PHASE_NAME'],
+    aFuncHash: row['A>FUNC:hash']?.endsWith("'") ? row['A>FUNC:hash'].slice(0, -1) : row['A>FUNC:hash'],
+    aRootFuncHash: row['A>ROOT_FUNC:hash']?.endsWith("'") ? row['A>ROOT_FUNC:hash'].slice(0, -1) : row['A>ROOT_FUNC:hash'],
+    aFuncMagic: row['A>FUNC:funcmagic'],
+    aOpMagic: row['A>:opmagic'],
+    aOpcode: row['A>:opcode'],
+    aShape: row['A>:shape'],
+    aRawShape: row['A>:rawshape'],
+    aFormat: row['A>:format'],
+    aFileName: row['A>FILENAME'],
+
+    abResult: row['AB>RESULT'],
+    abRtolAtol: row['AB>rtol/atol'],
+    abFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
+    abTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
+    abMre: row['AB>mre'],
+    abMreTop1permil: row['AB>mre_top1permil'],
+    abMreTop8: row['AB>mre_top8'],
+    abMae: row['AB>mae'],
+    abMaeTop8: row['AB>mae_top8'],
+    abMaeTop1permil: row['AB>mae_top1permil'],
+    // ---- A端统计字段 ----
+    aMax: row['A>max'],
+    aMin: row['A>min'],
+    aAvg: row['A>avg'],
+    aAavg: row['A>aavg'],
+    aZero: row['A>zero'],
+    aInfnan: row['A>infnan'],
+    // ---- B端统计字段 ----
+    bMax: row['B>max'],
+    bMin: row['B>min'],
+    bAvg: row['B>avg'],
+    bAavg: row['B>aavg'],
+    bZero: row['B>zero'],
+    bInfnan: row['B>infnan'],
+  };
+
+  await SQLiteCache.getInstance().accuracyToolCmpSet(cmpData);
+}
+
+async function saveAccuracyToolCmpDetailData(row: any, oriFilePath: string) {
+  // --- Type 3: AccuracyToolCmpDetailData 逻辑 ---
+  const detailData: AccuracyToolCmpDetailData = {
+    filePath: oriFilePath,
+    group: row['GROUP'],
+    index: row['INDEX'],
+    offset: row['OFFSET'],
+    offsetRaw: row['OFFSET_RAW'],
+    aData: row['A>data'],
+    bData: row['B>data'],
+    abAe: row['AB>ae'],
+    abRe: row['AB>re'],
+    abTol: row['AB>tol'],
+  };
+  await SQLiteCache.getInstance().accuracyToolCmpDetailSet(detailData);
+}
+
+async function saveAccuracyToolTaskCmpData(row: any, oriFilePath: string) {
+  const dataToSave: AccuracyToolTaskCmpData = {
+    sourceFileName: oriFilePath,
+    no: row['NO.'],
+    phaseName: row['A>PHASE_NAME'],
+    ioFlag: row['IO_FLAG'],
+    loopInfo: row['LOOP_INFO'],
+    rootCallOpmagic: row['ROOT_CALL:opmagic'],
+    rootCallRawmagic: row['ROOT_CALL:rawmagic'],
+    fileName: row['B>FILENAME'],
+
+    aPhaseName: row['A>PHASE_NAME'],
+    aDatatype: row['A>:datatype'],
+    aFormat: row['A>:format'],
+    aMagic: row['A>:magic'],
+    aOpcode: row['A>:opcode'],
+    aOpMagic: row['A>:opmagic'],
+    aRawMagic: row['A>:rawmagic'],
+    aSymbol: row['A>:symbol'],
+    aValidshape: row['A>:validshape'],
+    aDynvalidshape: row['A>EVAL:dynvalidshape'],
+    aOpAttrAtomic: row['A>OP_ATTR_ATOMIC'],
+    aOpAttrSymOfst: row['A>OP_ATTR_SYM_OFFSET'],
+    aFuncHash: row['FUNC:hash']?.endsWith("'") ? row['FUNC:hash'].slice(0, -1) : row['FUNC:hash'],
+    aPathHash: row['PATH_FUNC:hash']?.endsWith("'") ? row['PATH_FUNC:hash'].slice(0, -1) : row['PATH_FUNC:hash'],
+    aRootFuncHash: row['ROOT_FUNC:hash']?.endsWith("'") ? row['ROOT_FUNC:hash'].slice(0, -1) : row['ROOT_FUNC:hash'],
+
+    bDataType: row['B>:datatype'],
+    bRawShape: row['B>:rawshape'],
+    bValidShape: row['B>:validshape'],
+    bBlockIdx: row['B>blockIdx'],
+    bOpAttrSymOfst: row['B>OP_ATTR_SYM_OFFSET'],
+    bSeqNo: row['B>seqNo'],
+    bTaskId: row['B>taskId'],
+    bTensorAddr: row['B>tensorAddr']?.endsWith("'") ? row['B>tensorAddr'].slice(0, -1) : row['B>tensorAddr'],
+    bTimestamp: row['B>TIMESTAMP']?.endsWith("'") ? row['B>TIMESTAMP'].slice(0, -1) : row['B>TIMESTAMP'],
+    bExecTimestamp: row['B>EXEC_TIMESTAMP']?.endsWith("'") ? row['B>EXEC_TIMESTAMP'].slice(0, -1) : row['B>EXEC_TIMESTAMP'],
+
+    result: row['AB>RESULT'],
+    rtolAtol: row['AB>rtol/atol'],
+    cntFailWarnTol: row['AB>fail_cnt/warn_cnt/tol_cnt'],
+    cntTotalZeroInfnanCnt: row['AB>total_cnt/zero_cnt/infnan_cnt'],
+
+    mae: row['AB>mae'],
+    maeTop8: row['AB>mae_top8'],
+    maeTop1permil: row['AB>mae_top1permil'],
+    mre: row['AB>mre'],
+    mreTop8: row['AB>mre_top8'],
+    mreTop1permil: row['AB>mre_top1permil'],
+
+    aMax: row['A>max'],
+    aMin: row['A>min'],
+    aAvg: row['A>avg'],
+    aAavg: row['A>aavg'],
+    aZero: row['A>zero'],
+    aInfnan: row['A>infnan'],
+
+    bMax: row['B>max'],
+    bMin: row['B>min'],
+    bAvg: row['B>avg'],
+    bAavg: row['B>aavg'],
+    bZero: row['B>zero'],
+    bInfnan: row['B>infnan'],
+  };
+
+  // 保存到数据库
+  await SQLiteCache.getInstance().accuracyToolTaskCmpSet(dataToSave);
+}
+
+async function saveAccuracyToolTaskDetailData(row: any, oriFilePath: string) {
+  const cleanRow: Record<string, any> = {};
+  for (const [key, value] of Object.entries(row)) {
+    cleanRow[key.trim()] = value;
+  }
+  const dataToSave: AccuracyToolTaskDetailData = {
+    sourceFileName: oriFilePath,
+
+    group: cleanRow['GROUP'] ?? '',
+    index: cleanRow['INDEX'] ?? '',
+    offset: cleanRow['OFFSET'] ?? '',
+    offsetRaw: cleanRow['OFFSET_RAW'] ?? '',
+    aData: cleanRow['A>data'] ?? '',
+    bData: cleanRow['B>data'] ?? '',
+    ae: cleanRow['AB>ae'] ?? '',
+    re: cleanRow['AB>re'] ?? '',
+    tol: cleanRow['AB>tol'] ?? '',
+  };
+  await SQLiteCache.getInstance().accuracyToolTaskDetailSet(dataToSave);
 }
 export async function getCsvData(oriFilePath: string, type: number = 1) {
   if (type === 1) {
