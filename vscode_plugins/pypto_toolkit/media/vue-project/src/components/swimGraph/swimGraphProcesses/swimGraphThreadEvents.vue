@@ -70,7 +70,8 @@ import { inject, onMounted, onUnmounted, watch, ref, provide, reactive } from 'v
 import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, getVisibleYRange, isThreadInViewport, eventTextSize, nodeSpaceMin, clearWholeProcess,
   renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodesWithControl,
-  findVisibleEventRange
+  findVisibleEventRange,
+  FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
@@ -1348,7 +1349,7 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   // 使用可选链和空值合并确保安全
-  if (shouldUpdateOutline(color)) {
+  if (hoveredEvent.threadName && !hoveredEvent.threadName.includes(FAKE_CORE_KEYWORD) && shouldUpdateOutline(color)) {
     handleOutline(color, false);
     sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
   }
@@ -3766,7 +3767,7 @@ const setSelectedData = (boundRange, label) => {
       events.forEach((event, eventKey) => {
         const { args } = event;
         const { color } = args;
-        if (color === label) {
+        if (color === label && event.threadName && !event.threadName.includes(FAKE_CORE_KEYWORD)) {
           const { x, y, width, height } = event.renderInfo;
           boundRange.minX = Math.min(boundRange.minX, x);
           boundRange.maxX = Math.max(boundRange.maxX, x + width);
