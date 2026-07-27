@@ -20,20 +20,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const tableData = ref([])
 const searchKey = ref('')
-
-const columnData = ref([
-    { width: 60, field: 'no', header: 'NO.' },
-    { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
-    { width: 100, field: 'rawMagic', header: 'rawmagicID', showOverflowTooltip: true },
-    { width: 100, field: 'aMagic', header: 'Magic', showOverflowTooltip: true },
-    { width: 90, field: 'dataType', header: 'datatype', showOverflowTooltip: true },
-    { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth:100, showOverflowTooltip: true},
-]);
 
 const props = defineProps({
     data: {
@@ -75,29 +66,39 @@ watch(
         emits('inputSearch', val)
     }
 )
-watch(
-    () => props.isOpCheck,
-    (isOpCheck) => {
-        if (isOpCheck.startsWith('op')) {
-            // op 类型：修改 rawmagicID 列为 opMagic
-            columnData.value[2].header = 'opMagic';
-            columnData.value[2].field = isOpCheck === 'op_A' ? 'aOpMagic' : 'bOpMagic';
-        } else if (isOpCheck.startsWith('task')) {
-            // task 类型：修改所有列的字段映射
-            columnData.value[1].field = 'taskLoopVarInfos';
-            columnData.value[2].header = 'opMagic';
-            columnData.value[2].field = 'aOpMagic';
-            columnData.value[3].header = 'Magic';
-            columnData.value[3].field = 'aMagic';
-            columnData.value[4].field = 'taskDataType';
-            columnData.value[5].field = 'taskValidshape';
-        } else {
-            columnData.value[2].header = 'rawmagicID';
-            columnData.value[2].field = 'rawMagic';
-        }
-    },
-    { immediate: true }
-)
+// 列配置：根据 isOpCheck 动态生成，确保 Magic 列仅在 task 类型时出现
+const columnData = computed(() => {
+    const isOpCheck = props.isOpCheck;
+
+    if (isOpCheck.startsWith('task')) {
+        return [
+            { width: 60, field: 'no', header: 'NO.' },
+            { width: 100, field: 'taskLoopVarInfos', header: 'LOOP_INFO', showOverflowTooltip: true },
+            { width: 100, field: 'aOpMagic', header: 'opMagic', showOverflowTooltip: true },
+            { width: 100, field: 'aMagic', header: 'Magic', showOverflowTooltip: true },
+            { width: 90, field: 'taskDataType', header: 'datatype', showOverflowTooltip: true },
+            { width: 100, field: 'taskValidshape', header: 'validshape', align: 'right', minWidth: 100, showOverflowTooltip: true },
+        ];
+    }
+
+    if (isOpCheck.startsWith('op')) {
+        return [
+            { width: 60, field: 'no', header: 'NO.' },
+            { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
+            { width: 100, field: isOpCheck === 'op_A' ? 'aOpMagic' : 'bOpMagic', header: 'opMagic', showOverflowTooltip: true },
+            { width: 90, field: 'dataType', header: 'datatype', showOverflowTooltip: true },
+            { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth: 100, showOverflowTooltip: true },
+        ];
+    }
+
+    return [
+        { width: 60, field: 'no', header: 'NO.' },
+        { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
+        { width: 100, field: 'rawMagic', header: 'rawmagicID', showOverflowTooltip: true },
+        { width: 90, field: 'dataType', header: 'datatype', showOverflowTooltip: true },
+        { width: 100, field: 'validShape', header: 'validshape', align: 'right', minWidth: 100, showOverflowTooltip: true },
+    ];
+});
 </script>
 
 <style lang="scss" scoped>

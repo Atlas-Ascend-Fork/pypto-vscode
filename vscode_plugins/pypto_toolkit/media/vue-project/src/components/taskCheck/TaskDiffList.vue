@@ -71,10 +71,6 @@
                     <span class="info-label">IO_flag:</span>
                     <span class="info-value" :title="item.ioFlag">{{ item.ioFlag }}</span>
                   </span>
-                  <span v-if="item.funcHash" class="info-text">
-                    <span class="info-label">funcHash:</span>
-                    <span class="info-value" :title="item.funcHash">{{ item.funcHash }}</span>
-                  </span>
                   <span v-if="item.loopInfo" class="info-text">
                     <span class="info-label">loopInfo:</span>
                     <span class="info-value" :title="item.loopInfo">{{ item.loopInfo }}</span>
