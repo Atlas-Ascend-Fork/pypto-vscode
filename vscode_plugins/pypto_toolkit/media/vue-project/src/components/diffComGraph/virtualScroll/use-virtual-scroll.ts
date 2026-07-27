@@ -43,20 +43,33 @@ export function useVirtualScroll(props: VirtualScrollProps) {
     calcRenderData();
   }
 
+  function clearRenderState() {
+    renderData.value = [];
+    translate.value = 0;
+    if (scrollEl.value) {
+      scrollEl.value.scrollTop = 0;
+    }
+  }
+
+  function computeScrollDistance() {
+    const scrollTop = scrollEl.value!.scrollTop;
+    const lastOffset = scrollParams.originData[scrollParams.originData.length - 1].$offsetTop;
+    return scrollTop > lastOffset ? 0 : scrollTop;
+  }
+
   function updateData() {
-    let distance = 0;
     initOriginData();
     if (scrollEl.value && scrollParams.originData.length) {
-      const scrollTop = scrollEl.value.scrollTop;
-      distance = scrollTop > scrollParams.originData[scrollParams.originData.length - 1].$offsetTop ? 0 : scrollTop;
-      initVirtualData(distance);
+      initVirtualData(computeScrollDistance());
     } else {
-      // 当数据为空时，清空渲染数据和重置滚动位置
-      renderData.value = [];
-      translate.value = 0;
-      if (scrollEl.value) {
-        scrollEl.value.scrollTop = 0;
-      }
+      clearRenderState();
+    }
+  }
+
+  function updateRenderRange(scrollTop: number) {
+    if (scrollTop !== scrollParams.distance && scrollParams.originData.length > 0) {
+      scrollParams.distance = scrollTop;
+      calcRenderData();
     }
   }
 
@@ -68,14 +81,21 @@ export function useVirtualScroll(props: VirtualScrollProps) {
     requestAnimationFrame(() => {
       tick = false;
     });
-    const scrollTop = (e.target as HTMLElement).scrollTop;
-    if (scrollTop !== scrollParams.distance) {
-      if (scrollParams.originData.length === 0) {
-        return;
-      }
-      scrollParams.distance = scrollTop;
-      calcRenderData();
-    }
+    updateRenderRange((e.target as HTMLElement).scrollTop);
+  }
+
+  function buildRenderLists(startIndex: number, renderCount: number) {
+    const origin = scrollParams.originData;
+    const totalLen = origin.length;
+    let upperStartIndex = Math.max(Math.ceil(startIndex - renderCount), 0);
+    let downStartIndex = Math.floor(startIndex + renderCount);
+    downStartIndex = downStartIndex > totalLen - 1 ? totalLen : downStartIndex;
+    return {
+      upperList: origin.slice(upperStartIndex, startIndex),
+      midList: origin.slice(startIndex, startIndex + renderCount),
+      downList: origin.slice(downStartIndex, downStartIndex + renderCount),
+      upperStartIndex,
+    };
   }
 
   function calcRenderData() {
@@ -83,18 +103,14 @@ export function useVirtualScroll(props: VirtualScrollProps) {
       return;
     }
     const startIndex = getStartIndex(scrollParams.originData, scrollParams.distance);
-    let upperStartIndex = Math.max(Math.ceil(startIndex - scrollParams.renderCountPerScreen), 0);
-    translate.value = scrollParams.originData[upperStartIndex].$offsetTop;
-    const upperList = scrollParams.originData.slice(upperStartIndex, startIndex);
-    const midList = scrollParams.originData.slice(startIndex, startIndex + scrollParams.renderCountPerScreen);
-    let downStartIndex = Math.floor(startIndex + scrollParams.renderCountPerScreen);
-    downStartIndex = downStartIndex > scrollParams.originData.length - 1 ? scrollParams.originData.length : downStartIndex;
+    const renderCount = scrollParams.renderCountPerScreen;
+    const lists = buildRenderLists(startIndex, renderCount);
+    translate.value = scrollParams.originData[lists.upperStartIndex].$offsetTop;
     scrollParams.scrollScale = [
-      scrollParams.originData[Math.floor(upperStartIndex + scrollParams.renderCountPerScreen / 2)]?.$offsetTop ?? 0,
-      scrollParams.originData[Math.ceil(startIndex + scrollParams.renderCountPerScreen / 2)]?.$offsetTop ?? 0,
+      scrollParams.originData[Math.floor(lists.upperStartIndex + renderCount / 2)]?.$offsetTop ?? 0,
+      scrollParams.originData[Math.ceil(startIndex + renderCount / 2)]?.$offsetTop ?? 0,
     ];
-    const downList = scrollParams.originData.slice(downStartIndex, downStartIndex + scrollParams.renderCountPerScreen);
-    renderData.value = [...upperList, ...midList, ...downList];
+    renderData.value = [...lists.upperList, ...lists.midList, ...lists.downList];
   }
 
   function getStartIndex(list: IItemData[], distance: number) {

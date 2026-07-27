@@ -26,22 +26,42 @@ export function detectConflicts(
   memoryBlocksRaw: BlockItem[],
   searchQuery: string,
 ): ConflictResult {
-  const q = searchQuery.trim().toLowerCase();
-  const blocks = memoryBlocksRaw.filter((item) => {
-    if (!q) {
-      return true;
-    }
-    return (String(item.magicId) || '').toLowerCase().includes(q);
-  });
-
-  const n = blocks.length;
-
-  for (let i = 0; i < n; i++) {
-    blocks[i].isConflict = false;
-    blocks[i].conflicts = [];
-  }
+  const blocks = filterBlocksByQuery(memoryBlocksRaw, searchQuery);
+  resetBlockState(blocks);
 
   const sortedBlocks = [...blocks].sort((a, b) => a.start - b.start);
+  const { blocksByRegion, positionInRegion } = groupBlocksByRegion(sortedBlocks);
+
+  const conflictMap = new Map();
+  const overlapList: ConflictOverlap[] = [];
+
+  for (const a of sortedBlocks) {
+    checkConflictsInBlock(a, blocksByRegion, positionInRegion, conflictMap, overlapList);
+  }
+
+  assignConflictLists(blocks, conflictMap);
+  return { overlaps: overlapList };
+}
+
+function filterBlocksByQuery(memoryBlocksRaw: BlockItem[], searchQuery: string): BlockItem[] {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) {
+    return memoryBlocksRaw;
+  }
+  return memoryBlocksRaw.filter((item) => (String(item.magicId) || '').toLowerCase().includes(q));
+}
+
+function resetBlockState(blocks: BlockItem[]): void {
+  for (const block of blocks) {
+    block.isConflict = false;
+    block.conflicts = [];
+  }
+}
+
+function groupBlocksByRegion(sortedBlocks: BlockItem[]): {
+  blocksByRegion: Map<number, BlockItem[]>;
+  positionInRegion: Map<BlockItem, number>;
+} {
   const blocksByRegion = new Map<number, BlockItem[]>();
   const positionInRegion = new Map<BlockItem, number>();
 
@@ -59,90 +79,102 @@ export function detectConflicts(
     regionBlocks.push(block);
   }
 
-  const conflictMap = new Map();
-  const overlapList: ConflictOverlap[] = [];
+  return { blocksByRegion, positionInRegion };
+}
 
-  for (let i = 0; i < sortedBlocks.length; i++) {
-    const a = sortedBlocks[i];
+function hasValidBlockBounds(block: BlockItem): boolean {
+  return (
+    Number.isFinite(Number(block.end)) &&
+    Number.isFinite(Number(block.startAddr)) &&
+    Number.isFinite(Number(block.endAddr))
+  );
+}
 
-    const aEnd = Number(a.end);
-    const aStartAddr = Number(a.startAddr);
-    const aEndAddr = Number(a.endAddr);
-    const aName = a.name;
-    const aRegionId = Number(a.regionId);
-    const regionBlocks = blocksByRegion.get(aRegionId);
-    const regionPosition = positionInRegion.get(a);
+function getBlockKey(block: BlockItem): string {
+  return block.rawObj?.rawId || block.magicId;
+}
 
-    const invalidBounds = !Number.isFinite(aEnd) || !Number.isFinite(aStartAddr) || !Number.isFinite(aEndAddr);
-    if (invalidBounds || !regionBlocks || regionPosition === undefined) {
+function addConflictPair(conflictMap: Map<any, Set<any>>, a: BlockItem, b: BlockItem): void {
+  const aKey = getBlockKey(a);
+  const bKey = getBlockKey(b);
+  if (!conflictMap.has(aKey)) {
+    conflictMap.set(aKey, new Set());
+  }
+  if (!conflictMap.has(bKey)) {
+    conflictMap.set(bKey, new Set());
+  }
+  conflictMap.get(aKey).add(b.magicId);
+  conflictMap.get(bKey).add(a.magicId);
+}
+
+function pushOverlapIfDifferent(
+  a: BlockItem,
+  b: BlockItem,
+  overlapList: ConflictOverlap[],
+  aRegionId: number,
+): void {
+  const aName = a.name;
+  const sameName = (aName && aName === b.name) || (!aName && !b.name);
+  if (sameName) {
+    return;
+  }
+  overlapList.push({
+    x1: Math.max(Number(a.start), Number(b.start)),
+    y1: Math.max(Number(a.startAddr), Number(b.startAddr)),
+    x2: Math.min(Number(a.end), Number(b.end)),
+    y2: Math.min(Number(a.endAddr), Number(b.endAddr)),
+    tensors: [a.magicId || 'Anonymous', b.magicId || 'Anonymous'],
+    regionId: aRegionId,
+  });
+}
+
+function checkConflictsInBlock(
+  a: BlockItem,
+  blocksByRegion: Map<number, BlockItem[]>,
+  positionInRegion: Map<BlockItem, number>,
+  conflictMap: Map<any, Set<any>>,
+  overlapList: ConflictOverlap[],
+): void {
+  const aEnd = Number(a.end);
+  const aStartAddr = Number(a.startAddr);
+  const aEndAddr = Number(a.endAddr);
+  const aRegionId = Number(a.regionId);
+  const regionBlocks = blocksByRegion.get(aRegionId);
+  const regionPosition = positionInRegion.get(a);
+
+  if (!hasValidBlockBounds(a) || !regionBlocks || regionPosition === undefined) {
+    return;
+  }
+
+  for (let j = regionPosition + 1; j < regionBlocks.length; j++) {
+    const b = regionBlocks[j];
+    const bStart = Number(b.start);
+
+    if (!Number.isFinite(bStart) || bStart >= aEnd) {
+      break;
+    }
+
+    if (!hasValidBlockBounds(b)) {
       continue;
     }
 
-    for (let j = regionPosition + 1; j < regionBlocks.length; j++) {
-      const b = regionBlocks[j];
-
-      const bStart = Number(b.start);
-      const bEnd = Number(b.end);
-      const bStartAddr = Number(b.startAddr);
-      const bEndAddr = Number(b.endAddr);
-
-      if (!Number.isFinite(bStart)) {
-        continue;
-      }
-
-      if (bStart >= aEnd) {
-        break;
-      }
-
-      if (!Number.isFinite(bEnd) || !Number.isFinite(bStartAddr) || !Number.isFinite(bEndAddr)) {
-        continue;
-      }
-
-      const hasMemoryOverlap = aStartAddr < bEndAddr && bStartAddr < aEndAddr;
-
-      if (!hasMemoryOverlap) {
-        continue;
-      }
-
-      a.isConflict = true;
-      b.isConflict = true;
-
-      const aKey = a.rawObj?.rawId || a.magicId;
-      const bKey = b.rawObj?.rawId || b.magicId;
-
-      if (!conflictMap.has(aKey)) {
-        conflictMap.set(aKey, new Set());
-      }
-
-      if (!conflictMap.has(bKey)) {
-        conflictMap.set(bKey, new Set());
-      }
-
-      conflictMap.get(aKey).add(b.magicId);
-      conflictMap.get(bKey).add(a.magicId);
-
-      const sameName = (aName && aName === b.name) || (!aName && !b.name);
-      if (!sameName) {
-        overlapList.push({
-          x1: Math.max(Number(a.start), bStart),
-          y1: Math.max(aStartAddr, bStartAddr),
-          x2: Math.min(aEnd, bEnd),
-          y2: Math.min(aEndAddr, bEndAddr),
-          tensors: [a.magicId || 'Anonymous', b.magicId || 'Anonymous'],
-          regionId: aRegionId,
-        });
-      }
+    if (aStartAddr >= Number(b.endAddr) || Number(b.startAddr) >= aEndAddr) {
+      continue;
     }
-  }
 
-  for (let i = 0; i < blocks.length; i++) {
-    const key = blocks[i].rawObj?.rawId || blocks[i].name;
+    a.isConflict = true;
+    b.isConflict = true;
+    addConflictPair(conflictMap, a, b);
+    pushOverlapIfDifferent(a, b, overlapList, aRegionId);
+  }
+}
+
+function assignConflictLists(blocks: BlockItem[], conflictMap: Map<any, Set<any>>): void {
+  for (const block of blocks) {
+    const key = block.rawObj?.rawId || block.name;
     const c = conflictMap.get(key);
-
     if (c) {
-      blocks[i].conflicts = Array.from(c);
+      block.conflicts = Array.from(c);
     }
   }
-
-  return { overlaps: overlapList };
 }

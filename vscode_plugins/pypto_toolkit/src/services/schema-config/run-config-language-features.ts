@@ -101,63 +101,7 @@ export class RunConfigLanguageFeaturesService extends BasicService {
         if (this._isDisposed) {
           break;
         }
-
-        const rootUri = workspaceFolder.uri;
-        const workspaceName = workspaceFolder.name;
-        const queue: vscode.Uri[] = [rootUri];
-        const scannedDirs = new Set<string>([rootUri.toString()]);
-
-        while (queue.length > 0 && this._scanStatus === 'scanning' && !this._isDisposed) {
-          const currentDirUri = queue.shift()!;
-          try {
-            const entries = await vscode.workspace.fs.readDirectory(currentDirUri);
-            for (const [entryName, entryType] of entries) {
-              if (this._isDisposed) {
-                break;
-              }
-              const entryUri = vscode.Uri.joinPath(currentDirUri, entryName);
-              const entryUriStr = entryUri.toString();
-
-              // 跳过忽略目录和已扫描目录，避免重复处理
-              if (entryType === vscode.FileType.Directory) {
-                if (this.ignoreDirs.has(entryName) || scannedDirs.has(entryUriStr)) {
-                  continue;
-                }
-                scannedDirs.add(entryUriStr);
-                queue.push(entryUri);
-                continue;
-              }
-
-              // 找到目标配置文件，校验同级是否存在Schema源文件
-              if (entryType === vscode.FileType.File && entryName === TARGET_CONFIG_FILE) {
-                if (scannedUris.has(entryUriStr)) {
-                  continue;
-                }
-                scannedUris.add(entryUriStr);
-
-                const sourceSchemaUri = vscode.Uri.joinPath(currentDirUri, SOURCE_SCHEMA_FILE);
-                if (await this.isFileExists(sourceSchemaUri)) {
-                  const transformedSchemaUri = await this.transformAndSaveSchema(sourceSchemaUri);
-                  if (transformedSchemaUri && !this._isDisposed) {
-                    const validSchemaMap = {
-                      configUri: entryUri,
-                      sourceSchemaUri,
-                      transformedSchemaUri,
-                      workspaceName,
-                    };
-                    await this.addSingleSchema(validSchemaMap);
-                  }
-                }
-              }
-            }
-          } catch (error: any) {
-            // 忽略取消操作的异常，仅打印其他扫描错误
-            const isCanceled = error.message?.includes('Canceled') || error.code === 'Canceled';
-            if (!isCanceled && !this._isDisposed) {
-              console.log(`扫描目录失败：${currentDirUri.fsPath}`, error);
-            }
-          }
-        }
+        await this.scanWorkspaceFolder(workspaceFolder, scannedUris);
       }
       if (!this._isDisposed) {
         this._scanStatus = 'completed';
@@ -167,6 +111,80 @@ export class RunConfigLanguageFeaturesService extends BasicService {
         this._scanStatus = 'failed';
         this._configSchemaMap = [];
       }
+    }
+  }
+
+  // 扫描单个工作区目录 - BFS遍历，逐目录读取并注册匹配的配置文件
+  private async scanWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder, scannedUris: Set<string>): Promise<void> {
+    const rootUri = workspaceFolder.uri;
+    const workspaceName = workspaceFolder.name;
+    const queue: vscode.Uri[] = [rootUri];
+    const scannedDirs = new Set<string>([rootUri.toString()]);
+
+    while (queue.length > 0 && this._scanStatus === 'scanning' && !this._isDisposed) {
+      const currentDirUri = queue.shift()!;
+      try {
+        const entries = await vscode.workspace.fs.readDirectory(currentDirUri);
+        for (const [entryName, entryType] of entries) {
+          if (this._isDisposed) {
+            break;
+          }
+          const entryUri = vscode.Uri.joinPath(currentDirUri, entryName);
+          const entryUriStr = entryUri.toString();
+
+          // 跳过忽略目录和已扫描目录，避免重复处理
+          if (entryType === vscode.FileType.Directory) {
+            if (this.ignoreDirs.has(entryName) || scannedDirs.has(entryUriStr)) {
+              continue;
+            }
+            scannedDirs.add(entryUriStr);
+            queue.push(entryUri);
+            continue;
+          }
+
+          // 找到目标配置文件，校验同级是否存在Schema源文件
+          if (entryType === vscode.FileType.File && entryName === TARGET_CONFIG_FILE) {
+            if (scannedUris.has(entryUriStr)) {
+              continue;
+            }
+            scannedUris.add(entryUriStr);
+            await this.tryRegisterConfigSchema(entryUri, currentDirUri, workspaceName);
+          }
+        }
+      } catch (error: any) {
+        this.handleScanError(error, currentDirUri);
+      }
+    }
+  }
+
+  // 尝试注册配置文件Schema - 校验同级Schema源文件存在，转换并注册
+  private async tryRegisterConfigSchema(
+    configUri: vscode.Uri,
+    currentDirUri: vscode.Uri,
+    workspaceName: string,
+  ): Promise<void> {
+    const sourceSchemaUri = vscode.Uri.joinPath(currentDirUri, SOURCE_SCHEMA_FILE);
+    if (!(await this.isFileExists(sourceSchemaUri))) {
+      return;
+    }
+    const transformedSchemaUri = await this.transformAndSaveSchema(sourceSchemaUri);
+    if (!transformedSchemaUri || this._isDisposed) {
+      return;
+    }
+    const validSchemaMap: ConfigSchemaMap = {
+      configUri,
+      sourceSchemaUri,
+      transformedSchemaUri,
+      workspaceName,
+    };
+    await this.addSingleSchema(validSchemaMap);
+  }
+
+  // 处理扫描异常 - 忽略取消操作，仅打印其他扫描错误
+  private handleScanError(error: any, currentDirUri: vscode.Uri): void {
+    const isCanceled = error.message?.includes('Canceled') || error.code === 'Canceled';
+    if (!isCanceled && !this._isDisposed) {
+      console.log(`扫描目录失败：${currentDirUri.fsPath}`, error);
     }
   }
 
