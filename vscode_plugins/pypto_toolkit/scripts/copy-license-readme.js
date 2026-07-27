@@ -10,14 +10,18 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = path.join(__dirname, '..', '..', '..', 'LICENSE');
-const dst = path.join(__dirname, '..', 'LICENSE');
+const fileList = ['LICENSE', 'README.md', 'README.en.md'];
 
-if (!fs.existsSync(src)) {
-  process.stderr.write(`\x1b[31mERROR: LICENSE not found at ${src}\x1b[0m\n`);
-  process.exit(1);
+for (const fileName of fileList) {
+  const src = path.join(__dirname, '..', '..', '..', fileName);
+  const dst = path.join(__dirname, '..', fileName);
+
+  if (!fs.existsSync(src)) {
+    process.stderr.write(`\x1b[31mERROR: ${fileName} not found at ${src}\x1b[0m\n`);
+    process.exit(1);
+  }
+
+  fs.copyFileSync(src, dst);
+  process.stdout.write(`\x1b[32m${fileName} copied: ${src} → ${dst}\x1b[0m\n`);
 }
-
-fs.copyFileSync(src, dst);
-process.stdout.write(`\x1b[32mLicense copied: ${src} → ${dst}\x1b[0m\n`);
 process.exit(0);

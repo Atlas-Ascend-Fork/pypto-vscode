@@ -25,5 +25,6 @@ openspec
 .claude/
 .opencode/
 LICENSE
+README*.md
 .omo
 .codegraph
