@@ -54,30 +54,36 @@
       <!-- 数据列表 -->
       <template v-else>
         <div class="task-list">
-          <div v-for="item in filteredList" :key="item.id" :class="['task-row', expandedItems.includes(item.id) && 'expanded']">
+          <div
+            v-for="item in filteredList"
+            :key="item.id"
+            :class="['task-row', expandedItems.includes(item.id) && 'expanded']"
+          >
             <div :class="['task-box', selectedItemId === item.id && 'has-selection']">
               <div class="box-header" @click="toggleExpand(item.id)">
                 <div class="header-left">
                   <span class="task-name">task_{{ item.taskName }}</span>
                   <span v-if="item.opMagic" class="info-text">
                     <span class="info-label">opMagic:</span>
-                    <span class="info-value" :title="item.opMagic">{{ item.opMagic }}</span>
+                    <span class="info-value">{{ item.opMagic }}</span>
                   </span>
                   <span v-if="item.rawMagic" class="info-text">
                     <span class="info-label">RawMagic:</span>
-                    <span class="info-value" :title="item.rawMagic">{{ item.rawMagic }}</span>
+                    <span class="info-value">{{ item.rawMagic }}</span>
                   </span>
                   <span v-if="item.ioFlag" class="info-text">
                     <span class="info-label">IO_flag:</span>
-                    <span class="info-value" :title="item.ioFlag">{{ item.ioFlag }}</span>
+                    <span class="info-value">{{ item.ioFlag }}</span>
                   </span>
                   <span v-if="item.loopInfo" class="info-text">
                     <span class="info-label">loopInfo:</span>
-                    <span class="info-value" :title="item.loopInfo">{{ item.loopInfo }}</span>
+                    <d-tooltip :content="item.loopInfo" :position="['top', 'bottom']">
+                      <span class="info-value">{{ item.loopInfo }}</span>
+                    </d-tooltip>
                   </span>
                   <span v-if="item.execTimestamp" class="info-text">
                     <span class="info-label">execTimestamp:</span>
-                    <span class="info-value" :title="item.execTimestamp">{{ item.execTimestamp }}</span>
+                    <span class="info-value">{{ item.execTimestamp }}</span>
                   </span>
                 </div>
                 <span v-if="item.compareRes === 'Fail'" :class="['fail-tag', isFirstFail(item.id) && 'first-fail']">
@@ -189,6 +195,7 @@ export interface TaskDiffItem {
     seqNo?: string;
     blockIdx?: string;
     opAttrSymOffset?: string;
+    timeStamp?: string;
   };
   sharedRes?: Record<string, any>;
   rawAOp?: Record<string, any>;
@@ -283,7 +290,7 @@ const getLeftDetailValue = (item: TaskDiffItem, key: string) => {
 };
 
 // 右列字段（b列）- 分成两列
-const rightDetailFieldsFirst = ['taskId', 'validShape', 'rawShape', 'blockIdx'];
+const rightDetailFieldsFirst = ['taskId', 'validShape', 'rawShape', 'blockIdx', 'timeStamp'];
 const rightDetailFieldsSecond = ['tensorAddr', 'dataType', 'seqNo', 'opAttrSymOffset'];
 
 const rightLabelNameMap: Record<string, string> = {
@@ -295,6 +302,7 @@ const rightLabelNameMap: Record<string, string> = {
   seqNo: 'seqNo',
   blockIdx: 'blockIdx',
   opAttrSymOffset: 'OpAttrSymOffset',
+  timeStamp: 'timeStamp',
 };
 
 const getRightLabelName = (key: string) => {
@@ -618,7 +626,6 @@ defineExpose({
         display: flex;
         align-items: center;
         padding: 12px 16px;
-        cursor: pointer;
         position: relative;
 
         &::before {
@@ -645,7 +652,7 @@ defineExpose({
           display: flex;
           align-items: center;
           gap: 12px;
-          overflow: hidden;
+          flex-wrap: wrap;
 
           .task-name {
             font-size: 14px;
@@ -658,24 +665,34 @@ defineExpose({
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            max-width: 200px;
             color: var(--task-diff-header-label-text);
 
             .info-label {
               font-size: 13px;
               color: var(--task-diff-header-label-text);
+              flex-shrink: 0;
+              min-width: 50px;
             }
 
             .info-value {
               font-size: 13px;
               color: var(--task-diff-header-value-text);
+              max-width: 150px;
               overflow: hidden;
               text-overflow: ellipsis;
-              max-width: 120px;
+              white-space: nowrap;
             }
           }
+        }
+
+        .info-tooltip-content {
+          font-size: 12px;
+          user-select: text;
+          cursor: text;
+          white-space: pre-wrap;
+          word-break: break-all;
+          max-width: 400px;
+          display: inline-block;
         }
 
         .fail-tag {

@@ -198,25 +198,13 @@ watch(server.taskCmpErrorList, (val: Record<string, any>) => {
     pageConfig.value.total = val?.total || 0;
   }
 
-  // 处理列表数据 - task 类型字段映射
+  // 处理列表数据 - task 类型字段映射（优先从 aOp 中取值）
   const startNo = (pageConfig.value.currentPage - 1) * pageConfig.value.pageSize + 1;
   errorListData.value = diffList.map((item: Record<string, any>, index: number) => ({
     ...item.sharedRes,
-    ...item.aOp,
     ...item.taskOp,
+    ...item.aOp,  // 最后合并 aOp，优先使用 aOp 的值
     no: startNo + index,
-    // NO. → sharedRes.no
-    taskNo: item?.sharedRes?.no || '',
-    // LOOP_INFO → taskOp.taskLoopVarInfos
-    taskLoopVarInfos: item?.sharedRes?.loopInfo || '',
-    // rawmagicID → sharedRes.rootCallRawmagic
-    rootCallRawmagic: item?.sharedRes?.rootCallRawmagic || '',
-    // datatype → taskOp.taskDataType
-    taskDataType: item?.taskOp?.taskDataType || '',
-    // validshape → taskOp.taskValidshape
-    taskValidshape: item?.taskOp?.taskValidShape || '',
-    // fileName → sharedRes.fileName (用于详情页获取精度数据)
-    fileName: item?.sharedRes?.fileName || '',
   }));
 });
 

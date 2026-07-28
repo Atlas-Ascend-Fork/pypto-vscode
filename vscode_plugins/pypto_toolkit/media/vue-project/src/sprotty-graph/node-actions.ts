@@ -35,6 +35,31 @@ export function useNodeActions(ctx: SprottyContext) {
     }
   };
 
+  /**
+   * 检查节点是否在当前视图中可见
+   */
+  const checkNodeVisible = (nodeIds: string[]): boolean => {
+    return !!(ctx.modelSource as any).currentRoot?.children.find(
+      (t: { id: string }) => nodeIds.includes(t.id),
+    );
+  };
+
+  /**
+   * 执行节点居中动作并同步视图
+   */
+  const executeCenterAction = async (selectedElements: string[], options: any) => {
+    ctx.modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
+      syncFitScreenViewport();
+      ctx.modelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
+        (window as any).ascEventBus.emit('viewer_update', {
+          model: ctx.modelSource.model,
+          zoom: viewInfo.zoom,
+          scroll: viewInfo.scroll,
+        });
+      });
+    });
+  };
+
   const centerNodeAction = async (
     elementIdsPara: string[],
     animatePara?: boolean,
@@ -44,33 +69,19 @@ export function useNodeActions(ctx: SprottyContext) {
     const selectedElements = elementIdsPara.length
       ? elementIdsPara
       : ((await ctx.modelSource.getSelection()).map((e: { id: string }) => e.id) as string[]);
-    if (selectedElements.length > 0) {
-      const options = {
-        animate: animatePara,
-        retainZoom: retainZoomPara,
-        zoomScale: zoomScalePara,
-      };
+    if (selectedElements.length === 0) return;
 
-      const nodeVisibleFlag = !!(ctx.modelSource as any).currentRoot?.children.find(
-        (t) => selectedElements.includes(t.id),
-      );
-
-      if (!nodeVisibleFlag) {
-        (window as any).ascEventBus.emit('node_hidden_message_notice', 'comGraph.searchingNodeUntraced');
-        return;
-      }
-
-      ctx.modelSource.actionDispatcher.dispatch(CenterAction.create(selectedElements, options)).then(() => {
-        syncFitScreenViewport();
-        ctx.modelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
-          (window as any).ascEventBus.emit('viewer_update', {
-            model: ctx.modelSource.model,
-            zoom: viewInfo.zoom,
-            scroll: viewInfo.scroll,
-          });
-        });
-      });
+    if (!checkNodeVisible(selectedElements)) {
+      (window as any).ascEventBus.emit('node_hidden_message_notice', 'comGraph.searchingNodeUntraced');
+      return;
     }
+
+    const options = {
+      animate: animatePara,
+      retainZoom: retainZoomPara,
+      zoomScale: zoomScalePara,
+    };
+    await executeCenterAction(selectedElements, options);
   };
 
   const selectAction = async (elementIdsPara: string[]) => {
@@ -143,6 +154,21 @@ export function useNodeActions(ctx: SprottyContext) {
     selectAction([nodeId]);
   };
 
+  /**
+   * 根据事件键获取按钮位置和目标节点
+   */
+  const getButtonPosAndDestNode = (
+    eventKey: string,
+    previousNodeId: string,
+    nextNodeId: string,
+  ): { buttonPos: string; destNode: string } => {
+    const isLeft = eventKey === 'ArrowLeft';
+    return {
+      buttonPos: isLeft ? 'left' : 'right',
+      destNode: isLeft ? previousNodeId : nextNodeId,
+    };
+  };
+
   const jump2SiblingNodeByHotKeyListener = (event: HotKeyEvent) => {
     const selectedNodeId = event.nodeId;
     const eventKey = event.eventKey;
@@ -151,10 +177,8 @@ export function useNodeActions(ctx: SprottyContext) {
       (ctx.modelSource as any).currentRoot as unknown as Readonly<SModelRootImpl>,
     );
 
-    const buttonPos = eventKey === 'ArrowLeft' ? 'left' : 'right';
-    const destNode = eventKey === 'ArrowLeft' ? previousNodeId : nextNodeId;
-    let newNodeId = '';
-    newNodeId = findDestNode(selectedNodeId, buttonPos, destNode);
+    const { buttonPos, destNode } = getButtonPosAndDestNode(eventKey, previousNodeId, nextNodeId);
+    const newNodeId = findDestNode(selectedNodeId, buttonPos, destNode);
 
     if (newNodeId === '') {
       return;
@@ -195,6 +219,13 @@ export function useNodeActions(ctx: SprottyContext) {
     });
   };
 
+  /**
+   * 获取 SVG 容器，如果不存在则返回 null
+   */
+  const getSvgContainer = (): SVGSVGElement | null => {
+    return document.getElementById('sprotty')?.querySelector('svg') || null;
+  };
+
   const requestExportSvgAction = async (copyStyles?: boolean) => {
     const originViewInfo = await ctx.modelSource.getViewport();
     const x: number = originViewInfo.scroll.x;
@@ -213,7 +244,7 @@ export function useNodeActions(ctx: SprottyContext) {
     const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
     await delay(1000);
 
-    const svgContainer = document.getElementById('sprotty')?.querySelector('svg');
+    const svgContainer = getSvgContainer();
     if (!svgContainer) {
       console.warn('SVG element not found in #sprotty container');
       return;

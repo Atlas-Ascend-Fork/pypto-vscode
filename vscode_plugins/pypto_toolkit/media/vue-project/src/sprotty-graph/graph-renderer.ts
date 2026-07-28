@@ -32,6 +32,14 @@ export function useGraphRenderer(ctx: SprottyContext) {
     ]);
   };
 
+  const emitViewerUpdate = (viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
+    (window as any).ascEventBus.emit('viewer_update', {
+      model: ctx.modelSource.model,
+      zoom: viewInfo.zoom,
+      scroll: viewInfo.scroll,
+    });
+  };
+
   const syncFitScreenViewport = async () => {
     try {
       const viewInfo = await ctx.modelSource.getViewport();
@@ -54,26 +62,29 @@ export function useGraphRenderer(ctx: SprottyContext) {
     });
   };
 
+  /**
+   * 同步 minimap 和 main map 的 viewport 信息并触发渲染完成事件
+   */
+  const syncMinimapAndViewport = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        ctx.modelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
+          emitMainMapRenderOver(viewInfo);
+          emitViewerUpdate(viewInfo);
+        });
+        ctx.miniMapModelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
+          emitMinimapRenderOver(viewInfo);
+        });
+        (window as any).ascEventBus.emit('layoutEnding', ctx.filePath);
+      });
+    });
+  };
+
   const renderMinimap = (model?: any) => {
     ctx.miniMapModelSource.updateModel(model || ctx.modelSource.model).then(() => {
       const fitAction = createFitAction({ maxZoom: 1.0, padding: 50, center: true, animate: false });
       ctx.miniMapModelSource.actionDispatcher.dispatch(fitAction).then(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            ctx.modelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
-              emitMainMapRenderOver(viewInfo);
-              (window as any).ascEventBus.emit('viewer_update', {
-                model: ctx.modelSource.model,
-                zoom: viewInfo.zoom,
-                scroll: viewInfo.scroll,
-              });
-            });
-            ctx.miniMapModelSource.getViewport().then((viewInfo: { zoom: number; scroll: { x: number; y: number } }) => {
-              emitMinimapRenderOver(viewInfo);
-            });
-            (window as any).ascEventBus.emit('layoutEnding', ctx.filePath);
-          });
-        });
+        syncMinimapAndViewport();
       });
     });
   };
@@ -111,6 +122,47 @@ export function useGraphRenderer(ctx: SprottyContext) {
         });
       }
     }
+  };
+
+  /**
+   * 统计图中节点和边的数量
+   */
+  const countNodesAndEdges = (sprottyGraph: any): { nodeCount: number; edgeCount: number } => {
+    const nodeCount = sprottyGraph.children?.filter((child: { type: string | string[] }) =>
+      child.type.includes('node'),
+    ).length || 0;
+    const edgeCount = sprottyGraph.children?.filter((child: { type: string | string[] }) =>
+      child.type.includes('edge'),
+    ).length || 0;
+    return { nodeCount, edgeCount };
+  };
+
+  /**
+   * 处理模型设置成功后的逻辑
+   */
+  const handleModelSetSuccess = async (
+    sprottyGraph: any,
+    nodeMagic: any,
+    searchLevel: any,
+    isThreeMode: boolean,
+  ) => {
+    if (ctx.modelSource.model) {
+      if (!sprottyGraph.isFinial && !nodeMagic) {
+        ctx.server.setFinalResult({
+          data: ctx.modelSource.model,
+          layout: ctx.currentLayoutConfig,
+          threeMode: isThreeMode,
+        });
+      }
+      if ((searchLevel !== undefined) && (searchLevel > -1)) {
+        resetMiniMap();
+        renderMinimap(ctx.modelSource.model);
+      } else {
+        renderMinimap(ctx.modelSource.model);
+      }
+    }
+    if (!sprottyGraph.children) return;
+    fitGraphToScreen();
   };
 
   const updateGraph = (isDark: boolean, option?: UpdateGraphOptions) => {
@@ -154,7 +206,7 @@ export function useGraphRenderer(ctx: SprottyContext) {
       comGraphStore.setData('isCached', newValue.isCached);
       comGraphStore.setData('wrongRawMagicList', newValue.wrongRawMagicList);
       comGraphStore.setData('failOpMagicList', newValue.failOpMagicList);
-      comGraphStore.setData("failMagicList", newValue.failMagicList);
+      comGraphStore.setData('failMagicList', newValue.failMagicList);
       if (!ctx.filePath || ctx.filePath === newValue.data.filePath) {
         (window as any).ascEventBus.emit('comGraphRendering', 'rendering');
         const sprottyGraph = toRaw(newValue.data);
@@ -162,33 +214,12 @@ export function useGraphRenderer(ctx: SprottyContext) {
 
         ctx.originSprottyGraph = JSON.parse(JSON.stringify(sprottyGraph));
 
-        const nodeCount = sprottyGraph.children?.filter((child: { type: string | string[] }) =>
-          child.type.includes('node'),
-        ).length || 0;
-        const edgeCount = sprottyGraph.children?.filter((child: { type: string | string[] }) =>
-          child.type.includes('edge'),
-        ).length || 0;
+        const { nodeCount, edgeCount } = countNodesAndEdges(sprottyGraph);
         console.log(`Graph stats: ${nodeCount} nodes, ${edgeCount} edges`);
         ctx.modelSource
           .setModel(sprottyGraph)
           .then(async () => {
-            if (ctx.modelSource.model) {
-              if (!sprottyGraph.isFinial && !nodeMagic) {
-                ctx.server.setFinalResult({
-                  data: ctx.modelSource.model,
-                  layout: ctx.currentLayoutConfig,
-                  threeMode: isThreeMode,
-                });
-              }
-              if ((searchLevel !== undefined) && (searchLevel > -1)) {
-                resetMiniMap();
-                renderMinimap(ctx.modelSource.model);
-              } else {
-                renderMinimap(ctx.modelSource.model);
-              }
-            }
-            if (!sprottyGraph.children) return;
-            fitGraphToScreen();
+            await handleModelSetSuccess(sprottyGraph, nodeMagic, searchLevel, isThreeMode);
           })
           .catch((error: any) => {
             console.error('Error setting model:', error);

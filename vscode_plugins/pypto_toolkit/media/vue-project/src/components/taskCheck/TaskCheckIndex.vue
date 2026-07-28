@@ -217,6 +217,7 @@ watch(
             blockIdx: item.taskOp?.taskBlockIdx || '',
             opAttrSymOffset: item.taskOp?.taskOpAttrSymOfst || '',
             taskId: item.taskOp?.taskTaskId || '',
+            timeStamp: item.taskOp?.taskTimestamp || '',
           },
           // 保留原始数据用于精度报告
           sharedRes: item.sharedRes || {},

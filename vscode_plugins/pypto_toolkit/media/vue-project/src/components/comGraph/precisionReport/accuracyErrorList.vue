@@ -76,8 +76,8 @@ const columnData = computed(() => {
             { width: 100, field: 'taskLoopVarInfos', header: 'LOOP_INFO', showOverflowTooltip: true },
             { width: 100, field: 'aOpMagic', header: 'opMagic', showOverflowTooltip: true },
             { width: 100, field: 'aMagic', header: 'Magic', showOverflowTooltip: true },
-            { width: 90, field: 'taskDataType', header: 'datatype', showOverflowTooltip: true },
-            { width: 100, field: 'taskValidshape', header: 'validshape', align: 'right', minWidth: 100, showOverflowTooltip: true },
+            { width: 90, field: 'aDatatype', header: 'datatype', showOverflowTooltip: true },
+            { width: 100, field: 'aValidshape', header: 'validshape', align: 'right', minWidth: 100, showOverflowTooltip: true },
         ];
     }
 

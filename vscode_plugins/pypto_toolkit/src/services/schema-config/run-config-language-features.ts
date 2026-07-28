@@ -423,159 +423,178 @@ export class RunConfigLanguageFeaturesService extends BasicService {
     return targetFiles;
   }
 
+  // 处理工作区文件夹变更
+  private handleWorkspaceFolderChange(): void {
+    if (!this._isDisposed) {
+      this.scanWorkspace();
+    }
+  }
+
+  // 处理文件创建事件
+  private async handleFileCreate(e: vscode.FileCreateEvent): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
+
+    const allTargetFiles = await this.collectCreatedTargetFiles(e.files);
+    if (allTargetFiles.length === 0) {
+      return;
+    }
+
+    await this.registerSchemasForTargetDirs(allTargetFiles);
+  }
+
+  // 收集创建事件中的目标文件
+  private async collectCreatedTargetFiles(files: readonly vscode.Uri[]): Promise<vscode.Uri[]> {
+    const allTargetFiles: vscode.Uri[] = [];
+    for (const uri of files) {
+      if (this._isDisposed) {
+        break;
+      }
+      try {
+        const stat = await vscode.workspace.fs.stat(uri);
+        if (stat.type === vscode.FileType.File) {
+          if (uri.path.endsWith(TARGET_CONFIG_FILE) || uri.path.endsWith(SOURCE_SCHEMA_FILE)) {
+            allTargetFiles.push(uri);
+          }
+        } else if (stat.type === vscode.FileType.Directory) {
+          const dirTargetFiles = await this.collectTargetFilesInDir(uri);
+          allTargetFiles.push(...dirTargetFiles);
+        }
+      } catch (error) {
+        console.warn(`获取创建资源状态失败：${uri.fsPath}`, error);
+      }
+    }
+    return allTargetFiles;
+  }
+
+  // 为目标目录注册Schema
+  private async registerSchemasForTargetDirs(targetFiles: vscode.Uri[]): Promise<void> {
+    const targetDirs = this.uniqueDirUris(
+      targetFiles.map((uri) => {
+        return vscode.Uri.joinPath(uri, '..');
+      }),
+    );
+    const workspaceName = vscode.workspace.workspaceFolders?.[0]?.name || 'default';
+
+    for (const dirUri of targetDirs) {
+      if (this._isDisposed) {
+        break;
+      }
+      const validMap = await this.getValidConfigSchemaMap(dirUri, workspaceName);
+      if (validMap) {
+        await this.addSingleSchema(validMap);
+      }
+    }
+  }
+
+  // 处理文件删除事件
+  private async handleFileDelete(e: vscode.FileDeleteEvent): Promise<void> {
+    if (this._isDisposed || this._configSchemaMap.length === 0) {
+      return;
+    }
+
+    const checkDirUris: vscode.Uri[] = [];
+    for (const delUri of e.files) {
+      try {
+        const isFile = delUri.path.endsWith(TARGET_CONFIG_FILE) || delUri.path.endsWith(SOURCE_SCHEMA_FILE);
+        const targetDirUri = isFile ? vscode.Uri.joinPath(delUri, '..') : delUri;
+        checkDirUris.push(targetDirUri);
+      } catch (error) {
+        console.warn(`处理删除资源路径失败：${delUri.fsPath}`, error);
+      }
+    }
+
+    if (checkDirUris.length === 0) {
+      return;
+    }
+
+    const needDeleteSchemaMaps = this._configSchemaMap.filter((schemaMap) => {
+      return checkDirUris.some((checkDir) => {
+        return schemaMap.configUri.path.includes(checkDir.path);
+      });
+    });
+
+    if (needDeleteSchemaMaps.length === 0) {
+      return;
+    }
+
+    for (const schemaMap of needDeleteSchemaMaps) {
+      if (this._isDisposed) {
+        break;
+      }
+      await this.removeSchemaByConfigUri(schemaMap.configUri);
+    }
+  }
+
+  // 处理文件重命名事件
+  private async handleFileRename(e: vscode.FileRenameEvent): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
+
+    for (const renameItem of e.files) {
+      try {
+        const { oldUri, newUri } = renameItem;
+        await this.removeOldResourceRegistrations(oldUri);
+        const newTargetFiles = await this.collectNewTargetFiles(newUri);
+        if (newTargetFiles.length > 0) {
+          await this.registerSchemasForTargetDirs(newTargetFiles);
+        }
+      } catch (error) {
+        console.warn(`处理重命名失败：${renameItem.oldUri.fsPath} → ${renameItem.newUri.fsPath}`, error);
+      }
+    }
+  }
+
+  // 删除旧资源关联的注册
+  private async removeOldResourceRegistrations(oldUri: vscode.Uri): Promise<void> {
+    const oldIsFile = oldUri.path.endsWith(TARGET_CONFIG_FILE) || oldUri.path.endsWith(SOURCE_SCHEMA_FILE);
+    const oldCheckDir = oldIsFile ? vscode.Uri.joinPath(oldUri, '..') : oldUri;
+    const oldNeedDelete = this._configSchemaMap.filter((schemaMap) => {
+      return schemaMap.configUri.path.includes(oldCheckDir.path);
+    });
+
+    for (const schemaMap of oldNeedDelete) {
+      if (this._isDisposed) {
+        break;
+      }
+      await this.removeSchemaByConfigUri(schemaMap.configUri);
+    }
+  }
+
+  // 收集新资源的目标文件
+  private async collectNewTargetFiles(uri: vscode.Uri): Promise<vscode.Uri[]> {
+    const newTargetFiles: vscode.Uri[] = [];
+    try {
+      const newStat = await vscode.workspace.fs.stat(uri);
+      if (newStat.type === vscode.FileType.File) {
+        if (uri.path.endsWith(TARGET_CONFIG_FILE) || uri.path.endsWith(SOURCE_SCHEMA_FILE)) {
+          newTargetFiles.push(uri);
+        }
+      } else if (newStat.type === vscode.FileType.Directory) {
+        const dirTargetFiles = await this.collectTargetFilesInDir(uri);
+        newTargetFiles.push(...dirTargetFiles);
+      }
+    } catch (error) {
+      console.warn(`收集新资源目标文件失败：${uri.fsPath}`, error);
+    }
+    return newTargetFiles;
+  }
+
   // 注册工作区所有监听
   private registerWorkspaceListeners(): void {
     // 1. 工作区增删监听
-    const workspaceFolderListener = vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      if (!this._isDisposed) {
-        this.scanWorkspace();
-      }
-    });
+    const workspaceFolderListener = vscode.workspace.onDidChangeWorkspaceFolders(() => this.handleWorkspaceFolderChange());
 
     // 2. 文件/文件夹创建监听
-    const fileCreateListener = vscode.workspace.onDidCreateFiles(async (e) => {
-      if (this._isDisposed) {
-        return;
-      }
+    const fileCreateListener = vscode.workspace.onDidCreateFiles((e) => this.handleFileCreate(e));
 
-      const allTargetFiles: vscode.Uri[] = [];
-      for (const uri of e.files) {
-        try {
-          const stat = await vscode.workspace.fs.stat(uri);
-          if (stat.type === vscode.FileType.File) {
-            if (uri.path.endsWith(TARGET_CONFIG_FILE) || uri.path.endsWith(SOURCE_SCHEMA_FILE)) {
-              allTargetFiles.push(uri);
-            }
-          } else if (stat.type === vscode.FileType.Directory) {
-            const dirTargetFiles = await this.collectTargetFilesInDir(uri);
-            allTargetFiles.push(...dirTargetFiles);
-          }
-        } catch (error) {
-          console.warn(`获取创建资源状态失败：${uri.fsPath}`, error);
-          continue;
-        }
-      }
+    // 3. 文件/文件夹删除监听
+    const fileDeleteListener = vscode.workspace.onDidDeleteFiles((e) => this.handleFileDelete(e));
 
-      if (allTargetFiles.length === 0) {
-        return;
-      }
-      const targetDirs = this.uniqueDirUris(
-        allTargetFiles.map((uri) => {
-          return vscode.Uri.joinPath(uri, '..');
-        }),
-      );
-      const workspaceName = vscode.workspace.workspaceFolders?.[0]?.name || 'default';
-      for (const dirUri of targetDirs) {
-        if (this._isDisposed) {
-          break;
-        }
-        const validMap = await this.getValidConfigSchemaMap(dirUri, workspaceName);
-        if (validMap) {
-          await this.addSingleSchema(validMap);
-        }
-      }
-    });
-
-    // 3. 文件/文件夹删除监听 - 基于缓存筛选，不访问文件系统
-    const fileDeleteListener = vscode.workspace.onDidDeleteFiles(async (e) => {
-      if (this._isDisposed || this._configSchemaMap.length === 0) {
-        return;
-      }
-
-      // 遍历所有删除的资源，提取需要检查的目录（文件取上级，文件夹直接用）
-      const checkDirUris: vscode.Uri[] = [];
-      for (const delUri of e.files) {
-        try {
-          // 判断是文件还是文件夹：文件→取上级目录，文件夹→直接用自身
-          const isFile = delUri.path.endsWith(TARGET_CONFIG_FILE) || delUri.path.endsWith(SOURCE_SCHEMA_FILE);
-          const targetDirUri = isFile ? vscode.Uri.joinPath(delUri, '..') : delUri;
-          checkDirUris.push(targetDirUri);
-        } catch (error) {
-          console.warn(`处理删除资源路径失败：${delUri.fsPath}`, error);
-          continue;
-        }
-      }
-
-      if (checkDirUris.length === 0) {
-        return;
-      }
-      // 从缓存中筛选出所有被删除目录下的注册记录（路径包含匹配）
-      const needDeleteSchemaMaps = this._configSchemaMap.filter((schemaMap) => {
-        return checkDirUris.some((checkDir) => {
-          // 注册的配置文件路径 包含 被删除的目录路径
-          return schemaMap.configUri.path.includes(checkDir.path);
-        });
-      });
-
-      if (needDeleteSchemaMaps.length === 0) {
-        return;
-      }
-      // 遍历删除匹配的注册（同步清理缓存+settings+磁盘文件）
-      for (const schemaMap of needDeleteSchemaMaps) {
-        if (this._isDisposed) {
-          break;
-        }
-        await this.removeSchemaByConfigUri(schemaMap.configUri);
-      }
-    });
-
-    // 4. 文件/文件夹重命名监听 - 兼容单个文件+文件夹重命名
-    const fileRenameListener = vscode.workspace.onDidRenameFiles(async (e) => {
-      if (this._isDisposed) {
-        return;
-      }
-
-      const workspaceName = vscode.workspace.workspaceFolders?.[0]?.name || 'default';
-      for (const renameItem of e.files) {
-        try {
-          const { oldUri, newUri } = renameItem;
-          // 第一步：删除旧资源关联的注册（基于缓存，不访问旧文件系统）
-          const oldIsFile = oldUri.path.endsWith(TARGET_CONFIG_FILE) || oldUri.path.endsWith(SOURCE_SCHEMA_FILE);
-          const oldCheckDir = oldIsFile ? vscode.Uri.joinPath(oldUri, '..') : oldUri;
-          const oldNeedDelete = this._configSchemaMap.filter((schemaMap) => {
-            return schemaMap.configUri.path.includes(oldCheckDir.path);
-          });
-          for (const schemaMap of oldNeedDelete) {
-            if (this._isDisposed) {
-              break;
-            }
-            await this.removeSchemaByConfigUri(schemaMap.configUri);
-          }
-
-          // 第二步：处理新资源（文件系统存在，可正常遍历/stat）
-          let newTargetFiles: vscode.Uri[] = [];
-          const newStat = await vscode.workspace.fs.stat(newUri);
-          if (newStat.type === vscode.FileType.File) {
-            if (newUri.path.endsWith(TARGET_CONFIG_FILE) || newUri.path.endsWith(SOURCE_SCHEMA_FILE)) {
-              newTargetFiles.push(newUri);
-            }
-          } else if (newStat.type === vscode.FileType.Directory) {
-            newTargetFiles = await this.collectTargetFilesInDir(newUri);
-          }
-
-          // 注册新资源的配置
-          if (newTargetFiles.length > 0) {
-            const newTargetDirs = this.uniqueDirUris(
-              newTargetFiles.map((uri) => {
-                return vscode.Uri.joinPath(uri, '..');
-              }),
-            );
-            for (const dirUri of newTargetDirs) {
-              if (this._isDisposed) {
-                break;
-              }
-              const validMap = await this.getValidConfigSchemaMap(dirUri, workspaceName);
-              if (validMap) {
-                await this.addSingleSchema(validMap);
-              }
-            }
-          }
-        } catch (error) {
-          console.warn(`处理重命名失败：${renameItem.oldUri.fsPath} → ${renameItem.newUri.fsPath}`, error);
-          continue;
-        }
-      }
-    });
+    // 4. 文件/文件夹重命名监听
+    const fileRenameListener = vscode.workspace.onDidRenameFiles((e) => this.handleFileRename(e));
 
     // 所有监听器加入销毁队列
     this._disposables.push(workspaceFolderListener, fileCreateListener, fileDeleteListener, fileRenameListener);

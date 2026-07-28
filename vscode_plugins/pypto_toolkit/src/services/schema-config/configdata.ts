@@ -79,49 +79,73 @@ export class ConfigDataService extends BasicService {
 
     try {
       for (const workspaceFolder of workspaceFolders) {
-        const rootUri = workspaceFolder.uri;
-        const workspaceName = workspaceFolder.name;
-        const queue: vscode.Uri[] = [rootUri];
-        const scannedDirs = new Set<string>([rootUri.toString()]);
-
-        while (queue.length > 0 && this._scanStatus === 'scanning') {
-          const currentDirUri = queue.shift()!;
-          try {
-            const entries = await vscode.workspace.fs.readDirectory(currentDirUri);
-            for (const [entryName, entryType] of entries) {
-              const entryUri = vscode.Uri.joinPath(currentDirUri, entryName);
-
-              // 处理 config.json 文件
-              if (entryType === vscode.FileType.File && entryName === CONFIG_FILE_NAME) {
-                await this.handleFoundConfigFile(entryUri, workspaceName);
-                // 找到单个文件后，推送最新完整列表）
-                this.emitConfigDataUpdate();
-                continue;
-              }
-
-              // 处理子目录
-              if (entryType === vscode.FileType.Directory) {
-                if (this.ignoreDirs.has(entryName)) continue;
-                const entryUriStr = entryUri.toString();
-                if (!scannedDirs.has(entryUriStr)) {
-                  scannedDirs.add(entryUriStr);
-                  queue.push(entryUri);
-                }
-              }
-            }
-          } catch (error) {
-            console.warn(`扫描目录失败：${currentDirUri.fsPath}`, error);
-          }
-        }
+        await this.processWorkspaceFolder(workspaceFolder);
       }
-
       // 扫描完成
       this._scanStatus = 'completed';
-      this.emitConfigDataUpdate(); // 通知前端“完成”+完整列表
+      this.emitConfigDataUpdate(); // 通知前端"完成"+完整列表
     } catch (error) {
       this._scanStatus = 'failed';
-      this.emitConfigDataUpdate(); // 通知前端“失败”
+      this.emitConfigDataUpdate(); // 通知前端"失败"
     }
+  }
+
+  /**
+   * 处理单个工作区文件夹的扫描
+   */
+  private async processWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+    const rootUri = workspaceFolder.uri;
+    const workspaceName = workspaceFolder.name;
+    const queue: vscode.Uri[] = [rootUri];
+    const scannedDirs = new Set<string>([rootUri.toString()]);
+
+    while (queue.length > 0 && this._scanStatus === 'scanning') {
+      const currentDirUri = queue.shift()!;
+      try {
+        const entries = await vscode.workspace.fs.readDirectory(currentDirUri);
+        await this.processDirectoryEntries(entries, currentDirUri, workspaceName, queue, scannedDirs);
+      } catch (error) {
+        console.warn(`扫描目录失败：${currentDirUri.fsPath}`, error);
+      }
+    }
+  }
+
+  /**
+   * 处理目录项（文件和子目录）
+   */
+  private async processDirectoryEntries(
+    entries: [string, vscode.FileType][],
+    currentDirUri: vscode.Uri,
+    workspaceName: string,
+    queue: vscode.Uri[],
+    scannedDirs: Set<string>,
+  ): Promise<void> {
+    for (const [entryName, entryType] of entries) {
+      const entryUri = vscode.Uri.joinPath(currentDirUri, entryName);
+
+      // 处理 config.json 文件
+      if (entryType === vscode.FileType.File && entryName === CONFIG_FILE_NAME) {
+        await this.handleFoundConfigFile(entryUri, workspaceName);
+        this.emitConfigDataUpdate();
+        continue;
+      }
+
+      // 处理子目录
+      if (entryType === vscode.FileType.Directory && !this.shouldSkipDirectory(entryName)) {
+        const entryUriStr = entryUri.toString();
+        if (!scannedDirs.has(entryUriStr)) {
+          scannedDirs.add(entryUriStr);
+          queue.push(entryUri);
+        }
+      }
+    }
+  }
+
+  /**
+   * 判断是否应该跳过目录
+   */
+  private shouldSkipDirectory(dirName: string): boolean {
+    return this.ignoreDirs.has(dirName);
   }
 
   /** 处理找到的文件（保持不变，新增触发统一事件） */
