@@ -130,24 +130,28 @@ export class RegisterCommand {
       if (!swimPath) return;
       const uri = vscode.Uri.file(swimPath);
       const { editorView } = useView();
+      const normalizePath = (p: string) => p.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+      const normalizedSwimPath = normalizePath(swimPath);
       let existingServer: any = null;
       for (const [, server] of editorView.openServer) {
-        if (server.swimDataPath && server.swimDataPath.toLowerCase() === swimPath.toLowerCase() && typeof server.locateNode === 'function') {
+        if (server.swimDataPath && normalizePath(server.swimDataPath) === normalizedSwimPath && typeof server.locateNode === 'function') {
           existingServer = server;
           break;
         }
       }
       if (existingServer) {
+        await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(swimPath) });
         existingServer.locateNode(seqNo, taskId);
         return;
       }
       SwimGraphMsgHandler.setEventToLocate(seqNo, taskId);
       await editorView.open('swimGraph', uri, { title: getBasenameWithoutExt(swimPath) });
-      const serverKey = `${swimPath}__`;
-      const server = editorView.openServer.get(serverKey);
-      if (server && typeof server.locateNode === 'function') {
-        SwimGraphMsgHandler.consumeEventToLocate();
-        server.locateNode(seqNo, taskId);
+      for (const [, server] of editorView.openServer) {
+        if (server.swimDataPath && normalizePath(server.swimDataPath) === normalizedSwimPath && typeof server.locateNode === 'function') {
+          SwimGraphMsgHandler.consumeEventToLocate();
+          server.locateNode(seqNo, taskId);
+          break;
+        }
       }
     });
   }
