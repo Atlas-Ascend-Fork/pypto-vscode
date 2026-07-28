@@ -187,13 +187,13 @@ const loadCompareFileList = (fileDataList: Array<{ file_path: string; first_req:
     // 根据 first_req 判断状态: -1 为 pending, 0 为 pass, >0 为 fail
     let status: 'pending' | 'parsed' | 'error' = 'pending';
     let failCount = 0;
-    if (item.first_req === -1) {
+    if (Number(item.first_req) === -1) {
       status = 'pending';
-    } else if (item.first_req === 0) {
+    } else if (Number(item.first_req) === 0) {
       status = 'parsed';
-    } else if (item.first_req > 0) {
+    } else if (Number(item.first_req) > 0) {
       status = 'error';
-      failCount = item.first_req;
+      failCount = Number(item.first_req);
     }
 
     return {

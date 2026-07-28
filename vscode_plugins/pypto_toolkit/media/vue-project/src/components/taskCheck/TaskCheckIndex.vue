@@ -308,13 +308,13 @@ const loadTaskFileList = (fileDataList: Array<{ file_path: string; first_req: nu
     // 根据 first_req 判断状态: -1 为 pending, 0 为 pass, >0 为 fail
     let status: 'pending' | 'pass' | 'fail' = 'pending';
     let failCount = 0;
-    if (item.first_req === -1) {
+    if (Number(item.first_req) === -1) {
       status = 'pending';
-    } else if (item.first_req === 0) {
+    } else if (Number(item.first_req) === 0) {
       status = 'pass';
-    } else if (item.first_req > 0) {
+    } else if (Number(item.first_req) > 0) {
       status = 'fail';
-      failCount = item.first_req;
+      failCount = Number(item.first_req);
     }
 
     return {
@@ -355,6 +355,10 @@ const onTaskSelect = (data: TaskFileItem) => {
   isInitialLoading.value = true;
   currentPage.value = 0;
   currentFilterConditions.value = {};
+
+  // 切换 compareList 数据项时关闭侧边精度报告
+  showDetail.value = false;
+  selectedDetailData.value = null;
 
   // 切换 compareList 数据项时清空搜索和筛选
   taskDiffListRef.value?.resetFilter();
