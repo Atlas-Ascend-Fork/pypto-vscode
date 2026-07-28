@@ -73,7 +73,7 @@ const columnData = computed(() => {
     if (isOpCheck.startsWith('task')) {
         return [
             { width: 60, field: 'no', header: 'NO.' },
-            { width: 100, field: 'taskLoopVarInfos', header: 'LOOP_INFO', showOverflowTooltip: true },
+            { width: 100, field: 'loopInfo', header: 'LOOP_INFO', showOverflowTooltip: true },
             { width: 100, field: 'aOpMagic', header: 'opMagic', showOverflowTooltip: true },
             { width: 100, field: 'aMagic', header: 'Magic', showOverflowTooltip: true },
             { width: 90, field: 'aDatatype', header: 'datatype', showOverflowTooltip: true },
