@@ -883,11 +883,8 @@ export async function getCmpErrorList(
       const sharedRes: Record<string, any> = {};
   
       for (let [key, value] of Object.entries(singleRes)) {
-        if (key === 'aOpMagic') {
-            value = Number(value);
-        }
-        if (key === 'bOpMagic') {
-            value = Number(value);
+        if (key.includes('OpMagic')) {
+          value = Number(value);
         }
         if (key.startsWith('abRes')) {
           compareRes = value as string;
@@ -985,7 +982,10 @@ export async function getTaskCmpList(
       let compareRes = '';
       const sharedRes: Record<string, any> = {};
 
-      for (const [key, value] of Object.entries(singleRes)) {
+      for (let [key, value] of Object.entries(singleRes)) {
+        if (key.includes('Magic')) {
+          value = Number(value);
+        }
         if (key === 'result') {
           compareRes = value as string;
         } else if (key.startsWith('a')) {
