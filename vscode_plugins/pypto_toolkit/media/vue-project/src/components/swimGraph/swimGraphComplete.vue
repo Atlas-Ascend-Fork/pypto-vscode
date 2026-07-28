@@ -1832,7 +1832,7 @@ const highlightAicpu = (process, processKey, isResize) => {
   const isSched = threadName.includes('AICPU-SCHED');
   let aicpuEventsData = [];
   let drawDatas = [];
-  const schedGraphMap= findSchedGraphMap(threads);
+  const schedGraphMap= findSchedGraphMap(threads, roundNo, taskNo);
   aicpuScheduleMaps.value = schedGraphMap;
   if (isCtrl) {
     const schedCoreMap = findSchedCoreMapByNo(selectedEvent.value, threads);

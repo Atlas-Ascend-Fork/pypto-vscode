@@ -481,7 +481,7 @@ export const findSchedTaskByNo = (taskNo, roundNo, processKey: string) => {
   return scheduleList;
 };
 // 调度情况图使用接口
-export const findSchedGraphMap = (threads) => {
+export const findSchedGraphMap = (threads, roundNo, taskNo) => {
   const threadMap = new Map();
   for (const [threadKey, thread] of threads.entries()) {
     if (thread.isCounter) {
@@ -495,9 +495,9 @@ export const findSchedGraphMap = (threads) => {
     if (isCtrl) {
       eventArr = [];
     } else if (isSched) {
-      eventArr = findBuildSchedEvent(thread, 0, 0);
+      eventArr = findBuildSchedEvent(thread, roundNo, taskNo);
     } else if (isCore) {
-      eventArr = findBuildCoreEvent(thread.eventIds, 0, 0, threadMap);
+      eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
       eventArr = [];
     }
