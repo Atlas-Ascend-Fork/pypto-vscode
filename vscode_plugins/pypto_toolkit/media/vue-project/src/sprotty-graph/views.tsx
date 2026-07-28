@@ -297,7 +297,7 @@ function passNodeId(nodeId: string, tensorMagicSet: Set<number>, opMagicSet: Set
     tensorMagicSet.add(tensorMagic);
   }
   if (nodeId.includes(OperationNodeIdPrefix)) {
-    let operationMagic = parseInt(nodeId.split(MagicPrefix)[1]);
+    const operationMagic = parseInt(nodeId.split(MagicPrefix)[1]);
     opMagicSet.add(operationMagic);
   }
 }
@@ -359,7 +359,7 @@ export class AstgrGraphView implements IView {
       window['trace'].outgoingPorts.size > 0;
 
     const transform = `scale(${model.zoom}) translate(${-model.scroll.x},${-model.scroll.y})`;
-    let trace = window['trace'];
+    const trace = window['trace'];
     return (
       <svg class-sprotty-graph={true} class-has-trace={hasTrace && comGraphStore.data.comGraphConfig.isHoverHighlightNode} class-in-selected-trace={comGraphStore.data.inSelectedComGraphFlow} >
         <g transform={transform}>{context.renderChildren(model, { trace })}</g>
@@ -678,6 +678,162 @@ function getOpSign(node: any, rectWidth: number, rectHeight: number): VNode | un
   return <image href={`${(window as any).staticPath}/static-assets/${svgName}.svg`} x={rectWidth - 48} y={rectHeight - 48} width="48" height="48" />;
 }
 
+interface OpTraceState {
+  incoming: boolean;
+  outgoing: boolean;
+  isTraced: boolean;
+  shouldDim: boolean;
+}
+
+function getOpTraceState(nodeId: string, args: IViewArgs | undefined, nodeSelected: boolean): OpTraceState | null {
+  const trace = (args as AstgrViewArgs)?.trace ?? {
+    incomingEdges: new Set<string>(),
+    incomingNodes: new Set<string>(),
+    incomingPorts: new Set<string>(),
+    outgoingEdges: new Set<string>(),
+    outgoingNodes: new Set<string>(),
+    outgoingPorts: new Set<string>(),
+  };
+  const traceResult = isNodeTraced(nodeId, trace);
+  const incoming = traceResult.incoming;
+  const outgoing = traceResult.outgoing;
+  const isTraced = incoming || outgoing;
+  if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    return null;
+  }
+  const shouldDim = !isTraced && !nodeSelected;
+  return { incoming, outgoing, isTraced, shouldDim };
+}
+
+function getAccuracyErrorBorder(
+  node: Readonly<SShapeElementImpl & Hoverable & Selectable>,
+  rectWidth: number,
+  rectHeight: number,
+): VNode | null {
+  const failOpMagicList = comGraphStore.data.failOpMagicList ?? [];
+  const opTagError = failOpMagicList.includes(Number(node.magic)) && node.role === 'operation';
+  if (!opTagError) {
+    return null;
+  }
+  const accuracyErrorBorderOuterColor = node.selected ? 'rgba(31,85,181,0.3)' : 'rgba(231,67,74,0.3)';
+  const accuracyErrorBorderInnerColor = node.selected ? 'rgba(31,85,181,1)' : 'rgba(231,67,74,1)';
+  const accuracyErrorBorderOuterSW = 2;
+  const accuracyErrorBorderInnerSW = 4;
+  const accuracyErrorBorderInnerRx = 8;
+  const accuracyErrorBorderOuterRx = accuracyErrorBorderInnerRx + accuracyErrorBorderInnerSW / 2 + accuracyErrorBorderOuterSW / 2;
+  const accuracyErrorBorderOuterOffset = accuracyErrorBorderInnerSW + accuracyErrorBorderOuterSW;
+  const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
+  const accuracyErrorIconSize = 16;
+  const isFirstErrorNode = Number(node.magic) === failOpMagicList[0];
+  const currentLanguage = (window as any).ascLang;
+  const firstErrorText = currentLanguage === 'zh' ? '首错节点' : 'First Error Node';
+  const firstErrorFontSize = 12;
+  const firstErrorTextWidth = getTextWidth(firstErrorText, firstErrorFontSize);
+  const bubbleIconPadding = 2;
+  const bubbleTextGap = 4;
+  const bubbleWidth = isFirstErrorNode
+    ? accuracyErrorIconSize + bubbleIconPadding * 2 + bubbleTextGap + firstErrorTextWidth
+    : accuracyErrorIconSize + bubbleIconPadding * 2;
+  const bubbleHeight = accuracyErrorIconSize + bubbleIconPadding * 2;
+  const bubbleX = rectWidth + accuracyErrorBorderOuterOffset / 2 + 4;
+  const bubbleY = -accuracyErrorIconSize / 2 - bubbleIconPadding;
+  return (
+    <g>
+      <rect
+        width={rectWidth + accuracyErrorBorderOuterOffset}
+        height={rectHeight + accuracyErrorBorderOuterOffset}
+        rx={accuracyErrorBorderOuterRx}
+        fill="transparent"
+        style={{
+          transform: `translate(-${accuracyErrorBorderOuterOffset / 2}px, -${accuracyErrorBorderOuterOffset / 2}px)`,
+          stroke: accuracyErrorBorderOuterColor,
+          strokeWidth: String(accuracyErrorBorderOuterSW),
+        }}
+      ></rect>
+      <rect
+        width={rectWidth}
+        height={rectHeight}
+        rx={accuracyErrorBorderInnerRx}
+        fill="transparent"
+        style={{
+          stroke: accuracyErrorBorderInnerColor,
+          strokeWidth: String(accuracyErrorBorderInnerSW),
+        }}
+      ></rect>
+      <g class-accuracy-error-icon={true}>
+        <rect
+          x={bubbleX}
+          y={bubbleY}
+          width={bubbleWidth}
+          height={bubbleHeight}
+          rx="4"
+          fill="rgba(255,200,0,0.3)"
+        ></rect>
+        <image
+          href={linkSvgPath}
+          x={bubbleX + bubbleIconPadding}
+          y={-accuracyErrorIconSize / 2}
+          width={accuracyErrorIconSize}
+          height={accuracyErrorIconSize}
+          style-cursor="pointer"
+          style-pointer-events="all"
+        ></image>
+        {isFirstErrorNode && (
+          <text
+            x={bubbleX + bubbleIconPadding + accuracyErrorIconSize + bubbleTextGap}
+            y={-accuracyErrorIconSize / 2 + accuracyErrorIconSize / 2}
+            font-size={firstErrorFontSize}
+            fill="rgba(231,67,74,1)"
+            text-anchor="start"
+            dominant-baseline="central"
+            style-pointer-events="none"
+          >{firstErrorText}</text>
+        )}
+        <g class-accuracy-error-tooltip={true}>
+          <rect
+            x={bubbleX - 6}
+            y={bubbleY - 26}
+            width={bubbleWidth + 12}
+            height={20}
+            rx="4"
+            fill="rgba(128,128,128,0.8)"
+          ></rect>
+          <text
+            x={bubbleX + bubbleWidth / 2}
+            y={bubbleY - 16}
+            font-size="12"
+            fill="#fff"
+            text-anchor="middle"
+            dominant-baseline="central"
+            style-pointer-events="none"
+          >Fail</text>
+        </g>
+      </g>
+    </g>
+  );
+}
+
+function getRunningNodeRects(node: any, rectWidth: number, rectHeight: number): { rectNode: VNode | null; rectBgNode: VNode | null; isRunningNode: boolean } {
+  const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+  if (!isRunningNode) {
+    return { rectNode: null, rectBgNode: null, isRunningNode: false };
+  }
+  const runningNodeRectOffset = 16;
+  const rectNode = (
+    <rect
+      width={rectWidth + runningNodeRectOffset}
+      height={rectHeight + runningNodeRectOffset}
+      rx="10px"
+      stroke-width="3"
+      fill='transparent'
+      style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
+      class-running-node={true}
+    ></rect>
+  );
+  const rectBgNode = <rect width={rectWidth} height={rectHeight} rx="8px" fill="var(--devui-base-invert-color)"></rect>;
+  return { rectNode, rectBgNode, isRunningNode };
+}
+
 @injectable()
 export class AstgrOpView extends RectangularNodeView {
   override render(
@@ -692,23 +848,11 @@ export class AstgrOpView extends RectangularNodeView {
     const isMiniType = node.root.zoom < 0.04;
     const errClass = node.isError === true ? 'error-node' : '';
 
-    const trace = (args as AstgrViewArgs)?.trace ?? {
-      incomingEdges: new Set<string>(),
-      incomingNodes: new Set<string>(),
-      incomingPorts: new Set<string>(),
-      outgoingEdges: new Set<string>(),
-      outgoingNodes: new Set<string>(),
-      outgoingPorts: new Set<string>(),
-    };
-
-    const traceResult = isNodeTraced(node.id, trace);
-    const incoming = traceResult.incoming;
-    const outgoing = traceResult.outgoing;
-    const isTraced = incoming || outgoing;
-    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    const traceState = getOpTraceState(node.id, args, node.selected);
+    if (!traceState) {
       return undefined;
     }
-    const shouldDim = !isTraced && !node.selected;
+    const { incoming, outgoing, shouldDim } = traceState;
 
     const astgrNode = node as unknown as AstgrNode;
     const isCallOperation = astgrNode.opcode === 'CALL';
@@ -734,117 +878,9 @@ export class AstgrOpView extends RectangularNodeView {
     const rectWidth = Math.max(node.size.width, 0);
     const rectHeight = Math.min(node.size.height, 150);
 
-    const opTagError = (comGraphStore.data.failOpMagicList ?? []).includes(Number(node.magic)) && (node.role === 'operation');
-    const accuracyErrorBorderOuterColor = node.selected ? 'rgba(31,85,181,0.3)' : 'rgba(231,67,74,0.3)';
-    const accuracyErrorBorderInnerColor = node.selected ? 'rgba(31,85,181,1)' : 'rgba(231,67,74,1)';
-    const accuracyErrorBorderOuterSW = 2;
-    const accuracyErrorBorderInnerSW = 4;
-    const accuracyErrorBorderInnerRx = 8;
-    const accuracyErrorBorderOuterRx = accuracyErrorBorderInnerRx + accuracyErrorBorderInnerSW / 2 + accuracyErrorBorderOuterSW / 2;
-    const accuracyErrorBorderOuterOffset = accuracyErrorBorderInnerSW + accuracyErrorBorderOuterSW;
-    const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
-    const accuracyErrorIconSize = 16;
-    const isFirstErrorNode = opTagError && (Number(node.magic) === (comGraphStore.data.failOpMagicList ?? [])[0]);
-    const currentLanguage = (window as any).ascLang;
-    const firstErrorText = currentLanguage === 'zh' ? '首错节点' : 'First Error Node'; 
-    const firstErrorTextWidth = 56;
-    const bubbleIconPadding = 2;
-    const bubbleTextGap = 4;
-    const bubbleWidth = isFirstErrorNode
-      ? accuracyErrorIconSize + bubbleIconPadding * 2 + bubbleTextGap + firstErrorTextWidth
-      : accuracyErrorIconSize + bubbleIconPadding * 2;
-    const bubbleHeight = accuracyErrorIconSize + bubbleIconPadding * 2;
-    const bubbleX = rectWidth + accuracyErrorBorderOuterOffset / 2 + 4;
-    const bubbleY = -accuracyErrorIconSize / 2 - bubbleIconPadding;
-    const accuracyErrorBorderNode = opTagError ? (
-      <g>
-        <rect
-          width={rectWidth + accuracyErrorBorderOuterOffset}
-          height={rectHeight + accuracyErrorBorderOuterOffset}
-          rx={accuracyErrorBorderOuterRx}
-          fill="transparent"
-          style={{
-            transform: `translate(-${accuracyErrorBorderOuterOffset / 2}px, -${accuracyErrorBorderOuterOffset / 2}px)`,
-            stroke: accuracyErrorBorderOuterColor,
-            strokeWidth: String(accuracyErrorBorderOuterSW),
-          }}
-        ></rect>
-        <rect
-          width={rectWidth}
-          height={rectHeight}
-          rx={accuracyErrorBorderInnerRx}
-          fill="transparent"
-          style={{
-            stroke: accuracyErrorBorderInnerColor,
-            strokeWidth: String(accuracyErrorBorderInnerSW),
-          }}
-        ></rect>
-        <g class-accuracy-error-icon={true}>
-          <rect
-            x={bubbleX}
-            y={bubbleY}
-            width={bubbleWidth}
-            height={bubbleHeight}
-            rx="4"
-            fill="rgba(255,200,0,0.3)"
-          ></rect>
-          <image
-            href={linkSvgPath}
-            x={bubbleX + bubbleIconPadding}
-            y={-accuracyErrorIconSize / 2}
-            width={accuracyErrorIconSize}
-            height={accuracyErrorIconSize}
-            style-cursor="pointer"
-            style-pointer-events="all"
-          ></image>
-          {isFirstErrorNode && (
-            <text
-              x={bubbleX + bubbleIconPadding + accuracyErrorIconSize + bubbleTextGap}
-              y={-accuracyErrorIconSize / 2 + accuracyErrorIconSize / 2}
-              font-size="12"
-              fill="rgba(231,67,74,1)"
-              text-anchor="start"
-              dominant-baseline="central"
-              style-pointer-events="none"
-            >{firstErrorText}</text>
-          )}
-          <g class-accuracy-error-tooltip={true}>
-            <rect
-              x={bubbleX - 6}
-              y={bubbleY - 26}
-              width={bubbleWidth + 12}
-              height={20}
-              rx="4"
-              fill="rgba(128,128,128,0.8)"
-            ></rect>
-            <text
-              x={bubbleX + bubbleWidth / 2}
-              y={bubbleY - 16}
-              font-size="12"
-              fill="#fff"
-              text-anchor="middle"
-              dominant-baseline="central"
-              style-pointer-events="none"
-            >Fail</text>
-          </g>
-        </g>
-      </g>
-    ) : null;
-
-    const runningNodeRectOffset = 16;
-    const isRunningNode = node.id === comGraphStore.data.runningNodeId;
-    const rectNode = isRunningNode ? (
-      <rect
-        width={rectWidth + runningNodeRectOffset}
-        height={rectHeight + runningNodeRectOffset}
-        rx="10px"
-        stroke-width="3"
-        fill='transparent'
-        style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
-        class-running-node={true}
-      ></rect>
-    ) : null;
-    const rectBgNode = isRunningNode ? <rect width={rectWidth} height={rectHeight} rx="8px" fill="var(--devui-base-invert-color)"></rect> : null;
+    const accuracyErrorBorderNode = getAccuracyErrorBorder(node, rectWidth, rectHeight);
+    const opTagError = accuracyErrorBorderNode !== null;
+    const { rectNode, rectBgNode, isRunningNode } = getRunningNodeRects(node, rectWidth, rectHeight);
 
     const { backgroundFillColor, backgroundFilter } = getOpBackgroundStyle(node, incoming, outgoing, errClass);
     const opSign = getOpSign(node, rectWidth, rectHeight);
@@ -891,7 +927,7 @@ export class AstgrOpMinimapView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs
   ): VNode | undefined {
-    let backgroundFillColor = node.baseColor;
+     const backgroundFillColor = node.baseColor;
      const trace = (args as AstgrViewArgs)?.trace ?? {
       incomingEdges: new Set<string>(),
       incomingNodes: new Set<string>(),
@@ -1306,6 +1342,138 @@ function buildAccuracyTag(tagY: number, tagStartX: number, tagWidth: number, tag
   );
 }
 
+function getTensorRunningRect(node: any): VNode | null {
+  const isRunningNode = node.id === comGraphStore.data.runningNodeId;
+  if (!isRunningNode) {
+    return null;
+  }
+  const runningNodeRectOffset = 16;
+  return (
+    <rect
+      width={Math.max(node.size.width + runningNodeRectOffset, 0)}
+      height={Math.max(node.size.height + runningNodeRectOffset + 4, 0)}
+      rx="10px"
+      stroke-width="3"
+      fill='transparent'
+      style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
+      class-running-node={true}
+    ></rect>
+  );
+}
+
+interface TensorRectParams {
+  node: any;
+  width: number;
+  height: number;
+  radius: number;
+  correctHeight: number;
+  waveOffset1: number;
+  waveOffset2: number;
+  downOffset: number;
+  middleOffset: number;
+  selectedWaveMargin: number;
+  blueBgRectPaddingLeft: number;
+  blueBgRectPaddingTop: number;
+  blueBgRectWidth: number;
+  blurBgRectHeight: number;
+  isRunningNode: boolean;
+  isTraced: boolean;
+  inoutBackgroundFillColor: string;
+  titleBackgroundFillColor: string;
+  backgroundFilter: string;
+}
+
+function getTensorRectNode(params: TensorRectParams): VNode {
+  const {
+    node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset,
+    middleOffset, selectedWaveMargin, blueBgRectPaddingLeft, blueBgRectPaddingTop,
+    blueBgRectWidth, blurBgRectHeight, isRunningNode, isTraced,
+    inoutBackgroundFillColor, titleBackgroundFillColor, backgroundFilter,
+  } = params;
+
+  if (node.role === 'input' || node.role === 'output') {
+    const errorColor = node.selected ? node.lightColor : node.baseColor;
+    return buildInOutRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset, middleOffset, selectedWaveMargin, isRunningNode, isTraced, inoutBackgroundFillColor, errorColor, backgroundFilter);
+  }
+  return (
+    <g>
+      {getTensorRunningRect(node)}
+      <rect
+        class-sprotty-node={true}
+        class-tensor={true}
+        class-selected={node.selected}
+        x="0"
+        y="0"
+        width={Math.max(node.size.width, 0)}
+        height={Math.max(node.size.height + 4, 0)}
+        rx="8"
+        ry="8"
+        fill={isRunningNode ? 'var(--devui-base-invert-color)' : inoutBackgroundFillColor}
+        filter={backgroundFilter}
+        data-type={node.compareType}
+        class-tensor-diff-add={node.compareType === 'add'}
+        class-tensor-diff-delete={node.compareType === 'delete'}
+        class-tensor-diff-change={node.compareType === 'change'}
+      ></rect>
+      <path
+        d={`M ${blueBgRectPaddingLeft} ${blurBgRectHeight} L ${blueBgRectPaddingLeft} ${
+          radius + blueBgRectPaddingTop
+        } Q ${blueBgRectPaddingLeft} ${blueBgRectPaddingTop} ${radius + blueBgRectPaddingLeft} ${blueBgRectPaddingTop} L ${
+          blueBgRectWidth - blueBgRectPaddingLeft - radius
+        } ${blueBgRectPaddingTop} Q ${blueBgRectWidth - blueBgRectPaddingLeft} ${blueBgRectPaddingTop} ${
+          blueBgRectWidth - blueBgRectPaddingLeft
+        } ${radius + blueBgRectPaddingTop} L ${blueBgRectWidth - blueBgRectPaddingLeft} ${blurBgRectHeight} Z`}
+        fill={isRunningNode ? 'var(--devui-running-node-bg)' : titleBackgroundFillColor}
+        class-tensor-title-background-label={true}
+        filter={backgroundFilter}
+      ></path>
+    </g>
+  );
+}
+
+interface TensorAccuracyTagsResult {
+  accuracyExceptionTag: VNode | null;
+  accuracyErrorTag: VNode | null;
+  taskErrorTag: VNode | null;
+}
+
+function getTensorAccuracyTags(node: any, width: number, isMiniType: boolean): TensorAccuracyTagsResult {
+  if (isMiniType) {
+    return { accuracyExceptionTag: null, accuracyErrorTag: null, taskErrorTag: null };
+  }
+  const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
+  const currentLanguage = (window as any).ascLang;
+  const iconSize = 14;
+  const iconGap = 4;
+  const tagPadding = 6;
+  const iconPaddingTop = (24 - iconSize) / 2;
+  const accuracyTagTextWidth = currentLanguage === 'zh' ? 69 : 120;
+  const accuracyTagWidth = accuracyTagTextWidth + iconSize + iconGap + tagPadding * 2;
+  const accuracyTagHeight = 24;
+  const tagStartX = width + 6;
+  const contentStartX = tagStartX + tagPadding * 2;
+  const tagGap = 4;
+  const wrongRawMagicList = comGraphStore.data.wrongRawMagicList ?? [];
+  const briefTagError = wrongRawMagicList.errorRawMagicList?.includes(String(node.rawMagic)) && node.role === 'output';
+  const briefTagException = wrongRawMagicList.exceptionRawMagicList?.includes(String(node.rawMagic)) && node.role === 'output';
+  const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
+
+  const accuracyExceptionTag = (briefTagException && !node.isMiddle)
+    ? buildAccuracyTag(0, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, '#D94838', currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal')
+    : null;
+  const accuracyErrorTag = (briefTagError && !node.isMiddle)
+    ? buildAccuracyTag(errorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
+    : null;
+
+  const taskTagError = (comGraphStore.data.failMagicList ?? []).includes(String(node.magic));
+  const taskErrorTagY = (briefTagException && !node.isMiddle ? accuracyTagHeight + tagGap : 0) + (briefTagError && !node.isMiddle ? accuracyTagHeight + tagGap : 0);
+  const taskErrorTag = taskTagError
+    ? buildAccuracyTag(taskErrorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
+    : null;
+
+  return { accuracyExceptionTag, accuracyErrorTag, taskErrorTag };
+}
+
 @injectable()
 export class AstgrTensorView extends RectangularNodeView {
   override render(
@@ -1320,23 +1488,11 @@ export class AstgrTensorView extends RectangularNodeView {
     const errClass = node.isError === true ? 'error-node' : '';
     const isMiniType = node.root.zoom < 0.04;
 
-    const trace = (args as AstgrViewArgs)?.trace ?? {
-      incomingEdges: new Set<string>(),
-      incomingNodes: new Set<string>(),
-      incomingPorts: new Set<string>(),
-      outgoingEdges: new Set<string>(),
-      outgoingNodes: new Set<string>(),
-      outgoingPorts: new Set<string>(),
-    };
-
-    const traceResult = isNodeTraced(node.id, trace);
-    const incoming = traceResult.incoming;
-    const outgoing = traceResult.outgoing;
-    const isTraced = incoming || outgoing;
-    if (comGraphStore.data.unVisibleOtherNodes && comGraphStore.data.inFixedComGraphFlow && !isTraced) {
+    const traceState = getOpTraceState(node.id, args, node.selected);
+    if (!traceState) {
       return undefined;
     }
-    const shouldDim = !isTraced && !node.selected;
+    const { incoming, outgoing, isTraced, shouldDim } = traceState;
 
     const waveOffset1 = 2;
     const downOffset = 2.5;
@@ -1349,93 +1505,18 @@ export class AstgrTensorView extends RectangularNodeView {
     const blurBgRectHeight = 30;
 
     const { radius, blueBgRectPaddingLeft, blueBgRectPaddingTop, correctHeight, selectedWaveMargin } = getTensorSelectedPadding(node);
-
-    const runningNodeRectOffset = 16;
     const isRunningNode = node.id === comGraphStore.data.runningNodeId;
-    const runningRectNode = isRunningNode ? (
-      <rect
-        width={Math.max(node.size.width + runningNodeRectOffset, 0)}
-        height={Math.max(node.size.height + runningNodeRectOffset + 4, 0)}
-        rx="10px"
-        stroke-width="3"
-        fill='transparent'
-        style={{ transform: `translate(-${runningNodeRectOffset / 2}px, -${runningNodeRectOffset / 2}px)` }}
-        class-running-node={true}
-      ></rect>
-    ) : null;
 
     const { titleBackgroundFillColor, inoutBackgroundFillColor, backgroundFilter } = getTensorBackgroundStyle(node, incoming, outgoing, errClass);
 
-    let rectNode: VNode;
-    if ((node.role !== 'input') && (node.role !== 'output')) {
-      rectNode = (
-        <g>
-          {runningRectNode}
-          <rect
-            class-sprotty-node={true}
-            class-tensor={true}
-            class-selected={node.selected}
-            x="0"
-            y="0"
-            width={Math.max(node.size.width, 0)}
-            height={Math.max(node.size.height + 4, 0)}
-            rx="8"
-            ry="8"
-            fill={isRunningNode ? 'var(--devui-base-invert-color)' : inoutBackgroundFillColor}
-            filter={backgroundFilter}
-            data-type={node.compareType}
-            class-tensor-diff-add={node.compareType === 'add'}
-            class-tensor-diff-delete={node.compareType === 'delete'}
-            class-tensor-diff-change={node.compareType === 'change'}
-          ></rect>
-          <path
-            d={`M ${blueBgRectPaddingLeft} ${blurBgRectHeight} L ${blueBgRectPaddingLeft} ${
-              radius + blueBgRectPaddingTop
-            } Q ${blueBgRectPaddingLeft} ${blueBgRectPaddingTop} ${radius + blueBgRectPaddingLeft} ${blueBgRectPaddingTop} L ${
-              blueBgRectWidth - blueBgRectPaddingLeft - radius
-            } ${blueBgRectPaddingTop} Q ${blueBgRectWidth - blueBgRectPaddingLeft} ${blueBgRectPaddingTop} ${
-              blueBgRectWidth - blueBgRectPaddingLeft
-            } ${radius + blueBgRectPaddingTop} L ${blueBgRectWidth - blueBgRectPaddingLeft} ${blurBgRectHeight} Z`}
-            fill={isRunningNode ? 'var(--devui-running-node-bg)' : titleBackgroundFillColor}
-            class-tensor-title-background-label={true}
-            filter={backgroundFilter}
-          ></path>
-        </g>
-      );
-    } else {
-      const errorColor = node.selected ? node.lightColor : node.baseColor;
-      rectNode = buildInOutRectNode(node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset, middleOffset, selectedWaveMargin, isRunningNode, isTraced, inoutBackgroundFillColor, errorColor, backgroundFilter);
-    }
+    const rectNode = getTensorRectNode({
+      node, width, height, radius, correctHeight, waveOffset1, waveOffset2, downOffset,
+      middleOffset, selectedWaveMargin, blueBgRectPaddingLeft, blueBgRectPaddingTop,
+      blueBgRectWidth, blurBgRectHeight, isRunningNode, isTraced,
+      inoutBackgroundFillColor, titleBackgroundFillColor, backgroundFilter,
+    });
 
-    const linkSvgPath = window.staticPath + '/static-assets/accurancy-abnormal.svg';
-    const currentLanguage = (window as any).ascLang;
-    const iconSize = 14;
-    const iconGap = 4;
-    const tagPadding = 6;
-    const iconPaddingTop = (24 - iconSize) / 2;
-    const accuracyTagTextWidth = currentLanguage === 'zh' ? 69 : 120;
-    const accuracyTagWidth = accuracyTagTextWidth + iconSize + iconGap + tagPadding * 2;
-    const accuracyTagHeight = 24;
-    const tagStartX = width + 6;
-    const contentStartX = tagStartX + tagPadding * 2;
-    const tagGap = 4;
-    const wrongRawMagicList = comGraphStore.data.wrongRawMagicList ?? [];
-    const briefTagError = wrongRawMagicList.errorRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
-    const briefTagException = wrongRawMagicList.exceptionRawMagicList?.includes(String(node.rawMagic)) && (node.role === 'output');
-    const errorTagY = node.isAccuracyException ? accuracyTagHeight + tagGap : 0;
-
-    const accuracyExceptionTag = (briefTagException && !node.isMiddle && !isMiniType)
-      ? buildAccuracyTag(0, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, '#D94838', currentLanguage === 'zh' ? '精度异常' : 'accurancy abnormal')
-      : null;
-    const accuracyErrorTag = (briefTagError && !node.isMiddle && !isMiniType)
-      ? buildAccuracyTag(errorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
-      : null;
-
-    const taskTagError = (comGraphStore.data.failMagicList ?? []).includes(String(node.magic)) && !isMiniType;
-    const taskErrorTagY = (briefTagException && !node.isMiddle ? accuracyTagHeight + tagGap : 0) + (briefTagError && !node.isMiddle ? accuracyTagHeight + tagGap : 0);
-    const taskErrorTag = taskTagError
-      ? buildAccuracyTag(taskErrorTagY, tagStartX, accuracyTagWidth, accuracyTagHeight, contentStartX, iconSize, iconGap, iconPaddingTop, linkSvgPath, 'rgba(246, 158, 57, 1)', currentLanguage === 'zh' ? '精度错误' : 'accurancy error')
-      : null;
+    const { accuracyExceptionTag, accuracyErrorTag, taskErrorTag } = getTensorAccuracyTags(node, width, isMiniType);
 
     return (
       <g
@@ -1717,7 +1798,7 @@ export class AstgrEdge extends PolylineEdgeView {
     const incoming = traceResult.incoming;
     const outgoing = traceResult.outgoing;
 
-    let path = generateRoundedPathWithArc(segments, 30);
+    const path = generateRoundedPathWithArc(segments, 30);
 
     let isParent = false;
     if (edge.role && edge.role === 'parent') {
@@ -1838,7 +1919,7 @@ export class CustomCompartmentView extends SCompartmentView {
     let vnode: VNode;
     if (isMetadataCompartment && selIndexes.length > 0 && lastChirdPosY) {
       const children: VNode[] = [];
-      let runningY = 0;
+      const runningY = 0;
 
       const filterMetadataCompartments = compartment.children.filter((_, idx) => selSet.has(idx));
       filterMetadataCompartments.forEach((element, index) => {

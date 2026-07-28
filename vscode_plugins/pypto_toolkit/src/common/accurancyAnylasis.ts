@@ -780,13 +780,10 @@ export async function getFailMagicList(
       wrongTaskNoList.push(magic);
     }
 
-    const updateCompareListFlag = await updateCompListFirstReq(csvPath, String(failCount));
-
     failMagicList = {
       accuType: 'task',
       failMagicList: wrongTaskNoList,
       failRes: failCount,
-      updateFlag: updateCompareListFlag,
     };
   } else if (fileType?.startsWith('op')) {
     const csvPath = outputPath || '';
