@@ -14,6 +14,7 @@ import { existsSync, promises as fs } from 'fs';
 import { createAllTables } from './cache-schema';
 import { ComGraphCache } from './com-graph-cache';
 import { AccuracyCache } from './accuracy-cache';
+import { TASK_CMP_FIELDS, extractParams } from './cache-field-maps';
 
 // Re-export all types for backward compatibility (no SwimGraph types)
 export type {
@@ -440,63 +441,7 @@ export class SQLiteCache {
         "A>infnan", "B>max", "B>min", "B>avg", "B>aavg", "B>zero", "B>infnan"
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-      data.sourceFileName ?? '',
-      data.no ?? '',
-      data.phaseName ?? '',
-      data.ioFlag ?? '',
-      data.loopInfo ?? '',
-      data.rootCallOpmagic ?? '',
-      data.rootCallRawmagic ?? '',
-      data.fileName ?? '',
-      data.aDatatype ?? '',
-      data.aFormat ?? '',
-      data.aMagic ?? '',
-      data.aOpcode ?? '',
-      data.aOpMagic ?? '',
-      data.aRawMagic ?? '',
-      data.aSymbol ?? '',
-      data.aValidshape ?? '',
-      data.aDynvalidshape ?? '',
-      data.aOpAttrAtomic ?? '',
-      data.aOpAttrSymOfst ?? '',
-      data.aFuncHash ?? '',
-      data.aPathHash ?? '',
-      data.aRootFuncHash ?? '',
-      data.bDataType ?? '',
-      data.bRawShape ?? '',
-      data.bValidShape ?? '',
-      data.bBlockIdx ?? '',
-      data.bOpAttrSymOfst ?? '',
-      data.bSeqNo ?? '',
-      data.bTaskId ?? '',
-      data.bTensorAddr ?? '',
-      data.bTimestamp ?? '',
-      data.bExecTimestamp ?? '',
-      data.result ?? '',
-      data.rtolAtol ?? '',
-      data.cntFailWarnTol ?? '',
-      data.cntTotalZeroInfnanCnt ?? '',
-      data.mae ?? '',
-      data.maeTop8 ?? '',
-      data.maeTop1permil ?? '',
-      data.mre ?? '',
-      data.mreTop8 ?? '',
-      data.mreTop1permil ?? '',
-      data.aMax ?? '',
-      data.aMin ?? '',
-      data.aAvg ?? '',
-      data.aAavg ?? '',
-      data.aZero ?? '',
-      data.aInfnan ?? '',
-      data.bMax ?? '',
-      data.bMin ?? '',
-      data.bAvg ?? '',
-      data.bAavg ?? '',
-      data.bZero ?? '',
-      data.bInfnan ?? '',
-    ];
-    this.db!.run(sql, params);
+    this.db!.run(sql, extractParams(TASK_CMP_FIELDS, data));
   }
 
   public async accuracyToolTaskCmpGetByFileName(

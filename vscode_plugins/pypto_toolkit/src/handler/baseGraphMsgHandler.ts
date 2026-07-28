@@ -32,6 +32,7 @@ import { collectOpMagic, getErrorMessage } from './error-log-parser';
 import { getAccurancyReport, searchAccurancySumList, getAccurancyDetail } from './accuracy-report-service';
 import { layout as nativeOrElkLayout, layoutByLocal, renderLayout } from './elk-layout-service';
 import { retryUntil, getMTime } from '../core/cache-query-helper';
+import { buildSubgraphQuery, applyFailMagicResults } from './subgraph-helpers';
 
 /* -------------------- 抽象基类 -------------------- */
 export abstract class BaseGraphMsgHandler {
@@ -242,98 +243,98 @@ export abstract class BaseGraphMsgHandler {
   /* ===================================================
    * 4. 公共能力
    * =================================================== */
+  /**
+   * 尝试复用已有面板。如果找到匹配面板则 reveal 并返回 true。
+   */
+  private static revealExistingPanel(server: any, gd: any): boolean {
+    const webviews: any = hismartliteEx.webviews;
+    if (server.entryHash == gd.calleehash) {
+      const title = basename(gd.fsPath);
+      const panel = webviews[title];
+      if (panel) {
+        panel.reveal(panel.ViewColumn);
+        return true;
+      }
+    }
+    if (Object.keys(webviews).includes(gd.subFuncmagicname)) {
+      const panel = webviews[gd.subFuncmagicname];
+      panel.reveal(panel.ViewColumn);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * ROOT 文件的子图跳转：在目录中查找匹配文件并打开。
+   */
+  private static openRootSubgraph(gd: any, calleehash: string, subFuncmagicname: string): void {
+    const rootFilePath = gd.fsPath;
+    const extName = path.extname(rootFilePath);
+    const rootBaseName = path.basename(rootFilePath, extName);
+    const splitIdx = rootBaseName.indexOf('_');
+    const filePrefix = rootBaseName.slice(0, splitIdx);
+    const fileDir = path.dirname(rootFilePath);
+    const fileList = fs.readdirSync(fileDir);
+    let targetPath = rootFilePath;
+    for (const matchedFile of fileList) {
+      if (matchedFile.endsWith(extName) && matchedFile.includes(calleehash) && matchedFile.startsWith(filePrefix)) {
+        targetPath = path.join(fileDir, matchedFile);
+        break;
+      }
+    }
+    commands.executeCommand('PyPTO.Open.OpenRenderGraphForCurrent', Uri.file(targetPath), subFuncmagicname);
+  }
+
   static async getSubgraph(
     server: any,
     subInfo: { calleehash: string; subFuncmagicname: string; curPath: string; calleeOpMagic?: string; calleeOpSubgraphId?: string },
     query: any,
   ) {
     let { calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId } = subInfo;
-    const webviews: any = hismartliteEx.webviews;
     const gd = server.comGraphData;
-    let existPanel;
-    if (server.entryHash == gd.calleehash) {
-      const title = basename(gd.fsPath);
-      existPanel = webviews[title];
-      existPanel.reveal(existPanel.ViewColumn);
-      return;
-    }
-    if (Object.keys(webviews).includes(gd.subFuncmagicname)) {
-      existPanel = webviews[gd.subFuncmagicname];
-      existPanel.reveal(existPanel.ViewColumn);
-      return;
-    }
 
-    let targetPath = gd.fsPath;
-    let targetCurPath = JSON.parse(curPath);
-    const rootFilePath = gd.fsPath;
-    const extName = path.extname(rootFilePath);
-    const rootBaseName = path.basename(rootFilePath, extName);
+    // 1. 面板复用检查
+    if (this.revealExistingPanel(server, gd)) return;
+
+    // 2. ROOT 文件 → 独立处理
+    const rootBaseName = path.basename(gd.fsPath, path.extname(gd.fsPath));
     if (rootBaseName.endsWith('ROOT')) {
-      const splitIdx = rootBaseName.indexOf('_');
-      const filePrefix = rootBaseName.slice(0, splitIdx);
-      const fileDir = path.dirname(rootFilePath);
-      const fileList = fs.readdirSync(fileDir);
-      for (let matchedFile of fileList) {
-        if (matchedFile.endsWith(extName) && matchedFile.includes(calleehash) && matchedFile.startsWith(filePrefix)) {
-          targetPath = path.join(fileDir, matchedFile);
-          targetCurPath = targetCurPath.filter((func) => func === calleehash);
-          break;
-        }
-      }
-      targetCurPath = JSON.stringify(targetCurPath);
-      commands.executeCommand('PyPTO.Open.OpenRenderGraphForCurrent', Uri.file(targetPath), subFuncmagicname);
-    } else {
-      const { useView } = await import('../view');
-      const { editorView } = useView();
-      // 统一处理 query 输入
-      const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
-
-      // 初始化 parentInfo：优先使用已有，否则新建 level=0
-      let parentInfo = oldQuery.parentInfo
-        ? { ...oldQuery.parentInfo }
-        : { level: 0 };
-
-      // 处理非根节点图的 parentInfo 补全（仅当有 calleeOpMagic + calleeOpSubgraphId）
-      if (!parentInfo.calleeOpMagic && !parentInfo.calleeOpSubgraphId && oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
-        parentInfo.calleeOpMagic = oldQuery.calleeOpMagic;
-        parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
-      }
-
-      // 判断是否为"返回上一级"操作：calleeOpMagic/calleeOpSubgraphId 未传入
-      const isGoBack = !calleeOpMagic && !calleeOpSubgraphId;
-
-      if (isGoBack) {
-        // 返回上一级：使用 parentInfo 中的信息，并减少 level
-        calleeOpMagic = parentInfo.calleeOpMagic;
-        calleeOpSubgraphId = parentInfo.calleeOpSubgraphId;
-        parentInfo.level -= 1;
-
-        // 如果回到第一级（level=1），清空 calleeOp 信息
-        if (parentInfo.level === 1) {
-          delete parentInfo.calleeOpMagic;
-          delete parentInfo.calleeOpSubgraphId;
-        }
-      } else {
-        // 进入下一级：增加 level
-        parentInfo.level += 1;
-      }
-
-      // 构造最终 query
-      const finalQuery = {
-        ...oldQuery,
-        funcHash: server.entryHash === calleehash ? undefined : calleehash,
-        subFuncmagicname: server.entryHash === calleehash ? undefined : subFuncmagicname,
-        curPath: server.entryHash === calleehash ? undefined : curPath,
-        calleeOpMagic: server.entryHash === calleehash ? undefined : calleeOpMagic,
-        calleeOpSubgraphId: server.entryHash === calleehash ? undefined : calleeOpSubgraphId,
-        isSearch: server.entryHash === calleehash ? undefined : oldQuery.isSearch,
-        parentInfo: server.entryHash === calleehash ? undefined : parentInfo,
-        nodeMagic: server.entryHash === calleehash ? undefined : oldQuery.nodeMagic,
-      };
-
-      editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery, title: subFuncmagicname });
-
+      this.openRootSubgraph(gd, calleehash, subFuncmagicname);
+      return;
     }
+
+    // 3. 非 ROOT → editorView 打开
+    const { useView } = await import('../view');
+    const { editorView } = useView();
+    const oldQuery = typeof query === 'string' ? JSON.parse(query) : query ?? {};
+
+    // 初始化 parentInfo
+    let parentInfo = oldQuery.parentInfo
+      ? { ...oldQuery.parentInfo }
+      : { level: 0 };
+
+    // parentInfo 补全
+    if (!parentInfo.calleeOpMagic && !parentInfo.calleeOpSubgraphId && oldQuery.calleeOpMagic && oldQuery.calleeOpSubgraphId) {
+      parentInfo.calleeOpMagic = oldQuery.calleeOpMagic;
+      parentInfo.calleeOpSubgraphId = oldQuery.calleeOpSubgraphId;
+    }
+
+    // 返回上一级 vs 进入下一级
+    const isGoBack = !calleeOpMagic && !calleeOpSubgraphId;
+    if (isGoBack) {
+      calleeOpMagic = parentInfo.calleeOpMagic;
+      calleeOpSubgraphId = parentInfo.calleeOpSubgraphId;
+      parentInfo.level -= 1;
+      if (parentInfo.level === 1) {
+        delete parentInfo.calleeOpMagic;
+        delete parentInfo.calleeOpSubgraphId;
+      }
+    } else {
+      parentInfo.level += 1;
+    }
+
+    const finalQuery = buildSubgraphQuery(server.entryHash, oldQuery, calleehash, subFuncmagicname, curPath, calleeOpMagic, calleeOpSubgraphId, parentInfo);
+    editorView.open('computeGraph', vscode.Uri.file(gd.fsPath), { query: finalQuery, title: subFuncmagicname });
   }
 
   static async loadEntryFunction(filePath: string, server: any): Promise<void> {
@@ -496,6 +497,39 @@ export abstract class BaseGraphMsgHandler {
   /* ===================================================
    * 5. 公共方法：
    * =================================================== */
+  /**
+   * 从 DB 或内存中获取 function 数据。返回 JSON 字符串或 undefined（失败时已设置错误消息）。
+   */
+  private static async fetchFuncData(gd: AbstractGraphData, server: any, diffType?: 'before' | 'after'): Promise<string | undefined> {
+    let funcHash = gd.funcHash;
+    if (server.title === 'multiple graph' && gd.firstExecFuncHash && gd.firstExecFuncHash !== '') {
+      funcHash = gd.firstExecFuncHash;
+      server.comGraphData.firstExecFuncHash = funcHash;
+      server.comGraphData.funcHash = funcHash;
+    }
+
+    let ret: string | undefined;
+    if (gd.isUsedDB && gd.funcHash) {
+      const row = await retryUntil(
+        () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || '' }),
+        { maxRetries: 3, delayMs: 50 },
+      );
+      ret = row?.data;
+    } else {
+      ret = gd.dataMap[gd.funcHash!] ?? undefined;
+    }
+
+    if (!ret) {
+      const cmd = gd.isUsedDB
+        ? 'pypto.comGraph.errorMessage.dbQueryError'
+        : 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph';
+      this.returnError(server, cmd, {}, 'pypto.comGraph.errorLogMessage.funcHash',
+        { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' }, diffType);
+    }
+
+    return ret;
+  }
+
   protected static async fetchGraphJson(
     gd: AbstractGraphData,
     server: any,
@@ -505,52 +539,18 @@ export abstract class BaseGraphMsgHandler {
     io?: any;
   }> {
     if (!gd) return { json: undefined };
-    let funcHash = gd.funcHash;
-    if (server.title === 'multiple graph') {
-      if (gd.firstExecFuncHash && (gd.firstExecFuncHash !== '')) {
-        funcHash = gd.firstExecFuncHash;
-        server.comGraphData.firstExecFuncHash = funcHash;
-        server.comGraphData.funcHash = funcHash;
-      }
-    }
 
-    let ret: string | undefined = undefined;
-    if (gd.isUsedDB && gd.funcHash) {
-      const row = await retryUntil(
-        () => getComGraphFuncDataStore().find({ filePath: gd.fsPath, funcHash: funcHash || '' }),
-        {
-          maxRetries: 3,
-          delayMs: 50,
-        }
-      );
-      ret = row?.data;
-    } else {
-      ret = gd.dataMap[gd.funcHash!] ?? undefined;
-    }
-    if (!ret) {
-      if (gd.isUsedDB) {
-        this.returnError(server, 'pypto.comGraph.errorMessage.dbQueryError', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' }, diffType);
-      } else {
-        this.returnError(server, 'pypto.comGraph.errorMessage.parseDataErrorOnOpenComGraph', {}, 'pypto.comGraph.errorLogMessage.funcHash', { funcHash: gd.funcHash ? gd.funcHash : 'not found', message: '' }, diffType);
-      }
-      return { json: undefined };
-    }
+    const ret = await this.fetchFuncData(gd, server, diffType);
+    if (!ret) return { json: undefined };
 
     const failMagicRes = await getFailMagicList(gd.fsPath, gd.funcHash,
       server.query?.loopInfo, server.query?.fileType, server.query?.outputPath,
       server.query?.flowVerifyPath, server.query?.computeGraphDirPath, server.query?.rootFuncHash, server.query?.pathFunchash);
-    if (!server.comGraphData.wrongRawMagicList && (failMagicRes.accuType === 'brief')) {
-      const wrongRes = Object.fromEntries(Object.entries(failMagicRes.wrongRawMagicList).map(([k, v]) => [k, v instanceof Set ? [...v] : []]));
-      server.comGraphData.wrongRawMagicList = wrongRes;
-    } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'op')) {
-      server.comGraphData.failOpMagicList = failMagicRes.failMagicList;
-    } else if (!server.comGraphData.failOpMagicList && (failMagicRes.accuType === 'task')) {
-      server.comGraphData.failMagicList = failMagicRes.failMagicList;
-    }
+    applyFailMagicResults(server.comGraphData, failMagicRes);
 
     const json = JSON.parse(ret);
     await this.returnCalleeMap(gd, server, json, diffType);
-    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(funcHash!);
+    const io = BaseGraphMsgHandler.globalCallInOutTensorMap.get(gd.funcHash!);
     return { json, io };
   }
 

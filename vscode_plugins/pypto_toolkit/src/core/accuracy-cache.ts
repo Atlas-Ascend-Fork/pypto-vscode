@@ -18,6 +18,7 @@ import type {
   accuFilePathData,
   PaginatedResult,
 } from './cache-types';
+import { ACCURACY_TOOL_FIELDS, ACCURACY_TOOL_CMP_FIELDS, extractParams } from './cache-field-maps';
 
 // ============================================================
 // SQL SELECT column constants
@@ -272,40 +273,7 @@ export class AccuracyCache {
         "B>TIMESTAMP"
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-      data.filePath ?? '',
-      data.no ?? '',
-      data.phaseName ?? '',
-      data.funcMagicName ?? '',
-      data.rawMagic ?? '',
-      data.result ?? '',
-      data.dataType ?? '',
-      data.validShape ?? '',
-      data.loopInfo ?? '',
-      data.rtolAtol ?? '',
-      data.cntFailWarnTol ?? '',
-      data.cntTotalZeroInfnanCnt ?? '',
-      data.mre ?? '',
-      data.mreTop1permil ?? '',
-      data.mreTop8 ?? '',
-      data.mae ?? '',
-      data.maeTop8 ?? '',
-      data.maeTop1permil ?? '',
-      data.aMax ?? '',
-      data.aMin ?? '',
-      data.aAvg ?? '',
-      data.aAavg ?? '',
-      data.aZero ?? '',
-      data.aInfnan ?? '',
-      data.bMax ?? '',
-      data.bMin ?? '',
-      data.bAvg ?? '',
-      data.bAavg ?? '',
-      data.bZero ?? '',
-      data.bInfnan ?? '',
-      data.bTimestamp ?? '',
-    ];
-    this.db.run(sql, params);
+    this.db.run(sql, extractParams(ACCURACY_TOOL_FIELDS, data));
   }
 
   /**
@@ -814,60 +782,7 @@ export class AccuracyCache {
         "B>TIMESTAMP"
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-      data.filePath ?? '',
-      data.no ?? '',
-      data.pathFuncMagicName ?? '',
-      data.loopInfo ?? '',
-      data.symbol ?? '',
-      data.validShape ?? '',
-      data.dataType ?? '',
-      data.opAttrSymOffset ?? '',
-      data.aOpMagic ?? '',
-      data.bPhaseName ?? '',
-      data.aPhaseName ?? '',
-      data.aOpcode ?? '',
-      data.aRawShape ?? '',
-      data.aShape ?? '',
-      data.aFormat ?? '',
-      data.aFuncMagic ?? '',
-      data.aFuncHash ?? '',
-      data.aRootFuncHash ?? '',
-      data.aFileName ?? '',
-      data.aMax ?? '',
-      data.aMin ?? '',
-      data.aAvg ?? '',
-      data.aAavg ?? '',
-      data.aZero ?? '',
-      data.aInfnan ?? '',
-      data.bOpMagic ?? '',
-      data.bOpcode ?? '',
-      data.bRawShape ?? '',
-      data.bShape ?? '',
-      data.bFormat ?? '',
-      data.bFuncMagic ?? '',
-      data.bFuncHash ?? '',
-      data.bRootFuncHash ?? '',
-      data.bFileName ?? '',
-      data.bMax ?? '',
-      data.bMin ?? '',
-      data.bAvg ?? '',
-      data.bAavg ?? '',
-      data.bZero ?? '',
-      data.bInfnan ?? '',
-      data.abResult ?? '',
-      data.abRtolAtol ?? '',
-      data.abFailWarnTol ?? '',
-      data.abTotalZeroInfnanCnt ?? '',
-      data.abMre ?? '',
-      data.abMreTop8 ?? '',
-      data.abMreTop1permil ?? '',
-      data.abMae ?? '',
-      data.abMaeTop8 ?? '',
-      data.abMaeTop1permil ?? '',
-      data.bTimestamp ?? '',
-    ];
-    this.db.run(sql, params);
+    this.db.run(sql, extractParams(ACCURACY_TOOL_CMP_FIELDS, data));
   }
 
   /**
