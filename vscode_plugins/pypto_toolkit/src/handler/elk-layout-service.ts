@@ -60,7 +60,7 @@ export async function layout(
       if (result) {
         const elapsed = performance.now() - nativeStart;
         console.log(`[native-layout] ${nodeCount} nodes, ${elapsed.toFixed(1)}ms, result=native`);
-        server.setRef('LayoutResult', { data: result });
+        server.setRef('LayoutResult', { data: result, filePath: gd.layoutOptions?.['PyPTO.filePath'] });
         return;
       }
       console.warn('[native-layout] graphLayout returned falsy, falling back to elk');
@@ -245,8 +245,7 @@ export async function renderLayout(
 
 /**
  * 将布局结果发送给前端。
- * 默认实现：直接发送 LayoutResult。
- * DiffGraphHandler 子类会重写此方法，附加 filePath。
+ * 包含 filePath 以支持对比图场景（两个实例共享 LayoutResult ref，需要 filePath 区分）。
  */
 export function postLayoutResult(
   server: any,
@@ -254,5 +253,5 @@ export function postLayoutResult(
   filePath?: string,
   getComGraphData?: GetComGraphDataFn,
 ): void {
-  server.setRef('LayoutResult', { data: JSON.parse(jsonStr) });
+  server.setRef('LayoutResult', { data: JSON.parse(jsonStr), filePath });
 }
