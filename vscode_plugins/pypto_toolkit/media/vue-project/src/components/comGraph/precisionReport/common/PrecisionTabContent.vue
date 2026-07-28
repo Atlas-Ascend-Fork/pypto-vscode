@@ -125,6 +125,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 
   .tabs-wrapper {
     display: flex;
@@ -194,6 +195,8 @@ defineExpose({
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: auto;
+    scrollbar-gutter: stable;
   }
 }
 </style>

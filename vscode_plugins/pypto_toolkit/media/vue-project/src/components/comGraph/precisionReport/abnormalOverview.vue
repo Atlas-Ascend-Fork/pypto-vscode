@@ -8,54 +8,56 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  -->
 <template>
-  <div class="tolerance-benchmark-card">
-    <div class="benchmark-header">
-      <span class="benchmark-label">{{ t('judgmentBasis') }}</span>
-      <span class="benchmark-divider"></span>
-      <div class="benchmark-data-item">
-        <span class="benchmark-data-label">Rtol</span>
-        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
-          <i class="icon icon-helping"></i>
-          <template #content>
-            <span>{{ t('rtolThreshold') }}</span>
-          </template>
-        </d-tooltip>
-        <span class="benchmark-data-value">{{ rtolValue }}</span>
-      </div>
-      <div class="benchmark-data-item">
-        <span class="benchmark-data-label">Atol</span>
-        <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
-          <i class="icon icon-helping"></i>
-          <template #content>
-            <span>{{ t('atolThreshold') }}</span>
-          </template>
-        </d-tooltip>
-        <span class="benchmark-data-value">{{ atolValue }}</span>
-      </div>
-    </div>
-    <div class="benchmark-footer">
-      <div v-for="item in warnFailInfo" :key="item.label" class="benchmark-item-data">
-        <div>
-          <span class="label-text">{{ item.label }}</span>
-          <d-tooltip v-if="item.desc" overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+  <div class="abnormal-overview-wrap">
+    <div class="tolerance-benchmark-card">
+      <div class="benchmark-header">
+        <span class="benchmark-label">{{ t('judgmentBasis') }}</span>
+        <span class="benchmark-divider"></span>
+        <div class="benchmark-data-item">
+          <span class="benchmark-data-label">Rtol</span>
+          <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
             <i class="icon icon-helping"></i>
             <template #content>
-              <span>{{ item.desc }}</span>
+              <span>{{ t('rtolThreshold') }}</span>
             </template>
           </d-tooltip>
+          <span class="benchmark-data-value">{{ rtolValue }}</span>
         </div>
-        <span class="value-text" :class="`value-${item.label}`">{{ item.value }}</span>
+        <div class="benchmark-data-item">
+          <span class="benchmark-data-label">Atol</span>
+          <d-tooltip overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+            <i class="icon icon-helping"></i>
+            <template #content>
+              <span>{{ t('atolThreshold') }}</span>
+            </template>
+          </d-tooltip>
+          <span class="benchmark-data-value">{{ atolValue }}</span>
+        </div>
+      </div>
+      <div class="benchmark-footer">
+        <div v-for="item in warnFailInfo" :key="item.label" class="benchmark-item-data">
+          <div>
+            <span class="label-text">{{ item.label }}</span>
+            <d-tooltip v-if="item.desc" overlay-class="com-graph-report-standard-tips" :position="['top', 'top-start', 'top-end']">
+              <i class="icon icon-helping"></i>
+              <template #content>
+                <span>{{ item.desc }}</span>
+              </template>
+            </d-tooltip>
+          </div>
+          <span class="value-text" :class="`value-${item.label}`">{{ item.value }}</span>
+        </div>
       </div>
     </div>
-  </div>
-  <OverviewCard :data="countInfo" variant="footer" />
-  <!-- <OverviewCard :data="warnFailInfo" /> -->
+    <OverviewCard :data="countInfo" variant="footer" />
+    <!-- <OverviewCard :data="warnFailInfo" /> -->
     <div class="section-title">{{ t('relativeError') }}</div>
     <OverviewCard :data="relativeErrorInfo" variant="footer" />
     <div class="section-title">{{ t('absoluteError') }}</div>
     <OverviewCard :data="absoluteErrorInfo" variant="footer" />
     <div class="section-title">{{ t('valueDistributionComparison') }}</div>
     <d-data-grid :data="overviewList" :columns="overviewListColumns" size="xs" class="overview-data-list"></d-data-grid>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -165,6 +167,10 @@ const overviewListColumns = ref([
 </script>
 
 <style lang="scss">
+.abnormal-overview-wrap {
+  flex-shrink: 0;
+}
+
 .tolerance-benchmark-card {
   display: flex;
   flex-direction: column;
