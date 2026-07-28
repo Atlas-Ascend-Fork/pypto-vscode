@@ -1207,23 +1207,36 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   ctx.stroke();
 };
 
-const timelineWithUnit = (timelineRangeInMicroseconds, timeInMicroseconds) => {
+const timelineWithUnit = (timelineRangeInMicroseconds, timeInMicroseconds, intervalInMicroseconds) => {
   const seconds = timelineRangeInMicroseconds / MICROSECONDS_PER_SECOND;
   const minutes = seconds / 60;
+  const milliseconds = timelineRangeInMicroseconds / 1000;
+
+  let divisor;
+  let unit;
 
   if (minutes >= 1) {
-    return { value: (timeInMicroseconds / (MICROSECONDS_PER_SECOND * 60)).toFixed(1), unit: 'min' };
+    divisor = MICROSECONDS_PER_SECOND * 60;
+    unit = 'min';
+  } else if (seconds >= 1) {
+    divisor = MICROSECONDS_PER_SECOND;
+    unit = 's';
+  } else if (milliseconds >= 1) {
+    divisor = 1000;
+    unit = 'ms';
+  } else if (timelineRangeInMicroseconds >= 1) {
+    divisor = 1;
+    unit = 'µs';
+  } else {
+    divisor = 1 / NANOSECONDS_PER_MICROSECOND;
+    unit = 'ns';
   }
 
-  if (seconds >= 1) {
-    return { value: (timeInMicroseconds / MICROSECONDS_PER_SECOND).toFixed(1), unit: 's' };
-  }
+  const intervalInUnit = Math.abs(intervalInMicroseconds / divisor);
+  const precision = Math.min(3, Math.max(0, Math.ceil(-Math.log10(intervalInUnit))));
+  const value = timeInMicroseconds / divisor;
 
-  if (timelineRangeInMicroseconds >= 1) {
-    return { value: timeInMicroseconds.toFixed(0), unit: 'µs' };
-  }
-
-  return { value: (timeInMicroseconds * NANOSECONDS_PER_MICROSECOND).toFixed(0), unit: 'ns' };
+  return { value: (Math.abs(value) < Number.EPSILON ? 0 : value).toFixed(precision), unit };
 };
 
 const getTimelineLabelPosition = (ctx, labels, tickX, canvasWidth, lastLabelRight) => {
@@ -1272,8 +1285,6 @@ const renderFixedTimeline = () => {
   ctx.lineTo(viewState.canvasCssWidth, 20);
   ctx.stroke();
 
-  let lastx = 0;
-  let distance = 0;
   let lastLabelRight = -Infinity;
   const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = viewState.timeRange / canvasWidth;
@@ -1297,7 +1308,25 @@ const renderFixedTimeline = () => {
   for (let time = viewState.minTime; time <= viewState.maxTime; time += gridInterval) {
     const x = fixedTimeToX(time) - layout.processLabelWidth;
     if (x >= 0 && x <= canvasWidth) {
-      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+
+      const nextX = fixedTimeToX(time + gridInterval) - layout.processLabelWidth;
+      const segmentWidth = (nextX - x) / 10;
+      for (let i = 1; i < 10; i++) {
+        const segmentX = x + i * segmentWidth;
+        if (segmentX <= 0 || segmentX >= canvasWidth) {
+          continue;
+        }
+        ctx.beginPath();
+        ctx.moveTo(segmentX, 20);
+        ctx.lineTo(segmentX, 10);
+        ctx.stroke();
+      }
+
+      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime, gridInterval);
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
@@ -1306,36 +1335,12 @@ const renderFixedTimeline = () => {
       const label = `${value}${unit}`;
       const labelPosition = getTimelineLabelPosition(ctx, [label, xToTimeValue(time)], x, canvasWidth, lastLabelRight);
       if (!labelPosition) {
-        lastx = x;
         continue;
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-      distance = x - lastx;
-      const segmentWidth = distance / 10;
-      for (let i = 1; i < 10; i++) {
-        const segmentX = x + i * segmentWidth;
-        ctx.beginPath();
-        ctx.moveTo(segmentX, 20);
-        ctx.lineTo(segmentX, 10);
-        ctx.stroke();
       }
 
       ctx.fillText(label, labelPosition.x, 15);
       lastLabelRight = labelPosition.right;
     }
-    lastx = x;
-  }
-
-  for (let i = 1; i < 10; i++) {
-    const segmentx = i * (distance / 10);
-    ctx.beginPath();
-    ctx.moveTo(segmentx, 20);
-    ctx.lineTo(segmentx, 10);
-    ctx.stroke();
   }
 
   drawFixedTimelineSlider(ctx, canvas, startTimex, endTimex);
@@ -1415,7 +1420,7 @@ const renderTimeline = () => {
       x = 0;
     }
     if (x >= 0 && x <= viewState.canvasCssWidth) {
-      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime);
+      const { value, unit } = timelineWithUnit(timelineTimeRange, time - timelineState.startTime, gridInterval);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       const timeValue = xToTimeValue(time);
@@ -1692,10 +1697,6 @@ const initChart = (onRendered) => {
   myChart.getZr().on('globalout', () => {
     hoveredRegionData = null;
   });
-
-  myChart.on('mouseover', { seriesId: 'overlaps' }, () => setChartCursor('default'));
-  myChart.on('mousemove', { seriesId: 'overlaps' }, () => setChartCursor('default'));
-  myChart.on('mouseout', { seriesId: 'overlaps' }, () => setChartCursor('default'));
 };
 const resizeChart = () => {
   const visibleStartTime = timelineState.startTime;

@@ -89,6 +89,22 @@ describe('GM memory happy-path pipeline', () => {
     expect(blocks.map((block) => block.conflicts)).toEqual([['b'], ['d'], ['a'], ['c']]);
   });
 
+  it('checks hasOverlap by default and can disable the feature', () => {
+    const blocks: any[] = [
+      { end: 8, endAddr: 30, magicId: 'a', name: 'a', rawObj: { rawId: 'a' }, regionId: 0, start: 0, startAddr: 10 },
+      { end: 7, endAddr: 40, magicId: 'b', name: 'b', rawObj: { rawId: 'b' }, regionId: 0, start: 2, startAddr: 20 },
+    ];
+
+    expect(detectConflicts(blocks, '').overlaps).toHaveLength(1);
+
+    blocks[1].hasOverlap = false;
+    expect(detectConflicts(blocks, '').overlaps).toEqual([]);
+    expect(detectConflicts(blocks, '', false).overlaps).toHaveLength(1);
+
+    blocks[1].hasOverlap = true;
+    expect(detectConflicts(blocks, '').overlaps).toHaveLength(1);
+  });
+
   it('preserves boundary, equal-start, and numeric-string region semantics', () => {
     const blocks: any[] = [
       { end: 5, endAddr: 20, magicId: 'a', name: 'a', rawObj: { rawId: 'a' }, regionId: '1', start: 0, startAddr: 0 },

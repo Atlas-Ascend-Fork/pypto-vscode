@@ -7,6 +7,8 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
+import { ENABLE_HAS_OVERLAP_CHECK } from './memoryFeatureFlags';
+
 export interface ConflictOverlap {
   x1: number;
   y1: number;
@@ -25,8 +27,9 @@ export interface ConflictResult {
 export function detectConflicts(
   memoryBlocksRaw: BlockItem[],
   searchQuery: string,
+  checkHasOverlap = ENABLE_HAS_OVERLAP_CHECK,
 ): ConflictResult {
-  const blocks = filterBlocksByQuery(memoryBlocksRaw, searchQuery);
+  const blocks = filterBlocksByQuery(memoryBlocksRaw, searchQuery, checkHasOverlap);
   resetBlockState(blocks);
 
   const sortedBlocks = [...blocks].sort((a, b) => a.start - b.start);
@@ -43,12 +46,14 @@ export function detectConflicts(
   return { overlaps: overlapList };
 }
 
-function filterBlocksByQuery(memoryBlocksRaw: BlockItem[], searchQuery: string): BlockItem[] {
+function filterBlocksByQuery(memoryBlocksRaw: BlockItem[], searchQuery: string, checkHasOverlap: boolean): BlockItem[] {
   const q = searchQuery.trim().toLowerCase();
-  if (!q) {
-    return memoryBlocksRaw;
-  }
-  return memoryBlocksRaw.filter((item) => (String(item.magicId) || '').toLowerCase().includes(q));
+  return memoryBlocksRaw.filter((item) => {
+    if (checkHasOverlap && item.hasOverlap === false) {
+      return false;
+    }
+    return !q || (String(item.magicId) || '').toLowerCase().includes(q);
+  });
 }
 
 function resetBlockState(blocks: BlockItem[]): void {

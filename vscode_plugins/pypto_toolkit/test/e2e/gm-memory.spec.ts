@@ -48,6 +48,13 @@ interface RulerRange {
   span: number;
 }
 
+const RULER_DIVISORS: Record<string, number> = {
+  B: 1,
+  KB: 1024,
+  MB: 1024 * 1024,
+  GB: 1024 * 1024 * 1024,
+};
+
 interface GmMemoryEvidence {
   console: Array<{ text: string; type: string }>;
   failedRequests: Array<{ error: string; url: string }>;
@@ -167,14 +174,20 @@ async function rulerLabels(page: Page): Promise<string[]> {
     const labels = detailTrace
       .filter((entry) => entry.timestamp >= latestTimestamp - 20)
       .filter((entry) => entry.rotated && /#666666|rgb\(102,\s*102,\s*102\)/i.test(entry.fillStyle))
-      .filter((entry) => /-?[0-9.,]+\s*KB/i.test(entry.text))
+      .filter((entry) => /-?[0-9.,]+\s*(?:B|KB|MB|GB)/i.test(entry.text))
       .map((entry) => entry.text);
     return [...new Set(labels.slice(-80))];
   });
 }
 
 function rulerRange(labels: string[]): RulerRange | null {
-  const values = labels.map((label) => Number(label.replace(',', '.').replace(/[^0-9.-]/g, ''))).filter(Number.isFinite);
+  const values = labels.map((label) => {
+    const match = label.trim().match(/^(-?(?:\d+(?:[.,]\d+)?))\s*(GB|MB|KB|B)$/i);
+    if (!match) {
+      return NaN;
+    }
+    return Number(match[1].replace(',', '.')) * RULER_DIVISORS[match[2].toUpperCase()];
+  }).filter(Number.isFinite);
   return values.length ? { max: Math.max(...values), min: Math.min(...values), span: Math.max(...values) - Math.min(...values) } : null;
 }
 
@@ -208,7 +221,7 @@ async function selectFilterableTensor(page: Page, writeSwitch: Locator): Promise
   const tabCount = await tabs.count();
   for (let index = 0; index < tabCount; index++) {
     await tabs.nth(index).click();
-    const chart = page.locator('.echarts-dom');
+    const chart = page.locator('.memory-lane-chart');
     const writeCanvas = await waitForPaintedCanvas(chart);
     await writeSwitch.click();
     let allCanvas: CanvasStats;
@@ -327,7 +340,7 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
   await test.step('single tensor selection', async () => {
     const selection = await findSelection(page, 'colored', 1);
     await expect(page.locator('.tensor-tab[aria-selected="true"]')).toHaveCount(1);
-    await expect(page.locator('.echarts-dom canvas')).not.toHaveCount(0);
+     await expect(page.locator('.memory-lane-chart canvas')).not.toHaveCount(0);
     await expect(page.getByLabel('Show writes only')).toHaveCount(1);
     evidence.scenarios.singleSelection = selection;
     await capture(page, testInfo, evidence, '02-sidebar');
@@ -341,12 +354,12 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     await activeTab.hover();
     await expect(page.locator('.tensor-preview')).toBeVisible();
     const preview = await page.locator('.tensor-preview').innerText();
-    const before = await canvasStats(page.locator('.echarts-dom'));
+     const before = await canvasStats(page.locator('.memory-lane-chart'));
     const nextButton = page.getByRole('button', { name: 'Next tensor' });
     await expect(nextButton).toBeEnabled();
     await nextButton.click();
     const nextTitle = await page.locator('.tensor-tab[aria-selected="true"]').getAttribute('title');
-    const after = await canvasStats(page.locator('.echarts-dom'));
+     const after = await canvasStats(page.locator('.memory-lane-chart'));
     expect(nextTitle).not.toBe(initialTitle);
     expect(after.hash).not.toBe(before.hash);
     const previousButton = page.getByRole('button', { name: 'Previous tensor' });
@@ -366,7 +379,7 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     const fullLabels = await rulerLabels(page);
     fullRange = requireRulerRange(rulerRange(fullLabels));
     await clearRulerTrace(page);
-    await page.locator('.echarts-dom').hover();
+     await page.locator('.memory-lane-chart').hover();
     await page.keyboard.down('Control');
     for (let index = 0; index < 5; index++) {
       await page.mouse.wheel(0, -260);
@@ -376,11 +389,93 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     const zoomLabels = await rulerLabels(page);
     zoomRange = requireRulerRange(rulerRange(zoomLabels));
     expect(zoomRange.span, JSON.stringify({ fullLabels, zoomLabels })).toBeLessThan(fullRange.span);
-    const zoomCanvas = await canvasStats(page.locator('.echarts-dom'));
-    expect(zoomCanvas.hash).not.toBe(restoredCanvas.hash);
-    evidence.scenarios.filterAndZoom = { ...filterEvidence, fullRange, zoomCanvas, zoomRange };
-    await capture(page, testInfo, evidence, '03-zoomed');
-  });
+     const zoomCanvas = await canvasStats(page.locator('.memory-lane-chart'));
+     expect(zoomCanvas.painted).toBeGreaterThan(100);
+       await test.step('fixed slider updates the shared range while lanes scroll', async () => {
+         await page.setViewportSize({ width: 1900, height: 600 });
+         const body = page.locator('.sidebar-body-wrapper');
+         const controls = page.locator('.memory-zoom-controls');
+         const beforeControls = await controls.boundingBox();
+         await body.evaluate((element) => {
+           element.style.flex = '0 0 200px';
+           element.style.height = '200px';
+           element.scrollTop = element.scrollHeight;
+         });
+         await expect.poll(async () => body.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+         await body.evaluate((element) => {
+           element.scrollTop = element.scrollHeight;
+         });
+         await expect.poll(async () => body.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+         const afterControls = await controls.boundingBox();
+         expect(afterControls).not.toBeNull();
+         expect(Math.abs((afterControls?.y || 0) - (beforeControls?.y || 0))).toBeLessThanOrEqual(1);
+         const controlCanvas = page.locator('.memory-control-chart canvas');
+         await expect(controlCanvas).toBeVisible();
+         expect((await controlCanvas.boundingBox())?.height || 0).toBeGreaterThan(100);
+         await expect(page.locator('.memory-lane-chart')).toBeVisible();
+
+         const control = page.locator('.memory-control-chart');
+         const box = await control.boundingBox();
+         if (!box) {
+           throw new Error('Memory control chart is not visible');
+         }
+        const total = fullRange.max || 1;
+        const start = zoomRange.min - zoomRange.span / 16;
+        const plotLeft = box.x + 110;
+        const plotWidth = box.width - 140;
+        const handleX = plotLeft + (start / total) * plotWidth;
+        const handleY = box.y + 18;
+        await clearRulerTrace(page);
+        await page.mouse.move(handleX, handleY);
+        await page.mouse.down();
+        await page.mouse.move(handleX + 35, handleY, { steps: 6 });
+         await page.mouse.up();
+         await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(zoomRange.min, 1);
+         zoomRange = requireRulerRange(rulerRange(await rulerLabels(page)));
+         const beforeRulerPan = zoomRange;
+         const rulerY = box.y + 90;
+         await clearRulerTrace(page);
+         await page.mouse.move(plotLeft + plotWidth / 2, rulerY);
+         await page.mouse.down();
+         await page.mouse.move(plotLeft + plotWidth / 2 + 35, rulerY, { steps: 6 });
+         await page.mouse.up();
+         await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(beforeRulerPan.min, 1);
+         zoomRange = requireRulerRange(rulerRange(await rulerLabels(page)));
+         evidence.scenarios.fixedControls = {
+           controlY: afterControls?.y,
+           rulerPan: { after: zoomRange, before: beforeRulerPan },
+           scrollTop: await body.evaluate((element) => element.scrollTop),
+           zoomRange,
+         };
+         await body.evaluate((element) => {
+           element.style.flex = '';
+           element.style.height = '';
+           element.scrollTop = 0;
+         });
+         await page.setViewportSize({ width: 1900, height: 950 });
+       });
+      evidence.scenarios.filterAndZoom = { ...filterEvidence, fullRange, zoomCanvas, zoomRange };
+     await capture(page, testInfo, evidence, '03-zoomed');
+
+     await test.step('horizontal plot drag pans the shared range', async () => {
+       const lane = page.locator('.memory-lane-chart');
+       const box = await lane.boundingBox();
+       if (!box) {
+         throw new Error('Memory lane chart is not visible');
+       }
+       const beforePan = requireRulerRange(rulerRange(await rulerLabels(page)));
+       const y = box.y + Math.min(100, box.height / 2);
+       await page.mouse.move(box.x + 260, y);
+       await page.mouse.down();
+       await page.mouse.move(box.x + 340, y, { steps: 8 });
+       await page.mouse.up();
+       await expect.poll(async () => rulerRange(await rulerLabels(page))?.span || 0).toBeGreaterThan(0);
+       const afterPan = requireRulerRange(rulerRange(await rulerLabels(page)));
+       expect(Math.abs(afterPan.span - beforePan.span)).toBeLessThan(Math.max(0.05, beforePan.span * 0.05));
+       expect(afterPan.min).not.toBeCloseTo(beforePan.min, 2);
+       evidence.scenarios.horizontalPan = { beforePan, afterPan };
+     });
+   });
 
   await test.step('zoom state survives filtering and resizing', async () => {
     await clearRulerTrace(page);
@@ -396,26 +491,28 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     if (!box) {
       throw new Error('Resize handle is not visible');
     }
-    const beforeResize = await page.locator('.echarts-dom').boundingBox();
+     const beforeResize = await page.locator('.memory-lane-chart').boundingBox();
+    const beforeResizeLabels = await rulerLabels(page);
     await clearRulerTrace(page);
     await page.mouse.move(box.x + box.width / 2, box.y + 100);
     await page.mouse.down();
     await page.mouse.move(box.x - 100, box.y + 100, { steps: 8 });
     await page.mouse.up();
     await expect.poll(async () => {
-      const currentBox = await page.locator('.echarts-dom').boundingBox();
+       const currentBox = await page.locator('.memory-lane-chart').boundingBox();
       return currentBox ? currentBox.width : 0;
     }).not.toBe(beforeResize?.width || 0);
     const resizedRange = requireRulerRange(rulerRange(await rulerLabels(page)));
     expect(Math.abs(resizedRange.span - zoomRange.span)).toBeLessThan(Math.max(0.01, zoomRange.span * 0.08));
+    expect(await rulerLabels(page)).toEqual(beforeResizeLabels);
 
     await clearRulerTrace(page);
     const tabs = page.locator('.tensor-tab');
     const originalTabTitle = await page.locator('.tensor-tab[aria-selected="true"]').getAttribute('title');
     const firstTabIsActive = (await tabs.first().getAttribute('aria-selected')) === 'true';
-    const beforeSwitch = await canvasStats(page.locator('.echarts-dom'));
+     const beforeSwitch = await canvasStats(page.locator('.memory-lane-chart'));
     await tabs.nth(firstTabIsActive ? 1 : 0).click();
-    await waitForCanvasHashChange(page.locator('.echarts-dom'), beforeSwitch.hash);
+     await waitForCanvasHashChange(page.locator('.memory-lane-chart'), beforeSwitch.hash);
     const switchedTensorRange = requireRulerRange(rulerRange(await rulerLabels(page)));
     const originalTabIndex = await tabs.evaluateAll(
       (elements, title) => elements.findIndex((element) => element.getAttribute('title') === title),
@@ -423,9 +520,9 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     );
     expect(originalTabIndex).toBeGreaterThanOrEqual(0);
     await clearRulerTrace(page);
-    const beforeRestore = await canvasStats(page.locator('.echarts-dom'));
+     const beforeRestore = await canvasStats(page.locator('.memory-lane-chart'));
     await tabs.nth(originalTabIndex).click();
-    await waitForCanvasHashChange(page.locator('.echarts-dom'), beforeRestore.hash);
+     await waitForCanvasHashChange(page.locator('.memory-lane-chart'), beforeRestore.hash);
     const restoredTensorRange = requireRulerRange(rulerRange(await rulerLabels(page)));
     expect(Math.abs(restoredTensorRange.span - fullRange.span)).toBeLessThan(Math.max(0.01, fullRange.span * 0.05));
     expect(restoredTensorRange.span).toBeGreaterThan(zoomRange.span);
@@ -436,12 +533,12 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
   await test.step('narrow viewport and runtime health', async () => {
     await page.setViewportSize({ width: 1200, height: 800 });
     await expect.poll(async () => {
-      const currentBox = await page.locator('.echarts-dom').boundingBox();
+       const currentBox = await page.locator('.memory-lane-chart').boundingBox();
       return currentBox ? currentBox.width : 0;
     }).toBeGreaterThan(300);
     const switchBox = await writeSwitch.boundingBox();
     const closeBox = await page.getByRole('button', { name: 'Close panel' }).boundingBox();
-    const detailBox = await page.locator('.echarts-dom').boundingBox();
+     const detailBox = await page.locator('.memory-lane-chart').boundingBox();
     if (!switchBox || !closeBox || !detailBox) {
       throw new Error('Expected the responsive detail controls to be visible');
     }

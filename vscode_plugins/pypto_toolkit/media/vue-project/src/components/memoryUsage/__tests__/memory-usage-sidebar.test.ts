@@ -17,6 +17,7 @@ import { createMemoryUnitFixture } from './memory-unit-fixture';
 const chartState = vi.hoisted(() => ({
   options: [] as any[],
   dispatchActions: [] as any[],
+  instances: [] as Array<{ options: any[]; dispatchActions: any[]; eventHandlers: Record<string, (event: any) => void> }>,
   eventHandlers: {} as Record<string, (event: any) => void>,
   initCount: 0,
   disposeCount: 0,
@@ -25,21 +26,33 @@ const chartState = vi.hoisted(() => ({
 vi.mock('echarts', () => ({
   init: vi.fn((dom: HTMLElement) => {
     chartState.initCount++;
+    const instance = { options: [] as any[], dispatchActions: [] as any[], eventHandlers: {} as Record<string, (event: any) => void> };
+    chartState.instances.push(instance);
     Object.defineProperty(dom, 'clientWidth', { configurable: true, value: 800 });
     dom.getBoundingClientRect = vi.fn(() => ({
       left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600, x: 0, y: 0, toJSON() {},
     }));
     return {
       clear: vi.fn(),
-      dispatchAction: vi.fn((action: any) => chartState.dispatchActions.push(action)),
+      dispatchAction: vi.fn((action: any) => {
+        chartState.dispatchActions.push(action);
+        instance.dispatchActions.push(action);
+      }),
       dispose: vi.fn(() => chartState.disposeCount++),
       getDom: vi.fn(() => dom),
-      off: vi.fn((eventName: string) => delete chartState.eventHandlers[eventName]),
+      off: vi.fn((eventName: string) => {
+        delete chartState.eventHandlers[eventName];
+        delete instance.eventHandlers[eventName];
+      }),
       on: vi.fn((eventName: string, handler: (event: any) => void) => {
         chartState.eventHandlers[eventName] = handler;
+        instance.eventHandlers[eventName] = handler;
       }),
       resize: vi.fn(),
-      setOption: vi.fn((option: any) => chartState.options.push(option)),
+      setOption: vi.fn((option: any) => {
+        chartState.options.push(option);
+        instance.options.push(option);
+      }),
     };
   }),
   graphic: {
@@ -55,13 +68,14 @@ const SwitchStub = defineComponent({
   template: '<button class="access-switch-stub" :aria-pressed="modelValue" @click="$emit(\'update:modelValue\', !modelValue)" />',
 });
 
-function createSelectedNode(includeSecondTensor = false) {
+function createSelectedNode(includeSecondTensor = false, size = 400) {
   const fixture = createMemoryUnitFixture();
   const tensor = fixture.rawTensors[0];
   const baseAccess = tensor.accesses[0];
 
   const firstTensor = {
     ...tensor,
+    size,
     accesses: [
       { ...baseAccess, rawmagic: tensor.rawmagic, seqNo: 'write-access', execStart: 130, execEnd: 140, isWrite: true },
       { ...baseAccess, rawmagic: tensor.rawmagic, seqNo: 'read-access', execStart: 150, execEnd: 160, isWrite: false },
@@ -104,19 +118,25 @@ function createSelectedNode(includeSecondTensor = false) {
 function getAccessRows(option: any) {
   return option.series
     .flatMap((series: any) => series.data || [])
-    .filter((row: any[]) => Array.isArray(row) && row.length === 10 && typeof row[8] === 'boolean');
+    .filter((row: any[]) => Array.isArray(row) && row.length === 11 && typeof row[8] === 'boolean');
 }
 
 function getRulerLabels(option: any) {
-  const ruler = option.series.at(-1);
-  const rendered = ruler.renderItem({ coordSys: { x: 110, y: 65, width: 660, height: 165 }});
+  const ruler = option.series.find((series: any) => series.renderItem);
+  const rendered = ruler.renderItem({ coordSys: { x: 110, y: 102, width: 660, height: 1 }});
   return rendered.children.filter((child: any) => child.type === 'text').map((child: any) => child.style.text);
+}
+
+function getRulerGraphic(option: any, width = 660) {
+  const ruler = option.series.find((series: any) => series.renderItem);
+  return ruler.renderItem({ coordSys: { x: 110, y: 102, width, height: 1 }});
 }
 
 describe('memoryUsageSidebar access filter', () => {
   beforeEach(() => {
     chartState.options = [];
     chartState.dispatchActions = [];
+    chartState.instances = [];
     chartState.eventHandlers = {};
     chartState.initCount = 0;
     chartState.disposeCount = 0;
@@ -128,6 +148,7 @@ describe('memoryUsageSidebar access filter', () => {
         selectedNode: createSelectedNode(),
       },
       global: {
+        config: { globalProperties: { $t: () => 'Write only'}},
         provide: {
           root: { isDarkTheme: ref(true) },
         },
@@ -167,7 +188,8 @@ describe('memoryUsageSidebar access filter', () => {
     const wrapper = mount(MemoryUsageSidebar, {
       props: { selectedNode: createSelectedNode(true) },
       global: {
-        provide: { root: { isDarkTheme: ref(true) }},
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
         stubs: { 'd-switch': SwitchStub },
       },
     });
@@ -213,7 +235,8 @@ describe('memoryUsageSidebar access filter', () => {
     const wrapper = mount(MemoryUsageSidebar, {
       props: { selectedNode },
       global: {
-        provide: { root: { isDarkTheme: ref(true) }},
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
         stubs: { 'd-switch': SwitchStub },
       },
     });
@@ -237,21 +260,27 @@ describe('memoryUsageSidebar access filter', () => {
     const wrapper = mount(MemoryUsageSidebar, {
       props: { selectedNode: createSelectedNode(true) },
       global: {
-        provide: { root: { isDarkTheme: ref(true) }},
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
         stubs: { 'd-switch': SwitchStub },
       },
     });
     await nextTick();
     await nextTick();
 
-    const initialOption = chartState.options.at(-1);
-    expect(initialOption.dataZoom).toHaveLength(2);
+    const controlOption = chartState.instances[0].options.at(-1);
+    const initialOption = chartState.instances[1].options.at(-1);
+    expect(controlOption.dataZoom).toHaveLength(1);
+    expect(controlOption.dataZoom[0]).toMatchObject({
+      id: 'detail-x-slider', type: 'slider', show: true, xAxisIndex: 0, filterMode: 'none', startValue: 0, endValue: 400,
+    });
+    expect(initialOption.dataZoom).toHaveLength(1);
     expect(initialOption.dataZoom[0]).toMatchObject({
-      id: 'detail-x-slider', type: 'slider', show: true, xAxisIndex: [0, 1], filterMode: 'none', startValue: 0, endValue: 400,
-    });
-    expect(initialOption.dataZoom[1]).toMatchObject({
       id: 'detail-x-inside', type: 'inside', xAxisIndex: [0, 1], filterMode: 'none', startValue: 0, endValue: 400,
+      zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: true,
     });
+    expect(wrapper.find('.memory-zoom-controls').exists()).toBe(true);
+    expect(wrapper.find('.sidebar-body-wrapper').exists()).toBe(true);
     const cardRenderer = initialOption.series[0].renderItem;
     const renderApi = (row: any[]) => ({
       value: (index: number) => row[index],
@@ -268,54 +297,136 @@ describe('memoryUsageSidebar access filter', () => {
     expect(overlapRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1]))).not.toBeNull();
     expect(overlapRenderer({ coordSys }, renderApi([0, 410, 430, 0, 20, 1]))).toBeNull();
     expect(cardRenderer({ coordSys }, renderApi([0, 0, 20, 0, 20, 1, 1, 1, true, 0])).type).toBe('group');
-    const fullRulerLabels = getRulerLabels(initialOption);
+    const fullRulerLabels = getRulerLabels(controlOption);
     expect(fullRulerLabels).toHaveLength(16);
-    expect(fullRulerLabels.at(-1)).toBe('0,39KB');
+    expect(fullRulerLabels.at(-1)).toBe('400B');
 
-    wrapper.get('.echarts-dom').element.dispatchEvent(
+    wrapper.get('.memory-lane-chart').element.dispatchEvent(
       new WheelEvent('wheel', { ctrlKey: true, clientX: 455, deltaY: -100, bubbles: true }),
     );
     const zoomAction = chartState.dispatchActions.at(-1);
     expect(zoomAction).toMatchObject({ type: 'dataZoom' });
-    expect(zoomAction.batch.map((entry: any) => entry.dataZoomId)).toEqual(['detail-x-slider', 'detail-x-inside']);
+    expect(zoomAction.batch.map((entry: any) => entry.dataZoomId)).toEqual(['detail-x-slider']);
     expect(zoomAction.batch[0].startValue).toBeGreaterThan(0);
     expect(zoomAction.batch[0].endValue - zoomAction.batch[0].startValue).toBeCloseTo(320);
-    const zoomedRulerLabels = getRulerLabels(initialOption);
+    const zoomedRulerLabels = getRulerLabels(controlOption);
     expect(zoomedRulerLabels).toHaveLength(16);
     expect(zoomedRulerLabels).not.toEqual(fullRulerLabels);
 
     await wrapper.get('.access-switch-stub').trigger('click');
     await nextTick();
-    expect(chartState.options.at(-1).dataZoom[0]).toMatchObject({
+    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({
       startValue: zoomAction.batch[0].startValue,
       endValue: zoomAction.batch[0].endValue,
     });
-    expect(getRulerLabels(chartState.options.at(-1))).toEqual(zoomedRulerLabels);
+    expect(getRulerLabels(chartState.instances[0].options.at(-1))).toEqual(zoomedRulerLabels);
 
     await wrapper.findAll('.tensor-tab')[1].trigger('click');
     await nextTick();
     const secondTensorOption = chartState.options.at(-1);
     expect(secondTensorOption.dataZoom[0]).toMatchObject({ xAxisIndex: [0, 1, 2], startValue: 0, endValue: 600 });
-    expect(getRulerLabels(secondTensorOption).at(-1)).toBe('0,59KB');
+    expect(getRulerLabels(chartState.instances[0].options.at(-1)).at(-1)).toBe('600B');
     const secondTensorReadCard = secondTensorOption.series[0].renderItem(
       { coordSys },
       renderApi([0, 0, 20, 0, 20, 1, 1, 1, false, 0]),
     );
     expect(secondTensorReadCard.children[0].style).toMatchObject({ fill: '#4169a8', opacity: 0.6 });
 
-    expect(chartState.eventHandlers.datazoom).toBeTypeOf('function');
-    chartState.eventHandlers.datazoom({ batch: [{ startValue: 100, endValue: 500 }]});
+    expect(chartState.instances[1].eventHandlers.datazoom).toBeTypeOf('function');
+    chartState.instances[1].eventHandlers.datazoom({ batch: [{ startValue: 100, endValue: 500 }]});
+    expect(chartState.instances[0].dispatchActions.at(-1).batch[0].dataZoomId).toBe('detail-x-slider');
+    expect(chartState.instances[0].eventHandlers.datazoom).toBeTypeOf('function');
+    chartState.instances[0].eventHandlers.datazoom({ batch: [{ dataZoomId: 'detail-x-slider', startValue: 120, endValue: 500 }]});
+    expect(chartState.instances[1].dispatchActions.at(-1).batch[0].dataZoomId).toBe('detail-x-inside');
     await wrapper.get('.access-switch-stub').trigger('click');
     await nextTick();
     expect(getAccessRows(chartState.options.at(-1))).toHaveLength(0);
-    expect(chartState.options.at(-1).dataZoom[0]).toMatchObject({ startValue: 100, endValue: 500 });
+    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({ startValue: 120, endValue: 500 });
 
     await wrapper.get('.access-switch-stub').trigger('click');
     await nextTick();
     expect(getAccessRows(chartState.options.at(-1))).toHaveLength(6);
-    expect(chartState.options.at(-1).dataZoom[0]).toMatchObject({ startValue: 100, endValue: 500 });
-    expect(chartState.initCount).toBe(1);
+    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({ startValue: 120, endValue: 500 });
+    expect(chartState.initCount).toBe(2);
     expect(chartState.disposeCount).toBe(0);
+
+    wrapper.unmount();
+    expect(chartState.disposeCount).toBe(2);
+  });
+
+  it('selects a consistent adaptive unit for the fixed ruler', async () => {
+    const cases = [
+      { size: 400, unit: 'B' },
+      { size: 1024, unit: 'KB' },
+      { size: 2 * 1024, unit: 'KB' },
+      { size: 1024 * 1024, unit: 'MB' },
+      { size: 2 * 1024 * 1024, unit: 'MB' },
+      { size: 1024 * 1024 * 1024, unit: 'GB' },
+      { size: 2 * 1024 * 1024 * 1024, unit: 'GB' },
+    ];
+
+    for (const { size, unit } of cases) {
+      const wrapper = mount(MemoryUsageSidebar, {
+        props: { selectedNode: createSelectedNode(false, size) },
+        global: {
+          config: { globalProperties: { $t: () => 'Write only'}},
+          provide: { root: { isDarkTheme: ref(true)}},
+          stubs: { 'd-switch': SwitchStub },
+        },
+      });
+      await nextTick();
+      await nextTick();
+
+      const labels = getRulerLabels(chartState.instances.at(-2).options.at(-1));
+      expect(labels).toHaveLength(16);
+      expect(new Set(labels.map((label: string) => label.replace(/[0-9.,-]/g, '')))).toEqual(new Set([unit]));
+      wrapper.unmount();
+    }
+  });
+
+  it('keeps minimum zoom ruler ticks distinct at an exact unit boundary', async () => {
+    const wrapper = mount(MemoryUsageSidebar, {
+      props: { selectedNode: createSelectedNode(false, 1024) },
+      global: {
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
+        stubs: { 'd-switch': SwitchStub },
+      },
+    });
+    await nextTick();
+    await nextTick();
+
+    chartState.instances[0].eventHandlers.datazoom({
+      batch: [{ dataZoomId: 'detail-x-slider', startValue: 1022.976, endValue: 1024 }],
+    });
+    const labels = getRulerLabels(chartState.instances[0].options.at(-1));
+    expect(new Set(labels).size).toBe(16);
+    expect(labels.at(-1)).toBe('1KB');
+
+    wrapper.unmount();
+  });
+
+  it('fills the live sidebar width with ruler squares and keeps rotated unit labels visible', async () => {
+    const wrapper = mount(MemoryUsageSidebar, {
+      props: { selectedNode: createSelectedNode() },
+      global: {
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
+        stubs: { 'd-switch': SwitchStub },
+      },
+    });
+    await nextTick();
+    await nextTick();
+
+    const graphic = getRulerGraphic(chartState.instances[0].options.at(-1), 300);
+    const squares = graphic.children.filter((child: any) => child.type === 'rect');
+    const labels = graphic.children.filter((child: any) => child.type === 'text');
+
+    expect(graphic.$mergeChildren).toBe(false);
+    expect(squares.at(-1).shape.x + squares.at(-1).shape.width).toBeGreaterThan(750);
+    expect(labels).toHaveLength(16);
+    expect(labels.every((label: any) => label.rotation === -Math.PI / 2 && label.originY === 32)).toBe(true);
+    expect(labels.at(-1).style).toMatchObject({ align: 'left', text: '400B' });
 
     wrapper.unmount();
   });

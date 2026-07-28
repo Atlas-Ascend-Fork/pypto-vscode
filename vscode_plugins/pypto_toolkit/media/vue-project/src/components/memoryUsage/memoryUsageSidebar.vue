@@ -114,8 +114,19 @@
         </div>
       </div>
 
+      <div class="memory-zoom-controls" :style="{ backgroundColor: chartBgColor }">
+        <div
+          ref="controlChartRef"
+          class="echarts-dom memory-control-chart"
+          :style="{ height: CONTROL_HEIGHT + 'px', backgroundColor: chartBgColor }"
+        />
+      </div>
       <div class="sidebar-body-wrapper">
-        <div ref="chartRef" class="echarts-dom" :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }" />
+        <div
+          ref="chartRef"
+          class="echarts-dom memory-lane-chart"
+          :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }"
+        />
       </div>
     </div>
   </transition>
@@ -306,11 +317,11 @@ function buildDimOverlapRows(rows) {
   return overlapRows;
 }
 
-function buildOverlapRows(rows, ndim) {
+function buildOverlapRows(rows, ndim, checkHasOverlap = ENABLE_HAS_OVERLAP_CHECK) {
   const rowsByDim = Array.from({ length: ndim }, () => []);
   rows.forEach((row) => {
-    const [dim] = row;
-    if (rowsByDim[dim]) {
+    const [dim, , , , , , , , , , hasOverlap] = row;
+    if (rowsByDim[dim] && (!checkHasOverlap || hasOverlap !== false)) {
       rowsByDim[dim].push(row);
     }
   });
@@ -344,8 +355,7 @@ function buildAccessRow(tShape, access, dim, accessContext) {
   if (!isValidAccessRow(xStart, xEnd, yStart, yEnd)) {
     return null;
   }
-
-  return [dim, xStart, xEnd, yStart, yEnd, access?.seqNo ?? '', access?.funcId ?? '', access?.opIdx ?? '', access?.isWrite, 1];
+  return [dim, xStart, xEnd, yStart, yEnd, access?.seqNo ?? '', access?.funcId ?? '', access?.opIdx ?? '', access?.isWrite, 1, access?.hasOverlap];
 }
 
 function buildChartModel(input, writesOnly) {
@@ -433,6 +443,7 @@ function buildChartModel(input, writesOnly) {
 <script setup>
 import { ref, computed, watch, onUnmounted, nextTick, inject } from 'vue';
 import * as echarts from 'echarts';
+import { ENABLE_HAS_OVERLAP_CHECK } from './memoryFeatureFlags';
 
 const props = defineProps({
   selectedNode: { type: Object, default: null },
@@ -485,7 +496,9 @@ const tabsViewportRef = ref(null);
 const previewTensorEntry = ref(null);
 const previewLeft = ref(0);
 
-const TOP = 90;
+const CONTROL_HEIGHT = 140;
+const CONTROL_GRID_TOP = 102;
+const TOP = 40;
 const LANE_H = 165;
 const LANE_GAP = 70;
 const BOTTOM = 30;
@@ -547,10 +560,12 @@ function stopResize() {
   document.body.style.cursor = '';
   window.removeEventListener('mousemove', onResize);
   window.removeEventListener('mouseup', stopResize);
-  rebuildChart();
+  rebuildCharts();
 }
 
+const controlChartRef = ref(null);
 const chartRef = ref(null);
+let controlChart = null;
 let myChart = null;
 let chartWheelDom = null;
 let chartWheelHandler = null;
@@ -589,7 +604,7 @@ function selectTensor(id, element) {
   resetZoomRange();
   nextTick(() => {
     scrollTensorIntoView(element);
-    rebuildChart(true);
+    rebuildCharts(true);
   });
 }
 
@@ -630,12 +645,72 @@ function formatAddr(v) {
     .trim();
 }
 
-function formatKB(v) {
-  if (v === 0) {
-    return '0';
+const RULER_UNITS = [
+  { label: 'B', divisor: 1 },
+  { label: 'KB', divisor: 1024 },
+  { label: 'MB', divisor: 1024 * 1024 },
+  { label: 'GB', divisor: 1024 * 1024 * 1024 },
+];
+
+function getRulerUnit(visibleStart, visibleEnd) {
+  const largestVisibleValue = Math.max(Math.abs(Number(visibleStart) || 0), Math.abs(Number(visibleEnd) || 0));
+  let [unit] = RULER_UNITS;
+  RULER_UNITS.forEach((candidate) => {
+    if (largestVisibleValue >= candidate.divisor) {
+      unit = candidate;
+    }
+  });
+  return unit;
+}
+
+function getRulerPrecision(step) {
+  const normalizedStep = Math.abs(Number(step));
+  if (!Number.isFinite(normalizedStep) || normalizedStep <= 0) {
+    return 0;
   }
-  const kb = Math.round((v / 1024) * 100) / 100;
-  return String(kb).replace('.', ',') + 'KB';
+  if (normalizedStep >= 100) {
+    return 0;
+  }
+  if (normalizedStep >= 10) {
+    return 1;
+  }
+  if (normalizedStep >= 1) {
+    return 2;
+  }
+  return Math.max(1, Math.ceil(-Math.log10(normalizedStep)) + 1);
+}
+
+function formatScaledRulerValue(value, precision) {
+  const fixedValue = value.toFixed(precision);
+  return (precision > 0 ? fixedValue.replace(/\.?0+$/, '') : fixedValue).replace('.', ',');
+}
+
+function getRulerPrecisionForRange(visibleStart, visibleEnd, unit, segmentCount = 16) {
+  const span = Math.abs(Number(visibleEnd) - Number(visibleStart));
+  const segment = span / segmentCount / unit.divisor;
+  let precision = getRulerPrecision(segment);
+
+  while (precision < 12) {
+    const labels = new Set();
+    for (let i = 1; i <= segmentCount; i++) {
+      const value = (visibleStart + (span / segmentCount) * i) / unit.divisor;
+      labels.add(formatScaledRulerValue(value, precision));
+    }
+    if (labels.size === segmentCount) {
+      break;
+    }
+    precision++;
+  }
+
+  return precision;
+}
+
+function formatRulerValue(value, visibleStart, visibleEnd, segmentCount = 16) {
+  const unit = getRulerUnit(visibleStart, visibleEnd);
+  const precision = getRulerPrecisionForRange(visibleStart, visibleEnd, unit, segmentCount);
+  const scaledValue = (Number(value) || 0) / unit.divisor;
+  const formatted = formatScaledRulerValue(scaledValue, precision);
+  return `${formatted || '0'}${unit.label}`;
 }
 
 function groupByDim() {
@@ -841,64 +916,6 @@ function getChartOption() {
     });
   });
 
-  const rulerWidth = chartRef.value ? chartRef.value.clientWidth : 0;
-  series.push({
-    type: 'custom',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    silent: true,
-    clip: false,
-    z: 6,
-    data: [rulerWidth],
-    renderItem: (params) => {
-      const cs = params.coordSys;
-      const children = [];
-      const SQ = 8;
-      const GAP = 3;
-      const pitch = SQ + GAP;
-      const sqY = cs.y - 16;
-      const count = Math.ceil(cs.width / pitch);
-      for (let i = 0; i < count; i++) {
-        const x = cs.x + i * pitch;
-        if (x > cs.x + cs.width) {
-          break;
-        }
-        children.push({
-          type: 'rect',
-          shape: { x, y: sqY, width: SQ, height: SQ, r: 1 },
-          style: { fill: isDarkTheme.value ? 'rgba(51,51,51,1)' : 'rgba(200,200,200,1)' },
-        });
-      }
-
-      const visibleStart = zoomRange.value.start;
-      const visibleEnd = zoomRange.value.end || dimX(0);
-      const seg = (visibleEnd - visibleStart) / 16;
-      const labelY = cs.y - 24;
-      for (let i = 1; i <= 16; i++) {
-        const v = visibleStart + seg * i;
-        const xPix = cs.x + (i / 16) * cs.width;
-        children.push({
-          type: 'text',
-          rotation: Math.PI / 2,
-          originX: xPix,
-          originY: labelY,
-          style: {
-            x: xPix,
-            y: labelY,
-            text: formatKB(v),
-            fill: isDarkTheme.value ? '#666666' : '#999999',
-            fontSize: 12,
-            fontFamily: 'HarmonyOS Sans SC, "HarmonyOS Sans", sans-serif',
-            align: 'left',
-            verticalAlign: 'middle',
-          },
-        });
-      }
-
-      return { type: 'group', children };
-    },
-  });
-
   const dimTexts = dims.map((label, i) => ({
     type: 'text',
     left: GRID_LEFT - 78,
@@ -933,34 +950,6 @@ function getChartOption() {
     yAxis: yAxes,
     dataZoom: [
       {
-        id: 'detail-x-slider',
-        type: 'slider',
-        show: true,
-        xAxisIndex: xAxisIndexes,
-        filterMode: 'none',
-        startValue: zoomRange.value.start,
-        endValue: zoomRange.value.end || model.value.sizeBytes,
-        left: GRID_LEFT,
-        right: GRID_RIGHT,
-        top: 6,
-        height: 20,
-        showDataShadow: false,
-        showDetail: false,
-        brushSelect: false,
-        borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
-        backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
-        fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
-        handleSize: '60%',
-        handleStyle: {
-          color: isDarkTheme.value ? '#ffffff' : '#191919',
-          borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
-          borderWidth: 1,
-          shadowBlur: 5,
-          shadowColor: isDarkTheme.value ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
-        },
-        moveHandleIcon: 'none',
-      },
-      {
         id: 'detail-x-inside',
         type: 'inside',
         xAxisIndex: xAxisIndexes,
@@ -969,11 +958,119 @@ function getChartOption() {
         endValue: zoomRange.value.end || model.value.sizeBytes,
         zoomOnMouseWheel: false,
         moveOnMouseWheel: false,
-        moveOnMouseMove: false,
+        moveOnMouseMove: true,
       },
     ],
     graphic: dimTexts,
     series,
+  };
+}
+
+function getControlChartOption() {
+  const size = Math.max(1, Number(model.value.sizeBytes) || 0);
+  const rulerSeries = {
+    type: 'custom',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    silent: true,
+    clip: false,
+    z: 2,
+    data: [0],
+    renderItem: (params) => {
+      const cs = params.coordSys;
+      const visibleStart = zoomRange.value.start;
+      const visibleEnd = zoomRange.value.end || Number(model.value.sizeBytes) || size;
+      const children = [];
+      const rulerWidth = Math.max(0, (controlChartRef.value?.clientWidth || cs.x + cs.width + GRID_RIGHT) - cs.x - GRID_RIGHT);
+      const squareSize = 8;
+      const gap = 3;
+      const pitch = squareSize + gap;
+      const squareY = cs.y - 16;
+      const count = Math.ceil(rulerWidth / pitch);
+      for (let i = 0; i < count; i++) {
+        const x = cs.x + i * pitch;
+        if (x > cs.x + rulerWidth) {
+          break;
+        }
+        children.push({
+          type: 'rect',
+          shape: { x, y: squareY, width: squareSize, height: squareSize, r: 1 },
+          style: { fill: isDarkTheme.value ? 'rgba(51,51,51,1)' : 'rgba(200,200,200,1)' },
+        });
+      }
+
+      const labelCount = 16;
+      const segment = (visibleEnd - visibleStart) / labelCount;
+      const labelY = cs.y - 70;
+      for (let i = 1; i <= labelCount; i++) {
+        const value = visibleStart + segment * i;
+        const x = cs.x + (i / labelCount) * rulerWidth;
+        children.push({
+          type: 'text',
+          rotation: -Math.PI / 2,
+          originX: x,
+          originY: labelY,
+          style: {
+            x,
+            y: labelY,
+            text: formatRulerValue(value, visibleStart, visibleEnd, labelCount),
+            fill: isDarkTheme.value ? '#666666' : '#999999',
+            fontSize: 12,
+            fontFamily: 'HarmonyOS Sans SC, "HarmonyOS Sans", sans-serif',
+            align: 'left',
+            verticalAlign: 'middle',
+          },
+        });
+      }
+
+      return { type: 'group', $mergeChildren: false, children };
+    },
+  };
+
+  return {
+    backgroundColor: isDarkTheme.value ? '#1a1a1a' : '#ffffff',
+    animation: false,
+    grid: { left: GRID_LEFT, right: GRID_RIGHT, top: CONTROL_GRID_TOP, height: 1, show: false },
+    xAxis: {
+      type: 'value',
+      min: 0,
+      max: size,
+      interval: size / 16,
+      axisLabel: { show: false },
+      axisTick: { show: false },
+      axisLine: { show: false },
+      splitLine: { show: false },
+    },
+    yAxis: { type: 'value', min: 0, max: 1, show: false },
+    dataZoom: [{
+      id: 'detail-x-slider',
+      type: 'slider',
+      show: true,
+      xAxisIndex: 0,
+      filterMode: 'none',
+      startValue: zoomRange.value.start,
+      endValue: zoomRange.value.end || Number(model.value.sizeBytes),
+      left: GRID_LEFT,
+      right: GRID_RIGHT,
+      top: 8,
+      height: 20,
+      showDataShadow: false,
+      showDetail: false,
+      brushSelect: false,
+      borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
+      backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
+      fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+      handleSize: '60%',
+      handleStyle: {
+        color: isDarkTheme.value ? '#ffffff' : '#191919',
+        borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
+        borderWidth: 1,
+        shadowBlur: 5,
+        shadowColor: isDarkTheme.value ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
+      },
+      moveHandleIcon: 'none',
+    }],
+    series: [rulerSeries],
   };
 }
 
@@ -983,6 +1080,70 @@ function detachChartWheelListener() {
   }
   chartWheelDom = null;
   chartWheelHandler = null;
+}
+
+let controlPanDom = null;
+let controlPanStartX = 0;
+let controlPanStartRange = null;
+
+function stopControlPan() {
+  controlPanStartRange = null;
+  if (controlPanDom) {
+    controlPanDom.style.cursor = 'grab';
+  }
+  document.removeEventListener('mousemove', moveControlPan);
+  document.removeEventListener('mouseup', stopControlPan);
+}
+
+function moveControlPan(event) {
+  if (!controlPanStartRange || !controlPanDom) {
+    return;
+  }
+  const size = Number(model.value.sizeBytes) || 0;
+  const plotWidth = controlPanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
+  const rangeWidth = controlPanStartRange.end - controlPanStartRange.start;
+  if (size <= 0 || plotWidth <= 0 || rangeWidth >= size) {
+    return;
+  }
+
+  const delta = ((controlPanStartX - event.clientX) / plotWidth) * rangeWidth;
+  const start = Math.max(0, Math.min(size - rangeWidth, controlPanStartRange.start + delta));
+  updateZoomRange(start, start + rangeWidth, 'control');
+}
+
+function attachControlPanListener(chartDom) {
+  controlPanDom = chartDom;
+  chartDom.style.cursor = 'grab';
+  chartDom.addEventListener('mousedown', startControlPan, true);
+}
+
+function detachControlPanListener() {
+  stopControlPan();
+  controlPanDom?.removeEventListener('mousedown', startControlPan, true);
+  controlPanDom = null;
+}
+
+function startControlPan(event) {
+  if (!controlPanDom || event.button !== 0) {
+    return;
+  }
+  const localY = event.clientY - controlPanDom.getBoundingClientRect().top;
+  if (localY < 30) {
+    return;
+  }
+
+  const size = Number(model.value.sizeBytes) || 0;
+  const end = zoomRange.value.end || size;
+  if (size <= 0 || end - zoomRange.value.start >= size) {
+    return;
+  }
+
+  event.preventDefault();
+  controlPanStartX = event.clientX;
+  controlPanStartRange = { start: zoomRange.value.start, end };
+  controlPanDom.style.cursor = 'grabbing';
+  document.addEventListener('mousemove', moveControlPan);
+  document.addEventListener('mouseup', stopControlPan);
 }
 
 function attachChartWheelListener(chartDom) {
@@ -1014,14 +1175,7 @@ function attachChartWheelListener(chartDom) {
     start = Math.max(0, Math.min(size - nextWidth, start));
     const end = start + nextWidth;
 
-    zoomRange.value = { start, end };
-    myChart?.dispatchAction({
-      type: 'dataZoom',
-      batch: [
-        { dataZoomId: 'detail-x-slider', startValue: start, endValue: end },
-        { dataZoomId: 'detail-x-inside', startValue: start, endValue: end },
-      ],
-    });
+    updateZoomRange(start, end, 'lane');
   };
   chartWheelDom = chartDom;
   chartDom.addEventListener('wheel', chartWheelHandler, { passive: false, capture: true });
@@ -1029,9 +1183,69 @@ function attachChartWheelListener(chartDom) {
 
 let resizeObserver = null;
 let zoomRefreshRaf = null;
+let syncingZoom = false;
 
-function handleDataZoom(event) {
-  const payload = event?.batch?.[0] || event || {};
+function clampZoomRange(start, end) {
+  const size = Number(model.value.sizeBytes) || 0;
+  const hasInvalidBounds = !Number.isFinite(start) || !Number.isFinite(end) || start >= end;
+  if (size <= 0 || hasInvalidBounds) {
+    return null;
+  }
+
+  const nextStart = Math.max(0, Math.min(size, start));
+  const nextEnd = Math.max(0, Math.min(size, end));
+  if (nextStart >= nextEnd) {
+    return null;
+  }
+
+  return { start: nextStart, end: nextEnd };
+}
+
+function isSameZoomRange(nextRange) {
+  return nextRange && nextRange.start === zoomRange.value.start && nextRange.end === zoomRange.value.end;
+}
+
+function dispatchZoomToChart(chart, dataZoomId, start, end) {
+  chart?.dispatchAction({
+    type: 'dataZoom',
+    batch: [{ dataZoomId, startValue: start, endValue: end }],
+  });
+}
+
+function updateZoomRange(start, end, source = null) {
+  const nextRange = clampZoomRange(Number(start), Number(end));
+  if (!nextRange || isSameZoomRange(nextRange)) {
+    return;
+  }
+
+  zoomRange.value = nextRange;
+  syncingZoom = true;
+  try {
+    if (source !== 'control') {
+      dispatchZoomToChart(controlChart, 'detail-x-slider', nextRange.start, nextRange.end);
+    }
+    if (source !== 'lane') {
+      dispatchZoomToChart(myChart, 'detail-x-inside', nextRange.start, nextRange.end);
+    }
+  } finally {
+    syncingZoom = false;
+  }
+
+  if (!zoomRefreshRaf) {
+    zoomRefreshRaf = requestAnimationFrame(() => {
+      zoomRefreshRaf = null;
+      rebuildCharts();
+    });
+  }
+}
+
+function handleDataZoom(event, source) {
+  if (syncingZoom) {
+    return;
+  }
+
+  const expectedId = source === 'control' ? 'detail-x-slider' : 'detail-x-inside';
+  const payload = event?.batch?.find((entry) => entry.dataZoomId === expectedId) || event?.batch?.[0] || event || {};
   const size = Number(model.value.sizeBytes) || 0;
   const start = Number.isFinite(Number(payload.startValue)) ? Number(payload.startValue) : (Number(payload.start) / 100) * size;
   const end = Number.isFinite(Number(payload.endValue)) ? Number(payload.endValue) : (Number(payload.end) / 100) * size;
@@ -1039,25 +1253,12 @@ function handleDataZoom(event) {
   if (size <= 0 || !Number.isFinite(start) || !Number.isFinite(end)) {
     return;
   }
-  if (start >= end) {
-    return;
-  }
 
-  zoomRange.value = {
-    start: Math.max(0, Math.min(size, start)),
-    end: Math.max(0, Math.min(size, end)),
-  };
-
-  if (!zoomRefreshRaf) {
-    zoomRefreshRaf = requestAnimationFrame(() => {
-      zoomRefreshRaf = null;
-      rebuildChart();
-    });
-  }
+  updateZoomRange(start, end, source);
 }
 
-function initChart() {
-  if (!chartRef.value) {
+function initCharts() {
+  if (!controlChartRef.value || !chartRef.value) {
     return;
   }
   if (resizeObserver) {
@@ -1065,18 +1266,35 @@ function initChart() {
     resizeObserver = null;
   }
   detachChartWheelListener();
+  detachControlPanListener();
+  if (controlChart) {
+    controlChart.dispose();
+    controlChart = null;
+  }
   if (myChart) {
     myChart.dispose();
     myChart = null;
   }
+  controlChart = echarts.init(controlChartRef.value);
+  controlChart.setOption(getControlChartOption());
+  controlChart.on('datazoom', (event) => handleDataZoom(event, 'control'));
+  attachControlPanListener(controlChart.getDom());
+
   myChart = echarts.init(chartRef.value);
   myChart.setOption(getChartOption());
-  myChart.on('datazoom', handleDataZoom);
+  myChart.on('datazoom', (event) => handleDataZoom(event, 'lane'));
   attachChartWheelListener(myChart.getDom());
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => liveResize());
+    resizeObserver.observe(controlChartRef.value);
+    resizeObserver.observe(chartRef.value);
+  }
 }
 
 function disposeChart() {
   detachChartWheelListener();
+  detachControlPanListener();
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
@@ -1089,16 +1307,23 @@ function disposeChart() {
     cancelAnimationFrame(zoomRefreshRaf);
     zoomRefreshRaf = null;
   }
+  if (refreshRaf) {
+    cancelAnimationFrame(refreshRaf);
+    refreshRaf = null;
+  }
   if (myChart) {
-    myChart.off('datazoom', handleDataZoom);
     myChart.dispose();
     myChart = null;
+  }
+  if (controlChart) {
+    controlChart.dispose();
+    controlChart = null;
   }
 }
 
 let refreshRaf = null;
 function liveResize() {
-  if (!myChart || refreshRaf) {
+  if ((!myChart && !controlChart) || refreshRaf) {
     return;
   }
   refreshRaf = requestAnimationFrame(() => {
@@ -1106,23 +1331,32 @@ function liveResize() {
     if (myChart) {
       myChart.resize();
     }
+    if (controlChart) {
+      controlChart.resize();
+    }
   });
 }
 
-function rebuildChart(clear = false) {
+function rebuildCharts(clear = false) {
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
   }
-  if (chartRef.value) {
+  if (controlChartRef.value && chartRef.value) {
+    if (!controlChart || !myChart) {
+      initCharts();
+      return;
+    }
+    if (clear) {
+      controlChart.clear();
+    }
     if (myChart) {
       if (clear) {
         myChart.clear();
       }
-      myChart.setOption(getChartOption(), { notMerge: true });
-    } else {
-      initChart();
     }
+    controlChart.setOption(getControlChartOption(), { notMerge: true });
+    myChart.setOption(getChartOption(), { notMerge: true });
   }
 }
 
@@ -1133,8 +1367,8 @@ function scheduleRebuild() {
   }
   rebuildTimer = setTimeout(() => {
     rebuildTimer = null;
-    if (chartRef.value) {
-      rebuildChart();
+    if (controlChartRef.value && chartRef.value) {
+      rebuildCharts();
     }
   }, 120);
 }
@@ -1145,11 +1379,12 @@ watch(sidebarWidth, () => {
 });
 
 watch(writesOnly, () => {
-  rebuildChart(true);
+  rebuildCharts(true);
 });
 
 watch(isDarkTheme, () => {
-  if (myChart) {
+  if (controlChart && myChart) {
+    controlChart.setOption(getControlChartOption());
     myChart.setOption(getChartOption());
   }
 });
@@ -1162,7 +1397,7 @@ watch(
       sidebarWidth.value = initWidth();
       domHeight.value = computeHeight();
       resetZoomRange();
-      nextTick(() => rebuildChart(true));
+      nextTick(() => rebuildCharts(true));
     } else {
       disposeChart();
     }
@@ -1447,12 +1682,30 @@ onUnmounted(() => {
 
 .sidebar-body-wrapper {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .echarts-dom {
   width: 100%;
+}
+
+.memory-zoom-controls {
+  flex: 0 0 auto;
+  border-bottom: 1px solid v-bind(sidebarBorderColor);
+}
+
+.memory-control-chart {
+  cursor: grab;
+}
+
+.memory-lane-chart {
+  cursor: grab;
+}
+
+.memory-lane-chart:active {
+  cursor: grabbing;
 }
 
 .sidebar-slide-enter-active,
