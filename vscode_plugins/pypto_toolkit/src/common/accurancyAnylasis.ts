@@ -1068,7 +1068,7 @@ export async function openTaskCmpDiffComGraph(
       .map(entry => entry.name);
 
     if (resList.length === 0) {
-      vscode.window.showWarningMessage(t('pypto.cmpJsonNotFound', { passSubDir, funcHash }));
+      vscode.window.showWarningMessage(t('pypto.taskCmpJsonNotFound', { passSubDir, funcHash }));
       return;
     }
 

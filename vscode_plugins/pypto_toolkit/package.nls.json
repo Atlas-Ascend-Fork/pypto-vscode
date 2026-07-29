@@ -30,6 +30,7 @@
   "pypto.unsupportedCsvType": "Unsupported CSV type: {{type}}",
   "pypto.passDirNotFound": "Subfolder containing {{passName}} not found",
   "pypto.cmpJsonNotFound": "No JSON file containing {{funcMagicName}} and {{funcHash}} found in {{passSubDir}}",
+  "pypto.taskCmpJsonNotFound": "No JSON file containing {{funcHash}} found in {{passSubDir}}",
   "pypto.ExtensionWarned": "The plugin '{{oldExtensionName}}' of an earlier version has been installed. but automatic uninstallation failed, Please uninstall the plugin to advoid function conflicts.",
   "pypto.ExtensionUninstall": "Go to uninstall",
   "pypto.ExtensionIgnore": "Ignore",

@@ -30,6 +30,7 @@
   "pypto.unsupportedCsvType": "不支持的CSV类型: {{type}}",
   "pypto.passDirNotFound": "未找到包含 {{passName}} 的子文件夹",
   "pypto.cmpJsonNotFound": "在 {{passSubDir}} 中未找到包含 {{funcMagicName}} 和 {{funcHash}} 的json文件",
+  "pypto.taskCmpJsonNotFound": "No JSON file containing {{funcHash}} found in {{passSubDir}}",
   "pypto.ExtensionWarned": "检测到您已安装旧版本插件'{{oldExtensionName}}', 尝试自动卸载失败，请手动卸载避免功能冲突。",
   "pypto.ExtensionUninstall": "前往卸载",
   "pypto.ExtensionIgnore": "忽略",
