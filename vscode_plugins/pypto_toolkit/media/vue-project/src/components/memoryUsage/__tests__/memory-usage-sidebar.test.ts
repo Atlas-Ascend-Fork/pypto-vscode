@@ -277,7 +277,7 @@ describe('memoryUsageSidebar access filter', () => {
     expect(initialOption.dataZoom).toHaveLength(1);
     expect(initialOption.dataZoom[0]).toMatchObject({
       id: 'detail-x-inside', type: 'inside', xAxisIndex: [0, 1], filterMode: 'none', startValue: 0, endValue: 400,
-      zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: true,
+      zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: false,
     });
     expect(wrapper.find('.memory-zoom-controls').exists()).toBe(true);
     expect(wrapper.find('.sidebar-body-wrapper').exists()).toBe(true);
@@ -402,6 +402,64 @@ describe('memoryUsageSidebar access filter', () => {
     const labels = getRulerLabels(chartState.instances[0].options.at(-1));
     expect(new Set(labels).size).toBe(16);
     expect(labels.at(-1)).toBe('1KB');
+    expect(labels.some((label: string) => label.includes('.'))).toBe(true);
+    expect(labels.every((label: string) => !label.includes(','))).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it('maps control ruler drags to the full address range while preserving the zoom width', async () => {
+    const wrapper = mount(MemoryUsageSidebar, {
+      props: { selectedNode: createSelectedNode() },
+      global: {
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
+        stubs: { 'd-switch': SwitchStub },
+      },
+    });
+    await nextTick();
+    await nextTick();
+
+    chartState.instances[0].eventHandlers.datazoom({
+      batch: [{ dataZoomId: 'detail-x-slider', startValue: 100, endValue: 200 }],
+    });
+    const control = wrapper.get('.memory-control-chart').element;
+    control.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: 300, clientY: 90, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 90, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: 400, clientY: 90, bubbles: true }));
+
+    const action = chartState.instances[1].dispatchActions.at(-1);
+    const expectedStart = 100 - (100 / (800 - 110 - 30)) * 400;
+    expect(action.batch[0].startValue).toBeCloseTo(expectedStart);
+    expect(action.batch[0].endValue - action.batch[0].startValue).toBeCloseTo(100);
+
+    wrapper.unmount();
+  });
+
+  it('maps tensor lane drags to the full address range while preserving the zoom width', async () => {
+    const wrapper = mount(MemoryUsageSidebar, {
+      props: { selectedNode: createSelectedNode() },
+      global: {
+        config: { globalProperties: { $t: () => 'Write only'}},
+        provide: { root: { isDarkTheme: ref(true)}},
+        stubs: { 'd-switch': SwitchStub },
+      },
+    });
+    await nextTick();
+    await nextTick();
+
+    chartState.instances[1].eventHandlers.datazoom({
+      batch: [{ dataZoomId: 'detail-x-inside', startValue: 100, endValue: 200 }],
+    });
+    const lane = wrapper.get('.memory-lane-chart').element;
+    lane.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: 300, clientY: 90, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 90, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: 400, clientY: 90, bubbles: true }));
+
+    const action = chartState.instances[0].dispatchActions.at(-1);
+    const expectedStart = 100 - (100 / (800 - 110 - 30)) * 400;
+    expect(action.batch[0].startValue).toBeCloseTo(expectedStart);
+    expect(action.batch[0].endValue - action.batch[0].startValue).toBeCloseTo(100);
 
     wrapper.unmount();
   });

@@ -125,7 +125,10 @@
         <div
           ref="chartRef"
           class="echarts-dom memory-lane-chart"
+          :data-zoom-end="zoomRange.end"
+          :data-zoom-start="zoomRange.start"
           :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }"
+          @mousedown.capture="startLanePan"
         />
       </div>
     </div>
@@ -321,7 +324,7 @@ function buildOverlapRows(rows, ndim, checkHasOverlap = ENABLE_HAS_OVERLAP_CHECK
   const rowsByDim = Array.from({ length: ndim }, () => []);
   rows.forEach((row) => {
     const [dim, , , , , , , , , , hasOverlap] = row;
-    if (rowsByDim[dim] && (!checkHasOverlap || hasOverlap !== false)) {
+    if (rowsByDim[dim] && (!checkHasOverlap || hasOverlap)) {
       rowsByDim[dim].push(row);
     }
   });
@@ -682,7 +685,7 @@ function getRulerPrecision(step) {
 
 function formatScaledRulerValue(value, precision) {
   const fixedValue = value.toFixed(precision);
-  return (precision > 0 ? fixedValue.replace(/\.?0+$/, '') : fixedValue).replace('.', ',');
+  return precision > 0 ? fixedValue.replace(/\.?0+$/, '') : fixedValue;
 }
 
 function getRulerPrecisionForRange(visibleStart, visibleEnd, unit, segmentCount = 16) {
@@ -958,7 +961,7 @@ function getChartOption() {
         endValue: zoomRange.value.end || model.value.sizeBytes,
         zoomOnMouseWheel: false,
         moveOnMouseWheel: false,
-        moveOnMouseMove: true,
+        moveOnMouseMove: false,
       },
     ],
     graphic: dimTexts,
@@ -1085,6 +1088,9 @@ function detachChartWheelListener() {
 let controlPanDom = null;
 let controlPanStartX = 0;
 let controlPanStartRange = null;
+let lanePanDom = null;
+let lanePanStartX = 0;
+let lanePanStartRange = null;
 
 function stopControlPan() {
   controlPanStartRange = null;
@@ -1106,7 +1112,7 @@ function moveControlPan(event) {
     return;
   }
 
-  const delta = ((controlPanStartX - event.clientX) / plotWidth) * rangeWidth;
+  const delta = ((controlPanStartX - event.clientX) / plotWidth) * size;
   const start = Math.max(0, Math.min(size - rangeWidth, controlPanStartRange.start + delta));
   updateZoomRange(start, start + rangeWidth, 'control');
 }
@@ -1144,6 +1150,63 @@ function startControlPan(event) {
   controlPanDom.style.cursor = 'grabbing';
   document.addEventListener('mousemove', moveControlPan);
   document.addEventListener('mouseup', stopControlPan);
+}
+
+function stopLanePan() {
+  lanePanStartRange = null;
+  if (lanePanDom) {
+    lanePanDom.style.cursor = '';
+  }
+  document.removeEventListener('mousemove', moveLanePan, true);
+  document.removeEventListener('mouseup', stopLanePan, true);
+}
+
+function moveLanePan(event) {
+  if (!lanePanStartRange || !lanePanDom) {
+    return;
+  }
+  const size = Number(model.value.sizeBytes) || 0;
+  const plotWidth = lanePanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
+  const rangeWidth = lanePanStartRange.end - lanePanStartRange.start;
+  if (size <= 0 || plotWidth <= 0 || rangeWidth >= size) {
+    return;
+  }
+
+  event.preventDefault();
+  const delta = ((lanePanStartX - event.clientX) / plotWidth) * size;
+  const start = Math.max(0, Math.min(size - rangeWidth, lanePanStartRange.start + delta));
+  updateZoomRange(start, start + rangeWidth, 'lane-pan');
+}
+
+function startLanePan(event) {
+  if (!lanePanDom || event.button !== 0) {
+    return;
+  }
+  const plotX = event.clientX - lanePanDom.getBoundingClientRect().left - GRID_LEFT;
+  const plotWidth = lanePanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
+  const size = Number(model.value.sizeBytes) || 0;
+  const end = zoomRange.value.end || size;
+  if (plotX < 0 || plotX > plotWidth) {
+    return;
+  }
+  if (size <= 0 || end - zoomRange.value.start >= size) {
+    return;
+  }
+
+  lanePanStartX = event.clientX;
+  lanePanStartRange = { start: zoomRange.value.start, end };
+  lanePanDom.style.cursor = 'grabbing';
+  document.addEventListener('mousemove', moveLanePan, true);
+  document.addEventListener('mouseup', stopLanePan, true);
+}
+
+function attachLanePanListener(chartDom) {
+  lanePanDom = chartDom;
+}
+
+function detachLanePanListener() {
+  stopLanePan();
+  lanePanDom = null;
 }
 
 function attachChartWheelListener(chartDom) {
@@ -1267,6 +1330,7 @@ function initCharts() {
   }
   detachChartWheelListener();
   detachControlPanListener();
+  detachLanePanListener();
   if (controlChart) {
     controlChart.dispose();
     controlChart = null;
@@ -1284,6 +1348,7 @@ function initCharts() {
   myChart.setOption(getChartOption());
   myChart.on('datazoom', (event) => handleDataZoom(event, 'lane'));
   attachChartWheelListener(myChart.getDom());
+  attachLanePanListener(myChart.getDom());
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => liveResize());
@@ -1295,6 +1360,7 @@ function initCharts() {
 function disposeChart() {
   detachChartWheelListener();
   detachControlPanListener();
+  detachLanePanListener();
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;

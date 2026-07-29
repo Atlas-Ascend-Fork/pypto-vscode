@@ -49,7 +49,7 @@ export function detectConflicts(
 function filterBlocksByQuery(memoryBlocksRaw: BlockItem[], searchQuery: string, checkHasOverlap: boolean): BlockItem[] {
   const q = searchQuery.trim().toLowerCase();
   return memoryBlocksRaw.filter((item) => {
-    if (checkHasOverlap && item.hasOverlap === false) {
+    if (checkHasOverlap && !item?.rawObj?.hasOverlap) {
       return false;
     }
     return !q || (String(item.magicId) || '').toLowerCase().includes(q);

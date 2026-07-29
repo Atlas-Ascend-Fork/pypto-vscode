@@ -169,14 +169,13 @@ async function findSelection(page: Page, kind: CanvasKind, minimumTabs: number):
 async function rulerLabels(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const trace = window.__canvasTextTrace;
-    const detailTrace = trace.filter((entry) => String(entry.parentClass).includes('echarts-dom'));
-    const latestTimestamp = Math.max(0, ...detailTrace.map((entry) => entry.timestamp));
-    const labels = detailTrace
-      .filter((entry) => entry.timestamp >= latestTimestamp - 20)
+    const labels = trace
+      .filter((entry) => String(entry.parentClass).includes('echarts-dom'))
       .filter((entry) => entry.rotated && /#666666|rgb\(102,\s*102,\s*102\)/i.test(entry.fillStyle))
       .filter((entry) => /-?[0-9.,]+\s*(?:B|KB|MB|GB)/i.test(entry.text))
+      .slice(-16)
       .map((entry) => entry.text);
-    return [...new Set(labels.slice(-80))];
+    return [...new Set(labels)];
   });
 }
 
@@ -386,9 +385,11 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
     }
     await page.keyboard.up('Control');
     await expect.poll(async () => rulerRange(await rulerLabels(page))?.span || 0).toBeLessThan(fullRange.span);
-    const zoomLabels = await rulerLabels(page);
-    zoomRange = requireRulerRange(rulerRange(zoomLabels));
-    expect(zoomRange.span, JSON.stringify({ fullLabels, zoomLabels })).toBeLessThan(fullRange.span);
+      const zoomLabels = await rulerLabels(page);
+      zoomRange = requireRulerRange(rulerRange(zoomLabels));
+      expect(zoomRange.span, JSON.stringify({ fullLabels, zoomLabels })).toBeLessThan(fullRange.span);
+      expect(zoomLabels.some((label) => label.includes('.'))).toBe(true);
+      expect(zoomLabels.every((label) => !label.includes(','))).toBe(true);
      const zoomCanvas = await canvasStats(page.locator('.memory-lane-chart'));
      expect(zoomCanvas.painted).toBeGreaterThan(100);
        await test.step('fixed slider updates the shared range while lanes scroll', async () => {
@@ -419,34 +420,70 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
          if (!box) {
            throw new Error('Memory control chart is not visible');
          }
-        const total = fullRange.max || 1;
-        const start = zoomRange.min - zoomRange.span / 16;
-        const plotLeft = box.x + 110;
-        const plotWidth = box.width - 140;
-        const handleX = plotLeft + (start / total) * plotWidth;
+          const total = fullRange.max || 1;
+         const plotLeft = box.x + 110;
+         const plotWidth = box.width - 140;
+         const rangeDragStartX = plotLeft + ((zoomRange.min + zoomRange.max) / (2 * total)) * plotWidth;
+         const rangeDragY = box.y + 18;
+         const beforeRangeDrag = zoomRange;
+         await clearRulerTrace(page);
+         await page.mouse.move(rangeDragStartX, rangeDragY);
+         await page.mouse.down();
+         await page.mouse.move(rangeDragStartX + 200, rangeDragY, { steps: 10 });
+         await page.mouse.up();
+         await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(beforeRangeDrag.min, 1);
+         const afterRangeDrag = requireRulerRange(rulerRange(await rulerLabels(page)));
+         const expectedRangeShift = (200 / plotWidth) * total;
+         const rangeDrag = {
+           before: beforeRangeDrag,
+           after: afterRangeDrag,
+           dragPixels: 200,
+           expectedShift: expectedRangeShift,
+           minShift: Math.abs(afterRangeDrag.min - beforeRangeDrag.min),
+         };
+         expect(rangeDrag.minShift).toBeGreaterThan(expectedRangeShift * 0.75);
+         zoomRange = afterRangeDrag;
+
+         const start = zoomRange.min - zoomRange.span / 16;
+         const handleX = plotLeft + (start / total) * plotWidth;
         const handleY = box.y + 18;
         await clearRulerTrace(page);
         await page.mouse.move(handleX, handleY);
         await page.mouse.down();
-        await page.mouse.move(handleX + 35, handleY, { steps: 6 });
-         await page.mouse.up();
-         await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(zoomRange.min, 1);
-         zoomRange = requireRulerRange(rulerRange(await rulerLabels(page)));
-         const beforeRulerPan = zoomRange;
-         const rulerY = box.y + 90;
-         await clearRulerTrace(page);
-         await page.mouse.move(plotLeft + plotWidth / 2, rulerY);
-         await page.mouse.down();
-         await page.mouse.move(plotLeft + plotWidth / 2 + 35, rulerY, { steps: 6 });
-         await page.mouse.up();
-         await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(beforeRulerPan.min, 1);
-         zoomRange = requireRulerRange(rulerRange(await rulerLabels(page)));
-         evidence.scenarios.fixedControls = {
-           controlY: afterControls?.y,
-           rulerPan: { after: zoomRange, before: beforeRulerPan },
-           scrollTop: await body.evaluate((element) => element.scrollTop),
-           zoomRange,
-         };
+          await page.mouse.move(handleX + 35, handleY, { steps: 6 });
+          await page.mouse.up();
+          await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(zoomRange.min, 1);
+          const afterSliderDrag = requireRulerRange(rulerRange(await rulerLabels(page)));
+          const sliderDrag = {
+            before: zoomRange,
+            after: afterSliderDrag,
+            dragPixels: 35,
+            minShift: Math.abs(afterSliderDrag.min - zoomRange.min),
+          };
+          zoomRange = afterSliderDrag;
+          const beforeRulerPan = zoomRange;
+          const rulerPanPixels = 200;
+          const rulerY = box.y + 90;
+          await clearRulerTrace(page);
+          await page.mouse.move(plotLeft + plotWidth / 2, rulerY);
+          await page.mouse.down();
+          await page.mouse.move(plotLeft + plotWidth / 2 + rulerPanPixels, rulerY, { steps: 10 });
+          await page.mouse.up();
+          await expect.poll(async () => rulerRange(await rulerLabels(page))?.min || 0).not.toBeCloseTo(beforeRulerPan.min, 1);
+          zoomRange = requireRulerRange(rulerRange(await rulerLabels(page)));
+          const expectedRulerShift = (rulerPanPixels / plotWidth) * total;
+          const rulerShift = Math.abs(zoomRange.min - beforeRulerPan.min);
+          expect(rulerShift).toBeGreaterThan(expectedRulerShift * 0.75);
+          expect(Math.abs(zoomRange.span - beforeRulerPan.span)).toBeLessThan(Math.max(1, beforeRulerPan.span * 0.05));
+          evidence.scenarios.fixedControls = {
+            controlY: afterControls?.y,
+            rulerPan: { after: zoomRange, before: beforeRulerPan, dragPixels: rulerPanPixels, expectedShift: expectedRulerShift,
+              minShift: rulerShift, plotWidth },
+            rangeDrag,
+            scrollTop: await body.evaluate((element) => element.scrollTop),
+            sliderDrag,
+            zoomRange,
+          };
          await body.evaluate((element) => {
            element.style.flex = '';
            element.style.height = '';
@@ -454,26 +491,30 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
          });
          await page.setViewportSize({ width: 1900, height: 950 });
        });
-      evidence.scenarios.filterAndZoom = { ...filterEvidence, fullRange, zoomCanvas, zoomRange };
+      evidence.scenarios.filterAndZoom = { ...filterEvidence, fullLabels, fullRange, zoomCanvas, zoomLabels, zoomRange };
      await capture(page, testInfo, evidence, '03-zoomed');
 
      await test.step('horizontal plot drag pans the shared range', async () => {
        const lane = page.locator('.memory-lane-chart');
        const box = await lane.boundingBox();
-       if (!box) {
-         throw new Error('Memory lane chart is not visible');
-       }
-       const beforePan = requireRulerRange(rulerRange(await rulerLabels(page)));
-       const y = box.y + Math.min(100, box.height / 2);
-       await page.mouse.move(box.x + 260, y);
-       await page.mouse.down();
-       await page.mouse.move(box.x + 340, y, { steps: 8 });
-       await page.mouse.up();
-       await expect.poll(async () => rulerRange(await rulerLabels(page))?.span || 0).toBeGreaterThan(0);
-       const afterPan = requireRulerRange(rulerRange(await rulerLabels(page)));
-       expect(Math.abs(afterPan.span - beforePan.span)).toBeLessThan(Math.max(0.05, beforePan.span * 0.05));
-       expect(afterPan.min).not.toBeCloseTo(beforePan.min, 2);
-       evidence.scenarios.horizontalPan = { beforePan, afterPan };
+        if (!box) {
+          throw new Error('Memory lane chart is not visible');
+        }
+        const beforePan = requireRulerRange(rulerRange(await rulerLabels(page)));
+        const beforeStart = Number(await lane.getAttribute('data-zoom-start'));
+        const y = box.y + Math.min(100, box.height / 2);
+        await page.mouse.move(box.x + 260, y);
+        await page.mouse.down();
+        await expect(lane).toHaveCSS('cursor', 'grabbing');
+        await page.mouse.move(box.x + 340, y, { steps: 8 });
+        await page.mouse.up();
+        await expect.poll(async () => Number(await lane.getAttribute('data-zoom-start'))).not.toBeCloseTo(beforeStart, 2);
+        const afterStart = Number(await lane.getAttribute('data-zoom-start'));
+        const plotWidth = box.width - 140;
+        const expectedShift = (80 / plotWidth) * (fullRange.max || 1);
+        const actualShift = Math.abs(afterStart - beforeStart);
+        expect(actualShift).toBeGreaterThan(expectedShift * 0.75);
+        evidence.scenarios.horizontalPan = { beforePan, beforeStart, afterStart, actualShift, expectedShift };
      });
    });
 
