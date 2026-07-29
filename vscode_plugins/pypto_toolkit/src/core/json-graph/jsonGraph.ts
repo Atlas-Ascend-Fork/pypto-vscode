@@ -12,12 +12,11 @@ import { AttrReader } from './parseSymbolicAttr';
 import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 import { Util } from '../../util';
-import { t } from 'i18next';
 import { getSemanticColor } from '../../process';
 import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP, 
-    ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, MetadataLabel, Operation, OpReference, PortReference, 
+    ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, Operation, OpReference, PortReference, 
     RawTensor, SemanticLab, Tensor } from './jsonGraph.types';
-import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp } from './utils';
+import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp, findIncastIndex, findOutcastIndex, removeEmptyNodesForTensor, buildTensorMetadataCompartment, createEmptyNodeWithPort, createTokenNode, getCastNodeState, buildCastMetadataCompartment, buildMetaLabels, buildCallLabels, getCodePath, getCodeLine, extractNestedData, createSyncControlFlowEdges, buildTensorNodeObject, buildTensorNodesObject } from './utils';
 
 declare const vscode: any;
 /**
@@ -83,7 +82,7 @@ export class AscppDagBuilder {
         let actualData = funcData;
         // Check if the data might be nested under a property
         if (!hasValidStructure(funcData)) {
-            actualData = this.extractNestedData(funcData);
+            actualData = extractNestedData(funcData);
         }
 
         const subgraphs = new Set<number>();
@@ -191,7 +190,7 @@ export class AscppDagBuilder {
         // Create token nodes
         for (const tokenMagic of this.uniqueTokensSet) {
             const nodeId = `operation-${tokenMagic}-0-in`;
-            const tokenNode = this.createTokenNode(nodeId, tokenMagic);
+            const tokenNode = createTokenNode(nodeId, tokenMagic);
             nodes.push(tokenNode);
             const tokenNodeId = nodeId.replace(/-in.*$|-out.*$/, '');
             const outPortId = nodeId.replace(/-in$/, '-out');
@@ -257,7 +256,7 @@ export class AscppDagBuilder {
 
         // Check if the data might be nested under a property
         if (!hasValidStructure(funcData)) {
-            actualData = this.extractNestedData(funcData);
+            actualData = extractNestedData(funcData);
         }
 
         // Initialize data structures
@@ -290,7 +289,7 @@ export class AscppDagBuilder {
 
         // Create control flow edges for synchronization operations only if sync nodes are shown
         if (showSyncNodes) {
-            this.createSyncControlFlowEdges(actualData, nodes, edges);
+            createSyncControlFlowEdges(actualData, nodes, edges);
         }
 
         // Apply subgraph filtering if specified
@@ -520,7 +519,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        const incastIndex = this.findIncastIndex(actualData, startNode);
+        const incastIndex = findIncastIndex(actualData, startNode);
         const slotId: any[] = [];
         if (incastIndex !== undefined) {
             const incast = actualData.incasts[incastIndex];
@@ -581,15 +580,6 @@ export class AscppDagBuilder {
         this.registerIncastPortMapping(tensorMagic, rawTensor!, nodeId, portId, showTensorNodes, portMap, rawTensorProducers);
     }
 
-    private findIncastIndex(actualData: FunctionData, startNode: string): number | undefined {
-        for (let idx = 0; idx < actualData.incasts!.length; idx++) {
-            if (actualData.incasts![idx][0].toString() === startNode) {
-                return idx;
-            }
-        }
-        return undefined;
-    }
-
     private registerIncastPortMapping(
         tensorMagic: string,
         rawTensor: RawTensor,
@@ -630,7 +620,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        const outcastIndex = this.findOutcastIndex(actualData, startNode);
+        const outcastIndex = findOutcastIndex(actualData, startNode);
         const slotId: any[] = [];
         if (outcastIndex !== undefined) {
             const outcast = actualData.outcasts[outcastIndex];
@@ -647,7 +637,7 @@ export class AscppDagBuilder {
             return;
         }
 
-        this.removeEmptyNodesForTensor(nodes, tensorMagic);
+        removeEmptyNodesForTensor(nodes, tensorMagic);
 
         if (!this.outcastUnique.has(tensorMagic)) {
             this.outcastUnique.add(tensorMagic);
@@ -692,23 +682,6 @@ export class AscppDagBuilder {
         }
 
         this.registerOutcastPortMapping(tensorMagic, rawTensor!, nodeId, portId, showTensorNodes, portMap, rawTensorConsumers);
-    }
-
-    private findOutcastIndex(actualData: FunctionData, startNode: string): number | undefined {
-        for (let idx = 0; idx < actualData.outcasts!.length; idx++) {
-            if (actualData.outcasts![idx][0].toString() === startNode) {
-                return idx;
-            }
-        }
-        return undefined;
-    }
-
-    private removeEmptyNodesForTensor(nodes: SNode[], tensorMagic: string): void {
-        for (let index = nodes.length - 1; index >= 0; index--) {
-            if (nodes[index].id?.includes(tensorMagic) && nodes[index].id?.endsWith('empty')) {
-                nodes.splice(index, 1);
-            }
-        }
     }
 
     private registerOutcastPortMapping(
@@ -911,7 +884,7 @@ export class AscppDagBuilder {
                 }
             }
             this.outcastUnique.add(tensorMagic);
-            const tensorNode = this.buildTensorNodeObject(nodeId, tensor, tensorMagic, symbol, graphId, tensorColors, labelParts, inputPort, outputPort);
+            const tensorNode = buildTensorNodeObject(nodeId, tensor, tensorMagic, symbol, graphId, tensorColors, labelParts, inputPort, outputPort);
             nodes.push(tensorNode);
             this.singlePathNodeSet.add(nodeId);
             this.pathNodesSet.add(tensorMagic);
@@ -935,105 +908,6 @@ export class AscppDagBuilder {
             lightColor = 'rgba(250, 189, 193, 1)';
         }
         return { baseColor, lightColor };
-    }
-
-    private buildTensorNodeObject(
-        nodeId: string,
-        tensor: Tensor,
-        tensorMagic: string,
-        symbol: string,
-        graphId: number,
-        colors: { baseColor: string; lightColor: string },
-        labelParts: string[],
-        inputPort: AstgrPort,
-        outputPort: AstgrPort
-    ): AstgrTensorNode {
-        return {
-            type: 'node:tensor',
-            role: 'tensor',
-            compareType: tensor.compareType!,
-            semanticLabel: tensor.semantic_label?.label ?? '',
-            id: nodeId,
-            magic: `${tensor.magic}`,
-            subgraphId: graphId,
-            baseColor: colors.baseColor,
-            lightColor: colors.lightColor,
-            layout: 'vbox',
-            layoutOptions: {
-                hAlign: 'left',
-                paddingTop: 4,
-                paddingBottom: 0,
-                paddingLeft: 5,
-                paddingRight: 6
-            },
-            children: [
-                // Parent compartment containing all labels
-                {
-                    type: 'compartment',
-                    id: `${nodeId}-labels-compartment`,
-                    layout: 'vbox',
-                    layoutOptions: {
-                        hAlign: 'center',
-                        vAlign: 'center',
-                        vGap: 10,
-                        paddingRight: 30
-                    },
-                    cssClasses: ['tensor-labels-compartment'],
-                    children: [
-                        // Main label with larger font for tensor symbol
-                        {
-                            type: 'label',
-                            id: `${nodeId}-label-main`,
-                            text: symbol,
-                            magic: `${tensor.magic}`,
-                            subgraphId: graphId,
-                            cssClasses: ['tensor-main-label'],
-                            layoutOptions: {
-                                hAlign: 'left',
-                                paddingTop: 0,
-                                paddingBottom: 0,
-                                paddingLeft: 0,
-                                paddingRight: 0
-                            },
-                        } as SLabel
-                        ,
-                        // Metadata compartment with individual labels
-                        ...(labelParts.length > 0 ? [this.buildTensorMetadataCompartment(nodeId, labelParts)] : [])
-                    ]
-                } as SCompartment,
-                inputPort,
-                outputPort
-            ]
-        };
-    }
-
-    private buildTensorMetadataCompartment(nodeId: string, labelParts: string[]): SCompartment {
-        return {
-            type: 'compartment',
-            id: `${nodeId}-metadata-compartment`,
-            layout: 'vbox',
-            layoutOptions: {
-                hAlign: 'left',
-                vGap: 4,
-                paddingLeft: 0,
-            },
-            cssClasses: ['tensor-metadata-compartment'],
-            children: labelParts.map((part, index) => {
-                const splitedStr = part.split(':');
-                let value = splitedStr[1];
-                if (value.length > 32) {
-                    value = value.slice(0, 32) + '...';
-                }
-                return {
-                    type: 'label',
-                    id: `${nodeId}-label-meta-${index}`,
-                    originText: part,
-                    text: [splitedStr[0], value].join(':'),
-                    cssClasses: ['tensor-meta-label'],
-                    minZoomLevel: 0.4
-                } as SLabel & MetadataLabel
-            })
-        } as SCompartment;
     }
 
     /**
@@ -1118,7 +992,7 @@ export class AscppDagBuilder {
             const isOutcast = inoutMap.get('outcasts')?.has(tensorMagic) ?? false;
             if (tensor.nodetype === 0 && !isIncast && !isOutcast) {
                 this.outcastUnique.add(tensorMagic);
-                const tensorNode = this.buildTensorNodesObject(nodeId, tensor, tensorMagic, symbol, graphId, tensorColors, isError, labelParts, inputPort, outputPort);
+                const tensorNode = buildTensorNodesObject(nodeId, tensor, tensorMagic, symbol, graphId, tensorColors, isError, labelParts, inputPort, outputPort);
                 this.nodeSet.add(nodeId);
                 nodes.push(tensorNode);
             }
@@ -1132,206 +1006,6 @@ export class AscppDagBuilder {
             portMap.set(`producer-rawtensor-${rawTensorId}`, { nodeId, portId: outputPort.id });
             portMap.set(`consumer-rawtensor-${rawTensorId}`, { nodeId, portId: inputPort.id });
         }
-    }
-
-    private buildTensorNodesObject(
-        nodeId: string,
-        tensor: Tensor,
-        tensorMagic: string,
-        symbol: string,
-        graphId: number,
-        colors: { baseColor: string; lightColor: string },
-        isError: boolean,
-        labelParts: string[],
-        inputPort: AstgrPort,
-        outputPort: AstgrPort
-    ): AstgrTensorNode {
-        return {
-            type: 'node:tensor',
-            role: 'tensor',
-            compareType: tensor.compareType,
-            semanticLabel: tensor.semantic_label?.label ?? '',
-            id: nodeId,
-            magic: `${tensor.magic}`,
-            subgraphId: graphId,
-            baseColor: colors.baseColor,
-            lightColor: colors.lightColor,
-            isError: isError,
-            layout: 'vbox',
-            layoutOptions: {
-                hAlign: 'left',
-                paddingTop: 4,
-                paddingBottom: 0,
-                paddingLeft: 5,
-                paddingRight: 6
-            },
-            children: [
-                // Parent compartment containing all labels
-                {
-                    type: 'compartment',
-                    id: `${nodeId}-labels-compartment`,
-                    layout: 'vbox',
-                    layoutOptions: {
-                        hAlign: 'center',
-                        vAlign: 'center',
-                        vGap: 10,
-                        paddingRight: 30
-                    },
-                    cssClasses: ['tensor-labels-compartment'],
-                    children: [
-                        // Main label with larger font for tensor symbol
-                        {
-                            type: 'label',
-                            id: `${nodeId}-label-main`,
-                            text: symbol,
-                            magic: `${tensor.magic}`,
-                            subgraphId: graphId,
-                            cssClasses: ['tensor-main-label'],
-                            layoutOptions: {
-                                hAlign: 'left',
-                                paddingTop: 0,
-                                paddingBottom: 0,
-                                paddingLeft: 0,
-                                paddingRight: 0
-                            },
-                        } as SLabel
-                        ,
-                        // Metadata compartment with individual labels
-                        ...(labelParts.length > 0 ? [this.buildTensorMetadataCompartment(nodeId, labelParts)] : [])
-                    ]
-                } as SCompartment,
-                inputPort,
-                outputPort
-            ]
-        };
-    }
-
-    private createEmptyNodeWithPort(nodeId: string, magic: string): AstgrNode {
-        const children: (SCompartment | AstgrPort)[] = [];
-        const truncatePortId = nodeId.replace(/-in.*$|-out.*$/, '');
-        const labelChildren: SLabel[] = [
-            {
-                type: 'label',
-                id: `${magic}-label-main`,
-                text: t('pypto.emptyNodeList'),
-                magic: magic,
-                size: {width: 110, height: 50},
-                cssClasses: ['operation-main-label-empty'],
-                isEmptyLabel: true,
-                layoutOptions: {
-                    hAlign: 'center',
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 10,
-                    paddingRight: 0
-                }
-            } as SLabel
-        ];
-        children.push({
-            type: 'compartment',
-            id: `${magic}-labels-compartment`,
-            layout: 'vbox',
-            magic: magic,
-            subgraphId: '',
-            layoutOptions: {
-                hAlign: 'center',
-                vAlign: 'center',
-                vGap: 10,
-                paddingTop: 14,
-                paddingBottom: 14,
-                paddingLeft: 6,
-                paddingRight: 9
-            },
-            size: {width: 110, height: 50},
-            cssClasses: ['operation-labels-compartment'],
-            children: [...labelChildren]
-        } as SCompartment);
-        const inPort: AstgrPort = { type: 'port', id: nodeId, role: 'input', size: { width: 8, height: 8 } };
-        children.push(inPort);
-        const outPortId = nodeId.replace(/-in$/, '-out');
-        const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
-        children.push(outPort);
-        return {
-          type: 'node',
-          id:  truncatePortId,
-          magic: magic,
-          role: 'output',
-          compareType: 'none',
-          codePath: '', 
-          codeLine: undefined, 
-          layout: 'vbox',
-          layoutOptions: { hAlign: 'center', vAlign: 'top' },
-          size: {width: 110, height: 50},
-          cssClasses: ['operation-main-op-empty'],
-          baseColor:'rgba(246, 158, 57, 0.2)',
-          children,
-          isEmptyNode: true
-        };
-    }
-
-    /**
-     * Create a token node with input and output ports, referencing createEmptyNodeWithPort
-     * @param nodeId - The input port id, pattern: `operation-${tokenMagic}-0-in`
-     * @param tokenMagic - The token value (e.g. "%6")
-     */
-    private createTokenNode(nodeId: string, tokenMagic: string): AstgrNode {
-        const children: (SCompartment | AstgrPort)[] = [];
-        const labelChildren: SLabel[] = [
-            {
-                type: 'label',
-                id: `${tokenMagic}-token-label-main`,
-                text: `Token: ${tokenMagic}`,
-                magic: tokenMagic,
-                cssClasses: ['operation-main-label'],
-                isTokenLabel: true,
-                layoutOptions: {
-                    hAlign: 'center',
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 10,
-                    paddingRight: 0
-                }
-            } as SLabel
-        ];
-        children.push({
-            type: 'compartment',
-            id: `${tokenMagic}-token-labels-compartment`,
-            layout: 'vbox',
-            magic: tokenMagic,
-            subgraphId: '',
-            layoutOptions: {
-                hAlign: 'center',
-                vAlign: 'center',
-                vGap: 10,
-                paddingTop: 14,
-                paddingBottom: 14,
-                paddingLeft: 6,
-                paddingRight: 9
-            },
-            cssClasses: ['operation-labels-compartment'],
-            children: [...labelChildren]
-        } as SCompartment);
-        const inPort: AstgrPort = { type: 'port', id: nodeId, role: 'input', size: { width: 8, height: 8 } };
-        children.push(inPort);
-        const outPortId = nodeId.replace(/-in$/, '-out');
-        const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
-        children.push(outPort);
-        const retid = nodeId.replace(/-in.*$|-out.*$/, '');
-        return {
-            type: 'node',
-            id: retid,
-            magic: '',
-            role: 'operation',
-            compareType: 'none',
-            codePath: '',
-            codeLine: undefined,
-            layout: 'vbox',
-            layoutOptions: { hAlign: 'center', vAlign: 'top' },
-            baseColor: 'var(--devui-token-node-base-color)',
-            children,
-            isEmptyNode: true,
-            isTokenNode: true,
-        };
     }
 
     /**
@@ -1350,7 +1024,7 @@ export class AscppDagBuilder {
             this.getTensorCommonAttr(metadataParts, tensor!, rawTensor!);
         }
         // 判断节点是否有错误信息
-        const castNodeState = this.getCastNodeState(tensor, rawTensor, nodeRole, errNodeList, wrongRawMagicList);
+        const castNodeState = getCastNodeState(tensor, rawTensor, nodeRole, errNodeList, wrongRawMagicList);
         const isMiddle = tensorName.includes('Middle');
         const node: AstgrTensorNode = {
             type: 'node:tensor',
@@ -1402,7 +1076,7 @@ export class AscppDagBuilder {
                             },
                         } as SLabel,
                         // Metadata compartment with individual labels
-                        ...(metadataParts.length > 0 ? [this.buildCastMetadataCompartment(nodeId, nodeRole, metadataParts)] : [])
+                        ...(metadataParts.length > 0 ? [buildCastMetadataCompartment(nodeId, nodeRole, metadataParts)] : [])
                     ]
                 } as SCompartment,
                 {
@@ -1414,70 +1088,6 @@ export class AscppDagBuilder {
             ]
         };
         return node;
-    }
-
-    private getCastNodeState(
-        tensor: Tensor,
-        rawTensor: RawTensor | undefined,
-        nodeRole: "operation" | "tensor" | "input" | "output" | "sync",
-        errNodeList?: any,
-        wrongRawMagicList?: any
-    ): { isError: boolean; baseColor: any; lightColor: any; isAccuracyError: boolean; isAccuracyException: boolean } {
-        let isError = false;
-        let baseColor;
-        let lightColor;
-        if (errNodeList?.has(tensor.magic)) {
-            isError = true;
-            baseColor = 'rgba(231, 67, 74, 1)';
-            lightColor = 'rgba(250, 189, 193, 1)';
-        }
-        let isAccuracyError = false;
-        let isAccuracyException = false;
-        const errorRawMagicList = wrongRawMagicList?.errorRawMagicList;
-        const exceptionRawMagicList = wrongRawMagicList?.exceptionRawMagicList;
-        if (errorRawMagicList?.includes(String(rawTensor?.rawmagic)) && (nodeRole === 'output')) {
-            isAccuracyError = true;
-            baseColor = 'rgba(185, 54, 59, 1)';
-            lightColor = 'rgba(231, 67, 74, 1)';
-        }
-        if (exceptionRawMagicList?.includes(String(rawTensor?.rawmagic)) && (nodeRole === 'output')) {
-            isAccuracyException = true;
-            baseColor = 'rgba(185, 54, 59, 1)';
-            lightColor = 'rgba(231, 67, 74, 1)';
-        }
-        return { isError, baseColor, lightColor, isAccuracyError, isAccuracyException };
-    }
-
-    private buildCastMetadataCompartment(nodeId: string, nodeRole: string, metadataParts: string[]): SCompartment {
-        return {
-            type: 'compartment',
-            id: `${nodeId}-metadata-compartment`,
-            layout: 'vbox',
-            layoutOptions: {
-                hAlign: 'left',
-                vGap: 3,
-                paddingTop: 0,
-                paddingBottom: 0,
-                paddingLeft: 0,
-                paddingRight: 0
-            },
-            cssClasses: [`${nodeRole}-metadata-compartment`],
-            children: metadataParts.map((part, index) => {
-                const splitedStr = part.split(':');
-                let value = splitedStr[1];
-                if (value.length > 32) {
-                    value = value.slice(0, 32) + '...';
-                }
-                return {
-                    type: 'label',
-                    id: `${nodeId}-label-meta-${index}`,
-                    originText: part,
-                    text: [splitedStr[0], value].join(':'),
-                    cssClasses: [`${nodeRole}-meta-label`],
-                    minZoomLevel: 0.4
-                } as SLabel & MetadataLabel
-            })
-        } as SCompartment;
     }
 
     /**
@@ -1949,104 +1559,6 @@ export class AscppDagBuilder {
     /**
      * Creates a regular operation node with input/output ports
      */
-    private buildMetaLabels(
-        opId: string,
-        labelParts: string[],
-        subgraphId: number,
-        opmagic: string
-    ): any {
-        const compartment: any = {
-            type: 'compartment',
-            id: `${opId}-main-labels-compartment`,
-            layout: 'vbox',
-            text: '',
-            magic: opmagic,
-            subgraphId: subgraphId,
-            layoutOptions: {
-                hAlign: 'left',
-                vGap: 3,
-                paddingTop: 0,
-                paddingBottom: 0,
-                paddingLeft: 0,
-                paddingRight: 0
-            },
-            children: []
-        };
-
-        for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
-            const splitedStr = labelParts[metaIdx].split(':');
-            let value = splitedStr[1] ?? '';
-            if (value.length > 32) {
-                value = value.slice(0, 32) + '...';
-            }
-            compartment.children.push({
-                type: 'label',
-                id: `${opId}-label-meta-${metaIdx}`,
-                originText: labelParts[metaIdx],
-                text: [splitedStr[0] ?? '', value].join(':'),
-                cssClasses: ['operation-meta-label'],
-                layoutOptions: {
-                    hAlign: 'left',
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 0,
-                    paddingRight: 0
-                },
-                minZoomLevel: 0.4
-            } as SLabel & MetadataLabel);
-        }
-        return compartment;
-    }
-
-    private buildCallLabels(
-        opId: string,
-        labelParts: string[],
-        subgraphId: number,
-        opmagic: string
-    ): any {
-        const compartment: any = {
-            type: 'compartment',
-            id: `${opId}-main-labels-compartment`,
-            layout: 'vbox',
-            text: '',
-            magic: opmagic,
-            subgraphId: subgraphId,
-            layoutOptions: {
-                hAlign: 'left',
-                vGap: 5,
-                paddingTop: 0,
-                paddingBottom: 0,
-                paddingLeft: 0,
-                paddingRight: 40
-            },
-            children: []
-        };
-
-        for (let metaIdx = 0; metaIdx < labelParts.length; metaIdx++) {
-            const splitedStr = labelParts[metaIdx].split(':');
-            let value = splitedStr[1] ?? '';
-            if (value.length > 32) {
-                value = value.slice(0, 32) + '...';
-            }
-            compartment.children.push({
-                type: 'label',
-                id: `${opId}-label-meta-${metaIdx}`,
-                originText: labelParts[metaIdx],
-                text: [splitedStr[0] ?? '', value].join(':'),
-                cssClasses: ['operation-meta-label'],
-                layoutOptions: {
-                    hAlign: 'left',
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 0,
-                    paddingRight: 0
-                },
-                minZoomLevel: 0.4
-            });
-        }
-        return compartment;
-    }
-
     private createRegularOperationNode(
         op: Operation,
         opId: string,
@@ -2079,8 +1591,8 @@ export class AscppDagBuilder {
             opName += funcName;
         }
 
-        const codePath = this.getCodePath(op);
-        const codeLine = this.getCodeLine(op);
+        const codePath = getCodePath(op);
+        const codeLine = getCodeLine(op);
 
         // Create labels compartment containing main and metadata labels
         const labelChildren: SLabel[] = [
@@ -2109,9 +1621,9 @@ export class AscppDagBuilder {
 
         if (labelParts.length > 0) {
             if (op.opcode === 'CALL') {
-                labelChildren.push(this.buildCallLabels(finalOpId, labelParts, subgraphId, opmagic));
+                labelChildren.push(buildCallLabels(finalOpId, labelParts, subgraphId, opmagic));
             } else {
-                labelChildren.push(this.buildMetaLabels(finalOpId, labelParts, subgraphId, opmagic));
+                labelChildren.push(buildMetaLabels(finalOpId, labelParts, subgraphId, opmagic));
             }
         }
 
@@ -2179,17 +1691,6 @@ export class AscppDagBuilder {
             return this.comGraphData.calleeMap[op.calleehash!].func_magicname;
         }
         return op.func_magicname ?? 'Not found function';
-    }
-
-    private getCodePath(op: Operation): string | undefined {
-        return (op.file && op.file !== '' ? op.file : undefined) ??
-               (op.semantic_label?.filename && op.semantic_label?.filename !== '' ? op.semantic_label?.filename : undefined);
-    }
-
-    private getCodeLine(op: Operation): number | undefined {
-        const lineNum = op.line && op.line !== '' ? parseInt(op.line, 10) : undefined;
-        return (lineNum !== undefined && !isNaN(lineNum) ? lineNum : undefined) ??
-               (op.semantic_label?.lineno && op.semantic_label?.lineno >= 0 ? op.semantic_label?.lineno : undefined);
     }
 
     private getNodeColors(
@@ -2410,7 +1911,7 @@ export class AscppDagBuilder {
         if (this.outcastUnique.has(tensorMagic)) {
             return;
         }
-        const emptyNode: AstgrNode = this.createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
+        const emptyNode: AstgrNode = createEmptyNodeWithPort(callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`, tensorMagic);
         nodes.push(emptyNode);
         if (!showTensorNodes) {
             const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
@@ -2475,256 +1976,5 @@ export class AscppDagBuilder {
                 targetId: `operation-${tokenMagic}-0-in`
             });
         });
-    }
-
-    /**
-     * Creates control flow edges for synchronization operations
-     */
-    private createSyncControlFlowEdges(actualData: FunctionData, nodes: SNode[], edges: SEdge[]): void {
-        if (!actualData.operations || !Array.isArray(actualData.operations)) {
-            return;
-        }
-
-        // Group sync operations by pipe_id and trig_pipe
-        const syncOps: { [key: string]: OpReference[] } = {};
-        const phaseOps: OpReference[] = [];
-        const computationalOps: OpReference[] = [];
-
-        for (let opIndex = 0; opIndex < actualData.operations.length; opIndex++) {
-            const op = actualData.operations[opIndex];
-            if (['SYNC_SRC', 'SYNC_DST', 'BAR.V'].includes(op.opcode)) {
-                const syncQueue = op.sync_queue || {};
-                const pipeId = syncQueue.pipe_id || 0;
-                const trigPipe = syncQueue.trig_pipe || 0;
-                const key = `pipe-${pipeId}-trig-${trigPipe}`;
-
-                if (!syncOps[key]) {
-                    syncOps[key] = [];
-                }
-                syncOps[key].push({ index: opIndex, op });
-            } else if (['PHASE1', 'PHASE2'].includes(op.opcode)) {
-                // Track phase operations for sequential control flow
-                phaseOps.push({ index: opIndex, op });
-            } else if (op.subgraphid && op.subgraphid !== -1) {
-                // Track computational operations that have actual work
-                computationalOps.push({ index: opIndex, op });
-            }
-        }
-
-        // Create control flow edges between related sync operations
-        for (const [key, ops] of Object.entries(syncOps)) {
-            if (ops.length >= 2) {
-                // Sort by operation index to get execution order
-                ops.sort((a, b) => a.index - b.index);
-
-                // Create edges between consecutive sync operations in the same pipeline
-                for (let i = 0; i < ops.length - 1; i++) {
-                    const srcOp = ops[i];
-                    const tgtOp = ops[i + 1];
-
-                    const srcId = `operation-${srcOp.index}-magic-${srcOp.op.opmagic}`;
-                    const tgtId = `operation-${tgtOp.index}-magic-${tgtOp.op.opmagic}`;
-
-                    edges.push({
-                        type: 'edge:control',
-                        id: `control-flow-${key}-${srcOp.index}-to-${tgtOp.index}`,
-                        sourceId: srcId,
-                        targetId: tgtId
-                    });
-                }
-            }
-        }
-
-        // Create sequential control flow edges for phase operations
-        if (phaseOps.length >= 2) {
-            // Sort phase operations by index to get execution order
-            phaseOps.sort((a, b) => a.index - b.index);
-
-            // Create edges between consecutive phase operations
-            for (let i = 0; i < phaseOps.length - 1; i++) {
-                const srcPhase = phaseOps[i];
-                const tgtPhase = phaseOps[i + 1];
-
-                const srcId = `operation-${srcPhase.index}-magic-${srcPhase.op.opmagic}`;
-                const tgtId = `operation-${tgtPhase.index}-magic-${tgtPhase.op.opmagic}`;
-
-                edges.push({
-                    type: 'edge:control',
-                    id: `phase-flow-${srcPhase.index}-to-${tgtPhase.index}`,
-                    sourceId: srcId,
-                    targetId: tgtId
-                });
-            }
-        }
-
-        // Create coordination edges between sync operations and computational operations
-        this.createSyncCoordinationEdges(actualData, syncOps, computationalOps, edges);
-
-        // Create coordination edges between phase operations and computational operations
-        this.createPhaseCoordinationEdges(phaseOps, computationalOps, edges);
-    }
-
-    /**
-     * Creates coordination edges between sync operations and computational operations
-     */
-    private createSyncCoordinationEdges(
-        actualData: FunctionData,
-        syncOps: { [key: string]: OpReference[] },
-        computationalOps: OpReference[],
-        edges: SEdge[]
-    ): void {
-        // For each computational operation, find nearby sync operations that coordinate it
-        for (const compOp of computationalOps) {
-            const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-
-            // Find sync operations that occur just before and after this computational operation
-            const beforeSyncOps: OpReference[] = [];
-            const afterSyncOps: OpReference[] = [];
-
-            // Look for sync operations in a reasonable range before and after this operation
-            for (const syncOpList of Object.values(syncOps)) {
-                for (const syncOp of syncOpList) {
-                    const distance = Math.abs(syncOp.index - compOp.index);
-
-                    // Only consider sync operations that are close to this computational operation
-                    if (distance <= 5) { // Adjust this threshold as needed
-                        if (syncOp.index < compOp.index) {
-                            beforeSyncOps.push(syncOp);
-                        } else if (syncOp.index > compOp.index) {
-                            afterSyncOps.push(syncOp);
-                        }
-                    }
-                }
-            }
-
-            // Connect the closest preceding sync operation to this computational operation
-            if (beforeSyncOps.length > 0) {
-                const closestBefore = beforeSyncOps.reduce((closest, current) =>
-                    (compOp.index - current.index) < (compOp.index - closest.index) ? current : closest
-                );
-                const beforeSyncId = `operation-${closestBefore.index}-magic-${closestBefore.op.opmagic}`;
-
-                edges.push({
-                    type: 'edge:control',
-                    id: `sync-coord-before-${closestBefore.index}-to-${compOp.index}`,
-                    sourceId: beforeSyncId,
-                    targetId: compOpId
-                });
-            }
-
-            // Connect this computational operation to the closest following sync operation
-            if (afterSyncOps.length > 0) {
-                const closestAfter = afterSyncOps.reduce((closest, current) =>
-                    (current.index - compOp.index) < (closest.index - compOp.index) ? current : closest
-                );
-                const afterSyncId = `operation-${closestAfter.index}-magic-${closestAfter.op.opmagic}`;
-
-                edges.push({
-                    type: 'edge:control',
-                    id: `sync-coord-after-${compOp.index}-to-${closestAfter.index}`,
-                    sourceId: compOpId,
-                    targetId: afterSyncId
-                });
-            }
-        }
-    }
-
-    /**
-     * Creates coordination edges between phase operations and computational operations
-     */
-    private createPhaseCoordinationEdges(
-        phaseOps: OpReference[],
-        computationalOps: OpReference[],
-        edges: SEdge[]
-    ): void {
-        if (phaseOps.length === 0) {
-            return;
-        }
-
-        // Sort phase operations by index
-        phaseOps.sort((a, b) => a.index - b.index);
-
-        // For each phase transition, connect to nearby computational operations
-        for (let i = 0; i < phaseOps.length; i++) {
-            const phaseOp = phaseOps[i];
-            const phaseOpId = `operation-${phaseOp.index}-magic-${phaseOp.op.opmagic}`;
-
-            // Find computational operations that occur after this phase marker
-            // and before the next phase marker (if any)
-            const nextPhaseIndex = i + 1 < phaseOps.length ? phaseOps[i + 1].index : Number.MAX_SAFE_INTEGER;
-
-            // Since PHASE operators are global coordination points (subgraphid: -1),
-            // they coordinate with computational operations across all subgraphs
-            const associatedCompOps = computationalOps.filter(compOp =>
-                compOp.index > phaseOp.index && compOp.index < nextPhaseIndex &&
-                hasSameCoordinationScope(phaseOp.op, compOp.op)
-            );
-
-            // Connect phase marker to the first computational operations in this phase
-            const firstCompOps = associatedCompOps
-                .filter(compOp => compOp.index - phaseOp.index <= 5) // Only operations close to the phase marker
-                .sort((a, b) => a.index - b.index)
-                .slice(0, 3); // Limit to first 3 operations to avoid visual clutter
-
-            for (const compOp of firstCompOps) {
-                const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-
-                edges.push({
-                    type: 'edge:control',
-                    id: `phase-coord-${phaseOp.index}-to-${compOp.index}`,
-                    sourceId: phaseOpId,
-                    targetId: compOpId
-                });
-            }
-
-            // Also connect from the last computational operations in the previous phase to this phase marker
-            if (i > 0) {
-                const prevPhaseIndex = phaseOps[i - 1].index;
-                const prevPhaseCompOps = computationalOps.filter(compOp =>
-                    compOp.index > prevPhaseIndex && compOp.index < phaseOp.index &&
-                    hasSameCoordinationScope(phaseOp.op, compOp.op)
-                );
-
-                const lastCompOps = prevPhaseCompOps
-                    .filter(compOp => phaseOp.index - compOp.index <= 5) // Only operations close to the phase marker
-                    .sort((a, b) => b.index - a.index) // Sort in descending order
-                    .slice(0, 3); // Limit to last 3 operations
-
-                for (const compOp of lastCompOps) {
-                    const compOpId = `operation-${compOp.index}-magic-${compOp.op.opmagic}`;
-
-                    edges.push({
-                        type: 'edge:control',
-                        id: `phase-coord-${compOp.index}-to-${phaseOp.index}`,
-                        sourceId: compOpId,
-                        targetId: phaseOpId
-                    });
-                }
-            }
-        }
-    }
-
-    /**
-     * Extracts nested data from the function data structure
-     */
-    private extractNestedData(funcData: FunctionData): FunctionData {
-        // Check if data is nested under functions array
-        if (funcData.functions && Array.isArray(funcData.functions) && funcData.functions.length > 0) {
-            return funcData.functions[0];
-        }
-
-        // Try to find a property that contains the expected structure
-        const keys = Object.keys(funcData) as (keyof FunctionData)[];
-        for (const key of keys) {
-            const value = funcData[key];
-            if (value && typeof value === 'object' && !Array.isArray(value)) {
-                const nestedData = value as FunctionData;
-                if (hasValidStructure(nestedData)) {
-                    return nestedData;
-                }
-            }
-        }
-
-        return funcData;
     }
 }
