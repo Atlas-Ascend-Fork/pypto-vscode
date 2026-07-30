@@ -756,7 +756,6 @@ function renderItem(params, api) {
   }
 
   const isWrite = api.value(8) === 1 || api.value(8) === true;
-  const opOpacity = isWrite ? 1 : 0.6;
   const baseFill = activeTensorEntry.value?.color?.base || '#574096';
   const shape = { ...rect, r: 4 };
 
@@ -764,7 +763,11 @@ function renderItem(params, api) {
   if (stripePattern) {
     children.push({ type: 'rect', shape, style: { fill: stripePattern, opacity: STRIPE_OPACITY }});
   }
-  children.push({ type: 'rect', shape, style: { fill: baseFill, opacity: opOpacity, lineWidth: 2 }});
+  children.push({ type: 'rect', shape, style: { fill: baseFill, lineWidth: 2 }});
+
+  if (!isWrite) {
+    children.push({ type: 'rect', shape, style: { fill: `rgba(0, 0, 0, 0.4)`, lineWidth: 2 }});
+  }
 
   if (api.value(9) && rect.width > CARD_LABEL_MIN_WIDTH && rect.height >= CARD_LABEL_MIN_HEIGHT) {
     const lines = [`SeqNo: ${api.value(5)}`, `FunctionID: ${api.value(6)}`, `OpID: ${api.value(7)}`];
@@ -1004,13 +1007,13 @@ function getControlChartOption() {
 
       const labelCount = 16;
       const segment = (visibleEnd - visibleStart) / labelCount;
-      const labelY = cs.y - 70;
+      const labelY = cs.y - 50;
       for (let i = 1; i <= labelCount; i++) {
         const value = visibleStart + segment * i;
         const x = cs.x + (i / labelCount) * rulerWidth;
         children.push({
           type: 'text',
-          rotation: -Math.PI / 2,
+          rotation: -Math.PI / 4,
           originX: x,
           originY: labelY,
           style: {
@@ -1020,7 +1023,7 @@ function getControlChartOption() {
             fill: isDarkTheme.value ? '#666666' : '#999999',
             fontSize: 12,
             fontFamily: 'HarmonyOS Sans SC, "HarmonyOS Sans", sans-serif',
-            align: 'left',
+            align: 'center',
             verticalAlign: 'middle',
           },
         });
