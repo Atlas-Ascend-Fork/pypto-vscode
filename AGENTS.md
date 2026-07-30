@@ -43,7 +43,6 @@ pypto-tools/
 | 控制流服务 | `vscode_plugins/pypto_toolkit/src/services/control-flow/` | PATH解析/树构建 |
 | SQLite缓存 | `vscode_plugins/pypto_toolkit/src/core/store/sql-store/` | 图数据持久化 |
 | Vue前端 | `vscode_plugins/pypto_toolkit/media/vue-project/src/` | Webview组件 |
-| Python转换器 | `vscode_plugins/pypto_toolkit/src/converter/swimlane_converter.py` | 泳道JSON→Perfetto |
 | 文档构建 | `vscode_plugins/docs/` | Sphinx文档 |
 
 ## 约定
@@ -113,9 +112,6 @@ npm run compile
 
 # 文档构建
 cd vscode_plugins/docs && make html
-
-# Python转换器
-python -m simpler_setup.tools.swimlane_converter l2_perf_records.json -o out.json
 ```
 
 ## 注意事项
