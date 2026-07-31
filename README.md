@@ -134,6 +134,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   可视化界面在左侧可直观的显示Tensor冲突的大概位置，并且支持通过ctrl+鼠标滚轮缩放时间轴，alt+鼠标滚轮缩放纵轴来快速定位到具体冲突位置，并且支持点击单个Tensor查看其详细信息。
 
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memory-usage.gif)
 
 ## 泳道图
 
