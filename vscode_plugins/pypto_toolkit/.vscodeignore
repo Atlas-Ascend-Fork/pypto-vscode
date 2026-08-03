@@ -1,13 +1,37 @@
 .vscode/**
 .vscode-test/**
+.claude/**
+.opencode/**
+.omo/**
+.trae/**
+docs/**
+scripts/**
 out/test/**
 dist/test/**
 src/**
 test/**
 .gitignore
+.prettierrc
+.eslintrc.json
+.eslintignore
+OWNERS
+commitlint.config.js
 **/tsconfig*.json
 **/.eslintrc.json
 **/*.map
+**/*.d.ts
+**/*.d.ts.map
 **/.ts
 media/**
 !media/images/logo.png
+
+# typescript compiler lib (runtime not needed, only JsxEmit enum used via vite bundle)
+**/node_modules/typescript/lib/**
+
+# sql.js
+**/node_modules/sql.js/dist/sqljs-all.zip
+**/node_modules/sql.js/dist/sql-wasm-debug.wasm
+
+# type declarations and docs not needed at runtime
+**/node_modules/@types/**
+**/node_modules/**/*.md
