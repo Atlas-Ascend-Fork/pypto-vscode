@@ -82,6 +82,7 @@ export interface SyncEvent {
   type: 'CV_SYNC_SET' | 'CV_SYNC_WAIT';
   eventid: number;
   parentEventId?: string;
+  channel?: 'C' | 'V';
 }
 
 export interface SwimLaneWrapLabel {
@@ -672,7 +673,7 @@ class SwimDataManager {
     const discardIntervals: [number, number][] = [];
     for (const syncEvent of sortedSyncEvents) {
       if (syncEvent.type === 'CV_SYNC_WAIT') {
-        const pairSetEvent = this.findAndRemoveSyncEventPair(pool, syncEvent.eventid, 'CV_SYNC_SET');
+        const pairSetEvent = this.findAndRemoveSyncEventPair(pool, syncEvent.eventid, 'CV_SYNC_SET', syncEvent.channel);
         if (pairSetEvent && pairSetEvent.time > syncEvent.time) {
           discardIntervals.push([syncEvent.time, Math.min(pairSetEvent.time, parentEvent.endTime)]);
         }
@@ -780,7 +781,13 @@ class SwimDataManager {
             pool.set(se.eventid, { sets: [], waits: [] });
           }
           const entry = pool.get(se.eventid)!;
-          const enrichedSe: SyncEvent = { ...se, parentEventId: event.id };
+          let channel: 'C' | 'V' | undefined;
+          if (event.threadName?.includes('AIC_')) {
+            channel = 'C';
+          } else if (event.threadName?.includes('AIV_')) {
+            channel = 'V';
+          }
+          const enrichedSe: SyncEvent = { ...se, parentEventId: event.id, channel };
           if (se.type === 'CV_SYNC_SET') {
             entry.sets.push(enrichedSe);
           } else {
@@ -800,7 +807,8 @@ class SwimDataManager {
   private findAndRemoveSyncEventPair(
     pool: Map<number, { sets: SyncEvent[]; waits: SyncEvent[] }>,
     eventid: number,
-    targetType: 'CV_SYNC_SET' | 'CV_SYNC_WAIT'
+    targetType: 'CV_SYNC_SET' | 'CV_SYNC_WAIT',
+    sourceChannel?: 'C' | 'V'
   ): SyncEvent | null {
     const entry = pool.get(eventid);
     if (!entry) return null;
@@ -808,7 +816,12 @@ class SwimDataManager {
     const targetList = targetType === 'CV_SYNC_SET' ? entry.sets : entry.waits;
     if (targetList.length === 0) return null;
     
-    return targetList.shift()!;
+    if (!sourceChannel) {
+      return targetList.shift()!;
+    }
+    const idx = targetList.findIndex(e => e.channel !== sourceChannel);
+    if (idx === -1) return null;
+    return targetList.splice(idx, 1)[0];
   }
 
   private findEventBySyncEvent(wrapId: number, syncEvent: SyncEvent): EventDetail | null {
@@ -860,7 +873,7 @@ class SwimDataManager {
       allSets.sort((a, b) => a.time - b.time);
 
       for (const setEvent of allSets) {
-        const pairWaitEvent = this.findAndRemoveSyncEventPair(pool, setEvent.eventid, 'CV_SYNC_WAIT');
+        const pairWaitEvent = this.findAndRemoveSyncEventPair(pool, setEvent.eventid, 'CV_SYNC_WAIT', setEvent.channel);
         if (!pairWaitEvent) {
           continue;
         }
