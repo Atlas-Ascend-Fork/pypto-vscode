@@ -28,6 +28,7 @@ interface DepNodeInfo {
   type: 'current' | 'predecessor' | 'successor';
   displayName: string;
   fullDisplayName: string;
+  eventId?: string;
 }
 
 /** 依赖关系数据 */
@@ -35,9 +36,9 @@ export interface DependencyRenderData {
   /** 当前事件显示名 */
   displayName: string;
   /** 前驱事件（按显示名） */
-  predecessors: Array<{ name: string; displayName?: string; isCounter?: boolean }>;
+  predecessors: Array<{ name: string; displayName?: string; isCounter?: boolean; eventId?: string }>;
   /** 后继事件（按显示名） */
-  successors: Array<{ name: string; displayName?: string; isCounter?: boolean }>;
+  successors: Array<{ name: string; displayName?: string; isCounter?: boolean; eventId?: string }>;
   /** 当前事件填充色 */
   fillColor: string;
   /** 展示模式：forward(前驱) / backward(后继) / both */
@@ -59,9 +60,14 @@ export interface DetailRenderConfig {
 export class DetailDependencyRenderer {
   /** 上一次绑定的 canvas（用于解绑事件） */
   private lastCanvas: HTMLCanvasElement | null = null;
-  private lastHandlers: { mousemove: ((e: MouseEvent) => void) | null; mouseleave: (() => void) | null } = {
+  private lastHandlers: {
+    mousemove: ((e: MouseEvent) => void) | null;
+    mouseleave: (() => void) | null;
+    click: ((e: MouseEvent) => void) | null;
+  } = {
     mousemove: null,
     mouseleave: null,
+    click: null,
   };
 
   /**
@@ -69,6 +75,7 @@ export class DetailDependencyRenderer {
    * @param data 依赖数据
    * @param config 渲染配置
    * @param tooltipCallbacks tooltip 回调（由组件提供 DOM 操作）
+   * @param onNodeClick 节点点击回调（由组件提供）
    */
   render(
     data: DependencyRenderData,
@@ -76,7 +83,8 @@ export class DetailDependencyRenderer {
     tooltipCallbacks: {
       show: (e: MouseEvent, text: string) => void;
       hide: () => void;
-    }
+    },
+    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor') => void
   ) {
     const canvas = canvasPool.getCanvas('dependency-canvas', '_default');
     if (!canvas) return;
@@ -104,7 +112,7 @@ export class DetailDependencyRenderer {
     ctx.fill();
     ctx.fillStyle = config.colorCfg.eventFontHighLight;
     ctx.font = '12px Arial';
-    let [displayText, leftspace] = config.overflowText(actualWidth, data.displayName);
+    const [displayText, leftspace] = config.overflowText(actualWidth, data.displayName);
     ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
     nodesInfo.push({
       node: currentNode,
@@ -117,93 +125,131 @@ export class DetailDependencyRenderer {
 
     // 前驱
     if (data.type === 'forward' || data.type === 'both') {
-      data.predecessors.forEach((pre, index) => {
-        const preNode = { x: 0, y: 10 + index * 20, width: actualWidth, height: 16 };
-        ctx.beginPath();
-        ctx.fillStyle = depFillColor;
-        ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
-        ctx.fill();
-        ctx.closePath();
-        ctx.fillStyle = config.colorCfg.eventFontNoColor;
-        ctx.font = '12px Arial';
-        const name = pre.isCounter ? pre.displayName : pre.name || 'Event';
-        [displayText, leftspace] = config.overflowText(actualWidth, name);
-        ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
-        nodesInfo.push({ node: preNode, type: 'predecessor', displayName: displayText, fullDisplayName: name });
-
-        // 连线
-        ctx.beginPath();
-        ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
-        ctx.bezierCurveTo(
-          currentNode.x + 5, currentNode.y + currentNode.height / 2 + 5,
-          preNode.x + preNode.width, preNode.y + preNode.height / 2 + 5,
-          preNode.x + preNode.width, preNode.y + preNode.height / 2
-        );
-        const gradient = ctx.createLinearGradient(
-          currentNode.x, currentNode.y + currentNode.height / 2,
-          preNode.x + preNode.width, preNode.y + preNode.height / 2
-        );
-        gradient.addColorStop(0, data.fillColor);
-        gradient.addColorStop(1, depFillColor);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      });
+      this.drawPredecessors(ctx, data, config, depFillColor, actualWidth, currentNode, nodesInfo);
     }
 
     // 后继
     if (data.type === 'backward' || data.type === 'both') {
-      data.successors.forEach((dep, index) => {
-        const depNode = { x: canvasWidth * 0.8, y: 10 + index * 20, width: actualWidth, height: 16 };
-        ctx.beginPath();
-        ctx.fillStyle = depFillColor;
-        ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
-        ctx.fill();
-        ctx.closePath();
-        ctx.fillStyle = config.colorCfg.eventFontNoColor;
-        ctx.font = '12px Arial';
-        const name = dep.isCounter ? dep.displayName : dep.name || 'Event';
-        [displayText, leftspace] = config.overflowText(actualWidth, name);
-        ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
-        nodesInfo.push({ node: depNode, type: 'successor', displayName: displayText, fullDisplayName: name });
-
-        ctx.beginPath();
-        ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
-        ctx.bezierCurveTo(
-          currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2 + 5,
-          depNode.x, depNode.y + depNode.height / 2 + 5,
-          depNode.x, depNode.y + depNode.height / 2
-        );
-        const gradient = ctx.createLinearGradient(
-          currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
-          depNode.x, depNode.y + depNode.height / 2
-        );
-        gradient.addColorStop(0, data.fillColor);
-        gradient.addColorStop(1, depFillColor);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      });
+      this.drawSuccessors(ctx, data, config, depFillColor, actualWidth, canvasWidth, currentNode, nodesInfo);
     }
 
-    // 绑定 hover tooltip（先解绑旧的）
-    this._unbindHover();
+    this.bindEvents(canvas, nodesInfo, tooltipCallbacks, onNodeClick);
+  }
+
+  private drawPredecessors(
+    ctx: CanvasRenderingContext2D,
+    data: DependencyRenderData,
+    config: DetailRenderConfig,
+    depFillColor: string,
+    actualWidth: number,
+    currentNode: { x: number; y: number; width: number; height: number },
+    nodesInfo: DepNodeInfo[]
+  ) {
+    data.predecessors.forEach((pre, index) => {
+      const preNode = { x: 0, y: 10 + index * 20, width: actualWidth, height: 16 };
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = config.colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      const name = pre.isCounter ? pre.displayName : pre.name || 'Event';
+      const [displayText, leftspace] = config.overflowText(actualWidth, name);
+      ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
+      nodesInfo.push({ node: preNode, type: 'predecessor', displayName: displayText, fullDisplayName: name, eventId: pre.eventId });
+
+      // 连线
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
+      ctx.bezierCurveTo(
+        currentNode.x + 5, currentNode.y + currentNode.height / 2 + 5,
+        preNode.x + preNode.width, preNode.y + preNode.height / 2 + 5,
+        preNode.x + preNode.width, preNode.y + preNode.height / 2
+      );
+      const gradient = ctx.createLinearGradient(
+        currentNode.x, currentNode.y + currentNode.height / 2,
+        preNode.x + preNode.width, preNode.y + preNode.height / 2
+      );
+      gradient.addColorStop(0, data.fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+  }
+
+  private drawSuccessors(
+    ctx: CanvasRenderingContext2D,
+    data: DependencyRenderData,
+    config: DetailRenderConfig,
+    depFillColor: string,
+    actualWidth: number,
+    canvasWidth: number,
+    currentNode: { x: number; y: number; width: number; height: number },
+    nodesInfo: DepNodeInfo[]
+  ) {
+    data.successors.forEach((dep, index) => {
+      const depNode = { x: canvasWidth * 0.8, y: 10 + index * 20, width: actualWidth, height: 16 };
+      ctx.beginPath();
+      ctx.fillStyle = depFillColor;
+      ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
+      ctx.fill();
+      ctx.closePath();
+      ctx.fillStyle = config.colorCfg.eventFontNoColor;
+      ctx.font = '12px Arial';
+      const name = dep.isCounter ? dep.displayName : dep.name || 'Event';
+      const [displayText, leftspace] = config.overflowText(actualWidth, name);
+      ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
+      nodesInfo.push({ node: depNode, type: 'successor', displayName: displayText, fullDisplayName: name, eventId: dep.eventId });
+
+      ctx.beginPath();
+      ctx.moveTo(currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2);
+      ctx.bezierCurveTo(
+        currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2 + 5,
+        depNode.x, depNode.y + depNode.height / 2 + 5,
+        depNode.x, depNode.y + depNode.height / 2
+      );
+      const gradient = ctx.createLinearGradient(
+        currentNode.x + currentNode.width, currentNode.y + currentNode.height / 2,
+        depNode.x, depNode.y + depNode.height / 2
+      );
+      gradient.addColorStop(0, data.fillColor);
+      gradient.addColorStop(1, depFillColor);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+  }
+
+  private bindEvents(
+    canvas: HTMLCanvasElement,
+    nodesInfo: DepNodeInfo[],
+    tooltipCallbacks: { show: (e: MouseEvent, text: string) => void; hide: () => void },
+    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor') => void
+  ) {
+    this._unbindEvents();
     this.lastCanvas = canvas;
-    const onMouseMove = (e: MouseEvent) => {
+    const hitTest = (e: MouseEvent): DepNodeInfo | null => {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      let hoveredNode: DepNodeInfo | null = null;
       for (let i = nodesInfo.length - 1; i >= 0; i--) {
         const n = nodesInfo[i];
         if (mouseX >= n.node.x && mouseX <= n.node.x + n.node.width &&
             mouseY >= n.node.y && mouseY <= n.node.y + n.node.height) {
-          hoveredNode = n;
-          break;
+          return n;
         }
       }
+      return null;
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      const hoveredNode = hitTest(e);
       if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
         tooltipCallbacks.show(e, hoveredNode.fullDisplayName);
+        canvas.style.cursor = 'pointer';
+      } else if (hoveredNode && hoveredNode.type !== 'current' && hoveredNode.eventId) {
+        tooltipCallbacks.hide();
         canvas.style.cursor = 'pointer';
       } else {
         tooltipCallbacks.hide();
@@ -211,20 +257,31 @@ export class DetailDependencyRenderer {
       }
     };
     const onMouseLeave = () => tooltipCallbacks.hide();
+    const onClick = (e: MouseEvent) => {
+      if (!onNodeClick) return;
+      const hoveredNode = hitTest(e);
+      if (hoveredNode && hoveredNode.type !== 'current' && hoveredNode.eventId) {
+        onNodeClick(hoveredNode.eventId, hoveredNode.type as 'predecessor' | 'successor');
+      }
+    };
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseleave', onMouseLeave);
-    this.lastHandlers = { mousemove: onMouseMove, mouseleave: onMouseLeave };
+    canvas.addEventListener('click', onClick);
+    this.lastHandlers = { mousemove: onMouseMove, mouseleave: onMouseLeave, click: onClick };
   }
 
-  /** 解绑上一次的 hover 事件 */
-  private _unbindHover() {
+  /** 解绑上一次的事件 */
+  private _unbindEvents() {
     if (this.lastCanvas && this.lastHandlers.mousemove) {
       this.lastCanvas.removeEventListener('mousemove', this.lastHandlers.mousemove);
     }
     if (this.lastCanvas && this.lastHandlers.mouseleave) {
       this.lastCanvas.removeEventListener('mouseleave', this.lastHandlers.mouseleave);
     }
-    this.lastHandlers = { mousemove: null, mouseleave: null };
+    if (this.lastCanvas && this.lastHandlers.click) {
+      this.lastCanvas.removeEventListener('click', this.lastHandlers.click);
+    }
+    this.lastHandlers = { mousemove: null, mouseleave: null, click: null };
   }
 }
 

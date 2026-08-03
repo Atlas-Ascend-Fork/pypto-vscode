@@ -218,7 +218,7 @@ import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
 import { getKernalEventColor } from './swimGraphProcesses/render/utils';
 import { getPositionByTime, getWidthByDuration } from './swimGraphProcesses/processInfo';
-import { eventTextSize, getFontStyle, getThreadStartY, getThreadHeight } from './swimGraphUtils';
+import { eventTextSize, getFontStyle, getThreadStartY, getThreadHeight, drawDependencyHighlightEvent } from './swimGraphUtils';
 import { perfLogger, setDebugMode, setTotalStartTime, setTransformTime, isDebugEnabled } from './perfLogger';
 
 const { server } = useViewServer();
@@ -436,6 +436,7 @@ const searchResult = ref([]);
 const currentResultIndex = ref(0);
 const isSearchActive = ref(false);
 const searchedEvent = ref(null);
+const dependencyHighlightEvent = ref(null);
 const searchQuery = ref('');
 const isCaseSensitive = ref(false);
 
@@ -1016,6 +1017,7 @@ const transform = (needClean=false) => {
       }
     } else {
       renderDependencyLines();
+      drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
       for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
         if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
           highlightAicpu(process, processKey, true);
@@ -1045,6 +1047,7 @@ const transform = (needClean=false) => {
       childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
     }
   }
+  drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
       highlightAicpu(process, processKey, true);
@@ -1735,6 +1738,7 @@ const handleNormalEventClick = (event, processKey) => {
 
 const clearSelection = (processKey) => {
   lastSelected.value = null;
+  dependencyHighlightEvent.value = null;
   if (isMaxSchedule.value) {
     isMaxSchedule.value = false;
     highlightedPaths.clear();
@@ -2695,6 +2699,7 @@ const transformVerticalScroll = () => {
       }
     }
   }
+  drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();
 };
@@ -3524,6 +3529,10 @@ provide('swimGraphMethods', {
   },
   scrollToEvent: (e) => {
     return swimgraphHeaderComponent?.value.scrollToEvent(e);
+  },
+  highlightDependencyEvent: (event) => {
+    dependencyHighlightEvent.value = event;
+    transform();
   },
   getTimelineCanvas: () => {
     return timelineComponent?.value.timelineCanvas;

@@ -287,6 +287,7 @@ const {
   layout,
   isMixMode,
   isThreeColumn,
+  processExpanded,
 } = inject('swimGraphState');
 
 const isAicpuEvent = computed(() => {
@@ -309,7 +310,10 @@ const {
   renderDependencyLines,
   postMessage,
   selectEvent,
-  overflowText
+  overflowText,
+  scrollToEvent,
+  highlightDependencyEvent,
+  toggleProcess,
 } = inject('swimGraphMethods');
 const { userConfig } = inject('swimGraphCfg');
 const { pmuValid } = inject('swimGraphPmuTotal') || { pmuValid: ref(false) };
@@ -792,6 +796,25 @@ const resetReleventState = () => {
   changeUserCfgConnection(-1);
 };
 
+const locateDependencyEvent = (eventId) => {
+  const targetEvent = swimDataManager.getEventById(eventId);
+  if (!targetEvent) {
+    return;
+  }
+  const processKey = String(targetEvent.pid);
+  if (processExpanded && !processExpanded.get(processKey)) {
+    toggleProcess(processKey);
+  }
+  nextTick(() => {
+    highlightDependencyEvent(targetEvent);
+    scrollToEvent(targetEvent);
+  });
+};
+
+const onDependencyNodeClick = (eventId, type) => {
+  locateDependencyEvent(eventId);
+};
+
 const showDependencies = (event, type) => {
   const displayName = event.isCounter ? event.displayName : event.name || 'Event';
   const eventPredecessors = event.dependencies?.predecessors?.map((id) => swimDataManager.getEventById(id)).filter((e) => e) || [];
@@ -832,11 +855,13 @@ const showDependencies = (event, type) => {
         name: pre.name,
         displayName: pre.displayName,
         isCounter: pre.isCounter,
+        eventId: pre.id,
       })),
       successors: eventSuccessors.map(dep => ({
         name: dep.name,
         displayName: dep.displayName,
         isCounter: dep.isCounter,
+        eventId: dep.id,
       })),
       fillColor,
       type,
@@ -850,7 +875,8 @@ const showDependencies = (event, type) => {
     {
       show: showTooltip,
       hide: hideTooltip,
-    }
+    },
+    onDependencyNodeClick
   );
 };
 

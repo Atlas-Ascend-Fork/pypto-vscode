@@ -1682,3 +1682,36 @@ export const findVisibleEventRange = (thread, viewportStartTime, viewportEndTime
 
   return { leftBound, rightBound };
 };
+
+export const drawDependencyHighlightEvent = (
+  event: any,
+  processExpanded: Map<string, boolean>,
+  globalConnectionCanvas: any,
+  actions: {
+    updateEventPosition: (event: any) => void;
+    highlightEvent: (ctx: any, event: any, processKey: string, stroke: boolean) => void;
+  }
+) => {
+  if (!event) {
+    return;
+  }
+  const depHighlightKey = event.pid?.toString();
+  if (!depHighlightKey || !processExpanded.get(depHighlightKey)) {
+    return;
+  }
+  if (globalConnectionCanvas) {
+    const coords = globalConnectionCanvas.getEventCoordinates(event, false);
+    if (coords) {
+      globalConnectionCanvas.highlightEventNode(event, coords, true);
+    }
+  } else {
+    const depCanvas = document.querySelector(`[data-dep-process-key="${depHighlightKey}"]`);
+    if (depCanvas) {
+      const depCtx = depCanvas.getContext('2d');
+      const dpr = getDevicePixelRatio();
+      depCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      actions.updateEventPosition(event);
+      actions.highlightEvent(depCtx, event, depHighlightKey, true);
+    }
+  }
+};
