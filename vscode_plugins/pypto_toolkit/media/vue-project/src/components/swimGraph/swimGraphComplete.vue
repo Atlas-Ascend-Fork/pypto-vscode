@@ -2699,6 +2699,8 @@ const transformVerticalScroll = () => {
       }
     }
   }
+  childContextMap.threadEvent.drawSelectionBox();
+  childContextMap.threadEvent.drawSelectionHightlight();
   drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();

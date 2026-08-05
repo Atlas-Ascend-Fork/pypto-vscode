@@ -1206,7 +1206,7 @@ const handleAltMove = (e, hoverInfo, refs) => {
   handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx);
 };
 
-const handlePureMove = (hoverInfo, refs, localPosition) => {
+const handlePureMove = (hoverInfo, refs, localPosition, e) => {
   const hoveredEvent = hoverInfo?.event;
   const { preData, lastData, nodeSpacingX } = hoverInfo?.altClickData || {};
   const { uiCtx, canvasRef } = refs;
@@ -1217,7 +1217,33 @@ const handlePureMove = (hoverInfo, refs, localPosition) => {
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx); // 自动测距
     if (isDragging.value) {
       selection.endLocalX = x;
+      selection.endLocalY = y;
       selection.endY = y;
+      selection.endX = x;
+
+      const didAutoScroll = autoScrollOnDragging(y, canvasRef, e);
+      if (didAutoScroll) {
+        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
+        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
+
+        selection.endX = newLocalPosition.x;
+        selection.endLocalX = newLocalPosition.x;
+        selection.endY = newLocalPosition.y;
+        selection.endLocalY = newLocalPosition.y;
+
+        mousePosition = currentMouseScreenPos;
+      }
+
+      const didAutoPan = autoPanOnDragging(x, canvasRef, e);
+      if (didAutoPan) {
+        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
+        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
+
+        selection.endX = newLocalPosition.x;
+        selection.endLocalX = newLocalPosition.x;
+
+        mousePosition = currentMouseScreenPos;
+      }
       // 绘制框选
       drawSelectionBox();
       mulDetailsExpanded.value = false;
@@ -1226,6 +1252,99 @@ const handlePureMove = (hoverInfo, refs, localPosition) => {
   if (isThreeColumn) {
     handle3PureMove(hoverInfo, localPosition, eventCtx);
   }
+};
+
+const autoScrollOnDragging = (mouseY, canvasRef, e) => {
+  let scrollContainer = swimlaneContainer.value;
+
+  if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+    let element = canvasRef?.parentElement;
+    while (element) {
+      if (element.scrollHeight > element.clientHeight) {
+        scrollContainer = element;
+        break;
+      }
+      element = element.parentElement;
+    }
+  }
+
+  if (!scrollContainer || !canvasRef) {
+    return false;
+  }
+
+  const scrollThreshold = 50;
+  const scrollStep = 30;
+  let didScroll = false;
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const mouseInContainer = e.clientY - containerRect.top;
+  const containerHeight = scrollContainer.clientHeight;
+  if (mouseInContainer > containerHeight - scrollThreshold) {
+    const canScrollDown = scrollContainer.scrollTop + containerHeight < scrollContainer.scrollHeight;
+    if (canScrollDown) {
+      scrollContainer.scrollBy({ top: scrollStep, behavior: 'auto' });
+      didScroll = true;
+    }
+  }
+  else if (mouseInContainer < scrollThreshold) {
+    const canScrollUp = scrollContainer.scrollTop > 0;
+    if (canScrollUp) {
+      scrollContainer.scrollBy({ top: -scrollStep, behavior: 'auto' });
+      didScroll = true;
+    }
+  }
+
+  return didScroll;
+};
+
+const autoPanOnDragging = (mouseX, canvasRef, e) => {
+  const scrollContainer = swimlaneContainer.value;
+  if (!scrollContainer) {
+    return false;
+  }
+
+  if (viewState.scale <= 1) {
+    return false;
+  }
+
+  const panThreshold = 50;
+  const panStep = 30;
+  let didPan = false;
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const mouseXInContainer = e.clientX - containerRect.left;
+  const containerWidth = scrollContainer.clientWidth;
+
+  const timeLineEndX = Math.abs(timeLineX.value);
+  const cssWidth = viewState.canvasCssWidth;
+  const minOffset = cssWidth - (cssWidth * viewState.scale);
+
+  // 向右拖拽 
+  if (mouseXInContainer > containerWidth - panThreshold) {
+    if (viewState.offsetX > minOffset) {
+      viewState.offsetX -= panStep;
+      if (viewState.offsetX < minOffset) {
+        viewState.offsetX = minOffset;
+      }
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      transform();
+      didPan = true;
+    }
+  }
+  // 向左拖拽
+  else if (mouseXInContainer < panThreshold) {
+    if (viewState.offsetX < 0) {
+      viewState.offsetX += panStep;
+      if (viewState.offsetX > 0) {
+        viewState.offsetX = 0;
+      }
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      transform();
+      didPan = true;
+    }
+  }
+
+  return didPan;
 };
 
 const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
@@ -1318,7 +1437,7 @@ const handleMouseMoveThrottle = throttle((e) => {
     measureState.isMeasureFirst = false;
   } else {
     measureState.isMeasureFirst = false;
-    handlePureMove(info, refs, localPosition);
+    handlePureMove(info, refs, localPosition, e);
   }
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
@@ -1431,15 +1550,34 @@ const drawSelectionBox = () => {
   if (!uiCtx) {
     return;
   }
-  clearWholeProcess(uiCtx, viewState, props.processKey);
-  const {startLocalX, startY, endLocalX, endY} = selection;
+
+  uiCtx.fillStyle = 'rgba(0, 0, 0, 0)';
+  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+
+  const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
+  const undefinedValues = [startLocalX, startLocalY, endLocalX, endLocalY];
+
+  if (undefinedValues.some(value => value === undefined)) {
+      return;
+  }
+
+  const rectX = Math.min(startLocalX, endLocalX);
+  const rectY = Math.min(startLocalY, endLocalY);
+  const rectWidth = Math.abs(endLocalX - startLocalX);
+  const rectHeight = Math.abs(endLocalY - startLocalY);
+
+  if (rectWidth < 1 && rectHeight < 1) {
+    return;
+  }
+
   // 填充矩形
   uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
   uiCtx.strokeStyle = 'rgba(53, 127, 255, 1)';
   uiCtx.beginPath();
-  uiCtx.lineWidth = 1;
-  uiCtx.rect(startLocalX, startY, endLocalX - startLocalX, endY - startY, 4);
+  uiCtx.lineWidth = 1 / viewState.scale;
+  uiCtx.rect(rectX, rectY, rectWidth, rectHeight);
   uiCtx.fill();
+  uiCtx.stroke();
 };
 const drawSelectionHightlight = () => {
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -1718,12 +1856,17 @@ const handleMouseDown = (e) => {
     if (!e.ctrlKey) {
       selection.startX = e.clientX - rect.left;
       selection.startY = e.clientY - rect.top;
-      const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
+      const { x, y } = computeLocalXY(canvasRef, mousePosition, viewState);
       selection.startLocalX = x;
+      selection.startLocalY = y;
     }
 
     isClick.value = true;
     isDragging.value = canDragSelect(props.process);
+
+    if (isDragging.value) {
+      freezeVisibleRange.value = true;
+    }
 
     measureDetailsData.value = [];
     rootHashes.value = [];
@@ -1772,14 +1915,16 @@ const selectionFinished = (e) => {
       isCoreUtilizationSupported(true, props.process);
     }
     isDragging.value = false;
+    freezeVisibleRange.value = false;
     return;
   }
   const rect = canvasRef.getBoundingClientRect();
   if (!e.ctrlKey) {
     selection.endX = e.clientX - rect.left;
     selection.endY = e.clientY - rect.top;
-    const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
+    const { x, y } = computeLocalXY(canvasRef, mousePosition, viewState);
     selection.endLocalX = x;
+    selection.endLocalY = y;
   }
   const dx = Math.abs(selection.endX - selection.startX);
   const dy = Math.abs(selection.endY - selection.startY);
@@ -1792,6 +1937,7 @@ const selectionFinished = (e) => {
     handleSelection();
   }
   isDragging.value = false;
+  freezeVisibleRange.value = false;
 };
 const getCanvasHeight = () => {
   let height = 0;
