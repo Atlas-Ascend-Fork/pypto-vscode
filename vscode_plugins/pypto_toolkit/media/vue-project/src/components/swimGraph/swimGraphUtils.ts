@@ -22,6 +22,7 @@ export const COLOR_CFG = {
     eventRectNoColorHighlight: 'rgba(102, 102, 102, 1)',
     eventFontHighLight: '#000000',
     eventHighLightStroke: '#ffffff',
+    depSelectStroke: '#317AF7',
     lightlyCompareBkgColor: 'rgba(255, 255, 255, 0.05)',
     splitLineColor: 'rgba(255, 255, 255, 0.1)',
     wrapLineColor: '#B3B3B3',
@@ -42,6 +43,7 @@ export const COLOR_CFG = {
     eventRectNoColorHighlight: 'rgba(119, 119, 119, 1)',
     eventFontHighLight: '#ffffff',
     eventHighLightStroke: '#191919',
+    depSelectStroke: '#0A59F7',
     lightlyCompareBkgColor: 'rgba(0, 0, 0, 0.05)',
     splitLineColor: 'rgba(98, 98, 98, 0.2)',
     wrapLineColor: '#393939',
@@ -495,8 +497,10 @@ export const findSchedGraphMap = (threads, roundNo, taskNo) => {
     if (isCtrl) {
       eventArr = [];
     } else if (isSched) {
+      threadMap.set(threadName, []);
       eventArr = findBuildSchedEvent(thread, roundNo, taskNo);
     } else if (isCore) {
+       threadMap.set(threadName, []);
       eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
       eventArr = [];
@@ -787,6 +791,7 @@ export const findBuildSchedEvent = (thread, roundNo, taskNo) => {
   if (rcvIndex !== -1 && rspIndex !== -1 && rcvIndex <= rspIndex) {
     return originEventIds.slice(rcvIndex, rspIndex + 1).map((eId) => swimDataManager.getEventById(eId));
   }
+  return [];
 };
 export const findCtrlEvent = (thread, roundNo, taskNo, hasEvent) => {
   if(!hasEvent){

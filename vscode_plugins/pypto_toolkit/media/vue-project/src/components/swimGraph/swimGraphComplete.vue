@@ -1156,7 +1156,8 @@ const render = () => {
   renderEvent();
   renderDependencyLines();
   if (detailsPanelExpanded.value) {
-    detailComponent?.value.showDependencies(selectedEvent.value, 'both');
+    const event = isPathLockStatus.value ? canvasclickedEvent.value : selectedEvent.value;
+    detailComponent?.value.showDependencies(event, 'both');
   }
   timelineComponent.value.flagRender();
   if (props.isThreeColumn) {

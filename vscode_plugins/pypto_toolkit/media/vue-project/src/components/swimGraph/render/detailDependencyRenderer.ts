@@ -41,6 +41,8 @@ export interface DependencyRenderData {
   successors: Array<{ name: string; displayName?: string; isCounter?: boolean; eventId?: string }>;
   /** 当前事件填充色 */
   fillColor: string;
+  /** 当前事件ID */
+  currentEventId?: string;
   /** 展示模式：forward(前驱) / backward(后继) / both */
   type: 'forward' | 'backward' | 'both';
 }
@@ -52,7 +54,7 @@ export interface DetailRenderConfig {
   /** 右边距 */
   marginRight: number;
   /** 颜色配置 */
-  colorCfg: { lightlyCompareBkgColor: string; eventFontHighLight: string; eventFontNoColor: string };
+  colorCfg: { lightlyCompareBkgColor: string; eventFontHighLight: string; eventFontNoColor: string; depSelectStroke: string };
   /** 文本溢出截断函数（由组件从 swimGraphMethods 注入） */
   overflowText: (maxWidth: number, text: string) => [string, number];
 }
@@ -69,6 +71,13 @@ export class DetailDependencyRenderer {
     mouseleave: null,
     click: null,
   };
+  private selectedEventId: string | null = null;
+  private lastRenderParams: {
+    data: DependencyRenderData;
+    config: DetailRenderConfig;
+    tooltipCallbacks: { show: (e: MouseEvent, text: string) => void; hide: () => void };
+    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor' | 'current') => void;
+  } | null = null;
 
   /**
    * 渲染依赖关系图
@@ -84,8 +93,17 @@ export class DetailDependencyRenderer {
       show: (e: MouseEvent, text: string) => void;
       hide: () => void;
     },
-    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor') => void
+    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor' | 'current') => void
   ) {
+    this.selectedEventId = null;
+    this.lastRenderParams = { data, config, tooltipCallbacks, onNodeClick };
+    this._draw();
+  }
+
+  private _draw(skipBindEvents = false) {
+    if (!this.lastRenderParams) return;
+    const { data, config, tooltipCallbacks, onNodeClick } = this.lastRenderParams;
+
     const canvas = canvasPool.getCanvas('dependency-canvas', '_default');
     if (!canvas) return;
 
@@ -97,6 +115,7 @@ export class DetailDependencyRenderer {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.font = '12px Arial';
 
     const nodesInfo: DepNodeInfo[] = [];
     const currentNode = {
@@ -105,13 +124,11 @@ export class DetailDependencyRenderer {
       width: actualWidth,
       height: 16,
     };
-
+    
     // 当前节点
-    ctx.fillStyle = data.fillColor;
-    ctx.roundRect(currentNode.x, currentNode.y, currentNode.width, currentNode.height, 4);
-    ctx.fill();
+    const isCurrentSelected = data.currentEventId === this.selectedEventId;
+    this.drawDepNodeRect(ctx, currentNode, data.fillColor, isCurrentSelected, config.colorCfg.depSelectStroke);
     ctx.fillStyle = config.colorCfg.eventFontHighLight;
-    ctx.font = '12px Arial';
     const [displayText, leftspace] = config.overflowText(actualWidth, data.displayName);
     ctx.fillText(displayText, currentNode.x + leftspace, currentNode.y + 12);
     nodesInfo.push({
@@ -119,21 +136,43 @@ export class DetailDependencyRenderer {
       type: 'current',
       displayName: displayText,
       fullDisplayName: data.displayName,
+      eventId: data.currentEventId,
     });
 
     const depFillColor = config.colorCfg.lightlyCompareBkgColor;
-
+     
     // 前驱
     if (data.type === 'forward' || data.type === 'both') {
       this.drawPredecessors(ctx, data, config, depFillColor, actualWidth, currentNode, nodesInfo);
     }
-
+    
     // 后继
     if (data.type === 'backward' || data.type === 'both') {
       this.drawSuccessors(ctx, data, config, depFillColor, actualWidth, canvasWidth, currentNode, nodesInfo);
     }
 
-    this.bindEvents(canvas, nodesInfo, tooltipCallbacks, onNodeClick);
+    if (!skipBindEvents) {
+      this.bindEvents(canvas, nodesInfo, tooltipCallbacks, onNodeClick);
+    }
+  }
+
+  private drawDepNodeRect(
+    ctx: CanvasRenderingContext2D,
+    node: { x: number; y: number; width: number; height: number },
+    fillColor: string,
+    isSelected: boolean,
+    selectStroke: string
+  ) {
+    ctx.beginPath();
+    ctx.fillStyle = fillColor;
+    ctx.roundRect(node.x, node.y, node.width, node.height, 4);
+    ctx.fill();
+    if (isSelected) {
+      ctx.strokeStyle = selectStroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.closePath();
   }
 
   private drawPredecessors(
@@ -147,18 +186,14 @@ export class DetailDependencyRenderer {
   ) {
     data.predecessors.forEach((pre, index) => {
       const preNode = { x: 0, y: 10 + index * 20, width: actualWidth, height: 16 };
-      ctx.beginPath();
-      ctx.fillStyle = depFillColor;
-      ctx.roundRect(preNode.x, preNode.y, preNode.width, preNode.height, 4);
-      ctx.fill();
-      ctx.closePath();
+      const isSelected = pre.eventId === this.selectedEventId;
+      this.drawDepNodeRect(ctx, preNode, depFillColor, isSelected, config.colorCfg.depSelectStroke);
       ctx.fillStyle = config.colorCfg.eventFontNoColor;
-      ctx.font = '12px Arial';
       const name = pre.isCounter ? pre.displayName : pre.name || 'Event';
       const [displayText, leftspace] = config.overflowText(actualWidth, name);
       ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
       nodesInfo.push({ node: preNode, type: 'predecessor', displayName: displayText, fullDisplayName: name, eventId: pre.eventId });
-
+      
       // 连线
       ctx.beginPath();
       ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);
@@ -191,13 +226,9 @@ export class DetailDependencyRenderer {
   ) {
     data.successors.forEach((dep, index) => {
       const depNode = { x: canvasWidth * 0.8, y: 10 + index * 20, width: actualWidth, height: 16 };
-      ctx.beginPath();
-      ctx.fillStyle = depFillColor;
-      ctx.roundRect(depNode.x, depNode.y, depNode.width, depNode.height, 4);
-      ctx.fill();
-      ctx.closePath();
+      const isSelected = dep.eventId === this.selectedEventId;
+      this.drawDepNodeRect(ctx, depNode, depFillColor, isSelected, config.colorCfg.depSelectStroke);
       ctx.fillStyle = config.colorCfg.eventFontNoColor;
-      ctx.font = '12px Arial';
       const name = dep.isCounter ? dep.displayName : dep.name || 'Event';
       const [displayText, leftspace] = config.overflowText(actualWidth, name);
       ctx.fillText(displayText, depNode.x + leftspace, depNode.y + 12);
@@ -226,7 +257,7 @@ export class DetailDependencyRenderer {
     canvas: HTMLCanvasElement,
     nodesInfo: DepNodeInfo[],
     tooltipCallbacks: { show: (e: MouseEvent, text: string) => void; hide: () => void },
-    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor') => void
+    onNodeClick?: (eventId: string, type: 'predecessor' | 'successor' | 'current') => void
   ) {
     this._unbindEvents();
     this.lastCanvas = canvas;
@@ -258,10 +289,13 @@ export class DetailDependencyRenderer {
     };
     const onMouseLeave = () => tooltipCallbacks.hide();
     const onClick = (e: MouseEvent) => {
-      if (!onNodeClick) return;
       const hoveredNode = hitTest(e);
-      if (hoveredNode && hoveredNode.type !== 'current' && hoveredNode.eventId) {
-        onNodeClick(hoveredNode.eventId, hoveredNode.type as 'predecessor' | 'successor');
+      if (hoveredNode && hoveredNode.eventId) {
+        this.selectedEventId = hoveredNode.eventId;
+        this._draw(true);
+        if (onNodeClick) {
+          onNodeClick(hoveredNode.eventId, hoveredNode.type as 'predecessor' | 'successor' | 'current');
+        }
       }
     };
     canvas.addEventListener('mousemove', onMouseMove);

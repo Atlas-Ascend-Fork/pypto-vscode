@@ -613,7 +613,7 @@ const rPath = ref(`${window.staticPath}/static-assets/swim_right.svg`);
 
 const predecessors = computed(() => {
   if (!canvasclickedEvent.value?.dependencies?.predecessors) return [];
-  if (!canvasclickedEvent.value?.parentEventId) {
+  if (!canvasclickedEvent.value?.parentEventId && !isPathLockStatus.value) {
     if (selectedEvent.value) {
       return selectedEvent.value.dependencies.predecessors.map(id =>
         swimDataManager.getEventById(id)
@@ -627,7 +627,7 @@ const predecessors = computed(() => {
 
 const successors = computed(() => {
   if (!canvasclickedEvent.value?.dependencies?.successors) return [];
-  if (!canvasclickedEvent.value?.parentEventId) {
+  if (!canvasclickedEvent.value?.parentEventId && !isPathLockStatus.value) {
     if (selectedEvent.value) {
       return selectedEvent.value.dependencies.successors.map(id =>
         swimDataManager.getEventById(id)
@@ -864,6 +864,7 @@ const showDependencies = (event, type) => {
         eventId: dep.id,
       })),
       fillColor,
+      currentEventId: event.id,
       type,
     },
     {
@@ -960,8 +961,9 @@ const initCanvasResizeObserver = () => {
   }
   
   canvasResizeObserver = new ResizeObserver((entries) => {
-    if (selectedEvent.value) {
-      showDependencies(selectedEvent.value, 'both');
+    const event = isPathLockStatus.value ? canvasclickedEvent.value : selectedEvent.value;
+    if (event) {
+      showDependencies(event, 'both');
     }
   });
 

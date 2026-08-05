@@ -342,13 +342,13 @@ const renderCoreDetailCanvas = () => {
   }
   const event = selectedOriginEvent.value;
   if (coreDetailTimelineCtx.value) {
-    coreDetailTimelineCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailTimelineCanvas.value.height);
+    coreDetailTimelineCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailTimelineCanvas.value?.height);
   }
   if (coreDetailAicpuCtx.value) {
-    coreDetailAicpuCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailAicpuCanvas.value.height);
+    coreDetailAicpuCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailAicpuCanvas.value?.height);
   }
   if (coreDetailKernelCtx.value) {
-    coreDetailKernelCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailKernelCanvas.value.height);
+    coreDetailKernelCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailKernelCanvas.value?.height);
   }
   const { threadName } = event;
   const targetThreadName = extractAicAiv(threadName).replace('-','_');
@@ -357,7 +357,7 @@ const renderCoreDetailCanvas = () => {
   getKernelEventsData(startTime, endTime);
   setTimeout(() => {
     const canvasContainer = document.getElementById('current-container');
-    const baseWidth = canvasContainer.clientWidth;
+    const baseWidth = canvasContainer?.clientWidth;
     containerWidth.value = hasClicked.value ? baseWidth - 10 : baseWidth;
     initCanvases();
     renderCoreDetailTimeline(startTime, endTime);
