@@ -80,6 +80,7 @@ const { server } = useViewServer<IComViewServer>();
 
 @injectable()
 class CustomElkLayoutEngine extends ElkLayoutEngine {
+  private layoutWatchStop: (() => void) | null = null;
   constructor(
     elkFactory: ElkFactory,
     protected readonly filter: IElementFilter,
@@ -103,15 +104,24 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     if (sgraph['isFinial']) {
       return sgraph;
     }
+    if (this.layoutWatchStop) {
+      this.layoutWatchStop();
+      this.layoutWatchStop = null;
+    }
     const elkGraph = this.transformGraph(sgraph, index);
     if (this.preprocessor) {
       this.preprocessor.preprocess(elkGraph, sgraph, index);
     }
     server.askLayout({ data: elkGraph });
     return new Promise((resolve, reject) => {
-      watch(server.LayoutResult, (newValue) => {
+      this.layoutWatchStop = watch(server.LayoutResult, (newValue) => {
         if (!newValue.filePath || newValue.filePath === elkGraph.layoutOptions['PyPTO.filePath']) {
-          resolve(newValue.data);
+          const resultDirection = newValue.data?.layoutOptions?.['elk.direction'];
+          if (!resultDirection || resultDirection === elkGraph.layoutOptions['elk.direction']) {
+            this.layoutWatchStop?.();
+            this.layoutWatchStop = null;
+            resolve(newValue.data);
+          }
         }
       });
     }).then((result: any) => {
@@ -500,7 +510,7 @@ export class CustomMouseListener extends MouseListener {
     setTimeout(() => {
       (window as any).ascEventBus.emit('view_zoom', [target.root.zoom, target.root.scroll.x, target.root.scroll.y, false, moveArea]);
       (window as any).ascEventBus.emit('viewer_update', {
-        zoom: target.root.zoom, 
+        zoom: target.root.zoom,
         scroll: {
           x: target.root.scroll.x,
           y: target.root.scroll.y
