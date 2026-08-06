@@ -279,7 +279,7 @@ export class DetailDependencyRenderer {
       if (hoveredNode && hoveredNode.fullDisplayName !== hoveredNode.displayName) {
         tooltipCallbacks.show(e, hoveredNode.fullDisplayName);
         canvas.style.cursor = 'pointer';
-      } else if (hoveredNode && hoveredNode.type !== 'current' && hoveredNode.eventId) {
+      } else if (hoveredNode && hoveredNode.eventId) {
         tooltipCallbacks.hide();
         canvas.style.cursor = 'pointer';
       } else {
