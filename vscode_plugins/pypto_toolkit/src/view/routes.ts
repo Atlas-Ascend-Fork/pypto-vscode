@@ -59,7 +59,7 @@ export const routes: EditorViewRoutes = {
   editRunConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
     viewServer: RunConfigViewServer,
-    iconPath: () => vscode.Uri.file(path.join(hismartliteEx.extensionPath, 'media', 'vue-project', 'src', 'static-assets', 'xml.svg')),
+    iconPath: () => vscode.Uri.file(path.join(hismartliteEx.extensionPath, 'webview-dist', 'static-assets', 'xml.svg')),
   },
 
   // 欢迎页面

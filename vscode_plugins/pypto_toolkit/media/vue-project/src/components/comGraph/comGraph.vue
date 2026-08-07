@@ -524,8 +524,10 @@ function searchNode(params: Record<string, any>) {
   // 还原到步骤2的节点选中和居中
   const { nodeId, ...rest } = params;
   centerNodeAction([nodeId], undefined, undefined, 1);
-  // 填充搜索条件
-  headerEl.value.updateSearchParams(rest);
+  // 延迟填充搜索条件，给引导系统准备时间
+  setTimeout(() => {
+    headerEl.value.updateSearchParams(rest);
+  }, 100);
 }
 
 // 步骤4只看当前通路
