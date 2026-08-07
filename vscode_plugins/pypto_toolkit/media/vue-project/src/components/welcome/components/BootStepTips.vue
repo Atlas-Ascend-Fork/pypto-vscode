@@ -842,6 +842,32 @@ watch([currentBigGroup, currentSmallIndex], async () => {
   handleResize();
   const targetDomId = getCurrentStepTargetDomId(currentBigGroup.value, currentSmallIndex.value, props.graphType);
   observeDomChange(targetDomId);
+
+  // 关键修复：检测目标DOM是否存在，若不存在则重启轮询机制
+  const targetDom = getTargetElement(targetDomId);
+  if (!targetDom) {
+    // 重置兜底遮罩，显示加载状态
+    isShowFullFalBack.value = true;
+
+    // 清除旧的轮询定时器（如果存在）
+    if (checkDomInterval) {
+      clearInterval(checkDomInterval);
+    }
+
+    // 重启轮询机制，等待目标DOM出现
+    checkDomInterval = setInterval(() => {
+      const currentTargetDom = getTargetElement(targetDomId);
+      if (!props.visible) {
+        clearInterval(checkDomInterval);
+        return;
+      }
+      if (currentTargetDom) {
+        clearInterval(checkDomInterval);
+        handleResize();
+        isShowFullFalBack.value = false;
+      }
+    }, 200);
+  }
 });
 
 // 监听弹窗显示状态

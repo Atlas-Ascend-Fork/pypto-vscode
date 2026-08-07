@@ -163,22 +163,12 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         method: 'viewComGraph',
         methodParams: {},
         allowClick: true,
-        showBorder:true,
+        showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'path-list-menu-wrap',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
-          {
-            targetDomId: 'pass-list-menu-wrap',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
-          {
-            targetDomId: 'navbarComGraphTab',
-            triangleDirection: 'top',
-            showTriangle: true,
+            targetDomId: 'boot-steps-com-graph-anchor',
+            triangleDirection: 'bottom',
+            showTriangle: false,
           },
         ],
       },
@@ -215,8 +205,13 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           ],
         },
         allowClick: true,
-        showBorder:true,
+        showBorder: true,
         targetDomConfigs: [
+          {
+            targetDomId: 'comGraphHeaderSearch',
+            triangleDirection: 'top',
+            showTriangle: true,
+          },
           {
             targetDomId: 'com-graph-header-search-dropdown',
             triangleDirection: 'top',
@@ -229,11 +224,6 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
           },
           {
             targetDomId: '.com-graph-global-select.show-global-select-menu',
-            triangleDirection: 'top',
-            showTriangle: true,
-          },
-          {
-            targetDomId: 'comGraphHeaderSearch',
             triangleDirection: 'top',
             showTriangle: true,
           },
@@ -314,9 +304,9 @@ export const guideStepsConfigStep2: GuideBigGroupConfig[] = [
         showBorder: false,
         targetDomConfigs: [
           {
-            targetDomId: 'distance-measurement',
-            triangleDirection: 'top',
-            showTriangle: true,
+            targetDomId: 'boot-steps-swim-graph-anchor',
+            triangleDirection: 'bottom',
+            showTriangle: false,
           },
         ],
       },

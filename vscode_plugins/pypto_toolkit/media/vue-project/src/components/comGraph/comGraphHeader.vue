@@ -8,6 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  -->
 <template>
+  <!-- 静态引导锚点：用于新手引导第一步定位，不依赖任何loading状态 -->
+  <div id="boot-steps-com-graph-anchor"></div>
   <div class="com-graph-header">
     <div v-if="comGraphStore.data.comGraphConfig.showExtendBtn" class="corner-container">
       <d-tooltip :content="t('comGraphReport')" :mouse-enter-delay="100" :disabled="isLoading" position="left"
@@ -867,6 +869,18 @@ onMounted(() => {
 
 <style scoped lang="scss">
 @import 'devui-theme/styles-var/devui-var.scss';
+
+/* 静态引导锚点样式（透明占位，仅用于定位） */
+#boot-steps-com-graph-anchor {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 1050;
+}
 
 .com-graph-header {
   height: 160px;

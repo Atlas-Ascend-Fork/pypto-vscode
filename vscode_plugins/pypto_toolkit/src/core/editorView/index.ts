@@ -33,6 +33,9 @@ export interface EditorViewRaw {
 
   /** 页面服务端，每个webview使用独立的实例 */
   viewServer?: typeof ViewServer<never, {}>;
+
+  /** 标签页图标路径（支持延迟计算） */
+  iconPath?: vscode.Uri | (() => vscode.Uri);
 }
 
 export interface EditorViewState {
@@ -171,7 +174,12 @@ export class EditorView {
   private activeViewPanel(viewPanel: vscode.WebviewPanel, viewType: string, uri: vscode.Uri): void {
     this.openedViews.set(viewType, uri, viewPanel);
 
-    const { viewServer } = this.viewRawMap.get(viewType) ?? {};
+    const viewRaw = this.viewRawMap.get(viewType);
+    const { viewServer, iconPath } = viewRaw ?? {};
+    // 设置标签页图标
+    if (iconPath) {
+      viewPanel.iconPath = typeof iconPath === 'function' ? iconPath() : iconPath;
+    }
     let server: ViewServer<never, {}>;
     const query = JSON.parse(uri.query);
     const serverKey = `${query._path}_${query.funcHash || ''}_${query.nodeMagic || ''}`;

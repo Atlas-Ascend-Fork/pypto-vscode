@@ -7,7 +7,12 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
+import path from 'node:path';
+
+import * as vscode from 'vscode';
 import { t } from 'i18next';
+
+import { hismartliteEx } from '../hismarliteEx';
 import { EditorViewRaw } from '../core/editorView';
 import { ComputeGraphServer } from './servers/com-graph-server';
 import { ThreeColumnServer } from './servers/three-column-server';
@@ -54,6 +59,7 @@ export const routes: EditorViewRoutes = {
   editRunConfig: {
     title: () => t('PyPTOToolkit.workspace.ptoNewConfig'),
     viewServer: RunConfigViewServer,
+    iconPath: () => vscode.Uri.file(path.join(hismartliteEx.extensionPath, 'media', 'vue-project', 'src', 'static-assets', 'xml.svg')),
   },
 
   // 欢迎页面

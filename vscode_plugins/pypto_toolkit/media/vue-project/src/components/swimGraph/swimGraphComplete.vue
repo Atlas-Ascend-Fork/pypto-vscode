@@ -8,6 +8,8 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  -->
 <template>
+  <!-- 静态引导锚点：用于新手引导第一步定位，不依赖任何渲染状态 -->
+  <div id="boot-steps-swim-graph-anchor"></div>
   <div :style="{height: isThreeColumn ? '100%' : '100vh'}" class="swim-global-container">
     <div :class="['sticky-block', isSwimGraphActive ? 'visible' : 'hidden']">
       <div class="drag-icon-container">
@@ -3722,4 +3724,16 @@ const getEventInfo = (flag) => {
 </style>
 <style scoped>
 @import url('css/mainGraph.css');
+
+/* 静态引导锚点样式（透明占位，仅用于定位） */
+#boot-steps-swim-graph-anchor {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 1050;
+}
 </style>
