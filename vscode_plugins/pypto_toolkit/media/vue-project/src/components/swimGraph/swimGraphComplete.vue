@@ -2700,8 +2700,10 @@ const transformVerticalScroll = () => {
       }
     }
   }
-  childContextMap.threadEvent.drawSelectionBox();
-  childContextMap.threadEvent.drawSelectionHightlight();
+  if (mulDetailsExpanded.value && !isMeasureModel.value) {
+    childContextMap.threadEvent.drawSelectionBox();
+    childContextMap.threadEvent.drawSelectionHightlight();
+  }
   drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();
@@ -3502,6 +3504,7 @@ provide('swimGraphMethods', {
   timeToX,
   exportRender,
   xToTime,
+  xToFixedTime,
   durationToWidth,
   renderDependencyLines,
   resizeMeasure,

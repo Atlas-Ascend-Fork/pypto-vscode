@@ -174,6 +174,7 @@ const {
   transform,
   measureDetailGet,
   xToTime,
+  xToFixedTime,
   processThreadEventSearch,
   highlightPinnedEvent,
   getDisplayName,
@@ -235,6 +236,12 @@ let AIVCount = 0;
 let matchingAICEvents = [];
 let matchingAIVEvents = [];
 let selectionEvents = [];
+
+let autoScrollAnimationId = null;
+let isAutoScrolling = false;
+let savedMousePositionForAutoScroll = null;
+const SCROLL_THRESHOLD = 50;
+const SCROLL_STEP = 30;
 
 const canvasStatusReset = () => {
   measureState.isMeasureFirst = false;
@@ -582,6 +589,8 @@ onUnmounted(() => {
     keyboardState.activeHandleKeyDown = null;
   }
   window.removeEventListener('keyup', onWindowKeyUp);
+  document.removeEventListener('mousemove', handleGlobalMouseMove);
+  document.removeEventListener('mouseup', handleGlobalMouseUp);
 });
 
 const onZoomAnimationStep = (msSinceStartOfAnimation, savedMousePosition) => {
@@ -1206,7 +1215,61 @@ const handleAltMove = (e, hoverInfo, refs) => {
   handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx);
 };
 
-const handlePureMove = (hoverInfo, refs, localPosition) => {
+const scrollVerticalIfNeeded = (mouseYInContainer, containerHeight, scrollContainer, threshold, step) => {
+  if (mouseYInContainer > containerHeight - threshold) {
+    const canScrollDown = scrollContainer.scrollTop + containerHeight < scrollContainer.scrollHeight;
+    if (canScrollDown) {
+      scrollContainer.scrollBy({ top: step, behavior: 'auto' });
+      return true;
+    }
+  } else if (mouseYInContainer < threshold) {
+    const canScrollUp = scrollContainer.scrollTop > 0;
+    if (canScrollUp) {
+      scrollContainer.scrollBy({ top: -step, behavior: 'auto' });
+      return true;
+    }
+  }
+  return false;
+};
+
+const scrollHorizontalIfNeeded = (mouseXInContainer, containerWidth, labelsWidth, threshold, step) => {
+  if (viewState.scale <= 1) {
+    return false;
+  }
+
+  const cssWidth = viewState.canvasCssWidth;
+  const minOffset = cssWidth - (cssWidth * viewState.scale);
+  const mouseXInCondition = mouseXInContainer < threshold;
+  const labelsCondition = labelsWidth > threshold && mouseXInContainer < labelsWidth;
+  const mouseXCondition = mouseXInContainer < 0;
+  const shouldHandle = mouseXInCondition || labelsCondition || mouseXCondition;
+
+  if (mouseXInContainer > containerWidth - threshold) {
+    if (viewState.offsetX > minOffset) {
+      viewState.offsetX -= step;
+      if (viewState.offsetX < minOffset) {
+        viewState.offsetX = minOffset;
+      }
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      transform();
+      return true;
+    }
+  }
+  else if (shouldHandle) {
+    if (viewState.offsetX < 0) {
+      viewState.offsetX += step;
+      if (viewState.offsetX > 0) {
+        viewState.offsetX = 0;
+      }
+      viewState.pixelOffsetX = viewState.offsetX * devicePixelRatio;
+      transform();
+      return true;
+    }
+  }
+  return false;
+};
+
+const handlePureMove = (hoverInfo, refs, localPosition, e) => {
   const hoveredEvent = hoverInfo?.event;
   const { preData, lastData, nodeSpacingX } = hoverInfo?.altClickData || {};
   const { uiCtx, canvasRef } = refs;
@@ -1217,7 +1280,33 @@ const handlePureMove = (hoverInfo, refs, localPosition) => {
     maybeDrawConnectorPreview(preData, lastData, nodeSpacingX, uiCtx); // 自动测距
     if (isDragging.value) {
       selection.endLocalX = x;
+      selection.endLocalY = y;
       selection.endY = y;
+      selection.endX = x;
+
+      const didAutoScroll = autoScrollOnDragging(y, canvasRef, e);
+      if (didAutoScroll) {
+        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
+        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
+
+        selection.endX = newLocalPosition.x;
+        selection.endLocalX = newLocalPosition.x;
+        selection.endY = newLocalPosition.y;
+        selection.endLocalY = newLocalPosition.y;
+
+        mousePosition = currentMouseScreenPos;
+      }
+
+      const didAutoPan = autoPanOnDragging(x, canvasRef, e);
+      if (didAutoPan) {
+        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
+        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
+
+        selection.endX = newLocalPosition.x;
+        selection.endLocalX = newLocalPosition.x;
+
+        mousePosition = currentMouseScreenPos;
+      }
       // 绘制框选
       drawSelectionBox();
       mulDetailsExpanded.value = false;
@@ -1226,6 +1315,45 @@ const handlePureMove = (hoverInfo, refs, localPosition) => {
   if (isThreeColumn) {
     handle3PureMove(hoverInfo, localPosition, eventCtx);
   }
+};
+
+const autoScrollOnDragging = (mouseY, canvasRef, e) => {
+  let scrollContainer = swimlaneContainer.value;
+
+  if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+    let element = canvasRef?.parentElement;
+    while (element) {
+      if (element.scrollHeight > element.clientHeight) {
+        scrollContainer = element;
+        break;
+      }
+      element = element.parentElement;
+    }
+  }
+
+  if (!scrollContainer || !canvasRef) {
+    return false;
+  }
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const mouseInContainer = e.clientY - containerRect.top;
+  const containerHeight = scrollContainer.clientHeight;
+
+  return scrollVerticalIfNeeded(mouseInContainer, containerHeight, scrollContainer, SCROLL_THRESHOLD, SCROLL_STEP);
+};
+
+const autoPanOnDragging = (mouseX, canvasRef, e) => {
+  const scrollContainer = swimlaneContainer.value;
+  if (!scrollContainer) {
+    return false;
+  }
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const mouseXInContainer = e.clientX - containerRect.left;
+  const containerWidth = scrollContainer.clientWidth;
+  const labelsWidth = layout.processLabelWidth || 0;
+
+  return scrollHorizontalIfNeeded(mouseXInContainer, containerWidth, labelsWidth, SCROLL_THRESHOLD, SCROLL_STEP);
 };
 
 const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
@@ -1318,7 +1446,7 @@ const handleMouseMoveThrottle = throttle((e) => {
     measureState.isMeasureFirst = false;
   } else {
     measureState.isMeasureFirst = false;
-    handlePureMove(info, refs, localPosition);
+    handlePureMove(info, refs, localPosition, e);
   }
 
   updateCursorState(e, hoveredEvent, x, y, canvasRef);
@@ -1431,15 +1559,34 @@ const drawSelectionBox = () => {
   if (!uiCtx) {
     return;
   }
-  clearWholeProcess(uiCtx, viewState, props.processKey);
-  const {startLocalX, startY, endLocalX, endY} = selection;
+
+  uiCtx.fillStyle = 'rgba(0, 0, 0, 0)';
+  uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
+
+  const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
+  const undefinedValues = [startLocalX, startLocalY, endLocalX, endLocalY];
+
+  if (undefinedValues.some(value => value === undefined)) {
+      return;
+  }
+
+  const rectX = Math.min(startLocalX, endLocalX);
+  const rectY = Math.min(startLocalY, endLocalY);
+  const rectWidth = Math.abs(endLocalX - startLocalX);
+  const rectHeight = Math.abs(endLocalY - startLocalY);
+
+  if (rectWidth < 1 && rectHeight < 1) {
+    return;
+  }
+
   // 填充矩形
   uiCtx.fillStyle = 'rgba(53, 127, 255, 0.5)';
   uiCtx.strokeStyle = 'rgba(53, 127, 255, 1)';
   uiCtx.beginPath();
-  uiCtx.lineWidth = 1;
-  uiCtx.rect(startLocalX, startY, endLocalX - startLocalX, endY - startY, 4);
+  uiCtx.lineWidth = 1 / viewState.scale;
+  uiCtx.rect(rectX, rectY, rectWidth, rectHeight);
   uiCtx.fill();
+  uiCtx.stroke();
 };
 const drawSelectionHightlight = () => {
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -1610,11 +1757,11 @@ const checkInSelection = () => {
     [selection.startLocalX, selection.endLocalX] = [selection.endLocalX, selection.startLocalX];
     [selection.startY, selection.endY] = [selection.endY, selection.startY];
   }
-  const { startX, startY, endX, endY } = selection;
+  const { startLocalX, startY, endLocalX, endY } = selection;
 
   // 计算时间范围
-  const start = xToTime(startX + layout.processLabelWidth);
-  const end = xToTime(endX + layout.processLabelWidth);
+  const start = xToFixedTime(startLocalX + layout.processLabelWidth);
+  const end = xToFixedTime(endLocalX + layout.processLabelWidth);
 
   // 预计算选择框边界
   const selectMinY = Math.min(startY, endY);
@@ -1718,8 +1865,9 @@ const handleMouseDown = (e) => {
     if (!e.ctrlKey) {
       selection.startX = e.clientX - rect.left;
       selection.startY = e.clientY - rect.top;
-      const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
+      const { x, y } = computeLocalXY(canvasRef, mousePosition, viewState);
       selection.startLocalX = x;
+      selection.startLocalY = y;
     }
 
     isClick.value = true;
@@ -1738,7 +1886,125 @@ const handleMouseUp = throttle((e) => {
   selectionFinished(e);
 }, 16);
 
+const handleGlobalMouseMove = (e) => {
+  if (!isDragging.value) {
+    return;
+  }
+  mousePosition = { x: e.clientX, y: e.clientY };
+};
+
+const handleGlobalMouseUp = (e) => {
+  if (!isDragging.value) {
+    return;
+  }
+  mousePosition = { x: e.clientX, y: e.clientY };
+  document.removeEventListener('mousemove', handleGlobalMouseMove);
+  document.removeEventListener('mouseup', handleGlobalMouseUp);
+  stopAutoScrollOutsideCanvas();
+  selectionFinished(e);
+};
+
+const startAutoScrollOutsideCanvas = () => {
+  if (isAutoScrolling) {
+    return;
+  }
+
+  isAutoScrolling = true;
+  savedMousePositionForAutoScroll = mousePosition ? { ...mousePosition } : null;
+  
+  autoScrollLoop();
+};
+
+const getScrollContainerForE2E = () => {
+  if (isE2ESwim.value) {
+    const process = swimDataManager.getProcess(props.processKey);
+    if (process?.type === 'aicpu') {
+      return null;
+    }
+    return kernelSection.value || swimlaneContainer.value;
+  }
+  return swimlaneContainer.value;
+};
+
+const autoScrollLoop = () => {
+  if (!isAutoScrolling || !isDragging.value) {
+    isAutoScrolling = false;
+    return;
+  }
+
+  const canvasRef = getActiveEventCanvas(props.processKey);
+  let scrollContainer = getScrollContainerForE2E();
+
+  if (!canvasRef || !scrollContainer) {
+    stopAutoScrollOutsideCanvas();
+    return;
+  }
+
+  if (isE2ESwim.value && !kernelSection.value) {
+    let element = canvasRef?.parentElement;
+    while (element) {
+      if (element.scrollHeight > element.clientHeight) {
+        scrollContainer = element;
+        break;
+      }
+      element = element.parentElement;
+    }
+  }
+
+  if (!savedMousePositionForAutoScroll) {
+    stopAutoScrollOutsideCanvas();
+    return;
+  }
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const mouseX = savedMousePositionForAutoScroll.x;
+  const mouseY = savedMousePositionForAutoScroll.y;
+  const containerWidth = scrollContainer.clientWidth;
+  const containerHeight = scrollContainer.clientHeight;
+  const mouseXInContainer = mouseX - containerRect.left;
+  const mouseYInContainer = mouseY - containerRect.top;
+  const labelsWidth = layout.processLabelWidth || 0;
+
+  scrollVerticalIfNeeded(mouseYInContainer, containerHeight, scrollContainer, SCROLL_THRESHOLD, SCROLL_STEP);
+
+  scrollHorizontalIfNeeded(mouseXInContainer, containerWidth, labelsWidth, SCROLL_THRESHOLD, SCROLL_STEP);
+
+  const { x, y } = computeLocalXY(canvasRef, savedMousePositionForAutoScroll, viewState);
+  selection.endLocalX = x;
+  selection.endLocalY = y;
+  selection.endX = x;
+  selection.endY = y;
+
+  drawSelectionBox();
+  
+  autoScrollAnimationId = requestAnimationFrame(autoScrollLoop);
+};
+
+const stopAutoScrollOutsideCanvas = () => {
+  if (!isAutoScrolling) {
+    return;
+  }
+
+  isAutoScrolling = false;
+
+  if (autoScrollAnimationId) {
+    cancelAnimationFrame(autoScrollAnimationId);
+    autoScrollAnimationId = null;
+  }
+
+  savedMousePositionForAutoScroll = null;
+};
+
 const handleMouseLeave = (e) => {
+  if (isDragging.value) {
+    mousePosition = { x: e.clientX, y: e.clientY };
+
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    startAutoScrollOutsideCanvas();
+    return;
+  }
   mousePosition = null;
   handleMouseLeaveThrottle(e);
 };
@@ -1772,14 +2038,16 @@ const selectionFinished = (e) => {
       isCoreUtilizationSupported(true, props.process);
     }
     isDragging.value = false;
+    freezeVisibleRange.value = false;
     return;
   }
   const rect = canvasRef.getBoundingClientRect();
   if (!e.ctrlKey) {
     selection.endX = e.clientX - rect.left;
     selection.endY = e.clientY - rect.top;
-    const { x } = computeLocalXY(canvasRef, mousePosition, viewState);
+    const { x, y } = computeLocalXY(canvasRef, mousePosition, viewState);
     selection.endLocalX = x;
+    selection.endLocalY = y;
   }
   const dx = Math.abs(selection.endX - selection.startX);
   const dy = Math.abs(selection.endY - selection.startY);
@@ -1792,6 +2060,7 @@ const selectionFinished = (e) => {
     handleSelection();
   }
   isDragging.value = false;
+  freezeVisibleRange.value = false;
 };
 const getCanvasHeight = () => {
   let height = 0;
