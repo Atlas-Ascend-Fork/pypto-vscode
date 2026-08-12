@@ -13,21 +13,24 @@ PyPTO Toolkit - 华为PyPTO框架VSCode可视化插件。为AI算子开发者提
 ```
 pypto-tools/
 ├── vscode_plugins/
-│   ├── pypto_toolkit/          # VSCode扩展主模块
-│   │   ├── src/                # TypeScript源码 (100+文件)
-│   │   │   ├── extension.ts    # 扩展入口
-│   │   │   ├── view/           # 视图提供者
-│   │   │   ├── services/       # 业务服务
-│   │   │   ├── core/           # 核心存储
-│   │   │   ├── handler/        # 消息处理
-│   │   │   ├── converter/      # 数据转换器
-│   │   │   └── types/          # 类型定义
-│   │   ├── media/vue-project/  # Vue前端 (100+文件)
-│   │   ├── package.json        # 扩展配置
-│   │   └── tsconfig.json       # TypeScript配置
-│   └── docs/                   # Sphinx文档 (38个md)
+│   └── pypto_toolkit/          # VSCode扩展主模块
+│       ├── src/                # TypeScript源码 (100+文件)
+│       │   ├── extension.ts    # 扩展入口
+│       │   ├── view/           # 视图提供者
+│       │   ├── services/       # 业务服务
+│       │   ├── core/           # 核心存储
+│       │   ├── handler/        # 消息处理
+│       │   ├── converter/      # 数据转换器
+│       │   └── types/          # 类型定义
+│       ├── media/vue-project/  # Vue前端 (100+文件)
+│       ├── package.json        # 扩展配置
+│       └── tsconfig.json       # TypeScript配置
+├── docs/                       # Sphinx文档
+│   ├── Makefile                # 文档构建入口
+│   ├── requirements.txt        # Sphinx依赖
+│   └── zh/                     # 中文文档
 │       ├── conf.py             # 文档构建配置
-│       └── requirements.txt    # Sphinx依赖
+│       └── index.md            # 文档首页
 └── README.md
 ```
 
@@ -43,7 +46,7 @@ pypto-tools/
 | 控制流服务 | `vscode_plugins/pypto_toolkit/src/services/control-flow/` | PATH解析/树构建 |
 | SQLite缓存 | `vscode_plugins/pypto_toolkit/src/core/store/sql-store/` | 图数据持久化 |
 | Vue前端 | `vscode_plugins/pypto_toolkit/media/vue-project/src/` | Webview组件 |
-| 文档构建 | `vscode_plugins/docs/` | Sphinx文档 |
+| 文档构建 | `docs/` | Sphinx文档 |
 
 ## 约定
 
@@ -111,7 +114,7 @@ cd vscode_plugins/pypto_toolkit && npm run watch
 npm run compile
 
 # 文档构建
-cd vscode_plugins/docs && make html
+cd docs && make html
 ```
 
 ## 注意事项

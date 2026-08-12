@@ -9,8 +9,8 @@
         </policylist>
         <filefilterlist>
             <filefilter name="defaultFilter" desc="files not to check">
-                <filteritem type="filepath" name="vscode_plugins/docs/.*.png" desc="filter docs png"/>
-                <filteritem type="filepath" name="vscode_plugins/docs/.*.gif" desc="filter docs gif"/>
+                <filteritem type="filepath" name="docs/.*.png" desc="filter docs png"/>
+                <filteritem type="filepath" name="docs/.*.gif" desc="filter docs gif"/>
                 <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/vue-project/src/static-assets/.*png" desc="filter static assets png"/>
                 <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/vue-project/src/static-assets/.*gif" desc="filter static assets gif"/>
                 <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/images/logo.png" desc="filter logo png"/>
