@@ -111,6 +111,7 @@ let afterIns;
 let expandTimer: ReturnType<typeof setTimeout>;
 let beforeTensorOpNodeArr = [];
 let afterTensorOpNodeArr = [];
+let closeSyncOperateTemp = false; // 是否临时关闭【同步操作】
 
 function onLayoutChange(e) {
   currentLayout.value = e;
@@ -165,13 +166,16 @@ const onExpandChange = () => {
 
 const onDiffItemClick = (data: DiffListItem) => {
   isBothSelected = data.changeType === 'change';
-  if (data.changeType === 'add' || data.changeType === 'change') {
-    afterIns.centerNodeAction([data.nodeId]);
-    afterIns.selectAction([data.nodeId]);
+  if (data.afterNodeId !== data.beforeNodeId) {
+    closeSyncOperateTemp = true;
   }
-  if (data.changeType === 'delete' || data.changeType === 'change') {
-    beforeIns.centerNodeAction([data.nodeId]);
-    beforeIns.selectAction([data.nodeId]);
+  if ((data.changeType === 'add' || data.changeType === 'change') && data.afterNodeId) {
+    afterIns.centerNodeAction([data.afterNodeId]);
+    afterIns.selectAction([data.afterNodeId]);
+  }
+  if ((data.changeType === 'delete' || data.changeType === 'change') && data.beforeNodeId) {
+    beforeIns.centerNodeAction([data.beforeNodeId]);
+    beforeIns.selectAction([data.beforeNodeId]);
   }
 };
 
@@ -250,7 +254,7 @@ function getOtherNodeTitle(curNode, curType: 'before' | 'after') {
     nodeArr = beforeTensorOpNodeArr;
   }
   for (const item of nodeArr) {
-    if (item.type === curNode.type && item.id === curNode.id) {
+    if (item.type === curNode.type && (item.id === curNode.id || item.magic === curNode.magic)) {
       const labelNode = getLabelNode(item.children);
       return labelNode?.text;
     }
@@ -364,6 +368,10 @@ function onAfterMinimapZoomChange(args) {
   afterCurrentX = args[1];
   afterCurrentY = args[2];
   if (beforeMinimapEl.value.getCurrentScale() === args[0]) {
+    return;
+  }
+  if (closeSyncOperateTemp) {
+    closeSyncOperateTemp = false;
     return;
   }
   if (syncOperate.value) {

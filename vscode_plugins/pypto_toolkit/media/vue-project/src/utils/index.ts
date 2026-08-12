@@ -57,7 +57,7 @@ function addDiffElements(eleChangeType, eleNodeType, magic, eleNodeId, diffList:
   if (syncNode.has(opCode)) {
     return;
   }
-  diffList.push({ changeType: eleChangeType, nodeType: eleNodeType, magic: magic, nodeId: eleNodeId });
+  diffList.push({ changeType: eleChangeType, nodeType: eleNodeType, magic: magic, ...eleNodeId });
 }
 
 function addDiffDetail(newOp, oldOp, diffDetail: any, opCode = 'Default') {
@@ -105,12 +105,12 @@ function compareTensors(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList
     if (!bt) {
       diffDetail.push({ new: { ...ct } });
       ct.compareType = 'add';
-      diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, nodeId: curMagicMap[ct.magic] });
+      diffList.push({ changeType: 'add', nodeType: 'tensor', magic: ct.magic, afterNodeId: curMagicMap[ct.magic] });
     } else if (JSON.stringify(ct.offset) !== JSON.stringify(bt.offset) || JSON.stringify(ct.shape) !== JSON.stringify(bt.shape)) {
       diffDetail.push({ new: { ...ct }, old: { ...bt } });
       ct.compareType = 'change';
       bt.compareType = 'change';
-      diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, nodeId: curMagicMap[ct.magic] });
+      diffList.push({ changeType: 'change', nodeType: 'tensor', magic: ct.magic, beforeNodeId: beforeMagicMap[bt.magic], afterNodeId: curMagicMap[ct.magic] });
     } else {
       ct.compareType = 'normal';
       bt.compareType = 'normal';
@@ -120,7 +120,7 @@ function compareTensors(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList
     if (!curMap.get(bt.magic)) {
       diffDetail.push({ old: { ...bt } });
       bt.compareType = 'delete';
-      diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, nodeId: beforeMagicMap[bt.magic] });
+      diffList.push({ changeType: 'delete', nodeType: 'tensor', magic: bt.magic, beforeNodeId: beforeMagicMap[bt.magic] });
     }
   }
 }
@@ -131,14 +131,14 @@ function compareOps(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList, di
     if (!bop) {
       addDiffDetail(cop, undefined, diffDetail, cop.opcode);
       cop.compareType = 'add';
-      addDiffElements('add', 'op', cop.opmagic, curMagicMap[cop.opmagic], diffList, cop.opcode);
+      addDiffElements('add', 'op', cop.opmagic, { afterNodeId: curMagicMap[cop.opmagic] }, diffList, cop.opcode);
     } else if (cop.opcode != bop.opcode ||
               JSON.stringify(cop.ioperands) !== JSON.stringify(bop.ioperands) ||
               JSON.stringify(cop.ooperands) !== JSON.stringify(bop.ooperands)) {
       addDiffDetail(cop, bop, diffDetail, cop.opcode);
       cop.compareType = 'change';
       bop.compareType = 'change';
-      addDiffElements('change', 'op', cop.opmagic, curMagicMap[cop.opmagic], diffList, cop.opcode);
+      addDiffElements('change', 'op', cop.opmagic, { beforeNodeId: beforeMagicMap[bop.opmagic], afterNodeId: curMagicMap[cop.opmagic] }, diffList, cop.opcode);
     } else {
       cop.compareType = 'normal';
       bop.compareType = 'normal';
@@ -148,7 +148,7 @@ function compareOps(curMap, beforeMap, curMagicMap, beforeMagicMap, diffList, di
     if (!curMap.get(bop.opmagic)) {
       addDiffDetail(undefined, bop, diffDetail, bop.opcode);
       bop.compareType = 'delete';
-      addDiffElements('delete', 'op', bop.opmagic, beforeMagicMap[bop.opmagic], diffList, bop.opcode);
+      addDiffElements('delete', 'op', bop.opmagic, { beforeNodeId: beforeMagicMap[bop.opmagic] }, diffList, bop.opcode);
     }
   }
 }
