@@ -1283,30 +1283,6 @@ const handlePureMove = (hoverInfo, refs, localPosition, e) => {
       selection.endLocalY = y;
       selection.endY = y;
       selection.endX = x;
-
-      const didAutoScroll = autoScrollOnDragging(y, canvasRef, e);
-      if (didAutoScroll) {
-        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
-        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
-
-        selection.endX = newLocalPosition.x;
-        selection.endLocalX = newLocalPosition.x;
-        selection.endY = newLocalPosition.y;
-        selection.endLocalY = newLocalPosition.y;
-
-        mousePosition = currentMouseScreenPos;
-      }
-
-      const didAutoPan = autoPanOnDragging(x, canvasRef, e);
-      if (didAutoPan) {
-        const currentMouseScreenPos = { x: e.clientX, y: e.clientY };
-        const newLocalPosition = computeLocalXY(canvasRef, currentMouseScreenPos, viewState);
-
-        selection.endX = newLocalPosition.x;
-        selection.endLocalX = newLocalPosition.x;
-
-        mousePosition = currentMouseScreenPos;
-      }
       // 绘制框选
       drawSelectionBox();
       mulDetailsExpanded.value = false;
@@ -1315,45 +1291,6 @@ const handlePureMove = (hoverInfo, refs, localPosition, e) => {
   if (isThreeColumn) {
     handle3PureMove(hoverInfo, localPosition, eventCtx);
   }
-};
-
-const autoScrollOnDragging = (mouseY, canvasRef, e) => {
-  let scrollContainer = swimlaneContainer.value;
-
-  if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-    let element = canvasRef?.parentElement;
-    while (element) {
-      if (element.scrollHeight > element.clientHeight) {
-        scrollContainer = element;
-        break;
-      }
-      element = element.parentElement;
-    }
-  }
-
-  if (!scrollContainer || !canvasRef) {
-    return false;
-  }
-
-  const containerRect = scrollContainer.getBoundingClientRect();
-  const mouseInContainer = e.clientY - containerRect.top;
-  const containerHeight = scrollContainer.clientHeight;
-
-  return scrollVerticalIfNeeded(mouseInContainer, containerHeight, scrollContainer, SCROLL_THRESHOLD, SCROLL_STEP);
-};
-
-const autoPanOnDragging = (mouseX, canvasRef, e) => {
-  const scrollContainer = swimlaneContainer.value;
-  if (!scrollContainer) {
-    return false;
-  }
-
-  const containerRect = scrollContainer.getBoundingClientRect();
-  const mouseXInContainer = e.clientX - containerRect.left;
-  const containerWidth = scrollContainer.clientWidth;
-  const labelsWidth = layout.processLabelWidth || 0;
-
-  return scrollHorizontalIfNeeded(mouseXInContainer, containerWidth, labelsWidth, SCROLL_THRESHOLD, SCROLL_STEP);
 };
 
 const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
@@ -1951,10 +1888,12 @@ const autoScrollLoop = () => {
     }
   }
 
-  if (!savedMousePositionForAutoScroll) {
+  if (!mousePosition) {
     stopAutoScrollOutsideCanvas();
     return;
   }
+
+  savedMousePositionForAutoScroll = { ...mousePosition };
 
   const containerRect = scrollContainer.getBoundingClientRect();
   const mouseX = savedMousePositionForAutoScroll.x;
