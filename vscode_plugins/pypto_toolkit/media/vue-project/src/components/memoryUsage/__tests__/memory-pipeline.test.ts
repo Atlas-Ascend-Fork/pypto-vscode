@@ -11,11 +11,69 @@ import { describe, expect, it } from 'vitest';
 
 import { detectConflicts } from '../memoryConflictDetection';
 import { findMemoryTensorsAtPoint, formatRawShape, processIncomingData } from '../memoryDataProcessor';
+import { calculateTensorDistance, findAdjacentTensorMeasurements } from '../memoryDistanceMeasurement';
+import { MemoryRegionLayoutUtil } from '../memoryRegionLayoutUtil';
+import { formatTimelineTimestamp, formatTimelineUnit, getTimelineLabelPosition, isValidChartTimeRange } from '../memoryTimelineUtil';
 import { TensorSearchNavigationUtil } from '../tensorSearchNavigationUtil';
 import { validateMemoryData } from '../validateMemoryData';
 import { createMemoryUnitFixture } from './memory-unit-fixture';
 
 describe('GM memory happy-path pipeline', () => {
+  it('calculates address distance independent of selection order', () => {
+    const lower = { absoluteBase: 100, absoluteEnd: 200 };
+    const upper = { absoluteBase: 300, absoluteEnd: 400 };
+
+    expect(calculateTensorDistance(lower, upper)).toMatchObject({
+      lower,
+      upper,
+      lowerBoundary: 200,
+      upperBoundary: 300,
+      distance: 100,
+    });
+    expect(calculateTensorDistance(upper, lower)).toMatchObject({ distance: 100 });
+    expect(calculateTensorDistance(lower, { absoluteBase: 200, absoluteEnd: 250 })).toMatchObject({ distance: 0 });
+    expect(calculateTensorDistance(lower, { absoluteBase: 150, absoluteEnd: 250 })).toBeNull();
+    expect(
+      calculateTensorDistance(
+        { absoluteBase: 100, absoluteEnd: 200, regionId: 1 },
+        { absoluteBase: 300, absoluteEnd: 400, regionId: 2 },
+      ),
+    ).toBeNull();
+    expect(calculateTensorDistance(lower, lower)).toBeNull();
+    expect(calculateTensorDistance({ absoluteBase: 'invalid', absoluteEnd: 200 } as any, upper)).toBeNull();
+  });
+
+  it('finds the nearest address boundary above and below in the same region', () => {
+    const anchor = { absoluteBase: 300, absoluteEnd: 400, regionId: 1 };
+    const overlappingAbove = { absoluteBase: 200, absoluteEnd: 320, regionId: 1 };
+    const fartherAbove = { absoluteBase: 100, absoluteEnd: 150, regionId: 1 };
+    const overlappingBelow = { absoluteBase: 390, absoluteEnd: 450, regionId: 1 };
+    const fartherBelow = { absoluteBase: 600, absoluteEnd: 700, regionId: 1 };
+    const touchingAbove = { absoluteBase: 250, absoluteEnd: 300, regionId: 1 };
+    const otherRegion = { absoluteBase: 399, absoluteEnd: 410, regionId: 2 };
+
+    expect(findAdjacentTensorMeasurements(anchor, [fartherBelow, otherRegion, overlappingAbove, fartherAbove, overlappingBelow])).toEqual({
+      anchor,
+      above: expect.objectContaining({ lower: fartherAbove, upper: anchor, distance: 150 }),
+      below: expect.objectContaining({ lower: anchor, upper: fartherBelow, distance: 200 }),
+    });
+    expect(findAdjacentTensorMeasurements(anchor, [touchingAbove])).toMatchObject({
+      above: expect.objectContaining({ lower: touchingAbove, upper: anchor, distance: 0 }),
+    });
+  });
+
+  it('formats timeline units, timestamps, and non-overlapping label positions', () => {
+    expect(formatTimelineUnit(2e6, 1e6, 1e5)).toEqual({ value: '1.0', unit: 's' });
+    expect(formatTimelineUnit(500, 25, 10)).toEqual({ value: '25', unit: 'µs' });
+    expect(formatTimelineTimestamp(1.234, 1)).toBe('000 000 234');
+    expect(isValidChartTimeRange(1, 2)).toBe(true);
+    expect(isValidChartTimeRange(2, 1)).toBe(false);
+
+    const context = { font: '12px Arial', measureText: (label: string) => ({ width: label.length * 5 }) } as any;
+    expect(getTimelineLabelPosition(context, ['10µs'], 10, 100, -Infinity)).toEqual({ x: 12, right: 32 });
+    expect(getTimelineLabelPosition(context, ['10µs'], 20, 100, 18)).toBeNull();
+  });
+
   it('validates, lays out, detects conflicts, and creates searchable chart rows', () => {
     const data = createMemoryUnitFixture();
     const memoryBlocks: any[] = [];
@@ -40,6 +98,11 @@ describe('GM memory happy-path pipeline', () => {
 
     expect(result.regionLayout.regions).toHaveLength(2);
     expect(result.regionLayout.yMax).toBe(2250);
+    expect(MemoryRegionLayoutUtil.toAbsoluteAddress(0, result.regionLayout.regions[0])).toBe(1000);
+    expect(MemoryRegionLayoutUtil.toAbsoluteAddress(500, result.regionLayout.regions[0])).toBe(1500);
+    expect(MemoryRegionLayoutUtil.toAbsoluteAddress(1000, result.regionLayout.regions[0])).toBe(2000);
+    expect(MemoryRegionLayoutUtil.toAbsoluteAddress(1500, result.regionLayout.regions[1])).toBe(3500);
+    expect(MemoryRegionLayoutUtil.toAbsoluteAddress(1750, result.regionLayout.regions[1])).toBe(4000);
     expect(memoryBlocks).toHaveLength(3);
     expect(memoryBlocks[0]).toMatchObject({ start: 2, end: 8, startAddr: 100, endAddr: 500, regionId: 0 });
     expect(memoryBlocks[2]).toMatchObject({ start: 1, end: 3, startAddr: 1500, endAddr: 1750, regionId: 1 });
@@ -76,10 +139,10 @@ describe('GM memory happy-path pipeline', () => {
 
   it('detects conflicts in globally sorted order while skipping other regions', () => {
     const blocks: any[] = [
-      { end: 8, endAddr: 30, magicId: 'a', name: 'a', rawObj: { rawId: 'a' }, regionId: 0, start: 0, startAddr: 10 },
-      { end: 9, endAddr: 50, magicId: 'c', name: 'c', rawObj: { rawId: 'c' }, regionId: 1, start: 1, startAddr: 20 },
-      { end: 7, endAddr: 40, magicId: 'b', name: 'b', rawObj: { rawId: 'b' }, regionId: 0, start: 2, startAddr: 20 },
-      { end: 6, endAddr: 60, magicId: 'd', name: 'd', rawObj: { rawId: 'd' }, regionId: 1, start: 3, startAddr: 40 },
+      { end: 8, endAddr: 30, magicId: 'a', name: 'a', rawObj: { rawId: 'a', hasOverlap: true }, regionId: 0, start: 0, startAddr: 10 },
+      { end: 9, endAddr: 50, magicId: 'c', name: 'c', rawObj: { rawId: 'c', hasOverlap: true }, regionId: 1, start: 1, startAddr: 20 },
+      { end: 7, endAddr: 40, magicId: 'b', name: 'b', rawObj: { rawId: 'b', hasOverlap: true }, regionId: 0, start: 2, startAddr: 20 },
+      { end: 6, endAddr: 60, magicId: 'd', name: 'd', rawObj: { rawId: 'd', hasOverlap: true }, regionId: 1, start: 3, startAddr: 40 },
     ];
 
     expect(detectConflicts(blocks, '').overlaps).toEqual([
@@ -95,26 +158,29 @@ describe('GM memory happy-path pipeline', () => {
       { end: 7, endAddr: 40, magicId: 'b', name: 'b', rawObj: { rawId: 'b' }, regionId: 0, start: 2, startAddr: 20 },
     ];
 
-    expect(detectConflicts(blocks, '').overlaps).toHaveLength(1);
-
-    blocks[1].hasOverlap = false;
     expect(detectConflicts(blocks, '').overlaps).toEqual([]);
     expect(detectConflicts(blocks, '', false).overlaps).toHaveLength(1);
 
-    blocks[1].hasOverlap = true;
+    blocks[0].rawObj.hasOverlap = true;
+    expect(detectConflicts(blocks, '').overlaps).toEqual([]);
+
+    blocks[1].rawObj.hasOverlap = true;
     expect(detectConflicts(blocks, '').overlaps).toHaveLength(1);
+
+    blocks[1].rawObj.hasOverlap = false;
+    expect(detectConflicts(blocks, '').overlaps).toEqual([]);
   });
 
   it('preserves boundary, equal-start, and numeric-string region semantics', () => {
     const blocks: any[] = [
-      { end: 5, endAddr: 20, magicId: 'a', name: 'a', rawObj: { rawId: 'a' }, regionId: '1', start: 0, startAddr: 0 },
-      { end: 4, endAddr: 15, magicId: 'b', name: 'b', rawObj: { rawId: 'b' }, regionId: 1, start: 0, startAddr: 5 },
+      { end: 5, endAddr: 20, magicId: 'a', name: 'a', rawObj: { rawId: 'a', hasOverlap: true }, regionId: '1', start: 0, startAddr: 0 },
+      { end: 4, endAddr: 15, magicId: 'b', name: 'b', rawObj: { rawId: 'b', hasOverlap: true }, regionId: 1, start: 0, startAddr: 5 },
       {
-        end: 8, endAddr: 10, magicId: 'time-touch', name: 'time-touch', rawObj: { rawId: 'time-touch' },
+        end: 8, endAddr: 10, magicId: 'time-touch', name: 'time-touch', rawObj: { rawId: 'time-touch', hasOverlap: true },
         regionId: 1, start: 5, startAddr: 0,
       },
       {
-        end: 4, endAddr: 30, magicId: 'address-touch', name: 'address-touch', rawObj: { rawId: 'address-touch' },
+        end: 4, endAddr: 30, magicId: 'address-touch', name: 'address-touch', rawObj: { rawId: 'address-touch', hasOverlap: true },
         regionId: 1, start: 1, startAddr: 20,
       },
     ];

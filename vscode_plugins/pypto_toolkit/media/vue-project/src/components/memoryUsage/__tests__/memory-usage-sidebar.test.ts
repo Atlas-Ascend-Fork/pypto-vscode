@@ -122,13 +122,13 @@ function getAccessRows(option: any) {
 }
 
 function getRulerLabels(option: any) {
-  const ruler = option.series.find((series: any) => series.renderItem);
+  const ruler = option.series.find((series: any) => series.id === 'dimension-ruler-0');
   const rendered = ruler.renderItem({ coordSys: { x: 110, y: 102, width: 660, height: 1 }});
   return rendered.children.filter((child: any) => child.type === 'text').map((child: any) => child.style.text);
 }
 
 function getRulerGraphic(option: any, width = 660) {
-  const ruler = option.series.find((series: any) => series.renderItem);
+  const ruler = option.series.find((series: any) => series.id === 'dimension-ruler-0');
   return ruler.renderItem({ coordSys: { x: 110, y: 102, width, height: 1 }});
 }
 
@@ -217,7 +217,7 @@ describe('memoryUsageSidebar access filter', () => {
     expect(wrapper.get('[aria-label="Previous tensor"]').attributes('disabled')).toBeUndefined();
     expect(wrapper.get('[aria-label="Next tensor"]').attributes('disabled')).toBeDefined();
     expect(chartState.options.at(-1).xAxis).toHaveLength(3);
-    expect(chartState.options.at(-1).xAxis.every((axis: any) => axis.max === 600)).toBe(true);
+    expect(chartState.options.at(-1).xAxis.every((axis: any) => axis.max === 2)).toBe(true);
     expect(getAccessRows(chartState.options.at(-1))).toHaveLength(0);
 
     await wrapper.get('.access-switch-stub').trigger('click');
@@ -229,7 +229,55 @@ describe('memoryUsageSidebar access filter', () => {
     wrapper.unmount();
   });
 
-  it('uses one default tensor color when color metadata is unavailable', async () => {
+  it('switches between the chart and searchable access table', async () => {
+    const wrapper = mount(MemoryUsageSidebar, {
+      props: { selectedNode: createSelectedNode() },
+      global: {
+        config: {
+          globalProperties: {
+            $t: (key: string) => ({ tableSearch: 'Search...', chartView: 'Chart view', listView: 'List view' }[key] || 'Write only'),
+          },
+        },
+        provide: { root: { isDarkTheme: ref(true)}},
+        stubs: { 'd-switch': SwitchStub },
+      },
+    });
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.get('[aria-label="Chart view"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.find('[aria-label="Chart view"] .chart-view-icon').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Table view"] .list-view-icon').exists()).toBe(true);
+    expect(wrapper.find('.access-table-view').exists()).toBe(false);
+
+    await wrapper.get('[aria-label="Table view"]').trigger('click');
+    expect(wrapper.get('[aria-label="Table view"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.get('.access-table').text()).toContain('HASOVERLAP');
+    expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(1);
+    expect(wrapper.get('.access-table tbody tr').text()).toContain('W');
+    expect(wrapper.get('.access-table tbody tr').text()).toContain('false');
+    expect(getComputedStyle(wrapper.get('.access-type').element).fontWeight).not.toBe('700');
+
+    await wrapper.get('.access-switch-stub').trigger('click');
+    await nextTick();
+    expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(2);
+
+    await wrapper.get('[aria-label="Search accesses"]').setValue('read-access');
+    await nextTick();
+    expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(1);
+    expect(wrapper.get('.access-table tbody tr').text()).toContain('R');
+
+    await wrapper.get('.access-table tbody tr').trigger('click');
+    expect(wrapper.get('.access-table tbody tr').classes()).toContain('selected');
+
+    await wrapper.get('[aria-label="Chart view"]').trigger('click');
+    expect(wrapper.get('[aria-label="Chart view"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.get('.memory-lane-chart').isVisible()).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it('uses the access-type colors when tensor color metadata is unavailable', async () => {
     const selectedNode = createSelectedNode();
     delete selectedNode.tensors[0].color;
     const wrapper = mount(MemoryUsageSidebar, {
@@ -250,13 +298,15 @@ describe('memoryUsageSidebar access filter', () => {
     });
     const coordSys = { x: 0, y: 0, width: 400, height: 200 };
 
-    expect(renderer({ coordSys }, renderApi(1)).children[0].style).toMatchObject({ fill: '#574096', opacity: 1 });
-    expect(renderer({ coordSys }, renderApi(0)).children[0].style).toMatchObject({ fill: '#574096', opacity: 0.6 });
+    expect(renderer({ coordSys }, renderApi(1)).children[0].style).toMatchObject({ fill: 'rgba(63,100,174,0.8)' });
+    const readGraphic = renderer({ coordSys }, renderApi(0));
+    expect(readGraphic.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
+    expect(readGraphic.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
 
     wrapper.unmount();
   });
 
-  it('zooms every dimension around the pointer, preserves zoom on filtering, and resets it on tab changes', async () => {
+  it('provides an independent slider, scale, and ruler for every dimension', async () => {
     const wrapper = mount(MemoryUsageSidebar, {
       props: { selectedNode: createSelectedNode(true) },
       global: {
@@ -268,18 +318,19 @@ describe('memoryUsageSidebar access filter', () => {
     await nextTick();
     await nextTick();
 
-    const controlOption = chartState.instances[0].options.at(-1);
-    const initialOption = chartState.instances[1].options.at(-1);
-    expect(controlOption.dataZoom).toHaveLength(1);
-    expect(controlOption.dataZoom[0]).toMatchObject({
-      id: 'detail-x-slider', type: 'slider', show: true, xAxisIndex: 0, filterMode: 'none', startValue: 0, endValue: 400,
-    });
-    expect(initialOption.dataZoom).toHaveLength(1);
+    const initialOption = chartState.instances[0].options.at(-1);
+    expect(initialOption.dataZoom).toHaveLength(4);
     expect(initialOption.dataZoom[0]).toMatchObject({
-      id: 'detail-x-inside', type: 'inside', xAxisIndex: [0, 1], filterMode: 'none', startValue: 0, endValue: 400,
-      zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: false,
+      id: 'detail-x-slider-0', type: 'slider', show: true, xAxisIndex: 0, filterMode: 'none', start: 0, end: 100,
     });
-    expect(wrapper.find('.memory-zoom-controls').exists()).toBe(true);
+    expect(initialOption.dataZoom[1]).toMatchObject({
+      id: 'detail-x-inside-0', type: 'inside', xAxisIndex: 0, filterMode: 'none', start: 0, end: 100,
+    });
+    expect(initialOption.dataZoom[2]).toMatchObject({ id: 'detail-x-slider-1', xAxisIndex: 1 });
+    expect(initialOption.dataZoom[3]).toMatchObject({ id: 'detail-x-inside-1', xAxisIndex: 1 });
+    expect(initialOption.xAxis.map((axis: any) => axis.max)).toEqual([1, 4]);
+    expect(initialOption.series.filter((series: any) => series.id?.startsWith('dimension-ruler-'))).toHaveLength(2);
+    expect(wrapper.find('.memory-zoom-controls').exists()).toBe(false);
     expect(wrapper.find('.sidebar-body-wrapper').exists()).toBe(true);
     const cardRenderer = initialOption.series[0].renderItem;
     const renderApi = (row: any[]) => ({
@@ -290,103 +341,55 @@ describe('memoryUsageSidebar access filter', () => {
     const writeCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, true, 0]));
     const readCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, false, 0]));
     expect(writeCard.type).toBe('group');
-    expect(writeCard.children[0].style).toMatchObject({ fill: '#574096', opacity: 1 });
-    expect(readCard.children[0].style).toMatchObject({ fill: '#574096', opacity: 0.6 });
-    expect(cardRenderer({ coordSys }, renderApi([0, 410, 430, 0, 20, 1, 1, 1, true, 0]))).toBeNull();
+    expect(writeCard.children[0].style).toMatchObject({ fill: 'rgba(63,100,174,0.8)' });
+    expect(readCard.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
+    expect(readCard.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
+    expect(cardRenderer({ coordSys }, renderApi([0, 17, 18, 0, 20, 1, 1, 1, true, 0]))).toBeNull();
     const overlapRenderer = initialOption.series[1].renderItem;
     expect(overlapRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1]))).not.toBeNull();
-    expect(overlapRenderer({ coordSys }, renderApi([0, 410, 430, 0, 20, 1]))).toBeNull();
+    expect(overlapRenderer({ coordSys }, renderApi([0, 17, 18, 0, 20, 1]))).toBeNull();
     expect(cardRenderer({ coordSys }, renderApi([0, 0, 20, 0, 20, 1, 1, 1, true, 0])).type).toBe('group');
-    const fullRulerLabels = getRulerLabels(controlOption);
+    const fullRulerLabels = getRulerLabels(initialOption);
     expect(fullRulerLabels).toHaveLength(16);
-    expect(fullRulerLabels.at(-1)).toBe('400B');
+    expect(fullRulerLabels.at(-1)).toBe('1');
 
-    wrapper.get('.memory-lane-chart').element.dispatchEvent(
-      new WheelEvent('wheel', { ctrlKey: true, clientX: 455, deltaY: -100, bubbles: true }),
-    );
-    const zoomAction = chartState.dispatchActions.at(-1);
-    expect(zoomAction).toMatchObject({ type: 'dataZoom' });
-    expect(zoomAction.batch.map((entry: any) => entry.dataZoomId)).toEqual(['detail-x-slider']);
-    expect(zoomAction.batch[0].startValue).toBeGreaterThan(0);
-    expect(zoomAction.batch[0].endValue - zoomAction.batch[0].startValue).toBeCloseTo(320);
-    const zoomedRulerLabels = getRulerLabels(controlOption);
-    expect(zoomedRulerLabels).toHaveLength(16);
-    expect(zoomedRulerLabels).not.toEqual(fullRulerLabels);
+    chartState.instances[0].eventHandlers.datazoom({
+      batch: [{ dataZoomId: 'detail-x-slider-1', start: 25, end: 75 }],
+    });
+    const zoomAction = chartState.instances[0].dispatchActions.at(-1);
+    expect(zoomAction.batch.map((entry: any) => entry.dataZoomId)).toEqual(['detail-x-slider-1', 'detail-x-inside-1']);
 
     await wrapper.get('.access-switch-stub').trigger('click');
     await nextTick();
-    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({
-      startValue: zoomAction.batch[0].startValue,
-      endValue: zoomAction.batch[0].endValue,
-    });
-    expect(getRulerLabels(chartState.instances[0].options.at(-1))).toEqual(zoomedRulerLabels);
+    const filteredOption = chartState.instances[0].options.at(-1);
+    expect(filteredOption.dataZoom[0]).toMatchObject({ start: 0, end: 100 });
+    expect(filteredOption.dataZoom[2]).toMatchObject({ start: 25, end: 75 });
 
     await wrapper.findAll('.tensor-tab')[1].trigger('click');
     await nextTick();
     const secondTensorOption = chartState.options.at(-1);
-    expect(secondTensorOption.dataZoom[0]).toMatchObject({ xAxisIndex: [0, 1, 2], startValue: 0, endValue: 600 });
-    expect(getRulerLabels(chartState.instances[0].options.at(-1)).at(-1)).toBe('600B');
+    expect(secondTensorOption.dataZoom).toHaveLength(6);
+    expect(
+      secondTensorOption.dataZoom.filter((zoom: any) => zoom.type === 'slider').every((zoom: any) => zoom.start === 0 && zoom.end === 100),
+    ).toBe(true);
+    expect(secondTensorOption.xAxis.map((axis: any) => axis.max)).toEqual([2, 2, 2]);
     const secondTensorReadCard = secondTensorOption.series[0].renderItem(
       { coordSys },
       renderApi([0, 0, 20, 0, 20, 1, 1, 1, false, 0]),
     );
-    expect(secondTensorReadCard.children[0].style).toMatchObject({ fill: '#4169a8', opacity: 0.6 });
+    expect(secondTensorReadCard.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
+    expect(secondTensorReadCard.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
 
-    expect(chartState.instances[1].eventHandlers.datazoom).toBeTypeOf('function');
-    chartState.instances[1].eventHandlers.datazoom({ batch: [{ startValue: 100, endValue: 500 }]});
-    expect(chartState.instances[0].dispatchActions.at(-1).batch[0].dataZoomId).toBe('detail-x-slider');
-    expect(chartState.instances[0].eventHandlers.datazoom).toBeTypeOf('function');
-    chartState.instances[0].eventHandlers.datazoom({ batch: [{ dataZoomId: 'detail-x-slider', startValue: 120, endValue: 500 }]});
-    expect(chartState.instances[1].dispatchActions.at(-1).batch[0].dataZoomId).toBe('detail-x-inside');
-    await wrapper.get('.access-switch-stub').trigger('click');
-    await nextTick();
-    expect(getAccessRows(chartState.options.at(-1))).toHaveLength(0);
-    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({ startValue: 120, endValue: 500 });
-
-    await wrapper.get('.access-switch-stub').trigger('click');
-    await nextTick();
-    expect(getAccessRows(chartState.options.at(-1))).toHaveLength(6);
-    expect(chartState.instances[1].options.at(-1).dataZoom[0]).toMatchObject({ startValue: 120, endValue: 500 });
-    expect(chartState.initCount).toBe(2);
+    expect(chartState.initCount).toBe(1);
     expect(chartState.disposeCount).toBe(0);
 
     wrapper.unmount();
-    expect(chartState.disposeCount).toBe(2);
+    expect(chartState.disposeCount).toBe(1);
   });
 
-  it('selects a consistent adaptive unit for the fixed ruler', async () => {
-    const cases = [
-      { size: 400, unit: 'B' },
-      { size: 1024, unit: 'KB' },
-      { size: 2 * 1024, unit: 'KB' },
-      { size: 1024 * 1024, unit: 'MB' },
-      { size: 2 * 1024 * 1024, unit: 'MB' },
-      { size: 1024 * 1024 * 1024, unit: 'GB' },
-      { size: 2 * 1024 * 1024 * 1024, unit: 'GB' },
-    ];
-
-    for (const { size, unit } of cases) {
-      const wrapper = mount(MemoryUsageSidebar, {
-        props: { selectedNode: createSelectedNode(false, size) },
-        global: {
-          config: { globalProperties: { $t: () => 'Write only'}},
-          provide: { root: { isDarkTheme: ref(true)}},
-          stubs: { 'd-switch': SwitchStub },
-        },
-      });
-      await nextTick();
-      await nextTick();
-
-      const labels = getRulerLabels(chartState.instances.at(-2).options.at(-1));
-      expect(labels).toHaveLength(16);
-      expect(new Set(labels.map((label: string) => label.replace(/[0-9.,-]/g, '')))).toEqual(new Set([unit]));
-      wrapper.unmount();
-    }
-  });
-
-  it('keeps minimum zoom ruler ticks distinct at an exact unit boundary', async () => {
+  it('keeps dimension ruler ticks distinct at minimum zoom', async () => {
     const wrapper = mount(MemoryUsageSidebar, {
-      props: { selectedNode: createSelectedNode(false, 1024) },
+      props: { selectedNode: createSelectedNode() },
       global: {
         config: { globalProperties: { $t: () => 'Write only'}},
         provide: { root: { isDarkTheme: ref(true)}},
@@ -397,69 +400,12 @@ describe('memoryUsageSidebar access filter', () => {
     await nextTick();
 
     chartState.instances[0].eventHandlers.datazoom({
-      batch: [{ dataZoomId: 'detail-x-slider', startValue: 1022.976, endValue: 1024 }],
+      batch: [{ dataZoomId: 'detail-x-slider-0', start: 99.9, end: 100 }],
     });
     const labels = getRulerLabels(chartState.instances[0].options.at(-1));
     expect(new Set(labels).size).toBe(16);
-    expect(labels.at(-1)).toBe('1KB');
+    expect(labels.at(-1)).toBe('1');
     expect(labels.some((label: string) => label.includes('.'))).toBe(true);
-    expect(labels.every((label: string) => !label.includes(','))).toBe(true);
-
-    wrapper.unmount();
-  });
-
-  it('maps control ruler drags to the full address range while preserving the zoom width', async () => {
-    const wrapper = mount(MemoryUsageSidebar, {
-      props: { selectedNode: createSelectedNode() },
-      global: {
-        config: { globalProperties: { $t: () => 'Write only'}},
-        provide: { root: { isDarkTheme: ref(true)}},
-        stubs: { 'd-switch': SwitchStub },
-      },
-    });
-    await nextTick();
-    await nextTick();
-
-    chartState.instances[0].eventHandlers.datazoom({
-      batch: [{ dataZoomId: 'detail-x-slider', startValue: 100, endValue: 200 }],
-    });
-    const control = wrapper.get('.memory-control-chart').element;
-    control.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: 300, clientY: 90, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 90, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: 400, clientY: 90, bubbles: true }));
-
-    const action = chartState.instances[1].dispatchActions.at(-1);
-    const expectedStart = 100 - (100 / (800 - 110 - 30)) * 400;
-    expect(action.batch[0].startValue).toBeCloseTo(expectedStart);
-    expect(action.batch[0].endValue - action.batch[0].startValue).toBeCloseTo(100);
-
-    wrapper.unmount();
-  });
-
-  it('maps tensor lane drags to the full address range while preserving the zoom width', async () => {
-    const wrapper = mount(MemoryUsageSidebar, {
-      props: { selectedNode: createSelectedNode() },
-      global: {
-        config: { globalProperties: { $t: () => 'Write only'}},
-        provide: { root: { isDarkTheme: ref(true)}},
-        stubs: { 'd-switch': SwitchStub },
-      },
-    });
-    await nextTick();
-    await nextTick();
-
-    chartState.instances[1].eventHandlers.datazoom({
-      batch: [{ dataZoomId: 'detail-x-inside', startValue: 100, endValue: 200 }],
-    });
-    const lane = wrapper.get('.memory-lane-chart').element;
-    lane.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: 300, clientY: 90, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 90, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: 400, clientY: 90, bubbles: true }));
-
-    const action = chartState.instances[0].dispatchActions.at(-1);
-    const expectedStart = 100 - (100 / (800 - 110 - 30)) * 400;
-    expect(action.batch[0].startValue).toBeCloseTo(expectedStart);
-    expect(action.batch[0].endValue - action.batch[0].startValue).toBeCloseTo(100);
 
     wrapper.unmount();
   });
@@ -481,10 +427,10 @@ describe('memoryUsageSidebar access filter', () => {
     const labels = graphic.children.filter((child: any) => child.type === 'text');
 
     expect(graphic.$mergeChildren).toBe(false);
-    expect(squares.at(-1).shape.x + squares.at(-1).shape.width).toBeGreaterThan(750);
+    expect(squares.at(-1).shape.x + squares.at(-1).shape.width).toBeGreaterThan(400);
     expect(labels).toHaveLength(16);
-    expect(labels.every((label: any) => label.rotation === -Math.PI / 2 && label.originY === 32)).toBe(true);
-    expect(labels.at(-1).style).toMatchObject({ align: 'left', text: '400B' });
+    expect(labels.every((label: any) => label.rotation === -Math.PI / 4 && label.originY === 64)).toBe(true);
+    expect(labels.at(-1).style).toMatchObject({ align: 'center', text: '1' });
 
     wrapper.unmount();
   });

@@ -24,6 +24,7 @@ function createAccess(overrides: Record<string, any> = {}) {
     execStart: 100,
     execEnd: 110,
     timeResolved: true,
+    hasOverlap: false,
     ...overrides,
   };
 }
@@ -90,7 +91,9 @@ export function createMemoryUnitFixture(overrides: Partial<MemoryFixture> = {}):
       validation: {},
     },
     rawTensors: [
-      createTensor(),
+      createTensor({
+        hasOverlap: true,
+      }),
       createTensor({
         rawId: 'tensor-b',
         instanceId: 'instance-b',
@@ -101,6 +104,7 @@ export function createMemoryUnitFixture(overrides: Partial<MemoryFixture> = {}):
         rawmagic: 'magic-beta',
         lifeStart: 150,
         lifeEnd: 210,
+        hasOverlap: true,
       }),
       createTensor({
         rawId: 'tensor-c',

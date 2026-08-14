@@ -461,7 +461,7 @@ export function getxAxisConfig(timelineState) {
   };
 }
 
-export function getyAxisConfig(yMin, yMax, isDarkTheme) {
+export function getyAxisConfig(yMin, yMax, isDarkTheme, axisLabelFormatter = null, axisLabelFontSize = 11) {
   return {
     type: 'value',
     min: yMin,
@@ -469,10 +469,11 @@ export function getyAxisConfig(yMin, yMax, isDarkTheme) {
     inverse: true,
     minInterval: 1,
     axisLabel: {
-      show: false,
+      show: typeof axisLabelFormatter === 'function',
       color: '#999999',
-      fontSize: 11,
-      margin: 15,
+      fontSize: axisLabelFontSize,
+      margin: 10,
+      ...(typeof axisLabelFormatter === 'function' ? { formatter: axisLabelFormatter } : {}),
     },
     axisLine: {
       show: false,

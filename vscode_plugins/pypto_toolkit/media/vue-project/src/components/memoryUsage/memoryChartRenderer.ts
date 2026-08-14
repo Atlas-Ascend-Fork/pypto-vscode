@@ -54,6 +54,8 @@ type SelectedNode = {
 
 type MemoryChartRendererOptions = {
   getSelectedNode: () => SelectedNode;
+  getMeasuredTensors: () => unknown[];
+  getMeasurementHighlightTensors: () => unknown[];
   getFilteredResultsCount: () => number;
   getIsDarkTheme: () => boolean;
   tensorColorMap: TensorColorMap;
@@ -63,6 +65,7 @@ type MemoryChartRendererOptions = {
 type MemoryChartRenderers = {
   renderItem: (params: ChartRenderParams, api: ChartRenderApi) => ChartGraphic;
   renderOverlapItem: (params: ChartRenderParams, api: ChartRenderApi) => ChartGraphic;
+  renderMeasurementItem: (params: ChartRenderParams, api: ChartRenderApi) => ChartGraphic;
 };
 
 export const createMinimapRects = (maxY: number, overlaps: ConflictOverlap[], isDarkTheme: boolean): MinimapRect[] => {
@@ -101,7 +104,10 @@ export const createMinimapRects = (maxY: number, overlaps: ConflictOverlap[], is
       const pixelLength = i - startPixel;
       const y = (startPixel / virtualHeightPx) * 100;
       const height = (pixelLength / virtualHeightPx) * 100;
-      const fill = currentFill === 2 ? (isDarkTheme ? '#8a1a1a' : '#e53935') : isDarkTheme ? '#075238' : '#2e7d32';
+      let fill = isDarkTheme ? '#075238' : '#2e7d32';
+      if (currentFill === 2) {
+        fill = isDarkTheme ? '#8a1a1a' : '#e53935';
+      }
 
       rects.push({ y, height, fill });
 
@@ -131,13 +137,31 @@ export const createConflictPattern = (): NonNullable<PatternFill> => {
   return { image: canvas, repeat: 'repeat' };
 };
 
-export const createMemoryChartRenderers = ({
+const shouldRenderTensorLabel = (
+  width: number,
+  height: number,
+  isSearchActive: boolean,
+  isSearchMatched: boolean,
+  hasSearchResults: boolean,
+): boolean => {
+  if (width <= 50 || height <= 24) {
+    return false;
+  }
+  if (!isSearchActive) {
+    return true;
+  }
+  return isSearchMatched || !hasSearchResults;
+};
+
+const createTensorRenderer = ({
   getSelectedNode,
+  getMeasuredTensors,
+  getMeasurementHighlightTensors,
   getFilteredResultsCount,
   getIsDarkTheme,
   tensorColorMap,
   patternCache,
-}: MemoryChartRendererOptions): MemoryChartRenderers => {
+}: MemoryChartRendererOptions): MemoryChartRenderers['renderItem'] => {
   const getTensorGeometry = (params: ChartRenderParams, api: ChartRenderApi) => {
     const startPos = api.coord([api.value(1), api.value(3)]);
     const endPos = api.coord([api.value(2), api.value(4)]);
@@ -159,7 +183,16 @@ export const createMemoryChartRenderers = ({
     };
   };
 
-  const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean) => {
+  const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean, isMeasurementSelected: boolean) => {
+    if (isMeasurementSelected) {
+      return {
+        strokeColor: getIsDarkTheme() ? '#6ea8ff' : '#0a59f7',
+        lineWidth: 3,
+        shadowBlur: 3,
+        shadowColor: getIsDarkTheme() ? '#6ea8ff' : '#0a59f7',
+      };
+    }
+
     if (isSelected && !isSearchActive) {
       return {
         strokeColor: '#ffffff',
@@ -178,13 +211,24 @@ export const createMemoryChartRenderers = ({
   };
 
   const getTensorRenderState = (api: ChartRenderApi) => {
-    const isSelected = Boolean(getSelectedNode()?.tensors?.some((entry) => entry.rawTensor === api.value(17)));
+    const isMeasurementSelected = getMeasuredTensors().some((tensor) => tensor === api.value(17));
+    const isMeasurementHighlighted = getMeasurementHighlightTensors().some((tensor) => tensor === api.value(17));
+    const isSelected =
+      isMeasurementSelected || Boolean(getSelectedNode()?.tensors?.some((entry) => entry.rawTensor === api.value(17)));
     const isSearchActive = Number(api.value(19)) === 1;
     const isSearchMatched = Number(api.value(18)) === 1;
     const hasSearchResults = getFilteredResultsCount() > 0;
     const isDimmedBySearch = isSearchActive && hasSearchResults;
     const magicId = String(api.value(7) || '');
     const originalColor = tensorColorMap[magicId]?.base || '#574096';
+    const isSearchDimmed = isDimmedBySearch && !isMeasurementHighlighted;
+    const highlightColor = getIsDarkTheme() ? '#ffffff' : '#f5f5f5';
+    let baseColor = isSearchDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
+    let rectOpacity = isSearchDimmed ? 0.35 : 0.8;
+    if (isMeasurementHighlighted) {
+      baseColor = highlightColor;
+      rectOpacity = 0.9;
+    }
 
     return {
       styleType: api.value(6),
@@ -192,26 +236,10 @@ export const createMemoryChartRenderers = ({
       isSearchActive,
       isSearchMatched,
       hasSearchResults,
-      baseColor: isDimmedBySearch ? 'rgba(130, 130, 130, 0.55)' : originalColor,
-      rectOpacity: isDimmedBySearch ? 0.35 : 0.8,
-      borderStyle: getTensorBorderStyle(isSelected, isSearchActive),
+      baseColor,
+      rectOpacity,
+      borderStyle: getTensorBorderStyle(isSelected, isSearchActive, isMeasurementSelected),
     };
-  };
-
-  const shouldRenderTensorLabel = (
-    width: number,
-    height: number,
-    isSearchActive: boolean,
-    isSearchMatched: boolean,
-    hasSearchResults: boolean,
-  ): boolean => {
-    if (width <= 50 || height <= 24) {
-      return false;
-    }
-    if (!isSearchActive) {
-      return true;
-    }
-    return isSearchMatched || !hasSearchResults;
   };
 
   const createTensorChildren = (
@@ -297,6 +325,10 @@ export const createMemoryChartRenderers = ({
     };
   };
 
+  return renderItem;
+};
+
+const createOverlapRenderer = (patternCache: PatternCache): MemoryChartRenderers['renderOverlapItem'] => {
   const renderOverlapItem = (params: ChartRenderParams, api: ChartRenderApi): ChartGraphic => {
     const p1 = api.coord([api.value(0), api.value(1)]);
     const p2 = api.coord([api.value(2), api.value(3)]);
@@ -364,5 +396,149 @@ export const createMemoryChartRenderers = ({
     };
   };
 
-  return { renderItem, renderOverlapItem };
+  return renderOverlapItem;
+};
+
+const createMeasurementRenderer = (getIsDarkTheme: () => boolean): MemoryChartRenderers['renderMeasurementItem'] => {
+  const renderMeasurementItem = (params: ChartRenderParams, api: ChartRenderApi): ChartGraphic => {
+    const lowerStart = Number(api.value(0));
+    const lowerEnd = Number(api.value(1));
+    const lowerBoundary = Number(api.value(3));
+    const upperStart = Number(api.value(4));
+    const upperEnd = Number(api.value(5));
+    const upperBoundary = Number(api.value(6));
+    const label = String(api.value(9) || '');
+
+    if (
+      !Number.isFinite(lowerStart) ||
+      !Number.isFinite(lowerEnd) ||
+      !Number.isFinite(lowerBoundary) ||
+      !Number.isFinite(upperStart) ||
+      !Number.isFinite(upperEnd) ||
+      !Number.isFinite(upperBoundary) ||
+      !label
+    ) {
+      return { type: 'group', children: []};
+    }
+
+    const overlapStart = Math.max(lowerStart, upperStart);
+    const overlapEnd = Math.min(lowerEnd, upperEnd);
+    const hasSharedLifetime = overlapStart < overlapEnd;
+    let lowerXValue: number;
+    let upperXValue: number;
+    if (hasSharedLifetime) {
+      lowerXValue = (overlapStart + overlapEnd) / 2;
+      upperXValue = lowerXValue;
+    } else if (lowerEnd <= upperStart) {
+      lowerXValue = lowerEnd;
+      upperXValue = upperStart;
+    } else {
+      lowerXValue = lowerStart;
+      upperXValue = upperEnd;
+    }
+    const anchorXValue = hasSharedLifetime ? lowerXValue : (lowerXValue + upperXValue) / 2;
+
+    const lowerPoint = api.coord([lowerXValue, lowerBoundary]);
+    const upperPoint = api.coord([upperXValue, upperBoundary]);
+    const lowerAnchor = api.coord([anchorXValue, lowerBoundary]);
+    const upperAnchor = api.coord([anchorXValue, upperBoundary]);
+    const points = [lowerPoint, upperPoint, lowerAnchor, upperAnchor];
+
+    if (points.some((point) => !Array.isArray(point) || !Number.isFinite(point[0]) || !Number.isFinite(point[1]))) {
+      return { type: 'group', children: []};
+    }
+
+    const color = getIsDarkTheme() ? '#6ea8ff' : '#0a59f7';
+    const arrowHalfWidth = 3;
+    const arrowLength = 4;
+    const labelWidth = Math.max(32, label.length * 5 + 8);
+    const labelHeight = 15;
+    const midX = (lowerAnchor[0] + upperAnchor[0]) / 2;
+    const midY = (lowerAnchor[1] + upperAnchor[1]) / 2;
+    const labelX = Math.max(
+      params.coordSys.x + 4,
+      Math.min(midX + 4, params.coordSys.x + params.coordSys.width - labelWidth - 4),
+    );
+    const labelY = Math.max(
+      params.coordSys.y + 4,
+      Math.min(midY - labelHeight / 2, params.coordSys.y + params.coordSys.height - labelHeight - 4),
+    );
+    const children: ChartGraphic[] = [];
+
+    if (Math.abs(lowerPoint[0] - lowerAnchor[0]) > 0.5) {
+      children.push({
+        type: 'line',
+        shape: { x1: lowerPoint[0], y1: lowerPoint[1], x2: lowerAnchor[0], y2: lowerAnchor[1] },
+        style: { stroke: color, lineWidth: 1, lineDash: [4, 3]},
+      });
+    }
+
+    if (Math.abs(upperPoint[0] - upperAnchor[0]) > 0.5) {
+      children.push({
+        type: 'line',
+        shape: { x1: upperPoint[0], y1: upperPoint[1], x2: upperAnchor[0], y2: upperAnchor[1] },
+        style: { stroke: color, lineWidth: 1, lineDash: [4, 3]},
+      });
+    }
+
+    children.push({
+      type: 'line',
+      shape: { x1: lowerAnchor[0], y1: lowerAnchor[1], x2: upperAnchor[0], y2: upperAnchor[1] },
+      style: { stroke: color, lineWidth: 1 },
+    });
+
+    const arrowDirection = upperAnchor[1] >= lowerAnchor[1] ? 1 : -1;
+    children.push({
+      type: 'polygon',
+      shape: {
+        points: [
+          [lowerAnchor[0], lowerAnchor[1]],
+          [lowerAnchor[0] - arrowHalfWidth, lowerAnchor[1] + arrowDirection * arrowLength],
+          [lowerAnchor[0] + arrowHalfWidth, lowerAnchor[1] + arrowDirection * arrowLength],
+        ],
+      },
+      style: { fill: color },
+    });
+    children.push({
+      type: 'polygon',
+      shape: {
+        points: [
+          [upperAnchor[0], upperAnchor[1]],
+          [upperAnchor[0] - arrowHalfWidth, upperAnchor[1] - arrowDirection * arrowLength],
+          [upperAnchor[0] + arrowHalfWidth, upperAnchor[1] - arrowDirection * arrowLength],
+        ],
+      },
+      style: { fill: color },
+    });
+    children.push({
+      type: 'rect',
+      shape: { x: labelX, y: labelY, width: labelWidth, height: labelHeight, r: 2 },
+      style: { fill: color },
+    });
+    children.push({
+      type: 'text',
+      style: {
+        x: labelX + labelWidth / 2,
+        y: labelY + labelHeight / 2,
+        text: label,
+        fill: '#ffffff',
+        fontSize: 9,
+        fontWeight: 500,
+        textAlign: 'center',
+        textVerticalAlign: 'middle',
+      },
+    });
+
+    return { type: 'group', silent: true, z: 300, children };
+  };
+
+  return renderMeasurementItem;
+};
+
+export const createMemoryChartRenderers = (options: MemoryChartRendererOptions): MemoryChartRenderers => {
+  return {
+    renderItem: createTensorRenderer(options),
+    renderOverlapItem: createOverlapRenderer(options.patternCache),
+    renderMeasurementItem: createMeasurementRenderer(options.getIsDarkTheme),
+  };
 };

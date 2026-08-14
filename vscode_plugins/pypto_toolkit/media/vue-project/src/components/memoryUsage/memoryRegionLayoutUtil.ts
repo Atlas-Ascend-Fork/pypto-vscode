@@ -199,6 +199,19 @@ export class MemoryRegionLayoutUtil {
     return region.yStart + clampedRatio * region.visualHeight;
   }
 
+  static toAbsoluteAddress(chartY: number, region: RegionLayoutItem): number {
+    const yValue = Number(chartY);
+
+    if (!Number.isFinite(yValue) || !Number.isFinite(region.visualHeight) || region.visualHeight <= 0) {
+      return region.addr0;
+    }
+
+    const ratio = (yValue - region.yStart) / region.visualHeight;
+    const clampedRatio = Math.min(1, Math.max(0, ratio));
+
+    return region.addr0 + clampedRatio * region.span;
+  }
+
   static toRegionRelativeOffset(chartY: number, region: RegionLayoutItem): number {
     return Number(chartY) - region.yStart;
   }

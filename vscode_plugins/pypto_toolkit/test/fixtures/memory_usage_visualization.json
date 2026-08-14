@@ -65,6 +65,7 @@
       "lifeStart": 120,
       "lifeEnd": 180,
       "regionId": 0,
+      "hasOverlap": true,
       "accesses": [
         {
           "seqNo": 1,
@@ -80,7 +81,8 @@
           "overflow": false,
           "execStart": 120,
           "execEnd": 130,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": true
         },
         {
           "seqNo": 2,
@@ -96,7 +98,8 @@
           "overflow": false,
           "execStart": 140,
           "execEnd": 150,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -115,6 +118,7 @@
       "lifeStart": 150,
       "lifeEnd": 210,
       "regionId": 0,
+      "hasOverlap": true,
       "accesses": [
         {
           "seqNo": 3,
@@ -130,7 +134,8 @@
           "overflow": false,
           "execStart": 160,
           "execEnd": 170,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 4,
@@ -146,7 +151,8 @@
           "overflow": false,
           "execStart": 180,
           "execEnd": 190,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -180,7 +186,8 @@
           "overflow": false,
           "execStart": 220,
           "execEnd": 230,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 6,
@@ -196,7 +203,8 @@
           "overflow": false,
           "execStart": 240,
           "execEnd": 250,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -230,7 +238,8 @@
           "overflow": false,
           "execStart": 130,
           "execEnd": 140,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 8,
@@ -246,7 +255,8 @@
           "overflow": false,
           "execStart": 150,
           "execEnd": 160,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -280,7 +290,8 @@
           "overflow": false,
           "execStart": 170,
           "execEnd": 180,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 10,
@@ -296,7 +307,8 @@
           "overflow": false,
           "execStart": 200,
           "execEnd": 210,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -330,7 +342,8 @@
           "overflow": false,
           "execStart": 240,
           "execEnd": 250,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 12,
@@ -346,7 +359,8 @@
           "overflow": false,
           "execStart": 260,
           "execEnd": 270,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -380,7 +394,8 @@
           "overflow": false,
           "execStart": 115,
           "execEnd": 125,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 14,
@@ -396,7 +411,8 @@
           "overflow": false,
           "execStart": 135,
           "execEnd": 145,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -430,7 +446,8 @@
           "overflow": false,
           "execStart": 150,
           "execEnd": 160,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 16,
@@ -446,7 +463,8 @@
           "overflow": false,
           "execStart": 175,
           "execEnd": 185,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -480,7 +498,8 @@
           "overflow": false,
           "execStart": 235,
           "execEnd": 245,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 18,
@@ -496,7 +515,8 @@
           "overflow": false,
           "execStart": 255,
           "execEnd": 265,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -530,7 +550,8 @@
           "overflow": false,
           "execStart": 260,
           "execEnd": 270,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 20,
@@ -546,7 +567,8 @@
           "overflow": false,
           "execStart": 280,
           "execEnd": 290,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -580,7 +602,8 @@
           "overflow": false,
           "execStart": 320,
           "execEnd": 330,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 22,
@@ -596,7 +619,8 @@
           "overflow": false,
           "execStart": 335,
           "execEnd": 345,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     },
@@ -630,7 +654,8 @@
           "overflow": false,
           "execStart": 365,
           "execEnd": 375,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         },
         {
           "seqNo": 24,
@@ -646,7 +671,8 @@
           "overflow": false,
           "execStart": 385,
           "execEnd": 395,
-          "timeResolved": true
+          "timeResolved": true,
+          "hasOverlap": false
         }
       ]
     }

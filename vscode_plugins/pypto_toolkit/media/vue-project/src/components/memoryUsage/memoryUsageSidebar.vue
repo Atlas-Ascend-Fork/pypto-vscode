@@ -80,6 +80,7 @@
           <d-switch v-model="writesOnly" aria-label="Show writes only" />
           <span>{{ $t('writesOnly') }}</span>
         </label>
+        <MemoryDetailViewToggle v-model="viewMode" />
         <button
           class="close-btn"
           type="button"
@@ -114,23 +115,21 @@
         </div>
       </div>
 
-      <div class="memory-zoom-controls" :style="{ backgroundColor: chartBgColor }">
-        <div
-          ref="controlChartRef"
-          class="echarts-dom memory-control-chart"
-          :style="{ height: CONTROL_HEIGHT + 'px', backgroundColor: chartBgColor }"
-        />
-      </div>
-      <div class="sidebar-body-wrapper">
+      <div v-show="viewMode === 'chart'" class="sidebar-body-wrapper">
         <div
           ref="chartRef"
           class="echarts-dom memory-lane-chart"
-          :data-zoom-end="zoomRange.end"
-          :data-zoom-start="zoomRange.start"
           :style="{ height: domHeight + 'px', backgroundColor: chartBgColor }"
-          @mousedown.capture="startLanePan"
         />
       </div>
+      <MemoryAccessTable
+        v-if="viewMode === 'table'"
+        :accesses="activeAccesses"
+        :selected-key="selectedAccessKey"
+        :tensor-id="activeTensorId"
+        :writes-only="writesOnly"
+        @select="selectedAccessKey = $event"
+      />
     </div>
   </transition>
 </template>
@@ -337,7 +336,7 @@ function buildAccessRow(tShape, access, dim, accessContext) {
     return null;
   }
 
-  const { dimRanges, size, normalizeTime } = accessContext;
+  const { dimRanges, normalizeTime } = accessContext;
   const cells = tShape[dim];
   if (!cells) {
     return null;
@@ -347,11 +346,10 @@ function buildAccessRow(tShape, access, dim, accessContext) {
   const ash = access?.shape || [];
   const accessStart = normalizeOptionalTime(access?.execStart, normalizeTime);
   const accessEnd = normalizeOptionalTime(access?.execEnd, normalizeTime);
-  const perCell = size / cells;
   const o = off[dim] ?? 0;
   const s = ash[dim] ?? 0;
-  const xStart = o * perCell;
-  const xEnd = (o + s) * perCell;
+  const xStart = o;
+  const xEnd = o + s;
   const yStart = Number.isFinite(accessStart) ? Math.max(dimRanges[dim].yMin, accessStart) : dimRanges[dim].yMin;
   const yEnd = Number.isFinite(accessEnd) ? Math.min(dimRanges[dim].yMax, accessEnd) : dimRanges[dim].yMax;
 
@@ -400,7 +398,7 @@ function buildChartModel(input, writesOnly) {
 
   const dimXMax = [];
   for (let i = 0; i < ndim; i++) {
-    dimXMax.push(size);
+    dimXMax.push(Number(firstShape[i]) || 0);
   }
 
   const rows = [];
@@ -413,7 +411,7 @@ function buildChartModel(input, writesOnly) {
       }
 
       for (let i = 0; i < ndim; i++) {
-        const row = buildAccessRow(tShape, a, i, { dimRanges, size, normalizeTime });
+        const row = buildAccessRow(tShape, a, i, { dimRanges, normalizeTime });
         if (!row) {
           continue;
         }
@@ -438,7 +436,6 @@ function buildChartModel(input, writesOnly) {
     rows,
     overlapRows: buildOverlapRows(rows, ndim),
     sizeBytes: size,
-    sizeKB: size / 1024,
   };
 }
 </script>
@@ -447,6 +444,8 @@ function buildChartModel(input, writesOnly) {
 import { ref, computed, watch, onUnmounted, nextTick, inject } from 'vue';
 import * as echarts from 'echarts';
 import { ENABLE_HAS_OVERLAP_CHECK } from './memoryFeatureFlags';
+import MemoryAccessTable from './detail/MemoryAccessTable.vue';
+import MemoryDetailViewToggle from './detail/MemoryDetailViewToggle.vue';
 
 const props = defineProps({
   selectedNode: { type: Object, default: null },
@@ -459,6 +458,7 @@ const { isDarkTheme } = inject('root', ref(true));
 const ADDR_MIN = 850000;
 const ADDR_MAX = 1250000;
 const X_MAX_FALLBACK = 20;
+const ZOOM_MAX = 100;
 
 const sidebarBgColor = computed(() => (isDarkTheme.value ? '#1a1a1a' : '#ffffff'));
 const sidebarTextColor = computed(() => (isDarkTheme.value ? '#e0e0e0' : '#191919'));
@@ -494,19 +494,22 @@ const activeNode = computed(() => ({
 }));
 const writesOnly = ref(true);
 const model = computed(() => buildChartModel(activeNode.value, writesOnly.value));
+const viewMode = ref('chart');
+const selectedAccessKey = ref('');
+const activeAccesses = computed(() => activeTensorEntry.value?.rawTensor?.accesses || []);
 const sidebarHeaderRef = ref(null);
 const tabsViewportRef = ref(null);
 const previewTensorEntry = ref(null);
 const previewLeft = ref(0);
 
-const CONTROL_HEIGHT = 140;
-const CONTROL_GRID_TOP = 102;
-const TOP = 40;
+const TOP = 88;
 const LANE_H = 165;
-const LANE_GAP = 70;
+const LANE_GAP = 108;
 const BOTTOM = 30;
 const GRID_LEFT = 110;
 const GRID_RIGHT = 30;
+const SLIDER_TOP_OFFSET = 78;
+const SLIDER_HEIGHT = 20;
 const CARD_LINE = 56 / 3;
 const CARD_FONT = 12;
 const CARD_PAD_L = 10;
@@ -566,13 +569,9 @@ function stopResize() {
   rebuildCharts();
 }
 
-const controlChartRef = ref(null);
 const chartRef = ref(null);
-let controlChart = null;
 let myChart = null;
-let chartWheelDom = null;
-let chartWheelHandler = null;
-const zoomRange = ref({ start: 0, end: 0 });
+const zoomRanges = ref([]);
 const dimLabels = () => Array.from({ length: model.value.ndim }, (_, i) => `Dim_${i}`);
 const gridTop = (i) => TOP + i * (LANE_H + LANE_GAP);
 const domHeight = ref(computeHeight());
@@ -590,7 +589,11 @@ function dimX(i) {
 }
 
 function resetZoomRange() {
-  zoomRange.value = { start: 0, end: Math.max(0, Number(model.value.sizeBytes) || 0) };
+  zoomRanges.value = Array.from({ length: model.value.ndim }, () => ({ start: 0, end: ZOOM_MAX }));
+}
+
+function dimZoomRange(i) {
+  return zoomRanges.value[i] || { start: 0, end: ZOOM_MAX };
 }
 
 function scrollTensorIntoView(element) {
@@ -603,6 +606,7 @@ function selectTensor(id, element) {
     return;
   }
   activeTensorId.value = id;
+  selectedAccessKey.value = '';
   domHeight.value = computeHeight();
   resetZoomRange();
   nextTick(() => {
@@ -648,24 +652,6 @@ function formatAddr(v) {
     .trim();
 }
 
-const RULER_UNITS = [
-  { label: 'B', divisor: 1 },
-  { label: 'KB', divisor: 1024 },
-  { label: 'MB', divisor: 1024 * 1024 },
-  { label: 'GB', divisor: 1024 * 1024 * 1024 },
-];
-
-function getRulerUnit(visibleStart, visibleEnd) {
-  const largestVisibleValue = Math.max(Math.abs(Number(visibleStart) || 0), Math.abs(Number(visibleEnd) || 0));
-  let [unit] = RULER_UNITS;
-  RULER_UNITS.forEach((candidate) => {
-    if (largestVisibleValue >= candidate.divisor) {
-      unit = candidate;
-    }
-  });
-  return unit;
-}
-
 function getRulerPrecision(step) {
   const normalizedStep = Math.abs(Number(step));
   if (!Number.isFinite(normalizedStep) || normalizedStep <= 0) {
@@ -688,34 +674,6 @@ function formatScaledRulerValue(value, precision) {
   return precision > 0 ? fixedValue.replace(/\.?0+$/, '') : fixedValue;
 }
 
-function getRulerPrecisionForRange(visibleStart, visibleEnd, unit, segmentCount = 16) {
-  const span = Math.abs(Number(visibleEnd) - Number(visibleStart));
-  const segment = span / segmentCount / unit.divisor;
-  let precision = getRulerPrecision(segment);
-
-  while (precision < 12) {
-    const labels = new Set();
-    for (let i = 1; i <= segmentCount; i++) {
-      const value = (visibleStart + (span / segmentCount) * i) / unit.divisor;
-      labels.add(formatScaledRulerValue(value, precision));
-    }
-    if (labels.size === segmentCount) {
-      break;
-    }
-    precision++;
-  }
-
-  return precision;
-}
-
-function formatRulerValue(value, visibleStart, visibleEnd, segmentCount = 16) {
-  const unit = getRulerUnit(visibleStart, visibleEnd);
-  const precision = getRulerPrecisionForRange(visibleStart, visibleEnd, unit, segmentCount);
-  const scaledValue = (Number(value) || 0) / unit.divisor;
-  const formatted = formatScaledRulerValue(scaledValue, precision);
-  return `${formatted || '0'}${unit.label}`;
-}
-
 function groupByDim() {
   const groups = Array.from({ length: model.value.ndim }, () => []);
   model.value.rows.forEach((row) => {
@@ -728,10 +686,13 @@ function groupByDim() {
 }
 
 function isIntersectingVisibleXRange(api) {
+  const dim = Number(api.value(0));
+  const axisMax = dimX(dim);
   const x1 = Number(api.value(1));
   const x2 = Number(api.value(2));
-  const visibleStart = Number(zoomRange.value.start) || 0;
-  const visibleEnd = Number(zoomRange.value.end) || Number(model.value.sizeBytes) || 0;
+  const range = dimZoomRange(dim);
+  const visibleStart = ((Number(range.start) || 0) / ZOOM_MAX) * axisMax;
+  const visibleEnd = ((Number(range.end) || ZOOM_MAX) / ZOOM_MAX) * axisMax;
   const rangeStart = Math.min(x1, x2);
   const rangeEnd = Math.max(x1, x2);
   return Number.isFinite(x1) && Number.isFinite(x2) && rangeEnd > visibleStart && rangeStart < visibleEnd;
@@ -756,17 +717,28 @@ function renderItem(params, api) {
   }
 
   const isWrite = api.value(8) === 1 || api.value(8) === true;
-  const baseFill = activeTensorEntry.value?.color?.base || '#574096';
+  const selectedAccess = activeAccesses.value.find((_, index) => selectedAccessKey.value === `${activeTensorId.value}|${index}`);
+  const isSelected = selectedAccess && api.value(5) === selectedAccess.seqNo && api.value(6) === selectedAccess.funcId && api.value(7) === selectedAccess.opIdx;
+  let baseFill;
+    if (isWrite) {
+      baseFill = isDarkTheme.value ? 'rgba(63,100,174,0.8)' : 'rgba(30,64,175,0.8)';
+    } else {
+      baseFill = isDarkTheme.value ? 'rgba(217,125,27,0.85)' : 'rgba(217,119,6,0.85)';
+    }
   const shape = { ...rect, r: 4 };
 
   const children = [];
   if (stripePattern) {
     children.push({ type: 'rect', shape, style: { fill: stripePattern, opacity: STRIPE_OPACITY }});
   }
-  children.push({ type: 'rect', shape, style: { fill: baseFill, lineWidth: 2 }});
+  children.push({
+    type: 'rect',
+    shape,
+    style: { fill: baseFill, stroke: isSelected ? '#ffffff' : 'transparent', lineWidth: isSelected ? 3 : 0 },
+  });
 
   if (!isWrite) {
-    children.push({ type: 'rect', shape, style: { fill: `rgba(0, 0, 0, 0.4)`, lineWidth: 2 }});
+    children.push({ type: 'rect', shape, style: { fill: 'rgba(0, 0, 0, 0.4)', lineWidth: 2 }});
   }
 
   if (api.value(9) && rect.width > CARD_LABEL_MIN_WIDTH && rect.height >= CARD_LABEL_MIN_HEIGHT) {
@@ -837,7 +809,6 @@ function getChartOption() {
   const dims = dimLabels();
   const dataByDim = groupByDim();
   const overlapByDim = model.value.overlapRows || [];
-  const xAxisIndexes = dims.map((_, index) => index);
 
   const grids = dims.map((_, i) => ({
     left: GRID_LEFT,
@@ -857,7 +828,6 @@ function getChartOption() {
       position: 'top',
       min: 0,
       max: xm,
-      interval: xm / 16,
       axisLabel: { show: false },
       axisTick: { show: false },
       axisLine: { show: false },
@@ -922,6 +892,70 @@ function getChartOption() {
     });
   });
 
+  dims.forEach((_, i) => {
+    series.push({
+      id: `dimension-ruler-${i}`,
+      type: 'custom',
+      xAxisIndex: i,
+      yAxisIndex: i,
+      silent: true,
+      clip: false,
+      z: 10,
+      data: [[i, 0, dimRange(i).yMin]],
+      renderItem: (params) => {
+        const cs = params.coordSys;
+        const range = dimZoomRange(i);
+        const axisMax = dimX(i);
+        const visibleStart = (range.start / ZOOM_MAX) * axisMax;
+        const visibleEnd = (range.end / ZOOM_MAX) * axisMax;
+        const children = [];
+        const squareSize = 8;
+        const gap = 3;
+        const pitch = squareSize + gap;
+        const squareY = cs.y - 10;
+        const count = Math.ceil(cs.width / pitch);
+
+        for (let j = 0; j < count; j++) {
+          const x = cs.x + j * pitch;
+          if (x > cs.x + cs.width) {
+            break;
+          }
+          children.push({
+            type: 'rect',
+            shape: { x, y: squareY, width: squareSize, height: squareSize, r: 1 },
+            style: { fill: isDarkTheme.value ? 'rgba(51,51,51,1)' : 'rgba(200,200,200,1)' },
+          });
+        }
+
+        const labelCount = 16;
+        const segment = (visibleEnd - visibleStart) / labelCount;
+        const labelY = cs.y - 38;
+        for (let j = 1; j <= labelCount; j++) {
+          const value = visibleStart + segment * j;
+          const x = cs.x + (j / labelCount) * cs.width;
+          children.push({
+            type: 'text',
+            rotation: -Math.PI / 4,
+            originX: x,
+            originY: labelY,
+            style: {
+              x,
+              y: labelY,
+              text: formatScaledRulerValue(value, getRulerPrecision(segment)),
+              fill: isDarkTheme.value ? '#666666' : '#999999',
+              fontSize: 12,
+              fontFamily: 'HarmonyOS Sans SC, \'HarmonyOS Sans\', sans-serif',
+              align: 'center',
+              verticalAlign: 'middle',
+            },
+          });
+        }
+
+        return { type: 'group', $mergeChildren: false, children };
+      },
+    });
+  });
+
   const dimTexts = dims.map((label, i) => ({
     type: 'text',
     left: GRID_LEFT - 78,
@@ -954,297 +988,53 @@ function getChartOption() {
     grid: grids,
     xAxis: xAxes,
     yAxis: yAxes,
-    dataZoom: [
-      {
-        id: 'detail-x-inside',
-        type: 'inside',
-        xAxisIndex: xAxisIndexes,
-        filterMode: 'none',
-        startValue: zoomRange.value.start,
-        endValue: zoomRange.value.end || model.value.sizeBytes,
-        zoomOnMouseWheel: false,
-        moveOnMouseWheel: false,
-        moveOnMouseMove: false,
-      },
-    ],
+    dataZoom: dims.flatMap((_, i) => {
+      const range = dimZoomRange(i);
+      return [
+        {
+          id: `detail-x-slider-${i}`,
+          type: 'slider',
+          show: true,
+          xAxisIndex: i,
+          filterMode: 'none',
+          start: range.start,
+          end: range.end,
+          left: GRID_LEFT,
+          right: GRID_RIGHT,
+          top: gridTop(i) - SLIDER_TOP_OFFSET,
+          height: SLIDER_HEIGHT,
+          showDataShadow: false,
+          showDetail: false,
+          brushSelect: false,
+          borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
+          backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
+          fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+          handleSize: '60%',
+          handleStyle: {
+            color: isDarkTheme.value ? '#ffffff' : '#191919',
+            borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
+            borderWidth: 1,
+            shadowBlur: 5,
+            shadowColor: isDarkTheme.value ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
+          },
+          moveHandleIcon: 'none',
+        },
+        {
+          id: `detail-x-inside-${i}`,
+          type: 'inside',
+          xAxisIndex: i,
+          filterMode: 'none',
+          start: range.start,
+          end: range.end,
+          zoomOnMouseWheel: false,
+          moveOnMouseWheel: false,
+          moveOnMouseMove: false,
+        },
+      ];
+    }),
     graphic: dimTexts,
     series,
   };
-}
-
-function getControlChartOption() {
-  const size = Math.max(1, Number(model.value.sizeBytes) || 0);
-  const rulerSeries = {
-    type: 'custom',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    silent: true,
-    clip: false,
-    z: 2,
-    data: [0],
-    renderItem: (params) => {
-      const cs = params.coordSys;
-      const visibleStart = zoomRange.value.start;
-      const visibleEnd = zoomRange.value.end || Number(model.value.sizeBytes) || size;
-      const children = [];
-      const rulerWidth = Math.max(0, (controlChartRef.value?.clientWidth || cs.x + cs.width + GRID_RIGHT) - cs.x - GRID_RIGHT);
-      const squareSize = 8;
-      const gap = 3;
-      const pitch = squareSize + gap;
-      const squareY = cs.y - 16;
-      const count = Math.ceil(rulerWidth / pitch);
-      for (let i = 0; i < count; i++) {
-        const x = cs.x + i * pitch;
-        if (x > cs.x + rulerWidth) {
-          break;
-        }
-        children.push({
-          type: 'rect',
-          shape: { x, y: squareY, width: squareSize, height: squareSize, r: 1 },
-          style: { fill: isDarkTheme.value ? 'rgba(51,51,51,1)' : 'rgba(200,200,200,1)' },
-        });
-      }
-
-      const labelCount = 16;
-      const segment = (visibleEnd - visibleStart) / labelCount;
-      const labelY = cs.y - 50;
-      for (let i = 1; i <= labelCount; i++) {
-        const value = visibleStart + segment * i;
-        const x = cs.x + (i / labelCount) * rulerWidth;
-        children.push({
-          type: 'text',
-          rotation: -Math.PI / 4,
-          originX: x,
-          originY: labelY,
-          style: {
-            x,
-            y: labelY,
-            text: formatRulerValue(value, visibleStart, visibleEnd, labelCount),
-            fill: isDarkTheme.value ? '#666666' : '#999999',
-            fontSize: 12,
-            fontFamily: 'HarmonyOS Sans SC, "HarmonyOS Sans", sans-serif',
-            align: 'center',
-            verticalAlign: 'middle',
-          },
-        });
-      }
-
-      return { type: 'group', $mergeChildren: false, children };
-    },
-  };
-
-  return {
-    backgroundColor: isDarkTheme.value ? '#1a1a1a' : '#ffffff',
-    animation: false,
-    grid: { left: GRID_LEFT, right: GRID_RIGHT, top: CONTROL_GRID_TOP, height: 1, show: false },
-    xAxis: {
-      type: 'value',
-      min: 0,
-      max: size,
-      interval: size / 16,
-      axisLabel: { show: false },
-      axisTick: { show: false },
-      axisLine: { show: false },
-      splitLine: { show: false },
-    },
-    yAxis: { type: 'value', min: 0, max: 1, show: false },
-    dataZoom: [{
-      id: 'detail-x-slider',
-      type: 'slider',
-      show: true,
-      xAxisIndex: 0,
-      filterMode: 'none',
-      startValue: zoomRange.value.start,
-      endValue: zoomRange.value.end || Number(model.value.sizeBytes),
-      left: GRID_LEFT,
-      right: GRID_RIGHT,
-      top: 8,
-      height: 20,
-      showDataShadow: false,
-      showDetail: false,
-      brushSelect: false,
-      borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
-      backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
-      fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
-      handleSize: '60%',
-      handleStyle: {
-        color: isDarkTheme.value ? '#ffffff' : '#191919',
-        borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
-        borderWidth: 1,
-        shadowBlur: 5,
-        shadowColor: isDarkTheme.value ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
-      },
-      moveHandleIcon: 'none',
-    }],
-    series: [rulerSeries],
-  };
-}
-
-function detachChartWheelListener() {
-  if (chartWheelDom && chartWheelHandler) {
-    chartWheelDom.removeEventListener('wheel', chartWheelHandler, true);
-  }
-  chartWheelDom = null;
-  chartWheelHandler = null;
-}
-
-let controlPanDom = null;
-let controlPanStartX = 0;
-let controlPanStartRange = null;
-let lanePanDom = null;
-let lanePanStartX = 0;
-let lanePanStartRange = null;
-
-function stopControlPan() {
-  controlPanStartRange = null;
-  if (controlPanDom) {
-    controlPanDom.style.cursor = 'grab';
-  }
-  document.removeEventListener('mousemove', moveControlPan);
-  document.removeEventListener('mouseup', stopControlPan);
-}
-
-function moveControlPan(event) {
-  if (!controlPanStartRange || !controlPanDom) {
-    return;
-  }
-  const size = Number(model.value.sizeBytes) || 0;
-  const plotWidth = controlPanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
-  const rangeWidth = controlPanStartRange.end - controlPanStartRange.start;
-  if (size <= 0 || plotWidth <= 0 || rangeWidth >= size) {
-    return;
-  }
-
-  const delta = ((controlPanStartX - event.clientX) / plotWidth) * size;
-  const start = Math.max(0, Math.min(size - rangeWidth, controlPanStartRange.start + delta));
-  updateZoomRange(start, start + rangeWidth, 'control');
-}
-
-function attachControlPanListener(chartDom) {
-  controlPanDom = chartDom;
-  chartDom.style.cursor = 'grab';
-  chartDom.addEventListener('mousedown', startControlPan, true);
-}
-
-function detachControlPanListener() {
-  stopControlPan();
-  controlPanDom?.removeEventListener('mousedown', startControlPan, true);
-  controlPanDom = null;
-}
-
-function startControlPan(event) {
-  if (!controlPanDom || event.button !== 0) {
-    return;
-  }
-  const localY = event.clientY - controlPanDom.getBoundingClientRect().top;
-  if (localY < 30) {
-    return;
-  }
-
-  const size = Number(model.value.sizeBytes) || 0;
-  const end = zoomRange.value.end || size;
-  if (size <= 0 || end - zoomRange.value.start >= size) {
-    return;
-  }
-
-  event.preventDefault();
-  controlPanStartX = event.clientX;
-  controlPanStartRange = { start: zoomRange.value.start, end };
-  controlPanDom.style.cursor = 'grabbing';
-  document.addEventListener('mousemove', moveControlPan);
-  document.addEventListener('mouseup', stopControlPan);
-}
-
-function stopLanePan() {
-  lanePanStartRange = null;
-  if (lanePanDom) {
-    lanePanDom.style.cursor = '';
-  }
-  document.removeEventListener('mousemove', moveLanePan, true);
-  document.removeEventListener('mouseup', stopLanePan, true);
-}
-
-function moveLanePan(event) {
-  if (!lanePanStartRange || !lanePanDom) {
-    return;
-  }
-  const size = Number(model.value.sizeBytes) || 0;
-  const plotWidth = lanePanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
-  const rangeWidth = lanePanStartRange.end - lanePanStartRange.start;
-  if (size <= 0 || plotWidth <= 0 || rangeWidth >= size) {
-    return;
-  }
-
-  event.preventDefault();
-  const delta = ((lanePanStartX - event.clientX) / plotWidth) * size;
-  const start = Math.max(0, Math.min(size - rangeWidth, lanePanStartRange.start + delta));
-  updateZoomRange(start, start + rangeWidth, 'lane-pan');
-}
-
-function startLanePan(event) {
-  if (!lanePanDom || event.button !== 0) {
-    return;
-  }
-  const plotX = event.clientX - lanePanDom.getBoundingClientRect().left - GRID_LEFT;
-  const plotWidth = lanePanDom.clientWidth - GRID_LEFT - GRID_RIGHT;
-  const size = Number(model.value.sizeBytes) || 0;
-  const end = zoomRange.value.end || size;
-  if (plotX < 0 || plotX > plotWidth) {
-    return;
-  }
-  if (size <= 0 || end - zoomRange.value.start >= size) {
-    return;
-  }
-
-  lanePanStartX = event.clientX;
-  lanePanStartRange = { start: zoomRange.value.start, end };
-  lanePanDom.style.cursor = 'grabbing';
-  document.addEventListener('mousemove', moveLanePan, true);
-  document.addEventListener('mouseup', stopLanePan, true);
-}
-
-function attachLanePanListener(chartDom) {
-  lanePanDom = chartDom;
-}
-
-function detachLanePanListener() {
-  stopLanePan();
-  lanePanDom = null;
-}
-
-function attachChartWheelListener(chartDom) {
-  chartWheelHandler = (event) => {
-    if (!event.ctrlKey) {
-      return;
-    }
-
-    const size = Number(model.value.sizeBytes) || 0;
-    const plotWidth = chartDom.clientWidth - GRID_LEFT - GRID_RIGHT;
-    const pointerX = event.clientX - chartDom.getBoundingClientRect().left - GRID_LEFT;
-    if (size <= 0 || plotWidth <= 0) {
-      return;
-    }
-    if (pointerX < 0 || pointerX > plotWidth) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    const currentStart = zoomRange.value.start;
-    const currentEnd = zoomRange.value.end || size;
-    const currentWidth = currentEnd - currentStart;
-    const minWidth = Math.min(size, Math.max(1, size / 1000));
-    const nextWidth = Math.max(minWidth, Math.min(size, currentWidth * (event.deltaY < 0 ? 0.8 : 1.25)));
-    const anchorRatio = pointerX / plotWidth;
-    const anchor = currentStart + currentWidth * anchorRatio;
-    let start = anchor - nextWidth * anchorRatio;
-    start = Math.max(0, Math.min(size - nextWidth, start));
-    const end = start + nextWidth;
-
-    updateZoomRange(start, end, 'lane');
-  };
-  chartWheelDom = chartDom;
-  chartDom.addEventListener('wheel', chartWheelHandler, { passive: false, capture: true });
 }
 
 let resizeObserver = null;
@@ -1252,7 +1042,7 @@ let zoomRefreshRaf = null;
 let syncingZoom = false;
 
 function clampZoomRange(start, end) {
-  const size = Number(model.value.sizeBytes) || 0;
+  const size = ZOOM_MAX;
   const hasInvalidBounds = !Number.isFinite(start) || !Number.isFinite(end) || start >= end;
   if (size <= 0 || hasInvalidBounds) {
     return null;
@@ -1267,32 +1057,27 @@ function clampZoomRange(start, end) {
   return { start: nextStart, end: nextEnd };
 }
 
-function isSameZoomRange(nextRange) {
-  return nextRange && nextRange.start === zoomRange.value.start && nextRange.end === zoomRange.value.end;
-}
-
-function dispatchZoomToChart(chart, dataZoomId, start, end) {
-  chart?.dispatchAction({
+function dispatchDimensionZoom(dimension, start, end) {
+  myChart?.dispatchAction({
     type: 'dataZoom',
-    batch: [{ dataZoomId, startValue: start, endValue: end }],
+    batch: [
+      { dataZoomId: `detail-x-slider-${dimension}`, start, end },
+      { dataZoomId: `detail-x-inside-${dimension}`, start, end },
+    ],
   });
 }
 
-function updateZoomRange(start, end, source = null) {
+function updateZoomRange(dimension, start, end) {
   const nextRange = clampZoomRange(Number(start), Number(end));
-  if (!nextRange || isSameZoomRange(nextRange)) {
+  const currentRange = dimZoomRange(dimension);
+  if (!nextRange || (nextRange.start === currentRange.start && nextRange.end === currentRange.end)) {
     return;
   }
 
-  zoomRange.value = nextRange;
+  zoomRanges.value[dimension] = nextRange;
   syncingZoom = true;
   try {
-    if (source !== 'control') {
-      dispatchZoomToChart(controlChart, 'detail-x-slider', nextRange.start, nextRange.end);
-    }
-    if (source !== 'lane') {
-      dispatchZoomToChart(myChart, 'detail-x-inside', nextRange.start, nextRange.end);
-    }
+    dispatchDimensionZoom(dimension, nextRange.start, nextRange.end);
   } finally {
     syncingZoom = false;
   }
@@ -1305,65 +1090,49 @@ function updateZoomRange(start, end, source = null) {
   }
 }
 
-function handleDataZoom(event, source) {
+function handleDataZoom(event) {
   if (syncingZoom) {
     return;
   }
 
-  const expectedId = source === 'control' ? 'detail-x-slider' : 'detail-x-inside';
-  const payload = event?.batch?.find((entry) => entry.dataZoomId === expectedId) || event?.batch?.[0] || event || {};
-  const size = Number(model.value.sizeBytes) || 0;
-  const start = Number.isFinite(Number(payload.startValue)) ? Number(payload.startValue) : (Number(payload.start) / 100) * size;
-  const end = Number.isFinite(Number(payload.endValue)) ? Number(payload.endValue) : (Number(payload.end) / 100) * size;
+  const payload =
+    event?.batch?.find((entry) => /^detail-x-(?:slider|inside)-\d+$/.test(entry.dataZoomId)) || event?.batch?.[0] || event || {};
+  const dimension = Number(String(payload.dataZoomId || '').match(/\d+$/)?.[0]);
+  const size = ZOOM_MAX;
+  const start = Number.isFinite(Number(payload.start)) ? Number(payload.start) : Number(payload.startValue);
+  const end = Number.isFinite(Number(payload.end)) ? Number(payload.end) : Number(payload.endValue);
 
-  if (size <= 0 || !Number.isFinite(start) || !Number.isFinite(end)) {
+  const hasInvalidRange = !Number.isFinite(start) || !Number.isFinite(end);
+  if (size <= 0 || !Number.isInteger(dimension) || hasInvalidRange) {
     return;
   }
 
-  updateZoomRange(start, end, source);
+  updateZoomRange(dimension, start, end);
 }
 
 function initCharts() {
-  if (!controlChartRef.value || !chartRef.value) {
+  if (!chartRef.value) {
     return;
   }
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
-  detachChartWheelListener();
-  detachControlPanListener();
-  detachLanePanListener();
-  if (controlChart) {
-    controlChart.dispose();
-    controlChart = null;
-  }
   if (myChart) {
     myChart.dispose();
     myChart = null;
   }
-  controlChart = echarts.init(controlChartRef.value);
-  controlChart.setOption(getControlChartOption());
-  controlChart.on('datazoom', (event) => handleDataZoom(event, 'control'));
-  attachControlPanListener(controlChart.getDom());
-
   myChart = echarts.init(chartRef.value);
   myChart.setOption(getChartOption());
-  myChart.on('datazoom', (event) => handleDataZoom(event, 'lane'));
-  attachChartWheelListener(myChart.getDom());
-  attachLanePanListener(myChart.getDom());
+  myChart.on('datazoom', handleDataZoom);
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => liveResize());
-    resizeObserver.observe(controlChartRef.value);
     resizeObserver.observe(chartRef.value);
   }
 }
 
 function disposeChart() {
-  detachChartWheelListener();
-  detachControlPanListener();
-  detachLanePanListener();
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
@@ -1384,24 +1153,17 @@ function disposeChart() {
     myChart.dispose();
     myChart = null;
   }
-  if (controlChart) {
-    controlChart.dispose();
-    controlChart = null;
-  }
 }
 
 let refreshRaf = null;
 function liveResize() {
-  if ((!myChart && !controlChart) || refreshRaf) {
+  if (!myChart || refreshRaf) {
     return;
   }
   refreshRaf = requestAnimationFrame(() => {
     refreshRaf = null;
     if (myChart) {
       myChart.resize();
-    }
-    if (controlChart) {
-      controlChart.resize();
     }
   });
 }
@@ -1411,20 +1173,16 @@ function rebuildCharts(clear = false) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
   }
-  if (controlChartRef.value && chartRef.value) {
-    if (!controlChart || !myChart) {
+  if (chartRef.value) {
+    if (!myChart) {
       initCharts();
       return;
-    }
-    if (clear) {
-      controlChart.clear();
     }
     if (myChart) {
       if (clear) {
         myChart.clear();
       }
     }
-    controlChart.setOption(getControlChartOption(), { notMerge: true });
     myChart.setOption(getChartOption(), { notMerge: true });
   }
 }
@@ -1436,7 +1194,7 @@ function scheduleRebuild() {
   }
   rebuildTimer = setTimeout(() => {
     rebuildTimer = null;
-    if (controlChartRef.value && chartRef.value) {
+    if (chartRef.value) {
       rebuildCharts();
     }
   }, 120);
@@ -1451,9 +1209,14 @@ watch(writesOnly, () => {
   rebuildCharts(true);
 });
 
+watch(viewMode, (mode) => {
+  if (mode === 'chart') {
+    nextTick(() => rebuildCharts());
+  }
+});
+
 watch(isDarkTheme, () => {
-  if (controlChart && myChart) {
-    controlChart.setOption(getControlChartOption());
+  if (myChart) {
     myChart.setOption(getChartOption());
   }
 });
@@ -1463,6 +1226,8 @@ watch(
   (node) => {
     if (node) {
       activeTensorId.value = tensorEntries.value[0]?.id || '';
+      viewMode.value = 'chart';
+      selectedAccessKey.value = '';
       sidebarWidth.value = initWidth();
       domHeight.value = computeHeight();
       resetZoomRange();
@@ -1758,23 +1523,6 @@ onUnmounted(() => {
 
 .echarts-dom {
   width: 100%;
-}
-
-.memory-zoom-controls {
-  flex: 0 0 auto;
-  border-bottom: 1px solid v-bind(sidebarBorderColor);
-}
-
-.memory-control-chart {
-  cursor: grab;
-}
-
-.memory-lane-chart {
-  cursor: grab;
-}
-
-.memory-lane-chart:active {
-  cursor: grabbing;
 }
 
 .sidebar-slide-enter-active,

@@ -16,7 +16,7 @@
       :style="{ display: 'flex', flexDirection: 'column', height: isSwimGraphActive && isThreeColumn ? 'calc(100% - 40px)' : '100%' }"
     >
       <div class="filter-toolbar">
-        <div style="display: flex; align-items: center;">
+        <div style="display: flex; align-items: center">
           <div class="search-bar-container">
             <svg
               class="search-icon"
@@ -30,19 +30,9 @@
               stroke-linejoin="round"
             >
               <circle cx="11" cy="11" r="8" />
-              <line
-                x1="21"
-                y1="21"
-                x2="16.65"
-                y2="16.65"
-              />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="'Search'"
-              class="search-input"
-            />
+            <input v-model="searchQuery" type="text" :placeholder="'Search'" class="search-input" />
             <div v-if="searchQuery" class="search-action-wrapper">
               <button class="search-clear-btn" title="Clear Search" @click="clearSearch">
                 <svg
@@ -55,18 +45,8 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <line
-                    x1="18"
-                    y1="6"
-                    x2="6"
-                    y2="18"
-                  />
-                  <line
-                    x1="6"
-                    y1="6"
-                    x2="18"
-                    y2="18"
-                  />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -78,14 +58,14 @@
                 name="icon-arrow-left-l"
                 class="search-nav-prev"
                 :disabled="filteredResultsCount <= 1"
-                style="font-size: 16px;"
+                style="font-size: 16px"
                 @click.stop="goToPreviousSearchResult"
               />
               <d-icon
                 name="icon-arrow-right-l"
                 class="search-nav-next"
                 :disabled="filteredResultsCount <= 1"
-                style="font-size: 16px;"
+                style="font-size: 16px"
                 @click.stop="goToNextSearchResult"
               />
             </div>
@@ -108,7 +88,14 @@
         </button>
       </div>
       <div v-show="!loading" class="head-container" :style="{ display: 'flex', height: '60px', width: '100%' }">
-        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn }" />
+        <div class="title" :style="{ width: layout.processLabelWidth + 'px' }" :class="{ 'title-threeColumn': isThreeColumn }">
+          <div v-if="selectedRegionId !== null" @click="leaveRegionDetail" class="region-detail-title">
+            <button type="button" class="region-back-btn" aria-label="Back to all regions">
+              <d-icon name="icon-arrow-left-l" style="font-size: 24px; width: 24px; height: 24px" />
+            </button>
+            <span class="region-detail-name">Region <br />ID: {{ selectedRegionId }}</span>
+          </div>
+        </div>
 
         <div class="right-header-content" :style="{ width: 'calc(100% - ' + layout.processLabelWidth + 'px)' }">
           <div ref="swimlaneContainer" class="swimlane-container" :class="{ mr16: !isGuidePage }">
@@ -136,6 +123,27 @@
         </div>
         <div class="chart-wrapper">
           <div ref="chartRef" class="echarts-container" :style="{ minHeight: minimumChartHeight + 'px' }" />
+          <div
+            v-if="tensorContextMenu.visible"
+            class="tensor-context-menu"
+            role="menu"
+            :style="{ left: tensorContextMenu.left + 'px', top: tensorContextMenu.top + 'px' }"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              class="tensor-context-menu-item"
+              @click="activateAdjacentMeasurement"
+            >
+              <svg class="measurement-mode-icon" aria-hidden="true" viewBox="0 0 16 16">
+                <path d="M8 1v14M5 4l3-3 3 3M5 12l3 3 3-3" />
+              </svg>
+              <span>{{ t('memoryMeasurementMode') }}</span>
+            </button>
+          </div>
+          <div v-if="measurementLabel" class="memory-measurement-status" role="status" aria-live="polite">
+            {{ measurementLabel }}
+          </div>
           <!-- eslint-disable vue/no-v-html -->
           <div
             v-if="manualTensorTooltipVisible"
@@ -171,22 +179,25 @@ import {
   getyAxisConfig,
   getVisibleXAxisRange,
   getVisibleYAxisRange,
-  getRegionLayerVisibleYRange,
   ensureMinimumVisibleRatio,
 } from './utils';
 import { validateMemoryData } from './validateMemoryData';
 import { createMemoryUsageChildContextMap, provideMemoryUsageSwimGraph } from './memoryUsageProvide';
 import { TensorSearchNavigationUtil } from './tensorSearchNavigationUtil';
 import { TensorSearchOverlayUtil } from './TensorSearchOverlayUtil';
+import { TensorAddressGuide } from './tensorAddressGuide';
 import { processIncomingData, formatRawShape, getTensorMagicId, findMemoryTensorsAtPoint } from './memoryDataProcessor';
 import { detectConflicts } from './memoryConflictDetection';
 import { createConflictPattern, createMemoryChartRenderers, createMinimapRects } from './memoryChartRenderer';
 import {
-  finishPerformanceStage,
-  markPerformance,
-  startPerformanceStage,
-  updatePerformanceFingerprint,
-} from './memoryPerformance';
+  calculateTensorDistance,
+  findAdjacentTensorMeasurements,
+  getMeasurementTensorIdentity,
+  serializeTensorMeasurement,
+} from './memoryDistanceMeasurement';
+import { createMemoryRegionRenderers } from './memoryRegionRenderer';
+import { formatTimelineTimestamp, formatTimelineUnit, getTimelineLabelPosition, isValidChartTimeRange } from './memoryTimelineUtil';
+import { finishPerformanceStage, markPerformance, startPerformanceStage, updatePerformanceFingerprint } from './memoryPerformance';
 
 const props = defineProps({
   jsonContent: {
@@ -211,20 +222,19 @@ const props = defineProps({
   },
 });
 
-const NANOSECONDS_PER_MICROSECOND = 1000;
-const MICROSECONDS_PER_SECOND = 1e6;
 const MIN_REGION_HEIGHT_PX = 30;
 const CHART_GRID_VERTICAL_PADDING_PX = 60;
 
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root', ref(true));
-useI18n();
+const { t } = useI18n();
 const isGuidePage = ref(false);
 const error = ref(false);
 
 watch(isDarkTheme, () => {
   if (myChart) {
     myChart.setOption(getChartOption());
+    tensorAddressGuide.render();
   }
   renderFixedTimeline();
   renderTwoTimeline();
@@ -273,12 +283,22 @@ const aicpuCoreDetailsExpanded = ref(false);
 const hashOrderRending = ref('cubeMergeHashOrder');
 const searchQuery = ref('');
 const isCtrlDown = ref(false);
+const isAltDown = ref(false);
 const debouncedSearchQuery = ref('');
 const memoryBlocksRaw = reactive([]);
+const selectedRegionId = ref(null);
 let timer = null;
 
+const getActiveMemoryBlocks = () => {
+  if (selectedRegionId.value === null) {
+    return memoryBlocksRaw;
+  }
+
+  return memoryBlocksRaw.filter((item) => Number(item.regionId) === selectedRegionId.value);
+};
+
 const filteredResultsCount = computed(() => {
-  return TensorSearchNavigationUtil.getSearchMatchedItems(memoryBlocksRaw, debouncedSearchQuery.value).length;
+  return TensorSearchNavigationUtil.getSearchMatchedItems(getActiveMemoryBlocks(), debouncedSearchQuery.value).length;
 });
 
 const searchNavigationLabel = computed(() => {
@@ -291,24 +311,48 @@ const searchNavigationLabel = computed(() => {
   return `${selectedSearchIndex.value + 1}/${total}`;
 });
 const selectedNode = shallowRef(null);
+const measurementSelection = shallowRef({ first: null, second: null });
+const adjacentMeasurement = shallowRef(null);
+const tensorContextMenu = reactive({ visible: false, left: 0, top: 0, tensor: null });
+const measurementLabel = computed(() => {
+  if (adjacentMeasurement.value) {
+    const labels = [adjacentMeasurement.value.above, adjacentMeasurement.value.below]
+      .filter(Boolean)
+      .map((measurement) => `Addr: ${measurement.distance}`);
+    return labels.join(', ');
+  }
+  const { first, second } = measurementSelection.value;
+  const measurement = first && second ? calculateTensorDistance(first, second) : null;
+  return measurement ? `Distance: ${measurement.distance}` : '';
+});
 const chartRef = ref(null);
 const maxY = ref(22);
 const regionCount = ref(0);
 const minimumChartHeight = computed(() => {
-  if (regionCount.value <= 0) {
+  const visibleRegionCount = selectedRegionId.value === null ? regionCount.value : 1;
+  if (visibleRegionCount <= 0) {
     return 0;
   }
 
   const regionHeight = MemoryRegionLayoutUtil.DEFAULT_REGION_HEIGHT;
   const regionGap = MemoryRegionLayoutUtil.DEFAULT_REGION_GAP;
-  const layoutHeight = regionCount.value * regionHeight + (regionCount.value - 1) * regionGap;
+  const layoutHeight = visibleRegionCount * regionHeight + (visibleRegionCount - 1) * regionGap;
   const minimumPlotHeight = (layoutHeight / regionHeight) * MIN_REGION_HEIGHT_PX;
 
   return Math.ceil(minimumPlotHeight + CHART_GRID_VERTICAL_PADDING_PX);
 });
 
 const minimapRects = computed(() => {
-  return createMinimapRects(maxY.value, overlaps.value, isDarkTheme.value);
+  const activeOverlaps = overlaps.value.filter((item) => {
+    return selectedRegionId.value === null || Number(item.regionId) === selectedRegionId.value;
+  });
+  const activeRegion = getSelectedRegion();
+  const minimapMaxY = activeRegion ? activeRegion.yEnd - activeRegion.yStart : maxY.value;
+  const minimapOverlaps = activeRegion
+    ? activeOverlaps.map((item) => ({ ...item, y1: item.y1 - activeRegion.yStart, y2: item.y2 - activeRegion.yStart }))
+    : activeOverlaps;
+
+  return createMinimapRects(minimapMaxY, minimapOverlaps, isDarkTheme.value);
 });
 let myChart = null;
 let chartWheelDom = null;
@@ -322,7 +366,9 @@ const patternCache = { B: null, reg: null, stripe: null };
 patternCache.B = createConflictPattern();
 const tensorColorMap = {};
 const getOverlapData = () => {
-  return overlaps.value.map((o) => [o.x1, o.y1, o.x2, o.y2, o.tensors[0] || 'Anonymous', o.tensors[1] || 'Anonymous']);
+  return overlaps.value
+    .filter((item) => selectedRegionId.value === null || Number(item.regionId) === selectedRegionId.value)
+    .map((o) => [o.x1, o.y1, o.x2, o.y2, o.tensors[0] || 'Anonymous', o.tensors[1] || 'Anonymous']);
 };
 
 const viewState = reactive({
@@ -344,8 +390,11 @@ const viewState = reactive({
   minWidth: 1,
 });
 
+const SINGLE_REGION_LABEL_AREA_WIDTH = 180;
+const MULTI_REGION_LABEL_AREA_WIDTH = 155;
+
 const layout = reactive({
-  processLabelWidth: 180,
+  processLabelWidth: MULTI_REGION_LABEL_AREA_WIDTH,
   eventHeight: 16,
   processHeaderHeight: 30,
   threadHeight: 24,
@@ -399,7 +448,140 @@ const clearSearch = () => {
 };
 
 const getChartData = () => {
-  return TensorSearchNavigationUtil.createChartData(memoryBlocksRaw, debouncedSearchQuery.value, selectedSearchIndex.value, formatRawShape);
+  return TensorSearchNavigationUtil.createChartData(
+    getActiveMemoryBlocks(),
+    debouncedSearchQuery.value,
+    selectedSearchIndex.value,
+    formatRawShape,
+  );
+};
+
+const getMeasuredTensors = () => {
+  if (adjacentMeasurement.value) {
+    const { anchor, above, below } = adjacentMeasurement.value;
+    return [anchor, above?.lower, above?.upper, below?.lower, below?.upper]
+      .filter(Boolean)
+      .map((entry) => entry.rawObj || entry)
+      .filter((entry, index, entries) => entries.indexOf(entry) === index);
+  }
+  return [measurementSelection.value.first, measurementSelection.value.second].filter(Boolean).map((entry) => entry.rawObj || entry);
+};
+
+const getMeasurementHighlightTensors = () => {
+  if (!adjacentMeasurement.value) {
+    return [];
+  }
+
+  const { anchor, above, below } = adjacentMeasurement.value;
+  const anchorMagicId = getTensorMagicId(anchor.rawObj || anchor);
+  const measuredEntries = [anchor, above?.lower, above?.upper, below?.lower, below?.upper].filter(Boolean);
+  const highlightedEntries = getActiveMemoryBlocks().filter((entry) => {
+    return getTensorMagicId(entry.rawObj || entry) === anchorMagicId;
+  });
+
+  return [...measuredEntries, ...highlightedEntries]
+    .map((entry) => entry.rawObj || entry)
+    .filter((entry, index, entries) => entries.indexOf(entry) === index);
+};
+
+const getMeasurementData = () => {
+  if (adjacentMeasurement.value) {
+    return [adjacentMeasurement.value.above, adjacentMeasurement.value.below]
+      .filter(Boolean)
+      .map((measurement) => serializeTensorMeasurement(measurement, `Addr: ${measurement.distance}`));
+  }
+
+  const { first, second } = measurementSelection.value;
+  if (!first || !second) {
+    return [];
+  }
+
+  const measurement = calculateTensorDistance(first, second);
+  if (!measurement) {
+    return [];
+  }
+
+  const label = measurementLabel.value.replace(/^Distance:\s*/, '');
+  return [serializeTensorMeasurement(measurement, label)];
+};
+
+const refreshMeasurementVisuals = () => {
+  if (!myChart) {
+    return;
+  }
+
+  myChart.setOption(
+    {
+      series: [
+        {
+          id: 'tensors',
+          data: getChartData(),
+        },
+        {
+          id: 'tensor-distance',
+          data: getMeasurementData(),
+        },
+      ],
+    },
+    { lazyUpdate: false },
+  );
+};
+
+const clearMeasurement = () => {
+  if (!measurementSelection.value.first && !measurementSelection.value.second && !adjacentMeasurement.value) {
+    return;
+  }
+
+  measurementSelection.value = { first: null, second: null };
+  adjacentMeasurement.value = null;
+  refreshMeasurementVisuals();
+};
+
+const selectMeasurementTensor = (entry) => {
+  if (!entry) {
+    return;
+  }
+
+  adjacentMeasurement.value = null;
+  const { first, second } = measurementSelection.value;
+  const entryIdentity = entry.rawObj || entry;
+  const firstIdentity = first?.rawObj || first;
+
+  if (first && !second && firstIdentity === entryIdentity) {
+    return;
+  }
+
+  measurementSelection.value = !first || second ? { first: entry, second: null } : { first, second: entry };
+  refreshMeasurementVisuals();
+};
+
+const closeTensorContextMenu = () => {
+  tensorContextMenu.visible = false;
+  tensorContextMenu.tensor = null;
+};
+
+const activateAdjacentMeasurement = () => {
+  const anchor = tensorContextMenu.tensor;
+  closeTensorContextMenu();
+  if (!anchor || selectedRegionId.value === null) {
+    return;
+  }
+
+  measurementSelection.value = { first: null, second: null };
+  adjacentMeasurement.value = findAdjacentTensorMeasurements(anchor, getActiveMemoryBlocks());
+  refreshMeasurementVisuals();
+};
+
+const handleMeasurementClick = (directTensor) => {
+  if (!directTensor || selectedRegionId.value === null) {
+    return;
+  }
+
+  const tensorIdentity = getMeasurementTensorIdentity(directTensor);
+  const entry = getActiveMemoryBlocks().find((item) => {
+    return item.rawObj === directTensor || (tensorIdentity && getMeasurementTensorIdentity(item.rawObj) === tensorIdentity);
+  });
+  selectMeasurementTensor(entry);
 };
 
 const navigateToSelectedSearchTensor = () => {
@@ -416,15 +598,14 @@ const navigateToSelectedSearchTensor = () => {
   const visibleXRange = getVisibleXAxisRange(myChart, timelineState);
   const visibleYRange = getVisibleYAxisRange(myChart, maxY.value);
 
-  const fullXRange = TensorSearchNavigationUtil.getFullXAxisRange(memoryBlocksRaw, {
+  const activeMemoryBlocks = getActiveMemoryBlocks();
+  const fullXRange = TensorSearchNavigationUtil.getFullXAxisRange(activeMemoryBlocks, {
     min: timelineState.startTime,
     max: timelineState.endTime,
   });
 
-  const fullYRange = TensorSearchNavigationUtil.getFullYAxisRange(currentLayoutRegions, {
-    min: 0,
-    max: maxY.value,
-  });
+  const activeYAxisBounds = getActiveYAxisBounds();
+  const fullYRange = TensorSearchNavigationUtil.getFullYAxisRange(currentLayoutRegions, activeYAxisBounds);
 
   const nextRanges = TensorSearchNavigationUtil.getNavigationRangesForTensor({
     selectedItem,
@@ -499,7 +680,7 @@ const goToNextSearchResult = () => {
   applySearchSelection();
 };
 const getSelectedSearchItem = () => {
-  return TensorSearchNavigationUtil.getSelectedSearchItem(memoryBlocksRaw, debouncedSearchQuery.value, selectedSearchIndex.value);
+  return TensorSearchNavigationUtil.getSelectedSearchItem(getActiveMemoryBlocks(), debouncedSearchQuery.value, selectedSearchIndex.value);
 };
 let searchFocusOverlay = null;
 let searchOverlayFrame = null;
@@ -529,8 +710,10 @@ const scheduleSearchOverlayUpdate = () => {
   });
 };
 
-const { renderItem, renderOverlapItem } = createMemoryChartRenderers({
+const { renderItem, renderOverlapItem, renderMeasurementItem } = createMemoryChartRenderers({
   getSelectedNode: () => selectedNode.value,
+  getMeasuredTensors,
+  getMeasurementHighlightTensors,
   getFilteredResultsCount: () => filteredResultsCount.value,
   getIsDarkTheme: () => isDarkTheme.value,
   tensorColorMap,
@@ -538,8 +721,34 @@ const { renderItem, renderOverlapItem } = createMemoryChartRenderers({
 });
 
 let currentLayoutRegions = [];
+let allLayoutRegions = [];
 let hoveredRegionData = [];
 let regionLabelHoverAreas = [];
+const getSelectedRegion = () => {
+  if (selectedRegionId.value === null) {
+    return null;
+  }
+
+  return allLayoutRegions.find((region) => region.regionId === selectedRegionId.value) || null;
+};
+const tensorAddressGuide = new TensorAddressGuide({
+  getChart: () => myChart,
+  getIsDarkTheme: () => isDarkTheme.value,
+  getSelectedRegion,
+});
+const getActiveYAxisBounds = () => {
+  const selectedRegion = getSelectedRegion();
+
+  return selectedRegion ? { min: selectedRegion.yStart, max: selectedRegion.yEnd } : { min: 0, max: maxY.value };
+};
+const formatDetailAddress = (chartY) => {
+  const selectedRegion = getSelectedRegion();
+  if (!selectedRegion) {
+    return '';
+  }
+
+  return String(Math.round(MemoryRegionLayoutUtil.toAbsoluteAddress(chartY, selectedRegion)));
+};
 const findHoveredRegionData = (offsetX, offsetY) => {
   const area = regionLabelHoverAreas.find((item) => {
     return offsetX >= item.x && offsetX <= item.x + item.width && offsetY >= item.y && offsetY <= item.y + item.height;
@@ -577,7 +786,7 @@ const getSeriesConfig = () => [
     id: 'tensors',
     type: 'custom',
     renderItem,
-    encode: { x: [1, 2], y: [3, 4]},
+    encode: { x: [1, 2], y: [3, 4] },
     data: getChartData(),
     progressive: 0,
     animation: false,
@@ -588,10 +797,23 @@ const getSeriesConfig = () => [
     id: 'overlaps',
     type: 'custom',
     renderItem: renderOverlapItem,
-    encode: { x: [0, 2], y: [1, 3]},
+    encode: { x: [0, 2], y: [1, 3] },
     data: getOverlapData(),
     zIndex: 10,
     cursor: 'default',
+  },
+  {
+    id: 'tensor-distance',
+    name: 'tensor-distance',
+    type: 'custom',
+    coordinateSystem: 'cartesian2d',
+    renderItem: renderMeasurementItem,
+    data: getMeasurementData(),
+    encode: { x: [0, 1, 4, 5], y: [2, 3, 6, 7] },
+    silent: true,
+    z: 300,
+    clip: false,
+    animation: false,
   },
   {
     id: 'regions',
@@ -625,7 +847,20 @@ const getChartOption = () => {
   const memoryData = rawMemoryData?.data || rawMemoryData || {};
   const regions = memoryData?.meta?.regions || [];
   const { regions: layoutRegions, yMin, yMax } = MemoryRegionLayoutUtil.createRegionLayout(regions);
-  currentLayoutRegions = layoutRegions;
+  allLayoutRegions = layoutRegions;
+  const selectedRegion = getSelectedRegion();
+  layout.processLabelWidth = selectedRegion ? SINGLE_REGION_LABEL_AREA_WIDTH : MULTI_REGION_LABEL_AREA_WIDTH;
+  currentLayoutRegions = selectedRegion ? [selectedRegion] : layoutRegions;
+  const activeYMin = selectedRegion ? selectedRegion.yStart : yMin;
+  const activeYMax = selectedRegion ? selectedRegion.yEnd : yMax;
+  const yAxis = getyAxisConfig(activeYMin, activeYMax, isDarkTheme.value, selectedRegion ? formatDetailAddress : null);
+  if (selectedRegion) {
+    Object.assign(yAxis.axisLabel, {
+      width: 70,
+      overflow: 'truncate',
+      ellipsis: '...',
+    });
+  }
   const option = {
     backgroundColor: 'transparent',
     animation: false,
@@ -643,7 +878,7 @@ const getChartOption = () => {
       startTime: viewState.minTime,
       endTime: viewState.maxTime,
     }),
-    yAxis: getyAxisConfig(yMin, yMax, isDarkTheme.value),
+    yAxis,
     dataZoom: getDataZoomConfig(isDarkTheme.value),
     series: getSeriesConfig(),
   };
@@ -653,132 +888,56 @@ const getChartOption = () => {
   });
   return option;
 };
-const renderRegionAxisLabelLayerItem = (params, _api) => {
-  if (!currentLayoutRegions.length) {
-    regionLabelHoverAreas = [];
-
-    return {
-      type: 'group',
-      silent: false,
-      children: [],
-    };
+const applyRegionView = () => {
+  if (!myChart) {
+    return;
   }
 
-  const { min: visibleXMin, max: visibleXMax } = getVisibleXAxisRange(myChart, timelineState);
-  const { min: visibleYMin, max: visibleYMax } = getVisibleYAxisRange(myChart, maxY.value);
-
-  const xCenter = (visibleXMin + visibleXMax) / 2;
-
-  const children = [];
-  const nextHoverAreas = [];
-
-  currentLayoutRegions.forEach((region) => {
-    if (region.yEnd < visibleYMin || region.yStart > visibleYMax) {
-      return;
-    }
-
-    const regionCenterY = (region.yStart + region.yEnd) / 2;
-
-    const visibleRegionTop = Math.max(region.yStart, visibleYMin);
-    const visibleRegionBottom = Math.min(region.yEnd, visibleYMax);
-
-    const fixedLabelY = Math.min(Math.max(regionCenterY, visibleRegionTop), visibleRegionBottom);
-
-    const yPixel = myChart.convertToPixel({ yAxisIndex: 0 }, fixedLabelY);
-    const visibleRegionStartPixel = myChart.convertToPixel({ yAxisIndex: 0 }, visibleRegionTop);
-    const visibleRegionEndPixel = myChart.convertToPixel({ yAxisIndex: 0 }, visibleRegionBottom);
-
-    if (!Number.isFinite(yPixel) || !Number.isFinite(visibleRegionStartPixel) || !Number.isFinite(visibleRegionEndPixel)) {
-      return;
-    }
-
-    const regionData = [
-      xCenter,
-      fixedLabelY,
-      `Region\nID:${region.regionId}`,
-      region.regionId,
-      region.yStart,
-      region.yEnd,
-      region.span,
-      region.addr0,
-      region.addrEnd,
-      region.rawRegion,
-    ];
-
-    const labelX = params.coordSys.x - 50;
-    const labelY = yPixel;
-    const labelWidth = 44;
-    const labelHeight = 30;
-    const visibleRegionPixelTop = Math.min(visibleRegionStartPixel, visibleRegionEndPixel);
-    const visibleRegionPixelBottom = Math.max(visibleRegionStartPixel, visibleRegionEndPixel);
-    const chartWidth = myChart.getWidth();
-    const labelFitsCanvas = labelX >= 0 && labelX + labelWidth <= chartWidth;
-    const labelFitsRegion =
-      labelY - labelHeight / 2 >= visibleRegionPixelTop && labelY + labelHeight / 2 <= visibleRegionPixelBottom;
-
-    if (!labelFitsCanvas || !labelFitsRegion) {
-      return;
-    }
-
-    nextHoverAreas.push({
-      x: labelX,
-      y: labelY - labelHeight / 2,
-      width: labelWidth,
-      height: labelHeight,
-      regionData,
-    });
-
-    children.push({
-      type: 'rect',
-      name: 'region-axis-hit-area',
-      silent: false,
-      z: 199,
-      shape: {
-        x: labelX,
-        y: labelY - labelHeight / 2,
-        width: labelWidth,
-        height: labelHeight,
-      },
-      style: {
-        fill: 'rgba(0, 0, 0, 0)',
-      },
-    });
-
-    children.push({
-      type: 'text',
-      name: 'region-axis-label',
-      silent: false,
-      z: 200,
-      style: {
-        x: labelX,
-        y: labelY,
-        text: `Region\nID:${region.regionId}`,
-        fill: isDarkTheme.value ? 'rgba(230, 230, 230, 1)' : 'rgba(25, 25, 25, 1)',
-        fontSize: 11,
-        lineHeight: 15,
-        textAlign: 'left',
-        textVerticalAlign: 'middle',
-      },
-    });
+  const visibleXRange = getVisibleXAxisRange(myChart, timelineState);
+  const { min, max } = getActiveYAxisBounds();
+  myChart.clear();
+  tensorAddressGuide.reset();
+  myChart.setOption(getChartOption());
+  myChart.dispatchAction({
+    type: 'dataZoom',
+    batch: [
+      { dataZoomId: 'y-slider', startValue: min, endValue: max },
+      { dataZoomId: 'x-inside', startValue: visibleXRange.min, endValue: visibleXRange.max },
+      { dataZoomId: 'y-inside', startValue: min, endValue: max },
+    ],
   });
-
-  regionLabelHoverAreas = nextHoverAreas;
-
-  return {
-    type: 'group',
-    silent: false,
-    children,
-  };
 };
-const getRegionLabelLayerData = () => {
-  const { min: visibleXMin, max: visibleXMax } = getVisibleXAxisRange(myChart, timelineState);
-  const { min: visibleYMin, max: visibleYMax } = getVisibleYAxisRange(myChart, maxY.value);
+const enterRegionDetail = (regionData) => {
+  const regionId = Number(regionData?.[3]);
+  if (!Number.isFinite(regionId) || !allLayoutRegions.some((region) => region.regionId === regionId)) {
+    return;
+  }
 
-  const xCenter = (visibleXMin + visibleXMax) / 2;
-  const yCenter = (visibleYMin + visibleYMax) / 2;
-
-  return [['region-label-layer', xCenter, yCenter, 'sa']];
+  selectedRegionId.value = regionId;
+  selectedSearchIndex.value = 0;
+  selectedNode.value = null;
+  hoveredRegionData = null;
+  regionLabelHoverAreas = [];
+  clearMeasurement();
+  tensorAddressGuide.clear();
+  applyRegionView();
+  scheduleSearchOverlayUpdate();
 };
+const leaveRegionDetail = () => {
+  selectedRegionId.value = null;
+  resetFilters();
+};
+const { getRegionLabelLayerData, renderRegionAxisLabelLayerItem, renderRegionLayerItem } = createMemoryRegionRenderers({
+  getChart: () => myChart,
+  getCurrentRegions: () => currentLayoutRegions,
+  getIsDarkTheme: () => isDarkTheme.value,
+  getMaxY: () => maxY.value,
+  getSelectedRegionId: () => selectedRegionId.value,
+  getTimelineState: () => timelineState,
+  setHoverAreas: (areas) => {
+    regionLabelHoverAreas = areas;
+  },
+});
 const updateRegionLayers = () => {
   if (!myChart) {
     return;
@@ -802,192 +961,12 @@ const updateRegionLayers = () => {
 };
 const getRegionLayerData = () => {
   const { min: visibleXMin, max: visibleXMax } = getVisibleXAxisRange(myChart, timelineState);
-  const { min: visibleYMin, max: visibleYMax } = getVisibleYAxisRange(myChart, maxY.value);
+  const visibleYRange = selectedRegionId.value === null ? getVisibleYAxisRange(myChart, maxY.value) : getActiveYAxisBounds();
 
   const xCenter = (visibleXMin + visibleXMax) / 2;
-  const yCenter = (visibleYMin + visibleYMax) / 2;
+  const yCenter = (visibleYRange.min + visibleYRange.max) / 2;
 
   return [['regions-layer', xCenter, yCenter]];
-};
-const REGION_BACKGROUND_GAP_PX = 10;
-const renderRegionLayerItem = (params, _api) => {
-  if (!currentLayoutRegions.length) {
-    return {
-      type: 'group',
-      silent: true,
-      children: [],
-    };
-  }
-
-  const { coordSys } = params;
-  const isCoordSysValid = !Number.isFinite(coordSys.x) || !Number.isFinite(coordSys.y);
-  const isCoordSysSpaceValid = !Number.isFinite(coordSys.width) || !Number.isFinite(coordSys.height);
-  if (!coordSys || isCoordSysValid || isCoordSysSpaceValid) {
-    return {
-      type: 'group',
-      silent: true,
-      children: [],
-    };
-  }
-
-  const children = [];
-  const gridLeft = coordSys.x;
-  const gridTop = coordSys.y;
-  const gridBottom = coordSys.y + coordSys.height;
-  const gridWidth = coordSys.width;
-
-  const gridSize = 100;
-  const gridColor = isDarkTheme.value ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-
-  const regionFill = isDarkTheme.value ? 'rgba(255,255,255,0.018)' : 'rgba(0,0,0,0.018)';
-
-  const regionStroke = isDarkTheme.value ? '#333' : '#ddd';
-  const { min: visibleYMin, max: visibleYMax } = getRegionLayerVisibleYRange(coordSys, myChart, currentLayoutRegions);
-
-  const visibleRegions = currentLayoutRegions
-    .map((region) => {
-      const rawStart = Number(region.yStart);
-      const rawEnd = Number(region.yEnd);
-
-      if (!Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) {
-        return null;
-      }
-
-      const regionMin = Math.min(rawStart, rawEnd);
-      const regionMax = Math.max(rawStart, rawEnd);
-
-      const visibleStart = Math.max(regionMin, visibleYMin);
-      const visibleEnd = Math.min(regionMax, visibleYMax);
-
-      const visibleSpan = visibleEnd - visibleStart;
-
-      if (visibleSpan <= 0) {
-        return null;
-      }
-
-      return {
-        region,
-        visibleStart,
-        visibleEnd,
-        visibleSpan,
-      };
-    })
-    .filter(Boolean);
-
-  if (!visibleRegions.length) {
-    currentLayoutRegions.forEach((region) => {
-      const startYPixel = myChart.convertToPixel({ yAxisIndex: 0 }, region.yStart);
-
-      const endYPixel = myChart.convertToPixel({ yAxisIndex: 0 }, region.yEnd);
-
-      if (!Number.isFinite(startYPixel) || !Number.isFinite(endYPixel)) {
-        return;
-      }
-      const rawTop = Math.min(startYPixel, endYPixel);
-      const rawBottom = Math.max(startYPixel, endYPixel);
-      if (rawBottom <= gridTop || rawTop >= gridBottom) {
-        return;
-      }
-      const regionTop = Math.max(rawTop, gridTop);
-      const regionBottom = Math.min(rawBottom, gridBottom);
-      const regionHeight = regionBottom - regionTop;
-      if (regionHeight <= 0) {
-        return;
-      }
-
-      const rectShape = {
-        x: gridLeft,
-        y: regionTop,
-        width: gridWidth,
-        height: regionHeight,
-      };
-
-      children.push({
-        type: 'rect',
-        silent: true,
-        shape: rectShape,
-        style: {
-          fill: regionFill,
-          stroke: regionStroke,
-          lineWidth: 1,
-        },
-      });
-    });
-
-    return {
-      type: 'group',
-      silent: true,
-      children,
-    };
-  }
-
-  const gapCount = Math.max(0, visibleRegions.length - 1);
-  const totalGapHeight = gapCount * REGION_BACKGROUND_GAP_PX;
-
-  const availableRegionHeight = Math.max(0, coordSys.height - totalGapHeight);
-
-  const totalVisibleSpan = visibleRegions.reduce((sum, item) => {
-    return sum + item.visibleSpan;
-  }, 0);
-
-  if (availableRegionHeight <= 0 || totalVisibleSpan <= 0) {
-    return {
-      type: 'group',
-      silent: true,
-      children: [],
-    };
-  }
-
-  let currentY = coordSys.y;
-
-  visibleRegions.forEach((item) => {
-    const regionHeight = (item.visibleSpan / totalVisibleSpan) * availableRegionHeight;
-    if (regionHeight <= 0) {
-      return;
-    }
-    const rectShape = {
-      x: gridLeft,
-      y: currentY,
-      width: gridWidth,
-      height: regionHeight,
-    };
-
-    children.push({
-      type: 'rect',
-      silent: true,
-      shape: rectShape,
-      style: {
-        fill: regionFill,
-        stroke: regionStroke,
-        lineWidth: 1,
-      },
-    });
-
-    for (let x = rectShape.x + gridSize; x < rectShape.x + rectShape.width; x += gridSize) {
-      children.push({
-        type: 'line',
-        silent: true,
-        shape: {
-          x1: x,
-          y1: rectShape.y,
-          x2: x,
-          y2: rectShape.y + rectShape.height,
-        },
-        style: {
-          stroke: gridColor,
-          lineWidth: 1,
-        },
-      });
-    }
-
-    currentY += regionHeight + REGION_BACKGROUND_GAP_PX;
-  });
-
-  return {
-    type: 'group',
-    silent: true,
-    children,
-  };
 };
 const zoomXAxisAroundMouse = (mousePixel, zoomIn) => {
   const { min, max } = getVisibleXAxisExtent();
@@ -1092,19 +1071,20 @@ const zoomYAxisAroundMouse = (mousePixel, zoomIn) => {
   let nextMin = anchor - nextSpan * anchorRatio;
   let nextMax = nextMin + nextSpan;
 
-  if (nextMin < 0) {
-    nextMax -= nextMin;
-    nextMin = 0;
+  const activeBounds = getActiveYAxisBounds();
+  if (nextMin < activeBounds.min) {
+    nextMax += activeBounds.min - nextMin;
+    nextMin = activeBounds.min;
   }
 
-  if (nextMax > maxY.value) {
-    const overflow = nextMax - maxY.value;
+  if (nextMax > activeBounds.max) {
+    const overflow = nextMax - activeBounds.max;
     nextMin -= overflow;
-    nextMax = maxY.value;
+    nextMax = activeBounds.max;
   }
 
-  nextMin = Math.max(0, nextMin);
-  nextMax = Math.min(maxY.value, nextMax);
+  nextMin = Math.max(activeBounds.min, nextMin);
+  nextMax = Math.min(activeBounds.max, nextMax);
 
   myChart.dispatchAction({
     type: 'dataZoom',
@@ -1119,10 +1099,7 @@ const getVisibleYAxisExtent = () => {
   const extent = yAxisModel?.axis?.scale?.getExtent?.();
 
   if (!extent) {
-    return {
-      min: 0,
-      max: maxY.value,
-    };
+    return getActiveYAxisBounds();
   }
 
   return {
@@ -1132,7 +1109,7 @@ const getVisibleYAxisExtent = () => {
 };
 
 const postMessage = (message) => {
-  server.showMessage({ paramObj: { text: message }});
+  server.showMessage({ paramObj: { text: message } });
 };
 
 const fixedTimeToX = (time) => {
@@ -1207,62 +1184,6 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   ctx.stroke();
 };
 
-const timelineWithUnit = (timelineRangeInMicroseconds, timeInMicroseconds, intervalInMicroseconds) => {
-  const seconds = timelineRangeInMicroseconds / MICROSECONDS_PER_SECOND;
-  const minutes = seconds / 60;
-  const milliseconds = timelineRangeInMicroseconds / 1000;
-
-  let divisor;
-  let unit;
-
-  if (minutes >= 1) {
-    divisor = MICROSECONDS_PER_SECOND * 60;
-    unit = 'min';
-  } else if (seconds >= 1) {
-    divisor = MICROSECONDS_PER_SECOND;
-    unit = 's';
-  } else if (milliseconds >= 1) {
-    divisor = 1000;
-    unit = 'ms';
-  } else if (timelineRangeInMicroseconds >= 1) {
-    divisor = 1;
-    unit = 'µs';
-  } else {
-    divisor = 1 / NANOSECONDS_PER_MICROSECOND;
-    unit = 'ns';
-  }
-
-  const intervalInUnit = Math.abs(intervalInMicroseconds / divisor);
-  const precision = Math.min(3, Math.max(0, Math.ceil(-Math.log10(intervalInUnit))));
-  const value = timeInMicroseconds / divisor;
-
-  return { value: (Math.abs(value) < Number.EPSILON ? 0 : value).toFixed(precision), unit };
-};
-
-const getTimelineLabelPosition = (ctx, labels, tickX, canvasWidth, lastLabelRight) => {
-  const edgePadding = 2;
-  const labelGap = 8;
-  const availableWidth = canvasWidth - edgePadding * 2;
-  const currentFont = ctx.font;
-  ctx.font = '14px Arial';
-  const labelWidth = Math.max(...labels.map((label) => ctx.measureText(label).width));
-  ctx.font = currentFont;
-
-  if (labelWidth > availableWidth) {
-    return null;
-  }
-
-  const labelX = Math.max(edgePadding, Math.min(tickX + edgePadding, canvasWidth - labelWidth - edgePadding));
-  if (labelX < lastLabelRight + labelGap) {
-    return null;
-  }
-
-  return {
-    x: labelX,
-    right: labelX + labelWidth,
-  };
-};
-
 const renderFixedTimeline = () => {
   const component = timelineComponent.value;
   if (!component || !component.fixedtimelineCtx || !component.fixedtimelineCanvas) {
@@ -1326,7 +1247,7 @@ const renderFixedTimeline = () => {
         ctx.stroke();
       }
 
-      const { value, unit } = timelineWithUnit(viewState.timeRange, time - viewState.minTime, gridInterval);
+      const { value, unit } = formatTimelineUnit(viewState.timeRange, time - viewState.minTime, gridInterval);
       ctx.fillStyle = isDarkTheme.value ? '#cccccc' : 'rgba(25, 25, 25, 1)';
       ctx.font = '14px Arial';
       if (x < startTimex || x > endTimex) {
@@ -1380,15 +1301,7 @@ const syncTimelineViewStateFromRange = (startTime, endTime, shouldRender = true)
   }
 };
 const xToTimeValue = (time) => {
-  const timeDelta = (time - viewState.minTime) * NANOSECONDS_PER_MICROSECOND;
-  const currentTime = Math.round(timeDelta);
-  let truncatedCurrentTime = currentTime;
-  if (currentTime.toString().length > 10) {
-    truncatedCurrentTime = parseInt(currentTime.toString().slice(-9));
-  }
-  let str = truncatedCurrentTime.toString().padStart(9, '0');
-  str = str.replace(/\B(?=(?:\d{3})+(?!\d))/g, ' ');
-  return str;
+  return formatTimelineTimestamp(time, viewState.minTime);
 };
 
 const renderTimeline = () => {
@@ -1420,7 +1333,7 @@ const renderTimeline = () => {
       x = 0;
     }
     if (x >= 0 && x <= viewState.canvasCssWidth) {
-      const { value, unit } = timelineWithUnit(timelineTimeRange, time - timelineState.startTime, gridInterval);
+      const { value, unit } = formatTimelineUnit(timelineTimeRange, time - timelineState.startTime, gridInterval);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       const timeValue = xToTimeValue(time);
@@ -1445,10 +1358,6 @@ const renderTimeline = () => {
 const renderTwoTimeline = () => {
   renderFixedTimeline();
   renderTimeline();
-};
-
-const isValidChartTimeRange = (startTime, endTime) => {
-  return Number.isFinite(startTime) && Number.isFinite(endTime) && startTime < endTime;
 };
 
 const applyChartXAxisRange = (startTime, endTime) => {
@@ -1530,7 +1439,38 @@ provideMemoryUsageSwimGraph({
 });
 onMounted(() => {
   window.addEventListener('resize', resizeChart);
+  window.addEventListener('keydown', handleWindowKeyDown);
+  window.addEventListener('keyup', handleWindowKeyUp);
+  window.addEventListener('mousedown', handleWindowMouseDown, true);
+  window.addEventListener('blur', clearModifierKeys);
 });
+
+const handleWindowKeyDown = (event) => {
+  if (event.key === 'Escape') {
+    closeTensorContextMenu();
+  }
+  if (event.key === 'Alt') {
+    isAltDown.value = true;
+  }
+};
+
+const handleWindowKeyUp = (event) => {
+  if (event.key === 'Alt') {
+    isAltDown.value = false;
+  }
+};
+
+const handleWindowMouseDown = (event) => {
+  isAltDown.value = Boolean(event.altKey);
+  if (!event.target?.closest?.('.tensor-context-menu')) {
+    closeTensorContextMenu();
+  }
+};
+
+const clearModifierKeys = () => {
+  isAltDown.value = false;
+  isCtrlDown.value = false;
+};
 
 const setChartCursor = (cursor) => {
   myChart?.getZr?.()?.setCursorStyle?.(cursor);
@@ -1550,6 +1490,7 @@ const detachChartWheelListener = () => {
 
 const disposeMainChart = () => {
   detachChartWheelListener();
+  tensorAddressGuide.reset();
   if (myChart) {
     myChart.dispose();
     myChart = null;
@@ -1622,7 +1563,9 @@ const initChart = (onRendered) => {
 
   attachChartWheelListener(chartDom);
   myChart.on('datazoom', (params) => {
+    closeTensorContextMenu();
     scheduleSearchOverlayUpdate();
+    tensorAddressGuide.render();
 
     if (isProgrammaticZoom) {
       return;
@@ -1672,9 +1615,14 @@ const initChart = (onRendered) => {
   });
 
   myChart.on('click', (params) => {
+    closeTensorContextMenu();
     const offsetX = Number(params.event?.offsetX);
     const offsetY = Number(params.event?.offsetY);
     if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) {
+      return;
+    }
+
+    if (findHoveredRegionData(offsetX, offsetY)) {
       return;
     }
 
@@ -1683,9 +1631,59 @@ const initChart = (onRendered) => {
       return;
     }
 
+    const nativeEvent = params.event?.event || params.event || {};
+    const isAltClick = Boolean(nativeEvent.altKey || isAltDown.value);
     const directTensor = params.seriesId === 'tensors' ? params.data?.at?.(17) : null;
+
+    if (isAltClick && directTensor) {
+      if (selectedRegionId.value !== null) {
+        handleMeasurementClick(directTensor);
+      }
+      return;
+    }
+
+    if (!isAltClick && (params.seriesId === 'tensors' || params.seriesId === 'overlaps')) {
+      clearMeasurement();
+    }
+
     const overlapBounds = params.seriesId === 'overlaps' ? params.data : null;
     dimDetails(point, directTensor, overlapBounds);
+  });
+
+  myChart.on('contextmenu', (params) => {
+    const nativeEvent = params.event?.event || params.event || {};
+    nativeEvent.preventDefault?.();
+    if (params.seriesId !== 'tensors' || selectedRegionId.value === null) {
+      closeTensorContextMenu();
+      return;
+    }
+
+    const tensor = params.data?.at?.(17);
+    const tensorIdentity = getMeasurementTensorIdentity(tensor);
+    const anchor = getActiveMemoryBlocks().find((entry) => {
+      return entry.rawObj === tensor || (tensorIdentity && getMeasurementTensorIdentity(entry.rawObj) === tensorIdentity);
+    });
+    const offsetX = Number(params.event?.offsetX);
+    const offsetY = Number(params.event?.offsetY);
+    if (!anchor || !Number.isFinite(offsetX) || !Number.isFinite(offsetY)) {
+      closeTensorContextMenu();
+      return;
+    }
+
+    const chartWidth = chartRef.value?.clientWidth || myChart.getWidth();
+    const chartHeight = chartRef.value?.clientHeight || 0;
+    tensorContextMenu.left = Math.max(4, Math.min(offsetX, chartWidth - 188));
+    tensorContextMenu.top = Math.max(4, Math.min(offsetY, chartHeight - 46));
+    tensorContextMenu.tensor = anchor;
+    tensorContextMenu.visible = true;
+  });
+
+  myChart.on('mouseover', { seriesId: 'tensors' }, (params) => {
+    tensorAddressGuide.show(params.data);
+  });
+
+  myChart.on('mouseout', { seriesId: 'tensors' }, (params) => {
+    tensorAddressGuide.clearForRow(params.data);
   });
 
   myChart.getZr().on('mousemove', (event) => {
@@ -1694,8 +1692,25 @@ const initChart = (onRendered) => {
     hoveredRegionData = regionData;
   });
 
+  myChart.getZr().on('click', (event) => {
+    if (event?.target) {
+      return;
+    }
+
+    closeTensorContextMenu();
+    clearMeasurement();
+  });
+
   myChart.getZr().on('globalout', () => {
     hoveredRegionData = null;
+    tensorAddressGuide.clear();
+  });
+
+  myChart.getZr().on('dblclick', (event) => {
+    const regionData = findHoveredRegionData(event.offsetX, event.offsetY);
+    if (regionData) {
+      enterRegionDetail(regionData);
+    }
   });
 };
 const resizeChart = () => {
@@ -1712,6 +1727,7 @@ const resizeChart = () => {
       },
     });
     myChart.resize();
+    tensorAddressGuide.render();
   }
   if (timelineComponent.value) {
     renderTwoTimeline();
@@ -1736,8 +1752,9 @@ const getDetailTensorId = (tensor, sourceIndex) => {
 
 const dimDetails = (point, directTensor = null, overlapBounds = null) => {
   const [x, y] = point.map(Number);
-  let matches = findMemoryTensorsAtPoint(memoryBlocksRaw, x, y);
-  const directEntry = directTensor ? memoryBlocksRaw.find((entry) => entry.rawObj === directTensor) : null;
+  const activeMemoryBlocks = getActiveMemoryBlocks();
+  let matches = findMemoryTensorsAtPoint(activeMemoryBlocks, x, y);
+  const directEntry = directTensor ? activeMemoryBlocks.find((entry) => entry.rawObj === directTensor) : null;
 
   if (directEntry && !matches.includes(directEntry)) {
     matches.unshift(directEntry);
@@ -1746,7 +1763,7 @@ const dimDetails = (point, directTensor = null, overlapBounds = null) => {
   if (matches.length < 2 && Array.isArray(overlapBounds)) {
     const overlapX = (Number(overlapBounds[0]) + Number(overlapBounds[2])) / 2;
     const overlapY = (Number(overlapBounds[1]) + Number(overlapBounds[3])) / 2;
-    const overlapMatches = findMemoryTensorsAtPoint(memoryBlocksRaw, overlapX, overlapY);
+    const overlapMatches = findMemoryTensorsAtPoint(activeMemoryBlocks, overlapX, overlapY);
     if (overlapMatches.length >= 2) {
       matches = overlapMatches;
     }
@@ -1775,7 +1792,11 @@ const dimDetails = (point, directTensor = null, overlapBounds = null) => {
 };
 
 const resetFilters = () => {
+  clearMeasurement();
+  tensorAddressGuide.clear();
   searchQuery.value = '';
+  debouncedSearchQuery.value = '';
+  selectedSearchIndex.value = 0;
   viewState.scale = 1;
   viewState.offsetX = 0;
   viewState.offsetY = 0;
@@ -1785,54 +1806,43 @@ const resetFilters = () => {
   viewState.scaleChange = 1;
   viewState.minWidth = 1;
   sliderValue.value = 0;
-  transform();
+  timelineState.startTime = viewState.minTime;
+  timelineState.startTimeDecimal = viewState.minTime;
+  timelineState.endTime = viewState.maxTime;
+  timelineState.endTimeDecimal = viewState.maxTime;
   if (myChart) {
     const xStart = viewState.minTime;
     const xEnd = viewState.maxTime;
-    const yStart = 0;
-    const yEnd = maxY.value;
+    const { min: yStart, max: yEnd } = getActiveYAxisBounds();
     isProgrammaticZoom = true;
-    myChart.setOption({
-      xAxis: {
-        min: xStart,
-        max: xEnd,
-      },
-      yAxis: {
-        min: yStart,
-        max: yEnd,
-      },
-      dataZoom: [
-        {
-          id: 'y-slider',
-          startValue: yStart,
-          endValue: yEnd,
-        },
-        {
-          id: 'x-inside',
-          startValue: xStart,
-          endValue: xEnd,
-        },
-        {
-          id: 'y-inside',
-          startValue: yStart,
-          endValue: yEnd,
-        },
+    myChart.clear();
+    tensorAddressGuide.reset();
+    myChart.setOption(getChartOption());
+    myChart.dispatchAction({
+      type: 'dataZoom',
+      batch: [
+        { dataZoomId: 'y-slider', startValue: yStart, endValue: yEnd },
+        { dataZoomId: 'x-inside', startValue: xStart, endValue: xEnd },
+        { dataZoomId: 'y-inside', startValue: yStart, endValue: yEnd },
       ],
-      series: [{ data: getChartData() }, { data: getOverlapData() }],
     });
-    myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 0, startValue: yStart, endValue: yEnd });
-    myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 1, startValue: xStart, endValue: xEnd });
-    myChart.dispatchAction({ type: 'dataZoom', dataZoomIndex: 2, startValue: yStart, endValue: yEnd });
     isProgrammaticZoom = false;
   }
+  renderTwoTimeline();
+  timelineComponent.value?.flagRender();
 };
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart);
+  window.removeEventListener('keydown', handleWindowKeyDown);
+  window.removeEventListener('keyup', handleWindowKeyUp);
+  window.removeEventListener('mousedown', handleWindowMouseDown, true);
+  window.removeEventListener('blur', clearModifierKeys);
   if (timer) {
     clearTimeout(timer);
     timer = null;
   }
+  clearMeasurement();
   disposeMainChart();
 });
 
@@ -1892,6 +1902,10 @@ const handleNewMemoryData = (newValue) => {
     return;
   }
   hasReceivedMemoryPayload = true;
+  selectedRegionId.value = null;
+  selectedNode.value = null;
+  tensorAddressGuide.clear();
+  clearMeasurement();
 
   let data = rawData;
   if (typeof rawData === 'string') {
