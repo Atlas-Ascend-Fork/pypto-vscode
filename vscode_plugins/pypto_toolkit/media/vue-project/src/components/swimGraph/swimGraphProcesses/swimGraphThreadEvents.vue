@@ -161,7 +161,9 @@ const {
   pathLockedWrapId,
   pathLockedHighlightStyle,
   pathLockedHighlightEvent,
-  pathLockedHighlightProcessKey
+  pathLockedHighlightProcessKey,
+  draggingSelection,
+  draggingSelectionProcessKey,
 } = swimGraphState;
 
 const {
@@ -1215,14 +1217,14 @@ const handleAltMove = (e, hoverInfo, refs) => {
   handleAltMeasureHoverBranch(e, hoveredEvent, uiCtx);
 };
 
-const scrollVerticalIfNeeded = (mouseYInContainer, containerHeight, scrollContainer, threshold, step) => {
-  if (mouseYInContainer > containerHeight - threshold) {
+const scrollVerticalIfNeeded = (mouseYInContainer, containerHeight, scrollContainer, step) => {
+  if (mouseYInContainer > containerHeight) {
     const canScrollDown = scrollContainer.scrollTop + containerHeight < scrollContainer.scrollHeight;
     if (canScrollDown) {
       scrollContainer.scrollBy({ top: step, behavior: 'auto' });
       return true;
     }
-  } else if (mouseYInContainer < threshold) {
+  } else if (mouseYInContainer < 0) {
     const canScrollUp = scrollContainer.scrollTop > 0;
     if (canScrollUp) {
       scrollContainer.scrollBy({ top: -step, behavior: 'auto' });
@@ -1244,7 +1246,7 @@ const scrollHorizontalIfNeeded = (mouseXInContainer, containerWidth, labelsWidth
   const mouseXCondition = mouseXInContainer < 0;
   const shouldHandle = mouseXInCondition || labelsCondition || mouseXCondition;
 
-  if (mouseXInContainer > containerWidth - threshold) {
+  if (mouseXInContainer > containerWidth) {
     if (viewState.offsetX > minOffset) {
       viewState.offsetX -= step;
       if (viewState.offsetX < minOffset) {
@@ -1490,8 +1492,8 @@ const updateCursorState = (e, hoveredEvent, x, y, canvasRef) => {
   canvasRef.style.cursor = taskCursor || lineCursor || dragCursor;
 };
 
-const drawSelectionBox = () => {
-  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+const drawSelectionBoxCanvas = (startLocalX, startLocalY, endLocalX, endLocalY, processKey) => {
+  const uiCanvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
   const uiCtx = uiCanvasRef.getContext('2d');
   if (!uiCtx) {
     return;
@@ -1499,13 +1501,6 @@ const drawSelectionBox = () => {
 
   uiCtx.fillStyle = 'rgba(0, 0, 0, 0)';
   uiCtx.clearRect(0, 0, uiCanvasRef.width, uiCanvasRef.height);
-
-  const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
-  const undefinedValues = [startLocalX, startLocalY, endLocalX, endLocalY];
-
-  if (undefinedValues.some(value => value === undefined)) {
-      return;
-  }
 
   const rectX = Math.min(startLocalX, endLocalX);
   const rectY = Math.min(startLocalY, endLocalY);
@@ -1524,6 +1519,34 @@ const drawSelectionBox = () => {
   uiCtx.rect(rectX, rectY, rectWidth, rectHeight);
   uiCtx.fill();
   uiCtx.stroke();
+};
+
+const drawSelectionBox = () => {
+  const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
+  const undefinedValues = [startLocalX, startLocalY, endLocalX, endLocalY];
+
+  if (undefinedValues.some(value => value === undefined)) {
+    if (props.processKey === draggingSelectionProcessKey.value) {
+      return;
+    } else {
+      if (draggingSelection.value) {
+        const {startLocalX: dragStartX, startLocalY: dragStartY, endLocalX: dragEndX, endLocalY: dragEndY} = draggingSelection.value;
+        drawSelectionBoxCanvas(dragStartX, dragStartY, dragEndX, dragEndY, draggingSelectionProcessKey.value);
+      }
+      return;
+    }
+  }
+
+  drawSelectionBoxCanvas(startLocalX, startLocalY, endLocalX, endLocalY, props.processKey);
+
+  draggingSelectionProcessKey.value = props.processKey;
+  draggingSelection.value = {
+    ...draggingSelection.value,
+    startLocalX: selection.startLocalX,
+    startLocalY: selection.startLocalY,
+    endLocalX: selection.endLocalX,
+    endLocalY: selection.endLocalY,
+  };
 };
 const drawSelectionHightlight = () => {
   const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
@@ -1904,7 +1927,7 @@ const autoScrollLoop = () => {
   const mouseYInContainer = mouseY - containerRect.top;
   const labelsWidth = layout.processLabelWidth || 0;
 
-  scrollVerticalIfNeeded(mouseYInContainer, containerHeight, scrollContainer, SCROLL_THRESHOLD, SCROLL_STEP);
+  scrollVerticalIfNeeded(mouseYInContainer, containerHeight, scrollContainer, SCROLL_STEP);
 
   scrollHorizontalIfNeeded(mouseXInContainer, containerWidth, labelsWidth, SCROLL_THRESHOLD, SCROLL_STEP);
 

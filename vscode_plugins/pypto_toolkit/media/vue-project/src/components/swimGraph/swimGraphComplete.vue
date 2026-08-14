@@ -343,6 +343,8 @@ const outPutPath = ref();
 const aicpuScheduleEventMaps = ref([]);
 const aicpuScheduleMaps = ref(new Map());
 const globalDependencyLinesInfo = ref([]);
+const draggingSelection = ref(null);
+const draggingSelectionProcessKey = ref(null);
 
 let sliderValue = ref(0);
 const sliderMax = ref(100);
@@ -3486,7 +3488,9 @@ provide('swimGraphState', {
   pathLockedWrapId,
   pathLockedHighlightStyle,
   pathLockedHighlightEvent,
-  pathLockedHighlightProcessKey
+  pathLockedHighlightProcessKey,
+  draggingSelection,
+  draggingSelectionProcessKey,
 });
 
 // 提供方法给子组件

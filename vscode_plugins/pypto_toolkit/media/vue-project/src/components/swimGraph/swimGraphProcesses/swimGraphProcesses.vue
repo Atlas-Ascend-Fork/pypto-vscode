@@ -106,7 +106,9 @@ const {
   pathLockedWrapId,
   pathLockedHighlightStyle,
   pathLockedHighlightEvent,
-  pathLockedHighlightProcessKey
+  pathLockedHighlightProcessKey,
+  draggingSelection,
+  draggingSelectionProcessKey,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -238,7 +240,9 @@ provide('swimGraphState', {
   pathLockedWrapId,
   pathLockedHighlightStyle,
   pathLockedHighlightEvent,
-  pathLockedHighlightProcessKey
+  pathLockedHighlightProcessKey,
+  draggingSelection,
+  draggingSelectionProcessKey,
 });
 
 const {
