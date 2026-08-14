@@ -1058,3 +1058,173 @@ export function buildTensorNodesObject(
         ]
     };
 }
+
+export function extractTensorMagicFromPortId(portId: string | undefined): string | undefined {
+    if (!portId) {
+        return undefined;
+    }
+    const match = portId.match(/^tensor-(\d+)/);
+    return match ? match[1] : undefined;
+}
+
+function isEdgeConnectedToEmptyOutput(edge: SEdge, emptyOutputSet: Set<string>): boolean {
+    const sourceTensorMagic = extractTensorMagicFromPortId(edge.sourceId);
+    if (sourceTensorMagic !== undefined && emptyOutputSet.has(sourceTensorMagic)) {
+        return true;
+    }
+    const targetTensorMagic = extractTensorMagicFromPortId(edge.targetId);
+    return targetTensorMagic !== undefined && emptyOutputSet.has(targetTensorMagic);
+}
+
+export function markEmptyNodeEdgesAsDashed(edges: SEdge[], emptyOutputSet: Set<string>): void {
+    for (const edge of edges) {
+        if (isEdgeConnectedToEmptyOutput(edge, emptyOutputSet)) {
+            (edge as any).cssClasses = ['dashed-edge'];
+        }
+    }
+}
+
+function isCopyOutOrAssembleOp(op: Operation): boolean {
+    return op.opcode === 'COPY_OUT' || op.opcode === 'ASSEMBLE';
+}
+
+function shouldCreateEmptyNodeForOp(op: Operation | undefined): op is Operation {
+    if (!op) {
+        return false;
+    }
+    if (!isCopyOutOrAssembleOp(op)) {
+        return false;
+    }
+    return !!(op.ooperands && Array.isArray(op.ooperands));
+}
+
+export function createEmptyNodesForSearch(
+    actualData: FunctionData,
+    nodes: SNode[],
+    edges: SEdge[],
+    showTensorNodes: boolean,
+    tensorToRawTensorMap: Map<string, string>,
+    rawTensorConsumers: Map<string, PortReference[]>,
+    pathNodesSet: Set<string>,
+    opListMap: Map<string, number>,
+    outcastUnique: Set<string>,
+    tensorNodeMap: Map<string, { nodeId: string }>,
+    emptyOutputSet: Set<string>,
+    emptyNodesList: Set<string>
+): void {
+    if (!actualData.operations || !Array.isArray(actualData.operations)) {
+        return;
+    }
+    for (const opMagic of pathNodesSet) {
+        const opIndex = opListMap.get(opMagic);
+        if (opIndex === undefined) {
+            continue;
+        }
+        const op = actualData.operations[opIndex];
+        if (!shouldCreateEmptyNodeForOp(op)) {
+            continue;
+        }
+        createEmptyNodesForSingleOp(op, nodes, edges, showTensorNodes, tensorToRawTensorMap, rawTensorConsumers,
+            outcastUnique, tensorNodeMap, emptyOutputSet, emptyNodesList);
+    }
+    markEmptyNodeEdgesAsDashed(edges, emptyOutputSet);
+}
+
+function createEdgeForEmptyNode(
+    opId: string,
+    portId: string,
+    tensorMagic: string,
+    callTargetId: string | undefined,
+    emptyOutputSet: Set<string>,
+    edges: SEdge[]
+): void {
+    const targetId = callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`;
+    edges.push({
+        type: 'edge',
+        id: `edge-${opId}-to-${tensorMagic}-empty`,
+        sourceId: portId,
+        targetId,
+        ...(!emptyOutputSet.has(tensorMagic) ? {} : { cssClasses: ['dashed-edge'] })
+    });
+}
+
+function registerEmptyNodeConsumer(
+    tensorMagic: string,
+    portId: string,
+    tensorToRawTensorMap: Map<string, string>,
+    rawTensorConsumers: Map<string, PortReference[]>,
+    emptyNodesList: Set<string>
+): void {
+    const rawTensorId = tensorToRawTensorMap.get(tensorMagic);
+    if (!rawTensorId) {
+        return;
+    }
+    const emptyNodeId = `tensor-${tensorMagic}-0`;
+    const emptyPortId = `tensor-${tensorMagic}-0-in`;
+    if (!rawTensorConsumers.has(rawTensorId)) {
+        rawTensorConsumers.set(rawTensorId, []);
+    }
+    rawTensorConsumers.get(rawTensorId)!.push({ nodeId: emptyNodeId, portId: emptyPortId });
+    emptyNodesList.add(portId);
+}
+
+function processEmptyNodeForTensor(
+    opId: string,
+    portId: string,
+    tensorMagic: string,
+    showTensorNodes: boolean,
+    tensorToRawTensorMap: Map<string, string>,
+    rawTensorConsumers: Map<string, PortReference[]>,
+    tensorNodeMap: Map<string, { nodeId: string }>,
+    emptyOutputSet: Set<string>,
+    emptyNodesList: Set<string>,
+    nodes: SNode[],
+    edges: SEdge[]
+): void {
+    let callTargetId: string | undefined;
+    if (showTensorNodes) {
+        const tensorNodeId = tensorNodeMap.get(tensorMagic)?.nodeId;
+        callTargetId = tensorNodeId ? `${tensorNodeId}-in` : undefined;
+    }
+
+    const emptyNode: AstgrNode = createEmptyNodeWithPort(
+        callTargetId ? callTargetId : `tensor-${tensorMagic}-0-in`,
+        tensorMagic
+    );
+    nodes.push(emptyNode);
+
+    if (showTensorNodes) {
+        createEdgeForEmptyNode(opId, portId, tensorMagic, callTargetId, emptyOutputSet, edges);
+    } else {
+        registerEmptyNodeConsumer(tensorMagic, portId, tensorToRawTensorMap, rawTensorConsumers, emptyNodesList);
+    }
+
+    emptyOutputSet.add(tensorMagic);
+}
+
+function createEmptyNodesForSingleOp(
+    op: Operation,
+    nodes: SNode[],
+    edges: SEdge[],
+    showTensorNodes: boolean,
+    tensorToRawTensorMap: Map<string, string>,
+    rawTensorConsumers: Map<string, PortReference[]>,
+    outcastUnique: Set<string>,
+    tensorNodeMap: Map<string, { nodeId: string }>,
+    emptyOutputSet: Set<string>,
+    emptyNodesList: Set<string>
+): void {
+    const subgraphId = op.subgraphid !== undefined ? op.subgraphid : -1;
+    const opId = `operation-magic-${op.opmagic}-${subgraphId}`;
+    const portId = `${opId}-out`;
+
+    for (const oop of [...new Set(op.ooperands)]) {
+        const tensorMagic = String(oop);
+        if (outcastUnique.has(tensorMagic)) {
+            continue;
+        }
+        processEmptyNodeForTensor(opId, portId, tensorMagic, showTensorNodes, tensorToRawTensorMap,
+            rawTensorConsumers, tensorNodeMap, emptyOutputSet, emptyNodesList, nodes, edges);
+        outcastUnique.add(tensorMagic);
+    }
+}

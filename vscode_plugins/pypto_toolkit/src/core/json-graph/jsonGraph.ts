@@ -16,7 +16,7 @@ import { getSemanticColor } from '../../process';
 import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP, 
     ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, Operation, OpReference, PortReference, 
     RawTensor, SemanticLab, Tensor } from './jsonGraph.types';
-import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp, findIncastIndex, findOutcastIndex, removeEmptyNodesForTensor, buildTensorMetadataCompartment, createEmptyNodeWithPort, createTokenNode, getCastNodeState, buildCastMetadataCompartment, buildMetaLabels, buildCallLabels, getCodePath, getCodeLine, extractNestedData, createSyncControlFlowEdges, buildTensorNodeObject, buildTensorNodesObject } from './utils';
+import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp, findIncastIndex, findOutcastIndex, removeEmptyNodesForTensor, buildTensorMetadataCompartment, createEmptyNodeWithPort, createTokenNode, getCastNodeState, buildCastMetadataCompartment, buildMetaLabels, buildCallLabels, getCodePath, getCodeLine, extractNestedData, createSyncControlFlowEdges, buildTensorNodeObject, buildTensorNodesObject, createEmptyNodesForSearch } from './utils';
 
 declare const vscode: any;
 /**
@@ -154,6 +154,8 @@ export class AscppDagBuilder {
                 magicToTensorMap, tensorMap, inoutMap, showTensorNodes, threeMode, errNodeList, searchLevel, wrongRawMagicList);
         }
         this.server.setRef('PathNodesSet', { data: Array.from(this.pathNodesSet) });
+        createEmptyNodesForSearch(actualData, nodes, edges, showTensorNodes, tensorToRawTensorMap, rawTensorConsumers,
+            this.pathNodesSet, this.opListMap, this.outcastUnique, this.tensorNodeMap, this.emptyOutputSet, this.emptyNodesList);
     }
 
     public createGraphFullNodes(actualData: FunctionData,
