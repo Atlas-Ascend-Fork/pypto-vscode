@@ -390,7 +390,7 @@ const viewState = reactive({
   minWidth: 1,
 });
 
-const SINGLE_REGION_LABEL_AREA_WIDTH = 180;
+const SINGLE_REGION_LABEL_AREA_WIDTH = 160;
 const MULTI_REGION_LABEL_AREA_WIDTH = 155;
 
 const layout = reactive({
@@ -563,7 +563,7 @@ const closeTensorContextMenu = () => {
 const activateAdjacentMeasurement = () => {
   const anchor = tensorContextMenu.tensor;
   closeTensorContextMenu();
-  if (!anchor || selectedRegionId.value === null) {
+  if (!anchor) {
     return;
   }
 
@@ -1653,7 +1653,7 @@ const initChart = (onRendered) => {
   myChart.on('contextmenu', (params) => {
     const nativeEvent = params.event?.event || params.event || {};
     nativeEvent.preventDefault?.();
-    if (params.seriesId !== 'tensors' || selectedRegionId.value === null) {
+    if (params.seriesId !== 'tensors') {
       closeTensorContextMenu();
       return;
     }

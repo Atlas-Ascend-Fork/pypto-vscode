@@ -497,6 +497,9 @@ const model = computed(() => buildChartModel(activeNode.value, writesOnly.value)
 const viewMode = ref('chart');
 const selectedAccessKey = ref('');
 const activeAccesses = computed(() => activeTensorEntry.value?.rawTensor?.accesses || []);
+const selectedAccess = computed(() => {
+  return activeAccesses.value.find((_, index) => selectedAccessKey.value === `${activeTensorId.value}|${index}`);
+});
 const sidebarHeaderRef = ref(null);
 const tabsViewportRef = ref(null);
 const previewTensorEntry = ref(null);
@@ -510,6 +513,7 @@ const GRID_LEFT = 110;
 const GRID_RIGHT = 30;
 const SLIDER_TOP_OFFSET = 78;
 const SLIDER_HEIGHT = 20;
+const DATA_ZOOM_THROTTLE_MS = 16;
 const CARD_LINE = 56 / 3;
 const CARD_FONT = 12;
 const CARD_PAD_L = 10;
@@ -717,8 +721,13 @@ function renderItem(params, api) {
   }
 
   const isWrite = api.value(8) === 1 || api.value(8) === true;
-  const selectedAccess = activeAccesses.value.find((_, index) => selectedAccessKey.value === `${activeTensorId.value}|${index}`);
-  const isSelected = selectedAccess && api.value(5) === selectedAccess.seqNo && api.value(6) === selectedAccess.funcId && api.value(7) === selectedAccess.opIdx;
+  const activeSelection = selectedAccess.value;
+  let isSelected = false;
+  if (activeSelection) {
+    const hasSameSequence = api.value(5) === activeSelection.seqNo;
+    const hasSameOperation = api.value(6) === activeSelection.funcId && api.value(7) === activeSelection.opIdx;
+    isSelected = hasSameSequence && hasSameOperation;
+  }
   let baseFill;
     if (isWrite) {
       baseFill = isDarkTheme.value ? 'rgba(63,100,174,0.8)' : 'rgba(30,64,175,0.8)';
@@ -999,6 +1008,7 @@ function getChartOption() {
           filterMode: 'none',
           start: range.start,
           end: range.end,
+          throttle: DATA_ZOOM_THROTTLE_MS,
           left: GRID_LEFT,
           right: GRID_RIGHT,
           top: gridTop(i) - SLIDER_TOP_OFFSET,
@@ -1009,7 +1019,7 @@ function getChartOption() {
           borderColor: isDarkTheme.value ? '#3d3d3d' : '#c8c8c8',
           backgroundColor: isDarkTheme.value ? '#242424' : '#eeeeee',
           fillerColor: isDarkTheme.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
-          handleSize: '60%',
+          handleSize: '80%',
           handleStyle: {
             color: isDarkTheme.value ? '#ffffff' : '#191919',
             borderColor: isDarkTheme.value ? '#ffffff' : '#191919',
@@ -1026,9 +1036,11 @@ function getChartOption() {
           filterMode: 'none',
           start: range.start,
           end: range.end,
-          zoomOnMouseWheel: false,
+          throttle: DATA_ZOOM_THROTTLE_MS,
+          zoomOnMouseWheel: 'ctrl',
           moveOnMouseWheel: false,
-          moveOnMouseMove: false,
+          moveOnMouseMove: true,
+          preventDefaultMouseMove: true,
         },
       ];
     }),
@@ -1039,7 +1051,58 @@ function getChartOption() {
 
 let resizeObserver = null;
 let zoomRefreshRaf = null;
-let syncingZoom = false;
+let chartWheelDom = null;
+let chartWheelHandler = null;
+let chartMouseDownHandler = null;
+let windowMouseUpHandler = null;
+let isChartPointerDown = false;
+let hasPendingZoomRefresh = false;
+
+function detachChartWheelListener() {
+  if (chartWheelDom && chartWheelHandler) {
+    chartWheelDom.removeEventListener('wheel', chartWheelHandler, true);
+  }
+  if (chartWheelDom && chartMouseDownHandler) {
+    chartWheelDom.removeEventListener('mousedown', chartMouseDownHandler, true);
+  }
+  if (windowMouseUpHandler) {
+    window.removeEventListener('mouseup', windowMouseUpHandler, true);
+    window.removeEventListener('blur', windowMouseUpHandler);
+  }
+  chartWheelDom = null;
+  chartWheelHandler = null;
+  chartMouseDownHandler = null;
+  windowMouseUpHandler = null;
+  isChartPointerDown = false;
+  hasPendingZoomRefresh = false;
+}
+
+function attachChartWheelListener(chartDom) {
+  detachChartWheelListener();
+  chartWheelHandler = (event) => {
+    if (event.ctrlKey) {
+      event.preventDefault();
+    }
+  };
+  chartMouseDownHandler = () => {
+    isChartPointerDown = true;
+  };
+  windowMouseUpHandler = () => {
+    if (!isChartPointerDown) {
+      return;
+    }
+    isChartPointerDown = false;
+    if (hasPendingZoomRefresh) {
+      hasPendingZoomRefresh = false;
+      scheduleZoomRefresh();
+    }
+  };
+  chartWheelDom = chartDom;
+  chartDom.addEventListener('wheel', chartWheelHandler, { passive: false, capture: true });
+  chartDom.addEventListener('mousedown', chartMouseDownHandler, true);
+  window.addEventListener('mouseup', windowMouseUpHandler, true);
+  window.addEventListener('blur', windowMouseUpHandler);
+}
 
 function clampZoomRange(start, end) {
   const size = ZOOM_MAX;
@@ -1057,13 +1120,13 @@ function clampZoomRange(start, end) {
   return { start: nextStart, end: nextEnd };
 }
 
-function dispatchDimensionZoom(dimension, start, end) {
-  myChart?.dispatchAction({
-    type: 'dataZoom',
-    batch: [
-      { dataZoomId: `detail-x-slider-${dimension}`, start, end },
-      { dataZoomId: `detail-x-inside-${dimension}`, start, end },
-    ],
+function scheduleZoomRefresh() {
+  if (zoomRefreshRaf) {
+    return;
+  }
+  zoomRefreshRaf = requestAnimationFrame(() => {
+    zoomRefreshRaf = null;
+    rebuildCharts();
   });
 }
 
@@ -1075,26 +1138,14 @@ function updateZoomRange(dimension, start, end) {
   }
 
   zoomRanges.value[dimension] = nextRange;
-  syncingZoom = true;
-  try {
-    dispatchDimensionZoom(dimension, nextRange.start, nextRange.end);
-  } finally {
-    syncingZoom = false;
-  }
-
-  if (!zoomRefreshRaf) {
-    zoomRefreshRaf = requestAnimationFrame(() => {
-      zoomRefreshRaf = null;
-      rebuildCharts();
-    });
+  if (isChartPointerDown) {
+    hasPendingZoomRefresh = true;
+  } else {
+    scheduleZoomRefresh();
   }
 }
 
 function handleDataZoom(event) {
-  if (syncingZoom) {
-    return;
-  }
-
   const payload =
     event?.batch?.find((entry) => /^detail-x-(?:slider|inside)-\d+$/.test(entry.dataZoomId)) || event?.batch?.[0] || event || {};
   const dimension = Number(String(payload.dataZoomId || '').match(/\d+$/)?.[0]);
@@ -1123,6 +1174,7 @@ function initCharts() {
     myChart = null;
   }
   myChart = echarts.init(chartRef.value);
+  attachChartWheelListener(chartRef.value);
   myChart.setOption(getChartOption());
   myChart.on('datazoom', handleDataZoom);
 
@@ -1133,6 +1185,7 @@ function initCharts() {
 }
 
 function disposeChart() {
+  detachChartWheelListener();
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;

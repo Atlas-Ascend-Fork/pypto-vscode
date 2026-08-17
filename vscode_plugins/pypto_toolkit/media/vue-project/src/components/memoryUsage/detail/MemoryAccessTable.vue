@@ -26,7 +26,20 @@
             <th>SHAPE</th>
             <th>RAWSHAPE</th>
             <th>HASOVERLAP</th>
-            <th>EXECSTART</th>
+            <th :aria-sort="sortDirection === 'asc' ? 'ascending' : 'descending'">
+              <button
+                type="button"
+                class="access-sort-button"
+                :aria-label="sortDirection === 'asc' ? 'Sort EXECSTART descending' : 'Sort EXECSTART ascending'"
+                @click="toggleExecStartSort"
+              >
+                <span>EXECSTART</span>
+                <svg viewBox="0 0 12 12" aria-hidden="true">
+                  <path v-if="sortDirection === 'asc'" d="m2.5 7.5 3.5-3 3.5 3" />
+                  <path v-else d="m2.5 4.5 3.5 3 3.5-3" />
+                </svg>
+              </button>
+            </th>
             <th>EXECEND</th>
           </tr>
         </thead>
@@ -89,6 +102,7 @@ const { isDarkTheme } = inject('root', { isDarkTheme: ref(true) });
 const search = ref('');
 const page = ref(1);
 const pageSize = ref(20);
+const sortDirection = ref('asc');
 
 function formatCell(value) {
   return value === undefined || value === null || value === '' ? '-' : String(value);
@@ -102,15 +116,39 @@ function formatBoolean(value) {
   return typeof value === 'boolean' ? String(value) : '-';
 }
 
+function getExecStartValue(access) {
+  if (access?.execStart === undefined || access?.execStart === null || access?.execStart === '') {
+    return null;
+  }
+  const value = Number(access.execStart);
+  return Number.isFinite(value) ? value : null;
+}
+
+function compareByExecStart(left, right) {
+  const leftValue = getExecStartValue(left.access);
+  const rightValue = getExecStartValue(right.access);
+  if (leftValue === null || rightValue === null) {
+    if (leftValue === rightValue) {
+      return left.index - right.index;
+    }
+    return leftValue === null ? 1 : -1;
+  }
+  const direction = sortDirection.value === 'asc' ? 1 : -1;
+  return (leftValue - rightValue) * direction || left.index - right.index;
+}
+
+function toggleExecStartSort() {
+  sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+}
+
 const rows = computed(() => {
   const query = search.value.trim().toLowerCase();
   return props.accesses
-    .map((access, index) => ({ access, key: `${props.tensorId}|${index}` }))
+    .map((access, index) => ({ access, index, key: `${props.tensorId}|${index}` }))
     .filter(({ access }) => !props.writesOnly || access?.isWrite)
-    .filter(({ access }) => !query || [
-      access?.isWrite ? 'w' : 'r', access?.seqNo, access?.funcId, access?.opIdx, formatArray(access?.offset), formatArray(access?.shape),
-      formatArray(access?.rawShape), formatBoolean(access?.hasOverlap), access?.execStart, access?.execEnd,
-    ].some((value) => String(value).toLowerCase().includes(query)));
+    .filter(({ access }) => !query || [ access?.funcId, access?.opIdx,
+    ].some((value) => String(value).toLowerCase().includes(query)))
+    .sort(compareByExecStart);
 });
 const pageCount = computed(() => Math.max(1, Math.ceil(rows.value.length / pageSize.value)));
 const pagedRows = computed(() => {

@@ -395,7 +395,7 @@ export function getDataZoomConfig(isDarkTheme) {
       yAxisIndex: [0],
       filterMode: 'weakFilter',
       left: 15,
-      width: 80,
+      width: 50,
       top: 20,
       bottom: 25,
       backgroundColor: 'transparent',

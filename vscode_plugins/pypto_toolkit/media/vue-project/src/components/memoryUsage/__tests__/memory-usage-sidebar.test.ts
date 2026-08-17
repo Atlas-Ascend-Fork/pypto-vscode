@@ -12,6 +12,7 @@ import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import MemoryUsageSidebar from '../memoryUsageSidebar.vue';
+import MemoryAccessTable from '../detail/MemoryAccessTable.vue';
 import { createMemoryUnitFixture } from './memory-unit-fixture';
 
 const chartState = vi.hoisted(() => ({
@@ -230,8 +231,10 @@ describe('memoryUsageSidebar access filter', () => {
   });
 
   it('switches between the chart and searchable access table', async () => {
+    const selectedNode = createSelectedNode();
+    selectedNode.tensors[0].rawTensor.accesses[1].funcId = 'read-func';
     const wrapper = mount(MemoryUsageSidebar, {
-      props: { selectedNode: createSelectedNode() },
+      props: { selectedNode },
       global: {
         config: {
           globalProperties: {
@@ -262,7 +265,7 @@ describe('memoryUsageSidebar access filter', () => {
     await nextTick();
     expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(2);
 
-    await wrapper.get('[aria-label="Search accesses"]').setValue('read-access');
+    await wrapper.get('[aria-label="Search accesses"]').setValue('read-func');
     await nextTick();
     expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(1);
     expect(wrapper.get('.access-table tbody tr').text()).toContain('R');
@@ -271,8 +274,49 @@ describe('memoryUsageSidebar access filter', () => {
     expect(wrapper.get('.access-table tbody tr').classes()).toContain('selected');
 
     await wrapper.get('[aria-label="Chart view"]').trigger('click');
+    await nextTick();
     expect(wrapper.get('[aria-label="Chart view"]').attributes('aria-pressed')).toBe('true');
     expect(wrapper.get('.memory-lane-chart').isVisible()).toBe(true);
+    const selectedRenderer = chartState.options.at(-1).series[0].renderItem;
+    const selectedGraphic = selectedRenderer(
+      { coordSys: { x: 0, y: 0, width: 400, height: 200 }},
+      {
+        value: (index: number) => [0, 0, 1, 0, 1, 'read-access', 'read-func', 1, false, 0][index],
+        coord: ([x, y]: number[]) => [x, y],
+      },
+    );
+    expect(selectedGraphic.children[0].style).toMatchObject({ stroke: '#ffffff', lineWidth: 3 });
+
+    wrapper.unmount();
+  });
+
+  it('sorts access rows by EXECSTART ascending by default and toggles descending', async () => {
+    const globalProperties = { $t: () => 'Search...' };
+    const root = { isDarkTheme: ref(true) };
+    const wrapper = mount(MemoryAccessTable, {
+      props: {
+        accesses: [
+          { isWrite: true, execStart: 150, execEnd: 160 },
+          { isWrite: false, execStart: 100, execEnd: 110 },
+        ],
+        selectedKey: '',
+        tensorId: 'tensor-a',
+        writesOnly: false,
+      },
+      global: {
+        config: { globalProperties },
+        provide: { root },
+      },
+    });
+
+    const execStartCells = () => wrapper.findAll('.access-table tbody tr').map((row) => row.findAll('td')[7].text());
+    const sortButton = wrapper.get('[aria-label="Sort EXECSTART descending"]');
+    expect(sortButton.element.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(execStartCells()).toEqual(['100', '150']);
+
+    await sortButton.trigger('click');
+    expect(wrapper.get('[aria-label="Sort EXECSTART ascending"]').element.closest('th')?.getAttribute('aria-sort')).toBe('descending');
+    expect(execStartCells()).toEqual(['150', '100']);
 
     wrapper.unmount();
   });
@@ -321,10 +365,12 @@ describe('memoryUsageSidebar access filter', () => {
     const initialOption = chartState.instances[0].options.at(-1);
     expect(initialOption.dataZoom).toHaveLength(4);
     expect(initialOption.dataZoom[0]).toMatchObject({
-      id: 'detail-x-slider-0', type: 'slider', show: true, xAxisIndex: 0, filterMode: 'none', start: 0, end: 100,
+      id: 'detail-x-slider-0', type: 'slider', show: true, xAxisIndex: 0, filterMode: 'none', start: 0, end: 100, height: 20,
+      throttle: 16,
     });
     expect(initialOption.dataZoom[1]).toMatchObject({
       id: 'detail-x-inside-0', type: 'inside', xAxisIndex: 0, filterMode: 'none', start: 0, end: 100,
+      throttle: 16, zoomOnMouseWheel: 'ctrl', moveOnMouseWheel: false, moveOnMouseMove: true, preventDefaultMouseMove: true,
     });
     expect(initialOption.dataZoom[2]).toMatchObject({ id: 'detail-x-slider-1', xAxisIndex: 1 });
     expect(initialOption.dataZoom[3]).toMatchObject({ id: 'detail-x-inside-1', xAxisIndex: 1 });
@@ -353,11 +399,18 @@ describe('memoryUsageSidebar access filter', () => {
     expect(fullRulerLabels).toHaveLength(16);
     expect(fullRulerLabels.at(-1)).toBe('1');
 
+    const chartElement = wrapper.get('.memory-lane-chart').element;
+    const optionCountBeforeDrag = chartState.instances[0].options.length;
+    chartElement.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     chartState.instances[0].eventHandlers.datazoom({
-      batch: [{ dataZoomId: 'detail-x-slider-1', start: 25, end: 75 }],
+      batch: [{ dataZoomId: 'detail-x-inside-1', start: 25, end: 75 }],
     });
-    const zoomAction = chartState.instances[0].dispatchActions.at(-1);
-    expect(zoomAction.batch.map((entry: any) => entry.dataZoomId)).toEqual(['detail-x-slider-1', 'detail-x-inside-1']);
+    expect(chartState.instances[0].dispatchActions).toHaveLength(0);
+    expect(chartState.instances[0].options).toHaveLength(optionCountBeforeDrag);
+
+    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(chartState.instances[0].options.at(-1).dataZoom[2]).toMatchObject({ start: 25, end: 75 });
 
     await wrapper.get('.access-switch-stub').trigger('click');
     await nextTick();
@@ -383,8 +436,20 @@ describe('memoryUsageSidebar access filter', () => {
     expect(chartState.initCount).toBe(1);
     expect(chartState.disposeCount).toBe(0);
 
+    const regularWheel = new WheelEvent('wheel', { cancelable: true });
+    chartElement.dispatchEvent(regularWheel);
+    expect(regularWheel.defaultPrevented).toBe(false);
+
+    const ctrlWheel = new WheelEvent('wheel', { cancelable: true, ctrlKey: true });
+    chartElement.dispatchEvent(ctrlWheel);
+    expect(ctrlWheel.defaultPrevented).toBe(true);
+
     wrapper.unmount();
     expect(chartState.disposeCount).toBe(1);
+
+    const wheelAfterUnmount = new WheelEvent('wheel', { cancelable: true, ctrlKey: true });
+    chartElement.dispatchEvent(wheelAfterUnmount);
+    expect(wheelAfterUnmount.defaultPrevented).toBe(false);
   });
 
   it('keeps dimension ruler ticks distinct at minimum zoom', async () => {

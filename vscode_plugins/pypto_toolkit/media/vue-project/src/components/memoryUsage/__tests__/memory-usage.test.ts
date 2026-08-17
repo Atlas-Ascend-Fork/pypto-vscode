@@ -369,6 +369,16 @@ describe('memoryUsage happy path', () => {
         size: 100,
         rawmagic: 'magic-beta',
       },
+      {
+        ...data.rawTensors[1],
+        rawId: 'tensor-e',
+        instanceId: 'instance-e',
+        base: 3200,
+        end: 3300,
+        size: 100,
+        regionId: 1,
+        rawmagic: 'magic-beta',
+      },
     ];
     testState.server.GmMemoryVisualData = ref(data);
     const wrapper = mountMemoryUsage();
@@ -384,7 +394,23 @@ describe('memoryUsage happy path', () => {
       event: { event: { preventDefault }, offsetX: 300, offsetY: 200 },
     });
     await nextTick();
-    expect(wrapper.find('.tensor-context-menu').exists()).toBe(false);
+    expect(wrapper.get('.tensor-context-menu').attributes('role')).toBe('menu');
+    await wrapper.get('.tensor-context-menu-item').trigger('click');
+    await nextTick();
+    expect(wrapper.get('.memory-measurement-status').text()).toBe('Addr: 100');
+
+    const overviewSameMagicTensor = initialOption.series[0].data[4];
+    const overviewSameMagicGraphic = initialOption.series[0].renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      { coord: (value: number[]) => value.map((entry) => entry * 100), value: (index: number) => overviewSameMagicTensor[index] },
+    );
+    expect(overviewSameMagicGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: '#ffffff', opacity: 0.9 }) }),
+    ]));
+
+    testState.zrHandlers.get('click')?.({});
+    await nextTick();
+    expect(wrapper.find('.memory-measurement-status').exists()).toBe(false);
 
     enterRegionDetail(initialOption);
     await nextTick();
