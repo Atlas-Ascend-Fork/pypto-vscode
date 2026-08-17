@@ -1,0 +1,281 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
+
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
+
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+
+# See LICENSE in the root of the software repository for the full text of the License.
+
+# -----------------------------------------------------------------------------------------------------------
+
+"@pypto/data-compress":
+  version: v0.0.8
+  type: run
+
+"@pypto/native-layout":
+  version: v0.0.1
+  type: run
+
+"@antv/g6":
+  version: v5.1.1
+  type: run
+
+"@devui-design/icons":
+  version: v1.4.0
+  type: run
+
+"@material/material-color-utilities":
+  version: v0.3.0
+  type: run
+
+"@monaco-editor/loader":
+  version: v1.7.0
+  type: run
+
+"@types/vscode":
+  version: v1.125.0
+  type: run
+
+"@vue-flow/core":
+  version: v1.48.2
+  type: run
+
+bignumber.js:
+  version: v9.3.1
+  type: run
+
+core-js:
+  version: v3.50.0
+  type: run
+
+csv-parse:
+  version: v6.2.1
+  type: run
+
+dayjs:
+  version: v1.11.21
+  type: run
+
+decimal.js:
+  version: v10.6.0
+  type: run
+
+devui-theme:
+  version: v0.1.0
+  type: run
+
+diff:
+  version: v8.0.4
+  type: run
+
+elkjs:
+  version: v0.8.2
+  type: run
+
+i18next:
+  version: v22.5.1
+  type: run
+
+inversify:
+  version: v6.2.2
+  type: run
+
+JSONStream:
+  version: v1.3.5
+  type: run
+
+lodash:
+  version: v4.18.1
+  type: run
+
+lodash-es:
+  version: v4.17.21
+  type: run
+
+monaco-editor:
+  version: v0.52.2
+  type: run
+
+reflect-metadata:
+  version: v0.2.2
+  type: run
+
+sprotty:
+  version: v1.4.0
+  type: run
+
+sprotty-elk:
+  version: v1.4.0
+  type: run
+
+sprotty-protocol:
+  version: v1.4.0
+  type: run
+
+sql.js:
+  version: v1.14.1
+  type: run
+
+stream-chain:
+  version: v2.2.5
+  type: run
+
+stream-json:
+  version: v1.9.1
+  type: run
+
+typescript:
+  version: v5.9.3
+  type: run
+
+vue:
+  version: v3.5.21
+  type: run
+
+vue-devui:
+  version: v1.6.37-alpha.2
+  type: run
+
+vue-i18n:
+  version: v11.1.10
+  type: run
+
+"@commitlint/cli":
+  version: v11.0.0
+  type: build
+
+"@commitlint/config-conventional":
+  version: v11.0.0
+  type: build
+
+"@tsconfig/node20":
+  version: v20.1.9
+  type: build
+
+"@types/lodash":
+  version: v4.17.25
+  type: build
+
+"@types/mocha":
+  version: v10.0.10
+  type: build
+
+"@types/node":
+  version: v18.19.130
+  type: build
+
+"@types/sql.js":
+  version: v1.4.11
+  type: build
+
+"@types/vscode-webview":
+  version: v1.57.5
+  type: build
+
+"@typescript-eslint/eslint-plugin":
+  version: v7.18.0
+  type: build
+
+"@typescript-eslint/parser":
+  version: v7.18.0
+  type: build
+
+"@vitejs/plugin-vue":
+  version: v6.0.8
+  type: build
+
+"@vue/eslint-config-typescript":
+  version: v13.0.0
+  type: build
+
+"@vue/tsconfig":
+  version: v0.5.1
+  type: build
+
+concurrently:
+  version: v9.2.4
+  type: build
+
+eslint:
+  version: v8.57.1
+  type: build
+
+eslint-plugin-vue:
+  version: v9.33.0
+  type: build
+
+esbuild:
+  version: v0.28.2
+  type: build
+
+fs-extra:
+  version: v11.4.0
+  type: build
+
+glob:
+  version: v7.2.3
+  type: build
+
+husky:
+  version: v4.3.8
+  type: build
+
+less:
+  version: v4.8.1
+  type: build
+
+npm-run-all2:
+  version: v6.2.6
+  type: build
+
+sass:
+  version: v1.102.0
+  type: build
+
+unplugin-vue-components:
+  version: v29.2.0
+  type: build
+
+vite:
+  version: v8.1.5
+  type: build
+
+vue-eslint-parser:
+  version: v9.4.3
+  type: build
+
+vue-tsc:
+  version: v2.2.12
+  type: build
+
+"@playwright/test":
+  version: v1.61.1
+  type: test
+
+"@vscode/test-cli":
+  version: v0.0.15
+  type: test
+
+"@vscode/test-electron":
+  version: v3.0.0
+  type: test
+
+"@vue/test-utils":
+  version: v2.4.11
+  type: test
+
+jsdom:
+  version: v29.1.1
+  type: test
+
+mocha:
+  version: v7.2.0
+  type: test
+
+vitest:
+  version: v4.1.10
+  type: test

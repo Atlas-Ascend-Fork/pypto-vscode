@@ -1,97 +1,81 @@
-# PyPTO Toolkit
+## 贡献指南
+
+本项目欢迎广大开发者体验并参与贡献。在参与社区贡献之前，请参见[cann-community](https://gitcode.com/cann/community)了解行为准则，进行CLA协议签署，了解源码仓的贡献流程。
+
+开发者准备本地代码与提交PR时需要重点关注如下几点：
+
+1. 提交PR时，请按照PR模板仔细填写本次PR的业务背景、目的、方案等信息。
+2. 若您的修改不是简单的bug修复，而是涉及到新增特性、新增接口、新增配置参数或者修改代码流程等，请务必先通过Issue进行方案讨论，以避免您的代码被拒绝合入。若您不确定本次修改是否可被归为"简单的bug修复"，亦可通过提交Issue进行方案讨论。
+
+开发者贡献场景主要包括：
+
+- **Bug修复**：如果您在本项目中发现了某些Bug，希望对其进行修复，欢迎您新建Issue进行反馈和跟踪处理。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Bug-Report|缺陷反馈` 类Issue对Bug进行描述，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行处理。
+- **代码优化**：如果您对本项目中某些功能实现有泛化性增强/性能优化思路，希望着手实现这些优化点，欢迎您进行优化贡献。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Requirement|需求建议` 类Issue对优化点进行说明，并提供您的设计方案，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行跟踪优化。
+- **文档纠错**：如果您在本项目中发现某些文档描述错误，欢迎您新建Issue进行反馈和修复。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Documentation|文档反馈` 类Issue指出对应文档的问题，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您纠正对应文档描述。
+- **帮助解决他人Issue**：如果社区中他人遇到的问题您有合适的解决方法，欢迎您在Issue中发表评论交流，帮助他人解决问题和痛点，共同优化易用性。如果对应Issue需要进行代码修改，您可以在Issue评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您，跟踪协助解决问题。
+
+---
+
+## 代码规范与提交检查
+
+### Commit Message 规范
+
+本项目使用 [commitlint](https://commitlint.js.org/) + [husky](https://typicode.github.io/husky/) 在提交时自动校验 Commit Message 格式。开发者在提交代码前**必须**遵循以下规范。
+
+允许的 type 类型：
+
+| type | 说明 |
+| --- | --- |
+| feat | 新特性 |
+| fix | Bug修复 |
+| docs | 文档变更 |
+| style | 代码格式（不影响功能） |
+| refactor | 重构（既不是新增特性也不是修复Bug） |
+| perf | 性能优化 |
+| test | 测试相关 |
+| build | 构建系统或外部依赖变更 |
+| release | 发布相关 |
+| chore | 其他杂项 |
+| revert | 回退提交 |
+
+格式：`type(scope): subject`
+
+约束：
+- type 和 subject 不能为空
+- header 最大长度 88 字符
+
+示例：
+
+```
+feat(graph): 支持计算图节点搜索高亮
+fix(swimlane): 修复泳道图导出时节点丢失问题
+docs(readme): 更新安装说明
+```
+
+### ESLint 代码检查
+
+本项目使用 ESLint 进行代码风格检查，覆盖后端（TypeScript 扩展宿主）和前端（Vue Webview）两部分。
+
+```bash
+# 后端代码检查（在 vscode_plugins/pypto_toolkit 目录下）
+npm run lint:check        # 仅检查
+npm run lint              # 检查并自动修复
+
+# 前端代码检查（在 media/vue-project 目录下）
+npm run lint:check        # 仅检查，0 warning 容忍
+npm run lint              # 检查并自动修复
+
+# 类型检查
+npm run check             # 后端 + 前端类型检查
+```
+
+---
 
 ## 调试启动
 
 1. 安装外层依赖：`cd vscode_plugins/pypto_toolkit && npm install`；
 2. 安装 vue-project 依赖：`cd media/vue-project && npm install`；
 3. 用 VSCode 打开 `vscode_plugins/pypto_toolkit` 目录，按 F5 启动调试（选择 `Run Extension` 配置），将自动执行 `npm run watch` 编译并启动扩展开发宿主；
-
-## 项目结构
-
-```
-pypto-tools-pkg/                      # 仓库根目录
-├── vscode_plugins/
-│   └── pypto_toolkit/                # VSCode 扩展主模块
-│       ├── .vscode/
-│       │   └── launch.json           # 调试配置（Run Extension，preLaunchTask 为 npm: watch）
-│       ├── media/                    # webview 前端资源
-│       │   ├── images/               # 图标等静态图片
-│       │   └── vue-project/          # Vue3 前端工程
-│       │       ├── vite.config.ts
-│       │       └── src/
-│       │           ├── App.vue       # webview 入口，获取 vscode 数据及事件并分发给不同图形
-│       │           ├── main.ts
-│       │           ├── apis/         # 前端请求封装
-│       │           ├── components/   # 图形组件及子组件
-│       │           │   ├── comGraph/         # 计算图
-│       │           │   ├── swimGraph/        # 泳道图（含 header / timeline / processes / detail 等子组件）
-│       │           │   ├── controlFlowGraph/ # 控制流图
-│       │           │   ├── diffComGraph/     # 计算图差异对比
-│       │           │   ├── threeColumn/      # 三栏联动
-│       │           │   ├── sideBar/          # 侧边栏
-│       │           │   ├── welcome/          # 欢迎引导
-│       │           │   ├── opCheck/          # 算子校验
-│       │           │   ├── runConfig/        # 运行配置
-│       │           │   ├── exportModal/      # 导出弹窗
-│       │           │   ├── navbar/           # 顶部导航
-│       │           │   ├── ui/               # 通用 UI 组件
-│       │           │   ├── icons/            # 图标组件
-│       │           │   └── util/             # 组件公共方法
-│       │           ├── core/         # 前端请求实例（request.ts）
-│       │           ├── sprotty-graph/ # 计算图布局及渲染，依赖 sprotty 和 elkjs
-│       │           │   ├── di.config.ts     # 依赖注入配置（自定义节点、布局函数）
-│       │           │   ├── jsonGraph.ts     # 原始 json 数据 → 图形数据
-│       │           │   └── main.ts          # 布局算法入口，导出初始化/定位/更新等函数
-│       │           ├── hooks/        # 组合式函数
-│       │           ├── i18n/         # 前端国际化（en / zh / index）
-│       │           ├── theme/        # 主题
-│       │           ├── service/      # 前端业务服务
-│       │           ├── utils/        # 前端工具方法
-│       │           └── static-assets/ # 静态资源（logo.svg 等）
-│       ├── scripts/                  # 构建脚本（clean-output / copy-wasm / check-env）
-│       ├── src/                      # 插件后端（TypeScript）
-│       │   ├── extension.ts          # 插件入口文件
-│       │   ├── command/              # 命令注册、事件监听
-│       │   │   └── registerCommand.ts
-│       │   ├── view/                 # 视图层
-│       │   │   ├── index.ts          # 视图入口（初始化和打开指定视图）
-│       │   │   ├── routes.ts         # 视图路由
-│       │   │   ├── graphView.ts      # 计算图后端
-│       │   │   ├── swimGraphView.ts  # 泳道图后端
-│       │   │   ├── threeColumnEntry.ts        # 三栏联动入口
-│       │   │   ├── SidebarViewProvider.ts     # 侧边栏 webview
-│       │   │   └── pyptoJitCodeLensProvider.ts # CodeLens 提供者
-│       │   ├── core/                 # 插件端核心功能
-│       │   │   ├── connector.ts      # 前后端通信
-│       │   │   ├── request-server.ts # API 服务实例
-│       │   │   ├── store/            # SQLite 缓存存储
-│       │   │   ├── sqliteCache.ts    # 图数据持久化
-│       │   │   └── editorView/       # 编辑区自定义 webview
-│       │   ├── services/             # 业务服务
-│       │   │   ├── control-flow/     # 控制流解析（PATH 解析/树构建）
-│       │   │   ├── run-data/         # 运行数据
-│       │   │   ├── schema-config/    # schema 配置
-│       │   │   ├── welcome/          # 欢迎引导
-│       │   │   └── index.ts          # 服务聚合导出
-│       │   ├── handler/              # 消息处理（baseGraphMsgHandler / singleGraphHandler / diffGraphHandler 等）
-│       │   ├── converter/            # 数据转换器
-│       │   ├── types/                # 类型定义
-│       │   ├── common/               # 公共常量与工具
-│       │   ├── config/               # 配置
-│       │   ├── utils/                # 后端工具方法
-│       │   └── util.ts               # 工具类公共函数
-│       ├── package.json              # 项目配置与脚本
-│       ├── package.nls.json          # 国际化配置（英文）
-│       ├── package.nls.zh-cn.json    # 国际化配置（中文）
-│       ├── tsconfig.json             # TypeScript 配置
-│       ├── commitlint.config.js      # commit 规范校验
-│       └── CHANGELOG.md              # 版本发布记录
-├── docs/                             # Sphinx 文档
-├── LICENSE
-├── README.md
-├── README.en.md
-└── CONTRIBUTING.md
-```
 
 ## vue-project代码开发注意点
 
