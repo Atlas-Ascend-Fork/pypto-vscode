@@ -563,7 +563,7 @@ const closeTensorContextMenu = () => {
 const activateAdjacentMeasurement = () => {
   const anchor = tensorContextMenu.tensor;
   closeTensorContextMenu();
-  if (!anchor) {
+  if (!anchor || selectedRegionId.value === null) {
     return;
   }
 
@@ -1653,7 +1653,7 @@ const initChart = (onRendered) => {
   myChart.on('contextmenu', (params) => {
     const nativeEvent = params.event?.event || params.event || {};
     nativeEvent.preventDefault?.();
-    if (params.seriesId !== 'tensors') {
+    if (params.seriesId !== 'tensors' || selectedRegionId.value === null) {
       closeTensorContextMenu();
       return;
     }

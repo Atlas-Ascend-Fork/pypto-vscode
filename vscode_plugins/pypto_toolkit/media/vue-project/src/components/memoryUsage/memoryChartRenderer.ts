@@ -241,8 +241,6 @@ const createTensorRenderer = ({
   tensorColorMap,
   patternCache,
 }: MemoryChartRendererOptions): MemoryChartRenderers['renderItem'] => {
-
-
   const getTensorRenderState = (api: ChartRenderApi) => {
     const measurementHighlightTensors = getMeasurementHighlightTensors();
     const isMeasurementModeActive = measurementHighlightTensors.length > 0;
