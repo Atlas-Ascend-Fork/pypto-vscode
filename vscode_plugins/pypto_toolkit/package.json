@@ -87,7 +87,7 @@
       "explorer/context": [
         {
           "command": "PyPTO.Open.OpenRenderGraphForCurrent",
-          "when": "resourceExtname == .json",
+          "when": "resourceExtname == .json && resourceFilename != memory_usage_visualization.json",
           "group": "navigation@1"
         },
         {
@@ -104,17 +104,17 @@
       "pypto.graph.advanOpen": [
         {
           "command": "PyPTO.Open.OpenDiffComGraphForCurrent",
-          "when": "resourceExtname == .json",
+          "when": "resourceExtname == .json && resourceFilename != memory_usage_visualization.json",
           "group": "1_graph@1"
         },
         {
           "command": "PyPTO.Open.OpenComGraphForNodeSearch",
-          "when": "resourceExtname == .json",
+          "when": "resourceExtname == .json && resourceFilename != memory_usage_visualization.json",
           "group": "1_graph@2"
         },
         {
           "command": "PyPTO.Open.OpenGmMemoryVisualization",
-          "when": "resourceExtname == .json",
+          "when": "resourceFilename == memory_usage_visualization.json",
           "group": "1_graph@3"
         }
       ],
