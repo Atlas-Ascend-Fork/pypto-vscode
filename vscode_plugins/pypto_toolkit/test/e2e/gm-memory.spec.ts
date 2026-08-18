@@ -422,7 +422,7 @@ test('GM memory region drill-down works through the real canvas', async ({ page,
   expect(detailCanvas.painted).toBeGreaterThan(100);
   const detailLabels = await page.evaluate(() => window.__canvasTextTrace.map((entry) => entry.text));
   expect(detailLabels).toEqual(expect.arrayContaining(['1000', '2000']));
-  expect(detailLabels.some((label) => label.includes('ID:1') || label.includes('ID:2'))).toBe(false);
+  expect(detailLabels.some((label) => label === 'Region\nID:1' || label === 'Region\nID:2')).toBe(false);
   await capture(page, testInfo, evidence, '02-region-detail');
 
   evidence.scenarios.regionDrillDown = { regionId: 0 };

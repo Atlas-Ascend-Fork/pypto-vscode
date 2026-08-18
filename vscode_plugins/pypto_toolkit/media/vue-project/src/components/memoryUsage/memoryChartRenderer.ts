@@ -68,6 +68,25 @@ type MemoryChartRenderers = {
   renderMeasurementItem: (params: ChartRenderParams, api: ChartRenderApi) => ChartGraphic;
 };
 
+const getTensorIdentity = (tensor: any): string => {
+  const rawTensor = tensor?.rawObj || tensor;
+  const values = [rawTensor?.instanceId, rawTensor?.rawId, rawTensor?.base, rawTensor?.end, rawTensor?.lifeStart, rawTensor?.lifeEnd];
+  if (!values.some((value) => value !== undefined && value !== null && String(value) !== '')) {
+    return '';
+  }
+
+  return values.map((value) => (value === undefined || value === null ? '' : String(value))).join('|');
+};
+
+const isSameTensor = (first: any, second: any): boolean => {
+  if (first === second) {
+    return true;
+  }
+
+  const firstIdentity = getTensorIdentity(first);
+  return Boolean(firstIdentity) && firstIdentity === getTensorIdentity(second);
+};
+
 export const createMinimapRects = (maxY: number, overlaps: ConflictOverlap[], isDarkTheme: boolean): MinimapRect[] => {
   if (!maxY || maxY <= 0) {
     return [];
@@ -153,6 +172,66 @@ const shouldRenderTensorLabel = (
   return isSearchMatched || !hasSearchResults;
 };
 
+const getTensorGeometry = (params: ChartRenderParams, api: ChartRenderApi) => {
+  const startPos = api.coord([api.value(1), api.value(3)]);
+  const endPos = api.coord([api.value(2), api.value(4)]);
+  const width = Math.max(Math.abs(endPos[0] - startPos[0]), 2);
+  const height = Math.max(Math.abs(endPos[1] - startPos[1]), 2);
+
+  return {
+    width,
+    height,
+    rectShape: echarts.graphic.clipRectByRect(
+      {
+        x: Math.min(startPos[0], endPos[0]),
+        y: Math.min(startPos[1], endPos[1]),
+        width,
+        height,
+      },
+      params.coordSys,
+    ),
+  };
+};
+
+const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean, isMeasurementSelected: boolean, getIsDarkTheme) => {
+  if (isMeasurementSelected) {
+    return {
+      stroke: getIsDarkTheme() ? '#2f80ed' : '#0a59f7',
+      lineWidth: 2,
+      shadowBlur: 4,
+      shadowColor: getIsDarkTheme() ? 'rgba(47, 128, 237, 0.55)' : 'rgba(10, 89, 247, 0.4)',
+    };
+  }
+
+  if (isSelected && !isSearchActive) {
+    return {
+      stroke: '#ffffff',
+      lineWidth: 2,
+      shadowBlur: 2,
+      shadowColor: '#ffffff',
+    };
+  }
+
+  return {
+    stroke: 'transparent',
+    lineWidth: 0,
+    shadowBlur: 0,
+    shadowColor: 'transparent',
+  };
+};
+
+const getFillcolor = (isMeasurementHighlighted, isDimmed, getIsDarkTheme) => {
+  if(isMeasurementHighlighted) {
+    return '#232631';
+  } else {
+    if(isDimmed) {
+      return getIsDarkTheme() ? 'rgba(180, 180, 186, 0.7)' : 'rgba(82, 82, 88, 0.65)';
+    } else {
+      return getIsDarkTheme() ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)';
+    }
+  }
+}
+
 const createTensorRenderer = ({
   getSelectedNode,
   getMeasuredTensors,
@@ -162,69 +241,32 @@ const createTensorRenderer = ({
   tensorColorMap,
   patternCache,
 }: MemoryChartRendererOptions): MemoryChartRenderers['renderItem'] => {
-  const getTensorGeometry = (params: ChartRenderParams, api: ChartRenderApi) => {
-    const startPos = api.coord([api.value(1), api.value(3)]);
-    const endPos = api.coord([api.value(2), api.value(4)]);
-    const width = Math.max(Math.abs(endPos[0] - startPos[0]), 2);
-    const height = Math.max(Math.abs(endPos[1] - startPos[1]), 2);
 
-    return {
-      width,
-      height,
-      rectShape: echarts.graphic.clipRectByRect(
-        {
-          x: Math.min(startPos[0], endPos[0]),
-          y: Math.min(startPos[1], endPos[1]),
-          width,
-          height,
-        },
-        params.coordSys,
-      ),
-    };
-  };
-
-  const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean, isMeasurementSelected: boolean) => {
-    if (isMeasurementSelected) {
-      return {
-        strokeColor: getIsDarkTheme() ? '#6ea8ff' : '#0a59f7',
-        lineWidth: 3,
-        shadowBlur: 3,
-        shadowColor: getIsDarkTheme() ? '#6ea8ff' : '#0a59f7',
-      };
-    }
-
-    if (isSelected && !isSearchActive) {
-      return {
-        strokeColor: '#ffffff',
-        lineWidth: 2,
-        shadowBlur: 2,
-        shadowColor: '#ffffff',
-      };
-    }
-
-    return {
-      strokeColor: 'transparent',
-      lineWidth: 0,
-      shadowBlur: 0,
-      shadowColor: 'transparent',
-    };
-  };
 
   const getTensorRenderState = (api: ChartRenderApi) => {
-    const isMeasurementSelected = getMeasuredTensors().some((tensor) => tensor === api.value(17));
-    const isMeasurementHighlighted = getMeasurementHighlightTensors().some((tensor) => tensor === api.value(17));
+    const measurementHighlightTensors = getMeasurementHighlightTensors();
+    const isMeasurementModeActive = measurementHighlightTensors.length > 0;
+    const tensor = api.value(17);
+    const chartTensorIdentity = String(api.value(21) || '');
+    const isSameRenderedTensor = (entry: any): boolean => {
+      return chartTensorIdentity ? getTensorIdentity(entry) === chartTensorIdentity : isSameTensor(entry, tensor);
+    };
+    const measuredTensors = getMeasuredTensors();
+    const isMeasurementSelected = (isMeasurementModeActive ? measuredTensors.slice(0, 1) : measuredTensors).some(isSameRenderedTensor);
+    const isMeasurementHighlighted = measurementHighlightTensors.some(isSameRenderedTensor);
     const isSelected =
-      isMeasurementSelected || Boolean(getSelectedNode()?.tensors?.some((entry) => entry.rawTensor === api.value(17)));
+      isMeasurementSelected || Boolean(getSelectedNode()?.tensors?.some((entry) => isSameRenderedTensor(entry.rawTensor)));
     const isSearchActive = Number(api.value(19)) === 1;
     const isSearchMatched = Number(api.value(18)) === 1;
     const hasSearchResults = getFilteredResultsCount() > 0;
     const isDimmedBySearch = isSearchActive && hasSearchResults;
     const magicId = String(api.value(7) || '');
     const originalColor = tensorColorMap[magicId]?.base || '#574096';
-    const isSearchDimmed = isDimmedBySearch && !isMeasurementHighlighted;
-    const highlightColor = getIsDarkTheme() ? '#ffffff' : '#f5f5f5';
-    let baseColor = isSearchDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
-    let rectOpacity = isSearchDimmed ? 0.35 : 0.8;
+    const isDimmedByMeasurement = isMeasurementModeActive && !isMeasurementHighlighted;
+    const isDimmed = isDimmedByMeasurement || isDimmedBySearch;
+    const highlightColor = getIsDarkTheme() ? 'rgba(196, 198, 212, 1)' : 'rgba(211, 212, 220, 1)';
+    let baseColor = isDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
+    let rectOpacity = isDimmed ? 0.35 : 0.8;
     if (isMeasurementHighlighted) {
       baseColor = highlightColor;
       rectOpacity = 0.9;
@@ -236,9 +278,11 @@ const createTensorRenderer = ({
       isSearchActive,
       isSearchMatched,
       hasSearchResults,
+      isMeasurementHighlighted,
+      isDimmed,
       baseColor,
       rectOpacity,
-      borderStyle: getTensorBorderStyle(isSelected, isSearchActive, isMeasurementSelected),
+      borderStyle: getTensorBorderStyle(isSelected, isSearchActive, isMeasurementSelected, getIsDarkTheme),
     };
   };
 
@@ -249,7 +293,18 @@ const createTensorRenderer = ({
     api: ChartRenderApi,
     state: ReturnType<typeof getTensorRenderState>,
   ): ChartGraphic[] => {
-    const { styleType, magicId, isSearchActive, isSearchMatched, hasSearchResults, baseColor, rectOpacity, borderStyle } = state;
+    const {
+      styleType,
+      magicId,
+      isSearchActive,
+      isSearchMatched,
+      hasSearchResults,
+      isMeasurementHighlighted,
+      isDimmed,
+      baseColor,
+      rectOpacity,
+      borderStyle,
+    } = state;
     const radius = width > 12 && height > 12 ? 4 : 0;
     const children: ChartGraphic[] = [];
 
@@ -273,6 +328,10 @@ const createTensorRenderer = ({
 
     if (shouldRenderTensorLabel(width, height, isSearchActive, isSearchMatched, hasSearchResults)) {
       const textPadding = 8;
+      const shape = String(api.value(10) || '-');
+      const text = isMeasurementHighlighted
+        ? `{label|MagicID:} {value|${magicId || '-'}}  {label|Shape:} {value|${shape}}`
+        : `MagicID: ${magicId || '-'} Shape: ${shape}`;
       children.push({
         type: 'text',
         silent: true,
@@ -280,17 +339,23 @@ const createTensorRenderer = ({
         style: {
           x: rectShape.x + rectShape.width / 2,
           y: rectShape.y + rectShape.height / 2,
-          text: `magicID: ${magicId || '-'} rawShape: ${api.value(10) || '-'}`,
-          fill: getIsDarkTheme() ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)',
-          fontSize: 10,
+          text,
+          fill: getFillcolor(isMeasurementHighlighted, isDimmed, getIsDarkTheme),
+          opacity: isDimmed ? 0.45 : 1,
+          fontSize: isMeasurementHighlighted ? 12 : 10,
+          fontWeight: isMeasurementHighlighted ? 500 : 400,
           lineHeight: 14,
           textAlign: 'center',
           textVerticalAlign: 'middle',
           width: Math.max(rectShape.width - textPadding * 2, 0),
-          height: Math.max(rectShape.height - textPadding * 2, 0),
           overflow: 'truncate',
-          lineOverflow: 'truncate',
           ellipsis: '...',
+          rich: isMeasurementHighlighted
+            ? {
+              label: { fill: '#6f7280', fontSize: 12, fontWeight: 400 },
+              value: { fill: '#232631', fontSize: 12, fontWeight: 500 },
+            }
+            : undefined,
         },
       });
     }

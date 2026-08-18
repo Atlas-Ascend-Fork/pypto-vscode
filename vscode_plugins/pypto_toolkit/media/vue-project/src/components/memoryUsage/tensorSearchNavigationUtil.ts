@@ -40,6 +40,16 @@ export class TensorSearchNavigationUtil {
     ].join('_');
   }
 
+  static getTensorIdentity(item: TensorItem) {
+    const tensor = item.rawObj || item;
+    const values = [tensor?.instanceId, tensor?.rawId, tensor?.base, tensor?.end, tensor?.lifeStart, tensor?.lifeEnd];
+    if (!values.some((value) => value !== undefined && value !== null && String(value) !== '')) {
+      return '';
+    }
+
+    return values.map((value) => (value === undefined || value === null ? '' : String(value))).join('|');
+  }
+
   static getSearchMatchedItems(memoryBlocksRaw: TensorItem[], query: string) {
     const q = this.normalizeQuery(query);
 
@@ -99,6 +109,7 @@ export class TensorSearchNavigationUtil {
       options.isSearchMatched ? 1 : 0, // 18
       options.isSearchActive ? 1 : 0, // 19
       options.isSearchSelected ? 1 : 0, // 20
+      this.getTensorIdentity(item), // 21
     ];
   }
 

@@ -315,7 +315,7 @@ describe('memoryUsage happy path', () => {
     expect(measuredGraphic.children).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'rect',
-        style: expect.objectContaining({ strokeColor: expect.any(String) }),
+        style: expect.objectContaining({ stroke: '#2f80ed', lineWidth: 2 }),
       }),
     ]));
 
@@ -367,6 +367,15 @@ describe('memoryUsage happy path', () => {
         base: 1700,
         end: 1800,
         size: 100,
+        rawmagic: 'magic-delta',
+      },
+      {
+        ...data.rawTensors[1],
+        rawId: 'tensor-e',
+        instanceId: 'instance-e',
+        base: 1850,
+        end: 1950,
+        size: 100,
         rawmagic: 'magic-beta',
       },
       {
@@ -405,7 +414,7 @@ describe('memoryUsage happy path', () => {
       { coord: (value: number[]) => value.map((entry) => entry * 100), value: (index: number) => overviewSameMagicTensor[index] },
     );
     expect(overviewSameMagicGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: '#ffffff', opacity: 0.9 }) }),
+      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(196, 198, 212, 1)', opacity: 0.9 }) }),
     ]));
 
     testState.zrHandlers.get('click')?.({});
@@ -439,19 +448,58 @@ describe('memoryUsage happy path', () => {
 
     const highlightedGraphic = initialOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
-      { coord: (value: number[]) => value.map((entry) => entry * 100), value: (index: number) => anchorTensor[index] },
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => {
+          if (index === 17) {
+            return Number.NaN;
+          }
+          return anchorTensor[index];
+        },
+      },
     );
     expect(highlightedGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ strokeColor: expect.any(String) }) }),
+      expect.objectContaining({
+        type: 'rect',
+        style: expect.objectContaining({ stroke: '#2f80ed', lineWidth: 2 }),
+      }),
+      expect.objectContaining({
+        type: 'text',
+        style: expect.objectContaining({
+          text: expect.stringContaining('{label|MagicID:} {value|'),
+          rich: {
+            label: expect.objectContaining({ fill: '#6f7280' }),
+            value: expect.objectContaining({ fill: '#232631' }),
+          },
+        }),
+      }),
     ]));
 
-    const sameMagicTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[2];
+    const nearestTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[2];
+    const nearestGraphic = detailOption.series[0].renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => index === 17 ? { ...nearestTensor[index] } : nearestTensor[index],
+      },
+    );
+    expect(nearestGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'rect',
+        style: expect.objectContaining({ fill: 'rgba(196, 198, 212, 1)', opacity: 0.9, stroke: 'transparent' }),
+      }),
+    ]));
+
+    const sameMagicTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[3];
     const sameMagicGraphic = detailOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
-      { coord: (value: number[]) => value.map((entry) => entry * 100), value: (index: number) => sameMagicTensor[index] },
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => index === 17 ? { ...sameMagicTensor[index] } : sameMagicTensor[index],
+      },
     );
     expect(sameMagicGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: '#ffffff', opacity: 0.9 }) }),
+      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(196, 198, 212, 1)', opacity: 0.9 }) }),
     ]));
 
     const unrelatedTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[0];
@@ -462,7 +510,11 @@ describe('memoryUsage happy path', () => {
     expect(unrelatedGraphic.children).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'rect',
-        style: expect.objectContaining({ opacity: 0.8, fill: expect.not.stringMatching(/^#fff/i) }),
+        style: expect.objectContaining({ fill: 'rgba(130, 130, 130, 0.55)', opacity: 0.35 }),
+      }),
+      expect.objectContaining({
+        type: 'text',
+        style: expect.objectContaining({ fill: 'rgba(180, 180, 186, 0.7)', opacity: 0.45 }),
       }),
     ]));
 
