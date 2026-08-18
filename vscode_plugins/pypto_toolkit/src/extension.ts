@@ -9,6 +9,8 @@
  */
 import 'core-js/stable/structured-clone';
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
 import * as vscode from 'vscode';
 
@@ -97,6 +99,8 @@ export async function activate(context: ExtensionContext) {
     await initDB(context);
   }
   await loadMaterialColorUtilities();
+  fixExecutablePermissions(context);
+
   // 启动存储
   initStores(context);
   // 启动接口
@@ -199,4 +203,27 @@ async function initDB(context: ExtensionContext) {
 
 export async function deactivate() {
   closeAllServices();
+}
+
+/**
+ * Windows 打包（vsce）时，VSIX 中文件权限由 yazl 从 fs.stat 读取，
+ * 但 NTFS 不支持 Unix 可执行位，导致 @pypto/data-compress 中的原生可执行文件
+ * （swimlane-parser-linux/linux-arm64/mac）丢失 0o755 权限。
+ * Mac/Linux 打包时 fs.stat 能正确返回可执行位，无此问题。
+ * 此处在非 Windows 平台上显式恢复可执行权限，确保 spawn 调用不会失败。
+ */
+function fixExecutablePermissions(context: vscode.ExtensionContext) {
+  if (process.platform === 'win32') {
+    return;
+  }
+  try {
+    const staticDir = path.join(context.extensionPath, 'node_modules', '@pypto', 'data-compress', 'build', 'static');
+    const executables = ['swimlane-parser-linux', 'swimlane-parser-linux-arm64', 'swimlane-parser-mac'];
+    executables
+      .map((exe) => path.join(staticDir, exe))
+      .filter((exePath) => fs.existsSync(exePath))
+      .forEach((exePath) => fs.chmodSync(exePath, 0o755));
+  } catch (err) {
+    console.warn('Failed to fix executable permissions for @pypto/data-compress:', err);
+  }
 }
