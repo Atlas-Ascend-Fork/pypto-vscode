@@ -261,6 +261,22 @@ function getOtherNodeTitle(curNode, curType: 'before' | 'after') {
   }
 }
 
+// 获取对应节点的id
+function getOtherNodeId(curNode, curType: 'before' | 'after') {
+  let nodeArr = [];
+  if (curType === 'before') {
+    nodeArr = afterTensorOpNodeArr;
+  }
+  if (curType === 'after') {
+    nodeArr = beforeTensorOpNodeArr;
+  }
+  for (const item of nodeArr) {
+    if (item.type === curNode.type && (item.id === curNode.id || item.magic === curNode.magic)) {
+      return item.id;
+    }
+  }
+}
+
 provide(DiffComGraphProvideKey, { getOtherNodeTitle });
 
 let isDragging: boolean = false;
@@ -411,18 +427,20 @@ function onMouseover() {
 function onSelectedNodeChange(args) {
   isBothSelected = false;
   if (syncOperate.value) {
-    if (args[1] === 'after') {
-      beforeIns?.selectAction(args[0] ? [args[0].id] : []);
-      if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+    if (args[1] === 'after' && args[0]) {
+      const otherNodeId = getOtherNodeId(args[0], args[1]);
+      beforeIns?.selectAction([otherNodeId]);
+      if (args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
         isBothSelected = true;
-        beforeIns?.centerNodeAction([args[0].id], undefined, undefined, beforeMinimapEl.value.getCurrentScale());
+        beforeIns?.centerNodeAction([otherNodeId], undefined, undefined, beforeMinimapEl.value.getCurrentScale());
       }
     }
-    if (args[1] === 'before') {
-      afterIns?.selectAction(args[0] ? [args[0].id] : []);
-      if (args[0] && args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
+    if (args[1] === 'before' && args[0]) {
+      const otherNodeId = getOtherNodeId(args[0], args[1]);
+      afterIns?.selectAction([otherNodeId]);
+      if (args[0].compareType !== 'add' && args[0].compareType !== 'delete') {
         isBothSelected = true;
-        args[0] && afterIns?.centerNodeAction([args[0].id], undefined, undefined, afterMinimapEl.value.getCurrentScale());
+        afterIns?.centerNodeAction([otherNodeId], undefined, undefined, afterMinimapEl.value.getCurrentScale());
       }
     }
   }
