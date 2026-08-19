@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const fileList = ['LICENSE', 'README.md', 'README.en.md'];
+const fileList = ['LICENSE', 'README.md', 'README_en.md'];
 
 for (const fileName of fileList) {
   const src = path.join(__dirname, '..', '..', '..', fileName);
