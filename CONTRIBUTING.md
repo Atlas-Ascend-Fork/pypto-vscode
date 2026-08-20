@@ -71,6 +71,57 @@ npm run check             # 后端 + 前端类型检查
 
 ---
 
+## 单元测试
+
+### 测试框架
+
+后端单元测试使用 [Vitest](https://vitest.dev/)，测试在 Node 环境中运行，不需要 VSCode Extension Host。
+
+### 目录结构
+
+```
+vscode_plugins/pypto_toolkit/
+├── vitest.config.mts          # Vitest 配置（test.alias 指向 vscode mock，setupFiles 全局 mock）
+├── test/
+│   └── ut/                     # 后端单元测试目录
+│       ├── setup.ts            # 全局 mock（vscode、i18next 等 node_modules 包）
+│       ├── mocks/
+│       │   └── vscode.ts       # vscode API mock（通过 test.alias 引入）
+│       └── command/
+│           └── registerCommand.test.ts  # 命令注册模块测试
+```
+
+测试文件与源码目录结构对应，例如 `src/command/registerCommand.ts` 对应 `test/ut/command/registerCommand.test.ts`。
+
+### Mock 策略
+
+| 模块类型 | Mock 方式 | 说明 |
+| --- | --- | --- |
+| `vscode` | `test.alias` + `setup.ts` 中 `vi.mock` | vscode 是运行时注入的虚拟模块，通过 `vitest.config.mts` 的 `test.alias` 指向 `test/ut/mocks/vscode.ts`，`setup.ts` 中用 `vi.mock('vscode')` 定义具体内容 |
+| `i18next` | `setup.ts` 中 `vi.mock` | 全局 mock，`t()` 直接返回 key |
+| 内部模块（`src/view`、`src/utils/file-system` 等） | 测试文件中 `vi.mock(import('...'))` 内联 | 相对路径模块无法用 alias，需在测试文件中逐个 mock |
+
+### 运行命令
+
+```bash
+# 运行后端单元测试
+npm run test:ut
+
+# 运行后端单元测试并生成覆盖率报告
+npx vitest run test/ut --coverage
+```
+
+覆盖率报告显示 `src/` 下所有 TypeScript 文件的 Statements、Branches、Functions、Lines 覆盖率及未覆盖行号。
+
+### 编写新测试
+
+1. 在 `test/ut/` 下创建与源码目录结构对应的测试文件，文件名以 `.test.ts` 结尾
+2. 如果测试模块依赖 `vscode` API，直接 `import { commands, window, Uri } from 'vscode'`，已由全局 mock 提供
+3. 如果测试模块依赖内部模块（如 `src/view`），在测试文件顶部用 `vi.mock(import('../../../src/view'), () => ({...}))` 内联 mock
+4. 使用 `vi.hoisted` 创建跨 mock 工厂和测试代码共享的稳定引用
+
+---
+
 ## 调试启动
 
 1. 安装外层依赖：`cd vscode_plugins/pypto_toolkit && npm install`；

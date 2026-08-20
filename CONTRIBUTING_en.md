@@ -71,6 +71,57 @@ npm run check             # Backend + frontend type check
 
 ---
 
+## Unit Testing
+
+### Test Framework
+
+Backend unit tests use [Vitest](https://vitest.dev/). Tests run in the Node environment and do not require the VSCode Extension Host.
+
+### Directory Structure
+
+```
+vscode_plugins/pypto_toolkit/
+├── vitest.config.mts          # Vitest config (test.alias points to vscode mock, setupFiles for global mocks)
+├── test/
+│   └── ut/                     # Backend unit test directory
+│       ├── setup.ts            # Global mocks (vscode, i18next, and other node_modules packages)
+│       ├── mocks/
+│       │   └── vscode.ts       # vscode API mock (imported via test.alias)
+│       └── command/
+│           └── registerCommand.test.ts  # Command registration module tests
+```
+
+Test files follow the source code directory structure, e.g. `src/command/registerCommand.ts` corresponds to `test/ut/command/registerCommand.test.ts`.
+
+### Mock Strategy
+
+| Module Type | Mock Method | Description |
+| --- | --- | --- |
+| `vscode` | `test.alias` + `vi.mock` in `setup.ts` | vscode is a runtime-injected virtual module. `vitest.config.mts` uses `test.alias` to point to `test/ut/mocks/vscode.ts`, and `setup.ts` uses `vi.mock('vscode')` to define the content |
+| `i18next` | `vi.mock` in `setup.ts` | Global mock, `t()` directly returns the key |
+| Internal modules (`src/view`, `src/utils/file-system`, etc.) | Inline `vi.mock(import('...'))` in test files | Relative path modules cannot use alias; must be mocked individually in each test file |
+
+### Commands
+
+```bash
+# Run backend unit tests
+npm run test:ut
+
+# Run backend unit tests with coverage report
+npx vitest run test/ut --coverage
+```
+
+The coverage report shows Statements, Branches, Functions, and Lines coverage for all TypeScript files under `src/`, along with uncovered line numbers.
+
+### Writing New Tests
+
+1. Create a test file under `test/ut/` matching the source code directory structure, with a `.test.ts` extension
+2. If the module under test depends on `vscode` API, directly `import { commands, window, Uri } from 'vscode'` — the global mock provides these
+3. If the module under test depends on internal modules (e.g. `src/view`), use `vi.mock(import('../../../src/view'), () => ({...}))` at the top of the test file
+4. Use `vi.hoisted` to create stable references shared between mock factories and test code
+
+---
+
 ## Debug Startup
 
 1. Install outer dependencies: `cd vscode_plugins/pypto_toolkit && npm install`;
