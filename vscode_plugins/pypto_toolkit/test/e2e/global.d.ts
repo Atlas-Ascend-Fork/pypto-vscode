@@ -17,6 +17,13 @@ interface CanvasTextTraceEntry {
   y: number;
 }
 
+interface CanvasPathTraceEntry {
+  canvasWidth: number;
+  canvasHeight: number;
+  color: string;
+  points: Array<{ x: number; y: number }>;
+}
+
 interface MockVsCodeApi {
   getState: () => null;
   postMessage: (message: unknown) => void;
@@ -24,6 +31,7 @@ interface MockVsCodeApi {
 }
 
 interface Window {
+  __canvasPathTrace: CanvasPathTraceEntry[];
   __canvasTextTrace: CanvasTextTraceEntry[];
   __gmMemoryPerformance?: {
     fingerprint: Record<string, unknown>;

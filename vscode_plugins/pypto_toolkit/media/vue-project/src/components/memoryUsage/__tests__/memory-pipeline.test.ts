@@ -32,7 +32,7 @@ describe('GM memory happy-path pipeline', () => {
     });
     expect(calculateTensorDistance(upper, lower)).toMatchObject({ distance: 100 });
     expect(calculateTensorDistance(lower, { absoluteBase: 200, absoluteEnd: 250 })).toMatchObject({ distance: 0 });
-    expect(calculateTensorDistance(lower, { absoluteBase: 150, absoluteEnd: 250 })).toBeNull();
+    expect(calculateTensorDistance(lower, { absoluteBase: 150, absoluteEnd: 250 })).toMatchObject({ distance: -50 });
     expect(
       calculateTensorDistance(
         { absoluteBase: 100, absoluteEnd: 200, regionId: 1 },

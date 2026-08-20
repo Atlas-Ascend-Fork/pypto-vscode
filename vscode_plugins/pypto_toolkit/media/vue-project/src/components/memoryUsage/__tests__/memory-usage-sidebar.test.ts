@@ -128,6 +128,12 @@ function getRulerLabels(option: any) {
   return rendered.children.filter((child: any) => child.type === 'text').map((child: any) => child.style.text);
 }
 
+async function showChartView(wrapper: any) {
+  await wrapper.get('[aria-label="Chart view"]').trigger('click');
+  await nextTick();
+  await nextTick();
+}
+
 function getRulerGraphic(option: any, width = 660) {
   const ruler = option.series.find((series: any) => series.id === 'dimension-ruler-0');
   return ruler.renderItem({ coordSys: { x: 110, y: 102, width, height: 1 }});
@@ -159,6 +165,7 @@ describe('memoryUsageSidebar access filter', () => {
       },
     });
 
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 
@@ -194,6 +201,7 @@ describe('memoryUsageSidebar access filter', () => {
         stubs: { 'd-switch': SwitchStub },
       },
     });
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 
@@ -230,7 +238,7 @@ describe('memoryUsageSidebar access filter', () => {
     wrapper.unmount();
   });
 
-  it('switches between the chart and searchable access table', async () => {
+  it('defaults to the searchable access table and switches to the chart', async () => {
     const selectedNode = createSelectedNode();
     selectedNode.tensors[0].rawTensor.accesses[1].funcId = 'read-func';
     const wrapper = mount(MemoryUsageSidebar, {
@@ -248,12 +256,11 @@ describe('memoryUsageSidebar access filter', () => {
     await nextTick();
     await nextTick();
 
-    expect(wrapper.get('[aria-label="Chart view"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.get('[aria-label="Table view"]').attributes('aria-pressed')).toBe('true');
     expect(wrapper.find('[aria-label="Chart view"] .chart-view-icon').exists()).toBe(true);
     expect(wrapper.find('[aria-label="Table view"] .list-view-icon').exists()).toBe(true);
-    expect(wrapper.find('.access-table-view').exists()).toBe(false);
+    expect(wrapper.find('.access-table-view').exists()).toBe(true);
 
-    await wrapper.get('[aria-label="Table view"]').trigger('click');
     expect(wrapper.get('[aria-label="Table view"]').attributes('aria-pressed')).toBe('true');
     expect(wrapper.get('.access-table').text()).toContain('HASOVERLAP');
     expect(wrapper.findAll('.access-table tbody tr')).toHaveLength(1);
@@ -286,6 +293,12 @@ describe('memoryUsageSidebar access filter', () => {
       },
     );
     expect(selectedGraphic.children[0].style).toMatchObject({ stroke: '#ffffff', lineWidth: 3 });
+
+    await wrapper.setProps({ selectedNode: createSelectedNode(true) });
+    await nextTick();
+    await nextTick();
+    expect(wrapper.get('[aria-label="Table view"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.find('.access-table-view').exists()).toBe(true);
 
     wrapper.unmount();
   });
@@ -332,6 +345,7 @@ describe('memoryUsageSidebar access filter', () => {
         stubs: { 'd-switch': SwitchStub },
       },
     });
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 
@@ -359,6 +373,7 @@ describe('memoryUsageSidebar access filter', () => {
         stubs: { 'd-switch': SwitchStub },
       },
     });
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 
@@ -461,6 +476,7 @@ describe('memoryUsageSidebar access filter', () => {
         stubs: { 'd-switch': SwitchStub },
       },
     });
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 
@@ -484,6 +500,7 @@ describe('memoryUsageSidebar access filter', () => {
         stubs: { 'd-switch': SwitchStub },
       },
     });
+    await showChartView(wrapper);
     await nextTick();
     await nextTick();
 

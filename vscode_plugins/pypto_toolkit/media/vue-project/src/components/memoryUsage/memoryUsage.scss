@@ -112,6 +112,36 @@
   height: 100%;
 }
 
+.axis-address-label {
+  position: absolute;
+  z-index: 300;
+  width: 70px;
+  overflow: hidden;
+  transform: translateY(-50%);
+  color: #999999;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.axis-address-tooltip {
+  position: absolute;
+  z-index: 400;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid var(--devui-line, #464646);
+  border-radius: 6px;
+  color: var(--devui-text, #e0e0e0);
+  background: var(--devui-base-bg, #303030);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
 .memory-measurement-status {
   position: absolute;
   width: 1px;
@@ -132,6 +162,12 @@
   border-radius: 6px;
   background: var(--devui-base-bg, #303030);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+
+  &.theme-light {
+    border-color: #d7d7d7;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .tensor-context-menu-item {
@@ -153,6 +189,16 @@
     color: var(--devui-light-text, #ffffff);
     background: var(--devui-list-item-hover-bg, #454545);
     outline: none;
+  }
+}
+
+.tensor-context-menu.theme-light .tensor-context-menu-item {
+  color: #191919;
+
+  &:hover,
+  &:focus-visible {
+    color: #191919;
+    background: #f2f2f2;
   }
 }
 

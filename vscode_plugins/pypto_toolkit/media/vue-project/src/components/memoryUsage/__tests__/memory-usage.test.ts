@@ -29,7 +29,7 @@ vi.mock('@/core/use-view-server.ts', () => ({
 }));
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => ({ memoryMeasurementMode: 'Measurement Mode' }[key] || key) }),
+  useI18n: () => ({ t: (key: string) => ({ memoryShowAdjacentTensors: 'Show adjacent tensors' }[key] || key) }),
 }));
 
 vi.mock('echarts', () => {
@@ -133,11 +133,11 @@ const SidebarStub = defineComponent({
   template: '<div class="memory-sidebar-test" />',
 });
 
-function mountMemoryUsage() {
+function mountMemoryUsage(isDarkTheme = true) {
   return mount(MemoryUsage, {
     global: {
       provide: {
-        root: { isDarkTheme: ref(true) },
+        root: { isDarkTheme: ref(isDarkTheme) },
       },
       stubs: {
         DataError: { template: '<div class="data-error" />' },
@@ -204,6 +204,7 @@ describe('memoryUsage happy path', () => {
       'regions',
       'region-axis-labels',
     ]);
+    expect(initialOption.series.find((series: any) => series.id === 'tensor-distance').clip).toBe(true);
     expect(initialOption.tooltip.formatter({ seriesId: 'overlaps', data: initialOption.series[1].data[0] })).toContain('Conflict');
     const tensorGraphic = initialOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
@@ -267,7 +268,7 @@ describe('memoryUsage happy path', () => {
     wrapper.unmount();
   });
 
-  it('selects two tensors with Alt and renders their address distance without opening details', async () => {
+  it('selects two tensors with Alt and renders their signed address distance without opening details', async () => {
     const data = createMemoryUnitFixture();
     data.rawTensors = [
       ...data.rawTensors,
@@ -292,6 +293,7 @@ describe('memoryUsage happy path', () => {
 
     const detailOption = testState.chart.setOption.mock.calls.at(-1)[0];
     const firstTensor = [...detailOption.series.find((series: any) => series.id === 'tensors').data[0]];
+    const overlappingTensor = [...detailOption.series.find((series: any) => series.id === 'tensors').data[1]];
     const secondTensor = [...detailOption.series.find((series: any) => series.id === 'tensors').data[2]];
 
     clickHandler?.({ seriesId: 'tensors', data: firstTensor, event: { event: { altKey: true }, offsetX: 3, offsetY: 200 }});
@@ -342,6 +344,25 @@ describe('memoryUsage happy path', () => {
     expect(restartedOption.series.find((series: any) => series.id === 'tensor-distance').data).toEqual([]);
     expect(wrapper.find('.memory-measurement-status').exists()).toBe(false);
 
+    clickHandler?.({ seriesId: 'tensors', data: overlappingTensor, event: { event: { altKey: true }, offsetX: 4, offsetY: 300 }});
+    await nextTick();
+    const overlappingOption = testState.chart.setOption.mock.calls.at(-1)[0];
+    const overlappingMeasurement = overlappingOption.series.find((series: any) => series.id === 'tensor-distance');
+    expect(overlappingMeasurement.data[0][8]).toBe(-200);
+    expect(overlappingMeasurement.data[0][9]).toBe('-200');
+    expect(wrapper.get('.memory-measurement-status').text()).toBe('Distance: -200');
+    const overlappingGraphic = initialOption.series.find((series: any) => series.id === 'tensor-distance').renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      {
+        coord: (value: number[]) => value.map((entry) => Number(entry) * 100),
+        value: (index: number) => overlappingMeasurement.data[0][index],
+      },
+    );
+    expect(overlappingGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'line' }),
+      expect.objectContaining({ type: 'text', style: expect.objectContaining({ text: '-200' }) }),
+    ]));
+
     clickHandler?.({ seriesId: 'tensors', data: firstTensor, event: { offsetX: 3, offsetY: 200 }});
     await nextTick();
     const clearedOption = testState.chart.setOption.mock.calls.at(-1)[0];
@@ -356,7 +377,7 @@ describe('memoryUsage happy path', () => {
     wrapper.unmount();
   });
 
-  it('opens Measurement Mode only in region detail and highlights adjacent tensors', async () => {
+  it('shows the adjacent tensor action only in region detail and highlights adjacent tensors', async () => {
     const data = createMemoryUnitFixture();
     data.rawTensors = [
       ...data.rawTensors,
@@ -390,7 +411,7 @@ describe('memoryUsage happy path', () => {
       },
     ];
     testState.server.GmMemoryVisualData = ref(data);
-    const wrapper = mountMemoryUsage();
+    const wrapper = mountMemoryUsage(false);
     await settleMemoryView();
 
     const initialOption = testState.chart.setOption.mock.calls[0][0];
@@ -419,6 +440,8 @@ describe('memoryUsage happy path', () => {
 
     expect(preventDefault).toHaveBeenCalled();
     expect(wrapper.get('.tensor-context-menu').attributes('role')).toBe('menu');
+    expect(wrapper.get('.tensor-context-menu').classes()).toContain('theme-light');
+    expect(wrapper.get('.tensor-context-menu-item').text()).toBe('Show adjacent tensors');
     await wrapper.get('.tensor-context-menu-item').trigger('click');
     await nextTick();
 
@@ -445,7 +468,7 @@ describe('memoryUsage happy path', () => {
     expect(highlightedGraphic.children).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'rect',
-        style: expect.objectContaining({ stroke: '#2f80ed', lineWidth: 2 }),
+        style: expect.objectContaining({ stroke: '#0a59f7', lineWidth: 2 }),
       }),
       expect.objectContaining({
         type: 'text',
@@ -470,7 +493,7 @@ describe('memoryUsage happy path', () => {
     expect(nearestGraphic.children).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'rect',
-        style: expect.objectContaining({ fill: 'rgba(196, 198, 212, 1)', opacity: 0.9, stroke: 'transparent' }),
+        style: expect.objectContaining({ fill: 'rgba(211, 212, 220, 1)', opacity: 0.9, stroke: 'transparent' }),
       }),
     ]));
 
@@ -483,7 +506,7 @@ describe('memoryUsage happy path', () => {
       },
     );
     expect(sameMagicGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(196, 198, 212, 1)', opacity: 0.9 }) }),
+      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(211, 212, 220, 1)', opacity: 0.9 }) }),
     ]));
 
     const unrelatedTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[0];
@@ -498,7 +521,7 @@ describe('memoryUsage happy path', () => {
       }),
       expect.objectContaining({
         type: 'text',
-        style: expect.objectContaining({ fill: 'rgba(180, 180, 186, 0.7)', opacity: 0.45 }),
+        style: expect.objectContaining({ fill: 'rgba(82, 82, 88, 0.65)', opacity: 0.45 }),
       }),
     ]));
 
@@ -523,9 +546,22 @@ describe('memoryUsage happy path', () => {
     const detailOption = testState.chart.setOption.mock.calls.at(-1)[0];
     expect(detailOption.series.find((series: any) => series.id === 'tensors').data).toHaveLength(2);
     expect(detailOption.series.find((series: any) => series.id === 'region-axis-labels').data).toEqual([]);
-    expect(detailOption.yAxis).toMatchObject({ min: 0, max: 1000, axisLabel: { show: true }});
+    expect(detailOption.yAxis).toMatchObject({ min: 0, max: 1000, axisLabel: { show: true, color: 'transparent' }});
+    expect(detailOption.yAxis.minInterval).toBeUndefined();
     expect(detailOption.yAxis.axisLabel.formatter(0)).toBe('1000');
+    expect(detailOption.yAxis.axisLabel.formatter(500.5)).toBe('');
     expect(detailOption.yAxis.axisLabel.formatter(1000)).toBe('2000');
+    const addressLabels = wrapper.findAll('.axis-address-label');
+    expect(addressLabels).toHaveLength(9);
+    const addressLabelTops = addressLabels.map((label) => Number.parseFloat(label.attributes('style').match(/top:\s*([^;]+)/)?.[1] || ''));
+    const addressLabelGaps = addressLabelTops.slice(1).map((top, index) => Math.abs(top - addressLabelTops[index]));
+    expect(addressLabelGaps.every((gap) => Math.abs(gap - addressLabelGaps[0]) < 0.001)).toBe(true);
+    testState.zrHandlers.get('mousemove')?.({ offsetX: 100, offsetY: addressLabelTops[1] });
+    await nextTick();
+    expect(wrapper.get('.axis-address-tooltip').text()).toBe(addressLabels[1].text());
+    testState.zrHandlers.get('mousemove')?.({ offsetX: 300, offsetY: 500 });
+    await nextTick();
+    expect(wrapper.find('.axis-address-tooltip').exists()).toBe(false);
     expect(testState.chart.dispatchAction).toHaveBeenCalledWith(expect.objectContaining({
       batch: expect.arrayContaining([expect.objectContaining({ dataZoomId: 'x-inside', startValue: 1, endValue: 11.5 })]),
     }));

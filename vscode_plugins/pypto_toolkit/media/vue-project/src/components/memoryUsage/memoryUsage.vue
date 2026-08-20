@@ -124,8 +124,17 @@
         <div class="chart-wrapper">
           <div ref="chartRef" class="echarts-container" :style="{ minHeight: minimumChartHeight + 'px' }" />
           <div
+            v-for="label in axisAddressLabels"
+            :key="label.value"
+            class="axis-address-label"
+            :style="{ left: label.left + 'px', top: label.top + 'px' }"
+          >
+            {{ label.text }}
+          </div>
+          <div
             v-if="tensorContextMenu.visible"
             class="tensor-context-menu"
+            :class="isDarkTheme ? 'theme-dark' : 'theme-light'"
             role="menu"
             :style="{ left: tensorContextMenu.left + 'px', top: tensorContextMenu.top + 'px' }"
           >
@@ -138,20 +147,19 @@
               <svg class="measurement-mode-icon" aria-hidden="true" viewBox="0 0 16 16">
                 <path d="M8 1v14M5 4l3-3 3 3M5 12l3 3 3-3" />
               </svg>
-              <span>{{ t('memoryMeasurementMode') }}</span>
+              <span>{{ t('memoryShowAdjacentTensors') }}</span>
             </button>
           </div>
           <div v-if="measurementLabel" class="memory-measurement-status" role="status" aria-live="polite">
             {{ measurementLabel }}
           </div>
-          <!-- eslint-disable vue/no-v-html -->
           <div
-            v-if="manualTensorTooltipVisible"
-            class="manual-tensor-tooltip"
-            :style="manualTensorTooltipStyle"
-            v-html="manualTensorTooltipHtml"
-          />
-          <!-- eslint-enable vue/no-v-html -->
+            v-if="axisAddressTooltipVisible"
+            class="axis-address-tooltip"
+            :style="axisAddressTooltipStyle"
+          >
+            {{ axisAddressTooltipText }}
+          </div>
         </div>
       </div>
     </div>
@@ -175,6 +183,7 @@ import {
   regionHoverTemplate,
   tensorHoverTemplate,
   getDataZoomConfig,
+  getEvenlySpacedAxisValues,
   getxAxisConfig,
   getyAxisConfig,
   getVisibleXAxisRange,
@@ -224,6 +233,10 @@ const props = defineProps({
 
 const MIN_REGION_HEIGHT_PX = 30;
 const CHART_GRID_VERTICAL_PADDING_PX = 60;
+const AXIS_ADDRESS_LABEL_WIDTH = 80;
+const AXIS_ADDRESS_LABEL_MARGIN = 5;
+const AXIS_ADDRESS_LABEL_HEIGHT = 16;
+const DETAIL_Y_AXIS_SEGMENTS = 8;
 
 const { server } = useViewServer();
 const { isDarkTheme } = inject('root', ref(true));
@@ -248,10 +261,10 @@ const loadingText = ref('Loading trace data...');
 const processes = reactive({
   clear() {},
 });
-const manualTensorTooltipVisible = ref(false);
-const manualTensorTooltipHtml = ref('');
-
-const manualTensorTooltipStyle = reactive({
+const axisAddressTooltipVisible = ref(false);
+const axisAddressTooltipText = ref('');
+const axisAddressLabels = shallowRef([]);
+const axisAddressTooltipStyle = reactive({
   left: '0px',
   top: '0px',
 });
@@ -360,6 +373,8 @@ let chartWheelHandler = null;
 let currentMemoryData = null;
 let hasReceivedMemoryPayload = false;
 let isProgrammaticZoom = false;
+// Keep the adjacent-measurement membership scan outside the per-tensor render loop.
+let measurementRenderCache = null;
 
 const overlaps = ref([]);
 const patternCache = { B: null, reg: null, stripe: null };
@@ -456,33 +471,53 @@ const getChartData = () => {
   );
 };
 
-const getMeasuredTensors = () => {
-  if (adjacentMeasurement.value) {
-    const { anchor, above, below } = adjacentMeasurement.value;
-    return [anchor, above?.lower, above?.upper, below?.lower, below?.upper]
-      .filter(Boolean)
+const getMeasurementRenderState = () => {
+  const adjacent = adjacentMeasurement.value;
+  const { first, second } = measurementSelection.value;
+  const regionId = selectedRegionId.value;
+  const tensorCount = memoryBlocksRaw.length;
+  if (measurementRenderCache) {
+    const {
+      adjacent: cachedAdjacent,
+      first: cachedFirst,
+      second: cachedSecond,
+      regionId: cachedRegionId,
+      memoryData: cachedMemoryData,
+      tensorCount: cachedTensorCount,
+    } = measurementRenderCache;
+    const hasSameSelection = cachedAdjacent === adjacent && cachedFirst === first && cachedSecond === second;
+    if (hasSameSelection) {
+      const hasSameContext = cachedRegionId === regionId && cachedMemoryData === currentMemoryData;
+      if (hasSameContext && cachedTensorCount === tensorCount) {
+        return measurementRenderCache;
+      }
+    }
+  }
+
+  const measuredEntries = adjacent
+    ? [adjacent.anchor, adjacent.above?.lower, adjacent.above?.upper, adjacent.below?.lower, adjacent.below?.upper].filter(Boolean)
+    : [first, second].filter(Boolean);
+  const measured = measuredEntries
+    .map((entry) => entry.rawObj || entry)
+    .filter((entry, index, entries) => entries.indexOf(entry) === index);
+  let highlighted = [];
+  if (adjacent) {
+    const anchorMagicId = getTensorMagicId(adjacent.anchor.rawObj || adjacent.anchor);
+    const highlightedEntries = getActiveMemoryBlocks().filter((entry) => {
+      return getTensorMagicId(entry.rawObj || entry) === anchorMagicId;
+    });
+    highlighted = [...measuredEntries, ...highlightedEntries]
       .map((entry) => entry.rawObj || entry)
       .filter((entry, index, entries) => entries.indexOf(entry) === index);
   }
-  return [measurementSelection.value.first, measurementSelection.value.second].filter(Boolean).map((entry) => entry.rawObj || entry);
+
+  measurementRenderCache = { adjacent, first, second, regionId, memoryData: currentMemoryData, tensorCount, measured, highlighted };
+  return measurementRenderCache;
 };
 
-const getMeasurementHighlightTensors = () => {
-  if (!adjacentMeasurement.value) {
-    return [];
-  }
+const getMeasuredTensors = () => getMeasurementRenderState().measured;
 
-  const { anchor, above, below } = adjacentMeasurement.value;
-  const anchorMagicId = getTensorMagicId(anchor.rawObj || anchor);
-  const measuredEntries = [anchor, above?.lower, above?.upper, below?.lower, below?.upper].filter(Boolean);
-  const highlightedEntries = getActiveMemoryBlocks().filter((entry) => {
-    return getTensorMagicId(entry.rawObj || entry) === anchorMagicId;
-  });
-
-  return [...measuredEntries, ...highlightedEntries]
-    .map((entry) => entry.rawObj || entry)
-    .filter((entry, index, entries) => entries.indexOf(entry) === index);
-};
+const getMeasurementHighlightTensors = () => getMeasurementRenderState().highlighted;
 
 const getMeasurementData = () => {
   if (adjacentMeasurement.value) {
@@ -749,6 +784,27 @@ const formatDetailAddress = (chartY) => {
 
   return String(Math.round(MemoryRegionLayoutUtil.toAbsoluteAddress(chartY, selectedRegion)));
 };
+const hideAxisAddressTooltip = () => {
+  axisAddressTooltipVisible.value = false;
+  axisAddressTooltipText.value = '';
+};
+const showAxisAddressTooltip = (address, offsetX, offsetY) => {
+  const chartWidth = chartRef.value?.clientWidth || myChart?.getWidth?.() || 0;
+  const tooltipWidth = 220;
+  axisAddressTooltipText.value = address;
+  axisAddressTooltipStyle.left = `${Math.max(4, Math.min(offsetX + 12, chartWidth - tooltipWidth - 4))}px`;
+  axisAddressTooltipStyle.top = `${Math.max(4, offsetY - 14)}px`;
+  axisAddressTooltipVisible.value = true;
+};
+const findHoveredAxisAddress = (offsetX, offsetY) => {
+  const hoveredLabel = axisAddressLabels.value.find((label) => {
+    const withinX = offsetX >= label.left && offsetX <= label.left + AXIS_ADDRESS_LABEL_WIDTH;
+    const withinY = Math.abs(offsetY - label.top) <= AXIS_ADDRESS_LABEL_HEIGHT / 2;
+    return withinX && withinY;
+  });
+
+  return hoveredLabel?.text || '';
+};
 const findHoveredRegionData = (offsetX, offsetY) => {
   const area = regionLabelHoverAreas.find((item) => {
     return offsetX >= item.x && offsetX <= item.x + item.width && offsetY >= item.y && offsetY <= item.y + item.height;
@@ -812,7 +868,7 @@ const getSeriesConfig = () => [
     encode: { x: [0, 1, 4, 5], y: [2, 3, 6, 7] },
     silent: true,
     z: 300,
-    clip: false,
+    clip: true,
     animation: false,
   },
   {
@@ -856,9 +912,11 @@ const getChartOption = () => {
   const yAxis = getyAxisConfig(activeYMin, activeYMax, isDarkTheme.value, selectedRegion ? formatDetailAddress : null);
   if (selectedRegion) {
     Object.assign(yAxis.axisLabel, {
+      color: 'transparent',
+      formatter: (value) => value === activeYMin || value === activeYMax ? formatDetailAddress(value) : '',
       width: 70,
       overflow: 'truncate',
-      ellipsis: '...',
+      ellipsis: '...', //
     });
   }
   const option = {
@@ -896,6 +954,7 @@ const applyRegionView = () => {
   const visibleXRange = getVisibleXAxisRange(myChart, timelineState);
   const { min, max } = getActiveYAxisBounds();
   myChart.clear();
+  hideAxisAddressTooltip();
   tensorAddressGuide.reset();
   myChart.setOption(getChartOption());
   myChart.dispatchAction({
@@ -906,6 +965,7 @@ const applyRegionView = () => {
       { dataZoomId: 'y-inside', startValue: min, endValue: max },
     ],
   });
+  updateAxisAddressLabels();
 };
 const enterRegionDetail = (regionData) => {
   const regionId = Number(regionData?.[3]);
@@ -1092,6 +1152,35 @@ const zoomYAxisAroundMouse = (mousePixel, zoomIn) => {
     startValue: nextMin,
     endValue: nextMax,
   });
+  updateAxisAddressLabels();
+};
+
+const updateAxisAddressLabels = () => {
+  if (selectedRegionId.value === null || !myChart) {
+    axisAddressLabels.value = [];
+    return;
+  }
+
+  const gridRect = myChart.getModel().getComponent('grid', 0)?.coordinateSystem?.getRect?.();
+  const { min, max } = getVisibleYAxisExtent();
+  if (!gridRect) {
+    axisAddressLabels.value = [];
+    return;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+    axisAddressLabels.value = [];
+    return;
+  }
+
+  const left = gridRect.x - AXIS_ADDRESS_LABEL_MARGIN - AXIS_ADDRESS_LABEL_WIDTH;
+  axisAddressLabels.value = getEvenlySpacedAxisValues(min, max, DETAIL_Y_AXIS_SEGMENTS)
+    .map((value) => ({
+      value,
+      text: formatDetailAddress(value),
+      left,
+      top: Number(myChart.convertToPixel({ yAxisIndex: 0 }, value)),
+    }))
+    .filter((label) => Number.isFinite(label.top));
 };
 
 const getVisibleYAxisExtent = () => {
@@ -1567,6 +1656,10 @@ const initChart = (onRendered) => {
     scheduleSearchOverlayUpdate();
     tensorAddressGuide.render();
 
+    if (selectedRegionId.value !== null) {
+      updateAxisAddressLabels();
+    }
+
     if (isProgrammaticZoom) {
       return;
     }
@@ -1688,8 +1781,14 @@ const initChart = (onRendered) => {
 
   myChart.getZr().on('mousemove', (event) => {
     const regionData = findHoveredRegionData(event.offsetX, event.offsetY);
+    const axisAddress = findHoveredAxisAddress(event.offsetX, event.offsetY);
 
     hoveredRegionData = regionData;
+    if (axisAddress) {
+      showAxisAddressTooltip(axisAddress, event.offsetX, event.offsetY);
+    } else {
+      hideAxisAddressTooltip();
+    }
   });
 
   myChart.getZr().on('click', (event) => {
@@ -1703,6 +1802,7 @@ const initChart = (onRendered) => {
 
   myChart.getZr().on('globalout', () => {
     hoveredRegionData = null;
+    hideAxisAddressTooltip();
     tensorAddressGuide.clear();
   });
 
@@ -1728,6 +1828,7 @@ const resizeChart = () => {
     });
     myChart.resize();
     tensorAddressGuide.render();
+    updateAxisAddressLabels();
   }
   if (timelineComponent.value) {
     renderTwoTimeline();
@@ -1826,6 +1927,7 @@ const resetFilters = () => {
         { dataZoomId: 'y-inside', startValue: yStart, endValue: yEnd },
       ],
     });
+    updateAxisAddressLabels();
     isProgrammaticZoom = false;
   }
   renderTwoTimeline();

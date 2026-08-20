@@ -193,7 +193,12 @@ const getTensorGeometry = (params: ChartRenderParams, api: ChartRenderApi) => {
   };
 };
 
-const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean, isMeasurementSelected: boolean, getIsDarkTheme) => {
+const getTensorBorderStyle = (
+  isSelected: boolean,
+  isSearchActive: boolean,
+  isMeasurementSelected: boolean,
+  getIsDarkTheme: () => boolean,
+) => {
   if (isMeasurementSelected) {
     return {
       stroke: getIsDarkTheme() ? '#2f80ed' : '#0a59f7',
@@ -220,17 +225,129 @@ const getTensorBorderStyle = (isSelected: boolean, isSearchActive: boolean, isMe
   };
 };
 
-const getFillcolor = (isMeasurementHighlighted, isDimmed, getIsDarkTheme) => {
-  if(isMeasurementHighlighted) {
+const getFillcolor = (isMeasurementHighlighted: boolean, isDimmed: boolean, getIsDarkTheme: () => boolean): string => {
+  if (isMeasurementHighlighted) {
     return '#232631';
   } else {
-    if(isDimmed) {
+    if (isDimmed) {
       return getIsDarkTheme() ? 'rgba(180, 180, 186, 0.7)' : 'rgba(82, 82, 88, 0.65)';
     } else {
       return getIsDarkTheme() ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)';
     }
   }
-}
+};
+
+type TensorIdentityCache = {
+  entries: unknown[] | null;
+  identities: Set<string>;
+};
+
+type TensorRenderStateOptions = Pick<
+  MemoryChartRendererOptions,
+  | 'getSelectedNode'
+  | 'getMeasuredTensors'
+  | 'getMeasurementHighlightTensors'
+  | 'getFilteredResultsCount'
+  | 'getIsDarkTheme'
+  | 'tensorColorMap'
+>;
+
+const getTensorIdentitySet = (entries: unknown[], cache: TensorIdentityCache): Set<string> => {
+  if (cache.entries !== entries) {
+    cache.entries = entries;
+    cache.identities = new Set(entries.map((entry) => getTensorIdentity(entry)).filter(Boolean));
+  }
+  return cache.identities;
+};
+
+const isMeasurementTensorSelected = (
+  chartTensorIdentity: string,
+  isMeasurementModeActive: boolean,
+  measuredTensors: unknown[],
+  measuredIdentities: Set<string>,
+  measuredAnchorIdentity: string,
+  isSameRenderedTensor: (entry: any) => boolean,
+): boolean => {
+  if (chartTensorIdentity) {
+    if (isMeasurementModeActive) {
+      return measuredAnchorIdentity === chartTensorIdentity;
+    }
+    return measuredIdentities.has(chartTensorIdentity);
+  }
+
+  if (isMeasurementModeActive) {
+    return isSameRenderedTensor(measuredTensors[0]);
+  }
+  return measuredTensors.some(isSameRenderedTensor);
+};
+
+const getTensorRenderState = (
+  api: ChartRenderApi,
+  options: TensorRenderStateOptions,
+  measuredIdentityCache: TensorIdentityCache,
+  highlightedIdentityCache: TensorIdentityCache,
+) => {
+  const {
+    getSelectedNode,
+    getMeasuredTensors,
+    getMeasurementHighlightTensors,
+    getFilteredResultsCount,
+    getIsDarkTheme,
+    tensorColorMap,
+  } = options;
+  const measurementHighlightTensors = getMeasurementHighlightTensors();
+  const isMeasurementModeActive = measurementHighlightTensors.length > 0;
+  const tensor = api.value(17);
+  const chartTensorIdentity = String(api.value(21) || '');
+  const isSameRenderedTensor = (entry: any): boolean => {
+    return chartTensorIdentity ? getTensorIdentity(entry) === chartTensorIdentity : isSameTensor(entry, tensor);
+  };
+  const measuredTensors = getMeasuredTensors();
+  const measuredIdentities = getTensorIdentitySet(measuredTensors, measuredIdentityCache);
+  const highlightedIdentities = getTensorIdentitySet(measurementHighlightTensors, highlightedIdentityCache);
+  const measuredAnchorIdentity = getTensorIdentity(measuredTensors[0]);
+  const isMeasurementSelected = isMeasurementTensorSelected(
+    chartTensorIdentity,
+    isMeasurementModeActive,
+    measuredTensors,
+    measuredIdentities,
+    measuredAnchorIdentity,
+    isSameRenderedTensor,
+  );
+  const isMeasurementHighlighted = chartTensorIdentity
+    ? highlightedIdentities.has(chartTensorIdentity)
+    : measurementHighlightTensors.some(isSameRenderedTensor);
+  const isSelected =
+    isMeasurementSelected || Boolean(getSelectedNode()?.tensors?.some((entry) => isSameRenderedTensor(entry.rawTensor)));
+  const isSearchActive = Number(api.value(19)) === 1;
+  const isSearchMatched = Number(api.value(18)) === 1;
+  const hasSearchResults = getFilteredResultsCount() > 0;
+  const isDimmedBySearch = isSearchActive && hasSearchResults;
+  const magicId = String(api.value(7) || '');
+  const originalColor = tensorColorMap[magicId]?.base || '#574096';
+  const isDimmedByMeasurement = isMeasurementModeActive && !isMeasurementHighlighted;
+  const isDimmed = isDimmedByMeasurement || isDimmedBySearch;
+  const highlightColor = getIsDarkTheme() ? 'rgba(196, 198, 212, 1)' : 'rgba(211, 212, 220, 1)';
+  let baseColor = isDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
+  let rectOpacity = isDimmed ? 0.35 : 0.8;
+  if (isMeasurementHighlighted) {
+    baseColor = highlightColor;
+    rectOpacity = 0.9;
+  }
+
+  return {
+    styleType: api.value(6),
+    magicId,
+    isSearchActive,
+    isSearchMatched,
+    hasSearchResults,
+    isMeasurementHighlighted,
+    isDimmed,
+    baseColor,
+    rectOpacity,
+    borderStyle: getTensorBorderStyle(isSelected, isSearchActive, isMeasurementSelected, getIsDarkTheme),
+  };
+};
 
 const createTensorRenderer = ({
   getSelectedNode,
@@ -241,47 +358,16 @@ const createTensorRenderer = ({
   tensorColorMap,
   patternCache,
 }: MemoryChartRendererOptions): MemoryChartRenderers['renderItem'] => {
-  const getTensorRenderState = (api: ChartRenderApi) => {
-    const measurementHighlightTensors = getMeasurementHighlightTensors();
-    const isMeasurementModeActive = measurementHighlightTensors.length > 0;
-    const tensor = api.value(17);
-    const chartTensorIdentity = String(api.value(21) || '');
-    const isSameRenderedTensor = (entry: any): boolean => {
-      return chartTensorIdentity ? getTensorIdentity(entry) === chartTensorIdentity : isSameTensor(entry, tensor);
-    };
-    const measuredTensors = getMeasuredTensors();
-    const isMeasurementSelected = (isMeasurementModeActive ? measuredTensors.slice(0, 1) : measuredTensors).some(isSameRenderedTensor);
-    const isMeasurementHighlighted = measurementHighlightTensors.some(isSameRenderedTensor);
-    const isSelected =
-      isMeasurementSelected || Boolean(getSelectedNode()?.tensors?.some((entry) => isSameRenderedTensor(entry.rawTensor)));
-    const isSearchActive = Number(api.value(19)) === 1;
-    const isSearchMatched = Number(api.value(18)) === 1;
-    const hasSearchResults = getFilteredResultsCount() > 0;
-    const isDimmedBySearch = isSearchActive && hasSearchResults;
-    const magicId = String(api.value(7) || '');
-    const originalColor = tensorColorMap[magicId]?.base || '#574096';
-    const isDimmedByMeasurement = isMeasurementModeActive && !isMeasurementHighlighted;
-    const isDimmed = isDimmedByMeasurement || isDimmedBySearch;
-    const highlightColor = getIsDarkTheme() ? 'rgba(196, 198, 212, 1)' : 'rgba(211, 212, 220, 1)';
-    let baseColor = isDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
-    let rectOpacity = isDimmed ? 0.35 : 0.8;
-    if (isMeasurementHighlighted) {
-      baseColor = highlightColor;
-      rectOpacity = 0.9;
-    }
-
-    return {
-      styleType: api.value(6),
-      magicId,
-      isSearchActive,
-      isSearchMatched,
-      hasSearchResults,
-      isMeasurementHighlighted,
-      isDimmed,
-      baseColor,
-      rectOpacity,
-      borderStyle: getTensorBorderStyle(isSelected, isSearchActive, isMeasurementSelected, getIsDarkTheme),
-    };
+  // Tensor identities are stable for a chart update, so membership checks can stay O(1).
+  const measuredIdentityCache: TensorIdentityCache = { entries: null, identities: new Set<string>() };
+  const highlightedIdentityCache: TensorIdentityCache = { entries: null, identities: new Set<string>() };
+  const tensorRenderStateOptions: TensorRenderStateOptions = {
+    getSelectedNode,
+    getMeasuredTensors,
+    getMeasurementHighlightTensors,
+    getFilteredResultsCount,
+    getIsDarkTheme,
+    tensorColorMap,
   };
 
   const createTensorChildren = (
@@ -384,7 +470,13 @@ const createTensorRenderer = ({
     return {
       type: 'group',
       silent: false,
-      children: createTensorChildren(rectShape, width, height, api, getTensorRenderState(api)),
+      children: createTensorChildren(
+        rectShape,
+        width,
+        height,
+        api,
+        getTensorRenderState(api, tensorRenderStateOptions, measuredIdentityCache, highlightedIdentityCache),
+      ),
     };
   };
 

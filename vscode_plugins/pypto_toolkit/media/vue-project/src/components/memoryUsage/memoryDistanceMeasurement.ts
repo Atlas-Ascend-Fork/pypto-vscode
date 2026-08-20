@@ -69,10 +69,6 @@ export function calculateTensorDistance<T = any>(first: T, second: T): TensorDis
   const lowerBounds = firstIsLower ? firstBounds : secondBounds;
   const upperBounds = firstIsLower ? secondBounds : firstBounds;
 
-  if (upperBounds.base < lowerBounds.end) {
-    return null;
-  }
-
   return {
     lower,
     upper,

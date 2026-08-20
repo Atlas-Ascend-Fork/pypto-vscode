@@ -461,19 +461,32 @@ export function getxAxisConfig(timelineState) {
   };
 }
 
+export function getEvenlySpacedAxisValues(min, max, segmentCount = 8) {
+  const start = Number(min);
+  const end = Number(max);
+  const segments = Math.floor(Number(segmentCount));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || segments <= 0) {
+    return [];
+  }
+
+  const step = (end - start) / segments;
+  return Array.from({ length: segments + 1 }, (_, index) => index === segments ? end : start + step * index);
+}
+
 export function getyAxisConfig(yMin, yMax, isDarkTheme, axisLabelFormatter = null, axisLabelFontSize = 11) {
+  const showAxisLabels = typeof axisLabelFormatter === 'function';
+
   return {
     type: 'value',
     min: yMin,
     max: yMax,
     inverse: true,
-    minInterval: 1,
     axisLabel: {
-      show: typeof axisLabelFormatter === 'function',
+      show: showAxisLabels,
       color: '#999999',
       fontSize: axisLabelFontSize,
       margin: 10,
-      ...(typeof axisLabelFormatter === 'function' ? { formatter: axisLabelFormatter } : {}),
+      ...(showAxisLabels ? { formatter: axisLabelFormatter } : {}),
     },
     axisLine: {
       show: false,

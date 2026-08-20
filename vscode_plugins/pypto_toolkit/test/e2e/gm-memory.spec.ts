@@ -268,6 +268,8 @@ async function attachEvidence(testInfo: TestInfo, evidence: GmMemoryEvidence): P
 }
 
 async function selectFilterableTensor(page: Page, writeSwitch: Locator): Promise<FilterEvidence> {
+  await page.getByRole('button', { name: 'Chart view' }).click();
+  await expect(page.locator('.memory-lane-chart')).toBeVisible();
   const tabs = page.locator('.tensor-tab');
   const tabCount = await tabs.count();
   for (let index = 0; index < tabCount; index++) {
@@ -292,7 +294,13 @@ async function selectFilterableTensor(page: Page, writeSwitch: Locator): Promise
   throw new Error('No visible conflict tensor exposed read cards when Write-only was disabled');
 }
 
-async function loadGmMemoryFixture(page: Page, baseURL: string | undefined): Promise<GmMemoryEvidence> {
+async function loadGmMemoryFixture(
+  page: Page,
+  baseURL: string | undefined,
+  theme = 'dark',
+  lang = 'en-us',
+  fixtureTextOverride?: string,
+): Promise<GmMemoryEvidence> {
   if (!baseURL) {
     throw new Error('Playwright baseURL is required');
   }
@@ -316,6 +324,48 @@ async function loadGmMemoryFixture(page: Page, baseURL: string | undefined): Pro
       setState: () => {},
     });
     browserWindow.__canvasTextTrace = [];
+    browserWindow.__canvasPathTrace = [];
+    const canvasPaths = new WeakMap<CanvasRenderingContext2D, Array<{ x: number; y: number }>>();
+    const originalBeginPath = CanvasRenderingContext2D.prototype.beginPath;
+    const originalMoveTo = CanvasRenderingContext2D.prototype.moveTo;
+    const originalLineTo = CanvasRenderingContext2D.prototype.lineTo;
+    const originalStroke = CanvasRenderingContext2D.prototype.stroke;
+    CanvasRenderingContext2D.prototype.beginPath = function beginPath() {
+      canvasPaths.set(this, []);
+      return originalBeginPath.call(this);
+    };
+    CanvasRenderingContext2D.prototype.moveTo = function moveTo(x, y) {
+      canvasPaths.get(this)?.push({ x, y });
+      return originalMoveTo.call(this, x, y);
+    };
+    CanvasRenderingContext2D.prototype.lineTo = function lineTo(x, y) {
+      canvasPaths.get(this)?.push({ x, y });
+      return originalLineTo.call(this, x, y);
+    };
+    CanvasRenderingContext2D.prototype.stroke = function stroke() {
+      const color = String(this.strokeStyle).toLowerCase();
+      const compactColor = color.replace(/\s/g, '');
+      if (color === '#6ea8ff' || color === '#0a59f7' || compactColor.includes('rgb(110,168,255)') || compactColor.includes('rgb(10,89,247)')) {
+        const transform = this.getTransform();
+        const points = (canvasPaths.get(this) || []).map(({ x, y }) => {
+          const transformedX = x * transform.a + y * transform.c + transform.e;
+          const transformedY = x * transform.b + y * transform.d + transform.f;
+          return {
+            x: transformedX * this.canvas.clientWidth / this.canvas.width,
+            y: transformedY * this.canvas.clientHeight / this.canvas.height,
+          };
+        });
+        if (points.length) {
+          browserWindow.__canvasPathTrace.push({
+            canvasWidth: this.canvas.clientWidth,
+            canvasHeight: this.canvas.clientHeight,
+            color,
+            points,
+          });
+        }
+      }
+      return (originalStroke as unknown as () => void).call(this);
+    };
     const originalFillText = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function fillText(text, x, y, maxWidth) {
       const canvasParentClass = this.canvas.parentElement && this.canvas.parentElement.className;
@@ -338,7 +388,7 @@ async function loadGmMemoryFixture(page: Page, baseURL: string | undefined): Pro
   await page.route(`${baseURL}/`, async (route) => {
     const response = await route.fetch();
     let body = await response.text();
-    body = body.replaceAll('{{staticPath}}', `${baseURL}/src`).replaceAll('{{ascTheme}}', 'dark').replaceAll('{{ascLang}}', 'en-us');
+    body = body.replaceAll('{{staticPath}}', `${baseURL}/src`).replaceAll('{{ascTheme}}', theme).replaceAll('{{ascLang}}', lang);
     body = body.replace(
       "window.extensionQuery = '{{query}}';",
       "window.extensionQuery = { _viewType: 'gmMemoryVisual', _uri: '', " +
@@ -349,7 +399,7 @@ async function loadGmMemoryFixture(page: Page, baseURL: string | undefined): Pro
 
   await page.goto('/');
   await expect(page.locator('#boot-middleLayer')).toBeAttached();
-  const fixtureText = await readFile(fixturePath, 'utf8');
+  const fixtureText = fixtureTextOverride ?? await readFile(fixturePath, 'utf8');
   const fixture = JSON.parse(fixtureText) as { rawTensors?: unknown[] };
   evidence.tensorCount = fixture.rawTensors ? fixture.rawTensors.length : 0;
   await page.evaluate((value) => {
@@ -359,7 +409,7 @@ async function loadGmMemoryFixture(page: Page, baseURL: string | undefined): Pro
   return evidence;
 }
 
-async function assertInitialRender(page: Page, testInfo: TestInfo, evidence: GmMemoryEvidence): Promise<void> {
+async function assertInitialRender(page: Page, testInfo: TestInfo, evidence: GmMemoryEvidence, expectedTensorCount?: number): Promise<void> {
   await expect(page.locator('.search-input')).toBeVisible({ timeout: 60000 });
   const canvas = page.locator('.echarts-container canvas').last();
   await expect(canvas).toBeVisible({ timeout: 60000 });
@@ -368,7 +418,9 @@ async function assertInitialRender(page: Page, testInfo: TestInfo, evidence: GmM
     return box ? box.width : 0;
   }).toBeGreaterThan(100);
   const stats = await waitForPaintedCanvas(page.locator('.echarts-container'));
-  if (process.env.GM_MEMORY_VISUAL_PATH) {
+  if (expectedTensorCount !== undefined) {
+    expect(evidence.tensorCount).toBe(expectedTensorCount);
+  } else if (process.env.GM_MEMORY_VISUAL_PATH) {
     expect(evidence.tensorCount).toBeGreaterThan(0);
   } else {
     expect(evidence.tensorCount).toBe(12);
@@ -505,6 +557,393 @@ test('GM memory Alt-click measures two tensors through the real chart event', as
   await attachEvidence(testInfo, evidence);
 });
 
+test('GM memory Alt-click displays a negative distance for overlapping tensors', async ({ page, baseURL }, testInfo) => {
+  const evidence = await loadGmMemoryFixture(page, baseURL);
+  await assertInitialRender(page, testInfo, evidence);
+  await closeSidebar(page);
+
+  const regionPoint = await getRegionLabelPoint(page, 0);
+  const overview = page.locator('.echarts-container');
+  const overviewBox = await overview.boundingBox();
+  if (!overviewBox) {
+    throw new Error('GM memory chart is not visible');
+  }
+  await page.mouse.dblclick(overviewBox.x + regionPoint.x, overviewBox.y + regionPoint.y);
+  await expect(page.locator('.region-detail-name')).toHaveText('Region ID: 0');
+
+  const fixture = JSON.parse(await readFile(fixturePath, 'utf8')) as {
+    rawTensors?: Array<{ base?: number; end?: number; lifeEnd?: number; lifeStart?: number; rawId?: string }>;
+    meta?: { regions?: Array<{ addr0?: number; regionId?: number; span?: number }>; t0?: number; timeUnit?: number };
+  };
+  const tensorA = fixture.rawTensors?.find((tensor) => tensor.rawId === 'tensor-a');
+  const tensorB = fixture.rawTensors?.find((tensor) => tensor.rawId === 'tensor-b');
+  const selectedRegion = fixture.meta?.regions?.find((region) => Number(region.regionId) === 0);
+  const timeUnit = Number(fixture.meta?.timeUnit);
+  const t0 = Number(fixture.meta?.t0);
+  if (!tensorA || !tensorB || !selectedRegion || !Number.isFinite(timeUnit) || !Number.isFinite(t0)) {
+    throw new Error('Expected overlapping tensors in Region 0');
+  }
+
+  const container = page.locator('.echarts-container');
+  const chartBox = await container.boundingBox();
+  if (!chartBox) {
+    throw new Error('Memory chart is not visible after region drill-down');
+  }
+  const normalizedStarts = (fixture.rawTensors || []).map((tensor) => (Number(tensor.lifeStart) - t0) / timeUnit);
+  const normalizedEnds = (fixture.rawTensors || []).map((tensor) => (Number(tensor.lifeEnd) - t0) / timeUnit);
+  const minimumTime = Math.max(0, Math.min(...normalizedStarts));
+  const maximumTensorTime = Math.max(...normalizedEnds);
+  const maximumTime = maximumTensorTime + Math.max((maximumTensorTime - minimumTime) * 0.05, 0.5);
+  const tensorPoint = (tensor: typeof tensorA, timeRatio: number, addressRatio: number): CanvasCandidate => {
+    const start = (Number(tensor.lifeStart) - t0) / timeUnit;
+    const end = (Number(tensor.lifeEnd) - t0) / timeUnit;
+    const time = start + (end - start) * timeRatio;
+    const address = Number(tensor.base) + (Number(tensor.end) - Number(tensor.base)) * addressRatio;
+    return {
+      canvasIndex: 0,
+      color: [0, 0, 0, 0],
+      x: 180 + ((time - minimumTime) / (maximumTime - minimumTime)) * (chartBox.width - 200),
+      y: 20 + ((address - Number(selectedRegion.addr0)) / Number(selectedRegion.span)) * (chartBox.height - 60),
+    };
+  };
+
+  const first = tensorPoint(tensorA, 0.25, 0.25);
+  const second = tensorPoint(tensorB, 0.75, 0.75);
+  const canvas = container.locator('canvas').first();
+  await clickWithAlt(page, canvas, first);
+  await expect(page.locator('.right-sidebar')).toBeHidden();
+  await clickWithAlt(page, canvas, second);
+  await expect(page.locator('.memory-measurement-status')).toHaveText('Distance: -200');
+
+  evidence.scenarios.overlappingAltMeasurement = {
+    first,
+    second,
+    label: await page.locator('.memory-measurement-status').innerText(),
+  };
+  await capture(page, testInfo, evidence, '02-negative-alt-measurement');
+  await attachEvidence(testInfo, evidence);
+});
+
+test('GM memory clips left measurement line after timeline zoom', async ({ page, baseURL }, testInfo) => {
+  const evidence = await loadGmMemoryFixture(page, baseURL);
+  await assertInitialRender(page, testInfo, evidence);
+  await closeSidebar(page);
+
+  const regionPoint = await getRegionLabelPoint(page, 0);
+  const overview = page.locator('.echarts-container');
+  const overviewBox = await overview.boundingBox();
+  if (!overviewBox) {
+    throw new Error('GM memory chart is not visible');
+  }
+  await page.mouse.dblclick(overviewBox.x + regionPoint.x, overviewBox.y + regionPoint.y);
+  await expect(page.locator('.region-detail-name')).toHaveText('Region ID: 0');
+
+  const fixture = JSON.parse(await readFile(fixturePath, 'utf8')) as {
+    rawTensors?: Array<{ base?: number; end?: number; lifeEnd?: number; lifeStart?: number; regionId?: number }>;
+    meta?: { regions?: Array<{ addr0?: number; regionId?: number; span?: number }>; t0?: number; timeUnit?: number };
+  };
+  const regionTensors = (fixture.rawTensors || []).filter((tensor) => Number(tensor.regionId) === 0);
+  const firstTensor = regionTensors[0];
+  const secondTensor = regionTensors.find((tensor) => Number(tensor.base) > Number(firstTensor?.end));
+  const selectedRegion = fixture.meta?.regions?.find((region) => Number(region.regionId) === 0);
+  const timeUnit = Number(fixture.meta?.timeUnit);
+  const t0 = Number(fixture.meta?.t0);
+  if (!firstTensor || !secondTensor || !selectedRegion || !Number.isFinite(timeUnit) || !Number.isFinite(t0)) {
+    throw new Error('Expected non-overlapping tensors in Region 0');
+  }
+
+  const chartBox = await overview.boundingBox();
+  if (!chartBox) {
+    throw new Error('Memory chart is not visible after region drill-down');
+  }
+  const normalizedStarts = (fixture.rawTensors || []).map((tensor) => (Number(tensor.lifeStart) - t0) / timeUnit);
+  const normalizedEnds = (fixture.rawTensors || []).map((tensor) => (Number(tensor.lifeEnd) - t0) / timeUnit);
+  const minimumTime = Math.max(0, Math.min(...normalizedStarts));
+  const maximumTensorTime = Math.max(...normalizedEnds);
+  const maximumTime = maximumTensorTime + Math.max((maximumTensorTime - minimumTime) * 0.05, 0.5);
+  const tensorPoint = (tensor: typeof firstTensor, timeRatio: number, addressRatio: number): CanvasCandidate => {
+    const start = (Number(tensor.lifeStart) - t0) / timeUnit;
+    const end = (Number(tensor.lifeEnd) - t0) / timeUnit;
+    const time = start + (end - start) * timeRatio;
+    const address = Number(tensor.base) + (Number(tensor.end) - Number(tensor.base)) * addressRatio;
+    return {
+      canvasIndex: 0,
+      color: [0, 0, 0, 0],
+      x: 180 + ((time - minimumTime) / (maximumTime - minimumTime)) * (chartBox.width - 200),
+      y: 20 + ((address - Number(selectedRegion.addr0)) / Number(selectedRegion.span)) * (chartBox.height - 60),
+    };
+  };
+
+  const first = tensorPoint(firstTensor, 0.25, 0.25);
+  const second = tensorPoint(secondTensor, 0.75, 0.75);
+  const canvas = overview.locator('canvas').first();
+  await clickWithAlt(page, canvas, first);
+  await clickWithAlt(page, canvas, second);
+  await expect(page.locator('.memory-measurement-status')).toHaveText('Distance: 200');
+  await capture(page, testInfo, evidence, 'before-zoom-measurement');
+
+  await page.evaluate(() => {
+    window.__canvasPathTrace = [];
+  });
+  const zoomPoint = { x: chartBox.x + chartBox.width - 280, y: chartBox.y + chartBox.height / 2 };
+  await page.keyboard.down('Control');
+  try {
+    await page.mouse.move(zoomPoint.x, zoomPoint.y);
+    for (let index = 0; index < 3; index++) {
+      await page.mouse.wheel(0, -100);
+    }
+  } finally {
+    await page.keyboard.up('Control');
+  }
+  await page.waitForTimeout(250);
+  await capture(page, testInfo, evidence, 'after-zoom-measurement');
+
+  const overflowEvidence = await page.evaluate(() => {
+    const container = document.querySelector('.echarts-container');
+    const width = container?.clientWidth || 0;
+    const height = container?.clientHeight || 0;
+    const plot = { left: 160, right: width - 20, top: 20, bottom: height - 40 };
+    const paths = window.__canvasPathTrace.flatMap((entry) => entry.points);
+    const outsidePlot = paths.filter((point) => point.x < plot.left || point.x > plot.right || point.y < plot.top || point.y > plot.bottom);
+    const canvas = container?.querySelector('canvas') || null;
+    const context = canvas?.getContext('2d') || null;
+    const scaleX = canvas && canvas.width ? canvas.clientWidth / canvas.width : 1;
+    const scaleY = canvas && canvas.height ? canvas.clientHeight / canvas.height : 1;
+    const marginEndX = Math.max(0, Math.floor((plot.left - 4) / scaleX));
+    let bluePixelsOutsidePlot = 0;
+    if (canvas && context) {
+      const pixels = context.getImageData(0, 0, marginEndX, canvas.height).data;
+      for (let index = 0; index < pixels.length; index += 4) {
+        const [red, green, blue, alpha] = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]];
+        if (alpha > 100 && blue > 150 && blue > red + 45 && blue > green + 25) {
+          bluePixelsOutsidePlot++;
+        }
+      }
+    }
+    return { bluePixelsOutsidePlot, canvasScale: { x: scaleX, y: scaleY }, pathCount: window.__canvasPathTrace.length, plot, outsidePlot };
+  });
+  evidence.scenarios.leftMeasurementOverflow = {
+    beforeScreenshot: 'before-zoom-measurement.png',
+    afterScreenshot: 'after-zoom-measurement.png',
+    ...overflowEvidence,
+  };
+  await attachEvidence(testInfo, evidence);
+  expect(overflowEvidence.bluePixelsOutsidePlot).toBe(0);
+});
+
+type ZoomBurstMetrics = {
+  dispatchMs: number;
+  frameCount: number;
+  longTaskCount: number;
+  longTaskMaxMs: number;
+  longTaskTotalMs: number;
+  maxFrameGapMs: number;
+  heapBytes: number | null;
+};
+
+async function measureZoomBurst(page: Page, deltaY: number, wheelCount = 8): Promise<ZoomBurstMetrics> {
+  return page.evaluate(async ({ deltaY: requestedDeltaY, wheelCount: requestedWheelCount }) => {
+    const chart = document.querySelector('.echarts-container');
+    if (!chart) {
+      throw new Error('GM memory chart is not visible for zoom measurement');
+    }
+
+    const rect = chart.getBoundingClientRect();
+    const frameTimes: number[] = [];
+    const longTasks: number[] = [];
+    const observer = new PerformanceObserver((list) => {
+      longTasks.push(...list.getEntries().map((entry) => entry.duration));
+    });
+    observer.observe({ entryTypes: ['longtask'] });
+
+    let frameHandle = 0;
+    const collectFrame = (timestamp: number) => {
+      frameTimes.push(timestamp);
+      frameHandle = requestAnimationFrame(collectFrame);
+    };
+    frameHandle = requestAnimationFrame(collectFrame);
+
+    const dispatchStartedAt = performance.now();
+    for (let index = 0; index < requestedWheelCount; index++) {
+      chart.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + rect.width * 0.72,
+        clientY: rect.top + rect.height * 0.5,
+        ctrlKey: true,
+        deltaY: requestedDeltaY,
+      }));
+    }
+    const dispatchMs = performance.now() - dispatchStartedAt;
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    cancelAnimationFrame(frameHandle);
+    observer.disconnect();
+
+    const frameGaps = frameTimes.slice(1).map((timestamp, index) => timestamp - frameTimes[index]);
+    const memory = performance as Performance & { memory?: { usedJSHeapSize: number } };
+    return {
+      dispatchMs,
+      frameCount: frameTimes.length,
+      longTaskCount: longTasks.length,
+      longTaskMaxMs: Math.max(0, ...longTasks),
+      longTaskTotalMs: longTasks.reduce((total, duration) => total + duration, 0),
+      maxFrameGapMs: Math.max(0, ...frameGaps),
+      heapBytes: memory.memory?.usedJSHeapSize ?? null,
+    };
+  }, { deltaY, wheelCount });
+}
+
+async function prepareZoomPerformancePage(
+  targetPage: Page,
+  baseURL: string | undefined,
+  fixtureText: string,
+  tensorCount: number,
+  testInfo: TestInfo,
+  activateMeasurement: boolean,
+): Promise<void> {
+  const evidence = await loadGmMemoryFixture(targetPage, baseURL, 'dark', 'en-us', fixtureText);
+  await assertInitialRender(targetPage, testInfo, evidence, tensorCount);
+  await closeSidebar(targetPage);
+
+  const regionPoint = await getRegionLabelPoint(targetPage, 0);
+  const chart = targetPage.locator('.echarts-container');
+  const chartBox = await chart.boundingBox();
+  if (!chartBox) {
+    throw new Error('GM memory chart is not visible for zoom performance measurement');
+  }
+  await targetPage.mouse.dblclick(chartBox.x + regionPoint.x, chartBox.y + regionPoint.y);
+  await expect(targetPage.locator('.region-detail-name')).toHaveText('Region ID: 0');
+
+  if (!activateMeasurement) {
+    return;
+  }
+
+  const selection = await findSelection(targetPage, 'colored', 1);
+  await closeSidebar(targetPage);
+  const canvas = chart.locator('canvas').nth(selection.point.canvasIndex);
+  await rightClickTensor(targetPage, canvas, selection.point);
+  const menu = targetPage.locator('.tensor-context-menu');
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'Show adjacent tensors' }).click();
+  await expect(menu).toBeHidden();
+  await expect(targetPage.locator('.memory-measurement-status')).toContainText('Addr:');
+  await targetPage.waitForTimeout(250);
+}
+
+test('GM memory measurement mode zoom performance', async ({ page, baseURL }, testInfo) => {
+  test.skip(!process.env.GM_MEMORY_ZOOM_PERF, 'Set GM_MEMORY_ZOOM_PERF=1 to run the opt-in zoom performance benchmark');
+  test.setTimeout(300000);
+
+  const sourceFixture = JSON.parse(await readFile(fixturePath, 'utf8')) as {
+    meta?: Record<string, unknown>;
+    rawTensors?: Array<Record<string, any>>;
+  };
+  const multiplier = 500;
+  const rawTensors = Array.from({ length: multiplier }, (_, groupIndex) => {
+    const timeOffset = groupIndex * 1000;
+    return (sourceFixture.rawTensors || []).map((tensor, tensorIndex) => ({
+      ...tensor,
+      instanceId: `${tensor.instanceId || tensorIndex}-zoom-${groupIndex}`,
+      lifeEnd: Number(tensor.lifeEnd) + timeOffset,
+      lifeStart: Number(tensor.lifeStart) + timeOffset,
+      rawId: `${tensor.rawId || tensorIndex}-zoom-${groupIndex}`,
+    }));
+  }).flat();
+  const fixtureText = JSON.stringify({ ...sourceFixture, rawTensors });
+
+  const normalPage = await page.context().newPage();
+  const measurementPage = await page.context().newPage();
+  try {
+    await prepareZoomPerformancePage(normalPage, baseURL, fixtureText, rawTensors.length, testInfo, false);
+    await prepareZoomPerformancePage(measurementPage, baseURL, fixtureText, rawTensors.length, testInfo, true);
+
+    const normalCdp = await normalPage.context().newCDPSession(normalPage);
+    const measurementCdp = await measurementPage.context().newCDPSession(measurementPage);
+    await normalCdp.send('Performance.enable');
+    await measurementCdp.send('Performance.enable');
+    const normalBefore = await normalCdp.send('Performance.getMetrics');
+    const measurementBefore = await measurementCdp.send('Performance.getMetrics');
+
+    const normalZoomIn = await measureZoomBurst(normalPage, -100);
+    const normalZoomOut = await measureZoomBurst(normalPage, 100);
+    const measurementZoomIn = await measureZoomBurst(measurementPage, -100);
+    const measurementZoomOut = await measureZoomBurst(measurementPage, 100);
+
+    const normalAfter = await normalCdp.send('Performance.getMetrics');
+    const measurementAfter = await measurementCdp.send('Performance.getMetrics');
+    const metricDelta = (before: any, after: any, name: string): number => {
+      const beforeValue = Number(before.metrics.find((entry: any) => entry.name === name)?.value || 0);
+      const afterValue = Number(after.metrics.find((entry: any) => entry.name === name)?.value || 0);
+      return (afterValue - beforeValue) * (name === 'TaskDuration' || name === 'ScriptDuration' ? 1000 : 1);
+    };
+    const report = {
+      fixtureTensorCount: rawTensors.length,
+      normal: {
+        zoomIn: normalZoomIn,
+        zoomOut: normalZoomOut,
+        taskMs: metricDelta(normalBefore, normalAfter, 'TaskDuration'),
+        scriptMs: metricDelta(normalBefore, normalAfter, 'ScriptDuration'),
+        layoutCount: metricDelta(normalBefore, normalAfter, 'LayoutCount'),
+        recalcStyleCount: metricDelta(normalBefore, normalAfter, 'RecalcStyleCount'),
+      },
+      measurementMode: {
+        zoomIn: measurementZoomIn,
+        zoomOut: measurementZoomOut,
+        taskMs: metricDelta(measurementBefore, measurementAfter, 'TaskDuration'),
+        scriptMs: metricDelta(measurementBefore, measurementAfter, 'ScriptDuration'),
+        layoutCount: metricDelta(measurementBefore, measurementAfter, 'LayoutCount'),
+        recalcStyleCount: metricDelta(measurementBefore, measurementAfter, 'RecalcStyleCount'),
+      },
+    };
+    const reportPath = testInfo.outputPath('gm-memory-zoom-performance.json');
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+    await testInfo.attach('GM memory zoom performance', { contentType: 'application/json', path: reportPath });
+    console.log(JSON.stringify(report));
+  } finally {
+    await normalPage.close();
+    await measurementPage.close();
+  }
+});
+
+test('GM memory light theme context menu remains readable', async ({ page, baseURL }, testInfo) => {
+  const evidence = await loadGmMemoryFixture(page, baseURL, 'light', 'zh');
+  await assertInitialRender(page, testInfo, evidence);
+  await closeSidebar(page);
+
+  const regionPoint = await getRegionLabelPoint(page, 0);
+  const chart = page.locator('.echarts-container');
+  const chartBox = await chart.boundingBox();
+  if (!chartBox) {
+    throw new Error('GM memory chart is not visible');
+  }
+  await page.mouse.dblclick(chartBox.x + regionPoint.x, chartBox.y + regionPoint.y);
+  await expect(page.locator('.region-detail-name')).toHaveText('Region ID: 0');
+
+  const selection = await findSelection(page, 'colored', 1);
+  await closeSidebar(page);
+  const canvas = chart.locator('canvas').nth(selection.point.canvasIndex);
+  await rightClickTensor(page, canvas, selection.point);
+  const menu = page.locator('.tensor-context-menu');
+  await expect(menu).toBeVisible();
+  await expect(menu).toHaveClass(/theme-light/);
+  await expect(menu.getByRole('menuitem')).toHaveText('显示相邻tensor');
+  const colors = await menu.evaluate((element) => {
+    const item = element.querySelector('.tensor-context-menu-item');
+    if (!item) {
+      throw new Error('Context menu item is missing');
+    }
+    const menuStyle = getComputedStyle(element);
+    const itemStyle = getComputedStyle(item);
+    return { background: menuStyle.backgroundColor, color: itemStyle.color, itemBackground: itemStyle.backgroundColor };
+  });
+  expect(colors).toEqual({ background: 'rgb(255, 255, 255)', color: 'rgb(25, 25, 25)', itemBackground: 'rgba(0, 0, 0, 0)' });
+
+  evidence.scenarios.lightContextMenu = { colors, point: selection.point };
+  await capture(page, testInfo, evidence, '02-light-context-menu');
+  await attachEvidence(testInfo, evidence);
+});
+
 test('GM memory context menu highlights adjacent tensors', async ({ page, baseURL }, testInfo) => {
   const evidence = await loadGmMemoryFixture(page, baseURL);
   await assertInitialRender(page, testInfo, evidence);
@@ -527,7 +966,7 @@ test('GM memory context menu highlights adjacent tensors', async ({ page, baseUR
   await rightClickTensor(page, canvas, selection.point);
   const menu = page.locator('.tensor-context-menu');
   await expect(menu).toBeVisible();
-  await menu.getByRole('menuitem', { name: 'Measurement Mode' }).click();
+  await menu.getByRole('menuitem', { name: 'Show adjacent tensors' }).click();
   await expect(menu).toBeHidden();
   await expect(page.locator('.memory-measurement-status')).toContainText('Addr:');
   const afterMeasurement = await waitForCanvasHashChange(container, beforeMeasurement.hash);
@@ -548,7 +987,9 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
   await test.step('single tensor selection', async () => {
     const selection = await findSelection(page, 'colored', 1);
     await expect(page.locator('.tensor-tab[aria-selected="true"]')).toHaveCount(1);
-     await expect(page.locator('.memory-lane-chart canvas')).not.toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Table view' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.access-table')).toBeVisible();
+    await expect(page.locator('.memory-lane-chart canvas')).toHaveCount(0);
     await expect(page.getByLabel('Show writes only')).toHaveCount(1);
     evidence.scenarios.singleSelection = selection;
     await capture(page, testInfo, evidence, '02-sidebar');
@@ -613,6 +1054,8 @@ test('GM memory representative fixture interactions', async ({ page, baseURL }, 
 
   await test.step('conflict tabs and navigation', async () => {
     const selection = await findSelection(page, 'red', 2);
+    await page.getByRole('button', { name: 'Chart view' }).click();
+    await expect(page.locator('.memory-lane-chart')).toBeVisible();
     await expect(page.locator('.tensor-tab[aria-selected="true"]')).toHaveCount(1);
     const activeTab = page.locator('.tensor-tab[aria-selected="true"]');
     const initialTitle = await activeTab.getAttribute('title');

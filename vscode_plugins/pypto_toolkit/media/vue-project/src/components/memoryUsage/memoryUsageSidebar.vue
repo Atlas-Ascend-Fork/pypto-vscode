@@ -494,7 +494,7 @@ const activeNode = computed(() => ({
 }));
 const writesOnly = ref(true);
 const model = computed(() => buildChartModel(activeNode.value, writesOnly.value));
-const viewMode = ref('chart');
+const viewMode = ref('table');
 const selectedAccessKey = ref('');
 const activeAccesses = computed(() => activeTensorEntry.value?.rawTensor?.accesses || []);
 const selectedAccess = computed(() => {
@@ -1222,6 +1222,10 @@ function liveResize() {
 }
 
 function rebuildCharts(clear = false) {
+  if (viewMode.value !== 'chart') {
+    return;
+  }
+
   if (rebuildTimer) {
     clearTimeout(rebuildTimer);
     rebuildTimer = null;
@@ -1279,7 +1283,7 @@ watch(
   (node) => {
     if (node) {
       activeTensorId.value = tensorEntries.value[0]?.id || '';
-      viewMode.value = 'chart';
+      viewMode.value = 'table';
       selectedAccessKey.value = '';
       sidebarWidth.value = initWidth();
       domHeight.value = computeHeight();
