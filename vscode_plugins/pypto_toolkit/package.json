@@ -236,7 +236,8 @@
     "test:prepare": "npm run clean && concurrently --kill-others-on-fail \"npm run build:webview\" \"npm run compile:vscode\" && tsc -p tsconfig.test.json && npm run postcompile",
     "test:gm-smoke:run": "vscode-test --config .vscode-test.json --label gm-memory",
     "test:gm-smoke": "npm run test:prepare && npm run test:gm-smoke:run",
-    "test": "npm run test:memory && npm run test:prepare && npm run test:gm-e2e && npm run test:gm-smoke:run"
+    "test": "npm run test:memory && npm run test:prepare && npm run test:gm-e2e && npm run test:gm-smoke:run",
+    "prepare": "husky"
   },
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
@@ -260,8 +261,8 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "^11.0.0",
-    "@commitlint/config-conventional": "^11.0.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.0.0",
     "@playwright/test": "1.61.1",
     "@types/lodash": "^4.17.21",
     "@types/mocha": "^10.0.10",
@@ -270,16 +271,17 @@
     "@vscode/test-cli": "0.0.15",
     "@vscode/test-electron": "3.0.0",
     "concurrently": "^9.2.1",
-    "eslint": "^8.34.0",
-    "glob": "^7.1.6",
-    "husky": "^4.3.0",
-    "mocha": "^7.0.1"
+    "eslint": "^9.39.5",
+    "husky": "^9.1.7",
+    "mocha": "^11.8.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "diff": "^8.0.3",
+    "mocha": {
+      "glob": "^10.5.0"
+    }
   },
   "extensionDependencies": [],
-  "repository": {},
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  }
+  "repository": {}
 }
