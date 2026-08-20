@@ -356,7 +356,20 @@ function buildAccessRow(tShape, access, dim, accessContext) {
   if (!isValidAccessRow(xStart, xEnd, yStart, yEnd)) {
     return null;
   }
-  return [dim, xStart, xEnd, yStart, yEnd, access?.seqNo ?? '', access?.funcId ?? '', access?.opIdx ?? '', access?.isWrite, 1, access?.hasOverlap];
+  return [
+    dim,
+    xStart,
+    xEnd,
+    yStart,
+    yEnd,
+    access?.seqNo ?? '',
+    access?.funcId ?? '',
+    access?.opIdx ?? '',
+    access?.isWrite,
+    1,
+    access?.hasOverlap,
+    access?.taskId,
+  ];
 }
 
 function buildChartModel(input, writesOnly) {
@@ -444,6 +457,7 @@ function buildChartModel(input, writesOnly) {
 import { ref, computed, watch, onUnmounted, nextTick, inject } from 'vue';
 import * as echarts from 'echarts';
 import { ENABLE_HAS_OVERLAP_CHECK } from './memoryFeatureFlags';
+import { generateColorListExcludingReds } from './utils';
 import MemoryAccessTable from './detail/MemoryAccessTable.vue';
 import MemoryDetailViewToggle from './detail/MemoryDetailViewToggle.vue';
 
@@ -482,6 +496,18 @@ const tensorEntries = computed(() => {
     rawTensor,
     color: props.selectedNode?.color,
   }));
+});
+const taskColorMap = computed(() => {
+  const taskIds = Array.from(
+    new Set(
+      tensorEntries.value.flatMap((entry) =>
+        (entry.rawTensor?.accesses || []).map((access) => access?.taskId).filter(hasNonEmptyValue).map(String),
+      ),
+    ),
+  );
+  const colors = generateColorListExcludingReds(taskIds.length, isDarkTheme.value);
+
+  return Object.fromEntries(taskIds.map((taskId, index) => [taskId, colors.baseColorList[index]]));
 });
 const activeTensorId = ref('');
 const activeTensorEntry = computed(() => tensorEntries.value.find((entry) => entry.id === activeTensorId.value) || tensorEntries.value[0]);
@@ -720,7 +746,6 @@ function renderItem(params, api) {
     return null;
   }
 
-  const isWrite = api.value(8) === 1 || api.value(8) === true;
   const activeSelection = selectedAccess.value;
   let isSelected = false;
   if (activeSelection) {
@@ -728,12 +753,8 @@ function renderItem(params, api) {
     const hasSameOperation = api.value(6) === activeSelection.funcId && api.value(7) === activeSelection.opIdx;
     isSelected = hasSameSequence && hasSameOperation;
   }
-  let baseFill;
-    if (isWrite) {
-      baseFill = isDarkTheme.value ? 'rgba(63,100,174,0.8)' : 'rgba(30,64,175,0.8)';
-    } else {
-      baseFill = isDarkTheme.value ? 'rgba(217,125,27,0.85)' : 'rgba(217,119,6,0.85)';
-    }
+  const taskId = api.value(11);
+  const baseFill = taskColorMap.value[hasNonEmptyValue(taskId) ? String(taskId) : ''] || '#574096';
   const shape = { ...rect, r: 4 };
 
   const children = [];
@@ -745,10 +766,6 @@ function renderItem(params, api) {
     shape,
     style: { fill: baseFill, stroke: isSelected ? '#ffffff' : 'transparent', lineWidth: isSelected ? 3 : 0 },
   });
-
-  if (!isWrite) {
-    children.push({ type: 'rect', shape, style: { fill: 'rgba(0, 0, 0, 0.4)', lineWidth: 2 }});
-  }
 
   if (api.value(9) && rect.width > CARD_LABEL_MIN_WIDTH && rect.height >= CARD_LABEL_MIN_HEIGHT) {
     const lines = [`SeqNo: ${api.value(5)}`, `FunctionID: ${api.value(6)}`, `OpID: ${api.value(7)}`];

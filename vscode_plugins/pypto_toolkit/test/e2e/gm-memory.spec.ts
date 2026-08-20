@@ -980,6 +980,103 @@ test('GM memory context menu highlights adjacent tensors', async ({ page, baseUR
   await attachEvidence(testInfo, evidence);
 });
 
+test('GM memory context menu highlights every equal-distance tensor on the same level', async ({ page, baseURL }, testInfo) => {
+  const sourceFixture = JSON.parse(await readFile(fixturePath, 'utf8')) as {
+    meta?: { regions?: Array<{ addr0?: number; regionId?: number; span?: number }>; t0?: number; timeUnit?: number };
+    rawTensors?: Array<Record<string, any>>;
+  };
+  const anchor = sourceFixture.rawTensors?.find((tensor) => tensor.rawId === 'tensor-b');
+  const selectedRegion = sourceFixture.meta?.regions?.find((region) => Number(region.regionId) === 0);
+  const timeUnit = Number(sourceFixture.meta?.timeUnit);
+  const t0 = Number(sourceFixture.meta?.t0);
+  if (!anchor || !selectedRegion || !Number.isFinite(timeUnit) || !Number.isFinite(t0)) {
+    throw new Error('Expected tensor-b and Region 0 in the representative fixture');
+  }
+
+  const tiedTensors = [
+    { ...anchor, rawId: 'tensor-tie-a', instanceId: 'instance-tie-a', base: 1700, end: 1800, size: 100, rawmagic: 'magic-tie-a', isWorkspace: false, hasOverlap: false, lifeStart: 160, lifeEnd: 190 },
+    { ...anchor, rawId: 'tensor-tie-b', instanceId: 'instance-tie-b', base: 1700, end: 1800, size: 100, rawShape: [512, 512], logicalShape: [512, 512], rawmagic: 'magic-tie-b', isWorkspace: false, hasOverlap: false, lifeStart: 270, lifeEnd: 300 },
+  ];
+  const existingNearestTensor = sourceFixture.rawTensors?.find((tensor) => tensor.rawId === 'tensor-c');
+  if (!existingNearestTensor) {
+    throw new Error('Expected tensor-c in Region 0');
+  }
+  const rawTensors = [
+    ...(sourceFixture.rawTensors || []).filter((tensor) => tensor.rawId !== existingNearestTensor.rawId),
+    ...tiedTensors,
+    existingNearestTensor,
+  ];
+  const fixtureText = JSON.stringify({ ...sourceFixture, rawTensors });
+  const evidence = await loadGmMemoryFixture(page, baseURL, 'light', 'en-us', fixtureText);
+  await assertInitialRender(page, testInfo, evidence, rawTensors.length);
+  await closeSidebar(page);
+
+  const regionPoint = await getRegionLabelPoint(page, 0);
+  const container = page.locator('.echarts-container');
+  const overviewBox = await container.boundingBox();
+  if (!overviewBox) {
+    throw new Error('Memory chart is not visible');
+  }
+  await page.mouse.dblclick(overviewBox.x + regionPoint.x, overviewBox.y + regionPoint.y);
+  await expect(page.locator('.region-detail-name')).toHaveText('Region ID: 0');
+
+  const normalizedStarts = rawTensors.map((tensor) => (Number(tensor.lifeStart) - t0) / timeUnit);
+  const normalizedEnds = rawTensors.map((tensor) => (Number(tensor.lifeEnd) - t0) / timeUnit);
+  const minimumTime = Math.max(0, Math.min(...normalizedStarts));
+  const maximumTensorTime = Math.max(...normalizedEnds);
+  const maximumTime = maximumTensorTime + Math.max((maximumTensorTime - minimumTime) * 0.05, 0.5);
+  const tensorPoint = (tensor: Record<string, any>, timeRatio: number, addressRatio: number): CanvasCandidate => {
+    const start = (Number(tensor.lifeStart) - t0) / timeUnit;
+    const end = (Number(tensor.lifeEnd) - t0) / timeUnit;
+    const time = start + (end - start) * timeRatio;
+    const address = Number(tensor.base) + (Number(tensor.end) - Number(tensor.base)) * addressRatio;
+    return {
+      canvasIndex: 0,
+      color: [0, 0, 0, 0],
+      x: 180 + ((time - minimumTime) / (maximumTime - minimumTime)) * (overviewBox.width - 200),
+      y: 20 + ((address - Number(selectedRegion.addr0)) / Number(selectedRegion.span)) * (overviewBox.height - 60),
+    };
+  };
+
+  const canvas = container.locator('canvas').first();
+  const beforeMeasurement = await canvasStats(container);
+  await rightClickTensor(page, canvas, tensorPoint(anchor, 0.25, 0.85));
+  const menu = page.locator('.tensor-context-menu');
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'Show adjacent tensors' }).click();
+  await expect(menu).toBeHidden();
+  await expect(page.locator('.memory-measurement-status')).toHaveText('Addr: 100');
+  await waitForCanvasHashChange(container, beforeMeasurement.hash);
+
+  const tiePoints = tiedTensors.map((tensor) => tensorPoint(tensor, 0.2, 0.2));
+  const differentLevelPoint = tensorPoint(existingNearestTensor, 0.2, 0.2);
+  const samplePixel = (point: CanvasCandidate) => page.evaluate((requestedPoint) => {
+    const canvasElement = document.querySelectorAll('.echarts-container canvas')[requestedPoint.canvasIndex] as HTMLCanvasElement | undefined;
+    const context = canvasElement?.getContext('2d');
+    if (!canvasElement || !context || !canvasElement.clientWidth || !canvasElement.clientHeight) {
+      throw new Error('Memory chart canvas is not available for color sampling');
+    }
+    const x = Math.max(0, Math.min(canvasElement.width - 1, Math.floor(requestedPoint.x * canvasElement.width / canvasElement.clientWidth)));
+    const y = Math.max(0, Math.min(canvasElement.height - 1, Math.floor(requestedPoint.y * canvasElement.height / canvasElement.clientHeight)));
+    return Array.from(context.getImageData(x, y, 1, 1).data);
+  }, point);
+  const tieColors = await Promise.all(tiePoints.map(samplePixel));
+  const differentLevelColor = await samplePixel(differentLevelPoint);
+  const sameColor = tieColors.every((color) => color.every((value, index) => Math.abs(value - tieColors[0][index]) <= 4));
+  const differentFromUnhighlighted = tieColors.every((color) => color.some((value, index) => Math.abs(value - differentLevelColor[index]) > 4));
+  expect(sameColor).toBe(true);
+  expect(differentFromUnhighlighted).toBe(true);
+
+  evidence.scenarios.equalDistanceMeasurement = {
+    highlightedTensorCount: tiedTensors.length + 1,
+    differentLevelColor,
+    label: await page.locator('.memory-measurement-status').innerText(),
+    tieColors,
+  };
+  await capture(page, testInfo, evidence, '02-equal-distance-measurement');
+  await attachEvidence(testInfo, evidence);
+});
+
 test('GM memory representative fixture interactions', async ({ page, baseURL }, testInfo) => {
   const evidence = await loadGmMemoryFixture(page, baseURL);
   await assertInitialRender(page, testInfo, evidence);

@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import MemoryUsageSidebar from '../memoryUsageSidebar.vue';
 import MemoryAccessTable from '../detail/MemoryAccessTable.vue';
+import { generateColorListExcludingReds } from '../utils';
 import { createMemoryUnitFixture } from './memory-unit-fixture';
 
 const chartState = vi.hoisted(() => ({
@@ -119,7 +120,7 @@ function createSelectedNode(includeSecondTensor = false, size = 400) {
 function getAccessRows(option: any) {
   return option.series
     .flatMap((series: any) => series.data || [])
-    .filter((row: any[]) => Array.isArray(row) && row.length === 11 && typeof row[8] === 'boolean');
+    .filter((row: any[]) => Array.isArray(row) && row.length === 12 && typeof row[8] === 'boolean');
 }
 
 function getRulerLabels(option: any) {
@@ -334,9 +335,15 @@ describe('memoryUsageSidebar access filter', () => {
     wrapper.unmount();
   });
 
-  it('uses the access-type colors when tensor color metadata is unavailable', async () => {
+  it('uses consistent distinct colors for access nodes based on taskId', async () => {
     const selectedNode = createSelectedNode();
-    delete selectedNode.tensors[0].color;
+    selectedNode.tensors[0].rawTensor.accesses[0].taskId = 'task-a';
+    selectedNode.tensors[0].rawTensor.accesses[1].taskId = 'task-a';
+    selectedNode.tensors[0].rawTensor.accesses.push({
+      ...selectedNode.tensors[0].rawTensor.accesses[0],
+      seqNo: 'second-task',
+      taskId: 'task-b',
+    });
     const wrapper = mount(MemoryUsageSidebar, {
       props: { selectedNode },
       global: {
@@ -350,16 +357,17 @@ describe('memoryUsageSidebar access filter', () => {
     await nextTick();
 
     const renderer = chartState.options.at(-1).series[0].renderItem;
-    const renderApi = (isWrite: number) => ({
-      value: (index: number) => [0, 0, 20, 0, 20, 1, 1, 1, isWrite, 0][index],
+    const renderApi = (taskId: string, isWrite: number) => ({
+      value: (index: number) => [0, 0, 20, 0, 20, 1, 1, 1, isWrite, 0, false, taskId][index],
       coord: ([x, y]: number[]) => [x, y],
     });
     const coordSys = { x: 0, y: 0, width: 400, height: 200 };
+    const colors = generateColorListExcludingReds(2, true).baseColorList;
 
-    expect(renderer({ coordSys }, renderApi(1)).children[0].style).toMatchObject({ fill: 'rgba(63,100,174,0.8)' });
-    const readGraphic = renderer({ coordSys }, renderApi(0));
-    expect(readGraphic.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
-    expect(readGraphic.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
+    expect(renderer({ coordSys }, renderApi('task-a', 1)).children[0].style).toMatchObject({ fill: colors[0] });
+    expect(renderer({ coordSys }, renderApi('task-a', 0)).children[0].style).toMatchObject({ fill: colors[0] });
+    expect(renderer({ coordSys }, renderApi('task-b', 1)).children[0].style).toMatchObject({ fill: colors[1] });
+    expect(colors[1]).not.toBe(colors[0]);
 
     wrapper.unmount();
   });
@@ -399,12 +407,12 @@ describe('memoryUsageSidebar access filter', () => {
       coord: ([x, y]: number[]) => [x, y],
     });
     const coordSys = { x: 0, y: 0, width: 400, height: 200 };
-    const writeCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, true, 0]));
-    const readCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, false, 0]));
+    const taskColor = generateColorListExcludingReds(1, true).baseColorList[0];
+    const writeCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, true, 0, false, 1]));
+    const readCard = cardRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1, 1, 1, false, 0, false, 1]));
     expect(writeCard.type).toBe('group');
-    expect(writeCard.children[0].style).toMatchObject({ fill: 'rgba(63,100,174,0.8)' });
-    expect(readCard.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
-    expect(readCard.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
+    expect(writeCard.children[0].style).toMatchObject({ fill: taskColor });
+    expect(readCard.children[0].style).toMatchObject({ fill: taskColor });
     expect(cardRenderer({ coordSys }, renderApi([0, 17, 18, 0, 20, 1, 1, 1, true, 0]))).toBeNull();
     const overlapRenderer = initialOption.series[1].renderItem;
     expect(overlapRenderer({ coordSys }, renderApi([0, -10, 20, 0, 20, 1]))).not.toBeNull();
@@ -443,10 +451,9 @@ describe('memoryUsageSidebar access filter', () => {
     expect(secondTensorOption.xAxis.map((axis: any) => axis.max)).toEqual([2, 2, 2]);
     const secondTensorReadCard = secondTensorOption.series[0].renderItem(
       { coordSys },
-      renderApi([0, 0, 20, 0, 20, 1, 1, 1, false, 0]),
+      renderApi([0, 0, 20, 0, 20, 1, 1, 1, false, 0, false, 1]),
     );
-    expect(secondTensorReadCard.children[0].style).toMatchObject({ fill: 'rgba(217,125,27,0.85)' });
-    expect(secondTensorReadCard.children[1].style).toMatchObject({ fill: 'rgba(0, 0, 0, 0.4)' });
+    expect(secondTensorReadCard.children[0].style).toMatchObject({ fill: taskColor });
 
     expect(chartState.initCount).toBe(1);
     expect(chartState.disposeCount).toBe(0);

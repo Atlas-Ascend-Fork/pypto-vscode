@@ -495,21 +495,16 @@ const getMeasurementRenderState = () => {
   }
 
   const measuredEntries = adjacent
-    ? [adjacent.anchor, adjacent.above?.lower, adjacent.above?.upper, adjacent.below?.lower, adjacent.below?.upper].filter(Boolean)
+    ? [
+      adjacent.anchor,
+      ...adjacent.aboveCandidates.flatMap((measurement) => [measurement.lower, measurement.upper]),
+      ...adjacent.belowCandidates.flatMap((measurement) => [measurement.lower, measurement.upper]),
+    ].filter(Boolean)
     : [first, second].filter(Boolean);
   const measured = measuredEntries
     .map((entry) => entry.rawObj || entry)
     .filter((entry, index, entries) => entries.indexOf(entry) === index);
-  let highlighted = [];
-  if (adjacent) {
-    const anchorMagicId = getTensorMagicId(adjacent.anchor.rawObj || adjacent.anchor);
-    const highlightedEntries = getActiveMemoryBlocks().filter((entry) => {
-      return getTensorMagicId(entry.rawObj || entry) === anchorMagicId;
-    });
-    highlighted = [...measuredEntries, ...highlightedEntries]
-      .map((entry) => entry.rawObj || entry)
-      .filter((entry, index, entries) => entries.indexOf(entry) === index);
-  }
+  const highlighted = adjacent ? measured : [];
 
   measurementRenderCache = { adjacent, first, second, regionId, memoryData: currentMemoryData, tensorCount, measured, highlighted };
   return measurementRenderCache;
@@ -1273,7 +1268,27 @@ const drawFixedTimelineSlider = (ctx, canvas, startTimex, endTimex) => {
   ctx.stroke();
 };
 
+const hasValidTimelineViewport = () => {
+  const hasValidCanvasWidth = Number.isFinite(viewState.canvasCssWidth) && viewState.canvasCssWidth > 0;
+  const hasValidScale = Number.isFinite(viewState.scale) && viewState.scale > 0;
+  return hasValidCanvasWidth && hasValidScale;
+};
+
 const renderFixedTimeline = () => {
+  const canvasWidth = viewState.canvasCssWidth;
+  if (!hasValidTimelineViewport()) {
+    return;
+  }
+
+  const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
+  const startTime = viewState.minTime + Math.abs(viewState.offsetX * timelinePerPixel);
+  const endTime = startTime + canvasWidth * timelinePerPixel;
+
+  timelineState.startTime = startTime;
+  timelineState.startTimeDecimal = startTime;
+  timelineState.endTime = endTime;
+  timelineState.endTimeDecimal = endTime;
+
   const component = timelineComponent.value;
   if (!component || !component.fixedtimelineCtx || !component.fixedtimelineCanvas) {
     return;
@@ -1296,22 +1311,13 @@ const renderFixedTimeline = () => {
   ctx.stroke();
 
   let lastLabelRight = -Infinity;
-  const canvasWidth = viewState.canvasCssWidth;
   const timePerPixel = viewState.timeRange / canvasWidth;
   const gridInterval = calculateGridInterval(timePerPixel);
 
-  const timelinePerPixel = viewState.timeRange / (canvasWidth * viewState.scale);
-  const startTime = viewState.minTime + Math.abs(viewState.offsetX * timelinePerPixel);
   const startTimex = fixedTimeToX(startTime) - layout.processLabelWidth;
-
-  const endTime = startTime + canvasWidth * timelinePerPixel;
   const endTimex = fixedTimeToX(endTime) - layout.processLabelWidth;
 
-  timelineState.startTime = startTime;
-  timelineState.startTimeDecimal = startTime;
   timelineState.startTimeX = startTimex;
-  timelineState.endTime = endTime;
-  timelineState.endTimeDecimal = endTime;
   timelineState.endTimeX = endTimex;
   timeLineX.value = timeToX(viewState.maxTime) - layout.processLabelWidth;
 
@@ -1356,15 +1362,20 @@ const renderFixedTimeline = () => {
   drawFixedTimelineSlider(ctx, canvas, startTimex, endTimex);
 };
 const syncTimelineViewStateFromRange = (startTime, endTime, shouldRender = true) => {
-  const canvasWidth = viewState.canvasCssWidth;
-
-  if (!canvasWidth || canvasWidth <= 0) {
-    return;
-  }
-
   const visibleRange = endTime - startTime;
 
   if (!Number.isFinite(visibleRange) || visibleRange <= 0) {
+    return;
+  }
+
+  timelineState.startTime = startTime;
+  timelineState.startTimeDecimal = startTime;
+  timelineState.endTime = endTime;
+  timelineState.endTimeDecimal = endTime;
+
+  const canvasWidth = viewState.canvasCssWidth;
+
+  if (!canvasWidth || canvasWidth <= 0) {
     return;
   }
 
@@ -1422,7 +1433,7 @@ const renderTimeline = () => {
       x = 0;
     }
     if (x >= 0 && x <= viewState.canvasCssWidth) {
-      const { value, unit } = formatTimelineUnit(timelineTimeRange, time - timelineState.startTime, gridInterval);
+      const { value, unit } = formatTimelineUnit(timelineTimeRange, time - viewState.minTime, gridInterval);
       ctx.fillStyle = isDarkTheme.value ? 'rgba(230, 230, 230)' : 'rgba(25, 25, 25)';
       ctx.font = '12px Arial';
       const timeValue = xToTimeValue(time);

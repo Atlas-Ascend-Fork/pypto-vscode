@@ -7,7 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-import { defineComponent, nextTick, ref } from 'vue';
+import { defineComponent, inject, nextTick, ref } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +22,9 @@ const testState = vi.hoisted(() => ({
   charts: [] as any[],
   eventHandlers: new Map<string, (...args: any[]) => void>(),
   zrHandlers: new Map<string, (...args: any[]) => void>(),
+  timelineState: null as any,
+  viewState: null as any,
+  swimGraphMethods: null as any,
 }));
 
 vi.mock('@/core/use-view-server.ts', () => ({
@@ -110,6 +113,10 @@ vi.mock('echarts', () => {
 const TimelineStub = defineComponent({
   name: 'SwimGraphTimeline',
   setup(_, { expose }) {
+    const swimGraphState = inject<any>('swimGraphState');
+    testState.timelineState = swimGraphState.timelineState;
+    testState.viewState = swimGraphState.viewState;
+    testState.swimGraphMethods = inject<any>('swimGraphMethods');
     expose({
       flagRender: vi.fn(),
       initCanvases: vi.fn(),
@@ -176,6 +183,9 @@ describe('memoryUsage happy path', () => {
     testState.charts = [];
     testState.eventHandlers.clear();
     testState.zrHandlers.clear();
+    testState.timelineState = null;
+    testState.viewState = null;
+    testState.swimGraphMethods = null;
   });
 
   afterEach(() => {
@@ -264,6 +274,39 @@ describe('memoryUsage happy path', () => {
     await nextTick();
     expect(overlapSelection).not.toBe(visualOverlapSelection);
     expect(wrapper.getComponent({ name: 'MemoryUsageSidebar' }).props('selectedNode')).toBe(visualOverlapSelection);
+
+    wrapper.unmount();
+  });
+
+  it('keeps the level-2 timeline range synchronized for chart and timeline zoom', async () => {
+    const wrapper = mountMemoryUsage();
+    await settleMemoryView();
+
+    const chartElement = wrapper.get('.echarts-container').element;
+    const ctrlWheel = new WheelEvent('wheel', { bubbles: true, cancelable: true });
+    Object.defineProperties(ctrlWheel, {
+      clientX: { value: 6 },
+      ctrlKey: { value: true },
+      deltaY: { value: -1 },
+    });
+    chartElement.dispatchEvent(ctrlWheel);
+
+    expect(ctrlWheel.defaultPrevented).toBe(true);
+    const zoomAction = testState.chart.dispatchAction.mock.calls.findLast(([action]) => action.dataZoomIndex === 1)?.[0];
+    expect(zoomAction.endValue - zoomAction.startValue).toBeLessThan(10.5);
+    expect(testState.timelineState.startTime).toBeCloseTo(zoomAction.startValue);
+    expect(testState.timelineState.endTime).toBeCloseTo(zoomAction.endValue);
+
+    testState.viewState.canvasCssWidth = 800;
+    testState.viewState.scale = 2;
+    testState.viewState.offsetX = -100;
+    testState.swimGraphMethods.transform();
+
+    const timelinePerPixel = testState.viewState.timeRange / (testState.viewState.canvasCssWidth * testState.viewState.scale);
+    const expectedStart = testState.viewState.minTime + Math.abs(testState.viewState.offsetX * timelinePerPixel);
+    const expectedEnd = expectedStart + testState.viewState.canvasCssWidth * timelinePerPixel;
+    expect(testState.timelineState.startTime).toBeCloseTo(expectedStart);
+    expect(testState.timelineState.endTime).toBeCloseTo(expectedEnd);
 
     wrapper.unmount();
   });
@@ -392,6 +435,15 @@ describe('memoryUsage happy path', () => {
       },
       {
         ...data.rawTensors[1],
+        rawId: 'tensor-f',
+        instanceId: 'instance-f',
+        base: 1700,
+        end: 1800,
+        size: 100,
+        rawmagic: 'magic-delta-tie',
+      },
+      {
+        ...data.rawTensors[1],
         rawId: 'tensor-e',
         instanceId: 'instance-e',
         base: 1850,
@@ -408,6 +460,34 @@ describe('memoryUsage happy path', () => {
         size: 100,
         regionId: 1,
         rawmagic: 'magic-beta',
+      },
+      {
+        ...data.rawTensors[1],
+        rawId: 'tensor-above-a',
+        instanceId: 'instance-above-a',
+        base: 1000,
+        end: 1100,
+        size: 100,
+        rawmagic: 'magic-above-a',
+        lifeStart: 220,
+        lifeEnd: 260,
+        isWorkspace: false,
+        hasOverlap: false,
+      },
+      {
+        ...data.rawTensors[1],
+        rawId: 'tensor-above-b',
+        instanceId: 'instance-above-b',
+        base: 1000,
+        end: 1100,
+        size: 100,
+        rawmagic: 'magic-above-b',
+        rawShape: [2, 2],
+        logicalShape: [2, 2],
+        lifeStart: 270,
+        lifeEnd: 310,
+        isWorkspace: false,
+        hasOverlap: false,
       },
     ];
     testState.server.GmMemoryVisualData = ref(data);
@@ -429,7 +509,12 @@ describe('memoryUsage happy path', () => {
     enterRegionDetail(initialOption);
     await nextTick();
     const detailOption = testState.chart.setOption.mock.calls.at(-1)[0];
-    const anchorTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[1];
+    const detailTensors = detailOption.series.find((series: any) => series.id === 'tensors').data;
+    const getTensorRow = (rawId: string) => detailTensors.find((row: any[]) => row[17]?.rawId === rawId);
+    const anchorTensor = getTensorRow('tensor-b');
+    if (!anchorTensor) {
+      throw new Error('Expected tensor-b in Region 0 detail');
+    }
 
     contextMenuHandler?.({
       seriesId: 'tensors',
@@ -448,10 +533,12 @@ describe('memoryUsage happy path', () => {
     expect(wrapper.find('.tensor-context-menu').exists()).toBe(false);
     const measurementOption = testState.chart.setOption.mock.calls.at(-1)[0];
     const measurementSeries = measurementOption.series.find((series: any) => series.id === 'tensor-distance');
-    expect(measurementSeries.data).toHaveLength(1);
-    expect(measurementSeries.data[0][8]).toBe(100);
-    expect(measurementSeries.data[0][9]).toBe('Addr: 100');
-    expect(wrapper.get('.memory-measurement-status').text()).toBe('Addr: 100');
+    expect(measurementSeries.data).toHaveLength(2);
+    expect(measurementSeries.data[0][8]).toBe(200);
+    expect(measurementSeries.data[1][8]).toBe(100);
+    expect(measurementSeries.data[0][9]).toBe('Addr: 200');
+    expect(measurementSeries.data[1][9]).toBe('Addr: 100');
+    expect(wrapper.get('.memory-measurement-status').text()).toBe('Addr: 200, Addr: 100');
 
     const highlightedGraphic = initialOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
@@ -497,16 +584,49 @@ describe('memoryUsage happy path', () => {
       }),
     ]));
 
-    const sameMagicTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[3];
-    const sameMagicGraphic = detailOption.series[0].renderItem(
+    const tiedTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[3];
+    const tiedGraphic = detailOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
       {
         coord: (value: number[]) => value.map((entry) => entry * 100),
-        value: (index: number) => index === 17 ? { ...sameMagicTensor[index] } : sameMagicTensor[index],
+        value: (index: number) => index === 17 ? { ...tiedTensor[index] } : tiedTensor[index],
       },
     );
-    expect(sameMagicGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(211, 212, 220, 1)', opacity: 0.9 }) }),
+    expect(tiedGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'rect',
+        style: expect.objectContaining({ fill: 'rgba(211, 212, 220, 1)', opacity: 0.9, stroke: 'transparent' }),
+      }),
+    ]));
+
+    const aboveTensor = getTensorRow('tensor-above-b');
+    if (!aboveTensor) {
+      throw new Error('Expected tied above tensor in Region 0 detail');
+    }
+    const aboveGraphic = detailOption.series[0].renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => index === 17 ? { ...aboveTensor[index] } : aboveTensor[index],
+      },
+    );
+    expect(aboveGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'rect',
+        style: expect.objectContaining({ fill: 'rgba(211, 212, 220, 1)', opacity: 0.9, stroke: 'transparent' }),
+      }),
+    ]));
+
+    const fartherSameMagicTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[4];
+    const fartherSameMagicGraphic = detailOption.series[0].renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => index === 17 ? { ...fartherSameMagicTensor[index] } : fartherSameMagicTensor[index],
+      },
+    );
+    expect(fartherSameMagicGraphic.children).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(130, 130, 130, 0.55)', opacity: 0.35 }) }),
     ]));
 
     const unrelatedTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[0];

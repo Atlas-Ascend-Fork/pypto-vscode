@@ -43,22 +43,46 @@ describe('GM memory happy-path pipeline', () => {
     expect(calculateTensorDistance({ absoluteBase: 'invalid', absoluteEnd: 200 } as any, upper)).toBeNull();
   });
 
-  it('finds the nearest address boundary above and below in the same region', () => {
+  it('finds nearest same-level tensors above and below in the same region', () => {
     const anchor = { absoluteBase: 300, absoluteEnd: 400, regionId: 1 };
     const overlappingAbove = { absoluteBase: 200, absoluteEnd: 320, regionId: 1 };
     const fartherAbove = { absoluteBase: 100, absoluteEnd: 150, regionId: 1 };
+    const sameLevelAbove = { absoluteBase: 100, absoluteEnd: 150, regionId: 1 };
+    const differentLevelAbove = { absoluteBase: 50, absoluteEnd: 150, regionId: 1 };
     const overlappingBelow = { absoluteBase: 390, absoluteEnd: 450, regionId: 1 };
     const fartherBelow = { absoluteBase: 600, absoluteEnd: 700, regionId: 1 };
+    const sameLevelBelow = { absoluteBase: 600, absoluteEnd: 700, regionId: 1 };
+    const differentLevelBelow = { absoluteBase: 600, absoluteEnd: 650, regionId: 1 };
     const touchingAbove = { absoluteBase: 250, absoluteEnd: 300, regionId: 1 };
     const otherRegion = { absoluteBase: 399, absoluteEnd: 410, regionId: 2 };
 
-    expect(findAdjacentTensorMeasurements(anchor, [fartherBelow, otherRegion, overlappingAbove, fartherAbove, overlappingBelow])).toEqual({
+    const adjacent = findAdjacentTensorMeasurements(anchor, [
+      fartherBelow,
+      differentLevelBelow,
+      sameLevelBelow,
+      otherRegion,
+      overlappingAbove,
+      fartherAbove,
+      differentLevelAbove,
+      sameLevelAbove,
+      overlappingBelow,
+    ]);
+    expect(adjacent).toEqual({
       anchor,
       above: expect.objectContaining({ lower: fartherAbove, upper: anchor, distance: 150 }),
       below: expect.objectContaining({ lower: anchor, upper: fartherBelow, distance: 200 }),
+      aboveCandidates: [
+        expect.objectContaining({ lower: fartherAbove, upper: anchor, distance: 150 }),
+        expect.objectContaining({ lower: sameLevelAbove, upper: anchor, distance: 150 }),
+      ],
+      belowCandidates: [
+        expect.objectContaining({ lower: anchor, upper: fartherBelow, distance: 200 }),
+        expect.objectContaining({ lower: anchor, upper: sameLevelBelow, distance: 200 }),
+      ],
     });
     expect(findAdjacentTensorMeasurements(anchor, [touchingAbove])).toMatchObject({
       above: expect.objectContaining({ lower: touchingAbove, upper: anchor, distance: 0 }),
+      aboveCandidates: [expect.objectContaining({ lower: touchingAbove, upper: anchor, distance: 0 })],
     });
   });
 

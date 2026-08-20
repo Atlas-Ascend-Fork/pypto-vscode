@@ -25,6 +25,13 @@ export type AdjacentTensorMeasurement<T = any> = {
   anchor: T;
   above: TensorDistanceMeasurement<T> | null;
   below: TensorDistanceMeasurement<T> | null;
+  aboveCandidates: TensorDistanceMeasurement<T>[];
+  belowCandidates: TensorDistanceMeasurement<T>[];
+};
+
+type TensorDistanceCandidate<T = any> = {
+  measurement: TensorDistanceMeasurement<T>;
+  bounds: TensorAddressBounds;
 };
 
 function toFiniteNumber(value: unknown): number | null {
@@ -93,18 +100,26 @@ function isSameRegion(first: any, second: any): boolean {
   return String(firstRegionId) === String(secondRegionId);
 }
 
-function compareCandidate<T>(
-  current: TensorDistanceMeasurement<T> | null,
-  candidate: TensorDistanceMeasurement<T>,
-): TensorDistanceMeasurement<T> {
-  if (!current || candidate.distance < current.distance) {
-    return candidate;
-  }
-  if (candidate.distance > current.distance) {
-    return current;
+function selectNearestCandidates<T>(candidates: TensorDistanceCandidate<T>[]): TensorDistanceMeasurement<T>[] {
+  if (!candidates.length) {
+    return [];
   }
 
-  return candidate.lowerBoundary < current.lowerBoundary ? candidate : current;
+  const nearestDistance = candidates.reduce((nearest, candidate) => Math.min(nearest, candidate.measurement.distance), Infinity);
+  const nearestRow = candidates.find((candidate) => candidate.measurement.distance === nearestDistance);
+  if (!nearestRow) {
+    return [];
+  }
+
+  return candidates
+    .filter((candidate) => {
+      return (
+        candidate.measurement.distance === nearestDistance &&
+        candidate.bounds.base === nearestRow.bounds.base &&
+        candidate.bounds.end === nearestRow.bounds.end
+      );
+    })
+    .map((candidate) => candidate.measurement);
 }
 
 export function findAdjacentTensorMeasurements<T = any>(anchor: T, tensors: T[]): AdjacentTensorMeasurement<T> | null {
@@ -113,8 +128,8 @@ export function findAdjacentTensorMeasurements<T = any>(anchor: T, tensors: T[])
     return null;
   }
 
-  let above: TensorDistanceMeasurement<T> | null = null;
-  let below: TensorDistanceMeasurement<T> | null = null;
+  const aboveCandidates: TensorDistanceCandidate<T>[] = [];
+  const belowCandidates: TensorDistanceCandidate<T>[] = [];
 
   tensors.forEach((candidate) => {
     if (!candidate || candidate === anchor || !isSameRegion(candidate, anchor)) {
@@ -128,13 +143,22 @@ export function findAdjacentTensorMeasurements<T = any>(anchor: T, tensors: T[])
     }
 
     if (candidateBounds.end <= anchorBounds.base) {
-      above = compareCandidate(above, measurement);
+      aboveCandidates.push({ measurement, bounds: candidateBounds });
     } else if (candidateBounds.base >= anchorBounds.end) {
-      below = compareCandidate(below, measurement);
+      belowCandidates.push({ measurement, bounds: candidateBounds });
     }
   });
 
-  return { anchor, above, below };
+  const nearestAboveCandidates = selectNearestCandidates(aboveCandidates);
+  const nearestBelowCandidates = selectNearestCandidates(belowCandidates);
+
+  return {
+    anchor,
+    above: nearestAboveCandidates[0] || null,
+    below: nearestBelowCandidates[0] || null,
+    aboveCandidates: nearestAboveCandidates,
+    belowCandidates: nearestBelowCandidates,
+  };
 }
 
 export function getMeasurementTensorIdentity(tensor: any): string {
