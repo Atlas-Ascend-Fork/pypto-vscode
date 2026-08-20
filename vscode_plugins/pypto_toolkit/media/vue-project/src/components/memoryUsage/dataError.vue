@@ -42,10 +42,11 @@ export default {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--devui-title-text);
 }
 
 .data-error__message {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--devui-secondary-text);
 }
 </style>
