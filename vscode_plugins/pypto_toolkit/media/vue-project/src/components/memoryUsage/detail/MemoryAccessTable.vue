@@ -12,7 +12,7 @@
     <div class="access-table-toolbar">
       <label class="access-search">
         <d-icon name="icon-search" size="15px" />
-        <input v-model="search" type="search" :placeholder="$t('tableSearch')" aria-label="Search accesses" />
+        <input v-model="search" type="search" :placeholder="$t('searchFuncOrOp')" aria-label="Search accesses" />
       </label>
     </div>
     <div class="access-table-scroll">
@@ -63,13 +63,13 @@
             <td :title="formatCell(row.access.execEnd)">{{ formatCell(row.access.execEnd) }}</td>
           </tr>
           <tr v-if="!pagedRows.length" class="empty-row">
-            <td colspan="9">No matching accesses</td>
+            <td colspan="9">{{ $t('noMatchingAccesses') }}</td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="access-pagination">
-      <span>{{ rows.length }} accesses</span>
+      <span>{{ $t('accessesCount', { count: rows.length }) }}</span>
       <label>
         <span class="sr-only">Rows per page</span>
         <select v-model.number="pageSize" aria-label="Rows per page">
