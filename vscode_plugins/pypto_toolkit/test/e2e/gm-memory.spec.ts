@@ -980,7 +980,8 @@ test('GM memory context menu highlights adjacent tensors', async ({ page, baseUR
   await attachEvidence(testInfo, evidence);
 });
 
-test('GM memory context menu highlights every equal-distance tensor on the same level', async ({ page, baseURL }, testInfo) => {
+for (const theme of ['light', 'dark'] as const) {
+test(`GM memory context menu highlights every equal-distance tensor on the same level in ${theme} theme`, async ({ page, baseURL }, testInfo) => {
   const sourceFixture = JSON.parse(await readFile(fixturePath, 'utf8')) as {
     meta?: { regions?: Array<{ addr0?: number; regionId?: number; span?: number }>; t0?: number; timeUnit?: number };
     rawTensors?: Array<Record<string, any>>;
@@ -1007,7 +1008,7 @@ test('GM memory context menu highlights every equal-distance tensor on the same 
     existingNearestTensor,
   ];
   const fixtureText = JSON.stringify({ ...sourceFixture, rawTensors });
-  const evidence = await loadGmMemoryFixture(page, baseURL, 'light', 'en-us', fixtureText);
+  const evidence = await loadGmMemoryFixture(page, baseURL, theme, 'en-us', fixtureText);
   await assertInitialRender(page, testInfo, evidence, rawTensors.length);
   await closeSidebar(page);
 
@@ -1064,18 +1065,23 @@ test('GM memory context menu highlights every equal-distance tensor on the same 
   const differentLevelColor = await samplePixel(differentLevelPoint);
   const sameColor = tieColors.every((color) => color.every((value, index) => Math.abs(value - tieColors[0][index]) <= 4));
   const differentFromUnhighlighted = tieColors.every((color) => color.some((value, index) => Math.abs(value - differentLevelColor[index]) > 4));
+  const preservedColorSpread = Math.max(...differentLevelColor.slice(0, 3)) - Math.min(...differentLevelColor.slice(0, 3));
   expect(sameColor).toBe(true);
   expect(differentFromUnhighlighted).toBe(true);
+  expect(preservedColorSpread).toBeGreaterThan(8);
 
   evidence.scenarios.equalDistanceMeasurement = {
     highlightedTensorCount: tiedTensors.length + 1,
     differentLevelColor,
     label: await page.locator('.memory-measurement-status').innerText(),
+    preservedColorSpread,
+    theme,
     tieColors,
   };
-  await capture(page, testInfo, evidence, '02-equal-distance-measurement');
+  await capture(page, testInfo, evidence, `02-equal-distance-measurement-${theme}`);
   await attachEvidence(testInfo, evidence);
 });
+}
 
 test('GM memory representative fixture interactions', async ({ page, baseURL }, testInfo) => {
   const evidence = await loadGmMemoryFixture(page, baseURL);

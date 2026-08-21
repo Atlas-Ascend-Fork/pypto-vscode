@@ -242,6 +242,30 @@ type TensorIdentityCache = {
   identities: Set<string>;
 };
 
+const getMaskedTensorColor = (color: string, isDarkTheme: boolean, cache: Map<string, string>): string => {
+  const cacheKey = `${isDarkTheme ? 'dark' : 'light'}:${color}`;
+  const cachedColor = cache.get(cacheKey);
+  if (cachedColor) {
+    return cachedColor;
+  }
+
+  const match = color.match(/^#([0-9a-f]{6})$/i);
+  if (!match) {
+    return color;
+  }
+
+  const value = Number.parseInt(match[1], 16);
+  const maskChannel = isDarkTheme ? 31 : 255;
+  const maskOpacity = 0.62;
+  const blendChannel = (channel: number): number => Math.round(channel * (1 - maskOpacity) + maskChannel * maskOpacity);
+  const red = blendChannel((value >> 16) & 0xff);
+  const green = blendChannel((value >> 8) & 0xff);
+  const blue = blendChannel(value & 0xff);
+  const maskedColor = `rgb(${red}, ${green}, ${blue})`;
+  cache.set(cacheKey, maskedColor);
+  return maskedColor;
+};
+
 type TensorRenderStateOptions = Pick<
   MemoryChartRendererOptions,
   | 'getSelectedNode'
@@ -286,6 +310,7 @@ const getTensorRenderState = (
   options: TensorRenderStateOptions,
   measuredIdentityCache: TensorIdentityCache,
   highlightedIdentityCache: TensorIdentityCache,
+  maskedColorCache: Map<string, string>,
 ) => {
   const {
     getSelectedNode,
@@ -328,8 +353,13 @@ const getTensorRenderState = (
   const isDimmedByMeasurement = isMeasurementModeActive && !isMeasurementHighlighted;
   const isDimmed = isDimmedByMeasurement || isDimmedBySearch;
   const highlightColor = getIsDarkTheme() ? 'rgba(196, 198, 212, 1)' : 'rgba(211, 212, 220, 1)';
-  let baseColor = isDimmed ? 'rgba(130, 130, 130, 0.55)' : originalColor;
-  let rectOpacity = isDimmed ? 0.35 : 0.8;
+  let baseColor = originalColor;
+  if (isDimmedByMeasurement) {
+    baseColor = getMaskedTensorColor(originalColor, getIsDarkTheme(), maskedColorCache);
+  } else if (isDimmedBySearch) {
+    baseColor = 'rgba(130, 130, 130, 0.55)';
+  }
+  let rectOpacity = isDimmedBySearch && !isDimmedByMeasurement ? 0.35 : 0.8;
   if (isMeasurementHighlighted) {
     baseColor = highlightColor;
     rectOpacity = 0.9;
@@ -361,6 +391,7 @@ const createTensorRenderer = ({
   // Tensor identities are stable for a chart update, so membership checks can stay O(1).
   const measuredIdentityCache: TensorIdentityCache = { entries: null, identities: new Set<string>() };
   const highlightedIdentityCache: TensorIdentityCache = { entries: null, identities: new Set<string>() };
+  const maskedColorCache = new Map<string, string>();
   const tensorRenderStateOptions: TensorRenderStateOptions = {
     getSelectedNode,
     getMeasuredTensors,
@@ -475,7 +506,13 @@ const createTensorRenderer = ({
         width,
         height,
         api,
-        getTensorRenderState(api, tensorRenderStateOptions, measuredIdentityCache, highlightedIdentityCache),
+        getTensorRenderState(
+          api,
+          tensorRenderStateOptions,
+          measuredIdentityCache,
+          highlightedIdentityCache,
+          maskedColorCache,
+        ),
       ),
     };
   };

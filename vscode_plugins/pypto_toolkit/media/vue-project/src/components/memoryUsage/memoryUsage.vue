@@ -195,7 +195,15 @@ import { createMemoryUsageChildContextMap, provideMemoryUsageSwimGraph } from '.
 import { TensorSearchNavigationUtil } from './tensorSearchNavigationUtil';
 import { TensorSearchOverlayUtil } from './TensorSearchOverlayUtil';
 import { TensorAddressGuide } from './tensorAddressGuide';
-import { processIncomingData, formatRawShape, getTensorMagicId, findMemoryTensorsAtPoint } from './memoryDataProcessor';
+import {
+  collectRawList,
+  findMemoryTensorsAtPoint,
+  formatRawShape,
+  getTensorMagicId,
+  isValidMemoryTensor,
+  processIncomingData,
+  updateTensorColorMap,
+} from './memoryDataProcessor';
 import { detectConflicts } from './memoryConflictDetection';
 import { createConflictPattern, createMemoryChartRenderers, createMinimapRects } from './memoryChartRenderer';
 import {
@@ -246,6 +254,9 @@ const error = ref(false);
 
 watch(isDarkTheme, () => {
   if (myChart) {
+    const rawMemoryData = currentMemoryData || server.GmMemoryVisualData?.value;
+    const memoryData = rawMemoryData?.data || rawMemoryData || {};
+    updateTensorColorMap(tensorColorMap, collectRawList(memoryData).filter(isValidMemoryTensor), isDarkTheme.value);
     myChart.setOption(getChartOption());
     tensorAddressGuide.render();
   }

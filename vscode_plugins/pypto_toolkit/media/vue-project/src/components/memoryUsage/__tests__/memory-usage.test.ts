@@ -140,11 +140,11 @@ const SidebarStub = defineComponent({
   template: '<div class="memory-sidebar-test" />',
 });
 
-function mountMemoryUsage(isDarkTheme = true) {
+function mountMemoryUsage(isDarkTheme = true, theme = ref(isDarkTheme)) {
   return mount(MemoryUsage, {
     global: {
       provide: {
-        root: { isDarkTheme: ref(isDarkTheme) },
+        root: { isDarkTheme: theme },
       },
       stubs: {
         DataError: { template: '<div class="data-error" />' },
@@ -625,20 +625,20 @@ describe('memoryUsage happy path', () => {
         value: (index: number) => index === 17 ? { ...fartherSameMagicTensor[index] } : fartherSameMagicTensor[index],
       },
     );
-    expect(fartherSameMagicGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: 'rect', style: expect.objectContaining({ fill: 'rgba(130, 130, 130, 0.55)', opacity: 0.35 }) }),
-    ]));
+    const fartherSameMagicRects = fartherSameMagicGraphic.children.filter((child: any) => child.type === 'rect');
+    expect(fartherSameMagicRects).toHaveLength(1);
+    expect(fartherSameMagicRects[0].style).toMatchObject({ fill: 'rgb(255, 234, 225)', opacity: 0.8 });
 
     const unrelatedTensor = detailOption.series.find((series: any) => series.id === 'tensors').data[0];
     const unrelatedGraphic = detailOption.series[0].renderItem(
       { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
       { coord: (value: number[]) => value.map((entry) => entry * 100), value: (index: number) => unrelatedTensor[index] },
     );
+    const unrelatedRects = unrelatedGraphic.children.filter((child: any) => child.type === 'rect');
+    expect(unrelatedRects).toHaveLength(1);
+    expect(unrelatedRects[0].style).toMatchObject({ fill: expect.stringMatching(/^rgb\(/), opacity: 0.8 });
+    expect(unrelatedRects[0].style.fill).not.toBe(fartherSameMagicRects[0].style.fill);
     expect(unrelatedGraphic.children).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        type: 'rect',
-        style: expect.objectContaining({ fill: 'rgba(130, 130, 130, 0.55)', opacity: 0.35 }),
-      }),
       expect.objectContaining({
         type: 'text',
         style: expect.objectContaining({ fill: 'rgba(82, 82, 88, 0.65)', opacity: 0.45 }),
@@ -761,6 +761,31 @@ describe('memoryUsage happy path', () => {
     wrapper.unmount();
     expect(secondChart.dispose).toHaveBeenCalledOnce();
     expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
+  });
+
+  it('regenerates tensor colors when the theme changes', async () => {
+    const theme = ref(true);
+    const wrapper = mountMemoryUsage(true, theme);
+    await settleMemoryView();
+
+    const initialOption = testState.chart.setOption.mock.calls[0][0];
+    const tensorSeries = initialOption.series.find((series: any) => series.id === 'tensors');
+    const renderTensor = () => tensorSeries.renderItem(
+      { coordSys: { height: 1000, width: 1000, x: 0, y: 0 }},
+      {
+        coord: (value: number[]) => value.map((entry) => entry * 100),
+        value: (index: number) => tensorSeries.data[0][index],
+      },
+    );
+    const darkFill = renderTensor().children.find((child: any) => child.type === 'rect').style.fill;
+
+    theme.value = false;
+    await nextTick();
+
+    const lightFill = renderTensor().children.find((child: any) => child.type === 'rect').style.fill;
+    expect(lightFill).not.toBe(darkFill);
+
+    wrapper.unmount();
   });
 
   it.each(['', '   ', '{invalid-json'])('shows the data error state for malformed JSON text', async (rawText) => {
