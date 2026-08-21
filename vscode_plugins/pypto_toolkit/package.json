@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "icon": "media/images/logo.png",
   "engines": {
     "vscode": "^1.82.0",
@@ -266,7 +266,7 @@
     "@playwright/test": "1.61.1",
     "@types/lodash": "^4.17.21",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^18.19.130",
+    "@types/node": "^22.0.0",
     "@types/sql.js": "^1.4.4",
     "@vitest/coverage-v8": "^4.1.11",
     "@vscode/test-cli": "0.0.15",

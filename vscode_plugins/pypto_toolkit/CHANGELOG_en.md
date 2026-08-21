@@ -1,5 +1,12 @@
 # PyPTO Toolkit Plugin Version Change Notes
 
+## [2.0.20] - 2026.08.21
+
+### Added
+
+- The GM memory visualization supports arbitrary Tensor distance measurement, adds a single region view mode, and adds an Accesses table view
+- The swimlane graph supports scroll-based box selection
+
 ## [2.0.19] - 2026.08.07
 
 ### Added
