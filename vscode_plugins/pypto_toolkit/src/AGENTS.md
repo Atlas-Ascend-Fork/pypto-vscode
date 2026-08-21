@@ -26,7 +26,7 @@ src/
 | 命令系统 | `command/registerCommand.ts` | RegisterCommand |
 | 视图管理 | `view/index.ts` | initView() |
 | 计算图 | `view/graphView.ts` | GraphView |
-| 泳道图 | `view/swimGraphView.ts` | SwimGraphView |
+| 泳道图 | `view/servers/swim-graph-server.ts` | SwimGraphServer |
 | 三栏联动 | `view/threeColumnEntry.ts` | ThreeColumnEntry |
 | 控制流 | `services/control-flow/index.ts` | ControlFlowService |
 | 存储管理 | `core/store/index.ts` | initStores() |

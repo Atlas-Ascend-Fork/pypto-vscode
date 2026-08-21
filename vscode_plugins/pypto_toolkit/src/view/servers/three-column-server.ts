@@ -12,7 +12,6 @@ import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
-import { SwimData } from '../swimGraphView';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
@@ -40,6 +39,16 @@ import {
   ISwimRefs,
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
+
+export class SwimData {
+  public uri: Uri;
+  public fsPath: string;
+
+  constructor(uri: Uri, fsPath: string) {
+    this.uri = uri;
+    this.fsPath = fsPath;
+  }
+}
 
 type Apis = IComApis | ICommonApis | IThreeApis | ISwimApis;
 

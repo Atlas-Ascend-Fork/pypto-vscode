@@ -16,58 +16,30 @@ The main contribution scenarios for developers include:
 
 ---
 
-## Code Standards and Submission Checks
+## Dependency Installation
 
-### Commit Message Standards
+### Environment Requirements
 
-This project uses [commitlint](https://commitlint.js.org/) + [husky](https://typicode.github.io/husky/) to automatically validate the Commit Message format during submission. Developers **must** follow the standards below before submitting code.
+| Tool | Minimum Version | Description |
+| --- | --- | --- |
+| VSCode | >= 1.82.0 | Download: https://code.visualstudio.com/download |
+| Node.js | >= 22.13 | LTS version recommended |
+| npm | >= 11.0.0 | Installed with Node.js |
 
-Allowed types:
+### Installation Steps
 
-| type | Description |
-| --- | --- |
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation changes |
-| style | Code format (does not affect functionality) |
-| refactor | Refactor (neither a new feature nor a bug fix) |
-| perf | Performance optimization |
-| test | Testing related |
-| build | Build system or external dependency changes |
-| release | Release related |
-| chore | Other miscellaneous |
-| revert | Revert commit |
+1. Install outer dependencies: `cd vscode_plugins/pypto_toolkit && npm install`;
+2. Install vue-project dependencies: `cd media/vue-project && npm install`;
 
-Format: `type(scope): subject`
+### Remote Development (Linux)
 
-Constraints:
-- type and subject cannot be empty
-- The header has a maximum length of 88 characters
+To develop and debug remotely on a Linux machine, install the official [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension in your local VSCode, then connect to the remote Linux machine via SSH for development.
 
-Samples:
+---
 
-```
-feat(graph): support computation graph node search highlighting
-fix(swimlane): fix node loss issue during swimlane diagram export
-docs(readme): update installation instructions
-```
+## Debug Startup
 
-### ESLint Code Check
-
-This project uses ESLint for code style checks, covering both the backend (TypeScript extension host) and frontend (Vue Webview).
-
-```bash
-# Backend code check (in the vscode_plugins/pypto_toolkit directory)
-npm run lint:check        # Check only
-npm run lint              # Check and auto-fix
-
-# Frontend code check (in the media/vue-project directory)
-npm run lint:check        # Check only, 0 warning tolerance
-npm run lint              # Check and auto-fix
-
-# Type check
-npm run check             # Backend + frontend type check
-```
+Open the `vscode_plugins/pypto_toolkit` directory in VSCode, press F5 to start debugging (select the `Run Extension` configuration), which will automatically execute `npm run watch` to compile and start the extension development host;
 
 ---
 
@@ -122,71 +94,60 @@ The coverage report shows Statements, Branches, Functions, and Lines coverage fo
 
 ---
 
-## Debug Startup
+## Code Standards and Submission Checks
 
-1. Install outer dependencies: `cd vscode_plugins/pypto_toolkit && npm install`;
-2. Install vue-project dependencies: `cd media/vue-project && npm install`;
-3. Open the `vscode_plugins/pypto_toolkit` directory in VSCode, press F5 to start debugging (select the `Run Extension` configuration), which will automatically execute `npm run watch` to compile and start the extension development host;
+### ESLint Code Check
 
-## Notes on vue-project Code Development
+This project uses ESLint for code style checks, covering both the backend (TypeScript extension host) and frontend (Vue Webview).
 
-1. Use staticPath on window to concatenate static assets to ensure correct resource import during packaging and debugging `${staticPath}/static-assets/logo.svg`;
+```bash
+# Backend code check (in the vscode_plugins/pypto_toolkit directory)
+npm run lint:check        # Check only
+npm run lint              # Check and auto-fix
 
-## Register and Use Custom Views
+# Frontend code check (in the media/vue-project directory)
+npm run lint:check        # Check only, 0 warning tolerance
+npm run lint              # Check and auto-fix
 
-### Register Routes
-For the configuration of /src/view/routes.ts, refer to the TypeScript type hints.
-
-### Open a View
-
-``` typescript
-import { useView } from '/src/views';
-
-const { editorView } = useView();
-const uri = vscode.Uri.file('file path');
-const webviewPanel = await editorView.open('view type', uri);
+# Type check
+npm run check             # Backend + frontend type check
 ```
 
-## Frontend and Backend Data Requests
+### Commit Message Standards
 
-### Backend Services
+This project uses [commitlint](https://commitlint.js.org/) + [husky](https://typicode.github.io/husky/) to automatically validate the Commit Message format during submission. Developers **must** follow the standards below before submitting code.
 
-Service instance /src/core/request-server.ts
+Allowed types:
 
-API implementation /src/services
+| type | Description |
+| --- | --- |
+| feat | New feature |
+| fix | Bug fix |
+| docs | Documentation changes |
+| style | Code format (does not affect functionality) |
+| refactor | Refactor (neither a new feature nor a bug fix) |
+| perf | Performance optimization |
+| test | Testing related |
+| build | Build system or external dependency changes |
+| release | Release related |
+| chore | Other miscellaneous |
+| revert | Revert commit |
 
-``` typescript
-// Start API service: src/extension.ts
-const server = new ExtensionApiServer(services);
+Format: `type(scope): subject`
+
+Constraints:
+- type and subject cannot be empty
+- The header has a maximum length of 88 characters
+
+Samples:
+
 ```
-Add new modules to services in /src/services/index.ts
-
-``` typescript
-// src/services/index.ts
-import * as controlFlow from './control-flow';
-import * as workspace from './workspace';
-
-export const services = {
-  // Control flow
-  controlFlow,
-  // Workspace
-  workspace,
-};
+feat(graph): support computation graph node search highlighting
+fix(swimlane): fix node loss issue during swimlane diagram export
+docs(readme): update installation instructions
 ```
 
-### Frontend Requests
-
-Request instance /media/vue-project/src/core/request.ts
-
-Encapsulated request methods /media/vue-project/src/apis
-
-``` typescript
-import { request } from '../core/request.ts';
-
-request.post('module/method', params).then((res) => {
-  // Request response
-});
-```
+---
 
 ## Dependency Reference Documentation
 

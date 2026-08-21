@@ -41,7 +41,7 @@ pypto-tools/
 | 扩展入口 | `vscode_plugins/pypto_toolkit/src/extension.ts` | activate()初始化服务/视图/命令 |
 | 命令注册 | `vscode_plugins/pypto_toolkit/src/command/registerCommand.ts` | VSCode命令映射 |
 | 计算图视图 | `vscode_plugins/pypto_toolkit/src/view/graphView.ts` | ComGraph渲染 |
-| 泳道图视图 | `vscode_plugins/pypto_toolkit/src/view/swimGraphView.ts` | Swimlane渲染 |
+| 泳道图视图 | `vscode_plugins/pypto_toolkit/src/view/servers/swim-graph-server.ts` | Swimlane渲染 |
 | 三栏联动 | `vscode_plugins/pypto_toolkit/src/view/threeColumnEntry.ts` | 代码-计算图-泳道图联动 |
 | 控制流服务 | `vscode_plugins/pypto_toolkit/src/services/control-flow/` | PATH解析/树构建 |
 | SQLite缓存 | `vscode_plugins/pypto_toolkit/src/core/store/sql-store/` | 图数据持久化 |
@@ -66,8 +66,8 @@ pypto-tools/
 - **CLI**: argparse标准库
 
 ### 命名
-- 文件: 小写+连字符 (`swim-graph-view.ts`)
-- 类: PascalCase (`SwimGraphView`)
+- 文件: 小写+连字符 (`swim-graph-server.ts`)
+- 类: PascalCase (`SwimGraphServer`)
 - 方法: camelCase (`loadMainData`)
 - 常量: UPPER_SNAKE_CASE
 

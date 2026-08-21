@@ -10,7 +10,6 @@ VSCode Webview视图提供者。计算图、泳道图、控制流、三栏联动
 view/
 ├── index.ts              # 视图初始化入口
 ├── graphView.ts          # 计算图视图
-├── swimGraphView.ts      # 泳道图视图
 ├── threeColumnEntry.ts   # 三栏联动入口
 ├── SidebarViewProvider.ts # 侧边栏视图
 ├── pyptoJitCodeLensProvider.ts # CodeLens
@@ -27,7 +26,7 @@ view/
 | 功能 | 文件 | 类/函数 |
 |------|------|---------|
 | 打开计算图 | `graphView.ts` | GraphView.createOrShow() |
-| 打开泳道图 | `swimGraphView.ts` | SwimGraphView.createOrShow() |
+| 打开泳道图 | `servers/swim-graph-server.ts` | SwimGraphServer（通过 `editorView.open('swimGraph', uri)` 路由） |
 | 三栏联动 | `threeColumnEntry.ts` | ThreeColumnEntry.open() |
 | 侧边栏 | `SidebarViewProvider.ts` | SidebarViewProvider |
 | CodeLens | `pyptoJitCodeLensProvider.ts` | PyptoJitCodeLensProvider |

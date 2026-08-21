@@ -16,58 +16,30 @@
 
 ---
 
-## 代码规范与提交检查
+## 依赖安装
 
-### Commit Message 规范
+### 环境要求
 
-本项目使用 [commitlint](https://commitlint.js.org/) + [husky](https://typicode.github.io/husky/) 在提交时自动校验 Commit Message 格式。开发者在提交代码前**必须**遵循以下规范。
+| 工具 | 最低版本 | 说明 |
+| --- | --- | --- |
+| VSCode | >= 1.82.0 | 下载地址：https://code.visualstudio.com/download |
+| Node.js | >= 22.13 | 建议使用 LTS 版本 |
+| npm | >= 11.0.0 | 随 Node.js 安装 |
 
-允许的 type 类型：
+### 安装步骤
 
-| type | 说明 |
-| --- | --- |
-| feat | 新特性 |
-| fix | Bug修复 |
-| docs | 文档变更 |
-| style | 代码格式（不影响功能） |
-| refactor | 重构（既不是新增特性也不是修复Bug） |
-| perf | 性能优化 |
-| test | 测试相关 |
-| build | 构建系统或外部依赖变更 |
-| release | 发布相关 |
-| chore | 其他杂项 |
-| revert | 回退提交 |
+1. 安装外层依赖：`cd vscode_plugins/pypto_toolkit && npm install`；
+2. 安装 vue-project 依赖：`cd media/vue-project && npm install`；
 
-格式：`type(scope): subject`
+### 远程开发（Linux）
 
-约束：
-- type 和 subject 不能为空
-- header 最大长度 88 字符
+如需在 Linux 机器上远程开发调试，需要在本地 VSCode 中安装官方 [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) 插件，通过 SSH 连接到远程 Linux 机器后进行开发。
 
-示例：
+---
 
-```
-feat(graph): 支持计算图节点搜索高亮
-fix(swimlane): 修复泳道图导出时节点丢失问题
-docs(readme): 更新安装说明
-```
+## 调试启动
 
-### ESLint 代码检查
-
-本项目使用 ESLint 进行代码风格检查，覆盖后端（TypeScript 扩展宿主）和前端（Vue Webview）两部分。
-
-```bash
-# 后端代码检查（在 vscode_plugins/pypto_toolkit 目录下）
-npm run lint:check        # 仅检查
-npm run lint              # 检查并自动修复
-
-# 前端代码检查（在 media/vue-project 目录下）
-npm run lint:check        # 仅检查，0 warning 容忍
-npm run lint              # 检查并自动修复
-
-# 类型检查
-npm run check             # 后端 + 前端类型检查
-```
+用 VSCode 打开 `vscode_plugins/pypto_toolkit` 目录，按 F5 启动调试（选择 `Run Extension` 配置），将自动执行 `npm run watch` 编译并启动扩展开发宿主；
 
 ---
 
@@ -122,71 +94,60 @@ npx vitest run test/ut --coverage
 
 ---
 
-## 调试启动
+## 代码规范与提交检查
 
-1. 安装外层依赖：`cd vscode_plugins/pypto_toolkit && npm install`；
-2. 安装 vue-project 依赖：`cd media/vue-project && npm install`；
-3. 用 VSCode 打开 `vscode_plugins/pypto_toolkit` 目录，按 F5 启动调试（选择 `Run Extension` 配置），将自动执行 `npm run watch` 编译并启动扩展开发宿主；
+### ESLint 代码检查
 
-## vue-project代码开发注意点
+本项目使用 ESLint 进行代码风格检查，覆盖后端（TypeScript 扩展宿主）和前端（Vue Webview）两部分。
 
-1. 静态资源用window上的staticPath拼接，保障打包和调试的资源引入正确 `${staticPath}/static-assets/logo.svg`;
+```bash
+# 后端代码检查（在 vscode_plugins/pypto_toolkit 目录下）
+npm run lint:check        # 仅检查
+npm run lint              # 检查并自动修复
 
-## 注册和使用自定义视图
+# 前端代码检查（在 media/vue-project 目录下）
+npm run lint:check        # 仅检查，0 warning 容忍
+npm run lint              # 检查并自动修复
 
-### 注册路由
-/src/view/routes.ts 配置详见ts类型提示
-
-### 打开视图
-
-``` typescript
-import { useView } from '/src/views';
-
-const { editorView } = useView();
-const uri = vscode.Uri.file('文件路径');
-const webviewPanel = await editorView.open('视图类型', uri);
+# 类型检查
+npm run check             # 后端 + 前端类型检查
 ```
 
-## 前后端数据请求
+### Commit Message 规范
 
-### 后端服务
+本项目使用 [commitlint](https://commitlint.js.org/) + [husky](https://typicode.github.io/husky/) 在提交时自动校验 Commit Message 格式。开发者在提交代码前**必须**遵循以下规范。
 
-服务实例 /src/core/request-server.ts
+允许的 type 类型：
 
-API实现 /src/services
+| type | 说明 |
+| --- | --- |
+| feat | 新特性 |
+| fix | Bug修复 |
+| docs | 文档变更 |
+| style | 代码格式（不影响功能） |
+| refactor | 重构（既不是新增特性也不是修复Bug） |
+| perf | 性能优化 |
+| test | 测试相关 |
+| build | 构建系统或外部依赖变更 |
+| release | 发布相关 |
+| chore | 其他杂项 |
+| revert | 回退提交 |
 
-``` typescript
-// 启动API服务：src/extension.ts
-const server = new ExtensionApiServer(services);
+格式：`type(scope): subject`
+
+约束：
+- type 和 subject 不能为空
+- header 最大长度 88 字符
+
+示例：
+
 ```
-新增模块需要在/src/services/index.ts补充至services
-
-``` typescript
-// src/services/index.ts
-import * as controlFlow from './control-flow';
-import * as workspace from './workspace';
-
-export const services = {
-  // 控制流
-  controlFlow,
-  // 工作区
-  workspace,
-};
+feat(graph): 支持计算图节点搜索高亮
+fix(swimlane): 修复泳道图导出时节点丢失问题
+docs(readme): 更新安装说明
 ```
 
-### 前端请求
-
-请求实例 /media/vue-project/src/core/request.ts
-
-封装请求方法 /media/vue-project/src/apis
-
-``` typescript
-import { request } from '../core/request.ts';
-
-request.post('模块/方法', params).then((res) => {
-  // 请求响应
-});
-```
+---
 
 ## 依赖参考文档
 

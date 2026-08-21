@@ -11,7 +11,7 @@ import 'core-js/stable/structured-clone';
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { ExtensionContext, window, env, WebviewPanel } from 'vscode';
+import { ExtensionContext, window, env } from 'vscode';
 import * as vscode from 'vscode';
 
 import * as translationEN from '../package.nls.json';
@@ -25,7 +25,6 @@ import { clearAllStores, initStores } from './core/store';
 import { hismartliteEx } from './hismarliteEx';
 import { closeAllServices, serviceApis, startAllServices } from './services';
 import { initView } from './view';
-import { SwimGraphView } from './view/swimGraphView.js';
 import { loadMaterialColorUtilities } from './color-list';
 import { SidebarViewProvider } from './view/SidebarViewProvider';
 import { t } from 'i18next';
@@ -144,14 +143,6 @@ export async function activate(context: ExtensionContext) {
     }),
   );
 
-  if (window.registerWebviewPanelSerializer) {
-    window.registerWebviewPanelSerializer('swimLaneOpen', {
-      async deserializeWebviewPanel(webviewPanel: WebviewPanel, state: unknown) {
-        await loadMaterialColorUtilities();
-        SwimGraphView.revive(webviewPanel, context.extensionUri);
-      },
-    });
-  }
   sampleManager = new SampleManager();
   sampleManager.prepare();
 }
