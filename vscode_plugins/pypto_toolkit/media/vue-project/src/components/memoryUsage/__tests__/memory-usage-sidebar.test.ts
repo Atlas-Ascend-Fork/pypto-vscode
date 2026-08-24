@@ -458,9 +458,11 @@ describe('memoryUsageSidebar access filter', () => {
     expect(chartState.initCount).toBe(1);
     expect(chartState.disposeCount).toBe(0);
 
-    const regularWheel = new WheelEvent('wheel', { cancelable: true });
+    const scrollContainer = wrapper.get('.sidebar-body-wrapper').element;
+    const regularWheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 });
     chartElement.dispatchEvent(regularWheel);
-    expect(regularWheel.defaultPrevented).toBe(false);
+    expect(regularWheel.defaultPrevented).toBe(true);
+    expect(scrollContainer.scrollTop).toBe(120);
 
     const ctrlWheel = new WheelEvent('wheel', { cancelable: true, ctrlKey: true });
     chartElement.dispatchEvent(ctrlWheel);

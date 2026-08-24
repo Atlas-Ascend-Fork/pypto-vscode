@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <div v-show="viewMode === 'chart'" class="sidebar-body-wrapper">
+      <div v-show="viewMode === 'chart'" ref="sidebarBodyRef" class="sidebar-body-wrapper">
         <div
           ref="chartRef"
           class="echarts-dom memory-lane-chart"
@@ -527,6 +527,7 @@ const selectedAccess = computed(() => {
   return activeAccesses.value.find((_, index) => selectedAccessKey.value === `${activeTensorId.value}|${index}`);
 });
 const sidebarHeaderRef = ref(null);
+const sidebarBodyRef = ref(null);
 const tabsViewportRef = ref(null);
 const previewTensorEntry = ref(null);
 const previewLeft = ref(0);
@@ -1099,7 +1100,23 @@ function attachChartWheelListener(chartDom) {
   chartWheelHandler = (event) => {
     if (event.ctrlKey) {
       event.preventDefault();
+      return;
     }
+
+    const scrollContainer = sidebarBodyRef.value;
+    if (!scrollContainer || !event.deltaY) {
+      return;
+    }
+
+    let scrollDelta = event.deltaY;
+    if (event.deltaMode === 1) {
+      scrollDelta *= 16;
+    } else if (event.deltaMode === 2) {
+      scrollDelta *= scrollContainer.clientHeight;
+    }
+    scrollContainer.scrollTop += scrollDelta;
+    event.preventDefault();
+    event.stopPropagation();
   };
   chartMouseDownHandler = () => {
     isChartPointerDown = true;
